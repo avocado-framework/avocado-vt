@@ -711,7 +711,9 @@ def run_autotest(vm, session, control_path, timeout,
         hash_differs = False
         local_hash = crypto.hash_file(local_path)
         basename = os.path.basename(local_path)
-        output = session.cmd_output("md5sum %s" % remote_path)
+        output = session.cmd_output("md5sum %s" % remote_path,
+                                    timeout=int(
+                                        params.get("md5sum_timeout", 240)))
         if "such file" in output:
             remote_hash = "0"
         elif output:
