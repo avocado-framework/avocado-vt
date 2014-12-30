@@ -71,6 +71,14 @@ _setup_manager = test_setup.SetupManager()
 _pre_hugepages_surp = 0
 _post_hugepages_surp = 0
 
+#: Hooks to use for own customization stages of the virtual machines with
+#: test, params. and env as supplied arguments
+preprocess_vm_off_hook = None
+preprocess_vm_on_hook = None
+postprocess_vm_on_hook = None
+postprocess_vm_off_hook = None
+
+
 #: QEMU version regex.  Attempts to extract the simple and extended version
 #: information from the output produced by `qemu -version`
 QEMU_VERSION_RE = r"QEMU (?:PC )?emulator version\s([0-9]+\.[0-9]+\.[0-9]+)\s?\((.*?)\)"
@@ -751,6 +759,10 @@ def preprocess(test, params, env):
     """
     error_context.context("preprocessing")
 
+    # Run this hook before any network setup stage and vm creation.
+    if callable(preprocess_vm_off_hook):
+        preprocess_vm_off_hook(test, params, env)  # pylint: disable=E1102
+
     # Check if code coverage for qemu is enabled and
     # if coverage reset is enabled too, reset coverage report
     gcov_qemu = params.get("gcov_qemu", "no") == "yes"
@@ -1255,6 +1267,11 @@ def preprocess(test, params, env):
             if THREAD_ERROR:
                 raise exceptions.TestFail("Test inside nested guest "
                                           "reported failure")
+
+    # Run this hook after any network setup stage and vm creation.
+    if callable(preprocess_vm_on_hook):
+        preprocess_vm_on_hook(test, params, env)  # pylint: disable=E1102
+
     return params
 
 
@@ -1269,6 +1286,16 @@ def postprocess(test, params, env):
     """
     error_context.context("postprocessing")
     err = ""
+
+    # Run this hook before closing the connections to the qemu monitors
+    # and possibly destroying the vms.
+    if callable(postprocess_vm_on_hook):
+        try:
+            postprocess_vm_on_hook(test, params, env)  # pylint: disable=E1102
+        except Exception as details:
+            err += "\nPostprocessing living vm hook: %s" % str(details).replace('\\n', '\n  ')
+            logging.error(details)
+
     migration_setup = params.get("migration_setup", "no") == "yes"
     if params.get("verify_guest_dmesg", "yes") == "yes" and params.get("start_vm", "no") == "yes":
         guest_dmesg_log_file = params.get("guest_dmesg_logfile", "guest_dmesg.log")
@@ -1649,6 +1676,15 @@ def postprocess(test, params, env):
             err += "\nHost dmesg verification failed: %s" % details
 
     err += "\n".join(_setup_manager.do_cleanup())
+
+    # Run this hook after any vms are actually off to ensure data is
+    # written to disk.
+    if callable(postprocess_vm_off_hook):
+        try:
+            postprocess_vm_off_hook(test, params, env)  # pylint: disable=E1102
+        except Exception as details:
+            err += "\nPostprocessing dead vm hook: %s" % str(details).replace('\\n', '\n  ')
+            logging.error(details)
 
     if err:
         raise RuntimeError("Failures occurred while postprocess:\n%s" % err)
