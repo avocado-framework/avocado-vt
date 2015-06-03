@@ -1,0 +1,13 @@
+Source: avocado-plugins-vt
+Section: python
+Priority: optional
+Maintainer: Lucas Meneghel Rodrigues (lmr) <lookkas@gmail.com>
+Build-Depends: debhelper (>=7.0.50~), python-support (>= 0.6), cdbs (>= 0.4.49)
+Standards-Version: 3.8.4
+
+Package: avocado-plugins-vt
+Architecture: all
+Homepage: https://github.com/avocado-framework/avocado-virt
+XB-Python-Version: ${python:Versions}
+Depends: ${misc:Depends}, ${python:Depends}, avocado
+Description: Avocado virt test compatibility layer plugin.

@@ -1,0 +1,17 @@
+.project
+.pydevproject
+.settings
+.coverage
+.idea/*
+coverage.xml
+xunit.xml
+tmp/*
+logs/*
+*.pyc
+*~
+tags
+cscope.*
+build
+sysinfo-*
+MANIFEST
+dist
