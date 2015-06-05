@@ -1,0 +1,3 @@
+version=3
+
+https://github.com/avocado-framework/avocado-virt/tags .*/(\d[\d\.]+)\.tar\.gz
