@@ -28,7 +28,7 @@ from avocado.core import loader
 from avocado.core import output
 from avocado.core import exceptions
 from avocado.core.plugins import plugin
-from avocado import test
+from avocado.core.test import Test as AvocadoTest
 from avocado.settings import settings
 from avocado.utils import path
 from avocado import multiplexer
@@ -364,7 +364,7 @@ class VirtTestLoader(loader.TestLoader):
         return params_list
 
 
-class VirtTest(test.Test):
+class VirtTest(AvocadoTest):
 
     """
     Mininal test class used to run a virt test.
