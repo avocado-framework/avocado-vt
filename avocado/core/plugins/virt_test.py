@@ -29,9 +29,9 @@ from avocado.core import output
 from avocado.core import exceptions
 from avocado.core.plugins import plugin
 from avocado.core.test import Test as AvocadoTest
-from avocado.settings import settings
+from avocado.core.settings import settings
 from avocado.utils import path
-from avocado import multiplexer
+from avocado.core import multiplexer
 
 # virt-test supports using autotest from a git checkout, so we'll have to
 # support that as well. The code below will pick up the environment variable

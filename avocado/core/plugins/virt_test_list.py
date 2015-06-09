@@ -19,7 +19,7 @@ Avocado plugin that augments 'avocado list' with virt-test related options.
 import os
 import sys
 
-from avocado.settings import settings
+from avocado.core.settings import settings
 from avocado.core.plugins import plugin
 
 # virt-test supports using autotest from a git checkout, so we'll have to
