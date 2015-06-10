@@ -95,6 +95,18 @@ from virttest.standalone_test import LIBVIRT_INSTALL
 from virttest.standalone_test import LIBVIRT_REMOVE
 
 
+class SetupError(Exception):
+    pass
+
+providers_download_dir = os.path.join(data_dir.get_root_dir(),
+                                      'test-providers.d', 'downloads')
+providers_dir_empty = len(os.listdir(providers_download_dir)) == 0
+
+if providers_dir_empty:
+    raise SetupError("virt-test bootstrap missing. "
+                     "Execute './run -t [test-type] --bootstrap' in virt-test")
+
+
 class VirtTestResult(result.HumanTestResult):
 
     """
