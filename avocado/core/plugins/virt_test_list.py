@@ -55,6 +55,19 @@ if VIRT_TEST_PATH is not None:
 
 from virttest.standalone_test import SUPPORTED_TEST_TYPES
 from virttest.defaults import DEFAULT_GUEST_OS
+from virttest import data_dir
+
+
+class SetupError(Exception):
+    pass
+
+providers_download_dir = os.path.join(data_dir.get_root_dir(),
+                                      'test-providers.d', 'downloads')
+providers_dir_empty = len(os.listdir(providers_download_dir)) == 0
+
+if providers_dir_empty:
+    raise SetupError("virt-test bootstrap missing. "
+                     "Execute './run -t [test-type] --bootstrap' in virt-test")
 
 
 class VirtTestListerPlugin(plugin.Plugin):
