@@ -1176,7 +1176,7 @@ class VirtTestCompatPlugin(plugin.Plugin):
                                             default='qemu')
         vt_compat_group_common.add_argument("--vt-guest-os", action="store",
                                             dest="vt_guest_os",
-                                            default=None,
+                                            default=defaults.DEFAULT_GUEST_OS,
                                             help=("Select the guest OS to "
                                                   "be used. If --vt-config is "
                                                   "provided, this will be "
@@ -1194,7 +1194,7 @@ class VirtTestCompatPlugin(plugin.Plugin):
                                                    default=qemu_bin_path)
         vt_compat_group_qemu.add_argument("--vt-qemu-bin", action="store",
                                           dest="vt_qemu_bin",
-                                          default=None,
+                                          default=qemu_bin_path_current,
                                           help=("Path to a custom qemu binary "
                                                 "to be tested. If --vt-config "
                                                 "is provided and this flag is "
@@ -1207,7 +1207,7 @@ class VirtTestCompatPlugin(plugin.Plugin):
                                                        default=qemu_bin_path)
         vt_compat_group_qemu.add_argument("--vt-qemu-dst-bin", action="store",
                                           dest="vt_dst_qemu_bin",
-                                          default=None,
+                                          default=qemu_dst_bin_path_current,
                                           help=("Path to a custom qemu binary "
                                                 "to be tested for the "
                                                 "destination of a migration, "
