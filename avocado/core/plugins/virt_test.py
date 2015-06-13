@@ -368,7 +368,15 @@ class VirtTestLoader(loader.TestLoader):
     def discover_url(self, url):
         cartesian_parser = self._get_parser()
         if url != 'vt_list_all':
-            cartesian_parser.only_filter(url)
+            try:
+                cartesian_parser.only_filter(url)
+            # If we have a LexerError, this means
+            # the url passed is invalid in the cartesian
+            # config parser, hence it should be ignored.
+            # just return an empty params list and let
+            # the other test plugins to handle the URL.
+            except cartesian_config.LexerError:
+                return []
         params_list = [t for t in cartesian_parser.get_dicts()]
         return params_list
 
