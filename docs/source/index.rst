@@ -13,6 +13,7 @@ Contents:
    :maxdepth: 2
 
    Introduction
+   GetStartedGuide
 
 Indices and tables
 ==================

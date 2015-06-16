@@ -30,8 +30,8 @@ master_doc = 'index'
 project = u'Avocado Virt Test Compatibility Layer'
 copyright = u'2014, Red Hat'
 
-version = '0.24.0'
-release = '0.24.0'
+version = '0.25.0'
+release = '0.25.0'
 
 # on_rtd is whether we are on readthedocs.org, this line of code grabbed from
 # docs.readthedocs.org
@@ -48,19 +48,21 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
 htmlhelp_basename = 'avocadodoc'
 
 latex_documents = [
-    ('index', 'avocado.tex', u'avocado Documentation',
+    ('index', 'avocado.tex',
+     u'Avocado Virt Test Compatibility Layer Documentation',
      u'Lucas Meneghel Rodrigues', 'manual'),
 ]
 
 man_pages = [
-    ('index', 'avocado', u'avocado Documentation',
+    ('index', 'avocado', u'Avocado Virt Test Compatibility Layer Documentation',
      [u'Lucas Meneghel Rodrigues'], 1)
 ]
 
 texinfo_documents = [
-    ('index', 'avocado', u'avocado Documentation',
-     u'Lucas Meneghel Rodrigues', 'avocado', 'One line description of project.',
-     'Miscellaneous'),
+    ('index', 'avocado', u'Avocado Virt Test Compatibility Layer',
+     u'Lucas Meneghel Rodrigues', 'avocado',
+     'Avocado plugin providing a compatibility layer to the virt-test suite.',
+     'Testing'),
 ]
 
 # Example configuration for intersphinx: refer to the Python standard library.
