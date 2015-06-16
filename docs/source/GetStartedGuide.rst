@@ -1,23 +1,29 @@
-Avocado Virt Test Compatibility Layer Plugin
-============================================
-
-Avocado Virt Test Compatibility is a plugin that lets you
-execute tests from the virt test suite
-(http://virt-test.readthedocs.org/en/latest/), with all
-the avocado convenience features, such as HTML report,
-Xunit output, among others.
-
+===============================
 Getting started with avocado-vt
 ===============================
 
-Here's a reference guide on how to get the plugin setup and running,
-assuming you are using git repos for avocado and avocado-vt.
+Here's a reference guide on how to get the plugin setup and running.
+We'll assume that you will use avocado and avocado-vt through RPMS,
+and will also provide pointers on how to get the latest released RPMS.
+If you are working on plugin development and want to perform the same
+procedure, but using git repos instead of RPMS, the
+`README.rst file <https://github.com/avocado-framework/avocado-vt/blob/master/README.rst>`__
+at the top level of the avocado-vt repository has the detailed procedure.
 
-1. Have virt-test's repo cloned somewhere you deem appropriate::
+1. Please add the avocado RPM repository, following instructions from
+   `this link <http://avocado-framework.readthedocs.org/en/latest/GetStartedGuide.html#installing-avocado>`__.
+
+2. Assuming you have followed the instructions above, the yum/dnf package
+   manager already has the information necessary to find the package
+   `avocado-plugins-vt`. Install it::
+
+    $ yum install avocado-plugins-vt
+
+3. Have virt-test's repo cloned somewhere you deem appropriate::
 
     $ git clone https://github.com/autotest/virt-test.git
 
-2. Run virt-test's bootstrap procedure for the test backend (qemu, libvirt,
+4. Run virt-test's bootstrap procedure for the test backend (qemu, libvirt,
    v2v, openvswitch, among others) of your interest. We'll use qemu as an example::
 
     $ ./run -t qemu --bootstrap
@@ -28,40 +34,34 @@ assuming you are using git repos for avocado and avocado-vt.
 
     $ ./run -t qemu --bootstrap --update-providers --update-config
 
-3. You'll have to export the environment variable VIRT_TEST_PATH with
-   the virt-test path::
+5. You'll have to add to your local configuration file data that will be used
+   by the compatibility plugin to find virt-test. The local configuration
+   path is `~/.config/avocado/avocado.conf`. There, add the following::
+
+    [virt_test]
+    virt_test_path = /path/to/virt-test
+
+   Alternatively, you can export the environment variable VIRT_TEST_PATH with
+   the virt-test path instead of using the config system::
 
     $ export VIRT_TEST_PATH="/path/to/virt-test"
 
    Or you can add this export command to your `.bashrc` file or something
    similar.
 
-4. Make sure your avocado and avocado-vt repositories are at the same dir level.
-   Then you can go to the avocado source code dir and execute our make 'link'
-   target::
+6. Let's test if things went well by listing the avocado plugins. In the avocado source dir, do::
 
-    $ make link
-
-   That command will generate the following symlinks in your avocado source code
-   dir (assuming you have only avocado-vt, and not avocado-virt)::
-
-	avocado/core/plugins/virt_test.py
-	avocado/core/plugins/virt_test_list.py
-	etc/avocado/conf.d/virt-test.conf
-
-5. Let's test if things went well by listing the avocado plugins. In the avocado source dir, do::
-
-    $ scripts/avocado plugins
+    $ avocado plugins
 
    That command should show the loaded plugins, and hopefully no errors. The relevant lines will be::
 
     virt_test_compat_runner  Implements the avocado virt test options
     virt_test_compat_lister  Implements the avocado virt test options
 
-6. The next test is to see if virt-tests are also listed in the output of the
+7. The next test is to see if virt-tests are also listed in the output of the
    command `avocado list`::
 
-    $ scripts/avocado list --verbose
+    $ avocado list --verbose
 
    This should list a large amount of tests (over 1900 virt related tests)::
 
@@ -74,9 +74,9 @@ assuming you are using git repos for avocado and avocado-vt.
     SIMPLE: 3
     VT: 1906
 
-7. Assuming all is well, you can try running one virt-test::
+8. Assuming all is well, you can try running one virt-test::
 
-    $ scripts/avocado run type_specific.io-github-autotest-qemu.migrate.default.tcp
+    $ avocado run type_specific.io-github-autotest-qemu.migrate.default.tcp
     JOB ID     : <id>
     JOB LOG    : /home/<user>/avocado/job-results/job-2015-06-15T19.46-1c3da89/job.log
     JOB HTML   : /home/<user>/avocado/job-results/job-2015-06-15T19.46-1c3da89/html/results.html
