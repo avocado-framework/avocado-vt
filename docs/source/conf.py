@@ -27,7 +27,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.coverage']
 
 master_doc = 'index'
-project = u'Avocado Virt Test Compatibility Layer'
+project = u'Avocado VT'
 copyright = u'2014, Red Hat'
 
 version = '0.25.0'
