@@ -1,7 +1,7 @@
 Summary: Avocado Virt Test Compatibility Plugin
 Name: avocado-plugins-vt
-Version: 0.24.0
-Release: 2%{?dist}
+Version: 0.25.0
+Release: 1%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -31,9 +31,12 @@ Xunit output, among others.
 %dir /etc/avocado
 %dir /etc/avocado/conf.d
 %config(noreplace)/etc/avocado/conf.d/virt-test.conf
-%doc README.md LICENSE
+%doc README.rst LICENSE
 %{python_sitelib}/avocado*
 
 %changelog
+* Tue Jun 16 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.25.0-1
+- Update to upstream version 0.25.0
+
 * Wed Jun 3 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.24.0-2
 - First version of the compatibility layer plugin
