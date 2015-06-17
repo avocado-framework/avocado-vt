@@ -208,9 +208,7 @@ def configure_file_logging(logfile, loglevel=logging.DEBUG):
 def guest_listing(options, view):
     term_support = output.TermSupport()
     if options.vt_type == 'lvsb':
-        view.notify(event='error',
-                    msg="No guest types available for lvsb testing")
-        sys.exit(1)
+        raise ValueError("No guest types available for lvsb testing")
     index = 0
     view.notify(event='minor', msg=("Searched %s for guest images\n" %
                                     os.path.join(data_dir.get_data_dir(),
@@ -366,7 +364,10 @@ class VirtTestLoader(loader.TestLoader):
         return []
 
     def discover_url(self, url):
-        cartesian_parser = self._get_parser()
+        try:
+            cartesian_parser = self._get_parser()
+        except Exception, details:
+            raise EnvironmentError(details)
         if url != 'vt_list_all':
             try:
                 cartesian_parser.only_filter(url)
@@ -733,9 +734,11 @@ class VirtTestOptionsProcess(object):
         """
         Puts the value of the qemu bin option in the cartesian parser command.
         """
+        qemu_bin_setting = ('option --vt-qemu-bin or '
+                            'config virt_test.qemu.qemu_bin')
         if self.options.vt_config and self.options.vt_qemu_bin is None:
-            logging.info("Config provided and no --vt-qemu-bin set. Not trying "
-                         "to automatically set qemu bin.")
+            logging.info("Config provided and no %s set. Not trying "
+                         "to automatically set qemu bin.", qemu_bin_setting)
         else:
             (qemu_bin_path, qemu_img_path, qemu_io_path,
              qemu_dst_bin_path) = standalone_test.find_default_qemu_paths(
@@ -751,9 +754,11 @@ class VirtTestOptionsProcess(object):
         """
         Puts the value of the qemu bin option in the cartesian parser command.
         """
+        qemu_img_setting = ('option --vt-qemu-img or '
+                            'config virt_test.qemu.qemu_img')
         if self.options.vt_config and self.options.vt_qemu_bin is None:
-            logging.info("Config provided and no --vt-qemu-bin set. Not trying "
-                         "to automatically set qemu bin.")
+            logging.info("Config provided and no %s set. Not trying "
+                         "to automatically set qemu bin", qemu_img_setting)
         else:
             (_, qemu_img_path,
              _, _) = standalone_test.find_default_qemu_paths(
@@ -768,19 +773,18 @@ class VirtTestOptionsProcess(object):
             self.cartesian_parser.assign("disable_kvm", "yes")
 
     def _process_bridge_mode(self):
+        nettype_setting = 'config virt_test.qemu.nettype'
         if self.options.vt_nettype not in SUPPORTED_NET_TYPES:
-            self.view.notify(event='error',
-                             msg="Invalid --vt-nettype option '%s'. "
-                                 "Valid options are: (%s)" %
-                                 (self.options.vt_nettype,
-                                  ", ".join(SUPPORTED_NET_TYPES)))
-            sys.exit(1)
+            raise ValueError("Invalid %s '%s'. "
+                             "Valid values: (%s)" %
+                             (nettype_setting,
+                              self.options.vt_nettype,
+                              ", ".join(SUPPORTED_NET_TYPES)))
         if self.options.vt_nettype == 'bridge':
             if os.getuid() != 0:
-                self.view.notify(event='error',
-                                 msg="In order to use bridge, "
-                                     "you need to be root, aborting...")
-                sys.exit(1)
+                raise ValueError("In order to use %s '%s' you "
+                                 "need to be root" % (nettype_setting,
+                                                      self.options.vt_nettype))
             self.cartesian_parser.assign("nettype", "bridge")
             self.cartesian_parser.assign("netdst", self.options.netdst)
         elif self.options.vt_nettype == 'user':
@@ -794,6 +798,7 @@ class VirtTestOptionsProcess(object):
             self.cartesian_parser.assign("monitor_type_qmp1", "qmp")
 
     def _process_smp(self):
+        smp_setting = 'config virt_test.qemu.smp'
         if not self.options.vt_config:
             if self.options.vt_smp == '1':
                 self.cartesian_parser.only_filter("up")
@@ -805,22 +810,22 @@ class VirtTestOptionsProcess(object):
                     self.cartesian_parser.assign(
                         "smp", int(self.options.vt_smp))
                 except ValueError:
-                    self.view.notify(event='error',
-                                     msg="Invalid option for smp: %s, "
-                                         "aborting..." % self.options.vt_smp)
-                    sys.exit(1)
+                    raise ValueError("Invalid %s '%s'. Valid value: (1, 2)" %
+                                     self.options.vt_smp)
         else:
-            logging.info("Config provided, ignoring --vt-smp option")
+            logging.info("Config provided, ignoring %s", smp_setting)
 
     def _process_arch(self):
+        arch_setting = 'config virt_test.common.arch'
         if self.options.vt_arch is None:
             pass
         elif not self.options.vt_config:
             self.cartesian_parser.only_filter(self.options.vt_arch)
         else:
-            logging.info("Config provided, ignoring --vt-arch option")
+            logging.info("Config provided, ignoring %s", arch_setting)
 
     def _process_machine_type(self):
+        machine_type_setting = 'config virt_test.common.machine_type'
         if not self.options.vt_config:
             if self.options.vt_machine_type is None:
                 # TODO: this is x86-specific, instead we can get the default
@@ -832,9 +837,10 @@ class VirtTestOptionsProcess(object):
             else:
                 self.cartesian_parser.only_filter(self.options.vt_machine_type)
         else:
-            logging.info("Config provided, ignoring --vt-machine-type option")
+            logging.info("Config provided, ignoring %s", machine_type_setting)
 
     def _process_image_type(self):
+        image_type_setting = 'config virt_test.qemu.image_type'
         if not self.options.vt_config:
             if self.options.vt_image_type in SUPPORTED_IMAGE_TYPES:
                 self.cartesian_parser.only_filter(self.options.vt_image_type)
@@ -844,9 +850,10 @@ class VirtTestOptionsProcess(object):
                 self.cartesian_parser.assign("image_format",
                                              self.options.vt_image_type)
         else:
-            logging.info("Config provided, ignoring --vt-image-type option")
+            logging.info("Config provided, ignoring %s", image_type_setting)
 
     def _process_nic_model(self):
+        nic_model_setting = 'config virt_test.qemu.nic_model'
         if not self.options.vt_config:
             if self.options.vt_nic_model in SUPPORTED_NIC_MODELS:
                 self.cartesian_parser.only_filter(self.options.vt_nic_model)
@@ -855,22 +862,24 @@ class VirtTestOptionsProcess(object):
                 self.cartesian_parser.assign(
                     "nic_model", self.options.vt_nic_model)
         else:
-            logging.info("Config provided, ignoring --vt-nic-model option")
+            logging.info("Config provided, ignoring %s", nic_model_setting)
 
     def _process_disk_buses(self):
+        disk_bus_setting = 'config virt_test.qemu.disk_bus'
         if not self.options.vt_config:
             if self.options.vt_disk_bus in SUPPORTED_DISK_BUSES:
                 self.cartesian_parser.only_filter(self.options.vt_disk_bus)
             else:
-                self.view.notify(event='error',
-                                 msg=("Option %s is not in the list %s, "
-                                      "aborting..." % (self.options.vt_disk_bus,
-                                                       SUPPORTED_DISK_BUSES)))
-                sys.exit(1)
+                raise ValueError("Invalid %s '%s'. Valid values: %s" %
+                                 (disk_bus_setting,
+                                  self.options.vt_disk_bus,
+                                  SUPPORTED_DISK_BUSES))
         else:
-            logging.info("Config provided, ignoring --vt-disk-bus option")
+            logging.info("Config provided, ignoring %s", disk_bus_setting)
 
     def _process_vhost(self):
+        nettype_setting = 'config virt_test.qemu.nettype'
+        vhost_setting = 'config virt_test.qemu.vhost'
         if not self.options.vt_config:
             if self.options.vt_nettype == "bridge":
                 if self.options.vt_vhost == "on":
@@ -881,30 +890,29 @@ class VirtTestOptionsProcess(object):
                     self.cartesian_parser.assign("vhost", "on")
             else:
                 if self.options.vt_vhost in ["on", "force"]:
-                    self.view.notify(
-                        event='error', msg=("Nettype %s is incompatible "
-                                            "with vhost %s, aborting..." %
-                                            (self.options.vt_nettype,
-                                             self.options.vt_vhost)))
-                    sys.exit(1)
+                    raise ValueError("%s '%s' is incompatible with %s '%s'"
+                                     % (nettype_setting,
+                                        self.options.vt_nettype,
+                                        vhost_setting,
+                                        self.options.vt_vhost))
         else:
-            logging.info("Config provided, ignoring --vt-vhost option")
+            logging.info("Config provided, ignoring %s", vhost_setting)
 
     def _process_qemu_sandbox(self):
+        sandbox_setting = 'config virt_test.qemu.sandbox'
         if not self.options.vt_config:
             if self.options.vt_qemu_sandbox == "off":
                 self.cartesian_parser.assign("qemu_sandbox", "off")
         else:
-            logging.info("Config provided, "
-                         "ignoring \"--vt-sandbox <on|off>\" option")
+            logging.info("Config provided, ignoring %s", sandbox_setting)
 
     def _process_qemu_defconfig(self):
+        defconfig_setting = 'config virt_test.qemu.sandbox'
         if not self.options.vt_config:
             if self.options.vt_qemu_defconfig == "no":
                 self.cartesian_parser.assign("defconfig", "no")
         else:
-            logging.info("Config provided, "
-                         "ignoring \"--defconfig <yes|no>\" option")
+            logging.info("Config provided, ignoring %s", defconfig_setting)
 
     def _process_malloc_perturb(self):
         self.cartesian_parser.assign("malloc_perturb",
@@ -938,6 +946,7 @@ class VirtTestOptionsProcess(object):
         """
         Calls for processing all options specific to libvirt test.
         """
+        uri_setting = 'config virt_test.libvirt.connect_uri'
         if self.options.vt_connect_uri:
             driver_found = False
             for driver in SUPPORTED_LIBVIRT_DRIVERS:
@@ -945,76 +954,22 @@ class VirtTestOptionsProcess(object):
                     driver_found = True
                     self.cartesian_parser.only_filter(driver)
             if not driver_found:
-                self.view.notify(event='error',
-                                 msg=("Unsupported uri: %s." %
-                                      self.options.vt_connect_uri))
-                sys.exit(1)
+                raise ValueError("Unsupported %s '%s'"
+                                 % (uri_setting, self.options.vt_connect_uri))
         else:
             self.cartesian_parser.only_filter("qemu")
 
     def _process_guest_os(self):
+        guest_os_setting = 'option --vt-guest-os'
         if not self.options.vt_config:
             if len(standalone_test.get_guest_name_list(self.options)) == 0:
-                self.view.notify(event='error',
-                                 msg="Guest name %s is not on the "
-                                     "known guest os list "
-                                     "(see --vt-list-guests), "
-                                     "aborting..." % self.options.vt_guest_os)
-                sys.exit(1)
+                raise ValueError("%s '%s' is not on the known guest os "
+                                 "list (see --vt-list-guests)"
+                                 % (guest_os_setting, self.options.vt_guest_os))
             self.cartesian_parser.only_filter(
                 self.options.vt_guest_os or defaults.DEFAULT_GUEST_OS)
         else:
-            logging.info("Config provided, ignoring --vt-guest-os option")
-
-    def _process_list(self):
-        if self.options.vt_list_tests:
-            standalone_test.print_test_list(self.options,
-                                            self.cartesian_parser)
-            sys.exit(0)
-        if self.options.vt_list_guests:
-            standalone_test.print_guest_list(self.options)
-            sys.exit(0)
-
-    def _process_tests(self):
-        if not self.options.vt_config:
-            if self.options.vt_type:
-                if self.options.url and self.options.dropin:
-                    self.view.notify(event='error',
-                                     msg="Option --vt-tests and "
-                                         "--vt-run-dropin can't be set at "
-                                         "the same time")
-                    sys.exit(1)
-                elif self.options.url:
-                    tests = self.options.url
-                    if self.options.vt_type == 'libvirt':
-                        if self.options.install_guest:
-                            tests.insert(0, LIBVIRT_INSTALL)
-                        if self.options.vt_remove_guest:
-                            tests.append(LIBVIRT_REMOVE)
-                    self.cartesian_parser.only_filter(", ".join(tests))
-                elif self.options.dropin:
-                    dropin_tests = os.listdir(
-                        os.path.join(data_dir.get_root_dir(), "dropin"))
-                    if len(dropin_tests) <= 1:
-                        self.view.notify(event='error',
-                                         msg="No drop in tests detected, "
-                                             "aborting. Make sure you have "
-                                             "scripts on the 'dropin' "
-                                             "directory")
-                        sys.exit(1)
-                    self.cartesian_parser.only_filter("dropin")
-                else:
-                    if self.options.vt_type == 'qemu':
-                        self.cartesian_parser.only_filter(QEMU_DEFAULT_SET)
-                        self.cartesian_parser.no_filter("with_reboot")
-                    elif self.options.vt_type == 'libvirt':
-                        self.cartesian_parser.only_filter(LIBVIRT_DEFAULT_SET)
-                    elif self.options.vt_type == 'lvsb':
-                        self.cartesian_parser.only_filter(LVSB_DEFAULT_SET)
-                    elif self.options.vt_type == 'openvswitch':
-                        self.cartesian_parser.only_filter(OVS_DEFAULT_SET)
-        else:
-            logging.info("Config provided, ignoring --vt-tests option")
+            logging.info("Config provided, ignoring %s", guest_os_setting)
 
     def _process_restart_vm(self):
         if not self.options.vt_config:
@@ -1036,9 +991,13 @@ class VirtTestOptionsProcess(object):
         try:
             tcpdump_path = utils_misc.find_command('tcpdump')
         except ValueError:
+            logging.info('Command tcpdump not found')
             tcpdump_path = None
 
         non_root = os.getuid() != 0
+        if non_root and tcpdump_path is not None:
+            logging.info(
+                'Running as a non-root user, disabling tcpdump thread')
 
         if tcpdump_path is None or non_root:
             self.cartesian_parser.assign("run_tcpdump", "no")
@@ -1077,21 +1036,18 @@ class VirtTestOptionsProcess(object):
         Process the options given in the command line.
         """
         cfg = None
+        vt_type_setting = 'option --vt-type'
+        vt_config_setting = 'option --vt-config'
         if (not self.options.vt_type) and (not self.options.vt_config):
-            self.view.notify(event='error',
-                             msg=("No type (--vt-type) or config "
-                                  "(--vt-config) options specified, "
-                                  "aborting..."))
-            sys.exit(0)
+            raise ValueError("No %s or %s specified" %
+                             (vt_type_setting, vt_config_setting))
 
         if self.options.vt_type:
             if self.options.vt_type not in SUPPORTED_TEST_TYPES:
-                self.view.notify(event='error',
-                                 msg="Invalid test type %s. "
-                                     "Valid test types: %s. Aborting..." %
-                                     (self.options.vt_type,
-                                      " ".join(SUPPORTED_TEST_TYPES)))
-                sys.exit(1)
+                raise ValueError("Invalid %s %s. Valid values: %s. "
+                                 % (vt_type_setting,
+                                    self.options.vt_type,
+                                    " ".join(SUPPORTED_TEST_TYPES)))
 
         if self.options.vt_data_dir:
             data_dir.set_backing_data_dir(self.options.vt_data_dir)
@@ -1117,11 +1073,6 @@ class VirtTestOptionsProcess(object):
             self._process_qemu_specific_options()
         elif self.options.vt_type == 'libvirt':
             self._process_libvirt_specific_options()
-        # List and tests have to be the last things to be processed
-        self._process_list()
-        # Tests won't be processed here. The code of the function will
-        # be utilized elsewhere.
-        # self._process_tests()
 
     def get_parser(self):
         self._process_options()
