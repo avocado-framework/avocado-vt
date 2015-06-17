@@ -415,12 +415,12 @@ class VirtTest(AvocadoTest):
         # sleep_length = test.avocado_params.get('sleep_length', default=1)
         p = params.get('avocado_params', None)
         if p is not None:
-            params, mux_entry = p[0], p[1]
+            params, mux_path = p[0], p[1]
         else:
-            params, mux_entry = [], []
+            params, mux_path = [], []
         self.avocado_params = multiplexer.AvocadoParams(params, self.name,
                                                         self.tag,
-                                                        mux_entry,
+                                                        mux_path,
                                                         self.default_params)
 
         self.debugdir = self.logdir
