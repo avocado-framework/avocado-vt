@@ -971,56 +971,6 @@ class VirtTestOptionsProcess(object):
         else:
             logging.info("Config provided, ignoring %s", guest_os_setting)
 
-    def _process_list(self):
-        if self.options.vt_list_tests:
-            standalone_test.print_test_list(self.options,
-                                            self.cartesian_parser)
-            sys.exit(0)
-        if self.options.vt_list_guests:
-            standalone_test.print_guest_list(self.options)
-            sys.exit(0)
-
-    def _process_tests(self):
-        if not self.options.vt_config:
-            if self.options.vt_type:
-                if self.options.url and self.options.dropin:
-                    self.view.notify(event='error',
-                                     msg="Option --vt-tests and "
-                                         "--vt-run-dropin can't be set at "
-                                         "the same time")
-                    sys.exit(1)
-                elif self.options.url:
-                    tests = self.options.url
-                    if self.options.vt_type == 'libvirt':
-                        if self.options.install_guest:
-                            tests.insert(0, LIBVIRT_INSTALL)
-                        if self.options.vt_remove_guest:
-                            tests.append(LIBVIRT_REMOVE)
-                    self.cartesian_parser.only_filter(", ".join(tests))
-                elif self.options.dropin:
-                    dropin_tests = os.listdir(
-                        os.path.join(data_dir.get_root_dir(), "dropin"))
-                    if len(dropin_tests) <= 1:
-                        self.view.notify(event='error',
-                                         msg="No drop in tests detected, "
-                                             "aborting. Make sure you have "
-                                             "scripts on the 'dropin' "
-                                             "directory")
-                        sys.exit(1)
-                    self.cartesian_parser.only_filter("dropin")
-                else:
-                    if self.options.vt_type == 'qemu':
-                        self.cartesian_parser.only_filter(QEMU_DEFAULT_SET)
-                        self.cartesian_parser.no_filter("with_reboot")
-                    elif self.options.vt_type == 'libvirt':
-                        self.cartesian_parser.only_filter(LIBVIRT_DEFAULT_SET)
-                    elif self.options.vt_type == 'lvsb':
-                        self.cartesian_parser.only_filter(LVSB_DEFAULT_SET)
-                    elif self.options.vt_type == 'openvswitch':
-                        self.cartesian_parser.only_filter(OVS_DEFAULT_SET)
-        else:
-            logging.info("Config provided, ignoring --vt-tests option")
-
     def _process_restart_vm(self):
         if not self.options.vt_config:
             if not self.options.vt_keep_guest_running:
@@ -1123,11 +1073,6 @@ class VirtTestOptionsProcess(object):
             self._process_qemu_specific_options()
         elif self.options.vt_type == 'libvirt':
             self._process_libvirt_specific_options()
-        # List and tests have to be the last things to be processed
-        self._process_list()
-        # Tests won't be processed here. The code of the function will
-        # be utilized elsewhere.
-        # self._process_tests()
 
     def get_parser(self):
         self._process_options()
