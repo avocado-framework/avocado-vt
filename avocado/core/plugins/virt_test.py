@@ -208,9 +208,7 @@ def configure_file_logging(logfile, loglevel=logging.DEBUG):
 def guest_listing(options, view):
     term_support = output.TermSupport()
     if options.vt_type == 'lvsb':
-        view.notify(event='error',
-                    msg="No guest types available for lvsb testing")
-        sys.exit(1)
+        raise ValueError("No guest types available for lvsb testing")
     index = 0
     view.notify(event='minor', msg=("Searched %s for guest images\n" %
                                     os.path.join(data_dir.get_data_dir(),
@@ -366,7 +364,11 @@ class VirtTestLoader(loader.TestLoader):
         return []
 
     def discover_url(self, url):
-        cartesian_parser = self._get_parser()
+        try:
+            cartesian_parser = self._get_parser()
+        except Exception, details:
+            raise EnvironmentError("Can't discover avocado-vt tests, "
+                                   "parser not available: %s" % details)
         if url != 'vt_list_all':
             cartesian_parser.only_filter(url)
         params_list = [t for t in cartesian_parser.get_dicts()]
@@ -761,18 +763,13 @@ class VirtTestOptionsProcess(object):
 
     def _process_bridge_mode(self):
         if self.options.vt_nettype not in SUPPORTED_NET_TYPES:
-            self.view.notify(event='error',
-                             msg="Invalid --vt-nettype option '%s'. "
-                                 "Valid options are: (%s)" %
-                                 (self.options.vt_nettype,
-                                  ", ".join(SUPPORTED_NET_TYPES)))
-            sys.exit(1)
+            raise ValueError("Invalid --vt-nettype option '%s'. Valid options "
+                             "are: (%s)" % (self.options.vt_nettype,
+                                            ", ".join(SUPPORTED_NET_TYPES)))
         if self.options.vt_nettype == 'bridge':
             if os.getuid() != 0:
-                self.view.notify(event='error',
-                                 msg="In order to use bridge, "
-                                     "you need to be root, aborting...")
-                sys.exit(1)
+                raise ValueError("In order to use bridge, you need to be "
+                                 "root.")
             self.cartesian_parser.assign("nettype", "bridge")
             self.cartesian_parser.assign("netdst", self.options.netdst)
         elif self.options.vt_nettype == 'user':
@@ -797,10 +794,8 @@ class VirtTestOptionsProcess(object):
                     self.cartesian_parser.assign(
                         "smp", int(self.options.vt_smp))
                 except ValueError:
-                    self.view.notify(event='error',
-                                     msg="Invalid option for smp: %s, "
-                                         "aborting..." % self.options.vt_smp)
-                    sys.exit(1)
+                    raise ValueError("Invalid option for smp: %s"
+                                     % self.options.vt_smp)
         else:
             logging.info("Config provided, ignoring --vt-smp option")
 
@@ -854,11 +849,9 @@ class VirtTestOptionsProcess(object):
             if self.options.vt_disk_bus in SUPPORTED_DISK_BUSES:
                 self.cartesian_parser.only_filter(self.options.vt_disk_bus)
             else:
-                self.view.notify(event='error',
-                                 msg=("Option %s is not in the list %s, "
-                                      "aborting..." % (self.options.vt_disk_bus,
-                                                       SUPPORTED_DISK_BUSES)))
-                sys.exit(1)
+                raise ValueError("Option %s is not in the list %s"
+                                 % (self.options.vt_disk_bus,
+                                    SUPPORTED_DISK_BUSES))
         else:
             logging.info("Config provided, ignoring --vt-disk-bus option")
 
@@ -873,12 +866,9 @@ class VirtTestOptionsProcess(object):
                     self.cartesian_parser.assign("vhost", "on")
             else:
                 if self.options.vt_vhost in ["on", "force"]:
-                    self.view.notify(
-                        event='error', msg=("Nettype %s is incompatible "
-                                            "with vhost %s, aborting..." %
-                                            (self.options.vt_nettype,
-                                             self.options.vt_vhost)))
-                    sys.exit(1)
+                    raise ValueError("Nettype %s is incompatible with vhost %s"
+                                     % (self.options.vt_nettype,
+                                        self.options.vt_vhost))
         else:
             logging.info("Config provided, ignoring --vt-vhost option")
 
@@ -937,22 +927,17 @@ class VirtTestOptionsProcess(object):
                     driver_found = True
                     self.cartesian_parser.only_filter(driver)
             if not driver_found:
-                self.view.notify(event='error',
-                                 msg=("Unsupported uri: %s." %
-                                      self.options.vt_connect_uri))
-                sys.exit(1)
+                raise ValueError("Unsupported uri: %s."
+                                 % self.options.vt_connect_uri)
         else:
             self.cartesian_parser.only_filter("qemu")
 
     def _process_guest_os(self):
         if not self.options.vt_config:
             if len(standalone_test.get_guest_name_list(self.options)) == 0:
-                self.view.notify(event='error',
-                                 msg="Guest name %s is not on the "
-                                     "known guest os list "
-                                     "(see --vt-list-guests), "
-                                     "aborting..." % self.options.vt_guest_os)
-                sys.exit(1)
+                raise ValueError("Guest name %s is not on the known guest os "
+                                 "list (see --vt-list-guests)"
+                                 % self.options.vt_guest_os)
             self.cartesian_parser.only_filter(
                 self.options.vt_guest_os or defaults.DEFAULT_GUEST_OS)
         else:
@@ -1070,20 +1055,15 @@ class VirtTestOptionsProcess(object):
         """
         cfg = None
         if (not self.options.vt_type) and (not self.options.vt_config):
-            self.view.notify(event='error',
-                             msg=("No type (--vt-type) or config "
-                                  "(--vt-config) options specified, "
-                                  "aborting..."))
-            sys.exit(0)
+            raise ValueError("No type (--vt-type) or config (--vt-config) "
+                             "options specified")
 
         if self.options.vt_type:
             if self.options.vt_type not in SUPPORTED_TEST_TYPES:
-                self.view.notify(event='error',
-                                 msg="Invalid test type %s. "
-                                     "Valid test types: %s. Aborting..." %
-                                     (self.options.vt_type,
-                                      " ".join(SUPPORTED_TEST_TYPES)))
-                sys.exit(1)
+                raise ValueError("Invalid test type %s. Valid test types: %s. "
+                                 "Aborting..."
+                                 % (self.options.vt_type,
+                                    " ".join(SUPPORTED_TEST_TYPES)))
 
         if self.options.vt_data_dir:
             data_dir.set_backing_data_dir(self.options.vt_data_dir)
