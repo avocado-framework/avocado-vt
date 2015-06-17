@@ -991,13 +991,9 @@ class VirtTestOptionsProcess(object):
         try:
             tcpdump_path = utils_misc.find_command('tcpdump')
         except ValueError:
-            logging.info('Command tcpdump not found')
             tcpdump_path = None
 
         non_root = os.getuid() != 0
-        if non_root and tcpdump_path is not None:
-            logging.info(
-                'Running as a non-root user, disabling tcpdump thread')
 
         if tcpdump_path is None or non_root:
             self.cartesian_parser.assign("run_tcpdump", "no")
