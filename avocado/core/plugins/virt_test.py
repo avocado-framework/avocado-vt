@@ -684,11 +684,6 @@ class VirtTestOptionsProcess(object):
             'virt_test.common', 'type_specific_only', key_type=bool)
         self.options.vt_mem = settings.get_value(
             'virt_test.common', 'mem', key_type=int)
-        self.options.vt_arch = settings.get_value(
-            'virt_test.common', 'arch', default=None)
-        self.options.vt_machine_type = settings.get_value(
-            'virt_test.common', 'machine_type',
-            default=defaults.DEFAULT_MACHINE_TYPE)
         # qemu section
         self.options.vt_accel = settings.get_value(
             'virt_test.qemu', 'accel', default='kvm')
@@ -816,7 +811,8 @@ class VirtTestOptionsProcess(object):
             logging.info("Config provided, ignoring %s", smp_setting)
 
     def _process_arch(self):
-        arch_setting = 'config virt_test.common.arch'
+        arch_setting = "option --vt-arch or config virt_test.common.arch"
+        print self.options.vt_arch
         if self.options.vt_arch is None:
             pass
         elif not self.options.vt_config:
@@ -825,7 +821,8 @@ class VirtTestOptionsProcess(object):
             logging.info("Config provided, ignoring %s", arch_setting)
 
     def _process_machine_type(self):
-        machine_type_setting = 'config virt_test.common.machine_type'
+        machine_type_setting = ("option --vt-machine-type or config "
+                                "virt_test.common.machine_type")
         if not self.options.vt_config:
             if self.options.vt_machine_type is None:
                 # TODO: this is x86-specific, instead we can get the default
@@ -1138,6 +1135,17 @@ class VirtTestCompatPlugin(plugin.Plugin):
                                                   ", ".join(
                                                       SUPPORTED_TEST_TYPES)),
                                             default='qemu')
+        arch = settings.get_value('virt_test.common', 'arch', default=None)
+        vt_compat_group_common.add_argument("--vt-arch",
+                                            help="Choose the VM architecture. "
+                                            "Default: %s" % arch,
+                                            default=arch)
+        machine = settings.get_value('virt_test.common', 'machine_type',
+                                     default=defaults.DEFAULT_MACHINE_TYPE)
+        vt_compat_group_common.add_argument("--vt-machine-type",
+                                            help="Choose the VM machine type. "
+                                            "Default: %s" % machine,
+                                            default=machine)
         vt_compat_group_common.add_argument("--vt-guest-os", action="store",
                                             dest="vt_guest_os",
                                             default=defaults.DEFAULT_GUEST_OS,
