@@ -960,9 +960,12 @@ class VirtTestOptionsProcess(object):
         guest_os_setting = 'option --vt-guest-os'
         if not self.options.vt_config:
             if len(standalone_test.get_guest_name_list(self.options)) == 0:
-                raise ValueError("%s '%s' is not on the known guest os "
-                                 "list (see --vt-list-guests)"
-                                 % (guest_os_setting, self.options.vt_guest_os))
+                raise ValueError("%s '%s' is not on the known guest os for "
+                                 "arch '%s' and machine type '%s'. (see "
+                                 "--vt-list-guests)"
+                                 % (guest_os_setting, self.options.vt_guest_os,
+                                    self.options.vt_arch,
+                                    self.options.vt_machine_type))
             self.cartesian_parser.only_filter(
                 self.options.vt_guest_os or defaults.DEFAULT_GUEST_OS)
         else:
