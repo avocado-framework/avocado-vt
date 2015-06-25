@@ -141,7 +141,7 @@ def get_all_assets():
     asset_data_list = []
     download_dir = data_dir.get_download_dir()
     for asset in glob.glob(os.path.join(download_dir, '*.ini')):
-        asset_name = os.path.basename(asset).split('.')[0]
+        asset_name = os.path.basename(asset)[:-4]
         asset_data_list.append(get_asset_info(asset_name))
     return asset_data_list
 
