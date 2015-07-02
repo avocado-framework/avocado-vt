@@ -1308,58 +1308,61 @@ class VM(virt_vm.BaseVM):
             devices.insert(StrDev('SER-%s' % serial, cmdline=cmd))
 
         # Add virtio_serial ports
-        no_virtio_serial_pcis = 0
-        no_virtio_ports = 0
-        virtio_port_spread = int(params.get('virtio_port_spread', 2))
-        for port_name in params.objects("virtio_ports"):
-            port_params = params.object_params(port_name)
-            bus = params.get('virtio_port_bus', False)
-            if bus is not False:     # Manually set bus
-                bus = int(bus)
-            elif not virtio_port_spread:
-                # bus not specified, let qemu decide
-                pass
-            elif not no_virtio_ports % virtio_port_spread:
-                # Add new vio-pci every n-th port. (Spread ports)
-                bus = no_virtio_serial_pcis
-            else:  # Port not overriden, use last vio-pci
-                bus = no_virtio_serial_pcis - 1
-                if bus < 0:     # First bus
-                    bus = 0
-            # Add virtio_serial_pcis
-            # Multiple virtio console devices can't share a
-            # single virtio-serial-pci bus. So add a virtio-serial-pci bus
-            # when the port is a virtio console.
-            if (port_params.get('virtio_port_type') == 'console' and
-                    params.get('virtio_port_bus') is None):
-                if arch.ARCH == 'aarch64':
-                    dev = QDevice('virtio-serial-device')
-                else:
-                    dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
-                dev.set_param('id',
-                              'virtio_serial_pci%d' % no_virtio_serial_pcis)
-                devices.insert(dev)
-                no_virtio_serial_pcis += 1
-            for i in range(no_virtio_serial_pcis, bus + 1):
-                if arch.ARCH == 'aarch64':
-                    dev = QDevice('virtio-serial-device')
-                else:
-                    dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
-                dev.set_param('id', 'virtio_serial_pci%d' % i)
-                devices.insert(dev)
-                no_virtio_serial_pcis += 1
-            if bus is not False:
-                bus = "virtio_serial_pci%d.0" % bus
-            # Add actual ports
-            cmd = add_virtio_port(devices, port_name, bus,
-                                  self.get_virtio_port_filename(port_name),
-                                  port_params.get('virtio_port_type'),
-                                  port_params.get('virtio_port_chardev'),
-                                  port_params.get('virtio_port_name_prefix'),
-                                  no_virtio_ports,
-                                  port_params.get('virtio_port_params', ''))
-            devices.insert(StrDev('VIO-%s' % port_name, cmdline=cmd))
-            no_virtio_ports += 1
+        if not devices.has_option("virtconsole"):
+            logging.warn("virtiocosole/serial device not support")
+        else:
+            no_virtio_serial_pcis = 0
+            no_virtio_ports = 0
+            virtio_port_spread = int(params.get('virtio_port_spread', 2))
+            for port_name in params.objects("virtio_ports"):
+                port_params = params.object_params(port_name)
+                bus = params.get('virtio_port_bus', False)
+                if bus is not False:     # Manually set bus
+                    bus = int(bus)
+                elif not virtio_port_spread:
+                    # bus not specified, let qemu decide
+                    pass
+                elif not no_virtio_ports % virtio_port_spread:
+                    # Add new vio-pci every n-th port. (Spread ports)
+                    bus = no_virtio_serial_pcis
+                else:  # Port not overriden, use last vio-pci
+                    bus = no_virtio_serial_pcis - 1
+                    if bus < 0:     # First bus
+                        bus = 0
+                # Add virtio_serial_pcis
+                # Multiple virtio console devices can't share a
+                # single virtio-serial-pci bus. So add a virtio-serial-pci bus
+                # when the port is a virtio console.
+                if (port_params.get('virtio_port_type') == 'console' and
+                        params.get('virtio_port_bus') is None):
+                    if arch.ARCH == 'aarch64':
+                        dev = QDevice('virtio-serial-device')
+                    else:
+                        dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
+                    dev.set_param('id',
+                                  'virtio_serial_pci%d' % no_virtio_serial_pcis)
+                    devices.insert(dev)
+                    no_virtio_serial_pcis += 1
+                for i in range(no_virtio_serial_pcis, bus + 1):
+                    if arch.ARCH == 'aarch64':
+                        dev = QDevice('virtio-serial-device')
+                    else:
+                        dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
+                    dev.set_param('id', 'virtio_serial_pci%d' % i)
+                    devices.insert(dev)
+                    no_virtio_serial_pcis += 1
+                if bus is not False:
+                    bus = "virtio_serial_pci%d.0" % bus
+                # Add actual ports
+                cmd = add_virtio_port(devices, port_name, bus,
+                                      self.get_virtio_port_filename(port_name),
+                                      port_params.get('virtio_port_type'),
+                                      port_params.get('virtio_port_chardev'),
+                                      port_params.get('virtio_port_name_prefix'),
+                                      no_virtio_ports,
+                                      port_params.get('virtio_port_params', ''))
+                devices.insert(StrDev('VIO-%s' % port_name, cmdline=cmd))
+                no_virtio_ports += 1
 
         # Add virtio-rng devices
         for virtio_rng in params.objects("virtio_rngs"):
