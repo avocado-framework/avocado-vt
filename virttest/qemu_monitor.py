@@ -93,7 +93,7 @@ def get_monitor_filename(vm, monitor_name):
     :param monitor_name: The monitor name.
     :return: The string of socket file name for qemu monitor.
     """
-    return "/tmp/monitor-%s-%s" % (monitor_name, vm.instance)
+    return "/tmp/monitor-%s-%s-%s" % (vm.name, monitor_name, vm.instance)
 
 
 def get_monitor_filenames(vm):
@@ -189,8 +189,8 @@ class Monitor:
         try:
             self._socket.connect(filename)
         except socket.error, details:
-            raise MonitorConnectError("Could not connect to monitor socket: %s"
-                                      % details)
+            raise MonitorConnectError("Could not connect to monitor (%s-%s) "
+                                      "socket: %s" % (name, vm.name, details))
 
     def __del__(self):
         # Automatically close the connection when the instance is garbage
@@ -280,8 +280,8 @@ class Monitor:
         :param extra_str: Extra string would be printed in log.
         """
         if self.debug_log or debug:
-            logging.debug("(monitor %s) Sending command '%s' %s",
-                          self.name, cmd, extra_str)
+            logging.debug("(monitor %s-%s) Sending command '%s' %s",
+                          self.name, self.vm.name, cmd, extra_str)
 
     def _log_lines(self, log_str):
         """
