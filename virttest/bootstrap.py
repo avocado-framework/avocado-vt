@@ -3,15 +3,18 @@ import os
 import glob
 import shutil
 import sys
-from autotest.client.shared import logging_manager, error
-from autotest.client import utils
-import utils_misc
-import data_dir
-import asset
-import cartesian_config
-import utils_selinux
-import defaults
-import arch
+
+from avocado.utils import process
+from avocado.utils import genio
+from avocado.utils import linux_modules
+
+from . import utils_misc
+from . import data_dir
+from . import asset
+from . import cartesian_config
+from . import utils_selinux
+from . import defaults
+from . import arch
 
 basic_program_requirements = ['7za', 'tcpdump', 'nc', 'ip', 'arping']
 
@@ -64,7 +67,8 @@ def get_guest_os_info_list(test_name, guest_os):
     os_info_list = []
 
     cartesian_parser = cartesian_config.Parser()
-    cartesian_parser.parse_file(data_dir.get_backend_cfg_path(test_name, 'guest-os.cfg'))
+    cartesian_parser.parse_file(
+        data_dir.get_backend_cfg_path(test_name, 'guest-os.cfg'))
     cartesian_parser.only_filter(guest_os)
     dicts = cartesian_parser.get_dicts()
 
@@ -267,7 +271,8 @@ def create_subtests_cfg(t_type):
 
     provider_info_specific = []
     for specific_provider in provider_names_specific:
-        provider_info_specific.append(asset.get_test_provider_info(specific_provider))
+        provider_info_specific.append(
+            asset.get_test_provider_info(specific_provider))
 
     for subdir in specific_subdirs:
         specific_test_list += data_dir.SubdirGlobList(subdir,
@@ -284,7 +289,8 @@ def create_subtests_cfg(t_type):
 
     provider_info_shared = []
     for shared_provider in provider_names_shared:
-        provider_info_shared.append(asset.get_test_provider_info(shared_provider))
+        provider_info_shared.append(
+            asset.get_test_provider_info(shared_provider))
 
     if not t_type == 'lvsb':
         for subdir in shared_subdirs:
@@ -459,8 +465,8 @@ def create_subtests_cfg(t_type):
 def create_config_files(test_dir, shared_dir, interactive, step=None,
                         force_update=False):
     def is_file_tracked(fl):
-        tracked_result = utils.run("git ls-files %s --error-unmatch" % fl,
-                                   ignore_status=True, verbose=False)
+        tracked_result = process.run("git ls-files %s --error-unmatch" % fl,
+                                     ignore_status=True, verbose=False)
         return tracked_result.exit_status == 0
 
     if step is None:
@@ -495,13 +501,13 @@ def create_config_files(test_dir, shared_dir, interactive, step=None,
             shutil.copyfile(src_file, dst_file)
         else:
             diff_cmd = "diff -Naur %s %s" % (dst_file, src_file)
-            diff_result = utils.run(
+            diff_result = process.run(
                 diff_cmd, ignore_status=True, verbose=False)
             if diff_result.exit_status != 0:
                 logging.info("%s result:\n %s",
                              diff_result.command, diff_result.stdout)
                 if interactive:
-                    answer = utils.ask("Config file  %s differs from %s."
+                    answer = genio.ask("Config file  %s differs from %s."
                                        "Overwrite?" % (dst_file, src_file))
                 elif force_update:
                     answer = "y"
@@ -663,7 +669,7 @@ def verify_selinux(datadir, imagesdir, isosdir, tmpdir,
                     answer = "y"
                 else:
                     if interactive:
-                        answer = utils.ask("Setup all undefined default SE"
+                        answer = genio.ask("Setup all undefined default SE"
                                            "Linux contexts for shared/data/?")
                     else:
                         answer = "n"
@@ -712,7 +718,7 @@ def verify_selinux(datadir, imagesdir, isosdir, tmpdir,
             answer = "y"
         else:
             if interactive:
-                answer = utils.ask("Relabel from default contexts?")
+                answer = genio.ask("Relabel from default contexts?")
             else:
                 answer = "n"
         if answer.lower() == 'y':
@@ -735,8 +741,8 @@ def bootstrap(options, interactive=False):
     :raise ValueError: If 7za was not found
     """
     if interactive:
-        logging_manager.configure_logging(utils_misc.VirtLoggingConfig(),
-                                          verbose=options.vt_verbose)
+        log_cfg = utils_misc.VirtLoggingConfig()
+        log_cfg.configure_logging(verbose=True)
     logging.info("%s test config helper", options.vt_type)
     step = 0
 
@@ -834,7 +840,7 @@ def bootstrap(options, interactive=False):
         logging.info("%d - Checking for modules %s", step,
                      ", ".join(check_modules))
         for module in check_modules:
-            if not utils.module_is_loaded(module):
+            if not linux_modules.module_is_loaded(module):
                 logging.warning("Module %s is not loaded. You might want to "
                                 "load it", module)
             else:
@@ -860,7 +866,8 @@ def setup(options):
     if not options.vt_keep_image:
         test_name = options.vt_type
         guest_os = options.vt_guest_os or defaults.DEFAULT_GUEST_OS
-        logging.info("Running pre tests setup for test type %s and guest OS %s", test_name, guest_os)
+        logging.info("Running pre tests setup for test type %s and guest OS %s",
+                     test_name, guest_os)
         try:
             for os_info in get_guest_os_info_list(test_name, guest_os):
                 asset_info = asset.get_asset_info(os_info['asset'])

@@ -8,17 +8,18 @@ is not present, functionality degrates gracefully.
 
 :copyright: Red Hat 2010
 """
+
 import os
 import sys
 import optparse
 import logging
 import math
 import time
-import common
-from autotest.client.shared import logging_config, logging_manager
-from autotest.client.shared import error
-from autotest.client import utils, os_dep
-import utils_misc
+
+from avocado.utils import process
+from avocado.utils import path
+
+from . import utils_misc
 
 
 _LABELS = ['file_size', 'record_size', 'write', 'rewrite', 'read', 'reread',
@@ -351,7 +352,7 @@ class IOzonePlotter(object):
     def __init__(self, results_file, output_dir):
         self.active = True
         try:
-            self.gnuplot = os_dep.command("gnuplot")
+            self.gnuplot = path.find_command("gnuplot")
         except Exception:
             logging.error("Command gnuplot not found, disabling graph "
                           "generation")
@@ -412,8 +413,8 @@ class IOzonePlotter(object):
             commands_file.write(commands)
             commands_file.close()
             try:
-                utils.system("%s %s" % (self.gnuplot, commands_path))
-            except error.CmdError:
+                process.system("%s %s" % (self.gnuplot, commands_path))
+            except process.CmdError:
                 logging.error("Problem plotting from commands file %s",
                               commands_path)
 
@@ -450,8 +451,8 @@ class IOzonePlotter(object):
             commands_file.write(commands)
             commands_file.close()
             try:
-                utils.system("%s %s" % (self.gnuplot, commands_path))
-            except error.CmdError:
+                process.system("%s %s" % (self.gnuplot, commands_path))
+            except process.CmdError:
                 logging.error("Problem plotting from commands file %s",
                               commands_path)
 
@@ -464,7 +465,7 @@ class IOzonePlotter(object):
             self.plot_3d_graphs()
 
 
-class AnalyzerLoggingConfig(logging_config.LoggingConfig):
+class AnalyzerLoggingConfig(utils_misc.LoggingConfig):
 
     def configure_logging(self, results_dir=None, verbose=False):
         super(AnalyzerLoggingConfig, self).configure_logging(use_console=True,
@@ -475,7 +476,7 @@ if __name__ == "__main__":
     parser = optparse.OptionParser("usage: %prog [options] [filenames]")
     options, args = parser.parse_args()
 
-    logging_manager.configure_logging(AnalyzerLoggingConfig())
+    AnalyzerLoggingConfig.configure_logging()
 
     if args:
         filenames = args

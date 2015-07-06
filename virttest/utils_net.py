@@ -11,13 +11,16 @@ import time
 import shelve
 import remote
 import commands
-from autotest.client import utils, os_dep
-from autotest.client.shared import error
-import propcan
-import utils_misc
-import arch
-import aexpect
-from versionable_class import factory
+
+from avocado.core import exceptions
+from avocado.utils import path
+from avocado.utils import process
+
+from . import propcan
+from . import utils_misc
+from . import arch
+from . import aexpect
+from .versionable_class import factory
 
 CTYPES_SUPPORT = True
 try:
@@ -456,7 +459,7 @@ class Interface(object):
         Get ip network netmask
         """
         if not CTYPES_SUPPORT:
-            raise error.TestNAError(
+            raise exceptions.TestNAError(
                 "Getting the netmask requires python > 2.4")
         ifreq = struct.pack('16sH14s', self.name, socket.AF_INET, '\x00' * 14)
         try:
@@ -473,7 +476,7 @@ class Interface(object):
         Set netmask
         """
         if not CTYPES_SUPPORT:
-            raise error.TestNAError(
+            raise exceptions.TestNAError(
                 "Setting the netmask requires python > 2.4")
         netmask = ctypes.c_uint32(~((2 ** (32 - netmask)) - 1)).value
         nmbytes = socket.htonl(netmask)
@@ -612,9 +615,9 @@ class Macvtap(Interface):
         return "/dev/tap%s" % self.get_index()
 
     def ip_link_ctl(self, params, ignore_status=False):
-        return utils.run(os_dep.command("ip"), timeout=10,
-                         ignore_status=ignore_status, verbose=False,
-                         args=params)
+        return process.run('%s %s' %
+                           (path.find_command("ip"), " ".join(params)),
+                           ignore_status=ignore_status, verbose=False)
 
     def create(self, device, mode="vepa"):
         """
@@ -841,7 +844,8 @@ class Bridge(object):
         ebr_i = re.compile(r"^(\S+).*?(\S+)$", re.MULTILINE)
         br_i = re.compile(r"^(\S+).*?(\S+)\s+(\S+)$", re.MULTILINE)
         nbr_i = re.compile(r"^\s+(\S+)$", re.MULTILINE)
-        out_line = (utils.run(r"brctl show", verbose=False).stdout.splitlines())
+        out_line = (
+            process.run(r"brctl show", verbose=False).stdout.splitlines())
         result = dict()
         bridge = None
 
@@ -874,7 +878,8 @@ class Bridge(object):
                     if_line = nbr_i.findall(line)
                     if if_line:
                         iface_var = if_line[0]
-            if iface_var and iface_var not in ['yes', 'no']:  # add interface to bridge
+            # add interface to bridge
+            if iface_var and iface_var not in ['yes', 'no']:
                 br_attrs["iface"].append(iface_var)
         return result
 
@@ -1103,16 +1108,16 @@ def find_dnsmasq_listen_address():
     :return: List of ip where dnsmasq is listening.
     """
     cmd = "ps -Af | grep dnsmasq"
-    result = utils.run(cmd).stdout
+    result = process.run(cmd).stdout
     return re.findall("--listen-address (.+?) ", result, re.MULTILINE)
 
 
 def local_runner(cmd, timeout=None):
-    return utils.run(cmd, verbose=False, timeout=timeout).stdout
+    return process.run(cmd, verbose=False, timeout=timeout).stdout
 
 
 def local_runner_status(cmd, timeout=None):
-    return utils.run(cmd, verbose=False, timeout=timeout).exit_status
+    return process.run(cmd, verbose=False, timeout=timeout).exit_status
 
 
 def get_net_if(runner=None, state=None):
@@ -1295,7 +1300,7 @@ def set_net_if_ip(if_name, ip_addr, runner=None):
     cmd = "ip addr add %s dev %s" % (ip_addr, if_name)
     try:
         runner(cmd)
-    except error.CmdError, e:
+    except process.CmdError, e:
         raise IfChangeAddrError(if_name, ip_addr, e)
 
 
@@ -1312,7 +1317,7 @@ def del_net_if_ip(if_name, ip_addr, runner=None):
     cmd = "ip addr del %s dev %s" % (ip_addr, if_name)
     try:
         runner(cmd)
-    except error.CmdError, e:
+    except process.CmdError, e:
         raise IfChangeAddrError(if_name, ip_addr, e)
 
 
@@ -1336,7 +1341,7 @@ def get_net_if_operstate(ifname, runner=None):
             return "unknown"
         else:
             raise HwOperstarteGetError(ifname, "operstate is not known.")
-    except error.CmdError:
+    except process.CmdError:
         raise HwOperstarteGetError(ifname, "run operstate cmd error.")
 
 
@@ -1366,7 +1371,7 @@ def refresh_neigh_table(interface_name=None, neigh_address="ff02::1"):
     for interface in interfaces:
         refresh_cmd = "ping6 -c 2 -I %s %s > /dev/null" % (interface,
                                                            neigh_address)
-        utils.system(refresh_cmd, ignore_status=True)
+        process.system(refresh_cmd, ignore_status=True)
 
 
 def get_neighbours_info(neigh_address="", interface_name=None):
@@ -1377,7 +1382,7 @@ def get_neighbours_info(neigh_address="", interface_name=None):
     cmd = "ip -6 neigh show nud reachable"
     if neigh_address:
         cmd += " %s" % neigh_address
-    output = utils.system_output(cmd)
+    output = process.system_output(cmd)
     if not output:
         raise VMIPV6NeighNotFoundError(neigh_address)
     all_neigh = {}
@@ -1447,12 +1452,12 @@ def check_add_dnsmasq_to_br(br_name, tmpdir):
     if not (set(br_ips) & set(dnsmasq_listen)):
         logging.debug("There is no dnsmasq on br %s."
                       "Starting new one." % (br_name))
-        utils.run("/usr/sbin/dnsmasq --strict-order --bind-interfaces"
-                  " --pid-file=%s --conf-file= --except-interface lo"
-                  " --listen-address %s --dhcp-range %s,%s --dhcp-leasefile=%s"
-                  " --dhcp-lease-max=127 --dhcp-no-override" %
-                  (os.path.join(tmpdir, pidfile), br_ips[0], dhcp_ip_start,
-                   dhcp_ip_end, (os.path.join(tmpdir, leases))))
+        process.run("/usr/sbin/dnsmasq --strict-order --bind-interfaces"
+                    " --pid-file=%s --conf-file= --except-interface lo"
+                    " --listen-address %s --dhcp-range %s,%s --dhcp-leasefile=%s"
+                    " --dhcp-lease-max=127 --dhcp-no-override" %
+                    (os.path.join(tmpdir, pidfile), br_ips[0], dhcp_ip_start,
+                     dhcp_ip_end, (os.path.join(tmpdir, leases))))
         return pidfile
     return None
 
@@ -1525,8 +1530,8 @@ def change_iface_bridge(ifname, new_bridge, ovs=None):
         br_manager_new.add_port(new_bridge, ifname.ifname)
         ifname.netdst = new_bridge
     else:
-        raise error.AutotestError("Network interface %s is wrong type %s." %
-                                  (ifname, new_bridge))
+        raise ValueError("Network interface %s is wrong type %s." %
+                         (ifname, new_bridge))
 
 
 @__init_openvswitch
@@ -1655,7 +1660,7 @@ def openflow_manager(br_name, command, flow_options=None, ovs=None):
     manager_cmd = "ovs-ofctl %s %s" % (command, br_name)
     if flow_options:
         manager_cmd += " %s" % flow_options
-    return utils.run(manager_cmd)
+    return process.run(manager_cmd)
 
 
 def bring_up_ifname(ifname):
@@ -1756,7 +1761,8 @@ class IPv6Manager(propcan.PropCanBase):
             try:
                 self.cleanup()
             except:
-                raise error.TestError("Failed to cleanup test environment")
+                raise exceptions.TestError(
+                    "Failed to cleanup test environment")
 
     def _new_session(self):
         """
@@ -1773,13 +1779,17 @@ class IPv6Manager(propcan.PropCanBase):
             session = remote.wait_for_login(client, host, port,
                                             username, password, prompt)
         except remote.LoginTimeoutError:
-            raise error.TestError("Got a timeout error when login to server.")
+            raise exceptions.TestError(
+                "Got a timeout error when login to server.")
         except remote.LoginAuthenticationError:
-            raise error.TestError("Authentication failed to login to server.")
+            raise exceptions.TestError(
+                "Authentication failed to login to server.")
         except remote.LoginProcessTerminatedError:
-            raise error.TestError("Host terminates during login to server.")
+            raise exceptions.TestError(
+                "Host terminates during login to server.")
         except remote.LoginError:
-            raise error.TestError("Some error occurs login to client server.")
+            raise exceptions.TestError(
+                "Some error occurs login to client server.")
         return session
 
     def get_session(self):
@@ -1828,14 +1838,14 @@ class IPv6Manager(propcan.PropCanBase):
         ::param count: sending packets counts, default is 5
         """
         try:
-            os_dep.command("ping6")
+            path.find_command("ping6")
         except ValueError:
-            raise error.TestNAError("Can't find ping6 command")
+            raise exceptions.TestNAError("Can't find ping6 command")
         command = "ping6 -I %s %s -c %s" % (client_ifname, server_ipv6, count)
-        result = utils.run(command, ignore_status=True)
+        result = process.run(command, ignore_status=True)
         if result.exit_status:
-            raise error.TestNAError("The '%s' destination is unreachable:"
-                                    " %s", server_ipv6, result.stderr)
+            raise exceptions.TestNAError("The '%s' destination is unreachable:"
+                                         " %s", server_ipv6, result.stderr)
         else:
             logging.info("The '%s' destination is connectivity!", server_ipv6)
 
@@ -1850,23 +1860,23 @@ class IPv6Manager(propcan.PropCanBase):
         flush_cmd_pass = "Succeed to run command '%s'" % flush_cmd
         # check if ip6tables command exists on the local
         try:
-            os_dep.command("ip6tables")
+            path.find_command("ip6tables")
         except ValueError:
-            raise error.TestNAError(test_NA_err)
+            raise exceptions.TestNAError(test_NA_err)
         # flush local ip6tables rules
-        result = utils.run(flush_cmd, ignore_status=True)
+        result = process.run(flush_cmd, ignore_status=True)
         if result.exit_status:
-            raise error.TestFail("%s on local host:%s",
-                                 test_fail_err, result.stderr)
+            raise exceptions.TestFail("%s on local host:%s",
+                                      test_fail_err, result.stderr)
         else:
             logging.info("%s on the local host", flush_cmd_pass)
 
         # check if ip6tables command exists on the remote
         if self.session.cmd_status(find_ip6tables_cmd):
-            raise error.TestNAError(test_NA_err)
+            raise exceptions.TestNAError(test_NA_err)
         # flush remote ip6tables rules
         if self.session.cmd_status(flush_cmd):
-            raise error.TestFail("%s on the remote host", test_fail_err)
+            raise exceptions.TestFail("%s on the remote host", test_fail_err)
         else:
             logging.info("%s on the remote host", flush_cmd_pass)
 
@@ -1892,7 +1902,8 @@ class IPv6Manager(propcan.PropCanBase):
             self.flush_ip6tables()
         except Exception, e:
             self.close_session()
-            raise error.TestError("Failed to setup IPv6 environment!!:%s", e)
+            raise exceptions.TestError(
+                "Failed to setup IPv6 environment!!:%s", e)
 
     def cleanup(self):
         """
@@ -2820,7 +2831,7 @@ def get_correspond_ip(remote_ip):
     :param remote_ip: Remote ip
     :return: Local corespond IP.
     """
-    result = utils.run("ip route get %s" % (remote_ip)).stdout
+    result = process.run("ip route get %s" % (remote_ip)).stdout
     local_ip = re.search("src (.+)", result)
     if local_ip is not None:
         local_ip = local_ip.groups()[0]
@@ -2834,7 +2845,7 @@ def get_linux_ifname(session, mac_address=""):
     :param session: session to the virtual machine
     :param mac_address: the macaddress of nic
 
-    :raise error.TestError in case it was not possible to determine the
+    :raise exceptions.TestError in case it was not possible to determine the
             interface name.
     """
     def _process_output(cmd, reg_pattern):
@@ -2871,8 +2882,8 @@ def get_linux_ifname(session, mac_address=""):
         return i
 
     # If we came empty handed, let's raise an error
-    raise error.TestError("Failed to determine interface name with "
-                          "mac %s" % mac_address)
+    raise exceptions.TestError("Failed to determine interface name with "
+                               "mac %s" % mac_address)
 
 
 def update_mac_ip_address(vm, params, timeout=None):
@@ -2950,7 +2961,7 @@ def get_windows_nic_attribute(session, key, value, target, timeout=240,
     o = session.cmd(cmd, timeout=timeout).strip()
     if not o:
         err_msg = "Get guest %s attribute %s failed!" % (global_switch, target)
-        raise error.TestError(err_msg)
+        raise exceptions.TestError(err_msg)
     return o.splitlines()[-1]
 
 
@@ -3013,7 +3024,7 @@ def restart_windows_guest_network_by_key(session, key, value, timeout=240,
 
     id = get_windows_nic_attribute(session, key, value, oper_key, timeout)
     if not id:
-        raise error.TestError("Get nic %s failed" % oper_key)
+        raise exceptions.TestError("Get nic %s failed" % oper_key)
     if mode == "devcon":
         id = id.split("&")[-1]
 
@@ -3061,19 +3072,20 @@ def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
     try:
         if not runner:
             try:
-                os_dep.command("netstat")
+                path.find_command("netstat")
             except ValueError, details:
-                raise error.TestNAError(details)
-            output = utils.system_output(cmd)
+                raise exceptions.TestNAError(details)
+            output = process.system_output(cmd)
         else:
             if not runner(find_netstat_cmd):
-                raise error.TestNAError("Missing netstat command on remote")
+                raise exceptions.TestNAError(
+                    "Missing netstat command on remote")
             output = runner(cmd)
-    except error.CmdError:
+    except process.CmdError:
         logging.error("Failed to run command '%s'", cmd)
 
     if not re.search(find_str, output, re.M):
-        raise error.TestFail("Failed to listen %s: %s", find_str, output)
+        raise exceptions.TestFail("Failed to listen %s: %s", find_str, output)
     logging.info("The listening is active: %s", output)
 
 

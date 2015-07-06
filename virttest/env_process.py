@@ -8,27 +8,30 @@ import threading
 import shutil
 import sys
 import copy
-from autotest.client import utils
-from autotest.client import os_dep
-from autotest.client.shared import error
-import aexpect
-import qemu_monitor
-import ppm_utils
-import test_setup
-import virt_vm
-import video_maker
-import utils_misc
-import storage
-import qemu_storage
-import utils_libvirtd
-import remote
-import data_dir
-import utils_net
-import utils_disk
-import nfs
-import libvirt_vm
-from autotest.client import local_host
+import multiprocessing
 
+from avocado.utils import process as avocado_process
+from avocado.utils import crypto
+from avocado.utils import path
+from avocado.core import exceptions
+
+from . import error_context
+from . import aexpect
+from . import qemu_monitor
+from . import ppm_utils
+from . import test_setup
+from . import virt_vm
+from . import video_maker
+from . import utils_misc
+from . import storage
+from . import qemu_storage
+from . import utils_libvirtd
+from . import remote
+from . import data_dir
+from . import utils_net
+from . import utils_disk
+from . import nfs
+from . import libvirt_vm
 
 try:
     import PIL.Image
@@ -121,9 +124,9 @@ def preprocess_vm(test, params, env, name):
             error_msg = "Test VM %s does not exist." % name
             if name == params.get("main_vm"):
                 error_msg += " You may need --install option to create the guest."
-                raise error.TestError(error_msg)
+                raise exceptions.TestError(error_msg)
             else:
-                raise error.TestNAError(error_msg)
+                raise exceptions.TestNAError(error_msg)
 
     remove_vm = False
     if params.get("force_remove_vm") == "yes":
@@ -235,7 +238,7 @@ def preprocess_vm(test, params, env, name):
             if err_msg:
                 err_msg += " Kernel command line get from"
                 err_msg += " serial output is %s" % kernel_cmd_line
-                raise error.TestError(err_msg)
+                raise exceptions.TestError(err_msg)
 
             logging.info("Kernel command line get from serial port is"
                          " as expect")
@@ -366,8 +369,8 @@ def process_command(test, params, env, command, command_timeout,
         os.putenv("KVM_TEST_%s" % k, str(params[k]))
     # Execute commands
     try:
-        utils.system("cd %s; %s" % (test.bindir, command))
-    except error.CmdError, e:
+        avocado_process.system("cd %s; %s" % (test.bindir, command), shell=True)
+    except avocado_process.CmdError, e:
         if command_noncritical:
             logging.warn(e)
         else:
@@ -452,7 +455,7 @@ def _process_images_parallel(image_func, test, params, vm_process_status=None):
     """
     images = params.objects("images")
     no_threads = min(len(images) / 5,
-                     2 * local_host.LocalHost().get_num_cpu())
+                     2 * multiprocessing.cpu_count())
     exit_event = threading.Event()
     threads = []
     for i in xrange(no_threads):
@@ -529,7 +532,7 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
         _call_image_func()
 
 
-@error.context_aware
+@error_context.context_aware
 def preprocess(test, params, env):
     """
     Preprocess all VMs and images according to the instructions in params.
@@ -539,7 +542,7 @@ def preprocess(test, params, env):
     :param params: A dict containing all VM and image parameters.
     :param env: The environment (a dict-like object).
     """
-    error.context("preprocessing")
+    error_context.context("preprocessing")
     # First, let's verify if this test does require root or not. If it
     # does and the test suite is running as a regular user, we shall just
     # throw a TestNAError exception, which will skip the test.
@@ -551,9 +554,9 @@ def preprocess(test, params, env):
     if params.get("cmds_installed_host"):
         for cmd in params.get("cmds_installed_host").split():
             try:
-                os_dep.command(cmd)
+                path.find_command(cmd)
             except ValueError, msg:
-                raise error.TestNAError(msg.message)
+                raise exceptions.TestNAError(msg.message)
 
     vm_type = params.get('vm_type')
 
@@ -631,9 +634,9 @@ def preprocess(test, params, env):
 
     if kvm_ver_cmd:
         try:
-            cmd_result = utils.run(kvm_ver_cmd)
+            cmd_result = avocado_process.run(kvm_ver_cmd)
             kvm_version = cmd_result.stdout.strip()
-        except error.CmdError:
+        except avocado_process.CmdError:
             kvm_version = "Unknown"
     else:
         # Get the KVM kernel module version and write it as a keyval
@@ -654,9 +657,9 @@ def preprocess(test, params, env):
 
     if kvm_userspace_ver_cmd:
         try:
-            cmd_result = utils.run(kvm_userspace_ver_cmd)
+            cmd_result = avocado_process.run(kvm_userspace_ver_cmd)
             kvm_userspace_version = cmd_result.stdout.strip()
-        except error.CmdError:
+        except avocado_process.CmdError:
             kvm_userspace_version = "Unknown"
     else:
         qemu_path = utils_misc.get_qemu_binary(params)
@@ -744,8 +747,8 @@ def preprocess(test, params, env):
         kernel_config_ori = disk_obj.read_file(grub_file)
         kernel_config = re.findall(kernel_cfg_pos_reg, kernel_config_ori)
         if not kernel_config:
-            raise error.TestError("Cannot find the kernel config, reg is %s" %
-                                  kernel_cfg_pos_reg)
+            raise exceptions.TestError("Cannot find the kernel config, reg "
+                                       "is %s" % kernel_cfg_pos_reg)
         kernel_config = kernel_config[0]
         kernel_cmdline = kernel_config
 
@@ -828,7 +831,7 @@ def preprocess(test, params, env):
     return params
 
 
-@error.context_aware
+@error_context.context_aware
 def postprocess(test, params, env):
     """
     Postprocess all VMs and images according to the instructions in params.
@@ -837,7 +840,7 @@ def postprocess(test, params, env):
     :param params: Dict containing all VM and image parameters.
     :param env: The environment (a dict-like object).
     """
-    error.context("postprocessing")
+    error_context.context("postprocessing")
     err = ""
 
     # Postprocess all VMs and images
@@ -1040,8 +1043,8 @@ def postprocess(test, params, env):
         kernel_config_cur = disk_obj.read_file(grub_file)
         kernel_config = re.findall(kernel_cfg_pos_reg, kernel_config_cur)
         if not kernel_config:
-            raise error.TestError("Cannot find the kernel config, reg is %s" %
-                                  kernel_cfg_pos_reg)
+            raise exceptions.TestError("Cannot find the kernel config, "
+                                       "reg is %s" % kernel_cfg_pos_reg)
         kernel_config = kernel_config[0]
         disk_obj.replace_image_file_content(grub_file, kernel_config,
                                             kernel_cmdline)
@@ -1185,7 +1188,7 @@ def _take_screendumps(test, params, env):
             filename = "%04d.jpg" % counter[vm.instance]
             screendump_filename = os.path.join(screendump_dir, filename)
             vm.verify_bsod(screendump_filename)
-            image_hash = utils.hash_file(temp_filename)
+            image_hash = crypto.hash_file(temp_filename)
             if image_hash in cache:
                 time_inactive = time.time() - inactivity[vm.instance]
                 if time_inactive > inactivity_treshold:
@@ -1293,7 +1296,8 @@ def _store_vm_register(test, params, env):
 
             if not vm.is_alive():
                 if vm_register_error_count[vm.instance] < 1:
-                    logging.warning("%s is not alive. Can't query the register status" % vm.name)
+                    logging.warning(
+                        "%s is not alive. Can't query the register status" % vm.name)
                 vm_register_error_count[vm.instance] += 1
                 continue
             vm_pid = vm.get_pid()

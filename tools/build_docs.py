@@ -8,7 +8,7 @@ import os
 import sys
 import common
 
-from autotest.client import utils
+from avocado.utils import process
 
 
 def build_docs():
@@ -22,7 +22,7 @@ def build_docs():
     failure_lines = []
     root_dir = common.virt_test_dir
     doc_dir = os.path.join(root_dir, 'documentation')
-    output = utils.system_output('make -C %s html 2>&1' % doc_dir)
+    output = process.system_output('make -C %s html 2>&1' % doc_dir)
     output_lines = output.splitlines()
     for line in output_lines:
         ignore_msg = False

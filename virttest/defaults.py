@@ -1,5 +1,4 @@
-from autotest.client.shared import distro
-
+from avocado.utils import distro
 
 DEFAULT_MACHINE_TYPE = "i440fx"
 DEFAULT_GUEST_OS = None     # populated below

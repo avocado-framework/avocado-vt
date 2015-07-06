@@ -10,13 +10,17 @@ __author__ = """Lukas Doktor (ldoktor@redhat.com)"""
 import re
 import unittest
 import os
+import sys
 
-import common
-from autotest.client.shared.test_utils import mock
-from qemu_devices import qdevices, qbuses, qcontainer
-from qemu_devices.utils import DeviceHotplugError, DeviceRemoveError
-import data_dir
-import qemu_monitor
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest.unittest_utils import mock
+from virttest.qemu_devices import qdevices, qbuses, qcontainer
+from virttest import data_dir
+from virttest import qemu_monitor
 
 UNITTEST_DATA_DIR = os.path.join(
     data_dir.get_root_dir(), "virttest", "unittest_data")
@@ -554,7 +558,7 @@ class Container(unittest.TestCase):
 
     def setUp(self):
         self.god = mock.mock_god(ut=self)
-        self.god.stub_function(qcontainer.utils, "system_output")
+        self.god.stub_function(qcontainer.process, "system_output")
 
     def tearDown(self):
         self.god.unstub_all()
@@ -563,37 +567,51 @@ class Container(unittest.TestCase):
                     allow_hotplugged_vm="yes"):
         """ :return: Initialized qcontainer.DevContainer object """
         qemu_cmd = '/usr/bin/qemu_kvm'
-        qcontainer.utils.system_output.expect_call('%s -help' % qemu_cmd,
-                                                   timeout=10, ignore_status=True
-                                                   ).and_return(QEMU_HELP)
-        qcontainer.utils.system_output.expect_call("%s -device \? 2>&1"
-                                                   % qemu_cmd, timeout=10,
-                                                   ignore_status=True
-                                                   ).and_return(QEMU_DEVICES)
-        qcontainer.utils.system_output.expect_call("%s -M ?" % qemu_cmd,
-                                                   timeout=10, ignore_status=True
-                                                   ).and_return(QEMU_MACHINE)
+        qcontainer.process.system_output.expect_call('%s -help' % qemu_cmd,
+                                                     timeout=10,
+                                                     ignore_status=True,
+                                                     shell=True,
+                                                     verbose=False
+                                                     ).and_return(QEMU_HELP)
+        qcontainer.process.system_output.expect_call("%s -device \? 2>&1"
+                                                     % qemu_cmd, timeout=10,
+                                                     ignore_status=True,
+                                                     shell=True,
+                                                     verbose=False
+                                                     ).and_return(QEMU_DEVICES)
+        qcontainer.process.system_output.expect_call("%s -M ?" % qemu_cmd,
+                                                     timeout=10,
+                                                     ignore_status=True,
+                                                     shell=True,
+                                                     verbose=False
+                                                     ).and_return(QEMU_MACHINE)
         cmd = "echo -e 'help\nquit' | %s -monitor stdio -vnc none" % qemu_cmd
-        qcontainer.utils.system_output.expect_call(cmd, timeout=10,
-                                                   ignore_status=True
-                                                   ).and_return(QEMU_HMP)
+        qcontainer.process.system_output.expect_call(cmd, timeout=10,
+                                                     ignore_status=True,
+                                                     shell=True,
+                                                     verbose=False
+                                                     ).and_return(QEMU_HMP)
         cmd = ('echo -e \'{ "execute": "qmp_capabilities" }\n'
                '{ "execute": "query-commands", "id": "RAND91" }\n'
                '{ "execute": "quit" }\''
                '| %s -qmp stdio -vnc none | grep return |'
                ' grep RAND91' % qemu_cmd)
-        qcontainer.utils.system_output.expect_call(cmd, timeout=10,
-                                                   ignore_status=True
-                                                   ).and_return('')
+        qcontainer.process.system_output.expect_call(cmd, timeout=10,
+                                                     ignore_status=True,
+                                                     shell=True,
+                                                     verbose=False
+                                                     ).and_return('')
 
         cmd = ('echo -e \'{ "execute": "qmp_capabilities" }\n'
                '{ "execute": "query-commands", "id": "RAND91" }\n'
                '{ "execute": "quit" }\' | (sleep 1; cat )'
                '| %s -qmp stdio -vnc none | grep return |'
                ' grep RAND91' % qemu_cmd)
-        qcontainer.utils.system_output.expect_call(cmd, timeout=10,
-                                                   ignore_status=True
-                                                   ).and_return(QEMU_QMP)
+        qcontainer.process.system_output.expect_call(cmd, timeout=10,
+                                                     ignore_status=True,
+                                                     shell=True,
+                                                     verbose=False
+                                                     ).and_return(QEMU_QMP)
 
         qdev = qcontainer.DevContainer(qemu_cmd, vm_name, strict_mode, 'no',
                                        allow_hotplugged_vm)

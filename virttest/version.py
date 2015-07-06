@@ -14,12 +14,10 @@ __all__ = ("get_git_version", "get_version", "get_top_commit",
 
 
 import os
-import sys
-import common
-from autotest.client import utils
-from autotest.client.shared import error
 
-import data_dir
+from avocado.utils import process
+
+from . import data_dir
 
 _ROOT_PATH = data_dir.get_root_dir()
 RELEASE_VERSION_PATH = os.path.join(_ROOT_PATH, 'RELEASE-VERSION')
@@ -44,11 +42,12 @@ def _execute_git_command(command):
     os.chdir(_ROOT_PATH)
     try:
         try:
-            return utils.system_output(command).strip()
+            return process.system_output(command,
+                                         shell=True, verbose=False).strip()
         finally:
             os.chdir(cwd)
-    except error.CmdError:
-        return 'unknown'
+    except process.CmdError:
+        return None
 
 
 def get_git_version(abbrev=4):
@@ -91,13 +90,16 @@ def _read_release_version():
         finally:
             f.close()
     except:
-        return 'unknown'
+        return None
 
 
 def _write_release_version(version):
-    f = open(RELEASE_VERSION_PATH, "w")
-    f.write("%s\n" % version)
-    f.close()
+    try:
+        f = open(RELEASE_VERSION_PATH, "w")
+        f.write("%s\n" % version)
+        f.close()
+    except:
+        pass
 
 
 def get_version(abbrev=4):
@@ -109,11 +111,17 @@ def get_version(abbrev=4):
         _GIT_VERSION_CACHE = get_git_version(abbrev)
         version = _GIT_VERSION_CACHE
 
-    if version is 'unknown':
+    if version is None:
         version = release_version
 
-    if version is 'unknown':
-        return version
+    if version is None:
+        try:
+            cmd_result = process.run("rpm -q avocado-plugins-vt "
+                                     "--queryformat '%{VERSION}'",
+                                     shell=True, verbose=False)
+            return '%s (RPM install)' % cmd_result.stdout
+        except process.CmdError:
+            return 'unknown'
 
     if version != release_version:
         _write_release_version(version)
@@ -122,9 +130,14 @@ def get_version(abbrev=4):
 
 
 def get_pretty_version_info():
-    return ("Virt Test '%s', Branch '%s', SHA1 '%s'" %
-            (get_version(), get_current_branch(), get_top_commit()))
-
+    version_str = "Avocado-VT '%s'" % get_version()
+    current_branch = get_current_branch()
+    if current_branch:
+        version_str += ", Branch '%s'" % current_branch
+    top_commit = get_top_commit()
+    if top_commit:
+        version_str += ", SHA1 '%s'" % top_commit
+    return version_str
 
 if __name__ == "__main__":
     print get_pretty_version_info()

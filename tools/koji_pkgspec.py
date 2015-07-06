@@ -1,29 +1,31 @@
 #!/usr/bin/env python
 
-'''
+"""
 This is a tool for that makes it easy to understand what a given KojiPkgSpec
 syntax will expand to.
 
 The main use case is making sure the packages specified in a KojiInstaller
 will match the packages you intended to install.
-'''
+"""
 
 import sys
 import optparse
-import common
-from virttest import cartesian_config
+import os
 
-try:
-    from virttest.staging import utils_koji
-except ImportError:
-    from autotest.client.shared import utils_koji
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest import cartesian_config
+from virttest.staging import utils_koji
 
 
 class OptionParser(optparse.OptionParser):
 
-    '''
+    """
     KojiPkgSpec App option parser
-    '''
+    """
 
     def __init__(self):
         optparse.OptionParser.__init__(self,
@@ -45,11 +47,11 @@ class OptionParser(optparse.OptionParser):
         self.add_option_group(cartesian_config)
 
 
-class App:
+class App(object):
 
-    '''
+    """
     KojiPkgSpec app
-    '''
+    """
 
     def __init__(self):
         self.opt_parser = OptionParser()

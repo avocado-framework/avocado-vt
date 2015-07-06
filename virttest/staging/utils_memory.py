@@ -3,13 +3,14 @@ import glob
 import math
 import logging
 import os
-from autotest.client import utils
-from autotest.client.shared import error
+
+from avocado.core import exceptions
+from avocado.utils import process
 
 
 # Returns total memory in kb
 def read_from_meminfo(key):
-    cmd_result = utils.run('grep %s /proc/meminfo' % key, verbose=False)
+    cmd_result = process.run('grep %s /proc/meminfo' % key, verbose=False)
     meminfo = cmd_result.stdout
     return int(re.search(r'\d+', meminfo).group(0))
 
@@ -97,8 +98,8 @@ def get_transparent_hugepage():
     elif os.path.isdir(RH_THP_PATH):
         thp_path = RH_THP_PATH
     else:
-        raise error.TestFail("transparent hugepage Not supported")
-    out = utils.system_output('cat %s/enabled' % thp_path)
+        raise exceptions.TestFail("transparent hugepage Not supported")
+    out = process.system_output('cat %s/enabled' % thp_path)
     if out[0] == "[always]":
         return 'always'
     elif out[1] == "[madvise]":
@@ -108,7 +109,7 @@ def get_transparent_hugepage():
 
 
 def set_num_huge_pages(num):
-    utils.system('/sbin/sysctl vm.nr_hugepages=%d' % num)
+    process.system('/sbin/sysctl vm.nr_hugepages=%d' % num)
 
 
 def set_transparent_hugepage(sflag):
@@ -117,7 +118,7 @@ def set_transparent_hugepage(sflag):
     """
     flags = ['always', 'madvise', 'never']
     if sflag not in flags:
-        raise error.TestFail("specify wrong parameter")
+        raise exceptions.TestFail("specify wrong parameter")
     UPSTREAM_THP_PATH = "/sys/kernel/mm/transparent_hugepage"
     RH_THP_PATH = "/sys/kernel/mm/redhat_transparent_hugepage"
     if os.path.isdir(UPSTREAM_THP_PATH):
@@ -125,18 +126,18 @@ def set_transparent_hugepage(sflag):
     elif os.path.isdir(RH_THP_PATH):
         thp_path = RH_THP_PATH
     else:
-        raise error.TestFail("transparent hugepage Not supported")
+        raise exceptions.TestFail("transparent hugepage Not supported")
     ret = os.system("echo %s > %s/enabled" % (sflag, thp_path))
     if ret != 0:
-        raise error.TestFail("setting transparent_hugepage failed")
+        raise exceptions.TestFail("setting transparent_hugepage failed")
 
 
 def drop_caches():
     """Writes back all dirty pages to disk and clears all the caches."""
-    utils.run("sync", verbose=False)
+    process.run("sync", verbose=False)
     # We ignore failures here as this will fail on 2.6.11 kernels.
-    utils.run("echo 3 > /proc/sys/vm/drop_caches", ignore_status=True,
-              verbose=False)
+    process.run("echo 3 > /proc/sys/vm/drop_caches", ignore_status=True,
+                verbose=False)
 
 
 def read_from_vmstat(key):

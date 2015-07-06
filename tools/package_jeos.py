@@ -5,9 +5,13 @@ import sys
 import logging
 import shutil
 
-import common
-from autotest.client import utils
-from autotest.client.shared import logging_manager
+from avocado.utils import process
+
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
 from virttest import utils_misc
 
 
@@ -28,23 +32,20 @@ def package_jeos(img):
     shutil.move(img, backup)
     logging.info("Backup %s saved", backup)
 
-    utils.system("%s convert -f qcow2 -O qcow2 %s %s" % (qemu_img, backup, img))
+    process.system("%s convert -f qcow2 -O qcow2 %s %s" % (qemu_img, backup, img))
     logging.info("Sparse file %s created successfully", img)
 
     archiver = utils_misc.find_command('7za')
     compressed_img = img + ".7z"
-    utils.system("%s a %s %s" % (archiver, compressed_img, img))
+    process.system("%s a %s %s" % (archiver, compressed_img, img))
     logging.info("JeOS compressed file %s created successfuly",
                  compressed_img)
 
 
 if __name__ == "__main__":
-    logging_manager.configure_logging(utils_misc.VirtLoggingConfig(),
-                                      verbose=True)
-
     if len(sys.argv) <= 1:
-        logging.info("Usage: %s [path to freshly installed JeOS qcow2 image]",
-                     sys.argv[0])
+        print("Usage: %s [path to freshly installed JeOS qcow2 image]" %
+              sys.argv[0])
         sys.exit(1)
 
     path = sys.argv[1]

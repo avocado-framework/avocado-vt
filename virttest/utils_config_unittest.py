@@ -2,9 +2,15 @@
 
 import os
 import unittest
-import common
 import tempfile
-import utils_config
+import sys
+
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest import utils_config
 
 # Test conf file content
 content = """# This is a comment line.
@@ -54,7 +60,8 @@ class SectionlessConfigTest(unittest.TestCase):
                 try:
                     config['f']
                 except Exception, e:
-                    self.assertEqual(utils_config.ConfigNoOptionError, e.__class__)
+                    self.assertEqual(
+                        utils_config.ConfigNoOptionError, e.__class__)
                     self.assertTrue('no option' in str(e))
 
                 # Test setter.
@@ -68,7 +75,8 @@ class SectionlessConfigTest(unittest.TestCase):
                 try:
                     del config['f']
                 except Exception, e:
-                    self.assertEqual(utils_config.ConfigNoOptionError, e.__class__)
+                    self.assertEqual(
+                        utils_config.ConfigNoOptionError, e.__class__)
                     self.assertTrue('no option' in str(e))
 
                 # Test contain.
@@ -92,7 +100,8 @@ class SectionlessConfigTest(unittest.TestCase):
                 try:
                     config['f']
                 except Exception, e:
-                    self.assertEqual(utils_config.ConfigNoOptionError, e.__class__)
+                    self.assertEqual(
+                        utils_config.ConfigNoOptionError, e.__class__)
                     self.assertTrue('no option' in str(e))
 
                 # Test setter.
@@ -104,7 +113,8 @@ class SectionlessConfigTest(unittest.TestCase):
                 try:
                     config['f']
                 except Exception, e:
-                    self.assertEqual(utils_config.ConfigNoOptionError, e.__class__)
+                    self.assertEqual(
+                        utils_config.ConfigNoOptionError, e.__class__)
                     self.assertTrue('no option' in str(e))
 
                 # Test contain.
@@ -312,13 +322,15 @@ class LibvirtConfigCommonTest(unittest.TestCase):
             try:
                 config.test = '1'
             except Exception, e:
-                self.assertEqual(utils_config.LibvirtConfigUnknownKeyTypeError, e.__class__)
+                self.assertEqual(
+                    utils_config.LibvirtConfigUnknownKeyTypeError, e.__class__)
                 self.assertTrue('Unknown type' in str(e))
             # Get unknown type
             try:
                 print config.test
             except Exception, e:
-                self.assertEqual(utils_config.LibvirtConfigUnknownKeyTypeError, e.__class__)
+                self.assertEqual(
+                    utils_config.LibvirtConfigUnknownKeyTypeError, e.__class__)
                 self.assertTrue('Unknown type' in str(e))
             # Set Get not defined type
             config.test3 = "abc"
@@ -335,13 +347,15 @@ class LibvirtConfigCommonTest(unittest.TestCase):
             try:
                 del config.test
             except Exception, e:
-                self.assertEqual(utils_config.LibvirtConfigUnknownKeyTypeError, e.__class__)
+                self.assertEqual(
+                    utils_config.LibvirtConfigUnknownKeyTypeError, e.__class__)
                 self.assertTrue('Unknown type' in str(e))
             # Not defined option
             try:
                 del config.test3
             except Exception, e:
-                self.assertEqual(utils_config.LibvirtConfigUnknownKeyError, e.__class__)
+                self.assertEqual(
+                    utils_config.LibvirtConfigUnknownKeyError, e.__class__)
                 self.assertTrue('Unknown config key' in str(e))
 
             config.restore()
@@ -368,7 +382,8 @@ class LibvirtConfigTest(unittest.TestCase):
             try:
                 config.undefined_property
             except Exception, e:
-                self.assertEqual(utils_config.LibvirtConfigUnknownKeyError, e.__class__)
+                self.assertEqual(
+                    utils_config.LibvirtConfigUnknownKeyError, e.__class__)
                 self.assertTrue('Unknown config key' in str(e))
 
             # Test defined boolean property.

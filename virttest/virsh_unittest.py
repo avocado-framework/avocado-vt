@@ -2,9 +2,26 @@
 
 import unittest
 import logging
+import os
+import sys
 
-import common
-from autotest.client import utils
+from avocado.utils import process
+
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+
+def process_is_alive(name_pattern):
+    """
+    'pgrep name' misses all python processes and also long process names.
+    'pgrep -f name' gets all shell commands with name in args.
+    So look only for command whose initial pathname ends with name.
+    Name itself is an egrep pattern, so it can use | etc for variations.
+    """
+    return process.system("pgrep -f '^([^ /]*/)*(%s)([ ]|$)'" % name_pattern,
+                          ignore_status=True, shell=True) == 0
 
 
 class bogusVirshFailureException(unittest.TestCase.failureException):
@@ -27,7 +44,7 @@ def FakeVirshFactory(preserve=None):
     Users of this class should override methods under test on instance.
     :param preserve: List of symbol names NOT to modify, None for all
     """
-    import virsh
+    from virttest import virsh
 
     def raise_bogusVirshFailureException(*args, **dargs):
         raise bogusVirshFailureException()
@@ -49,7 +66,7 @@ def FakeVirshFactory(preserve=None):
 
 
 class ModuleLoad(unittest.TestCase):
-    import virsh
+    from virttest import virsh
 
 
 class ConstantsTest(ModuleLoad):
@@ -202,7 +219,7 @@ class ConstructorsTest(ModuleLoad):
 
 # Ensure the following tests ONLY run if a valid virsh command exists #####
 class ModuleLoadCheckVirsh(unittest.TestCase):
-    import virsh
+    from virttest import virsh
 
     def run(self, *args, **dargs):
         test_virsh = self.virsh.Virsh()
@@ -223,9 +240,9 @@ class SessionManagerTest(ModuleLoadCheckVirsh):
         """
         vp = self.virsh.VirshPersistent()
         virsh_exec = vp.virsh_exec
-        self.assertTrue(utils.process_is_alive(virsh_exec))
+        self.assertTrue(process_is_alive(virsh_exec))
         del vp
-        self.assertFalse(utils.process_is_alive(virsh_exec))
+        self.assertFalse(process_is_alive(virsh_exec))
 
     def test_VirshSession(self):
         """
@@ -236,9 +253,9 @@ class SessionManagerTest(ModuleLoadCheckVirsh):
         virsh_exec = self.virsh.Virsh()['virsh_exec']
         # Build a VirshSession object.
         session_1 = self.virsh.VirshSession(virsh_exec, auto_close=True)
-        self.assertTrue(utils.process_is_alive(virsh_exec))
+        self.assertTrue(process_is_alive(virsh_exec))
         del session_1
-        self.assertFalse(utils.process_is_alive(virsh_exec))
+        self.assertFalse(process_is_alive(virsh_exec))
 
     def test_VirshPersistent(self):
         """
@@ -246,7 +263,7 @@ class SessionManagerTest(ModuleLoadCheckVirsh):
         """
         virsh_exec = self.virsh.Virsh()['virsh_exec']
         vp_1 = self.virsh.VirshPersistent()
-        self.assertTrue(utils.process_is_alive(virsh_exec))
+        self.assertTrue(process_is_alive(virsh_exec))
         # Init the vp_2 with same params of vp_1.
         vp_2 = self.virsh.VirshPersistent(**vp_1)
         # Make sure vp_1 and vp_2 are refer to the same session.
@@ -254,10 +271,10 @@ class SessionManagerTest(ModuleLoadCheckVirsh):
 
         del vp_1
         # Make sure the session is not closed when vp_2 still refer to it.
-        self.assertTrue(utils.process_is_alive(virsh_exec))
+        self.assertTrue(process_is_alive(virsh_exec))
         del vp_2
         # Session was closed since no other VirshPersistent refer to it.
-        self.assertFalse(utils.process_is_alive(virsh_exec))
+        self.assertFalse(process_is_alive(virsh_exec))
 
 
 class VirshHasHelpCommandTest(ModuleLoadCheckVirsh):
@@ -284,7 +301,7 @@ class VirshHasHelpCommandTest(ModuleLoadCheckVirsh):
         self.assertTrue(self.virsh.has_help_command('uri'))
 
     def test_subcommand_help(self):
-        regex = r'\s+\[--command\]\s+\<string\>\s+'
+        regex = r'--command'
         self.assertTrue(self.virsh.has_command_help_match('help', regex))
         self.assertFalse(self.virsh.has_command_help_match('uri', regex))
 
@@ -332,7 +349,7 @@ class VirshPersistentClassHasHelpCommandTest(VirshHasHelpCommandTest):
         super(VirshPersistentClassHasHelpCommandTest, self).setUp()
         self.VirshPersistent = self.virsh.VirshPersistent
         self.virsh = self.VirshPersistent(debug=False)
-        self.assertTrue(utils.process_is_alive(self.virsh.virsh_exec))
+        self.assertTrue(process_is_alive(self.virsh.virsh_exec))
 
     def test_recycle_session(self):
         # virsh can be used as a dict of it's properties
@@ -340,9 +357,9 @@ class VirshPersistentClassHasHelpCommandTest(VirshHasHelpCommandTest):
         self.assertEqual(self.virsh.session_id, another.session_id)
 
     def tearDown(self):
-        self.assertTrue(utils.process_is_alive(self.virsh.virsh_exec))
+        self.assertTrue(process_is_alive(self.virsh.virsh_exec))
         self.virsh.close_session()
-        self.assertFalse(utils.process_is_alive(self.virsh.virsh_exec))
+        self.assertFalse(process_is_alive(self.virsh.virsh_exec))
 
 
 if __name__ == '__main__':

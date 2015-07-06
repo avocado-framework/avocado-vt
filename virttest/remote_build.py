@@ -1,9 +1,6 @@
 import os
 import re
-from autotest.client import utils
 import remote
-import aexpect
-import data_dir
 import hashlib
 import logging
 
@@ -131,7 +128,8 @@ class Builder(object):
                 for file_name in file_names:
                     path = os.path.join(dir_name, file_name)
                     if os.path.isfile(path):
-                        result[os.path.relpath(path, base_path)] = hash_file(path)
+                        result[
+                            os.path.relpath(path, base_path)] = hash_file(path)
 
             result = {}
             os.path.walk(path, visit, (path, result))

@@ -4,8 +4,9 @@ selinux test utility functions.
 
 import logging
 import re
-import os.path
-from autotest.client import utils
+import os
+
+from avocado.utils import process
 
 
 class SelinuxError(Exception):
@@ -63,7 +64,7 @@ def get_status():
                     but the output is not expected.
     """
     cmd = 'getenforce'
-    result = utils.run(cmd, ignore_status=True)
+    result = process.run(cmd, ignore_status=True)
     if result.exit_status:
         raise SeCmdError(cmd, result.stderr)
 
@@ -100,7 +101,7 @@ def set_status(status):
                                "reboot host to set selinux to %s." % status)
         else:
             cmd = "setenforce %s" % status
-            result = utils.run(cmd, ignore_status=True)
+            result = process.run(cmd, ignore_status=True)
             if result.exit_status:
                 raise SeCmdError(cmd, result.stderr)
             else:
@@ -186,7 +187,7 @@ def get_context_of_file(filename):
     """
     # More direct than scraping 'ls' output.
     cmd = "getfattr --name security.selinux %s" % filename
-    result = utils.run(cmd, ignore_status=True)
+    result = process.run(cmd, ignore_status=True)
     if result.exit_status:
         raise SeCmdError(cmd, result.stderr)
 
@@ -207,7 +208,7 @@ def set_context_of_file(filename, context):
     # setfattr used for consistency with getfattr use above
     cmd = ("setfattr --name security.selinux --value \"%s\" %s"
            % (context, filename))
-    result = utils.run(cmd, ignore_status=True)
+    result = process.run(cmd, ignore_status=True)
     if result.exit_status:
         raise SeCmdError(cmd, result.stderr)
 
@@ -248,9 +249,9 @@ def get_defcon(local=False):
     :return: list of dictionaries of default context attributes
     """
     if local:
-        result = utils.run("semanage fcontext --list -C", ignore_status=True)
+        result = process.run("semanage fcontext --list -C", ignore_status=True)
     else:
-        result = utils.run("semanage fcontext --list", ignore_status=True)
+        result = process.run("semanage fcontext --list", ignore_status=True)
     _no_semanage(result)
     if result.exit_status != 0:
         raise SeCmdError('semanage', result.stderr)
@@ -335,7 +336,7 @@ def set_defcon(context_type, pathregex, context_range=None):
         cmd += ' -r %s' % context_range
     if pathregex:
         cmd += ' "%s"' % pathregex
-    result = utils.run(cmd, ignore_status=True)
+    result = process.run(cmd, ignore_status=True)
     _no_semanage(result)
     if result.exit_status != 0:
         raise SeCmdError(cmd, result.stderr)
@@ -351,7 +352,7 @@ def del_defcon(context_type, pathregex):
     :raise SeCmdError: if semanage exits non-zero
     """
     cmd = ("semanage fcontext --delete -t %s '%s'" % (context_type, pathregex))
-    result = utils.run(cmd, ignore_status=True)
+    result = process.run(cmd, ignore_status=True)
     _no_semanage(result)
     if result.exit_status != 0:
         raise SeCmdError(cmd, result.stderr)
@@ -369,7 +370,7 @@ def _run_restorecon(pathname, dirdesc, readonly=True, force=False):
         cmd += 'F'
     cmd += ' "%s"' % pathname
     # Always returns 0, even if contexts wrong
-    return utils.run(cmd).stdout.strip()
+    return process.run(cmd).stdout.strip()
 
 
 def verify_defcon(pathname, dirdesc=False, readonly=True, forcedesc=False):

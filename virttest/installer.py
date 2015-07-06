@@ -1,14 +1,15 @@
-'''
+"""
 Installer classes are responsible for building and installing virtualization
 specific software components. This is the main entry point for tests that
 wish to install virtualization software components.
 
 The most common use case is to simply call make_installer() inside your tests.
-'''
+"""
 
-from autotest.client.shared import error
-import base_installer
-import qemu_installer
+from avocado.core import exceptions
+
+from . import base_installer
+from . import qemu_installer
 
 __all__ = ['InstallerRegistry', 'INSTALLER_REGISTRY', 'make_installer',
            'run_installers']
@@ -16,7 +17,7 @@ __all__ = ['InstallerRegistry', 'INSTALLER_REGISTRY', 'make_installer',
 
 class InstallerRegistry(dict):
 
-    '''
+    """
     Holds information on known installer classes
 
     This class is used to create a single instance, named INSTALLER_REGISTRY,
@@ -35,7 +36,7 @@ class InstallerRegistry(dict):
     For getting a installer class, use the get_installer() method. This method
     has a fallback option 'get_default_virt' that will return a generic virt
     installer if set to true.
-    '''
+    """
 
     DEFAULT_VIRT_NAME = 'base'
 
@@ -44,11 +45,11 @@ class InstallerRegistry(dict):
         self[self.DEFAULT_VIRT_NAME] = {}
 
     def register(self, mode, klass, virt=None):
-        '''
+        """
         Register a class as responsible for installing virt software components
 
         If virt is not set, it will assume a default of 'base'.
-        '''
+        """
         if virt is None:
             virt = self.DEFAULT_VIRT_NAME
         elif not self.has_key(virt):
@@ -57,7 +58,7 @@ class InstallerRegistry(dict):
         self[virt][mode] = klass
 
     def get_installer(self, mode, virt=None, get_default_virt=False):
-        '''
+        """
         Gets a installer class that should be able to install the virt software
 
         Always try to use classes that are specific to the virtualization
@@ -65,7 +66,7 @@ class InstallerRegistry(dict):
         installation is rather trivial and does not require custom steps, you
         may be able to get away with a base class (by setting get_default_virt
         to True).
-        '''
+        """
         if virt is None:
             virt = self.DEFAULT_VIRT_NAME
         if not self.has_key(virt):
@@ -76,9 +77,9 @@ class InstallerRegistry(dict):
             return self[virt].get(mode)
 
     def get_modes(self, virt=None):
-        '''
+        """
         Returns a list of all registered installer modes
-        '''
+        """
         if virt is None:
             virt = self.DEFAULT_VIRT_NAME
 
@@ -134,13 +135,13 @@ INSTALLER_REGISTRY.register('remote_tar',
 
 
 def installer_name_split(fullname, virt=None):
-    '''
+    """
     Split a full installer name into mode and short name
 
     Examples:
        git_repo_foo -> (git_repo, foo)
        local_src_foo -> (local_src, foo)
-    '''
+    """
     for mode in INSTALLER_REGISTRY.get_modes(virt):
         if fullname.startswith('%s_' % mode):
             _, _name = fullname.split(mode)
@@ -151,7 +152,7 @@ def installer_name_split(fullname, virt=None):
 
 
 def make_installer(fullname, params, test=None):
-    '''
+    """
     Installer factory: returns a new installer for the chosen mode and vm type
 
     This is the main entry point for acquiring an installer. Tests, such as
@@ -163,7 +164,7 @@ def make_installer(fullname, params, test=None):
     :param fullname: the full name of instance, eg: git_repo_foo
     :param params: dictionary with parameters generated from cartersian config
     :param test: the test instance
-    '''
+    """
     virt = params.get("vm_type", None)
 
     mode, name = installer_name_split(fullname, virt)
@@ -174,21 +175,22 @@ def make_installer(fullname, params, test=None):
         if virt is not None:
             error_msg += ' specifically for virt type "%s"' % virt
 
-        raise error.TestError(error_msg)
+        raise exceptions.TestError(error_msg)
 
     klass = INSTALLER_REGISTRY.get_installer(mode, virt)
     if klass is None:
-        raise error.TestError('Installer mode %s is not registered' % mode)
+        raise exceptions.TestError(
+            'Installer mode %s is not registered' % mode)
     else:
         return klass(mode, name, test, params)
 
 
 def run_installers(params, test=None):
-    '''
+    """
     Runs the installation routines for all installers, one at a time
 
     This is usually the main entry point for tests
-    '''
+    """
     for name in params.get("installers", "").split():
         installer = make_installer(name, params, test)
         installer.install()

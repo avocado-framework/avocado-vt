@@ -177,5 +177,6 @@ class VolXML(VolXMLBase):
                                    tag_name='encryption', attribute='format')
             accessors.XMLElementDict('secret', self, parent_xpath='/',
                                      tag_name='secret')
-            super(VolXML.Encryption, self).__init__(virsh_instance=virsh_instance)
+            super(VolXML.Encryption, self).__init__(
+                virsh_instance=virsh_instance)
             self.xml = '<encryption/>'

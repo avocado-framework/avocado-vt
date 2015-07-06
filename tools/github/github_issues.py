@@ -6,6 +6,7 @@ from functools import partial as Partial
 import datetime
 import time
 import shelve
+
 # Requires PyGithub version >= 1.13 for access to raw_data attribute
 import github
 

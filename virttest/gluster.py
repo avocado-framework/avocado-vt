@@ -10,11 +10,15 @@ import logging
 import os
 import re
 import shutil
-from autotest.client.shared import utils, error
-import data_dir
-import utils_misc
-import utils_net
 import socket
+
+from avocado.utils import process
+from avocado.core import exceptions
+
+from . import data_dir
+from . import utils_misc
+from . import utils_net
+from . import error_context
 
 
 class GlusterError(Exception):
@@ -28,31 +32,32 @@ class GlusterBrickError(GlusterError):
         self.error_mgs = error_mgs
 
     def __str__(self):
-        return ("Gluster: %s" % (self.error_mgs))
+        return "Gluster: %s" % (self.error_mgs)
 
 
-@error.context_aware
+@error_context.context_aware
 def glusterd_start():
     """
     Check for glusterd status and start it
     """
     cmd = "service glusterd status"
-    output = utils.system_output(cmd, ignore_status=True)
+    output = process.system_output(cmd, ignore_status=True)
     # The blank before 'active' makes a distinction with 'inactive'
     if ' active' not in output or 'running' not in output:
         cmd = "service glusterd start"
-        error.context("Starting gluster dameon failed")
-        output = utils.system_output(cmd)
+        error_context.context("Starting gluster dameon failed")
+        output = process.system_output(cmd)
 
 
-@error.context_aware
+@error_context.context_aware
 def is_gluster_vol_started(vol_name):
     """
     Return true if the volume is started, if not send false
     """
     cmd = "gluster volume info %s" % vol_name
-    error.context("Gluster volume info failed for volume: %s" % vol_name)
-    vol_info = utils.system_output(cmd)
+    error_context.context(
+        "Gluster volume info failed for volume: %s" % vol_name)
+    vol_info = process.system_output(cmd)
     volume_status = re.findall(r'Status: (\S+)', vol_info)
     if 'Started' in volume_status:
         return True
@@ -60,70 +65,63 @@ def is_gluster_vol_started(vol_name):
         return False
 
 
-@error.context_aware
+@error_context.context_aware
 def gluster_vol_start(vol_name):
     """
     Start the volume if it is stopped
     """
     # Check if the volume is stopped, if then start
     if not is_gluster_vol_started(vol_name):
-        error.context("Gluster volume start failed for volume; %s" % vol_name)
+        error_context.context(
+            "Gluster volume start failed for volume; %s" % vol_name)
         cmd = "gluster volume start %s" % vol_name
-        utils.system(cmd)
+        process.system(cmd)
         return True
     else:
         return True
 
 
-@error.context_aware
+@error_context.context_aware
 def gluster_vol_stop(vol_name, force=False):
     """
     Stop the volume if it is started
     """
     # Check if the volume is started, if then stop
     if is_gluster_vol_started(vol_name):
-        error.context("Gluster volume stop for volume; %s" % vol_name)
+        error_context.context("Gluster volume stop for volume; %s" % vol_name)
         if force:
             cmd = "gluster volume stop %s force" % vol_name
         else:
             cmd = "gluster volume stop %s" % vol_name
-        utils.run(cmd, ignore_status=False,
-                  stdout_tee=utils.TEE_TO_LOGS,
-                  stderr_tee=utils.TEE_TO_LOGS,
-                  stdin="y\n",
-                  verbose=True)
+        process.run(cmd, ignore_status=False)
         return True
     else:
         return True
 
 
-@error.context_aware
+@error_context.context_aware
 def gluster_vol_delete(vol_name):
     """
     Delete the volume if it is not started
     """
     # Check if the volume is stopped, if then delete
     if not is_gluster_vol_started(vol_name):
-        error.context("Gluster volume delete; %s" % vol_name)
+        error_context.context("Gluster volume delete; %s" % vol_name)
         cmd = "gluster volume delete %s" % vol_name
-        utils.run(cmd, ignore_status=False,
-                  stdout_tee=utils.TEE_TO_LOGS,
-                  stderr_tee=utils.TEE_TO_LOGS,
-                  stdin="y\n",
-                  verbose=True)
+        process.run(cmd, ignore_status=False)
         return True
     else:
         return False
 
 
-@error.context_aware
+@error_context.context_aware
 def is_gluster_vol_avail(vol_name):
     """
     Check if the volume already available
     """
     cmd = "gluster volume info"
-    error.context("Gluster volume info failed")
-    output = utils.system_output(cmd)
+    error_context.context("Gluster volume info failed")
+    output = process.system_output(cmd)
     volume_name = re.findall(r'Volume Name: (%s)\n' % vol_name, output)
     if volume_name:
         return gluster_vol_start(vol_name)
@@ -154,7 +152,7 @@ def gluster_brick_delete(brick_path):
             logging.error("Not able to create brick folder %s", details)
 
 
-@error.context_aware
+@error_context.context_aware
 def gluster_vol_create(vol_name, hostname, brick_path, force=False):
     """
     Gluster Volume Creation
@@ -174,8 +172,8 @@ def gluster_vol_create(vol_name, hostname, brick_path, force=False):
 
     cmd = "gluster volume create %s %s:/%s %s" % (vol_name, hostname,
                                                   brick_path, force_opt)
-    error.context("Volume creation failed")
-    utils.system(cmd)
+    error_context.context("Volume creation failed")
+    process.system(cmd)
     return is_gluster_vol_avail(vol_name)
 
 
@@ -190,7 +188,7 @@ def glusterfs_mount(g_uri, mount_point):
                      False, "fuse.glusterfs")
 
 
-@error.context_aware
+@error_context.context_aware
 def create_gluster_vol(params):
     vol_name = params.get("gluster_volume_name")
     force = params.get('force_recreate_gluster') == "yes"
@@ -200,7 +198,7 @@ def create_gluster_vol(params):
         base_dir = params.get("images_base_dir", data_dir.get_data_dir())
         brick_path = os.path.join(base_dir, brick_path)
 
-    error.context("Host name lookup failed")
+    error_context.context("Host name lookup failed")
     hostname = socket.gethostname()
     if not hostname or hostname == "(none)":
         if_up = utils_net.get_net_if(state="UP")
@@ -221,14 +219,14 @@ def create_gluster_vol(params):
         return True
 
 
-@error.context_aware
+@error_context.context_aware
 def create_gluster_uri(params, stripped=False):
     """
     Find/create gluster volume
     """
     vol_name = params.get("gluster_volume_name")
 
-    error.context("Host name lookup failed")
+    error_context.context("Host name lookup failed")
     hostname = socket.gethostname()
     gluster_server = params.get("gluster_server")
     gluster_port = params.get("gluster_port", "0")
@@ -300,7 +298,7 @@ def get_image_filename(params, image_name, image_format):
     return image_filename
 
 
-@error.context_aware
+@error_context.context_aware
 def gluster_allow_insecure(vol_name):
     """
     Allow gluster volume insecure
@@ -309,11 +307,11 @@ def gluster_allow_insecure(vol_name):
     """
 
     cmd = "gluster volume set %s server.allow-insecure on" % vol_name
-    error.context("Volume set server.allow-insecure failed")
-    utils.system(cmd)
+    error_context.context("Volume set server.allow-insecure failed")
+    process.system(cmd)
 
     cmd = "gluster volume info"
-    output = utils.system_output(cmd)
+    output = process.system_output(cmd)
     match = re.findall(r'server.allow-insecure: on', output)
 
     if not match:
@@ -328,11 +326,11 @@ def add_rpc_insecure(filepath):
     """
 
     cmd = "cat %s" % filepath
-    content = utils.system_output(cmd)
+    content = process.system_output(cmd)
     match = re.findall(r'rpc-auth-allow-insecure on', content)
     logging.info("match is %s", match)
     if not match:
         logging.info("not match")
         cmd = "sed -i '/end-volume/i \ \ \ \ option rpc-auth-allow-insecure on' %s" % filepath
-        utils.system(cmd)
-        utils.system("service glusterd restart; sleep 2")
+        process.system(cmd, shell=True)
+        process.system("service glusterd restart; sleep 2", shell=True)

@@ -1,9 +1,11 @@
 import re
-from autotest.client.shared import error
-from autotest.client import utils
-import utils_misc
-import aexpect
-import data_dir
+
+from avocado.core import exceptions
+from avocado.utils import process
+
+from . import utils_misc
+from . import aexpect
+from . import error_context
 
 
 class QemuIOParamError(Exception):
@@ -110,7 +112,7 @@ class QemuIOShellSession(QemuIO):
         self.create_session = True
         self.session = None
 
-    @error.context_aware
+    @error_context.context_aware
     def cmd_output(self, command, timeout=60):
         """
         Get output from shell session. If the create flag is True, init the
@@ -124,7 +126,8 @@ class QemuIOShellSession(QemuIO):
         output_params = self.output_params
         output_prefix = self.output_prefix
         if self.create_session:
-            error.context("Running command: %s" % qemu_io_cmd, self.log_func)
+            error_context.context(
+                "Running command: %s" % qemu_io_cmd, self.log_func)
             self.session = aexpect.ShellSession(qemu_io_cmd, echo=True,
                                                 prompt=prompt,
                                                 output_func=output_func,
@@ -139,7 +142,7 @@ class QemuIOShellSession(QemuIO):
             # Get the reaction from session
             self.session.cmd_output("\n")
 
-        error.context("Executing command: %s" % command, self.log_func)
+        error_context.context("Executing command: %s" % command, self.log_func)
         return self.session.cmd_output(command, timeout=timeout)
 
     def close(self):
@@ -167,7 +170,7 @@ class QemuIOSystem(QemuIO):
         self.qemu_io_cmd = self.get_cmd_line(ignore_option=ignore_option,
                                              essential_option=essential_option)
 
-    @error.context_aware
+    @error_context.context_aware
     def cmd_output(self, command, timeout=60):
         """
         Get output from system_output. Add the command to the qemu-io command
@@ -179,8 +182,9 @@ class QemuIOSystem(QemuIO):
         if command:
             qemu_io_cmd += " -c '%s'" % command
 
-        error.context("Running command: %s" % qemu_io_cmd, self.log_func)
-        output = utils.system_output(qemu_io_cmd, timeout=timeout)
+        error_context.context(
+            "Running command: %s" % qemu_io_cmd, self.log_func)
+        output = process.system_output(qemu_io_cmd, timeout=timeout)
 
         # Record command line in log file
         if self.output_func:

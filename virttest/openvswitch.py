@@ -2,14 +2,13 @@ import logging
 import re
 import os
 import signal
-try:
-    import autotest.common as common
-except ImportError:
-    import common
-from autotest.client import utils, os_dep
-from autotest.client.shared import error
-from versionable_class import VersionableClass, Manager, factory
-import utils_misc
+
+from avocado.utils import path
+from avocado.utils import process
+from avocado.utils import linux_modules
+
+from .versionable_class import VersionableClass, Manager, factory
+from . import utils_misc
 
 # Register to class manager.
 man = Manager(__name__)
@@ -56,13 +55,13 @@ class ServiceManagerSysvinit(ServiceManagerInterface):
         return False
 
     def stop(self, service_name):
-        utils.run("/etc/init.d/%s stop" % (service_name))
+        process.run("/etc/init.d/%s stop" % (service_name))
 
     def start(self, service_name):
-        utils.run("/etc/init.d/%s start" % (service_name))
+        process.run("/etc/init.d/%s start" % (service_name))
 
     def restart(self, service_name):
-        utils.run("/etc/init.d/%s restart" % (service_name))
+        process.run("/etc/init.d/%s restart" % (service_name))
 
 
 class ServiceManagerSystemD(ServiceManagerSysvinit):
@@ -75,16 +74,16 @@ class ServiceManagerSystemD(ServiceManagerSysvinit):
         return False
 
     def stop(self, service_name):
-        utils.run("systemctl stop %s.service" % (service_name))
+        process.run("systemctl stop %s.service" % (service_name))
 
     def start(self, service_name):
-        utils.run("systemctl start %s.service" % (service_name))
+        process.run("systemctl start %s.service" % (service_name))
 
     def restart(self, service_name):
-        utils.run("systemctl restart %s.service" % (service_name))
+        process.run("systemctl restart %s.service" % (service_name))
 
     def status(self, service_name):
-        utils.run("systemctl show %s.service" % (service_name))
+        process.run("systemctl show %s.service" % (service_name))
 
 
 class ServiceManager(VersionableClass):
@@ -156,7 +155,7 @@ class OpenVSwitchControl(object):
             a = re.findall('^(\d+)\.?(\d+)\.?(\d+)\-?', version)[0]
             int_ver = ''.join(a)
         except:
-            raise error.AutotestError("Wrong version format '%s'" % version)
+            raise ValueError("Wrong version format '%s'" % version)
         return int_ver
 
     @classmethod
@@ -168,11 +167,11 @@ class OpenVSwitchControl(object):
         """
         version = None
         try:
-            result = utils.run(os_dep.command("ovs-vswitchd"),
-                               args=["--version"])
+            result = process.run("%s --version" %
+                                 path.find_command("ovs-vswitchd"))
             pattern = "ovs-vswitchd \(Open vSwitch\) (\d+\.\d+\.\d+).*"
             version = re.search(pattern, result.stdout).group(1)
-        except error.CmdError:
+        except process.CmdError:
             logging.debug("OpenVSwitch is not available in system.")
         return version
 
@@ -257,10 +256,11 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
                 return True
         return False
 
-    def ovs_vsctl(self, parmas, ignore_status=False):
-        return utils.run(os_dep.command("ovs-vsctl"), timeout=10,
-                         ignore_status=ignore_status, verbose=False,
-                         args=["--db=unix:%s" % (self.db_socket)] + parmas)
+    def ovs_vsctl(self, params, ignore_status=False):
+        return process.run('%s --db=unix:%s %s' %
+                           (path.find_command("ovs-vsctl"),
+                            self.db_socket, " ".join(params)), timeout=10,
+                           ignore_status=ignore_status, verbose=False)
 
     def status(self):
         return self.ovs_vsctl(["show"]).stdout
@@ -274,14 +274,14 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
     def del_br(self, br_name):
         try:
             self.ovs_vsctl(["del-br", br_name])
-        except error.CmdError, e:
+        except process.CmdError, e:
             logging.debug(e.result_obj)
             raise
 
     def br_exist(self, br_name):
         try:
             self.ovs_vsctl(["br-exists", br_name])
-        except error.CmdError, e:
+        except process.CmdError, e:
             if e.result_obj.exit_status == 2:
                 return False
             else:
@@ -324,7 +324,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         bridge = None
         try:
             bridge = self.ovs_vsctl(["port-to-br", port_name]).stdout.strip()
-        except error.CmdError, e:
+        except process.CmdError, e:
             if e.result_obj.exit_status == 1:
                 pass
         return bridge
@@ -421,9 +421,9 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
         """
         sm = factory(ServiceManager)()
         try:
-            if utils.load_module("openvswitch"):
+            if linux_modules.load_module("openvswitch"):
                 sm.restart("openvswitch")
-        except error.CmdError:
+        except process.CmdError:
             logging.error("Service OpenVSwitch is probably not"
                           " installed in system.")
             raise
@@ -465,20 +465,23 @@ class OpenVSwitch(OpenVSwitchSystem):
                 raise
 
     def init_db(self):
-        utils.run(os_dep.command("ovsdb-tool"), timeout=10,
-                  args=["create", self.db_path, self.dbschema])
-        utils.run(os_dep.command("ovsdb-server"), timeout=10,
-                  args=["--remote=punix:%s" % (self.db_socket),
-                        "--remote=db:Open_vSwitch,manager_options",
-                        "--pidfile=%s" % (self.db_pidfile),
-                        "--detach"])
+        process.run('%s %s %s %s' %
+                    (path.find_command("ovsdb-tool"), "create",
+                     self.db_path, self.dbschema))
+        process.run('%s %s %s %s %s' %
+                    (path.find_command("ovsdb-server"),
+                     "--remote=punix:%s" % (self.db_socket),
+                     "--remote=db:Open_vSwitch,manager_options",
+                     "--pidfile=%s" % (self.db_pidfile),
+                     "--detach"))
         self.ovs_vsctl(["--no-wait", "init"])
 
     def start_ovs_vswitchd(self):
-        utils.run(os_dep.command("ovs-vswitchd"), timeout=10,
-                  args=["--detach",
-                        "--pidfile=%s" % (self.ovs_pidfile),
-                        "unix:%s" % (self.db_socket)])
+        process.run('%s %s %s %s' %
+                    (path.find_command("ovs-vswitchd"),
+                     "--detach",
+                     "--pidfile=%s" % self.ovs_pidfile,
+                     "unix:%s" % self.db_socket))
 
     def init_new(self):
         """
@@ -495,11 +498,11 @@ class OpenVSwitch(OpenVSwitchSystem):
         # Stop system openvswitch
         try:
             sm.stop("openvswitch")
-        except error.CmdError:
+        except process.CmdError:
             pass
-        utils.load_module("openvswitch")
+        linux_modules.load_module("openvswitch")
         self.clean()
-        if (os.path.exists(self.db_path)):
+        if os.path.exists(self.db_path):
             os.remove(self.db_path)
 
         self.init_db()
@@ -507,10 +510,10 @@ class OpenVSwitch(OpenVSwitchSystem):
 
     def clean(self):
         logging.debug("Killall ovsdb-server")
-        utils.signal_program("ovsdb-server")
-        if (utils_misc.program_is_alive("ovsdb-server")):
-            utils.signal_program("ovsdb-server", signal.SIGKILL)
+        utils_misc.signal_program("ovsdb-server")
+        if utils_misc.program_is_alive("ovsdb-server"):
+            utils_misc.signal_program("ovsdb-server", signal.SIGKILL)
         logging.debug("Killall ovs-vswitchd")
-        utils.signal_program("ovs-vswitchd")
-        if (utils_misc.program_is_alive("ovs-vswitchd")):
-            utils.signal_program("ovs-vswitchd", signal.SIGKILL)
+        utils_misc.signal_program("ovs-vswitchd")
+        if utils_misc.program_is_alive("ovs-vswitchd"):
+            utils_misc.signal_program("ovs-vswitchd", signal.SIGKILL)

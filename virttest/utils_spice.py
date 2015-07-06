@@ -6,9 +6,11 @@ import os
 import logging
 import time
 import sys
-from autotest.client.shared import error
-from aexpect import ShellCmdError, ShellStatusError
-from virttest import utils_net, utils_misc
+
+from avocado.core import exceptions
+
+from .aexpect import ShellCmdError, ShellStatusError
+from . import utils_net, utils_misc
 
 
 class RVConnectError(Exception):
@@ -126,7 +128,7 @@ def start_vdagent(guest_session, test_timeout):
         logging.debug("Status code of \"%s\" was not obtained, most likely"
                       "due to a problem with colored output" % cmd)
     except:
-        raise error.TestFail("Guest Vdagent Daemon Start failed")
+        raise exceptions.TestFail("Guest Vdagent Daemon Start failed")
 
     logging.debug("------------ End of guest checking for Spice Vdagent"
                   " Daemon ------------")
@@ -145,9 +147,9 @@ def restart_vdagent(guest_session, test_timeout):
         guest_session.cmd(cmd, print_func=logging.info,
                           timeout=test_timeout)
     except ShellCmdError:
-        raise error.TestFail("Couldn't restart spice vdagent process")
+        raise exceptions.TestFail("Couldn't restart spice vdagent process")
     except:
-        raise error.TestFail("Guest Vdagent Daemon Check failed")
+        raise exceptions.TestFail("Guest Vdagent Daemon Check failed")
 
     logging.debug("------------ End of Spice Vdagent"
                   " Daemon  Restart ------------")
@@ -169,9 +171,9 @@ def stop_vdagent(guest_session, test_timeout):
         logging.debug("Status code of \"%s\" was not obtained, most likely"
                       "due to a problem with colored output" % cmd)
     except ShellCmdError:
-        raise error.TestFail("Couldn't turn off spice vdagent process")
+        raise exceptions.TestFail("Couldn't turn off spice vdagent process")
     except:
-        raise error.TestFail("Guest Vdagent Daemon Check failed")
+        raise exceptions.TestFail("Guest Vdagent Daemon Check failed")
 
     logging.debug("------------ End of guest checking for Spice Vdagent"
                   " Daemon ------------")
@@ -214,7 +216,7 @@ def get_vdagent_status(vm_session, test_timeout):
         return("stopped")
     except:
         print "Unexpected error:", sys.exc_info()[0]
-        raise error.TestFail(
+        raise exceptions.TestFail(
             "Failed attempting to get status of spice-vdagentd")
     wait_timeout(3)
     return(output)
@@ -316,7 +318,7 @@ def clear_interface_linux(vm, login_timeout, timeout):
     try:
         session.cmd("ps -C %s" % command)
     except ShellCmdError:
-        raise error.TestFail("X/gdm not running")
+        raise exceptions.TestFail("X/gdm not running")
 
 
 def deploy_epel_repo(guest_session, params):

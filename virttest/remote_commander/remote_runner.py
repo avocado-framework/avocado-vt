@@ -536,7 +536,8 @@ class CommanderSlave(ms.Messenger):
                 stderrs = [cmd.stderr_pipe for cmd in self.cmds.values()
                            if cmd.stderr_pipe is not None]
 
-                r, _, _ = select.select(stdios + r_pipes + stdouts + stderrs, [], [])
+                r, _, _ = select.select(
+                    stdios + r_pipes + stdouts + stderrs, [], [])
 
                 if self.stdin in r:  # command from controller
                     cmd = CmdSlave(self.read_msg()[1])
@@ -546,7 +547,8 @@ class CommanderSlave(ms.Messenger):
                         self.write_msg(cmd.basecmd)
                     except Exception:
                         err_msg = traceback.format_exc()
-                        self.write_msg(remote_interface.CommanderError(err_msg))
+                        self.write_msg(
+                            remote_interface.CommanderError(err_msg))
 
                 if self.o_stdout in r:  # Send message from stdout
                     msg = os.read(self.o_stdout, 16384)

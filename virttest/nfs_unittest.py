@@ -1,15 +1,19 @@
 #!/usr/bin/python
 import unittest
 import os
+import sys
 
-import common
-from autotest.client.shared.test_utils import mock
-from autotest.client import os_dep
-from autotest.client.shared import utils
+from avocado.utils import path
+from avocado.utils import process
 
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest.unittest_utils import mock
 from virttest import nfs
 from virttest import utils_misc
-
 from virttest.staging import service
 
 
@@ -35,9 +39,9 @@ class FakeService(object):
 class nfs_test(unittest.TestCase):
 
     def setup_stubs_init(self):
-        os_dep.command.expect_call("mount")
-        os_dep.command.expect_call("service")
-        os_dep.command.expect_call("exportfs")
+        path.find_command.expect_call("mount")
+        path.find_command.expect_call("service")
+        path.find_command.expect_call("exportfs")
         service.Factory.create_service.expect_call("nfs").and_return(
             FakeService("nfs"))
         mount_src = self.nfs_params.get("nfs_mount_src")
@@ -72,9 +76,9 @@ class nfs_test(unittest.TestCase):
                            "setup_local_nfs": "yes",
                            "export_options": "rw,no_root_squash"}
         self.god = mock.mock_god()
-        self.god.stub_function(os_dep, "command")
-        self.god.stub_function(utils, "system")
-        self.god.stub_function(utils, "system_output")
+        self.god.stub_function(path, "find_command")
+        self.god.stub_function(process, "system")
+        self.god.stub_function(process, "system_output")
         self.god.stub_function(os.path, "isfile")
         self.god.stub_function(os, "makedirs")
         self.god.stub_function(utils_misc, "is_mounted")

@@ -2,8 +2,11 @@ import logging
 import os
 import re
 import shutil
-from autotest.client.shared import error, utils
-from virttest import utils_net
+
+from avocado.core import exceptions
+from avocado.utils import process
+
+from . import utils_net
 
 
 class Machine(object):
@@ -13,7 +16,7 @@ class Machine(object):
         self.session = None
         self.runner = utils_net.local_runner
         self.runner_status = utils_net.local_runner_status
-        self.bg_runner = utils.BgJob
+        self.bg_runner = process.SubProcess
         self.src = src
         self.addrs = None
         if vm:
@@ -70,7 +73,8 @@ class Machine(object):
 
         if ipv == "ipv6":
             if iface is None:
-                raise error.TestError("For ipv6 ping, interface can't be None")
+                raise exceptions.TestError(
+                    "For ipv6 ping, interface can't be None")
 
             if self.vm:
                 iface = self.get_if_vlan_name(
@@ -209,7 +213,7 @@ def ping6(iface, dst_ip, count=1, runner=None):
     Format command for ipv6.
     """
     if runner is None:
-        runner = utils.run
+        runner = process.run
     return runner("ping6 -I %s %s -c %s" % (iface, dst_ip, count))
 
 
@@ -218,7 +222,7 @@ def ping4(iface, dst_ip, count=1, runner=None):
     Format command for ipv4.
     """
     if runner is None:
-        runner = utils.run
+        runner = process.run
     ping_cmd = "ping %s -c %s" % (dst_ip, count)
     if iface is not None:
         ping_cmd += " -I %s" % iface

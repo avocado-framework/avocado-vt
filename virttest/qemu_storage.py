@@ -8,12 +8,15 @@ This exports:
 import logging
 import os
 import re
-from autotest.client.shared import error
-from autotest.client import utils
-import utils_misc
-import virt_vm
-import storage
-import data_dir
+
+from avocado.core import exceptions
+from avocado.utils import process
+
+from . import utils_misc
+from . import virt_vm
+from . import storage
+from . import data_dir
+from . import error_context
 
 
 class QemuImg(storage.QemuImg):
@@ -32,11 +35,11 @@ class QemuImg(storage.QemuImg):
         """
         storage.QemuImg.__init__(self, params, root_dir, tag)
         self.image_cmd = utils_misc.get_qemu_img_binary(params)
-        q_result = utils.run(self.image_cmd + ' -h', ignore_status=True,
-                             verbose=False)
+        q_result = process.run(self.image_cmd + ' -h', ignore_status=True,
+                               verbose=False)
         self.help_text = q_result.stdout
 
-    @error.context_aware
+    @error_context.context_aware
     def create(self, params, ignore_errors=False):
         """
         Create an image using qemu_img or dd.
@@ -69,7 +72,7 @@ class QemuImg(storage.QemuImg):
                    if preallocation when create image, allowed values: off,
                    metadata. Default is "off"
 
-        :return: tuple (path to the image created, utils.CmdResult object
+        :return: tuple (path to the image created, process.CmdResult object
                  containing the result of the creation command).
         """
         if params.get("create_with_dd") == "yes" and self.image_format == "raw":
@@ -137,7 +140,7 @@ class QemuImg(storage.QemuImg):
                 e_msg = ("Parent directory of the image file %s does "
                          "not exist" % self.image_filename)
                 logging.error(e_msg)
-                logging.error("This usually means a serious setup error.")
+                logging.error("This usually means a serious setup exceptions.")
                 logging.error("Please verify if your data dir contains the "
                               "expected directory structure")
                 logging.error("Backing data dir: %s",
@@ -151,11 +154,12 @@ class QemuImg(storage.QemuImg):
                 os.makedirs(image_dirname)
 
         msg = "Create image by command: %s" % qemu_img_cmd
-        error.context(msg, logging.info)
-        cmd_result = utils.run(qemu_img_cmd, verbose=False, ignore_status=True)
+        error_context.context(msg, logging.info)
+        cmd_result = process.run(
+            qemu_img_cmd, verbose=False, ignore_status=True)
         if cmd_result.exit_status != 0 and not ignore_errors:
-            raise error.TestError("Failed to create image %s" %
-                                  self.image_filename)
+            raise exceptions.TestError("Failed to create image %s" %
+                                       self.image_filename)
 
         return self.image_filename, cmd_result
 
@@ -227,7 +231,7 @@ class QemuImg(storage.QemuImg):
         logging.info("Convert image %s from %s to %s", self.image_filename,
                      self.image_format, convert_format)
 
-        utils.system(cmd)
+        process.system(cmd)
 
         return convert_image_tag
 
@@ -271,12 +275,12 @@ class QemuImg(storage.QemuImg):
             cmd += " -b %s -F %s %s" % (self.base_image_filename,
                                         self.base_format, self.image_filename)
         else:
-            raise error.TestError("Can not find the image parameters need"
-                                  " for rebase.")
+            raise exceptions.TestError("Can not find the image parameters need"
+                                       " for rebase.")
 
         logging.info("Rebase snapshot %s to %s..." % (self.image_filename,
                                                       self.base_image_filename))
-        utils.system(cmd)
+        process.system(cmd)
 
         return self.base_tag
 
@@ -294,7 +298,7 @@ class QemuImg(storage.QemuImg):
             cmd += " -t %s" % cache_mode
         cmd += " -f %s %s" % (self.image_format, self.image_filename)
         logging.info("Commit snapshot %s" % self.image_filename)
-        utils.system(cmd)
+        process.system(cmd)
 
         return self.image_filename
 
@@ -310,11 +314,11 @@ class QemuImg(storage.QemuImg):
         if self.snapshot_tag:
             cmd += " snapshot -c %s" % self.snapshot_image_filename
         else:
-            raise error.TestError("Can not find the snapshot image"
-                                  " parameters")
+            raise exceptions.TestError("Can not find the snapshot image"
+                                       " parameters")
         cmd += " %s" % self.image_filename
 
-        utils.system_output(cmd)
+        process.system_output(cmd)
 
         return self.snapshot_tag
 
@@ -332,14 +336,14 @@ class QemuImg(storage.QemuImg):
         if self.snapshot_tag:
             cmd += " snapshot -d %s" % self.snapshot_image_filename
         else:
-            raise error.TestError("Can not find the snapshot image"
-                                  " parameters")
+            raise exceptions.TestError("Can not find the snapshot image"
+                                       " parameters")
         if blkdebug_cfg:
             cmd += " blkdebug:%s:%s" % (blkdebug_cfg, self.image_filename)
         else:
             cmd += " %s" % self.image_filename
 
-        utils.system_output(cmd)
+        process.system_output(cmd)
 
     def snapshot_list(self):
         """
@@ -348,7 +352,7 @@ class QemuImg(storage.QemuImg):
         cmd = self.image_cmd
         cmd += " snapshot -l %s" % self.image_filename
 
-        return utils.system_output(cmd)
+        return process.system_output(cmd)
 
     def remove(self):
         """
@@ -368,7 +372,7 @@ class QemuImg(storage.QemuImg):
         cmd = self.image_cmd
         if (os.path.exists(self.image_filename) or self.is_remote_image()):
             cmd += " info %s" % self.image_filename
-            output = utils.system_output(cmd)
+            output = process.system_output(cmd, verbose=False)
         else:
             logging.debug("Image file %s not found", self.image_filename)
             output = None
@@ -415,7 +419,7 @@ class QemuImg(storage.QemuImg):
         else:
             logging.info("Comparing images %s and %s", image1, image2)
             compare_cmd = "%s compare %s %s" % (self.image_cmd, image1, image2)
-            rv = utils.run(compare_cmd, ignore_status=True)
+            rv = process.run(compare_cmd, ignore_status=True)
 
             if verbose:
                 logging.debug("Output from command: %s" % rv.stdout)
@@ -423,9 +427,9 @@ class QemuImg(storage.QemuImg):
             if rv.exit_status == 0:
                 logging.info("Compared images are equal")
             elif rv.exit_status == 1:
-                raise error.TestFail("Compared images differ")
+                raise exceptions.TestFail("Compared images differ")
             else:
-                raise error.TestError("Error in image comparison")
+                raise exceptions.TestError("Error in image comparison")
 
     def check_image(self, params, root_dir):
         """
@@ -453,15 +457,15 @@ class QemuImg(storage.QemuImg):
                               "(lack of support in qemu-img)")
             else:
                 try:
-                    utils.run("%s info %s" % (qemu_img_cmd, image_filename),
-                              verbose=True)
-                except error.CmdError:
+                    process.run("%s info %s" % (qemu_img_cmd, image_filename),
+                                verbose=False)
+                except process.CmdError:
                     logging.error("Error getting info from image %s",
                                   image_filename)
 
-                cmd_result = utils.run("%s check %s" %
-                                       (qemu_img_cmd, image_filename),
-                                       ignore_status=True, verbose=True)
+                cmd_result = process.run("%s check %s" %
+                                         (qemu_img_cmd, image_filename),
+                                         ignore_status=True, verbose=False)
                 # Error check, large chances of a non-fatal problem.
                 # There are chances that bad data was skipped though
                 if cmd_result.exit_status == 1:
@@ -472,9 +476,9 @@ class QemuImg(storage.QemuImg):
                     chk = params.get("backup_image_on_check_error", "no")
                     if chk == "yes":
                         self.backup_image(params, root_dir, "backup", False)
-                    raise error.TestWarn("qemu-img check error. Some bad "
-                                         "data in the image may have gone"
-                                         " unnoticed (%s)" % image_filename)
+                    raise exceptions.TestWarn("qemu-img check exceptions. Some bad "
+                                              "data in the image may have gone"
+                                              " unnoticed (%s)" % image_filename)
                 # Exit status 2 is data corruption for sure,
                 # so fail the test
                 elif cmd_result.exit_status == 2:
@@ -489,10 +493,10 @@ class QemuImg(storage.QemuImg):
                 # Leaked clusters, they are known to be harmless to data
                 # integrity
                 elif cmd_result.exit_status == 3:
-                    raise error.TestWarn("Leaked clusters were noticed"
-                                         " during image check. No data "
-                                         "integrity problem was found "
-                                         "though. (%s)" % image_filename)
+                    raise exceptions.TestWarn("Leaked clusters were noticed"
+                                              " during image check. No data "
+                                              "integrity problem was found "
+                                              "though. (%s)" % image_filename)
 
                 # Just handle normal operation
                 if params.get("backup_image", "no") == "yes":
@@ -537,8 +541,8 @@ class Iscsidev(storage.Iscsidev):
                                self.iscsi_init_timeout):
             device_name = self.iscsidevice.get_device_name()
         else:
-            raise error.TestError("Can not get iscsi device name in host"
-                                  " in %ss" % self.iscsi_init_timeout)
+            raise exceptions.TestError("Can not get iscsi device name in host"
+                                       " in %ss" % self.iscsi_init_timeout)
 
         if self.device_id:
             device_name += self.device_id

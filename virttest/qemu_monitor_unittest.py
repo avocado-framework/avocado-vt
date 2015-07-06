@@ -1,8 +1,15 @@
-import unittest
+#!/usr/bin/python
 
-import common
-from qemu_monitor import Monitor
-import qemu_monitor
+import unittest
+import os
+import sys
+
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest import qemu_monitor
 
 
 class MockMonitor(qemu_monitor.Monitor):
@@ -20,7 +27,7 @@ class InfoNumaTests(unittest.TestCase):
 
     def testZeroNodes(self):
         d = "0 nodes\n"
-        r = Monitor.parse_info_numa(d)
+        r = qemu_monitor.Monitor.parse_info_numa(d)
         self.assertEquals(r, [])
 
     def testTwoNodes(self):
@@ -29,7 +36,7 @@ class InfoNumaTests(unittest.TestCase):
             "node 0 size: 12 MB\n" + \
             "node 1 cpus: 1 3 5\n" + \
             "node 1 size: 34 MB\n"
-        r = Monitor.parse_info_numa(d)
+        r = qemu_monitor.Monitor.parse_info_numa(d)
         self.assertEquals(r, [(12, set([0, 2, 4])),
                               (34, set([1, 3, 5]))])
 

@@ -10,9 +10,11 @@ import tempfile
 import logging
 import ConfigParser
 import re
-from autotest.client import utils
-from autotest.client.shared import error
 
+from avocado.core import exceptions
+from avocado.utils import process
+
+from . import error_context
 
 # Whether to print all shell commands called
 DEBUG = False
@@ -57,7 +59,7 @@ def is_mount(src, dst):
     if dst and os.path.ismount(dst):
         return dst
     if src and (src in str(open('/proc/mounts', 'r')) or
-                src in utils.system_output('losetup -a')):
+                src in process.system_output('losetup -a')):
         return src
     return False
 
@@ -83,7 +85,7 @@ def mount(src, dst, fstype=None, options=None, verbose=False):
         cmd.extend(['-o', options])
     cmd.extend([src, dst])
     cmd = ' '.join(cmd)
-    return utils.system(cmd, verbose=verbose) == 0
+    return process.system(cmd, verbose=verbose) == 0
 
 
 def umount(src, dst, verbose=False):
@@ -98,13 +100,13 @@ def umount(src, dst, verbose=False):
     mounted = is_mount(src, dst)
     if mounted:
         fuser_cmd = "fuser -km %s" % mounted
-        utils.system(fuser_cmd, ignore_status=True, verbose=True)
+        process.system(fuser_cmd, ignore_status=True, verbose=True)
         umount_cmd = "umount %s" % mounted
-        return utils.system(umount_cmd, ignore_status=True, verbose=True) == 0
+        return process.system(umount_cmd, ignore_status=True, verbose=True) == 0
     return True
 
 
-@error.context_aware
+@error_context.context_aware
 def cleanup(folder):
     """
     If folder is a mountpoint, do what is possible to unmount it. Afterwards,
@@ -112,13 +114,14 @@ def cleanup(folder):
 
     :param folder: Directory to be cleaned up.
     """
-    error.context("cleaning up unattended install directory %s" % folder)
+    error_context.context(
+        "cleaning up unattended install directory %s" % folder)
     umount(None, folder)
     if os.path.isdir(folder):
         shutil.rmtree(folder)
 
 
-@error.context_aware
+@error_context.context_aware
 def clean_old_image(image):
     """
     Clean a leftover image file from previous processes. If it contains a
@@ -126,7 +129,7 @@ def clean_old_image(image):
 
     :param image: Path to image to be cleaned up.
     """
-    error.context("cleaning up old leftover image %s" % image)
+    error_context.context("cleaning up old leftover image %s" % image)
     if os.path.exists(image):
         umount(image, None)
         os.remove(image)
@@ -164,9 +167,10 @@ class FloppyDisk(Disk):
     Represents a floppy disk. We can copy files to it, and setup it in
     convenient ways.
     """
-    @error.context_aware
+    @error_context.context_aware
     def __init__(self, path, qemu_img_binary, tmpdir, vfd_size):
-        error.context("Creating unattended install floppy image %s" % path)
+        error_context.context(
+            "Creating unattended install floppy image %s" % path)
         self.mount = tempfile.mkdtemp(prefix='floppy_virttest_', dir=tmpdir)
         self.path = path
         self.vfd_size = vfd_size
@@ -174,10 +178,10 @@ class FloppyDisk(Disk):
         try:
             c_cmd = '%s create -f raw %s %s' % (qemu_img_binary, path,
                                                 self.vfd_size)
-            utils.run(c_cmd, verbose=DEBUG)
+            process.run(c_cmd, verbose=DEBUG)
             f_cmd = 'mkfs.msdos -s 1 %s' % path
-            utils.run(f_cmd, verbose=DEBUG)
-        except error.CmdError, e:
+            process.run(f_cmd, verbose=DEBUG)
+        except process.CmdError, e:
             logging.error("Error during floppy initialization: %s" % e)
             cleanup(self.mount)
             raise
@@ -200,7 +204,7 @@ class FloppyDisk(Disk):
     def copy_to(self, src):
         logging.debug("Copying %s to floppy image", src)
         mcopy_cmd = "mcopy -s -o -n -i %s %s ::/" % (self.path, src)
-        utils.run(mcopy_cmd, verbose=DEBUG)
+        process.run(mcopy_cmd, verbose=DEBUG)
 
     def _copy_virtio_drivers(self, virtio_floppy):
         """
@@ -213,7 +217,7 @@ class FloppyDisk(Disk):
         try:
             m_cmd = 'mcopy -s -o -n -i %s ::/* %s' % (
                 virtio_floppy, self.mount)
-            utils.run(m_cmd, verbose=DEBUG)
+            process.run(m_cmd, verbose=DEBUG)
         finally:
             os.chdir(pwd)
 
@@ -300,7 +304,7 @@ class CdromDisk(Disk):
         try:
             copytree(mnt_pnt, self.mount, ignore='*.vfd')
             cmd = 'mcopy -s -o -n -i %s ::/* %s' % (virtio_floppy, self.mount)
-            utils.run(cmd, verbose=DEBUG)
+            process.run(cmd, verbose=DEBUG)
         finally:
             os.chdir(pwd)
             umount(None, mnt_pnt, verbose=DEBUG)
@@ -325,13 +329,14 @@ class CdromDisk(Disk):
             logging.debug(
                 "No virtio floppy present, not needed for this OS anyway")
 
-    @error.context_aware
+    @error_context.context_aware
     def close(self):
-        error.context("Creating unattended install CD image %s" % self.path)
+        error_context.context(
+            "Creating unattended install CD image %s" % self.path)
         g_cmd = ('mkisofs -o %s -max-iso9660-filenames '
                  '-relaxed-filenames -D --input-charset iso8859-1 '
                  '%s' % (self.path, self.mount))
-        utils.run(g_cmd, verbose=DEBUG)
+        process.run(g_cmd, verbose=DEBUG)
 
         os.chmod(self.path, 0755)
         cleanup(self.mount)
@@ -360,14 +365,15 @@ class CdromInstallDisk(Disk):
                 continue
             os.symlink(os.path.join(self.source_cdrom, i),
                        os.path.join(self.mount, i))
-        utils.run(cp_cmd)
+        process.run(cp_cmd)
 
     def get_answer_file_path(self, filename):
         return os.path.join(self.mount, 'isolinux', filename)
 
-    @error.context_aware
+    @error_context.context_aware
     def close(self):
-        error.context("Creating unattended install CD image %s" % self.path)
+        error_context.context(
+            "Creating unattended install CD image %s" % self.path)
         if os.path.exists(os.path.join(self.mount, 'isolinux')):
             # bootable cdrom
             f = open(os.path.join(self.mount, 'isolinux', 'isolinux.cfg'), 'w')
@@ -382,7 +388,7 @@ class CdromInstallDisk(Disk):
         m_cmd = ('mkisofs -o %s %s -c isolinux/boot.cat -no-emul-boot '
                  '-boot-load-size 4 -boot-info-table -f -R -J -V -T %s'
                  % (self.path, boot, self.mount))
-        utils.run(m_cmd)
+        process.run(m_cmd)
         os.chmod(self.path, 0755)
         cleanup(self.mount)
         cleanup(self.source_cdrom)
@@ -403,13 +409,13 @@ class GuestFSModiDisk(object):
         except ImportError:
             install_cmd = "yum -y install python-libguestfs"
             try:
-                utils.run(install_cmd)
+                process.run(install_cmd)
                 import guestfs
             except Exception:
-                raise error.TestNAError('We need python-libguestfs (or the '
-                                        'equivalent for your distro) for this '
-                                        'particular feature (modifying guest '
-                                        'files with libguestfs)')
+                raise exceptions.TestNAError('We need python-libguestfs (or the '
+                                             'equivalent for your distro) for this '
+                                             'particular feature (modifying guest '
+                                             'files with libguestfs)')
 
         self.g = guestfs.GuestFS()
         self.disk = disk
@@ -449,7 +455,8 @@ class GuestFSModiDisk(object):
                     except RuntimeError, err_msg:
                         logging.info("%s (ignored)" % err_msg)
         else:
-            raise error.TestError("inspect_vm: no operating systems found")
+            raise exceptions.TestError(
+                "inspect_vm: no operating systems found")
 
     def umount_all(self):
         logging.debug("Umount all device partitions")
@@ -470,7 +477,7 @@ class GuestFSModiDisk(object):
                 return o
             else:
                 err_msg = "Can't read file '%s', check is it exist?"
-                raise error.TestError(err_msg % file_name)
+                raise exceptions.TestError(err_msg % file_name)
         finally:
             self.umount_all()
 
@@ -494,8 +501,8 @@ class GuestFSModiDisk(object):
                 else:
                     self.g.write(file_name, content)
             except Exception:
-                raise error.TestError("write '%s' to file '%s' error!"
-                                      % (content, file_name))
+                raise exceptions.TestError("write '%s' to file '%s' error!"
+                                           % (content, file_name))
         finally:
             self.umount_all()
 
@@ -519,6 +526,6 @@ class GuestFSModiDisk(object):
                     self.g.write(file_name, file_content_after_replace)
             else:
                 err_msg = "Can't read file '%s', check is it exist?"
-                raise error.TestError(err_msg % file_name)
+                raise exceptions.TestError(err_msg % file_name)
         finally:
             self.umount_all()

@@ -7,12 +7,26 @@ import ConfigParser
 import threading
 import shutil
 import xml.dom.minidom
-from autotest.client.shared import error, iso9660
-from autotest.client import utils
-from virttest import virt_vm, utils_misc, utils_disk
-from virttest import qemu_monitor, remote, syslog_server
-from virttest import http_server, data_dir, utils_net, utils_test
-from virttest import funcatexit, storage
+
+from avocado.core import exceptions
+from avocado.utils import iso9660
+from avocado.utils import process
+from avocado.utils import crypto
+from avocado.utils import download
+
+from .. import virt_vm
+from .. import utils_misc
+from .. import utils_disk
+from .. import qemu_monitor
+from .. import remote
+from .. import syslog_server
+from .. import http_server
+from .. import data_dir
+from .. import utils_net
+from .. import utils_test
+from .. import funcatexit
+from .. import storage
+from .. import error_context
 
 
 # Whether to print all shell commands called
@@ -145,8 +159,9 @@ class UnattendedInstallConfig(object):
             setattr(self, a, params.get(a, ''))
 
         # Will setup the virtio attributes
-        v_attributes = ['virtio_floppy', 'virtio_scsi_path', 'virtio_storage_path',
-                        'virtio_network_path', 'virtio_oemsetup_id',
+        v_attributes = ['virtio_floppy', 'virtio_scsi_path',
+                        'virtio_storage_path', 'virtio_network_path',
+                        'virtio_oemsetup_id',
                         'virtio_network_installer_path',
                         'virtio_balloon_installer_path',
                         'virtio_qxl_installer_path']
@@ -224,7 +239,7 @@ class UnattendedInstallConfig(object):
 
         self.vm = vm
 
-    @error.context_aware
+    @error_context.context_aware
     def get_driver_hardware_id(self, driver, run_cmd=True):
         """
         Get windows driver's hardware id from inf files.
@@ -238,11 +253,11 @@ class UnattendedInstallConfig(object):
         if not os.path.exists(self.floppy_mount_point):
             os.mkdir(self.floppy_mount_point)
         if not os.path.ismount(self.cdrom_mount_point):
-            utils.system("mount %s %s -o loop" % (self.cdrom_virtio,
-                                                  self.cdrom_mount_point), timeout=60)
+            process.system("mount %s %s -o loop" % (self.cdrom_virtio,
+                                                    self.cdrom_mount_point), timeout=60)
         if not os.path.ismount(self.floppy_mount_point):
-            utils.system("mount %s %s -o loop" % (self.virtio_floppy,
-                                                  self.floppy_mount_point), timeout=60)
+            process.system("mount %s %s -o loop" % (self.virtio_floppy,
+                                                    self.floppy_mount_point), timeout=60)
         drivers_d = []
         driver_link = None
         if self.driver_in_floppy is not None:
@@ -264,7 +279,7 @@ class UnattendedInstallConfig(object):
         except Exception, e:
             logging.error("Fail to get hardware id with exception: %s" % e)
 
-    @error.context_aware
+    @error_context.context_aware
     def update_driver_hardware_id(self, driver):
         """
         Update driver string with the hardware id get from inf files
@@ -302,8 +317,8 @@ class UnattendedInstallConfig(object):
             if hwid:
                 driver = driver.replace("hwidcmd", hwid.strip())
             else:
-                raise error.TestError("Can not find hwid from the driver"
-                                      " inf file")
+                raise exceptions.TestError("Can not find hwid from the driver"
+                                           " inf file")
         return driver
 
     def answer_kickstart(self, answer_path):
@@ -355,8 +370,8 @@ class UnattendedInstallConfig(object):
         logging.debug("Unattended install contents:")
         for line in contents.splitlines():
             logging.debug(line)
-
-        utils.open_write_close(answer_path, contents)
+        with open(answer_path, 'w') as answer_file:
+            answer_file.write(contents)
 
     def answer_windows_ini(self, answer_path):
         parser = ConfigParser.ConfigParser()
@@ -443,7 +458,8 @@ class UnattendedInstallConfig(object):
         # component PnpCustomizationsWinPE Element Node
         if self.install_virtio == 'yes':
             paths = doc.getElementsByTagName("Path")
-            values = [self.virtio_scsi_path, self.virtio_storage_path, self.virtio_network_path]
+            values = [self.virtio_scsi_path,
+                      self.virtio_storage_path, self.virtio_network_path]
             for path, value in zip(paths, values):
                 path_text = path.childNodes[0]
                 assert path_text.nodeType == doc.TEXT_NODE
@@ -532,17 +548,18 @@ class UnattendedInstallConfig(object):
 
         base_initrd = os.path.basename(self.initrd)
         os.chdir(remaster_path)
-        utils.run("gzip -d < ../%s | fakeroot cpio --extract --make-directories "
-                  "--no-absolute-filenames" % base_initrd, verbose=DEBUG)
-        utils.run("cp %s %s" % (self.unattended_file, dest_fname),
-                  verbose=DEBUG)
+        process.run("gzip -d < ../%s | fakeroot cpio --extract --make-directories "
+                    "--no-absolute-filenames" % base_initrd, verbose=DEBUG,
+                    shell=True)
+        process.run("cp %s %s" % (self.unattended_file, dest_fname),
+                    verbose=DEBUG)
 
         # For libvirt initrd.gz will be renamed to initrd.img in setup_cdrom()
-        utils.run("find . | fakeroot cpio -H newc --create | gzip -9 > ../%s" %
-                  base_initrd, verbose=DEBUG)
+        process.run("find . | fakeroot cpio -H newc --create | gzip -9 > ../%s" %
+                    base_initrd, verbose=DEBUG, shell=True)
 
         os.chdir(self.image_path)
-        utils.run("rm -rf initrd_remaster", verbose=DEBUG)
+        process.run("rm -rf initrd_remaster", verbose=DEBUG)
         contents = open(self.unattended_file).read()
 
         logging.debug("Unattended install contents:")
@@ -745,13 +762,13 @@ class UnattendedInstallConfig(object):
 
         boot_disk.close()
 
-    @error.context_aware
+    @error_context.context_aware
     def setup_cdrom(self):
         """
         Mount cdrom and copy vmlinuz and initrd.img.
         """
-        error.context("Copying vmlinuz and initrd.img from install cdrom %s" %
-                      self.cdrom_cd1)
+        error_context.context("Copying vmlinuz and initrd.img from install cdrom %s" %
+                              self.cdrom_cd1)
         if not os.path.isdir(self.image_path):
             os.makedirs(self.image_path)
 
@@ -763,7 +780,7 @@ class UnattendedInstallConfig(object):
             i = iso9660.iso9660(self.cdrom_cd1)
 
         if i is None:
-            raise error.TestFail("Could not instantiate an iso9660 class")
+            raise exceptions.TestFail("Could not instantiate an iso9660 class")
 
         i.copy(os.path.join(self.boot_path, os.path.basename(self.kernel)),
                self.kernel)
@@ -782,9 +799,10 @@ class UnattendedInstallConfig(object):
                 base_kernel = os.path.basename(self.kernel)
                 base_initrd = os.path.basename(self.initrd)
                 if base_kernel != 'vmlinuz':
-                    utils.run("mv %s vmlinuz" % base_kernel, verbose=DEBUG)
+                    process.run("mv %s vmlinuz" % base_kernel, verbose=DEBUG)
                 if base_initrd != 'initrd.img':
-                    utils.run("mv %s initrd.img" % base_initrd, verbose=DEBUG)
+                    process.run("mv %s initrd.img" %
+                                base_initrd, verbose=DEBUG)
                 if (self.params.get('unattended_delivery_method') !=
                         'integrated'):
                     i.close()
@@ -813,8 +831,8 @@ class UnattendedInstallConfig(object):
                                           os.path.basename(self.kernel))
                 pxe_initrd = os.path.join(pxe_path,
                                           os.path.basename(self.initrd))
-                utils.run("cp %s %s" % (self.kernel, pxe_kernel))
-                utils.run("cp %s %s" % (self.initrd, pxe_initrd))
+                process.run("cp %s %s" % (self.kernel, pxe_kernel))
+                process.run("cp %s %s" % (self.initrd, pxe_initrd))
 
                 if 'repo=cdrom' in self.kernel_params:
                     # Red Hat
@@ -824,7 +842,7 @@ class UnattendedInstallConfig(object):
                                                  self.url_auto_content_port),
                                                 self.kernel_params)
 
-    @error.context_aware
+    @error_context.context_aware
     def setup_url_auto(self):
         """
         Configures the builtin web server for serving content
@@ -833,14 +851,15 @@ class UnattendedInstallConfig(object):
                                              self.url_auto_content_port)
         self.params['auto_content_url'] = auto_content_url
 
-    @error.context_aware
+    @error_context.context_aware
     def setup_url(self):
         """
         Download the vmlinuz and initrd.img from URL.
         """
         # it's only necessary to download kernel/initrd if running bare qemu
         if self.vm_type == 'qemu':
-            error.context("downloading vmlinuz/initrd.img from %s" % self.url)
+            error_context.context(
+                "downloading vmlinuz/initrd.img from %s" % self.url)
             if not os.path.exists(self.image_path):
                 os.mkdir(self.image_path)
             os.chdir(self.image_path)
@@ -856,8 +875,8 @@ class UnattendedInstallConfig(object):
             if os.path.exists(self.initrd):
                 os.remove(self.initrd)
 
-            utils.run(kernel_cmd, verbose=DEBUG)
-            utils.run(initrd_cmd, verbose=DEBUG)
+            process.run(kernel_cmd, verbose=DEBUG)
+            process.run(initrd_cmd, verbose=DEBUG)
 
             if 'repo=cdrom' in self.kernel_params:
                 # Red Hat
@@ -866,7 +885,8 @@ class UnattendedInstallConfig(object):
                                             self.kernel_params)
             elif 'autoyast=' in self.kernel_params:
                 # SUSE
-                self.kernel_params = (self.kernel_params + " ip=dhcp install=" + self.url)
+                self.kernel_params = (
+                    self.kernel_params + " ip=dhcp install=" + self.url)
 
         elif self.vm_type == 'libvirt':
             logging.info("Not downloading vmlinuz/initrd.img from %s, "
@@ -880,21 +900,22 @@ class UnattendedInstallConfig(object):
         """
         Copy the vmlinuz and initrd.img from nfs.
         """
-        error.context("copying the vmlinuz and initrd.img from NFS share")
+        error_context.context(
+            "copying the vmlinuz and initrd.img from NFS share")
 
         m_cmd = ("mount %s:%s %s -o ro" %
                  (self.nfs_server, self.nfs_dir, self.nfs_mount))
-        utils.run(m_cmd, verbose=DEBUG)
+        process.run(m_cmd, verbose=DEBUG)
 
         try:
             kernel_fetch_cmd = ("cp %s/%s/%s %s" %
                                 (self.nfs_mount, self.boot_path,
                                  os.path.basename(self.kernel), self.image_path))
-            utils.run(kernel_fetch_cmd, verbose=DEBUG)
+            process.run(kernel_fetch_cmd, verbose=DEBUG)
             initrd_fetch_cmd = ("cp %s/%s/%s %s" %
                                 (self.nfs_mount, self.boot_path,
                                  os.path.basename(self.initrd), self.image_path))
-            utils.run(initrd_fetch_cmd, verbose=DEBUG)
+            process.run(initrd_fetch_cmd, verbose=DEBUG)
         finally:
             utils_disk.cleanup(self.nfs_mount)
 
@@ -986,7 +1007,7 @@ def copy_file_from_nfs(src, dst, mount_point, image_name):
     utils_misc.umount(src, mount_point, "nfs")
 
 
-@error.context_aware
+@error_context.context_aware
 def run(test, params, env):
     """
     Unattended install test:
@@ -997,19 +1018,21 @@ def run(test, params, env):
     :param params: Dictionary with the test parameters.
     :param env: Dictionary with test environment.
     """
-    @error.context_aware
+    @error_context.context_aware
     def copy_images():
-        error.base_context("Copy image from NFS after installation failure")
+        error_context.base_context(
+            "Copy image from NFS after installation failure")
         image_copy_on_error = params.get("image_copy_on_error", "no")
         if image_copy_on_error == "yes":
             logging.info("Running image_copy to copy pristine image from NFS.")
             try:
-                error.context("Quit qemu-kvm before copying guest image")
+                error_context.context(
+                    "Quit qemu-kvm before copying guest image")
                 vm.monitor.quit()
             except Exception, e:
                 logging.warn(e)
             from virttest import utils_test
-            error.context("Copy image from NFS Server")
+            error_context.context("Copy image from NFS Server")
             utils_test.run_image_copy(test, params, env)
 
     src = params.get('images_good')
@@ -1020,7 +1043,7 @@ def run(test, params, env):
         txt = "iscsi used, need destroy data in %s" % dst
         txt += " by command: %s" % dd_cmd
         logging.info(txt)
-        utils.system(dd_cmd)
+        process.system(dd_cmd)
     image_name = os.path.basename(dst)
     mount_point = params.get("dst_dir")
     if mount_point and src:
@@ -1042,14 +1065,14 @@ def run(test, params, env):
                 i_name = os.path.basename(l_value)
                 local_link = os.path.join(local_dir, i_name)
                 if os.path.isfile(local_link):
-                    file_hash = utils.hash_file(local_link, "md5")
-                    expected_hash = utils.hash_file(nfs_link, "md5")
+                    file_hash = crypto.hash_file(local_link, algorithm="md5")
+                    expected_hash = crypto.hash_file(nfs_link, algorithm="md5")
                     if file_hash == expected_hash:
                         need_copy = False
                 if need_copy:
                     msg = "Copy %s to %s in local host." % (i_name, local_link)
-                    error.context(msg, logging.info)
-                    utils.get_file(nfs_link, local_link)
+                    error_context.context(msg, logging.info)
+                    download.get_file(nfs_link, local_link)
                     params[param] = local_link
 
     unattended_install_config = UnattendedInstallConfig(test, params, vm)
@@ -1070,7 +1093,7 @@ def run(test, params, env):
 
     logging.info("Waiting for installation to finish. Timeout set to %d s "
                  "(%d min)", install_timeout, install_timeout / 60)
-    error.context("waiting for installation to finish")
+    error_context.context("waiting for installation to finish")
 
     start_time = time.time()
 
@@ -1125,7 +1148,7 @@ def run(test, params, env):
             # Only make noise after several failed reads
             serial_read_fails += 1
             if serial_read_fails > 10:
-                logging.warn("Can not read from serial log file after %d tries",
+                logging.warn("Cannot read from serial log file after %d tries",
                              serial_read_fails)
 
         if (params.get("wait_no_ack", "no") == "no" and
@@ -1148,8 +1171,8 @@ def run(test, params, env):
     else:
         logging.warn("Timeout elapsed while waiting for install to finish ")
         copy_images()
-        raise error.TestFail("Timeout elapsed while waiting for install to "
-                             "finish")
+        raise exceptions.TestFail("Timeout elapsed while waiting for install to "
+                                  "finish")
 
     logging.debug('cleaning up threads and mounts that may be active')
     global _url_auto_content_server_thread

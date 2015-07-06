@@ -15,10 +15,12 @@ import re
 import random
 import commands
 from tempfile import mkdtemp
-from autotest.client import utils
-from autotest.client.shared import error
-from virttest import utils_misc
-import service
+
+from avocado.core import exceptions
+from avocado.utils import software_manager
+from avocado.utils import process
+
+from . import service
 
 
 class Cgroup(object):
@@ -57,8 +59,8 @@ class Cgroup(object):
         """
         self.root = modules.get_pwd(self.module)
         if not self.root:
-            raise error.TestError("cg.initialize(): Module %s not found"
-                                  % self.module)
+            raise exceptions.TestError("cg.initialize(): Module %s not found"
+                                       % self.module)
 
     def __get_cgroup_pwd(self, cgroup):
         """
@@ -68,7 +70,7 @@ class Cgroup(object):
         :return: cgroup's full path
         """
         if not isinstance(cgroup, str):
-            raise error.TestError("cgroup type isn't string!")
+            raise exceptions.TestError("cgroup type isn't string!")
         return os.path.join(self.root, cgroup) + '/'
 
     def get_cgroup_name(self, pwd=None):
@@ -99,11 +101,11 @@ class Cgroup(object):
         """
         try:
             if self.__get_cgroup_pwd(cgroup) not in self.cgroups:
-                raise error.TestFail("%s not exists!" % cgroup)
+                raise exceptions.TestFail("%s not exists!" % cgroup)
             cgroup_pwd = self.__get_cgroup_pwd(cgroup)
             return self.cgroups.index(cgroup_pwd)
-        except error.CmdError:
-            raise error.TestFail("Find index failed!")
+        except process.CmdError:
+            raise exceptions.TestFail("Find index failed!")
 
     def mk_cgroup_cgcreate(self, pwd=None, cgroup=None):
         """
@@ -127,14 +129,14 @@ class Cgroup(object):
                 # Whole cgroup name is "test/test1"
                 cgroup = os.path.join(parent_cgroup, sub_cgroup)
             if self.__get_cgroup_pwd(cgroup) in self.cgroups:
-                raise error.TestFail("%s exists!" % cgroup)
+                raise exceptions.TestFail("%s exists!" % cgroup)
             cgcreate_cmd = "cgcreate -g %s:%s" % (self.module, cgroup)
-            utils.run(cgcreate_cmd, ignore_status=False)
+            process.run(cgcreate_cmd, ignore_status=False)
             pwd = self.__get_cgroup_pwd(cgroup)
             self.cgroups.append(pwd)
             return len(self.cgroups) - 1
-        except error.CmdError:
-            raise error.TestFail("Make cgroup by cgcreate failed!")
+        except process.CmdError:
+            raise exceptions.TestFail("Make cgroup by cgcreate failed!")
 
     def mk_cgroup(self, pwd=None, cgroup=None):
         """
@@ -149,7 +151,7 @@ class Cgroup(object):
             pwd = self.cgroups[pwd]
         try:
             if cgroup and self.__get_cgroup_pwd(cgroup) in self.cgroups:
-                raise error.TestFail("%s exists!" % cgroup)
+                raise exceptions.TestFail("%s exists!" % cgroup)
             if not cgroup:
                 pwd = mkdtemp(prefix='cgroup-', dir=pwd) + '/'
             else:
@@ -157,7 +159,7 @@ class Cgroup(object):
                 if not os.path.exists(pwd):
                     os.mkdir(pwd)
         except Exception, inst:
-            raise error.TestError("cg.mk_cgroup(): %s" % inst)
+            raise exceptions.TestError("cg.mk_cgroup(): %s" % inst)
         self.cgroups.append(pwd)
         return len(self.cgroups) - 1
 
@@ -174,9 +176,9 @@ class Cgroup(object):
                           (self.module, cgroup, cmd, args))
             status, output = commands.getstatusoutput(cgexec_cmd)
             return status, output
-        except error.CmdError, detail:
-            raise error.TestFail("Execute %s in cgroup failed!\n%s" %
-                                 (cmd, detail))
+        except process.CmdError, detail:
+            raise exceptions.TestFail("Execute %s in cgroup failed!\n%s" %
+                                      (cmd, detail))
 
     def rm_cgroup(self, pwd):
         """
@@ -193,16 +195,16 @@ class Cgroup(object):
             logging.warn("cg.rm_cgroup(): Removed cgroup which wasn't created"
                          "using this Cgroup")
         except Exception, inst:
-            raise error.TestError("cg.rm_cgroup(): %s" % inst)
+            raise exceptions.TestError("cg.rm_cgroup(): %s" % inst)
 
     def get_all_cgroups(self):
         """
         Get all sub cgroups in this controller
         """
         lscgroup_cmd = "lscgroup %s:/" % self.module
-        result = utils.run(lscgroup_cmd, ignore_status=True)
+        result = process.run(lscgroup_cmd, ignore_status=True)
         if result.exit_status:
-            raise error.TestFail(result.stderr.strip())
+            raise exceptions.TestFail(result.stderr.strip())
         cgroup_list = result.stdout.strip().splitlines()
         # Remove root cgroup
         cgroup_list = cgroup_list[1:]
@@ -226,9 +228,9 @@ class Cgroup(object):
                 if cgroup.count("/") > 0:
                     continue
                 self.cgdelete_cgroup(cgroup, True)
-        except error.CmdError:
-            raise error.TestFail("cgdelete all cgroups in %s failed!"
-                                 % self.module)
+        except process.CmdError:
+            raise exceptions.TestFail("cgdelete all cgroups in %s failed!"
+                                      % self.module)
 
     def cgdelete_cgroup(self, cgroup, recursive=False):
         """
@@ -240,15 +242,15 @@ class Cgroup(object):
         try:
             cgroup_pwd = self.__get_cgroup_pwd(cgroup)
             if cgroup_pwd not in self.cgroups:
-                raise error.TestError("%s doesn't exist!" % cgroup)
+                raise exceptions.TestError("%s doesn't exist!" % cgroup)
             cmd = "cgdelete %s:%s" % (self.module, cgroup)
             if recursive:
                 cmd += " -r"
-            utils.run(cmd, ignore_status=False)
+            process.run(cmd, ignore_status=False)
             self.cgroups.remove(cgroup_pwd)
-        except error.CmdError, detail:
-            raise error.TestFail("cgdelete %s failed!\n%s" %
-                                 (cgroup, detail))
+        except process.CmdError, detail:
+            raise exceptions.TestFail("cgdelete %s failed!\n%s" %
+                                      (cgroup, detail))
 
     def cgclassify_cgroup(self, pid, cgroup):
         """
@@ -260,13 +262,13 @@ class Cgroup(object):
         try:
             cgroup_pwd = self.__get_cgroup_pwd(cgroup)
             if cgroup_pwd not in self.cgroups:
-                raise error.TestError("%s doesn't exist!" % cgroup)
+                raise exceptions.TestError("%s doesn't exist!" % cgroup)
             cgclassify_cmd = ("cgclassify -g %s:%s %d" %
                               (self.module, cgroup, pid))
-            utils.run(cgclassify_cmd, ignore_status=False)
-        except error.CmdError, detail:
-            raise error.TestFail("Classify process to tasks file failed!:%s" %
-                                 detail)
+            process.run(cgclassify_cmd, ignore_status=False)
+        except process.CmdError, detail:
+            raise exceptions.TestFail("Classify process to tasks file "
+                                      "failed!: %s" % detail)
 
     def get_pids(self, pwd=None):
         """
@@ -282,7 +284,7 @@ class Cgroup(object):
         try:
             return [_.strip() for _ in open(os.path.join(pwd, 'tasks'), 'r')]
         except Exception, inst:
-            raise error.TestError("cg.get_pids(): %s" % inst)
+            raise exceptions.TestError("cg.get_pids(): %s" % inst)
 
     def test(self, cmd):
         """
@@ -333,10 +335,10 @@ class Cgroup(object):
         try:
             open(os.path.join(pwd, 'tasks'), 'w').write(str(pid))
         except Exception, inst:
-            raise error.TestError("cg.set_cgroup(): %s" % inst)
+            raise exceptions.TestError("cg.set_cgroup(): %s" % inst)
         if self.is_cgroup(pid, pwd):
-            raise error.TestError("cg.set_cgroup(): Setting %d pid into %s "
-                                  "cgroup failed" % (pid, pwd))
+            raise exceptions.TestError("cg.set_cgroup(): Setting %d pid into %s "
+                                       "cgroup failed" % (pid, pwd))
 
     def set_root_cgroup(self, pid):
         """
@@ -366,7 +368,7 @@ class Cgroup(object):
             else:
                 return [""]
         except Exception, inst:
-            raise error.TestError("cg.get_property(): %s" % inst)
+            raise exceptions.TestError("cg.get_property(): %s" % inst)
 
     def set_property_h(self, prop, value, pwd=None, check=True, checkprop=None):
         """
@@ -410,7 +412,7 @@ class Cgroup(object):
         try:
             open(os.path.join(pwd, prop), 'w').write(value)
         except Exception, inst:
-            raise error.TestError("cg.set_property(): %s" % inst)
+            raise exceptions.TestError("cg.set_property(): %s" % inst)
 
         if check is not False:
             if check is True:
@@ -421,9 +423,9 @@ class Cgroup(object):
             # Sanitize non printable characters before check
             check = " ".join(check.split())
             if check not in _values:
-                raise error.TestError("cg.set_property(): Setting failed: "
-                                      "desired = %s, real values = %s"
-                                      % (repr(check), repr(_values)))
+                raise exceptions.TestError("cg.set_property(): Setting failed: "
+                                           "desired = %s, real values = %s"
+                                           % (repr(check), repr(_values)))
 
     def cgset_property(self, prop, value, pwd=None, check=True, checkprop=None):
         """
@@ -442,9 +444,10 @@ class Cgroup(object):
         try:
             cgroup = self.get_cgroup_name(pwd)
             cgset_cmd = "cgset -r %s='%s' %s" % (prop, value, cgroup)
-            utils.run(cgset_cmd, ignore_status=False)
-        except error.CmdError, detail:
-            raise error.TestFail("Modify %s failed!:\n%s" % (prop, detail))
+            process.run(cgset_cmd, ignore_status=False)
+        except process.CmdError, detail:
+            raise exceptions.TestFail(
+                "Modify %s failed!:\n%s" % (prop, detail))
 
         if check is not False:
             if check is True:
@@ -456,9 +459,9 @@ class Cgroup(object):
             # Sanitize non printable characters before check
             check = " ".join(check.split())
             if check not in _values:
-                raise error.TestError("cg.set_property(): Setting failed: "
-                                      "desired = %s, real values = %s"
-                                      % (repr(check), repr(_values)))
+                raise exceptions.TestError("cg.set_property(): Setting failed: "
+                                           "desired = %s, real values = %s"
+                                           % (repr(check), repr(_values)))
 
     def smoke_test(self):
         """
@@ -469,14 +472,16 @@ class Cgroup(object):
 
         ps = self.test("smoke")
         if ps is None:
-            raise error.TestError("cg.smoke_test: Couldn't create process")
+            raise exceptions.TestError(
+                "cg.smoke_test: Couldn't create process")
 
         if (ps.poll() is not None):
-            raise error.TestError("cg.smoke_test: Process died unexpectidly")
+            raise exceptions.TestError(
+                "cg.smoke_test: Process died unexpectidly")
 
         # New process should be a root member
         if self.is_root_cgroup(ps.pid):
-            raise error.TestError(
+            raise exceptions.TestError(
                 "cg.smoke_test: Process is not a root member")
 
         # Change the cgroup
@@ -485,11 +490,11 @@ class Cgroup(object):
         # Try to remove used cgroup
         try:
             self.rm_cgroup(pwd)
-        except error.TestError:
+        except exceptions.TestError:
             pass
         else:
-            raise error.TestError("cg.smoke_test: Unexpected successful"
-                                  " deletion of the used cgroup")
+            raise exceptions.TestError("cg.smoke_test: Unexpected successful"
+                                       " deletion of the used cgroup")
 
         # Return the process into the root cgroup
         self.set_root_cgroup(ps.pid)
@@ -501,7 +506,8 @@ class Cgroup(object):
         ps.stdin.write('\n')
         time.sleep(2)
         if (ps.poll() is None):
-            raise error.TestError("cg.smoke_test: Process is not finished")
+            raise exceptions.TestError(
+                "cg.smoke_test: Process is not finished")
 
 
 class CgroupModules(object):
@@ -529,7 +535,7 @@ class CgroupModules(object):
         for i in range(len(self.modules[0])):
             if self.modules[2][i]:
                 try:
-                    utils.system('umount %s -l' % self.modules[1][i])
+                    process.system('umount %s -l' % self.modules[1][i])
                 except Exception, failure_detail:
                     logging.warn("CGM: Couldn't unmount %s directory: %s",
                                  self.modules[1][i], failure_detail)
@@ -579,11 +585,11 @@ class CgroupModules(object):
                 cmd = ('mount -t cgroup -o %s %s %s' %
                        (module, module, module_path))
                 try:
-                    utils.run(cmd)
+                    process.run(cmd)
                     self.modules[0].append(module)
                     self.modules[1].append(module_path)
                     self.modules[2].append(True)
-                except error.CmdError:
+                except process.CmdError:
                     logging.info("Cgroup module '%s' not available", module)
 
         logging.debug("Initialized cgroup modules: %s", self.modules[0])
@@ -638,10 +644,12 @@ def get_cgroup_mountpoint(controller, mount_file="/proc/mounts"):
     f_cgcon = open(mount_file, "rU")
     cgconf_txt = f_cgcon.read()
     f_cgcon.close()
-    mntpt = re.findall(r"\s(\S*cgroup/\S*%s(?=[,\ ])\S*)" % controller, cgconf_txt)
+    mntpt = re.findall(
+        r"\s(\S*cgroup/\S*%s(?=[,\ ])\S*)" % controller, cgconf_txt)
     if len(mntpt) == 0:
         # Controller is not supported if not found in mount table.
-        raise error.TestError("Doesn't support controller <%s>" % controller)
+        raise exceptions.TestError(
+            "Doesn't support controller <%s>" % controller)
     return mntpt[0]
 
 
@@ -652,13 +660,13 @@ def get_all_controllers():
     :return: all used controllers(controller_list)
     """
     try:
-        result = utils.run("lssubsys", ignore_status=False)
+        result = process.run("lssubsys", ignore_status=False)
         controllers_str = result.stdout.strip()
         controller_list = []
         for controller in controllers_str.splitlines():
             controller_sub_list = controller.split(",")
             controller_list += controller_sub_list
-    except error.CmdError:
+    except process.CmdError:
         controller_list = ['cpuacct', 'cpu', 'memory', 'cpuset',
                            'devices', 'freezer', 'blkio', 'netcls']
     return controller_list
@@ -686,7 +694,8 @@ def resolve_task_cgroup_path(pid, controller):
     finally:
         proc_file.close()
 
-    mount_path = re.findall(r":\S*%s(?=[,:])\S*:(\S*)\n" % controller, proc_cgroup_txt)
+    mount_path = re.findall(
+        r":\S*%s(?=[,:])\S*:(\S*)\n" % controller, proc_cgroup_txt)
     return os.path.join(root_path, mount_path[0].strip("/"))
 
 
@@ -705,8 +714,9 @@ class CgconfigService(object):
         #
         # Please refer to
         # https://bugzilla.redhat.com/show_bug.cgi?format=multiple&id=882887
-        if not utils_misc.yum_install(['libcgroup-tools']):
-            error.TestError("Failed to install libcgroup-tools on host")
+        manager = software_manager.SoftwareManager()
+        if not manager.install('libcgroup-tools'):
+            exceptions.TestError("Failed to install libcgroup-tools on host")
         self._service_manager = service.Factory.create_service("cgconfig")
 
     def _service_cgconfig_control(self, action):
@@ -720,7 +730,7 @@ class CgconfigService(object):
         :param action: cgconfig service action
         """
         if not hasattr(self._service_manager, action):
-            raise error.TestError("Unknown action: %s" % action)
+            raise exceptions.TestError("Unknown action: %s" % action)
         return getattr(self._service_manager, action)()
 
     def cgconfig_start(self):
@@ -759,6 +769,6 @@ def all_cgroup_delete():
     Clear all cgroups in system
     """
     try:
-        utils.run("cgclear", ignore_status=False)
-    except error.CmdError, detail:
-        raise error.TestFail("Clear all cgroup failed!:\n%s" % detail)
+        process.run("cgclear", ignore_status=False)
+    except process.CmdError, detail:
+        raise exceptions.TestFail("Clear all cgroup failed!:\n%s" % detail)
