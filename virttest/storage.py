@@ -9,16 +9,12 @@ import logging
 import os
 import shutil
 import re
-from autotest.client import utils
-try:
-    from virttest import iscsi
-except ImportError:
-    from autotest.client.shared import iscsi
 
-import utils_misc
-import virt_vm
-import gluster
-import lvm
+from . import iscsi
+from . import utils_misc
+from . import virt_vm
+from . import gluster
+from . import lvm
 
 
 def preprocess_images(bindir, params, env):
@@ -339,7 +335,8 @@ class QemuImg(object):
 
         if action == 'backup':
             image_dir = os.path.dirname(image_filename)
-            image_dir_disk_free = utils.freespace(image_dir)
+            s = os.statvfs(image_dir)
+            image_dir_disk_free = s.f_bavail * s.f_bsize
 
             backup_size = 0
             for src, dst in backup_set:

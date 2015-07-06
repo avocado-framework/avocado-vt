@@ -25,11 +25,12 @@ import os
 import re
 import math
 import logging
-import utils_misc
-from autotest.client import os_dep
-from autotest.client.shared import error
-from autotest.client.shared import utils
 
+from avocado.core import exceptions
+from avocado.utils import path
+from avocado.utils import process
+
+from . import utils_misc
 
 UNIT = "B"
 COMMON_OPTS = "--noheading --nosuffix --unit=%s" % UNIT
@@ -43,7 +44,7 @@ def normalize_data_size(size):
 
 
 def cmd_output(cmd, res="[\w/]+"):
-    result = utils.run(cmd, ignore_status=True)
+    result = process.run(cmd, ignore_status=True)
     if result.exit_status != 0:
         logging.warn(result)
         return None
@@ -91,7 +92,7 @@ class Volume(object):
             for line in fd.readlines():
                 dev, mount_point = line.split()[0], line.split()[2]
                 if os.path.exists(dev) and os.path.samefile(dev, self.path):
-                    utils.system("%s %s" % (cmd, mount_point))
+                    process.system("%s %s" % (cmd, mount_point))
             fd.close()
 
 
@@ -110,10 +111,10 @@ class PhysicalVolume(Volume):
         :return: physical volume abspath
         """
         if not self.exists():
-            raise error.TestError("Physical device not found")
+            raise exceptions.TestError("Physical device not found")
         self.umount()
         cmd = "pvcreate %s %s" % (extra_args, self.name)
-        utils.system(cmd)
+        process.system(cmd)
         logging.info("Create physical volume: %s", self.name)
         return self.path
 
@@ -125,7 +126,7 @@ class PhysicalVolume(Volume):
         :raise: CmdError
         """
         cmd = "lvm pvremove %s %s" % (extra_args, self.name)
-        utils.system(cmd)
+        process.system(cmd)
         logging.info("logical physical volume (%s) removed", self.name)
 
     def resize(self, size, extra_args="-ff --yes"):
@@ -140,7 +141,7 @@ class PhysicalVolume(Volume):
                                                                    size,
                                                                    UNIT,
                                                                    self.name)
-        utils.system(cmd)
+        process.system(cmd)
         self.size = size
         logging.info("resize volume %s to %s B" % (self.name, self.size))
 
@@ -151,7 +152,7 @@ class PhysicalVolume(Volume):
         :raise: CmdError
         """
         cmd = "pvdisplay %s" % self.name
-        utils.system(cmd)
+        process.system(cmd)
 
     def get_attr(self, attr):
         """
@@ -197,7 +198,7 @@ class VolumeGroup(object):
                 except:
                     pv.vg.remove()
             cmd += " %s" % pv.name
-        utils.system(cmd)
+        process.system(cmd)
         logging.info("Create new volumegroup %s", self.name)
         return self.name
 
@@ -208,7 +209,7 @@ class VolumeGroup(object):
         :param extra_args: extra argurments for lvm command;
         """
         cmd = "lvm vgremove %s %s" % (extra_args, self.name)
-        utils.system(cmd)
+        process.system(cmd)
         logging.info("logical volume-group(%s) removed", self.name)
 
     def get_attr(self, attr):
@@ -241,7 +242,7 @@ class VolumeGroup(object):
         if not isinstance(pv, PhysicalVolume):
             raise TypeError("Need a PhysicalVolume object")
         cmd = "lvm vgreduce %s %s %s" % (extra_args, self.name, pv.name)
-        utils.system(cmd)
+        process.system(cmd)
         self.pvs.remove(pv)
         logging.info("reduce volume %s from volume group %s" % (pv.name,
                                                                 self.name))
@@ -256,7 +257,7 @@ class VolumeGroup(object):
         if not isinstance(pv, PhysicalVolume):
             raise TypeError("Need a PhysicalVolume object")
         cmd = "lvm vgextend %s %s" % (self.name, pv.name)
-        utils.system(cmd)
+        process.system(cmd)
         self.pvs.append(pv)
         logging.info("add volume %s to volumegroup %s" % (pv.name, self.name))
 
@@ -288,7 +289,7 @@ class LogicalVolume(Volume):
                                                  UNIT,
                                                  self.name,
                                                  vg_name)
-        utils.system(cmd)
+        process.system(cmd)
         logging.info("create logical volume %s", self.path)
         return self.get_attr("lv_path")
 
@@ -300,7 +301,7 @@ class LogicalVolume(Volume):
         """
         self.umount()
         cmd = "lvm lvremove %s %s/%s" % (extra_args, self.vg.name, self.name)
-        utils.system(cmd)
+        process.system(cmd)
         logging.info("logical volume(%s) removed", self.name)
 
     def resize(self, size, extra_args="-ff"):
@@ -320,7 +321,7 @@ class LogicalVolume(Volume):
         else:
             size = normalize_data_size(size)
         cmd = "lvm lvresize -n -L %s%s %s %s" % (size, UNIT, path, extra_args)
-        utils.system(cmd)
+        process.system(cmd)
         self.size = size
         logging.info("resize logical volume %s size to %s" % (self.path,
                                                               self.size))
@@ -335,7 +336,7 @@ class LogicalVolume(Volume):
         """
         path = self.get_attr("lv_path")
         cmd = "lvm lvs %s %s" % (extra_args, path)
-        return utils.system(cmd)
+        return process.system(cmd)
 
     def get_attr(self, attr):
         """
@@ -352,7 +353,7 @@ class LogicalVolume(Volume):
 class LVM(object):
 
     def __init__(self, params):
-        os_dep.command("lvm")
+        path.find_command("lvm")
         self.params = self.__format_params(params)
         self.pvs = self.__reload_pvs()
         self.vgs = self.__reload_vgs()
@@ -423,7 +424,7 @@ class LVM(object):
         """
         lvs = []
         cmd = "lvm lvs -o lv_name,lv_size,vg_name %s" % COMMON_OPTS
-        output = utils.system_output(cmd)
+        output = process.system_output(cmd)
         for line in output.splitlines():
             lv_name, lv_size, vg_name = line.split()
             vg = self.get_vol(vg_name, "vgs")
@@ -440,7 +441,7 @@ class LVM(object):
         """
         vgs = []
         cmd = "lvm vgs -opv_name,vg_name,vg_size %s" % COMMON_OPTS
-        output = utils.system_output(cmd)
+        output = process.system_output(cmd)
         for line in output.splitlines():
             pv_name, vg_name, vg_size = line.split()
             pv = self.get_vol(pv_name, "pvs")
@@ -457,7 +458,7 @@ class LVM(object):
         """
         pvs = []
         cmd = "lvm pvs -opv_name,pv_size %s" % COMMON_OPTS
-        output = utils.system_output(cmd)
+        output = process.system_output(cmd)
         for line in output.splitlines():
             pv_name, pv_size = line.split()
             pv = PhysicalVolume(pv_name, pv_size)
@@ -489,7 +490,7 @@ class LVM(object):
         """
         pvs = []
         cmd = "lvm pvs -opv_name,pv_size %s %s" % (COMMON_OPTS, vg.name)
-        output = utils.system_output(cmd)
+        output = process.system_output(cmd)
         for line in output.splitlines():
             pv_name, pv_size = line.split()
             pv = self.get_vol(pv_name, "pvs")
@@ -602,15 +603,15 @@ class LVM(object):
         """
         lvm_reload_cmd = self.params.get("lvm_reload_cmd")
         if lvm_reload_cmd:
-            utils.system(lvm_reload_cmd, ignore_status=True)
+            process.system(lvm_reload_cmd, ignore_status=True)
             logging.info("reload lvm monitor service")
 
 
 class EmulatedLVM(LVM):
 
     def __init__(self, params, root_dir="/tmp"):
-        os_dep.command("losetup")
-        os_dep.command("dd")
+        path.find_command("losetup")
+        path.find_command("dd")
         super(EmulatedLVM, self).__init__(params)
         self.data_dir = root_dir
 
@@ -630,7 +631,7 @@ class EmulatedLVM(LVM):
         count = int(math.ceil(img_size / bs_size)) + 8
         logging.info("create emulated image file(%s)" % img_path)
         cmd = "dd if=/dev/zero of=%s bs=8M count=%s" % (img_path, count)
-        utils.system(cmd)
+        process.system(cmd)
         self.params["pv_size"] = count * bs_size
         return img_path
 
@@ -642,7 +643,7 @@ class EmulatedLVM(LVM):
         :return: loop back device name;
         """
         cmd = "losetup %s --show --find %s" % (extra_args, img_file)
-        pv_name = utils.system_output(cmd)
+        pv_name = process.system_output(cmd)
         self.params["pv_name"] = pv_name.strip()
         return pv_name
 
@@ -653,7 +654,7 @@ class EmulatedLVM(LVM):
         pvs = []
         emulate_image_file = self.get_emulate_image_name()
         cmd = "losetup -j %s" % emulate_image_file
-        output = utils.system_output(cmd)
+        output = process.system_output(cmd)
         try:
             pv_name = re.findall("(/dev/loop\d+)", output, re.M | re.I)[-1]
             pv = self.get_vol(pv_name, "pvs")
@@ -683,8 +684,8 @@ class EmulatedLVM(LVM):
         lv = self.setup_lv()
         if "/dev/loop" not in lv.get_attr("devices"):
             lv.display()
-            raise error.TestError("logical volume exists but is not a " +
-                                  "emulated logical device")
+            raise exceptions.TestError("logical volume exists but is not a " +
+                                       "emulated logical device")
         return lv.get_attr("lv_path")
 
     def cleanup(self):
@@ -695,13 +696,13 @@ class EmulatedLVM(LVM):
         if self.params.get("remove_emulated_image", "no") == "yes":
             emulate_image_file = self.get_emulate_image_name()
             cmd = "losetup -j %s" % emulate_image_file
-            output = utils.system_output(cmd)
+            output = process.system_output(cmd)
             devices = re.findall("(/dev/loop\d+)", output, re.M | re.I)
             for dev in devices:
                 cmd = "losetup -d %s" % dev
                 logging.info("disconnect %s", dev)
-                utils.system(cmd, ignore_status=True)
+                process.system(cmd, ignore_status=True)
             emulate_image_file = self.get_emulate_image_name()
             cmd = "rm -f %s" % emulate_image_file
-            utils.system(cmd, ignore_status=True)
+            process.system(cmd, ignore_status=True)
             logging.info("remove emulate image file %s", emulate_image_file)

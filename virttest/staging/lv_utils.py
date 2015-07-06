@@ -44,18 +44,20 @@ import os
 import shutil
 import time
 
-from autotest.client import utils
-from autotest.client.shared import error
+from avocado.core import exceptions
+from avocado.utils import process
+
+from .. import error_context
 
 
-@error.context_aware
+@error_context.context_aware
 def vg_ramdisk(vg_name, ramdisk_vg_size,
                ramdisk_basedir, ramdisk_sparse_filename):
     """
     Create vg on top of ram memory to speed up lv performance.
     """
-    error.context("Creating virtual group on top of ram memory",
-                  logging.info)
+    error_context.context("Creating virtual group on top of ram memory",
+                          logging.info)
     vg_size = ramdisk_vg_size
     vg_ramdisk_dir = os.path.join(ramdisk_basedir, vg_name)
     ramdisk_filename = os.path.join(vg_ramdisk_dir,
@@ -68,16 +70,16 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
         os.mkdir(vg_ramdisk_dir)
     try:
         logging.info("Mounting tmpfs")
-        result = utils.run("mount -t tmpfs tmpfs " + vg_ramdisk_dir)
+        result = process.run("mount -t tmpfs tmpfs " + vg_ramdisk_dir)
 
         logging.info("Converting and copying /dev/zero")
         cmd = ("dd if=/dev/zero of=" + ramdisk_filename +
                " bs=1M count=1 seek=" + vg_size)
-        result = utils.run(cmd, verbose=True)
+        result = process.run(cmd, verbose=True)
 
         logging.info("Finding free loop device")
-        result = utils.run("losetup --find", verbose=True)
-    except error.CmdError, ex:
+        result = process.run("losetup --find", verbose=True)
+    except process.CmdError, ex:
         logging.error(ex)
         vg_ramdisk_cleanup(ramdisk_filename,
                            vg_ramdisk_dir, vg_name, "")
@@ -87,12 +89,12 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
 
     try:
         logging.info("Creating loop device")
-        result = utils.run("losetup " + loop_device + " " + ramdisk_filename)
+        result = process.run("losetup " + loop_device + " " + ramdisk_filename)
         logging.info("Creating physical volume %s", loop_device)
-        result = utils.run("pvcreate " + loop_device)
+        result = process.run("pvcreate " + loop_device)
         logging.info("Creating volume group %s", vg_name)
-        result = utils.run("vgcreate " + vg_name + " " + loop_device)
-    except error.CmdError, ex:
+        result = process.run("vgcreate " + vg_name + " " + loop_device)
+    except process.CmdError, ex:
         logging.error(ex)
         vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir, vg_name,
                            loop_device)
@@ -106,13 +108,13 @@ def vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir,
     """
     Inline cleanup function in case of test error.
     """
-    result = utils.run("vgremove " + vg_name, ignore_status=True)
+    result = process.run("vgremove " + vg_name, ignore_status=True)
     if result.exit_status == 0:
         logging.info(result.stdout.rstrip())
     else:
         logging.debug("%s -> %s", result.command, result.stderr)
 
-    result = utils.run("pvremove " + loop_device, ignore_status=True)
+    result = process.run("pvremove " + loop_device, ignore_status=True)
     if result.exit_status == 0:
         logging.info(result.stdout.rstrip())
     else:
@@ -120,7 +122,7 @@ def vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir,
 
     for _ in range(10):
         time.sleep(0.1)
-        result = utils.run("losetup -d " + loop_device, ignore_status=True)
+        result = process.run("losetup -d " + loop_device, ignore_status=True)
         if "resource busy" not in result.stderr:
             if result.exit_status != 0:
                 logging.debug("%s -> %s", result.command, result.stderr)
@@ -132,7 +134,7 @@ def vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir,
         os.unlink(ramdisk_filename)
         logging.info("Ramdisk filename %s deleted", ramdisk_filename)
 
-    utils.run("umount " + vg_ramdisk_dir, ignore_status=True)
+    process.run("umount " + vg_ramdisk_dir, ignore_status=True)
     if result.exit_status == 0:
         if loop_device != "":
             logging.info("Loop device %s unmounted", loop_device)
@@ -153,10 +155,10 @@ def vg_check(vg_name):
     """
     cmd = "vgdisplay " + vg_name
     try:
-        utils.run(cmd)
+        process.run(cmd)
         logging.debug("Provided volume group exists: " + vg_name)
         return True
-    except error.CmdError:
+    except process.CmdError:
         return False
 
 
@@ -166,7 +168,7 @@ def vg_list():
     """
     cmd = "vgs --all"
     vgroups = {}
-    result = utils.run(cmd)
+    result = process.run(cmd)
 
     lines = result.stdout.strip().splitlines()
     if len(lines) > 1:
@@ -189,33 +191,34 @@ def vg_list():
     return vgroups
 
 
-@error.context_aware
+@error_context.context_aware
 def vg_create(vg_name, pv_list):
     """
     Create a volume group by using the block special devices
     """
-    error.context(
+    error_context.context(
         "Creating volume group '%s' by using '%s'" %
         (vg_name, pv_list), logging.info)
 
     if vg_check(vg_name):
-        raise error.TestError("Volume group '%s' already exist" % vg_name)
+        raise exceptions.TestError("Volume group '%s' already exist" % vg_name)
     cmd = "vgcreate %s %s" % (vg_name, pv_list)
-    result = utils.run(cmd)
+    result = process.run(cmd)
     logging.info(result.stdout.rstrip())
 
 
-@error.context_aware
+@error_context.context_aware
 def vg_remove(vg_name):
     """
     Remove a volume group.
     """
-    error.context("Removing volume '%s'" % vg_name, logging.info)
+    error_context.context("Removing volume '%s'" % vg_name, logging.info)
 
     if not vg_check(vg_name):
-        raise error.TestError("Volume group '%s' could not be found" % vg_name)
+        raise exceptions.TestError(
+            "Volume group '%s' could not be found" % vg_name)
     cmd = "vgremove -f %s" % vg_name
-    result = utils.run(cmd)
+    result = process.run(cmd)
     logging.info(result.stdout.rstrip())
 
 
@@ -224,7 +227,7 @@ def lv_check(vg_name, lv_name):
     Check whether provided logical volume exists.
     """
     cmd = "lvdisplay"
-    result = utils.run(cmd, ignore_status=True)
+    result = process.run(cmd, ignore_status=True)
 
     # unstable approach but currently works
     lvpattern = r"LV Path\s+/dev/" + vg_name + r"/" + lv_name + "\s+"
@@ -237,114 +240,115 @@ def lv_check(vg_name, lv_name):
         return False
 
 
-@error.context_aware
+@error_context.context_aware
 def lv_remove(vg_name, lv_name):
     """
     Remove a logical volume.
     """
-    error.context("Removing volume /dev/%s/%s" %
-                  (vg_name, lv_name), logging.info)
+    error_context.context("Removing volume /dev/%s/%s" %
+                          (vg_name, lv_name), logging.info)
 
     if not vg_check(vg_name):
-        raise error.TestError("Volume group could not be found")
+        raise exceptions.TestError("Volume group could not be found")
     if not lv_check(vg_name, lv_name):
-        raise error.TestError("Logical volume could not be found")
+        raise exceptions.TestError("Logical volume could not be found")
 
     cmd = "lvremove -f " + vg_name + "/" + lv_name
-    result = utils.run(cmd)
+    result = process.run(cmd)
     logging.info(result.stdout.rstrip())
 
 
-@error.context_aware
+@error_context.context_aware
 def lv_create(vg_name, lv_name, lv_size, force_flag=True):
     """
     Create a logical volume in a volume group.
 
     The volume group must already exist.
     """
-    error.context("Creating original lv to take a snapshot from",
-                  logging.info)
+    error_context.context("Creating original lv to take a snapshot from",
+                          logging.info)
 
     if not vg_check(vg_name):
-        raise error.TestError("Volume group could not be found")
+        raise exceptions.TestError("Volume group could not be found")
     if lv_check(vg_name, lv_name) and not force_flag:
-        raise error.TestError("Logical volume already exists")
+        raise exceptions.TestError("Logical volume already exists")
     elif lv_check(vg_name, lv_name) and force_flag:
         lv_remove(vg_name, lv_name)
 
     cmd = ("lvcreate --size " + lv_size + " --name " + lv_name + " " + vg_name)
-    result = utils.run(cmd)
+    result = process.run(cmd)
     logging.info(result.stdout.rstrip())
 
 
-@error.context_aware
+@error_context.context_aware
 def lv_take_snapshot(vg_name, lv_name,
                      lv_snapshot_name, lv_snapshot_size):
     """
     Take a snapshot of the original logical volume.
     """
-    error.context("Taking snapshot from original logical volume",
-                  logging.info)
+    error_context.context("Taking snapshot from original logical volume",
+                          logging.info)
 
     if not vg_check(vg_name):
-        raise error.TestError("Volume group could not be found")
+        raise exceptions.TestError("Volume group could not be found")
     if lv_check(vg_name, lv_snapshot_name):
-        raise error.TestError("Snapshot already exists")
+        raise exceptions.TestError("Snapshot already exists")
     if not lv_check(vg_name, lv_name):
-        raise error.TestError("Snapshot's origin could not be found")
+        raise exceptions.TestError("Snapshot's origin could not be found")
 
     cmd = ("lvcreate --size " + lv_snapshot_size + " --snapshot " +
            " --name " + lv_snapshot_name + " /dev/" + vg_name + "/" + lv_name)
     try:
-        result = utils.run(cmd)
-    except error.CmdError, ex:
+        result = process.run(cmd)
+    except process.CmdError, ex:
         if ('Logical volume "%s" already exists in volume group "%s"' %
             (lv_snapshot_name, vg_name) in ex.result_obj.stderr and
             re.search(re.escape(lv_snapshot_name + " [active]"),
-                      utils.run("lvdisplay").stdout)):
+                      process.run("lvdisplay").stdout)):
             # the above conditions detect if merge of snapshot was postponed
             logging.warning(("Logical volume %s is still active! " +
                              "Attempting to deactivate..."), lv_name)
             lv_reactivate(vg_name, lv_name)
-            result = utils.run(cmd)
+            result = process.run(cmd)
         else:
             raise ex
     logging.info(result.stdout.rstrip())
 
 
-@error.context_aware
+@error_context.context_aware
 def lv_revert(vg_name, lv_name, lv_snapshot_name):
     """
     Revert the origin to a snapshot.
     """
-    error.context("Reverting original logical volume to snapshot",
-                  logging.info)
+    error_context.context("Reverting original logical volume to snapshot",
+                          logging.info)
     try:
         if not vg_check(vg_name):
-            raise error.TestError("Volume group could not be found")
+            raise exceptions.TestError("Volume group could not be found")
         if not lv_check(vg_name, lv_snapshot_name):
-            raise error.TestError("Snapshot could not be found")
+            raise exceptions.TestError("Snapshot could not be found")
         if (not lv_check(vg_name, lv_snapshot_name) and
                 not lv_check(vg_name, lv_name)):
-            raise error.TestError("Snapshot and its origin could not be found")
+            raise exceptions.TestError(
+                "Snapshot and its origin could not be found")
         if (lv_check(vg_name, lv_snapshot_name) and
                 not lv_check(vg_name, lv_name)):
-            raise error.TestError("Snapshot origin could not be found")
+            raise exceptions.TestError("Snapshot origin could not be found")
 
         cmd = ("lvconvert --merge /dev/%s/%s" % (vg_name, lv_snapshot_name))
-        result = utils.run(cmd)
+        result = process.run(cmd)
         if ("Merging of snapshot %s will start next activation." %
                 lv_snapshot_name) in result.stdout:
-            raise error.TestError("The logical volume %s is still active" %
-                                  lv_name)
+            raise exceptions.TestError("The logical volume %s is still "
+                                       "active" % lv_name)
         result = result.stdout.rstrip()
 
-    except error.TestError, ex:
+    except exceptions.TestError, ex:
         # detect if merge of snapshot was postponed
         # and attempt to reactivate the volume.
         if (('Snapshot could not be found' in ex and
              re.search(re.escape(lv_snapshot_name + " [active]"),
-                       utils.run("lvdisplay").stdout)) or
+                       process.run("lvdisplay").stdout)) or
                 ("The logical volume %s is still active" % lv_name) in ex):
             logging.warning(("Logical volume %s is still active! " +
                              "Attempting to deactivate..."), lv_name)
@@ -358,21 +362,21 @@ def lv_revert(vg_name, lv_name, lv_snapshot_name):
     logging.info(result)
 
 
-@error.context_aware
+@error_context.context_aware
 def lv_revert_with_snapshot(vg_name, lv_name,
                             lv_snapshot_name, lv_snapshot_size):
     """
     Perform logical volume merge with snapshot and take a new snapshot.
 
     """
-    error.context("Reverting to snapshot and taking a new one",
-                  logging.info)
+    error_context.context("Reverting to snapshot and taking a new one",
+                          logging.info)
 
     lv_revert(vg_name, lv_name, lv_snapshot_name)
     lv_take_snapshot(vg_name, lv_name, lv_snapshot_name, lv_snapshot_size)
 
 
-@error.context_aware
+@error_context.context_aware
 def lv_reactivate(vg_name, lv_name, timeout=10):
     """
     In case of unclean shutdowns some of the lvs is still active and merging
@@ -380,11 +384,12 @@ def lv_reactivate(vg_name, lv_name, timeout=10):
     all of them to cause the merge to happen.
     """
     try:
-        utils.run("lvchange -an /dev/%s/%s" % (vg_name, lv_name))
+        process.run("lvchange -an /dev/%s/%s" % (vg_name, lv_name))
         time.sleep(timeout)
-        utils.run("lvchange -ay /dev/%s/%s" % (vg_name, lv_name))
+        process.run("lvchange -ay /dev/%s/%s" % (vg_name, lv_name))
         time.sleep(timeout)
-    except error.CmdError:
+    except process.CmdError:
         logging.error(("Failed to reactivate %s - please, " +
                        "nuke the process that uses it first."), lv_name)
-        raise error.TestError("The logical volume %s is still active" % lv_name)
+        raise exceptions.TestError(
+            "The logical volume %s is still active" % lv_name)

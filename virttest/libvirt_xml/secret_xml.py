@@ -113,7 +113,7 @@ class SecretXML(SecretXMLBase):
         secret_xml['secret_private'] = sec_xml.secret_private
         secret_xml['uuid'] = sec_xml.uuid
         secret_xml['description'] = sec_xml.description
-        #secret XML may not has usage, target or volume tag
+        # secret XML may not has usage, target or volume tag
         try:
             secret_xml['usage'] = sec_xml.usage
         except xcepts.LibvirtXMLNotFoundError:

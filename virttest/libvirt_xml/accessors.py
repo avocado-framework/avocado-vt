@@ -655,7 +655,8 @@ class XMLElementNest(AccessorGeneratorBase):
             # Create instance of subclass to assign nested_xtf onto
             nestedinst = self.subclass(**self.subclass_dargs)
             # nestedxml.xmltreefile.restore() will fail on nested_xtf.__del__
-            nestedinst.set_xml(str(nested_xtf))  # set from string not filename!
+            # set from string not filename!
+            nestedinst.set_xml(str(nested_xtf))
             return nestedinst
 
     class Setter(AccessorBase):

@@ -4,15 +4,16 @@ import glob
 import os
 import re
 import socket
-from autotest.client import utils
-from autotest.client.shared import error
-import utils_misc
-import utils_net
-import remote
 import traceback
-import ppm_utils
-import data_dir
-import copy
+
+from avocado.core import exceptions
+
+from . import utils_misc
+from . import utils_net
+from . import remote
+from . import ppm_utils
+from . import data_dir
+from . import error_context
 
 
 class VMError(Exception):
@@ -279,7 +280,7 @@ class VMMigrateFailedError(VMMigrateError):
     pass
 
 
-class VMMigrateProtoUnknownError(error.TestNAError):
+class VMMigrateProtoUnknownError(exceptions.TestNAError):
 
     def __init__(self, protocol):
         self.protocol = protocol
@@ -752,7 +753,7 @@ class BaseVM(object):
         """
         self.virtnet.free_mac_address(nic_index_or_name)
 
-    @error.context_aware
+    @error_context.context_aware
     def wait_for_get_address(self, nic_index_or_name, timeout=30,
                              internal_timeout=1, ip_version='ipv4'):
         """
@@ -849,7 +850,8 @@ class BaseVM(object):
             ref_img = utils_misc.get_path(bsod_base_dir, ref_img_path)
             if ppm_utils.have_similar_img(scrdump_file, ref_img):
                 err_msg = "Windows Guest appears to have suffered a BSOD,"
-                err_msg += " please check %s against %s." % (scrdump_file, ref_img)
+                err_msg += " please check %s against %s." % (
+                    scrdump_file, ref_img)
                 raise VMDeadKernelCrashError(err_msg)
 
     def verify_illegal_instruction(self):
@@ -893,7 +895,7 @@ class BaseVM(object):
         return [self.get_virtio_port_filename(v) for v in
                 self.params.objects("virtio_ports")]
 
-    @error.context_aware
+    @error_context.context_aware
     def login(self, nic_index=0, timeout=LOGIN_TIMEOUT,
               username=None, password=None):
         """
@@ -906,7 +908,7 @@ class BaseVM(object):
                 guest.
         :return: A ShellSession object.
         """
-        error.context("logging into '%s'" % self.name)
+        error_context.context("logging into '%s'" % self.name)
         if not username:
             username = self.params.get("username", "")
         if not password:
@@ -937,7 +939,7 @@ class BaseVM(object):
         """
         return self.login(nic_index, timeout, username, password)
 
-    @error.context_aware
+    @error_context.context_aware
     def commander(self, nic_index=0, timeout=LOGIN_TIMEOUT,
                   username=None, password=None, commander_path=None):
         """
@@ -953,7 +955,7 @@ class BaseVM(object):
         """
         if commander_path is None:
             commander_path = "/tmp"
-        error.context("logging into '%s'" % self.name)
+        error_context.context("logging into '%s'" % self.name)
         if not username:
             username = self.params.get("username", "")
         if not password:
@@ -1054,7 +1056,7 @@ class BaseVM(object):
             # Try one more time but don't catch exceptions
             return self.login(nic_index, internal_timeout, username, password)
 
-    @error.context_aware
+    @error_context.context_aware
     def copy_files_to(self, host_path, guest_path, nic_index=0, limit="",
                       verbose=False, timeout=COPY_FILES_TIMEOUT,
                       username=None, password=None):
@@ -1069,7 +1071,7 @@ class BaseVM(object):
         :param timeout: Time (seconds) before giving up on doing the remote
                 copy.
         """
-        error.context("sending file(s) to '%s'" % self.name)
+        error_context.context("sending file(s) to '%s'" % self.name)
         if not username:
             username = self.params.get("username", "")
         if not password:
@@ -1088,7 +1090,7 @@ class BaseVM(object):
                              verbose, timeout, interface=neigh_attach_if)
         utils_misc.close_log_file(log_filename)
 
-    @error.context_aware
+    @error_context.context_aware
     def copy_files_from(self, guest_path, host_path, nic_index=0, limit="",
                         verbose=False, timeout=COPY_FILES_TIMEOUT,
                         username=None, password=None):
@@ -1103,7 +1105,7 @@ class BaseVM(object):
         :param timeout: Time (seconds) before giving up on doing the remote
                 copy.
         """
-        error.context("receiving file(s) from '%s'" % self.name)
+        error_context.context("receiving file(s) from '%s'" % self.name)
         if not username:
             username = self.params.get("username", "")
         if not password:
@@ -1143,7 +1145,7 @@ class BaseVM(object):
         """
         raise NotImplementedError
 
-    @error.context_aware
+    @error_context.context_aware
     def serial_login(self, timeout=LOGIN_TIMEOUT,
                      username=None, password=None, virtio=False):
         """
@@ -1156,7 +1158,8 @@ class BaseVM(object):
         :return: ShellSession object on success and None on failure.
         """
         console_type = virtio and "virtio_console" or "serial_console"
-        error.context("logging into '%s' via %s" % (self.name, console_type))
+        error_context.context("logging into '%s' via %s" %
+                              (self.name, console_type))
         if not username:
             username = self.params.get("username", "")
         if not password:

@@ -8,14 +8,19 @@ import random
 import os
 import shelve
 
-import common
-from autotest.client import utils
-from autotest.client.shared.test_utils import mock
-import utils_net
-import utils_misc
-import cartesian_config
-import utils_params
-import propcan
+from avocado.utils import process
+
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest.unittest_utils import mock
+from virttest import utils_net
+from virttest import utils_misc
+from virttest import cartesian_config
+from virttest import utils_params
+from virttest import propcan
 
 
 class FakeVm(object):
@@ -79,13 +84,14 @@ virbr2        8000.525400c0b080    yes        em1
         def utils_run(*args, **kargs):
             return TestBridge.FakeCmd(*args, **kargs)
 
-        self.god.stub_with(utils, 'run', utils_run)
+        self.god.stub_with(process, 'run', utils_run)
 
     def test_getstructure(self):
 
         br = utils_net.Bridge().get_structure()
-        self.assertEqual(br, {'virbr1': {'iface': ['em1', 'virbr1-nic'], 'stp': 'yes'},
-                              'virbr0': {'iface': ['virbr0-nic'], 'stp': 'yes'}})
+        self.assertEqual(
+            br, {'virbr1': {'iface': ['em1', 'virbr1-nic'], 'stp': 'yes'},
+                 'virbr0': {'iface': ['virbr0-nic'], 'stp': 'yes'}})
 
         br = utils_net.Bridge().get_structure()
         self.assertEqual(br, {'virbr0': {"iface": [], "stp": "yes"}})

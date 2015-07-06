@@ -4,7 +4,7 @@ Simple bad test.
 :difficulty: simple
 :copyright: 2014 Red Hat Inc.
 """
-from autotest.client import utils
+from avocado.utils import process
 
 
 def run(test, params, env):
@@ -16,4 +16,4 @@ def run(test, params, env):
     :param params: Dictionary with the test parameters
     :param env: Dictionary with test environment.
     """
-    utils.run("missing_command")
+    process.run("missing_command")

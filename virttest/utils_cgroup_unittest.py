@@ -3,9 +3,16 @@
 import os
 import unittest
 import tempfile
-import common
-from staging import utils_cgroup
-from autotest.client.shared import error
+import sys
+
+from avocado.core import exceptions
+
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest.staging import utils_cgroup
 
 # Mount file content, Controllers and mount points from RHEL-6
 mount_1 = """rootfs / rootfs rw 0 0
@@ -146,7 +153,7 @@ class CgroupTest(unittest.TestCase):
                         controller, mount_file_path)
                     self.assertEqual(case["mount_points"][idx], res)
                 self.assertRaises(
-                    error.TestError,
+                    exceptions.TestError,
                     utils_cgroup.get_cgroup_mountpoint,
                     "non_exit_ctlr",
                     mount_file_path)

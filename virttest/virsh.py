@@ -28,13 +28,14 @@ import re
 import weakref
 import time
 import select
-import utils_misc
-from autotest.client import utils
-from autotest.client import os_dep
-from autotest.client.shared import error
-from virttest import aexpect
-from virttest import propcan
-from virttest import remote
+
+from avocado.utils import path
+from avocado.utils import process
+
+from . import aexpect
+from . import propcan
+from . import remote
+from . import utils_misc
 
 # list of symbol names NOT to wrap as Virsh class methods
 # Everything else from globals() will become a method of Virsh class
@@ -56,7 +57,7 @@ VIRSH_COMMAND_GROUP_CACHE_NO_DETAIL = False
 
 # This is used both inside and outside classes
 try:
-    VIRSH_EXEC = os_dep.command("virsh")
+    VIRSH_EXEC = path.find_command("virsh")
 except ValueError:
     logging.warning("Virsh executable not set or found on path, "
                     "virsh module will not function normally")
@@ -209,13 +210,13 @@ class VirshSession(aexpect.ShellSession):
         return 0, out
 
     def cmd_result(self, cmd, ignore_status=False, debug=False, timeout=60):
-        """Mimic utils.run()"""
+        """Mimic process.run()"""
         exit_status, stdout = self.cmd_status_output(cmd, timeout=timeout)
         stderr = ''  # no way to retrieve this separately
-        result = utils.CmdResult(cmd, stdout, stderr, exit_status)
+        result = process.CmdResult(cmd, stdout, stderr, exit_status)
         if not ignore_status and exit_status:
-            raise error.CmdError(cmd, result,
-                                 "Virsh Command returned non-zero exit status")
+            raise process.CmdError(cmd, result,
+                                   "Virsh Command returned non-zero exit status")
         if debug:
             logging.debug(result)
         return result
@@ -302,24 +303,24 @@ class VirshSession(aexpect.ShellSession):
                 #  Id    Name                           State
                 #  ----------------------------------------------------
                 #
-                #  virsh #  Name            State      Autostart     Persistent
+                # virsh #  Name            State      Autostart     Persistent
                 #  ----------------------------------------------------------
                 #  default              active     yes           yes
                 #
-                #  virsh #
+                # virsh #
                 # The list command output is mixed in the net-list command
                 # output, this will fail to extract network name if use set
                 # number 2 in list of output splitlines like in function
                 # virsh.net_state_dict.
-                for i in reversed(range(len(output)-1)):
+                for i in reversed(range(len(output) - 1)):
                     if match_func(output[i].strip(), patterns) is not None:
                         if re.split(patterns[match], output[i])[-1]:
                             output[i] = re.split(patterns[match],
                                                  output[i])[-1]
                             output_slice = output[i:]
                         else:
-                            output_slice = output[i+1:]
-                        for j in range(len(output_slice)-1):
+                            output_slice = output[i + 1:]
+                        for j in range(len(output_slice) - 1):
                             output_slice[j] = output_slice[j] + '\n'
                         for k in range(len(output_slice)):
                             out += output_slice[k]
@@ -485,7 +486,8 @@ class VirshPersistent(Virsh):
         Open new session, closing any existing
         """
         # Accessors may call this method, avoid recursion
-        virsh_exec = self.__dict_get__('virsh_exec')  # Must exist, can't be None
+        # Must exist, can't be None
+        virsh_exec = self.__dict_get__('virsh_exec')
         uri = self.__dict_get__('uri')  # Must exist, can be None
         readonly = self.__dict_get__('readonly')
         try:
@@ -550,7 +552,8 @@ class VirshConnectBack(VirshPersistent):
         """
 
         # Accessors may call this method, avoid recursion
-        virsh_exec = self.__dict_get__('virsh_exec')  # Must exist, can't be None
+        # Must exist, can't be None
+        virsh_exec = self.__dict_get__('virsh_exec')
         uri = self.__dict_get__('uri')  # Must exist, can be None
         remote_ip = self.__dict_get__('remote_ip')
         try:
@@ -666,8 +669,9 @@ def command(cmd, **dargs):
             cmd = "su - %s -c '%s'" % (unprivileged_user, cmd)
 
         # Raise exception if ignore_status is False
-        ret = utils.run(cmd, timeout=timeout, verbose=debug,
-                        ignore_status=ignore_status)
+        ret = process.run(cmd, timeout=timeout, verbose=debug,
+                          ignore_status=ignore_status,
+                          shell=True)
         # Mark return as not coming from persistent virsh session
         ret.from_session_id = None
 
@@ -991,7 +995,7 @@ def screenshot(name, filename, **dargs):
     dargs['ignore_status'] = False
     try:
         command("screenshot %s %s" % (name, filename), **dargs)
-    except error.CmdError, detail:
+    except process.CmdError, detail:
         if SCREENSHOT_ERROR_COUNT < 1:
             logging.error("Error taking VM %s screenshot. You might have to "
                           "set take_regular_screendumps=no on your "
@@ -1173,7 +1177,7 @@ def is_dead(name, **dargs):
     dargs['ignore_status'] = False
     try:
         state = domstate(name, **dargs).stdout.strip()
-    except error.CmdError:
+    except process.CmdError:
         return True
     if state not in ('running', 'idle', 'paused', 'in shutdown', 'shut off',
                      'crashed', 'pmsuspended', 'no state'):
@@ -1332,7 +1336,7 @@ def remove_domain(name, options=None, **dargs):
         try:
             dargs['ignore_status'] = False
             undefine(name, options, **dargs)
-        except error.CmdError, detail:
+        except process.CmdError, detail:
             logging.error("Undefine VM %s failed:\n%s", name, detail)
             return False
     return True
@@ -1350,7 +1354,7 @@ def domain_exists(name, **dargs):
     try:
         command("domstate %s" % name, **dargs)
         return True
-    except error.CmdError, detail:
+    except process.CmdError, detail:
         logging.warning("VM %s does not exist", name)
         if dargs.get('debug', False):
             logging.warning(str(detail))
@@ -1693,12 +1697,13 @@ def net_state_dict(only_names=False, virsh_instance=None, **dargs):
                         net_autostart(name, **dargs)
                 else:  # Disabled, try disabling again
                     if virsh_instance is not None:
-                        virsh_instance.net_autostart(name, "--disable", **dargs)
+                        virsh_instance.net_autostart(
+                            name, "--disable", **dargs)
                     else:
                         net_autostart(name, "--disable", **dargs)
                 # no exception raised, must be persistent
                 persistent = True
-            except error.CmdError, detail:
+            except process.CmdError, detail:
                 # Exception thrown, could be transient or real problem
                 if bool(str(detail.result_obj).count("ransient")):
                     persistent = False
@@ -1854,7 +1859,7 @@ def pool_destroy(name, **dargs):
     try:
         command(cmd, **dargs)
         return True
-    except error.CmdError, detail:
+    except process.CmdError, detail:
         logging.error("Failed to destroy pool: %s.", detail)
         return False
 
@@ -1897,7 +1902,7 @@ def pool_create_as(name, pool_type, target, extra="", **dargs):
     try:
         command(cmd, **dargs)
         return True
-    except error.CmdError, detail:
+    except process.CmdError, detail:
         logging.error("Failed to create pool: %s.", detail)
         return False
 
@@ -2150,8 +2155,8 @@ def pool_dumpxml(name, extra="", to_file="", **dargs):
         result_file.write(result.stdout.strip())
         result_file.close()
     if result.exit_status:
-        raise error.CmdError(cmd, result,
-                             "Virsh dumpxml returned non-zero exit status")
+        raise process.CmdError(cmd, result,
+                               "Virsh dumpxml returned non-zero exit status")
     return result.stdout.strip()
 
 
@@ -2602,7 +2607,7 @@ def setmem(domainarg=None, sizearg=None, domain=None,
     :param dargs: standardized virsh function API keywords
     :param flagstr: string of "--config, --live, --current, etc."
     :return: CmdResult instance
-    :raise: error.CmdError: if libvirtd is not running
+    :raise: process.CmdError: if libvirtd is not running
     """
 
     cmd = "setmem"
@@ -2634,7 +2639,7 @@ def setmaxmem(domainarg=None, sizearg=None, domain=None,
     :param use_kilobytes: True for --kilobytes, False for --size
     :param flagstr: string of "--config, --live, --current, etc."
     :return: CmdResult instance
-    :raise: error.CmdError: if libvirtd is not running.
+    :raise: process.CmdError: if libvirtd is not running.
     """
     cmd = "setmaxmem"
     if domainarg is not None:  # Allow testing of ""
@@ -2741,7 +2746,8 @@ def snapshot_list(name, options=None, **dargs):
 
     sc_output = command(cmd, **dargs)
     if sc_output.exit_status != 0:
-        raise error.CmdError(cmd, sc_output, "Failed to get list of snapshots")
+        raise process.CmdError(
+            cmd, sc_output, "Failed to get list of snapshots")
 
     data = re.findall("\S* *\d*-\d*-\d* \d*:\d*:\d* [+-]\d* \w*",
                       sc_output.stdout)
@@ -2794,7 +2800,7 @@ def snapshot_info(name, snapshot, **dargs):
     cmd = "snapshot-info %s %s" % (name, snapshot)
     sc_output = command(cmd, **dargs)
     if sc_output.exit_status != 0:
-        raise error.CmdError(cmd, sc_output, "Failed to get snapshot info")
+        raise process.CmdError(cmd, sc_output, "Failed to get snapshot info")
 
     for val in values:
         data = re.search("(?<=%s:) *\w*" % val, sc_output.stdout)
@@ -3321,8 +3327,8 @@ def iface_dumpxml(iface, extra="", to_file="", **dargs):
         result_file.write(result.stdout.strip())
         result_file.close()
     if result.exit_status:
-        raise error.CmdError(cmd, result,
-                             "Dumpxml returned non-zero exit status")
+        raise process.CmdError(cmd, result,
+                               "Dumpxml returned non-zero exit status")
     return result.stdout.strip()
 
 
@@ -3495,8 +3501,8 @@ def secret_dumpxml(uuid, to_file="", options=None, **dargs):
         result_file.write(result.stdout.strip())
         result_file.close()
     if result.exit_status:
-        raise error.CmdError(cmd, result,
-                             "Virsh secret-dumpxml returned \
+        raise process.CmdError(cmd, result,
+                               "Virsh secret-dumpxml returned \
                              non-zero exit status")
     return result
 

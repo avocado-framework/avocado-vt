@@ -3,13 +3,19 @@
 import os
 import tempfile
 import unittest
+import sys
 
-import common
-from autotest.client import utils
-from autotest.client.shared.test_utils import mock
-import utils_misc
-import cartesian_config
-import build_helper
+from avocado.utils import process
+
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest.unittest_utils import mock
+from virttest import utils_misc
+from virttest import cartesian_config
+from virttest import build_helper
 
 
 class TestUtilsMisc(unittest.TestCase):
@@ -144,7 +150,7 @@ class TestNumaNode(unittest.TestCase):
 
     def setUp(self):
         self.god = mock.mock_god(ut=self)
-        self.god.stub_with(utils, 'run', utils_run)
+        self.god.stub_with(process, 'run', utils_run)
         all_nodes = tempfile.NamedTemporaryFile(delete=False)
         all_nodes.write(all_nodes_contents)
         all_nodes.close()

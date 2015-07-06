@@ -22,23 +22,30 @@ import shutil
 import getpass
 import ctypes
 import threading
-from autotest.client import utils, os_dep
-from autotest.client.shared import error, logging_config
-from autotest.client.shared import git, base_job
-import data_dir
-import cartesian_config
-import utils_selinux
-try:
-    from staging import utils_koji
-except ImportError:
-    from autotest.client.shared import utils_koji
+
+from avocado.core import status
+from avocado.core import exceptions
+from avocado.utils import git
+from avocado.utils import path
+from avocado.utils import process
+from avocado.utils import genio
+from avocado.utils import aurl
+from avocado.utils import download
+from avocado.utils import modules
+
+
+from . import data_dir
+from . import error_context
+from . import cartesian_config
+from . import utils_selinux
+from .staging import utils_koji
 
 
 import platform
 ARCH = platform.machine()
 
 
-class UnsupportedCPU(error.TestError):
+class UnsupportedCPU(exceptions.TestError):
     pass
 
 # TODO: remove this import when log_last_traceback is moved to autotest
@@ -46,6 +53,110 @@ import traceback
 
 # TODO: this function is being moved into autotest. For compatibility
 # reasons keep it here too but new code should use the one from base_utils.
+
+
+class InterruptedThread(threading.Thread):
+
+    """
+    Run a function in a background thread.
+    """
+
+    def __init__(self, target, args=(), kwargs={}):
+        """
+        Initialize the instance.
+
+        :param target: Function to run in the thread.
+        :param args: Arguments to pass to target.
+        :param kwargs: Keyword arguments to pass to target.
+        """
+        threading.Thread.__init__(self)
+        self._target = target
+        self._args = args
+        self._kwargs = kwargs
+
+    def run(self):
+        """
+        Run target (passed to the constructor).  No point in calling this
+        function directly.  Call start() to make this function run in a new
+        thread.
+        """
+        self._e = None
+        self._retval = None
+        try:
+            try:
+                self._retval = self._target(*self._args, **self._kwargs)
+            except Exception:
+                self._e = sys.exc_info()
+                raise
+        finally:
+            # Avoid circular references (start() may be called only once so
+            # it's OK to delete these)
+            del self._target, self._args, self._kwargs
+
+    def join(self, timeout=None, suppress_exception=False):
+        """
+        Join the thread.  If target raised an exception, re-raise it.
+        Otherwise, return the value returned by target.
+
+        :param timeout: Timeout value to pass to threading.Thread.join().
+        :param suppress_exception: If True, don't re-raise the exception.
+        """
+        threading.Thread.join(self, timeout)
+        try:
+            if self._e:
+                if not suppress_exception:
+                    # Because the exception was raised in another thread, we
+                    # need to explicitly insert the current context into it
+                    s = exceptions.exception_context(self._e[1])
+                    s = exceptions.join_contexts(exceptions.get_context(), s)
+                    exceptions.set_exception_context(self._e[1], s)
+                    raise self._e[0], self._e[1], self._e[2]
+            else:
+                return self._retval
+        finally:
+            # Avoid circular references (join() may be called multiple times
+            # so we can't delete these)
+            self._e = None
+            self._retval = None
+
+
+def write_keyval(path, dictionary, type_tag=None, tap_report=None):
+    """
+    Write a key-value pair format file out to a file. This uses append
+    mode to open the file, so existing text will not be overwritten or
+    reparsed.
+
+    If type_tag is None, then the key must be composed of alphanumeric
+    characters (or dashes+underscores). However, if type-tag is not
+    null then the keys must also have "{type_tag}" as a suffix. At
+    the moment the only valid values of type_tag are "attr" and "perf".
+
+    :param path: full path of the file to be written
+    :param dictionary: the items to write
+    :param type_tag: see text above
+    """
+    if os.path.isdir(path):
+        path = os.path.join(path, 'keyval')
+    keyval = open(path, 'a')
+
+    if type_tag is None:
+        key_regex = re.compile(r'^[-\.\w]+$')
+    else:
+        if type_tag not in ('attr', 'perf'):
+            raise ValueError('Invalid type tag: %s' % type_tag)
+        escaped_tag = re.escape(type_tag)
+        key_regex = re.compile(r'^[-\.\w]+\{%s\}$' % escaped_tag)
+    try:
+        for key in sorted(dictionary.keys()):
+            if not key_regex.search(key):
+                raise ValueError('Invalid key: %s' % key)
+            keyval.write('%s=%s\n' % (key, dictionary[key]))
+    finally:
+        keyval.close()
+
+    # same for tap
+    if tap_report is not None and tap_report.do_tap_report:
+        tap_report.record_keyval(path, dictionary, type_tag=type_tag)
 
 
 def log_last_traceback(msg=None, log=logging.error):
@@ -218,7 +329,7 @@ def kill_process_by_pattern(pattern):
     :param pattern: normally only matched against the process name
     """
     cmd = "pkill -f %s" % pattern
-    result = utils.run(cmd, ignore_status=True)
+    result = process.run(cmd, ignore_status=True)
     if result.exit_status:
         logging.error("Failed to run '%s': %s", cmd, result)
     else:
@@ -242,15 +353,17 @@ def process_or_children_is_defunct(ppid):
     """
     defunct = False
     try:
-        pids = utils.get_children_pids(ppid)
-    except error.CmdError:  # Process doesn't exist
+        pids = process.get_children_pids(ppid)
+    except exceptions.CmdError:  # Process doesn't exist
         return True
     for pid in pids:
-        cmd = "ps --no-headers -o cmd %d" % int(pid)
-        proc_name = utils.system_output(cmd, ignore_status=True)
-        if '<defunct>' in proc_name:
-            defunct = True
-            break
+        if pid:
+            cmd = "ps --no-headers -o cmd %d" % int(pid)
+            proc_name = process.system_output(cmd, ignore_status=True,
+                                              verbose=False)
+            if '<defunct>' in proc_name:
+                defunct = True
+                break
     return defunct
 
 # The following are utility functions related to ports.
@@ -411,7 +524,7 @@ def get_path(base_path, user_path):
     :param base_path: The base path of relative user specified paths.
     :param user_path: The user specified path.
     """
-    if os.path.isabs(user_path) or utils.is_url(user_path):
+    if os.path.isabs(user_path) or aurl.is_url(user_path):
         return user_path
     else:
         return os.path.join(base_path, user_path)
@@ -622,7 +735,7 @@ def run_tests(parser, job):
                                                  tag=test_tag,
                                                  iterations=test_iterations)
 
-        if not base_job.JOB_STATUSES[current_status]:
+        if not status.mapping[current_status]:
             failed = True
 
         status_dict[param_dict.get("name")] = current_status
@@ -674,7 +787,7 @@ def get_dev_pts_max_id():
     """
     cmd = "ls /dev/pts/ | grep '^[0-9]*$' | sort -n"
     try:
-        max_id = utils.run(cmd, verbose=False).stdout.strip().split("\n")[-1]
+        max_id = process.run(cmd, verbose=False).stdout.strip().split("\n")[-1]
     except IndexError:
         return None
     pts_file = "/dev/pts/%s" % max_id
@@ -759,15 +872,102 @@ def parallel(targets):
     threads = []
     for target in targets:
         if isinstance(target, tuple) or isinstance(target, list):
-            t = utils.InterruptedThread(*target)
+            t = InterruptedThread(*target)
         else:
-            t = utils.InterruptedThread(target)
+            t = InterruptedThread(target)
         threads.append(t)
         t.start()
     return [t.join() for t in threads]
 
 
-class VirtLoggingConfig(logging_config.LoggingConfig):
+class AllowBelowSeverity(logging.Filter):
+
+    """
+    Allows only records less severe than a given level (the opposite of what
+    the normal logging level filtering does.
+    """
+
+    def __init__(self, level):
+        self.level = level
+
+    def filter(self, record):
+        return record.levelno < self.level
+
+
+class LoggingConfig(object):
+    global_level = logging.DEBUG
+    stdout_level = logging.INFO
+    stderr_level = logging.ERROR
+
+    file_formatter = logging.Formatter(
+        fmt='%(asctime)s %(levelname)-5.5s|%(module)10.10s:%(lineno)4.4d| '
+            '%(message)s',
+        datefmt='%m/%d %H:%M:%S')
+
+    console_formatter = logging.Formatter(
+        fmt='%(asctime)s %(levelname)-5.5s| %(message)s',
+        datefmt='%H:%M:%S')
+
+    def __init__(self, use_console=True):
+        self.logger = logging.getLogger()
+        self.global_level = logging.DEBUG
+        self.use_console = use_console
+
+    def add_stream_handler(self, stream, level=logging.DEBUG):
+        handler = logging.StreamHandler(stream)
+        handler.setLevel(level)
+        handler.setFormatter(self.console_formatter)
+        self.logger.addHandler(handler)
+        return handler
+
+    def add_console_handlers(self):
+        stdout_handler = self.add_stream_handler(sys.stdout,
+                                                 level=self.stdout_level)
+        # only pass records *below* STDERR_LEVEL to stdout, to avoid
+        # duplication
+        stdout_handler.addFilter(AllowBelowSeverity(self.stderr_level))
+
+        self.add_stream_handler(sys.stderr, self.stderr_level)
+
+    def add_file_handler(self, file_path, level=logging.DEBUG, log_dir=None):
+        if log_dir:
+            file_path = os.path.join(log_dir, file_path)
+        handler = logging.FileHandler(file_path)
+        handler.setLevel(level)
+        handler.setFormatter(self.file_formatter)
+        self.logger.addHandler(handler)
+        return handler
+
+    def _add_file_handlers_for_all_levels(self, log_dir, log_name):
+        for level in (logging.DEBUG, logging.INFO, logging.WARNING,
+                      logging.ERROR):
+            file_name = '%s.%s' % (log_name, logging.getLevelName(level))
+            self.add_file_handler(file_name, level=level, log_dir=log_dir)
+
+    def add_debug_file_handlers(self, log_dir, log_name=None):
+        raise NotImplementedError
+
+    def _clear_all_handlers(self):
+        for handler in list(self.logger.handlers):
+            self.logger.removeHandler(handler)
+            # Attempt to close the handler. If it's already closed a KeyError
+            # will be generated. http://bugs.python.org/issue8581
+            try:
+                handler.close()
+            except KeyError:
+                pass
+
+    def configure_logging(self, use_console=True, verbose=False):
+        self._clear_all_handlers()  # see comment at top of file
+        self.logger.setLevel(self.global_level)
+
+        if verbose:
+            self.stdout_level = logging.DEBUG
+        if use_console:
+            self.add_console_handlers()
+
+
+class VirtLoggingConfig(LoggingConfig):
 
     """
     Used with the sole purpose of providing convenient logging setup
@@ -777,6 +977,51 @@ class VirtLoggingConfig(logging_config.LoggingConfig):
     def configure_logging(self, results_dir=None, verbose=False):
         super(VirtLoggingConfig, self).configure_logging(use_console=True,
                                                          verbose=verbose)
+
+
+def safe_rmdir(path, timeout=10):
+    """
+    Try to remove a directory safely, even on NFS filesystems.
+
+    Sometimes, when running an autotest client test on an NFS filesystem, when
+    not all filedescriptors are closed, NFS will create some temporary files,
+    that will make shutil.rmtree to fail with error 39 (directory not empty).
+    So let's keep trying for a reasonable amount of time before giving up.
+
+    :param path: Path to a directory to be removed.
+    :type path: string
+    :param timeout: Time that the function will try to remove the dir before
+                    giving up (seconds)
+    :type timeout: int
+    :raises: OSError, with errno 39 in case after the timeout
+             shutil.rmtree could not successfuly complete. If any attempt
+             to rmtree fails with errno different than 39, that exception
+             will be just raised.
+    """
+    assert os.path.isdir(path), "Invalid directory to remove %s" % path
+    step = int(timeout / 10)
+    start_time = time.time()
+    success = False
+    attempts = 0
+    while int(time.time() - start_time) < timeout:
+        attempts += 1
+        try:
+            shutil.rmtree(path)
+            success = True
+            break
+        except OSError, err_info:
+            # We are only going to try if the error happened due to
+            # directory not empty (errno 39). Otherwise, raise the
+            # original exception.
+            if err_info.errno != 39:
+                raise
+            time.sleep(step)
+
+    if not success:
+        raise OSError(39,
+                      "Could not delete directory %s "
+                      "after %d s and %d attempts." %
+                      (path, timeout, attempts))
 
 
 def umount(src, mount_point, fstype, verbose=False, fstype_mtab=None):
@@ -795,9 +1040,9 @@ def umount(src, mount_point, fstype, verbose=False, fstype_mtab=None):
     if is_mounted(src, mount_point, fstype, None, verbose, fstype_mtab):
         umount_cmd = "umount %s" % mount_point
         try:
-            utils.system(umount_cmd, verbose=verbose)
+            process.system(umount_cmd, verbose=verbose)
             return True
-        except error.CmdError:
+        except exceptions.CmdError:
             return False
     else:
         logging.debug("%s is not mounted under %s", src, mount_point)
@@ -826,8 +1071,8 @@ def mount(src, mount_point, fstype, perm=None, verbose=False, fstype_mtab=None):
         return True
     mount_cmd = "mount -t %s %s %s -o %s" % (fstype, src, mount_point, perm)
     try:
-        utils.system(mount_cmd, verbose=verbose)
-    except error.CmdError:
+        process.system(mount_cmd, verbose=verbose)
+    except exceptions.CmdError:
         return False
     return is_mounted(src, mount_point, fstype, perm, verbose, fstype_mtab)
 
@@ -895,11 +1140,11 @@ def install_host_kernel(job, params):
         rpm_url = params.get('host_kernel_rpm_url')
         k_basename = os.path.basename(rpm_url)
         dst = os.path.join("/var/tmp", k_basename)
-        k = utils.get_file(rpm_url, dst)
+        k = download.get_file(rpm_url, dst)
         host_kernel = job.kernel(k)
         host_kernel.install(install_vmlinux=False)
-        utils.write_keyval(job.resultdir,
-                           {'software_version_kernel': k_basename})
+        write_keyval(job.resultdir,
+                     {'software_version_kernel': k_basename})
         host_kernel.boot()
 
     elif install_type in ['koji', 'brew']:
@@ -922,16 +1167,16 @@ def install_host_kernel(job, params):
                      'through %s', install_type)
         k_deps_rpm_file_names = [os.path.join(job.tmpdir, rpm_file_name) for
                                  rpm_file_name in c.get_pkg_rpm_file_names(k_deps)]
-        utils.run('rpm -U --force %s' % " ".join(k_deps_rpm_file_names))
+        process.run('rpm -U --force %s' % " ".join(k_deps_rpm_file_names))
 
         c.get_pkgs(k, job.tmpdir)
         k_rpm = os.path.join(job.tmpdir,
                              c.get_pkg_rpm_file_names(k)[0])
         host_kernel = job.kernel(k_rpm)
         host_kernel.install(install_vmlinux=False)
-        utils.write_keyval(job.resultdir,
-                           {'software_version_kernel':
-                            " ".join(c.get_pkg_rpm_file_names(k_deps))})
+        write_keyval(job.resultdir,
+                     {'software_version_kernel':
+                      " ".join(c.get_pkg_rpm_file_names(k_deps))})
         host_kernel.boot()
 
     elif install_type == 'git':
@@ -958,16 +1203,16 @@ def install_host_kernel(job, params):
         host_kernel.build()
         host_kernel.install()
         git_repo_version = '%s:%s:%s' % (r.uri, r.branch, r.get_top_commit())
-        utils.write_keyval(job.resultdir,
-                           {'software_version_kernel': git_repo_version})
+        write_keyval(job.resultdir,
+                     {'software_version_kernel': git_repo_version})
         host_kernel.boot()
 
     else:
         logging.info('Chose %s, using the current kernel for the host',
                      install_type)
-        k_version = utils.system_output('uname -r', ignore_status=True)
-        utils.write_keyval(job.resultdir,
-                           {'software_version_kernel': k_version})
+        k_version = process.system_output('uname -r', ignore_status=True)
+        write_keyval(job.resultdir,
+                     {'software_version_kernel': k_version})
 
 
 def install_disktest_on_vm(test, vm, src_dir, dst_dir):
@@ -1127,7 +1372,7 @@ def create_x509_dir(path, cacert_subj, server_subj, passphrase,
     :raise OSError: if os.makedirs() fails
     """
 
-    ssl_cmd = os_dep.command("openssl")
+    ssl_cmd = path.command("openssl")
     path = path + os.path.sep  # Add separator to the path
     shutil.rmtree(path, ignore_errors=True)
     os.makedirs(path)
@@ -1155,7 +1400,7 @@ def create_x509_dir(path, cacert_subj, server_subj, passphrase,
                        (ssl_cmd, path + server_key, path))
 
     for cmd in cmd_set:
-        utils.run(cmd)
+        process.run(cmd)
         logging.info(cmd)
 
 
@@ -1204,7 +1449,7 @@ def get_thread_cpu(thread):
     :rtype: list
     """
     cmd = "ps -o cpuid,lwp -eL | grep -w %s$" % thread
-    cpu_thread = utils.system_output(cmd)
+    cpu_thread = process.system_output(cmd)
     if not cpu_thread:
         return []
     return list(set([_.strip().split()[0] for _ in cpu_thread.splitlines()]))
@@ -1220,7 +1465,7 @@ def get_pid_cpu(pid):
     :rtype: list
     """
     cmd = "ps -o cpuid -L -p %s" % pid
-    cpu_pid = utils.system_output(cmd)
+    cpu_pid = process.system_output(cmd)
     if not cpu_pid:
         return []
     return list(set([_.strip() for _ in cpu_pid.splitlines()]))
@@ -1236,7 +1481,7 @@ def get_node_cpus(i=0):
     :return: the cpu lists
     :rtype: list
     """
-    cmd = utils.run("numactl --hardware")
+    cmd = process.run("numactl --hardware")
     return re.findall("node %s cpus: (.*)" % i, cmd.stdout)[0].split()
 
 
@@ -1281,7 +1526,7 @@ def get_cpu_info(session=None):
     cpu_info = {}
     cmd = "lscpu"
     if session is None:
-        output = utils.system_output(cmd, ignore_status=True).splitlines()
+        output = process.system_output(cmd, ignore_status=True).splitlines()
     else:
         try:
             output = session.cmd_output(cmd).splitlines()
@@ -1300,7 +1545,7 @@ def yum_install(pkg_list, session=None, timeout=300):
     :return: True if all packages installed, False if any error
     """
     if not isinstance(pkg_list, list):
-        logging.error("Parameter error.")
+        logging.error("Parameter exceptions.")
         return False
     yum_cmd = "rpm -q {0} || yum -y install {0}"
     for pkg in pkg_list:
@@ -1308,9 +1553,9 @@ def yum_install(pkg_list, session=None, timeout=300):
             status = session.cmd_status(yum_cmd.format(pkg),
                                         timeout=timeout)
         else:
-            status = utils.run(yum_cmd.format(pkg),
-                               timeout=timeout,
-                               ignore_status=False).exit_status
+            status = process.run(yum_cmd.format(pkg),
+                                 timeout=timeout,
+                                 ignore_status=False).exit_status
         if status:
             logging.error("Failed to install package: %s"
                           % pkg)
@@ -1384,7 +1629,7 @@ class NumaInfo(object):
         :return: A list in of distance for the node in positive-sequence
         :rtype: list
         """
-        cmd = utils.run("numactl --hardware")
+        cmd = process.run("numactl --hardware")
         try:
             node_distances = cmd.stdout.split("node distances:")[-1].strip()
             node_distance = re.findall("%s:.*" % node_id, node_distances)[0]
@@ -1465,7 +1710,7 @@ class NumaNode(object):
 
         :param i: Index of the CPU inside the node.
         """
-        cmd = utils.run("numactl --hardware")
+        cmd = process.run("numactl --hardware")
         cpus = re.findall("node %s cpus: (.*)" % i, cmd.stdout)
         if cpus:
             cpus = cpus[0]
@@ -1548,26 +1793,28 @@ class NumaNode(object):
         """
         Flush pin dict, remove the record of exited process.
         """
-        cmd = utils.run("ps -eLf | awk '{print $4}'")
+        cmd = process.run("ps -eLf | awk '{print $4}'")
         all_pids = cmd.stdout
         for i in self.cpus:
             for j in self.dict[i]:
                 if str(j) not in all_pids:
                     self.free_cpu(i, j)
 
-    @error.context_aware
-    def pin_cpu(self, process, cpu=None, extra=False):
+    @error_context.context_aware
+    def pin_cpu(self, pid, cpu=None, extra=False):
         """
-        Pin one process to a single cpu.
+        Pin one PID to a single cpu.
 
-        :param process: Process ID.
+        :param pid: Process ID.
         :param cpu: CPU ID, pin thread to free CPU if cpu ID isn't set
         """
         self._flush_pin()
         if cpu:
-            error.context("Pinning process %s to the CPU(%s)" % (process, cpu))
+            error_context.context(
+                "Pinning process %s to the CPU(%s)" % (pid, cpu))
         else:
-            error.context("Pinning process %s to the available CPU" % (process))
+            error_context.context(
+                "Pinning process %s to the available CPU" % pid)
 
         cpus = self.cpus
         if extra:
@@ -1575,10 +1822,10 @@ class NumaNode(object):
 
         for i in cpus:
             if (cpu is not None and cpu == i) or (cpu is None and not self.dict[i]):
-                self.dict[i].append(process)
-                cmd = "taskset -p %s %s" % (hex(2 ** int(i)), process)
+                self.dict[i].append(pid)
+                cmd = "taskset -p %s %s" % (hex(2 ** int(i)), pid)
                 logging.debug("NumaNode (%s): " % i + cmd)
-                utils.run(cmd)
+                process.run(cmd)
                 return i
 
     def show(self):
@@ -1599,8 +1846,8 @@ def get_dev_major_minor(dev):
         rdev = os.stat(dev).st_rdev
         return (os.major(rdev), os.minor(rdev))
     except IOError, details:
-        raise error.TestError("Fail to get major and minor numbers of the "
-                              "device %s:\n%s" % (dev, details))
+        raise exceptions.TestError("Fail to get major and minor numbers of the "
+                                   "device %s:\n%s" % (dev, details))
 
 
 class Flag(str):
@@ -1690,7 +1937,7 @@ def set_cpu_status(cpu_num, enable=True):
     Set assigned cpu to be enable or disable
     """
     if cpu_num == 0:
-        raise error.TestNAError("The 0 cpu cannot be set!")
+        raise exceptions.TestNAError("The 0 cpu cannot be set!")
     cpu_status = get_cpu_status(cpu_num)
     if cpu_status == -1:
         return False
@@ -1768,7 +2015,7 @@ def get_support_machine_type(qemu_binary="/usr/libexec/qemu-kvm"):
     """
     Get the machine type the host support,return a list of machine type
     """
-    o = utils.system_output("%s -M ?" % qemu_binary)
+    o = process.system_output("%s -M ?" % qemu_binary)
     s = re.findall("(\S*)\s*RHEL[-\s]", o)
     c = re.findall("(RHEL.*PC)", o)
     return (s, c)
@@ -1884,7 +2131,7 @@ def get_qemu_cpu_models(qemu_binary):
     Get list of CPU models by parsing the output of <qemu> -cpu '?'
     """
     cmd = qemu_binary + " -cpu '?'"
-    result = utils.run(cmd)
+    result = process.run(cmd)
     return extract_qemu_cpu_models(result.stdout)
 
 
@@ -1914,7 +2161,8 @@ def get_qemu_binary(params):
             qemu_binary = find_command('kvm')
             logging.debug('Found %s', qemu_binary)
     else:
-        library_path = os.path.join(_get_backend_dir(params), 'install_root', 'lib')
+        library_path = os.path.join(
+            _get_backend_dir(params), 'install_root', 'lib')
         if os.path.isdir(library_path):
             library_path = os.path.abspath(library_path)
             qemu_binary = ("LD_LIBRARY_PATH=%s %s" %
@@ -1936,7 +2184,8 @@ def get_qemu_dst_binary(params):
     qemu_binary_path = get_path(_get_backend_dir(params), qemu_dst_binary)
 
     # Update LD_LIBRARY_PATH for built libraries (libspice-server)
-    library_path = os.path.join(_get_backend_dir(params), 'install_root', 'lib')
+    library_path = os.path.join(
+        _get_backend_dir(params), 'install_root', 'lib')
     if os.path.isdir(library_path):
         library_path = os.path.abspath(library_path)
         qemu_dst_binary = ("LD_LIBRARY_PATH=%s %s" %
@@ -2039,8 +2288,8 @@ class ForAllP(list):
             threads = []
             for o in self:
                 threads.append(
-                    utils.InterruptedThread(o.__getattribute__(name),
-                                            args=args, kwargs=kargs))
+                    InterruptedThread(o.__getattribute__(name),
+                                      args=args, kwargs=kargs))
             for t in threads:
                 t.start()
             return map(lambda t: t.join(), threads)
@@ -2058,8 +2307,8 @@ class ForAllPSE(list):
             threads = []
             for o in self:
                 threads.append(
-                    utils.InterruptedThread(o.__getattribute__(name),
-                                            args=args, kwargs=kargs))
+                    InterruptedThread(o.__getattribute__(name),
+                                      args=args, kwargs=kargs))
             for t in threads:
                 t.start()
 
@@ -2075,6 +2324,45 @@ class ForAllPSE(list):
                 result.append(ret)
             return result
         return wrapper
+
+
+def pid_is_alive(pid):
+    """
+    True if process pid exists and is not yet stuck in Zombie state.
+    Zombies are impossible to move between cgroups, etc.
+    pid can be integer, or text of integer.
+    """
+    path = '/proc/%s/stat' % pid
+
+    try:
+        stat = genio.read_one_line(path)
+    except IOError:
+        if not os.path.exists(path):
+            # file went away
+            return False
+        raise
+
+    return stat.split()[2] != 'Z'
+
+
+def signal_pid(pid, sig):
+    """
+    Sends a signal to a process id. Returns True if the process terminated
+    successfully, False otherwise.
+    """
+    try:
+        os.kill(pid, sig)
+    except OSError:
+        # The process may have died before we could kill it.
+        pass
+
+    for i in range(5):
+        if not pid_is_alive(pid):
+            return True
+        time.sleep(1)
+
+    # The process is still alive
+    return False
 
 
 def get_pid_path(program_name, pid_files_dir=None):
@@ -2152,7 +2440,7 @@ def program_is_alive(program_name, pid_files_dir=None):
     pid = get_pid_from_file(program_name, pid_files_dir)
     if pid is None:
         return False
-    return utils.pid_is_alive(pid)
+    return pid_is_alive(pid)
 
 
 def signal_program(program_name, sig=signal.SIGTERM, pid_files_dir=None):
@@ -2164,7 +2452,7 @@ def signal_program(program_name, sig=signal.SIGTERM, pid_files_dir=None):
     """
     pid = get_pid_from_file(program_name, pid_files_dir)
     if pid:
-        utils.signal_pid(pid, sig)
+        signal_pid(pid, sig)
 
 
 def normalize_data_size(value_str, order_magnitude="M", factor="1024"):
@@ -2263,12 +2551,12 @@ def verify_running_as_root():
     """
     Verifies whether we're running under UID 0 (root).
 
-    :raise: error.TestNAError
+    :raise: exceptions.TestNAError
     """
     if os.getuid() != 0:
-        raise error.TestNAError("This test requires root privileges "
-                                "(currently running with user %s)" %
-                                getpass.getuser())
+        raise exceptions.TestNAError("This test requires root privileges "
+                                     "(currently running with user %s)" %
+                                     getpass.getuser())
 
 
 def selinux_enforcing():
@@ -2420,7 +2708,8 @@ def get_windows_drive_letters(session):
     :return list: letters has been assigned
     """
     list_letters_cmd = "fsutil fsinfo drives"
-    drive_letters = re.findall(r'(\w+):\\', session.cmd_output(list_letters_cmd), re.M)
+    drive_letters = re.findall(
+        r'(\w+):\\', session.cmd_output(list_letters_cmd), re.M)
 
     return drive_letters
 
@@ -2486,7 +2775,7 @@ def get_image_info(image_file):
     """
     try:
         cmd = "qemu-img info %s" % image_file
-        image_info = utils.run(cmd, ignore_status=False).stdout.strip()
+        image_info = process.run(cmd, ignore_status=False).stdout.strip()
         image_info_dict = {}
         vsize = None
         if image_info:
@@ -2509,9 +2798,9 @@ def get_image_info(image_file):
                     csize = line.split(':')[-1].strip()
                     image_info_dict['csize'] = int(csize)
         return image_info_dict
-    except (KeyError, IndexError, error.CmdError), detail:
-        raise error.TestError("Fail to get information of %s:\n%s" %
-                              (image_file, detail))
+    except (KeyError, IndexError, exceptions.CmdError), detail:
+        raise exceptions.TestError("Fail to get information of %s:\n%s" %
+                                   (image_file, detail))
 
 
 def get_test_entrypoint_func(name, module):
@@ -2609,7 +2898,7 @@ class KSMController(object):
                 raise KSMNotSupportedError
         else:
             try:
-                os_dep.command("ksmctl")
+                path.command("ksmctl")
             except ValueError:
                 raise KSMNotSupportedError
             _KSM_PARAMS = ["run", "pages_to_scan", "sleep_millisecs"]
@@ -2620,29 +2909,29 @@ class KSMController(object):
 
     def is_module_loaded(self):
         """Check whether ksm module has been loaded."""
-        if utils.system("lsmod |grep ksm", ignore_status=True):
+        if process.system("lsmod |grep ksm", ignore_status=True):
             return False
         return True
 
     def load_ksm_module(self):
         """Try to load ksm module."""
-        utils.system("modprobe ksm")
+        process.system("modprobe ksm")
 
     def unload_ksm_module(self):
         """Try to unload ksm module."""
-        utils.system("modprobe -r ksm")
+        process.system("modprobe -r ksm")
 
     def get_ksmtuned_pid(self):
         """
         Return ksmtuned process id(0 means not running).
         """
         try:
-            os_dep.command("ksmtuned")
+            path.command("ksmtuned")
         except ValueError:
             raise KSMTunedNotSupportedError
 
-        process_id = utils.system_output("ps -C ksmtuned -o pid=",
-                                         ignore_status=True)
+        process_id = process.system_output("ps -C ksmtuned -o pid=",
+                                           ignore_status=True)
         if process_id:
             return int(re.findall("\d+", process_id)[0])
         return 0
@@ -2650,13 +2939,13 @@ class KSMController(object):
     def start_ksmtuned(self):
         """Start ksmtuned service"""
         if self.get_ksmtuned_pid() == 0:
-            utils.system("ksmtuned")
+            process.system("ksmtuned")
 
     def stop_ksmtuned(self):
         """Stop ksmtuned service"""
         pid = self.get_ksmtuned_pid()
         if pid:
-            utils.system("kill -1 %s" % pid)
+            process.system("kill -1 %s" % pid)
 
     def restart_ksmtuned(self):
         """Restart ksmtuned service"""
@@ -2695,9 +2984,9 @@ class KSMController(object):
         Verify whether ksm is running.
         """
         if self.interface == "sysfs":
-            running = utils.system_output("cat %s" % self.ksm_params["run"])
+            running = process.system_output("cat %s" % self.ksm_params["run"])
         else:
-            output = utils.system_output("ksmctl info")
+            output = process.system_output("ksmctl info")
             try:
                 running = re.findall("\d+", output)[0]
             except IndexError:
@@ -2732,10 +3021,10 @@ class KSMController(object):
         if self.interface == "sysfs":
             # Get writable parameters
             for key, value in feature_args.items():
-                utils.system("echo %s > %s" % (value, self.ksm_params[key]))
+                process.system("echo %s > %s" % (value, self.ksm_params[key]))
         else:
             if "run" in feature_args.keys() and feature_args["run"] == 0:
-                utils.system("ksmctl stop")
+                process.system("ksmctl stop")
             else:
                 # For ksmctl both pages_to_scan and sleep_ms should have value
                 # So start it anyway if run is 1
@@ -2748,7 +3037,7 @@ class KSMController(object):
                     ms = self.get_ksm_feature("sleep_millisecs")
                 else:
                     ms = feature_args["sleep_millisecs"]
-                utils.system("ksmctl start %s %s" % (pts, ms))
+                process.system("ksmctl start %s %s" % (pts, ms))
 
     def get_ksm_feature(self, feature):
         """
@@ -2758,9 +3047,9 @@ class KSMController(object):
             feature = self.ksm_params[feature]
 
         if self.interface == "sysfs":
-            return utils.system_output("cat %s" % feature).strip()
+            return process.system_output("cat %s" % feature).strip()
         else:
-            output = utils.system_output("ksmctl info")
+            output = process.system_output("ksmctl info")
             _KSM_PARAMS = ["run", "pages_to_scan", "sleep_millisecs"]
             ksminfos = re.findall("\d+", output)
             if len(ksminfos) != 3:
@@ -2784,7 +3073,8 @@ def monotonic_time():
 
         lib = ctypes.CDLL("librt.so.1", use_errno=True)
         clock_gettime = lib.clock_gettime
-        clock_gettime.argtypes = [ctypes.c_int, ctypes.POINTER(struct_timespec)]
+        clock_gettime.argtypes = [
+            ctypes.c_int, ctypes.POINTER(struct_timespec)]
 
         timespec = struct_timespec()
         # CLOCK_MONOTONIC_RAW == 4
@@ -2814,7 +3104,8 @@ def verify_host_dmesg(dmesg_log_file=None, trace_re=None):
     panic_re.append(r"----------\[ cut here.* BUG .*\[ end trace .* \]---")
     panic_re.append(r"general protection fault:.* RSP.*>")
     panic_re = "|".join(panic_re)
-    dmesg = utils.system_output("dmesg", timeout=30, ignore_status=True)
+    dmesg = process.system_output("dmesg", timeout=30, ignore_status=True,
+                                  verbose=False)
     if dmesg:
         match = re.search(panic_re, dmesg, re.DOTALL | re.MULTILINE | re.I)
         if match is not None:
@@ -2826,7 +3117,7 @@ def verify_host_dmesg(dmesg_log_file=None, trace_re=None):
             else:
                 err += " Please check host dmesg log in debug log."
                 logging.debug(d_log)
-            raise error.TestError(err)
+            raise exceptions.TestError(err)
 
 
 def add_ker_cmd(kernel_cmdline, kernel_param, remove_similar=False):
@@ -2884,7 +3175,7 @@ def check_module(module_name, submodules=[]):
     """
     Check whether module and its submodules work.
     """
-    module_info = utils.loaded_module_info(module_name)
+    module_info = modules.loaded_module_info(module_name)
     logging.debug(module_info)
     # Return if module is not loaded.
     if not len(module_info):
@@ -2909,7 +3200,7 @@ def get_pci_devices_in_group(str_flag=""):
 
     :param str_flag: the match string to filter devices.
     """
-    d_lines = utils.run("lspci -bDnn | grep \"%s\"" % str_flag).stdout
+    d_lines = process.run("lspci -bDnn | grep \"%s\"" % str_flag).stdout
 
     devices = {}
     for line in d_lines.splitlines():
@@ -2953,8 +3244,8 @@ def get_pci_vendor_device(pci_id):
 
     :return: a 'vendor device' list include all matched devices
     """
-    matched_pci = utils.run("lspci -n -s %s" % pci_id,
-                            ignore_status=True).stdout
+    matched_pci = process.run("lspci -n -s %s" % pci_id,
+                              ignore_status=True).stdout
     pci_vd = []
     for line in matched_pci.splitlines():
         for string in line.split():
@@ -2979,7 +3270,7 @@ def bind_device_driver(pci_id, driver_type):
     vendor = vd_list[0].split(':')[0]
     device = vd_list[0].split(':')[1]
     bind_cmd = "echo %s %s > %s" % (vendor, device, bind_file)
-    return utils.run(bind_cmd, ignore_status=True).exit_status == 0
+    return process.run(bind_cmd, ignore_status=True).exit_status == 0
 
 
 def unbind_device_driver(pci_id):
@@ -2992,7 +3283,7 @@ def unbind_device_driver(pci_id):
         return False
     unbind_file = "/sys/bus/pci/devices/%s/driver/unbind" % pci_id
     unbind_cmd = "echo %s > %s" % (pci_id, unbind_file)
-    return utils.run(unbind_cmd, ignore_status=True).exit_status == 0
+    return process.run(unbind_cmd, ignore_status=True).exit_status == 0
 
 
 def check_device_driver(pci_id, driver_type):
@@ -3003,8 +3294,8 @@ def check_device_driver(pci_id, driver_type):
     if not os.path.isdir(device_driver):
         logging.debug("Make sure %s has binded driver.")
         return False
-    driver = utils.run("readlink %s" % device_driver,
-                       ignore_status=True).stdout.strip()
+    driver = process.run("readlink %s" % device_driver,
+                         ignore_status=True).stdout.strip()
     driver = os.path.basename(driver)
     logging.debug("% is %s, expect %s", pci_id, driver, driver_type)
     return driver == driver_type
@@ -3044,8 +3335,8 @@ class VFIOController(object):
                 continue
             elif load_modules:
                 try:
-                    utils.load_module(key)
-                except error.CmdError, detail:
+                    modules.load_module(key)
+                except exceptions.CmdError, detail:
                     modules_error.append("Load module %s failed: %s"
                                          % (key, detail))
             else:
@@ -3057,8 +3348,8 @@ class VFIOController(object):
         lnk = "/sys/module/vfio_iommu_type1/parameters/allow_unsafe_interrupts"
         if allow_unsafe_interrupts:
             try:
-                utils.run("echo Y > %s" % lnk)
-            except error.CmdError, detail:
+                process.run("echo Y > %s" % lnk)
+            except exceptions.CmdError, detail:
                 raise VFIOError(str(detail))
 
     def check_iommu(self):
@@ -3066,10 +3357,10 @@ class VFIOController(object):
         Check whether iommu group is available.
         """
         grub_file = "/etc/grub2.cfg"
-        if utils.run("ls %s" % grub_file, ignore_status=True).exit_status:
+        if process.run("ls %s" % grub_file, ignore_status=True).exit_status:
             grub_file = "/etc/grub.cfg"
 
-        grub_content = utils.run("cat %s" % grub_file).stdout
+        grub_content = process.run("cat %s" % grub_file).stdout
         for line in grub_content.splitlines():
             if re.search("vmlinuz.*intel_iommu=on", line):
                 return
@@ -3082,22 +3373,22 @@ class VFIOController(object):
         """
         pci_group_devices = get_pci_group_by_id(pci_id, device_type)
         if len(pci_group_devices) == 0:
-            raise error.TestError("Can't find device in provided pci group: %s"
-                                  % pci_id)
+            raise exceptions.TestError("Can't find device in provided pci group: %s"
+                                       % pci_id)
         readlink_cmd = ("readlink /sys/bus/pci/devices/%s/iommu_group"
                         % pci_group_devices[0])
         try:
-            group_id = int(os.path.basename(utils.run(readlink_cmd).stdout))
+            group_id = int(os.path.basename(process.run(readlink_cmd).stdout))
         except ValueError, detail:
-            raise error.TestError("Get iommu group id failed:%s" % detail)
+            raise exceptions.TestError("Get iommu group id failed:%s" % detail)
         return group_id
 
     def get_iommu_group_devices(self, group_id):
         """
         Get all devices in one group by its id.
         """
-        output = utils.run("ls /sys/kernel/iommu_groups/%s/devices/"
-                           % group_id).stdout
+        output = process.run("ls /sys/kernel/iommu_groups/%s/devices/"
+                             % group_id).stdout
         group_devices = []
         for line in output.splitlines():
             devices = line.split()
@@ -3162,7 +3453,7 @@ class SELinuxBoolean(object):
         get_sebool_cmd = "getsebool %s | awk -F'-->' '{print $2}'" % (
             self.local_bool_var)
         logging.debug("The command: %s", get_sebool_cmd)
-        result = utils.run(get_sebool_cmd)
+        result = process.run(get_sebool_cmd)
         return result.stdout.strip()
 
     def get_sebool_remote(self):
@@ -3173,7 +3464,7 @@ class SELinuxBoolean(object):
         get_sebool_cmd = "getsebool %s" % self.remote_bool_var
         cmd = ssh_cmd + "'%s'" % get_sebool_cmd + "| awk -F'-->' '{print $2}'"
         logging.debug("The command: %s", cmd)
-        result = utils.run(cmd)
+        result = process.run(cmd)
         return result.stdout.strip()
 
     def setup(self):
@@ -3196,19 +3487,19 @@ class SELinuxBoolean(object):
 
         # Recover local SELinux boolean value
         if self.cleanup_local:
-            result = utils.run("setsebool %s %s" % (self.local_bool_var,
-                                                    self.local_boolean_orig))
+            result = process.run("setsebool %s %s" % (self.local_bool_var,
+                                                      self.local_boolean_orig))
             if result.exit_status:
-                raise error.TestError(result.stderr.strip())
+                raise exceptions.TestError(result.stderr.strip())
 
         # Recover remote SELinux boolean value
         if self.cleanup_remote:
             ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.server_ip)
             cmd = ssh_cmd + "'setsebool %s %s'" % (self.remote_bool_var,
                                                    self.remote_boolean_orig)
-            result = utils.run(cmd)
+            result = process.run(cmd)
             if result.exit_status:
-                raise error.TestError(result.stderr.strip())
+                raise exceptions.TestError(result.stderr.strip())
 
         # Recover SSH connection
         if self.ssh_obj.auto_recover and not keep_authorized_keys:
@@ -3225,15 +3516,15 @@ class SELinuxBoolean(object):
             self.cleanup_local = False
             return
 
-        result = utils.run("setsebool %s %s" % (self.local_bool_var,
-                                                self.local_bool_value))
+        result = process.run("setsebool %s %s" % (self.local_bool_var,
+                                                  self.local_bool_value))
         if result.exit_status:
-            raise error.TestNAError(result.stderr.strip())
+            raise exceptions.TestNAError(result.stderr.strip())
 
         boolean_curr = self.get_sebool_local()
         logging.debug("To check local boolean value: %s", boolean_curr)
         if boolean_curr != self.local_bool_value:
-            raise error.TestFail(result.stderr.strip())
+            raise exceptions.TestFail(result.stderr.strip())
 
     def setup_remote(self):
         """
@@ -3250,11 +3541,11 @@ class SELinuxBoolean(object):
         set_boolean_cmd = ssh_cmd + "'setsebool %s %s'" % (
             self.remote_bool_var, self.remote_bool_value)
 
-        result = utils.run(set_boolean_cmd)
+        result = process.run(set_boolean_cmd)
         if result.exit_status:
-            raise error.TestNAError(result.stderr.strip())
+            raise exceptions.TestNAError(result.stderr.strip())
 
         boolean_curr = self.get_sebool_remote()
         logging.debug("To check remote boolean value: %s", boolean_curr)
         if boolean_curr != self.remote_bool_value:
-            raise error.TestFail(result.stderr.strip())
+            raise exceptions.TestFail(result.stderr.strip())

@@ -124,7 +124,7 @@ class PCIXML(CAPXML):
     class for capability whose type is pci.
     """
 
-    #Example:
+    # Example:
     #<capability type='pci'>
     #  <domain>0</domain>
     #  <bus>7</bus>
@@ -170,7 +170,7 @@ class PCIXML(CAPXML):
         Address of Virtual Function device.
         """
 
-        #Example:
+        # Example:
         #  <address domain='0x0000' bus='0x08' slot='0x10' function='0x0'/>
         #  <address domain='0x0000' bus='0x08' slot='0x10' function='0x4'/>
 

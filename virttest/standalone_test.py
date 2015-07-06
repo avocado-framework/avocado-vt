@@ -6,23 +6,22 @@ import time
 import traceback
 import Queue
 
-from autotest.client.shared import error
-from autotest.client import utils
+from avocado.core import exceptions
 
-import aexpect
-import asset
-import utils_misc
-import utils_params
-import utils_env
-import utils_net
-import env_process
-import data_dir
-import bootstrap
-import storage
-import cartesian_config
-import funcatexit
-import version
-import qemu_vm
+from . import aexpect
+from . import asset
+from . import utils_misc
+from . import utils_params
+from . import utils_env
+from . import utils_net
+from . import env_process
+from . import data_dir
+from . import bootstrap
+from . import storage
+from . import cartesian_config
+from . import funcatexit
+from . import version
+from . import qemu_vm
 
 global GUEST_NAME_LIST
 GUEST_NAME_LIST = None
@@ -43,13 +42,15 @@ def _variant_only_file(filename):
 
 SUPPORTED_LOG_LEVELS = ["debug", "info", "warning", "error", "critical"]
 
-SUPPORTED_TEST_TYPES = ['qemu', 'libvirt', 'libguestfs', 'openvswitch', 'v2v', 'lvsb']
+SUPPORTED_TEST_TYPES = [
+    'qemu', 'libvirt', 'libguestfs', 'openvswitch', 'v2v', 'lvsb']
 
 SUPPORTED_LIBVIRT_URIS = ['qemu:///system', 'lxc:///']
 SUPPORTED_LIBVIRT_DRIVERS = ['qemu', 'lxc', 'xen']
 
 SUPPORTED_IMAGE_TYPES = ['raw', 'qcow2', 'qed', 'vmdk']
-SUPPORTED_DISK_BUSES = ['ide', 'scsi', 'virtio_blk', 'virtio_scsi', 'lsi_scsi', 'ahci', 'usb2', 'xenblk']
+SUPPORTED_DISK_BUSES = ['ide', 'scsi', 'virtio_blk',
+                        'virtio_scsi', 'lsi_scsi', 'ahci', 'usb2', 'xenblk']
 SUPPORTED_NIC_MODELS = ["virtio_net", "e1000", "rtl8139", "spapr-vlan"]
 SUPPORTED_NET_TYPES = ["bridge", "user", "none"]
 
@@ -107,7 +108,8 @@ class Test(object):
         self.params = utils_params.Params(params)
         self.bindir = data_dir.get_root_dir()
         self.virtdir = os.path.join(self.bindir, 'shared')
-        self.builddir = os.path.join(self.bindir, 'backends', params.get("vm_type"))
+        self.builddir = os.path.join(
+            self.bindir, 'backends', params.get("vm_type"))
 
         self.srcdir = os.path.join(self.builddir, 'src')
         if not os.path.isdir(self.srcdir):
@@ -144,7 +146,7 @@ class Test(object):
         self.logfile = os.path.join(self.debugdir, 'debug.log')
 
     def write_test_keyval(self, d):
-        utils.write_keyval(self.debugdir, d)
+        utils_misc.write_keyval(self.debugdir, d)
 
     def start_file_logging(self):
         self.file_handler = configure_file_logging(self.logfile)
@@ -173,7 +175,7 @@ class Test(object):
         # If a dependency test prior to this test has failed, let's fail
         # it right away as TestNA.
         if params.get("dependency_failed") == 'yes':
-            raise error.TestNAError("Test dependency failed")
+            raise exceptions.TestNAError("Test dependency failed")
 
         # Report virt test version
         logging.info(version.get_pretty_version_info())
@@ -212,15 +214,16 @@ class Test(object):
                         d = os.path.join(*d.split("/"))
                         subtestdir = os.path.join(self.bindir, d, "tests")
                         if not os.path.isdir(subtestdir):
-                            raise error.TestError("Directory %s does not "
-                                                  "exist" % (subtestdir))
+                            raise exceptions.TestError("Directory %s does not "
+                                                       "exist" % (subtestdir))
                         subtest_dirs += data_dir.SubdirList(subtestdir,
                                                             bootstrap.test_filter)
 
                     provider = params.get("provider", None)
 
                     if provider is None:
-                        # Verify if we have the correspondent source file for it
+                        # Verify if we have the correspondent source file for
+                        # it
                         for generic_subdir in asset.get_test_provider_subdirs('generic'):
                             subtest_dirs += data_dir.SubdirList(generic_subdir,
                                                                 bootstrap.test_filter)
@@ -262,7 +265,7 @@ class Test(object):
                         if subtest_dir is None:
                             msg = ("Could not find test file %s.py on test"
                                    "dirs %s" % (t_type, subtest_dirs))
-                            raise error.TestError(msg)
+                            raise exceptions.TestError(msg)
                         # Load the test module
                         f, p, d = imp.find_module(t_type, [subtest_dir])
                         test_modules[t_type] = imp.load_module(t_type, f, p, d)
@@ -287,8 +290,8 @@ class Test(object):
                     test_passed = True
                     error_message = funcatexit.run_exitfuncs(env, t_type)
                     if error_message:
-                        raise error.TestWarn("funcatexit failed with: %s"
-                                             % error_message)
+                        raise exceptions.TestWarn("funcatexit failed with: %s"
+                                                  % error_message)
 
                 except Exception, e:
                     if (t_type is not None):
@@ -329,7 +332,7 @@ class Test(object):
                                      m.protocol, m.filename)
                     logging.info("The command line used to start it was:\n%s",
                                  vm.make_qemu_command())
-                raise error.JobError("Abort requested (%s)" % e)
+                raise exceptions.JobError("Abort requested (%s)" % e)
 
         return test_passed
 
@@ -728,7 +731,7 @@ def bootstrap_tests(options):
     failed = False
     wait_message_printed = False
 
-    bg = utils.InterruptedThread(bootstrap.setup, kwargs=kwargs)
+    bg = utils_misc.InterruptedThread(bootstrap.setup, kwargs=kwargs)
     t_begin = time.time()
     bg.start()
 
@@ -849,7 +852,8 @@ def run_tests(parser, options):
     :return: True, if all tests ran passed, False if any of them failed.
     """
     test_start_time = time.strftime('%Y-%m-%d-%H.%M.%S')
-    logdir = options.vt_log_dir or os.path.join(data_dir.get_root_dir(), 'logs')
+    logdir = options.vt_log_dir or os.path.join(
+        data_dir.get_root_dir(), 'logs')
     debugbase = 'run-%s' % test_start_time
     debugdir = os.path.join(logdir, debugbase)
     latestdir = os.path.join(logdir, "latest")
@@ -987,7 +991,7 @@ def run_tests(parser, options):
                 finally:
                     t_end = time.time()
                     t_elapsed = t_end - t_begin
-            except error.TestError, reason:
+            except exceptions.TestError, reason:
                 n_tests_failed += 1
                 logging.info("ERROR %s -> %s: %s", t.tag,
                              reason.__class__.__name__, reason)
@@ -996,7 +1000,7 @@ def run_tests(parser, options):
                 print_error(t_elapsed, open_fd=options.vt_show_open_fd)
                 status_dct[dct.get("name")] = False
                 continue
-            except error.TestNAError, reason:
+            except exceptions.TestNAError, reason:
                 n_tests_skipped += 1
                 logging.info("SKIP %s -> %s: %s", t.tag,
                              reason.__class__.__name__, reason)
@@ -1005,7 +1009,7 @@ def run_tests(parser, options):
                 print_skip(open_fd=options.vt_show_open_fd)
                 status_dct[dct.get("name")] = False
                 continue
-            except error.TestWarn, reason:
+            except exceptions.TestWarn, reason:
                 logging.info("WARN %s -> %s: %s", t.tag,
                              reason.__class__.__name__,
                              reason)

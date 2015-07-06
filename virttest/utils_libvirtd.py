@@ -5,15 +5,18 @@ import re
 import logging
 import aexpect
 
-from virttest import remote, utils_misc
-from autotest.client import utils, os_dep
-from autotest.client.shared import error
-from virttest.staging import service
-from virttest.utils_gdb import GDB
+from avocado.utils import path
+from avocado.utils import process
+from avocado.utils import wait
+
+from . import remote
+from . import utils_misc
+from .staging import service
+from .utils_gdb import GDB
 
 
 try:
-    os_dep.command("libvirtd")
+    path.find_command("libvirtd")
     LIBVIRTD = "libvirtd"
 except ValueError:
     LIBVIRTD = None
@@ -37,7 +40,7 @@ class Libvirtd(object):
             self.remote_runner = remote.RemoteRunner(session=self.session)
             runner = self.remote_runner.run
         else:
-            runner = utils.run
+            runner = process.run
 
         if LIBVIRTD is None:
             logging.warning("Libvirtd service is not available in host, "
@@ -54,7 +57,7 @@ class Libvirtd(object):
                 if self.session:
                     self.session.cmd(virsh_cmd, timeout=2)
                 else:
-                    utils.run(virsh_cmd, timeout=2)
+                    process.run(virsh_cmd, timeout=2)
                 return True
             except:
                 return False
@@ -168,7 +171,8 @@ class LibvirtdSession(object):
         Set a customized gdb callback function.
         """
         if self.gdb:
-            self.gdb.set_callback(callback_type, callback_func, callback_params)
+            self.gdb.set_callback(
+                callback_type, callback_func, callback_params)
         else:
             logging.error("Only gdb session supports setting callback")
 
@@ -260,9 +264,9 @@ class LibvirtdSession(object):
         """
         virsh_cmd = "virsh list"
         try:
-            utils.run(virsh_cmd, timeout=2)
+            process.run(virsh_cmd, timeout=2)
             return True
-        except error.CmdError:
+        except process.CmdError:
             return False
 
     def wait_for_stop(self, timeout=60, step=0.1):
@@ -276,7 +280,7 @@ class LibvirtdSession(object):
         if self.gdb:
             return self.gdb.wait_for_stop(timeout=timeout)
         else:
-            return utils.wait_for(
+            return wait.wait_for(
                 lambda: not self.running,
                 timeout=timeout,
                 step=step,

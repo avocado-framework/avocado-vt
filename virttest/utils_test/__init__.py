@@ -29,38 +29,30 @@ import threading
 import time
 import subprocess
 
-from autotest.client import utils, os_dep
-from autotest.client.shared import error
-from autotest.client.tools import scan_results
-from virttest import qemu_virtio_port
-from virttest import aexpect, utils_misc, virt_vm, data_dir, utils_net
-from virttest import storage, asset, bootstrap, remote
-import virttest
+from avocado.core import exceptions
+from avocado.utils import process
+from avocado.utils import aurl
+from avocado.utils import download
+from avocado.utils import crypto
+from avocado.utils import path
 
-# Import submodules, should not be considered as unused import
-import libvirt
-import qemu
-import libguestfs
-
-try:
-    from virttest.staging import utils_memory
-except ImportError:
-    from autotest.client.shared import utils_memory
-
-# Handle transition from autotest global_config (0.14.x series) to
-# settings (0.15.x onwards)
-try:
-    # pylint: disable=E0611
-    from autotest.client.shared import global_config
-    section_values = global_config.global_config.get_section_values
-    settings_value = global_config.global_config.get_config_value
-except ImportError:
-    from autotest.client.shared.settings import settings
-    section_values = settings.get_section_values
-    settings_value = settings.get_value
+# Import from the top level virttest namespace
+from .. import aexpect
+from .. import asset
+from .. import bootstrap
+from .. import data_dir
+from .. import error_context
+from .. import qemu_virtio_port
+from .. import remote
+from .. import scan_autotest_results
+from .. import storage
+from .. import utils_misc
+from .. import utils_net
+from .. import virt_vm
+from ..staging import utils_memory
 
 
-@error.context_aware
+@error_context.context_aware
 def update_boot_option(vm, args_removed=None, args_added=None,
                        need_reboot=True):
     """
@@ -70,7 +62,7 @@ def update_boot_option(vm, args_removed=None, args_added=None,
     :param args_removed: Kernel options want to remove.
     :param args_added: Kernel options want to add.
     :param need_reboot: Whether need reboot VM or not.
-    :raise error.TestError: Raised if fail to update guest kernel cmdline.
+    :raise exceptions.TestError: Raised if fail to update guest kernel cmdline.
 
     """
     if vm.params.get("os_type") == 'windows':
@@ -92,24 +84,24 @@ def update_boot_option(vm, args_removed=None, args_added=None,
     if args_added is not None:
         msg += " add args: %s" % args_added
         cmd += '--args="%s"' % args_added
-    error.context(msg, logging.info)
+    error_context.context(msg, logging.info)
     status, output = session.cmd_status_output(cmd)
     if status != 0:
         logging.error(output)
-        raise error.TestError("Fail to modify guest kernel option")
+        raise exceptions.TestError("Fail to modify guest kernel option")
 
     if need_reboot:
-        error.context("Rebooting guest ...", logging.info)
+        error_context.context("Rebooting guest ...", logging.info)
         session = vm.reboot(session=session, timeout=login_timeout)
     cmdline = session.cmd("cat /proc/cmdline", timeout=60)
     if args_removed and args_removed in cmdline:
         logging.error(output)
         err = "Fail to remove guest kernel option %s" % args_removed
-        raise error.TestError(err)
+        raise exceptions.TestError(err)
     if args_added and args_added not in cmdline:
         logging.error(output)
         err = "Fail to add guest kernel option %s" % args_added
-        raise error.TestError(err)
+        raise exceptions.TestError(err)
 
 
 def stop_windows_service(session, service, timeout=120):
@@ -119,7 +111,7 @@ def stop_windows_service(session, service, timeout=120):
 
     :param service: The name of the service
     :param timeout: Time duration to wait for service to stop
-    :raise error.TestError: Raised if the service can't be stopped
+    :raise exceptions.TestError: Raised if the service can't be stopped
     """
     end_time = time.time() + timeout
     while time.time() < end_time:
@@ -130,7 +122,7 @@ def stop_windows_service(session, service, timeout=120):
             break
         time.sleep(1)
     else:
-        raise error.TestError("Could not stop service '%s'" % service)
+        raise exceptions.TestError("Could not stop service '%s'" % service)
 
 
 def start_windows_service(session, service, timeout=120):
@@ -141,21 +133,21 @@ def start_windows_service(session, service, timeout=120):
 
     :param service: The name of the service
     :param timeout: Time duration to wait for service to start
-    :raise error.TestError: Raised if the service can't be started
+    :raise exceptions.TestError: Raised if the service can't be started
     """
     end_time = time.time() + timeout
     while time.time() < end_time:
         o = session.cmd_output("sc start %s" % service, timeout=60)
         # FAILED 1060 means the service isn't installed.
         if re.search(r"\bFAILED 1060\b", o, re.I):
-            raise error.TestError("Could not start service '%s' "
-                                  "(service not installed)" % service)
+            raise exceptions.TestError("Could not start service '%s' "
+                                       "(service not installed)" % service)
         # FAILED 1056 means the service is already running.
         if re.search(r"\bFAILED 1056\b", o, re.I):
             break
         time.sleep(1)
     else:
-        raise error.TestError("Could not start service '%s'" % service)
+        raise exceptions.TestError("Could not start service '%s'" % service)
 
 
 def get_windows_file_abs_path(session, filename, extension="exe", tmout=240):
@@ -168,8 +160,8 @@ def get_windows_file_abs_path(session, filename, extension="exe", tmout=240):
     info = session.cmd_output(cmd, timeout=tmout).strip()
     drive_path = re.search(r'(\w):\s+(\S+)', info, re.M)
     if not drive_path:
-        raise error.TestError("Not found file %s.%s in your guest"
-                              % (filename, extension))
+        raise exceptions.TestError("Not found file %s.%s in your guest"
+                                   % (filename, extension))
     return ":".join(drive_path.groups())
 
 
@@ -206,15 +198,16 @@ def get_time(session, time_command, time_filter_re, time_format):
             except IndexError:
                 msg = "Fail to get guest time offset. Command "
                 msg += "'%s', output: %s" % (time_command, output)
-                raise error.TestError(msg)
+                raise exceptions.TestError(msg)
             try:
-                host_main, host_mantissa = re.findall(time_filter_re, output)[0]
+                host_main, host_mantissa = re.findall(
+                    time_filter_re, output)[0]
                 host_time = (time.mktime(time.strptime(host_main, time_format)) +
                              float("0.%s" % host_mantissa))
             except Exception:
                 msg = "Fail to get host time. Command '%s', " % time_command
                 msg += "output: %s" % output
-                raise error.TestError(msg)
+                raise exceptions.TestError(msg)
             guest_time = host_time - float(offset)
         else:
             try:
@@ -222,13 +215,13 @@ def get_time(session, time_command, time_filter_re, time_format):
             except IndexError:
                 msg = "Fail to get guest time. Command '%s', " % time_command
                 msg += "output: %s" % output
-                raise error.TestError(msg)
+                raise exceptions.TestError(msg)
             try:
                 offset = re.findall("o:(.*)s", output)[0]
             except IndexError:
                 msg = "Fail to get guest time offset. Command "
                 msg += "'%s', output: %s" % (time_command, output)
-                raise error.TestError(msg)
+                raise exceptions.TestError(msg)
             if re.match('PM', guest_time):
                 hour = re.findall('\d+ (\d+):', guest_time)[0]
                 hour = str(int(hour) + 12)
@@ -241,13 +234,14 @@ def get_time(session, time_command, time_filter_re, time_format):
     elif re.findall("hwclock", time_command):
         loc = locale.getlocale(locale.LC_TIME)
         # Get and parse host time
-        host_time_out = utils.run(time_command).stdout
+        host_time_out = process.run(time_command).stdout
         diff = host_time_out.split()[-2]
         host_time_out = " ".join(host_time_out.split()[:-2])
         try:
             try:
                 locale.setlocale(locale.LC_TIME, "C")
-                host_time = time.mktime(time.strptime(host_time_out, time_format))
+                host_time = time.mktime(
+                    time.strptime(host_time_out, time_format))
                 host_time += float(diff)
             except Exception, err:
                 logging.debug("(time_format, time_string): (%s, %s)",
@@ -265,7 +259,8 @@ def get_time(session, time_command, time_filter_re, time_format):
             str_time = " ".join(str_time.split()[:-2])
         except IndexError:
             logging.debug("The time string from guest is:\n%s", str_time)
-            raise error.TestError("The time string from guest is unexpected.")
+            raise exceptions.TestError(
+                "The time string from guest is unexpected.")
         except Exception, err:
             logging.debug("(time_filter_re, time_string): (%s, %s)",
                           time_filter_re, str_time)
@@ -296,7 +291,8 @@ def get_time(session, time_command, time_filter_re, time_format):
                 reo = reo[0]
         except IndexError:
             logging.debug("The time string from guest is:\n%s", output)
-            raise error.TestError("The time string from guest is unexpected.")
+            raise exceptions.TestError(
+                "The time string from guest is unexpected.")
         except ValueError, err:
             logging.debug("Couldn't create float number from %s" % (reo[1]))
         except Exception, err:
@@ -318,7 +314,8 @@ def get_memory_info(lvms):
     :return: String with memory info report
     """
     if not isinstance(lvms, list):
-        raise error.TestError("Invalid list passed to get_stat: %s " % lvms)
+        raise exceptions.TestError(
+            "Invalid list passed to get_stat: %s " % lvms)
 
     try:
         meminfo = "Host: memfree = "
@@ -327,22 +324,22 @@ def get_memory_info(lvms):
         mf = int(utils_memory.read_from_meminfo("SwapFree")) / 1024
         meminfo += str(mf) + "M; "
     except Exception, e:
-        raise error.TestFail("Could not fetch host free memory info, "
-                             "reason: %s" % e)
+        raise exceptions.TestFail("Could not fetch host free memory info, "
+                                  "reason: %s" % e)
 
     meminfo += "Guests memsh = {"
     for vm in lvms:
         shm = vm.get_shared_meminfo()
         if shm is None:
-            raise error.TestError("Could not get shared meminfo from "
-                                  "VM %s" % vm)
+            raise exceptions.TestError("Could not get shared meminfo from "
+                                       "VM %s" % vm)
         meminfo += "%dM; " % shm
     meminfo = meminfo[0:-2] + "}"
 
     return meminfo
 
 
-@error.context_aware
+@error_context.context_aware
 def run_image_copy(test, params, env):
     """
     Copy guest images from nfs server.
@@ -368,7 +365,7 @@ def run_image_copy(test, params, env):
         error_image += '.' + params['image_format']
         error_dst_path = os.path.join(image_dir, error_image)
         mv_cmd = "/bin/mv %s %s" % (dst_path, error_dst_path)
-        utils.system(mv_cmd, timeout=360, ignore_status=True)
+        process.system(mv_cmd, timeout=360, ignore_status=True)
 
     if src:
         mount_dest_dir = params.get('dst_dir', '/mnt/images')
@@ -379,23 +376,22 @@ def run_image_copy(test, params, env):
                 logging.warning('mkdir %s error:\n%s', mount_dest_dir, err)
 
         if not os.path.exists(mount_dest_dir):
-            raise error.TestError('Failed to create NFS share dir %s' %
-                                  mount_dest_dir)
+            raise exceptions.TestError('Failed to create NFS share dir %s' %
+                                       mount_dest_dir)
 
-        error.context("Mount the NFS share directory")
+        error_context.context("Mount the NFS share directory")
         if not utils_misc.mount(src, mount_dest_dir, 'nfs', 'ro'):
-            raise error.TestError('Could not mount NFS share %s to %s' %
-                                  (src, mount_dest_dir))
+            raise exceptions.TestError('Could not mount NFS share %s to %s' %
+                                       (src, mount_dest_dir))
 
-        error.context("Check the existence of source image")
+        error_context.context("Check the existence of source image")
         src_path = '%s/%s.%s' % (mount_dest_dir, asset_name,
                                  params['image_format'])
-        asset_info = virttest.asset.get_file_asset(asset_name, src_path,
-                                                   dst_path)
+        asset_info = asset.get_file_asset(asset_name, src_path, dst_path)
         if asset_info is None:
-            raise error.TestError('Could not find %s' % image)
+            raise exceptions.TestError('Could not find %s' % image)
     else:
-        asset_info = virttest.asset.get_asset_info(asset_name)
+        asset_info = asset.get_asset_info(asset_name)
 
     # Do not force extraction if integrity information is available
     if asset_info['sha1_url']:
@@ -404,25 +400,24 @@ def run_image_copy(test, params, env):
         force = params.get("force_copy", "yes") == "yes"
 
     try:
-        error.context("Copy image '%s'" % image, logging.info)
-        if utils.is_url(asset_info['url']):
-            virttest.asset.download_file(asset_info, interactive=False,
-                                         force=force)
+        error_context.context("Copy image '%s'" % image, logging.info)
+        if aurl.is_url(asset_info['url']):
+            asset.download_file(asset_info, interactive=False,
+                                force=force)
         else:
-            utils.get_file(asset_info['url'], asset_info['destination'])
+            download.get_file(asset_info['url'], asset_info['destination'])
 
     finally:
         sub_type = params.get("sub_type")
         if sub_type:
-            error.context("Run sub test '%s'" % sub_type, logging.info)
+            error_context.context("Run sub test '%s'" % sub_type, logging.info)
             params['image_name'] += "-error"
             params['boot_once'] = "c"
             vm.create(params=params)
-            virttest.utils_test.run_virt_sub_test(test, params, env,
-                                                  params.get("sub_type"))
+            run_virt_sub_test(test, params, env, params.get("sub_type"))
 
 
-@error.context_aware
+@error_context.context_aware
 def run_file_transfer(test, params, env):
     """
     Transfer a file back and forth between host and guest.
@@ -441,7 +436,7 @@ def run_file_transfer(test, params, env):
     vm.verify_alive()
     login_timeout = int(params.get("login_timeout", 360))
 
-    error.context("Login to guest", logging.info)
+    error_context.context("Login to guest", logging.info)
     session = vm.wait_for_login(timeout=login_timeout)
 
     dir_name = test.tmpdir
@@ -461,11 +456,12 @@ def run_file_transfer(test, params, env):
                   utils_misc.generate_random_string(8))
 
     try:
-        error.context("Creating %dMB file on host" % filesize, logging.info)
-        utils.run(cmd)
+        error_context.context(
+            "Creating %dMB file on host" % filesize, logging.info)
+        process.run(cmd)
 
-        error.context("Transferring file host -> guest,"
-                      " timeout: %ss" % transfer_timeout, logging.info)
+        error_context.context("Transferring file host -> guest,"
+                              " timeout: %ss" % transfer_timeout, logging.info)
         t_begin = time.time()
         vm.copy_files_to(host_path, guest_path, timeout=transfer_timeout)
         t_end = time.time()
@@ -473,8 +469,8 @@ def run_file_transfer(test, params, env):
         logging.info("File transfer host -> guest succeed, "
                      "estimated throughput: %.2fMB/s", throughput)
 
-        error.context("Transferring file guest -> host,"
-                      " timeout: %ss" % transfer_timeout, logging.info)
+        error_context.context("Transferring file guest -> host,"
+                              " timeout: %ss" % transfer_timeout, logging.info)
         t_begin = time.time()
         vm.copy_files_from(guest_path, host_path2, timeout=transfer_timeout)
         t_end = time.time()
@@ -482,12 +478,12 @@ def run_file_transfer(test, params, env):
         logging.info("File transfer guest -> host succeed, "
                      "estimated throughput: %.2fMB/s", throughput)
 
-        error.context("Compare md5sum between original file and"
-                      " transferred file", logging.info)
-        if (utils.hash_file(host_path, method="md5") !=
-                utils.hash_file(host_path2, method="md5")):
-            raise error.TestFail("File changed after transfer host -> guest "
-                                 "and guest -> host")
+        error_context.context("Compare md5sum between original file and"
+                              " transferred file", logging.info)
+        if (crypto.hash_file(host_path, algorithm="md5") !=
+                crypto.hash_file(host_path2, algorithm="md5")):
+            raise exceptions.TestFail("File changed after transfer host -> guest "
+                                      "and guest -> host")
 
     finally:
         logging.info('Cleaning temp file on guest')
@@ -505,7 +501,7 @@ def run_file_transfer(test, params, env):
         session.close()
 
 
-@error.context_aware
+@error_context.context_aware
 def run_virtio_serial_file_transfer(test, params, env, port_name=None,
                                     sender="guest", md5_check=True):
     """
@@ -530,7 +526,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
                     return port.hostfile
 
     def run_host_cmd(host_cmd, timeout=720):
-        return utils.system_output(host_cmd, timeout=timeout)
+        return process.system_output(host_cmd, timeout=timeout)
 
     def transfer_data(session, host_cmd, guest_cmd, n_time, timeout,
                       md5_check, action):
@@ -540,7 +536,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
             logging.info("Data transfer repeat %s/%s." % (num + 1, n_time))
             try:
                 args = (host_cmd, timeout)
-                host_thread = utils.InterruptedThread(run_host_cmd, args)
+                host_thread = utils_misc.InterruptedThread(run_host_cmd, args)
                 host_thread.start()
                 g_output = session.cmd_output(guest_cmd, timeout=timeout)
                 if action == "both":
@@ -548,7 +544,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
                         err = "Data lost during file transfer. Md5 miss match."
                         err += " Script output:\n%s" % g_output
                         if md5_check:
-                            raise error.TestFail(err)
+                            raise exceptions.TestFail(err)
                         else:
                             logging.warn(err)
                 else:
@@ -558,7 +554,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
                     except Exception:
                         err = "Fail to get md5, script may fail."
                         err += " Script output:\n%s" % g_output
-                        raise error.TestError(err)
+                        raise exceptions.TestError(err)
             finally:
                 if host_thread:
                     output = ""
@@ -568,7 +564,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
                             err = "Data lost during file transfer. Md5 miss "
                             err += "match. Script output:\n%s" % output
                             if md5_check:
-                                raise error.TestFail(err)
+                                raise exceptions.TestFail(err)
                             else:
                                 logging.warn(err)
                     else:
@@ -578,13 +574,13 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
                         except Exception:
                             err = "Fail to get md5, script may fail."
                             err += " Script output:\n%s" % output
-                            raise error.TestError(err)
+                            raise exceptions.TestError(err)
                 if action != "both" and md5_host != md5_guest:
                     err = "Data lost during file transfer. Md5 miss match."
                     err += " Guest script output:\n %s" % g_output
                     err += " Host script output:\n%s" % output
                     if md5_check:
-                        raise error.TestFail(err)
+                        raise exceptions.TestFail(err)
                     else:
                         logging.warn(err)
 
@@ -598,7 +594,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
         port_name = params["file_transfer_serial_port"]
     guest_scripts = params["guest_scripts"]
     guest_path = params.get("guest_script_folder", "C:\\")
-    error.context("Copy test scripts to guest.", logging.info)
+    error_context.context("Copy test scripts to guest.", logging.info)
     for script in guest_scripts.split(";"):
         link = os.path.join(data_dir.get_root_dir(), "shared", "deps",
                             "serial", script)
@@ -618,14 +614,16 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
 
     if sender == "host" or sender == "both":
         cmd = "dd if=/dev/zero of=%s bs=1M count=%d" % (host_data_file, count)
-        error.context("Creating %dMB file on host" % filesize, logging.info)
-        utils.run(cmd)
+        error_context.context(
+            "Creating %dMB file on host" % filesize, logging.info)
+        process.run(cmd)
     else:
         guest_file_create_cmd = "dd if=/dev/zero of=%s bs=1M count=%d"
         guest_file_create_cmd = params.get("guest_file_create_cmd",
                                            guest_file_create_cmd)
         cmd = guest_file_create_cmd % (guest_data_file, count)
-        error.context("Creating %dMB file on host" % filesize, logging.info)
+        error_context.context(
+            "Creating %dMB file on host" % filesize, logging.info)
         session.cmd(cmd, timeout=600)
 
     if sender == "host":
@@ -686,6 +684,9 @@ def run_autotest(vm, session, control_path, timeout,
     The following params is used by the migration
     :param params: Test params used in the migration test
     """
+    from autotest.client.shared.settings import settings
+    section_values = settings.get_section_values
+
     def copy_if_hash_differs(vm, local_path, remote_path):
         """
         Copy a file to a guest if it doesn't exist or if its MD5sum differs.
@@ -697,7 +698,7 @@ def run_autotest(vm, session, control_path, timeout,
         :return: Whether the hash differs (True) or not (False).
         """
         hash_differs = False
-        local_hash = utils.hash_file(local_path)
+        local_hash = crypto.hash_file(local_path)
         basename = os.path.basename(local_path)
         output = session.cmd_output("md5sum %s" % remote_path)
         if "such file" in output:
@@ -748,7 +749,8 @@ def run_autotest(vm, session, control_path, timeout,
         res_index = 0
         for subpath in os.listdir(outputdir):
             if re.search("guest_autotest_results\d+", subpath):
-                res_index = max(res_index, int(re.search("guest_autotest_results(\d+)", subpath).group(1)))
+                res_index = max(
+                    res_index, int(re.search("guest_autotest_results(\d+)", subpath).group(1)))
         return res_index
 
     def get_results(base_results_dir):
@@ -757,7 +759,8 @@ def run_autotest(vm, session, control_path, timeout,
         """
         logging.debug("Trying to copy autotest results from guest")
         res_index = get_last_guest_results_index()
-        guest_results_dir = os.path.join(outputdir, "guest_autotest_results%s" % (res_index + 1))
+        guest_results_dir = os.path.join(
+            outputdir, "guest_autotest_results%s" % (res_index + 1))
         os.mkdir(guest_results_dir)
         # result info tarball to host result dir
         session = vm.wait_for_login(timeout=360)
@@ -778,8 +781,8 @@ def run_autotest(vm, session, control_path, timeout,
         results_tarball = os.path.join(guest_results_dir, results_tarball)
         uncompress_cmd = "tar xjvf %s -C %s" % (results_tarball,
                                                 guest_results_dir)
-        utils.run(uncompress_cmd)
-        utils.run("rm -f %s" % results_tarball)
+        process.run(uncompress_cmd)
+        process.run("rm -f %s" % results_tarball)
 
     def get_results_summary():
         """
@@ -788,7 +791,8 @@ def run_autotest(vm, session, control_path, timeout,
               get_results() function, so call get_results() first.
         """
         res_index = get_last_guest_results_index()
-        base_dir = os.path.join(outputdir, "guest_autotest_results%s" % res_index)
+        base_dir = os.path.join(
+            outputdir, "guest_autotest_results%s" % res_index)
         status_paths = glob.glob(os.path.join(base_dir, "*/status"))
         # for control files that do not use job.run_test()
         status_no_job = os.path.join(base_dir, "status")
@@ -797,13 +801,13 @@ def run_autotest(vm, session, control_path, timeout,
         status_path = " ".join(status_paths)
 
         try:
-            output = utils.system_output("cat %s" % status_path)
-        except error.CmdError, e:
+            output = process.system_output("cat %s" % status_path)
+        except process.CmdError, e:
             logging.error("Error getting guest autotest status file: %s", e)
             return None
 
         try:
-            results = scan_results.parse_results(output)
+            results = scan_autotest_results.parse_results(output)
             # Report test results
             logging.info("Results (test, status, duration, info):")
             for result in results:
@@ -888,7 +892,7 @@ def run_autotest(vm, session, control_path, timeout,
     autotest_local_path = os.path.join(autotest_path, 'autotest-local')
     single_dir_install = os.path.isfile(autotest_local_path)
     if not single_dir_install:
-        autotest_local_path = os_dep.command('autotest-local')
+        autotest_local_path = path.find_command('autotest-local')
     kernel_install_path = os.path.join(autotest_path, 'tests',
                                        'kernelinstall')
     kernel_install_present = os.path.isdir(kernel_install_path)
@@ -906,7 +910,7 @@ def run_autotest(vm, session, control_path, timeout,
     cmd += " --exclude=*.svn"
     cmd += " --exclude=*.git"
     cmd += " --exclude=%s/tests/virt/*" % autotest_basename
-    utils.run(cmd)
+    process.run(cmd)
 
     # Copy autotest.tar.bz2
     update = copy_if_hash_differs(vm, compressed_autotest_path,
@@ -958,18 +962,19 @@ def run_autotest(vm, session, control_path, timeout,
         os.remove(temp_control_path)
 
     if not kernel_install_present:
-        kernel_install_dir = os.path.join(virttest.data_dir.get_root_dir(),
+        kernel_install_dir = os.path.join(data_dir.get_root_dir(),
                                           "shared", "deps", "run_autotest",
                                           "kernel_install")
         kernel_install_dest = os.path.join(destination_autotest_path, 'tests',
                                            'kernelinstall')
         vm.copy_files_to(kernel_install_dir, kernel_install_dest)
+        import virttest
         module_dir = os.path.dirname(virttest.__file__)
         utils_koji_file = os.path.join(module_dir, 'staging', 'utils_koji.py')
         vm.copy_files_to(utils_koji_file, kernel_install_dest)
 
     # Copy a non crippled boottool and make it executable
-    boottool_path = os.path.join(virttest.data_dir.get_root_dir(),
+    boottool_path = os.path.join(data_dir.get_root_dir(),
                                  "shared", "deps", "run_autotest",
                                  "boottool.py")
     boottool_dest = '/usr/local/autotest/tools/boottool.py'
@@ -1011,12 +1016,11 @@ def run_autotest(vm, session, control_path, timeout,
                 mig_timeout = float(params.get("mig_timeout", "3600"))
                 mig_protocol = params.get("migration_protocol", "tcp")
 
-                bg = utils.InterruptedThread(session.cmd_output,
-                                             kwargs={
-                                                 'cmd': "./autotest-local "
-                                                        " control",
-                                                 'timeout': timeout,
-                                                 'print_func': logging.info})
+                bg = utils_misc.InterruptedThread(session.cmd_output,
+                                                  kwargs={'cmd': "./autotest-local "
+                                                          " control",
+                                                          'timeout': timeout,
+                                                          'print_func': logging.info})
 
                 bg.start()
 
@@ -1048,7 +1052,7 @@ def run_autotest(vm, session, control_path, timeout,
                                              "results",
                                              os.path.basename(server_control_path))
                 if os.path.isdir(server_result):
-                    utils.safe_rmdir(server_result)
+                    utils_misc.safe_rmdir(server_result)
                 # Remove the control file for server.
                 if os.path.exists(server_control_path):
                     os.remove(server_control_path)
@@ -1057,19 +1061,19 @@ def run_autotest(vm, session, control_path, timeout,
         if vm.is_alive():
             get_results(destination_autotest_path)
             get_results_summary()
-            raise error.TestError("Timeout elapsed while waiting for job to "
-                                  "complete")
+            raise exceptions.TestError("Timeout elapsed while waiting for job to "
+                                       "complete")
         else:
-            raise error.TestError("Autotest job on guest failed "
-                                  "(VM terminated during job)")
+            raise exceptions.TestError("Autotest job on guest failed "
+                                       "(VM terminated during job)")
     except aexpect.ShellProcessTerminatedError:
         if ignore_session_terminated:
             try:
                 vm.verify_alive()
             except Exception:
                 get_results(destination_autotest_path)
-                raise error.TestError("Autotest job on guest failed "
-                                      "(VM terminated during job)")
+                raise exceptions.TestError("Autotest job on guest failed "
+                                           "(VM terminated during job)")
             logging.debug("Wait for autotest job finished on guest.")
             session.close()
             session = vm.wait_for_login()
@@ -1083,12 +1087,12 @@ def run_autotest(vm, session, control_path, timeout,
             else:
                 get_results(destination_autotest_path)
                 get_results_summary()
-                raise error.TestError("Timeout elapsed while waiting for job "
-                                      "to complete")
+                raise exceptions.TestError("Timeout elapsed while waiting for job "
+                                           "to complete")
         else:
             get_results(destination_autotest_path)
-            raise error.TestError("Autotest job on guest failed "
-                                  "(Remote session terminated during job)")
+            raise exceptions.TestError("Autotest job on guest failed "
+                                       "(Remote session terminated during job)")
 
     get_results(destination_autotest_path)
     results = get_results_summary()
@@ -1102,8 +1106,8 @@ def run_autotest(vm, session, control_path, timeout,
 
     # Fail the test if necessary
     if not results:
-        raise error.TestFail("Autotest control file run did not produce any "
-                             "recognizable results")
+        raise exceptions.TestFail("Autotest control file run did not produce any "
+                                  "recognizable results")
     if bad_results:
         if len(bad_results) == 1:
             e_msg = ("Test %s failed during control file execution" %
@@ -1111,7 +1115,7 @@ def run_autotest(vm, session, control_path, timeout,
         else:
             e_msg = ("Tests %s failed during control file execution" %
                      " ".join(bad_results))
-        raise error.TestFail(e_msg)
+        raise exceptions.TestFail(e_msg)
 
 
 def get_loss_ratio(output):
@@ -1218,7 +1222,7 @@ def ping(dest=None, count=None, interval=None, interface=None,
     else:
         if dest.upper().startswith("FE80"):
             err_msg = "Using ipv6 linklocal must assigne interface"
-            raise error.TestNAError(err_msg)
+            raise exceptions.TestNAError(err_msg)
     if packetsize is not None:
         command += " -s %s" % packetsize
     if ttl is not None:
@@ -1248,8 +1252,8 @@ def run_virt_sub_test(test, params, env, sub_type=None, tag=None):
     :param tag:    Tag for get the sub_test params
     """
     if sub_type is None:
-        raise error.TestError("Unspecified sub test type. Please specify a"
-                              "sub test type")
+        raise exceptions.TestError("Unspecified sub test type. Please specify a"
+                                   "sub test type")
 
     provider = params.get("provider", None)
     subtest_dirs = []
@@ -1278,8 +1282,8 @@ def run_virt_sub_test(test, params, env, sub_type=None, tag=None):
             break
 
     if subtest_dir is None:
-        raise error.TestError("Could not find test file %s.py "
-                              "on directories %s" % (sub_type, subtest_dirs))
+        raise exceptions.TestError("Could not find test file %s.py "
+                                   "on directories %s" % (sub_type, subtest_dirs))
 
     f, p, d = imp.find_module(sub_type, [subtest_dir])
     test_module = imp.load_module(sub_type, f, p, d)
@@ -1413,8 +1417,8 @@ def get_driver_hardware_id(driver_path, mount_point="/tmp/mnt-virtio",
         os.mkdir(mount_point)
 
     if not os.path.ismount(mount_point):
-        utils.system("mount %s %s -o loop" % (storage_path, mount_point),
-                     timeout=60)
+        process.system("mount %s %s -o loop" % (storage_path, mount_point),
+                       timeout=60)
     driver_link = os.path.join(mount_point, driver_path)
     txt_file = ""
     try:
@@ -1424,13 +1428,13 @@ def get_driver_hardware_id(driver_path, mount_point="/tmp/mnt-virtio",
         if run_cmd:
             hwid = '^&'.join(hwid.split('&'))
         txt_file.close()
-        utils.system("umount %s" % mount_point)
+        process.system("umount %s" % mount_point)
         return hwid
     except Exception, e:
         logging.error("Fail to get hardware id with exception: %s" % e)
         if txt_file:
             txt_file.close()
-        utils.system("umount %s" % mount_point, ignore_status=True)
+        process.system("umount %s" % mount_point, ignore_status=True)
         return ""
 
 
@@ -1492,9 +1496,10 @@ def ntpdate(service_ip, session=None):
         if session:
             session.cmd(ntpdate_cmd)
         else:
-            utils.run(ntpdate_cmd)
-    except (error.CmdError, aexpect.ShellError), detail:
-        raise error.TestFail("Failed to set the date and time. %s" % detail)
+            process.run(ntpdate_cmd)
+    except (process.CmdError, aexpect.ShellError), detail:
+        raise exceptions.TestFail(
+            "Failed to set the date and time. %s" % detail)
 
 
 def get_date(session=None):
@@ -1506,13 +1511,13 @@ def get_date(session=None):
         if session:
             date_info = session.cmd_output(date_cmd).strip()
         else:
-            date_info = utils.run(date_cmd).stdout.strip()
+            date_info = process.run(date_cmd).stdout.strip()
         return date_info
-    except (error.CmdError, aexpect.ShellError), detail:
-        raise error.TestFail("Get date failed. %s " % detail)
+    except (process.CmdError, aexpect.ShellError), detail:
+        raise exceptions.TestFail("Get date failed. %s " % detail)
 
 
-##########Stress functions################
+# Stress functions################
 class StressError(Exception):
 
     """
@@ -1578,7 +1583,7 @@ class VMStress(object):
         except aexpect.ShellError, detail:
             raise StressError("Login %s failed:\n%s", self.vm.name, detail)
 
-    @error.context_aware
+    @error_context.context_aware
     def load_stress_tool(self):
         """
         load stress tool in guest
@@ -1594,7 +1599,7 @@ class VMStress(object):
             raise StressError("Stress tool %s isn't running"
                               % self.stress_type)
 
-    @error.context_aware
+    @error_context.context_aware
     def unload_stress(self):
         """
         stop stress tool manually
@@ -1606,7 +1611,7 @@ class VMStress(object):
                 return True
             return False
 
-        error.context("stop stress app in guest", logging.info)
+        error_context.context("stop stress app in guest", logging.info)
         utils_misc.wait_for(_unload_stress, first=2.0,
                             text="wait stress app quit", step=1.0, timeout=60)
 
@@ -1662,7 +1667,7 @@ class HostStress(object):
         _parameters_filter(stress_type)
         self.stress_args = self.params.get("stress_args", "")
 
-    @error.context_aware
+    @error_context.context_aware
     def load_stress_tool(self):
         """
         load stress tool on host.
@@ -1683,7 +1688,7 @@ class HostStress(object):
             raise StressError("Stress tool %s isn't running"
                               % self.stress_type)
 
-    @error.context_aware
+    @error_context.context_aware
     def unload_stress(self):
         """
         stop stress tool manually
@@ -1695,7 +1700,7 @@ class HostStress(object):
                 return True
             return False
 
-        error.context("stop stress app on host", logging.info)
+        error_context.context("stop stress app on host", logging.info)
         utils_misc.wait_for(_unload_stress, first=2.0,
                             text="wait stress app quit", step=1.0, timeout=60)
 
@@ -1703,7 +1708,7 @@ class HostStress(object):
         """
         check whether app really run in background
         """
-        result = utils.run(self.check_cmd, timeout=60, ignore_status=True)
+        result = process.run(self.check_cmd, timeout=60, ignore_status=True)
         return result.exit_status == 0
 
 
@@ -1803,13 +1808,14 @@ class RemoteDiskManager(object):
             try:
                 output = self.runner.run("df %s" % directory).stdout
                 logging.debug(output)
-            except error.CmdError, detail:
-                raise error.TestError("Get %s space failed:%s" % (directory,
-                                                                  detail))
+            except process.CmdError, detail:
+                raise exceptions.TestError(
+                    "Get %s space failed:%s" % (directory,
+                                                detail))
             for line in output.splitlines()[1:]:
                 g_size = int(line.split()[3]) / 1048576
                 return g_size
-            raise error.TestError("Get %s space failed." % directory)
+            raise exceptions.TestError("Get %s space failed." % directory)
         elif disk_type == "lvm":
             output = self.runner.run("vgs --units=g | grep %s" % vgname).stdout
             if re.search(vgname, output.stdout):
@@ -1817,8 +1823,8 @@ class RemoteDiskManager(object):
                     return int(output.split('g')[0])
                 except (IndexError, ValueError), detail:
                     output = detail
-            raise error.TestError("Get VG %s space failed:%s" % (vgname,
-                                                                 output))
+            raise exceptions.TestError("Get VG %s space failed:%s" % (vgname,
+                                                                      output))
 
     def occupy_space(self, disk_type, need_size, path=None, vgname=None,
                      timeout=60):
@@ -1840,12 +1846,12 @@ class RemoteDiskManager(object):
             discovery_cmd = "iscsiadm -m discovery -t sendtargets -p %s" % host
             output = self.runner.run(discovery_cmd, ignore_status=True).stdout
             if target_name not in output:
-                raise error.TestError("Discovery %s on %s failed."
-                                      % (target_name, host))
+                raise exceptions.TestError("Discovery %s on %s failed."
+                                           % (target_name, host))
             cmd = "iscsiadm --mode node --login --targetname %s" % target_name
             output = self.runner.run(cmd).stdout
             if "successful" not in output:
-                raise error.TestError("Login to %s failed." % target_name)
+                raise exceptions.TestError("Login to %s failed." % target_name)
             else:
                 cmd = "iscsiadm -m session -P 3"
                 output = self.runner.run(cmd).stdout
@@ -1854,8 +1860,8 @@ class RemoteDiskManager(object):
                 try:
                     return "/dev/%s" % device_name[0]
                 except IndexError:
-                    raise error.TestError("Can not find target '%s' after login."
-                                          % self.target)
+                    raise exceptions.TestError("Can not find target '%s' after login."
+                                               % self.target)
         else:
             if target_name:
                 cmd = "iscsiadm --mode node --logout -T %s" % target_name
@@ -1873,12 +1879,12 @@ class RemoteDiskManager(object):
             self.runner.run("vgs | grep %s" % vgname)
             logging.debug("Volume group %s does already exist.", vgname)
             return True
-        except error.CmdError:
+        except process.CmdError:
             pass    # Not found
         try:
             self.runner.run("vgcreate %s %s" % (vgname, device))
             return True
-        except error.CmdError, detail:
+        except process.CmdError, detail:
             logging.error("Create vgroup '%s' on remote host failed:%s",
                           vgname, detail)
             return False
@@ -1889,7 +1895,7 @@ class RemoteDiskManager(object):
         """
         try:
             self.runner.run("vgremove -f %s" % vgname)
-        except error.CmdError:
+        except process.CmdError:
             return False
         return True
 
@@ -1920,8 +1926,8 @@ class RemoteDiskManager(object):
         result = self.runner.run(cmd, ignore_status=True, timeout=timeout)
         logging.debug(result)
         if result.exit_status:
-            raise error.TestFail("Create image '%s' on remote host failed."
-                                 % path)
+            raise exceptions.TestFail("Create image '%s' on remote host failed."
+                                      % path)
         else:
             return path
 
@@ -1957,8 +1963,8 @@ def check_dest_vm_network(vm, ip, remote_host, username, password):
         ping_failed = False
         break
     if ping_failed:
-        raise error.TestFail("Check %s IP failed:%s" % (vm.name,
-                                                        ping_result.stdout))
+        raise exceptions.TestFail("Check %s IP failed:%s" % (vm.name,
+                                                             ping_result.stdout))
 
 
 def canonicalize_disk_address(disk_address):

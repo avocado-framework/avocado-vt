@@ -11,9 +11,11 @@ import logging
 import select
 import re
 import os
-import utils_misc
-import passfd_setup
-from autotest.client.shared import utils
+
+from . import passfd_setup
+from . import utils_misc
+from . import cartesian_config
+
 try:
     import json
 except ImportError:
@@ -296,7 +298,8 @@ class Monitor:
                 if log not in self.open_log_files:
                     self.open_log_files[log] = open(log, "w")
                 for line in log_str.splitlines():
-                    self.open_log_files[log].write("%s: %s\n" % (timestr, line))
+                    self.open_log_files[log].write(
+                        "%s: %s\n" % (timestr, line))
             except Exception, err:
                 txt = "Fail to record log to %s.\n" % log
                 txt += "Log content: %s\n" % log_str
@@ -1765,7 +1768,7 @@ class QMPMonitor(Monitor):
         :param value: Speed in bytes/sec
         :return: The response to the command
         """
-        value = utils.convert_data_size(value, "M")
+        value = cartesian_config.convert_data_size(value, "M")
         args = {"value": value}
         return self.cmd("migrate_set_speed", args)
 

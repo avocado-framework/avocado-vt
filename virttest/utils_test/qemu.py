@@ -25,16 +25,16 @@ import socket
 import threading
 import time
 
-from autotest.client import utils
-from autotest.client.shared import error
-from autotest.client.shared.syncdata import SyncData, SyncListenServer
+from avocado.core import exceptions
+from avocado.utils import crypto
+from avocado.utils import data_factory
 
-from virttest import env_process, remote, storage, utils_misc
-
-try:
-    from virttest.staging import utils_memory
-except ImportError:
-    from autotest.client.shared import utils_memory
+from .. import env_process
+from .. import error_context
+from .. import remote
+from .. import storage
+from .. import utils_misc
+from ..staging import utils_memory
 
 
 def guest_active(vm):
@@ -87,9 +87,11 @@ def pin_vm_threads(vm, node):
     """
     if len(vm.vcpu_threads) + len(vm.vhost_threads) < len(node.cpus):
         for i in vm.vcpu_threads:
-            logging.info("pin vcpu thread(%s) to cpu(%s)" % (i, node.pin_cpu(i)))
+            logging.info("pin vcpu thread(%s) to cpu(%s)" %
+                         (i, node.pin_cpu(i)))
         for i in vm.vhost_threads:
-            logging.info("pin vhost thread(%s) to cpu(%s)" % (i, node.pin_cpu(i)))
+            logging.info("pin vhost thread(%s) to cpu(%s)" %
+                         (i, node.pin_cpu(i)))
     elif (len(vm.vcpu_threads) <= len(node.cpus) and
           len(vm.vhost_threads) <= len(node.cpus)):
         for i in vm.vcpu_threads:
@@ -121,9 +123,9 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
     """
     def mig_finished():
         if dest_vm.is_dead():
-            raise error.TestFail("Dest VM died during migration.")
+            raise exceptions.TestFail("Dest VM died during migration.")
         if not offline and vm.is_dead():
-            raise error.TestFail("Source VM died during migration")
+            raise exceptions.TestFail("Source VM died during migration")
         try:
             o = vm.monitor.info("migrate")
             if isinstance(o, str):
@@ -159,8 +161,8 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
     def wait_for_migration():
         if not utils_misc.wait_for(mig_finished, mig_timeout, 2, 2,
                                    "Waiting for migration to finish"):
-            raise error.TestFail("Timeout expired while waiting for migration "
-                                 "to finish")
+            raise exceptions.TestFail("Timeout expired while waiting for migration "
+                                      "to finish")
 
     if dest_host == 'localhost':
         dest_vm = vm.clone()
@@ -195,7 +197,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
                 if not utils_misc.wait_for(mig_cancelled, 60, 2, 2,
                                            "Waiting for migration "
                                            "cancellation"):
-                    raise error.TestFail("Failed to cancel migration")
+                    raise exceptions.TestFail("Failed to cancel migration")
                 if offline:
                     vm.resume()
                 if dest_host == 'localhost':
@@ -212,11 +214,11 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
                     dest_vm.save_to_file(save2)
 
                     # Fail if we see deltas
-                    md5_save1 = utils.hash_file(save1)
-                    md5_save2 = utils.hash_file(save2)
+                    md5_save1 = crypto.hash_file(save1)
+                    md5_save2 = crypto.hash_file(save2)
                     if md5_save1 != md5_save2:
-                        raise error.TestFail("Mismatch of VM state before "
-                                             "and after migration")
+                        raise exceptions.TestFail("Mismatch of VM state before "
+                                                  "and after migration")
 
                 if (dest_host == 'localhost') and offline:
                     dest_vm.resume()
@@ -237,11 +239,11 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
     if mig_succeeded():
         logging.info("Migration finished successfully")
     elif mig_failed():
-        raise error.TestFail("Migration failed")
+        raise exceptions.TestFail("Migration failed")
     else:
         status = vm.monitor.info("migrate")
-        raise error.TestFail("Migration ended with unknown status: %s" %
-                             status)
+        raise exceptions.TestFail("Migration ended with unknown status: %s" %
+                                  status)
 
     if dest_host == 'localhost':
         if dest_vm.monitor.verify_status("paused"):
@@ -368,6 +370,7 @@ class MultihostMigration(object):
     """
 
     def __init__(self, test, params, env, preprocess_env=True):
+        from autotest.client.shared.syncdata import SyncListenServer
         self.test = test
         self.params = params
         self.env = env
@@ -476,6 +479,7 @@ class MultihostMigration(object):
         return self.hosts[0]
 
     def _hosts_barrier(self, hosts, session_id, tag, timeout):
+        from autotest.client.shared.syncdata import SyncData
         logging.debug("Barrier timeout: %d tags: %s" % (timeout, tag))
         tags = SyncData(self.master_id(), self.hostid, hosts,
                         "%s,%s,barrier" % (str(session_id), tag),
@@ -489,6 +493,7 @@ class MultihostMigration(object):
         storage.preprocess_images(self.test.bindir, self.params, self.env)
 
     def _check_vms_source(self, mig_data):
+        from autotest.client.shared.syncdata import SyncData
         start_mig_tout = mig_data.params.get("start_migration_timeout", None)
         if start_mig_tout is None:
             for vm in mig_data.vms:
@@ -502,6 +507,7 @@ class MultihostMigration(object):
                          str(mig_data.vm_ports))
 
     def _check_vms_dest(self, mig_data):
+        from autotest.client.shared.syncdata import SyncData
         mig_data.vm_ports = {}
         for vm in mig_data.vms:
             logging.info("Communicating to source migration port %s",
@@ -557,6 +563,7 @@ class MultihostMigration(object):
         :param mig_data: Class with data necessary for migration.
         :param migration_mode: Migration mode for prepare machine.
         """
+        from autotest.client.shared.syncdata import SyncData
         new_params = self._prepare_params(mig_data)
 
         new_params['migration_mode'] = migration_mode
@@ -626,14 +633,15 @@ class MultihostMigration(object):
         for vm in mig_data.vms:
             vm.resume()
             if not guest_active(vm):
-                raise error.TestFail("Guest not active after migration")
+                raise exceptions.TestFail("Guest not active after migration")
 
         logging.info("Migrated guest appears to be running")
 
         logging.info("Logging into migrated guest after migration...")
         for vm in mig_data.vms:
             if self.regain_ip_cmd is not None:
-                session_serial = vm.wait_for_serial_login(timeout=self.login_timeout)
+                session_serial = vm.wait_for_serial_login(
+                    timeout=self.login_timeout)
                 # There is sometime happen that system sends some message on
                 # serial console and IP renew command block test. Because
                 # there must be added "sleep" in IP renew command.
@@ -724,8 +732,8 @@ class MultihostMigration(object):
                             if pause != "yes":
                                 start_work(mig_data)
                             else:
-                                raise error.TestNAError("Can't start work if "
-                                                        "vm is paused.")
+                                raise exceptions.TestNAError("Can't start work if "
+                                                             "vm is paused.")
 
                     # Starts VM and waits timeout before migration.
                     if pause == "yes" and mig_data.is_src():
@@ -789,16 +797,16 @@ class MultihostMigration(object):
                                 'test_finihed', timeout)
 
         if (self.hostid in [srchost, dsthost]):
-            mig_thread = utils.InterruptedThread(migrate_wrap, (vms_name,
-                                                                srchost,
-                                                                dsthost,
-                                                                start_work,
-                                                                check_work,
-                                                                params_append))
+            mig_thread = utils_misc.InterruptedThread(migrate_wrap, (vms_name,
+                                                                     srchost,
+                                                                     dsthost,
+                                                                     start_work,
+                                                                     check_work,
+                                                                     params_append))
         else:
-            mig_thread = utils.InterruptedThread(wait_wrap, (vms_name,
-                                                             srchost,
-                                                             dsthost))
+            mig_thread = utils_misc.InterruptedThread(wait_wrap, (vms_name,
+                                                                  srchost,
+                                                                  dsthost))
         mig_thread.start()
         return mig_thread
 
@@ -937,6 +945,7 @@ class MultihostMigrationFd(MultihostMigration):
 
     def migrate_wait(self, vms_name, srchost, dsthost, start_work=None,
                      check_work=None, mig_mode="fd", params_append=None):
+        from autotest.client.shared.syncdata import SyncData
         vms_count = len(vms_name)
         mig_ports = []
 
@@ -1084,6 +1093,7 @@ class MultihostMigrationExec(MultihostMigration):
 
     def migrate_wait(self, vms_name, srchost, dsthost, start_work=None,
                      check_work=None, mig_mode="exec", params_append=None):
+        from autotest.client.shared.syncdata import SyncData
         vms_count = len(vms_name)
         mig_ports = []
 
@@ -1119,7 +1129,7 @@ class MultihostMigrationExec(MultihostMigration):
             mig_fnam = {}
             for vm_name in vms_name:
                 while True:
-                    fnam = ("mig_" + utils.generate_random_string(6) +
+                    fnam = ("mig_" + data_factory.generate_random_string(6) +
                             "." + vm_name)
                     fpath = os.path.join(self.test.tmpdir, fnam)
                     if (fnam not in mig_fnam.values() and
@@ -1165,7 +1175,7 @@ class GuestSuspend(object):
 
     def __init__(self, params, vm):
         if not params or not vm:
-            raise error.TestError("Missing 'params' or 'vm' parameters")
+            raise exceptions.TestError("Missing 'params' or 'vm' parameters")
 
         self._open_session_list = []
         self.vm = vm
@@ -1197,14 +1207,15 @@ class GuestSuspend(object):
         except Exception:
             pass
 
-    @error.context_aware
+    @error_context.context_aware
     def setup_bg_program(self, **args):
         """
         Start up a program as a flag in guest.
         """
         suspend_bg_program_setup_cmd = args.get("suspend_bg_program_setup_cmd")
 
-        error.context("Run a background program as a flag", logging.info)
+        error_context.context(
+            "Run a background program as a flag", logging.info)
         session = self._get_session()
         self._open_session_list.append(session)
 
@@ -1213,22 +1224,24 @@ class GuestSuspend(object):
 
         session.sendline(suspend_bg_program_setup_cmd)
 
-    @error.context_aware
+    @error_context.context_aware
     def check_bg_program(self, **args):
         """
         Make sure the background program is running as expected
         """
         suspend_bg_program_chk_cmd = args.get("suspend_bg_program_chk_cmd")
 
-        error.context("Verify background program is running", logging.info)
+        error_context.context(
+            "Verify background program is running", logging.info)
         session = self._get_session()
         s, _ = self._session_cmd_close(session, suspend_bg_program_chk_cmd)
         if s:
-            raise error.TestFail("Background program is dead. Suspend failed.")
+            raise exceptions.TestFail(
+                "Background program is dead. Suspend failed.")
 
-    @error.context_aware
+    @error_context.context_aware
     def kill_bg_program(self, **args):
-        error.context("Kill background program after resume")
+        error_context.context("Kill background program after resume")
         suspend_bg_program_kill_cmd = args.get("suspend_bg_program_kill_cmd")
 
         try:
@@ -1238,10 +1251,10 @@ class GuestSuspend(object):
             logging.warn("Could not stop background program: '%s'", e)
             pass
 
-    @error.context_aware
+    @error_context.context_aware
     def _check_guest_suspend_log(self, **args):
-        error.context("Check whether guest supports suspend",
-                      logging.info)
+        error_context.context("Check whether guest supports suspend",
+                              logging.info)
         suspend_support_chk_cmd = args.get("suspend_support_chk_cmd")
 
         session = self._get_session()
@@ -1252,12 +1265,13 @@ class GuestSuspend(object):
     def verify_guest_support_suspend(self, **args):
         s, _ = self._check_guest_suspend_log(**args)
         if s:
-            raise error.TestError("Guest doesn't support suspend.")
+            raise exceptions.TestError("Guest doesn't support suspend.")
 
-    @error.context_aware
+    @error_context.context_aware
     def start_suspend(self, **args):
         suspend_start_cmd = args.get("suspend_start_cmd")
-        error.context("Start suspend [%s]" % (suspend_start_cmd), logging.info)
+        error_context.context(
+            "Start suspend [%s]" % (suspend_start_cmd), logging.info)
 
         session = self._get_session()
         self._open_session_list.append(session)
@@ -1265,42 +1279,44 @@ class GuestSuspend(object):
         # Suspend to disk
         session.sendline(suspend_start_cmd)
 
-    @error.context_aware
+    @error_context.context_aware
     def verify_guest_down(self, **args):
         # Make sure the VM goes down
-        error.context("Wait for guest goes down after suspend")
+        error_context.context("Wait for guest goes down after suspend")
         suspend_timeout = 240 + int(self.params.get("smp")) * 60
         if not utils_misc.wait_for(self.vm.is_dead, suspend_timeout, 2, 2):
-            raise error.TestFail("VM refuses to go down. Suspend failed.")
+            raise exceptions.TestFail("VM refuses to go down. Suspend failed.")
 
-    @error.context_aware
+    @error_context.context_aware
     def resume_guest_mem(self, **args):
-        error.context("Resume suspended VM from memory")
+        error_context.context("Resume suspended VM from memory")
         self.vm.monitor.system_wakeup()
 
-    @error.context_aware
+    @error_context.context_aware
     def resume_guest_disk(self, **args):
-        error.context("Resume suspended VM from disk")
+        error_context.context("Resume suspended VM from disk")
         self.vm.create()
 
-    @error.context_aware
+    @error_context.context_aware
     def verify_guest_up(self, **args):
-        error.context("Verify guest system log", logging.info)
+        error_context.context("Verify guest system log", logging.info)
         suspend_log_chk_cmd = args.get("suspend_log_chk_cmd")
 
         session = self._get_session()
         s, o = self._session_cmd_close(session, suspend_log_chk_cmd)
         if s:
-            raise error.TestError("Could not find suspend log. [%s]" % (o))
+            raise exceptions.TestError(
+                "Could not find suspend log. [%s]" % (o))
 
-    @error.context_aware
+    @error_context.context_aware
     def action_before_suspend(self, **args):
-        error.context("Actions before suspend")
+        error_context.context("Actions before suspend")
         pass
 
-    @error.context_aware
+    @error_context.context_aware
     def action_during_suspend(self, **args):
-        error.context("Sleep a while before resuming guest", logging.info)
+        error_context.context(
+            "Sleep a while before resuming guest", logging.info)
 
         time.sleep(10)
         if self.os_type == "windows":
@@ -1309,7 +1325,7 @@ class GuestSuspend(object):
             logging.info("WinXP/2003 need more time to suspend, sleep 50s.")
             time.sleep(50)
 
-    @error.context_aware
+    @error_context.context_aware
     def action_after_suspend(self, **args):
-        error.context("Actions after suspend")
+        error_context.context("Actions after suspend")
         pass

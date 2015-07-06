@@ -1,9 +1,10 @@
 import logging
 import imp
 
-from autotest.client import utils
-from virttest import propcan, xml_utils, virsh
-from virttest.libvirt_xml import xcepts
+from avocado.utils import process
+
+from .. import propcan, xml_utils, virsh
+from ..libvirt_xml import xcepts
 
 
 class LibvirtXMLBase(propcan.PropCanBase):
@@ -172,7 +173,8 @@ class LibvirtXMLBase(propcan.PropCanBase):
         """
         section = self.xmltreefile.find(xpath)
         if section is None:
-            raise xcepts.LibvirtXMLNotFoundError("Path %s is not found." % xpath)
+            raise xcepts.LibvirtXMLNotFoundError(
+                "Path %s is not found." % xpath)
 
         return self.xmltreefile.get_element_string(xpath)
 
@@ -216,7 +218,7 @@ class LibvirtXMLBase(propcan.PropCanBase):
         command = 'virt-xml-validate %s' % filename
         if schema_name:
             command += ' %s' % schema_name
-        cmdresult = utils.run(command, ignore_status=True)
+        cmdresult = process.run(command, ignore_status=True)
         return cmdresult
 
 

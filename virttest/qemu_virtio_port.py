@@ -5,15 +5,18 @@ Interfaces and helpers for the virtio_serial ports.
 """
 from threading import Thread
 from collections import deque
-import aexpect
 import logging
 import os
 import random
 import select
 import socket
 import time
-from autotest.client.shared import error, utils
-import data_dir
+
+from avocado.core import exceptions
+from avocado.utils import process
+
+from . import data_dir
+from . import aexpect
 
 
 SOCKET_SIZE = 2048
@@ -101,8 +104,8 @@ class _VirtioPort(object):
             except Exception:
                 attempt -= 1
                 time.sleep(1)
-        raise error.TestFail("Can't open the %s sock (%s)" % (self.name,
-                                                              self.hostfile))
+        raise exceptions.TestFail("Can't open the %s sock (%s)" % (self.name,
+                                                                   self.hostfile))
 
     def clean_port(self):
         """
@@ -213,8 +216,8 @@ class GuestWorker(object):
         base_path = os.path.dirname(data_dir.get_data_dir())
         guest_script_src = os.path.join(base_path, 'scripts',
                                         'virtio_console_guest.py')
-        script_size = utils.system_output("du -b %s | cut -f1"
-                                          % guest_script_src).strip()
+        script_size = process.system_output("du -b %s | cut -f1"
+                                            % guest_script_src).strip()
         script_size_guest = self.session.cmd_output(cmd_guest_size).strip()
         if (script_size != script_size_guest or
                 self.session.cmd_status(cmd_already_compiled_chck)):
@@ -283,7 +286,7 @@ class GuestWorker(object):
         """
         Wrapper around the self.cmd command which executes the command on
         guest. Unlike self._cmd command when the command fails it raises the
-        test error.
+        test exceptions.
         :param command: Command that will be executed.
         :param timeout: Timeout used to verify expected output.
         :return: Tuple (match index, data)
@@ -562,9 +565,9 @@ class ThSendCheck(Thread):
             except Exception, inst:
                 # self.port is not yet set while reconnecting
                 if self.migrate_event is None:
-                    raise error.TestFail("ThSendCheck %s: Broken pipe. If this"
-                                         " is expected behavior set migrate_event "
-                                         "to support reconnection." % self.getName())
+                    raise exceptions.TestFail("ThSendCheck %s: Broken pipe. If this"
+                                              " is expected behavior set migrate_event "
+                                              "to support reconnection." % self.getName())
                 if self.port.sock is None:
                     logging.debug(_err_msg_disconnect)
                     while self.port.sock is None:
@@ -596,10 +599,10 @@ class ThSendCheck(Thread):
                             continue
                         if self.migrate_event is None:
                             self.exitevent.set()
-                            raise error.TestFail("ThSendCheck %s: Broken "
-                                                 "pipe. If this is expected behavior "
-                                                 "set migrate_event to support "
-                                                 "reconnection." % self.getName())
+                            raise exceptions.TestFail("ThSendCheck %s: Broken "
+                                                      "pipe. If this is expected behavior "
+                                                      "set migrate_event to support "
+                                                      "reconnection." % self.getName())
                         logging.debug("ThSendCheck %s: Broken pipe "
                                       ", reconnecting. ", self.getName())
                         attempt = 10
@@ -818,9 +821,9 @@ class ThRecvCheck(Thread):
                                                  "MaxSendIDX = %d",
                                                  self.getName(),
                                                  (self.sendlen - self.sendidx))
-                                    raise error.TestFail("ThRecvCheck %s: "
-                                                         "incorrect data" %
-                                                         self.getName())
+                                    raise exceptions.TestFail("ThRecvCheck %s: "
+                                                              "incorrect data" %
+                                                              self.getName())
                     attempt = 10
                 else:   # ! buf
                     # Broken socket
@@ -828,7 +831,8 @@ class ThRecvCheck(Thread):
                         attempt -= 1
                         if self.migrate_event is None:
                             self.exitevent.set()
-                            raise error.TestFail(_err_msg_missing_migrate_ev)
+                            raise exceptions.TestFail(
+                                _err_msg_missing_migrate_ev)
                         logging.debug("ThRecvCheck %s: Broken pipe "
                                       ", reconnecting. ", self.getName())
                         self.reload_loss_idx()
@@ -955,8 +959,8 @@ class ThRecvCheck(Thread):
                                               "%s\nsent:       %s",
                                               self.getName(), repr(verif),
                                               repr(buf), repr(queue))
-                                raise error.TestFail("Recv and sendqueue "
-                                                     "don't match with any offset.")
+                                raise exceptions.TestFail("Recv and sendqueue "
+                                                          "don't match with any offset.")
                             # buf was changed, break from this loop
                             attempt = 10
                             break
@@ -967,10 +971,10 @@ class ThRecvCheck(Thread):
                         attempt -= 1
                         if self.migrate_event is None:
                             self.exitevent.set()
-                            raise error.TestFail("ThRecvCheck %s: Broken pipe."
-                                                 " If this is expected behavior set migrate"
-                                                 "_event to support reconnection." %
-                                                 self.getName())
+                            raise exceptions.TestFail("ThRecvCheck %s: Broken pipe."
+                                                      " If this is expected behavior set migrate"
+                                                      "_event to support reconnection." %
+                                                      self.getName())
                         logging.debug("ThRecvCheck %s: Broken pipe "
                                       ", reconnecting. ", self.getName())
                         self.reload_loss_idx()

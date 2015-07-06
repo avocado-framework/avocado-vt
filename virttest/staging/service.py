@@ -19,10 +19,9 @@
 import os
 import re
 import logging
-
-from autotest.client.shared import error
 from tempfile import mktemp
-from autotest.client import utils
+
+from avocado.utils import process
 
 
 _COMMAND_TABLE_DOC = """
@@ -153,7 +152,7 @@ def sys_v_init_result_parser(command):
                  }
             """
             if cmdResult.exit_status:
-                raise error.CmdError(cmdResult.command, cmdResult)
+                raise process.CmdError(cmdResult.command, cmdResult)
             # The final dict to return.
             _service2statusOnTarget_dict = {}
             # Dict to store status on every target for each service.
@@ -252,7 +251,7 @@ def systemd_result_parser(command):
                  }
             """
             if cmdResult.exit_status:
-                raise error.CmdError(cmdResult.command, cmdResult)
+                raise process.CmdError(cmdResult.command, cmdResult)
             # Dict to store service name to status.
             _service2status_dict = {}
             lines = cmdResult.stdout.strip().splitlines()
@@ -276,7 +275,7 @@ def sys_v_init_command_generator(command):
 
     :param command: start,stop,restart, etc.
     :type command: str
-    :return: list of commands to pass to utils.run or similar function
+    :return: list of commands to pass to process.run or similar function
     :rtype: list
     """
     command_name = "service"
@@ -325,7 +324,7 @@ def systemd_command_generator(command):
 
     :param command: start,stop,restart, etc.
     :type command: str
-    :return: list of command and arguments to pass to utils.run or similar functions
+    :return: list of command and arguments to pass to process.run or similar functions
     :rtype: list
     """
     command_name = "systemctl"
@@ -428,9 +427,9 @@ class _ServiceCommandGenerator(object):
 
 class _SpecificServiceManager(object):
 
-    def __init__(self, service_name, service_command_generator, service_result_parser, run=utils.run):
+    def __init__(self, service_name, service_command_generator, service_result_parser, run=process.run):
         """
-        Create staticmethods that call utils.run with the given service_name
+        Create staticmethods that call process.run with the given service_name
         for each command in service_command_generator.
 
         lldpad = SpecificServiceManager("lldpad",
@@ -442,7 +441,7 @@ class _SpecificServiceManager(object):
         :type service_name: str
         :param service_command_generator: a sys_v_init or systemd command generator
         :type service_command_generator: _ServiceCommandGenerator
-        :param run: function that executes the commands and return CmdResult object, default utils.run
+        :param run: function that executes the commands and return CmdResult object, default process.run
         :type run: function
         """
         for cmd in service_command_generator.commands:
@@ -457,7 +456,7 @@ class _SpecificServiceManager(object):
     @staticmethod
     def generate_run_function(run_func, parse_func, command, service_name):
         """
-        Generate the wrapped call to utils.run for the given service_name.
+        Generate the wrapped call to process.run for the given service_name.
 
         :param run_func:  function to execute command and return CmdResult object.
         :type run_func:  function
@@ -467,14 +466,14 @@ class _SpecificServiceManager(object):
         :type command: function
         :param service_name: init service name or systemd unit name
         :type service_name: str
-        :return: wrapped utils.run function.
+        :return: wrapped process.run function.
         :rtype: function
         """
         def run(**kwargs):
             """
-            Wrapped utils.run invocation that will start, stop, restart, etc. a service.
+            Wrapped process.run invocation that will start, stop, restart, etc. a service.
 
-            :param kwargs: extra arguments to utils.run, .e.g. timeout. But not for ignore_status.
+            :param kwargs: extra arguments to process.run, .e.g. timeout. But not for ignore_status.
                            We need a CmdResult to parse and raise a error.TestError if command failed.
                            We will not let the CmdError out.
             :return: result of parse_func.
@@ -492,7 +491,7 @@ class _GenericServiceManager(object):
     Base class for SysVInitServiceManager and SystemdServiceManager.
     """
 
-    def __init__(self, service_command_generator, service_result_parser, run=utils.run):
+    def __init__(self, service_command_generator, service_result_parser, run=process.run):
         """
         Create staticmethods for each service command, e.g. start, stop, restart.
         These staticmethods take as an argument the service to be started or stopped.
@@ -503,7 +502,7 @@ class _GenericServiceManager(object):
 
         :param service_command_generator: a sys_v_init or systemd command generator
         :type service_command_generator: _ServiceCommandGenerator
-        :param run: function to call the run the commands, default utils.run
+        :param run: function to call the run the commands, default process.run
         :type run: function
         """
         # create staticmethods in class attributes (not used)
@@ -521,21 +520,21 @@ class _GenericServiceManager(object):
     @staticmethod
     def generate_run_function(run_func, parse_func, command):
         """
-        Generate the wrapped call to utils.run for the service command, "service" or "systemctl"
+        Generate the wrapped call to process.run for the service command, "service" or "systemctl"
 
-        :param run_func:  utils.run
+        :param run_func:  process.run
         :type run_func:  function
         :param command: partial function that generates the command list
         :type command: function
-        :return: wrapped utils.run function.
+        :return: wrapped process.run function.
         :rtype: function
         """
         def run(service="", **kwargs):
             """
-            Wrapped utils.run invocation that will start, stop, restart, etc. a service.
+            Wrapped process.run invocation that will start, stop, restart, etc. a service.
 
             :param service: service name, e.g. crond, dbus, etc.
-            :param kwargs: extra arguments to utils.run, .e.g. timeout. But not for ignore_status.
+            :param kwargs: extra arguments to process.run, .e.g. timeout. But not for ignore_status.
                            We need a CmdResult to parse and raise a error.TestError if command failed.
                            We will not let the CmdError out.
             :return: result of parse_func.
@@ -553,13 +552,13 @@ class _SysVInitServiceManager(_GenericServiceManager):
     Concrete class that implements the SysVInitServiceManager
     """
 
-    def __init__(self, service_command_generator, service_result_parser, run=utils.run):
+    def __init__(self, service_command_generator, service_result_parser, run=process.run):
         """
         Create the GenericServiceManager for SysV services.
 
         :param service_command_generator:
         :type service_command_generator: _ServiceCommandGenerator
-        :param run: function to call to run the commands, default utils.run
+        :param run: function to call to run the commands, default process.run
         :type run: function
         """
         super(
@@ -634,13 +633,13 @@ class _SystemdServiceManager(_GenericServiceManager):
     Concrete class that implements the SystemdServiceManager
     """
 
-    def __init__(self, service_command_generator, service_result_parser, run=utils.run):
+    def __init__(self, service_command_generator, service_result_parser, run=process.run):
         """
         Create the GenericServiceManager for systemd services.
 
         :param service_command_generator:
         :type service_command_generator: _ServiceCommandGenerator
-        :param run: function to call to run the commands, default utils.run
+        :param run: function to call to run the commands, default process.run
         :type run: function
         """
         super(_SystemdServiceManager, self).__init__(service_command_generator,
@@ -722,17 +721,17 @@ class Factory(object):
         _service_managers = {"init": _SysVInitServiceManager,
                              "systemd": _SystemdServiceManager}
 
-        def __init__(self, run=utils.run):
+        def __init__(self, run=process.run):
             """
             Init a helper to create service manager.
 
             :param run: Funtion to run command.
-            :type: utils.run-like function.
+            :type: process.run-like function.
             """
             result = run("true")
-            if not isinstance(result, utils.CmdResult):
+            if not isinstance(result, process.CmdResult):
                 raise ValueError("Param run is a/an %s, "
-                                 "but not an instance of utils.CmdResult."
+                                 "but not an instance of process.CmdResult."
                                  % (type(result)))
             self.run = run
             self.init_name = self.get_name_of_init()
@@ -743,7 +742,7 @@ class Factory(object):
             :return: executable name for PID 1, aka init
             :rtype:  str
             """
-            output = self.run("ps -o comm 1").stdout
+            output = self.run("ps -o comm 1", verbose=False).stdout
             return output.splitlines()[-1].strip()
 
         def get_generic_service_manager_type(self):
@@ -811,7 +810,7 @@ class Factory(object):
             return _ServiceCommandGenerator(command_generator, command_list)
 
     @staticmethod
-    def create_generic_service(run=utils.run):
+    def create_generic_service(run=process.run):
         """
         Detect which init program is being used, init or systemd and return a
         class with methods to start/stop services.
@@ -843,7 +842,7 @@ class Factory(object):
         return service_manager(command_generator, result_parser, run)
 
     @staticmethod
-    def create_specific_service(service_name, run=utils.run):
+    def create_specific_service(service_name, run=process.run):
         """
 
         # Get the specific service manager for sshd
@@ -873,7 +872,7 @@ class Factory(object):
                                        run)
 
     @staticmethod
-    def create_service(service_name=None, run=utils.run):
+    def create_service(service_name=None, run=process.run):
         """
         # Unified interface for generic and specific service manager.
 

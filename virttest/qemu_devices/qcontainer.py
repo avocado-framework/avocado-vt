@@ -10,22 +10,26 @@ interact and verify the qemu qdev structure.
 # Python imports
 import logging
 import re
-
-# Autotest imports
-from autotest.client.shared import utils, error
-from virttest import arch, storage, data_dir, virt_vm
-from utils import (DeviceError, DeviceHotplugError, DeviceInsertError,
-                   DeviceRemoveError, DeviceUnplugError, none_or_int)
 import os
-import qbuses
-import qdevices
 import shutil
 
+# Avocado imports
+from avocado.core import exceptions
+from avocado.utils import process
+
+# Internal imports
+from .. import arch, storage, data_dir, virt_vm
+from . import qbuses
+from . import qdevices
+from .utils import (DeviceError, DeviceHotplugError, DeviceInsertError,
+                    DeviceRemoveError, DeviceUnplugError, none_or_int)
 
 #
 # Device container (device representation of VM)
 # This class represents VM by storing all devices and their connections (buses)
 #
+
+
 class DevContainer(object):
 
     """
@@ -42,9 +46,10 @@ class DevContainer(object):
         """
         def get_hmp_cmds(qemu_binary):
             """ :return: list of human monitor commands """
-            _ = utils.system_output("echo -e 'help\nquit' | %s -monitor "
-                                    "stdio -vnc none" % qemu_binary,
-                                    timeout=10, ignore_status=True)
+            _ = process.system_output("echo -e 'help\nquit' | %s -monitor "
+                                      "stdio -vnc none" % qemu_binary,
+                                      timeout=10, ignore_status=True,
+                                      shell=True, verbose=False)
             _ = re.findall(r'^([^\| \[\n]+\|?\w+)', _, re.M)
             hmp_cmds = []
             for cmd in _:
@@ -59,36 +64,45 @@ class DevContainer(object):
             """ :return: list of qmp commands """
             cmds = None
             if not workaround_qemu_qmp_crash:
-                cmds = utils.system_output('echo -e \''
-                                           '{ "execute": "qmp_capabilities" }\n'
-                                           '{ "execute": "query-commands", "id": "RAND91" }\n'
-                                           '{ "execute": "quit" }\''
-                                           '| %s -qmp stdio -vnc none | grep return |'
-                                           ' grep RAND91' % qemu_binary, timeout=10,
-                                           ignore_status=True).splitlines()
+                cmds = process.system_output('echo -e \''
+                                             '{ "execute": "qmp_capabilities" }\n'
+                                             '{ "execute": "query-commands", "id": "RAND91" }\n'
+                                             '{ "execute": "quit" }\''
+                                             '| %s -qmp stdio -vnc none | grep return |'
+                                             ' grep RAND91' % qemu_binary, timeout=10,
+                                             ignore_status=True, shell=True,
+                                             verbose=False).splitlines()
             if not cmds:
                 # Some qemu versions crashes when qmp used too early; add sleep
-                cmds = utils.system_output('echo -e \''
-                                           '{ "execute": "qmp_capabilities" }\n'
-                                           '{ "execute": "query-commands", "id": "RAND91" }\n'
-                                           '{ "execute": "quit" }\' | (sleep 1; cat )'
-                                           '| %s -qmp stdio -vnc none | grep return |'
-                                           ' grep RAND91' % qemu_binary, timeout=10,
-                                           ignore_status=True).splitlines()
+                cmds = process.system_output('echo -e \''
+                                             '{ "execute": "qmp_capabilities" }\n'
+                                             '{ "execute": "query-commands", "id": "RAND91" }\n'
+                                             '{ "execute": "quit" }\' | (sleep 1; cat )'
+                                             '| %s -qmp stdio -vnc none | grep return |'
+                                             ' grep RAND91' % qemu_binary, timeout=10,
+                                             ignore_status=True, shell=True,
+                                             verbose=False).splitlines()
             if cmds:
                 cmds = re.findall(r'{\s*"name"\s*:\s*"([^"]+)"\s*}', cmds[0])
             if cmds:    # If no mathes, return None
                 return cmds
 
         self.__state = -1    # -1 synchronized, 0 synchronized after hotplug
-        self.__qemu_help = utils.system_output("%s -help" % qemu_binary,
-                                               timeout=10, ignore_status=True)
-        # escape the '?' otherwise it will fail if we have a single-char filename in cwd
-        self.__device_help = utils.system_output("%s -device \? 2>&1"
-                                                 % qemu_binary, timeout=10,
-                                                 ignore_status=True)
-        self.__machine_types = utils.system_output("%s -M ?" % qemu_binary,
-                                                   timeout=10, ignore_status=True)
+        self.__qemu_help = process.system_output("%s -help" % qemu_binary,
+                                                 timeout=10, ignore_status=True,
+                                                 shell=True, verbose=False)
+        # escape the '?' otherwise it will fail if we have a single-char
+        # filename in cwd
+        self.__device_help = process.system_output("%s -device \? 2>&1" %
+                                                   qemu_binary, timeout=10,
+                                                   ignore_status=True,
+                                                   shell=True,
+                                                   verbose=False)
+        self.__machine_types = process.system_output("%s -M ?" % qemu_binary,
+                                                     timeout=10,
+                                                     ignore_status=True,
+                                                     shell=True,
+                                                     verbose=False)
         self.__hmp_cmds = get_hmp_cmds(qemu_binary)
         self.__qmp_cmds = get_qmp_cmds(qemu_binary,
                                        workaround_qemu_qmp_crash == 'always')
@@ -413,9 +427,10 @@ class DevContainer(object):
         """
         if self.__execute_qemu_last != options:
             cmd = "%s %s 2>&1" % (self.__qemu_binary, options)
-            self.__execute_qemu_out = str(utils.run(cmd, timeout=timeout,
-                                                    ignore_status=True,
-                                                    verbose=False).stdout)
+            self.__execute_qemu_out = str(process.run(cmd, timeout=timeout,
+                                                      ignore_status=True,
+                                                      shell=True,
+                                                      verbose=False).stdout)
         return self.__execute_qemu_out
 
     def get_buses(self, bus_spec, type_test=False):
@@ -907,8 +922,8 @@ class DevContainer(object):
                 # similar to i440fx one (1 PCI bus, ..)
                 devices = machine_i440FX("-M %s" % machine_type)
             else:
-                raise error.TestNAError("Unsupported machine type %s." %
-                                        (machine_type))
+                raise exceptions.TestNAError("Unsupported machine type %s." %
+                                             (machine_type))
         else:
             devices = None
             for _ in self.__machine_types.splitlines()[1:]:
@@ -963,8 +978,8 @@ class DevContainer(object):
             return [usb]
 
         if not self.has_device(usb_type):
-            raise error.TestNAError("usb controller %s not available"
-                                    % usb_type)
+            raise exceptions.TestNAError("usb controller %s not available"
+                                         % usb_type)
 
         usb = qdevices.QDevice(usb_type, {}, usb_id, {'aobject': pci_bus},
                                qbuses.QUSBBus(max_ports, '%s.0' % usb_id, usb_type, usb_id))
@@ -981,8 +996,9 @@ class DevContainer(object):
             usb.set_param('addr', '1d.7')
             usb.set_param('multifunction', 'on')
             for i in xrange(3):
-                new_usbs.append(qdevices.QDevice('ich9-usb-uhci%d' % (i + 1), {},
-                                                 usb_id))
+                new_usbs.append(
+                    qdevices.QDevice('ich9-usb-uhci%d' % (i + 1), {},
+                                     usb_id))
                 new_usbs[-1].parent_bus = {'aobject': pci_bus}
                 new_usbs[-1].set_param('id', '%s.%d' % (usb_id, i))
                 new_usbs[-1].set_param('multifunction', 'on')
@@ -1023,8 +1039,8 @@ class DevContainer(object):
         :return: QDev device
         """
         if not self.has_device(usb_type):
-            raise error.TestNAError("usb device %s not available"
-                                    % usb_type)
+            raise exceptions.TestNAError("usb device %s not available"
+                                         % usb_type)
         if self.has_option('device'):
             device = qdevices.QDevice(usb_type, aobject=usb_name)
             device.set_param('id', 'usb-%s' % usb_name)
@@ -1112,7 +1128,8 @@ class DevContainer(object):
             Helper for creating HBAs of certain type.
             """
             devices = []
-            if qbus == qbuses.QAHCIBus:    # AHCI uses multiple ports, id is different
+            # AHCI uses multiple ports, id is different
+            if qbus == qbuses.QAHCIBus:
                 _hba = 'ahci%s'
             else:
                 _hba = atype.replace('-', '_') + '%s.0'  # HBA id
@@ -1473,11 +1490,15 @@ class DevContainer(object):
                                                    "x-data-plane"),
                                                image_params.get(
                                                    "blk_extra_params"),
-                                               image_params.get("virtio-blk-pci_scsi"),
-                                               image_params.get('pci_bus', 'pci.0'),
-                                               image_params.get("drv_extra_params"),
+                                               image_params.get(
+                                                   "virtio-blk-pci_scsi"),
+                                               image_params.get(
+                                                   'pci_bus', 'pci.0'),
+                                               image_params.get(
+                                                   "drv_extra_params"),
                                                image_params.get("num_queues"),
-                                               image_params.get("bus_extra_params"),
+                                               image_params.get(
+                                                   "bus_extra_params"),
                                                image_params.get("force_drive_format"))
 
     def cdroms_define_by_params(self, name, image_params, media=None,
@@ -1554,11 +1575,15 @@ class DevContainer(object):
                                                    "x-data-plane"),
                                                image_params.get(
                                                    "blk_extra_params"),
-                                               image_params.get("virtio-blk-pci_scsi"),
-                                               image_params.get('pci_bus', 'pci.0'),
-                                               image_params.get("drv_extra_params"),
+                                               image_params.get(
+                                                   "virtio-blk-pci_scsi"),
+                                               image_params.get(
+                                                   'pci_bus', 'pci.0'),
+                                               image_params.get(
+                                                   "drv_extra_params"),
                                                None,
-                                               image_params.get("bus_extra_params"),
+                                               image_params.get(
+                                                   "bus_extra_params"),
                                                image_params.get("force_drive_format"))
 
     def pcic_by_params(self, name, params):
@@ -1579,7 +1604,8 @@ class DevContainer(object):
             bus_type = 'PCI'
         parent_bus = [{'aobject': params.get('pci_bus', 'pci.0')}]
         if driver == 'x3130':
-            bus = qbuses.QPCISwitchBus(name, bus_type, 'xio3130-downstream', name)
+            bus = qbuses.QPCISwitchBus(
+                name, bus_type, 'xio3130-downstream', name)
             driver = 'x3130-upstream'
         else:
             if driver == 'pci-bridge':  # addr 1-19, chasis_nr
@@ -1592,7 +1618,8 @@ class DevContainer(object):
             else:   # addr = 0-31
                 bus_length = 32
                 bus_first_port = 0
-            bus = qbuses.QPCIBus(name, bus_type, name, bus_length, bus_first_port)
+            bus = qbuses.QPCIBus(
+                name, bus_type, name, bus_length, bus_first_port)
         for addr in params.get('reserved_slots', '').split():
             bus.reserve(addr)
         return qdevices.QDevice(driver, {'id': name}, aobject=name,

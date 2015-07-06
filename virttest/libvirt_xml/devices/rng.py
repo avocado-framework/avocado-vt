@@ -24,7 +24,8 @@ class Rng(base.UntypedDeviceBase):
                                  tag_name='backend', subclass=self.Backend,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
-        super(Rng, self).__init__(device_tag='rng', virsh_instance=virsh_instance)
+        super(Rng, self).__init__(
+            device_tag='rng', virsh_instance=virsh_instance)
         self.xml = '<rng/>'
 
     class Backend(base.base.LibvirtXMLBase):

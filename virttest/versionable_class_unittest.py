@@ -2,18 +2,23 @@
 
 import unittest
 import cPickle
+import os
 import sys
 
-import common
-from autotest.client.shared import utils
-from autotest.client.shared.test_utils import mock
-from versionable_class import Manager, factory, VersionableClass
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest.unittest_utils import mock
+from virttest.versionable_class import Manager, factory, VersionableClass
+
 man = Manager(__name__)
 
 # pylint: disable=E1003
 
 
-def qemu_verison():
+def qemu_version():
     return 2
 
 
@@ -28,7 +33,7 @@ class VM(object):
         if "qemu_version" in kargs:
             ver = kargs['qemu_version']
         else:
-            ver = qemu_verison()
+            ver = qemu_version()
         if ver < 1:
             return True
         else:
@@ -60,7 +65,7 @@ class VM1(VM):
         if "qemu_version" in kargs:
             ver = kargs['qemu_version']
         else:
-            ver = qemu_verison()
+            ver = qemu_version()
         if ver > 1:
             return True
         else:
@@ -268,8 +273,6 @@ class TestVersionableClass(unittest.TestCase):
 
     def setUp(self):
         self.god = mock.mock_god(ut=self)
-        self.god.stub_function(utils.logging, 'warn')
-        self.god.stub_function(utils.logging, 'debug')
         self.version = 1
 
     def tearDown(self):

@@ -9,15 +9,17 @@ import re
 import logging
 
 import ovirt
-from autotest.client import os_dep, utils
-from autotest.client.shared import ssh_key
 
-import libvirt_vm as lvirt
+from avocado.utils import path
+from avocado.utils import process
+
+from . import libvirt_vm as lvirt
+from . import ssh_key
 
 DEBUG = False
 
 try:
-    V2V_EXEC = os_dep.command('virt-v2v')
+    V2V_EXEC = path.find_command('virt-v2v')
 except ValueError:
     V2V_EXEC = None
 
@@ -151,7 +153,8 @@ class Target(object):
         Return command options.
         """
         options = " -ic %s -o rhev -os %s -n %s %s " % (self.uri,
-                                                        self.params.get('storage'), self.params.get('network'),
+                                                        self.params.get(
+                                                            'storage'), self.params.get('network'),
                                                         self.params.get('vms'))
 
         return options
@@ -440,6 +443,7 @@ def v2v_cmd(params):
         build_esx_no_verify(params)
     elif hypervisor == 'xen' or hypervisor == 'kvm':
         # Setup ssh key for build connection without password.
+
         ssh_key.setup_ssh_key(hostname, user=username, port=22,
                               password=password)
     else:
@@ -448,5 +452,5 @@ def v2v_cmd(params):
     # Construct a final virt-v2v command
     cmd = '%s %s' % (V2V_EXEC, options)
     logging.debug('%s' % cmd)
-    cmd_result = utils.run(cmd, verbose=DEBUG)
+    cmd_result = process.run(cmd, verbose=DEBUG)
     return cmd_result

@@ -165,7 +165,8 @@ class DNSXML(base.LibvirtXMLBase):
             """
             accessors.XMLElementText('hostname', self, parent_xpath='/',
                                      tag_name='hostname')
-            super(DNSXML.HostnameXML, self).__init__(virsh_instance=virsh_instance)
+            super(DNSXML.HostnameXML, self).__init__(
+                virsh_instance=virsh_instance)
             self.xml = '<hostname/>'
 
     class HostXML(base.LibvirtXMLBase):

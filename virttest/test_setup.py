@@ -8,18 +8,20 @@ import re
 import random
 import math
 import shutil
-from virttest.staging import service
-from autotest.client.shared import error, utils
-import data_dir
-import utils_misc
-import versionable_class
-import openvswitch
 
-try:
-    from virttest.staging import utils_memory
-except ImportError:
-    # pylint: disable=E0611
-    from autotest.client import utils_memory
+from avocado.core import exceptions
+from avocado.utils import process
+from avocado.utils import wait
+from avocado.utils import genio
+from avocado.utils import build
+
+from . import data_dir
+from . import error_context
+from . import utils_misc
+from . import versionable_class
+from . import openvswitch
+from .staging import service
+from .staging import utils_memory
 
 
 class THPError(Exception):
@@ -197,11 +199,11 @@ class TransparentHugePageConfig(object):
                 timeout = time.time() + 50
                 while time.time() < timeout:
                     try:
-                        utils.run('pgrep khugepaged', verbose=False)
+                        process.run('pgrep khugepaged', verbose=False)
                         if ret != 0:
                             time.sleep(1)
                             continue
-                    except error.CmdError:
+                    except process.CmdError:
                         if ret == 0:
                             time.sleep(1)
                             continue
@@ -414,7 +416,7 @@ class HugePageConfig(object):
         if not os.path.isfile(node_page_path):
             raise ValueError("%s page size nr_hugepages file of node %s did "
                              "not exist" % (pagesize, node))
-        out = utils.system_output("cat %s" % node_page_path)
+        out = process.system_output("cat %s" % node_page_path)
         return int(out)
 
     def set_node_num_huge_pages(self, num, node, pagesize):
@@ -430,14 +432,15 @@ class HugePageConfig(object):
         if not os.path.isfile(node_page_path):
             raise ValueError("%s page size nr_hugepages file of node %s did "
                              "not exist" % (pagesize, node))
-        utils.system("echo %s > %s" % (num, node_page_path))
+        process.system("echo %s > %s" % (num, node_page_path))
 
-    @error.context_aware
+    @error_context.context_aware
     def set_hugepages(self):
         """
         Sets the hugepage limit to the target hugepage value calculated.
         """
-        error.context("setting hugepages limit to %s" % self.target_hugepages)
+        error_context.context(
+            "setting hugepages limit to %s" % self.target_hugepages)
         hugepage_cfg = open(self.kernel_hp_file, "r+")
         hp = hugepage_cfg.readline()
         while int(hp) < self.target_hugepages:
@@ -454,20 +457,20 @@ class HugePageConfig(object):
         logging.debug("Successfully set %s large memory pages on host ",
                       self.target_hugepages)
 
-    @error.context_aware
+    @error_context.context_aware
     def mount_hugepage_fs(self):
         """
         Verify if there's a hugetlbfs mount set. If there's none, will set up
         a hugetlbfs mount using the class attribute that defines the mount
         point.
         """
-        error.context("mounting hugepages path")
+        error_context.context("mounting hugepages path")
         if not os.path.ismount(self.hugepage_path):
             if not os.path.isdir(self.hugepage_path):
                 os.makedirs(self.hugepage_path)
             cmd = "mount -t hugetlbfs -o pagesize=%sK " % self.hugepage_size
             cmd += "none %s" % self.hugepage_path
-            utils.system(cmd)
+            process.system(cmd)
 
     def setup(self):
         logging.debug("Number of VMs this test will use: %d", self.vms)
@@ -481,15 +484,15 @@ class HugePageConfig(object):
 
         return self.suggest_mem
 
-    @error.context_aware
+    @error_context.context_aware
     def cleanup(self):
         if self.deallocate:
-            error.context("trying to deallocate hugepage memory")
+            error_context.context("trying to deallocate hugepage memory")
             try:
-                utils.system("umount %s" % self.hugepage_path)
-            except error.CmdError:
+                process.system("umount %s" % self.hugepage_path)
+            except process.CmdError:
                 return
-            utils.system("echo 0 > %s" % self.kernel_hp_file)
+            process.system("echo 0 > %s" % self.kernel_hp_file)
             logging.debug("Hugepage memory successfully deallocated")
 
 
@@ -629,38 +632,38 @@ class PrivateBridgeConfig(object):
         return rules
 
     def _add_bridge(self):
-        utils.system("brctl addbr %s" % self.brname)
+        process.system("brctl addbr %s" % self.brname)
         ip_fwd_path = "/proc/sys/net/%s/ip_forward" % self.ip_version
         ip_fwd = open(ip_fwd_path, "w")
         ip_fwd.write("1\n")
-        utils.system("brctl stp %s on" % self.brname)
-        utils.system("brctl setfd %s 4" % self.brname)
+        process.system("brctl stp %s on" % self.brname)
+        process.system("brctl setfd %s 4" % self.brname)
         if self.physical_nic:
-            utils.system("brctl addif %s %s" % (self.brname,
-                                                self.physical_nic))
+            process.system("brctl addif %s %s" % (self.brname,
+                                                  self.physical_nic))
 
     def _bring_bridge_up(self):
-        utils.system("ifconfig %s %s.1 up" % (self.brname, self.subnet))
+        process.system("ifconfig %s %s.1 up" % (self.brname, self.subnet))
 
     def _iptables_add(self, cmd):
-        return utils.system("iptables -I %s" % cmd)
+        return process.system("iptables -I %s" % cmd)
 
     def _iptables_del(self, cmd):
-        return utils.system("iptables -D %s" % cmd)
+        return process.system("iptables -D %s" % cmd)
 
     def _enable_nat(self):
         for rule in self.iptables_rules:
             self._iptables_add(rule)
 
     def _start_dhcp_server(self):
-        utils.system("service dnsmasq stop")
-        utils.system("dnsmasq --strict-order --bind-interfaces "
-                     "--listen-address %s.1 --dhcp-range %s.2,%s.254 "
-                     "--dhcp-lease-max=253 "
-                     "--dhcp-no-override "
-                     "--pid-file=/tmp/dnsmasq.pid "
-                     "--log-facility=/tmp/dnsmasq.log" %
-                     (self.subnet, self.subnet, self.subnet))
+        process.system("service dnsmasq stop")
+        process.system("dnsmasq --strict-order --bind-interfaces "
+                       "--listen-address %s.1 --dhcp-range %s.2,%s.254 "
+                       "--dhcp-lease-max=253 "
+                       "--dhcp-no-override "
+                       "--pid-file=/tmp/dnsmasq.pid "
+                       "--log-facility=/tmp/dnsmasq.log" %
+                       (self.subnet, self.subnet, self.subnet))
         self.dhcp_server_pid = None
         try:
             self.dhcp_server_pid = int(open('/tmp/dnsmasq.pid', 'r').read())
@@ -670,12 +673,12 @@ class PrivateBridgeConfig(object):
                       self.dhcp_server_pid)
 
     def _verify_bridge(self):
-        brctl_output = utils.system_output("brctl show")
+        brctl_output = process.system_output("brctl show")
         if self.brname not in brctl_output:
             raise PrivateBridgeError(self.brname)
 
     def _get_bridge_info(self):
-        return utils.system_output("brctl show")
+        return process.system_output("brctl show")
 
     def _br_exist(self):
         return self.brname in self._get_bridge_info()
@@ -726,7 +729,7 @@ class PrivateBridgeConfig(object):
             # Need manually up.
             if self.physical_nic:
                 time.sleep(5)
-                utils.system("ifconfig %s up" % self.physical_nic)
+                process.system("ifconfig %s up" % self.physical_nic)
 
             self._verify_bridge()
 
@@ -747,7 +750,7 @@ class PrivateBridgeConfig(object):
                 pass
 
     def _bring_bridge_down(self):
-        utils.system("ifconfig %s down" % self.brname, ignore_status=True)
+        process.system("ifconfig %s down" % self.brname, ignore_status=True)
 
     def _disable_nat(self):
         for rule in self.iptables_rules:
@@ -758,7 +761,7 @@ class PrivateBridgeConfig(object):
             self._iptables_del(rule)
 
     def _remove_bridge(self):
-        utils.system("brctl delbr %s" % self.brname, ignore_status=True)
+        process.system("brctl delbr %s" % self.brname, ignore_status=True)
 
     def cleanup(self):
         if not self._br_in_use():
@@ -957,7 +960,7 @@ class PciAssignable(object):
                             vf["occupied"] = True
                             return vf_id
 
-    @error.context_aware
+    @error_context.context_aware
     def _release_dev(self, pci_id):
         """
         Release a single PCI device.
@@ -972,7 +975,8 @@ class PciAssignable(object):
         vendor_id = utils_misc.get_vendor_from_pci_id(short_id)
         drv_path = os.path.join(base_dir, "devices/%s/driver" % pci_id)
         if self.device_driver in os.readlink(drv_path):
-            error.context("Release device %s to host" % pci_id, logging.info)
+            error_context.context(
+                "Release device %s to host" % pci_id, logging.info)
 
             stub_path = os.path.join(base_dir,
                                      "drivers/%s" % self.device_driver)
@@ -980,7 +984,7 @@ class PciAssignable(object):
             logging.info("Run command in host: %s" % cmd)
             try:
                 output = None
-                output = utils.system_output(cmd, timeout=60)
+                output = process.system_output(cmd, timeout=60)
             except Exception:
                 msg = "Command %s fail with output %s" % (cmd, output)
                 logging.error(msg)
@@ -991,7 +995,7 @@ class PciAssignable(object):
             logging.info("Run command in host: %s" % cmd)
             try:
                 output = None
-                output = utils.system_output(cmd, timeout=60)
+                output = process.system_output(cmd, timeout=60)
             except Exception:
                 msg = "Command %s fail with output %s" % (cmd, output)
                 logging.error(msg)
@@ -1014,7 +1018,7 @@ class PciAssignable(object):
         tub_path = os.path.join(base_dir, "drivers/pci-stub")
         vf_res_path = os.path.join(tub_path, "%s/resource*" % vf_id)
         cmd = "lsof %s" % vf_res_path
-        output = utils.system_output(cmd, timeout=60, ignore_status=True)
+        output = process.system_output(cmd, timeout=60, ignore_status=True)
         if 'qemu' in output:
             return True
         else:
@@ -1057,7 +1061,7 @@ class PciAssignable(object):
 
         base_dir = "/sys/bus/pci/devices"
         cmd = "lspci | awk '/%s/ {print $1}'" % self.pf_filter_re
-        pf_ids = [i for i in utils.system_output(cmd).splitlines()]
+        pf_ids = [i for i in process.system_output(cmd).splitlines()]
         pf_vf_dict = []
         for pf_id in pf_ids:
             pf_info = {}
@@ -1066,7 +1070,7 @@ class PciAssignable(object):
             pf_info["pf_id"] = full_id
             pf_info["occupied"] = False
             d_link = os.path.join("/sys/bus/pci/devices", full_id)
-            txt = utils.system_output("ls %s" % d_link)
+            txt = process.system_output("ls %s" % d_link)
             re_vfn = "(virtfn[0-9])"
             paths = re.findall(re_vfn, txt)
             for path in paths:
@@ -1078,11 +1082,11 @@ class PciAssignable(object):
                 vf_ids.append(vf_info)
             pf_info["vf_ids"] = vf_ids
             pf_vf_dict.append(pf_info)
-        if_out = utils.system_output("ifconfig -a")
+        if_out = process.system_output("ifconfig -a")
         ethnames = re.findall(self.nic_name_re, if_out)
         for eth in ethnames:
             cmd = "ethtool -i %s | awk '/bus-info/ {print $2}'" % eth
-            pci_id = utils.system_output(cmd)
+            pci_id = process.system_output(cmd)
             if not pci_id:
                 continue
             for pf in pf_vf_dict:
@@ -1167,7 +1171,7 @@ class PciAssignable(object):
                 set_mac_cmd = "ip link set dev %s vf %s mac %s " % (ethname,
                                                                     vf_num,
                                                                     device["mac"])
-                utils.run(set_mac_cmd)
+                process.run(set_mac_cmd)
 
             elif d_type == "pf":
                 dev_id = pf_ids.pop(0)
@@ -1187,7 +1191,7 @@ class PciAssignable(object):
         # 'virtual function' belongs to which physical card considering
         # that if the host has more than one 82576 card. PCI_ID?
         cmd = "lspci | grep '%s' | wc -l" % self.vf_filter_re
-        vf_num = int(utils.system_output(cmd, verbose=False))
+        vf_num = int(process.system_output(cmd, verbose=False))
         logging.info("Found %s vf in host", vf_num)
         return vf_num
 
@@ -1204,7 +1208,7 @@ class PciAssignable(object):
         base_dir = "/sys/bus/pci/devices"
         devices_link = os.path.join(base_dir,
                                     "%s/iommu_group/devices/" % pci_id)
-        out = utils.system_output("ls %s" % devices_link)
+        out = process.system_output("ls %s" % devices_link)
 
         if out:
             pci_ids = out.split()
@@ -1231,7 +1235,7 @@ class PciAssignable(object):
         stub_path = os.path.join(base_dir, "drivers/%s" % self.device_driver)
         return os.path.exists(os.path.join(stub_path, full_id))
 
-    @error.context_aware
+    @error_context.context_aware
     def sr_iov_setup(self):
         """
         Ensure the PCI device is working in sr_iov mode.
@@ -1243,9 +1247,10 @@ class PciAssignable(object):
         :rtype: bool
         """
         # Check if the host support interrupt remapping
-        error.context("Set up host env for PCI assign test", logging.info)
+        error_context.context(
+            "Set up host env for PCI assign test", logging.info)
         kvm_re_probe = True
-        o = utils.system_output("dmesg")
+        o = process.system_output("dmesg")
         ecap = re.findall("ecap\s+(.\w+)", o)
         if not ecap:
             logging.error("Fail to check host interrupt remapping support.")
@@ -1260,33 +1265,34 @@ class PciAssignable(object):
         # Try to re probe kvm module with interrupt remapping support
         if kvm_re_probe and self.auai_path:
             cmd = "echo Y > %s" % self.auai_path
-            error.context("enable PCI passthrough with '%s'" % cmd,
-                          logging.info)
+            error_context.context("enable PCI passthrough with '%s'" % cmd,
+                                  logging.info)
             try:
-                utils.system(cmd)
+                process.system(cmd)
             except Exception:
                 logging.debug("Can not enable the interrupt remapping support")
         lnk = "/sys/module/vfio_iommu_type1/parameters/allow_unsafe_interrupts"
         if self.device_driver == "vfio-pci":
-            status = utils.system('lsmod | grep vfio', ignore_status=True)
+            status = process.system('lsmod | grep vfio', ignore_status=True)
             if status:
                 logging.info("Load vfio-pci module.")
                 cmd = "modprobe vfio-pci"
-                utils.run(cmd)
+                process.run(cmd)
                 time.sleep(3)
             if not ecap or (int(ecap[0], 16) & 8 != 8):
                 cmd = "echo Y > %s" % lnk
-                error.context("enable PCI passthrough with '%s'" % cmd,
-                              logging.info)
-                utils.run(cmd)
+                error_context.context("enable PCI passthrough with '%s'" % cmd,
+                                      logging.info)
+                process.run(cmd)
         re_probe = False
-        status = utils.system("lsmod | grep %s" % self.driver,
-                              ignore_status=True)
+        status = process.system("lsmod | grep %s" % self.driver,
+                                ignore_status=True)
         if status:
             re_probe = True
         elif not self.check_vfs_count():
             if self.driver:
-                utils.system_output("modprobe -r %s" % self.driver, timeout=60)
+                process.system_output(
+                    "modprobe -r %s" % self.driver, timeout=60)
             re_probe = True
         else:
             self.setup = None
@@ -1301,10 +1307,13 @@ class PciAssignable(object):
                 if self.driver_option:
                     cmd += " %s" % self.driver_option
             if cmd:
-                error.context("Loading the driver '%s' with command '%s'" %
-                              (self.driver, cmd), logging.info)
-                status = utils.system(cmd, ignore_status=True)
-            dmesg = utils.system_output("dmesg", timeout=60, ignore_status=True)
+                error_context.context("Loading the driver '%s' with "
+                                      "command '%s'" % (self.driver, cmd),
+                                      logging.info)
+                status = process.system(cmd, ignore_status=True)
+            dmesg = process.system_output("dmesg", timeout=60,
+                                          ignore_status=True,
+                                          verbose=False)
             file_name = "host_dmesg_after_load_%s.txt" % self.driver
             logging.info("Log dmesg after loading '%s' to '%s'.", self.driver,
                          file_name)
@@ -1325,7 +1334,8 @@ class PciAssignable(object):
         :rtype: bool
         """
         # Check if the host support interrupt remapping
-        error.context("Clean up host env after PCI assign test", logging.info)
+        error_context.context(
+            "Clean up host env after PCI assign test", logging.info)
         kvm_re_probe = False
         if self.kvm_params is not None:
             for kvm_param, value in self.kvm_params.items():
@@ -1333,19 +1343,19 @@ class PciAssignable(object):
                     cmd = "echo %s > %s" % (value, kvm_param)
                     logging.info("Write '%s' to '%s'", value, kvm_param)
                     try:
-                        utils.system(cmd)
+                        process.system(cmd)
                     except Exception:
                         logging.error("Failed to write  '%s' to '%s'", value,
                                       kvm_param)
 
         re_probe = False
-        status = utils.system('lsmod | grep %s' % self.driver,
-                              ignore_status=True)
+        status = process.system('lsmod | grep %s' % self.driver,
+                                ignore_status=True)
         if status:
             if self.driver:
                 cmd = "modprobe -r %s" % self.driver
                 logging.info("Running host command: %s" % cmd)
-                utils.system_output(cmd, timeout=60)
+                process.system_output(cmd, timeout=60)
             re_probe = True
         else:
             return True
@@ -1355,8 +1365,8 @@ class PciAssignable(object):
             if self.driver:
                 cmd = "modprobe %s" % self.driver
                 msg = "Loading the driver '%s' without option" % self.driver
-                error.context(msg, logging.info)
-                status = utils.system(cmd, ignore_status=True)
+                error_context.context(msg, logging.info)
+                status = process.system(cmd, ignore_status=True)
                 if status:
                     return False
             return True
@@ -1383,7 +1393,8 @@ class PciAssignable(object):
         for p_id in self.pci_ids:
             if self.device_driver == "vfio-pci":
                 pci_ids = self.get_same_group_devs(p_id)
-                logging.info("Following devices are in same group: %s", pci_ids)
+                logging.info(
+                    "Following devices are in same group: %s", pci_ids)
             else:
                 pci_ids = [p_id]
             for pci_id in pci_ids:
@@ -1395,8 +1406,8 @@ class PciAssignable(object):
 
                 # Judge whether the device driver has been binded to stub
                 if not self.is_binded_to_stub(pci_id):
-                    error.context("Bind device %s to stub" % pci_id,
-                                  logging.info)
+                    error_context.context("Bind device %s to stub" % pci_id,
+                                          logging.info)
                     vendor_id = utils_misc.get_vendor_from_pci_id(short_id)
                     stub_new_id = os.path.join(stub_path, 'new_id')
                     unbind_dev = os.path.join(drv_path, 'unbind')
@@ -1412,21 +1423,23 @@ class PciAssignable(object):
                         try:
                             logging.info("Write '%s' to file '%s'", content,
                                          f_name)
-                            utils.open_write_close(f_name, content)
+                            with open(f_name, 'w') as fn:
+                                fn.write(content)
                         except IOError:
                             logging.debug("Failed to write %s to file %s",
                                           content, f_name)
                             continue
 
                     if not self.is_binded_to_stub(pci_id):
-                        logging.error("Binding device %s to stub failed", pci_id)
+                        logging.error(
+                            "Binding device %s to stub failed", pci_id)
                     continue
                 else:
                     logging.debug("Device %s already binded to stub", pci_id)
             requested_pci_ids.append(p_id)
         return requested_pci_ids
 
-    @error.context_aware
+    @error_context.context_aware
     def release_devs(self):
         """
         Release all PCI devices currently assigned to VMs back to the
@@ -1605,7 +1618,7 @@ class LibvirtPolkitConfig(object):
             logging.debug("The polkit config rule is:\n%s" % self.template)
 
             # write the config file
-            utils.open_write_close(self.polkit_rules_path, self.template)
+            genio.open_write_close(self.polkit_rules_path, self.template)
         except Exception:
             raise PolkitRulesSetupError("Set polkit rules file failed")
 
@@ -1618,10 +1631,10 @@ class LibvirtPolkitConfig(object):
         # and if user 'testacl' is not exist on host, create it for test.
         if self.user.count('EXAMPLE'):
             cmd = "id testacl"
-            if utils.system(cmd, ignore_status=True):
+            if process.system(cmd, ignore_status=True):
                 logging.debug("Create new user 'testacl' on host.")
                 cmd = "useradd testacl"
-                utils.system(cmd, ignore_status=True)
+                process.system(cmd, ignore_status=True)
             self.user = 'testacl'
         self._set_polkit_conf()
         # Polkit rule will take about 1 second to take effect after change.
@@ -1640,7 +1653,7 @@ class LibvirtPolkitConfig(object):
             if self.user.count('EXAMPLE'):
                 logging.debug("Delete the created user 'testacl'.")
                 cmd = "userdel -r testacl"
-                utils.system(cmd, ignore_status=True)
+                process.system(cmd, ignore_status=True)
         except Exception:
             raise PolkitConfigCleanupError("Failed to cleanup polkit config.")
 
@@ -1672,22 +1685,23 @@ class EGDConfig(object):
         tmp_dir = data_dir.get_tmp_dir()
         tarball = self.__get_tarball()
         extra_cmd = "tar -xzvf %s -C %s" % (tarball, tmp_dir)
-        utils.system(extra_cmd, ignore_status=True)
-        output = utils.system_output("tar -tzf %s" % tarball)
+        process.system(extra_cmd, ignore_status=True)
+        output = process.system_output("tar -tzf %s" % tarball)
         return os.path.join(tmp_dir, output.splitlines()[0])
 
     def startup(self, socket):
         """
         Start egd.pl server with tcp or unix socket.
         """
-        if utils.system("which egd.pl", ignore_status=True) != 0:
+        if process.system("which egd.pl", ignore_status=True) != 0:
             self.install()
-        prog = utils.system_output("which egd.pl")
+        prog = process.system_output("which egd.pl")
         pid = self.get_pid(socket)
         try:
             if not pid:
                 cmd = "%s %s" % (prog, socket)
-                utils.BgJob(cmd)
+                p = process.SubProcess(cmd)
+                p.start()
         except Exception, details:
             msg = "Unable to start egd.pl on localhost '%s'" % details
             raise EGDConfigError(msg)
@@ -1705,7 +1719,7 @@ class EGDConfig(object):
             make_cmd = self.params.get("build_egd_cmd", make_cmd)
             src_root = self.__extra_tarball()
             os.chdir(src_root)
-            utils.make(make=make_cmd, timeout=120)
+            build.make(make=make_cmd, timeout=120)
         except Exception, details:
             raise EGDConfigError("Install egd.pl error '%s'" % details)
         finally:
@@ -1720,8 +1734,8 @@ class EGDConfig(object):
             cmd = "lsof -i '@%s'" % socket
 
         def system_output_wrapper():
-            return utils.system_output(cmd, ignore_status=True)
-        output = utils.wait_for(system_output_wrapper, timeout=5)
+            return process.system_output(cmd, ignore_status=True)
+        output = wait.wait_for(system_output_wrapper, timeout=5)
         if not output:
             return 0
         pid = int(re.findall(r".*egd.pl\s+(\d+)\s+\w+", output, re.M)[-1])
@@ -1743,14 +1757,14 @@ class EGDConfig(object):
         try:
             for pid in self.env.data["egd_pids"]:
                 logging.info("Stop egd.pl(%s)" % pid)
-                utils.signal_pid(pid, 15)
+                utils_misc.signal_pid(pid, 15)
 
             def _all_killed():
                 for pid in self.env.data["egd_pids"]:
-                    if utils.pid_is_alive(pid):
+                    if utils_misc.pid_is_alive(pid):
                         return False
                 return True
             # wait port released by egd.pl
-            utils.wait_for(_all_killed, timeout=60)
+            wait.wait_for(_all_killed, timeout=60)
         except OSError:
             logging.warn("egd.pl is running")

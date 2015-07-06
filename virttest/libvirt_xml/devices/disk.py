@@ -301,7 +301,8 @@ class Disk(base.TypedDeviceBase):
                                    tag_name='encryption', attribute='format')
             accessors.XMLElementDict('secret', self, parent_xpath='/',
                                      tag_name='secret')
-            super(Disk.Encryption, self).__init__(virsh_instance=virsh_instance)
+            super(Disk.Encryption, self).__init__(
+                virsh_instance=virsh_instance)
             self.xml = '<encryption/>'
 
     class Auth(base.base.LibvirtXMLBase):

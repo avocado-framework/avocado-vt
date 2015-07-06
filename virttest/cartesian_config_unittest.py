@@ -3,9 +3,14 @@
 import unittest
 import os
 import gzip
+import sys
 
-import common
-import cartesian_config
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest import cartesian_config
 
 
 mydir = os.path.dirname(__file__)

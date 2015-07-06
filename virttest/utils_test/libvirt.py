@@ -23,39 +23,42 @@ import logging
 import shutil
 import threading
 import time
-from virttest import virsh
-from virttest import xml_utils
-from virttest import iscsi
-from virttest import nfs
-from virttest import data_dir
-from virttest import aexpect
-from virttest import utils_misc
-from virttest import utils_selinux
-from virttest import libvirt_storage
-from virttest import utils_net
-from virttest import gluster
-from virttest import remote
-from virttest.test_setup import LibvirtPolkitConfig
-from virttest.utils_libvirtd import service_libvirtd_control
-from autotest.client import utils
-from autotest.client.shared import error
-from virttest.libvirt_xml import vm_xml
-from virttest.libvirt_xml import network_xml
-from virttest.libvirt_xml import xcepts
-from virttest.libvirt_xml import NetworkXML
-from virttest.libvirt_xml import IPXML
-from virttest.libvirt_xml import pool_xml
-from virttest.libvirt_xml import nwfilter_xml
-from virttest.libvirt_xml.devices import disk
-from virttest.libvirt_xml.devices import hostdev
-from virttest.libvirt_xml.devices import controller
-from virttest.libvirt_xml.devices import seclabel
-from virttest.libvirt_xml.devices import channel
+import sys
+
+from avocado.core import exceptions
+from avocado.utils import process
+from avocado.utils import stacktrace
+from avocado.utils import modules
+
+from .. import virsh
+from .. import xml_utils
+from .. import iscsi
+from .. import nfs
+from .. import data_dir
+from .. import aexpect
+from .. import utils_misc
+from .. import utils_selinux
+from .. import libvirt_storage
+from .. import utils_net
+from .. import gluster
+from .. import remote
+from ..staging import lv_utils
+from ..test_setup import LibvirtPolkitConfig
+from ..utils_libvirtd import service_libvirtd_control
+from ..libvirt_xml import vm_xml
+from ..libvirt_xml import network_xml
+from ..libvirt_xml import xcepts
+from ..libvirt_xml import NetworkXML
+from ..libvirt_xml import IPXML
+from ..libvirt_xml import pool_xml
+from ..libvirt_xml import nwfilter_xml
+from ..libvirt_xml.devices import disk
+from ..libvirt_xml.devices import hostdev
+from ..libvirt_xml.devices import controller
+from ..libvirt_xml.devices import seclabel
+from ..libvirt_xml.devices import channel
+
 from __init__ import ping
-try:
-    from autotest.client import lv_utils
-except ImportError:
-    from virttest.staging import lv_utils
 
 
 class LibvirtNetwork(object):
@@ -108,18 +111,19 @@ class LibvirtNetwork(object):
 
         if net_type == 'vnet':
             if not self.address:
-                raise error.TestError('Create vnet need address be set')
+                raise exceptions.TestError('Create vnet need address be set')
             self.ip, net_xml = self.create_vnet_xml()
         elif net_type == 'macvtap':
             if not self.iface:
-                raise error.TestError('Create macvtap need iface be set')
+                raise exceptions.TestError('Create macvtap need iface be set')
             self.ip, net_xml = self.create_macvtap_xml()
         elif net_type == 'bridge':
             if not self.iface:
-                raise error.TestError('Create bridge need iface be set')
+                raise exceptions.TestError('Create bridge need iface be set')
             self.ip, net_xml = self.create_bridge_xml()
         else:
-            raise error.TestError('Unknown libvirt network type %s' % net_type)
+            raise exceptions.TestError(
+                'Unknown libvirt network type %s' % net_type)
         if self.persistent:
             net_xml.define()
             net_xml.start()
@@ -235,8 +239,9 @@ def cpu_allowed_list_by_task(pid, tid):
     """
     Get the Cpus_allowed_list in status of task.
     """
-    cmd = "cat /proc/%s/task/%s/status|grep Cpus_allowed_list:| awk '{print $2}'" % (pid, tid)
-    result = utils.run(cmd, ignore_status=True)
+    cmd = "cat /proc/%s/task/%s/status|grep Cpus_allowed_list:| awk '{print $2}'" % (
+        pid, tid)
+    result = process.run(cmd, ignore_status=True)
     if result.exit_status:
         return None
     return result.stdout.strip()
@@ -297,9 +302,9 @@ def get_all_cells():
     fc_result = virsh.freecell(options="--all", ignore_status=True)
     if fc_result.exit_status:
         if fc_result.stderr.count("NUMA not supported"):
-            raise error.TestNAError(fc_result.stderr.strip())
+            raise exceptions.TestNAError(fc_result.stderr.strip())
         else:
-            raise error.TestFail(fc_result.stderr.strip())
+            raise exceptions.TestFail(fc_result.stderr.strip())
     output = fc_result.stdout.strip()
     cell_list = output.splitlines()
     # remove "------------" line
@@ -328,12 +333,13 @@ def check_blockjob(vm_name, target, check_point="none", value="0"):
         return False
 
     try:
-        cmd_result = virsh.blockjob(vm_name, target, "--info", ignore_status=True)
+        cmd_result = virsh.blockjob(
+            vm_name, target, "--info", ignore_status=True)
         output = cmd_result.stdout.strip()
         err = cmd_result.stderr.strip()
         status = cmd_result.exit_status
     except:
-        raise error.TestFail("Error occur when running blockjob command.")
+        raise exceptions.TestFail("Error occur when running blockjob command.")
     if status == 0:
         # libvirt print job progress to stderr
         if not len(err):
@@ -471,15 +477,15 @@ def setup_or_cleanup_iscsi(is_setup, is_login=True,
             # _iscsi.export_target() will have set the emulated_id and
             # export_flag already on success...
             _iscsi.cleanup()
-            utils.run("rm -f %s" % emulated_path)
+            process.run("rm -f %s" % emulated_path)
         else:
             return emulated_target
     else:
         _iscsi.export_flag = True
         _iscsi.emulated_id = _iscsi.get_target_id()
         _iscsi.cleanup()
-        utils.run("rm -f %s" % emulated_path)
-        utils.run("vgscan --cache", ignore_status=True)
+        process.run("rm -f %s" % emulated_path)
+        process.run("vgscan --cache", ignore_status=True)
     return ""
 
 
@@ -497,7 +503,7 @@ def get_host_ipv4_addr():
     if ip_addr is not None:
         logging.info("ipv4 address is %s", ip_addr)
     else:
-        raise error.TestFail("Fail to get ip address")
+        raise exceptions.TestFail("Fail to get ip address")
     return ip_addr
 
 
@@ -513,7 +519,7 @@ def setup_or_cleanup_gluster(is_setup, vol_name, brick_path="", pool_name="",
     try:
         utils_misc.find_command("gluster")
     except ValueError:
-        raise error.TestNAError("Missing command 'gluster'")
+        raise exceptions.TestNAError("Missing command 'gluster'")
     if not brick_path:
         tmpdir = os.path.join(data_dir.get_root_dir(), 'tmp')
         brick_path = os.path.join(tmpdir, pool_name)
@@ -586,9 +592,9 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         cleanup_iscsi = True
         # Create a partition to make sure disk pool can start
         cmd = "parted -s %s mklabel msdos" % device_name
-        utils.run(cmd)
+        process.run(cmd)
         cmd = "parted -s %s mkpart primary ext4 0 100" % device_name
-        utils.run(cmd)
+        process.run(cmd)
         extra = "--source-dev %s" % device_name
     elif pool_type == "fs":
         # Set up iscsi target and login
@@ -596,7 +602,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         cleanup_iscsi = True
         # Format disk to make sure fs pool can start
         cmd = "mkfs.ext4 -F %s" % device_name
-        utils.run(cmd)
+        process.run(cmd)
         extra = "--source-dev %s" % device_name
     elif pool_type == "gluster":
         gluster_source_path = kwargs.get('gluster_source_path')
@@ -614,18 +620,18 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         file_path = "gluster://%s/%s" % (hostip, gluster_source_name)
         for i in range(gluster_vol_number):
             file_name = "%s_%d" % (gluster_file_name, i)
-            utils.run("qemu-img create -f %s %s/%s %s" %
-                      (gluster_file_type, file_path, file_name,
-                       gluster_file_size))
+            process.run("qemu-img create -f %s %s/%s %s" %
+                        (gluster_file_type, file_path, file_name,
+                         gluster_file_size))
         cleanup_gluster = True
         extra = "--source-host %s --source-path %s --source-name %s" % \
                 (hostip, gluster_source_path, gluster_source_name)
     elif pool_type in ["scsi", "mpath", "rbd", "sheepdog"]:
-        raise error.TestNAError(
+        raise exceptions.TestNAError(
             "Pool type '%s' has not yet been supported in the test." %
             pool_type)
     else:
-        raise error.TestFail("Invalid pool type: '%s'." % pool_type)
+        raise exceptions.TestFail("Invalid pool type: '%s'." % pool_type)
     # Mark the clean up flags
     cleanup_flag[0] = cleanup_nfs
     cleanup_flag[1] = cleanup_iscsi
@@ -635,7 +641,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
     try:
         result = virsh.pool_define_as(pool_name, pool_type, pool_target, extra,
                                       ignore_status=True)
-    except error.CmdError:
+    except process.CmdError:
         logging.error("Define '%s' type pool fail.", pool_type)
     return result
 
@@ -708,7 +714,7 @@ def pci_label_from_address(address_dict, radix=10):
         slot = int(address_dict['slot'], radix)
         function = int(address_dict['function'], radix)
     except (TypeError, KeyError), detail:
-        raise error.TestError(detail)
+        raise exceptions.TestError(detail)
     pci_label = ("pci_%04x_%02x_%02x_%01x" % (domain, bus, slot, function))
     return pci_label
 
@@ -721,7 +727,7 @@ def mk_label(disk, label="msdos", session=None):
     if session:
         session.cmd(mklabel_cmd)
     else:
-        utils.run(mklabel_cmd)
+        process.run(mklabel_cmd)
 
 
 def mk_part(disk, size="100M", session=None):
@@ -734,8 +740,8 @@ def mk_part(disk, size="100M", session=None):
         session.cmd(mklabel_cmd)
         session.cmd(mkpart_cmd)
     else:
-        utils.run(mklabel_cmd)
-        utils.run(mkpart_cmd)
+        process.run(mklabel_cmd)
+        process.run(mkpart_cmd)
 
 
 def mkfs(partition, fs_type, options="", session=None):
@@ -746,7 +752,7 @@ def mkfs(partition, fs_type, options="", session=None):
     if session:
         session.cmd(mkfs_cmd)
     else:
-        utils.run(mkfs_cmd)
+        process.run(mkfs_cmd)
 
 
 def get_parts_list(session=None):
@@ -757,7 +763,7 @@ def get_parts_list(session=None):
     if session:
         _, parts_out = session.cmd_status_output(parts_cmd)
     else:
-        parts_out = utils.run(parts_cmd).stdout
+        parts_out = process.run(parts_cmd).stdout
     parts = []
     if parts_out:
         for line in parts_out.rsplit("\n"):
@@ -775,16 +781,16 @@ def yum_install(pkg_list, session=None):
     Try to install packages on system
     """
     if not isinstance(pkg_list, list):
-        raise error.TestError("Parameter error.")
+        raise exceptions.TestError("Parameter error.")
     yum_cmd = "rpm -q {0} || yum -y install {0}"
     for pkg in pkg_list:
         if session:
             status = session.cmd_status(yum_cmd.format(pkg))
         else:
-            status = utils.run(yum_cmd.format(pkg)).exit_status
+            status = process.run(yum_cmd.format(pkg)).exit_status
         if status:
-            raise error.TestFail("Failed to install package: %s"
-                                 % pkg)
+            raise exceptions.TestFail("Failed to install package: %s"
+                                      % pkg)
 
 
 def check_actived_pool(pool_name):
@@ -793,9 +799,9 @@ def check_actived_pool(pool_name):
     """
     sp = libvirt_storage.StoragePool()
     if not sp.pool_exists(pool_name):
-        raise error.TestFail("Can't find pool %s" % pool_name)
+        raise exceptions.TestFail("Can't find pool %s" % pool_name)
     if not sp.is_pool_active(pool_name):
-        raise error.TestFail("Pool %s is not active." % pool_name)
+        raise exceptions.TestFail("Pool %s is not active." % pool_name)
     logging.debug("Find active pool %s", pool_name)
     return True
 
@@ -827,10 +833,12 @@ class PoolVolumeTest(object):
                         # Ignore failed deletion here for deleting pool
                         pv.delete_volume(vol)
                 if not sp.delete_pool(pool_name):
-                    raise error.TestFail("Delete pool %s failed" % pool_name)
+                    raise exceptions.TestFail(
+                        "Delete pool %s failed" % pool_name)
         finally:
             if pool_type == "netfs" and source_format != 'glusterfs':
-                nfs_server_dir = self.params.get("nfs_server_dir", "nfs-server")
+                nfs_server_dir = self.params.get(
+                    "nfs_server_dir", "nfs-server")
                 nfs_path = os.path.join(self.tmpdir, nfs_server_dir)
                 setup_or_cleanup_nfs(is_setup=False, export_dir=nfs_path,
                                      restore_selinux=self.selinux_bak)
@@ -838,10 +846,10 @@ class PoolVolumeTest(object):
                     shutil.rmtree(nfs_path)
             if pool_type == "logical":
                 cmd = "pvs |grep vg_logical|awk '{print $1}'"
-                pv = utils.system_output(cmd)
+                pv = process.system_output(cmd)
                 # Cleanup logical volume anyway
-                utils.run("vgremove -f vg_logical", ignore_status=True)
-                utils.run("pvremove %s" % pv, ignore_status=True)
+                process.run("vgremove -f vg_logical", ignore_status=True)
+                process.run("pvremove %s" % pv, ignore_status=True)
             # These types used iscsi device
             # If we did not provide block device
             if (pool_type in ["logical", "fs", "disk"] and
@@ -913,19 +921,19 @@ class PoolVolumeTest(object):
             if not os.path.exists(pool_target):
                 os.mkdir(pool_target)
             extra = " --source-dev %s" % device_name
-            utils.run(cmd)
+            process.run(cmd)
         elif pool_type == "logical":
             logical_device = device_name
             cmd_pv = "pvcreate %s" % logical_device
             vg_name = "vg_%s" % pool_type
             cmd_vg = "vgcreate %s %s" % (vg_name, logical_device)
             extra = "--source-name %s" % vg_name
-            utils.run(cmd_pv)
-            utils.run(cmd_vg)
+            process.run(cmd_pv)
+            process.run(cmd_vg)
             # Create a small volume for verification
             # And VG path will not exist if no any volume in.(bug?)
             cmd_lv = "lvcreate --name default_lv --size 1M %s" % vg_name
-            utils.run(cmd_lv)
+            process.run(cmd_lv)
         elif pool_type == "netfs":
             export_options = kwargs.get('export_options',
                                         "rw,async,no_root_squash")
@@ -939,9 +947,10 @@ class PoolVolumeTest(object):
                 extra = "--source-host %s --source-path %s" % (hostip,
                                                                source_name)
                 extra += " --source-format %s" % source_format
-                utils.system("setsebool virt_use_fusefs on")
+                process.system("setsebool virt_use_fusefs on")
             else:
-                nfs_server_dir = self.params.get("nfs_server_dir", "nfs-server")
+                nfs_server_dir = self.params.get(
+                    "nfs_server_dir", "nfs-server")
                 nfs_path = os.path.join(self.tmpdir, nfs_server_dir)
                 if not os.path.exists(nfs_path):
                     os.mkdir(nfs_path)
@@ -979,7 +988,7 @@ class PoolVolumeTest(object):
                     image_size=image_size)
                 cmd = ("iscsiadm -m session -P 3 |grep -B3 %s| grep Host|awk "
                        "'{print $3}'" % logical_device.split('/')[2])
-                scsi_host = utils.system_output(cmd)
+                scsi_host = process.system_output(cmd)
                 scsi_pool_xml = pool_xml.PoolXML()
                 scsi_pool_xml.name = pool_name
                 scsi_pool_xml.pool_type = "scsi"
@@ -1022,7 +1031,7 @@ class PoolVolumeTest(object):
         if not re_v:
             self.cleanup_pool(pool_name, pool_type, pool_target,
                               emulated_image, **kwargs)
-            raise error.TestFail("Prepare pool failed")
+            raise exceptions.TestFail("Prepare pool failed")
         xml_str = virsh.pool_dumpxml(pool_name)
         logging.debug("New prepared pool XML: %s", xml_str)
 
@@ -1032,12 +1041,12 @@ class PoolVolumeTest(object):
         """
         pv = libvirt_storage.PoolVolume(pool_name)
         if not pv.create_volume(vol_name, capacity, allocation, vol_format):
-            raise error.TestFail("Prepare volume failed.")
+            raise exceptions.TestFail("Prepare volume failed.")
         if not pv.volume_exists(vol_name):
-            raise error.TestFail("Can't find volume: %s", vol_name)
+            raise exceptions.TestFail("Can't find volume: %s", vol_name)
 
 
-##########Migration Relative functions##############
+# Migration Relative functions##############
 class MigrationTest(object):
 
     """Class for migration tests"""
@@ -1069,7 +1078,7 @@ class MigrationTest(object):
                        debug=True)
             etime = int(time.time())
             self.mig_time[vm.name] = etime - stime
-        except error.CmdError, detail:
+        except process.CmdError, detail:
             logging.error("Migration to %s failed:\n%s", desturi, detail)
             self.RET_LOCK.acquire()
             self.RET_MIGRATION = False
@@ -1138,7 +1147,7 @@ class MigrationTest(object):
                     self.RET_LOCK.release()
 
         if not self.RET_MIGRATION:
-            raise error.TestFail()
+            raise exceptions.TestFail()
 
     def cleanup_dest_vm(self, vm, srcuri, desturi):
         """
@@ -1173,29 +1182,31 @@ def check_result(result, expected_fails=[], skip_if=[], any_error=False):
     if skip_if:
         for patt in skip_if:
             if re.search(patt, result.stderr):
-                raise error.TestNAError("Test skipped: found '%s' in test "
-                                        "result:\n%s" %
-                                        (patt, result.stderr))
+                raise exceptions.TestNAError("Test skipped: found '%s' in test "
+                                             "result:\n%s" %
+                                             (patt, result.stderr))
     if any_error:
         if result.exit_status:
             return
         else:
-            raise error.TestFail("Expect should fail but got:\n%s" % result)
+            raise exceptions.TestFail(
+                "Expect should fail but got:\n%s" % result)
 
     if result.exit_status:
         if expected_fails:
             if not any(re.search(patt, result.stderr)
                        for patt in expected_fails):
-                raise error.TestFail("Expect should fail with one of %s, "
-                                     "but failed with:\n%s" %
-                                     (expected_fails, result))
+                raise exceptions.TestFail("Expect should fail with one of %s, "
+                                          "but failed with:\n%s" %
+                                          (expected_fails, result))
         else:
-            raise error.TestFail("Expect should succeed, but got:\n%s" % result)
+            raise exceptions.TestFail(
+                "Expect should succeed, but got:\n%s" % result)
     else:
         if expected_fails:
-            raise error.TestFail("Expect should fail with one of %s, "
-                                 "but succeeded:\n%s" %
-                                 (expected_fails, result))
+            raise exceptions.TestFail("Expect should fail with one of %s, "
+                                      "but succeeded:\n%s" %
+                                      (expected_fails, result))
 
 
 def check_exit_status(result, expect_error=False):
@@ -1207,11 +1218,11 @@ def check_exit_status(result, expect_error=False):
     """
     if not expect_error:
         if result.exit_status != 0:
-            raise error.TestFail(result.stderr)
+            raise exceptions.TestFail(result.stderr)
         else:
             logging.debug("Command output:\n%s", result.stdout.strip())
     elif expect_error and result.exit_status == 0:
-        raise error.TestFail("Expect fail, but run successfully.")
+        raise exceptions.TestFail("Expect fail, but run successfully.")
 
 
 def get_interface_details(vm_name):
@@ -1305,7 +1316,8 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
             check_exit_status(result, False)
             output = re.findall(r"(\S+)\ +(\S+)\ +(\S+|\s+)[\ +\n]",
                                 str(result.stdout))
-            iface_state = filter(lambda x: x[0] == iface_name, output[1:])[0][1]
+            iface_state = filter(
+                lambda x: x[0] == iface_name, output[1:])[0][1]
             # active corresponds True, otherwise return False
             check_pass = iface_state == "active"
         elif checkpoint == "ping":
@@ -1319,7 +1331,7 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
             logging.debug("Support check points are: %s", support_check)
             logging.error("Unsupport check point: %s", checkpoint)
     except Exception, detail:
-        raise error.TestFail("Interface check failed: %s" % detail)
+        raise exceptions.TestFail("Interface check failed: %s" % detail)
     return check_pass
 
 
@@ -1377,7 +1389,7 @@ def alter_boot_order(vm_name, pci_id, boot_order=0):
         device_function = pci_id.split('.')[-1]
         device_function = "0x%s" % device_function
     except IndexError:
-        raise error.TestError("Invalid PCI Info: %s" % pci_id)
+        raise exceptions.TestError("Invalid PCI Info: %s" % pci_id)
     attrs = {'domain': device_domain, 'slot': device_slot,
              'bus': device_bus, 'function': device_function}
     vmxml.add_hostdev(attrs, boot_order=boot_order)
@@ -1426,11 +1438,12 @@ def create_disk_xml(params):
             source_host_port = params.get("source_host_port")
             transport = params.get("transport")
             source_attrs = {'protocol': source_protocol, 'name': source_name}
-            source_host = [{'name': source_host_name, 'port': source_host_port}]
+            source_host = [
+                {'name': source_host_name, 'port': source_host_port}]
             if transport:
                 source_host[0].update({'transport': transport})
         else:
-            error.TestNAError("Unsupport disk type %s" % type_name)
+            exceptions.TestNAError("Unsupport disk type %s" % type_name)
         source_startupPolicy = params.get("source_startupPolicy")
         if source_startupPolicy:
             source_attrs['startupPolicy'] = source_startupPolicy
@@ -1488,8 +1501,8 @@ def create_disk_xml(params):
 
     # Wait for file completed
     def file_exists():
-        if not utils.run("ls %s" % diskxml.xml,
-                         ignore_status=True).exit_status:
+        if not process.run("ls %s" % diskxml.xml,
+                           ignore_status=True).exit_status:
             return True
     utils_misc.wait_for(file_exists, 5)
 
@@ -1632,19 +1645,20 @@ def create_net_xml(net_name, params):
                 if len(pg_virtualport) > i:
                     pgxml.virtualport_type = pg_virtualport[i]
                 if len(pg_bandwidth_inbound) > i:
-                    pgxml.bandwidth_inbound = ast.literal_eval(pg_bandwidth_inbound[i])
+                    pgxml.bandwidth_inbound = ast.literal_eval(
+                        pg_bandwidth_inbound[i])
                 if len(pg_bandwidth_outbound) > i:
-                    pgxml.bandwidth_outbound = ast.literal_eval(pg_bandwidth_outbound[i])
+                    pgxml.bandwidth_outbound = ast.literal_eval(
+                        pg_bandwidth_outbound[i])
                 if len(pg_vlan) > i:
                     pgxml.vlan_tag = ast.literal_eval(pg_vlan[i])
                 netxml.set_portgroup(pgxml)
         logging.debug("New network xml file: %s", netxml)
         netxml.xmltreefile.write()
         return netxml
-
     except Exception, detail:
-        utils.log_last_traceback()
-        raise error.TestFail("Fail to create network XML: %s" % detail)
+        stacktrace.log_exc_info(sys.exc_info())
+        raise exceptions.TestFail("Fail to create network XML: %s" % detail)
 
 
 def create_nwfilter_xml(params):
@@ -1709,9 +1723,9 @@ def create_nwfilter_xml(params):
                     if '-' in protocol[i]:
                         protocol[i] = protocol[i].replace('-', '_')
                 else:
-                    raise error.TestFail("Given protocol type %s"
-                                         " is not in supported list %s"
-                                         % (protocol[i], PROTOCOL_TYPES))
+                    raise exceptions.TestFail("Given protocol type %s"
+                                              " is not in supported list %s"
+                                              % (protocol[i], PROTOCOL_TYPES))
 
     try:
         new_filter = nwfilter_xml.NwfilterXML()
@@ -1760,8 +1774,8 @@ def create_nwfilter_xml(params):
         return filterxml
 
     except Exception, detail:
-        utils.log_last_traceback()
-        raise error.TestFail("Fail to create nwfilter XML: %s" % detail)
+        stacktrace.log_exc_info(sys.exc_info())
+        raise exceptions.TestFail("Fail to create nwfilter XML: %s" % detail)
 
 
 def create_channel_xml(params, alias=False, address=False):
@@ -1786,7 +1800,7 @@ def create_channel_xml(params, alias=False, address=False):
     target_name = params.get("target_name")
 
     if channel_type_name is None:
-        raise error.TestFail("channel_type_name not specified.")
+        raise exceptions.TestFail("channel_type_name not specified.")
     # if these params are None, it won't be used.
     if source_mode:
         channel_source['mode'] = source_mode
@@ -1840,8 +1854,8 @@ def set_domain_state(vm, vm_state):
         # Execute "pm-suspend-hybrid" command directly will get Timeout error,
         # so here execute it in background, and wait for 3s manually
         if session.cmd_status("which pm-suspend-hybrid"):
-            raise error.TestNAError("Cannot execute this test for domain"
-                                    " doesn't have pm-suspend-hybrid command!")
+            raise exceptions.TestNAError("Cannot execute this test for domain"
+                                         " doesn't have pm-suspend-hybrid command!")
         session.cmd("pm-suspend-hybrid &")
         time.sleep(3)
 
@@ -1868,8 +1882,8 @@ def set_guest_agent(vm):
     cmd = "rpm -q qemu-guest-agent || yum install -y qemu-guest-agent"
     stat_install = session.cmd_status(cmd, 300)
     if stat_install != 0:
-        raise error.TestFail("Fail to install qemu-guest-agent, make "
-                             "sure that you have usable repo in guest")
+        raise exceptions.TestFail("Fail to install qemu-guest-agent, make "
+                                  "sure that you have usable repo in guest")
 
     # Check if qemu-ga already started
     stat_ps = session.cmd_status("ps aux |grep [q]emu-ga")
@@ -1878,7 +1892,7 @@ def set_guest_agent(vm):
         # Check if the qemu-ga really started
         stat_ps = session.cmd_status("ps aux |grep [q]emu-ga")
         if stat_ps != 0:
-            raise error.TestFail("Fail to run qemu-ga in guest")
+            raise exceptions.TestFail("Fail to run qemu-ga in guest")
 
 
 def set_vm_disk(vm, params, tmp_dir=None, test=None):
@@ -1976,9 +1990,9 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         elif disk_type == 'network' or disk_type == 'volume':
             is_login = False
         else:
-            raise error.TestFail("Disk type '%s' not expected, only disk "
-                                 "type 'block', 'network' or 'volume' work "
-                                 "with 'iscsi'" % disk_type)
+            raise exceptions.TestFail("Disk type '%s' not expected, only disk "
+                                      "type 'block', 'network' or 'volume' work "
+                                      "with 'iscsi'" % disk_type)
 
         if disk_type == 'volume':
             pvt = PoolVolumeTest(test, params)
@@ -1991,8 +2005,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                 vol_name = re.findall(r"(\S+)\ +(\S+)[\ +\n]",
                                       str(cmd_result.stdout))[1][0]
             except IndexError:
-                raise error.TestError("Fail to get volume name in pool %s" %
-                                      pool_name)
+                raise exceptions.TestError("Fail to get volume name in "
+                                           "pool %s" % pool_name)
             emulated_path = virsh.vol_path(vol_name, pool_name,
                                            debug=True).stdout.strip()
         else:
@@ -2008,7 +2022,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                                                       disk_format,
                                                       blk_source,
                                                       emulated_path)
-        utils.run(cmd, ignore_status=False)
+        process.run(cmd, ignore_status=False)
 
         if disk_type == 'block':
             disk_params_src = {'source_file': iscsi_target}
@@ -2038,8 +2052,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                                                               dist_img)
 
         # Mount the gluster disk and create the image.
-        utils.run("mount -t glusterfs %s:%s /mnt; %s; umount /mnt"
-                  % (host_ip, vol_name, disk_cmd))
+        process.run("mount -t glusterfs %s:%s /mnt; %s; umount /mnt"
+                    % (host_ip, vol_name, disk_cmd))
 
         disk_params_src = {'source_protocol': disk_src_protocol,
                            'source_name': "%s/%s" % (vol_name, dist_img),
@@ -2061,7 +2075,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         disk_cmd = ("qemu-img convert -f %s -O %s %s %s/%s" %
                     (src_disk_format, disk_format,
                      blk_source, exp_path, dist_img))
-        utils.run(disk_cmd, ignore_status=False)
+        process.run(disk_cmd, ignore_status=False)
 
         src_file_path = "%s/%s" % (mnt_path, dist_img)
         disk_params_src = {'source_file': src_file_path}
@@ -2131,9 +2145,9 @@ def create_local_disk(disk_type, path=None,
                       size="10", disk_format="raw",
                       vgname=None, lvname=None):
     if disk_type != "lvm" and path is None:
-        raise error.TestError("Path is needed for creating local disk")
+        raise exceptions.TestError("Path is needed for creating local disk")
     if path:
-        utils.run("mkdir -p %s" % os.path.dirname(path))
+        process.run("mkdir -p %s" % os.path.dirname(path))
     try:
         size = str(float(size)) + "G"
     except ValueError:
@@ -2147,13 +2161,13 @@ def create_local_disk(disk_type, path=None,
         cmd = "mkisofs -o %s /root/*.*" % path
     elif disk_type == "lvm":
         if vgname is None or lvname is None:
-            raise error.TestError("Both VG name and LV name are needed")
+            raise exceptions.TestError("Both VG name and LV name are needed")
         lv_utils.lv_create(vgname, lvname, size)
         path = "/dev/%s/%s" % (vgname, lvname)
     else:
-        raise error.TestError("Unknown disk type %s" % disk_type)
+        raise exceptions.TestError("Unknown disk type %s" % disk_type)
     if cmd:
-        utils.run(cmd, ignore_status=True)
+        process.run(cmd, ignore_status=True)
     return path
 
 
@@ -2161,16 +2175,17 @@ def delete_local_disk(disk_type, path=None,
                       vgname=None, lvname=None):
     if disk_type in ["file", "floppy", "iso"]:
         if path is None:
-            raise error.TestError("Path is needed for deleting local disk")
+            raise exceptions.TestError(
+                "Path is needed for deleting local disk")
         else:
             cmd = "rm -f %s" % path
-            utils.run(cmd, ignore_status=True)
+            process.run(cmd, ignore_status=True)
     elif disk_type == "lvm":
         if vgname is None or lvname is None:
-            raise error.TestError("Both VG name and LV name needed")
+            raise exceptions.TestError("Both VG name and LV name needed")
         lv_utils.lv_remove(vgname, lvname)
     else:
-        raise error.TestError("Unknown disk type %s" % disk_type)
+        raise exceptions.TestError("Unknown disk type %s" % disk_type)
 
 
 def create_scsi_disk(scsi_option, scsi_size="2048"):
@@ -2183,18 +2198,18 @@ def create_scsi_disk(scsi_option, scsi_size="2048"):
     try:
         utils_misc.find_command("lsscsi")
     except ValueError:
-        raise error.TestNAError("Missing command 'lsscsi'.")
+        raise exceptions.TestNAError("Missing command 'lsscsi'.")
 
     try:
         # Load scsi_debug kernel module.
         # Unload it first if it's already loaded.
-        if utils.module_is_loaded("scsi_debug"):
-            utils.unload_module("scsi_debug")
-        utils.load_module("scsi_debug dev_size_mb=%s %s"
-                          % (scsi_size, scsi_option))
+        if modules.module_is_loaded("scsi_debug"):
+            modules.unload_module("scsi_debug")
+        modules.load_module("scsi_debug dev_size_mb=%s %s"
+                            % (scsi_size, scsi_option))
         # Get the scsi device name
-        scsi_disk = utils.run("lsscsi|grep scsi_debug|"
-                              "awk '{print $6}'").stdout.strip()
+        scsi_disk = process.run("lsscsi|grep scsi_debug|"
+                                "awk '{print $6}'").stdout.strip()
         logging.info("scsi disk: %s" % scsi_disk)
         return scsi_disk
     except Exception, e:
@@ -2206,8 +2221,8 @@ def delete_scsi_disk():
     """
     Delete scsi device by removing scsi_debug kernel module.
     """
-    if utils.module_is_loaded("scsi_debug"):
-        utils.unload_module("scsi_debug")
+    if modules.module_is_loaded("scsi_debug"):
+        modules.unload_module("scsi_debug")
 
 
 def set_controller_multifunction(vm_name, controller_type='scsi'):
@@ -2344,8 +2359,8 @@ def attach_disks(vm, path, vgname, params):
         result = attach_additional_device(vm.name, target_dev, disk_path,
                                           disk_params, attach_config)
         if result.exit_status:
-            raise error.TestFail("Attach device %s failed."
-                                 % target_dev)
+            raise exceptions.TestFail("Attach device %s failed."
+                                      % target_dev)
     logging.debug("New VM XML:\n%s", vm.get_xml())
     return added_disks
 
@@ -2378,12 +2393,12 @@ def remotely_control_libvirtd(server_ip, server_user, server_pwd,
         logging.info("%s libvirt daemon\n", action)
         service_libvirtd_control(action, session)
         session.close()
-    except (remote.LoginError, aexpect.ShellError, error.CmdError), detail:
+    except (remote.LoginError, aexpect.ShellError, process.CmdError), detail:
         if session:
             session.close()
         if status_error == "no":
-            raise error.TestFail("Failed to %s libvirtd service on "
-                                 "server: %s\n", action, detail)
+            raise exceptions.TestFail("Failed to %s libvirtd service on "
+                                      "server: %s\n", action, detail)
         else:
             logging.info("It is an expect %s", detail)
 
@@ -2452,7 +2467,8 @@ def get_all_vol_paths():
     sp = libvirt_storage.StoragePool()
     for pool_name in sp.list_pools().keys():
         if sp.list_pools()[pool_name]['State'] != "active":
-            logging.warning("Inactive pool '%s' cannot be processed" % pool_name)
+            logging.warning(
+                "Inactive pool '%s' cannot be processed" % pool_name)
             continue
         pv = libvirt_storage.PoolVolume(pool_name)
         for path in pv.list_volumes().values():

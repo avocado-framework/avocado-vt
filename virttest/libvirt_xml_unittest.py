@@ -4,17 +4,22 @@ import unittest
 import os
 import shutil
 import logging
+import sys
 
-import common
+from avocado.utils import process
+
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
 from virttest import xml_utils, utils_misc, data_dir
-from virttest.virsh_unittest import FakeVirshFactory
-from autotest.client import utils
-from autotest.client.shared import error
 from virttest.libvirt_xml import accessors, vm_xml, xcepts, network_xml, base
 from virttest.libvirt_xml import nodedev_xml
 from virttest.libvirt_xml.devices import librarian
 from virttest.libvirt_xml.devices import base as devices_base
 from virttest.libvirt_xml import capability_xml
+from virttest.virsh_unittest import FakeVirshFactory
 
 # save a copy
 ORIGINAL_DEVICE_TYPES = list(librarian.DEVICE_TYPES)
@@ -139,9 +144,9 @@ class LibvirtXMLTestBase(unittest.TestCase):
             stdout = "error: command 'dumpxml' requires <domain> option"
             stderr = stdout
             exit_status = 1
-            result = utils.CmdResult(cmd, stdout, stderr, exit_status)
-            raise error.CmdError(cmd, result,
-                                 "Virsh Command returned non-zero exit status")
+            result = process.CmdResult(cmd, stdout, stderr, exit_status)
+            raise process.CmdError(cmd, result,
+                                   "Virsh Command returned non-zero exit status")
 
         file_path = os.path.join(LibvirtXMLTestBase.__doms_dir__,
                                  '%s.xml' % name)
@@ -159,7 +164,7 @@ class LibvirtXMLTestBase(unittest.TestCase):
         stdout = domain_xml
         stderr = ""
         exit_status = 0
-        return utils.CmdResult(cmd, stdout, stderr, exit_status)
+        return process.CmdResult(cmd, stdout, stderr, exit_status)
 
     @staticmethod
     def _nodedev_dumpxml(name, options="", to_file=None, **dargs):
@@ -186,8 +191,8 @@ class LibvirtXMLTestBase(unittest.TestCase):
                "<vendor id='0x8086'>Intel Corporation</vendor>"
                "</capability>"
                "</device>")
-        return utils.CmdResult('virsh nodedev-dumpxml pci_0000_00_00_0',
-                               xml, '', 0)
+        return process.CmdResult('virsh nodedev-dumpxml pci_0000_00_00_0',
+                                 xml, '', 0)
 
     def setUp(self):
         self.dummy_virsh = FakeVirshFactory()
@@ -202,7 +207,8 @@ class LibvirtXMLTestBase(unittest.TestCase):
         self.dummy_virsh.__super_set__('dumpxml', self._dumpxml)
         self.dummy_virsh.__super_set__('domuuid', self._domuuid)
         self.dummy_virsh.__super_set__('define', self._define)
-        self.dummy_virsh.__super_set__('nodedev_dumpxml', self._nodedev_dumpxml)
+        self.dummy_virsh.__super_set__(
+            'nodedev_dumpxml', self._nodedev_dumpxml)
 
     def tearDown(self):
         librarian.DEVICE_TYPES = list(ORIGINAL_DEVICE_TYPES)
@@ -536,7 +542,8 @@ class AccessorsTest(LibvirtXMLTestBase):
                 accessors.XMLElementText('text', self, parent_xpath='/',
                                          tag_name='whatchamacallit')
                 # pylint: disable=E1003
-                super(Whatchamacallit, self).__init__(virsh_instance=virsh_instance)
+                super(Whatchamacallit, self).__init__(
+                    virsh_instance=virsh_instance)
                 self.xml = "<whatchamacallit></whatchamacallit>"
                 self.text = str(text)
 
@@ -1030,7 +1037,8 @@ class testCAPXML(LibvirtXMLTestBase):
 class testNodedevXMLBase(LibvirtXMLTestBase):
 
     def _from_scratch(self):
-        nodedevxml = nodedev_xml.NodedevXMLBase(virsh_instance=self.dummy_virsh)
+        nodedevxml = nodedev_xml.NodedevXMLBase(
+            virsh_instance=self.dummy_virsh)
         nodedevxml.name = 'name_test'
         nodedevxml.parent = 'parent_test'
 

@@ -1,9 +1,15 @@
 #!/usr/bin/python
 import unittest
 import logging
+import os
+import sys
 
-import common
-import propcan
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest import propcan
 
 
 class TestPropCanBase(unittest.TestCase):

@@ -1,6 +1,10 @@
 import logging
-from autotest.client.shared import error
-from virttest import env_process, qemu_virtio_port
+
+from avocado.core import exceptions
+
+from . import env_process
+from . import error_context
+from . import qemu_virtio_port
 
 
 class VirtioPortTest(object):
@@ -10,7 +14,7 @@ class VirtioPortTest(object):
         self.env = env
         self.params = params
 
-    @error.context_aware
+    @error_context.context_aware
     def get_vm_with_ports(self, no_consoles=0, no_serialports=0, spread=None,
                           quiet=False, strict=False):
         """
@@ -88,7 +92,7 @@ class VirtioPortTest(object):
         vm.verify_kernel_crash()
         return vm
 
-    @error.context_aware
+    @error_context.context_aware
     def get_vm_with_worker(self, no_consoles=0, no_serialports=0, spread=None,
                            quiet=False):
         """
@@ -107,7 +111,7 @@ class VirtioPortTest(object):
         guest_worker = qemu_virtio_port.GuestWorker(vm)
         return vm, guest_worker
 
-    @error.context_aware
+    @error_context.context_aware
     def get_vm_with_single_port(self, port_type='serialport'):
         """
         Wrapper which returns vm, guest_worker and virtio_ports with at lest
@@ -126,7 +130,7 @@ class VirtioPortTest(object):
             virtio_ports = self.get_virtio_ports(vm)[0][0]
         return vm, guest_worker, virtio_ports
 
-    @error.context_aware
+    @error_context.context_aware
     def get_virtio_ports(self, vm):
         """
         Returns separated virtconsoles and virtserialports
@@ -144,7 +148,7 @@ class VirtioPortTest(object):
         return (consoles, serialports)
 
     @staticmethod
-    @error.context_aware
+    @error_context.context_aware
     def cleanup(vm=None, guest_worker=None):
         """
         Cleanup function.
@@ -152,10 +156,10 @@ class VirtioPortTest(object):
         :param vm: VM whose ports should be cleaned
         :param guest_worker: guest_worker which should be cleaned/exited
         """
-        error.context("Cleaning virtio_ports on guest.")
+        error_context.context("Cleaning virtio_ports on guest.")
         if guest_worker:
             guest_worker.cleanup()
-        error.context("Cleaning virtio_ports on host.")
+        error_context.context("Cleaning virtio_ports on host.")
         if vm:
             for port in vm.virtio_ports:
                 port.clean_port()
