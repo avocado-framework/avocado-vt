@@ -7,10 +7,11 @@ import signal
 import os
 import re
 
-from autotest.client import os_dep, utils
-from autotest.client.shared import error
-import aexpect
-import propcan
+from avocado.utils import path
+from avocado.utils import process
+
+from . import aexpect
+from . import propcan
 
 
 class LibguestfsCmdError(Exception):
@@ -49,8 +50,8 @@ def lgf_cmd_check(cmd):
             "Command %s is not supported by libguestfs yet." % cmd)
 
     try:
-        return os_dep.command(cmd)
-    except ValueError:
+        return path.find_command(cmd)
+    except path.CmdNotFoundError:
         logging.warning("You have not installed %s on this host.", cmd)
         return None
 
@@ -69,9 +70,9 @@ def lgf_command(cmd, ignore_status=True, debug=False, timeout=60):
 
     # Raise exception if ignore_status is False
     try:
-        ret = utils.run(cmd, ignore_status=ignore_status,
-                        verbose=debug, timeout=timeout)
-    except error.CmdError, detail:
+        ret = process.run(cmd, ignore_status=ignore_status,
+                          verbose=debug, timeout=timeout)
+    except process.CmdError, detail:
         raise LibguestfsCmdError(detail)
 
     if debug:
@@ -279,13 +280,13 @@ class GuestfishSession(aexpect.ShellSession):
         return 0, out
 
     def cmd_result(self, cmd, ignore_status=False):
-        """Mimic utils.run()"""
+        """Mimic process.run()"""
         exit_status, stdout = self.cmd_status_output(cmd)
         stderr = ''  # no way to retrieve this separately
-        result = utils.CmdResult(cmd, stdout, stderr, exit_status)
+        result = process.CmdResult(cmd, stdout, stderr, exit_status)
         if not ignore_status and exit_status:
-            raise error.CmdError(cmd, result,
-                                 "Guestfish Command returned non-zero exit status")
+            raise process.CmdError(cmd, result,
+                                   "Guestfish Command returned non-zero exit status")
         return result
 
 
@@ -307,9 +308,9 @@ class GuestfishRemote(object):
         """
         if a_id is None:
             try:
-                ret = utils.run(guestfs_exec, ignore_status=False,
-                                verbose=True, timeout=60)
-            except error.CmdError, detail:
+                ret = process.run(guestfs_exec, ignore_status=False,
+                                  verbose=True, timeout=60)
+            except process.CmdError, detail:
                 raise LibguestfsCmdError(detail)
             self.a_id = re.search("\d+", ret.stdout.strip()).group()
         else:
@@ -331,14 +332,16 @@ class GuestfishRemote(object):
         guestfs_exec = "guestfish --remote=%s " % self.a_id
         cmd = guestfs_exec + cmd
         try:
-            ret = utils.run(cmd, ignore_status=ignore_status,
-                            verbose=verbose, timeout=timeout)
-        except error.CmdError, detail:
+            ret = process.run(cmd, ignore_status=ignore_status,
+                              verbose=verbose, timeout=timeout)
+        except process.CmdError, detail:
             raise LibguestfsCmdError(detail)
 
         for line in self.ERROR_REGEX_LIST:
             if re.search(line, ret.stdout.strip()):
-                raise LibguestfsCmdError(detail)
+                e_msg = ('Error pattern %s found on output of %s: %s' %
+                         (line, cmd, ret.stdout.strip()))
+                raise LibguestfsCmdError(e_msg)
 
         logging.debug("command: %s", cmd)
         logging.debug("stdout: %s", ret.stdout.strip())
@@ -346,23 +349,23 @@ class GuestfishRemote(object):
         return 0, ret.stdout.strip()
 
     def cmd(self, cmd, ignore_status=False):
-        """Mimic utils.run()"""
+        """Mimic process.run()"""
         exit_status, stdout = self.cmd_status_output(cmd)
         stderr = ''  # no way to retrieve this separately
-        result = utils.CmdResult(cmd, stdout, stderr, exit_status)
+        result = process.CmdResult(cmd, stdout, stderr, exit_status)
         if not ignore_status and exit_status:
-            raise error.CmdError(cmd, result,
-                                 "Guestfish Command returned non-zero exit status")
+            raise process.CmdError(cmd, result,
+                                   "Guestfish Command returned non-zero exit status")
         return result
 
     def cmd_result(self, cmd, ignore_status=False):
-        """Mimic utils.run()"""
+        """Mimic process.run()"""
         exit_status, stdout = self.cmd_status_output(cmd)
         stderr = ''  # no way to retrieve this separately
-        result = utils.CmdResult(cmd, stdout, stderr, exit_status)
+        result = process.CmdResult(cmd, stdout, stderr, exit_status)
         if not ignore_status and exit_status:
-            raise error.CmdError(cmd, result,
-                                 "Guestfish Command returned non-zero exit status")
+            raise process.CmdError(cmd, result,
+                                   "Guestfish Command returned non-zero exit status")
         return result
 
 
@@ -393,9 +396,11 @@ class GuestfishPersistent(Guestfish):
         # Check whether guestfish session is prepared.
         guestfs_session = self.open_session()
         if run_mode != "remote":
-            status, output = guestfs_session.cmd_status_output('is-config', timeout=60)
+            status, output = guestfs_session.cmd_status_output(
+                'is-config', timeout=60)
             if status != 0:
-                logging.debug("Persistent guestfish session is not responding.")
+                logging.debug(
+                    "Persistent guestfish session is not responding.")
                 raise aexpect.ShellStatusError(self.lgf_exec, 'is-config')
 
     def close_session(self):

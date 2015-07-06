@@ -5,9 +5,11 @@ http://libvirt.org/formatstorage.html#StoragePool
 import os
 import logging
 import tempfile
-from autotest.client.shared import error
-from virttest import libvirt_storage
-from virttest.libvirt_xml import base, xcepts, accessors
+
+from avocado.utils import process
+
+from .. import libvirt_storage
+from ..libvirt_xml import base, xcepts, accessors
 
 
 class SourceXML(base.LibvirtXMLBase):
@@ -245,7 +247,7 @@ class PoolXML(PoolXMLBase):
         """
         try:
             self.virsh.pool_undefine(self.name, ignore_status=False)
-        except error.CmdError:
+        except process.CmdError:
             logging.error("Undefine pool '%s' failed.", self.name)
             return False
 
@@ -296,6 +298,17 @@ class PoolXML(PoolXMLBase):
             poolxml.uuid = uuid
         # Re-define XML to libvirt
         logging.debug("Rename pool: %s to %s.", name, new_name)
+        # error message for failed define
+        error_msg = "Error reported while defining pool:\n"
+        try:
+            if not poolxml.pool_define():
+                raise xcepts.LibvirtXMLError(error_msg + "%s"
+                                             % poolxml.get('xml'))
+        except process.CmdError, detail:
+            del poolxml
+            # Allow exceptions thrown here since state will be undefined
+            backup.pool_define()
+            raise xcepts.LibvirtXMLError(error_msg + "%s" % detail)
         if not poolxml.pool_define():
             logging.info("Pool xml: %s" % poolxml.get('xml'))
             _cleanup(details="Define pool %s failed" % new_name)

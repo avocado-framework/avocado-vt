@@ -1,10 +1,10 @@
 import UserDict
 from threading import Lock
 
-from autotest.client.shared import error
+from avocado.core import exceptions
 
 
-class ParamNotFound(error.TestNAError):
+class ParamNotFound(exceptions.TestNAError):
     pass
 
 

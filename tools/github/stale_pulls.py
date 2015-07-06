@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
-import sys
-import os
 import getpass
 import datetime
+
 from github import Github
 from github_issues import GithubIssues
 

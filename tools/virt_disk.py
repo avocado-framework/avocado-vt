@@ -1,24 +1,30 @@
 #!/usr/bin/env python
 
-'''
+"""
 This is a tool for that makes it easy to create virtual disks, optionally
 with content ready for unattended installations.
 
 The main use case for this tool is debugging guest installations with an
 disks just like they're created by the virt unattended test installation.
-'''
+"""
 
 import sys
 import optparse
-import common
+import os
+
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
 from virttest import utils_disk
 
 
 class OptionParser(optparse.OptionParser):
 
-    '''
+    """
     App option parser
-    '''
+    """
 
     def __init__(self):
         optparse.OptionParser.__init__(self,
@@ -52,9 +58,9 @@ class OptionParser(optparse.OptionParser):
 
 class App:
 
-    '''
+    """
     Virt Disk Creation App
-    '''
+    """
 
     def __init__(self):
         self.opt_parser = OptionParser()

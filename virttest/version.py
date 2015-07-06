@@ -14,12 +14,10 @@ __all__ = ("get_git_version", "get_version", "get_top_commit",
 
 
 import os
-import sys
-import common
-from autotest.client import utils
-from autotest.client.shared import error
 
-import data_dir
+from avocado.utils import process
+
+from . import data_dir
 
 _ROOT_PATH = data_dir.get_root_dir()
 RELEASE_VERSION_PATH = os.path.join(_ROOT_PATH, 'RELEASE-VERSION')
@@ -44,10 +42,10 @@ def _execute_git_command(command):
     os.chdir(_ROOT_PATH)
     try:
         try:
-            return utils.system_output(command).strip()
+            return process.system_output(command, shell=True).strip()
         finally:
             os.chdir(cwd)
-    except error.CmdError:
+    except process.CmdError:
         return 'unknown'
 
 

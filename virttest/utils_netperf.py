@@ -1,10 +1,13 @@
 import os
 import logging
 import re
-from autotest.client import utils
-import remote
-import aexpect
-import data_dir
+
+from avocado.utils import download
+from avocado.utils import aurl
+
+from . import aexpect
+from . import data_dir
+from . import remote
 
 
 class NetperfError(Exception):
@@ -137,11 +140,13 @@ class NetperfPackage(remote.Remote_Package):
         Copy file from remote to local.
         """
 
-        if utils.is_url(netperf_source):
+        if aurl.is_url(netperf_source):
             logging.debug("Download URL file to local path")
             tmp_dir = data_dir.get_download_dir()
-            self.netperf_source = utils.unmap_url_cache(tmp_dir, netperf_source,
-                                                        self.md5sum)
+            dst = os.path.join(tmp_dir, os.path.basename(netperf_source))
+            self.netperf_source = download.get_file(src=netperf_source,
+                                                    dst=dst,
+                                                    hash_expected=self.md5sum)
         else:
             self.netperf_source = netperf_source
         return self.netperf_source

@@ -3,10 +3,13 @@
 import sys
 import os
 import re
-import logging
-import common
-from autotest.client.shared import logging_manager
-from virttest import utils_net, utils_misc
+
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest import utils_net
 
 
 def destroy_tap(tapfd_list):
@@ -19,10 +22,8 @@ def destroy_tap(tapfd_list):
 
 
 if __name__ == "__main__":
-    logging_manager.configure_logging(utils_misc.VirtLoggingConfig(),
-                                      verbose=True)
     if len(sys.argv) <= 2:
-        logging.info("Usage: %s bridge_name qemu_command_line", sys.argv[0])
+        print("Usage: %s bridge_name qemu_command_line" % sys.argv[0])
         sys.exit(255)
 
     brname = sys.argv[1]
@@ -39,7 +40,7 @@ if __name__ == "__main__":
 
     tap_list = re.findall(tap_list_re, cmd_line)
     if not tap_list:
-        print "Could not find tap device."
+        print("Could not find tap device.")
         sys.exit(1)
 
     tapfd_list = []
@@ -60,7 +61,7 @@ if __name__ == "__main__":
 
     try:
         # Run qemu command.
-        logging.info("TAP fd open to %s: %s", brname, tapfd_list)
+        print("TAP fd open to %s: %s", brname, tapfd_list)
         os.system(cmd_line)
     finally:
         destroy_tap(tapfd_list)

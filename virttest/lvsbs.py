@@ -2,11 +2,11 @@
 Higher order classes for Libvirt Sandbox Service (lxc) service container testing
 """
 
-from autotest.client import utils
-from autotest.client.shared.service import COMMANDS
-from virttest.staging import service
-import lvsb_base
-import virsh
+from avocado.utils import process
+from avocado.utils import service
+
+from . import lvsb_base
+from . import virsh
 
 
 class SandboxService(object):
@@ -30,7 +30,7 @@ class SandboxService(object):
         # create a service. Then we will get a SpecificServiceManager object as
         # self.service. But SpecificServiceManager is not pickleable, save init
         # args here.
-        self._run = utils.run
+        self._run = process.run
         self.service = service.Factory.create_service(self.service_name,
                                                       run=self._run)
         # make self.start() --> self.service.start()
@@ -38,7 +38,7 @@ class SandboxService(object):
 
     def _bind_service_commands(self):
         """Setup service methods locally for __init__ and __setstate__"""
-        for command in COMMANDS:
+        for command in service.COMMANDS:
             # Use setattr to keep pylint quiet
             setattr(self, command, getattr(self.service, command))
 

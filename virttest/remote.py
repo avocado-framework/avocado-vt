@@ -7,16 +7,16 @@ import re
 import os
 import shutil
 import tempfile
-import aexpect
-import utils_misc
-import rss_client
 
-from remote_commander import remote_master
-from remote_commander import messenger
+from avocado.core import exceptions
+from avocado.utils import process
 
-from autotest.client.shared import error
-from autotest.client import utils
-import data_dir
+from . import data_dir
+from . import aexpect
+from . import utils_misc
+from . import rss_client
+from .remote_commander import remote_master
+from .remote_commander import messenger
 
 
 class LoginError(Exception):
@@ -131,7 +131,8 @@ def handle_prompts(session, username, password, prompt, timeout=10,
         try:
             match, text = session.read_until_last_line_matches(
                 [r"[Aa]re you sure", r"[Pp]assword:\s*",
-                 r"\(or (press|type) Control-D to continue\):\s*$",  # Prompt of rescue mode for Red Hat.
+                 # Prompt of rescue mode for Red Hat.
+                 r"\(or (press|type) Control-D to continue\):\s*$",
                  r"[Gg]ive.*[Ll]ogin:\s*$",  # Prompt of rescue mode for SUSE.
                  r"(?<![Ll]ast )[Ll]ogin:\s*$",  # Don't match "Last Login:"
                  r"[Cc]onnection.*closed", r"[Cc]onnection.*refused",
@@ -660,8 +661,8 @@ def udp_copy_between_remotes(src, dst, s_port, s_passwd, d_passwd,
         info = session.cmd_output(cmd, timeout=360).strip()
         drive_path = re.search(r'(\w):\s+(\S+)', info, re.M)
         if not drive_path:
-            raise error.TestError("Not found file %s.%s in your guest"
-                                  % (filename, extension))
+            raise exceptions.TestError("Not found file %s.%s in your guest"
+                                       % (filename, extension))
         return ":".join(drive_path.groups())
 
     def get_file_md5(session, file_path):
@@ -680,7 +681,7 @@ def udp_copy_between_remotes(src, dst, s_port, s_passwd, d_passwd,
         o = session.cmd_output(md5_cmd)
         file_md5 = re.findall(md5_reg, o)
         if not o:
-            raise error.TestError("Get file %s md5sum error" % file_path)
+            raise exceptions.TestError("Get file %s md5sum error" % file_path)
         return file_md5
 
     def server_alive(session):
@@ -690,7 +691,7 @@ def udp_copy_between_remotes(src, dst, s_port, s_passwd, d_passwd,
             check_cmd = "tasklist"
         o = session.cmd_output(check_cmd)
         if not o:
-            raise error.TestError("Can not get the server status")
+            raise exceptions.TestError("Can not get the server status")
         if "sendfile" in o.lower():
             return True
         return False
@@ -704,7 +705,7 @@ def udp_copy_between_remotes(src, dst, s_port, s_passwd, d_passwd,
                                                         d_port)
         session.cmd_output_safe(start_cmd)
         if not server_alive(session):
-            raise error.TestError("Start udt server failed")
+            raise exceptions.TestError("Start udt server failed")
 
     def start_client(session):
         if c_type == "ssh":
@@ -735,8 +736,8 @@ def udp_copy_between_remotes(src, dst, s_port, s_passwd, d_passwd,
         if src_md5 != dst_md5:
             err_msg = "Files md5sum mismatch, file %s md5sum is '%s', "
             err_msg = "but the file %s md5sum is %s"
-            raise error.TestError(err_msg % (s_path, src_md5,
-                                             d_path, dst_md5))
+            raise exceptions.TestError(err_msg % (s_path, src_md5,
+                                                  d_path, dst_md5))
     finally:
         stop_server(s_session)
         s_session.close()
@@ -778,8 +779,8 @@ def copy_files_to(address, client, username, password, port, local_path,
         c.upload(local_path, remote_path, timeout)
         c.close()
     else:
-        raise error.TestError("No such file copy client: '%s', valid values"
-                              "are scp and rss" % client)
+        raise exceptions.TestError("No such file copy client: '%s', valid values"
+                                   "are scp and rss" % client)
 
 
 def copy_files_from(address, client, username, password, port, remote_path,
@@ -817,8 +818,8 @@ def copy_files_from(address, client, username, password, port, remote_path,
         c.download(remote_path, local_path, timeout)
         c.close()
     else:
-        raise error.TestError("No such file copy client: '%s', valid values"
-                              "are scp and rss" % client)
+        raise exceptions.TestError("No such file copy client: '%s', valid values"
+                                   "are scp and rss" % client)
 
 
 class Remote_Package(object):
@@ -1109,7 +1110,8 @@ class RemoteRunner(object):
         """
         if session is None:
             if host is None:
-                raise error.TestError("Neither host, nor session was defined!")
+                raise exceptions.TestError(
+                    "Neither host, nor session was defined!")
             self.session = wait_for_login(client, host, port, username,
                                           password, prompt, linesep,
                                           log_filename, timeout,
@@ -1134,14 +1136,15 @@ class RemoteRunner(object):
         # Redirect the stdout and stderr to file, Deviding error message
         # from output, and taking off the color of output. To return the same
         # result with utils.run() function.
-        command = "%s 1>%s 2>%s" % (command, self.stdout_pipe, self.stderr_pipe)
+        command = "%s 1>%s 2>%s" % (
+            command, self.stdout_pipe, self.stderr_pipe)
         status, _ = self.session.cmd_status_output(command, timeout=timeout)
         output = self.session.cmd_output("cat %s;rm -f %s" %
                                          (self.stdout_pipe, self.stdout_pipe))
         errput = self.session.cmd_output("cat %s;rm -f %s" %
                                          (self.stderr_pipe, self.stderr_pipe))
-        cmd_result = utils.CmdResult(command=command, exit_status=status,
-                                     stdout=output, stderr=errput)
-        if (status and (not ignore_status)):
-            raise error.CmdError(command, cmd_result)
+        cmd_result = process.CmdResult(command=command, exit_status=status,
+                                       stdout=output, stderr=errput)
+        if status and (not ignore_status):
+            raise process.CmdError(command, cmd_result)
         return cmd_result

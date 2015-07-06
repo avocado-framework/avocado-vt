@@ -67,5 +67,6 @@ class Hostdev(base.TypedDeviceBase):
                                        tag_name='address', attribute='bus')
                 accessors.XMLAttribute('function', self, parent_xpath='/',
                                        tag_name='address', attribute='function')
-                super(self.__class__, self).__init__("address", virsh_instance=virsh_instance)
+                super(self.__class__, self).__init__(
+                    "address", virsh_instance=virsh_instance)
                 self.xml = "<address/>"

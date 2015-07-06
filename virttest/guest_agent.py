@@ -8,14 +8,16 @@ import socket
 import time
 import logging
 import random
-from autotest.client.shared import error
-from qemu_monitor import Monitor, MonitorError
-
 try:
     import json
 except ImportError:
     logging.warning("Could not import json module. "
                     "virt agent functionality disabled.")
+
+from avocado.core import exceptions
+
+from .qemu_monitor import Monitor, MonitorError
+from . import error_context
 
 
 class VAgentError(MonitorError):
@@ -475,7 +477,7 @@ class QemuAgent(Monitor):
         if self._has_command(cmd):
             self.cmd(cmd=cmd, debug=False)
 
-    @error.context_aware
+    @error_context.context_aware
     def shutdown(self, mode=SHUTDOWN_MODE_POWERDOWN):
         """
         Send "guest-shutdown", this cmd would not return any response.
@@ -496,7 +498,7 @@ class QemuAgent(Monitor):
         self.cmd(cmd=cmd, args=args, success_resp=False)
         return True
 
-    @error.context_aware
+    @error_context.context_aware
     def sync(self):
         """
         Sync guest agent with cmd 'guest-sync'.
@@ -509,7 +511,7 @@ class QemuAgent(Monitor):
         if not synced:
             raise VAgentSyncError(self.vm.name)
 
-    @error.context_aware
+    @error_context.context_aware
     def suspend(self, mode=SUSPEND_MODE_RAM):
         """
         This function tries to execute the scripts provided by the pm-utils
@@ -531,7 +533,8 @@ class QemuAgent(Monitor):
                  ``suspend`` is unsupported.
         :raise VAgentSuspendUnknownModeError: Raise if mode is not supported.
         """
-        error.context("Suspend guest '%s' to '%s'" % (self.vm.name, mode))
+        error_context.context(
+            "Suspend guest '%s' to '%s'" % (self.vm.name, mode))
 
         if mode not in [self.SUSPEND_MODE_DISK, self.SUSPEND_MODE_RAM,
                         self.SUSPEND_MODE_HYBRID]:
@@ -571,7 +574,7 @@ class QemuAgent(Monitor):
         if status != expected:
             raise VAgentFreezeStatusError(self.vm.name, status, expected)
 
-    @error.context_aware
+    @error_context.context_aware
     def fsfreeze(self, check_status=True):
         """
         Freeze File system on guest.
@@ -581,7 +584,7 @@ class QemuAgent(Monitor):
         :return: Frozen FS number if cmd succeed, -1 if guest agent doesn't
                  support fsfreeze cmd.
         """
-        error.context("Freeze all FS in guest '%s'" % self.vm.name)
+        error_context.context("Freeze all FS in guest '%s'" % self.vm.name)
         if check_status:
             self.verify_fsfreeze_status(self.FSFREEZE_STATUS_THAWED)
 
@@ -600,7 +603,7 @@ class QemuAgent(Monitor):
             return ret
         return -1
 
-    @error.context_aware
+    @error_context.context_aware
     def fsthaw(self, check_status=True):
         """
         Thaw File system on guest.
@@ -610,7 +613,7 @@ class QemuAgent(Monitor):
         :return: Thaw FS number if cmd succeed, -1 if guest agent doesn't
                  support fsfreeze cmd.
         """
-        error.context("thaw all FS in guest '%s'" % self.vm.name)
+        error_context.context("thaw all FS in guest '%s'" % self.vm.name)
         if check_status:
             self.verify_fsfreeze_status(self.FSFREEZE_STATUS_FROZEN)
 

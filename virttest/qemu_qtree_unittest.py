@@ -8,10 +8,16 @@ This is a unittest for qemu_qtree library.
 __author__ = """Lukas Doktor (ldoktor@redhat.com)"""
 
 import unittest
+import os
+import sys
 
-import common
-from autotest.client.shared.test_utils import mock
-import qemu_qtree
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest.unittest_utils import mock
+from virttest import qemu_qtree
 
 OFFSET_PER_LEVEL = qemu_qtree.OFFSET_PER_LEVEL
 

@@ -3,10 +3,19 @@ import sys
 import logging
 import imp
 import Queue
+
 from autotest.client import test
 from autotest.client.shared import error
-from virttest import utils_misc, utils_params, utils_env, env_process
-from virttest import data_dir, bootstrap, funcatexit, version, asset
+
+from virttest import asset
+from virttest import bootstrap
+from virttest import data_dir
+from virttest import env_process
+from virttest import funcatexit
+from virttest import utils_env
+from virttest import utils_misc
+from virttest import utils_params
+from virttest import version
 
 
 class virt(test.test):
@@ -28,7 +37,8 @@ class virt(test.test):
         virtdir = os.path.dirname(sys.modules[__name__].__file__)
         self.virtdir = os.path.join(virtdir, "shared")
         # Place where virt software will be built/linked
-        self.builddir = os.path.join(virtdir, 'backends', params.get("vm_type"))
+        self.builddir = os.path.join(
+            virtdir, 'backends', params.get("vm_type"))
         self.background_errors = Queue.Queue()
 
     def verify_background_errors(self):
@@ -118,7 +128,8 @@ class virt(test.test):
                     t_types = params.get("type").split()
                     provider = params.get("provider", None)
                     if provider is not None:
-                        subtest_dirs = [d for d in subtest_dirs if provider in d]
+                        subtest_dirs = [
+                            d for d in subtest_dirs if provider in d]
                     # Make sure we can load provider_lib in tests
                     for s in subtest_dirs:
                         if os.path.dirname(s) not in sys.path:

@@ -4,15 +4,16 @@ nfs mount and the local nfs set up and mount.
 """
 import re
 import os
-import shutil
 import logging
 import commands
-from autotest.client import os_dep
-from autotest.client.shared import utils, error
-from virttest import utils_misc
-from virttest.utils_conn import SSHConnection
 
-from virttest.staging import service
+from avocado.utils import path
+from avocado.utils import process
+from avocado.core import exceptions
+
+from . import utils_misc
+from .utils_conn import SSHConnection
+from .staging import service
 
 
 def nfs_exported():
@@ -22,7 +23,7 @@ def nfs_exported():
     :return: a list of nfs that is already exported in system
     :rtype: a lit of nfs file system exported
     """
-    exportfs = utils.system_output("exportfs -v")
+    exportfs = process.system_output("exportfs -v")
     if not exportfs:
         return {}
 
@@ -93,7 +94,7 @@ class Exportfs(object):
         """
         if self.is_exported():
             unexport_cmd = "exportfs -u %s:%s" % (self.client, self.path)
-            utils.system(unexport_cmd)
+            process.system(unexport_cmd)
         else:
             logging.warn("Target %s %s is not exported yet."
                          "Can not unexport it." % (self.client, self.path))
@@ -129,8 +130,8 @@ class Exportfs(object):
             export_cmd += " -o %s" % ",".join(self.options)
         export_cmd += " %s:%s" % (self.client, self.path)
         try:
-            utils.system(export_cmd)
-        except error.CmdError, export_failed_err:
+            process.system(export_cmd)
+        except process.CmdError, export_failed_err:
             logging.error("Can not export target: %s" % export_failed_err)
             return False
         return True
@@ -148,14 +149,14 @@ class Nfs(object):
         self.mount_options = params.get("nfs_mount_options")
         self.mount_src = params.get("nfs_mount_src")
         self.nfs_setup = False
-        os_dep.command("mount")
+        path.find_command("mount")
         self.mk_mount_dir = False
         self.unexportfs_in_clean = False
 
         if params.get("setup_local_nfs") == "yes":
             self.nfs_setup = True
-            os_dep.command("service")
-            os_dep.command("exportfs")
+            path.find_command("service")
+            path.find_command("exportfs")
             self.nfs_service = service.Factory.create_service("nfs")
 
             self.export_dir = (params.get("export_dir") or
@@ -227,7 +228,7 @@ class Nfs(object):
         if self.nfs_setup and self.unexportfs_in_clean:
             self.exportfs.reset_export()
         if self.mk_mount_dir and os.path.isdir(self.mount_dir):
-            utils.safe_rmdir(self.mount_dir)
+            utils_misc.safe_rmdir(self.mount_dir)
 
 
 class NFSClient(object):
@@ -285,22 +286,23 @@ class NFSClient(object):
         Cleanup NFS client.
         """
         ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.nfs_client_ip)
-        logging.debug("Umount %s from %s" % (self.mount_dir, self.nfs_server_ip))
+        logging.debug("Umount %s from %s" %
+                      (self.mount_dir, self.nfs_server_ip))
         umount_cmd = ssh_cmd + "'umount -l %s'" % self.mount_dir
         try:
-            utils.system(umount_cmd, verbose=True)
-        except error.CmdError:
-            raise error.TestFail("Failed to run: %s", umount_cmd)
+            process.system(umount_cmd, verbose=True)
+        except process.CmdError:
+            raise exceptions.TestFail("Failed to run: %s", umount_cmd)
 
         if self.mkdir_mount_remote:
             rmdir_cmd = ssh_cmd + "'rm -rf %s'" % self.mount_dir
             try:
-                utils.system(rmdir_cmd, verbose=True)
-            except error.CmdError:
-                raise error.TestFail("Failed to run: %s", rmdir_cmd)
+                process.system(rmdir_cmd, verbose=True)
+            except process.CmdError:
+                raise exceptions.TestFail("Failed to run: %s", rmdir_cmd)
 
         if self.is_mounted():
-            raise error.TestFail("Failed to umount %s", self.mount_dir)
+            raise exceptions.TestFail("Failed to umount %s", self.mount_dir)
 
         # Recover SSH connection
         self.ssh_obj.auto_recover = True
@@ -319,7 +321,7 @@ class NFSClient(object):
             logging.debug("Prepare to create %s", self.mount_dir)
             s, o = commands.getstatusoutput(mkdir_cmd)
             if s != 0:
-                raise error.TestFail("Failed to run %s: %s", mkdir_cmd, o)
+                raise exceptions.TestFail("Failed to run %s: %s", mkdir_cmd, o)
             self.mkdir_mount_remote = True
 
         self.mount_src = "%s:%s" % (self.nfs_server_ip, self.mount_src)
@@ -328,11 +330,11 @@ class NFSClient(object):
                                                               self.mount_dir,
                                                               self.mount_options)
         try:
-            utils.system(mount_cmd, verbose=True)
-        except error.CmdError:
-            raise error.TestFail("Failed to run: %s", mount_cmd)
+            process.system(mount_cmd, verbose=True)
+        except process.CmdError:
+            raise exceptions.TestFail("Failed to run: %s", mount_cmd)
 
         # Check if the sharing directory is mounted
         if not self.is_mounted():
-            raise error.TestFail("Failed to mount from %s to %s",
-                                 self.mount_src, self.mount_dir)
+            raise exceptions.TestFail("Failed to mount from %s to %s",
+                                      self.mount_src, self.mount_dir)

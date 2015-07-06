@@ -8,9 +8,11 @@ import shutil
 import tempfile
 import commands
 
-from autotest.client import utils, os_dep
-from virttest import propcan, remote, utils_libvirtd
-from virttest import data_dir, aexpect
+from avocado.utils import path
+from avocado.utils import process
+
+from . import propcan, remote, utils_libvirtd
+from . import data_dir, aexpect
 
 
 class ConnectionError(Exception):
@@ -516,7 +518,7 @@ class SSHConnection(ConnectionBase):
         for key in tool_dict:
             toolName = tool_dict[key]
             try:
-                tool = os_dep.command(toolName)
+                tool = path.find_command(toolName)
             except ValueError:
                 logging.debug("%s executable not set or found on path,"
                               "some function of connection will fail.",
@@ -819,11 +821,12 @@ class TLSConnection(ConnectionBase):
         init_dict['tls_sanity_cert'] = init_dict.get('tls_sanity_cert', 'yes')
         init_dict['tls_allowed_dn_list'] = init_dict.get('tls_allowed_dn_list')
         init_dict['scp_new_cacert'] = init_dict.get('scp_new_cacert', 'yes')
-        init_dict['restart_libvirtd'] = init_dict.get('restart_libvirtd', 'yes')
+        init_dict['restart_libvirtd'] = init_dict.get(
+            'restart_libvirtd', 'yes')
         super(TLSConnection, self).__init__(init_dict)
         # check and set CERTTOOL in slots
         try:
-            CERTTOOL = os_dep.command("certtool")
+            CERTTOOL = path.find_command("certtool")
         except ValueError:
             logging.warning("certtool executable not set or found on path, "
                             "TLS connection will not setup normally")
@@ -1153,7 +1156,7 @@ def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool"):
 
     # make a private key.
     cmd = "%s --generate-privkey > %s" % (certtool, clientkey_path)
-    CmdResult = utils.run(cmd, ignore_status=True)
+    CmdResult = process.run(cmd, ignore_status=True)
     if CmdResult.exit_status:
         raise ConnPrivKeyError(CmdResult.stderr)
 
@@ -1172,7 +1175,7 @@ def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool"):
            --template %s --outfile %s" %
            (certtool, clientkey_path, cacert_path,
             cakey_path, clientinfo_path, clientcert_path))
-    CmdResult = utils.run(cmd, ignore_status=True)
+    CmdResult = process.run(cmd, ignore_status=True)
     if CmdResult.exit_status:
         raise ConnCertError(clientinfo_path, CmdResult.stderr)
 
@@ -1198,7 +1201,7 @@ def build_server_key(tmp_dir, ca_cakey_path=None,
 
     # make a private key
     cmd = "%s --generate-privkey > %s" % (certtool, serverkey_path)
-    cmd_result = utils.run(cmd, ignore_status=True)
+    cmd_result = process.run(cmd, ignore_status=True)
     if cmd_result.exit_status:
         raise ConnPrivKeyError(serverkey_path, cmd_result.stderr)
 
@@ -1217,7 +1220,7 @@ def build_server_key(tmp_dir, ca_cakey_path=None,
            --template %s --outfile %s" %
            (certtool, serverkey_path, cacert_path,
             cakey_path, serverinfo_path, servercert_path))
-    CmdResult = utils.run(cmd, ignore_status=True)
+    CmdResult = process.run(cmd, ignore_status=True)
     if CmdResult.exit_status:
         raise ConnCertError(serverinfo_path, CmdResult.stderr)
 
@@ -1245,7 +1248,7 @@ def build_CA(tmp_dir, cn="AUTOTEST.VIRT", ca_cakey_path=None, certtool="certtool
     # generate private key
     if not ca_cakey_path:
         cmd = "%s --generate-privkey > %s " % (certtool, cakey_path)
-        cmd_result = utils.run(cmd, ignore_status=True, timeout=10)
+        cmd_result = process.run(cmd, ignore_status=True, timeout=10)
         if cmd_result.exit_status:
             raise ConnPrivKeyError(cakey_path, cmd_result.stderr)
     # prepare a info file to build certificate file
@@ -1259,7 +1262,7 @@ def build_CA(tmp_dir, cn="AUTOTEST.VIRT", ca_cakey_path=None, certtool="certtool
     cmd = ("%s --generate-self-signed --load-privkey %s\
            --template %s --outfile %s" %
            (certtool, cakey_path, cainfo_path, cacert_path))
-    CmdResult = utils.run(cmd, ignore_status=True)
+    CmdResult = process.run(cmd, ignore_status=True)
     if CmdResult.exit_status:
         raise ConnCertError(cainfo_path, CmdResult.stderr)
 
@@ -1298,12 +1301,18 @@ class UNIXConnection(ConnectionBase):
         init_dict = dict(*args, **dargs)
         init_dict['auth_unix_ro'] = init_dict.get('auth_unix_ro', 'none')
         init_dict['auth_unix_rw'] = init_dict.get('auth_unix_rw', 'none')
-        init_dict['unix_sock_dir'] = init_dict.get('unix_sock_dir', '/var/run/libvirt')
-        init_dict['unix_sock_group'] = init_dict.get('unix_sock_group', 'libvirt')
-        init_dict['access_drivers'] = init_dict.get('access_drivers', ["polkit"])
-        init_dict['unix_sock_ro_perms'] = init_dict.get('unix_sock_ro_perms', '0777')
-        init_dict['unix_sock_rw_perms'] = init_dict.get('unix_sock_rw_perms', '0770')
-        init_dict['restart_libvirtd'] = init_dict.get('restart_libvirtd', 'yes')
+        init_dict['unix_sock_dir'] = init_dict.get(
+            'unix_sock_dir', '/var/run/libvirt')
+        init_dict['unix_sock_group'] = init_dict.get(
+            'unix_sock_group', 'libvirt')
+        init_dict['access_drivers'] = init_dict.get(
+            'access_drivers', ["polkit"])
+        init_dict['unix_sock_ro_perms'] = init_dict.get(
+            'unix_sock_ro_perms', '0777')
+        init_dict['unix_sock_rw_perms'] = init_dict.get(
+            'unix_sock_rw_perms', '0770')
+        init_dict['restart_libvirtd'] = init_dict.get(
+            'restart_libvirtd', 'yes')
 
         super(UNIXConnection, self).__init__(init_dict)
 
@@ -1397,7 +1406,8 @@ class UNIXConnection(ConnectionBase):
         # restart libvirtd service on server
         if restart_libvirtd == "yes":
             try:
-                libvirtd_service = utils_libvirtd.Libvirtd(session=client_session)
+                libvirtd_service = utils_libvirtd.Libvirtd(
+                    session=client_session)
                 libvirtd_service.restart()
             except (remote.LoginError, aexpect.ShellError), detail:
                 raise ConnServerRestartError(detail)

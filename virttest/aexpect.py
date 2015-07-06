@@ -159,7 +159,8 @@ if __name__ == "__main__":
             os.execv("/bin/bash", ["/bin/bash", "-c", command])
     else:
         # Parent process
-        server_log.info('Acquiring server lock on %s' % lock_server_running_filename)
+        server_log.info('Acquiring server lock on %s' %
+                        lock_server_running_filename)
         lock_server_running = _lock(lock_server_running_filename)
 
         # Set terminal echo on/off and disable pre- and post-processing
@@ -241,7 +242,8 @@ if __name__ == "__main__":
                 data = os.read(inpipe_fd, 1024)
                 os.write(shell_fd, data)
 
-        server_log.info('Out of the main read loop. Writing status to %s' % status_filename)
+        server_log.info(
+            'Out of the main read loop. Writing status to %s' % status_filename)
         fileobj = open(status_filename, "w")
         fileobj.write(str(status))
         fileobj.close()
@@ -270,7 +272,8 @@ import signal
 import re
 import threading
 import logging
-import utils_misc
+
+from . import utils_misc
 
 
 class ExpectError(Exception):

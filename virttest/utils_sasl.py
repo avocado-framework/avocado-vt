@@ -4,9 +4,12 @@ tools to manage sasl.
 
 import logging
 
-from autotest.client import utils, os_dep
-from autotest.client.shared import error
-from virttest import propcan, remote
+from avocado.core import exceptions
+from avocado.utils import path
+from avocado.utils import process
+
+from . import propcan
+from . import remote
 
 
 class SASL(propcan.PropCanBase):
@@ -24,8 +27,8 @@ class SASL(propcan.PropCanBase):
         Initialize instance
         """
         init_dict = dict(*args, **dargs)
-        init_dict["sasl_pwd_cmd"] = os_dep.command("saslpasswd2")
-        init_dict["sasl_user_cmd"] = os_dep.command("sasldblistusers2")
+        init_dict["sasl_pwd_cmd"] = path.find_command("saslpasswd2")
+        init_dict["sasl_user_cmd"] = path.find_command("sasldblistusers2")
         init_dict["sasl_user_pwd"] = init_dict.get("sasl_user_pwd")
         init_dict["auto_recover"] = init_dict.get("auto_recover", False)
         init_dict["client"] = init_dict.get("client", "ssh")
@@ -45,7 +48,8 @@ class SASL(propcan.PropCanBase):
             try:
                 self.cleanup()
             except:
-                raise error.TestError("Failed to clean up test environment!")
+                raise exceptions.TestError(
+                    "Failed to clean up test environment!")
 
     def _new_session(self):
         """
@@ -62,13 +66,17 @@ class SASL(propcan.PropCanBase):
             session = remote.wait_for_login(client, host, port,
                                             username, password, prompt)
         except remote.LoginTimeoutError:
-            raise error.TestError("Got a timeout error when login to server.")
+            raise exceptions.TestError(
+                "Got a timeout error when login to server.")
         except remote.LoginAuthenticationError:
-            raise error.TestError("Authentication failed to login to server.")
+            raise exceptions.TestError(
+                "Authentication failed to login to server.")
         except remote.LoginProcessTerminatedError:
-            raise error.TestError("Host terminates during login to server.")
+            raise exceptions.TestError(
+                "Host terminates during login to server.")
         except remote.LoginError:
-            raise error.TestError("Some error occurs login to client server.")
+            raise exceptions.TestError(
+                "Some error occurs login to client server.")
         return session
 
     def get_session(self):
@@ -102,8 +110,8 @@ class SASL(propcan.PropCanBase):
                 self.session = self.get_session()
                 return self.session.cmd_output(cmd)
             else:
-                return utils.system_output(cmd)
-        except error.CmdError:
+                return process.system_output(cmd)
+        except process.CmdError:
             logging.error("Failed to set a user's sasl password %s", cmd)
 
     def setup(self, remote=True):
@@ -119,8 +127,8 @@ class SASL(propcan.PropCanBase):
                     self.session = self.get_session()
                     self.session.cmd(cmd)
                 else:
-                    utils.system(cmd)
-            except error.CmdError:
+                    process.system(cmd)
+            except process.CmdError:
                 logging.error("Failed to set a user's sasl password %s", cmd)
 
     def cleanup(self, remote=True):
@@ -134,6 +142,6 @@ class SASL(propcan.PropCanBase):
                     self.session = self.get_session()
                     self.session.cmd(cmd)
                 else:
-                    utils.system(cmd)
-            except error.CmdError:
+                    process.system(cmd)
+            except process.CmdError:
                 logging.error("Failed to disable a user's access %s", cmd)

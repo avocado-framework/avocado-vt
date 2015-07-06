@@ -1,10 +1,17 @@
 #!/usr/bin/python
 import unittest
 import logging
+import os
+import sys
 
-import common
-from autotest.client import os_dep
-import utils_libguestfs as lgf
+from avocado.utils import path
+
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest import utils_libguestfs as lgf
 
 
 class LibguestfsTest(unittest.TestCase):
@@ -13,9 +20,9 @@ class LibguestfsTest(unittest.TestCase):
         cmds = ['virt-ls', 'virt-cat']
         for cmd in cmds:
             try:
-                os_dep.command(cmd)
+                path.find_command(cmd)
                 self.assertTrue(lgf.lgf_cmd_check(cmd))
-            except ValueError:
+            except path.CmdNotFoundError:
                 logging.warning("Command %s not installed, skipping "
                                 "unittest...", cmd)
 
@@ -28,9 +35,9 @@ class LibguestfsTest(unittest.TestCase):
     def test_lgf_cmd(self):
         cmd = "libguestfs-test-tool"
         try:
-            os_dep.command(cmd)
+            path.find_command(cmd)
             self.assertEqual(lgf.lgf_command(cmd).exit_status, 0)
-        except ValueError:
+        except path.CmdNotFoundError:
             logging.warning("Command %s not installed, skipping unittest...",
                             cmd)
 

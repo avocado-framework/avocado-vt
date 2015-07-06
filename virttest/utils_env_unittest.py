@@ -4,11 +4,16 @@ import time
 import logging
 import os
 import threading
+import sys
 
-import common
-import utils_env
-import utils_params
-import utils_misc
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest import utils_env
+from virttest import utils_params
+from virttest import utils_misc
 
 
 class FakeVm(object):

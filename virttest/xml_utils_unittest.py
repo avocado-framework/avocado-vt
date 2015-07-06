@@ -5,9 +5,14 @@ import tempfile
 import os
 import glob
 import logging
+import sys
 
-import common
-import xml_utils
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest import xml_utils
 from virttest import element_tree as ElementTree
 
 

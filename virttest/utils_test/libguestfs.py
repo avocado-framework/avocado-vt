@@ -2,12 +2,15 @@ import re
 import os
 import logging
 import commands
-from autotest.client.shared import error, utils
-from virttest import virsh, virt_vm, libvirt_vm, data_dir
-from virttest import utils_net, xml_utils
-from virttest.libvirt_xml import vm_xml, xcepts
-from virttest import utils_libguestfs as lgf
-from virttest import qemu_storage
+
+from avocado.core import exceptions
+from avocado.utils import process
+
+from .. import virsh, virt_vm, libvirt_vm, data_dir
+from .. import utils_net, xml_utils
+from .. import utils_libguestfs as lgf
+from .. import qemu_storage
+from ..libvirt_xml import vm_xml, xcepts
 
 
 class VTError(Exception):
@@ -22,7 +25,7 @@ class VTAttachError(VTError):
         self.output = output
 
     def __str__(self):
-        return ("Attach command failed:%s\n%s" % (self.cmd, self.output))
+        return "Attach command failed:%s\n%s" % (self.cmd, self.output)
 
 
 class VTMountError(VTError):
@@ -139,7 +142,7 @@ def cleanup_vm(vm_name=None, disk=None):
     try:
         if vm_name is not None:
             virsh.undefine(vm_name)
-    except error.CmdError, detail:
+    except process.CmdError, detail:
         logging.error("Undefine %s failed:%s", vm_name, detail)
     try:
         if disk is not None:
@@ -324,7 +327,7 @@ class VirtTools(object):
         if not os.path.isdir(mountpoint):
             os.mkdir(mountpoint)
         if os.path.ismount(mountpoint):
-            utils.run("umount -l %s" % mountpoint, ignore_status=True)
+            process.run("umount -l %s" % mountpoint, ignore_status=True)
         inspector = "yes" == self.params.get("gm_inspector", "yes")
         readonly = "yes" == self.params.get("gm_readonly", "no")
         special_mountpoints = self.params.get("special_mountpoints", [])
@@ -373,7 +376,7 @@ class VirtTools(object):
         logging.info("Create file %s successfully", file_path)
         # Cleanup created file
         if cleanup:
-            utils.run("rm -f %s" % file_path, ignore_status=True)
+            process.run("rm -f %s" % file_path, ignore_status=True)
         return (True, file_path)
 
     def get_primary_disk_fs_type(self):
@@ -382,17 +385,17 @@ class VirtTools(object):
         """
         result = lgf.virt_filesystems(self.oldvm.name, long_format=True)
         if result.exit_status:
-            raise error.TestNAError("Cannot get primary disk"
-                                    " filesystem information!")
+            raise exceptions.TestNAError("Cannot get primary disk"
+                                         " filesystem information!")
         fs_info = result.stdout.strip().splitlines()
         if len(fs_info) <= 1:
-            raise error.TestNAError("No disk filesystem information!")
+            raise exceptions.TestNAError("No disk filesystem information!")
         try:
             primary_disk_info = fs_info[1]
             fs_type = primary_disk_info.split()[2]
             return fs_type
         except (KeyError, ValueError), detail:
-            raise error.TestFail(str(detail))
+            raise exceptions.TestFail(str(detail))
 
     def tar_in(self, tar_file, dest="/tmp", vm_ref=None):
         if vm_ref is None:
@@ -662,7 +665,8 @@ class GuestfishTools(lgf.GuestfishPersistent):
 
         if with_blocksize == "yes" and fs_type != "btrfs" and fs_type != "no_fs":
             if blocksize:
-                self.mkfs_opts(fs_type, mount_point, "blocksize:%s" % (blocksize))
+                self.mkfs_opts(
+                    fs_type, mount_point, "blocksize:%s" % (blocksize))
                 self.vfs_type(mount_point)
             else:
                 logging.error("with_blocksize is set but blocksize not given")

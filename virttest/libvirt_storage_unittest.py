@@ -1,9 +1,16 @@
 #!/usr/bin/python
 import unittest
+import os
+import sys
 
-import common
-from autotest.client.utils import CmdResult
-import libvirt_storage
+from avocado.utils.process import CmdResult
+
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest import libvirt_storage
 from virsh_unittest import FakeVirshFactory
 
 # The output of virsh.pool_list with only default pool
@@ -102,7 +109,8 @@ class ExistPoolTest(PoolTestBase):
         pools = self.sp.list_pools()
         assert isinstance(pools, dict)
         # Test pool_state
-        self.assertTrue(self.sp.pool_state("default") in ['active', 'inactive'])
+        self.assertTrue(
+            self.sp.pool_state("default") in ['active', 'inactive'])
         # Test pool_info
         self.assertNotEqual(self.sp.pool_info("default"), {})
 

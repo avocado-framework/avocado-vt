@@ -7,7 +7,7 @@ Before this test please set your hostname to something meaningful.
 :copyright: 2014 Red Hat Inc.
 """
 import logging
-from autotest.client import utils
+from avocado.utils import process
 
 
 def run(test, params, env):
@@ -18,5 +18,5 @@ def run(test, params, env):
     :param params: Dictionary with the test parameters
     :param env: Dictionary with test environment.
     """
-    result = utils.run("hostname")
+    result = process.run("hostname")
     logging.info("Output of 'hostname' cmd is '%s'", result.stdout)

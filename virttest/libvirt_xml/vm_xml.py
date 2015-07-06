@@ -4,10 +4,12 @@ http://libvirt.org/formatdomain.html
 """
 
 import logging
-from autotest.client.shared import error
-from virttest import xml_utils
-from virttest.libvirt_xml import base, accessors, xcepts
-from virttest.libvirt_xml.devices import librarian
+
+from avocado.utils import process
+
+from .. import xml_utils
+from ..libvirt_xml import base, accessors, xcepts
+from ..libvirt_xml.devices import librarian
 
 
 class VMXMLDevices(list):
@@ -618,7 +620,7 @@ class VMXML(VMXMLBase):
             if not vmxml.define():
                 raise xcepts.LibvirtXMLError(error_msg + "%s"
                                              % vmxml.get('xml'))
-        except error.CmdError, detail:
+        except process.CmdError, detail:
             del vmxml  # clean up temporary files
             # Allow exceptions thrown here since state will be undefined
             backup.define()
@@ -769,7 +771,8 @@ class VMXML(VMXMLBase):
         if not vmxml.get_disk_count(vm_name, virsh_instance=virsh_instance):
             raise xcepts.LibvirtXMLError("No disk in domain %s." % vm_name)
         blk_list = vmxml.get_disk_blk(vm_name, virsh_instance=virsh_instance)
-        disk_list = vmxml.get_disk_source(vm_name, virsh_instance=virsh_instance)
+        disk_list = vmxml.get_disk_source(
+            vm_name, virsh_instance=virsh_instance)
         try:
             file_list = []
             for disk in disk_list:
@@ -1332,7 +1335,8 @@ class VMXML(VMXMLBase):
         """
         vmxml = VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
         try:
-            vmxml.xmltreefile.remove_by_xpath("/memoryBacking", remove_all=True)
+            vmxml.xmltreefile.remove_by_xpath(
+                "/memoryBacking", remove_all=True)
             vmxml.sync()
         except (AttributeError, TypeError):
             pass  # Element already doesn't exist
@@ -1646,7 +1650,8 @@ class VMClockXML(VMXML):
                                    parent_xpath='/clock/timer',
                                    tag_name='catchup',
                                    attribute='limit')
-            super(VMClockXML.TimerXML, self).__init__(virsh_instance=virsh_instance)
+            super(VMClockXML.TimerXML, self).__init__(
+                virsh_instance=virsh_instance)
             # name is mandatory for timer
             self.name = timer_name
 
@@ -1987,7 +1992,8 @@ class VMHugepagesXML(VMXML):
                                    parent_xpath='/hugepages',
                                    tag_name='page',
                                    attribute='nodeset')
-            super(VMHugepagesXML.PageXML, self).__init__(virsh_instance=virsh_instance)
+            super(VMHugepagesXML.PageXML, self).__init__(
+                virsh_instance=virsh_instance)
 
         def update(self, attr_dict):
             for attr, value in attr_dict.items():

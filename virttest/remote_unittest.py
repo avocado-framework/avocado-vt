@@ -2,10 +2,15 @@
 
 import unittest
 import os
+import sys
 
-import common
-import remote
-import data_dir
+# simple magic for using scripts within a source tree
+basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(basedir, 'virttest')):
+    sys.path.append(basedir)
+
+from virttest import remote
+from virttest import data_dir
 
 
 class RemoteFileTest(unittest.TestCase):

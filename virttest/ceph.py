@@ -10,16 +10,18 @@ This file has the functions that helps
 import logging
 import os
 import re
-from autotest.client.shared import utils
-from autotest.client.shared import error
-import utils_misc
+
+from avocado.utils import process
+
+from . import utils_misc
+from . import error_context
 
 
 class CephError(Exception):
     pass
 
 
-@error.context_aware
+@error_context.context_aware
 def rbd_image_create(ceph_monitor, rbd_pool_name, rbd_image_name,
                      rbd_image_size, force_create=False):
     """
@@ -45,12 +47,12 @@ def rbd_image_create(ceph_monitor, rbd_pool_name, rbd_image_name,
     if create_image:
         cmd = "rbd create %s/%s -m %s" % (rbd_pool_name, rbd_image_name,
                                           ceph_monitor)
-        utils.system(cmd, verbose=True)
+        process.system(cmd, verbose=True)
     else:
         logging.debug("Image already exist skip the create.")
 
 
-@error.context_aware
+@error_context.context_aware
 def rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name):
     """
     Remove a rbd image
@@ -61,12 +63,12 @@ def rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name):
     if rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name):
         cmd = "rbd rm %s/%s -m %s" % (rbd_pool_name, rbd_image_name,
                                       ceph_monitor)
-        utils.system(cmd, verbose=True)
+        process.system(cmd, verbose=True)
     else:
         logging.debug("Image not exist, skip to remove it.")
 
 
-@error.context_aware
+@error_context.context_aware
 def rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name):
     """
     Check if rbd image is exist
@@ -75,14 +77,14 @@ def rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name):
     :params rbd_image_name: The name of rbd image
     """
     cmd = "rbd ls %s -m %s" % (rbd_pool_name, ceph_monitor)
-    output = utils.system_output(cmd, ignore_status=True, verbose=True)
+    output = process.system_output(cmd, ignore_status=True, verbose=True)
 
     logging.debug("Resopense from rbd ls command is: %s" % output)
 
     return (rbd_image_name.strip() in output.splitlines())
 
 
-@error.context_aware
+@error_context.context_aware
 def rbd_image_info(ceph_monitor, rbd_pool_name, rbd_image_name):
     """
     Get information of a rbd image
@@ -92,7 +94,7 @@ def rbd_image_info(ceph_monitor, rbd_pool_name, rbd_image_name):
     """
     cmd = "rbd info %s/%s -m %s" % (rbd_pool_name, rbd_image_name,
                                     ceph_monitor)
-    output = utils.system(cmd)
+    output = process.system(cmd)
     info_pattern = "rbd image \'%s\':.*?$" % rbd_image_name
 
     rbd_image_info_str = re.findall(info_pattern, output, re.S)[0]
@@ -114,7 +116,7 @@ def rbd_image_info(ceph_monitor, rbd_pool_name, rbd_image_name):
     return rbd_image_info
 
 
-@error.context_aware
+@error_context.context_aware
 def rbd_image_map(ceph_monitor, rbd_pool_name, rbd_image_name):
     """
     Maps the specified image to a block device via rbd kernel module
@@ -124,7 +126,7 @@ def rbd_image_map(ceph_monitor, rbd_pool_name, rbd_image_name):
     """
     cmd = "rbd map %s --pool %s -m %s" % (rbd_image_name, rbd_pool_name,
                                           ceph_monitor)
-    output = utils.system_output(cmd, verbose=True)
+    output = process.system_output(cmd, verbose=True)
     if os.path.exist(os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)):
         return os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)
     else:
@@ -132,7 +134,7 @@ def rbd_image_map(ceph_monitor, rbd_pool_name, rbd_image_name):
         return None
 
 
-@error.context_aware
+@error_context.context_aware
 def rbd_image_unmap(rbd_pool_name, rbd_image_name):
     """
     Unmaps the block device that was mapped via the rbd kernel module
@@ -140,12 +142,12 @@ def rbd_image_unmap(rbd_pool_name, rbd_image_name):
     :params rbd_image_name: The name of rbd image
     """
     cmd = "rbd unmap /dev/rbd/%s/%s" % (rbd_pool_name, rbd_image_name)
-    output = utils.system_output(cmd, verbose=True)
+    output = process.system_output(cmd, verbose=True)
     if os.path.exist(os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)):
         logging.debug("Failed to unmap image from local: %s" % output)
 
 
-@error.context_aware
+@error_context.context_aware
 def get_image_filename(ceph_monitor, rbd_pool_name, rbd_image_name):
     """
     Return the rbd image file name

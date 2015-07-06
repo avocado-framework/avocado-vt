@@ -208,7 +208,8 @@ class Interface(base.TypedDeviceBase):
                 raise xcepts.LibvirtXMLError("Expected a dictionary of parameter "
                                              "attributes, not a %s"
                                              % str(item))
-            return ('parameter', dict(item))  # return copy of dict, not reference
+            # return copy of dict, not reference
+            return ('parameter', dict(item))
 
         @staticmethod
         def marshal_to_parameter(tag, attr_dict, index, libvirtxml):
