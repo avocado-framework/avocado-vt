@@ -1,6 +1,6 @@
 Summary: Avocado Virt Test Compatibility Plugin
 Name: avocado-plugins-vt
-Version: 0.25.0
+Version: 0.26.0
 Release: 1%{?dist}
 License: GPLv2
 Group: Development/Tools
@@ -35,6 +35,9 @@ Xunit output, among others.
 %{python_sitelib}/avocado*
 
 %changelog
+* Mon Jul 6 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.26.0-1
+- Update to upstream version 0.26.0
+
 * Tue Jun 16 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.25.0-1
 - Update to upstream version 0.25.0
 

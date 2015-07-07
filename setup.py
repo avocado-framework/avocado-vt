@@ -17,7 +17,7 @@ import os
 # pylint: disable=E0611
 from distutils.core import setup
 
-VERSION = '0.25.0'
+VERSION = '0.26.0'
 
 VIRTUAL_ENV = 'VIRTUAL_ENV' in os.environ
 
