@@ -28,10 +28,10 @@ from avocado.core import loader
 from avocado.core import output
 from avocado.core import exceptions
 from avocado.core import multiplexer
+from avocado.core import test
 from avocado.core.settings import settings
 from avocado.core.plugins import plugin
 from avocado.utils import path
-from avocado import test
 
 # virt-test supports using autotest from a git checkout, so we'll have to
 # support that as well. The code below will pick up the environment variable
@@ -435,13 +435,13 @@ class VirtTest(test.Test):
         self.debugdir = self.logdir
         utils_misc.set_log_file_dir(self.logdir)
 
-    def start_logging(self):
-        super(VirtTest, self).start_logging()
+    def _start_logging(self):
+        super(VirtTest, self)._start_logging()
         root_logger = logging.getLogger()
         root_logger.addHandler(self.file_handler)
 
-    def stop_logging(self):
-        super(VirtTest, self).stop_logging()
+    def _stop_logging(self):
+        super(VirtTest, self)._stop_logging()
         root_logger = logging.getLogger()
         root_logger.removeHandler(self.file_handler)
 
