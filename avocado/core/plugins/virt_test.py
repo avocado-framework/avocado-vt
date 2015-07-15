@@ -812,7 +812,6 @@ class VirtTestOptionsProcess(object):
 
     def _process_arch(self):
         arch_setting = "option --vt-arch or config virt_test.common.arch"
-        print self.options.vt_arch
         if self.options.vt_arch is None:
             pass
         elif not self.options.vt_config:
