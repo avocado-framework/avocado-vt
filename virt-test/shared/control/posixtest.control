@@ -1,0 +1,19 @@
+AUTHOR = '''mohd.omar@in.ibm.com (Mohammed Omar)'''
+
+NAME = "Posix test"
+
+TIME = "MEDIUM"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+TEST_TYPE = "Client"
+
+DOC = """
+The Open POSIX Test Suite is a test suite for POSIX 2001 APIs, not tied to
+specific implementations. It provides conformance, functional, and stress
+testing. Initial focus is on Threads, Clocks & Timers, Signals, Message Queues,
+and Semaphores;
+
+more info, please see: http://sourceforge.net/p/posixtest/wiki/Home/
+"""
+
+job.run_test('posixtest')

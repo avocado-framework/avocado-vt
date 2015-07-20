@@ -1,0 +1,15 @@
+AUTHOR = "Brandon Philips <brandon@ifup.org>"
+NAME = "interbench"
+TEST_CATEGORY = "Benchmark"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+TIME = 'MEDIUM'
+EXPERIMENTAL = "True"
+DOC='''
+interbench is designed to measure the effect of changes in Linux kernel
+design or systemconfiguration changes such as cpu, I/O scheduler and
+filesystem changes andoptions; this test run will run a standard benchmark;
+
+more info, please see: http://users.on.net/~ckolivas/interbench/
+'''
+job.run_test('interbench')
