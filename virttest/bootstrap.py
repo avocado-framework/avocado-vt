@@ -465,13 +465,9 @@ def create_config_files(test_dir, shared_dir, interactive, step=None,
             if diff_result.exit_status != 0:
                 logging.info("%s result:\n %s",
                              diff_result.command, diff_result.stdout)
-                if interactive:
-                    answer = genio.ask("Config file  %s differs from %s."
-                                       "Overwrite?" % (dst_file, src_file))
-                elif force_update:
-                    answer = "y"
-                else:
-                    answer = "n"
+                answer = genio.ask("Config file  %s differs from %s."
+                                   "Overwrite?" % (dst_file, src_file),
+                                   auto=force_update or not interactive)
 
                 if answer == "y":
                     logging.debug("Restoring config file %s from sample",
@@ -627,11 +623,9 @@ def verify_selinux(datadir, imagesdir, isosdir, tmpdir,
                 if selinux:
                     answer = "y"
                 else:
-                    if interactive:
-                        answer = genio.ask("Setup all undefined default SE"
-                                           "Linux contexts for shared/data/?")
-                    else:
-                        answer = "n"
+                    answer = genio.ask("Setup all undefined default SE"
+                                       "Linux contexts for shared/data/?",
+                                       auto=not interactive)
             else:
                 answer = "n"
             if answer.lower() == "y":
@@ -676,10 +670,8 @@ def verify_selinux(datadir, imagesdir, isosdir, tmpdir,
         if selinux:
             answer = "y"
         else:
-            if interactive:
-                answer = genio.ask("Relabel from default contexts?")
-            else:
-                answer = "n"
+            answer = genio.ask("Relabel from default contexts?",
+                               auto=not interactive)
         if answer.lower() == 'y':
             changes = utils_selinux.apply_defcon(datadir, False)
             changes += utils_selinux.apply_defcon(imagesdir, True)
@@ -702,6 +694,10 @@ def bootstrap(options, interactive=False):
     if interactive:
         log_cfg = utils_misc.VirtLoggingConfig()
         log_cfg.configure_logging(verbose=True)
+
+    if options.yes_to_all:
+        interactive = False
+
     logging.info("%s test config helper", options.vt_type)
     step = 0
 
