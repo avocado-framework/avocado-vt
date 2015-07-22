@@ -1,19 +1,21 @@
-.. avocado documentation master file, created by
-   sphinx-quickstart on Wed Mar  5 14:44:57 2014.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+========================
+Avocado-VT documentation
+========================
 
-======================================
-Avocado Virt Test Compatibility Plugin
-======================================
+``avocado-vt`` is a suite of tests made to exercise different linux virtualization
+hypervisors and related tools.
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
-   Introduction
    GetStartedGuide
+   contributing/index
+   basic/index
+   advanced/index
+   extra/index
+   api/modules
 
 Indices and tables
 ==================
