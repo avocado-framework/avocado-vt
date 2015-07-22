@@ -444,7 +444,7 @@ class QemuImg(storage.QemuImg):
                 try:
                     process.run("%s info %s" % (qemu_img_cmd, image_filename),
                                 verbose=False)
-                except exceptions.CmdError:
+                except process.CmdError:
                     logging.error("Error getting info from image %s",
                                   image_filename)
 

@@ -6,7 +6,7 @@ import sys
 
 from avocado.utils import process
 from avocado.utils import genio
-from avocado.utils import modules
+from avocado.utils import linux_modules
 
 from . import utils_misc
 from . import data_dir
@@ -840,7 +840,7 @@ def bootstrap(options, interactive=False):
         logging.info("%d - Checking for modules %s", step,
                      ", ".join(check_modules))
         for module in check_modules:
-            if not modules.module_is_loaded(module):
+            if not linux_modules.module_is_loaded(module):
                 logging.warning("Module %s is not loaded. You might want to "
                                 "load it", module)
             else:

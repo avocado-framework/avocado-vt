@@ -13,7 +13,7 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, 'virttest')):
     sys.path.append(basedir)
 
-from virttest.virsh_unittest import FakeVirshFactory
+from virsh_unittest import FakeVirshFactory
 from virttest.libvirt_xml.network_xml import NetworkXML
 from virttest.staging.backports import itertools
 

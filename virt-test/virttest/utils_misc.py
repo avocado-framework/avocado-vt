@@ -31,7 +31,7 @@ from avocado.utils import process
 from avocado.utils import genio
 from avocado.utils import aurl
 from avocado.utils import download
-from avocado.utils import modules
+from avocado.utils import linux_modules
 
 
 from . import data_dir
@@ -354,7 +354,7 @@ def process_or_children_is_defunct(ppid):
     defunct = False
     try:
         pids = process.get_children_pids(ppid)
-    except exceptions.CmdError:  # Process doesn't exist
+    except process.CmdError:  # Process doesn't exist
         return True
     for pid in pids:
         if pid:
@@ -1042,7 +1042,7 @@ def umount(src, mount_point, fstype, verbose=False, fstype_mtab=None):
         try:
             process.system(umount_cmd, verbose=verbose)
             return True
-        except exceptions.CmdError:
+        except process.CmdError:
             return False
     else:
         logging.debug("%s is not mounted under %s", src, mount_point)
@@ -1072,7 +1072,7 @@ def mount(src, mount_point, fstype, perm=None, verbose=False, fstype_mtab=None):
     mount_cmd = "mount -t %s %s %s -o %s" % (fstype, src, mount_point, perm)
     try:
         process.system(mount_cmd, verbose=verbose)
-    except exceptions.CmdError:
+    except process.CmdError:
         return False
     return is_mounted(src, mount_point, fstype, perm, verbose, fstype_mtab)
 
@@ -2798,7 +2798,7 @@ def get_image_info(image_file):
                     csize = line.split(':')[-1].strip()
                     image_info_dict['csize'] = int(csize)
         return image_info_dict
-    except (KeyError, IndexError, exceptions.CmdError), detail:
+    except (KeyError, IndexError, process.CmdError), detail:
         raise exceptions.TestError("Fail to get information of %s:\n%s" %
                                    (image_file, detail))
 
@@ -3175,7 +3175,7 @@ def check_module(module_name, submodules=[]):
     """
     Check whether module and its submodules work.
     """
-    module_info = modules.loaded_module_info(module_name)
+    module_info = linux_modules.loaded_module_info(module_name)
     logging.debug(module_info)
     # Return if module is not loaded.
     if not len(module_info):
@@ -3324,19 +3324,19 @@ class VFIOController(object):
         self.check_iommu()
 
         # Step2: Check whether modules have been probed
-        # Necessary modules for vfio and their submodules.
+        # Necessary modules for vfio and their sublinux_modules.
         self.vfio_modules = {'vfio': [],
                              'vfio_pci': [],
                              'vfio_iommu_type1': []}
         # Used for checking modules
         modules_error = []
-        for key, value in self.vfio_modules.items():
+        for key, value in self.vfio_linux_modules.items():
             if check_module(key, value):
                 continue
             elif load_modules:
                 try:
-                    modules.load_module(key)
-                except exceptions.CmdError, detail:
+                    linux_modules.load_module(key)
+                except process.CmdError, detail:
                     modules_error.append("Load module %s failed: %s"
                                          % (key, detail))
             else:
@@ -3349,7 +3349,7 @@ class VFIOController(object):
         if allow_unsafe_interrupts:
             try:
                 process.run("echo Y > %s" % lnk)
-            except exceptions.CmdError, detail:
+            except process.CmdError, detail:
                 raise VFIOError(str(detail))
 
     def check_iommu(self):

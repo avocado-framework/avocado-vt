@@ -50,7 +50,7 @@ def md5_init(data=None):
     try:
         md5_value = hashlib.new("md5")
     except NameError:
-            md5_value = md5.new()
+        md5_value = md5.new()
     if data:
         md5_value.update(data)
     return md5_value

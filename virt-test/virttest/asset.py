@@ -60,7 +60,7 @@ class ConfigLoader:
             # Config file is just a string, convert it to a python file like
             # object using StringIO
             else:
-                self.cfg = StringIO(cfg)
+                self.cfg = StringIO.StringIO(cfg)
                 self.parser.readfp(self.cfg)
 
     def get(self, section, option, default=None):
