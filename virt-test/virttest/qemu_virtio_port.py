@@ -213,11 +213,10 @@ class GuestWorker(object):
 
         # Copy, compile and run the worker
         timeout = 10
-        base_path = os.path.dirname(data_dir.get_data_dir())
-        guest_script_src = os.path.join(base_path, 'scripts',
+        guest_script_src = os.path.join(data_dir.get_shared_dir(), 'scripts',
                                         'virtio_console_guest.py')
-        script_size = process.system_output("du -b %s | cut -f1"
-                                            % guest_script_src).strip()
+        script_size = process.system_output("du -b %s | cut -f1" %
+                                            guest_script_src, shell=True).strip()
         script_size_guest = self.session.cmd_output(cmd_guest_size).strip()
         if (script_size != script_size_guest or
                 self.session.cmd_status(cmd_already_compiled_chck)):

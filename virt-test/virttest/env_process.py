@@ -363,7 +363,7 @@ def process_command(test, params, env, command, command_timeout,
         os.putenv("KVM_TEST_%s" % k, str(params[k]))
     # Execute commands
     try:
-        avocado_process.system("cd %s; %s" % (test.bindir, command))
+        avocado_process.system("cd %s; %s" % (test.bindir, command), shell=True)
     except avocado_process.CmdError, e:
         if command_noncritical:
             logging.warn(e)

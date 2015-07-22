@@ -332,5 +332,5 @@ def add_rpc_insecure(filepath):
     if not match:
         logging.info("not match")
         cmd = "sed -i '/end-volume/i \ \ \ \ option rpc-auth-allow-insecure on' %s" % filepath
-        process.system(cmd)
-        process.system("service glusterd restart; sleep 2")
+        process.system(cmd, shell=True)
+        process.system("service glusterd restart; sleep 2", shell=True)

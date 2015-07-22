@@ -10,6 +10,8 @@ import os
 import shutil
 import re
 
+from avocado.utils import process
+
 from . import iscsi
 from . import utils_misc
 from . import virt_vm
@@ -151,7 +153,7 @@ def get_image_filename_filesytem(params, root_dir):
     if indirect_image_select:
         re_name = image_name
         indirect_image_select = int(indirect_image_select)
-        matching_images = utils.system_output("ls -1d %s" % re_name)
+        matching_images = process.system_output("ls -1d %s" % re_name)
         matching_images = sorted(matching_images.split('\n'), cmp=sort_cmp)
         if matching_images[-1] == '':
             matching_images = matching_images[:-1]
@@ -268,7 +270,7 @@ class QemuImg(object):
         """
         def backup_raw_device(src, dst):
             if os.path.exists(src):
-                utils.system("dd if=%s of=%s bs=4k conv=sync" % (src, dst))
+                process.system("dd if=%s of=%s bs=4k conv=sync" % (src, dst))
             else:
                 logging.info("No source %s, skipping dd...", src)
 
@@ -385,8 +387,8 @@ class QemuImg(object):
                 force_clone = params.get("force_image_clone", "no")
                 if not os.path.exists(image_fn) or force_clone == "yes":
                     logging.info("Clone master image for vms.")
-                    utils.run(params.get("image_clone_command") % (m_image_fn,
-                                                                   image_fn))
+                    process.run(params.get("image_clone_command") %
+                                (m_image_fn, image_fn))
 
             params["image_name_%s_%s" % (image_name, vm_name)] = vm_image_name
 
@@ -411,7 +413,7 @@ class QemuImg(object):
 
                 logging.debug("Removing vm specific image file %s", image_fn)
                 if os.path.exists(image_fn):
-                    utils.run(params.get("image_remove_command") % (image_fn))
+                    process.run(params.get("image_remove_command") % (image_fn))
                 else:
                     logging.debug("Image file %s not found", image_fn)
 

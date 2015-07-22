@@ -12,7 +12,7 @@ import logging
 from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils import path
-from avocado.utils import modules
+from avocado.utils import linux_modules
 
 from . import build_helper
 from . import utils_misc
@@ -366,7 +366,7 @@ class BaseInstaller(object):
             module_list = self.module_list
         logging.info("Unloading kernel modules: %s" % " ".join(module_list))
         for module in module_list:
-            modules.unload_module(module)
+            linux_modules.unload_module(module)
 
     def reload_modules(self):
         """

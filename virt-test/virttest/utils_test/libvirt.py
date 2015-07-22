@@ -8,7 +8,7 @@ More specifically:
     - Functions in this module should raise exceptions if things go wrong
     - Functions in this module typically use functions and classes from
       lower-level modules (e.g. utils_misc, qemu_vm, aexpect).
-    - Functions in this module should not be used by lower-level modules.
+    - Functions in this module should not be used by lower-level linux_modules.
     - Functions in this module should be used in the right context.
       For example, a function should not be used where it may display
       misleading or inaccurate info or debug messages.
@@ -28,7 +28,7 @@ import sys
 from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils import stacktrace
-from avocado.utils import modules
+from avocado.utils import linux_modules
 
 from .. import virsh
 from .. import xml_utils
@@ -2203,10 +2203,10 @@ def create_scsi_disk(scsi_option, scsi_size="2048"):
     try:
         # Load scsi_debug kernel module.
         # Unload it first if it's already loaded.
-        if modules.module_is_loaded("scsi_debug"):
-            modules.unload_module("scsi_debug")
-        modules.load_module("scsi_debug dev_size_mb=%s %s"
-                            % (scsi_size, scsi_option))
+        if linux_modules.module_is_loaded("scsi_debug"):
+            linux_modules.unload_module("scsi_debug")
+        linux_modules.load_module("scsi_debug dev_size_mb=%s %s" %
+                                  (scsi_size, scsi_option))
         # Get the scsi device name
         scsi_disk = process.run("lsscsi|grep scsi_debug|"
                                 "awk '{print $6}'").stdout.strip()
@@ -2221,8 +2221,8 @@ def delete_scsi_disk():
     """
     Delete scsi device by removing scsi_debug kernel module.
     """
-    if modules.module_is_loaded("scsi_debug"):
-        modules.unload_module("scsi_debug")
+    if linux_modules.module_is_loaded("scsi_debug"):
+        linux_modules.unload_module("scsi_debug")
 
 
 def set_controller_multifunction(vm_name, controller_type='scsi'):

@@ -51,6 +51,9 @@ from .. import utils_net
 from .. import virt_vm
 from ..staging import utils_memory
 
+# Get back to importing these
+from . import qemu
+
 
 @error_context.context_aware
 def update_boot_option(vm, args_removed=None, args_added=None,

@@ -414,7 +414,8 @@ class PatchHelper(object):
         """
         os.chdir(self.source_dir)
         for patch in self.patches:
-            process.system('patch -p1 < %s' % os.path.basename(patch))
+            process.system('patch -p1 < %s' % os.path.basename(patch),
+                           shell=True)
 
     def execute(self):
         """
@@ -751,7 +752,7 @@ class LinuxKernelBuildHelper(object):
 
         # FIXME currently no support for builddir
         # run old config
-        process.system('yes "" | make oldconfig > /dev/null')
+        process.system('yes "" | make oldconfig > /dev/null', shell=True)
         parallel_make_jobs = cpu.count_cpus()
         make_command = "make -j %s %s" % (
             parallel_make_jobs, self.build_target)

@@ -502,7 +502,7 @@ class VirtTest(test.Test):
                         subtestdir = os.path.join(self.bindir, d, "tests")
                         if not os.path.isdir(subtestdir):
                             raise exceptions.TestError("Directory %s does not "
-                                                  "exist" % subtestdir)
+                                                       "exist" % subtestdir)
                         subtest_dirs += data_dir.SubdirList(subtestdir,
                                                             test_filter)
 
@@ -582,7 +582,7 @@ class VirtTest(test.Test):
                     error_message = funcatexit.run_exitfuncs(env, t_type)
                     if error_message:
                         raise exceptions.TestWarn("funcatexit failed with: %s"
-                                             % error_message)
+                                                  % error_message)
 
                 except Exception:
                     if t_type is not None:

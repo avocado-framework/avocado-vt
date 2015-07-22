@@ -5,7 +5,7 @@ import signal
 
 from avocado.utils import path
 from avocado.utils import process
-from avocado.utils import modules
+from avocado.utils import linux_modules
 
 from .versionable_class import VersionableClass, Manager, factory
 from . import utils_misc
@@ -420,7 +420,7 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
         """
         sm = factory(ServiceManager)()
         try:
-            if modules.load_module("openvswitch"):
+            if linux_modules.load_module("openvswitch"):
                 sm.restart("openvswitch")
         except process.CmdError:
             logging.error("Service OpenVSwitch is probably not"
@@ -496,7 +496,7 @@ class OpenVSwitch(OpenVSwitchSystem):
             sm.stop("openvswitch")
         except process.CmdError:
             pass
-        modules.load_module("openvswitch")
+        linux_modules.load_module("openvswitch")
         self.clean()
         if os.path.exists(self.db_path):
             os.remove(self.db_path)

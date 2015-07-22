@@ -31,7 +31,7 @@ from avocado.utils import process
 from avocado.utils import genio
 from avocado.utils import aurl
 from avocado.utils import download
-from avocado.utils import modules
+from avocado.utils import linux_modules
 
 
 from . import data_dir
@@ -3175,7 +3175,7 @@ def check_module(module_name, submodules=[]):
     """
     Check whether module and its submodules work.
     """
-    module_info = modules.loaded_module_info(module_name)
+    module_info = linux_modules.loaded_module_info(module_name)
     logging.debug(module_info)
     # Return if module is not loaded.
     if not len(module_info):
@@ -3324,18 +3324,18 @@ class VFIOController(object):
         self.check_iommu()
 
         # Step2: Check whether modules have been probed
-        # Necessary modules for vfio and their submodules.
+        # Necessary modules for vfio and their sublinux_modules.
         self.vfio_modules = {'vfio': [],
                              'vfio_pci': [],
                              'vfio_iommu_type1': []}
         # Used for checking modules
         modules_error = []
-        for key, value in self.vfio_modules.items():
+        for key, value in self.vfio_linux_modules.items():
             if check_module(key, value):
                 continue
             elif load_modules:
                 try:
-                    modules.load_module(key)
+                    linux_modules.load_module(key)
                 except exceptions.CmdError, detail:
                     modules_error.append("Load module %s failed: %s"
                                          % (key, detail))
