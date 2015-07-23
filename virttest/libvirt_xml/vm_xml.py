@@ -71,7 +71,7 @@ class VMXMLBase(base.LibvirtXMLBase):
             get: return text value of uuid tag
             set: set text value for (new) uuid tag (unvalidated)
             del: remove uuid tag
-        vcpu, max_mem, current_mem: integers
+        vcpu, max_mem, current_mem, iothreads: integers
             get: returns integer
             set: set integer
             del: removes tag
@@ -156,7 +156,7 @@ class VMXMLBase(base.LibvirtXMLBase):
                  'current_vcpu', 'os', 'cpu', 'pm', 'on_poweroff', 'on_reboot',
                  'on_crash', 'features', 'mb', 'max_mem_unit',
                  'current_mem_unit', 'memtune', 'max_mem_rt', 'max_mem_rt_unit',
-                 'max_mem_rt_slots')
+                 'max_mem_rt_slots', 'iothreads')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -179,6 +179,11 @@ class VMXMLBase(base.LibvirtXMLBase):
                                  forbidden=None,
                                  parent_xpath='/',
                                  tag_name='uuid')
+        accessors.XMLElementInt(property_name="iothreads",
+                                libvirtxml=self,
+                                forbidden=None,
+                                parent_xpath='/',
+                                tag_name='iothreads')
         accessors.XMLElementInt(property_name="vcpu",
                                 libvirtxml=self,
                                 forbidden=None,
