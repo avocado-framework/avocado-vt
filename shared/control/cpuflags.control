@@ -1,0 +1,14 @@
+AUTHOR = "Jiri Zupka <jzupka@redhat.com>"
+NAME = "Cpuflags"
+TIME = "SHORT"
+TEST_CATEGORY = "Functional"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+
+DOC = """
+Autotest test for testing main group ofcpu flags functionalitines.
+"""
+virt_test_dir = os.path.join(os.environ['AUTODIR'],'tests/virt')
+sys.path.insert(0, virt_test_dir)
+
+job.run_test('cpuflags')

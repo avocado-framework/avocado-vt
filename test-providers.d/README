@@ -1,0 +1,32 @@
+Test Providers
+
+This directory has test provider config files and download/test
+areas for code. The config files are .ini files that have the
+following structure:
+
+[provider]
+
+# Test provider URI (default is a git repository, fallback to standard dir)
+uri: git://git-provider.com/repo.git
+#uri: file:///path/to/tests/
+#uri: /path-to-my-git-dir/repo.git
+#uri: http://bla.com/repo.git
+#uri: /path-to-my-git-dir/repo/
+#uri: /path-to-my-standard-dir/foobar/tests
+
+# Virt backend
+backend: qemu
+
+# Optional subdir (place inside repo where the actual tests are)
+# This is useful for projects to keep virt tests inside their
+# (larger) test repos. Defaults to ''.
+subdir: tests/src/virt-tests/
+
+# Optional git branch (for git repo type)
+branch: master
+
+# Optionall git commit reference (tag or sha1)
+ref: e44231e88300131621586d24c07baa8e627de989
+
+# Pubkey: File containing public key for signed tags (git)
+pubkey: example.pub
