@@ -231,86 +231,62 @@ def guest_listing(options, view):
         view.notify(event='minor', msg=out)
 
 
-class VirtTestListJob(object):
-
-    """
-    Mock Job class, used to provide test loaders with a Job object with enough
-    options data for test listing purposes.
-    """
-
-    def __init__(self, args):
-        self.view = output.View()
-        self.logfile = None
-        self.logdir = '.'
-        self.args = args
-        self.args.vt_config = None
-        self.args.vt_verbose = True
-        self.args.vt_log_level = 'debug'
-        self.args.vt_console_level = 'debug'
-        self.args.vt_datadir = data_dir.get_data_dir()
-        self.args.vt_config = None
-        self.args.vt_arch = None
-        self.args.vt_machine_type = None
-        self.args.vt_keep_guest_running = False
-        self.args.vt_keep_image_between_tests = False
-        self.args.vt_mem = 1024
-        self.args.vt_no_filter = ''
-        self.args.vt_qemu_bin = None
-        self.args.vt_dst_qemu_bin = None
-        self.args.vt_nettype = 'user'
-        self.args.vt_only_type_specific = False
-        self.args.vt_tests = ''
-        self.args.vt_connect_uri = 'qemu:///system'
-        self.args.vt_accel = 'kvm'
-        self.args.vt_monitor = 'human'
-        self.args.vt_smp = 1
-        self.args.vt_image_type = 'qcow2'
-        self.args.vt_nic_model = 'virtio_net'
-        self.args.vt_disk_bus = 'virtio_blk'
-        self.args.vt_vhost = 'off'
-        self.args.vt_malloc_perturb = 'yes'
-        self.args.vt_qemu_sandbox = 'on'
-        self.args.vt_tests = ''
-        self.args.show_job_log = False
-        self.args.test_lister = True
-
-
 class VirtTestLoader(loader.TestLoader):
 
-    def __init__(self, job=None, args=None):
-        if job is None:
-            job = VirtTestListJob(args=args)
-        loader.TestLoader.__init__(self, job=job)
-        standalone_test.reset_logging()
-        if self.job.args.show_job_log:
-            configure_console_logging()
-        else:
-            if job.logfile is not None:
-                configure_file_logging(logfile=job.logfile)
+    name = 'vt'
+
+    def __init__(self, args):
+        super(VirtTestLoader, self).__init__(args)
+        self._fill_optional_args()
+
+    def _fill_optional_args(self):
+        def add_if_not_exist(arg, value):
+            if not hasattr(self.args, arg):
+                setattr(self.args, arg, value)
+        add_if_not_exist('vt_config', None)
+        add_if_not_exist('vt_verbose', True)
+        add_if_not_exist('vt_log_level', 'debug')
+        add_if_not_exist('vt_console_level', 'debug')
+        add_if_not_exist('vt_datadir', data_dir.get_data_dir())
+        add_if_not_exist('vt_config', None)
+        add_if_not_exist('vt_arch', None)
+        add_if_not_exist('vt_machine_type', None)
+        add_if_not_exist('vt_keep_guest_running', False)
+        add_if_not_exist('vt_keep_image_between_tests', False)
+        add_if_not_exist('vt_mem', 1024)
+        add_if_not_exist('vt_no_filter', '')
+        add_if_not_exist('vt_qemu_bin', None)
+        add_if_not_exist('vt_dst_qemu_bin', None)
+        add_if_not_exist('vt_nettype', 'user')
+        add_if_not_exist('vt_only_type_specific', False)
+        add_if_not_exist('vt_tests', '')
+        add_if_not_exist('vt_connect_uri', 'qemu:///system')
+        add_if_not_exist('vt_accel', 'kvm')
+        add_if_not_exist('vt_monitor', 'human')
+        add_if_not_exist('vt_smp', 1)
+        add_if_not_exist('vt_image_type', 'qcow2')
+        add_if_not_exist('vt_nic_model', 'virtio_net')
+        add_if_not_exist('vt_disk_bus', 'virtio_blk')
+        add_if_not_exist('vt_vhost', 'off')
+        add_if_not_exist('vt_malloc_perturb', 'yes')
+        add_if_not_exist('vt_qemu_sandbox', 'on')
+        add_if_not_exist('vt_tests', '')
+        add_if_not_exist('show_job_log', False)
+        add_if_not_exist('test_lister', True)
 
     def _get_parser(self):
-        options_processor = VirtTestOptionsProcess(self.job)
+        options_processor = VirtTestOptionsProcess(self.args)
         return options_processor.get_parser()
 
-    def get_extra_listing(self, args):
-        if args.vt_list_guests:
-            use_paginator = args.paginator == 'on'
+    def get_extra_listing(self):
+        if self.args.vt_list_guests:
+            use_paginator = self.args.paginator == 'on'
             try:
                 view = output.View(use_paginator=use_paginator)
-                guest_listing(args, view)
+                guest_listing(self.args, view)
             finally:
                 view.cleanup()
             sys.exit(0)
-
-    def get_base_keywords(self):
-        """
-        Get base keywords to use (when no keywords are passed to 'list').
-
-        Used to list all tests available in virt-test.
-
-        :return: list with keyword strings.
-        """
-        return ['vt_list_all']
 
     def get_type_label_mapping(self):
         """
@@ -329,46 +305,12 @@ class VirtTestLoader(loader.TestLoader):
         term_support = output.TermSupport()
         return {VirtTest: term_support.healthy_str}
 
-    def discover(self, params_list):
-        """
-        Discover tests for test suite.
-
-        :param params_list: a list of test parameters.
-        :type params_list: list
-        :return: a test suite (a list of test factories).
-        """
-        test_suite = []
-        for params in params_list:
-            # We want avocado to inject params coming from its multiplexer into
-            # the test params. This will allow users to access avocado params
-            # from inside virt tests. This feature would only work if the virt
-            # test in question is executed from inside avocado.
-            params['avocado_inject_params'] = True
-            test_name = params.get("_short_name_map_file")["subtests.cfg"]
-            params['id'] = test_name
-            test_parameters = {'name': test_name,
-                               'base_logdir': self.job.logdir,
-                               'params': params,
-                               'job': self.job}
-            test_suite.append((VirtTest, test_parameters))
-        return test_suite
-
-    def validate_ui(self, test_suite, ignore_missing=False,
-                    ignore_not_test=False, ignore_broken_symlinks=False,
-                    ignore_access_denied=False):
-        del test_suite
-        del ignore_missing
-        del ignore_not_test
-        del ignore_broken_symlinks
-        del ignore_access_denied
-        return []
-
-    def discover_url(self, url):
+    def discover(self, url, list_tests=False):
         try:
             cartesian_parser = self._get_parser()
         except Exception, details:
             raise EnvironmentError(details)
-        if url != 'vt_list_all':
+        if url is not None:
             try:
                 cartesian_parser.only_filter(url)
             # If we have a LexerError, this means
@@ -378,8 +320,23 @@ class VirtTestLoader(loader.TestLoader):
             # the other test plugins to handle the URL.
             except cartesian_config.LexerError:
                 return []
-        params_list = [t for t in cartesian_parser.get_dicts()]
-        return params_list
+        elif list_tests is loader.DEFAULT and not self.args.vt_config:
+            # By default don't run anythinig unless vt_config provided
+            return []
+        # Create test_suite
+        test_suite = []
+        for params in (_ for _ in cartesian_parser.get_dicts()):
+            # We want avocado to inject params coming from its multiplexer into
+            # the test params. This will allow users to access avocado params
+            # from inside virt tests. This feature would only work if the virt
+            # test in question is executed from inside avocado.
+            params['avocado_inject_params'] = True
+            test_name = params.get("_short_name_map_file")["subtests.cfg"]
+            params['id'] = test_name
+            test_parameters = {'name': test_name,
+                               'params': params}
+            test_suite.append((VirtTest, test_parameters))
+        return test_suite
 
 
 class VirtTest(test.Test):
@@ -649,11 +606,11 @@ class VirtTestOptionsProcess(object):
     Pick virt test options and parse them to get to a cartesian parser.
     """
 
-    def __init__(self, job):
+    def __init__(self, options):
         """
         Parses options and initializes attributes.
         """
-        self.options = job.args
+        self.options = options
         # There are a few options from the original virt-test runner
         # that don't quite make sense for avocado (avocado implements a
         # better version of the virt-test feature).
@@ -722,7 +679,6 @@ class VirtTestOptionsProcess(object):
         self.options.vt_no_cleanup = settings.get_value(
             'virt_test.debug', 'no_cleanup', key_type=bool, default=False)
 
-        self.view = job.view
         self.cartesian_parser = None
 
     def _process_qemu_bin(self):
@@ -1084,6 +1040,7 @@ class VirtTestCompatPlugin(plugin.Plugin):
     enabled = True
     configured = False
     parser = None
+    priority = 1
 
     def configure(self, parser):
         """
@@ -1213,8 +1170,7 @@ class VirtTestCompatPlugin(plugin.Plugin):
 
         :param args: Command line args received from the run subparser.
         """
+        from ..loader import loader
+        loader.register_plugin(VirtTestLoader)
         if getattr(args, 'vt_setup', False):
-            self.parser.application.set_defaults(
-                vt_loader=VirtTestLoader, vt_result=VirtTestResult)
-        else:
-            self.parser.application.set_defaults(vt_loader=VirtTestLoader)
+            self.parser.application.set_defaults(vt_result=VirtTestResult)
