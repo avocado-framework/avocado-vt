@@ -357,6 +357,23 @@ class QemuImg(storage.QemuImg):
 
         return process.system_output(cmd)
 
+    def snapshot_apply(self):
+        """
+        Apply a snapshot image.
+
+        :note: params should contain:
+               snapshot_image_name -- the name of snapshot image file
+        """
+        cmd = self.image_cmd
+        if self.snapshot_tag:
+            cmd += " snapshot -a %s %s" % (self.snapshot_image_filename,
+                                           self.image_filename)
+        else:
+            raise exceptions.TestError("Can not find the snapshot image"
+                                       " parameters")
+
+        process.system_output(cmd)
+
     def remove(self):
         """
         Remove an image file.
