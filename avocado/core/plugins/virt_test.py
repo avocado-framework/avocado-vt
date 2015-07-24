@@ -437,6 +437,7 @@ class VirtTest(test.Test):
         else:
             raise exc[1], None, exc[2]
 
+    @exceptions.fail_on
     def runTest(self):
         self._runTest()
 
