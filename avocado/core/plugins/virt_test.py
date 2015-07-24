@@ -33,10 +33,11 @@ from avocado.core.settings import settings
 from avocado.core.plugins import plugin
 from avocado.utils import path
 
-# virt-test supports using autotest from a git checkout, so we'll have to
-# support that as well. The code below will pick up the environment variable
-# $AUTOTEST_PATH and do the import magic needed to make the autotest library
-# available in the system.
+# virt-test no longer needs autotest for the majority of its functionality:
+# 1) Run autotest on VMs
+# 2) Multi host migration
+# As in those cases we might want to use autotest, let's have a way for
+# users to specify their autotest from a git clone location.
 AUTOTEST_PATH = None
 
 if 'AUTOTEST_PATH' in os.environ:
@@ -47,24 +48,6 @@ if 'AUTOTEST_PATH' in os.environ:
                                     setup_modules_path)
     setup_modules.setup(base_path=client_dir,
                         root_module_name="autotest.client")
-
-from autotest.client import utils
-from autotest.client.shared import error
-
-# The code below is used by this plugin to find the virt test directory,
-# so that it can load the virttest python lib, used by the plugin code.
-# If the user doesn't provide the proper configuration, the plugin will
-# fail to load.
-VIRT_TEST_PATH = None
-
-if 'VIRT_TEST_PATH' in os.environ:
-    VIRT_TEST_PATH = os.environ['VIRT_TEST_PATH']
-else:
-    VIRT_TEST_PATH = settings.get_value(section='virt_test',
-                                        key='virt_test_path', default=None)
-
-if VIRT_TEST_PATH is not None:
-    sys.path.append(os.path.expanduser(VIRT_TEST_PATH))
 
 from virttest import asset
 from virttest import bootstrap
@@ -87,16 +70,10 @@ from virttest.standalone_test import SUPPORTED_IMAGE_TYPES
 from virttest.standalone_test import SUPPORTED_DISK_BUSES
 from virttest.standalone_test import SUPPORTED_NIC_MODELS
 from virttest.standalone_test import SUPPORTED_NET_TYPES
-from virttest.standalone_test import QEMU_DEFAULT_SET
-from virttest.standalone_test import LIBVIRT_DEFAULT_SET
-from virttest.standalone_test import LVSB_DEFAULT_SET
-from virttest.standalone_test import OVS_DEFAULT_SET
-from virttest.standalone_test import LIBVIRT_INSTALL
-from virttest.standalone_test import LIBVIRT_REMOVE
 
 
-_PROVIDERS_DOWNLOAD_DIR = os.path.join(data_dir.get_root_dir(),
-                                       'test-providers.d', 'downloads')
+_PROVIDERS_DOWNLOAD_DIR = os.path.join(data_dir.get_test_providers_dir(),
+                                       'downloads')
 
 if len(os.listdir(_PROVIDERS_DOWNLOAD_DIR)) == 0:
     raise EnvironmentError("virt-test bootstrap missing. "
@@ -136,7 +113,7 @@ class VirtTestResult(result.HumanTestResult):
 
         failed = False
 
-        bg = utils.InterruptedThread(bootstrap.setup, kwargs=kwargs)
+        bg = utils_misc.InterruptedThread(bootstrap.setup, kwargs=kwargs)
         t_begin = time.time()
         bg.start()
 
@@ -394,13 +371,8 @@ class VirtTest(test.Test):
                  base_logdir=None, tag=None, job=None, runner_queue=None):
         del name
         options = job.args
-
         self.bindir = data_dir.get_root_dir()
         self.virtdir = os.path.join(self.bindir, 'shared')
-        self.builddir = os.path.join(self.bindir, 'backends',
-                                     params.get("vm_type"))
-        self.srcdir = path.init_dir(os.path.join(self.builddir, 'src'))
-        self.tmpdir = path.init_dir(os.path.join(self.bindir, 'tmp'))
 
         self.iteration = 0
         if options.vt_config:
@@ -417,6 +389,10 @@ class VirtTest(test.Test):
                                        params=params, base_logdir=base_logdir,
                                        tag=tag, job=job,
                                        runner_queue=runner_queue)
+        self.builddir = os.path.join(self.workdir, 'backends',
+                                     params.get("vm_type"))
+        self.tmpdir = os.path.dirname(self.workdir)
+
         self.params = utils_params.Params(params)
         # Here we turn the data the multiplexer injected into the params and
         # turn it into an AvocadoParams object, that will allow users to
@@ -461,15 +437,9 @@ class VirtTest(test.Test):
         else:
             raise exc[1], None, exc[2]
 
+    @exceptions.fail_on
     def runTest(self):
-        try:
-            self._runTest()
-        # This trick will give better reporting of virt tests
-        # being executed into avocado (skips and errors will display correctly)
-        except error.TestNAError, details:
-            raise exceptions.TestNAError(details)
-        except error.TestError, details:
-            raise exceptions.TestError(details)
+        self._runTest()
 
     def _runTest(self):
         params = self.params
@@ -477,7 +447,7 @@ class VirtTest(test.Test):
         # If a dependency test prior to this test has failed, let's fail
         # it right away as TestNA.
         if params.get("dependency_failed") == 'yes':
-            raise error.TestNAError("Test dependency failed")
+            raise exceptions.TestNAError("Test dependency failed")
 
         # Report virt test version
         logging.info(version.get_pretty_version_info())
@@ -516,8 +486,8 @@ class VirtTest(test.Test):
                         d = os.path.join(*d.split("/"))
                         subtestdir = os.path.join(self.bindir, d, "tests")
                         if not os.path.isdir(subtestdir):
-                            raise error.TestError("Directory %s does not "
-                                                  "exist" % subtestdir)
+                            raise exceptions.TestError("Directory %s does not "
+                                                       "exist" % subtestdir)
                         subtest_dirs += data_dir.SubdirList(subtestdir,
                                                             test_filter)
 
@@ -571,7 +541,7 @@ class VirtTest(test.Test):
                         if subtest_dir is None:
                             msg = ("Could not find test file %s.py on test"
                                    "dirs %s" % (t_type, subtest_dirs))
-                            raise error.TestError(msg)
+                            raise exceptions.TestError(msg)
                         # Load the test module
                         f, p, d = imp.find_module(t_type, [subtest_dir])
                         test_modules[t_type] = imp.load_module(t_type, f, p, d)
@@ -596,8 +566,8 @@ class VirtTest(test.Test):
                     test_passed = True
                     error_message = funcatexit.run_exitfuncs(env, t_type)
                     if error_message:
-                        raise error.TestWarn("funcatexit failed with: %s"
-                                             % error_message)
+                        raise exceptions.TestWarn("funcatexit failed with: %s"
+                                                  % error_message)
 
                 except Exception:
                     if t_type is not None:
@@ -638,7 +608,7 @@ class VirtTest(test.Test):
                                      m.protocol, m.filename)
                     logging.info("The command line used to start it was:\n%s",
                                  vm.make_qemu_command())
-                raise error.JobError("Abort requested (%s)" % e)
+                raise exceptions.TestInterruptedError("Abort requested (%s)" % e)
 
         return test_passed
 

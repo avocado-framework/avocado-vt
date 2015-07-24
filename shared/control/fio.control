@@ -1,0 +1,15 @@
+AUTHOR = "Randy.Dunlap <rdunlap@xenotime.net>"
+NAME = "fio"
+TEST_CATEGORY = "Stress"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+TIME = 'MEDIUM'
+EXPERIMENTAL = "True"
+DOC='''
+fio is an I/O tool meant to be used both for benchmark and stress/hardware
+verification. This test runs the fio tool. Details can be found at :
+http://freecode.com/projects/fio
+'''
+args = "-rw=randread -bs=8k -size 1G -numjobs=8"
+args += " -runtime=600 -iodepth=32 -iodepth_batch=16"
+job.run_test('fio', args=args)

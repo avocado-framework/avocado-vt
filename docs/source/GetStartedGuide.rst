@@ -19,35 +19,10 @@ at the top level of the avocado-vt repository has the detailed procedure.
 
     $ yum install avocado-plugins-vt
 
-3. Have virt-test's repo cloned somewhere you deem appropriate::
-
-    $ git clone https://github.com/autotest/virt-test.git
-
-4. Run virt-test's bootstrap procedure for the test backend (qemu, libvirt,
+4. Run avocado-vt's bootstrap procedure for the test backend (qemu, libvirt,
    v2v, openvswitch, among others) of your interest. We'll use qemu as an example::
 
-    $ ./run -t qemu --bootstrap
-
-   Keep in mind that this --bootstrap command has to be performed once again when
-   you update your virt-test repo. You may also want to update the base virt-test
-   test providers, so the command will look more like::
-
-    $ ./run -t qemu --bootstrap --update-providers --update-config
-
-5. You'll have to add to your local configuration file data that will be used
-   by the compatibility plugin to find virt-test. The local configuration
-   path is `~/.config/avocado/avocado.conf`. There, add the following::
-
-    [virt_test]
-    virt_test_path = /path/to/virt-test
-
-   Alternatively, you can export the environment variable VIRT_TEST_PATH with
-   the virt-test path instead of using the config system::
-
-    $ export VIRT_TEST_PATH="/path/to/virt-test"
-
-   Or you can add this export command to your `.bashrc` file or something
-   similar.
+    $ avocado vt-bootstrap --vt-type qemu
 
 6. Let's test if things went well by listing the avocado plugins. In the avocado source dir, do::
 
@@ -55,6 +30,7 @@ at the top level of the avocado-vt repository has the detailed procedure.
 
    That command should show the loaded plugins, and hopefully no errors. The relevant lines will be::
 
+    virt_test_compat_bootstrap  Implements the avocado 'vt-bootstrap' subcommand
     virt_test_compat_runner  Implements the avocado virt test options
     virt_test_compat_lister  Implements the avocado virt test options
 
