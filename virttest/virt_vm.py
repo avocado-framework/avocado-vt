@@ -635,9 +635,6 @@ class BaseVM(object):
         :raise VMAddressVerificationError: If the MAC-IP address mapping cannot
                 be verified (using arping)
         """
-        # Make sure the IP address is assigned to one or more macs
-        # for this guest
-        macs = self.virtnet.mac_list()
         nic = self.virtnet[index]
         self.ip_version = self.params.get("ip_version", "ipv4").lower()
         # TODO: Determine port redirection in use w/o checking nettype
@@ -653,6 +650,8 @@ class BaseVM(object):
         if self.ip_version == "ipv4":
             # Get the IP address from arp cache
             arp_ip = self.address_cache.get(nic.mac.lower())
+            # Make sure IP is assigned to one or more macs for this guest
+            macs = self.virtnet.mac_list()
             if not arp_ip:
                 arp_ip = self.address_cache.get(nic.mac.upper())
             if (not arp_ip or
