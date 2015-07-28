@@ -1,10 +1,10 @@
 import re
 
-from avocado.core import exceptions
 from avocado.utils import process
 
+import aexpect
+
 from . import utils_misc
-from . import aexpect
 from . import error_context
 
 

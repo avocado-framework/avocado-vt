@@ -32,7 +32,8 @@ import select
 from avocado.utils import path
 from avocado.utils import process
 
-from . import aexpect
+import aexpect
+
 from . import propcan
 from . import remote
 from . import utils_misc

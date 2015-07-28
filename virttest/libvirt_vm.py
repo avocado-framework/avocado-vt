@@ -18,11 +18,12 @@ from avocado.utils import process
 from avocado.utils import crypto
 from avocado.core import exceptions
 
+import aexpect
+
 from . import error_context
 from . import utils_misc
 from . import virt_vm
 from . import storage
-from . import aexpect
 from . import remote
 from . import virsh
 from . import libvirt_xml

@@ -30,12 +30,13 @@ from avocado.utils import process
 from avocado.utils import stacktrace
 from avocado.utils import linux_modules
 
+import aexpect
+
 from .. import virsh
 from .. import xml_utils
 from .. import iscsi
 from .. import nfs
 from .. import data_dir
-from .. import aexpect
 from .. import utils_misc
 from .. import utils_selinux
 from .. import libvirt_storage

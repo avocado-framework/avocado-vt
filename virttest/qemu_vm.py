@@ -15,12 +15,13 @@ from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils import crypto
 
+import aexpect
+
 from .qemu_devices import qdevices, qcontainer
 from . import utils_misc
 from . import virt_vm
 from . import test_setup
 from . import qemu_monitor
-from . import aexpect
 from . import qemu_virtio_port
 from . import remote
 from . import data_dir

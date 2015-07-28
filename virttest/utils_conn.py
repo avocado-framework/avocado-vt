@@ -11,8 +11,10 @@ import commands
 from avocado.utils import path
 from avocado.utils import process
 
+import aexpect
+
 from . import propcan, remote, utils_libvirtd
-from . import data_dir, aexpect
+from . import data_dir
 
 
 class ConnectionError(Exception):

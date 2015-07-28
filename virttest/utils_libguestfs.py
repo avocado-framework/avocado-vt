@@ -9,8 +9,8 @@ import re
 
 from avocado.utils import path
 from avocado.utils import process
+import aexpect
 
-from . import aexpect
 from . import propcan
 
 

@@ -16,10 +16,11 @@ from avocado.core import exceptions
 from avocado.utils import path
 from avocado.utils import process
 
+import aexpect
+
 from . import propcan
 from . import utils_misc
 from . import arch
-from . import aexpect
 from .versionable_class import factory
 
 CTYPES_SUPPORT = True

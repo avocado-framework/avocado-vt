@@ -8,7 +8,8 @@ import Queue
 
 from avocado.core import exceptions
 
-from . import aexpect
+import aexpect
+
 from . import asset
 from . import utils_misc
 from . import utils_params
@@ -790,7 +791,6 @@ def cleanup_env(parser, options):
         env.destroy()
         # Kill all tail_threads which env constructor recreate.
         aexpect.kill_tail_threads()
-        aexpect.clean_tmp_files()
         utils_net.clean_tmp_files()
         data_dir.clean_tmp_files()
         qemu_vm.clean_tmp_files()
