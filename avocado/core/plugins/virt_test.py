@@ -31,12 +31,16 @@ from avocado.core import multiplexer
 from avocado.core import test
 from avocado.core.settings import settings
 from avocado.core.plugins import plugin
-from avocado.utils import path
+from avocado.utils import stacktrace
+from avocado.utils import genio
 
-# virt-test supports using autotest from a git checkout, so we'll have to
-# support that as well. The code below will pick up the environment variable
-# $AUTOTEST_PATH and do the import magic needed to make the autotest library
-# available in the system.
+# virt-test no longer needs autotest for the majority of its functionality,
+# except by:
+# 1) Run autotest on VMs
+# 2) Multi host migration
+# 3) Proper virt-test test status handling
+# As in those cases we might want to use autotest, let's have a way for
+# users to specify their autotest from a git clone location.
 AUTOTEST_PATH = None
 
 if 'AUTOTEST_PATH' in os.environ:
@@ -48,7 +52,6 @@ if 'AUTOTEST_PATH' in os.environ:
     setup_modules.setup(base_path=client_dir,
                         root_module_name="autotest.client")
 
-from autotest.client import utils
 from autotest.client.shared import error
 
 from virttest import asset
@@ -72,21 +75,15 @@ from virttest.standalone_test import SUPPORTED_IMAGE_TYPES
 from virttest.standalone_test import SUPPORTED_DISK_BUSES
 from virttest.standalone_test import SUPPORTED_NIC_MODELS
 from virttest.standalone_test import SUPPORTED_NET_TYPES
-from virttest.standalone_test import QEMU_DEFAULT_SET
-from virttest.standalone_test import LIBVIRT_DEFAULT_SET
-from virttest.standalone_test import LVSB_DEFAULT_SET
-from virttest.standalone_test import OVS_DEFAULT_SET
-from virttest.standalone_test import LIBVIRT_INSTALL
-from virttest.standalone_test import LIBVIRT_REMOVE
 
 
 _PROVIDERS_DOWNLOAD_DIR = os.path.join(data_dir.get_test_providers_dir(),
                                        'downloads')
 
 if len(os.listdir(_PROVIDERS_DOWNLOAD_DIR)) == 0:
-    raise EnvironmentError("virt-test bootstrap missing. "
-                           "Execute './run -t [test-type] --bootstrap' "
-                           "in virt-test")
+    raise EnvironmentError("Bootstrap missing. "
+                           "Execute 'avocado vt-bootstrap' or disable this "
+                           "plugin to get rid of this message")
 
 
 class VirtTestResult(result.HumanTestResult):
@@ -121,7 +118,7 @@ class VirtTestResult(result.HumanTestResult):
 
         failed = False
 
-        bg = utils.InterruptedThread(bootstrap.setup, kwargs=kwargs)
+        bg = utils_misc.InterruptedThread(bootstrap.setup, kwargs=kwargs)
         t_begin = time.time()
         bg.start()
 
@@ -266,14 +263,15 @@ class VirtTestLoader(loader.TestLoader):
     def get_extra_listing(self):
         if self.args.vt_list_guests:
             use_paginator = self.args.paginator == 'on'
+            view = output.View(use_paginator=use_paginator)
             try:
-                view = output.View(use_paginator=use_paginator)
                 guest_listing(self.args, view)
             finally:
                 view.cleanup()
             sys.exit(0)
 
-    def get_type_label_mapping(self):
+    @staticmethod
+    def get_type_label_mapping():
         """
         Get label mapping for display in test listing.
 
@@ -281,7 +279,8 @@ class VirtTestLoader(loader.TestLoader):
         """
         return {VirtTest: 'VT'}
 
-    def get_decorator_mapping(self):
+    @staticmethod
+    def get_decorator_mapping():
         """
         Get label mapping for display in test listing.
 
@@ -411,6 +410,8 @@ class VirtTest(test.Test):
             raise exceptions.TestNAError(details)
         except error.TestError, details:
             raise exceptions.TestError(details)
+        except error.TestFail, details:
+            raise exceptions.TestFail(details)
 
     def _runTest(self):
         params = self.params
@@ -537,8 +538,8 @@ class VirtTest(test.Test):
                     test_passed = True
                     error_message = funcatexit.run_exitfuncs(env, t_type)
                     if error_message:
-                        raise error.TestWarn("funcatexit failed with: %s"
-                                             % error_message)
+                        raise error.TestWarn("funcatexit failed with: %s" %
+                                             error_message)
 
                 except Exception:
                     if t_type is not None:
@@ -582,6 +583,87 @@ class VirtTest(test.Test):
                 raise error.JobError("Abort requested (%s)" % e)
 
         return test_passed
+
+    def _run_avocado(self):
+        """
+        Auxiliary method to run_avocado.
+
+        We have to override this method because the avocado-vt plugin
+        has to override the behavior that tests shouldn't raise
+        exceptions.TestNAError by themselves in avocado. In the old
+        virt-test case, that rule is not in place, so we have to be
+        a little more lenient for correct test status reporting.
+        """
+        testMethod = getattr(self, self._testMethodName)
+        self._start_logging()
+        self.sysinfo_logger.start_test_hook()
+        test_exception = None
+        cleanup_exception = None
+        stdout_check_exception = None
+        stderr_check_exception = None
+        try:
+            self.setUp()
+        except exceptions.TestNAError, details:
+            stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
+            raise exceptions.TestNAError(details)
+        except Exception, details:
+            stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
+            raise exceptions.TestSetupFail(details)
+        try:
+            testMethod()
+        except Exception, details:
+            stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
+            test_exception = details
+        finally:
+            try:
+                self.tearDown()
+            except Exception, details:
+                stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
+                cleanup_exception = details
+
+        whiteboard_file = os.path.join(self.logdir, 'whiteboard')
+        genio.write_file(whiteboard_file, self.whiteboard)
+
+        if self.job is not None:
+            job_standalone = getattr(self.job.args, 'standalone', False)
+            output_check_record = getattr(self.job.args,
+                                          'output_check_record', 'none')
+            no_record_mode = (not job_standalone and
+                              output_check_record == 'none')
+            disable_output_check = (not job_standalone and
+                                    getattr(self.job.args,
+                                            'output_check', 'on') == 'off')
+
+            if job_standalone or no_record_mode:
+                if not disable_output_check:
+                    try:
+                        self.check_reference_stdout()
+                    except Exception, details:
+                        stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
+                        stdout_check_exception = details
+                    try:
+                        self.check_reference_stderr()
+                    except Exception, details:
+                        stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
+                        stderr_check_exception = details
+            elif not job_standalone:
+                if output_check_record in ['all', 'stdout']:
+                    self.record_reference_stdout()
+                if output_check_record in ['all', 'stderr']:
+                    self.record_reference_stderr()
+
+        # pylint: disable=E0702
+        if test_exception is not None:
+            raise test_exception
+        elif cleanup_exception is not None:
+            raise exceptions.TestSetupFail(cleanup_exception)
+        elif stdout_check_exception is not None:
+            raise stdout_check_exception
+        elif stderr_check_exception is not None:
+            raise stderr_check_exception
+
+        self.status = 'PASS'
+        self.sysinfo_logger.end_test_hook()
 
 
 class VirtTestOptionsProcess(object):
@@ -983,9 +1065,6 @@ class VirtTestOptionsProcess(object):
                                  % (vt_type_setting,
                                     self.options.vt_type,
                                     " ".join(SUPPORTED_TEST_TYPES)))
-
-        if self.options.vt_data_dir:
-            data_dir.set_backing_data_dir(self.options.vt_data_dir)
 
         self.cartesian_parser = cartesian_config.Parser(debug=False)
 
