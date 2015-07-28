@@ -1,0 +1,102 @@
+# This file contains a flat list of test names to run by default from the
+# runner when no --tests option is specified.  Any blank line or one starting
+# with a '#' character is ignored.
+
+unattended_install.import.import.default_install.aio_native
+
+(subtest=type_specific)..(subtest=virsh)..(subtest=attach_detach_disk)..attach_disk..normal_test..host_block_vm_name
+(subtest=type_specific)..(subtest=virsh)..(subtest=attach_detach_disk)..detach_disk..error_test..invalid_option_1
+(subtest=type_specific)..(subtest=virsh)..(subtest=autostart)..negative_test..invalid_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=change_media)..cdrom_test..positive_test..eject..options..none..running_guest
+(subtest=type_specific)..(subtest=virsh)..(subtest=change_media)..cdrom_test..positive_test..eject..options..none..shutoff_guest
+(subtest=type_specific)..(subtest=virsh)..(subtest=change_media)..floppy_test..negative_test..update..shutoff_guest_with_live
+(subtest=type_specific)..(subtest=virsh)..(subtest=console)..normal_test..valid_domid
+(subtest=type_specific)..(subtest=virsh)..(subtest=cpu_baseline)..expected_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=cpu_baseline)..error_test..space_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=cpu_compare)..host_cpu..normal_test..expected_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=cpu_compare)..host_cpu..error_test..modified_option..diff_vendor
+(subtest=type_specific)..(subtest=virsh)..(subtest=cpu_compare)..host_cpu..error_test..modified_option..invalid_feature2
+
+# https://github.com/autotest/virt-test/issues/1083
+# (subtest=type_specific)..(subtest=virsh)..(subtest=cpu_stats)..positive_test..paused_option
+# (subtest=type_specific)..(subtest=virsh)..(subtest=cpu_stats)..negative_test..no_option
+
+(subtest=type_specific)..(subtest=virsh)..(subtest=define)..number
+(subtest=type_specific)..(subtest=virsh)..(subtest=define)..symbol_letter_number
+(subtest=type_specific)..(subtest=virsh)..(subtest=define)..symbol
+(subtest=type_specific)..(subtest=virsh)..(subtest=desc)..positive_test..live_desc
+(subtest=type_specific)..(subtest=virsh)..(subtest=desc)..positive_test..current_desc
+(subtest=type_specific)..(subtest=virsh)..(subtest=desc)..positive_test..config_desc
+(subtest=type_specific)..(subtest=virsh)..(subtest=destroy)..normal_test..paused_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=destroy)..error_test..no_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=destroy)..error_test..hex_id_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=domblkinfo)..normal_test..pause_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=domblkinfo)..normal_test..uuid_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=domblkinfo)..error_test..unexpected_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=domblkinfo)..error_test..extra_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=domid)..normal_test..shutoff_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=domid)..error_test..id_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=domiflist)..with_valid_option..name
+(subtest=type_specific)..(subtest=virsh)..(subtest=domiflist)..with_invalid_option..none
+(subtest=type_specific)..(subtest=virsh)..(subtest=domjobabort)..normal_test..paused_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=domjobabort)..normal_test..uuid_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=domjobabort)..error_test..shut_off_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=domname)..vm_state..vm_running..with_valid_option..uuid
+(subtest=type_specific)..(subtest=virsh)..(subtest=domname)..vm_state..vm_running..with_invalid_option..none
+(subtest=type_specific)..(subtest=virsh)..(subtest=domname)..vm_state..vm_running..with_invalid_option..addition_invalid_param
+(subtest=type_specific)..(subtest=virsh)..(subtest=domuuid)..normal_test..vm_paused..valid_domname
+(subtest=type_specific)..(subtest=virsh)..(subtest=domuuid)..normal_test..vm_running..valid_domid
+(subtest=type_specific)..(subtest=virsh)..(subtest=dump)..positive_test..bypass_cache_dump
+(subtest=type_specific)..(subtest=virsh)..(subtest=dump)..negative_test..no_dump_file
+(subtest=type_specific)..(subtest=virsh)..(subtest=edit)..normal_test..id_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=edit)..error_test..invalid_uuid_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=managedsave)..status_error_no..name_option..normal_status
+(subtest=type_specific)..(subtest=virsh)..(subtest=managedsave)..status_error_no..name_option..paused_status
+(subtest=type_specific)..(subtest=virsh)..(subtest=restore)..start_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=resume)..normal_test..vm_paused..valid_domid
+(subtest=type_specific)..(subtest=virsh)..(subtest=resume)..normal_test..vm_running..valid_domid
+(subtest=type_specific)..(subtest=virsh)..(subtest=save)..normal_test..paused_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=save)..error_test..shut_off_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=schedinfo_qemu_posix)..normal_test..show_schedinfo..valid_domid
+(subtest=type_specific)..(subtest=virsh)..(subtest=schedinfo_qemu_posix)..error_test..invalid_options..invalid_domid
+(subtest=type_specific)..(subtest=virsh)..(subtest=setmaxmem)..normal_test..shut_off..half_mem..domuuid..dom_opt_size_opt
+(subtest=type_specific)..(subtest=virsh)..(subtest=setmem)..valid_options..running..half_mem..domid..dom_opt_size_opt
+
+# https://github.com/autotest/virt-test/issues/1016
+# (subtest=type_specific)..(subtest=virsh)..(subtest=setvcpus)..normal_test..pause_option
+# (subtest=type_specific)..(subtest=virsh)..(subtest=setvcpus)..normal_test..uuid_option
+
+(subtest=type_specific)..(subtest=virsh)..(subtest=setvcpus)..error_test..shut_off_error_option..live_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=setvcpus)..error_test..shut_off_error_option..live_config_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=shutdown)..error_test..extra_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=start)..status_error_yes..vm_paused
+(subtest=type_specific)..(subtest=virsh)..(subtest=suspend)..normal_test..paused_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=suspend)..error_test..shutdown_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=ttyconsole)..normal_test..vm_running..domname
+
+# https://github.com/autotest/virt-test/pull/991
+# (subtest=type_specific)..(subtest=virsh)..(subtest=update_device)..normal_test..id_option..no_option
+
+(subtest=type_specific)..(subtest=virsh)..(subtest=vcpuinfo)..normal_test..name_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=capabilities)..unexpect_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=hostname)..no_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=node_memtune)..positive_testing..get_node_memory_parameter
+(subtest=type_specific)..(subtest=virsh)..(subtest=node_memtune)..positive_testing..set_node_memory_parameter..shm_pages_to_scan
+(subtest=type_specific)..(subtest=virsh)..(subtest=nodeinfo)..no_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=nodememstats)..no_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=uri)..unexpect_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=version)..no_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=domblkstat)..normal_test..name_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=domifstat)..normal_test..name_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=dominfo)..normal_test..paused_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=dommemstat)..normal_test..uuid_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=domstate)..normal_test..id_option
+(subtest=type_specific)..(subtest=virsh)..(subtest=list)..normal_test..with_valid_options..list_table..inactive
+(subtest=type_specific)..(subtest=virsh)..(subtest=list)..normal_test..with_valid_options..list_table..all
+(subtest=type_specific)..(subtest=virsh)..(subtest=list)..normal_test..with_valid_options..list_table..none
+(subtest=type_specific)..(subtest=virsh)..(subtest=snapshot)..live..halt
+(subtest=type_specific)..(subtest=virsh)..(subtest=snapshot)..live..no_halt
+(subtest=type_specific)..(subtest=virsh)..(subtest=connect)..local_connect..normal_test..readonly
+(subtest=type_specific)..(subtest=virsh)..(subtest=help)..normal_test..no_option
+
+remove_guest.without_disk

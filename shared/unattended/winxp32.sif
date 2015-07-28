@@ -1,0 +1,85 @@
+[Data]
+AutoPartition=1
+MsDosInitiated="0"
+UnattendedInstall="Yes"
+
+[Unattended]
+Repartition=Yes
+UnattendMode=FullUnattended
+OemSkipEula=Yes
+OemPreinstall=No
+TargetPath=\WINDOWS
+UnattendSwitch=Yes
+CrashDumpSetting=1
+DriverSigningPolicy=ignore
+OemPnPDriversPath="KVM_TEST_NETWORK_DRIVER_PATH"
+WaitForReboot=no
+
+[GuiUnattended]
+AdminPassword="1q2w3eP"
+EncryptedAdminPassword=NO
+TimeZone=85
+OemSkipWelcome=1
+AutoLogon=Yes
+AutoLogonCount=1000
+OEMSkipRegional=1
+
+[UserData]
+ProductKey=KVM_TEST_CDKEY
+FullName="Autotest Mindless Drone"
+OrgName="Autotest"
+ComputerName=*
+
+[Identification]
+JoinWorkgroup=WORKGROUP
+
+[Networking]
+InstallDefaultComponents=Yes
+
+[Proxy]
+Proxy_Enable=0
+Use_Same_Proxy=0
+
+[Components]
+dialer=off
+media_clips=off
+media_utopia=off
+msnexplr=off
+netoc=off
+OEAccess=off
+templates=off
+WMAccess=off
+zonegames=off
+
+[TerminalServices]
+AllowConnections=1
+
+[WindowsFirewall]
+Profiles=WindowsFirewall.TurnOffFirewall
+
+[WindowsFirewall.TurnOffFirewall]
+Mode=0
+
+[Branding]
+BrandIEUsingUnattended=Yes
+
+[Display]
+Xresolution=1024
+YResolution=768
+
+[GuiRunOnce]
+Command0="cmd /c echo OS install is completed > COM1"
+Command1="cmd /c KVM_TEST_VIRTIO_NETWORK_INSTALLER"
+Command2="cmd /c E:\autoit3.exe  E:\git\git.au3"
+Command3="cmd /c E:\cfg\screensave.bat"
+Command4="cmd /c E:\cfg\use_pmtmr.bat"
+Command5="cmd /c netsh interface ip set address local dhcp"
+Command6="cmd /c E:\setuprss.bat"
+Command7="cmd /c start /wait E:\dotnetfx35.exe /lang:ENU /norestart /passive"
+Command8="cmd /c msiexec /i D:\SUPPORT\TOOLS\SUPTOOLS.MSI /q"
+Command9="cmd /c md C:\sysprep & expand D:\SUPPORT\TOOLS\DEPLOY.CAB -F:* C:\sysprep"
+Command10="cmd /c E:\setupsp.bat"
+Command11="cmd /c sc config tlntsvr start= auto"
+Command12="cmd /c net start telnet"
+Command13="cmd /c E:\software_install_32.bat"
+Command14="cmd /c A:\finish.bat PROCESS_CHECK"

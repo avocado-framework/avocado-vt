@@ -1,0 +1,210 @@
+These rules are fairly standard and boring. People will bitch about something
+in here, no doubt. Get over it. Much of this was stolen from the Linux Kernel
+coding style, because most of it makes good sense. If you disagree, that's OK,
+but please stick to the rules anyway ;-)
+
+
+Language
+
+Please use Python where possible. It's not the ideal language for everything,
+but it's pretty good, and consistency goes a long way in making the project
+maintainable. (Obviously using C or whatever for writing tests is fine).
+
+
+Base coding style
+
+When writing python code, unless otherwise stated, stick to the python style
+guide (http://www.python.org/dev/peps/pep-0008/). We now ship a script,
+run_pep8.py, that can verify non compliances to the PEP8, with some of
+the few exceptions we allow people to do. If you see that the script
+finds problems with your code, we expect you to fix them before you
+send pull requests. In order for the script to be useful you'll have to
+use the tools provided by your distro to install the programs 'pep8' and
+'autopep8'.
+
+
+Indentation & whitespace
+
+Format your code for an 80 character wide screen.
+
+Indentation is now 4 spaces, as opposed to hard tabs (which it used to be).
+This is the Python standard.
+
+Don't leave trailing whitespace, or put whitespace on blank lines.
+
+
+Variable names and UpPeR cAsE
+
+Use descriptive variable names where possible - it helps to make the code
+self documenting.
+
+Don't use CamelCaps style in most places - use underscores to separate parts
+of your variable_names please.
+
+Importing modules
+
+The order of imports should be as follows:
+
+Standard python modules
+Non-standard python modules
+Autotest modules
+
+Within one of these three sections, all module imports using the from
+keyword should appear after regular imports.
+Modules should be lumped together on the same line.
+Wildcard imports (from x import *) should be avoided if possible.
+
+Classes should not be imported from modules, but modules may be imported
+ from packages, i.e.:
+from shared import error
+and not
+from shared.error import AutoservError
+
+For example:
+import os
+import pickle
+import random
+import re
+import select
+import shutil
+import signal
+import StringIO
+import subprocess
+import sys
+import time
+import urllib
+import urlparse
+import MySQLdb
+try:
+    import autotest.common   
+except ImportError:
+    import common   # Magic autotest module and sys.path setup code.
+import MySQLdb  # After common so that we check our site-packages first.
+from shared import error
+
+Testing None
+
+Use "is None" rather than "== None" and "is not None" rather than "!= None".
+This way you'll never run into a case where someone's __eq__ or __ne__
+method do the wrong thing
+
+
+Comments
+
+Generally, you want your comments to tell WHAT your code does, not HOW.
+We can figure out how from the code itself (or if not, your code needs fixing).
+
+Try to describle the intent of a function and what it does in a triple-quoted
+(multiline) string just after the def line. We've tried to do that in most
+places, though undoubtedly we're not perfect. A high level overview is
+incredibly helpful in understanding code.
+
+
+Docstrings
+
+Docstrings are important to keep our code self documenting. While it's not
+necessary to overdo documentation, we ask you to be sensible and document any
+nontrivial function. When creating docstrings, please add a newline at the
+beginning of your triple quoted string and another newline at the end of it. If
+the docstring has multiple lines, please include a short summary line followed
+by a blank line before continuing with the rest of the description. Please
+capitalize and punctuate accordingly the sentences. If the description has
+multiple lines, put two levels of indentation before proceeding with text. An
+example docstring:
+
+def foo(param1, param2):
+    """
+    Summary line.
+
+    Long description of method foo.
+
+    :param param1: A thing called param1 that is used for a bunch of stuff
+                   that has methods bar() and baz() which raise SpamError if
+                   something goes awry.
+    :type param1: :class:`Thing`
+    :param param2: The number of :class:`thingies <Thing>` that foo will handle
+    :type param2: integer
+    :return: a list of integers describing changes in a source tree
+    :rtype: list of integers
+    """
+
+The docstring can hold any form of reStructuredText. For a brief intro, check:
+
+ http://docutils.sourceforge.net/rst.html
+
+More specifically, Autotest docs are now based on the Sphinx documentation
+framework:
+
+ http://sphinx-doc.org
+
+So you can use not only use the basic reStructuredText tags, but also any other
+tag that Sphinx makes available. When documenting functions and methods, you
+probably want to use one of the tags exemplified here:
+
+ http://sphinx-doc.org/domains.html#info-field-lists
+
+:param - Parameter description
+:returns - Return value description
+:raises - If the function can throw an exception, this tag documents the
+possible exception types.
+
+The existing docstrings are being converted into reStructuredText, so don't
+worry if you find docstrings that don't conform to the example given here.
+When in doubt, please refer to the Sphinx documentation.
+
+Simple code
+
+Keep it simple; this is not the right place to show how smart you are. We
+have plenty of system failures to deal with without having to spend ages
+figuring out your code, thanks ;-) Readbility, readability, readability.
+I really don't care if other things are more compact.
+
+"Debugging is twice as hard as writing the code in the first place. Therefore,
+if you write the code as cleverly as possible, you are, by definition, not
+smart enough to debug it."  Brian Kernighan
+
+
+Function length
+
+Please keep functions short, under 30 lines or so if possible. Even though
+you are amazingly clever, and can cope with it, the rest of us are all stupid,
+so be nice and help us out. To quote the Linux Kernel coding style:
+
+Functions should be short and sweet, and do just one thing.  They should
+fit on one or two screenfuls of text (the ISO/ANSI screen size is 80x24,
+as we all know), and do one thing and do that well.
+
+
+Exceptions
+
+When raising exceptions, the preferred syntax for it is:
+
+raise FooException('Exception Message')
+
+Please don't raise string exceptions, as they're deprecated and will be removed
+from future versions of python. If you're in doubt about what type of exception
+you will raise, please look at http://docs.python.org/lib/module-exceptions.html
+and client/shared/error.py, the former is a list of python built in
+exceptions and the later is a list of autotest/autoserv internal exceptions. Of
+course, if you really need to, you can extend the exception definitions on
+client/shared/error.py.
+
+
+Submitting patches
+
+Nowadays, the projects uses the github (http://github.com/ infrastructure,
+and we ask contributors to send patches as github pull requests, rather than
+to the mailing list. How to do that is covered on github's documentation:
+
+https://help.github.com/articles/using-pull-requests
+
+
+Catching Exceptions
+
+Older python cannot support the full exception syntax.  The accepted formats
+for exception catching are:
+
+     try...except...
+     try...finally...
+     try...except...else...
+     try...finally...else...
