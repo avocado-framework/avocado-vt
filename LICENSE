@@ -1,15 +1,12 @@
-virt-test is released specifically under the GPLv2, and not any
-later version of the license, unless explicitly otherwise stated
-
-All files in the virt-test project are covered by the GPLv2, unless
-explicitly otherwise stated.
+Unless explicitly otherwise stated, all files in the avocado-vt repository
+are covered by the GPLv2+ (i.e: v2, or any later version).
 
 
                    GNU GENERAL PUBLIC LICENSE
                       Version 2, June 1991
 
  Copyright (C) 1989, 1991 Free Software Foundation, Inc.
-                       51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  Everyone is permitted to copy and distribute verbatim copies
  of this license document, but changing it is not allowed.
 
