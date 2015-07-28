@@ -734,7 +734,7 @@ def bootstrap(options, interactive=False):
     step += 1
     logging.info("%d - Verifying directories", step)
     datadir = data_dir.get_data_dir()
-    shared_dir = os.path.dirname(datadir)
+    shared_dir = data_dir.get_shared_dir()
     sub_dir_list = ["images", "isos", "steps_data", "gpg"]
     for sub_dir in sub_dir_list:
         sub_dir_path = os.path.join(datadir, sub_dir)
