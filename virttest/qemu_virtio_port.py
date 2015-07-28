@@ -15,8 +15,9 @@ import time
 from avocado.core import exceptions
 from avocado.utils import process
 
+import aexpect
+
 from . import data_dir
-from . import aexpect
 
 
 SOCKET_SIZE = 2048

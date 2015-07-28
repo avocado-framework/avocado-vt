@@ -36,8 +36,9 @@ from avocado.utils import download
 from avocado.utils import crypto
 from avocado.utils import path
 
+import aexpect
+
 # Import from the top level virttest namespace
-from .. import aexpect
 from .. import asset
 from .. import bootstrap
 from .. import data_dir

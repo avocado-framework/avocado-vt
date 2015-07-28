@@ -15,8 +15,9 @@ from avocado.utils import cpu
 from avocado.utils import path
 from avocado.core import exceptions
 
+import aexpect
+
 from . import error_context
-from . import aexpect
 from . import qemu_monitor
 from . import ppm_utils
 from . import test_setup

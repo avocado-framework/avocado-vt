@@ -11,8 +11,9 @@ import tempfile
 from avocado.core import exceptions
 from avocado.utils import process
 
+import aexpect
+
 from . import data_dir
-from . import aexpect
 from . import utils_misc
 from . import rss_client
 from .remote_commander import remote_master
