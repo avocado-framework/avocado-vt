@@ -1,0 +1,17 @@
+NAME = "Netperf2 (Client)"
+AUTHOR = "Martin Bligh <mbligh@google.com>"
+TIME = "MEDIUM"
+TEST_CATEGORY = "BENCHMARK"
+TEST_CLASS = "HARDWARE"
+TEST_TYPE = "CLIENT"
+DOC = """
+TCP/UDP/sockets/etc performance benchmark.
+See http://www.netperf.org/netperf/NetperfPage.html.
+"""
+
+job.run_test('netperf2',
+             server_ip='SERVERIP',
+             client_ip='CLIENTIP',
+             role='client',
+             tag='client',
+             test_time=300)

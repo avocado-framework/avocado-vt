@@ -1,0 +1,24 @@
+You can drop files in this dir to define custom windows guests.
+As an example, you could create a file called foo.cfg with the contents:
+
+FooWindows:
+    image_name = images/foo-windows
+
+Which would make it possible to specify this custom guest using
+
+./run -t qemu -g WindowsCustom.FooWindows
+
+Provided that you have a file called images/foo-windows.qcow2, if using the
+qcow2 format image. If you wish to provide a raw image file, you must use
+
+./run -t qemu -g WindowsCustom.FooWindows --image-type raw
+
+Other useful params to set (not an exaustive list):
+
+    # If you plan to use a raw device, set image_device = yes
+    image_raw_device = yes
+    # Attention: Changing the password in this file is not supported,
+    # since files in winutils.iso use it.
+    username = Administrator
+    password = 1q2w3eP
+
