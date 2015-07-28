@@ -31,6 +31,11 @@ Xunit output, among others.
 %config(noreplace)/etc/avocado/conf.d/virt-test.conf
 %doc README.rst LICENSE
 %{python_sitelib}/avocado*
+%{python_sitelib}/virttest*
+%{_datadir}/avocado-plugins-vt/backends/*
+%{_datadir}/avocado-plugins-vt/shared/*
+%{_datadir}/avocado-plugins-vt/test-providers.d/*
+
 
 %changelog
 * Mon Jul 6 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.26.0-1
