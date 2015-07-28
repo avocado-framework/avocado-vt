@@ -8,10 +8,10 @@ import threading
 import shutil
 import sys
 import copy
+import multiprocessing
 
 from avocado.utils import process as avocado_process
 from avocado.utils import crypto
-from avocado.utils import cpu
 from avocado.utils import path
 from avocado.core import exceptions
 
@@ -456,7 +456,7 @@ def _process_images_parallel(image_func, test, params, vm_process_status=None):
     """
     images = params.objects("images")
     no_threads = min(len(images) / 5,
-                     2 * cpu.count_cpus())
+                     2 * multiprocessing.cpu_count())
     exit_event = threading.Event()
     threads = []
     for i in xrange(no_threads):
