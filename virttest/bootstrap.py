@@ -330,7 +330,6 @@ def create_subtests_cfg(t_type):
 
     all_specific_test_list.sort()
     all_shared_test_list.sort()
-    all_test_list = set(all_specific_test_list + all_shared_test_list)
 
     first_subtest_file = []
     last_subtest_file = []
@@ -406,44 +405,9 @@ def create_subtests_cfg(t_type):
                 tmp.append([provider_name, shared_file])
     specific_file_list = tmp
 
-    non_dropin_tests.sort()
-    non_dropin_tests = set(non_dropin_tests)
-    dropin_tests = all_test_list - non_dropin_tests
-    dropin_file_list = []
     tmp_dir = data_dir.get_tmp_dir()
     if not os.path.isdir(tmp_dir):
         os.makedirs(tmp_dir)
-
-    for dropin_test in dropin_tests:
-        provider = dropin_test.split(".")[0]
-        d_type = dropin_test.split(".")[-1]
-        autogen_cfg_path = os.path.join(tmp_dir,
-                                        '%s.cfg' % dropin_test)
-        autogen_cfg_file = open(autogen_cfg_path, 'w')
-        autogen_cfg_file.write("# Drop-in test - auto generated snippet\n")
-        autogen_cfg_file.write("- %s:\n" % dropin_test)
-        autogen_cfg_file.write("    virt_test_type = %s\n" % t_type)
-        autogen_cfg_file.write("    type = %s\n" % d_type)
-        autogen_cfg_file.close()
-        dropin_file_list.append([provider, autogen_cfg_path])
-
-    dropin_file_list_2 = []
-    dropin_tests = os.listdir(os.path.join(data_dir.get_root_dir(), "dropin"))
-    dropin_cfg_path = os.path.join(tmp_dir, 'dropin.cfg')
-    dropin_cfg_file = open(dropin_cfg_path, 'w')
-    dropin_cfg_file.write("# Auto generated snippet for dropin tests\n")
-    dropin_cfg_file.write("- dropin:\n")
-    dropin_cfg_file.write("    variants:\n")
-    for dropin_test in dropin_tests:
-        if dropin_test == "README":
-            continue
-        dropin_cfg_file.write("        - %s:\n" % dropin_test)
-        dropin_cfg_file.write("            virt_test_type = %s\n" % t_type)
-        dropin_cfg_file.write("            type = dropin\n")
-        dropin_cfg_file.write("            start_vm = no\n")
-        dropin_cfg_file.write("            dropin_path = %s\n" % dropin_test)
-    dropin_cfg_file.close()
-    dropin_file_list_2.append(['io-github-autotest-qemu', dropin_cfg_path])
 
     subtests_cfg = os.path.join(root_dir, 'backends', t_type, 'cfg',
                                 'subtests.cfg')
@@ -455,8 +419,6 @@ def create_subtests_cfg(t_type):
     write_subtests_files(first_subtest_file, subtests_file)
     write_subtests_files(specific_file_list, subtests_file, t_type)
     write_subtests_files(shared_file_list, subtests_file)
-    write_subtests_files(dropin_file_list, subtests_file)
-    write_subtests_files(dropin_file_list_2, subtests_file)
     write_subtests_files(last_subtest_file, subtests_file)
 
     subtests_file.close()
