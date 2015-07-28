@@ -96,6 +96,7 @@ config_filter = _get_config_filter()
 
 def verify_recommended_programs(t_type):
     cmds = recommended_programs[t_type]
+    found = False
     for cmd_aliases in cmds:
         for cmd in cmd_aliases:
             found = None
@@ -262,8 +263,6 @@ def create_guest_os_cfg(t_type):
 
 
 def create_subtests_cfg(t_type):
-    root_dir = data_dir.get_root_dir()
-
     specific_test_list = []
     specific_file_list = []
     specific_subdirs = asset.get_test_provider_subdirs(t_type)
@@ -405,11 +404,7 @@ def create_subtests_cfg(t_type):
                 tmp.append([provider_name, shared_file])
     specific_file_list = tmp
 
-    tmp_dir = data_dir.get_tmp_dir()
-    if not os.path.isdir(tmp_dir):
-        os.makedirs(tmp_dir)
-
-    subtests_cfg = os.path.join(root_dir, 'backends', t_type, 'cfg',
+    subtests_cfg = os.path.join(data_dir.get_backend_dir(t_type), 'cfg',
                                 'subtests.cfg')
     subtests_file = open(subtests_cfg, 'w')
     subtests_file.write(
@@ -422,6 +417,8 @@ def create_subtests_cfg(t_type):
     write_subtests_files(last_subtest_file, subtests_file)
 
     subtests_file.close()
+    logging.debug("Config file %s auto generated from subtest samples",
+                  subtests_cfg)
 
 
 def create_config_files(test_dir, shared_dir, interactive, step=None,
@@ -734,7 +731,7 @@ def bootstrap(options, interactive=False):
     step += 1
     logging.info("%d - Verifying directories", step)
     datadir = data_dir.get_data_dir()
-    shared_dir = os.path.dirname(datadir)
+    shared_dir = data_dir.get_shared_dir()
     sub_dir_list = ["images", "isos", "steps_data", "gpg"]
     for sub_dir in sub_dir_list:
         sub_dir_path = os.path.join(datadir, sub_dir)

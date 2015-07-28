@@ -5,20 +5,35 @@ Library used to provide the appropriate data dir for virt test.
 import inspect
 import os
 import sys
-import tempfile
 import glob
 import shutil
+import tempfile
 
-_ROOT_PATH = os.path.join(sys.modules[__name__].__file__, "..", "..")
+from avocado.core import data_dir
+
+_SYSTEM_WIDE_ROOT_PATH = '/usr/share/avocado-plugins-vt'
+if os.path.isdir(_SYSTEM_WIDE_ROOT_PATH):
+    _INSTALLED_SYSTEM_WIDE = len(os.listdir(os.path.join(_SYSTEM_WIDE_ROOT_PATH,
+                                                         'shared'))) > 0
+else:
+    _INSTALLED_SYSTEM_WIDE = False
+
+if _INSTALLED_SYSTEM_WIDE:
+    # avocado-vt is installed
+    _ROOT_PATH = _SYSTEM_WIDE_ROOT_PATH
+else:
+    # we're running from source code directories
+    _ROOT_PATH = os.path.dirname(os.path.abspath(os.readlink(os.path.dirname(sys.modules['virttest'].__file__))))
+
 ROOT_DIR = os.path.abspath(_ROOT_PATH)
 BASE_BACKEND_DIR = os.path.join(ROOT_DIR, 'backends')
-DATA_DIR = os.path.join(ROOT_DIR, 'shared', 'data')
+DATA_DIR = os.path.join(data_dir.get_data_dir(), 'avocado-vt')
+SHARED_DIR = os.path.join(ROOT_DIR, 'shared')
 DEPS_DIR = os.path.join(ROOT_DIR, 'shared', 'deps')
-DOWNLOAD_DIR = os.path.join(ROOT_DIR, 'shared', 'downloads')
+BASE_DOWNLOAD_DIR = os.path.join(SHARED_DIR, 'downloads')
+DOWNLOAD_DIR = os.path.join(DATA_DIR, 'downloads')
 TEST_PROVIDERS_DIR = os.path.join(ROOT_DIR, 'test-providers.d')
-TEST_PROVIDERS_DOWNLOAD_DIR = os.path.join(ROOT_DIR, 'test-providers.d',
-                                           'downloads')
-TMP_DIR = os.path.join(ROOT_DIR, 'tmp')
+TMP_DIR = tempfile.mkdtemp()
 BACKING_DATA_DIR = None
 
 
@@ -100,54 +115,10 @@ class SubdirGlobList(SubdirList):
 
 
 def get_backing_data_dir():
-    if os.path.islink(DATA_DIR):
-        if os.path.isdir(DATA_DIR):
-            return os.readlink(DATA_DIR)
-        else:
-            # Invalid symlink
-            os.unlink(DATA_DIR)
-    elif os.path.isdir(DATA_DIR):
-        return DATA_DIR
-
-    try:
-        return os.environ['VIRT_TEST_DATA_DIR']
-    except KeyError:
-        pass
-
-    data_dir = '/var/lib/virt_test'
-    if os.path.isdir(data_dir):
-        try:
-            fd, path = tempfile.mkstemp(dir=data_dir)
-            os.close(fd)
-            os.unlink(path)
-            return data_dir
-        except OSError:
-            pass
-    else:
-        try:
-            os.makedirs(data_dir)
-            return data_dir
-        except OSError:
-            pass
-
-    data_dir = os.path.expanduser('~/virt_test')
-    if not os.path.isdir(data_dir):
-        os.makedirs(data_dir)
-    return os.path.realpath(data_dir)
-
-
-def set_backing_data_dir(backing_data_dir):
-    if os.path.islink(DATA_DIR):
-        os.unlink(DATA_DIR)
-    backing_data_dir = os.path.expanduser(backing_data_dir)
-    if not os.path.isdir(backing_data_dir):
-        os.makedirs(backing_data_dir)
-    if not backing_data_dir == DATA_DIR:
-        os.symlink(backing_data_dir, DATA_DIR)
+    return DATA_DIR
 
 
 BACKING_DATA_DIR = get_backing_data_dir()
-set_backing_data_dir(BACKING_DATA_DIR)
 
 
 def get_root_dir():
@@ -158,14 +129,21 @@ def get_data_dir():
     return DATA_DIR
 
 
+def get_shared_dir():
+    return SHARED_DIR
+
+
 def get_backend_dir(backend_type):
     if backend_type not in os.listdir(BASE_BACKEND_DIR):
         raise UnknownBackendError(backend_type)
-    return os.path.join(BASE_BACKEND_DIR, backend_type)
+    dst = os.path.join(get_data_dir(), 'backends')
+    if not os.path.isdir(dst):
+        shutil.copytree(BASE_BACKEND_DIR, dst)
+    return os.path.join(dst, backend_type)
 
 
 def get_backend_cfg_path(backend_type, cfg_basename):
-    return os.path.join(BASE_BACKEND_DIR, backend_type, 'cfg', cfg_basename)
+    return os.path.join(get_backend_dir(backend_type), 'cfg', cfg_basename)
 
 
 def get_deps_dir(target=None):
@@ -216,22 +194,28 @@ def get_deps_dir(target=None):
 
 
 def get_tmp_dir():
-    if not os.path.isdir(TMP_DIR):
-        os.makedirs(TMP_DIR)
     return TMP_DIR
 
 
 def get_download_dir():
+    if not os.path.isdir(DOWNLOAD_DIR):
+        shutil.copytree(BASE_DOWNLOAD_DIR, DOWNLOAD_DIR)
     return DOWNLOAD_DIR
+
+
+TEST_PROVIDERS_DOWNLOAD_DIR = os.path.join(get_data_dir(), 'test-providers.d',
+                                           'downloads')
 
 
 def get_test_providers_dir():
     """
     Return the base test providers dir (at the moment, test-providers.d).
     """
-    if not os.path.isdir(TEST_PROVIDERS_DOWNLOAD_DIR):
+    test_providers_dir = os.path.dirname(TEST_PROVIDERS_DOWNLOAD_DIR)
+    if not os.path.isdir(test_providers_dir):
+        shutil.copytree(TEST_PROVIDERS_DIR, test_providers_dir)
         os.makedirs(TEST_PROVIDERS_DOWNLOAD_DIR)
-    return TEST_PROVIDERS_DIR
+    return test_providers_dir
 
 
 def get_test_provider_dir(provider):
