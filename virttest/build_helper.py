@@ -1,10 +1,10 @@
 import logging
+import multiprocessing
 import os
 import shutil
 import tarfile
 
 from avocado.core import exceptions
-from avocado.utils import cpu
 from avocado.utils import download
 from avocado.utils import git
 from avocado.utils import path
@@ -637,7 +637,7 @@ class GnuSourceBuildHelper(object):
         """
         Runs "make" using the correct number of parallel jobs
         """
-        parallel_make_jobs = cpu.count_cpus()
+        parallel_make_jobs = multiprocessing.cpu_count()
         make_command = "make -j %s" % parallel_make_jobs
         logging.info("Running parallel make on build dir")
         os.chdir(self.build_dir)
@@ -753,7 +753,7 @@ class LinuxKernelBuildHelper(object):
         # FIXME currently no support for builddir
         # run old config
         process.system('yes "" | make oldconfig > /dev/null', shell=True)
-        parallel_make_jobs = cpu.count_cpus()
+        parallel_make_jobs = multiprocessing.cpu_count()
         make_command = "make -j %s %s" % (
             parallel_make_jobs, self.build_target)
         logging.info("Running parallel make on src dir")
