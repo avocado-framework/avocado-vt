@@ -36,7 +36,6 @@ class iscsi_test(unittest.TestCase):
         os.path.isfile.expect_call(iscsi_obj.emulated_image).and_return(False)
         process.system.expect_call(c_cmd)
         self.setup_stubs_export_target(iscsi_obj)
-        process.system.expect_call("service iscsid restart")
         if "127.0.0.1" in iscsi_obj.portal_ip:
             self.setup_stubs_set_initiatorName(iscsi_obj)
         self.setup_stubs_portal_visible(iscsi_obj, "127.0.0.1:3260,1 %s"

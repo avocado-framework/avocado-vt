@@ -19,11 +19,10 @@ if os.path.isdir(os.path.join(basedir, 'virttest')):
 
 from virttest.unittest_utils import mock
 from virttest.qemu_devices import qdevices, qbuses, qcontainer
-from virttest import data_dir
 from virttest import qemu_monitor
 
-UNITTEST_DATA_DIR = os.path.join(
-    data_dir.get_root_dir(), "virttest", "unittest_data")
+UNITTEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "unittest_data")
 
 # Dummy variables
 # qemu-1.5.0 human monitor help output

@@ -76,7 +76,10 @@ virbr2        8000.525400c0b080    yes        em1
             self.__class__.iter += 1
 
         def get_stdout(self):
-            return self.fake_cmds[self.__class__.iter]
+            try:
+                return self.fake_cmds[self.__class__.iter]
+            except IndexError:
+                return ''
 
     def setUp(self):
         self.god = mock.mock_god(ut=self)
