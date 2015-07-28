@@ -93,7 +93,7 @@ def get_monitor_filename(vm, monitor_name):
     :param monitor_name: The monitor name.
     :return: The string of socket file name for qemu monitor.
     """
-    return "/tmp/monitor-%s-%s" % (monitor_name, vm.instance)
+    return os.path.join(vm.get_tmp_dir(), "monitor-%s" % monitor_name)
 
 
 def get_monitor_filenames(vm):

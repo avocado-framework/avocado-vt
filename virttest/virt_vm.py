@@ -5,8 +5,10 @@ import os
 import re
 import socket
 import traceback
+import tempfile
 
 from avocado.core import exceptions
+from avocado.utils import path
 
 from . import utils_misc
 from . import utils_net
@@ -506,9 +508,11 @@ class BaseVM(object):
     def __init__(self, name, params):
         self.name = name
         self.params = params
+
         # Create instance if not already set
         if not hasattr(self, 'instance'):
             self._generate_unique_id()
+
         # Don't overwrite existing state, update from params
         if hasattr(self, 'virtnet'):
             # Direct reference to self.virtnet makes pylint complain
@@ -877,17 +881,31 @@ class BaseVM(object):
         """
         return self.params
 
+    def get_tmp_dir(self):
+        """
+        Get temporary directory for VM related files.
+
+        :return: Temporary directory path.
+        """
+        tmp_dir = os.environ.get('TMPDIR', '/tmp')
+        vm_tmp_dir = os.path.join(tmp_dir, str(self.instance))
+        path.init_dir(vm_tmp_dir)
+        return vm_tmp_dir
+
+    def get_temp_file_path(self, filename):
+        return os.path.join(self.get_tmp_dir(), filename)
+
     def get_testlog_filename(self):
         """
         Return the testlog filename.
         """
-        return "/tmp/testlog-%s" % self.instance
+        return self.get_temp_file_path('testlog')
 
     def get_virtio_port_filename(self, port_name):
         """
         Return the filename corresponding to a givven monitor name.
         """
-        return "/tmp/virtio_port-%s-%s" % (port_name, self.instance)
+        return self.get_temp_file_path('virtio-port-%s' % port_name)
 
     def get_virtio_port_filenames(self):
         """
@@ -956,7 +974,7 @@ class BaseVM(object):
         :return: A ShellSession object.
         """
         if commander_path is None:
-            commander_path = "/tmp"
+            commander_path = tempfile.mkdtemp()
         error_context.context("logging into '%s'" % self.name)
         if not username:
             username = self.params.get("username", "")

@@ -10,10 +10,13 @@ import logging
 import fcntl
 import re
 import commands
+import shutil
+import tempfile
 
 from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils import crypto
+from avocado.utils import path
 
 import aexpect
 
@@ -73,12 +76,13 @@ class ImageUnbootableError(virt_vm.VMError):
         return ("VM '%s' can't bootup from image,"
                 " check your boot disk image file." % self.name)
 
+CREATE_LOCK_BASEDIR = tempfile.mkdtemp(prefix='vm-create-lock')
+CREATE_LOCK_FILENAME = os.path.join(CREATE_LOCK_BASEDIR, 'lock')
+
 
 def clean_tmp_files():
-    if os.path.isfile(CREATE_LOCK_FILENAME):
-        os.unlink(CREATE_LOCK_FILENAME)
-
-CREATE_LOCK_FILENAME = os.path.join('/tmp', 'virt-test-vm-create.lock')
+    if os.path.isdir(CREATE_LOCK_BASEDIR):
+        shutil.rmtree(CREATE_LOCK_BASEDIR)
 
 
 class VM(virt_vm.BaseVM):
@@ -282,8 +286,8 @@ class VM(virt_vm.BaseVM):
         :param name: The serial port name.
         """
         if name:
-            return "/tmp/serial-%s-%s" % (name, self.instance)
-        return "/tmp/serial-%s" % self.instance
+            return self.get_temp_file_path('serial-%s' % name)
+        return self.get_temp_file_path('serial')
 
     def get_serial_console_filenames(self):
         """
@@ -492,7 +496,7 @@ class VM(virt_vm.BaseVM):
                 return ""
 
             default_id = "seabioslog_id_%s" % self.instance
-            filename = "/tmp/seabios-%s" % self.instance
+            filename = self.get_temp_file_path('seabios')
             self.logs["seabios"] = filename
             cmd = " -chardev socket"
             cmd += _add_option("id", default_id)
@@ -507,7 +511,7 @@ class VM(virt_vm.BaseVM):
         def add_log_anaconda(devices, pci_bus='pci.0'):
             chardev_id = "anacondalog_chardev_%s" % self.instance
             vioser_id = "anacondalog_vioser_%s" % self.instance
-            filename = "/tmp/anaconda-%s" % self.instance
+            filename = self.get_temp_file_path('anaconda')
             self.logs["anaconda"] = filename
             dev = qdevices.QCustomDevice('chardev', backend='backend')
             dev.set_param('backend', 'socket')
@@ -2239,6 +2243,7 @@ class VM(virt_vm.BaseVM):
 
         # Make sure the following code is not executed by more than one thread
         # at the same time
+        path.init_dir(CREATE_LOCK_BASEDIR)
         lockfile = open(CREATE_LOCK_FILENAME, "w+")
         fcntl.lockf(lockfile, fcntl.LOCK_EX)
 
@@ -2400,7 +2405,7 @@ class VM(virt_vm.BaseVM):
                 qemu_command += (" -incoming " + migration_mode +
                                  ":0:%d" % self.migration_port)
             elif migration_mode == "unix":
-                self.migration_file = "/tmp/migration-unix-%s" % self.instance
+                self.migration_file = self.get_temp_file_path('migration-unix')
                 qemu_command += " -incoming unix:%s" % self.migration_file
             elif migration_mode == "exec":
                 if migration_exec_cmd is None:
@@ -2699,14 +2704,15 @@ class VM(virt_vm.BaseVM):
 
     def _cleanup(self, free_mac_addresses):
         """
-        Do cleanup works
-            .removes VM monitor files.
-            .process close
-            .serial_console close
-            .logsessions close
-            .delete tmp files
-            .free_mac_addresses, if needed
-            .delete macvtap, if needed
+        Cleanup the temporary data left by the VM class instance.
+
+        * Remove VM monitor files.
+        * Process close
+        * Serial_console close
+        * Logsessions close
+        * Delete tmp files
+        * Free_mac_addresses, if needed
+        * Delete macvtap, if needed
 
         :param free_mac_addresses: Whether to release the VM's NICs back
                 to the address pool.
@@ -2723,25 +2729,8 @@ class VM(virt_vm.BaseVM):
             for key in self.logsessions:
                 self.logsessions[key].close()
 
-        # Generate the tmp file which should be deleted.
-        file_list = [self.get_testlog_filename()]
-        file_list += qemu_monitor.get_monitor_filenames(self)
-        file_list += self.get_virtio_port_filenames()
-        file_list += self.get_serial_console_filenames()
-        file_list += self.logs.values()
-
-        for f in file_list:
-            try:
-                if f:
-                    os.unlink(f)
-            except OSError:
-                pass
-
-        if hasattr(self, "migration_file"):
-            try:
-                os.unlink(self.migration_file)
-            except OSError:
-                pass
+        # Remove temporary files all at once.
+        shutil.rmtree(self.get_tmp_dir())
 
         if free_mac_addresses:
             for nic_index in xrange(0, len(self.virtnet)):
@@ -3384,7 +3373,7 @@ class VM(virt_vm.BaseVM):
     @error_context.context_aware
     def migrate(self, timeout=virt_vm.BaseVM.MIGRATE_TIMEOUT, protocol="tcp",
                 cancel_delay=None, offline=False, stable_check=False,
-                clean=True, save_path="/tmp", dest_host="localhost",
+                clean=True, save_path=None, dest_host="localhost",
                 remote_port=None, not_wait_for_migration=False,
                 fd_src=None, fd_dst=None, migration_exec_cmd_src=None,
                 migration_exec_cmd_dst=None, env=None):
@@ -3581,8 +3570,16 @@ class VM(virt_vm.BaseVM):
 
             if local and stable_check:
                 try:
-                    save1 = os.path.join(save_path, "src-" + clone.instance)
-                    save2 = os.path.join(save_path, "dst-" + self.instance)
+                    if save_path is None:
+                        save1 = self.get_temp_file_path('migration-src-%s' %
+                                                        clone.instance)
+                        save2 = self.get_temp_file_path('migration-dst-%s' %
+                                                        self.instance)
+                    else:
+                        save1 = os.path.join(save_path, "migration-src-%s" %
+                                             clone.instance)
+                        save2 = os.path.join(save_path, "migration-dst-%s" %
+                                             self.instance)
                     clone.save_to_file(save1)
                     self.save_to_file(save2)
                     # Fail if we see deltas

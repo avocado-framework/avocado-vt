@@ -225,6 +225,10 @@ def find_substring(string, pattern1, pattern2=None):
 
 
 def lock_file(filename, mode=fcntl.LOCK_EX):
+    if not os.path.isfile(filename):
+        parent_dir = os.path.dirname(filename)
+        if not os.path.isdir(parent_dir):
+            os.makedirs(parent_dir)
     lockfile = open(filename, "w")
     fcntl.lockf(lockfile, mode)
     return lockfile

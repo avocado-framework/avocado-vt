@@ -11,6 +11,8 @@ import time
 import shelve
 import remote
 import commands
+import tempfile
+import shutil
 
 from avocado.core import exceptions
 from avocado.utils import path
@@ -2501,7 +2503,8 @@ class DbNet(VMNet):
         except AttributeError:
             raise DbNoLockError
 
-ADDRESS_POOL_FILENAME = os.path.join("/tmp", "address_pool")
+ADDRESS_POOL_BASEDIR = tempfile.mkdtemp(prefix='address_pool')
+ADDRESS_POOL_FILENAME = os.path.join(ADDRESS_POOL_BASEDIR, "pool")
 ADDRESS_POOL_LOCK_FILENAME = ADDRESS_POOL_FILENAME + ".lock"
 
 
@@ -2509,10 +2512,8 @@ def clean_tmp_files():
     """
     Remove the base address pool filename.
     """
-    if os.path.isfile(ADDRESS_POOL_LOCK_FILENAME):
-        os.unlink(ADDRESS_POOL_LOCK_FILENAME)
-    if os.path.isfile(ADDRESS_POOL_FILENAME):
-        os.unlink(ADDRESS_POOL_FILENAME)
+    if os.path.isdir(ADDRESS_POOL_BASEDIR):
+        shutil.rmtree(ADDRESS_POOL_BASEDIR)
 
 
 class VirtNet(DbNet, ParamsNet):
