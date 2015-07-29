@@ -6,12 +6,7 @@ FooWindows:
 
 Which would make it possible to specify this custom guest using
 
-./run -t qemu -g WindowsCustom.FooWindows
-
-Provided that you have a file called images/foo-windows.qcow2, if using the
-qcow2 format image. If you wish to provide a raw image file, you must use
-
-./run -t qemu -g WindowsCustom.FooWindows --image-type raw
+$ avocado run migrate..tcp --vt-type qemu --vt-guest-os WindowsCustom.FooWindows
 
 Other useful params to set (not an exaustive list):
 
