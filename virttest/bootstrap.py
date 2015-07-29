@@ -804,7 +804,7 @@ def bootstrap(options, interactive=False):
             else:
                 logging.debug("Module %s loaded", module)
 
-    online_docs_url = 'http://virt-test.readthedocs.org/'
+    online_docs_url = 'http://avocado-vt.readthedocs.org/'
     logging.info("")
     step += 1
     logging.info("%d - If you wish, you may take a look at the online docs for "
