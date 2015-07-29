@@ -7,6 +7,7 @@ import types
 import glob
 import ConfigParser
 import StringIO
+import commands
 
 from avocado.utils import process
 from avocado.utils import genio
@@ -404,7 +405,9 @@ def uncompress_asset(asset_info, force=False):
 
         if os.path.isfile(destination) and force:
             os.chdir(os.path.dirname(destination_uncompressed))
-            # process.run(uncompress_cmd)
+            logging.debug('Uncompressing %s -> %s', destination,
+                          destination_uncompressed)
+            commands.getstatusoutput(uncompress_cmd)
 
 
 def download_file(asset_info, interactive=False, force=False):
