@@ -1,0 +1,28 @@
+You can drop files in this dir to define custom linux guests.
+As an example, you could create a file called foo.cfg with the contents:
+
+FooLinux:
+    image_name = images/foo-linux
+
+Which would make it possible to specify this custom guest using
+
+$ avocado run migrate..tcp --vt-type qemu --vt-guest-os LinuxCustom.FooLinux
+
+Other useful params to set (not an exaustive list):
+
+    # shell_prompt is a regexp used to match the prompt on aexpect.
+    # if your custom os is based of some distro listed in the guest-os
+    # dir, you can look on the files and just copy shell_prompt
+    shell_prompt = "^\[.*\][\#\$]\s*$"
+    # If you plan to use a raw device, set image_device = yes
+    image_raw_device = yes
+    # Password of your image
+    password = 123456
+    # Shell client used (may be telnet or ssh)
+    shell_client = ssh
+    # Port were the shell client is running
+    shell_port = 22
+    # File transfer client
+    file_transfer_client = scp
+    # File transfer port
+    file_transfer_port = 22
