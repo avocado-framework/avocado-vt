@@ -1,0 +1,16 @@
+Drop your test scripts into this directory.
+Make them executable, and with no extension.
+
+The test scripts will run unmodified, with
+no external context, so make them in a way
+that they don't require that extra context.
+
+An example of such a script could be:
+
+#!/bin/sh
+true
+
+Using the option --run-dropin, virt-test
+will run each one of those scripts and,
+if they return 0, they will PASS, if they
+return != 0, they will fail.

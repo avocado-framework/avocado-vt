@@ -1,0 +1,56 @@
+Virt-Test Maintainers
+====================
+
+The intention of this file is not to establish who owns what portions of the
+code base, but to provide a set of names that developers can consult when they
+have a question about a particular subset and also to provide a set of names
+you can look for on github for any pull requests you might want to get approved.
+
+In general, if you have a question, you should send an email to the Virt Test
+development mailing list and not any specific individual privately.
+
+
+Pull request maintenance - QEMU subtests
+----------------------------------------
+
+M: Lucas Meneghel Rodrigues <lmr@redhat.com>
+M: Cleber Rosa <crosa@redhat.com>
+M: Jiri Zupka <jzupka@redhat.com>
+M: Lukas Doktor <ldoktor@redhat.com>
+M: Yiqiao Pu <ypu@redhat.com>
+M: Feng Yang <fyang@redhat.com>
+
+
+Pull request maintenance - Libvirt subtests
+-------------------------------------------
+
+M: Christopher Evich <cevich@redhat.com>
+M: Yu Mingfei <yumingfei@cn.fujitsu.com>
+M: Yang Dongsheng <yangds.fnst@cn.fujitsu.com>
+M: Li Yang <liyang.fnst@cn.fujitsu.com>
+
+
+
+Pull request maintenance - LVSB subtests
+-------------------------------------------
+
+M: Christopher Evich <cevich@redhat.com>
+
+
+Pull request maintenance - Libguestfs
+-------------------------------------
+
+M: Yu Mingfei <yumingfei@cn.fujitsu.com>
+
+
+Pull request maintenance - v2v subtests
+---------------------------------------
+
+M: Alex Jia <ajia@redhat.com>
+
+
+Pull request maintenance - openvswitch subtests
+------------------------------------------------
+
+M: Jiri Zupka <jzupka@redhat.com>
+
