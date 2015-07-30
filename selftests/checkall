@@ -11,5 +11,7 @@ rc2=$?
 echo ""
 run_rc 'inspekt style'
 rc3=$?
-exit $rc1 || $rc2 || $rc3
-
+echo ""
+run_rc 'selftests/modules_boundaries'
+rc4=$?
+exit $rc1 || $rc2 || $rc3 || $rc4
