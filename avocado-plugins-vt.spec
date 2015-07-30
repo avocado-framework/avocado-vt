@@ -1,4 +1,4 @@
-Summary: Avocado Virt Test Compatibility Plugin
+Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 0.26.0
 Release: 1%{?dist}
@@ -8,7 +8,7 @@ URL: http://avocado-framework.readthedocs.org/
 Source: avocado-plugins-vt-%{version}.tar.gz
 BuildRequires: python2-devel
 BuildArch: noarch
-Requires: python, avocado, autotest-framework
+Requires: python, avocado, autotest-framework, p7zip, tcpdump, nmap-ncat, iproute, iputils, gcc, glibc-headers, python-devel
 
 %description
 Avocado Virt Test is a plugin that lets you execute virt-tests
@@ -38,6 +38,9 @@ Xunit output, among others.
 
 
 %changelog
+* Thu Jul 30 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.26.0-2
+- Merge with virt-test/updated package dependencies
+
 * Mon Jul 6 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.26.0-1
 - Update to upstream version 0.26.0
 
