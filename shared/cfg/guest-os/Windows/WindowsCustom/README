@@ -1,0 +1,19 @@
+You can drop files in this dir to define custom windows guests.
+As an example, you could create a file called foo.cfg with the contents:
+
+FooWindows:
+    image_name = images/foo-windows
+
+Which would make it possible to specify this custom guest using
+
+$ avocado run migrate..tcp --vt-type qemu --vt-guest-os WindowsCustom.FooWindows
+
+Other useful params to set (not an exaustive list):
+
+    # If you plan to use a raw device, set image_device = yes
+    image_raw_device = yes
+    # Attention: Changing the password in this file is not supported,
+    # since files in winutils.iso use it.
+    username = Administrator
+    password = 1q2w3eP
+

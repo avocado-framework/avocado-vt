@@ -1,0 +1,16 @@
+NAME = 'Threaded IO Bench'
+TIME = 'MEDIUM'
+TEST_CLASS = 'IO'
+TEST_CATEGORY = 'Benchmark'
+TEST_TYPE = 'client'
+
+DOC = """
+Performs threaded I/O benchmarks.
+
+100000 random IO request, 10 threads and create 1.5G file
+"""
+
+job.run_test('tiobench',
+             args='--block=512 --random=100000 --threads=10 --size=1536',
+             iterations=1,
+             dir='/mnt')
