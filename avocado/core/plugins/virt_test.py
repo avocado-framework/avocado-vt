@@ -23,15 +23,15 @@ import Queue
 import time
 import imp
 
-from avocado.core import result
-from avocado.core import loader
-from avocado.core import output
-from avocado.core import exceptions
-from avocado.core import multiplexer
-from avocado.core import test
-from avocado.core.settings import settings
-from avocado.core.plugins import plugin
-from avocado.utils import path
+from . import plugin
+from .. import result
+from .. import loader
+from .. import output
+from .. import exceptions
+from .. import multiplexer
+from .. import test
+from ..settings import settings
+from ...utils import path
 
 # virt-test supports using autotest from a git checkout, so we'll have to
 # support that as well. The code below will pick up the environment variable
