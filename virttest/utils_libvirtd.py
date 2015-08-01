@@ -56,6 +56,7 @@ class Libvirtd(object):
         self.daemons = []
         self.service_list = []
 
+        # we only import this module conditionally to make this warning always applicable
         if LIBVIRTD is None:
             LOG.warning("Libvirtd service is not available in host, "
                         "utils_libvirtd module will not function normally")

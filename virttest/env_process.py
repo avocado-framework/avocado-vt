@@ -34,12 +34,10 @@ from virttest import cpu
 from virttest import storage
 from virttest import utils_libguestfs
 from virttest import qemu_storage
-from virttest import utils_libvirtd
 from virttest import data_dir
 from virttest import utils_net
 from virttest import nfs
 from virttest import libvirt_vm
-from virttest import virsh
 from virttest import utils_test
 from virttest import utils_iptables
 from virttest import utils_package
@@ -53,6 +51,12 @@ from virttest.staging import service
 from virttest.test_setup.core import SetupManager
 from virttest.test_setup.os_posix import UlimitConfig
 from virttest.test_setup.networking import NetworkProxies
+
+
+# lazy imports for dependencies that are not needed in all modes of use
+from virttest._wrappers import lazy_import
+utils_libvirtd = lazy_import("virttest.utils_libvirtd")
+virsh = lazy_import("virttest.virsh")
 
 
 try:
