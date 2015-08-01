@@ -2131,7 +2131,7 @@ def get_qemu_cpu_models(qemu_binary):
     Get list of CPU models by parsing the output of <qemu> -cpu '?'
     """
     cmd = qemu_binary + " -cpu '?'"
-    result = process.run(cmd)
+    result = process.run(cmd, verbose=False)
     return extract_qemu_cpu_models(result.stdout)
 
 
