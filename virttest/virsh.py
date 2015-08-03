@@ -4110,7 +4110,7 @@ def qemu_monitor_event(domain=None, event=None, event_timeout=None,
     if event:
         cmd += " --event %s" % event
     if event_timeout:
-        cmd += " --timeout %s" % event
+        cmd += " --timeout %s" % event_timeout
     return command(cmd, **dargs)
 
 
@@ -4153,7 +4153,7 @@ def event(domain=None, event=None, event_timeout=None, options="", **dargs):
     if event:
         cmd += " --event %s" % event
     if event_timeout:
-        cmd += " --timeout %s" % event
+        cmd += " --timeout %s" % event_timeout
     return command(cmd, **dargs)
 
 
