@@ -445,6 +445,9 @@ class VM(virt_vm.BaseVM):
                 cmd += " -device isa-serial"
             elif 'ppc' in arch.ARCH:
                 cmd += " -device spapr-vty"
+                # Workaround for console issue, details:
+                #   lists.gnu.org/archive/html/qemu-ppc/2013-10/msg00129.html
+                cmd += _add_option("reg", "0x30000000")
             cmd += _add_option("chardev", serial_id)
             return cmd
 
