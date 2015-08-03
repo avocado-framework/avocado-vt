@@ -209,7 +209,7 @@ def find_substring(string, pattern1, pattern2=None):
     :param pattern1: first pattern want to match in string, must set.
     :param pattern2: second pattern, it will be used if pattern1 not match, optional.
 
-    :return: Match substing or None
+    :return: Match substring or None
     """
     if not pattern1:
         logging.debug("pattern1: get empty string.")
