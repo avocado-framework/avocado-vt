@@ -1,7 +1,7 @@
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 0.27.0
-Release: 2%{?dist}
+Release: 3%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -9,6 +9,13 @@ Source: avocado-plugins-vt-%{version}.tar.gz
 BuildRequires: python2-devel
 BuildArch: noarch
 Requires: python, avocado, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc
+
+Requires: python-imaging
+%if 0%{?el6}
+Requires: python-gstreamer, gstreamer-plugins-good
+%else
+Requires: pygobject2, gstreamer1-plugins-good
+%endif
 
 %description
 Avocado Virt Test is a plugin that lets you execute virt-tests
@@ -38,6 +45,9 @@ Xunit output, among others.
 
 
 %changelog
+* Mon Aug 4 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.27.0-3
+- Add video dependencies
+
 * Mon Aug 4 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.27.0-2
 - Updated the spec file to require 'nc' instead of 'nmap-ncat'
 
