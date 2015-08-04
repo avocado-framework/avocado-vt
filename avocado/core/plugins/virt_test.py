@@ -803,7 +803,7 @@ class VirtTestOptionsProcess(object):
                                  "need to be root" % (nettype_setting,
                                                       self.options.vt_nettype))
             self.cartesian_parser.assign("nettype", "bridge")
-            self.cartesian_parser.assign("netdst", self.options.netdst)
+            self.cartesian_parser.assign("netdst", self.options.vt_netdst)
         elif self.options.vt_nettype == 'user':
             self.cartesian_parser.assign("nettype", "user")
         elif self.options.vt_nettype == 'none':
