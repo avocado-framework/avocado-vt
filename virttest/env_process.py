@@ -22,7 +22,6 @@ from . import qemu_monitor
 from . import ppm_utils
 from . import test_setup
 from . import virt_vm
-from . import video_maker
 from . import utils_misc
 from . import storage
 from . import qemu_storage
@@ -867,6 +866,12 @@ def postprocess(test, params, env):
         if (params.get("encode_video_files", "yes") == "yes" and
                 glob.glob("%s/*" % screendump_dir)):
             try:
+                # Loading video_maker at the top level is causing
+                # gst to be loaded at the top level, generating
+                # side effects in the loader plugins. So, let's
+                # move the import to the precise place where it's
+                # needed.
+                from . import video_maker
                 video = video_maker.get_video_maker_klass()
                 if ((video.has_element('vp8enc') and
                      video.has_element('webmmux'))):
