@@ -2926,7 +2926,7 @@ class KSMController(object):
         Return ksmtuned process id(0 means not running).
         """
         try:
-            path.command("ksmtuned")
+            path.find_command("ksmtuned")
         except ValueError:
             raise KSMTunedNotSupportedError
 
