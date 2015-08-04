@@ -1,0 +1,2 @@
+autotest>=0.16.2
+aexpect>=1.0.0

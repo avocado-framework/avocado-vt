@@ -1,3 +1,4 @@
 pep8==1.6.2
 inspektor==0.1.16
 autotest==0.16.2
+aexpect==1.0.0
