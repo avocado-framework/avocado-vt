@@ -1304,6 +1304,21 @@ class VM(virt_vm.BaseVM):
                                         monitor_filename)
                 devices.insert(StrDev('HMP-%s' % monitor_name, cmdline=cmd))
 
+        # Add pvpanic device
+        if params.get("enable_pvpanic") == "yes":
+            cmd = "%s -device pvpanic,help &>/dev/null" % self.qemu_binary
+            if utils.system(cmd) != 0:
+                logging.warn("pvpanic device not support")
+            else:
+                pvpanic_params = {"backend": "pvpanic"}
+                ioport = params.get("ioport_pvpanic")
+                if ioport: pvpanic_params["ioport"] = ioport
+                pvpanic_dev = qdevices.QCustomDevice("device",
+                                                     params=pvpanic_params,
+                                                     backend="backend")
+                pvpanic_dev.set_param("id", utils_misc.generate_random_id())
+                devices.insert(pvpanic_dev)
+
         # Add serial console redirection
         for serial in params.objects("serials"):
             serial_filename = vm.get_serial_console_filename(serial)
