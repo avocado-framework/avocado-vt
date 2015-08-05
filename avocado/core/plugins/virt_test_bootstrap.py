@@ -76,7 +76,6 @@ class VirtBootstrap(plugin.Plugin):
         args.vt_verbose = True
         args.vt_log_level = 'debug'
         args.vt_console_level = 'debug'
-        args.vt_config = None
         args.vt_arch = None
         args.vt_machine_type = None
         args.vt_keep_image = False
