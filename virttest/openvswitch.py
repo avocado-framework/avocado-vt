@@ -275,14 +275,14 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         try:
             self.ovs_vsctl(["del-br", br_name])
         except process.CmdError, e:
-            logging.debug(e.result_obj)
+            logging.debug(e.result)
             raise
 
     def br_exist(self, br_name):
         try:
             self.ovs_vsctl(["br-exists", br_name])
         except process.CmdError, e:
-            if e.result_obj.exit_status == 2:
+            if e.result.exit_status == 2:
                 return False
             else:
                 raise
@@ -325,7 +325,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         try:
             bridge = self.ovs_vsctl(["port-to-br", port_name]).stdout.strip()
         except process.CmdError, e:
-            if e.result_obj.exit_status == 1:
+            if e.result.exit_status == 1:
                 pass
         return bridge
 
