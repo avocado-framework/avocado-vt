@@ -1335,11 +1335,12 @@ class VM(virt_vm.BaseVM):
         if params.get("enable_pvpanic") == "yes":
             cmd = "%s -device pvpanic,help &>/dev/null" % self.qemu_binary
             if utils.system(cmd) != 0:
-                logging.warn("pvpanic device not support")
+                logging.warn("pvpanic device is not supportted")
             else:
                 pvpanic_params = {"backend": "pvpanic"}
                 ioport = params.get("ioport_pvpanic")
-                if ioport: pvpanic_params["ioport"] = ioport
+                if ioport:
+                    pvpanic_params["ioport"] = ioport
                 pvpanic_dev = qdevices.QCustomDevice("device",
                                                      params=pvpanic_params,
                                                      backend="backend")
