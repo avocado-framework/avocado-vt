@@ -177,6 +177,16 @@ def read_from_smaps(pid, key):
     return memory_size
 
 
+def read_from_numastat(pid, key):
+    """
+    Get the process numastat from numastat output.
+    """
+    cmd = "numastat %s" % pid
+    numa_mem = process.run(cmd).stdout.strip()
+    mem_line = re.findall(r"^%s.*" % key, numa_mem, re.M)[0]
+    return re.findall(r"(\d+.\d+)", mem_line)
+
+
 def read_from_numa_maps(pid, key):
     """
     Get the process numa related info from numa_maps. This function
