@@ -738,6 +738,13 @@ def bootstrap(options, interactive=False):
             logging.debug("Dir %s exists, not creating",
                           sub_dir_path)
 
+    base_backend_dir = data_dir.get_base_backend_dir()
+    local_backend_dir = data_dir.get_local_backend_dir()
+    logging.info("Syncing backend dirs %s -> %s", base_backend_dir,
+                 local_backend_dir)
+    process.run('rsync -rvv %s/* %s' %
+                (base_backend_dir, local_backend_dir), shell=True)
+
     test_dir = data_dir.get_backend_dir(options.vt_type)
     if options.vt_type == 'libvirt':
         step = create_config_files(test_dir, shared_dir, interactive, step,
