@@ -1542,7 +1542,7 @@ class VM(virt_vm.BaseVM):
             try:
                 process.run(install_command, verbose=False)
             except process.CmdError, details:
-                stderr = details.result_obj.stderr.strip()
+                stderr = details.result.stderr.strip()
                 # This is a common newcomer mistake, be more helpful...
                 if stderr.count('IDE CDROM must use'):
                     testname = params.get('name', "")
