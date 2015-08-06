@@ -302,7 +302,7 @@ def lv_take_snapshot(vg_name, lv_name,
         result = process.run(cmd)
     except process.CmdError, ex:
         if ('Logical volume "%s" already exists in volume group "%s"' %
-            (lv_snapshot_name, vg_name) in ex.result_obj.stderr and
+            (lv_snapshot_name, vg_name) in ex.result.stderr and
             re.search(re.escape(lv_snapshot_name + " [active]"),
                       process.run("lvdisplay").stdout)):
             # the above conditions detect if merge of snapshot was postponed
