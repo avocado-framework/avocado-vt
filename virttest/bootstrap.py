@@ -1,3 +1,4 @@
+import distutils
 import logging
 import os
 import glob
@@ -737,6 +738,12 @@ def bootstrap(options, interactive=False):
         else:
             logging.debug("Dir %s exists, not creating",
                           sub_dir_path)
+
+    base_backend_dir = data_dir.get_base_backend_dir()
+    local_backend_dir = data_dir.get_local_backend_dir()
+    logging.info("Syncing backend dirs %s -> %s", base_backend_dir,
+                 local_backend_dir)
+    distutils.dir_util.copy_tree(base_backend_dir, local_backend_dir)
 
     test_dir = data_dir.get_backend_dir(options.vt_type)
     if options.vt_type == 'libvirt':
