@@ -477,7 +477,11 @@ def create_config_files(test_dir, shared_dir, interactive, step=None,
                 else:
                     logging.debug("Preserving existing %s file", dst_file)
             else:
-                logging.debug("Config file %s exists, not touching", dst_file)
+                if force_update:
+                    update_msg = 'Config file %s exists, equal to sample'
+                else:
+                    update_msg = 'Config file %s exists, not touching'
+                logging.debug(update_msg, dst_file)
     return step
 
 
