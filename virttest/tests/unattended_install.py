@@ -1102,9 +1102,11 @@ def run(test, params, env):
     except IndexError:
         raise virt_vm.VMConfigMissingError(vm.name, "serial")
 
-    log_file = utils_misc.get_path(test.debugdir,
-                                   "serial-%s-%s.log" % (serial_name,
-                                                         vm.name))
+    try:
+        log_file = vm.get_serial_console_filenames()[0]
+    except IndexError:
+        raise virt_vm.VMConfigMissingError(vm.name, "serial")
+
     logging.debug("Monitoring serial console log for completion message: %s",
                   log_file)
     serial_log_msg = ""
