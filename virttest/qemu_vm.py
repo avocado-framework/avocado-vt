@@ -734,6 +734,33 @@ class VM(virt_vm.BaseVM):
         def add_uuid(devices, uuid):
             return " -uuid '%s'" % uuid
 
+        def add_qemu_option(devices, name, optsinfo):
+            """
+            Add qemu option, such as '-msg timestamp=on|off'
+
+            :param devices: qcontainer object
+            :param name: string type option name
+            :param optsinfo: list like [(key, val, vtype)]
+            """
+            if devices.has_option(name):
+                options = []
+                for info in optsinfo:
+                    key, val = info[:2]
+                    if key and val:
+                        options.append("%s=%%(%s)s" % (key, key))
+                    else:
+                        options += filter(None, info[:2])
+                options = ",".join(options)
+                cmdline = "-%s %s" % (name, options)
+                device = qdevices.QStringDevice(name, cmdline=cmdline)
+                for info in optsinfo:
+                    key, val, vtype = info
+                    if key and val:
+                        device.set_param(key, val, vtype, False)
+                devices.insert(device)
+            else:
+                logging.warn("option '-%s' not supportted" % name)
+
         def add_pcidevice(devices, host, params, device_driver="pci-assign",
                           pci_bus='pci.0'):
             if devices.has_device(device_driver):
@@ -1985,6 +2012,17 @@ class VM(virt_vm.BaseVM):
                 balloon_bus = pci_bus
             add_balloon(devices, devid=balloon_devid, bus=balloon_bus,
                         use_old_format=use_ofmt)
+
+        # Add qemu options
+        if params.get("msg_timestamp"):
+            attr_info = ["timestamp", params["msg_timestamp"], bool]
+            add_qemu_option(devices, "msg", [attr_info])
+        if params.get("realtime_mlock"):
+            attr_info = ["mlock", params["realtime_mlock"], bool]
+            add_qemu_option(devices, "realtime", [attr_info])
+        if params.get("keyboard_layout"):
+            attr_info = [None, params["keyboard_layout"], None]
+            add_qemu_option(devices, "k", [attr_info])
 
         return devices
 
