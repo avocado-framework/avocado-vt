@@ -59,7 +59,7 @@ from ..libvirt_xml.devices import controller
 from ..libvirt_xml.devices import seclabel
 from ..libvirt_xml.devices import channel
 
-from __init__ import ping
+ping = utils_net.ping
 
 
 class LibvirtNetwork(object):
