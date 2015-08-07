@@ -788,28 +788,34 @@ class VirtTestOptionsProcess(object):
 
     def _process_bridge_mode(self):
         nettype_setting = 'config virt_test.qemu.nettype'
-        if self.options.vt_nettype not in SUPPORTED_NET_TYPES:
-            raise ValueError("Invalid %s '%s'. "
-                             "Valid values: (%s)" %
-                             (nettype_setting,
-                              self.options.vt_nettype,
-                              ", ".join(SUPPORTED_NET_TYPES)))
-        if self.options.vt_nettype == 'bridge':
-            if os.getuid() != 0:
-                raise ValueError("In order to use %s '%s' you "
-                                 "need to be root" % (nettype_setting,
-                                                      self.options.vt_nettype))
-            self.cartesian_parser.assign("nettype", "bridge")
-            self.cartesian_parser.assign("netdst", self.options.vt_netdst)
-        elif self.options.vt_nettype == 'user':
-            self.cartesian_parser.assign("nettype", "user")
-        elif self.options.vt_nettype == 'none':
-            self.cartesian_parser.assign("nettype", "none")
+        if not self.options.vt_config:
+            if self.options.vt_nettype not in SUPPORTED_NET_TYPES:
+                raise ValueError("Invalid %s '%s'. "
+                                 "Valid values: (%s)" %
+                                 (nettype_setting,
+                                  self.options.vt_nettype,
+                                  ", ".join(SUPPORTED_NET_TYPES)))
+            if self.options.vt_nettype == 'bridge':
+                if os.getuid() != 0:
+                    raise ValueError("In order to use %s '%s' you "
+                                     "need to be root" % (nettype_setting,
+                                                          self.options.vt_nettype))
+                self.cartesian_parser.assign("nettype", "bridge")
+                self.cartesian_parser.assign("netdst", self.options.vt_netdst)
+            elif self.options.vt_nettype == 'user':
+                self.cartesian_parser.assign("nettype", "user")
+            elif self.options.vt_nettype == 'none':
+                self.cartesian_parser.assign("nettype", "none")
+        else:
+            logging.info("Config provided, ignoring %s", nettype_setting)
 
     def _process_monitor(self):
-        if self.options.vt_monitor == 'qmp':
-            self.cartesian_parser.assign("monitors", "qmp1")
-            self.cartesian_parser.assign("monitor_type_qmp1", "qmp")
+        if not self.options.vt_config:
+            if self.options.vt_monitor == 'qmp':
+                self.cartesian_parser.assign("monitors", "qmp1")
+                self.cartesian_parser.assign("monitor_type_qmp1", "qmp")
+        else:
+            logging.info("Config provided, ignoring monitor setting")
 
     def _process_smp(self):
         smp_setting = 'config virt_test.qemu.smp'
