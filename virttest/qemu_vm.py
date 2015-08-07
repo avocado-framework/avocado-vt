@@ -50,7 +50,7 @@ class VMMigrateProtoUnsupportedError(virt_vm.VMMigrateProtoUnknownError):
     skip the test in this situation.
     """
 
-    def __init__(self, protocol, output):
+    def __init__(self, protocol=None, output=None):
         self.protocol = protocol
         self.output = output
 
