@@ -686,9 +686,6 @@ class VirtTestOptionsProcess(object):
         self.options.vt_console_level = logging.DEBUG
         self.options.vt_no_downloads = False
         self.options.vt_selinux_setup = False
-        # These options can be done by using virt test scripts
-        self.options.vt_list_tests = False
-        self.options.vt_list_guests = False
 
         # Here we'll inject values from the config file.
         # Doing this makes things configurable yet the number of options
