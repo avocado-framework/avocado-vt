@@ -476,7 +476,11 @@ def create_config_files(test_dir, shared_dir, interactive, step=None,
                 else:
                     logging.debug("Preserving existing %s file", dst_file)
             else:
-                logging.debug("Config file %s exists, not touching", dst_file)
+                if force_update:
+                    update_msg = 'Config file %s exists, equal to sample'
+                else:
+                    update_msg = 'Config file %s exists, not touching'
+                logging.debug(update_msg, dst_file)
     return step
 
 
@@ -737,6 +741,13 @@ def bootstrap(options, interactive=False):
         else:
             logging.debug("Dir %s exists, not creating",
                           sub_dir_path)
+
+    base_backend_dir = data_dir.get_base_backend_dir()
+    local_backend_dir = data_dir.get_local_backend_dir()
+    logging.info("Syncing backend dirs %s -> %s", base_backend_dir,
+                 local_backend_dir)
+    process.run('rsync -rvv %s/* %s' %
+                (base_backend_dir, local_backend_dir), shell=True)
 
     test_dir = data_dir.get_backend_dir(options.vt_type)
     if options.vt_type == 'libvirt':

@@ -8,7 +8,7 @@ URL: http://avocado-framework.readthedocs.org/
 Source: avocado-plugins-vt-%{version}.tar.gz
 BuildRequires: python2-devel
 BuildArch: noarch
-Requires: python, avocado, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc
+Requires: python, avocado, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, rsync
 
 %description
 Avocado Virt Test is a plugin that lets you execute virt-tests
