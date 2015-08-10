@@ -190,7 +190,7 @@ class ConfigLoader:
 
 def get_known_backends():
     """
-    Return virtualization backends supported by virt-test.
+    Return virtualization backends supported by avocado-vt.
     """
     # Generic means the test can run in multiple backends, such as libvirt
     # and qemu.

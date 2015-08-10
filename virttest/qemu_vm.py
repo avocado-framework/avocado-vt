@@ -78,7 +78,7 @@ def clean_tmp_files():
     if os.path.isfile(CREATE_LOCK_FILENAME):
         os.unlink(CREATE_LOCK_FILENAME)
 
-CREATE_LOCK_FILENAME = os.path.join('/tmp', 'virt-test-vm-create.lock')
+CREATE_LOCK_FILENAME = os.path.join('/tmp', 'avocado-vt-vm-create.lock')
 
 
 class VM(virt_vm.BaseVM):

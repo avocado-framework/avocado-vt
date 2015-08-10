@@ -61,7 +61,7 @@ man_pages = [
 texinfo_documents = [
     ('index', 'avocado', u'Avocado Virt Test Compatibility Layer',
      u'Lucas Meneghel Rodrigues', 'avocado',
-     'Avocado plugin providing a compatibility layer to the virt-test suite.',
+     'Avocado Virtualization Testing (VT) plugin',
      'Testing'),
 ]
 

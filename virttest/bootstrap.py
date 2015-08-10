@@ -126,7 +126,7 @@ def verify_mandatory_programs(t_type, guest_os):
         except ValueError:
             if cmd == '7za' and guest_os != defaults.DEFAULT_GUEST_OS:
                 logging.warn("Command 7za (required to uncompress JeOS) "
-                             "missing. You can still use virt-test with guest"
+                             "missing. You can still use avocado-vt with guest"
                              " OS's other than JeOS.")
                 continue
             logging.error("Required command %s is missing. You must "
@@ -606,7 +606,7 @@ def verify_selinux(datadir, imagesdir, isosdir, tmpdir,
     :param datadir: Abs. path to data-directory symlink
     :param imagesdir: Abs. path to data/images directory
     :param isosdir: Abs. path to data/isos directory
-    :param tmpdir: Abs. path to virt-test tmp dir
+    :param tmpdir: Abs. path to avocado-vt tmp dir
     :param interactive: True if running from console
     :param selinux: Whether setup SELinux contexts for shared/data
     """

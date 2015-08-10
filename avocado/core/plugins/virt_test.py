@@ -13,7 +13,7 @@
 # Author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 
 """
-Avocado virt-test compatibility wrapper
+Avocado VT plugin
 """
 
 import os
@@ -34,11 +34,11 @@ from avocado.core.plugins import plugin
 from avocado.utils import stacktrace
 from avocado.utils import genio
 
-# virt-test no longer needs autotest for the majority of its functionality,
+# avocado-vt no longer needs autotest for the majority of its functionality,
 # except by:
 # 1) Run autotest on VMs
 # 2) Multi host migration
-# 3) Proper virt-test test status handling
+# 3) Proper avocado-vt test status handling
 # As in those cases we might want to use autotest, let's have a way for
 # users to specify their autotest from a git clone location.
 AUTOTEST_PATH = None
@@ -591,7 +591,7 @@ class VirtTest(test.Test):
         We have to override this method because the avocado-vt plugin
         has to override the behavior that tests shouldn't raise
         exceptions.TestNAError by themselves in avocado. In the old
-        virt-test case, that rule is not in place, so we have to be
+        avocado-vt case, that rule is not in place, so we have to be
         a little more lenient for correct test status reporting.
         """
         testMethod = getattr(self, self._testMethodName)

@@ -974,7 +974,7 @@ def postprocess(test, params, env):
                 except Exception:
                     pass
         # Close the serial console session, as it'll help
-        # keeping the number of filedescriptors used by virt-test honest.
+        # keeping the number of filedescriptors used by avocado-vt honest.
         vm.cleanup_serial_console()
 
     libvirtd_inst = utils_libvirtd.Libvirtd()

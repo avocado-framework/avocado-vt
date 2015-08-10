@@ -2117,7 +2117,7 @@ def extract_qemu_cpu_models(qemu_cpu_help_text):
         if model_list is not None:
             return model_list
 
-    e_msg = ("CPU models reported by qemu -cpu ? not supported by virt-tests. "
+    e_msg = ("CPU models reported by qemu -cpu ? not supported by avocado-vt. "
              "Please work with us to add support for it")
     logging.error(e_msg)
     for line in qemu_cpu_help_text.splitlines():

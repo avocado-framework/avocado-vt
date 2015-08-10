@@ -761,8 +761,8 @@ class DevContainer(object):
             :param cmd: If set uses "-M $cmd" to force this machine type
             :return: List of added devices (including default buses)
             """
-            logging.warn('Using Q35 machine which is not yet fullytested on '
-                         'virt-test. False errors might occur.')
+            logging.warn('Using Q35 machine which is not yet fully tested on '
+                         'avocado-vt. False errors might occur.')
             devices = []
             bus = (qbuses.QPCIBus('pcie.0', 'PCIE', 'pci.0'),
                    qbuses.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
@@ -890,7 +890,7 @@ class DevContainer(object):
             :return: List of added devices (including default buses)
             """
             logging.warn('Machine type isa/unknown is not supported by '
-                         'virt-test. False errors might occur')
+                         'avocado-vt. False errors might occur')
             devices = []
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd))
             return devices
@@ -934,7 +934,7 @@ class DevContainer(object):
                         devices = machine_i440FX(False)
                     else:   # isapc (or other)
                         logging.warn('Machine isa/unknown is not supported by '
-                                     'virt-test. False errors might occur')
+                                     'avocado-vt. False errors might occur')
                         devices = machine_other(False)
             if not devices:
                 logging.warn('Unable to find the default machine type, using '

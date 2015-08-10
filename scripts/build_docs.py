@@ -13,7 +13,7 @@ from avocado.utils import process
 
 def build_docs():
     """
-    Build virt-test HTML docs, reporting failures.
+    Build avocado-vt HTML docs, reporting failures.
     """
     ignore_list = ['No python imaging library installed',
                    'Virsh executable not set or found on path',

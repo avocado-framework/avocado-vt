@@ -18,13 +18,13 @@ password = getpass.getpass('Enter github password: ')
 gh = Github(login_or_token=username,
             password=password, user_agent='PyGithub/Python')
 # needed to fetch fresh rate_limiting data
-repo = gh.get_repo('autotest/virt-test')
+repo = gh.get_repo('avocado-framework/avocado-vt')
 
 # Requests for logged in users are limited to 5000 per hour
 # or about 1 request every 0.7 seconds
 start = gh.rate_limiting
 # Open up cache and repository
-issues = GithubIssues(gh, 'autotest/virt-test')
+issues = GithubIssues(gh, 'avocado-framework/avocado-vt')
 print "Issue #125: ",
 # Any issue can be referenced by number
 print issues[125]
@@ -33,7 +33,7 @@ print "Requests used: ", start[0] - end[0]
 print "Cache hits: %s misses: %s" % (issues.cache_hits, issues.cache_misses)
 
 # Pull requests are treated as issues
-issues = GithubIssues(gh, 'autotest/virt-test')
+issues = GithubIssues(gh, 'avocado-framework/avocado-vt')
 start = end
 print "Pull #526: ",
 print issues[526]
@@ -43,7 +43,7 @@ print "Cache hits: %s misses: %s" % (issues.cache_hits, issues.cache_misses)
 
 # Listing issues requires finding the last issue
 # this takes a while when the cache is empty
-issues = GithubIssues(gh, 'autotest/virt-test')
+issues = GithubIssues(gh, 'avocado-framework/avocado-vt')
 start = end
 print "Total number of issues (this could take a while):"
 # This len() is used to force the slower binary-search
@@ -53,7 +53,7 @@ print "Requests used: ", start[0] - end[0]
 print "Cache hits: %s misses: %s" % (issues.cache_hits, issues.cache_misses)
 
 # Searches are supported and return lists of issue-numbers
-issues = GithubIssues(gh, 'autotest/virt-test')
+issues = GithubIssues(gh, 'avocado-framework/avocado-vt')
 start = end
 print "Open issues last few days without any label (could take 2-10 minutes):"
 two_days = datetime.timedelta(days=2)
@@ -72,14 +72,14 @@ for number in issues.search(criteria):
     issue = issues[number]
     # some items must be searched/compared manually
     if len(issue['labels']) < 1:
-        print ('https://github.com/autotest/virt-test/issues/%s\t"%s"'
+        print ('https://github.com/avocado-framework/avocado-vt/issues/%s\t"%s"'
                % (issue['number'], issue['summary']))
 print
 print "Requests used: ", start[0] - end[0]
 print "Cache hits: %s misses: %s" % (issues.cache_hits, issues.cache_misses)
 
 # Now that cache is populated, this will be very fast
-issues = GithubIssues(gh, 'autotest/virt-test')
+issues = GithubIssues(gh, 'avocado-framework/avocado-vt')
 start = end
 print "Total number of issues (this should be a lot faster):"
 # This length uses a cached issue count plus a 'since' criteria search
