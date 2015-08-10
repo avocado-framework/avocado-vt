@@ -421,7 +421,7 @@ def create_subtests_cfg(t_type):
                   subtests_cfg)
 
 
-def create_config_files(test_dir, shared_dir, interactive, step=None,
+def create_config_files(test_dir, shared_dir, interactive, t_type, step=None,
                         force_update=False):
     def is_file_tracked(fl):
         tracked_result = process.run("git ls-files %s --error-unmatch" % fl,
@@ -439,6 +439,20 @@ def create_config_files(test_dir, shared_dir, interactive, step=None,
     config_file_list = [cf for cf in config_file_list if is_file_tracked(cf)]
     config_file_list_shared = glob.glob(os.path.join(shared_dir, "cfg",
                                                      "*.cfg"))
+
+    provider_info_specific = []
+    provider_names_specific = asset.get_test_provider_names(t_type)
+    for specific_provider in provider_names_specific:
+        provider_info_specific.append(
+                asset.get_test_provider_info(specific_provider))
+
+    specific_subdirs = asset.get_test_provider_subdirs(t_type)
+    for subdir in specific_subdirs:
+        for p in provider_info_specific:
+            if 'cartesian_configs' in p['backends'][t_type]:
+                for c in p['backends'][t_type]['cartesian_configs']:
+                    cfg = os.path.join(subdir, "cfg", c)
+                    config_file_list.append(cfg)
 
     # Handle overrides of cfg files. Let's say a test provides its own
     # subtest.cfg.sample, this file takes precedence over the shared
@@ -740,7 +754,8 @@ def bootstrap(options, interactive=False):
 
     test_dir = data_dir.get_backend_dir(options.vt_type)
     if options.vt_type == 'libvirt':
-        step = create_config_files(test_dir, shared_dir, interactive, step,
+        step = create_config_files(test_dir, shared_dir, interactive,
+                                   options.vt_type, step,
                                    force_update=options.vt_update_config)
         create_subtests_cfg(options.vt_type)
         create_guest_os_cfg(options.vt_type)
@@ -763,7 +778,8 @@ def bootstrap(options, interactive=False):
                            data_dir.get_tmp_dir(),
                            interactive, options.vt_selinux_setup)
     else:  # Some other test
-        step = create_config_files(test_dir, shared_dir, interactive, step,
+        step = create_config_files(test_dir, shared_dir, interactive,
+                                   options.vt_type, step,
                                    force_update=options.vt_update_config)
         create_subtests_cfg(options.vt_type)
         create_guest_os_cfg(options.vt_type)
