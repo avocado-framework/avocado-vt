@@ -704,13 +704,13 @@ class VirtTestOptionsProcess(object):
             'virt_test.common', 'type_specific_only', key_type=bool)
         self.options.vt_mem = settings.get_value(
             'virt_test.common', 'mem', key_type=int)
+        self.options.vt_nettype = settings.get_value(
+            'virt_test.common', 'nettype', default='user')
+        self.options.vt_netdst = settings.get_value(
+            'virt_test.common', 'netdst', default='virbr0')
         # qemu section
         self.options.vt_accel = settings.get_value(
             'virt_test.qemu', 'accel', default='kvm')
-        self.options.vt_nettype = settings.get_value(
-            'virt_test.qemu', 'nettype', default='user')
-        self.options.vt_netdst = settings.get_value(
-            'virt_test.qemu', 'netdst', default='virbr0')
         self.options.vt_vhost = settings.get_value(
             'virt_test.qemu', 'vhost', default='off')
         self.options.vt_monitor = settings.get_value(
