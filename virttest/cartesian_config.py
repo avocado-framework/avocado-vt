@@ -139,8 +139,9 @@ import logging
 import re
 import string
 import sys
+import copy
 
-_reserved_keys = set(("name", "shortname", "dep"))
+_reserved_keys = set(("name", "shortname", "dep", "_short_name_map_file", "_name_map_file"))
 
 num_failed_cases = 5
 
@@ -322,6 +323,15 @@ class NoFilter(NoOnlyFilter):
 
     def __repr__(self):
         return "No %s" % (self.filter)
+
+
+class JoinFilter(NoOnlyFilter):
+
+    def __str__(self):
+        return "Join %s" % (self.filter)
+
+    def __repr__(self):
+        return "Join %s" % (self.filter)
 
 
 class BlockFilter(object):
@@ -702,6 +712,16 @@ class LOnly(Token):
     identifier = "only"
 
 
+class LSuffix(Token):
+    __slots__ = []
+    identifier = "suffix"
+
+
+class LJoin(Token):
+    __slots__ = []
+    identifier = "join"
+
+
 class LNo(Token):
     __slots__ = []
     identifier = "no"
@@ -914,6 +934,31 @@ class LUpdateFileMap(LOperators):
             d[dest][self.shortname] = self.name
 
 
+class Suffix(LOperators):
+    __slots__ = []
+    identifier = "apply_suffix"
+
+    def __str__(self):
+        return "Suffix: %s" % (self.value)
+
+    def __repr__(self):
+        return "Suffix %s" % (self.value)
+
+    def __eq__(self, o):
+        if isinstance(o, self.__class__):
+            if self.value == o.value:
+                return True
+
+    def apply_to_dict(self, d):
+        for key in d.copy():
+            if key not in _reserved_keys:
+                # Store key as a tuple: (key, suffix1, suffix2, suffix3,....)
+                # This allows us to manipulate later on suffixes
+                # Add suffix to the key, remove the old key
+                new_key = (key if isinstance(key, tuple) else (key,)) + (self.value,)
+                d[new_key] = d.pop(key)
+
+
 spec_iden = "_-"
 spec_oper = "+<?"
 
@@ -1004,6 +1049,18 @@ class Lexer(object):
             if line.startswith("del "):
                 yield LDel()
                 pos = 3
+                while line[pos].isspace():
+                    pos += 1
+        elif l0 == "s":
+            if line.startswith("suffix "):
+                yield LSuffix()
+                pos = 6
+                while line[pos].isspace():
+                    pos += 1
+        elif l0 == "j":
+            if line.startswith("join "):
+                yield LJoin()
+                pos = 4
                 while line[pos].isspace():
                     pos += 1
 
@@ -1390,7 +1447,7 @@ class Parser(object):
         if not node:
             node = self.node
         block_allowed = [LVariants, LIdentifier, LOnly,
-                         LNo, LInclude, LDel, LNotCond]
+                         LNo, LInclude, LDel, LNotCond, LSuffix, LJoin]
 
         variants_allowed = [LVariant]
 
@@ -1411,6 +1468,13 @@ class Parser(object):
         # others block or operation. Increase speed almost twice.
         pre_dict = {}
         lexer.set_fast()
+
+        # Suffix be applied as the latests operator in the dictionary.
+        # Reasons:
+        #     1. Escape multiply suffix operators
+        #     2. Affect all elements in current block
+        suffix = None
+
         try:
             while True:
                 lexer.set_prev_indent(prev_indent)
@@ -1419,6 +1483,9 @@ class Parser(object):
                     if pre_dict:
                         # flush pre_dict to node content.
                         pre_dict = apply_predict(lexer, node, pre_dict)
+                    if suffix:
+                        # Node has suffix, apply it to all elements
+                        node.content.append(suffix)
                     return node
 
                 indent = token.length
@@ -1697,6 +1764,27 @@ class Parser(object):
                         node.content += [(lexer.filename, lexer.linenum,
                                           NoFilter(lfilter, lexer.line))]
 
+                elif typet == LJoin:
+                    # Parse:
+                    #    join (filter=text)..aaa.bbb, xxxx
+                    # syntax is the same as for No/Only filters
+                    lfilter = parse_filter(lexer, lexer.rest_line())
+
+                    pre_dict = apply_predict(lexer, node, pre_dict)
+
+                    node.content += [(lexer.filename, lexer.linenum, JoinFilter(lfilter, lexer.line))]
+
+                elif typet == LSuffix:
+                    # Parse:
+                    #    suffix SUFFIX
+                    if pre_dict:
+                        pre_dict = apply_predict(lexer, node, pre_dict)
+                    token_type, token_val = lexer.get_next_check([LIdentifier])
+                    lexer.get_next_check([LEndL])
+                    suffix_operator = Suffix().set_operands(None, token_val)
+                    # Suffix will be applied as all other elements in current node are processed:
+                    suffix = (lexer.filename, lexer.linenum, suffix_operator)
+
                 elif typet == LInclude:
                     # Parse:
                     #    include relative file patch to working directory.
@@ -1750,7 +1838,90 @@ class Parser(object):
                                          lexer.line))
             raise
 
+    # join filter_1 filter_2 .....
+    # Multiply all dicts:
+    # all-dicts-match-filter_1 * all-dicts-match-filter_2 * ....
+    # <join only_one_filter> == <only only_one_filter>
+    # Also works: join filter_1 filter_1
+    # Transforms to: all_variants_match_filter_1 * all_variants_mats_filter_1
+    #
+    # Example:
+    # join a
+    # join a
+    # Transforms into:
+    # join a a
     def get_dicts(self, node=None, ctx=[], content=[], shortname=[], dep=[]):
+        """
+        Process 'join' entry, unpack join filter for node
+        ctx - node labels/names
+        content - previous content in plain
+        Return: dictionary
+        """
+        node = node or self.node
+
+        # Node is a current block. It has content, its contents: node.content
+        # Content withoun joins
+        new_content = []
+
+        # All joins in current node
+        joins = []
+
+        for t in node.content:
+            filename, linenum, obj = t
+
+            if not isinstance(obj, JoinFilter):
+                new_content.append(t)
+                continue
+
+            # Accummulate all joins at one node
+            joins += [t]
+
+        if not joins:
+            # Return generator
+            for d in self.get_dicts_plain(node, ctx, content, shortname, dep):
+                yield d
+        else:
+            # Rewrite all separate joins in one node as many `only'
+            onlys = []
+            for j in joins:
+                filename, linenum, obj = j
+                for word in obj.filter:
+                    f = OnlyFilter([word], str(word))
+                    onlys += [(filename, linenum, f)]
+
+            node.content = new_content
+            for d in self.multiply_join(onlys, node, ctx, content, shortname, dep):
+                yield d
+
+    # Multiplie all joins. Return dictionaries one by one
+    # Each `join' is the same as `only' filter
+    # This functions is supposed to be a generator, recursive generator
+    def multiply_join(self, onlys, node=None, ctx=[], content=[], shortname=[], dep=[]):
+        # Current join/only
+        only = onlys[:1]
+        remains = onlys[1:]
+
+        orig_node = copy.deepcopy(node)
+        node.content += only
+
+        if not remains:
+            for d in self.get_dicts_plain(node, ctx, content, shortname, dep):
+                yield d
+        else:
+            for d1 in self.get_dicts_plain(node, ctx, content, shortname, dep):
+                # Current frame multiply by all variants from bottom
+                for d2 in self.multiply_join(remains, orig_node, ctx, content, shortname, dep):
+                    name_x = d1["name"]
+                    name_x += "." + d2["name"]
+                    shortname_x = d1["shortname"]
+                    shortname_x += "." + d2["shortname"]
+                    d = d1.copy()
+                    d.update(d2)
+                    d["name"] = name_x
+                    d["shortname"] = shortname_x
+                    yield d
+
+    def get_dicts_plain(self, node=None, ctx=[], content=[], shortname=[], dep=[]):
         """
         Generate dictionaries from the code parsed so far.  This should
         be called after parsing something.
@@ -1869,6 +2040,7 @@ class Parser(object):
                 del node.failed_cases[i]
                 node.failed_cases.appendleft(failed_case)
                 return
+
         # Check content and unpack it into new_content
         new_content = []
         new_external_filters = []
@@ -1894,6 +2066,7 @@ class Parser(object):
                     break
         else:
             for n in node.children:
+                # print ("XXX Dive in with: %s" % new_content)
                 for d in self.get_dicts(n, ctx, new_content, shortname, dep):
                     count += 1
                     yield d
@@ -1902,8 +2075,24 @@ class Parser(object):
             self._debug("    reached leaf, returning it")
             d = {"name": name, "dep": dep,
                  "shortname": ".".join([str(sn.name) for sn in shortname])}
+            # print("XXX NEW CONTENT: IS : %s" % new_content)
             for _, _, op in new_content:
                 op.apply_to_dict(d)
+            # Merge suffixes
+            d_orig = d.copy()
+            for key in d_orig:
+                if key not in _reserved_keys and isinstance(key, tuple):
+                    if options.skipdups:
+                        # Drop vars with suffixes matches general var val
+                        gen_var_name = key[0]
+                        if gen_var_name in d_orig and d_orig[gen_var_name] == d_orig[key]:
+                            print("Drop: %s" % (gen_var_name,))
+                            d.pop(key)
+                            continue
+                    # reverse order of suffixes
+                    new_key = key[:1] + key[1:][::-1]
+                    new_key = ''.join((map(str, new_key)))
+                    d[new_key] = d.pop(key)
             yield d
         # If this node did not produce any dicts, remember the failed filters
         # of its descendants
@@ -2048,6 +2237,8 @@ if __name__ == "__main__":
     parser.add_option("-e", "--expand", dest="expand", type="string",
                       help="list of vartiant which should be expanded when"
                            " defaults is enabled.  \"name, name, name\"")
+    parser.add_option("-s", "--skip-dups", dest="skipdups", default=True, action="store_false",
+                      help="Don't drop variables with different suffixes and same val")
 
     options, args = parser.parse_args()
     if not args:
