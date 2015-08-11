@@ -1,12 +1,12 @@
 """
 This module contains some itertools functions people have been using in
-virt-test that are not present in python 2.4, the minimum supported version.
+avocado-vt that are not present in python 2.4, the minimum supported version.
 """
 
 
 def product(*args, **kwds):
     """
-    (virt-test backport)
+    (avocado-vt backport)
     Cartesian product of input iterables. Equivalent to nested for-loops.
 
     For example, product(A, B) returns the same as:  ((x,y) for x in A for y in B).

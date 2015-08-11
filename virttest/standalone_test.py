@@ -773,7 +773,7 @@ def bootstrap_tests(options):
 
 def cleanup_env(parser, options):
     """
-    Clean up virt-test temporary files.
+    Clean up avocado-vt temporary files.
 
     :param parser: Cartesian parser with run parameters.
     :param options: Test runner options object.

@@ -47,7 +47,7 @@ class UnknownBackendError(Exception):
         self.backend = backend
 
     def __str__(self):
-        return ("Virt Backend %s is not currently supported by virt-test. "
+        return ("Virt Backend %s is not currently supported by avocado-vt. "
                 "Check for typos and the list of supported backends" %
                 self.backend)
 

@@ -103,7 +103,7 @@ class LibvirtNetwork(object):
     def __init__(self, net_type, address=None, iface=None, net_name=None,
                  persistent=False):
         if net_name is None:
-            self.name = 'virt-test-%s' % net_type
+            self.name = 'avocado-vt-%s' % net_type
         else:
             self.name = net_name
         self.address = address

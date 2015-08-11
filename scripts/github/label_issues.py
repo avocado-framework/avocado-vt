@@ -30,7 +30,7 @@ gh = Github(login_or_token=raw_input("Enter github username: "),
             user_agent='PyGithub/Python')
 
 print "Enter location (<user>/<repo>)",
-repo_full_name = 'autotest/virt-test'
+repo_full_name = 'avocado-framework/avocado-vt'
 repo_full_name = raw_input("or blank for '%s': "
                            % repo_full_name).strip() or repo_full_name
 print
