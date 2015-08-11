@@ -15,19 +15,30 @@ import logging
 import re
 
 
-__all__ = ['GstPythonVideoMaker', 'video_maker']
-
+__all__ = ['get_video_maker_klass', 'video_maker']
 
 #
 # Check what kind of video libraries tools we have available
 #
-# Gstreamer python bindings are our first choice
+# Gobject introspection bindings are our first choice
+GI_GSTREAMER_INSTALLED = False
 try:
-    import gst
-    GST_PYTHON_INSTALLED = True
-except ImportError:
-    GST_PYTHON_INSTALLED = False
+    import gi
+    gi.require_version('Gst', '1.0')
+    from gi.repository import Gst
+    GI_GSTREAMER_INSTALLED = True
+except (ImportError, ValueError):
+    pass
 
+#
+# Gstreamer python bindings are our fallback choice
+GST_PYTHON_INSTALLED = False
+if not GI_GSTREAMER_INSTALLED:
+    try:
+        import gst
+        GST_PYTHON_INSTALLED = True
+    except ImportError:
+        pass
 
 #
 # PIL is also required to normalize images
@@ -46,11 +57,220 @@ CONTAINER_PREFERENCE = ['ogg', 'webm']
 ENCODER_PREFERENCE = ['theora', 'vp8']
 
 
-class GstPythonVideoMaker(object):
+class EncodingError(Exception):
 
-    '''
-    Makes a movie out of screendump images using gstreamer-python
-    '''
+    def __init__(self, err, debug):
+        self.err = err
+        self.debug = debug
+
+    def __str__(self):
+        return "Gstreamer Error: %s\nDebug Message: %s" % (self.err, self.debug)
+
+
+class GiEncoder(object):
+
+    """
+    Encodes a video from Virtual Machine screenshots (jpg files).
+
+    This is the gobject-introspection version.
+
+    First, a directory with screenshots is inspected, and the screenshot sizes,
+    normalized. After that, the video is encoded, using a gstreamer pipeline
+    that goes like (using gstreamer terminology):
+
+    multifilesrc -> jpegdec -> vp8enc -> webmmux -> filesink
+    """
+
+    def __init__(self, verbose=False):
+        if not GI_GSTREAMER_INSTALLED:
+            raise ValueError('pygobject library was not found')
+        if not PIL_INSTALLED:
+            raise ValueError('python-imaging library was not found')
+        self.verbose = verbose
+        Gst.init(None)
+
+    def convert_to_jpg(self, input_dir):
+        """
+        Convert .ppm files inside [input_dir] to .jpg files.
+
+        :param input_dir: Directory to inspect.
+        """
+        image_files = glob.glob(os.path.join(input_dir, '*.ppm'))
+        for ppm_file in image_files:
+            ppm_file_basename = os.path.basename(ppm_file)
+            jpg_file_basename = ppm_file_basename[:-4] + '.jpg'
+            jpg_file = os.path.join(input_dir, jpg_file_basename)
+            i = PIL.Image.open(ppm_file)
+            i.save(jpg_file, format="JPEG", quality=95)
+            os.remove(ppm_file)
+
+    def get_most_common_image_size(self, input_dir):
+        """
+        Find the most common image size on a directory containing .jpg files.
+
+        :param input_dir: Directory to inspect.
+        """
+        image_sizes = [PIL.Image.open(path).size for path in
+                       glob.glob(os.path.join(input_dir, '*.jpg'))]
+        return max(set(image_sizes), key=image_sizes.count)
+
+    def normalize_images(self, input_dir):
+        """
+        Normalize images of different sizes so we can encode a video from them.
+
+        :param input_dir: Directory with images to be normalized.
+        """
+        image_size = self.get_most_common_image_size(input_dir)
+        if not isinstance(image_size, (tuple, list)):
+            image_size = (800, 600)
+        else:
+            if image_size[0] < 640:
+                image_size = 640
+            if image_size[1] < 480:
+                image_size = 480
+
+        if self.verbose:
+            logging.debug('Normalizing image files to size: %s' % (image_size,))
+        image_files = glob.glob(os.path.join(input_dir, '*.jpg'))
+        for f in image_files:
+            i = PIL.Image.open(f)
+            if i.size != image_size:
+                i.resize(image_size).save(f)
+
+    def has_element(self, kind):
+        """
+        Returns True if a gstreamer element is available
+        """
+        return Gst.ElementFactory.find(kind)
+
+    def get_container_name(self):
+        """
+        Gets the video container available that is the best based on preference
+        """
+        return 'webmmux'
+
+    def get_encoder_name(self):
+        """
+        Gets the video encoder available that is the best based on preference
+        """
+        return 'vp8enc'
+
+    def get_element(self, name):
+        """
+        Makes and returns and element from the gst factory interface
+        """
+        return Gst.ElementFactory.make(name, name)
+
+    def encode(self, input_dir, output_file):
+        """
+        Process the input files and output the video file.
+
+        The encoding part of it is equivalent to
+
+        gst-launch multifilesrc location=[input_dir]/%04d.jpg index=1
+        caps='image/jpeg, framerate=(fraction)4/1' !
+        jpegdec ! vp8enc ! webmmux ! filesink location=[output_file]
+
+        :param input_dir: Directory with images to be encoded into a video.
+        :param output_file: Path to the output video file.
+        """
+        self.convert_to_jpg(input_dir)
+        self.normalize_images(input_dir)
+
+        file_list = glob.glob(os.path.join(input_dir, '*.jpg'))
+
+        no_files = len(file_list)
+        if no_files == 0:
+            if self.verbose:
+                logging.debug("Number of files to encode as video is zero")
+            return
+
+        index_list = [int(path[-8:-4]) for path in file_list]
+        index_list.sort()
+
+        if self.verbose:
+            logging.debug('Number of files to encode as video: %s' % no_files)
+
+        # Define the gstreamer pipeline
+        pipeline = Gst.Pipeline()
+
+        # Message bus - it allows us to control the end of the encoding process
+        # asynchronously
+        message_bus = pipeline.get_bus()
+        message_bus.add_signal_watch()
+
+        # Defining source properties (multifilesrc, jpegs and framerate)
+        source = Gst.ElementFactory.make("multifilesrc", "multifilesrc")
+        source_location = os.path.join(input_dir, "%04d.jpg")
+        source.set_property('location', source_location)
+        # The index property won't work in Fedora 21 Alpha, see bug:
+        # https://bugzilla.gnome.org/show_bug.cgi?id=739472
+        source.set_property('start-index', index_list[0])
+        source_caps = Gst.caps_from_string('image/jpeg, framerate=(fraction)4/1')
+        source.set_property('caps', source_caps)
+
+        # Decoder element (jpeg format decoder)
+        decoder = self.get_element("jpegdec")
+
+        # Decoder element (vp8 format encoder)
+        encoder = self.get_element("vp8enc")
+
+        # Container (WebM container)
+        container = self.get_element("webmmux")
+
+        # Defining output properties
+        output = self.get_element("filesink")
+        output.set_property('location', output_file)
+
+        # Adding all elements to the pipeline
+        pipeline.add(source)
+        pipeline.add(decoder)
+        pipeline.add(encoder)
+        pipeline.add(container)
+        pipeline.add(output)
+
+        # Linking all elements
+        source.link(decoder)
+        decoder.link(encoder)
+        encoder.link(container)
+        container.link(output)
+
+        # Set pipeline to Gst.State.PLAYING
+        pipeline.set_state(Gst.State.PLAYING)
+
+        # Wait until the stream stops
+        err = None
+        debug = None
+        while True:
+            msg = message_bus.timed_pop(Gst.CLOCK_TIME_NONE)
+            t = msg.type
+            if t == Gst.MessageType.EOS:
+                pipeline.set_state(Gst.State.NULL)
+                if self.verbose:
+                    logging.debug("Video %s encoded successfully" % output_file)
+                break
+            elif t == Gst.MessageType.ERROR:
+                err, debug = msg.parse_error()
+                pipeline.set_state(Gst.State.NULL)
+                break
+
+        if err is not None:
+            raise EncodingError(err, debug)
+
+
+class GstEncoder(object):
+
+    """
+    Encodes a video from Virtual Machine screenshots (jpg files).
+
+    This is the python-gstreamer version.
+
+    First, a directory with screenshots is inspected, and the screenshot sizes,
+    normalized. After that, the video is encoded, using a gstreamer pipeline
+    that goes like (using gstreamer terminology):
+
+    multifilesrc -> jpegdec -> vp8enc -> webmmux -> filesink
+    """
 
     CONTAINER_MAPPING = {'ogg': 'oggmux',
                          'webm': 'webmmux'}
@@ -70,9 +290,9 @@ class GstPythonVideoMaker(object):
         self.verbose = verbose
 
     def get_most_common_image_size(self, input_dir):
-        '''
+        """
         Find the most common image size
-        '''
+        """
         image_sizes = {}
         image_files = glob.glob(os.path.join(input_dir, '*.jpg'))
         for f in image_files:
@@ -91,9 +311,9 @@ class GstPythonVideoMaker(object):
         return most_common_size
 
     def normalize_images(self, input_dir):
-        '''
+        """
         GStreamer requires all images to be the same size, so we do it here
-        '''
+        """
         image_size = self.get_most_common_image_size(input_dir)
         if image_size is None:
             image_size = (800, 600)
@@ -107,15 +327,15 @@ class GstPythonVideoMaker(object):
                 i.resize(image_size).save(f)
 
     def has_element(self, kind):
-        '''
+        """
         Returns True if a gstreamer element is available
-        '''
+        """
         return gst.element_factory_find(kind) is not None
 
     def get_container_name(self):
-        '''
+        """
         Gets the video container available that is the best based on preference
-        '''
+        """
         for c in CONTAINER_PREFERENCE:
             element_kind = self.CONTAINER_MAPPING.get(c, c)
             if self.has_element(element_kind):
@@ -124,9 +344,9 @@ class GstPythonVideoMaker(object):
         raise ValueError('No suitable container format was found')
 
     def get_encoder_name(self):
-        '''
+        """
         Gets the video encoder available that is the best based on preference
-        '''
+        """
         for c in ENCODER_PREFERENCE:
             element_kind = self.ENCODER_MAPPING.get(c, c)
             if self.has_element(element_kind):
@@ -135,17 +355,17 @@ class GstPythonVideoMaker(object):
         raise ValueError('No suitable encoder format was found')
 
     def get_element(self, name):
-        '''
+        """
         Makes and returns and element from the gst factory interface
-        '''
+        """
         if self.verbose:
             logging.debug('GStreamer element requested: %s', name)
         return gst.element_factory_make(name, name)
 
-    def start(self, input_dir, output_file):
-        '''
+    def encode(self, input_dir, output_file):
+        """
         Process the input files and output the video file
-        '''
+        """
         self.normalize_images(input_dir)
         file_list = glob.glob(os.path.join(input_dir, '*.jpg'))
         no_files = len(file_list)
@@ -213,12 +433,19 @@ class GstPythonVideoMaker(object):
         pipeline.set_state(gst.STATE_NULL)
 
 
+def get_video_maker_klass():
+    try:
+        return GiEncoder()
+    except ValueError:
+        return GstEncoder()
+
+
 def video_maker(input_dir, output_file):
-    '''
-    Instantiates and runs a video maker
-    '''
-    v = GstPythonVideoMaker()
-    v.start(input_dir, output_file)
+    """
+    Instantiates the encoder and encodes the input dir.
+    """
+    v = get_video_maker_klass()
+    v.encode(input_dir, output_file)
 
 
 if __name__ == '__main__':
