@@ -692,55 +692,55 @@ class VirtTestOptionsProcess(object):
         # is not overwhelming.
         # setup section
         self.options.vt_keep_image = settings.get_value(
-            'virt_test.setup', 'keep_image', key_type=bool)
+            'vt.setup', 'keep_image', key_type=bool)
         self.options.vt_keep_image_between_tests = settings.get_value(
-            'virt_test.setup', 'keep_image_between_tests', key_type=bool)
+            'vt.setup', 'keep_image_between_tests', key_type=bool)
         self.options.vt_keep_guest_running = settings.get_value(
-            'virt_test.setup', 'keep_guest_running', key_type=bool)
+            'vt.setup', 'keep_guest_running', key_type=bool)
         # common section
         self.options.vt_data_dir = settings.get_value(
-            'virt_test.common', 'data_dir', default=None)
+            'vt.common', 'data_dir', default=None)
         self.options.vt_type_specific = settings.get_value(
-            'virt_test.common', 'type_specific_only', key_type=bool)
+            'vt.common', 'type_specific_only', key_type=bool)
         self.options.vt_mem = settings.get_value(
-            'virt_test.common', 'mem', key_type=int)
+            'vt.common', 'mem', key_type=int)
         # qemu section
         self.options.vt_accel = settings.get_value(
-            'virt_test.qemu', 'accel', default='kvm')
+            'vt.qemu', 'accel', default='kvm')
         self.options.vt_nettype = settings.get_value(
-            'virt_test.qemu', 'nettype', default='user')
+            'vt.qemu', 'nettype', default='user')
         self.options.vt_netdst = settings.get_value(
-            'virt_test.qemu', 'netdst', default='virbr0')
+            'vt.qemu', 'netdst', default='virbr0')
         self.options.vt_vhost = settings.get_value(
-            'virt_test.qemu', 'vhost', default='off')
+            'vt.qemu', 'vhost', default='off')
         self.options.vt_monitor = settings.get_value(
-            'virt_test.qemu', 'monitor', default='human')
+            'vt.qemu', 'monitor', default='human')
         self.options.vt_smp = settings.get_value(
-            'virt_test.qemu', 'smp', default='2')
+            'vt.qemu', 'smp', default='2')
         self.options.vt_image_type = settings.get_value(
-            'virt_test.qemu', 'image_type', default='qcow2')
+            'vt.qemu', 'image_type', default='qcow2')
         self.options.vt_nic_model = settings.get_value(
-            'virt_test.qemu', 'nic_model', default='virtio_net')
+            'vt.qemu', 'nic_model', default='virtio_net')
         self.options.vt_disk_bus = settings.get_value(
-            'virt_test.qemu', 'disk_bus', default='virtio_blk')
+            'vt.qemu', 'disk_bus', default='virtio_blk')
         self.options.vt_qemu_sandbox = settings.get_value(
-            'virt_test.qemu', 'sandbox', default='on')
+            'vt.qemu', 'sandbox', default='on')
         self.options.vt_qemu_defconfig = settings.get_value(
-            'virt_test.qemu', 'defconfig', default='yes')
+            'vt.qemu', 'defconfig', default='yes')
         self.options.vt_malloc_perturb = settings.get_value(
-            'virt_test.qemu', 'malloc_perturb', default='yes')
+            'vt.qemu', 'malloc_perturb', default='yes')
 
         # libvirt section
         self.options.vt_install_guest = settings.get_value(
-            'virt_test.libvirt', 'install_guest', key_type=bool,
+            'vt.libvirt', 'install_guest', key_type=bool,
             default=False)
         self.options.vt_remove_guest = settings.get_value(
-            'virt_test.libvirt', 'remove_guest', key_type=bool,
+            'vt.libvirt', 'remove_guest', key_type=bool,
             default=False)
 
         # debug section
         self.options.vt_no_cleanup = settings.get_value(
-            'virt_test.debug', 'no_cleanup', key_type=bool, default=False)
+            'vt.debug', 'no_cleanup', key_type=bool, default=False)
 
         self.cartesian_parser = None
 
@@ -749,7 +749,7 @@ class VirtTestOptionsProcess(object):
         Puts the value of the qemu bin option in the cartesian parser command.
         """
         qemu_bin_setting = ('option --vt-qemu-bin or '
-                            'config virt_test.qemu.qemu_bin')
+                            'config vt.qemu.qemu_bin')
         if self.options.vt_config and self.options.vt_qemu_bin is None:
             logging.info("Config provided and no %s set. Not trying "
                          "to automatically set qemu bin.", qemu_bin_setting)
@@ -769,7 +769,7 @@ class VirtTestOptionsProcess(object):
         Puts the value of the qemu bin option in the cartesian parser command.
         """
         qemu_img_setting = ('option --vt-qemu-img or '
-                            'config virt_test.qemu.qemu_img')
+                            'config vt.qemu.qemu_img')
         if self.options.vt_config and self.options.vt_qemu_bin is None:
             logging.info("Config provided and no %s set. Not trying "
                          "to automatically set qemu bin", qemu_img_setting)
@@ -787,7 +787,7 @@ class VirtTestOptionsProcess(object):
             self.cartesian_parser.assign("disable_kvm", "yes")
 
     def _process_bridge_mode(self):
-        nettype_setting = 'config virt_test.qemu.nettype'
+        nettype_setting = 'config vt.qemu.nettype'
         if not self.options.vt_config:
             if self.options.vt_nettype not in SUPPORTED_NET_TYPES:
                 raise ValueError("Invalid %s '%s'. "
@@ -818,7 +818,7 @@ class VirtTestOptionsProcess(object):
             logging.info("Config provided, ignoring monitor setting")
 
     def _process_smp(self):
-        smp_setting = 'config virt_test.qemu.smp'
+        smp_setting = 'config vt.qemu.smp'
         if not self.options.vt_config:
             if self.options.vt_smp == '1':
                 self.cartesian_parser.only_filter("up")
@@ -836,7 +836,7 @@ class VirtTestOptionsProcess(object):
             logging.info("Config provided, ignoring %s", smp_setting)
 
     def _process_arch(self):
-        arch_setting = "option --vt-arch or config virt_test.common.arch"
+        arch_setting = "option --vt-arch or config vt.common.arch"
         if self.options.vt_arch is None:
             pass
         elif not self.options.vt_config:
@@ -846,7 +846,7 @@ class VirtTestOptionsProcess(object):
 
     def _process_machine_type(self):
         machine_type_setting = ("option --vt-machine-type or config "
-                                "virt_test.common.machine_type")
+                                "vt.common.machine_type")
         if not self.options.vt_config:
             if self.options.vt_machine_type is None:
                 # TODO: this is x86-specific, instead we can get the default
@@ -861,7 +861,7 @@ class VirtTestOptionsProcess(object):
             logging.info("Config provided, ignoring %s", machine_type_setting)
 
     def _process_image_type(self):
-        image_type_setting = 'config virt_test.qemu.image_type'
+        image_type_setting = 'config vt.qemu.image_type'
         if not self.options.vt_config:
             if self.options.vt_image_type in SUPPORTED_IMAGE_TYPES:
                 self.cartesian_parser.only_filter(self.options.vt_image_type)
@@ -874,7 +874,7 @@ class VirtTestOptionsProcess(object):
             logging.info("Config provided, ignoring %s", image_type_setting)
 
     def _process_nic_model(self):
-        nic_model_setting = 'config virt_test.qemu.nic_model'
+        nic_model_setting = 'config vt.qemu.nic_model'
         if not self.options.vt_config:
             if self.options.vt_nic_model in SUPPORTED_NIC_MODELS:
                 self.cartesian_parser.only_filter(self.options.vt_nic_model)
@@ -886,7 +886,7 @@ class VirtTestOptionsProcess(object):
             logging.info("Config provided, ignoring %s", nic_model_setting)
 
     def _process_disk_buses(self):
-        disk_bus_setting = 'config virt_test.qemu.disk_bus'
+        disk_bus_setting = 'config vt.qemu.disk_bus'
         if not self.options.vt_config:
             if self.options.vt_disk_bus in SUPPORTED_DISK_BUSES:
                 self.cartesian_parser.only_filter(self.options.vt_disk_bus)
@@ -899,8 +899,8 @@ class VirtTestOptionsProcess(object):
             logging.info("Config provided, ignoring %s", disk_bus_setting)
 
     def _process_vhost(self):
-        nettype_setting = 'config virt_test.qemu.nettype'
-        vhost_setting = 'config virt_test.qemu.vhost'
+        nettype_setting = 'config vt.qemu.nettype'
+        vhost_setting = 'config vt.qemu.vhost'
         if not self.options.vt_config:
             if self.options.vt_nettype == "bridge":
                 if self.options.vt_vhost == "on":
@@ -920,7 +920,7 @@ class VirtTestOptionsProcess(object):
             logging.info("Config provided, ignoring %s", vhost_setting)
 
     def _process_qemu_sandbox(self):
-        sandbox_setting = 'config virt_test.qemu.sandbox'
+        sandbox_setting = 'config vt.qemu.sandbox'
         if not self.options.vt_config:
             if self.options.vt_qemu_sandbox == "off":
                 self.cartesian_parser.assign("qemu_sandbox", "off")
@@ -928,7 +928,7 @@ class VirtTestOptionsProcess(object):
             logging.info("Config provided, ignoring %s", sandbox_setting)
 
     def _process_qemu_defconfig(self):
-        defconfig_setting = 'config virt_test.qemu.sandbox'
+        defconfig_setting = 'config vt.qemu.sandbox'
         if not self.options.vt_config:
             if self.options.vt_qemu_defconfig == "no":
                 self.cartesian_parser.assign("defconfig", "no")
@@ -967,7 +967,7 @@ class VirtTestOptionsProcess(object):
         """
         Calls for processing all options specific to libvirt test.
         """
-        uri_setting = 'config virt_test.libvirt.connect_uri'
+        uri_setting = 'config vt.libvirt.connect_uri'
         if self.options.vt_connect_uri:
             driver_found = False
             for driver in SUPPORTED_LIBVIRT_DRIVERS:
@@ -1135,7 +1135,7 @@ class VirtTestCompatPlugin(plugin.Plugin):
             'Virt-Test compat layer - Libvirt options')
 
         current_run_setup = settings.get_value(
-            'virt_test.setup', 'run_setup', key_type=bool)
+            'vt.setup', 'run_setup', key_type=bool)
 
         vt_compat_group_setup.add_argument("--vt-setup", action="store_true",
                                            dest="vt_setup",
@@ -1160,12 +1160,12 @@ class VirtTestCompatPlugin(plugin.Plugin):
                                                   ", ".join(
                                                       SUPPORTED_TEST_TYPES)),
                                             default='qemu')
-        arch = settings.get_value('virt_test.common', 'arch', default=None)
+        arch = settings.get_value('vt.common', 'arch', default=None)
         vt_compat_group_common.add_argument("--vt-arch",
                                             help="Choose the VM architecture. "
                                             "Default: %s" % arch,
                                             default=arch)
-        machine = settings.get_value('virt_test.common', 'machine_type',
+        machine = settings.get_value('vt.common', 'machine_type',
                                      default=defaults.DEFAULT_MACHINE_TYPE)
         vt_compat_group_common.add_argument("--vt-machine-type",
                                             help="Choose the VM machine type. "
@@ -1187,7 +1187,7 @@ class VirtTestCompatPlugin(plugin.Plugin):
                                                   "If --vt-config is "
                                                   "provided, this will be "
                                                   "ignored. Default: ''"))
-        qemu_bin_path_current = settings.get_value('virt_test.qemu', 'qemu_bin',
+        qemu_bin_path_current = settings.get_value('vt.qemu', 'qemu_bin',
                                                    default=qemu_bin_path)
         vt_compat_group_qemu.add_argument("--vt-qemu-bin", action="store",
                                           dest="vt_qemu_bin",
@@ -1199,7 +1199,7 @@ class VirtTestCompatPlugin(plugin.Plugin):
                                                 "the qemu binaries will be "
                                                 "made. Current: %s" %
                                                 qemu_bin_path_current))
-        qemu_dst_bin_path_current = settings.get_value('virt_test.qemu',
+        qemu_dst_bin_path_current = settings.get_value('vt.qemu',
                                                        'qemu_dst_bin',
                                                        default=qemu_bin_path)
         vt_compat_group_qemu.add_argument("--vt-qemu-dst-bin", action="store",
@@ -1216,7 +1216,7 @@ class VirtTestCompatPlugin(plugin.Plugin):
                                                 "Current: %s" %
                                                 qemu_dst_bin_path_current))
         supported_uris = ", ".join(SUPPORTED_LIBVIRT_URIS)
-        uri_current = settings.get_value('virt_test.libvirt', 'connect_uri',
+        uri_current = settings.get_value('vt.libvirt', 'connect_uri',
                                          default=None)
         vt_compat_group_libvirt.add_argument("--vt-connect-uri",
                                              action="store",
