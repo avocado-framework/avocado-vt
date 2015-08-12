@@ -28,7 +28,7 @@ class VirtBootstrap(plugin.Plugin):
     Implements the avocado 'vt-bootstrap' subcommand
     """
 
-    name = 'virt_test_compat_bootstrap'
+    name = 'vt_bootstrap'
     enabled = True
 
     def configure(self, parser):

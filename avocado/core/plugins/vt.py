@@ -1102,7 +1102,7 @@ class VirtTestCompatPlugin(plugin.Plugin):
     Implements the avocado virt test options
     """
 
-    name = 'virt_test_compat_runner'
+    name = 'vt'
     enabled = True
     configured = False
     parser = None

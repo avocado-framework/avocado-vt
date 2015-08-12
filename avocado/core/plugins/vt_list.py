@@ -73,7 +73,7 @@ class VirtTestListerPlugin(plugin.Plugin):
     Implements the avocado virt test options
     """
 
-    name = 'virt_test_compat_lister'
+    name = 'vt_lister'
     enabled = True
 
     def configure(self, parser):
