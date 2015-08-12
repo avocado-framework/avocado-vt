@@ -21,7 +21,7 @@ using:
 
 ::
 
-    tools/download_manager.py
+    scripts/download_manager.py
 
 
 Winutils ISO
