@@ -1099,7 +1099,7 @@ class VirtTestOptionsProcess(object):
 class VirtTestCompatPlugin(plugin.Plugin):
 
     """
-    Implements the avocado virt test options
+    Avocado VT - legacy virt-test support
     """
 
     name = 'vt'

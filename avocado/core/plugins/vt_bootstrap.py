@@ -25,7 +25,7 @@ from virttest.standalone_test import SUPPORTED_TEST_TYPES
 class VirtBootstrap(plugin.Plugin):
 
     """
-    Implements the avocado 'vt-bootstrap' subcommand
+    Avocado VT - implements the 'vt-bootstrap' subcommand
     """
 
     name = 'vt_bootstrap'
