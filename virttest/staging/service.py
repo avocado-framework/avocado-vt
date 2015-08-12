@@ -732,7 +732,7 @@ class Factory(object):
             :return: executable name for PID 1, aka init
             :rtype:  str
             """
-            output = self.run("ps -o comm 1").stdout
+            output = self.run("ps -o comm 1", verbose=False).stdout
             return output.splitlines()[-1].strip()
 
         def get_generic_service_manager_type(self):
