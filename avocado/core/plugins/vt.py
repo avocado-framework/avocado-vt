@@ -708,7 +708,7 @@ class VirtTestOptionsProcess(object):
         self.options.vt_accel = settings.get_value(
             'vt.qemu', 'accel', default='kvm')
         self.options.vt_nettype = settings.get_value(
-            'vt.qemu', 'nettype', default='user')
+            'vt.qemu', 'nettype', default='')
         self.options.vt_netdst = settings.get_value(
             'vt.qemu', 'netdst', default='virbr0')
         self.options.vt_vhost = settings.get_value(
@@ -789,6 +789,14 @@ class VirtTestOptionsProcess(object):
     def _process_bridge_mode(self):
         nettype_setting = 'config vt.qemu.nettype'
         if not self.options.vt_config:
+            # Let's select reasonable defaults depending on vt_type
+            if self.options.vt_type == 'qemu':
+                self.options.vt_nettype = (self.options.vt_nettype if
+                                           self.options.vt_nettype else 'user')
+            else:
+                self.options.vt_nettype = (self.options.vt_nettype if
+                                           self.options.vt_nettype else 'bridge')
+
             if self.options.vt_nettype not in SUPPORTED_NET_TYPES:
                 raise ValueError("Invalid %s '%s'. "
                                  "Valid values: (%s)" %
