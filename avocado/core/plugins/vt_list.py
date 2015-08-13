@@ -70,10 +70,10 @@ if len(os.listdir(_PROVIDERS_DOWNLOAD_DIR)) == 0:
 class VirtTestListerPlugin(plugin.Plugin):
 
     """
-    Implements the avocado virt test options
+    Avocado VT - implements legacy virt-test listing
     """
 
-    name = 'virt_test_compat_lister'
+    name = 'vt_lister'
     enabled = True
 
     def configure(self, parser):

@@ -25,10 +25,10 @@ from virttest.standalone_test import SUPPORTED_TEST_TYPES
 class VirtBootstrap(plugin.Plugin):
 
     """
-    Implements the avocado 'vt-bootstrap' subcommand
+    Avocado VT - implements the 'vt-bootstrap' subcommand
     """
 
-    name = 'virt_test_compat_bootstrap'
+    name = 'vt_bootstrap'
     enabled = True
 
     def configure(self, parser):
