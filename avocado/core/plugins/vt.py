@@ -730,14 +730,6 @@ class VirtTestOptionsProcess(object):
         self.options.vt_malloc_perturb = settings.get_value(
             'vt.qemu', 'malloc_perturb', default='yes')
 
-        # libvirt section
-        self.options.vt_install_guest = settings.get_value(
-            'vt.libvirt', 'install_guest', key_type=bool,
-            default=False)
-        self.options.vt_remove_guest = settings.get_value(
-            'vt.libvirt', 'remove_guest', key_type=bool,
-            default=False)
-
         # debug section
         self.options.vt_no_cleanup = settings.get_value(
             'vt.debug', 'no_cleanup', key_type=bool, default=False)
