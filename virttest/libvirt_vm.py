@@ -646,7 +646,8 @@ class VM(virt_vm.BaseVM):
             params.get("virt_install_binary",
                        "virt-install"))
 
-        help_text = process.system_output("%s --help" % virt_install_binary)
+        help_text = process.system_output("%s --help" % virt_install_binary,
+                                          verbose=False)
 
         # Find all supported machine types, so we can rule out an unsupported
         # machine type option passed in the configuration.
@@ -1540,7 +1541,7 @@ class VM(virt_vm.BaseVM):
             for item in install_command.replace(" -", " \n    -").splitlines():
                 logging.info("%s", item)
             try:
-                process.run(install_command, verbose=False, shell=True)
+                process.run(install_command, verbose=True, shell=True)
             except process.CmdError, details:
                 stderr = details.result.stderr.strip()
                 # This is a common newcomer mistake, be more helpful...
