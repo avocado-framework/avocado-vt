@@ -119,11 +119,17 @@ def preprocess_vm(test, params, env, name):
     old_vm = copy.copy(vm)
 
     if vm_type == 'libvirt':
+        install_test = ('unattended_install.import.import.default_install.'
+                        'aio_native')
+        remove_test = 'remove_guest.without_disk'
         if not vm.exists() and (params.get("type") != "unattended_install" and
                                 params.get("type") != "svirt_install"):
             error_msg = "Test VM %s does not exist." % name
             if name == params.get("main_vm"):
-                error_msg += " You may need --install option to create the guest."
+                error_msg += (" Consider adding '%s' test as the first one "
+                              "and '%s' test as last one to remove the "
+                              "guest after testing" %
+                              (install_test, remove_test))
                 raise exceptions.TestError(error_msg)
             else:
                 raise exceptions.TestNAError(error_msg)

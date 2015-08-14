@@ -54,6 +54,13 @@ from ..staging import utils_memory
 
 # Get back to importing these
 from . import qemu
+from . import libvirt
+from . import libguestfs
+
+# This is so that other tests won't break when importing the names
+# 'ping' and 'raw_ping' from this namespace
+ping = utils_net.ping
+raw_ping = utils_net.raw_ping
 
 
 @error_context.context_aware
@@ -1133,117 +1140,6 @@ def get_loss_ratio(output):
     except IndexError:
         logging.debug(output)
         return -1
-
-
-def raw_ping(command, timeout, session, output_func):
-    """
-    Low-level ping command execution.
-
-    :param command: Ping command.
-    :param timeout: Timeout of the ping command.
-    :param session: Local executon hint or session to execute the ping command.
-    """
-    if session is None:
-        logging.info("The command of Ping is: %s", command)
-        process = aexpect.run_bg(command, output_func=output_func,
-                                 timeout=timeout)
-
-        # Send SIGINT signal to notify the timeout of running ping process,
-        # Because ping have the ability to catch the SIGINT signal so we can
-        # always get the packet loss ratio even if timeout.
-        if process.is_alive():
-            utils_misc.kill_process_tree(process.get_pid(), signal.SIGINT)
-
-        status = process.get_status()
-        output = process.get_output()
-
-        process.close()
-        return status, output
-    else:
-        output = ""
-        try:
-            output = session.cmd_output(command, timeout=timeout,
-                                        print_func=output_func)
-        except aexpect.ShellTimeoutError:
-            # Send ctrl+c (SIGINT) through ssh session
-            session.send("\003")
-            try:
-                output2 = session.read_up_to_prompt(print_func=output_func)
-                output += output2
-            except aexpect.ExpectTimeoutError, e:
-                output += e.output
-                # We also need to use this session to query the return value
-                session.send("\003")
-
-        session.sendline(session.status_test_command)
-        try:
-            o2 = session.read_up_to_prompt()
-        except aexpect.ExpectError:
-            status = -1
-        else:
-            try:
-                status = int(re.findall("\d+", o2)[0])
-            except Exception:
-                status = -1
-
-        return status, output
-
-
-def ping(dest=None, count=None, interval=None, interface=None,
-         packetsize=None, ttl=None, hint=None, adaptive=False,
-         broadcast=False, flood=False, timeout=0,
-         output_func=logging.debug, session=None):
-    """
-    Wrapper of ping.
-
-    :param dest: Destination address.
-    :param count: Count of icmp packet.
-    :param interval: Interval of two icmp echo request.
-    :param interface: Specified interface of the source address.
-    :param packetsize: Packet size of icmp.
-    :param ttl: IP time to live.
-    :param hint: Path mtu discovery hint.
-    :param adaptive: Adaptive ping flag.
-    :param broadcast: Broadcast ping flag.
-    :param flood: Flood ping flag.
-    :param timeout: Timeout for the ping command.
-    :param output_func: Function used to log the result of ping.
-    :param session: Local executon hint or session to execute the ping command.
-    """
-    command = "ping"
-    if ":" in dest:
-        command = "ping6"
-    if dest is not None:
-        command += " %s " % dest
-    else:
-        command += " localhost "
-    if count is not None:
-        command += " -c %s" % count
-    if interval is not None:
-        command += " -i %s" % interval
-    if interface is not None:
-        command += " -I %s" % interface
-    else:
-        if dest.upper().startswith("FE80"):
-            err_msg = "Using ipv6 linklocal must assigne interface"
-            raise exceptions.TestNAError(err_msg)
-    if packetsize is not None:
-        command += " -s %s" % packetsize
-    if ttl is not None:
-        command += " -t %s" % ttl
-    if hint is not None:
-        command += " -M %s" % hint
-    if adaptive:
-        command += " -A"
-    if broadcast:
-        command += " -b"
-    if flood:
-        command += " -f -q"
-        command = "sleep %s && kill -2 `pidof ping` & %s" % (timeout, command)
-        output_func = None
-        timeout += 1
-
-    return raw_ping(command, timeout, session, output_func)
 
 
 def run_virt_sub_test(test, params, env, sub_type=None, tag=None):
