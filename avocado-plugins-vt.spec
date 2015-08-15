@@ -35,7 +35,7 @@ Xunit output, among others.
 %defattr(-,root,root,-)
 %dir /etc/avocado
 %dir /etc/avocado/conf.d
-%config(noreplace)/etc/avocado/conf.d/virt-test.conf
+%config(noreplace)/etc/avocado/conf.d/vt.conf
 %doc README.rst LICENSE
 %{python_sitelib}/avocado*
 %{python_sitelib}/virttest*
@@ -45,10 +45,10 @@ Xunit output, among others.
 
 
 %changelog
-* Mon Aug 4 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.27.0-3
+* Tue Aug 4 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.27.0-3
 - Add video dependencies
 
-* Mon Aug 4 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.27.0-2
+* Tue Aug 4 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.27.0-2
 - Updated the spec file to require 'nc' instead of 'nmap-ncat'
 
 * Mon Aug 3 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.27.0-1
