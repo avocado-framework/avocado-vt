@@ -55,7 +55,7 @@ def get_data_files():
         return [((get_dir(installed_location, level)), files_found)]
 
     data_files = [(get_dir(['etc', 'avocado', 'conf.d']),
-                   ['etc/avocado/conf.d/virt-test.conf'])]
+                   ['etc/avocado/conf.d/vt.conf'])]
 
     data_files += [(get_dir(['usr', 'share', 'avocado-plugins-vt',
                              'test-providers.d']),

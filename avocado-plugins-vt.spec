@@ -35,7 +35,7 @@ Xunit output, among others.
 %defattr(-,root,root,-)
 %dir /etc/avocado
 %dir /etc/avocado/conf.d
-%config(noreplace)/etc/avocado/conf.d/virt-test.conf
+%config(noreplace)/etc/avocado/conf.d/vt.conf
 %doc README.rst LICENSE
 %{python_sitelib}/avocado*
 %{python_sitelib}/virttest*
