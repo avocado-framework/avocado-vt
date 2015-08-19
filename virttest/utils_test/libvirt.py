@@ -584,7 +584,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         extra = "--source-name %s" % vg_name
     elif pool_type == "iscsi":
         # Set up iscsi target without login
-        iscsi_target = setup_or_cleanup_iscsi(True, False)
+        iscsi_target, _ = setup_or_cleanup_iscsi(True, False)
         cleanup_iscsi = True
         extra = "--source-host %s  --source-dev %s" % ('localhost',
                                                        iscsi_target)
@@ -2038,10 +2038,14 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                                            debug=True).stdout.strip()
         else:
             # Setup iscsi target
-            iscsi_target = setup_or_cleanup_iscsi(is_setup=True,
-                                                  is_login=is_login,
-                                                  image_size=image_size,
-                                                  emulated_image=emu_image)
+            if is_login:
+                iscsi_target = setup_or_cleanup_iscsi(
+                    is_setup=True, is_login=is_login,
+                    image_size=image_size, emulated_image=emu_image)
+            else:
+                iscsi_target, lun_num = setup_or_cleanup_iscsi(
+                    is_setup=True, is_login=is_login,
+                    image_size=image_size, emulated_image=emu_image)
             emulated_path = os.path.join(tmp_dir, emu_image)
 
         # Copy first disk to emulated backing store path
@@ -2059,7 +2063,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                                'source_mode': disk_src_mode}
         else:
             disk_params_src = {'source_protocol': disk_src_protocol,
-                               'source_name': iscsi_target + "/1",
+                               'source_name': iscsi_target + "/" + lun_num,
                                'source_host_name': disk_src_host,
                                'source_host_port': disk_src_port}
     elif disk_src_protocol == 'gluster':
