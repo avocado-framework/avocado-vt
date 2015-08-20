@@ -1969,6 +1969,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     emu_image = params.get("emulated_image", "emulated-iscsi")
     image_size = params.get("image_size", "10G")
     disk_format = params.get("disk_format", "qcow2")
+    driver_iothread = params.get("driver_iothread", "")
     mnt_path_name = params.get("mnt_path_name", "nfs-mount")
     exp_opt = params.get("export_options", "rw,no_root_squash,fsid=0")
     first_disk = vm.get_first_disk_devices()
@@ -1991,6 +1992,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                    'target_bus': disk_target_bus,
                    'driver_type': disk_format,
                    'driver_cache': 'none',
+                   'driver_iothread': driver_iothread,
                    'sec_model': sec_model,
                    'relabel': relabel,
                    'sec_label': sec_label,
