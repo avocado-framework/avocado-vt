@@ -96,8 +96,7 @@ class Target(object):
         """
         opts_func = getattr(self, "_get_%s_options" % self.tgt)
         self.params = params
-        self.input = self.params.get('input')
-        self.files = self.params.get('files')
+        self.input_mode = self.params.get('input_mode')
         self.vm_name = self.params.get('main_vm')
         self.bridge = self.params.get('bridge')
         self.network = self.params.get('network')
@@ -115,13 +114,8 @@ class Target(object):
 
         options = opts_func()
 
-        if self.files is not None:
-            # add files as its sequence
-            file_list = self.files.split().reverse()
-            for file in file_list:
-                options = " -f %s %s " % (file, options)
-        if self.input is not None:
-            options = " -i %s %s" % (self.input, options)
+        if self.input_mode is not None:
+            options = " -i %s %s" % (self.input_mode, options)
         return options
 
     def _get_libvirt_options(self):
