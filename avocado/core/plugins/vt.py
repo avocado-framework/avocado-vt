@@ -319,6 +319,8 @@ class VirtTestLoader(loader.TestLoader):
             params['id'] = test_name
             test_parameters = {'name': test_name,
                                'params': params}
+	    if self.args.verbose:
+		print("Discover: %s" % test_name)
             test_suite.append((VirtTest, test_parameters))
         return test_suite
 
