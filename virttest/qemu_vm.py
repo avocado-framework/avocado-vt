@@ -1334,7 +1334,7 @@ class VM(virt_vm.BaseVM):
         # Add pvpanic device
         if params.get("enable_pvpanic") == "yes":
             cmd = "%s -device pvpanic,help &>/dev/null" % self.qemu_binary
-            if utils.system(cmd) != 0:
+            if process.system(cmd, ignore_status=True, verbose=False) != 0:
                 logging.warn("pvpanic device is not supportted")
             else:
                 pvpanic_params = {"backend": "pvpanic"}
