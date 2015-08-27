@@ -1154,6 +1154,24 @@ class VM(virt_vm.BaseVM):
                 dev.set_param("id", devid)
             devices.insert(dev)
 
+        def add_disable_legacy(devices, dev, dev_type):
+            """
+            This function is used to add disable_legacy option for virtio-pci
+            """
+            options = devices.execute_qemu("-device %s,?" % dev_type)
+            if "disable-legacy" in options:
+                value = params.get("disable_legacy", "off")
+                dev.set_param("disable-legacy", value)
+
+        def add_disable_modern(devices, dev, dev_type):
+            """
+            This function is used to add disable_modern option for virtio-pci
+            """
+            options = devices.execute_qemu("-device %s,?" % dev_type)
+            if "disable-modern" in options:
+                value = params.get("disable_modern", "on")
+                dev.set_param("disable-modern", value)
+
         # End of command line option wrappers
 
         # If nothing changed and devices exists, return imediatelly
@@ -2024,6 +2042,15 @@ class VM(virt_vm.BaseVM):
         if params.get("keyboard_layout"):
             attr_info = [None, params["keyboard_layout"], None]
             add_qemu_option(devices, "k", [attr_info])
+
+        for device in devices:
+            virtio_pci_devices = ["virtio-net-pci", "virtio-blk-pci",
+                                  "virtio-scsi-pci", "virtio-balloon-pci",
+                                  "virtio-serial-pci", "virtio-rng-pci"]
+            dev_type = device.get_param("driver")
+            if dev_type in virtio_pci_devices:
+                add_disable_legacy(devices, device, dev_type)
+                add_disable_modern(devices, device, dev_type)
 
         return devices
 
