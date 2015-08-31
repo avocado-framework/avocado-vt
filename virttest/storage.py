@@ -317,16 +317,18 @@ class QemuImg(object):
         """
         def backup_raw_device(src, dst):
             if os.path.exists(src):
-                process.system("dd if=%s of=%s bs=4k conv=sync" % (src, dst))
+                _dst = dst + '.part'
+                process.system("dd if=%s of=%s bs=4k conv=sync" % (src, _dst))
+                os.rename(_dst, dst)
             else:
                 logging.info("No source %s, skipping dd...", src)
 
         def backup_image_file(src, dst):
             logging.debug("Copying %s -> %s", src, dst)
-            if os.path.isfile(dst) and os.path.isfile(src):
-                os.unlink(dst)
             if os.path.isfile(src):
-                shutil.copy(src, dst)
+                _dst = dst + '.part'
+                shutil.copy(src, _dst)
+                os.rename(_dst, dst)
             else:
                 logging.info("No source file %s, skipping copy...", src)
 
