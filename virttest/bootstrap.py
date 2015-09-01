@@ -819,26 +819,3 @@ def bootstrap(options, interactive=False):
                  "more info", step)
     logging.info("")
     logging.info(online_docs_url)
-
-
-def setup(options):
-    """
-    Run pre tests setup (Uncompress test image(s), such as the JeOS image).
-
-    :param test_name: Test name, such as "qemu".
-    :param guest_os: Specify the guest image used for bootstrapping. By default
-            the JeOS image is used.
-    """
-    if not options.vt_keep_image:
-        test_name = options.vt_type
-        guest_os = options.vt_guest_os or defaults.DEFAULT_GUEST_OS
-        logging.info("Running pre tests setup for test type %s and guest OS %s",
-                     test_name, guest_os)
-        try:
-            for os_info in get_guest_os_info_list(test_name, guest_os):
-                asset_info = asset.get_asset_info(os_info['asset'])
-                asset.uncompress_asset(asset_info, force=True)
-        # Some guests will not have guest os info list available,
-        # So there will be no need for the uncompress phase.
-        except ValueError:
-            pass
