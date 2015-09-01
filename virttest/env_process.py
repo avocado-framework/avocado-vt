@@ -263,6 +263,7 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
     :param vm_process_status: (optional) vm process status like running, dead
                               or None for no vm exist.
     """
+    restored = False
     clone_master = params.get("clone_master", None)
     base_dir = data_dir.get_data_dir()
     image = qemu_storage.QemuImg(params, base_dir, image_name)
@@ -304,8 +305,10 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
             # example for this is when 'unattended_install' is run.
             if params.get("backup_image", "no") == "yes":
                 image.backup_image(params, base_dir, "backup", True)
+                restored = True
             elif params.get("restore_image", "no") == "yes":
                 image.backup_image(params, base_dir, "restore", True)
+                restored = True
         except Exception, e:
             if params.get("restore_image_on_check_error", "no") == "yes":
                 image.backup_image(params, base_dir, "restore", True)
@@ -318,7 +321,8 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
                 logging.warn(e.message)
             else:
                 raise e
-    if params.get("restore_image_after_testing", "no") == "yes":
+    if (not restored and
+            params.get("restore_image_after_testing", "no") == "yes"):
         image.backup_image(params, base_dir, "restore", True)
     if params.get("remove_image") == "yes":
         logging.info("Remove image on %s." % image.storage_type)
