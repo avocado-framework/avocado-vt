@@ -86,69 +86,6 @@ if len(os.listdir(_PROVIDERS_DOWNLOAD_DIR)) == 0:
                            "plugin to get rid of this message")
 
 
-class VirtTestResult(result.HumanTestResult):
-
-    """
-    Virt Test compatibility layer Result class.
-    """
-
-    def __init__(self, stream, args):
-        """
-        Creates an instance of RemoteTestResult.
-
-        :param stream: an instance of :class:`avocado.core.output.View`.
-        :param args: an instance of :class:`argparse.Namespace`.
-        """
-        result.HumanTestResult.__init__(self, stream, args)
-        self.output = '-'
-        self.setup()
-
-    def setup(self):
-        """
-        Run the setup needed before tests start to run (restore test images).
-        """
-        options = self.args
-        if options.vt_config:
-            parent_config_dir = os.path.dirname(
-                os.path.dirname(options.vt_config))
-            parent_config_dir = os.path.dirname(parent_config_dir)
-            options.vt_type = parent_config_dir
-
-        kwargs = {'options': options}
-
-        failed = False
-
-        bg = utils_misc.InterruptedThread(bootstrap.setup, kwargs=kwargs)
-        t_begin = time.time()
-        bg.start()
-
-        self.stream.notify(event='message', msg="SETUP      :  ",
-                           skip_newline=True)
-        while bg.isAlive():
-            self.stream.notify_progress(True)
-            time.sleep(0.1)
-
-        reason = None
-        try:
-            bg.join()
-        except Exception, e:
-            failed = True
-            reason = e
-
-        t_end = time.time()
-        t_elapsed = t_end - t_begin
-        state = dict()
-        state['time_elapsed'] = t_elapsed
-        if not failed:
-            self.stream.set_test_status(status='PASS', state=state)
-        else:
-            self.stream.set_test_status(status='FAIL', state=state)
-            self.stream.notify(event='error', msg="Setup error: %s" % reason)
-            sys.exit(-1)
-
-        return True
-
-
 def configure_console_logging(loglevel=logging.DEBUG):
     """
     Simple helper for adding a file logger to the root logger.
@@ -1139,17 +1076,6 @@ class VirtTestCompatPlugin(plugin.Plugin):
         vt_compat_group_libvirt = parser.runner.add_argument_group(
             'Virt-Test compat layer - Libvirt options')
 
-        current_run_setup = settings.get_value(
-            'vt.setup', 'run_setup', key_type=bool)
-
-        vt_compat_group_setup.add_argument("--vt-setup", action="store_true",
-                                           dest="vt_setup",
-                                           default=current_run_setup,
-                                           help="Run virt test setup actions "
-                                                "(restore JeOS image from "
-                                                "pristine). Current: %s" %
-                                                current_run_setup)
-
         vt_compat_group_common.add_argument("--vt-config", action="store",
                                             dest="vt_config",
                                             help=("Explicitly choose a "
@@ -1243,5 +1169,3 @@ class VirtTestCompatPlugin(plugin.Plugin):
         """
         from ..loader import loader
         loader.register_plugin(VirtTestLoader)
-        if getattr(args, 'vt_setup', False):
-            self.parser.application.set_defaults(vt_result=VirtTestResult)
