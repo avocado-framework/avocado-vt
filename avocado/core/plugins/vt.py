@@ -234,7 +234,8 @@ class VirtTestLoader(loader.TestLoader):
         add_if_not_exist('vt_arch', None)
         add_if_not_exist('vt_machine_type', None)
         add_if_not_exist('vt_keep_guest_running', False)
-        add_if_not_exist('vt_keep_image_between_tests', False)
+        add_if_not_exist('vt_backup_image_before_test', True)
+        add_if_not_exist('vt_restore_image_after_test', True)
         add_if_not_exist('vt_mem', 1024)
         add_if_not_exist('vt_no_filter', '')
         add_if_not_exist('vt_qemu_bin', None)
@@ -691,10 +692,10 @@ class VirtTestOptionsProcess(object):
         # Doing this makes things configurable yet the number of options
         # is not overwhelming.
         # setup section
-        self.options.vt_keep_image = settings.get_value(
-            'vt.setup', 'keep_image', key_type=bool)
-        self.options.vt_keep_image_between_tests = settings.get_value(
-            'vt.setup', 'keep_image_between_tests', key_type=bool)
+        self.options.vt_backup_image_before_test = settings.get_value(
+            'vt.setup', 'backup_image_before_test', key_type=bool)
+        self.options.vt_restore_image_after_test = settings.get_value(
+            'vt.setup', 'restore_image_after_test', key_type=bool)
         self.options.vt_keep_guest_running = settings.get_value(
             'vt.setup', 'keep_guest_running', key_type=bool)
         # common section
@@ -1000,10 +1001,14 @@ class VirtTestOptionsProcess(object):
             if not self.options.vt_keep_guest_running:
                 self.cartesian_parser.assign("kill_vm", "yes")
 
-    def _process_restore_image_between_tests(self):
+    def _process_restore_image(self):
         if not self.options.vt_config:
-            if not self.options.vt_keep_image_between_tests:
-                self.cartesian_parser.assign("restore_image", "yes")
+            if self.options.vt_backup_image_before_test:
+                self.cartesian_parser.assign("backup_image_before_testing",
+                                             "yes")
+            if self.options.vt_restore_image_after_test:
+                self.cartesian_parser.assign("restore_image_after_testing",
+                                             "yes")
 
     def _process_mem(self):
         self.cartesian_parser.assign("mem", self.options.vt_mem)
@@ -1043,7 +1048,7 @@ class VirtTestOptionsProcess(object):
         self._process_arch()
         self._process_machine_type()
         self._process_restart_vm()
-        self._process_restore_image_between_tests()
+        self._process_restore_image()
         self._process_mem()
         self._process_tcpdump()
         self._process_no_filter()
