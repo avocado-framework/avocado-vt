@@ -1,14 +1,14 @@
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 0.27.0
-Release: 3%{?dist}
+Release: 4%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
 Source: avocado-plugins-vt-%{version}.tar.gz
 BuildRequires: python2-devel
 BuildArch: noarch
-Requires: python, avocado, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc
+Requires: python, avocado, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, aexpect
 
 Requires: python-imaging
 %if 0%{?el6}
@@ -45,6 +45,9 @@ Xunit output, among others.
 
 
 %changelog
+* Wed Sep 2 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.27.0-4
+- Add aexpect dependency
+
 * Tue Aug 4 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.27.0-3
 - Add video dependencies
 
