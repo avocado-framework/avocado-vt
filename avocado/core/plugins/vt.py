@@ -86,69 +86,6 @@ if len(os.listdir(_PROVIDERS_DOWNLOAD_DIR)) == 0:
                            "plugin to get rid of this message")
 
 
-class VirtTestResult(result.HumanTestResult):
-
-    """
-    Virt Test compatibility layer Result class.
-    """
-
-    def __init__(self, stream, args):
-        """
-        Creates an instance of RemoteTestResult.
-
-        :param stream: an instance of :class:`avocado.core.output.View`.
-        :param args: an instance of :class:`argparse.Namespace`.
-        """
-        result.HumanTestResult.__init__(self, stream, args)
-        self.output = '-'
-        self.setup()
-
-    def setup(self):
-        """
-        Run the setup needed before tests start to run (restore test images).
-        """
-        options = self.args
-        if options.vt_config:
-            parent_config_dir = os.path.dirname(
-                os.path.dirname(options.vt_config))
-            parent_config_dir = os.path.dirname(parent_config_dir)
-            options.vt_type = parent_config_dir
-
-        kwargs = {'options': options}
-
-        failed = False
-
-        bg = utils_misc.InterruptedThread(bootstrap.setup, kwargs=kwargs)
-        t_begin = time.time()
-        bg.start()
-
-        self.stream.notify(event='message', msg="SETUP      :  ",
-                           skip_newline=True)
-        while bg.isAlive():
-            self.stream.notify_progress(True)
-            time.sleep(0.1)
-
-        reason = None
-        try:
-            bg.join()
-        except Exception, e:
-            failed = True
-            reason = e
-
-        t_end = time.time()
-        t_elapsed = t_end - t_begin
-        state = dict()
-        state['time_elapsed'] = t_elapsed
-        if not failed:
-            self.stream.set_test_status(status='PASS', state=state)
-        else:
-            self.stream.set_test_status(status='FAIL', state=state)
-            self.stream.notify(event='error', msg="Setup error: %s" % reason)
-            sys.exit(-1)
-
-        return True
-
-
 def configure_console_logging(loglevel=logging.DEBUG):
     """
     Simple helper for adding a file logger to the root logger.
@@ -234,7 +171,8 @@ class VirtTestLoader(loader.TestLoader):
         add_if_not_exist('vt_arch', None)
         add_if_not_exist('vt_machine_type', None)
         add_if_not_exist('vt_keep_guest_running', False)
-        add_if_not_exist('vt_keep_image_between_tests', False)
+        add_if_not_exist('vt_backup_image_before_test', True)
+        add_if_not_exist('vt_restore_image_after_test', True)
         add_if_not_exist('vt_mem', 1024)
         add_if_not_exist('vt_no_filter', '')
         add_if_not_exist('vt_qemu_bin', None)
@@ -691,10 +629,10 @@ class VirtTestOptionsProcess(object):
         # Doing this makes things configurable yet the number of options
         # is not overwhelming.
         # setup section
-        self.options.vt_keep_image = settings.get_value(
-            'vt.setup', 'keep_image', key_type=bool)
-        self.options.vt_keep_image_between_tests = settings.get_value(
-            'vt.setup', 'keep_image_between_tests', key_type=bool)
+        self.options.vt_backup_image_before_test = settings.get_value(
+            'vt.setup', 'backup_image_before_test', key_type=bool)
+        self.options.vt_restore_image_after_test = settings.get_value(
+            'vt.setup', 'restore_image_after_test', key_type=bool)
         self.options.vt_keep_guest_running = settings.get_value(
             'vt.setup', 'keep_guest_running', key_type=bool)
         # common section
@@ -1000,10 +938,14 @@ class VirtTestOptionsProcess(object):
             if not self.options.vt_keep_guest_running:
                 self.cartesian_parser.assign("kill_vm", "yes")
 
-    def _process_restore_image_between_tests(self):
+    def _process_restore_image(self):
         if not self.options.vt_config:
-            if not self.options.vt_keep_image_between_tests:
-                self.cartesian_parser.assign("restore_image", "yes")
+            if self.options.vt_backup_image_before_test:
+                self.cartesian_parser.assign("backup_image_before_testing",
+                                             "yes")
+            if self.options.vt_restore_image_after_test:
+                self.cartesian_parser.assign("restore_image_after_testing",
+                                             "yes")
 
     def _process_mem(self):
         self.cartesian_parser.assign("mem", self.options.vt_mem)
@@ -1043,7 +985,7 @@ class VirtTestOptionsProcess(object):
         self._process_arch()
         self._process_machine_type()
         self._process_restart_vm()
-        self._process_restore_image_between_tests()
+        self._process_restore_image()
         self._process_mem()
         self._process_tcpdump()
         self._process_no_filter()
@@ -1133,17 +1075,6 @@ class VirtTestCompatPlugin(plugin.Plugin):
             'Virt-Test compat layer - QEMU options')
         vt_compat_group_libvirt = parser.runner.add_argument_group(
             'Virt-Test compat layer - Libvirt options')
-
-        current_run_setup = settings.get_value(
-            'vt.setup', 'run_setup', key_type=bool)
-
-        vt_compat_group_setup.add_argument("--vt-setup", action="store_true",
-                                           dest="vt_setup",
-                                           default=current_run_setup,
-                                           help="Run virt test setup actions "
-                                                "(restore JeOS image from "
-                                                "pristine). Current: %s" %
-                                                current_run_setup)
 
         vt_compat_group_common.add_argument("--vt-config", action="store",
                                             dest="vt_config",
@@ -1238,5 +1169,3 @@ class VirtTestCompatPlugin(plugin.Plugin):
         """
         from ..loader import loader
         loader.register_plugin(VirtTestLoader)
-        if getattr(args, 'vt_setup', False):
-            self.parser.application.set_defaults(vt_result=VirtTestResult)

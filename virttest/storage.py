@@ -410,6 +410,8 @@ class QemuImg(object):
 
         for src, dst in backup_set:
             if action == 'backup' and skip_existing and os.path.exists(dst):
+                logging.debug("Image backup %s already exists, skipping...",
+                              dst)
                 continue
             backup_func(src, dst)
 

@@ -80,7 +80,7 @@ root. However, other tests might fail due to lack of privileges.
 
 ::
 
-    avocado run type_specific.io-github-autotest-qemu.migrate.default.tcp --vt-setup --vt-test-type qemu
+    avocado run type_specific.io-github-autotest-qemu.migrate.default.tcp --vt-test-type qemu
 
 .. _run_different_tests:
 
