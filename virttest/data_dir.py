@@ -212,15 +212,15 @@ TEST_PROVIDERS_DOWNLOAD_DIR = os.path.join(get_data_dir(), 'test-providers.d',
                                            'downloads')
 
 
+def get_base_test_providers_dir():
+    return TEST_PROVIDERS_DIR
+
+
 def get_test_providers_dir():
     """
     Return the base test providers dir (at the moment, test-providers.d).
     """
-    test_providers_dir = os.path.dirname(TEST_PROVIDERS_DOWNLOAD_DIR)
-    if not os.path.isdir(test_providers_dir):
-        shutil.copytree(TEST_PROVIDERS_DIR, test_providers_dir)
-        os.makedirs(TEST_PROVIDERS_DOWNLOAD_DIR)
-    return test_providers_dir
+    return os.path.dirname(TEST_PROVIDERS_DOWNLOAD_DIR)
 
 
 def get_test_provider_dir(provider):
