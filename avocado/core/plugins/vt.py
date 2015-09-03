@@ -925,6 +925,11 @@ class VirtTestOptionsProcess(object):
 
     def _process_guest_os(self):
         guest_os_setting = 'option --vt-guest-os'
+
+        if self.options.vt_type == 'spice' and not self.options.vt_guest_os:
+            logging.info("Ignoring predefined OS: %s", guest_os_setting)
+            return
+
         if not self.options.vt_config:
             if len(standalone_test.get_guest_name_list(self.options)) == 0:
                 raise ValueError("%s '%s' is not on the known guest os for "
@@ -998,6 +1003,14 @@ class VirtTestOptionsProcess(object):
         self._process_bridge_mode()
         self._process_only_type_specific()
 
+    def _process_spice_specific_options(self):
+        """
+        Calls for processing all options specific to spice test
+        """
+        # We can call here for self._process_qemu_specific_options()
+        # to process some --options, but let SpiceQA tests will be independent
+        self.options.no_downloads = True
+
     def _process_options(self):
         """
         Process the options given in the command line.
@@ -1037,6 +1050,8 @@ class VirtTestOptionsProcess(object):
             self._process_qemu_specific_options()
         elif self.options.vt_type == 'libvirt':
             self._process_libvirt_specific_options()
+        elif self.options.vt_type == 'spice':
+            self._process_spice_specific_options()
 
     def get_parser(self):
         self._process_options()

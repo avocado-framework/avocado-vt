@@ -44,7 +44,7 @@ def _variant_only_file(filename):
 SUPPORTED_LOG_LEVELS = ["debug", "info", "warning", "error", "critical"]
 
 SUPPORTED_TEST_TYPES = [
-    'qemu', 'libvirt', 'libguestfs', 'openvswitch', 'v2v', 'lvsb']
+    'qemu', 'libvirt', 'libguestfs', 'openvswitch', 'v2v', 'lvsb', 'spice']
 
 SUPPORTED_LIBVIRT_URIS = ['qemu:///system', 'lxc:///']
 SUPPORTED_LIBVIRT_DRIVERS = ['qemu', 'lxc', 'xen']
