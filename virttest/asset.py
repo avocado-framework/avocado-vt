@@ -264,6 +264,14 @@ def get_test_provider_info(provider):
 
     for backend in get_known_backends():
         subdir = provider_cfg.get(backend, 'subdir')
+        cart_cfgs = provider_cfg.get(backend, 'configs')
+
+        backend_dic = {}
+        if cart_cfgs is not None:
+            # Give ability to specify few required configs separated with comma
+            cart_cfgs = [x.strip() for x in cart_cfgs.split(',')]
+            backend_dic.update({'cartesian_configs': cart_cfgs})
+
         if subdir is not None:
             if provider_info['uri'].startswith('file://'):
                 src = os.path.join(provider_info['uri'][7:],
@@ -271,7 +279,8 @@ def get_test_provider_info(provider):
             else:
                 src = os.path.join(data_dir.get_test_provider_dir(provider),
                                    subdir)
-            provider_info['backends'].update({backend: {'path': src}})
+            backend_dic.update({'path': src})
+            provider_info['backends'].update({backend: backend_dic})
 
     return provider_info
 
