@@ -1381,6 +1381,14 @@ class Parser(object):
         self.no_filters = []
         self.assignments = []
 
+        # get_dicts() - is recursive generator, it can invoke itself,
+        # as well as it can be called outside to get dic list
+        # It is necessary somehow mark top-level generator,
+        # to be able process all variables, do suffix stuff, drops dups, etc....
+        # It can be safely done only on top top level get_dicts()
+        # Parent generator will reset this flag
+        self.parent_generator = True
+
     def _debug(self, s, *args):
         if self.debug:
             logging.debug(s, *args)
@@ -1838,6 +1846,52 @@ class Parser(object):
                                          lexer.line))
             raise
 
+    # Merge suffixes for same var, or drop off unnecessary suffixes
+    # This step safely can be done only by top level generator, before output
+    # dictionary to outside world
+    def drop_suffixes(self, d):
+        # dictionary `d' is going to change, keep its original copy
+        d_orig = d.copy()
+        for key in d_orig:
+            if key in _reserved_keys:
+                continue
+
+            if not isinstance(key, tuple):
+                continue
+
+            try:
+                # This file was invoked through cmdline
+                options.skipdups
+                skipdups = options.skipdups
+            except NameError:
+                # This file was invoked as Python module
+                skipdups = True
+
+            if skipdups:
+                # Drop vars with suffixes matches general var val
+                # Example: if a_x == 1, and a == 1. Drop: a_x, leave a
+                gen_var_name = key[0]
+                if gen_var_name in d_orig and d_orig[gen_var_name] == d_orig[key]:
+                    # Drop gen_var_name, use general key with same value
+                    d.pop(key)
+                    continue
+
+                can_drop_all_suffixes_for_this_key = True
+                for k in d_orig:
+                    gen_name = k[0] if isinstance(k, tuple) else k
+                    if gen_var_name == gen_name:
+                        if d_orig[key] != d_orig[k]:
+                            can_drop_all_suffixes_for_this_key = False
+                            break
+
+            if skipdups and can_drop_all_suffixes_for_this_key:
+                new_key = key[0]
+            else:
+                # merge suffixes, preserve reverse order of suffixes
+                new_key = key[:1] + key[1:][::-1]
+                new_key = ''.join((map(str, new_key)))
+            d[new_key] = d.pop(key)
+
     # join filter_1 filter_2 .....
     # Multiply all dicts:
     # all-dicts-match-filter_1 * all-dicts-match-filter_2 * ....
@@ -1859,6 +1913,14 @@ class Parser(object):
         """
         node = node or self.node
 
+        # Keep track to know who is a parent generator
+        parent = False
+        if self.parent_generator:
+            # I am parent of the all
+            parent = True
+            # No one else is
+            self.parent_generator = False
+
         # Node is a current block. It has content, its contents: node.content
         # Content withoun joins
         new_content = []
@@ -1879,6 +1941,8 @@ class Parser(object):
         if not joins:
             # Return generator
             for d in self.get_dicts_plain(node, ctx, content, shortname, dep):
+                if parent:
+                    self.drop_suffixes(d)
                 yield d
         else:
             # Rewrite all separate joins in one node as many `only'
@@ -1889,9 +1953,25 @@ class Parser(object):
                     f = OnlyFilter([word], str(word))
                     onlys += [(filename, linenum, f)]
 
+            old_conten = node.content[:]
             node.content = new_content
             for d in self.multiply_join(onlys, node, ctx, content, shortname, dep):
+                if parent:
+                    self.drop_suffixes(d)
                 yield d
+            node.content = old_conten[:]
+
+    # Make name for test. Case: two dics were merged
+    def mk_name(self, n1, n2):
+        common_prefix = n1[:[x[0] == x[1] for x in zip(n1, n2)].index(0)]
+        cp = ".".join(common_prefix.split('.')[:-1])
+        p1 = re.sub(r"^"+cp, "", n1)
+        p2 = re.sub(r"^"+cp, "", n2)
+        if cp:
+            name = cp + p1 + p2
+        else:
+            name = p1 + "." + p2
+        return name
 
     # Multiply all joins. Return dictionaries one by one
     # Each `join' is the same as `only' filter
@@ -1901,7 +1981,7 @@ class Parser(object):
         only = onlys[:1]
         remains = onlys[1:]
 
-        orig_node = copy.deepcopy(node)
+        content_orig = node.content[:]
         node.content += only
 
         if not remains:
@@ -1910,15 +1990,13 @@ class Parser(object):
         else:
             for d1 in self.get_dicts_plain(node, ctx, content, shortname, dep):
                 # Current frame multiply by all variants from bottom
-                for d2 in self.multiply_join(remains, orig_node, ctx, content, shortname, dep):
-                    name_x = d1["name"]
-                    name_x += "." + d2["name"]
-                    shortname_x = d1["shortname"]
-                    shortname_x += "." + d2["shortname"]
+                node.content = content_orig
+                for d2 in self.multiply_join(remains, node, ctx, content, shortname, dep):
+
                     d = d1.copy()
                     d.update(d2)
-                    d["name"] = name_x
-                    d["shortname"] = shortname_x
+                    d["name"] = self.mk_name(d1["name"], d2["name"])
+                    d["shortname"] = self.mk_name(d1["shortname"], d2["shortname"])
                     yield d
 
     def get_dicts_plain(self, node=None, ctx=[], content=[], shortname=[], dep=[]):
@@ -2076,21 +2154,6 @@ class Parser(object):
                  "shortname": ".".join([str(sn.name) for sn in shortname])}
             for _, _, op in new_content:
                 op.apply_to_dict(d)
-            # Merge suffixes
-            d_orig = d.copy()
-            for key in d_orig:
-                if key not in _reserved_keys and isinstance(key, tuple):
-                    if options.skipdups:
-                        # Drop vars with suffixes matches general var val
-                        gen_var_name = key[0]
-                        if gen_var_name in d_orig and d_orig[gen_var_name] == d_orig[key]:
-                            print("Drop: %s" % (gen_var_name,))
-                            d.pop(key)
-                            continue
-                    # reverse order of suffixes
-                    new_key = key[:1] + key[1:][::-1]
-                    new_key = ''.join((map(str, new_key)))
-                    d[new_key] = d.pop(key)
             yield d
         # If this node did not produce any dicts, remember the failed filters
         # of its descendants
