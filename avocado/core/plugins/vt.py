@@ -254,6 +254,11 @@ class VirtTestLoader(loader.TestLoader):
             # test in question is executed from inside avocado.
             params['avocado_inject_params'] = True
             test_name = params.get("_short_name_map_file")["subtests.cfg"]
+            if self.args.vt_type == 'spice':
+                short_name_map_file = params.get("_short_name_map_file")
+                if "tests-variants.cfg" in short_name_map_file:
+                    test_name = short_name_map_file["tests-variants.cfg"]
+
             params['id'] = test_name
             test_parameters = {'name': test_name,
                                'params': params}
