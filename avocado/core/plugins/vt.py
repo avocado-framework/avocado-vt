@@ -245,6 +245,20 @@ class VirtTestLoader(loader.TestLoader):
         elif list_tests is loader.DEFAULT and not self.args.vt_config:
             # By default don't run anythinig unless vt_config provided
             return []
+        if self.args.verbose:
+            print("Cartiosion config will be affected by:")
+            if cartesian_parser.assignments:
+                print("Assignments:")
+                for i in cartesian_parser.assignments:
+                    print i
+            if cartesian_parser.only_filters:
+                print("Filters `only':")
+                for i in cartesian_parser.only_filters:
+                    print i
+            if cartesian_parser.no_filters:
+                print("Filters `no':")
+                for i in cartesian_parser.no_filters:
+                print i
         # Create test_suite
         test_suite = []
         for params in (_ for _ in cartesian_parser.get_dicts()):
