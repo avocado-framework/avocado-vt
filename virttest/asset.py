@@ -366,6 +366,7 @@ def get_file_asset(title, src_path, destination):
 def get_asset_info(asset):
     asset_info = {}
     asset_path = os.path.join(data_dir.get_download_dir(), '%s.ini' % asset)
+    assert os.path.exists(asset_path)
     asset_cfg = ConfigLoader(asset_path)
 
     asset_info['url'] = asset_cfg.get(asset, 'url')
