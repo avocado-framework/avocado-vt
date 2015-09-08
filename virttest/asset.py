@@ -8,7 +8,7 @@ import glob
 import ConfigParser
 import StringIO
 import commands
-import distutils
+import distutils.dir_util
 
 from avocado.utils import process
 from avocado.utils import genio

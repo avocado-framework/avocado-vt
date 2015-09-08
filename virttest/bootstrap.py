@@ -1,4 +1,4 @@
-import distutils
+import distutils.dir_util
 import logging
 import os
 import glob
