@@ -61,7 +61,9 @@ from virttest import data_dir
 _PROVIDERS_DOWNLOAD_DIR = os.path.join(data_dir.get_test_providers_dir(),
                                        'downloads')
 
-if len(os.listdir(_PROVIDERS_DOWNLOAD_DIR)) == 0:
+try:
+    assert len(os.listdir(_PROVIDERS_DOWNLOAD_DIR)) != 0
+except (OSError, AssertionError):
     raise EnvironmentError("Bootstrap missing. "
                            "Execute 'avocado vt-bootstrap' or disable this "
                            "plugin to get rid of this message")
