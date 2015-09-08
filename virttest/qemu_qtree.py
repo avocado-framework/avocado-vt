@@ -378,6 +378,7 @@ class QtreeDisksContainer(object):
     def __init__(self, nodes):
         """ work only with QtreeDisks instances """
         self.disks = []
+        self.errors = []
         for node in nodes:
             if isinstance(node, QtreeDisk):
                 if node.get_qname() != '<null>':
@@ -397,14 +398,18 @@ class QtreeDisksContainer(object):
             disk = self.disks[i]
             name = disk.get_qname()
             if name not in info:
-                logging.error("disk %s is in block but not in qtree", name)
+                error_msg = "disk %s is in block but not in qtree" % name
+                logging.error(error_msg)
+                self.errors.append(error_msg)
                 missing += 1
                 continue
             for prop, value in info[name].iteritems():
                 disk.set_block_prop(prop, value)
         for disk in self.disks:
             if disk.get_block() == {}:
-                logging.error("disk in qtree but not in info block\n%s", disk)
+                error_msg = "disk in qtree but not in info block\n%s" % disk
+                logging.error(error_msg)
+                self.errors.append(error_msg)
                 additional += 1
         return (additional, missing)
 
@@ -419,7 +424,9 @@ class QtreeDisksContainer(object):
             try:
                 disk.generate_params()
             except ValueError:
-                logging.error("generate_params error: %s", disk)
+                error_msg = "generate_params error: %s" % disk
+                logging.error(error_msg)
+                self.errors.append(error_msg)
                 err += 1
         return err
 
@@ -471,12 +478,14 @@ class QtreeDisksContainer(object):
             else:
                 proc_not_scsi += 1
         for disk in disks.difference(scsis):
-            logging.error('Disk %s is in qtree but not in /proc/scsi/scsi.',
-                          disk)
+            error_msg = 'Disk %s is in qtree but not in /proc/scsi/scsi' % disk
+            logging.error(error_msg)
+            self.errors.append(error_msg)
             additional += 1
         for disk in scsis.difference(disks):
-            logging.error('Disk %s is in /proc/scsi/scsi but not in qtree.',
-                          disk)
+            error_msg = 'Disk %s is in /proc/scsi/scsi but not in qtree' % disk
+            logging.error(error_msg)
+            self.errors.append(error_msg)
             missing += 1
         return (additional, missing, qtree_not_scsi, proc_not_scsi)
 
@@ -504,8 +513,10 @@ class QtreeDisksContainer(object):
                 else:
                     actual = node.parent.parent.qtree.get('type')
             except AttributeError:
-                logging.error("Failed to check drive format, can't get parent"
-                              "of:\n%s", node)
+                error_msg = "Failed to check drive format,"
+                error_msg += " can't get parent of:\n%s" % node
+                logging.error(error_msg)
+                self.errors.append(error_msg)
             if actual == 'virtio-scsi-device':  # new name for virtio-scsi
                 actual = 'virtio-scsi-pci'
             if expected not in actual:
@@ -547,8 +558,9 @@ class QtreeDisksContainer(object):
                     current['image_name'] = image_params.get('image_name')
                     break
             if not current:
-                logging.error("Disk %s is not in qtree but is in params.",
-                              name)
+                error_msg = "Disk %s is not in qtree but is in params." % name
+                logging.error(error_msg)
+                self.errors.append(error_msg)
                 err += 1
                 continue
             for prop in current.iterkeys():
@@ -556,20 +568,26 @@ class QtreeDisksContainer(object):
                 if prop == "drive_format":
                     out = check_drive_format(current_node, image_params)
                     if out:
-                        logging.error("Disk %s %s", qname, out)
+                        error_msg = "Disk %s %s" % (qname, out)
+                        logging.error(error_msg)
+                        self.errors.append(error_msg)
                         err += 1
                     handled = True
                 elif (image_params.get(prop) and
                         image_params.get(prop) == current.get(prop)):
                     handled = True
                 if not handled:
-                    logging.error("Disk %s property %s=%s doesn't match params"
-                                  " %s", qname, prop, current.get(prop),
-                                  image_params.get(prop))
+                    error_msg = "Disk %s property " % qname
+                    error_msg += "%s=%s doesn't match" % (prop, current.get(prop))
+                    error_msg += " params %s" % image_params.get(prop)
+                    logging.error(error_msg)
+                    self.errors.append(error_msg)
                     err += 1
             disks.pop(qname)
         if disks:
-            logging.error('Some disks were in qtree but not in autotest params'
-                          ': %s', disks)
+            error_msg = "Some disks were in qtree but not in"
+            error_msg += " autotest params: %s" % disks
+            logging.error(error_msg)
+            self.errors.append(error_msg)
             err += 1
         return err
