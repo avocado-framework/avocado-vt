@@ -1,4 +1,4 @@
-import distutils
+from distutils import dir_util  # virtualenv problem pylint: disable=E0611
 import logging
 import os
 import glob
@@ -767,7 +767,7 @@ def bootstrap(options, interactive=False):
     local_backend_dir = data_dir.get_local_backend_dir()
     logging.info("Syncing backend dirs %s -> %s", base_backend_dir,
                  local_backend_dir)
-    distutils.dir_util.copy_tree(base_backend_dir, local_backend_dir)
+    dir_util.copy_tree(base_backend_dir, local_backend_dir)
 
     test_dir = data_dir.get_backend_dir(options.vt_type)
     if options.vt_type == 'libvirt':
@@ -813,8 +813,11 @@ def bootstrap(options, interactive=False):
                      step)
         for os_info in get_guest_os_info_list(options.vt_type, guest_os):
             os_asset = os_info['asset']
-            asset.download_asset(os_asset, interactive=interactive,
-                                 restore_image=restore_image)
+            try:
+                asset.download_asset(os_asset, interactive=interactive,
+                                     restore_image=restore_image)
+            except AssertionError:
+                pass    # Not all files are managed via asset
 
     check_modules = []
     if options.vt_type == "qemu":
