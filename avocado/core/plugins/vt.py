@@ -927,7 +927,7 @@ class VirtTestOptionsProcess(object):
     def _process_guest_os(self):
         guest_os_setting = 'option --vt-guest-os'
 
-        if self.options.vt_type == 'spice' and not self.options.vt_guest_os:
+        if self.options.vt_type == 'spice':
             logging.info("Ignoring predefined OS: %s", guest_os_setting)
             return
 
