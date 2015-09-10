@@ -292,17 +292,17 @@ class NFSClient(object):
         try:
             process.system(umount_cmd, verbose=True)
         except process.CmdError:
-            raise exceptions.TestFail("Failed to run: %s", umount_cmd)
+            raise exceptions.TestFail("Failed to run: %s" % umount_cmd)
 
         if self.mkdir_mount_remote:
             rmdir_cmd = ssh_cmd + "'rm -rf %s'" % self.mount_dir
             try:
                 process.system(rmdir_cmd, verbose=True)
             except process.CmdError:
-                raise exceptions.TestFail("Failed to run: %s", rmdir_cmd)
+                raise exceptions.TestFail("Failed to run: %s" % rmdir_cmd)
 
         if self.is_mounted():
-            raise exceptions.TestFail("Failed to umount %s", self.mount_dir)
+            raise exceptions.TestFail("Failed to umount %s" % self.mount_dir)
 
         # Recover SSH connection
         self.ssh_obj.auto_recover = True
@@ -321,7 +321,7 @@ class NFSClient(object):
             logging.debug("Prepare to create %s", self.mount_dir)
             s, o = commands.getstatusoutput(mkdir_cmd)
             if s != 0:
-                raise exceptions.TestFail("Failed to run %s: %s", mkdir_cmd, o)
+                raise exceptions.TestFail("Failed to run %s: %s" % (mkdir_cmd, o))
             self.mkdir_mount_remote = True
 
         self.mount_src = "%s:%s" % (self.nfs_server_ip, self.mount_src)
@@ -332,9 +332,9 @@ class NFSClient(object):
         try:
             process.system(mount_cmd, verbose=True)
         except process.CmdError:
-            raise exceptions.TestFail("Failed to run: %s", mount_cmd)
+            raise exceptions.TestFail("Failed to run: %s" % mount_cmd)
 
         # Check if the sharing directory is mounted
         if not self.is_mounted():
-            raise exceptions.TestFail("Failed to mount from %s to %s",
+            raise exceptions.TestFail("Failed to mount from %s to %s" %
                                       self.mount_src, self.mount_dir)

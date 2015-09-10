@@ -1043,7 +1043,7 @@ class PoolVolumeTest(object):
         if not pv.create_volume(vol_name, capacity, allocation, vol_format):
             raise exceptions.TestFail("Prepare volume failed.")
         if not pv.volume_exists(vol_name):
-            raise exceptions.TestFail("Can't find volume: %s", vol_name)
+            raise exceptions.TestFail("Can't find volume: %s" % vol_name)
 
 
 # Migration Relative functions##############

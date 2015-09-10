@@ -1979,8 +1979,8 @@ class IPv6Manager(propcan.PropCanBase):
         # flush local ip6tables rules
         result = process.run(flush_cmd, ignore_status=True)
         if result.exit_status:
-            raise exceptions.TestFail("%s on local host:%s",
-                                      test_fail_err, result.stderr)
+            raise exceptions.TestFail("%s on local host:%s" %
+                                      (test_fail_err, result.stderr))
         else:
             logging.info("%s on the local host", flush_cmd_pass)
 
@@ -1989,7 +1989,7 @@ class IPv6Manager(propcan.PropCanBase):
             raise exceptions.TestNAError(test_NA_err)
         # flush remote ip6tables rules
         if self.session.cmd_status(flush_cmd):
-            raise exceptions.TestFail("%s on the remote host", test_fail_err)
+            raise exceptions.TestFail("%s on the remote host" % test_fail_err)
         else:
             logging.info("%s on the remote host", flush_cmd_pass)
 
@@ -3213,7 +3213,7 @@ def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
         logging.error("Failed to run command '%s'", cmd)
 
     if not re.search(find_str, output, re.M):
-        raise exceptions.TestFail("Failed to listen %s: %s", find_str, output)
+        raise exceptions.TestFail("Failed to listen %s: %s" % (find_str, output))
     logging.info("The listening is active: %s", output)
 
 
