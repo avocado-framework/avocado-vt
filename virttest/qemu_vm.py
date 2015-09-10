@@ -109,6 +109,7 @@ class VM(virt_vm.BaseVM):
         else:
             self.process = None
             self.serial_ports = []
+            self.serial_console_log = None
             self.serial_console = None
             self.virtio_console = None
             self.redirs = {}
@@ -2017,12 +2018,14 @@ class VM(virt_vm.BaseVM):
             tmp_serial = self.serial_ports[0]
         except IndexError:
             raise virt_vm.VMConfigMissingError(self.name, "serial")
-
+        log_name = "serial-%s-%s.log" % (tmp_serial, self.name)
+        self.serial_console_log = os.path.join(utils_misc.get_log_file_dir(),
+                                               log_name)
         self.serial_console = aexpect.ShellSession(
             "nc -U %s" % self.get_serial_console_filename(tmp_serial),
             auto_close=False,
             output_func=utils_misc.log_line,
-            output_params=("serial-%s-%s.log" % (tmp_serial, self.name),),
+            output_params=(log_name,),
             prompt=self.params.get("shell_prompt", "[\#\$]"))
         del tmp_serial
 
@@ -2720,6 +2723,7 @@ class VM(virt_vm.BaseVM):
             self.process.close()
         if self.serial_console:
             self.serial_console.close()
+            self.serial_console_log = None
         if self.logsessions:
             for key in self.logsessions:
                 self.logsessions[key].close()

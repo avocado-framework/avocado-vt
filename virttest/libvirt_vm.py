@@ -121,6 +121,7 @@ class VM(virt_vm.BaseVM):
         else:
             self.process = None
             self.serial_ports = []
+            self.serial_console_log = None
             self.serial_console = None
             self.redirs = {}
             self.vnc_port = None
@@ -985,6 +986,8 @@ class VM(virt_vm.BaseVM):
                                                        output_params=output_params)
             # Cause serial_console.close() to close open log file
             self.serial_console.set_log_file(output_filename)
+            self.serial_console_log = os.path.join(utils_misc.get_log_file_dir(),
+                                                   output_filename)
 
     def set_root_serial_console(self, device, remove=False):
         """
@@ -1357,6 +1360,7 @@ class VM(virt_vm.BaseVM):
                 self.serial_console.sendline("^]")
             self.serial_console.close()
             self.serial_console = None
+            self.serial_console_log = None
         if hasattr(self, "migration_file"):
             try:
                 os.unlink(self.migration_file)
