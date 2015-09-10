@@ -1097,14 +1097,8 @@ def run(test, params, env):
 
     start_time = time.time()
 
-    try:
-        serial_name = vm.serial_ports[0]
-    except IndexError:
-        raise virt_vm.VMConfigMissingError(vm.name, "serial")
-
-    try:
-        log_file = vm.get_serial_console_filenames()[0]
-    except IndexError:
+    log_file = vm.serial_console_log
+    if log_file is None:
         raise virt_vm.VMConfigMissingError(vm.name, "serial")
 
     logging.debug("Monitoring serial console log for completion message: %s",
