@@ -296,10 +296,10 @@ def get_time(session, time_command, time_filter_re, time_format):
         reo = None
 
         try:
-            reo = re.findall(time_filter_re, output)[0]
+            reo = re.findall(time_filter_re, output)
+            str_time = reo[0]
             if len(reo) > 1:
                 num = float(reo[1])
-                reo = reo[0]
         except IndexError:
             logging.debug("The time string from guest is:\n%s", output)
             raise exceptions.TestError(
@@ -311,7 +311,7 @@ def get_time(session, time_command, time_filter_re, time_format):
                           time_filter_re, output)
             raise err
 
-        guest_time = time.mktime(time.strptime(reo, time_format)) + num
+        guest_time = time.mktime(time.strptime(str_time, time_format)) + num
 
     return (host_time, guest_time)
 
