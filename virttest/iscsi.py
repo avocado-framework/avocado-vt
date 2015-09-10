@@ -11,7 +11,6 @@ iscsi in localhost then access it.
 import re
 import os
 import logging
-import ipaddr
 
 from avocado.core import exceptions
 from avocado.utils import data_factory
@@ -19,6 +18,7 @@ from avocado.utils import process
 from avocado.utils import path
 
 from . import utils_selinux
+from . import utils_net
 
 ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
 
@@ -673,7 +673,7 @@ class IscsiLIO(_IscsiComm):
                 if "Created network portal" not in output:
                     raise exceptions.TestFail("Failed to create portal. (%s)",
                                               output)
-            if (6 == ipaddr.IPAddress(self.portal_ip).version and
+            if ("ipv6" == utils_net.IPAddress(self.portal_ip).version and
                         self.portal_ip not in portal_info):
                 # Ipv6 portal address can't be created by default,
                 # create ipv6 portal if needed.
