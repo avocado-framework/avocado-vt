@@ -3,6 +3,8 @@ DESTDIR=/
 BUILDIR=$(CURDIR)/debian/avocado-virt
 PROJECT=avocado
 VERSION="0.26.0"
+AVOCADO_DIRNAME?=avocado
+DIRNAME=$(shell echo $${PWD\#\#*/})
 
 all:
 	@echo "make source - Create source package"
@@ -51,15 +53,15 @@ clean:
 	find . -name '*.pyc' -delete
 
 link:
-	ln -sf ../../../../avocado-vt/etc/avocado/conf.d/vt.conf ../avocado/etc/avocado/conf.d/
-	ln -sf ../../../../avocado-vt/avocado/core/plugins/vt.py ../avocado/avocado/core/plugins/
-	ln -sf ../../../../avocado-vt/avocado/core/plugins/vt_list.py ../avocado/avocado/core/plugins/
-	ln -sf ../../../../avocado-vt/avocado/core/plugins/vt_bootstrap.py ../avocado/avocado/core/plugins/
-	ln -sf ../avocado-vt/virttest ../avocado/
+	ln -sf ../../../../$(DIRNAME)/etc/avocado/conf.d/vt.conf ../$(AVOCADO_DIRNAME)/etc/avocado/conf.d/
+	ln -sf ../../../../$(DIRNAME)/avocado/core/plugins/vt.py ../$(AVOCADO_DIRNAME)/avocado/core/plugins/
+	ln -sf ../../../../$(DIRNAME)/avocado/core/plugins/vt_list.py ../$(AVOCADO_DIRNAME)/avocado/core/plugins/
+	ln -sf ../../../../$(DIRNAME)/avocado/core/plugins/vt_bootstrap.py ../$(AVOCADO_DIRNAME)/avocado/core/plugins/
+	ln -sf ../$(DIRNAME)/virttest ../$(AVOCADO_DIRNAME)/
 
 unlink:
-	test -L ../avocado/etc/avocado/conf.d/vt.conf && rm -f ../avocado/etc/avocado/conf.d/vt.conf || true
-	test -L ../avocado/avocado/core/plugins/vt.py && rm -f ../avocado/avocado/core/plugins/vt.py || true
-	test -L ../avocado/avocado/core/plugins/vt_list.py && rm -f ../avocado/avocado/core/plugins/vt_list.py || true
-	test -L ../avocado/avocado/core/plugins/vt_bootstrap.py && rm -f ../avocado/avocado/core/plugins/vt_bootstrap.py || true
-	test -L ../avocado/virttest && rm -f ../avocado/virttest || true
+	test -L ../$(AVOCADO_DIRNAME)/etc/avocado/conf.d/vt.conf && rm -f ../$(AVOCADO_DIRNAME)/etc/avocado/conf.d/vt.conf || true
+	test -L ../$(AVOCADO_DIRNAME)/avocado/core/plugins/vt.py && rm -f ../$(AVOCADO_DIRNAME)/avocado/core/plugins/vt.py || true
+	test -L ../$(AVOCADO_DIRNAME)/avocado/core/plugins/vt_list.py && rm -f ../$(AVOCADO_DIRNAME)/avocado/core/plugins/vt_list.py || true
+	test -L ../$(AVOCADO_DIRNAME)/avocado/core/plugins/vt_bootstrap.py && rm -f ../$(AVOCADO_DIRNAME)/avocado/core/plugins/vt_bootstrap.py || true
+	test -L ../$(AVOCADO_DIRNAME)/virttest && rm -f ../$(AVOCADO_DIRNAME)/virttest || true
