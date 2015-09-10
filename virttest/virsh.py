@@ -111,7 +111,7 @@ class VirshSession(aexpect.ShellSession):
                  remote_user=None, remote_pwd=None,
                  ssh_remote_auth=False, readonly=False,
                  unprivileged_user=None,
-                 auto_close=False):
+                 auto_close=False, check_libvirtd=True):
         """
         Initialize virsh session server, or client if id set.
 
@@ -151,8 +151,11 @@ class VirshSession(aexpect.ShellSession):
             # ssh_cmd is not None flags this as remote session
             ssh_cmd = ("ssh -o UserKnownHostsFile=/dev/null %s -p %s %s@%s"
                        % (pref_auth, 22, self.remote_user, self.remote_ip))
-            self.virsh_exec = ("%s \"%s -c '%s'\""
-                               % (ssh_cmd, virsh_exec, self.uri))
+            if uri:
+                self.virsh_exec = ("%s \"%s -c '%s'\""
+                                   % (ssh_cmd, virsh_exec, self.uri))
+            else:
+                self.virsh_exec = ("%s \"%s\"" % (ssh_cmd, virsh_exec))
         else:  # setting up a local session or re-using a session
             self.virsh_exec = virsh_exec
             if self.uri:
@@ -179,11 +182,12 @@ class VirshSession(aexpect.ShellSession):
                                   prompt, debug=True)
 
         # fail if libvirtd is not running
-        if self.cmd_status('list', timeout=60) != 0:
-            logging.debug("Persistent virsh session is not responding, "
-                          "libvirtd may be dead.")
-            self.auto_close = True
-            raise aexpect.ShellStatusError(virsh_exec, 'list')
+        if check_libvirtd:
+            if self.cmd_status('list', timeout=60) != 0:
+                logging.debug("Persistent virsh session is not responding, "
+                              "libvirtd may be dead.")
+                self.auto_close = True
+                raise aexpect.ShellStatusError(virsh_exec, 'list')
 
     def cmd_status_output(self, cmd, timeout=60, internal_timeout=None,
                           print_func=None):
@@ -455,7 +459,7 @@ class VirshPersistent(Virsh):
             # try nicely first
             session.close()
             if session.is_alive():
-                # Be mean, incase it's hung
+                # Be mean, in case it's hung
                 session.close(sig=signal.SIGTERM)
             del self.__class__.COUNTERS[session_id]
             return True
@@ -1296,7 +1300,7 @@ def destroy(name, options="", **dargs):
 
 def define(xml_path, **dargs):
     """
-    Return True on successful domain define.
+    Return cmd result of domain define.
 
     :param xml_path: XML file path
     :param dargs: standardized virsh function API keywords
@@ -1488,7 +1492,7 @@ def detach_device(domainarg=None, filearg=None,
                   domain_opt=None, file_opt=None,
                   flagstr=None, **dargs):
     """
-    Attach a device using full parameter/argument set.
+    Detach a device using full parameter/argument set.
 
     :param domainarg: Domain name (first pos. parameter)
     :param filearg: File name (second pos. parameter)
@@ -1825,7 +1829,7 @@ def _pool_type_check(pool_type):
     :param pool_type: pool type
     :return: valid pool type or None
     """
-    valid_types = ['dir', 'fs', 'netfs', 'disk', 'iscsi', 'logical', 'gluster']
+    valid_types = ['dir', 'fs', 'netfs', 'disk', 'iscsi', 'logical', 'gluster', 'rbd']
 
     if pool_type and pool_type not in valid_types:
         logging.error("Specified pool type '%s' not in '%s'",
@@ -1961,7 +1965,7 @@ def pool_refresh(name, **dargs):
 
 def pool_delete(name, **dargs):
     """
-    Destroy the resources used by a given pool object
+    Delete the resources used by a given pool object
 
     :param name: Name of the pool
     :param dargs: standardized virsh function API keywords
@@ -2015,12 +2019,12 @@ def pool_state_dict(only_names=False, **dargs):
     return result
 
 
-def pool_define_as(name, pool_type, target, extra="", **dargs):
+def pool_define_as(name, pool_type, target="", extra="", **dargs):
     """
     Define the pool from the arguments
 
     :param name: Name of the pool to be defined
-    :param typ: Type of the pool to be defined
+    :param pool_type: Type of the pool to be defined
 
         dir
             file system directory
@@ -2038,6 +2042,8 @@ def pool_define_as(name, pool_type, target, extra="", **dargs):
             Multipath Device Enumerater
         scsi
             SCSI Host Adapter
+        rbd
+            Rados Block Device
 
     :param target: libvirt uri to send guest to
     :param extra: Free-form string of options
@@ -2050,8 +2056,11 @@ def pool_define_as(name, pool_type, target, extra="", **dargs):
         return False
 
     logging.debug("Try to define %s type pool %s", pool_type, name)
-    cmd = "pool-define-as --name %s --type %s --target %s %s" \
-          % (name, pool_type, target, extra)
+    cmd = "pool-define-as --name %s --type %s %s" \
+          % (name, pool_type, extra)
+    # Target is not a must
+    if target:
+        cmd += " --target %s" % target
     return command(cmd, **dargs)
 
 
@@ -2163,7 +2172,7 @@ def pool_dumpxml(name, extra="", to_file="", **dargs):
 
 def pool_define(xml_path, **dargs):
     """
-    Return True on successful pool define.
+    To create the pool from xml file.
 
     :param xml_path: XML file path
     :param dargs: standardized virsh function API keywords
@@ -3454,7 +3463,7 @@ def secret_list(options="", **dargs):
 
 def secret_define(xml_file, options=None, **dargs):
     """
-    Return True on successful secret define.
+    Return cmd result of secret define.
 
     :param xml_file: secret XML file
     :param dargs: standardized virsh function API keywords
@@ -3670,7 +3679,7 @@ def nwfilter_dumpxml(name, options="", to_file=None, **dargs):
 
 def nwfilter_define(xml_file, options="", **dargs):
     """
-    Return True on successful network filter define.
+    Return cmd result of network filter define.
 
     :param xml_file: network filter XML file
     :param options: extra options to nwfilter-define cmd.
@@ -4101,7 +4110,7 @@ def qemu_monitor_event(domain=None, event=None, event_timeout=None,
     if event:
         cmd += " --event %s" % event
     if event_timeout:
-        cmd += " --timeout %s" % event
+        cmd += " --timeout %s" % event_timeout
     return command(cmd, **dargs)
 
 
@@ -4144,5 +4153,38 @@ def event(domain=None, event=None, event_timeout=None, options="", **dargs):
     if event:
         cmd += " --event %s" % event
     if event_timeout:
-        cmd += " --timeout %s" % event
+        cmd += " --timeout %s" % event_timeout
     return command(cmd, **dargs)
+
+
+def move_mouse(name, coordinate, **dargs):
+    """
+    Move VM mouse.
+
+    :param name: domain name
+    :param coordinate: Mouse coordinate
+    """
+    cmd = "mouse_move %s %s" % coordinate
+    qemu_monitor_command(name=name, cmd=cmd, options='--hmp', **dargs)
+    # Sleep 1 sec to make sure VM received mouse move event
+    time.sleep(1)
+
+
+def click_button(name, left_button=True, **dargs):
+    """
+    Click left/right button of VM mouse.
+
+    :param name: domain name
+    :param left_button: Click left or right button
+    """
+    state = 1
+    if not left_button:
+        state = 4
+    cmd = "mouse_button %s" % state
+    qemu_monitor_command(name=name, cmd=cmd, options='--hmp', **dargs)
+    # Sleep 1 sec to make sure VM received mouse button event,
+    # then release button(state=0)
+    time.sleep(1)
+    cmd = "mouse_button 0"
+    qemu_monitor_command(name=name, cmd=cmd, options='--hmp', **dargs)
+    time.sleep(1)

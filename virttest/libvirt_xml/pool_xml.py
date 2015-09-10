@@ -21,7 +21,8 @@ class SourceXML(base.LibvirtXMLBase):
 
     __slots__ = ('device_path', 'vg_name', 'host_name', 'dir_path',
                  'adp_type', 'adp_name', 'adp_parent', 'adp_wwnn',
-                 'adp_wwpn', 'format_type')
+                 'adp_wwpn', 'format_type', 'hosts', 'auth_type',
+                 'auth_username', 'secret_usage', 'secret_uuid')
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -76,8 +77,52 @@ class SourceXML(base.LibvirtXMLBase):
                                parent_xpath='/',
                                tag_name='format',
                                attribute='type')
+        accessors.XMLElementList('hosts', self, parent_xpath='/',
+                                 marshal_from=self.marshal_from_host,
+                                 marshal_to=self.marshal_to_host)
+        accessors.XMLAttribute(property_name='auth_type',
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='auth',
+                               attribute='type')
+        accessors.XMLAttribute(property_name='auth_username',
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='auth',
+                               attribute='username')
+        accessors.XMLAttribute(property_name='secret_usage',
+                               libvirtxml=self,
+                               parent_xpath='/auth',
+                               tag_name='secret',
+                               attribute='usage')
+        accessors.XMLAttribute(property_name='secret_uuid',
+                               libvirtxml=self,
+                               parent_xpath='/auth',
+                               tag_name='secret',
+                               attribute='uuid')
+
         super(SourceXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = u"<source></source>"
+
+    @staticmethod
+    def marshal_from_host(item, index, libvirtxml):
+        """Convert a dictionary into a tag + attributes"""
+        del index           # not used
+        del libvirtxml      # not used
+        if not isinstance(item, dict):
+            raise xcepts.LibvirtXMLError("Expected a dictionary of host "
+                                         "attributes, not a %s"
+                                         % str(item))
+        return ('host', dict(item))  # return copy of dict, not reference
+
+    @staticmethod
+    def marshal_to_host(tag, attr_dict, index, libvirtxml):
+        """Convert a tag + attributes into a dictionary"""
+        del index                    # not used
+        del libvirtxml               # not used
+        if tag != 'host':
+            return None              # skip this one
+        return dict(attr_dict)       # return copy of dict, not reference
 
 
 class PoolXMLBase(base.LibvirtXMLBase):

@@ -51,7 +51,7 @@ class PoolTestBase(unittest.TestCase):
 
     @staticmethod
     def _pool_define_as(name="unittest", pool_type="dir",
-                        target="/var/tmp", **dargs):
+                        target="/var/tmp", extra="", **dargs):
         unittest_pool = "unittest             inactive    no\n"
         global _pools_output
         _pools_output = _DEFAULT_POOL + unittest_pool
@@ -69,7 +69,7 @@ class PoolTestBase(unittest.TestCase):
         return True
 
     @staticmethod
-    def _pool_autostart(name="unittest", **dargs):
+    def _pool_autostart(name="unittest", extra="", **dargs):
         unittest_pool = "unittest             active     yes\n"
         global _pools_output
         _pools_output = _DEFAULT_POOL + unittest_pool

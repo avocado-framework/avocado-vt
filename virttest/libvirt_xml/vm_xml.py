@@ -71,7 +71,7 @@ class VMXMLBase(base.LibvirtXMLBase):
             get: return text value of uuid tag
             set: set text value for (new) uuid tag (unvalidated)
             del: remove uuid tag
-        vcpu, max_mem, current_mem: integers
+        vcpu, max_mem, current_mem, iothreads: integers
             get: returns integer
             set: set integer
             del: removes tag
@@ -155,7 +155,8 @@ class VMXMLBase(base.LibvirtXMLBase):
                  'devices', 'seclabel', 'cputune', 'placement', 'cpuset',
                  'current_vcpu', 'os', 'cpu', 'pm', 'on_poweroff', 'on_reboot',
                  'on_crash', 'features', 'mb', 'max_mem_unit',
-                 'current_mem_unit', 'memtune')
+                 'current_mem_unit', 'memtune', 'max_mem_rt', 'max_mem_rt_unit',
+                 'max_mem_rt_slots', 'iothreads')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -178,6 +179,11 @@ class VMXMLBase(base.LibvirtXMLBase):
                                  forbidden=None,
                                  parent_xpath='/',
                                  tag_name='uuid')
+        accessors.XMLElementInt(property_name="iothreads",
+                                libvirtxml=self,
+                                forbidden=None,
+                                parent_xpath='/',
+                                tag_name='iothreads')
         accessors.XMLElementInt(property_name="vcpu",
                                 libvirtxml=self,
                                 forbidden=None,
@@ -226,6 +232,21 @@ class VMXMLBase(base.LibvirtXMLBase):
                                libvirtxml=self,
                                parent_xpath='/',
                                tag_name='currentMemory',
+                               attribute='unit')
+        accessors.XMLElementInt(property_name="max_mem_rt",
+                                libvirtxml=self,
+                                forbidden=None,
+                                parent_xpath='/',
+                                tag_name='maxMemory')
+        accessors.XMLAttribute(property_name="max_mem_rt_slots",
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='maxMemory',
+                               attribute='slots')
+        accessors.XMLAttribute(property_name="max_mem_rt_unit",
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='maxMemory',
                                attribute='unit')
         accessors.XMLElementNest(property_name='os',
                                  libvirtxml=self,

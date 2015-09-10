@@ -743,7 +743,8 @@ class UnattendedInstallConfig(object):
                     if self.install_virtio == "yes":
                         boot_disk.setup_virtio_win2008(self.virtio_floppy,
                                                        self.cdrom_virtio)
-                    self.cdrom_virtio = None
+                    else:
+                        self.cdrom_virtio = None
                 else:
                     boot_disk = utils_disk.FloppyDisk(self.floppy,
                                                       self.qemu_img_binary,

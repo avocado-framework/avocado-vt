@@ -446,6 +446,9 @@ class VM(virt_vm.BaseVM):
                 cmd += " -device isa-serial"
             elif 'ppc' in arch.ARCH:
                 cmd += " -device spapr-vty"
+                # Workaround for console issue, details:
+                #   lists.gnu.org/archive/html/qemu-ppc/2013-10/msg00129.html
+                cmd += _add_option("reg", "0x30000000")
             cmd += _add_option("chardev", serial_id)
             return cmd
 
@@ -731,6 +734,33 @@ class VM(virt_vm.BaseVM):
 
         def add_uuid(devices, uuid):
             return " -uuid '%s'" % uuid
+
+        def add_qemu_option(devices, name, optsinfo):
+            """
+            Add qemu option, such as '-msg timestamp=on|off'
+
+            :param devices: qcontainer object
+            :param name: string type option name
+            :param optsinfo: list like [(key, val, vtype)]
+            """
+            if devices.has_option(name):
+                options = []
+                for info in optsinfo:
+                    key, val = info[:2]
+                    if key and val:
+                        options.append("%s=%%(%s)s" % (key, key))
+                    else:
+                        options += filter(None, info[:2])
+                options = ",".join(options)
+                cmdline = "-%s %s" % (name, options)
+                device = qdevices.QStringDevice(name, cmdline=cmdline)
+                for info in optsinfo:
+                    key, val, vtype = info
+                    if key and val:
+                        device.set_param(key, val, vtype, False)
+                devices.insert(device)
+            else:
+                logging.warn("option '-%s' not supportted" % name)
 
         def add_pcidevice(devices, host, params, device_driver="pci-assign",
                           pci_bus='pci.0'):
@@ -1125,6 +1155,24 @@ class VM(virt_vm.BaseVM):
                 dev.set_param("id", devid)
             devices.insert(dev)
 
+        def add_disable_legacy(devices, dev, dev_type):
+            """
+            This function is used to add disable_legacy option for virtio-pci
+            """
+            options = devices.execute_qemu("-device %s,?" % dev_type)
+            if "disable-legacy" in options:
+                value = params.get("disable_legacy", "off")
+                dev.set_param("disable-legacy", value)
+
+        def add_disable_modern(devices, dev, dev_type):
+            """
+            This function is used to add disable_modern option for virtio-pci
+            """
+            options = devices.execute_qemu("-device %s,?" % dev_type)
+            if "disable-modern" in options:
+                value = params.get("disable_modern", "on")
+                dev.set_param("disable-modern", value)
+
         # End of command line option wrappers
 
         # If nothing changed and devices exists, return imediatelly
@@ -1302,6 +1350,21 @@ class VM(virt_vm.BaseVM):
                                         monitor_filename)
                 devices.insert(StrDev('HMP-%s' % monitor_name, cmdline=cmd))
 
+        # Add pvpanic device
+        if params.get("enable_pvpanic") == "yes":
+            if not devices.has_device("pvpanic"):
+                logging.warn("pvpanic device is not supportted")
+            else:
+                pvpanic_params = {"backend": "pvpanic"}
+                ioport = params.get("ioport_pvpanic")
+                if ioport:
+                    pvpanic_params["ioport"] = ioport
+                pvpanic_dev = qdevices.QCustomDevice("device",
+                                                     params=pvpanic_params,
+                                                     backend="backend")
+                pvpanic_dev.set_param("id", utils_misc.generate_random_id())
+                devices.insert(pvpanic_dev)
+
         # Add serial console redirection
         for serial in params.objects("serials"):
             serial_filename = vm.get_serial_console_filename(serial)
@@ -1309,58 +1372,61 @@ class VM(virt_vm.BaseVM):
             devices.insert(StrDev('SER-%s' % serial, cmdline=cmd))
 
         # Add virtio_serial ports
-        no_virtio_serial_pcis = 0
-        no_virtio_ports = 0
-        virtio_port_spread = int(params.get('virtio_port_spread', 2))
-        for port_name in params.objects("virtio_ports"):
-            port_params = params.object_params(port_name)
-            bus = params.get('virtio_port_bus', False)
-            if bus is not False:     # Manually set bus
-                bus = int(bus)
-            elif not virtio_port_spread:
-                # bus not specified, let qemu decide
-                pass
-            elif not no_virtio_ports % virtio_port_spread:
-                # Add new vio-pci every n-th port. (Spread ports)
-                bus = no_virtio_serial_pcis
-            else:  # Port not overriden, use last vio-pci
-                bus = no_virtio_serial_pcis - 1
-                if bus < 0:     # First bus
-                    bus = 0
-            # Add virtio_serial_pcis
-            # Multiple virtio console devices can't share a
-            # single virtio-serial-pci bus. So add a virtio-serial-pci bus
-            # when the port is a virtio console.
-            if (port_params.get('virtio_port_type') == 'console' and
-                    params.get('virtio_port_bus') is None):
-                if arch.ARCH == 'aarch64':
-                    dev = QDevice('virtio-serial-device')
-                else:
-                    dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
-                dev.set_param('id',
-                              'virtio_serial_pci%d' % no_virtio_serial_pcis)
-                devices.insert(dev)
-                no_virtio_serial_pcis += 1
-            for i in range(no_virtio_serial_pcis, bus + 1):
-                if arch.ARCH == 'aarch64':
-                    dev = QDevice('virtio-serial-device')
-                else:
-                    dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
-                dev.set_param('id', 'virtio_serial_pci%d' % i)
-                devices.insert(dev)
-                no_virtio_serial_pcis += 1
-            if bus is not False:
-                bus = "virtio_serial_pci%d.0" % bus
-            # Add actual ports
-            cmd = add_virtio_port(devices, port_name, bus,
-                                  self.get_virtio_port_filename(port_name),
-                                  port_params.get('virtio_port_type'),
-                                  port_params.get('virtio_port_chardev'),
-                                  port_params.get('virtio_port_name_prefix'),
-                                  no_virtio_ports,
-                                  port_params.get('virtio_port_params', ''))
-            devices.insert(StrDev('VIO-%s' % port_name, cmdline=cmd))
-            no_virtio_ports += 1
+        if not devices.has_option("virtconsole"):
+            logging.warn("virtiocosole/serial device not support")
+        else:
+            no_virtio_serial_pcis = 0
+            no_virtio_ports = 0
+            virtio_port_spread = int(params.get('virtio_port_spread', 2))
+            for port_name in params.objects("virtio_ports"):
+                port_params = params.object_params(port_name)
+                bus = params.get('virtio_port_bus', False)
+                if bus is not False:     # Manually set bus
+                    bus = int(bus)
+                elif not virtio_port_spread:
+                    # bus not specified, let qemu decide
+                    pass
+                elif not no_virtio_ports % virtio_port_spread:
+                    # Add new vio-pci every n-th port. (Spread ports)
+                    bus = no_virtio_serial_pcis
+                else:  # Port not overriden, use last vio-pci
+                    bus = no_virtio_serial_pcis - 1
+                    if bus < 0:     # First bus
+                        bus = 0
+                # Add virtio_serial_pcis
+                # Multiple virtio console devices can't share a
+                # single virtio-serial-pci bus. So add a virtio-serial-pci bus
+                # when the port is a virtio console.
+                if (port_params.get('virtio_port_type') == 'console' and
+                        params.get('virtio_port_bus') is None):
+                    if arch.ARCH == 'aarch64':
+                        dev = QDevice('virtio-serial-device')
+                    else:
+                        dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
+                    dev.set_param('id',
+                                  'virtio_serial_pci%d' % no_virtio_serial_pcis)
+                    devices.insert(dev)
+                    no_virtio_serial_pcis += 1
+                for i in range(no_virtio_serial_pcis, bus + 1):
+                    if arch.ARCH == 'aarch64':
+                        dev = QDevice('virtio-serial-device')
+                    else:
+                        dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
+                    dev.set_param('id', 'virtio_serial_pci%d' % i)
+                    devices.insert(dev)
+                    no_virtio_serial_pcis += 1
+                if bus is not False:
+                    bus = "virtio_serial_pci%d.0" % bus
+                # Add actual ports
+                cmd = add_virtio_port(devices, port_name, bus,
+                                      self.get_virtio_port_filename(port_name),
+                                      port_params.get('virtio_port_type'),
+                                      port_params.get('virtio_port_chardev'),
+                                      port_params.get('virtio_port_name_prefix'),
+                                      no_virtio_ports,
+                                      port_params.get('virtio_port_params', ''))
+                devices.insert(StrDev('VIO-%s' % port_name, cmdline=cmd))
+                no_virtio_ports += 1
 
         # Add virtio-rng devices
         for virtio_rng in params.objects("virtio_rngs"):
@@ -1965,6 +2031,26 @@ class VM(virt_vm.BaseVM):
                 balloon_bus = pci_bus
             add_balloon(devices, devid=balloon_devid, bus=balloon_bus,
                         use_old_format=use_ofmt)
+
+        # Add qemu options
+        if params.get("msg_timestamp"):
+            attr_info = ["timestamp", params["msg_timestamp"], bool]
+            add_qemu_option(devices, "msg", [attr_info])
+        if params.get("realtime_mlock"):
+            attr_info = ["mlock", params["realtime_mlock"], bool]
+            add_qemu_option(devices, "realtime", [attr_info])
+        if params.get("keyboard_layout"):
+            attr_info = [None, params["keyboard_layout"], None]
+            add_qemu_option(devices, "k", [attr_info])
+
+        for device in devices:
+            virtio_pci_devices = ["virtio-net-pci", "virtio-blk-pci",
+                                  "virtio-scsi-pci", "virtio-balloon-pci",
+                                  "virtio-serial-pci", "virtio-rng-pci"]
+            dev_type = device.get_param("driver")
+            if dev_type in virtio_pci_devices:
+                add_disable_legacy(devices, device, dev_type)
+                add_disable_modern(devices, device, dev_type)
 
         return devices
 

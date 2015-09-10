@@ -296,10 +296,10 @@ def get_time(session, time_command, time_filter_re, time_format):
         reo = None
 
         try:
-            reo = re.findall(time_filter_re, output)[0]
+            reo = re.findall(time_filter_re, output)
+            str_time = reo[0]
             if len(reo) > 1:
                 num = float(reo[1])
-                reo = reo[0]
         except IndexError:
             logging.debug("The time string from guest is:\n%s", output)
             raise exceptions.TestError(
@@ -311,7 +311,7 @@ def get_time(session, time_command, time_filter_re, time_format):
                           time_filter_re, output)
             raise err
 
-        guest_time = time.mktime(time.strptime(reo, time_format)) + num
+        guest_time = time.mktime(time.strptime(str_time, time_format)) + num
 
     return (host_time, guest_time)
 
@@ -698,6 +698,9 @@ def run_autotest(vm, session, control_path, timeout,
     from autotest.client.shared.settings import settings
     section_values = settings.get_section_values
 
+    def directory_exists(remote_path):
+        return session.cmd_status("test -d %s" % remote_path) == 0
+
     def copy_if_hash_differs(vm, local_path, remote_path):
         """
         Copy a file to a guest if it doesn't exist or if its MD5sum differs.
@@ -711,7 +714,9 @@ def run_autotest(vm, session, control_path, timeout,
         hash_differs = False
         local_hash = crypto.hash_file(local_path)
         basename = os.path.basename(local_path)
-        output = session.cmd_output("md5sum %s" % remote_path)
+        output = session.cmd_output("md5sum %s" % remote_path,
+                                    timeout=int(
+                                        params.get("md5sum_timeout", 240)))
         if "such file" in output:
             remote_hash = "0"
         elif output:
@@ -745,8 +750,16 @@ def run_autotest(vm, session, control_path, timeout,
         dirname = os.path.dirname(remote_path)
         session.cmd("cd %s" % dirname)
         session.cmd("mkdir -p %s" % os.path.dirname(dest_dir))
-        e_cmd = "tar xjvmf %s -C %s" % (basename, os.path.dirname(dest_dir))
-        output = session.cmd(e_cmd, timeout=240)
+        has_pbzip2, pbzip2_path = session.cmd_status_output("which pbzip2")
+        has_lbzip2, lbzip2_path = session.cmd_status_output("which lbzip2")
+        if (has_pbzip2 == 0) and "pbzip2" in pbzip2_path:
+            tar_cmds = "--use-compress-program=pbzip2 -xvmf"
+        elif (has_lbzip2 == 0) and "lbzip2" in lbzip2_path:
+            tar_cmds = "--use-compress-program=lbzip2 -xvmf"
+        else:
+            tar_cmds = "xvjmf"
+        e_cmd = "tar %s %s -C %s" % (tar_cmds, basename, os.path.dirname(dest_dir))
+        output = session.cmd(e_cmd, timeout=120)
         autotest_dirname = ""
         for line in output.splitlines()[1:]:
             autotest_dirname = line.split("/")[0]
@@ -899,6 +912,7 @@ def run_autotest(vm, session, control_path, timeout,
     # To avoid problems, let's make the test use the current AUTODIR
     # (autotest client path) location
     from autotest.client import common
+    from autotest.client.shared import base_packages
     autotest_path = os.path.dirname(common.__file__)
     autotest_local_path = os.path.join(autotest_path, 'autotest-local')
     single_dir_install = os.path.isfile(autotest_local_path)
@@ -912,8 +926,12 @@ def run_autotest(vm, session, control_path, timeout,
     autotest_parentdir = os.path.dirname(autotest_path)
 
     # tar the contents of bindir/autotest
-    cmd = ("cd %s; tar cvjf %s %s/*" %
-           (autotest_parentdir, compressed_autotest_path, autotest_basename))
+    if base_packages.has_pbzip2():
+        tar_cmds = "--use-compress-program=pbzip2 -cvf"
+    else:
+        tar_cmds = "cvjf"
+    cmd = ("cd %s; tar %s %s %s/*" %
+           (autotest_parentdir, tar_cmds, compressed_autotest_path, autotest_basename))
     cmd += " --exclude=%s/results*" % autotest_basename
     cmd += " --exclude=%s/tmp" % autotest_basename
     cmd += " --exclude=%s/control*" % autotest_basename
@@ -928,7 +946,7 @@ def run_autotest(vm, session, control_path, timeout,
                                   compressed_autotest_path)
 
     # Extract autotest.tar.bz2
-    if update:
+    if update or not directory_exists(destination_autotest_path):
         extract(vm, compressed_autotest_path, destination_autotest_path)
 
     g_fd, g_path = tempfile.mkstemp(dir='/tmp/')

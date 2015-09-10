@@ -272,8 +272,11 @@ class QemuImg(storage.QemuImg):
         if rebase_mode == "unsafe":
             cmd += " -u"
         if self.base_tag:
-            cmd += " -b %s -F %s %s" % (self.base_image_filename,
-                                        self.base_format, self.image_filename)
+            if self.base_tag == "null":
+                cmd += " -b \"\" -F %s %s" % (self.base_format, self.image_filename)
+            else:
+                cmd += " -b %s -F %s %s" % (self.base_image_filename,
+                                            self.base_format, self.image_filename)
         else:
             raise exceptions.TestError("Can not find the image parameters need"
                                        " for rebase.")
@@ -354,6 +357,23 @@ class QemuImg(storage.QemuImg):
 
         return process.system_output(cmd)
 
+    def snapshot_apply(self):
+        """
+        Apply a snapshot image.
+
+        :note: params should contain:
+               snapshot_image_name -- the name of snapshot image file
+        """
+        cmd = self.image_cmd
+        if self.snapshot_tag:
+            cmd += " snapshot -a %s %s" % (self.snapshot_image_filename,
+                                           self.image_filename)
+        else:
+            raise exceptions.TestError("Can not find the snapshot image"
+                                       " parameters")
+
+        process.system_output(cmd)
+
     def remove(self):
         """
         Remove an image file.
@@ -369,9 +389,16 @@ class QemuImg(storage.QemuImg):
         Run qemu-img info command on image file and return its output.
         """
         logging.debug("Run qemu-img info comamnd on %s", self.image_filename)
+        backing_chain = self.params.get("backing_chain")
         cmd = self.image_cmd
-        if (os.path.exists(self.image_filename) or self.is_remote_image()):
-            cmd += " info %s" % self.image_filename
+        cmd += " info"
+        if backing_chain == "yes":
+            if "--backing_chain" in self.help_text:
+                cmd += " --backing-chain"
+            else:
+                logging.warn("'--backing-chain' option is not supportted")
+        if os.path.exists(self.image_filename) or self.is_remote_image():
+            cmd += " %s" % self.image_filename
             output = process.system_output(cmd, verbose=False)
         else:
             logging.debug("Image file %s not found", self.image_filename)

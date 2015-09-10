@@ -267,12 +267,12 @@ class StoragePool(object):
         logging.info("Deleted pool '%s'", name)
         return True
 
-    def set_pool_autostart(self, name):
+    def set_pool_autostart(self, name, extra=""):
         """
         Set given pool as autostart
         """
         try:
-            self.virsh_instance.pool_autostart(name, ignore_status=False)
+            self.virsh_instance.pool_autostart(name, extra, ignore_status=False)
         except process.CmdError:
             logging.error("Autostart pool '%s' failed.", name)
             return False
@@ -397,6 +397,21 @@ class StoragePool(object):
                                                extra, ignore_status=False)
         except process.CmdError:
             logging.error("Define netfs pool '%s' failed.", name)
+            return False
+        logging.info("Define pool '%s'", name)
+        return True
+
+    def define_rbd_pool(self, name, source_host, source_name, extra=""):
+        """
+        Define a rbd type pool.
+        """
+        try:
+            extra = ("--source-host %s --source-name %s %s" %
+                     (source_host, source_name, extra))
+            self.virsh_instance.pool_define_as(name, "rbd", "",
+                                               extra, ignore_status=False)
+        except exceptions.CmdError:
+            logging.error("Define rbd pool '%s' failed.", name)
             return False
         logging.info("Define pool '%s'", name)
         return True

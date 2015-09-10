@@ -104,6 +104,48 @@ def pin_vm_threads(vm, node):
         logging.info("Skip pinning, no enough nodes")
 
 
+def setup_win_driver_verifier(session, driver, vm, timeout=300):
+    """
+    Enable driver verifier for windows guest.
+
+    :param session: VM session.
+    :param driver: The driver which needs enable the verifier.
+    :param vm: VM object.
+    :param timeout: Timeout in seconds.
+    :return: Session after reboot.
+    """
+    verifier_setup_cmd = "verifier.exe /standard /driver %s.sys" % driver
+    if driver:
+        session.cmd(verifier_setup_cmd,
+                    timeout=timeout,
+                    ignore_all_errors=True)
+    session = vm.reboot(session)
+
+    verifier_query_cmd = "verifier.exe /querysettings"
+    output = session.cmd_output(verifier_query_cmd, timeout=timeout)
+    if driver not in output:
+        msg = "Verify device driver failed, "
+        msg += "guest report driver is %s, " % output
+        msg += "expect is '%s'" % driver
+        raise exceptions.TestFail(msg)
+    return session
+
+
+def clear_win_driver_verifier(session, vm, timeout=300):
+    """
+    Clear the driver verifier in windows guest.
+
+    :param session: VM session.
+    :param timeout: Timeout in seconds.
+    :return: Session after reboot.
+    """
+    verifier_clear_cmd = "verifier.exe /reset"
+    session.cmd(verifier_clear_cmd,
+                timeout=timeout,
+                ignore_all_errors=True)
+    return vm.reboot(session)
+
+
 def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
             mig_cancel=False, offline=False, stable_check=False,
             clean=False, save_path=None, dest_host='localhost', mig_port=None):

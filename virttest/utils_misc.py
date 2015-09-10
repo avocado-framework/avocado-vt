@@ -14,6 +14,7 @@ import signal
 import re
 import logging
 import commands
+import subprocess
 import fcntl
 import sys
 import inspect
@@ -208,7 +209,7 @@ def find_substring(string, pattern1, pattern2=None):
     :param pattern1: first pattern want to match in string, must set.
     :param pattern2: second pattern, it will be used if pattern1 not match, optional.
 
-    :return: Match substing or None
+    :return: Match substring or None
     """
     if not pattern1:
         logging.debug("pattern1: get empty string.")
@@ -1561,6 +1562,31 @@ def yum_install(pkg_list, session=None, timeout=300):
                           % pkg)
             return False
     return True
+
+
+def add_identities_into_ssh_agent():
+    """
+    Adds RSA or DSA identities to the authentication agent
+    """
+    ssh_env = subprocess.check_output(["ssh-agent"]).decode("utf-8")
+    logging.info("The current SSH ENV: %s", ssh_env)
+
+    re_auth_sock = re.compile('SSH_AUTH_SOCK=(?P<SSH_AUTH_SOCK>[^;]*);')
+    ssh_auth_sock = re.search(re_auth_sock, ssh_env).group("SSH_AUTH_SOCK")
+    logging.debug("The SSH_AUTH_SOCK: %s", ssh_auth_sock)
+
+    re_agent_pid = re.compile('SSH_AGENT_PID=(?P<SSH_AGENT_PID>[^;]*);')
+    ssh_agent_pid = re.search(re_agent_pid, ssh_env).group("SSH_AGENT_PID")
+    logging.debug("SSH_AGENT_PID: %s", ssh_agent_pid)
+
+    logging.debug("Update SSH envrionment variables")
+    os.environ['SSH_AUTH_SOCK'] = ssh_auth_sock
+    os.system("set SSH_AUTH_SOCK " + ssh_auth_sock)
+    os.environ['SSH_AGENT_PID'] = ssh_agent_pid
+    process.run("set SSH_AGENT_PID " + ssh_agent_pid)
+
+    logging.info("Adds RSA or DSA identities to the authentication agent")
+    process.run("ssh-add")
 
 
 class NumaInfo(object):

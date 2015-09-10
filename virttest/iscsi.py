@@ -18,6 +18,7 @@ from avocado.utils import process
 from avocado.utils import path
 
 from . import utils_selinux
+from . import utils_net
 
 ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
 
@@ -148,6 +149,7 @@ class _IscsiComm(object):
         """
         self.target = params.get("target")
         self.export_flag = False
+        self.luns = None
         self.restart_tgtd = 'yes' == params.get("restart_tgtd", "no")
         if params.get("portal_ip"):
             self.portal_ip = params.get("portal_ip")
@@ -469,6 +471,7 @@ class IscsiTGT(_IscsiComm):
             cmd += "--backing-store %s" % self.emulated_image
             process.system(cmd)
             self.export_flag = True
+            self.luns = luns
 
         # Restore selinux
         if selinux_mode is not None:
@@ -559,7 +562,7 @@ class IscsiLIO(_IscsiComm):
                     % (self.target, self.target.split(":")[0]))
         output = process.system_output(acls_cmd)
         if "Created Node ACL" not in output:
-            raise exceptions.TestFail("Failed to create ACL. (%s)", output)
+            raise exceptions.TestFail("Failed to create ACL. (%s)" % output)
 
         comm_cmd = ("targetcli /iscsi/%s/tpg1/acls/%s:client/"
                     % (self.target, self.target.split(":")[0]))
@@ -567,13 +570,13 @@ class IscsiLIO(_IscsiComm):
         userid_cmd = "%s set auth userid=%s" % (comm_cmd, self.chap_user)
         output = process.system_output(userid_cmd)
         if self.chap_user not in output:
-            raise exceptions.TestFail("Failed to set user. (%s)", output)
+            raise exceptions.TestFail("Failed to set user. (%s)" % output)
 
         # Set password
         passwd_cmd = "%s set auth password=%s" % (comm_cmd, self.chap_passwd)
         output = process.system_output(passwd_cmd)
         if self.chap_passwd not in output:
-            raise exceptions.TestFail("Failed to set password. (%s)", output)
+            raise exceptions.TestFail("Failed to set password. (%s)" % output)
 
         # Save configuration
         process.system("targetcli / saveconfig")
@@ -595,13 +598,13 @@ class IscsiLIO(_IscsiComm):
         userid_cmd = "%s set auth userid=%s" % (auth_cmd, self.chap_user)
         output = process.system_output(userid_cmd)
         if self.chap_user not in output:
-            raise exceptions.TestFail("Failed to set user. (%s)", output)
+            raise exceptions.TestFail("Failed to set user. (%s)" % output)
 
         # Set password
         passwd_cmd = "%s set auth password=%s" % (auth_cmd, self.chap_passwd)
         output = process.system_output(passwd_cmd)
         if self.chap_passwd not in output:
-            raise exceptions.TestFail("Failed to set password. (%s)", output)
+            raise exceptions.TestFail("Failed to set password. (%s)" % output)
 
         # Save configuration
         process.system("targetcli / saveconfig")
@@ -650,18 +653,19 @@ class IscsiLIO(_IscsiComm):
                           (self.device, self.emulated_image))
             output = process.system_output(device_cmd)
             if "Created fileio" not in output:
-                raise exceptions.TestFail("Failed to create fileio %s. (%s)",
-                                          self.device, output)
+                raise exceptions.TestFail("Failed to create fileio %s. (%s)" %
+                                          (self.device, output))
 
             # Create an IQN with a target named target_name
             target_cmd = "targetcli /iscsi/ create %s" % self.target
             output = process.system_output(target_cmd)
             if "Created target" not in output:
-                raise exceptions.TestFail("Failed to create target %s. (%s)",
-                                          self.target, output)
+                raise exceptions.TestFail("Failed to create target %s. (%s)" %
+                                          (self.target, output))
 
             check_portal = "targetcli /iscsi/%s/tpg1/portals ls" % self.target
-            if "0.0.0.0:3260" not in process.system_output(check_portal):
+            portal_info = process.system_output(check_portal)
+            if "0.0.0.0:3260" not in portal_info:
                 # Create portal
                 # 0.0.0.0 means binding to INADDR_ANY
                 # and using default IP port 3260
@@ -669,16 +673,27 @@ class IscsiLIO(_IscsiComm):
                               % (self.target, "0.0.0.0"))
                 output = process.system_output(portal_cmd)
                 if "Created network portal" not in output:
-                    raise exceptions.TestFail("Failed to create portal. (%s)",
+                    raise exceptions.TestFail("Failed to create portal. (%s)" %
                                               output)
-
+            if ("ipv6" == utils_net.IPAddress(self.portal_ip).version and
+                    self.portal_ip not in portal_info):
+                # Ipv6 portal address can't be created by default,
+                # create ipv6 portal if needed.
+                portal_cmd = ("targetcli /iscsi/%s/tpg1/portals/ create %s"
+                              % (self.target, self.portal_ip))
+                output = process.system_output(portal_cmd)
+                if "Created network portal" not in output:
+                    raise exceptions.TestFail("Failed to create portal. (%s)" %
+                                              output)
             # Create lun
             lun_cmd = "targetcli /iscsi/%s/tpg1/luns/ " % self.target
             dev_cmd = "create /backstores/fileio/%s" % self.device
             output = process.system_output(lun_cmd + dev_cmd)
-            if "Created LUN" not in output:
-                raise exceptions.TestFail("Failed to create lun. (%s)",
+            luns = re.findall(r"Created LUN (\d+).", output)
+            if not luns:
+                raise exceptions.TestFail("Failed to create lun. (%s)" %
                                           output)
+            self.luns = luns[0]
 
             # Set firewall if it's enabled
             output = process.system_output("firewall-cmd --state",
@@ -743,8 +758,8 @@ class IscsiLIO(_IscsiComm):
             del_cmd = "targetcli /iscsi delete %s" % self.target
             process.system(del_cmd)
 
-        # Clear all configuration to avoid restoring
-        cmd = "targetcli clearconfig confirm=True"
+        # Save deleted configuration to avoid restoring
+        cmd = "targetcli / saveconfig"
         process.system(cmd)
 
 

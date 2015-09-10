@@ -635,24 +635,24 @@ class BaseVM(object):
         :raise VMAddressVerificationError: If the MAC-IP address mapping cannot
                 be verified (using arping)
         """
-        # Make sure the IP address is assigned to one or more macs
-        # for this guest
-        macs = self.virtnet.mac_list()
         nic = self.virtnet[index]
         self.ip_version = self.params.get("ip_version", "ipv4").lower()
         # TODO: Determine port redirection in use w/o checking nettype
         if nic.nettype not in ['bridge', 'macvtap']:
             hostname = socket.gethostname()
             return socket.gethostbyname(hostname)
-        if not nic.has_key('mac') and self.params.get('vm_type') == 'libvirt':
-            # Look it up from xml
-            nic.mac = self.get_virsh_mac_address(index)
+        if not nic.has_key('mac'):
+            if self.params.get('vm_type') in ['libvirt', 'v2v']:
+                # Look it up from xml
+                nic.mac = self.get_virsh_mac_address(index)
         # else TODO: Look up mac from existing qemu-kvm process
         if not nic.has_key('mac'):
             raise VMMACAddressMissingError(index)
         if self.ip_version == "ipv4":
             # Get the IP address from arp cache
             arp_ip = self.address_cache.get(nic.mac.lower())
+            # Make sure IP is assigned to one or more macs for this guest
+            macs = self.virtnet.mac_list()
             if not arp_ip:
                 arp_ip = self.address_cache.get(nic.mac.upper())
             if (not arp_ip or
@@ -1254,8 +1254,10 @@ class BaseVM(object):
         Get the cpu count of the VM.
         """
         session = self.wait_for_login()
+        cmd = self.params.get("cpu_chk_cmd")
         try:
-            return int(session.cmd(self.params.get("cpu_chk_cmd")))
+            out = session.cmd_output_safe(cmd)
+            return int(re.search("\d+", out, re.M).group())
         finally:
             session.close()
 

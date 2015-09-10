@@ -440,7 +440,8 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
 
 def setup_or_cleanup_iscsi(is_setup, is_login=True,
                            emulated_image="emulated-iscsi", image_size="1G",
-                           chap_user="", chap_passwd="", restart_tgtd="no"):
+                           chap_user="", chap_passwd="", restart_tgtd="no",
+                           portal_ip="127.0.0.1"):
     """
     Set up(and login iscsi target) or clean up iscsi service on localhost.
 
@@ -459,7 +460,7 @@ def setup_or_cleanup_iscsi(is_setup, is_login=True,
     iscsi_params = {"emulated_image": emulated_path, "target": emulated_target,
                     "image_size": image_size, "iscsi_thread_id": "virt",
                     "chap_user": chap_user, "chap_passwd": chap_passwd,
-                    "restart_tgtd": restart_tgtd}
+                    "restart_tgtd": restart_tgtd, "portal_ip": portal_ip}
     _iscsi = iscsi.Iscsi.create_iSCSI(iscsi_params)
     if is_setup:
         if is_login:
@@ -480,7 +481,7 @@ def setup_or_cleanup_iscsi(is_setup, is_login=True,
             process.run("rm -f %s" % emulated_path)
         else:
             _iscsi.export_target()
-            return emulated_target
+            return (emulated_target, _iscsi.luns)
     else:
         _iscsi.export_flag = True
         _iscsi.emulated_id = _iscsi.get_target_id()
@@ -583,7 +584,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         extra = "--source-name %s" % vg_name
     elif pool_type == "iscsi":
         # Set up iscsi target without login
-        iscsi_target = setup_or_cleanup_iscsi(True, False)
+        iscsi_target, _ = setup_or_cleanup_iscsi(True, False)
         cleanup_iscsi = True
         extra = "--source-host %s  --source-dev %s" % ('localhost',
                                                        iscsi_target)
@@ -735,13 +736,11 @@ def mk_part(disk, size="100M", session=None):
     """
     Create a partition for disk
     """
-    mklabel_cmd = "parted -s %s mklabel msdos" % disk
-    mkpart_cmd = "parted -s %s mkpart primary ext4 0 %s" % (disk, size)
+    mkpart_cmd = ("parted -s -a optimal %s mklabel msdos -- "
+                  "mkpart primary ext4 0 %s" % (disk, size))
     if session:
-        session.cmd(mklabel_cmd)
         session.cmd(mkpart_cmd)
     else:
-        process.run(mklabel_cmd)
         process.run(mkpart_cmd)
 
 
@@ -1044,7 +1043,7 @@ class PoolVolumeTest(object):
         if not pv.create_volume(vol_name, capacity, allocation, vol_format):
             raise exceptions.TestFail("Prepare volume failed.")
         if not pv.volume_exists(vol_name):
-            raise exceptions.TestFail("Can't find volume: %s", vol_name)
+            raise exceptions.TestFail("Can't find volume: %s" % vol_name)
 
 
 # Migration Relative functions##############
@@ -1498,6 +1497,7 @@ def create_disk_xml(params):
         driver_type = params.get("driver_type", "")
         driver_cache = params.get("driver_cache", "")
         driver_discard = params.get("driver_discard", "")
+        driver_iothread = params.get("driver_iothread", "")
         if driver_name:
             driver_attrs['name'] = driver_name
         if driver_type:
@@ -1969,6 +1969,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     emu_image = params.get("emulated_image", "emulated-iscsi")
     image_size = params.get("image_size", "10G")
     disk_format = params.get("disk_format", "qcow2")
+    driver_iothread = params.get("driver_iothread", "")
     mnt_path_name = params.get("mnt_path_name", "nfs-mount")
     exp_opt = params.get("export_options", "rw,no_root_squash,fsid=0")
     first_disk = vm.get_first_disk_devices()
@@ -1991,6 +1992,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                    'target_bus': disk_target_bus,
                    'driver_type': disk_format,
                    'driver_cache': 'none',
+                   'driver_iothread': driver_iothread,
                    'sec_model': sec_model,
                    'relabel': relabel,
                    'sec_label': sec_label,
@@ -2038,10 +2040,14 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                                            debug=True).stdout.strip()
         else:
             # Setup iscsi target
-            iscsi_target = setup_or_cleanup_iscsi(is_setup=True,
-                                                  is_login=is_login,
-                                                  image_size=image_size,
-                                                  emulated_image=emu_image)
+            if is_login:
+                iscsi_target = setup_or_cleanup_iscsi(
+                    is_setup=True, is_login=is_login,
+                    image_size=image_size, emulated_image=emu_image)
+            else:
+                iscsi_target, lun_num = setup_or_cleanup_iscsi(
+                    is_setup=True, is_login=is_login,
+                    image_size=image_size, emulated_image=emu_image)
             emulated_path = os.path.join(tmp_dir, emu_image)
 
         # Copy first disk to emulated backing store path
@@ -2059,7 +2065,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                                'source_mode': disk_src_mode}
         else:
             disk_params_src = {'source_protocol': disk_src_protocol,
-                               'source_name': iscsi_target + "/1",
+                               'source_name': iscsi_target + "/" + lun_num,
                                'source_host_name': disk_src_host,
                                'source_host_port': disk_src_port}
     elif disk_src_protocol == 'gluster':
@@ -2138,6 +2144,11 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     new_disk.xml = disk_xml
     # Add new disk xml and redefine vm
     vmxml.add_device(new_disk)
+
+    # Set domain options
+    dom_iothreads = params.get("dom_iothreads")
+    if dom_iothreads:
+        vmxml.iothreads = int(dom_iothreads)
     logging.debug("The vm xml now is: %s" % vmxml.xmltreefile)
     vmxml.sync()
     vm.start()

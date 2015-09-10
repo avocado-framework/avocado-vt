@@ -350,3 +350,47 @@ def have_similar_img(base_img, comp_img_path, threshold=10):
         if img_similar(base_img, img, threshold):
             return True
     return False
+
+
+def image_crop_save(image, new_image, box=None):
+    """
+    Crop an image and save it to a new image.
+
+    :param image: Full path of the original image
+    :param new_image: Full path of the cropped image
+    :param box: A 4-tuple defining the left, upper, right, and lower pixel coordinate.
+    :return: True if crop and save image succeed
+    """
+    img = Image.open(image)
+    if not box:
+        x, y = img.size
+        box = (x/4, y/4, x*3/4, y*3/4)
+    try:
+        img.crop(box).save(new_image)
+    except (KeyError, SystemError), e:
+        logging.error("Fail to crop image: %s", e)
+        return False
+    return True
+
+
+def image_histogram_compare(image_a, image_b, size=(0, 0)):
+    """
+    Compare the histogram of two images and return similar degree.
+
+    :param image_a: Full path of the first image
+    :param image_b: Full path of the second image
+    :param size: Convert image to size(width, height), and if size=(0, 0), the function will convert the big size image align with the small one.
+    """
+    img_a = Image.open(image_a)
+    img_b = Image.open(image_b)
+    if not any(size):
+        size = tuple(map(max, img_a.size, img_b.size))
+    img_a_h = img_a.resize(size).convert('RGB').histogram()
+    img_b_h = img_b.resize(size).convert('RGB').histogram()
+    s = 0
+    for i, j in zip(img_a_h, img_b_h):
+        if i == j:
+            s += 1
+        else:
+            s += 1 - float(abs(i - j))/max(i, j)
+    return s / len(img_a_h)
