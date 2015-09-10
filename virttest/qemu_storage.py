@@ -393,7 +393,10 @@ class QemuImg(storage.QemuImg):
         cmd = self.image_cmd
         cmd += " info"
         if backing_chain == "yes":
-            cmd += " --backing-chain"
+            if "--backing_chain" in self.help_text:
+                cmd += " --backing-chain"
+            else:
+                logging.warn("'--backing-chain' option is not supportted")
         if os.path.exists(self.image_filename) or self.is_remote_image():
             cmd += " %s" % self.image_filename
             output = process.system_output(cmd, verbose=False)
