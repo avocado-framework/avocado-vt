@@ -1825,7 +1825,7 @@ def _pool_type_check(pool_type):
     :param pool_type: pool type
     :return: valid pool type or None
     """
-    valid_types = ['dir', 'fs', 'netfs', 'disk', 'iscsi', 'logical', 'gluster']
+    valid_types = ['dir', 'fs', 'netfs', 'disk', 'iscsi', 'logical', 'gluster', 'rbd']
 
     if pool_type and pool_type not in valid_types:
         logging.error("Specified pool type '%s' not in '%s'",
@@ -2015,12 +2015,12 @@ def pool_state_dict(only_names=False, **dargs):
     return result
 
 
-def pool_define_as(name, pool_type, target, extra="", **dargs):
+def pool_define_as(name, pool_type, target="", extra="", **dargs):
     """
     Define the pool from the arguments
 
     :param name: Name of the pool to be defined
-    :param typ: Type of the pool to be defined
+    :param pool_type: Type of the pool to be defined
 
         dir
             file system directory
@@ -2038,6 +2038,8 @@ def pool_define_as(name, pool_type, target, extra="", **dargs):
             Multipath Device Enumerater
         scsi
             SCSI Host Adapter
+        rbd
+            Rados Block Device
 
     :param target: libvirt uri to send guest to
     :param extra: Free-form string of options
@@ -2050,8 +2052,11 @@ def pool_define_as(name, pool_type, target, extra="", **dargs):
         return False
 
     logging.debug("Try to define %s type pool %s", pool_type, name)
-    cmd = "pool-define-as --name %s --type %s --target %s %s" \
-          % (name, pool_type, target, extra)
+    cmd = "pool-define-as --name %s --type %s %s" \
+          % (name, pool_type, extra)
+    # Target is not a must
+    if target:
+        cmd += " --target %s" % target
     return command(cmd, **dargs)
 
 

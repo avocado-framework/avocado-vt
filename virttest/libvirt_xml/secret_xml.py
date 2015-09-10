@@ -39,7 +39,7 @@ class SecretXMLBase(base.LibvirtXMLBase):
 
     __slots__ = ('secret_ephemeral', 'secret_private', 'description',
                  'auth_type', 'auth_username', 'uuid', 'usage', 'target',
-                 'volume')
+                 'volume', 'usage_name')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -60,6 +60,8 @@ class SecretXMLBase(base.LibvirtXMLBase):
                                  tag_name='description')
         accessors.XMLAttribute('usage', self, parent_xpath='/',
                                tag_name='usage', attribute='type')
+        accessors.XMLElementText('usage_name', self, parent_xpath='/usage',
+                                 tag_name='name')
         accessors.XMLElementText('target', self, parent_xpath='/usage',
                                  tag_name='target')
         accessors.XMLElementText('volume', self, parent_xpath='/usage',
