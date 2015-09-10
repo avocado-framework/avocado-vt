@@ -11,6 +11,7 @@ iscsi in localhost then access it.
 import re
 import os
 import logging
+import ipaddr
 
 from avocado.core import exceptions
 from avocado.utils import data_factory
@@ -661,7 +662,8 @@ class IscsiLIO(_IscsiComm):
                                           self.target, output)
 
             check_portal = "targetcli /iscsi/%s/tpg1/portals ls" % self.target
-            if "0.0.0.0:3260" not in process.system_output(check_portal):
+            portal_info = process.system_output(check_portal)
+            if "0.0.0.0:3260" not in portal_info:
                 # Create portal
                 # 0.0.0.0 means binding to INADDR_ANY
                 # and using default IP port 3260
@@ -671,7 +673,16 @@ class IscsiLIO(_IscsiComm):
                 if "Created network portal" not in output:
                     raise exceptions.TestFail("Failed to create portal. (%s)",
                                               output)
-
+            if (6 == ipaddr.IPAddress(self.portal_ip).version and
+                        self.portal_ip not in portal_info):
+                # Ipv6 portal address can't be created by default,
+                # create ipv6 portal if needed.
+                portal_cmd = ("targetcli /iscsi/%s/tpg1/portals/ create %s"
+                              % (self.target, self.portal_ip))
+                output = process.system_output(portal_cmd)
+                if "Created network portal" not in output:
+                    raise exceptions.TestFail("Failed to create portal. (%s)",
+                                              output)
             # Create lun
             lun_cmd = "targetcli /iscsi/%s/tpg1/luns/ " % self.target
             dev_cmd = "create /backstores/fileio/%s" % self.device
