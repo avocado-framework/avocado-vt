@@ -149,6 +149,7 @@ class _IscsiComm(object):
         """
         self.target = params.get("target")
         self.export_flag = False
+        self.luns = None
         self.restart_tgtd = 'yes' == params.get("restart_tgtd", "no")
         if params.get("portal_ip"):
             self.portal_ip = params.get("portal_ip")
@@ -470,6 +471,7 @@ class IscsiTGT(_IscsiComm):
             cmd += "--backing-store %s" % self.emulated_image
             process.system(cmd)
             self.export_flag = True
+            self.luns = luns
 
         # Restore selinux
         if selinux_mode is not None:
@@ -687,9 +689,11 @@ class IscsiLIO(_IscsiComm):
             lun_cmd = "targetcli /iscsi/%s/tpg1/luns/ " % self.target
             dev_cmd = "create /backstores/fileio/%s" % self.device
             output = process.system_output(lun_cmd + dev_cmd)
-            if "Created LUN" not in output:
+            luns = re.findall(r"Created LUN (\d+).", output)
+            if not luns:
                 raise exceptions.TestFail("Failed to create lun. (%s)" %
                                           output)
+            self.luns = luns[0]
 
             # Set firewall if it's enabled
             output = process.system_output("firewall-cmd --state",

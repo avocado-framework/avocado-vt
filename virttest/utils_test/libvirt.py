@@ -481,7 +481,7 @@ def setup_or_cleanup_iscsi(is_setup, is_login=True,
             process.run("rm -f %s" % emulated_path)
         else:
             _iscsi.export_target()
-            return emulated_target
+            return (emulated_target, _iscsi.luns)
     else:
         _iscsi.export_flag = True
         _iscsi.emulated_id = _iscsi.get_target_id()
