@@ -641,9 +641,10 @@ class BaseVM(object):
         if nic.nettype not in ['bridge', 'macvtap']:
             hostname = socket.gethostname()
             return socket.gethostbyname(hostname)
-        if not nic.has_key('mac') and self.params.get('vm_type') == 'libvirt':
-            # Look it up from xml
-            nic.mac = self.get_virsh_mac_address(index)
+        if not nic.has_key('mac'):
+            if self.params.get('vm_type') in ['libvirt', 'v2v']:
+                # Look it up from xml
+                nic.mac = self.get_virsh_mac_address(index)
         # else TODO: Look up mac from existing qemu-kvm process
         if not nic.has_key('mac'):
             raise VMMACAddressMissingError(index)

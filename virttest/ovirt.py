@@ -12,13 +12,37 @@ try:
     from ovirtsdk.api import API
     from ovirtsdk.xml import params as param
 except ImportError:
-    logging.info("ovirtsdk module not present, please install it")
+    logging.warning("ovirtsdk module not present, please install it")
 
 import virt_vm
 
 
 _api = None
 _connected = False
+
+
+class WaitStateTimeoutError(Exception):
+
+    def __init__(self, msg, output):
+        Exception.__init__(self, msg, output)
+        self.msg = msg
+        self.output = output
+
+
+class WaitVMStateTimeoutError(WaitStateTimeoutError):
+
+    def __str__(self):
+        str = "Timeout expired when waiting for VM to %s,"
+        str += " actual state is: %s"
+        return str % (self.msg, self.output)
+
+
+class WaitHostStateTimeoutError(WaitStateTimeoutError):
+
+    def __str__(self):
+        str = "Timeout expired when waiting for Host to %s,"
+        str += " actual state is: %s"
+        return str % (self.msg, self.output)
 
 
 def connect(params):
@@ -34,7 +58,7 @@ def connect(params):
         logging.error('ovirt_engine[url|user|password] are necessary!!')
 
     if version is None:
-        version = param.Version(major='3', minor='0')
+        version = param.Version(major='3', minor='5')
     else:
         version = param.Version(version)
 
@@ -44,7 +68,7 @@ def connect(params):
         # Try to connect oVirt API if connection doesn't exist,
         # otherwise, directly return existing API connection.
         if not _connected:
-            _api = API(url, username, password)
+            _api = API(url, username, password, insecure=True)
             _connected = True
             return (_api, version)
         else:
@@ -97,9 +121,10 @@ class VMManager(virt_vm.BaseVM):
             self.pci_devices = []
             self.uuid = None
             self.only_pty = False
+            self.remote_sessions = []
 
         self.spice_port = 8000
-        self.name = params.get("vm_name", "")
+        self.name = params.get("main_vm", "")
         self.params = params
         self.root_dir = root_dir
         self.address_cache = address_cache
@@ -110,7 +135,10 @@ class VMManager(virt_vm.BaseVM):
         (self.api, self.version) = connect(params)
 
         if self.name:
-            self.instance = self.api.vms.get(self.name)
+            self.update_instance()
+
+    def update_instance(self):
+        self.instance = self.api.vms.get(self.name)
 
     def list(self):
         """
@@ -130,16 +158,17 @@ class VMManager(virt_vm.BaseVM):
         Return VM state.
         """
         try:
+            self.update_instance()
             return self.instance.status.state
         except Exception, e:
             logging.error('Failed to get %s status:\n%s' % (self.name, str(e)))
 
-    def get_mac_address(self):
+    def get_mac_address(self, net_name='*'):
         """
         Return MAC address of a VM.
         """
         try:
-            return self.instance.nics.get().get_mac().get_address()
+            return self.instance.nics.get(name=net_name).get_mac().get_address()
         except Exception, e:
             logging.error('Failed to get %s status:\n%s' % (self.name, str(e)))
 
@@ -154,61 +183,72 @@ class VMManager(virt_vm.BaseVM):
             logging.error('Failed to get %s from %s:\n%s' % (self.name,
                                                              storage_name, str(e)))
 
-    def is_alive(self):
-        """
-        Judge if a VM is alive.
-        """
-        if self.state() == 'up':
-            logging.info('The %s status is <Up>' % self.name)
-            return True
-        else:
-            logging.debug('The %s status is <not Up>' % self.name)
-            return False
-
     def is_dead(self):
         """
         Judge if a VM is dead.
         """
         if self.state() == 'down':
-            logging.info('The %s status is <Down>' % self.name)
+            logging.info('VM %s status is <Down>' % self.name)
             return True
         else:
-            logging.debug('The %s status is <not Down>' % self.name)
             return False
 
-    def is_paused(self):
-        return False
+    def is_alive(self):
+        """
+        Judge if a VM is alive.
+        """
+        return not self.is_dead()
 
-    def start(self):
+    def is_paused(self):
+        """
+        Return if VM is suspend.
+        """
+        if self.state() == 'suspended':
+            return True
+        else:
+            logging.debug('VM %s status is %s ' % (self.name, self.state()))
+            return False
+
+    def start(self, wait_for_up=True, timeout=300):
         """
         Start a VM.
         """
-        try:
-            if self.state() != 'up':
-                logging.info('Starting VM %s' % self.name)
-                self.instance.start()
-                logging.info('Waiting for VM to reach <Up> status ...')
-                while self.state() != 'up':
-                    self.instance = self.api.vms.get(self.name)
-                    time.sleep(1)
-            else:
-                logging.debug('VM already up')
-        except Exception, e:
-            logging.error('Failed to start VM:\n%s' % str(e))
+        end_time = time.time() + timeout
+        if self.is_dead():
+            logging.info('Starting VM %s' % self.name)
+            self.instance.start()
+            vm_powering_up = False
+            vm_up = False
+            while time.time() < end_time:
+                if self.state() == 'powering_up':
+                    vm_powering_up = True
+                    if wait_for_up:
+                        logging.info('Waiting for VM to reach <Up> status')
+                        if self.state() == 'up':
+                            vm_up = True
+                            break
+                    else:
+                        break
+                time.sleep(1)
+            if not vm_powering_up and not vm_up:
+                raise WaitVMStateTimeoutError("START", self.state())
+        else:
+            logging.debug('VM is alive')
 
-    def suspend(self):
+    def suspend(self, timeout):
         """
         Suspend a VM.
         """
-        while self.state() != 'suspended':
+        end_time = time.time() + timeout
+        vm_suspend = False
+        while time.time() < end_time:
             try:
                 logging.info('Suspend VM %s' % self.name)
                 self.instance.suspend()
-                logging.info('Waiting for VM to reach <Suspended> status ...')
-                while self.state() != 'suspended':
-                    self.instance = self.api.vms.get(self.name)
-                    time.sleep(1)
-
+                logging.info('Waiting for VM to reach <Suspended> status')
+                if self.is_paused():
+                    vm_suspend = True
+                    break
             except Exception, e:
                 if e.reason == 'Bad Request' \
                         and 'asynchronous running tasks' in e.detail:
@@ -216,69 +256,85 @@ class VMManager(virt_vm.BaseVM):
                                     "trying again")
                     time.sleep(1)
                 else:
-                    logging.error('Failed to suspend VM:\n%s' % str(e))
-                    break
+                    raise e
+            time.sleep(1)
+        if not vm_suspend:
+            raise WaitVMStateTimeoutError("SUSPEND", self.state())
 
-    def resume(self):
+    def resume(self, timeout):
         """
         Resume a suspended VM.
         """
+        end_time = time.time() + timeout
         try:
             if self.state() != 'up':
                 logging.info('Resume VM %s' % self.name)
                 self.instance.start()
-                logging.info('Waiting for VM to <Resume> status ...')
-                while self.state() != 'up':
-                    self.instance = self.api.vms.get(self.name)
+                logging.info('Waiting for VM to <UP> status')
+                vm_resume = False
+                while time.time() < end_time:
+                    if self.state() == 'up':
+                        vm_resume = True
+                        break
                     time.sleep(1)
+                if not vm_resume:
+                    raise WaitVMStateTimeoutError("RESUME", self.state())
             else:
                 logging.debug('VM already up')
         except Exception, e:
             logging.error('Failed to resume VM:\n%s' % str(e))
 
-    def shutdown(self):
+    def shutdown(self, gracefully=True, timeout=300):
         """
         Shut down a running VM.
         """
-        try:
-            if self.state() != 'down':
-                logging.info('Stop VM %s' % self.name)
-                self.instance.stop()
-                logging.info('Waiting for VM to reach <Down> status ...')
-                while self.state() != 'down':
-                    self.instance = self.api.vms.get(self.name)
-                    time.sleep(1)
+        end_time = time.time() + timeout
+        if self.is_alive():
+            logging.info('Shutdown VM %s' % self.name)
+            if gracefully:
+                self.instance.shutdown()
             else:
-                logging.debug('VM already down')
-        except Exception, e:
-            logging.error('Failed to Stop VM:\n%s' % str(e))
+                self.instance.stop()
+            logging.info('Waiting for VM to reach <Down> status')
+            vm_down = False
+            while time.time() < end_time:
+                if self.is_dead():
+                    vm_down = True
+                    break
+                time.sleep(1)
+            if not vm_down:
+                raise WaitVMStateTimeoutError("DOWN", self.state())
+        else:
+            logging.debug('VM already down')
 
-    def delete(self):
+    def delete(self, timeout=300):
         """
         Delete a VM.
         """
-        try:
-            if self.state() == 'down':
-                logging.info('Delete VM %s' % self.name)
-                self.instance.delete()
-                logging.info('Waiting for VM to be <Deleted> ...')
-                while self.name in [self.instance.name for self.instance
-                                    in self.api.vms.list()]:
-                    time.sleep(1)
-                logging.info('VM was removed successfully')
-            else:
-                logging.debug('VM already is down status')
-        except Exception, e:
-            logging.error('Failed to remove VM:\n%s' % str(e))
+        end_time = time.time() + timeout
+        if self.name in self.list():
+            logging.info('Delete VM %s' % self.name)
+            self.instance.delete()
+            logging.info('Waiting for VM to be <Deleted>')
+            vm_delete = False
+            while time.time() < end_time:
+                if self.name not in self.list():
+                    vm_delete = True
+                    break
+                time.sleep(1)
+            if not vm_delete:
+                raise WaitVMStateTimeoutError("DELETE", self.state())
+            logging.info('VM was removed successfully')
+        else:
+            logging.debug('VM not exist')
 
-    def destroy(self):
+    def destroy(self, gracefully=False):
         """
         Destroy a VM.
         """
         if self.api.vms is None:
             return
-
-        self.shutdown()
+        self.shutdown(gracefully)
 
     def delete_from_export_domain(self, export_name):
         """
@@ -293,7 +349,7 @@ class VMManager(virt_vm.BaseVM):
             logging.error('Failed to remove VM:\n%s' % str(e))
 
     def import_from_export_domain(self, export_name, storage_name,
-                                  cluster_name):
+                                  cluster_name, timeout=300):
         """
         Import a VM from export domain to data domain.
 
@@ -301,66 +357,79 @@ class VMManager(virt_vm.BaseVM):
         :param storage_name: Storage domain name.
         :param cluster_name: Cluster name.
         """
+        end_time = time.time() + timeout
         vm = self.lookup_by_storagedomains(export_name)
         storage_domains = self.api.storagedomains.get(storage_name)
         clusters = self.api.clusters.get(cluster_name)
-        try:
-            logging.info('Import VM %s' % self.name)
-            vm.import_vm(param.Action(storage_domain=storage_domains,
-                                      cluster=clusters))
-            logging.info('Waiting for VM to reach <Down> status ...')
-            while self.state() != 'down':
-                self.instance = self.api.vms.get(self.name)
-                time.sleep(1)
-            logging.info('VM was imported successfully')
-        except Exception, e:
-            logging.error('Failed to import VM:\n%s' % str(e))
+        logging.info('Import VM %s' % self.name)
+        vm.import_vm(param.Action(storage_domain=storage_domains,
+                                  cluster=clusters))
+        logging.info('Waiting for VM to reach <Down> status')
+        vm_down = False
+        while time.time() < end_time:
+            if self.name in self.list():
+                if self.is_dead():
+                    vm_down = True
+                    break
+            time.sleep(1)
+        if not vm_down:
+            raise WaitVMStateTimeoutError("DOWN", self.state())
+        logging.info('Import %s successfully', self.name)
 
-    def export_from_export_domain(self, export_name):
+    def export_from_export_domain(self, export_name, timeout=300):
         """
         Export a VM from storage domain to export domain.
 
         :param export_name: Export domain name.
         """
+        end_time = time.time() + timeout
         storage_domains = self.api.storagedomains.get(export_name)
-        try:
-            logging.info('Export VM %s' % self.name)
-            self.instance.export(param.Action(storage_domain=storage_domains))
-            logging.info('Waiting for VM to reach <Down> status ...')
-            while self.state() != 'down':
-                self.instance = self.api.vms.get(self.name)
-                time.sleep(1)
-            logging.info('VM was exported successfully')
-        except Exception, e:
-            logging.error('Failed to export VM:\n%s' % str(e))
+        logging.info('Export VM %s' % self.name)
+        self.instance.export(param.Action(storage_domain=storage_domains))
+        logging.info('Waiting for VM to reach <Down> status')
+        vm_down = False
+        while time.time() < end_time:
+            if self.is_dead():
+                vm_down = True
+                break
+            time.sleep(1)
+        if not vm_down:
+            raise WaitVMStateTimeoutError("DOWN", self.state())
+        logging.info('Export %s successfully', self.name)
 
-    def snapshot(self, snapshot_name='my_snapshot'):
+    def snapshot(self, snapshot_name='my_snapshot', timeout=300):
         """
         Create a snapshot to VM.
 
         :param snapshot_name: 'my_snapshot' is default snapshot name.
+        :param timeout: Time out
         """
+        end_time = time.time() + timeout
         snap_params = param.Snapshot(description=snapshot_name,
                                      vm=self.instance)
-        try:
-            logging.info('Creating a snapshot %s for VM %s'
-                         % (snapshot_name, self.name))
-            self.instance.snapshots.add(snap_params)
-            logging.info('Waiting for snapshot creation to finish ...')
-            while self.state() == 'image_locked':
-                self.instance = self.api.vms.get(self.name)
-                time.sleep(1)
-            logging.info('Snapshot was created successfully')
-        except Exception, e:
-            logging.error('Failed to create a snapshot:\n%s' % str(e))
+        logging.info('Creating a snapshot %s for VM %s'
+                     % (snapshot_name, self.name))
+        self.instance.snapshots.add(snap_params)
+        logging.info('Waiting for snapshot creation to finish')
+        vm_snapsnop = False
+        while time.time() < end_time:
+            if self.state() != 'image_locked':
+                vm_snapsnop = True
+                break
+            time.sleep(1)
+        if not vm_snapsnop:
+            raise WaitVMStateTimeoutError("SNAPSHOT", self.state())
+        logging.info('Snapshot was created successfully')
 
-    def create_template(self, cluster_name, template_name='my_template'):
+    def create_template(self, cluster_name, template_name='my_template', timeout=300):
         """
         Create a template from VM.
 
         :param cluster_name: cluster name.
         :param template_name: 'my_template' is default template name.
+        :param timeout: Time out
         """
+        end_time = time.time() + timeout
         cluster = self.api.clusters.get(cluster_name)
 
         tmpl_params = param.Template(name=template_name,
@@ -370,17 +439,22 @@ class VMManager(virt_vm.BaseVM):
             logging.info('Creating a template %s from VM %s'
                          % (template_name, self.name))
             self.api.templates.add(tmpl_params)
-            logging.info('Waiting for VM to reach <Down> status ...')
-            while self.state() != 'down':
-                self.instance = self.api.vms.get(self.name)
+            logging.info('Waiting for VM to reach <Down> status')
+            vm_down = False
+            while time.time() < end_time:
+                if self.is_dead():
+                    vm_down = True
+                    break
                 time.sleep(1)
+            if not vm_down:
+                raise WaitVMStateTimeoutError("DOWN", self.state())
         except Exception, e:
             logging.error('Failed to create a template from VM:\n%s' % str(e))
 
     def add(self, memory, disk_size, cluster_name, storage_name,
             nic_name='eth0', network_interface='virtio',
             network_name='ovirtmgmt', disk_interface='virtio',
-            disk_format='raw', template_name='Blank'):
+            disk_format='raw', template_name='Blank', timeout=300):
         """
         Create VM with one NIC and one Disk.
 
@@ -394,7 +468,9 @@ class VMManager(virt_vm.BaseVM):
         :param cluster_name: cluster name.
         :param storage_name: storage domain name.
         :param template_name: VM's template name, default is 'Blank'.
+        :param timeout: Time out
         """
+        end_time = time.time() + timeout
         # network name is ovirtmgmt for ovirt, rhevm for rhel.
         vm_params = param.VM(name=self.name, memory=memory,
                              cluster=self.api.clusters.get(cluster_name),
@@ -427,22 +503,29 @@ class VMManager(virt_vm.BaseVM):
             logging.info('Disk is added to VM %s' % self.name)
             self.instance.disks.add(disk_params)
 
-            logging.info('Waiting for VM to reach <Down> status ...')
-            while self.state() != 'down':
+            logging.info('Waiting for VM to reach <Down> status')
+            vm_down = False
+            while time.time() < end_time:
+                if self.is_dead():
+                    vm_down = True
+                    break
                 time.sleep(1)
-
+            if not vm_down:
+                raise WaitVMStateTimeoutError("DOWN", self.state())
         except Exception, e:
             logging.error('Failed to create VM with disk and NIC\n%s' % str(e))
 
     def add_vm_from_template(self, cluster_name, template_name='Blank',
-                             new_name='my_new_vm'):
+                             new_name='my_new_vm', timeout=300):
         """
         Create a VM from template.
 
         :param cluster_name: cluster name.
         :param template_name: default template is 'Blank'.
         :param new_name: 'my_new_vm' is a default new VM's name.
+        :param timeout: Time out
         """
+        end_time = time.time() + timeout
         vm_params = param.VM(name=new_name,
                              cluster=self.api.clusters.get(cluster_name),
                              template=self.api.templates.get(template_name))
@@ -450,10 +533,15 @@ class VMManager(virt_vm.BaseVM):
             logging.info('Creating a VM %s from template %s'
                          % (new_name, template_name))
             self.api.vms.add(vm_params)
-            logging.info('Waiting for VM to reach <Down> status ...')
-            while self.state() != 'down':
-                self.instance = self.api.vms.get(self.name)
+            logging.info('Waiting for VM to reach <Down> status')
+            vm_down = False
+            while time.time() < end_time:
+                if self.is_dead():
+                    vm_down = True
+                    break
                 time.sleep(1)
+            if not vm_down:
+                raise WaitVMStateTimeoutError("DOWN", self.state())
             logging.info('VM was created from template successfully')
         except Exception, e:
             logging.error('Failed to create VM from template:\n%s' % str(e))
@@ -516,10 +604,7 @@ class DataCenterManager(object):
         try:
             logging.info('Creating a %s type datacenter %s'
                          % (storage_type, self.name))
-            if self.api.datacenters.add(param.DataCenter(
-                name=self.name,
-                storage_type=storage_type,
-                                        version=self.version)):
+            if self.api.datacenters.add(param.DataCenter(name=self.name, storage_type=storage_type, version=self.version)):
                 logging.info('Data center was created successfully')
         except Exception, e:
             logging.error('Failed to create data center:\n%s' % str(e))
@@ -610,10 +695,11 @@ class HostManager(object):
         except Exception, e:
             logging.error('Failed to get %s status:\n%s' % (self.name, str(e)))
 
-    def add(self, host_address, host_password, cluster_name):
+    def add(self, host_address, host_password, cluster_name, timeout=300):
         """
         Register a host into specified cluster.
         """
+        end_time = time.time() + timeout
         if not self.name:
             self.name = 'my_host'
 
@@ -625,10 +711,14 @@ class HostManager(object):
                          % (self.name, cluster_name))
             if self.api.hosts.add(host_params):
                 logging.info('Waiting for host to reach the <Up> status ...')
-                while self.state() != 'up':
+                host_up = False
+                while time.time() < end_time:
+                    if self.state() == 'up':
+                        host_up = True
+                        break
                     time.sleep(1)
-                else:
-                    logging.info('Host is up')
+                if not host_up:
+                    raise WaitHostStateTimeoutError("UP", self.state())
                 logging.info('Host was installed successfully')
         except Exception, e:
             logging.error('Failed to install host:\n%s' % str(e))
