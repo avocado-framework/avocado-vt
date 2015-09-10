@@ -272,8 +272,11 @@ class QemuImg(storage.QemuImg):
         if rebase_mode == "unsafe":
             cmd += " -u"
         if self.base_tag:
-            cmd += " -b %s -F %s %s" % (self.base_image_filename,
-                                        self.base_format, self.image_filename)
+            if self.base_tag == "null":
+                cmd += " -b \"\" -F %s %s" % (self.base_format, self.image_filename)
+            else:
+                cmd += " -b %s -F %s %s" % (self.base_image_filename,
+                                            self.base_format, self.image_filename)
         else:
             raise exceptions.TestError("Can not find the image parameters need"
                                        " for rebase.")
