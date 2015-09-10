@@ -676,7 +676,7 @@ class IscsiLIO(_IscsiComm):
                     raise exceptions.TestFail("Failed to create portal. (%s)" %
                                               output)
             if ("ipv6" == utils_net.IPAddress(self.portal_ip).version and
-                        self.portal_ip not in portal_info):
+                    self.portal_ip not in portal_info):
                 # Ipv6 portal address can't be created by default,
                 # create ipv6 portal if needed.
                 portal_cmd = ("targetcli /iscsi/%s/tpg1/portals/ create %s"

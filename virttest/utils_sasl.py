@@ -13,6 +13,7 @@ from . import propcan
 from . import remote
 from . import virsh
 
+
 class SASL(propcan.PropCanBase):
 
     """

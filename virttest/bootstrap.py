@@ -451,7 +451,7 @@ def create_config_files(test_dir, shared_dir, interactive, t_type, step=None,
     provider_names_specific = asset.get_test_provider_names(t_type)
     for specific_provider in provider_names_specific:
         provider_info_specific.append(
-                asset.get_test_provider_info(specific_provider))
+            asset.get_test_provider_info(specific_provider))
 
     specific_subdirs = asset.get_test_provider_subdirs(t_type)
     for subdir in specific_subdirs:
