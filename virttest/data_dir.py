@@ -23,7 +23,15 @@ if _INSTALLED_SYSTEM_WIDE:
     _ROOT_PATH = _SYSTEM_WIDE_ROOT_PATH
 else:
     # we're running from source code directories
-    _ROOT_PATH = os.path.dirname(os.path.abspath(os.readlink(os.path.dirname(sys.modules['virttest'].__file__))))
+    virttest_init = sys.modules['virttest'].__file__
+    virttest_dir = os.path.dirname(virttest_init)
+    # Sometimes, virt-test is a symlink, other times, a real dir
+    try:
+        virttest_real_dir = os.readlink(virttest_dir)
+    except OSError:
+        virttest_real_dir = virttest_dir
+    virttest_real_dir_abs = os.path.abspath(virttest_real_dir)
+    _ROOT_PATH = os.path.dirname(virttest_real_dir_abs)
 
 ROOT_DIR = os.path.abspath(_ROOT_PATH)
 BASE_BACKEND_DIR = os.path.join(ROOT_DIR, 'backends')
