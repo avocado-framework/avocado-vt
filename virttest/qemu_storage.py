@@ -372,9 +372,13 @@ class QemuImg(storage.QemuImg):
         Run qemu-img info command on image file and return its output.
         """
         logging.debug("Run qemu-img info comamnd on %s", self.image_filename)
+        backing_chain = self.params.get("backing_chain")
         cmd = self.image_cmd
-        if (os.path.exists(self.image_filename) or self.is_remote_image()):
-            cmd += " info %s" % self.image_filename
+        cmd += " info"
+        if backing_chain == "yes":
+            cmd += " --backing-chain"
+        if os.path.exists(self.image_filename) or self.is_remote_image():
+            cmd += " %s" % self.image_filename
             output = process.system_output(cmd, verbose=False)
         else:
             logging.debug("Image file %s not found", self.image_filename)
