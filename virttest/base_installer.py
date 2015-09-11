@@ -341,7 +341,7 @@ class BaseInstaller(object):
         loaded by the system stock modprobe tool, meaning that modules will be
         looked for in the system default module paths.
 
-        :type module_list: list
+        :type module_list: builtin.list
         :param module_list: list of kernel modules names to load
         """
         if module_list is None:
@@ -436,8 +436,8 @@ class NoopInstaller(BaseInstaller):
         """
         If no previous install test ran, try to figure out modules to load.
 
-        :param mode (str): Install mode (yum, git, etc).
-        :param name (str): Installer name.
+        :param mode: Install mode (yum, git, etc).
+        :param name: Installer name.
         :param test: Virt test object.
         :param params: Dict with test params.
         """

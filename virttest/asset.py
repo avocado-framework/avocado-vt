@@ -27,8 +27,8 @@ class ConfigLoader:
 
     def __init__(self, cfg, tmpdir='/tmp', raise_errors=False):
         """
-        Instantiate ConfigParser and provide the file like object that we'll
-        use to read configuration data from.
+        Instantiate ConfigParser and load data.
+
         :param cfg: Where we'll get configuration data. It can be either:
                 * A URL containing the file
                 * A valid file path inside the filesystem

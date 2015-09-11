@@ -3164,7 +3164,7 @@ def get_host_iface():
     """
     List the nic interface in host.
     :return: a list of the interfaces in host
-    :rtype: list
+    :rtype: builtin.list
     """
     proc_net_file = open(PROCFS_NET_PATH, 'r')
     host_iface_info = proc_net_file.read()

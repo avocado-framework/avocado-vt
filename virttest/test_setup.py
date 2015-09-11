@@ -1056,7 +1056,7 @@ class PciAssignable(object):
             eth device name in host for this pf.
 
         :return: return a list contains pf vf information.
-        :rtype: list of dict
+        :rtype: builtin.list
         """
 
         base_dir = "/sys/bus/pci/devices"

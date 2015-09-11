@@ -376,7 +376,7 @@ class TemplateXMLTreeBuilder(ElementTree.XMLTreeBuilder, Sub):
         """
         Initialize parser that substitutes keys with values in data
 
-        :param **mapping: values to be substituted for ${key} in XML input
+        :param mapping: values to be substituted for ${key} in XML input
         """
 
         Sub.__init__(self, **mapping)
@@ -397,7 +397,7 @@ class TemplateXML(XMLTreeFile):
         Initialize from a XML string or filename, and string.template mapping.
 
         :param xml: A filename or string containing XML
-        :param **mapping: keys/values to feed with XML to string.template
+        :param mapping: keys/values to feed with XML to string.template
         """
 
         self.parser = self.ParserClass(**mapping)

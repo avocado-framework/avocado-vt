@@ -48,7 +48,7 @@ class QSparseBus(object):
         :param bus_item: Name of the parameter which specifies bus (bus)
         :type bus_item: str
         :param addr_spec: Bus address specification [names][lengths]
-        :type addr_spec: list of lists
+        :type addr_spec: builtin.list
         :param busid: id of the bus (pci.0)
         :type busid: str
         :param bus_type: type of the bus (pci)
@@ -741,7 +741,7 @@ class QBusUnitBus(QDenseBus):
         :param bus_type: type of the bus (ahci)
         :type bus_type: str
         :param lenghts: lenghts of [buses, units]
-        :type lenghts: list of lists
+        :type lenghts: builtin.list
         :param aobject: Related autotest object (image1)
         :type aobject: str
         :param atype: Autotest bus type
