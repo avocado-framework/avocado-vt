@@ -35,9 +35,9 @@ at the top level of the avocado-vt repository has the detailed procedure.
     virt_test_compat_lister  Implements the avocado virt test options
 
 7. The next test is to see if virt-tests are also listed in the output of the
-   command `avocado list`::
+   command `avocado list` (you might leave out the --vt-type if you use default)::
 
-    $ avocado list --verbose
+    $ avocado list --vt-type qemu --verbose
 
    This should list a large amount of tests (over 1900 virt related tests)::
 
