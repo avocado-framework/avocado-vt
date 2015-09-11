@@ -11,7 +11,7 @@ if os.path.isdir(os.path.join(basedir, 'virttest')):
     sys.path.append(basedir)
 
 from virttest import libvirt_storage
-from virsh_unittest import FakeVirshFactory
+from test_virsh import FakeVirshFactory
 
 # The output of virsh.pool_list with only default pool
 _DEFAULT_POOL = ("Name                 State      Autostart\n"

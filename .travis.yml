@@ -7,6 +7,11 @@ sudo: false
 install:
     - pip install Sphinx
     - pip install -r requirements-travis.txt
+    - git clone https://github.com/avocado-framework/avocado.git avocado-libs
+    - cd avocado-libs
+    - python setup.py install
+    - cd ..
+    - rm -rf avocado-libs
 
 script:
     - make check

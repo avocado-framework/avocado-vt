@@ -59,7 +59,7 @@ VIRSH_COMMAND_GROUP_CACHE_NO_DETAIL = False
 # This is used both inside and outside classes
 try:
     VIRSH_EXEC = path.find_command("virsh")
-except ValueError:
+except path.CmdNotFoundError:
     logging.warning("Virsh executable not set or found on path, "
                     "virsh module will not function normally")
     VIRSH_EXEC = '/bin/true'
