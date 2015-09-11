@@ -4,7 +4,6 @@ Build documentation and report whether we had warning/error messages.
 This is geared towards documentation build regression testing.
 """
 import os
-import sys
 import unittest
 
 from avocado.utils import process
@@ -22,7 +21,7 @@ class DocBuildTest(unittest.TestCase):
 
     def test_build_docs(self):
         """
-        Build avocado HTML docs, reporting failures
+        Build avocado VT HTML docs, reporting failures
         """
         ignore_list = ['No python imaging library installed',
                        'ovirtsdk module not present',
@@ -56,3 +55,7 @@ class DocBuildTest(unittest.TestCase):
             e_msg += ('Full output: %s\n' % '\n'.join(output_lines))
             e_msg += 'Please check the output and fix your docstrings/.rst docs'
             raise DocBuildError(e_msg)
+
+
+if __name__ == '__main__':
+    unittest.main()
