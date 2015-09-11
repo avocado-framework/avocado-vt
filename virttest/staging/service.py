@@ -258,7 +258,7 @@ def sysvinit_command_generator(command):
     :param command: start,stop,restart, etc.
     :type command: str
     :return: list of commands to pass to process.run or similar function
-    :rtype: list
+    :rtype: builtin.list
     """
     command_name = "service"
     if command == "is_enabled":
@@ -307,7 +307,7 @@ def systemd_command_generator(command):
     :param command: start,stop,restart, etc.
     :type command: str
     :return: list of command and arguments to pass to process.run or similar functions
-    :rtype: list
+    :rtype: builtin.list
     """
     command_name = "systemctl"
     if command == "is_enabled":

@@ -226,7 +226,7 @@ def close_unused_fds(fds):
     Close all file descriptors which are not necessary anymore.
 
     :param fds: file descriptors
-    :type fds: list []
+    :type fds: builtin.list
     """
     for fd in fds:
         os.close(fd)

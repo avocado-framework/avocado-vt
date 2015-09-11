@@ -524,7 +524,7 @@ class GnuSourceBuildHelper(object):
         :param prefix: installation prefix
         :type build_dir: string
         :param build_dir: temporary directory used for building the source code
-        :type configure_options: list
+        :type configure_options: builtin.list
         :param configure_options: options to pass to configure
         :throws: GnuSourceBuildInvalidSource
         """

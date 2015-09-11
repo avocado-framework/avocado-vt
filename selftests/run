@@ -21,11 +21,13 @@ def test_suite():
     loader = unittest.TestLoader()
     selftests_dir = os.path.dirname(os.path.abspath(__file__))
     basedir = os.path.dirname(selftests_dir)
-    for section in (['unit']):
+    for section in (['unit', 'doc']):
         suite.addTests(loader.discover(start_dir=os.path.join(selftests_dir, section),
                                        top_level_dir=basedir))
     return suite
 
 if __name__ == '__main__':
     runner = unittest.TextTestRunner()
-    runner.run(test_suite())
+    result = runner.run(test_suite())
+    if result.failures or result.errors:
+        sys.exit(1)

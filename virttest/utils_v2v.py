@@ -23,7 +23,7 @@ from . import remote
 
 try:
     V2V_EXEC = path.find_command('virt-v2v')
-except ValueError:
+except path.CmdNotFoundError:
     V2V_EXEC = None
 
 

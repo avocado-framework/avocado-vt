@@ -3038,7 +3038,7 @@ class VM(virt_vm.BaseVM):
         :param vhost_thread_pattern: a regex to match the vhost threads
         :type vhost_thread_pattern: string
         :return: a list of vhost threads PIDs
-        :rtype: list of integer
+        :rtype: builtin.list
         """
         return [int(_) for _ in re.findall(vhost_thread_pattern %
                                            self.get_pid(),

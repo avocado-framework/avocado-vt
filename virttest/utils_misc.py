@@ -1447,7 +1447,7 @@ def get_thread_cpu(thread):
     :param thread: thread checked
     :type thread: string
     :return: A list include all cpus the thread used
-    :rtype: list
+    :rtype: builtin.list
     """
     cmd = "ps -o cpuid,lwp -eL | grep -w %s$" % thread
     cpu_thread = process.system_output(cmd)
@@ -1463,7 +1463,7 @@ def get_pid_cpu(pid):
     :param pid: process id
     :type thread: string
     :return: A list include all cpus the process used
-    :rtype: list
+    :rtype: builtin.list
     """
     cmd = "ps -o cpuid -L -p %s" % pid
     cpu_pid = process.system_output(cmd)
@@ -1480,7 +1480,7 @@ def get_node_cpus(i=0):
     Get cpu ids of one node
 
     :return: the cpu lists
-    :rtype: list
+    :rtype: builtin.list
     """
     cmd = process.run("numactl --hardware")
     return re.findall("node %s cpus: (.*)" % i, cmd.stdout)[0].split()
@@ -1494,7 +1494,7 @@ def cpu_str_to_list(origin_str):
     :param origin_str: the cpu info string read from system
     :type origin_str: string
     :return: A list of the cpu ids
-    :rtype: list
+    :rtype: builtin.list
     """
     if isinstance(origin_str, str):
         origin_str = "".join([_ for _ in origin_str if _ in string.printable])
@@ -1617,7 +1617,7 @@ class NumaInfo(object):
         Get all node ids in host.
 
         :return: All node ids in host
-        :rtype: list
+        :rtype: builtin.list
         """
         if all_nodes_path is None:
             all_nodes = get_path(self.numa_sys_path, "possible")
@@ -1634,7 +1634,7 @@ class NumaInfo(object):
         Get node ids online in host
 
         :return: The ids of node which is online
-        :rtype: list
+        :rtype: builtin.list
         """
         if online_nodes_path is None:
             online_nodes = get_path(self.numa_sys_path, "online")
@@ -1653,7 +1653,7 @@ class NumaInfo(object):
         :param node_id: Node that you want to check
         :type node_id: string
         :return: A list in of distance for the node in positive-sequence
-        :rtype: list
+        :rtype: builtin.list
         """
         cmd = process.run("numactl --hardware")
         try:

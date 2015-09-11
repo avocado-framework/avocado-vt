@@ -931,7 +931,7 @@ class Grubby(object):
         '''
         Returns the indexes found in a get_info() output
 
-        :type info: list of lines
+        :type info: builtin.list
         :param info: result of utility method get_info()
         :return: maximum index number
         '''
@@ -974,7 +974,7 @@ class Grubby(object):
         '''
         Filters info, looking for keys, optionally set with a given value
 
-        :type info: list of lines
+        :type info: builtin.list
         :param info: result of utility method get_info()
         :type key: string
         :param key: filter based on this key
