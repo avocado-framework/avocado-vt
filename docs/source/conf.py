@@ -15,11 +15,24 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
+
+
+class DocBuildError(Exception):
+    pass
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 root_path = os.path.abspath(os.path.join("..", ".."))
+sys.path.insert(0, root_path)
+import commands
+_sphinx_apidoc = commands.getoutput('which sphinx-apidoc').strip()
+_output_dir = os.path.join(root_path, 'docs', 'source', 'api')
+_api_dir = os.path.join(root_path, 'virttest')
+_status, _output = commands.getstatusoutput("%s -o %s %s" % (_sphinx_apidoc, _output_dir, _api_dir))
+if _status:
+    raise DocBuildError("API rst auto generation failed: %s" % _output)
 
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.intersphinx',
