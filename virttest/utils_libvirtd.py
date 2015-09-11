@@ -18,7 +18,7 @@ from .utils_gdb import GDB
 try:
     path.find_command("libvirtd")
     LIBVIRTD = "libvirtd"
-except ValueError:
+except path.CmdNotFoundError:
     LIBVIRTD = None
 
 
