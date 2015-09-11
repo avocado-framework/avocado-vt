@@ -95,7 +95,8 @@ class VMManager(virt_vm.BaseVM):
     This class handles all basic VM operations for oVirt.
     """
 
-    def __init__(self, params, root_dir, address_cache=None, state=None):
+    def __init__(self, name, params, root_dir=None, address_cache=None,
+                 state=None):
         """
         Initialize the object and set a few attributes.
 
@@ -124,7 +125,7 @@ class VMManager(virt_vm.BaseVM):
             self.remote_sessions = []
 
         self.spice_port = 8000
-        self.name = params.get("main_vm", "")
+        self.name = name
         self.params = params
         self.root_dir = root_dir
         self.address_cache = address_cache

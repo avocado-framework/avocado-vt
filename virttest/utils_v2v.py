@@ -199,7 +199,7 @@ class VMCheck(object):
                                self.env.get("address_cache"))
             self.pv = libvirt.PoolVolumeTest(test, params)
         elif self.target == "ovirt":
-            self.vm = ovirt.VMManager(self.params, self.test.bindir,
+            self.vm = ovirt.VMManager(self.name, self.params, self.test.bindir,
                                       self.env.get("address_cache"))
         else:
             raise ValueError("Doesn't support %s target now" % self.target)
@@ -622,6 +622,7 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
     """
     Import VM from export domain to oVirt Data Center
     """
+    vm_name = params.get('main_vm')
     os_type = params.get('os_type')
     export_name = params.get('export_name')
     storage_name = params.get('storage_name')
@@ -635,7 +636,7 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
     logging.info("Current host list: %s", hm.list())
     sdm = ovirt.StorageDomainManager(params)
     logging.info("Current storage domain list: %s", sdm.list())
-    vm = ovirt.VMManager(params, address_cache)
+    vm = ovirt.VMManager(vm_name, params, address_cache=address_cache)
     logging.info("Current VM list: %s", vm.list())
     wait_for_up = True
     if os_type == 'windows':
