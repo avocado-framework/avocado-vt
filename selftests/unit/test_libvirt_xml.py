@@ -19,7 +19,7 @@ from virttest.libvirt_xml import nodedev_xml
 from virttest.libvirt_xml.devices import librarian
 from virttest.libvirt_xml.devices import base as devices_base
 from virttest.libvirt_xml import capability_xml
-from virsh_unittest import FakeVirshFactory
+from test_virsh import FakeVirshFactory
 
 # save a copy
 ORIGINAL_DEVICE_TYPES = list(librarian.DEVICE_TYPES)
