@@ -14,7 +14,7 @@ import commands
 import signal
 
 from avocado.core import exceptions
-from avocado.utils import path
+from avocado.utils import path as utils_path
 from avocado.utils import process
 
 import aexpect
@@ -618,7 +618,7 @@ class Macvtap(Interface):
 
     def ip_link_ctl(self, params, ignore_status=False):
         return process.run('%s %s' %
-                           (path.find_command("ip"), " ".join(params)),
+                           (utils_path.find_command("ip"), " ".join(params)),
                            ignore_status=ignore_status, verbose=False)
 
     def create(self, device, mode="vepa"):
@@ -1951,7 +1951,7 @@ class IPv6Manager(propcan.PropCanBase):
         ::param count: sending packets counts, default is 5
         """
         try:
-            path.find_command("ping6")
+            utils_path.find_command("ping6")
         except ValueError:
             raise exceptions.TestNAError("Can't find ping6 command")
         command = "ping6 -I %s %s -c %s" % (client_ifname, server_ipv6, count)
@@ -1973,7 +1973,7 @@ class IPv6Manager(propcan.PropCanBase):
         flush_cmd_pass = "Succeed to run command '%s'" % flush_cmd
         # check if ip6tables command exists on the local
         try:
-            path.find_command("ip6tables")
+            utils_path.find_command("ip6tables")
         except ValueError:
             raise exceptions.TestNAError(test_NA_err)
         # flush local ip6tables rules
@@ -2826,7 +2826,7 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0):
         return True
 
     # Get the name of the bridge device for ip route cache
-    ip_cmd = utils_misc.find_command("ip")
+    ip_cmd = utils_path.find_command("ip")
     ip_cmd = "%s route get %s; %s route | grep default" % (ip_cmd, ip, ip_cmd)
     output = commands.getoutput(ip_cmd)
     devs = re.findall(r"dev\s+\S+", output, re.I)
@@ -2836,7 +2836,7 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0):
         return False
     mac_regex = "|".join("(%s)" % mac for mac in macs)
     regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex), re.I)
-    arping_bin = utils_misc.find_command("arping")
+    arping_bin = utils_path.find_command("arping")
     for dev in devs:
         dev = dev.split()[-1]
         if dev in checked_devs:
@@ -3200,7 +3200,7 @@ def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
     try:
         if not runner:
             try:
-                path.find_command("netstat")
+                utils_path.find_command("netstat")
             except ValueError, details:
                 raise exceptions.TestNAError(details)
             output = process.system_output(cmd)

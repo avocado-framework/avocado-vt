@@ -10,6 +10,7 @@ import remote
 import threading
 
 from avocado.core import exceptions
+from avocado.utils import path as utils_path
 from avocado.utils import process
 
 ENV_VERSION = 1
@@ -349,7 +350,7 @@ class Env(UserDict.IterableUserDict):
             self._tcpdump.sendline(cmd)
 
         else:
-            cmd = cmd_template % utils_misc.find_command("tcpdump")
+            cmd = cmd_template % utils_path.find_command("tcpdump")
             self._tcpdump = aexpect.Tail(command=cmd,
                                          output_func=_tcpdump_handler,
                                          output_params=(self, "tcpdump.log"))

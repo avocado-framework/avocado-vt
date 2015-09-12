@@ -27,7 +27,7 @@ import threading
 from avocado.core import status
 from avocado.core import exceptions
 from avocado.utils import git
-from avocado.utils import path
+from avocado.utils import path as utils_path
 from avocado.utils import process
 from avocado.utils import genio
 from avocado.utils import aurl
@@ -266,20 +266,9 @@ def find_command(cmd):
     :param cmd: Command to be found.
     :raise: ValueError in case the command was not found.
     """
-    common_bin_paths = ["/usr/libexec", "/usr/local/sbin", "/usr/local/bin",
-                        "/usr/sbin", "/usr/bin", "/sbin", "/bin"]
-    try:
-        path_paths = os.environ['PATH'].split(":")
-    except IndexError:
-        path_paths = []
-    path_paths = unique(common_bin_paths + path_paths)
-
-    for dir_path in path_paths:
-        cmd_path = os.path.join(dir_path, cmd)
-        if os.path.isfile(cmd_path):
-            return os.path.abspath(cmd_path)
-
-    raise ValueError('Missing command: %s' % cmd)
+    logging.warning("Function utils_misc.find_command is deprecated. "
+                    "Please use avocado.utils.path.find_command instead.")
+    return utils_path.find_command(cmd)
 
 
 def pid_exists(pid):
@@ -1373,7 +1362,7 @@ def create_x509_dir(path, cacert_subj, server_subj, passphrase,
     :raise OSError: if os.makedirs() fails
     """
 
-    ssl_cmd = path.command("openssl")
+    ssl_cmd = utils_path.find_command("openssl")
     path = path + os.path.sep  # Add separator to the path
     shutil.rmtree(path, ignore_errors=True)
     os.makedirs(path)
@@ -2924,7 +2913,7 @@ class KSMController(object):
                 raise KSMNotSupportedError
         else:
             try:
-                path.command("ksmctl")
+                utils_path.find_command("ksmctl")
             except ValueError:
                 raise KSMNotSupportedError
             _KSM_PARAMS = ["run", "pages_to_scan", "sleep_millisecs"]
@@ -2952,7 +2941,7 @@ class KSMController(object):
         Return ksmtuned process id(0 means not running).
         """
         try:
-            path.find_command("ksmtuned")
+            utils_path.find_command("ksmtuned")
         except ValueError:
             raise KSMTunedNotSupportedError
 
