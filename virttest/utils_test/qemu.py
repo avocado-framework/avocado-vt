@@ -146,6 +146,37 @@ def clear_win_driver_verifier(session, vm, timeout=300):
     return vm.reboot(session)
 
 
+def setup_runlevel(params, session):
+    """
+    Setup the runlevel in guest.
+
+    :param params: Dictionary with the test parameters.
+    :param session: VM session.
+    """
+    cmd = "runlevel"
+    ori_runlevel = "0"
+    expect_runlevel = params.get("expect_runlevel", "3")
+
+    # Note: All guest services may have not been started when
+    #       the guest gets IP addr; the guest runlevel maybe
+    #       is "unknown" whose exit status is 1 at that time,
+    #       which will cause the cmd execution failed. Need some
+    #       time here to wait for the guest services start.
+    if utils_misc.wait_for(lambda: session.cmd_status(cmd) == 0, 15):
+        ori_runlevel = session.cmd(cmd)
+
+    ori_runlevel = ori_runlevel.split()[-1]
+    if ori_runlevel == expect_runlevel:
+        logging.info("Guest runlevel is already %s as expected") % ori_runlevel
+    else:
+        session.cmd("init %s" % expect_runlevel)
+        tmp_runlevel = session.cmd(cmd)
+        tmp_runlevel = tmp_runlevel.split()[-1]
+        if tmp_runlevel != expect_runlevel:
+            logging.warn("Changing runlevel from %s to %s failed (%s)!" %
+                         ori_runlevel, expect_runlevel, tmp_runlevel)
+
+
 def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
             mig_cancel=False, offline=False, stable_check=False,
             clean=False, save_path=None, dest_host='localhost', mig_port=None):
