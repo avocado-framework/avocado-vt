@@ -3278,6 +3278,15 @@ def rm_ker_cmd(kernel_cmdline, kernel_param):
     return kernel_cmdline
 
 
+def get_ker_cmd():
+    """
+    Get the kernel cmdline.
+
+    :return: Return the kernel cmdline.
+    """
+    return genio.read_file('/proc/cmdline')
+
+
 def check_module(module_name, submodules=[]):
     """
     Check whether module and its submodules work.
