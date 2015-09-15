@@ -3129,6 +3129,7 @@ def verify_host_dmesg(dmesg_log_file=None, trace_re=None):
     panic_re = [r"BUG:.*---\[ end trace .* \]---"]
     panic_re.append(r"----------\[ cut here.* BUG .*\[ end trace .* \]---")
     panic_re.append(r"general protection fault:.* RSP.*>")
+    panic_re.append(r"Out of memory: Kill process .*Call Trace:")
     panic_re = "|".join(panic_re)
     dmesg = process.system_output("dmesg", timeout=30, ignore_status=True,
                                   verbose=False)
