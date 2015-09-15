@@ -12,7 +12,7 @@ Requires: python, avocado, autotest-framework, p7zip, tcpdump, iproute, iputils,
 
 Requires: python-imaging
 %if 0%{?el6}
-Requires: python-gstreamer, gstreamer-plugins-good
+Requires: gstreamer-python, gstreamer-plugins-good
 %else
 Requires: pygobject2, gstreamer1-plugins-good
 %endif
