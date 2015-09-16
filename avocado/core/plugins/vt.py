@@ -346,6 +346,8 @@ class VirtTest(test.Test):
             raise exc[1], None, exc[2]
 
     def runTest(self):
+        env_lang = os.environ.get('LANG')
+        os.environ['LANG'] = 'C'
         try:
             self._runTest()
         # This trick will give better reporting of virt tests
@@ -356,6 +358,11 @@ class VirtTest(test.Test):
             raise exceptions.TestError(details)
         except error.TestFail, details:
             raise exceptions.TestFail(details)
+        finally:
+            if env_lang:
+                os.environ['LANG'] = env_lang
+            else:
+                del os.environ['LANG']
 
     def _runTest(self):
         params = self.params
