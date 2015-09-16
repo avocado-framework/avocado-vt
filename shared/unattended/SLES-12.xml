@@ -545,16 +545,18 @@ echo ttyS0 >> /etc/securetty]]>
       </source>
     </script>
   </chroot-scripts>
-   <init-scripts config:type="list">
+   <post-scripts config:type="list">
       <script>
         <debug config:type="boolean">true</debug>
         <filename>config</filename>
-        <source><![CDATA[chkconfig sshd on
+        <source><![CDATA[!/bin/bash
+###Enable ssh service when it is start
+chkconfig sshd on
 sed -i -e 's/\(PasswordAuthentication\s\)no/\1yes/g'  /etc/ssh/sshd_config
 service sshd restart
 ]]></source>
       </script>
-    </init-scripts>
+    </post-scripts>
    <init-scripts config:type="list">
       <script>
         <debug config:type="boolean">true</debug>
