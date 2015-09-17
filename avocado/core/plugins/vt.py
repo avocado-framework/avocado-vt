@@ -254,7 +254,8 @@ class VirtTestLoader(loader.TestLoader):
             # from inside virt tests. This feature would only work if the virt
             # test in question is executed from inside avocado.
             params['avocado_inject_params'] = True
-            test_name = params.get("_short_name_map_file")["subtests.cfg"]
+            if "subtests.cfg" in params.get("_short_name_map_file"):
+                test_name = params.get("_short_name_map_file")["subtests.cfg"]
             if self.args.vt_type == 'spice':
                 short_name_map_file = params.get("_short_name_map_file")
                 if "tests-variants.cfg" in short_name_map_file:
@@ -283,9 +284,14 @@ class VirtTest(test.Test):
         self.virtdir = os.path.join(self.bindir, 'shared')
 
         self.iteration = 0
+        name = None
         if options.vt_config:
             name = params.get("shortname")
-        else:
+        elif options.vt_type == 'spice':
+            short_name_map_file = params.get("_short_name_map_file")
+            if "tests-variants.cfg" in short_name_map_file:
+                name = short_name_map_file["tests-variants.cfg"]
+        if name is None:
             name = params.get("_short_name_map_file")["subtests.cfg"]
         self.outputdir = None
         self.resultsdir = None
