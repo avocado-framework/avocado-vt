@@ -1472,6 +1472,18 @@ def get_pid_cpu(pid):
     return list(set([_.strip() for _ in cpu_pid.splitlines()]))
 
 
+def compare_uuid(uuid1, uuid2):
+    """
+    compare UUID with uniform format
+
+    :param uuid1: UUID
+    :param uuid2: UUID
+    :return: negative if x<y, zero if x==y, positive if x>y
+    :rtype: integer
+    """
+    return cmp(uuid1.replace('-', '').lower(), uuid2.replace('-', '').lower())
+
+
 # Utility functions for numa node pinning
 
 
