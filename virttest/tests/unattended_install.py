@@ -15,6 +15,7 @@ from avocado.utils import crypto
 from avocado.utils import download
 
 from .. import virt_vm
+from .. import asset
 from .. import utils_misc
 from .. import utils_disk
 from .. import qemu_monitor
@@ -173,8 +174,25 @@ class UnattendedInstallConfig(object):
         self.qemu_img_binary = utils_misc.get_qemu_img_binary(params)
 
         if getattr(self, 'unattended_file'):
-            self.unattended_file = os.path.join(test.virtdir,
-                                                self.unattended_file)
+            # Fail-back to general unattended_file
+            unattended_file = os.path.join(test.virtdir, self.unattended_file)
+            for backend in asset.get_known_backends():
+                provider_name = asset.get_test_provider_names(backend)
+                if not provider_name:
+                    continue
+                provider_name = provider_name[0]
+                provider_info = asset.get_test_provider_info(provider_name)
+                if backend not in provider_info["backends"]:
+                    continue
+                if "path" not in provider_info["backends"][backend]:
+                    continue
+                path = provider_info["backends"][backend]["path"]
+                tp_unattended_file = os.path.join(path, self.unattended_file)
+                if os.path.exists(tp_unattended_file):
+                    # Using unattended_file from test-provider
+                    unattended_file = tp_unattended_file
+                    break
+            self.unattended_file = unattended_file
 
         if params.get('use_ovmf_autounattend'):
             self.unattended_file = re.sub("\.", "_ovmf.",
