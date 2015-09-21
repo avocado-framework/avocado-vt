@@ -2155,26 +2155,6 @@ class Parser(object):
             for _, _, op in new_content:
                 op.apply_to_dict(d)
             yield d
-        # If this node did not produce any dicts, remember the failed filters
-        # of its descendants
-        elif not count:
-            new_external_filters = []
-            new_internal_filters = []
-            for n in node.children:
-                (_, _,
-                 failed_external_filters,
-                 failed_internal_filters) = n.failed_cases[0]
-                for obj in failed_internal_filters:
-                    if obj not in new_internal_filters:
-                        new_internal_filters.append(obj)
-                for obj in failed_external_filters:
-                    if obj in content:
-                        if obj not in new_external_filters:
-                            new_external_filters.append(obj)
-                    else:
-                        if obj not in new_internal_filters:
-                            new_internal_filters.append(obj)
-            add_failed_case()
 
 
 def print_dicts_default(options, dicts):
