@@ -1,6 +1,6 @@
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 0.28.0
+Version: 0.28.1
 Release: 1%{?dist}
 License: GPLv2
 Group: Development/Tools
@@ -45,6 +45,9 @@ Xunit output, among others.
 
 
 %changelog
+* Mon Sep 21 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.28.1-1
+- Update to upstream version 0.28.1
+
 * Wed Sep 16 2015 Lucas Meneghel Rodrigues <lmr@redhat.com> - 0.28.0-1
 - Update to upstream version 0.28.0
 
