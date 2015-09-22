@@ -125,7 +125,7 @@ def receive(connect, filename, p_size=1024):
     recv_size = 0
     size = shake_hand(connect, action="receive")
     if p_size < int(size):
-        p_szie = int(size)
+        p_size = int(size)
     md5_value = md5_init()
     file_no = open(filename, 'wb')
     try:
