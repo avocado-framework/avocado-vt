@@ -595,9 +595,9 @@ class SuseBuildDeps(RPMBuildDeps):
         else:
             try:
                 args = ['zypper', '-n', '--no-cd', 'install'] + self.PKGS
-                result = subprocess.call(args,
-                                         stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE)
+                subprocess.call(args,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
             except OSError:
                 pass
         return self.check()
@@ -645,9 +645,9 @@ class RedHatBuildDeps(RPMBuildDeps):
                 args += ['/usr/include/popt.h',
                          '/usr/include/blkid/blkid.h']
 
-                result = subprocess.call(args,
-                                         stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE)
+                subprocess.call(args,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
             except OSError:
                 pass
         return self.check()
