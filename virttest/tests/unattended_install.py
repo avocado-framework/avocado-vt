@@ -154,7 +154,8 @@ class UnattendedInstallConfig(object):
                            'process_check', 'vfd_size', 'cdrom_mount_point',
                            'floppy_mount_point', 'cdrom_virtio',
                            'virtio_floppy', 're_driver_match',
-                           're_hardware_id', 'driver_in_floppy', 'vga']
+                           're_hardware_id', 'driver_in_floppy', 'vga',
+                           'unattended_iso_dir']
 
         for a in self.attributes:
             setattr(self, a, params.get(a, ''))
@@ -210,7 +211,15 @@ class UnattendedInstallConfig(object):
                                                self.finish_program)
 
         if getattr(self, 'cdrom_cd1'):
-            self.cdrom_cd1 = os.path.join(root_dir, self.cdrom_cd1)
+            # Failback to default location:
+            cd1_path = os.path.join(root_dir, getattr(self, 'cdrom_cd1'))
+            # Could we use specified location for ISO images?
+            if getattr(self, 'unattended_iso_dir'):
+                cd1_path_check = os.path.join(self.unattended_iso_dir,
+                                              getattr(self, 'cdrom_cd1'))
+                if os.path.exists(cd1_path_check):
+                    cd1_path = cd1_path_check
+            self.cdrom_cd1 = cd1_path
         self.cdrom_cd1_mount = tempfile.mkdtemp(prefix='cdrom_cd1_',
                                                 dir=self.tmpdir)
         if getattr(self, 'cdrom_unattended'):
