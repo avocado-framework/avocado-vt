@@ -1078,6 +1078,10 @@ class VM(virt_vm.BaseVM):
                 return ""
 
         def add_boot(devices, boot_order, boot_once, boot_menu, boot_strict):
+            if arch.ARCH == 'aarch64':
+                logging.warn("-boot on ARM is usually not supported, use "
+                             "bootindex instead.")
+                return ""
             cmd = " -boot"
             patterns = ["order", "once", "menu", "strict"]
             options = []
