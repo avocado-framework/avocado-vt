@@ -35,7 +35,6 @@ DEPS_DIR = os.path.join(ROOT_DIR, 'shared', 'deps')
 BASE_DOWNLOAD_DIR = os.path.join(SHARED_DIR, 'downloads')
 DOWNLOAD_DIR = os.path.join(DATA_DIR, 'downloads')
 TEST_PROVIDERS_DIR = os.path.join(ROOT_DIR, 'test-providers.d')
-TMP_DIR = tempfile.mkdtemp()
 BACKING_DATA_DIR = None
 
 
@@ -201,7 +200,7 @@ def get_deps_dir(target=None):
 
 
 def get_tmp_dir():
-    return TMP_DIR
+    return data_dir.get_tmp_dir()
 
 
 def get_download_dir():
@@ -236,16 +235,17 @@ def get_test_provider_dir(provider):
 
 
 def clean_tmp_files():
-    if os.path.isdir(TMP_DIR):
-        hidden_paths = glob.glob(os.path.join(TMP_DIR, ".??*"))
-        paths = glob.glob(os.path.join(TMP_DIR, "*"))
+    tmp_dir = get_tmp_dir()
+    if os.path.isdir(tmp_dir):
+        hidden_paths = glob.glob(os.path.join(tmp_dir, ".??*"))
+        paths = glob.glob(os.path.join(tmp_dir, "*"))
         for path in paths + hidden_paths:
             shutil.rmtree(path, ignore_errors=True)
 
 
 if __name__ == '__main__':
     print "root dir:         " + ROOT_DIR
-    print "tmp dir:          " + TMP_DIR
+    print "tmp dir:          " + get_tmp_dir()
     print "data dir:         " + DATA_DIR
     print "deps dir:         " + DEPS_DIR
     print "backing data dir: " + BACKING_DATA_DIR
