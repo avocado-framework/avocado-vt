@@ -2043,10 +2043,11 @@ class VM(virt_vm.BaseVM):
             attr_info = [None, params["keyboard_layout"], None]
             add_qemu_option(devices, "k", [attr_info])
 
+        # Add disable_legacy and disable_modern options
+        virtio_pci_devices = ["virtio-net-pci", "virtio-blk-pci",
+                              "virtio-scsi-pci", "virtio-balloon-pci",
+                              "virtio-serial-pci", "virtio-rng-pci"]
         for device in devices:
-            virtio_pci_devices = ["virtio-net-pci", "virtio-blk-pci",
-                                  "virtio-scsi-pci", "virtio-balloon-pci",
-                                  "virtio-serial-pci", "virtio-rng-pci"]
             dev_type = device.get_param("driver")
             if dev_type in virtio_pci_devices:
                 add_disable_legacy(devices, device, dev_type)
