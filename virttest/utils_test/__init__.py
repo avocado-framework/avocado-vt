@@ -452,7 +452,7 @@ def run_file_transfer(test, params, env):
 
     dir_name = test.tmpdir
     transfer_timeout = int(params.get("transfer_timeout"))
-    tmp_dir = params.get("tmp_dir", "/tmp/")
+    tmp_dir = params.get("tmp_dir", data_dir.get_tmp_dir())
     clean_cmd = params.get("clean_cmd", "rm -f")
     filesize = int(params.get("filesize", 4000))
     count = int(filesize / 10)
@@ -614,7 +614,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
 
     dir_name = test.tmpdir
     transfer_timeout = int(params.get("transfer_timeout", 720))
-    tmp_dir = params.get("tmp_dir", "/var/tmp/")
+    tmp_dir = params.get("tmp_dir", data_dir.get_tmp_dir())
     filesize = int(params.get("filesize", 10))
     count = int(filesize)
 
@@ -789,7 +789,7 @@ def run_autotest(vm, session, control_path, timeout,
         # result info tarball to host result dir
         session = vm.wait_for_login(timeout=360)
         results_dir = "%s/results/default" % base_results_dir
-        results_tarball = "/tmp/results.tgz"
+        results_tarball = "%s/results.tgz" % data_dir.get_tmp_dir()
         compress_cmd = "cd %s && " % results_dir
         compress_cmd += "tar cjvf %s ./*" % results_tarball
         compress_cmd += " --exclude=*core*"
@@ -906,7 +906,7 @@ def run_autotest(vm, session, control_path, timeout,
         mig_timeout = float(params.get("mig_timeout", "3600"))
         mig_protocol = params.get("migration_protocol", "tcp")
 
-    compressed_autotest_path = "/tmp/autotest.tar.bz2"
+    compressed_autotest_path = "%s/autotest.tar.bz2" % data_dir.get_tmp_dir()
     destination_autotest_path = "/usr/local/autotest"
 
     # To avoid problems, let's make the test use the current AUTODIR
@@ -949,7 +949,7 @@ def run_autotest(vm, session, control_path, timeout,
     if update or not directory_exists(destination_autotest_path):
         extract(vm, compressed_autotest_path, destination_autotest_path)
 
-    g_fd, g_path = tempfile.mkstemp(dir='/tmp/')
+    g_fd, g_path = tempfile.mkstemp(dir=data_dir.get_tmp_dir())
     aux_file = os.fdopen(g_fd, 'w')
     config = section_values(('CLIENT', 'COMMON'))
     config.set('CLIENT', 'output_dir', destination_autotest_path)
@@ -1317,8 +1317,9 @@ def summary_up_result(result_file, ignore, row_head, column_mark):
     return average_list
 
 
-def get_driver_hardware_id(driver_path, mount_point="/tmp/mnt-virtio",
-                           storage_path="/tmp/prewhql.iso",
+def get_driver_hardware_id(driver_path,
+                           mount_point="%s/mnt-virtio" % data_dir.get_tmp_dir(),
+                           storage_path="%s/prewhql.iso" % data_dir.get_tmp_dir(),
                            re_hw_id="(PCI.{14,50})", run_cmd=True):
     """
     Get windows driver's hardware id from inf files.

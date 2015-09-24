@@ -428,7 +428,7 @@ def find_free_ports(start_port, end_port, count, address="localhost"):
 # An easy way to log lines to files when the logging system can't be used
 
 _open_log_files = {}
-_log_file_dir = "/tmp"
+_log_file_dir = data_dir.get_tmp_dir()
 _log_lock = threading.RLock()
 
 
@@ -566,7 +566,8 @@ def generate_random_id():
     return "id" + generate_random_string(6)
 
 
-def generate_tmp_file_name(file_name, ext=None, directory='/tmp/'):
+def generate_tmp_file_name(file_name, ext=None,
+                           directory=data_dir.get_tmp_dir()):
     """
     Returns a temporary file name. The file is not created.
     """
@@ -1140,7 +1141,7 @@ def install_host_kernel(job, params):
 
         rpm_url = params.get('host_kernel_rpm_url')
         k_basename = os.path.basename(rpm_url)
-        dst = os.path.join("/var/tmp", k_basename)
+        dst = os.path.join(data_dir.get_tmp_dir(), k_basename)
         k = download.get_file(rpm_url, dst)
         host_kernel = job.kernel(k)
         host_kernel.install(install_vmlinux=False)
@@ -1192,7 +1193,7 @@ def install_host_kernel(job, params):
             patch_list = patch_list.split()
         kernel_config = params.get('host_kernel_config', None)
 
-        repodir = os.path.join("/tmp", 'kernel_src')
+        repodir = os.path.join(data_dir.get_tmp_dir(), 'kernel_src')
         r = git.GitRepoHelper(uri=repo, branch=branch, destination_dir=repodir,
                               commit=commit, base_uri=repo_base)
         r.execute()

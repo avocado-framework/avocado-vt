@@ -6,6 +6,7 @@ import re
 import socket
 import traceback
 
+from avocado.core import data_dir
 from avocado.core import exceptions
 
 from . import utils_misc
@@ -531,7 +532,8 @@ class BaseVM(object):
         while True:
             self.instance = (time.strftime("%Y%m%d-%H%M%S-") +
                              utils_misc.generate_random_string(8))
-            if not glob.glob("/tmp/*%s" % self.instance):
+            if not glob.glob("%s/*%s" % (data_dir.get_tmp_dir(),
+                                         self.instance)):
                 break
 
     def update_vm_id(self):
@@ -881,13 +883,15 @@ class BaseVM(object):
         """
         Return the testlog filename.
         """
-        return "/tmp/testlog-%s" % self.instance
+        return os.path.join(data_dir.get_tmp_dir(),
+                            "testlog-%s" % self.instance)
 
     def get_virtio_port_filename(self, port_name):
         """
         Return the filename corresponding to a givven monitor name.
         """
-        return "/tmp/virtio_port-%s-%s" % (port_name, self.instance)
+        return os.path.join(data_dir.get_tmp_dir(),
+                            "virtio_port-%s-%s" % (port_name, self.instance))
 
     def get_virtio_port_filenames(self):
         """
@@ -956,7 +960,7 @@ class BaseVM(object):
         :return: A ShellSession object.
         """
         if commander_path is None:
-            commander_path = "/tmp"
+            commander_path = data_dir.get_tmp_dir()
         error_context.context("logging into '%s'" % self.name)
         if not username:
             username = self.params.get("username", "")
@@ -1370,7 +1374,8 @@ class BaseVM(object):
 
     def migrate(self, timeout=MIGRATE_TIMEOUT, protocol="tcp",
                 cancel_delay=None, offline=False, stable_check=False,
-                clean=True, save_path="/tmp", dest_host="localhost",
+                clean=True, save_path=data_dir.get_tmp_dir(),
+                dest_host="localhost",
                 remote_port=None):
         """
         Migrate the VM.
