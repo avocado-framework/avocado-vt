@@ -998,13 +998,18 @@ class RemoteFile(object):
         local_file.writelines(lines)
         local_file.close()
 
-    def add(self, line_list):
+    def add(self, line_list, linesep=None):
         """
         Append lines in line_list into file on remote.
+
+        :param line_list: string consists of lines
+        :param linesep: end up with a separator
         """
         lines = self._read_local()
         for line in line_list:
             lines.append("\n%s" % line)
+        if linesep is not None:
+            lines[-1] += linesep
         self._write_local(lines)
         self._push_file()
 
