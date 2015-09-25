@@ -26,6 +26,7 @@ import time
 import sys
 
 from avocado.core import exceptions
+from avocado.utils import path as utils_path
 from avocado.utils import process
 from avocado.utils import stacktrace
 from avocado.utils import linux_modules
@@ -519,7 +520,7 @@ def setup_or_cleanup_gluster(is_setup, vol_name, brick_path="", pool_name="",
     :return: ip_addr or nothing
     """
     try:
-        utils_misc.find_command("gluster")
+        utils_path.find_command("gluster")
     except ValueError:
         raise exceptions.TestNAError("Missing command 'gluster'")
     if not brick_path:
@@ -2248,7 +2249,7 @@ def create_scsi_disk(scsi_option, scsi_size="2048"):
     :return: scsi device if it is created successfully.
     """
     try:
-        utils_misc.find_command("lsscsi")
+        utils_path.find_command("lsscsi")
     except ValueError:
         raise exceptions.TestNAError("Missing command 'lsscsi'.")
 

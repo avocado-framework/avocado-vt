@@ -6,6 +6,7 @@ import time
 import traceback
 import Queue
 
+from avocado.utils import path as utils_path
 from avocado.core import exceptions
 
 import aexpect
@@ -72,9 +73,9 @@ def find_default_qemu_paths(options_qemu=None, options_dst_qemu=None):
         qemu_bin_path = options_qemu
     else:
         try:
-            qemu_bin_path = utils_misc.find_command('qemu-kvm')
+            qemu_bin_path = utils_path.find_command('qemu-kvm')
         except ValueError:
-            qemu_bin_path = utils_misc.find_command('kvm')
+            qemu_bin_path = utils_path.find_command('kvm')
 
     if options_dst_qemu is not None:
         if not os.path.isfile(options_dst_qemu):
@@ -89,10 +90,10 @@ def find_default_qemu_paths(options_qemu=None, options_dst_qemu=None):
     qemu_io_path = os.path.join(qemu_dirname, 'qemu-io')
 
     if not os.path.exists(qemu_img_path):
-        qemu_img_path = utils_misc.find_command('qemu-img')
+        qemu_img_path = utils_path.find_command('qemu-img')
 
     if not os.path.exists(qemu_io_path):
-        qemu_io_path = utils_misc.find_command('qemu-io')
+        qemu_io_path = utils_path.find_command('qemu-io')
 
     return [qemu_bin_path, qemu_img_path, qemu_io_path, qemu_dst_bin_path]
 
@@ -566,7 +567,7 @@ def create_config_files(options):
 
 def get_paginator():
     try:
-        less_cmd = utils_misc.find_command('less')
+        less_cmd = utils_path.find_command('less')
         return os.popen('%s -FRSX' % less_cmd, 'w')
     except ValueError:
         return sys.stdout

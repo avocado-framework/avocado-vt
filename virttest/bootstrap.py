@@ -5,6 +5,7 @@ import glob
 import shutil
 import sys
 
+from avocado.utils import path as utils_path
 from avocado.utils import process
 from avocado.utils import genio
 from avocado.utils import linux_modules
@@ -108,7 +109,7 @@ def verify_recommended_programs(t_type):
         for cmd in cmd_aliases:
             found = None
             try:
-                found = utils_misc.find_command(cmd)
+                found = utils_path.find_command(cmd)
                 logging.info('%s OK', found)
                 break
             except ValueError:
@@ -129,7 +130,7 @@ def verify_mandatory_programs(t_type, guest_os):
     cmds = mandatory_programs[t_type]
     for cmd in cmds:
         try:
-            logging.info('%s OK', utils_misc.find_command(cmd))
+            logging.info('%s OK', utils_path.find_command(cmd))
         except ValueError:
             if cmd == '7za' and guest_os != defaults.DEFAULT_GUEST_OS:
                 logging.warn("Command 7za (required to uncompress JeOS) "

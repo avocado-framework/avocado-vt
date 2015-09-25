@@ -31,6 +31,7 @@ from avocado.core import multiplexer
 from avocado.core import test
 from avocado.core.settings import settings
 from avocado.core.plugins import plugin
+from avocado.utils import path as utils_path
 from avocado.utils import stacktrace
 from avocado.utils import genio
 
@@ -979,7 +980,7 @@ class VirtTestOptionsProcess(object):
         Verify whether we can run tcpdump. If we can't, turn it off.
         """
         try:
-            tcpdump_path = utils_misc.find_command('tcpdump')
+            tcpdump_path = utils_path.find_command('tcpdump')
         except ValueError:
             tcpdump_path = None
 
