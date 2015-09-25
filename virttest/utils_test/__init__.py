@@ -945,6 +945,10 @@ def run_autotest(vm, session, control_path, timeout,
     update = copy_if_hash_differs(vm, compressed_autotest_path,
                                   compressed_autotest_path)
 
+    # Remove the local compressed tarball
+    if os.path.exists(compressed_autotest_path):
+        os.remove(compressed_autotest_path)
+
     # Extract autotest.tar.bz2
     if update or not directory_exists(destination_autotest_path):
         extract(vm, compressed_autotest_path, destination_autotest_path)
