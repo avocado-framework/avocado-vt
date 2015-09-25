@@ -367,6 +367,9 @@ class VM(virt_vm.BaseVM):
         def has_option(help_text, option):
             return bool(re.search(r"--%s" % option, help_text, re.MULTILINE))
 
+        def has_os_variant(os_text, os_variant):
+            return bool(re.search(r"%s" % os_variant, os_text, re.MULTILINE))
+
         # Wrappers for all supported libvirt command line parameters.
         # This is meant to allow support for multiple libvirt versions.
         # Each of these functions receives the output of 'libvirt --help' as a
@@ -650,6 +653,10 @@ class VM(virt_vm.BaseVM):
         help_text = process.system_output("%s --help" % virt_install_binary,
                                           verbose=False)
 
+        os_text = process.system_output("%s --os-variant list" %
+                                        virt_install_binary,
+                                        verbose=False)
+
         # Find all supported machine types, so we can rule out an unsupported
         # machine type option passed in the configuration.
         hvm_or_pv = params.get("hvm_or_pv", "hvm")
@@ -786,6 +793,10 @@ class VM(virt_vm.BaseVM):
 
         # selectable OS variant
         if params.get("use_os_variant") == "yes":
+            if not has_os_variant(os_text, params.get("os_variant")):
+                raise exceptions.TestNAError("Unsupported OS variant: %s.\n"
+                                             "Supported variants: %s" %
+                                             (params.get('os_variant'), os_text))
             virt_install_cmd += add_os_variant(
                 help_text, params.get("os_variant"))
 
