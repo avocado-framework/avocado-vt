@@ -112,7 +112,7 @@ def verify_recommended_programs(t_type):
                 found = utils_path.find_command(cmd)
                 logging.info('%s OK', found)
                 break
-            except ValueError:
+            except utils_path.CmdNotFoundError:
                 pass
         if not found:
             if len(cmd_aliases) == 1:
@@ -131,7 +131,7 @@ def verify_mandatory_programs(t_type, guest_os):
     for cmd in cmds:
         try:
             logging.info('%s OK', utils_path.find_command(cmd))
-        except ValueError:
+        except utils_path.CmdNotFoundError:
             if cmd == '7za' and guest_os != defaults.DEFAULT_GUEST_OS:
                 logging.warn("Command 7za (required to uncompress JeOS) "
                              "missing. You can still use avocado-vt with guest"
