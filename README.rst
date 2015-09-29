@@ -9,14 +9,39 @@ Getting started with avocado-vt
 ===============================
 
 Here's a reference guide on how to get the plugin setup and running,
-assuming you are using git repos for avocado and avocado-vt.
+assuming you are using git repos for avocado and avocado-vt. Please keep in
+mind that the recommended way of using avocado is through RPM packages, that
+you can see how to install in our online documentation:
+
+http://avocado-vt.readthedocs.org/en/latest/GetStartedGuide.html
+
+If you want to go ahead and use the git repos (you're hacking on avocado and
+avocado-vt), then follow the instructions below:
 
 1. Make sure you have avocado and avocado-vt repositories cloned in the same dir.
    then you can execute our `make link` target::
 
     $ make link
 
-2. Run the bootstrap procedure for the test backend (qemu, libvirt, v2v,
+2. Avocado-VT has a number of dependencies on other software packages. You can
+   install those dependencies via pip, or some other method of your preference
+   (install distro packages, for example). As an example, on a recent Fedora
+   install (> 22), the dependencies can be installed with::
+
+    $ yum install autotest-framework p7zip tcpdump iproute iputils gcc glibc-headers python-devel nc aexpect
+
+   This assumes you are using our software repositories to install packages
+   such as `aexpect` (see the GetStartedGuide.html link above). If you use other
+   distros, we trust you'll take the above as a reference and will find the
+   correspondent software packages to install. For example, you can install
+   autotest-framework and `aexpect` using pip::
+
+    $ pip install autotest aexpect
+
+   Keep in mind that this text file might be outdated, and that usually our spec file
+   (avocado-plugins-vt.spec) tends to be a good reference as well.
+
+3. Run the bootstrap procedure for the test backend (qemu, libvirt, v2v,
    openvswitch, among others) of your interest. We'll use qemu as an example::
 
     $ scripts/avocado vt-bootstrap --vt-type qemu
@@ -29,7 +54,12 @@ assuming you are using git repos for avocado and avocado-vt.
     etc/avocado/conf.d/virt-test.conf
     virttest
 
-5. Let's test if things went well by listing the avocado plugins. In the avocado source dir, do::
+   Also, it's important to note that this process will create a new directory
+   in your home dir, by default, ~/avocado. This directory will be populated
+   with a number of config files (and other data files) necessary to run the
+   avocado-vt tests.
+
+4. Let's test if things went well by listing the avocado plugins. In the avocado source dir, do::
 
     $ scripts/avocado plugins
 
@@ -39,7 +69,7 @@ assuming you are using git repos for avocado and avocado-vt.
     virt_test_compat_runner  Implements the avocado virt test options
     virt_test_compat_lister  Implements the avocado virt test options
 
-6. The next test is to see if virt-tests are also listed in the output of the
+5. The next test is to see if virt-tests are also listed in the output of the
    command `avocado list`::
 
     $ scripts/avocado list --verbose
@@ -55,7 +85,7 @@ assuming you are using git repos for avocado and avocado-vt.
     SIMPLE: 3
     VT: 1923
 
-7. Assuming all is well, you can try running one virt-test::
+6. Assuming all is well, you can try running one virt-test::
 
     $ scripts/avocado run type_specific.io-github-autotest-qemu.migrate.default.tcp
     JOB ID     : <id>
