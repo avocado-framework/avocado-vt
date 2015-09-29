@@ -13,8 +13,10 @@
 # Author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 
 import sys
+import logging
 
 from avocado.core.plugins import plugin
+from avocado.utils import process
 
 from virttest import bootstrap
 from virttest import defaults
@@ -102,5 +104,9 @@ class VirtBootstrap(plugin.Plugin):
         args.show_job_log = False
         args.test_lister = True
 
-        bootstrap.bootstrap(options=args, interactive=True)
-        sys.exit(0)
+        try:
+            bootstrap.bootstrap(options=args, interactive=True)
+            sys.exit(0)
+        except (KeyboardInterrupt, process.CmdError):
+            logging.error('Bootstrap interrupted by user')
+            sys.exit(1)
