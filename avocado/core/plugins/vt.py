@@ -983,7 +983,7 @@ class VirtTestOptionsProcess(object):
         """
         try:
             tcpdump_path = utils_path.find_command('tcpdump')
-        except ValueError:
+        except utils_path.CmdNotFoundError:
             tcpdump_path = None
 
         non_root = os.getuid() != 0

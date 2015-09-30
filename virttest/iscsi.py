@@ -780,12 +780,12 @@ class Iscsi(object):
             path.find_command("iscsiadm")
             path.find_command("tgtadm")
             iscsi_instance = IscsiTGT(params, root_dir)
-        except ValueError:
+        except path.CmdNotFoundError:
             try:
                 path.find_command("iscsiadm")
                 path.find_command("targetcli")
                 iscsi_instance = IscsiLIO(params, root_dir)
-            except ValueError:
+            except path.CmdNotFoundError:
                 pass
 
         return iscsi_instance

@@ -565,7 +565,7 @@ def preprocess(test, params, env):
         for cmd in params.get("cmds_installed_host").split():
             try:
                 path.find_command(cmd)
-            except ValueError, msg:
+            except path.CmdNotFoundError, msg:
                 raise exceptions.TestNAError(msg.message)
 
     vm_type = params.get('vm_type')
