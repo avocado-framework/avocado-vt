@@ -319,15 +319,23 @@ def download_test_provider(provider, update=False):
                 except process.CmdError:
                     pass
                 process.run('git pull origin %s' % branch)
-            os.chdir(download_dst)
-            process.system('git log -1')
-            os.chdir(original_dir)
         except (KeyboardInterrupt, process.CmdError):
             logging.error('Cleaning up provider %s download dir %s', provider,
                           download_dst)
             if os.path.isdir(download_dst):
                 shutil.rmtree(download_dst)
             raise
+
+        # sanity check to ensure the git repository is OK:
+        try:
+            os.chdir(download_dst)
+            process.system('git log -1')
+        except process.CmdError:
+            logging.error('Something is unexpectedly wrong with the git repository at %s',
+                          download_dst)
+            raise
+        finally:
+            os.chdir(original_dir)
 
 
 def download_all_test_providers(update=False):
