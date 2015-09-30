@@ -19,6 +19,7 @@ from avocado.utils import path
 
 from . import utils_selinux
 from . import utils_net
+from . import data_dir
 
 ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
 
@@ -774,7 +775,7 @@ class Iscsi(object):
     and return ISCSI instance.
     """
     @staticmethod
-    def create_iSCSI(params, root_dir="/tmp"):
+    def create_iSCSI(params, root_dir=data_dir.get_tmp_dir()):
         iscsi_instance = None
         try:
             path.find_command("iscsiadm")

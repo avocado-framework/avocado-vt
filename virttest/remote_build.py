@@ -4,6 +4,8 @@ import remote
 import hashlib
 import logging
 
+from . import data_dir
+
 
 class BuildError(Exception):
 
@@ -75,7 +77,8 @@ class Builder(object):
         self.username = def_helper(username, "username", "root")
         self.password = def_helper(password, "password", "redhat")
         self.make_flags = make_flags
-        self.build_dir = def_helper(build_dir, "tmp_dir", "/tmp")
+        self.build_dir = def_helper(build_dir, "tmp_dir",
+                                    data_dir.get_tmp_dir())
         if build_dir_prefix is None:
             build_dir_prefix = os.path.basename(source)
         self.full_build_path = full_build_path(self.build_dir,
