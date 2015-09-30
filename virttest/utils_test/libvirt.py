@@ -521,7 +521,7 @@ def setup_or_cleanup_gluster(is_setup, vol_name, brick_path="", pool_name="",
     """
     try:
         utils_path.find_command("gluster")
-    except ValueError:
+    except utils_path.CmdNotFoundError:
         raise exceptions.TestNAError("Missing command 'gluster'")
     if not brick_path:
         tmpdir = os.path.join(data_dir.get_root_dir(), 'tmp')
@@ -2250,7 +2250,7 @@ def create_scsi_disk(scsi_option, scsi_size="2048"):
     """
     try:
         utils_path.find_command("lsscsi")
-    except ValueError:
+    except utils_path.CmdNotFoundError:
         raise exceptions.TestNAError("Missing command 'lsscsi'.")
 
     try:

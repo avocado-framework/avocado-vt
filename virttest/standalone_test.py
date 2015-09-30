@@ -74,7 +74,7 @@ def find_default_qemu_paths(options_qemu=None, options_dst_qemu=None):
     else:
         try:
             qemu_bin_path = utils_path.find_command('qemu-kvm')
-        except ValueError:
+        except utils_path.CmdNotFoundError:
             qemu_bin_path = utils_path.find_command('kvm')
 
     if options_dst_qemu is not None:
@@ -569,7 +569,7 @@ def get_paginator():
     try:
         less_cmd = utils_path.find_command('less')
         return os.popen('%s -FRSX' % less_cmd, 'w')
-    except ValueError:
+    except utils_path.CmdNotFoundError:
         return sys.stdout
 
 
