@@ -521,7 +521,7 @@ class SSHConnection(ConnectionBase):
             toolName = tool_dict[key]
             try:
                 tool = path.find_command(toolName)
-            except ValueError:
+            except path.CmdNotFoundError:
                 logging.debug("%s executable not set or found on path,"
                               "some function of connection will fail.",
                               toolName)
@@ -829,7 +829,7 @@ class TLSConnection(ConnectionBase):
         # check and set CERTTOOL in slots
         try:
             CERTTOOL = path.find_command("certtool")
-        except ValueError:
+        except path.CmdNotFoundError:
             logging.warning("certtool executable not set or found on path, "
                             "TLS connection will not setup normally")
             CERTTOOL = '/bin/true'

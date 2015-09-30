@@ -41,7 +41,7 @@ def find_default_qemu_paths(options_qemu=None, options_dst_qemu=None):
     else:
         try:
             qemu_bin_path = utils_path.find_command('qemu-kvm')
-        except ValueError:
+        except utils_path.CmdNotFoundError:
             qemu_bin_path = utils_path.find_command('kvm')
 
     if options_dst_qemu is not None:
