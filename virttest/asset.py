@@ -307,6 +307,7 @@ def download_test_provider(provider, update=False):
         ref = provider_info.get('ref')
         pubkey = provider_info.get('pubkey')
         download_dst = data_dir.get_test_provider_dir(provider)
+        dir_existed = os.path.exists(download_dst)
         repo_downloaded = os.path.isdir(os.path.join(download_dst, '.git'))
         original_dir = os.getcwd()
         try:
@@ -319,10 +320,10 @@ def download_test_provider(provider, update=False):
                 except process.CmdError:
                     pass
                 process.run('git pull origin %s' % branch)
-        except (KeyboardInterrupt, process.CmdError):
-            logging.error('Cleaning up provider %s download dir %s', provider,
-                          download_dst)
-            if os.path.isdir(download_dst):
+        except:
+            if not dir_existed and os.path.isdir(download_dst):
+                logging.error('Cleaning up provider %s download dir %s', provider,
+                              download_dst)
                 shutil.rmtree(download_dst)
             raise
 
