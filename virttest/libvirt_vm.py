@@ -282,7 +282,7 @@ class VM(virt_vm.BaseVM):
         # Since backup_xml() is not a function for testing,
         # we have to handle the exception here.
         try:
-            xml_file = tempfile.mktemp(dir="/tmp")
+            xml_file = tempfile.mktemp(dir=data_dir.get_tmp_dir())
 
             if active:
                 extra = ""
@@ -1485,7 +1485,9 @@ class VM(virt_vm.BaseVM):
 
         # Make sure the following code is not executed by more than one thread
         # at the same time
-        lockfile = open("/tmp/libvirt-autotest-vm-create.lock", "w+")
+        lockfilename = os.path.join(data_dir.get_tmp_dir(),
+                                    "libvirt-autotest-vm-create.lock")
+        lockfile = open(lockfilename, "w+")
         fcntl.lockf(lockfile, fcntl.LOCK_EX)
 
         try:

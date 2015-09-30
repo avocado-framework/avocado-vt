@@ -23,8 +23,10 @@ import signal
 import remote_interface
 import messenger as ms
 
+from .. import data_dir
 
-def daemonize(pipe_root_path="/tmp"):
+
+def daemonize(pipe_root_path=data_dir.get_tmp_dir()):
     """
     Init daemon.
 
@@ -332,7 +334,7 @@ class CmdSlave(object):
             self.basecmd._async = True
         elif self.nohup:   # start command in new daemon process
             if self.basecmd.cmd_hash is None:
-                self.basecmd.cmd_hash = gen_tmp_dir("/tmp")
+                self.basecmd.cmd_hash = gen_tmp_dir(data_dir.get_tmp_dir())
             self.basecmd.results = self.__call_nohup__(commander)
             self.basecmd._async = True
         else:  # start command in new process but wait for input.
