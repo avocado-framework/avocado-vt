@@ -307,9 +307,9 @@ def download_test_provider(provider, update=False):
         ref = provider_info.get('ref')
         pubkey = provider_info.get('pubkey')
         download_dst = data_dir.get_test_provider_dir(provider)
+        repo_downloaded = os.path.isdir(os.path.join(download_dst, '.git'))
+        original_dir = os.getcwd()
         try:
-            repo_downloaded = os.path.isdir(os.path.join(download_dst, '.git'))
-            original_dir = os.getcwd()
             if not repo_downloaded or update:
                 download_dst = git.get_repo(uri=uri, branch=branch, commit=ref,
                                             destination_dir=download_dst)
