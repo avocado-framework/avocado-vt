@@ -1952,7 +1952,7 @@ class IPv6Manager(propcan.PropCanBase):
         """
         try:
             utils_path.find_command("ping6")
-        except ValueError:
+        except utils_path.CmdNotFoundError:
             raise exceptions.TestNAError("Can't find ping6 command")
         command = "ping6 -I %s %s -c %s" % (client_ifname, server_ipv6, count)
         result = process.run(command, ignore_status=True)
@@ -1974,7 +1974,7 @@ class IPv6Manager(propcan.PropCanBase):
         # check if ip6tables command exists on the local
         try:
             utils_path.find_command("ip6tables")
-        except ValueError:
+        except utils_path.CmdNotFoundError:
             raise exceptions.TestNAError(test_NA_err)
         # flush local ip6tables rules
         result = process.run(flush_cmd, ignore_status=True)
@@ -3201,7 +3201,7 @@ def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
         if not runner:
             try:
                 utils_path.find_command("netstat")
-            except ValueError, details:
+            except utils_path.CmdNotFoundError, details:
                 raise exceptions.TestNAError(details)
             output = process.system_output(cmd)
         else:

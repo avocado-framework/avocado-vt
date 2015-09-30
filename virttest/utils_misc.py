@@ -2170,10 +2170,10 @@ def get_qemu_binary(params):
         logging.debug('Could not find params qemu in %s, searching the '
                       'host PATH for one to use', qemu_binary_path)
         try:
-            qemu_binary = find_command('qemu-kvm')
+            qemu_binary = utils_path.find_command('qemu-kvm')
             logging.debug('Found %s', qemu_binary)
-        except ValueError:
-            qemu_binary = find_command('kvm')
+        except utils_path.CmdNotFoundError:
+            qemu_binary = utils_path.find_command('kvm')
             logging.debug('Found %s', qemu_binary)
     else:
         library_path = os.path.join(
@@ -2220,7 +2220,7 @@ def get_qemu_img_binary(params):
     if not os.path.isfile(qemu_img_binary_path):
         logging.debug('Could not find params qemu-img in %s, searching the '
                       'host PATH for one to use', qemu_img_binary_path)
-        qemu_img_binary = find_command('qemu-img')
+        qemu_img_binary = utils_path.find_command('qemu-img')
         logging.debug('Found %s', qemu_img_binary)
     else:
         qemu_img_binary = qemu_img_binary_path
@@ -2237,7 +2237,7 @@ def get_qemu_io_binary(params):
     if not os.path.isfile(qemu_io_binary_path):
         logging.debug('Could not find params qemu-io in %s, searching the '
                       'host PATH for one to use', qemu_io_binary_path)
-        qemu_io_binary = find_command('qemu-io')
+        qemu_io_binary = utils_path.find_command('qemu-io')
         logging.debug('Found %s', qemu_io_binary)
     else:
         qemu_io_binary = qemu_io_binary_path
@@ -2914,7 +2914,7 @@ class KSMController(object):
         else:
             try:
                 utils_path.find_command("ksmctl")
-            except ValueError:
+            except utils_path.CmdNotFoundError:
                 raise KSMNotSupportedError
             _KSM_PARAMS = ["run", "pages_to_scan", "sleep_millisecs"]
             # No _KSM_PATH needed here
@@ -2942,7 +2942,7 @@ class KSMController(object):
         """
         try:
             utils_path.find_command("ksmtuned")
-        except ValueError:
+        except utils_path.CmdNotFoundError:
             raise KSMTunedNotSupportedError
 
         process_id = process.system_output("ps -C ksmtuned -o pid=",

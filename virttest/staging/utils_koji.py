@@ -307,7 +307,7 @@ class KojiClient(object):
                 try:
                     koji_command = path.find_command(koji_command_basename)
                     break
-                except ValueError:
+                except path.CmdNotFoundError:
                     pass
         return koji_command
 
