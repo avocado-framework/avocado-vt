@@ -197,6 +197,8 @@ class VirtTestLoader(loader.TestLoader):
         add_if_not_exist('test_lister', True)
 
     def _get_parser(self):
+        bootstrap.create_guest_os_cfg(self.args.vt_type)
+        bootstrap.create_subtests_cfg(self.args.vt_type)
         options_processor = VirtTestOptionsProcess(self.args)
         return options_processor.get_parser()
 
