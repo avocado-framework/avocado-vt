@@ -19,6 +19,7 @@ from avocado.utils import process
 
 import aexpect
 
+from . import data_dir
 from . import propcan
 from . import utils_misc
 from . import arch
@@ -2613,7 +2614,7 @@ class DbNet(VMNet):
         except AttributeError:
             raise DbNoLockError
 
-ADDRESS_POOL_FILENAME = os.path.join("/tmp", "address_pool")
+ADDRESS_POOL_FILENAME = os.path.join(data_dir.get_tmp_dir(), "address_pool")
 ADDRESS_POOL_LOCK_FILENAME = ADDRESS_POOL_FILENAME + ".lock"
 
 
