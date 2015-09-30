@@ -107,6 +107,20 @@ class VirtBootstrap(plugin.Plugin):
         try:
             bootstrap.bootstrap(options=args, interactive=True)
             sys.exit(0)
-        except (KeyboardInterrupt, process.CmdError):
-            logging.error('Bootstrap interrupted by user')
+        except process.CmdError, ce:
+            if ce.result.interrupted:
+                logging.info('Bootstrap command interrupted by user')
+                logging.info('Command: %s', ce.command)
+            else:
+                logging.error('Bootstrap command failed')
+                logging.error('Command: %s', ce.command)
+                if ce.result.stderr:
+                    logging.error('stderr output:')
+                    logging.error(ce.result.stderr)
+                if ce.result.stdout:
+                    logging.error('stdout output:')
+                    logging.error(ce.result.stdout)
+            sys.exit(1)
+        except KeyboardInterrupt:
+            logging.info('Bootstrap interrupted by user')
             sys.exit(1)

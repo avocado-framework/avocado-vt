@@ -228,10 +228,7 @@ def get_test_provider_dir(provider):
     """
     Return a specific test providers dir, inside the base dir.
     """
-    provider_dir = os.path.join(TEST_PROVIDERS_DOWNLOAD_DIR, provider)
-    if not provider_dir:
-        os.makedirs(provider_dir)
-    return provider_dir
+    return os.path.join(TEST_PROVIDERS_DOWNLOAD_DIR, provider)
 
 
 def clean_tmp_files():
