@@ -108,5 +108,5 @@ class VirtBootstrap(plugin.Plugin):
             bootstrap.bootstrap(options=args, interactive=True)
             sys.exit(0)
         except (KeyboardInterrupt, process.CmdError):
-            logging.error('Bootstrap interrupted by user')
+            logging.info('Bootstrap interrupted by user')
             sys.exit(1)
