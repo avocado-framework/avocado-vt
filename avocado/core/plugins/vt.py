@@ -156,8 +156,8 @@ class VirtTestLoader(loader.TestLoader):
 
     name = 'vt'
 
-    def __init__(self, args):
-        super(VirtTestLoader, self).__init__(args)
+    def __init__(self, args, extra_params):
+        super(VirtTestLoader, self).__init__(args, extra_params)
         self._fill_optional_args()
 
     def _fill_optional_args(self):
