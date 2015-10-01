@@ -173,7 +173,7 @@ def receive(device, filename, p_size=1024):
     vio = VirtIoChannel(device)
     size = vio.shake_hand(action="receive")
     if p_size < int(size):
-        p_szie = int(size)
+        p_size = int(size)
     md5_value = md5_init()
     file_no = open(filename, 'wb')
     try:
