@@ -810,7 +810,7 @@ def archive_as_tarball(source_dir, dest_dir, tarball_name=None,
 
     If the name of the archive is omitted, it will be taken from the
     source_dir. If it is an absolute path, dest_dir will be ignored. But,
-    if both the destination directory and tarball anem is given, and the
+    if both the destination directory and tarball name are given, and the
     latter is not an absolute path, they will be combined.
 
     For archiving directory '/tmp' in '/net/server/backup' as file
@@ -830,6 +830,11 @@ def archive_as_tarball(source_dir, dest_dir, tarball_name=None,
     >>> utils_misc.archive_as_tarball('/tmp', '/net/server/backup',
                                       'host1-tmp', 'gz')
     '''
+    mode_str = 'w:%s' % compression
+    if mode_str not in tarfile.open.__doc__:
+        raise exceptions.TestError("compression %s is not supported method %s"
+                                   % (mode_str, tarfile.open.__doc__))
+
     tarball_name = get_archive_tarball_name(source_dir,
                                             tarball_name,
                                             compression)
@@ -843,8 +848,7 @@ def archive_as_tarball(source_dir, dest_dir, tarball_name=None,
                                               tarball_path))
 
     os.chdir(os.path.dirname(source_dir))
-    tarball = tarfile.TarFile(name=tarball_path, mode='w')
-    tarball = tarball.open(name=tarball_path, mode='w:%s' % compression)
+    tarball = tarfile.open(name=tarball_path, mode=mode_str)
     tarball.add(os.path.basename(source_dir))
     tarball.close()
 
