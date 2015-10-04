@@ -618,7 +618,7 @@ class UnattendedInstallConfig(object):
                                            self.unattended_server_port,
                                            dest_fname)
         if 'ks=' in self.kernel_params:
-            kernel_params = re.sub('ks\=[\w\d\:\.\/]+',
+            kernel_params = re.sub('ks=[\w\d:\-\./]+',
                                    ks_param,
                                    self.kernel_params)
         else:
@@ -650,7 +650,7 @@ class UnattendedInstallConfig(object):
                 ks_param = 'ks=cdrom:/dev/sr0:/isolinux/%s' % dest_fname
                 kernel_params = self.kernel_params
                 if 'ks=' in kernel_params:
-                    kernel_params = re.sub('ks\=[\w\d\:\.\/]+',
+                    kernel_params = re.sub('ks=[\w\d:\-\./]+',
                                            ks_param,
                                            kernel_params)
                 else:
@@ -660,7 +660,7 @@ class UnattendedInstallConfig(object):
                 # install cdrom in /dev/sr1. As we merge them together,
                 # we need to change repo configuration to /dev/sr0
                 if 'repo=cdrom' in kernel_params:
-                    kernel_params = re.sub('repo\=cdrom[\:\w\d\/]*',
+                    kernel_params = re.sub('repo=cdrom[:\w\d\-/]*',
                                            'repo=cdrom:/dev/sr0',
                                            kernel_params)
 
@@ -684,7 +684,7 @@ class UnattendedInstallConfig(object):
                 ks_param = 'ks=%s' % boot_disk.get_url()
                 kernel_params = self.kernel_params
                 if 'ks=' in kernel_params:
-                    kernel_params = re.sub('ks\=[\w\d\:\.\/]+',
+                    kernel_params = re.sub('ks=[\w\d:\-\./]+',
                                            ks_param,
                                            kernel_params)
                 else:
@@ -693,7 +693,7 @@ class UnattendedInstallConfig(object):
                 # Standard setting is kickstart disk in /dev/sr0 and
                 # install cdrom in /dev/sr1. When we get ks via http,
                 # we need to change repo configuration to /dev/sr0
-                kernel_params = re.sub('repo\=cdrom[\:\w\d\/]*',
+                kernel_params = re.sub('repo=cdrom[:\w\d\-/]*',
                                        'repo=cdrom:/dev/sr0',
                                        kernel_params)
 
@@ -712,13 +712,13 @@ class UnattendedInstallConfig(object):
                     # options 'ks=hd:/dev/fd0' can reading ks from mounted
                     # floppy, so skip repace it;
                     if not re.search("fd\d+", kernel_params):
-                        kernel_params = re.sub('ks\=[\w\d\:\.\/]+',
+                        kernel_params = re.sub('ks=[\w\d\-:\./]+',
                                                ks_param,
                                                kernel_params)
                 else:
                     kernel_params = '%s %s' % (kernel_params, ks_param)
 
-                kernel_params = re.sub('repo\=cdrom[\:\w\d\/]*',
+                kernel_params = re.sub('repo=cdrom[:\w\d\-/]*',
                                        'repo=cdrom:/dev/sr0',
                                        kernel_params)
 
@@ -741,7 +741,7 @@ class UnattendedInstallConfig(object):
                     autoyast_param = 'autoyast=device://fd0/autoinst.xml'
                     kernel_params = self.kernel_params
                     if 'autoyast=' in kernel_params:
-                        kernel_params = re.sub('autoyast\=[\w\d\:\.\/]+',
+                        kernel_params = re.sub('autoyast=[\w\d\-:\./]+',
                                                autoyast_param,
                                                kernel_params)
                     else:
@@ -862,7 +862,7 @@ class UnattendedInstallConfig(object):
 
                 if 'repo=cdrom' in self.kernel_params:
                     # Red Hat
-                    self.kernel_params = re.sub('repo\=[\:\w\d\/]*',
+                    self.kernel_params = re.sub('repo=[:\w\d\-/]*',
                                                 'repo=http://%s:%s' %
                                                 (self.url_auto_content_ip,
                                                  self.url_auto_content_port),
@@ -906,7 +906,7 @@ class UnattendedInstallConfig(object):
 
             if 'repo=cdrom' in self.kernel_params:
                 # Red Hat
-                self.kernel_params = re.sub('repo\=[\:\w\d\/]*',
+                self.kernel_params = re.sub('repo=[:\w\d\-/]*',
                                             'repo=%s' % self.url,
                                             self.kernel_params)
             elif 'autoyast=' in self.kernel_params:
