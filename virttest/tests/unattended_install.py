@@ -889,20 +889,42 @@ class UnattendedInstallConfig(object):
             if not os.path.exists(self.image_path):
                 os.mkdir(self.image_path)
             os.chdir(self.image_path)
-            kernel_cmd = "wget -q %s/%s/%s" % (self.url,
-                                               self.boot_path,
-                                               os.path.basename(self.kernel))
-            initrd_cmd = "wget -q %s/%s/%s" % (self.url,
-                                               self.boot_path,
-                                               os.path.basename(self.initrd))
 
-            if os.path.exists(self.kernel):
-                os.remove(self.kernel)
-            if os.path.exists(self.initrd):
-                os.remove(self.initrd)
+            kernel_basename = os.path.basename(self.kernel)
+            initrd_basename = os.path.basename(self.initrd)
+            sha1sum_kernel_cmd = 'sha1sum %s' % kernel_basename
+            sha1sum_kernel_output = process.system_output(sha1sum_kernel_cmd,
+                                                          ignore_status=True,
+                                                          verbose=DEBUG)
+            sha1sum_kernel = sha1sum_kernel_output.split()[0]
+            sha1sum_initrd_cmd = 'sha1sum %s' % initrd_basename
+            sha1sum_initrd_output = process.system_output(sha1sum_initrd_cmd,
+                                                          ignore_status=True,
+                                                          verbose=DEBUG)
+            sha1sum_initrd = sha1sum_initrd_output.split()[0]
 
-            process.run(kernel_cmd, verbose=DEBUG)
-            process.run(initrd_cmd, verbose=DEBUG)
+            url_kernel = os.path.join(self.url, self.boot_path,
+                                      os.path.basename(self.kernel))
+            kernel_cmd = "wget -q %s" % url_kernel
+            url_initrd = os.path.join(self.url, self.boot_path,
+                                      os.path.basename(self.initrd))
+            initrd_cmd = "wget -q %s" % url_initrd
+
+            if not sha1sum_kernel == self.params.get('sha1sum_vmlinuz',
+                                                     'BOGUS_VALUE'):
+                if os.path.isdir(self.kernel):
+                    os.remove(self.kernel)
+                logging.info('Downloading %s -> %s', url_kernel,
+                             self.image_path)
+                process.run(kernel_cmd, verbose=DEBUG)
+
+            if not sha1sum_initrd == self.params.get('sha1sum_initrd',
+                                                     'BOGUS_VALUE'):
+                if os.path.isdir(self.initrd):
+                    os.remove(self.initrd)
+                logging.info('Downloading %s -> %s', url_initrd,
+                             self.image_path)
+                process.run(initrd_cmd, verbose=DEBUG)
 
             if 'repo=cdrom' in self.kernel_params:
                 # Red Hat
