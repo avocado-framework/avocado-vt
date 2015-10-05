@@ -576,14 +576,6 @@ def download_asset(asset, interactive=True, restore_image=False):
                           in order to restore the image.
     """
     asset_info = get_asset_info(asset)
-    destination = asset_info['destination']
 
-    if (interactive and not os.path.isfile(destination)):
-        answer = genio.ask("File %s not present. Do you want to download it?" %
-                           asset_info['title'])
-    else:
-        answer = "y"
-
-    if answer == "y":
-        download_file(asset_info=asset_info, interactive=interactive,
-                      force=restore_image)
+    download_file(asset_info=asset_info, interactive=interactive,
+                  force=restore_image)
