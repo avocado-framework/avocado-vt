@@ -248,7 +248,12 @@ class UnattendedInstallConfig(object):
         except utils_net.NetError:
             auto_ip = None
 
-        self.url_auto_content_ip = params.get('url_auto_ip', auto_ip)
+        params_auto_ip = params.get('url_auto_ip', None)
+        if params_auto_ip:
+            self.url_auto_content_ip = params_auto_ip
+        else:
+            self.url_auto_content_ip = auto_ip
+
         self.url_auto_content_port = None
 
         # Kickstart server params
