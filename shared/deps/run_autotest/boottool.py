@@ -1456,8 +1456,6 @@ class Grubby(object):
             self.log.debug('No popt.h header present, skipping build')
             return False
 
-        tarball_name = os.path.basename(tarball)
-
         srcdir = os.path.join(topdir, 'src')
         srcdir = self._extract_tarball(tarball, srcdir)
         os.chdir(srcdir)
@@ -1516,7 +1514,6 @@ class Grubby(object):
         if tarball is None:
             raise GrubbyInstallException('Failed to fetch grubby tarball')
 
-        srcdir = os.path.join(topdir, 'src')
         install_root = os.path.join(topdir, 'install_root')
         os.mkdir(install_root)
 
