@@ -317,9 +317,9 @@ class IOzoneAnalyzer(object):
         overall = []
         record_size = []
         file_size = []
-        for path in self.list_files:
-            fileobj = open(path, 'r')
-            logging.info('FILE: %s', path)
+        for file_path in self.list_files:
+            fileobj = open(file_path, 'r')
+            logging.info('FILE: %s', file_path)
 
             results = self.parse_file(fileobj)
 
