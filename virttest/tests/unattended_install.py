@@ -896,12 +896,19 @@ class UnattendedInstallConfig(object):
             sha1sum_kernel_output = process.system_output(sha1sum_kernel_cmd,
                                                           ignore_status=True,
                                                           verbose=DEBUG)
-            sha1sum_kernel = sha1sum_kernel_output.split()[0]
+            try:
+                sha1sum_kernel = sha1sum_kernel_output.split()[0]
+            except IndexError:
+                sha1sum_kernel = ''
+
             sha1sum_initrd_cmd = 'sha1sum %s' % initrd_basename
             sha1sum_initrd_output = process.system_output(sha1sum_initrd_cmd,
                                                           ignore_status=True,
                                                           verbose=DEBUG)
-            sha1sum_initrd = sha1sum_initrd_output.split()[0]
+            try:
+                sha1sum_initrd = sha1sum_initrd_output.split()[0]
+            except IndexError:
+                sha1sum_initrd = ''
 
             url_kernel = os.path.join(self.url, self.boot_path,
                                       os.path.basename(self.kernel))
@@ -911,7 +918,7 @@ class UnattendedInstallConfig(object):
             initrd_cmd = "wget -q %s" % url_initrd
 
             if not sha1sum_kernel == self.params.get('sha1sum_vmlinuz',
-                                                     'BOGUS_VALUE'):
+                                                     None):
                 if os.path.isdir(self.kernel):
                     os.remove(self.kernel)
                 logging.info('Downloading %s -> %s', url_kernel,
@@ -919,7 +926,7 @@ class UnattendedInstallConfig(object):
                 process.run(kernel_cmd, verbose=DEBUG)
 
             if not sha1sum_initrd == self.params.get('sha1sum_initrd',
-                                                     'BOGUS_VALUE'):
+                                                     None):
                 if os.path.isdir(self.initrd):
                     os.remove(self.initrd)
                 logging.info('Downloading %s -> %s', url_initrd,
