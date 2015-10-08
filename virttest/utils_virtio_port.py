@@ -1,7 +1,5 @@
 import logging
 
-from avocado.core import exceptions
-
 from . import env_process
 from . import error_context
 from . import qemu_virtio_port

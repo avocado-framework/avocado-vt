@@ -10,12 +10,11 @@ import sys
 import copy
 import multiprocessing
 
+import aexpect
 from avocado.utils import process as avocado_process
 from avocado.utils import crypto
 from avocado.utils import path
 from avocado.core import exceptions
-
-import aexpect
 
 from . import error_context
 from . import qemu_monitor

@@ -2,8 +2,8 @@
 Common base classes for filter rule protocols
 """
 
-import logging
 from StringIO import StringIO
+
 from virttest import xml_utils
 from virttest.libvirt_xml import base, xcepts, accessors
 

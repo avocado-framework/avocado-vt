@@ -13,7 +13,6 @@ from avocado.utils import crypto
 from avocado.core import output
 from avocado.core import log
 
-
 if __name__ == "__main__":
     parser = optparse.OptionParser("usage: %prog [options] [filenames]")
     options, args = parser.parse_args()

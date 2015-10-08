@@ -1,5 +1,4 @@
 import gtk
-import logging
 
 
 class TestForm(gtk.Window):

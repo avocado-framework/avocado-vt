@@ -7,9 +7,9 @@ import signal
 import os
 import re
 
+import aexpect
 from avocado.utils import path
 from avocado.utils import process
-import aexpect
 
 from . import propcan
 

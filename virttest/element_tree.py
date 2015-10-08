@@ -118,6 +118,7 @@ import re
 
 from . import element_path as ElementPath
 
+
 # TODO: add support for custom namespace resolvers/default namespaces
 # TODO: add improved support for incremental parsing
 

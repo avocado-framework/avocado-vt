@@ -9,7 +9,6 @@ import random
 import math
 import shutil
 
-from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils import wait
 from avocado.utils import genio

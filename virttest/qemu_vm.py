@@ -11,11 +11,10 @@ import fcntl
 import re
 import commands
 
+import aexpect
 from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils import crypto
-
-import aexpect
 
 from .qemu_devices import qdevices, qcontainer
 from . import utils_misc

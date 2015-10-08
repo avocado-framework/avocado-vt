@@ -3,15 +3,16 @@ import UserDict
 import os
 import logging
 import re
-import utils_misc
-import virt_vm
-import aexpect
-import remote
 import threading
 
+import aexpect
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
 from avocado.utils import process
+
+import utils_misc
+import virt_vm
+import remote
 
 ENV_VERSION = 1
 

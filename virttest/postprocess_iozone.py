@@ -21,7 +21,6 @@ from avocado.utils import path
 
 from . import utils_misc
 
-
 _LABELS = ['file_size', 'record_size', 'write', 'rewrite', 'read', 'reread',
            'randread', 'randwrite', 'bkwdread', 'recordrewrite', 'strideread',
            'fwrite', 'frewrite', 'fread', 'freread']

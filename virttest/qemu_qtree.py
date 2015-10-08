@@ -7,11 +7,11 @@ Utility classes and functions to handle KVM Qtree parsing and verification.
 import logging
 import os
 import re
-import storage
-import data_dir
-import utils_misc
-import arch
 
+from . import storage
+from . import data_dir
+from . import utils_misc
+from . import arch
 
 OFFSET_PER_LEVEL = 2
 

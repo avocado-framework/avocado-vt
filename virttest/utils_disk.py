@@ -16,6 +16,7 @@ from avocado.utils import process
 
 from . import error_context
 
+
 # Whether to print all shell commands called
 DEBUG = False
 

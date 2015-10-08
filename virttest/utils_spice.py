@@ -7,9 +7,8 @@ import logging
 import time
 import sys
 
-from avocado.core import exceptions
-
 from aexpect import ShellCmdError, ShellStatusError
+from avocado.core import exceptions
 
 from . import utils_net, utils_misc
 

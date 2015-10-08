@@ -13,7 +13,6 @@ import shutil
 import socket
 
 from avocado.utils import process
-from avocado.core import exceptions
 
 from . import data_dir
 from . import utils_misc

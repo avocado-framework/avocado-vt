@@ -1,6 +1,5 @@
 #!/usr/bin/python
 import os
-import sys
 
 
 class check_error(Exception):

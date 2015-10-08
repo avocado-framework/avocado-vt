@@ -8,10 +8,9 @@ import os
 import shutil
 import tempfile
 
+import aexpect
 from avocado.core import exceptions
 from avocado.utils import process
-
-import aexpect
 
 from . import data_dir
 from . import utils_misc

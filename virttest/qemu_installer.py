@@ -12,7 +12,6 @@ from avocado.utils import process
 
 from . import base_installer
 
-
 __all__ = ['GitRepoInstaller', 'LocalSourceDirInstaller',
            'LocalSourceTarInstaller', 'RemoteSourceTarInstaller']
 

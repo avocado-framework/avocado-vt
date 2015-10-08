@@ -10,6 +10,7 @@ from avocado.utils import linux_modules
 from .versionable_class import VersionableClass, Manager, factory
 from . import utils_misc
 
+
 # Register to class manager.
 man = Manager(__name__)
 

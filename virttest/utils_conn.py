@@ -8,10 +8,9 @@ import shutil
 import tempfile
 import commands
 
+import aexpect
 from avocado.utils import path
 from avocado.utils import process
-
-import aexpect
 
 from . import propcan, remote, utils_libvirtd
 from . import data_dir

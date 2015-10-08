@@ -9,11 +9,10 @@ import re
 import time
 import logging
 
-import ovirt
-
 from avocado.utils import path
 from avocado.utils import process
 
+import ovirt
 from .utils_test import libvirt
 from . import libvirt_vm as lvirt
 from . import virsh

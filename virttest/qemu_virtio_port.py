@@ -12,13 +12,12 @@ import select
 import socket
 import time
 
+import aexpect
+
 from avocado.core import exceptions
 from avocado.utils import process
 
-import aexpect
-
 from . import data_dir
-
 
 SOCKET_SIZE = 2048
 

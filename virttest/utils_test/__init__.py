@@ -29,6 +29,7 @@ import threading
 import time
 import subprocess
 
+import aexpect
 from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils import aurl
@@ -36,7 +37,6 @@ from avocado.utils import download
 from avocado.utils import crypto
 from avocado.utils import path
 
-import aexpect
 
 # Import from the top level virttest namespace
 from .. import asset
@@ -1027,7 +1027,7 @@ def run_autotest(vm, session, control_path, timeout,
     # Check copy_only.
     if copy_only:
         return ("%s/autotest-local --verbose %s/control" %
-                (destination_autotest_path,  destination_autotest_path))
+                (destination_autotest_path, destination_autotest_path))
 
     # Run the test
     logging.info("Running autotest control file %s on guest, timeout %ss",

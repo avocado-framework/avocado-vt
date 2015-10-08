@@ -137,9 +137,7 @@ import collections
 import optparse
 import logging
 import re
-import string
 import sys
-import copy
 
 _reserved_keys = set(("name", "shortname", "dep", "_short_name_map_file", "_name_map_file"))
 

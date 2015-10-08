@@ -3,8 +3,8 @@ Module to control libvirtd service.
 """
 import re
 import logging
-import aexpect
 
+import aexpect
 from avocado.utils import path
 from avocado.utils import process
 from avocado.utils import wait
@@ -13,7 +13,6 @@ from . import remote
 from . import utils_misc
 from .staging import service
 from .utils_gdb import GDB
-
 
 try:
     path.find_command("libvirtd")
