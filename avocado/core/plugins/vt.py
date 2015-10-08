@@ -516,6 +516,7 @@ class VirtTest(test.Test):
                 # Postprocess
                 try:
                     try:
+                        params['test_passed'] = str(test_passed)
                         env_process.postprocess(self, params, env)
                     except Exception, e:
                         if test_passed:
