@@ -1276,7 +1276,7 @@ class VMXML(VMXMLBase):
         dev.managed = managed
         if boot_order:
             dev.boot_order = boot_order
-        dev.source_address = dev.new_source_address(**source_address)
+        dev.source = dev.new_source(**source_address)
         self.add_device(dev)
 
     @staticmethod
