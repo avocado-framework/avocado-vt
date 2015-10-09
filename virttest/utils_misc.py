@@ -2367,14 +2367,14 @@ def pid_is_alive(pid):
     path = '/proc/%s/stat' % pid
 
     try:
-        stat = genio.read_one_line(path)
+        state = genio.read_one_line(path)
     except IOError:
         if not os.path.exists(path):
             # file went away
             return False
         raise
 
-    return stat.split()[2] != 'Z'
+    return state.split()[2] != 'Z'
 
 
 def signal_pid(pid, sig):
