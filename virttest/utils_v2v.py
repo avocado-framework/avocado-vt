@@ -186,7 +186,8 @@ class VMCheck(object):
         self.pool_type = params.get("pool_type", "dir")
         self.pool_name = params.get("pool_name", "v2v_test")
         self.target_path = params.get("target_path", "pool_path")
-        self.emulated_img = params.get("emulated_image_path", "v2v_emulated.img")
+        self.emulated_img = params.get("emulated_image_path",
+                                       "v2v-emulated-img")
         # Need create session after create the instance
         self.session = None
 
@@ -428,7 +429,8 @@ class WindowsVMCheck(VMCheck):
         """
         Move VM mouse.
         """
-        virsh.move_mouse(self.name, coordinate, session_id=self.virsh_session_id)
+        virsh.move_mouse(self.name, coordinate,
+                         session_id=self.virsh_session_id)
 
     def click_left_button(self):
         """
@@ -510,6 +512,66 @@ class WindowsVMCheck(VMCheck):
         else:
             return -1
 
+    def init_windows(self, timeout=300):
+        """
+        Click buttons to activate windows and install
+        ethernet controller driver.
+        """
+        logging.info("Activating Windows in %s seconds", timeout)
+        compare_screenshot_vms = ["win2003", "win2008", "win2008r2", "win7"]
+        timeout_msg = "No matching screenshots found after %s seconds" % timeout
+        timeout_msg += ", trying to log into the VM directly"
+        match_image_list = []
+        if self.os_version in compare_screenshot_vms:
+            image_name_list = self.params.get("images_for_match", '').split(',')
+            for image_name in image_name_list:
+                match_image = os.path.join(data_dir.get_data_dir(), image_name)
+                if not os.path.exists(match_image):
+                    logging.error("Stopping windows activation as '%s' does not exist",
+                                  match_image)
+                    return
+                match_image_list.append(match_image)
+            img_match_ret = self.wait_for_match(match_image_list,
+                                                timeout=timeout)
+            if img_match_ret < 0:
+                logging.error(timeout_msg)
+            else:
+                if self.os_version == "win2003":
+                    if img_match_ret == 0:
+                        self.click_left_button()
+                        # VM may have no response for a while
+                        time.sleep(20)
+                        self.click_left_button()
+                        self.click_tab_enter()
+                    elif img_match_ret == 1:
+                        self.click_left_button()
+                        time.sleep(20)
+                        self.click_left_button()
+                        self.click_tab_enter()
+                        self.click_left_button()
+                        self.send_win32_key('VK_RETURN')
+                    else:
+                        pass
+                elif self.os_version in ["win7", "win2008r2"]:
+                    if img_match_ret in [0, 1]:
+                        self.click_left_button()
+                        self.click_left_button()
+                        self.send_win32_key('VK_TAB')
+                        self.click_tab_enter()
+                elif self.os_version == "win2008":
+                    if img_match_ret in [0, 1]:
+                        self.click_tab_enter()
+                        self.click_install_driver()
+                        self.move_mouse((0, -50))
+                        self.click_left_button()
+                        self.click_tab_enter()
+                    else:
+                        self.click_install_driver()
+        else:
+            # No need sendkey/click button for Win8, Win8.1, Win2012, Win2012r2
+            logging.info("%s is booting up without program intervention",
+                         self.os_version)
+
     def reboot_windows(self):
         """
         Reboot Windows immediately
@@ -525,7 +587,7 @@ class WindowsVMCheck(VMCheck):
         cmd = "dir C:\Windows\Drivers\VirtIO\\viostor.sys"
         status, output = self.session.cmd_status_output(cmd)
         if status == 0:
-            logging.debug("The viostor info is: %s" % output)
+            logging.debug("The viostor info is: %s", output)
             return output
 
     def get_driver_info(self, signed=True):
@@ -537,7 +599,7 @@ class WindowsVMCheck(VMCheck):
             cmd += " /SI"
         status, output = self.session.cmd_status_output(cmd)
         if status == 0:
-            logging.debug("Windows drivers info: %s" % output)
+            logging.debug("Windows drivers info: %s", output)
             return output
 
     def get_windows_event_info(self):
@@ -550,7 +612,7 @@ class WindowsVMCheck(VMCheck):
             #if the OS version was not win2003 or winXP, use following cmd
             cmd = "wevtutil qe application | find \"WSH\""
             output = self.session.cmd(cmd)
-        logging.debug("The windows event log info about WSH is: %s" % output)
+        logging.debug("The windows event log info about WSH is: %s", output)
         return output
 
     def get_network_restart(self):
@@ -560,7 +622,7 @@ class WindowsVMCheck(VMCheck):
         cmd = "ipconfig /renew"
         status, output = self.session.cmd_status_output(cmd)
         if status == 0:
-            logging.debug("The windows network restart info is: %s" % output)
+            logging.debug("The windows network restart info is: %s", output)
             return output
 
     def copy_windows_file(self):
@@ -569,7 +631,7 @@ class WindowsVMCheck(VMCheck):
         """
         cmd = "COPY /y C:\\rss.reg C:\\rss.reg.bak"
         status, _ = self.session.cmd_status_output(cmd)
-        logging.debug("Copy a windows file status is : %s" % status)
+        logging.debug("Copy a windows file status is : %s", status)
         return status
 
     def delete_windows_file(self):
@@ -578,7 +640,7 @@ class WindowsVMCheck(VMCheck):
         """
         cmd = "DEL C:\rss.reg.bak"
         status, _ = self.session.cmd_status_output(cmd)
-        logging.debug("Delete a windows file status is : %s" % status)
+        logging.debug("Delete a windows file status is : %s", status)
         return status
 
 
@@ -647,7 +709,7 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
                                      storage_name,
                                      cluster_name,
                                      timeout=timeout)
-        logging.info("The latest VM list: %s" % vm.list())
+        logging.info("The latest VM list: %s", vm.list())
     except Exception, e:
         # Try to delete the vm from export domain
         vm.delete_from_export_domain(export_name)
