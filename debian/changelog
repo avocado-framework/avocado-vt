@@ -1,4 +1,10 @@
-avocado-vt-plugins (0.24.0) trusty; urgency=low
+avocado-plugins-vt (0.29.0) vivid; urgency=medium
+
+  * Automated (make builddeb) build.
+
+ -- Lucas Meneghel Rodrigues (lmr) <lookkas@gmail.com>  Fri, 09 Oct 2015 09:36:41 -0300
+
+avocado-plugins-vt (0.24.0) trusty; urgency=low
 
   * Initial release.
 
