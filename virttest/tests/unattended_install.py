@@ -924,7 +924,7 @@ class UnattendedInstallConfig(object):
 
             if not sha1sum_kernel == self.params.get('sha1sum_vmlinuz',
                                                      None):
-                if os.path.isdir(self.kernel):
+                if os.path.isfile(self.kernel):
                     os.remove(self.kernel)
                 logging.info('Downloading %s -> %s', url_kernel,
                              self.image_path)
@@ -932,7 +932,7 @@ class UnattendedInstallConfig(object):
 
             if not sha1sum_initrd == self.params.get('sha1sum_initrd',
                                                      None):
-                if os.path.isdir(self.initrd):
+                if os.path.isfile(self.initrd):
                     os.remove(self.initrd)
                 logging.info('Downloading %s -> %s', url_initrd,
                              self.image_path)
