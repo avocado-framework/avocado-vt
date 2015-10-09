@@ -51,10 +51,6 @@ class TestEnv(unittest.TestCase):
     def setUp(self):
         self.envfilename = "/dev/shm/EnvUnittest" + self.id()
 
-    def tearDown(self):
-        if os.path.exists(self.envfilename):
-            os.unlink(self.envfilename)
-
     def test_save(self):
         """
         1) Verify that calling env.save() with no filename where env doesn't
