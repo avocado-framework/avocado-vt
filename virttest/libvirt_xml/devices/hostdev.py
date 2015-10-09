@@ -37,30 +37,21 @@ class Hostdev(base.TypedDeviceBase):
             new_address = new_one.new_untyped_address(**dargs)
             new_one.untyped_address = new_address
         if self.hostdev_type == 'usb':
-            new_product = new_one.new_untyped_product(**dargs)
-            new_vendor = new_one.new_untyped_vendor(**dargs)
-            dargs.pop("vendor_id", None)
-            dargs.pop("product_id", None)
-            logging.debug("Sri: dargs: %s:", dargs)
+            new_one.vendor_id = dargs.pop("vendor_id", None)
+            new_one.product_id = dargs.pop("product_id", None)
             new_address = new_one.new_untyped_address(**dargs)
             new_one.untyped_address = new_address
-            new_one.untyped_vendor = new_vendor
-            new_one.untyped_product = new_product
         return new_one
 
     class Source(base.base.LibvirtXMLBase):
 
-        __slots__ = ('untyped_address', 'untyped_vendor', 'untyped_product',)
+        __slots__ = ('untyped_address', 'vendor_id', 'product_id')
 
         def __init__(self, virsh_instance=base.base.virsh):
-            accessors.XMLElementNest('untyped_vendor', self, parent_xpath='/',
-                                     tag_name='vendor', subclass=self.UntypedVendor,
-                                     subclass_dargs={
-                                         'virsh_instance': virsh_instance})
-            accessors.XMLElementNest('untyped_product', self, parent_xpath='/',
-                                     tag_name='product', subclass=self.UntypedProduct,
-                                     subclass_dargs={
-                                         'virsh_instance': virsh_instance})
+            accessors.XMLAttribute('vendor_id', self, parent_xpath='/',
+                                   tag_name='vendor', attribute='id')
+            accessors.XMLAttribute('product_id', self, parent_xpath='/',
+                                   tag_name='product', attribute='id')
             accessors.XMLElementNest('untyped_address', self, parent_xpath='/',
                                      tag_name='address', subclass=self.UntypedAddress,
                                      subclass_dargs={
@@ -92,39 +83,3 @@ class Hostdev(base.TypedDeviceBase):
                 super(self.__class__, self).__init__(
                     "address", virsh_instance=virsh_instance)
                 self.xml = "<address/>"
-
-        def new_untyped_vendor(self, **dargs):
-            new_one = self.UntypedVendor(virsh_instance=self.virsh)
-            keys = dargs.keys()
-            setattr(new_one, keys[2], dargs.get('vendor_id'))
-            return new_one
-
-        class UntypedVendor(base.UntypedDeviceBase):
-
-            __slots__ = ('vendor_id',)
-
-            def __init__(self, virsh_instance=base.base.virsh):
-                accessors.XMLAttribute('vendor_id', self, parent_xpath='/',
-                                       tag_name='vendor', attribute='id')
-
-                super(self.__class__, self).__init__(
-                    "vendor", virsh_instance=virsh_instance)
-                self.xml = "<vendor/>"
-
-        def new_untyped_product(self, **dargs):
-            new_one = self.UntypedProduct(virsh_instance=self.virsh)
-            keys = dargs.keys()
-            setattr(new_one, keys[3], dargs.get('product_id'))
-            return new_one
-
-        class UntypedProduct(base.UntypedDeviceBase):
-
-            __slots__ = ('product_id',)
-
-            def __init__(self, virsh_instance=base.base.virsh):
-                accessors.XMLAttribute('product_id', self, parent_xpath='/',
-                                       tag_name='product', attribute='id')
-
-                super(self.__class__, self).__init__(
-                    "product", virsh_instance=virsh_instance)
-                self.xml = "<product/>"
