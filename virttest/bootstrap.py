@@ -268,7 +268,7 @@ def create_guest_os_cfg(t_type):
     guest_os_cfg_path = data_dir.get_backend_cfg_path(t_type, 'guest-os.cfg')
     guest_os_cfg_file = open(guest_os_cfg_path, 'w')
     get_directory_structure(guest_os_cfg_dir, guest_os_cfg_file)
-    logging.debug("Config file %s auto generated from subtest samples",
+    logging.debug("Config file %s auto generated from guest OS samples",
                   guest_os_cfg_path)
 
 
