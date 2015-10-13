@@ -2735,7 +2735,7 @@ class VirtNet(DbNet, ParamsNet):
         :param nic_index_or_name: index number or name of NIC
         """
         nic = self[nic_index_or_name]
-        if nic.has_key('mac'):
+        if 'mac' in nic:
             # Reset to params definition if any, or None
             self.reset_mac(nic_index_or_name)
         self.update_db()
