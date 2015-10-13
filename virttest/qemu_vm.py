@@ -435,7 +435,9 @@ class VM(virt_vm.BaseVM):
             return cmd
 
         def add_serial(devices, name, filename):
-            if arch.ARCH == 'aarch64' or not devices.has_option("chardev"):
+            if (not devices.has_option("chardev") or
+                    not (devices.has_device("isa-serial") or
+                         devices.has_device("spapr-vty"))):
                 return " -serial unix:'%s',server,nowait" % filename
 
             serial_id = "serial_id_%s" % name
@@ -444,9 +446,9 @@ class VM(virt_vm.BaseVM):
             cmd += _add_option("path", filename)
             cmd += _add_option("server", "NO_EQUAL_STRING")
             cmd += _add_option("nowait", "NO_EQUAL_STRING")
-            if '86' in arch.ARCH:
+            if '86' in params.get('vm_arch_name', arch.ARCH):
                 cmd += " -device isa-serial"
-            elif 'ppc' in arch.ARCH:
+            elif 'ppc' in params.get('vm_arch_name', arch.ARCH):
                 cmd += " -device spapr-vty"
                 # Workaround for console issue, details:
                 #   lists.gnu.org/archive/html/qemu-ppc/2013-10/msg00129.html
