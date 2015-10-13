@@ -405,7 +405,7 @@ class QemuImg(object):
                 logging.error("Backup size: %.1f GB", backup_size_gb)
                 logging.error("Minimum free space acceptable: %.1f GB",
                               minimum_disk_free_gb)
-                logging.error("Available disk space is not sufficient for a"
+                logging.error("Available disk space is not sufficient for a "
                               "full backup. Skipping backup...")
                 return
 
