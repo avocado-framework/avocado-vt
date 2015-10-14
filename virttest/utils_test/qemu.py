@@ -24,6 +24,7 @@ import os
 import socket
 import threading
 import time
+import random
 
 from avocado.core import exceptions
 from avocado.utils import crypto
@@ -813,6 +814,8 @@ class MultihostMigration(object):
                         for vm in mig_data.vms:
                             vm.resume()
                         wait = self.params.get("start_migration_timeout", 0)
+                        if wait == "random":
+                            wait = random.randint(5, 20)
                         logging.debug("Wait for migration %s seconds." %
                                       (wait))
                         time.sleep(int(wait))
