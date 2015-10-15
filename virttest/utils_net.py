@@ -819,37 +819,54 @@ def ping(dest=None, count=None, interval=None, interface=None,
     :param session: Local executon hint or session to execute the ping command.
     """
     command = "ping"
-    if ":" in dest:
-        command = "ping6"
-    if dest is not None:
-        command += " %s " % dest
+    if session and "Windows" in session.cmd_output_safe("echo %OS%"):
+        if dest:
+            command += " %s " % dest
+        else:
+            command += " localhost "
+        if count:
+            command += " -n %s" % count
+        if packetsize:
+            command += " -l %s" % packetsize
+        if ttl:
+            command += " -i %s" % ttl
+        if interface:
+            command += " -S %s" % interface
+        if flood:
+            command += " -t"
     else:
-        command += " localhost "
-    if count is not None:
-        command += " -c %s" % count
-    if interval is not None:
-        command += " -i %s" % interval
-    if interface is not None:
-        command += " -I %s" % interface
-    else:
-        if dest.upper().startswith("FE80"):
-            err_msg = "Using ipv6 linklocal must assigne interface"
-            raise exceptions.TestNAError(err_msg)
-    if packetsize is not None:
-        command += " -s %s" % packetsize
-    if ttl is not None:
-        command += " -t %s" % ttl
-    if hint is not None:
-        command += " -M %s" % hint
-    if adaptive:
-        command += " -A"
-    if broadcast:
-        command += " -b"
-    if flood:
-        command += " -f -q"
-        command = "sleep %s && kill -2 `pidof ping` & %s" % (timeout, command)
-        output_func = None
-        timeout += 1
+        if ":" in dest:
+            command = "ping6"
+        if dest:
+            command += " %s " % dest
+        else:
+            command += " localhost "
+        if count:
+            command += " -c %s" % count
+        if interval:
+            command += " -i %s" % interval
+        if interface:
+            command += " -I %s" % interface
+        else:
+            if dest.upper().startswith("FE80"):
+                err_msg = "Using ipv6 linklocal must assigne interface"
+                raise exceptions.TestNAError(err_msg)
+        if packetsize:
+            command += " -s %s" % packetsize
+        if ttl:
+            command += " -t %s" % ttl
+        if hint:
+            command += " -M %s" % hint
+        if adaptive:
+            command += " -A"
+        if broadcast:
+            command += " -b"
+        if flood:
+            command += " -f -q"
+            command = "sleep %s && kill -2 `pidof ping` & %s" % (timeout,
+                                                                 command)
+            output_func = None
+            timeout += 1
 
     return raw_ping(command, timeout, session, output_func)
 
