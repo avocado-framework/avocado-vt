@@ -1,3 +1,9 @@
+%global modulename avocado
+%if ! 0%{?commit:1}
+ %define commit 2b69175c21f6e77068eb53c7d78c20a149fd0c97
+%endif
+%global shortcommit %(c=%{commit}; echo ${c:0:7})
+
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 0.29.0
@@ -5,7 +11,7 @@ Release: 1%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
-Source: avocado-plugins-vt-%{version}.tar.gz
+Source0: https://github.com/avocado-framework/%{name}/archive/%{commit}/%{name}-%{version}-%{shortcommit}.tar.gz
 BuildRequires: python2-devel
 BuildArch: noarch
 Requires: python, avocado, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, aexpect
@@ -23,7 +29,7 @@ with all the avocado convenience features, such as HTML report,
 Xunit output, among others.
 
 %prep
-%setup -q
+%setup -q -n %{name}-%{commit}
 
 %build
 %{__python} setup.py build
