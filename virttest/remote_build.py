@@ -1,9 +1,9 @@
 import os
 import re
-import remote
 import hashlib
 import logging
 
+import remote
 from . import data_dir
 
 

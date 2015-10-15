@@ -6,14 +6,17 @@ Step file creator/editor.
 :author: mgoldish@redhat.com (Michael Goldish)
 """
 
-import pygtk
-import gtk
 import os
 import glob
 import shutil
 import sys
 import logging
+
+import pygtk
+import gtk
+
 import ppm_utils
+
 pygtk.require('2.0')
 
 

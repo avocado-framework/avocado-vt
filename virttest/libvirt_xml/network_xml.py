@@ -4,6 +4,7 @@ http://libvirt.org/formatnetwork.html
 """
 
 import logging
+
 from virttest import xml_utils
 from virttest.libvirt_xml import base, xcepts, accessors
 

@@ -9,7 +9,6 @@
 #
 
 import os
-import socket
 import struct
 import platform
 import optparse

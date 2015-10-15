@@ -3,8 +3,8 @@ tools to manage sasl.
 """
 
 import logging
-import aexpect
 
+import aexpect
 from avocado.core import exceptions
 from avocado.utils import path
 from avocado.utils import process

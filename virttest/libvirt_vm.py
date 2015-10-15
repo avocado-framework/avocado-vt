@@ -14,11 +14,10 @@ import shutil
 import tempfile
 import platform
 
+import aexpect
 from avocado.utils import process
 from avocado.utils import crypto
 from avocado.core import exceptions
-
-import aexpect
 
 from . import error_context
 from . import utils_misc

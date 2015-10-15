@@ -4,6 +4,7 @@ Common base classes for devices
 
 import logging
 from StringIO import StringIO
+
 from virttest import xml_utils
 from virttest.libvirt_xml import base, xcepts, accessors
 from virttest.xml_utils import ElementTree

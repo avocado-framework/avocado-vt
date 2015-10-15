@@ -22,6 +22,7 @@ import sys
 from avocado.core.settings import settings
 from avocado.core.plugins import plugin
 
+
 # The original virt-test runner supports using autotest from a git checkout,
 # so we'll have to support that as well. The code below will pick up the
 # environment variable $AUTOTEST_PATH and do the import magic needed to make

@@ -20,10 +20,8 @@ import os
 import sys
 import logging
 import Queue
-import time
 import imp
 
-from avocado.core import result
 from avocado.core import loader
 from avocado.core import output
 from avocado.core import exceptions
@@ -34,6 +32,7 @@ from avocado.core.plugins import plugin
 from avocado.utils import path as utils_path
 from avocado.utils import stacktrace
 from avocado.utils import genio
+
 
 # avocado-vt no longer needs autotest for the majority of its functionality,
 # except by:

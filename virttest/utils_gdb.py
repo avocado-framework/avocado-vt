@@ -2,8 +2,10 @@ import os
 import logging
 import signal
 import threading
-import aexpect
 import Queue
+
+import aexpect
+
 from virttest import utils_misc
 
 

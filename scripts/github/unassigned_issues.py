@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import getpass
+
 from github import Github
 from github_issues import GithubIssues
 

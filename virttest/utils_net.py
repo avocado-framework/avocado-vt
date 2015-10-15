@@ -1,4 +1,3 @@
-import openvswitch
 import re
 import os
 import socket
@@ -9,16 +8,16 @@ import random
 import math
 import time
 import shelve
-import remote
 import commands
 import signal
 
+import aexpect
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
 from avocado.utils import process
 
-import aexpect
-
+import openvswitch
+import remote
 from . import data_dir
 from . import propcan
 from . import utils_misc

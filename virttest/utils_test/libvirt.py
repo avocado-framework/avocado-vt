@@ -25,13 +25,12 @@ import threading
 import time
 import sys
 
+import aexpect
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
 from avocado.utils import process
 from avocado.utils import stacktrace
 from avocado.utils import linux_modules
-
-import aexpect
 
 from .. import virsh
 from .. import xml_utils

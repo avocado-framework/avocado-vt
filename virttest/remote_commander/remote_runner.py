@@ -22,7 +22,6 @@ import signal
 
 import remote_interface
 import messenger as ms
-
 from .. import data_dir
 
 

@@ -20,7 +20,6 @@ from avocado.utils import process
 
 from virttest import bootstrap
 from virttest import defaults
-
 from virttest.standalone_test import SUPPORTED_TEST_TYPES
 
 

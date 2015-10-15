@@ -1,8 +1,7 @@
 import re
 
-from avocado.utils import process
-
 import aexpect
+from avocado.utils import process
 
 from . import utils_misc
 from . import error_context

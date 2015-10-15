@@ -1,8 +1,10 @@
 import os
 import select
+
+import aexpect
+
 import utils_env
 import virt_vm
-import aexpect
 
 
 class scheduler:

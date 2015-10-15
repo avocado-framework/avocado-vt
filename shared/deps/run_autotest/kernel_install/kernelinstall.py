@@ -1,6 +1,7 @@
 import os
 import logging
 import sys
+
 from autotest.client import test
 from autotest.client import utils
 from autotest.client.shared import git, error, software_manager

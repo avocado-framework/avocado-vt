@@ -29,14 +29,14 @@ import weakref
 import time
 import select
 
+import aexpect
 from avocado.utils import path
 from avocado.utils import process
-
-import aexpect
 
 from . import propcan
 from . import remote
 from . import utils_misc
+
 
 # list of symbol names NOT to wrap as Virsh class methods
 # Everything else from globals() will become a method of Virsh class

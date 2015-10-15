@@ -14,8 +14,6 @@ except ImportError:
     logging.warning("Could not import json module. "
                     "virt agent functionality disabled.")
 
-from avocado.core import exceptions
-
 from .qemu_monitor import Monitor, MonitorError
 from . import error_context
 

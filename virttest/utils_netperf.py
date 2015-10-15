@@ -2,9 +2,9 @@ import os
 import logging
 import re
 
+import aexpect
 from avocado.utils import download
 from avocado.utils import aurl
-import aexpect
 
 from . import data_dir
 from . import remote

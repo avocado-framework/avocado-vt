@@ -4,7 +4,6 @@ but are standard in more recent versions.
 """
 
 import re
-import sys
 
 # Import backported modules
 import simplejson

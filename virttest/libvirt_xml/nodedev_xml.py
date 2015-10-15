@@ -4,6 +4,7 @@ http://libvirt.org/formatnode.html
 """
 
 import os
+
 from virttest.libvirt_xml import base, xcepts, accessors
 
 

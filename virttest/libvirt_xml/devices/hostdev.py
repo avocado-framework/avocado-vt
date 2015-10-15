@@ -3,7 +3,6 @@ hostdev device support class(es)
 
 http://libvirt.org/formatdomain.html#elementsHostDev
 """
-import logging
 from virttest.libvirt_xml.devices import base
 from virttest.libvirt_xml import accessors
 

@@ -23,6 +23,7 @@ import shutil
 import getpass
 import ctypes
 import threading
+import platform
 
 from avocado.core import status
 from avocado.core import exceptions
@@ -34,15 +35,12 @@ from avocado.utils import aurl
 from avocado.utils import download
 from avocado.utils import linux_modules
 
-
 from . import data_dir
 from . import error_context
 from . import cartesian_config
 from . import utils_selinux
 from .staging import utils_koji
 
-
-import platform
 ARCH = platform.machine()
 
 

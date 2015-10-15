@@ -7,7 +7,6 @@ import os
 import sys
 import glob
 import shutil
-import tempfile
 
 from avocado.core import data_dir
 

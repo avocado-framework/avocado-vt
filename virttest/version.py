@@ -12,7 +12,6 @@ contents of the RELEASE-VERSION file.
 __all__ = ("get_git_version", "get_version", "get_top_commit",
            "get_current_branch", "get_pretty_version_info")
 
-
 import os
 
 from avocado.utils import process

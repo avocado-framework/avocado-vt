@@ -11,9 +11,10 @@ import logging
 import select
 import cPickle
 import time
-import remote_interface
 import cStringIO
 import base64
+
+import remote_interface
 
 
 class IOWrapper(object):

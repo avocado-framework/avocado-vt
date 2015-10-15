@@ -19,8 +19,8 @@ Downloads blobs defined in assets. Assets are .ini files that contain the
 :copyright: Red Hat 2012
 """
 import sys
-import logging
 import os
+import urllib2
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -32,22 +32,28 @@ from virttest import asset
 from avocado.core import log
 from avocado.core import output
 
+view = output.View()
+
 
 def download_assets():
-    view = output.View()
     all_assets = asset.get_all_assets()
+    all_assets_sorted = []
     if all_assets:
         view.notify(msg="Available download assets:")
         view.notify(msg="")
-        for asset_info in all_assets:
-            asset_keys = asset_info.keys()
-            view.notify(event='minor', msg="%d - %s" % (all_assets.index(asset_info) + 1,
-                                                        asset_info['title']))
-            asset_keys.pop(asset_keys.index('title'))
-            asset_keys.sort()
-            for k in asset_keys:
-                view.notify(event='minor', msg="    %s = %s" % (k, asset_info[k]))
-            view.notify(msg="")
+        title_list = [a['title'] for a in all_assets]
+        for index, title in enumerate(sorted(title_list)):
+            asset_info = [a for a in all_assets if a['title'] == title][0]
+            all_assets_sorted.append(asset_info)
+            asset_present_str = output.term_support.partial_str('Missing')
+            if asset_info['asset_exists']:
+                asset_present_str = output.term_support.healthy_str('Present')
+            asset_msg = ("%s - [%s] %s (%s)" %
+                         (index + 1,
+                          asset_present_str,
+                          output.term_support.header_str(asset_info['title']),
+                          asset_info['destination']))
+            view.notify(event='minor', msg=asset_msg)
     indexes = raw_input("Type the index for the assets you want to "
                         "download (comma separated, leave empty to abort): ")
 
@@ -55,22 +61,29 @@ def download_assets():
 
     for idx in indexes.split(","):
         try:
+            assert int(idx) > 0
             index = int(idx) - 1
             index_list.append(index)
-            all_assets[index]
-        except (ValueError, IndexError):
-            logging.error("Invalid index(es), aborting...")
+            all_assets_sorted[index]
+        except (ValueError, IndexError, AssertionError):
+            view.notify(event='error', msg="Invalid index(es), aborting...")
             sys.exit(1)
 
     for idx in index_list:
-        asset_info = all_assets[idx]
-        asset.download_file(asset_info, interactive=True)
+        asset_info = all_assets_sorted[idx]
+        try:
+            asset.download_file(asset_info, interactive=True)
+        except urllib2.HTTPError, http_error:
+            view.notify(event='error', msg='HTTP Error %s: URL %s' %
+                                           (http_error.code,
+                                            asset_info['url']))
+            os.remove(asset_info['destination'])
+
 
 if __name__ == "__main__":
     log.configure()
     try:
         download_assets()
     except KeyboardInterrupt:
-        print
-        logging.info("Aborting...")
-        sys.exit(0)
+        view.notify("Aborting...")
+        sys.exit(1)
