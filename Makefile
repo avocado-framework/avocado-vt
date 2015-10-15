@@ -1,10 +1,25 @@
-PYTHON=`which python`
+#
+# NOTE: to build Avocado-vt RPM packages extra deps not present out of the box
+# are necessary. These packages are currently hosted at:
+# https://copr.fedoraproject.org/coprs/lmr/Autotest/
+#
+# Since the RPM build steps are based on mock, edit your chroot config
+# file (/etc/mock/<your-config>.cnf) and add the COPR repo configuration there.
+#
+
+PYTHON=$(shell which python)
 DESTDIR=/
 BUILDIR=$(CURDIR)/debian/avocado-virt
 PROJECT=avocado
 VERSION="0.29.0"
 AVOCADO_DIRNAME?=avocado
 DIRNAME=$(shell echo $${PWD\#\#*/})
+
+RELEASE_COMMIT=$(shell git log --pretty=format:'%H' -n 1 $(VERSION))
+RELEASE_SHORT_COMMIT=$(shell git log --pretty=format:'%h' -n 1 $(VERSION))
+
+COMMIT=$(shell git log --pretty=format:'%H' -n 1)
+SHORT_COMMIT=$(shell git log --pretty=format:'%h' -n 1)
 
 all:
 	@echo "make source - Create source package"
@@ -16,8 +31,13 @@ all:
 	@echo "make check - Runs static checks in the source code"
 	@echo "make clean - Get rid of scratch and byte files"
 
-source:
-	$(PYTHON) setup.py sdist $(COMPILE) --dist-dir=SOURCES --prune
+source: clean
+	if test ! -d SOURCES; then mkdir SOURCES; fi
+	git archive --prefix="avocado-plugins-vt-$(COMMIT)/" -o "SOURCES/avocado-plugins-vt-$(VERSION)-$(SHORT_COMMIT).tar.gz" HEAD
+
+source-release: clean
+	if test ! -d SOURCES; then mkdir SOURCES; fi
+	git archive --prefix="avocado-plugins-vt-$(RELEASE_COMMIT)/" -o "SOURCES/avocado-plugins-vt-$(VERSION)-$(RELEASE_SHORT_COMMIT).tar.gz" $(VERSION)
 
 install:
 	$(PYTHON) setup.py install --root $(DESTDIR) $(COMPILE)
@@ -41,9 +61,22 @@ build-deb-all: prepare-source
 	# build both source and binary packages
 	dpkg-buildpackage -i -I -rfakeroot
 
-build-rpm-all: source
-	rpmbuild --define '_topdir %{getenv:PWD}' \
-		 -ba avocado-plugins-vt.spec
+srpm: source
+	if test ! -d BUILD/SRPM; then mkdir -p BUILD/SRPM; fi
+	mock --resultdir BUILD/SRPM -D "commit $(COMMIT)" --buildsrpm --spec avocado-plugins-vt.spec --sources SOURCES
+
+rpm: srpm
+	if test ! -d BUILD/RPM; then mkdir -p BUILD/RPM; fi
+	mock --resultdir BUILD/RPM -D "commit $(COMMIT)" --rebuild BUILD/SRPM/avocado-plugins-vt-$(VERSION)-*.src.rpm
+
+srpm-release: source-release
+	if test ! -d BUILD/SRPM; then mkdir -p BUILD/SRPM; fi
+	mock --resultdir BUILD/SRPM -D "commit $(RELEASE_COMMIT)" --buildsrpm --spec avocado.spec --sources SOURCES
+
+rpm-release: srpm-release
+	if test ! -d BUILD/RPM; then mkdir -p BUILD/RPM; fi
+	mock --resultdir BUILD/RPM -D "commit $(RELEASE_COMMIT)" --rebuild BUILD/SRPM/avocado-plugins-vt-$(VERSION)-*.src.rpm
+
 check:
 	selftests/checkall
 clean:
