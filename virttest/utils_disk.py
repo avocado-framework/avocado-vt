@@ -508,11 +508,11 @@ class GuestFSModiDisk(object):
 
     def replace_image_file_content(self, file_name, find_con, rep_con):
         """
-        replace file content matchs in the file with rep_con.
-        suport using Regular expression
+        replace file content matches in the file with rep_con.
+        support using Regular expression
 
         :param file_name: the file you want to replace
-        :param find_con: the orign content you want to replace.
+        :param find_con: the original content you want to replace.
         :param rep_con: the replace content you want.
         """
 
