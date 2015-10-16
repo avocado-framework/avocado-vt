@@ -89,10 +89,10 @@ def gluster_vol_stop(vol_name, force=False):
     if is_gluster_vol_started(vol_name):
         error_context.context("Gluster volume stop for volume; %s" % vol_name)
         if force:
-            cmd = "gluster volume stop %s force" % vol_name
+            cmd = "echo 'y' | gluster volume stop %s force" % vol_name
         else:
-            cmd = "gluster volume stop %s" % vol_name
-        process.run(cmd, ignore_status=False)
+            cmd = "echo 'y' | gluster volume stop %s" % vol_name
+        process.run(cmd, ignore_status=False, shell=True)
         return True
     else:
         return True
@@ -106,8 +106,8 @@ def gluster_vol_delete(vol_name):
     # Check if the volume is stopped, if then delete
     if not is_gluster_vol_started(vol_name):
         error_context.context("Gluster volume delete; %s" % vol_name)
-        cmd = "gluster volume delete %s" % vol_name
-        process.run(cmd, ignore_status=False)
+        cmd = "echo 'y' | gluster volume delete %s" % vol_name
+        process.run(cmd, ignore_status=False, shell=True)
         return True
     else:
         return False
