@@ -867,6 +867,9 @@ class VM(virt_vm.BaseVM):
             else:
                 logging.warn("option '-%s' not supportted" % name)
 
+        def add_usbdevice(devices, mouse_type):
+            return " -usbdevice %s" % mouse_type
+
         def add_pcidevice(devices, host, params, device_driver="pci-assign",
                           pci_bus='pci.0'):
             if devices.has_device(device_driver):
@@ -1507,6 +1510,9 @@ class VM(virt_vm.BaseVM):
         devices.insert(StrDev('-S', cmdline="-S"))
         # Add the VM's name
         devices.insert(StrDev('vmname', cmdline=add_name(name)))
+        mouse_type = params.get('mouse_type', 'default')
+        if mouse_type != "default":
+            devices.insert(StrDev('mouse', cmdline=add_usbdevice(devices, mouse_type)))
 
         qemu_sandbox = params.get("qemu_sandbox")
         if qemu_sandbox == "on":
