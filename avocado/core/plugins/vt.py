@@ -398,9 +398,8 @@ class VirtTest(test.Test):
             logging.warning("")
 
         # Open the environment file
-        env_filename = os.path.join(
-            data_dir.get_backend_dir(params.get("vm_type")),
-            params.get("env", "env"))
+        env_filename = os.path.join(data_dir.get_tmp_dir(),
+                                    params.get("env", "env"))
         env = utils_env.Env(env_filename, self.env_version)
 
         test_passed = False
