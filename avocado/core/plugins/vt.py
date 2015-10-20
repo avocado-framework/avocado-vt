@@ -359,10 +359,12 @@ class VirtTest(test.Test):
         os.environ['LANG'] = 'C'
         try:
             self._runTest()
-        # This trick will give better reporting of virt tests
-        # being executed into avocado (skips and errors will display correctly)
+        # This trick will give better reporting of virt tests being executed
+        # into avocado (skips, warns and errors will display correctly)
         except error.TestNAError, details:
             raise exceptions.TestNAError(details)
+        except error.TestWarn, details:
+            raise exceptions.TestWarn(details)
         except error.TestError, details:
             raise exceptions.TestError(details)
         except error.TestFail, details:
