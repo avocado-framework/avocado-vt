@@ -399,10 +399,13 @@ class VirtTest(test.Test):
                             "as root may produce unexpected results!!!")
             logging.warning("")
 
-        # Open the environment file
-        env_filename = os.path.join(
-            data_dir.get_backend_dir(params.get("vm_type")),
-            params.get("env", "env"))
+        # TODO: the environment file is deprecated code, and should be removed
+        # in future versions. Right now, it's being created on an Avocado temp
+        # dir that is only persisted during the runtime of one job, which is
+        # different from the original idea of the environment file (which was
+        # persist information accross virt-test/avocado-vt job runs)
+        env_filename = os.path.join(data_dir.get_tmp_dir(),
+                                    params.get("env", "env"))
         env = utils_env.Env(env_filename, self.env_version)
 
         test_passed = False
