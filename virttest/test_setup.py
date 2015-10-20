@@ -1621,9 +1621,9 @@ class LibvirtPolkitConfig(object):
             logging.debug("The polkit config rule is:\n%s" % self.template)
 
             # write the config file
-            genio.open_write_close(self.polkit_rules_path, self.template)
-        except Exception:
-            raise PolkitRulesSetupError("Set polkit rules file failed")
+            genio.write_file(self.polkit_rules_path, self.template)
+        except Exception, e:
+            raise PolkitRulesSetupError("Set polkit rules file failed: %s", e)
 
     def setup(self):
         """
