@@ -148,6 +148,11 @@ class Env(UserDict.IterableUserDict):
         if filename:
             try:
                 if os.path.isfile(filename):
+                    raise RuntimeError("Loading env-file into a file is about"
+                                       " to be removed. Please let us know if"
+                                       " you still use it: https://github.com"
+                                       "/avocado-framework/avocado/issues/new"
+                                       )
                     f = open(filename, "r")
                     env = cPickle.load(f)
                     f.close()

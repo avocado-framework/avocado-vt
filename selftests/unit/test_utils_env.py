@@ -51,44 +51,6 @@ class TestEnv(unittest.TestCase):
     def setUp(self):
         self.envfilename = "/dev/shm/EnvUnittest" + self.id()
 
-    def test_save(self):
-        """
-        1) Verify that calling env.save() with no filename where env doesn't
-           specify a filename will throw an EnvSaveError.
-        2) Register a VM in environment, save env to a file, recover env from
-           that file, get the vm and verify that the instance attribute of the
-           2 objects is the same.
-        3) Register a SyncListenServer and don't save env. Restore env from
-           file and try to get the syncserver, verify it doesn't work.
-        4) Now save env to a file, restore env from file and verify that
-           the syncserver can be found there, and that the sync server
-           instance attribute is equal to the initial sync server instance.
-        """
-
-        env = utils_env.Env()
-        self.assertRaises(utils_env.EnvSaveError, env.save, {})
-
-        params = utils_params.Params({"main_vm": 'rhel7-migration'})
-        vm1 = FakeVm(params['main_vm'], params)
-        vm1.is_alive()
-        env.register_vm(params['main_vm'], vm1)
-        env.save(filename=self.envfilename)
-        env2 = utils_env.Env(filename=self.envfilename)
-        vm2 = env2.get_vm(params['main_vm'])
-        vm2.is_alive()
-        assert vm1.instance == vm2.instance
-
-        sync1 = FakeSyncListenServer(port=222)
-        env.register_syncserver(222, sync1)
-        env3 = utils_env.Env(filename=self.envfilename)
-        syncnone = env3.get_syncserver(222)
-        assert syncnone is None
-
-        env.save(filename=self.envfilename)
-        env4 = utils_env.Env(filename=self.envfilename)
-        sync2 = env4.get_syncserver(222)
-        assert sync2.instance == sync1.instance
-
     def test_register_vm(self):
         """
         1) Create an env object.
