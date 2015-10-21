@@ -439,6 +439,11 @@ def uncompress_asset(asset_info, force=False):
             logging.debug('Uncompressing %s -> %s', destination,
                           destination_uncompressed)
             commands.getstatusoutput(uncompress_cmd)
+            backup_file = destination_uncompressed + '.backup'
+            if os.path.isfile(backup_file):
+                logging.debug('Copying %s -> %s', destination_uncompressed,
+                              backup_file)
+                shutil.copy(destination_uncompressed, backup_file)
 
 
 def download_file(asset_info, interactive=False, force=False):
