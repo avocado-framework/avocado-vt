@@ -242,7 +242,7 @@ def cpu_allowed_list_by_task(pid, tid):
     """
     cmd = "cat /proc/%s/task/%s/status|grep Cpus_allowed_list:| awk '{print $2}'" % (
         pid, tid)
-    result = process.run(cmd, ignore_status=True)
+    result = process.run(cmd, ignore_status=True, shell=True)
     if result.exit_status:
         return None
     return result.stdout.strip()
