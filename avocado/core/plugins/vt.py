@@ -1002,6 +1002,14 @@ class VirtTestOptionsProcess(object):
                 no_filter = ", ".join(self.options.vt_no_filter.split(' '))
                 self.cartesian_parser.no_filter(no_filter)
 
+    def _process_additional_params(self):
+        if self.options.vt_additional_params:
+            print self.options.vt_additional_params
+            for param in self.options.vt_additional_params:
+                print param
+                key, value = param.split('=', 1)
+                self.cartesian_parser.assign(key, value)
+
     def _process_only_type_specific(self):
         if not self.options.vt_config:
             if self.options.vt_type_specific:
@@ -1074,6 +1082,8 @@ class VirtTestOptionsProcess(object):
             self._process_libvirt_specific_options()
         elif self.options.vt_type == 'spice':
             self._process_spice_specific_options()
+
+        self._process_additional_params()
 
     def get_parser(self):
         self._process_options()
@@ -1188,6 +1198,9 @@ class VirtTestCompatPlugin(plugin.Plugin):
                                                 "binaries will be made. "
                                                 "Current: %s" %
                                                 qemu_dst_bin_path_current))
+        vt_compat_group_qemu.add_argument("--vt-additional-params", nargs='*',
+                                          help="List of 'key=value' pairs "
+                                          "passed to cartesian parser.")
         supported_uris = ", ".join(SUPPORTED_LIBVIRT_URIS)
         uri_current = settings.get_value('vt.libvirt', 'connect_uri',
                                          default=None)
