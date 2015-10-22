@@ -1632,7 +1632,7 @@ class VM(virt_vm.BaseVM):
         :param target: target of disk device, None for automatic assignment.
         :param prefix: disk device prefix.
         :param extra: additional arguments to command
-        :return: target device name if successed
+        :return: target device name if succeed, Otherwise None
         """
         # Find the next available target device name.
         if target is None:
@@ -1642,10 +1642,14 @@ class VM(virt_vm.BaseVM):
                 if target not in disks:
                     break
 
-        virsh.attach_disk(self.name, source, target, extra,
-                          uri=self.connect_uri,
-                          ignore_status=ignore_status,
-                          debug=debug)
+        result = virsh.attach_disk(self.name, source, target, extra,
+                                   uri=self.connect_uri,
+                                   ignore_status=ignore_status,
+                                   debug=debug)
+        if result.exit_status:
+            logging.error("Failed to attach disk %s to VM."
+                          "Detail: %s." % (source, result.stderr))
+            return None
         return target
 
     def detach_disk(self, target, extra="",
