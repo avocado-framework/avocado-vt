@@ -526,7 +526,7 @@ class VM(virt_vm.BaseVM):
             dev.set_param("server", 'NO_EQUAL_STRING')
             dev.set_param("nowait", 'NO_EQUAL_STRING')
             devices.insert(dev)
-            if arch.ARCH == 'aarch64':
+            if params.get('machine_type').startswith("arm64-mmio"):
                 dev = QDevice('virtio-serial-device')
             else:
                 dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
@@ -1084,7 +1084,7 @@ class VM(virt_vm.BaseVM):
                 return ""
 
         def add_boot(devices, boot_order, boot_once, boot_menu, boot_strict):
-            if arch.ARCH == 'aarch64':
+            if params.get('machine_type', "").startswith("arm"):
                 logging.warn("-boot on ARM is usually not supported, use "
                              "bootindex instead.")
                 return ""
@@ -1409,7 +1409,7 @@ class VM(virt_vm.BaseVM):
                 # when the port is a virtio console.
                 if (port_params.get('virtio_port_type') == 'console' and
                         params.get('virtio_port_bus') is None):
-                    if arch.ARCH == 'aarch64':
+                    if params.get('machine_type').startswith("arm64-mmio"):
                         dev = QDevice('virtio-serial-device')
                     else:
                         dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
@@ -1418,7 +1418,7 @@ class VM(virt_vm.BaseVM):
                     devices.insert(dev)
                     no_virtio_serial_pcis += 1
                 for i in range(no_virtio_serial_pcis, bus + 1):
-                    if arch.ARCH == 'aarch64':
+                    if params.get('machine_type').startswith("arm64-mmio"):
                         dev = QDevice('virtio-serial-device')
                     else:
                         dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
