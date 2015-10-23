@@ -333,3 +333,21 @@ def add_rpc_insecure(filepath):
         cmd = "sed -i '/end-volume/i \ \ \ \ option rpc-auth-allow-insecure on' %s" % filepath
         process.system(cmd, shell=True)
         process.system("service glusterd restart; sleep 2", shell=True)
+
+
+@error_context.context_aware
+def gluster_nfs_disable(vol_name):
+    """
+    Turn-off export of volume through NFS
+
+    :param vol_name: name of gluster volume
+    """
+
+    cmd = "gluster volume set %s nfs.disable on" % vol_name
+    error_context.context("Volume set nfs.disable failed")
+    process.system(cmd)
+
+    cmd = "gluster volume info %s" % vol_name
+    output = process.system_output(cmd)
+
+    return 'nfs.disable: on' in output
