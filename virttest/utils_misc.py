@@ -3484,7 +3484,7 @@ class SELinuxBoolean(object):
         get_sebool_cmd = "getsebool %s | awk -F'-->' '{print $2}'" % (
             self.local_bool_var)
         logging.debug("The command: %s", get_sebool_cmd)
-        result = process.run(get_sebool_cmd)
+        result = process.run(get_sebool_cmd, shell=True)
         return result.stdout.strip()
 
     def get_sebool_remote(self):
@@ -3495,7 +3495,7 @@ class SELinuxBoolean(object):
         get_sebool_cmd = "getsebool %s" % self.remote_bool_var
         cmd = ssh_cmd + "'%s'" % get_sebool_cmd + "| awk -F'-->' '{print $2}'"
         logging.debug("The command: %s", cmd)
-        result = process.run(cmd)
+        result = process.run(cmd, shell=True)
         return result.stdout.strip()
 
     def setup(self):

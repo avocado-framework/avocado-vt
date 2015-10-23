@@ -532,6 +532,9 @@ def setup_or_cleanup_gluster(is_setup, vol_name, brick_path="", pool_name="",
         logging.debug("finish start gluster")
         gluster.gluster_vol_create(vol_name, ip_addr, brick_path, force=True)
         gluster.gluster_allow_insecure(vol_name)
+        gluster.gluster_nfs_disable(vol_name)
+        output = utils.system_output("cat %s" % file_path)
+        logging.debug("The contents of %s: \n%s", file_path, output)
         logging.debug("finish vol create in gluster")
         return ip_addr
     else:
@@ -2580,7 +2583,9 @@ def do_migration(vm_name, uri, extra, auth_pwd, auth_user="root",
         return False
 
 
-def update_vm_disk_source(vm_name, disk_source_path, source_type="file"):
+def update_vm_disk_source(vm_name, disk_source_path,
+                          disk_image_name="",
+                          source_type="file"):
     """
     Update disk source path of the VM
 
@@ -2589,29 +2594,33 @@ def update_vm_disk_source(vm_name, disk_source_path, source_type="file"):
     if not os.path.isdir(disk_source_path):
         logging.error("Require disk source path!!")
         return False
+
     # Prepare to update VM first disk source file
     vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
     devices = vmxml.devices
     disk_index = devices.index(devices.by_device_tag('disk')[0])
     disks = devices[disk_index]
-    disk_source = disks.source.get_attrs().get(source_type)
-    logging.debug("The disk source file of the VM: %s", disk_source)
-    if not os.path.exists(disk_source):
-        logging.error("The disk source doesn't exist!!")
-        return False
+    # Generate a disk image name if it doesn't exist
+    if not disk_image_name:
+        disk_source = disks.source.get_attrs().get(source_type)
+        logging.debug("The disk source file of the VM: %s", disk_source)
+        disk_image_name = os.path.basename(disk_source)
 
-    vm_name_with_format = os.path.basename(disk_source)
-    new_disk_source = os.path.join(disk_source_path, vm_name_with_format)
+    new_disk_source = os.path.join(disk_source_path, disk_image_name)
     logging.debug("The new disk source file of the VM: %s", new_disk_source)
 
     # Update VM disk source file
-    disks.source = disks.new_disk_source(**{'attrs': {'%s' % source_type:
-                                                      "%s" % new_disk_source}})
-    # SYNC VM XML change
-    vmxml.devices = devices
-    logging.debug("The new VM XML:\n%s", vmxml.xmltreefile)
-    vmxml.sync()
-    return True
+    try:
+        disks.source = disks.new_disk_source(**{'attrs': {'%s' % source_type:
+                                                          "%s" % new_disk_source}})
+        # SYNC VM XML change
+        vmxml.devices = devices
+        logging.debug("The new VM XML:\n%s", vmxml.xmltreefile)
+        vmxml.sync()
+        return True
+    except Exception, e:
+        logging.error("Can't update disk source!! %s", e)
+        return False
 
 
 def hotplug_domain_vcpu(domain, count, by_virsh=True, hotplug=True):
