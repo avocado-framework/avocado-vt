@@ -30,7 +30,7 @@ Winutils ISO
 
 The windows utils file can be currently found at:
 
-http://lmr.fedorapeople.org/winutils/winutils.iso
+http://assets-avocadoproject.rhcloud.com/static/winutils.iso
 
 How to update `winutils.iso`
 ----------------------------
@@ -44,7 +44,7 @@ JeOS image
 
 You can find the JeOS images currently here:
 
-http://lmr.fedorapeople.org/jeos/
+http://assets-avocadoproject.rhcloud.com/static/
 
 You'll find .7za (p7zipped) files for versions of
 the JeOS available, as well as their MD5SUM files.
