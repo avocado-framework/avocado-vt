@@ -1157,9 +1157,9 @@ def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool"):
 
     # make a private key.
     cmd = "%s --generate-privkey > %s" % (certtool, clientkey_path)
-    CmdResult = process.run(cmd, ignore_status=True)
+    CmdResult = process.run(cmd, ignore_status=True, shell=True)
     if CmdResult.exit_status:
-        raise ConnPrivKeyError(CmdResult.stderr)
+        raise ConnPrivKeyError(clientkey_path, CmdResult.stderr)
 
     # prepare a info file to build clientcert.
     clientinfo_file = open(clientinfo_path, "w")
@@ -1202,7 +1202,7 @@ def build_server_key(tmp_dir, ca_cakey_path=None,
 
     # make a private key
     cmd = "%s --generate-privkey > %s" % (certtool, serverkey_path)
-    cmd_result = process.run(cmd, ignore_status=True)
+    cmd_result = process.run(cmd, ignore_status=True, shell=True)
     if cmd_result.exit_status:
         raise ConnPrivKeyError(serverkey_path, cmd_result.stderr)
 
@@ -1249,7 +1249,7 @@ def build_CA(tmp_dir, cn="AUTOTEST.VIRT", ca_cakey_path=None, certtool="certtool
     # generate private key
     if not ca_cakey_path:
         cmd = "%s --generate-privkey > %s " % (certtool, cakey_path)
-        cmd_result = process.run(cmd, ignore_status=True, timeout=10)
+        cmd_result = process.run(cmd, ignore_status=True, timeout=10, shell=True)
         if cmd_result.exit_status:
             raise ConnPrivKeyError(cakey_path, cmd_result.stderr)
     # prepare a info file to build certificate file
