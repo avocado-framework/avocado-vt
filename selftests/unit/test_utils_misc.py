@@ -140,7 +140,7 @@ node   0
         raise ValueError("Could not locate locate '%s' on fake cmd db" % cmd)
 
 
-def utils_run(cmd):
+def utils_run(cmd, shell=True):
     return FakeCmd(cmd)
 
 all_nodes_contents = "0\n"

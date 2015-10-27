@@ -776,7 +776,8 @@ def get_dev_pts_max_id():
     """
     cmd = "ls /dev/pts/ | grep '^[0-9]*$' | sort -n"
     try:
-        max_id = process.run(cmd, verbose=False).stdout.strip().split("\n")[-1]
+        max_id = process.run(cmd, verbose=False,
+                             shell=True).stdout.strip().split("\n")[-1]
     except IndexError:
         return None
     pts_file = "/dev/pts/%s" % max_id
@@ -1560,7 +1561,8 @@ def yum_install(pkg_list, session=None, timeout=300):
         else:
             status = process.run(yum_cmd.format(pkg),
                                  timeout=timeout,
-                                 ignore_status=False).exit_status
+                                 ignore_status=False,
+                                 shell=True).exit_status
         if status:
             logging.error("Failed to install package: %s"
                           % pkg)
@@ -1823,7 +1825,7 @@ class NumaNode(object):
         """
         Flush pin dict, remove the record of exited process.
         """
-        cmd = process.run("ps -eLf | awk '{print $4}'")
+        cmd = process.run("ps -eLf | awk '{print $4}'", shell=True)
         all_pids = cmd.stdout
         for i in self.cpus:
             for j in self.dict[i]:
@@ -3231,7 +3233,8 @@ def get_pci_devices_in_group(str_flag=""):
 
     :param str_flag: the match string to filter devices.
     """
-    d_lines = process.run("lspci -bDnn | grep \"%s\"" % str_flag).stdout
+    d_lines = process.run("lspci -bDnn | grep \"%s\"" % str_flag,
+                          shell=True).stdout
 
     devices = {}
     for line in d_lines.splitlines():
@@ -3301,7 +3304,8 @@ def bind_device_driver(pci_id, driver_type):
     vendor = vd_list[0].split(':')[0]
     device = vd_list[0].split(':')[1]
     bind_cmd = "echo %s %s > %s" % (vendor, device, bind_file)
-    return process.run(bind_cmd, ignore_status=True).exit_status == 0
+    return process.run(bind_cmd, ignore_status=True,
+                       shell=True).exit_status == 0
 
 
 def unbind_device_driver(pci_id):
@@ -3314,7 +3318,8 @@ def unbind_device_driver(pci_id):
         return False
     unbind_file = "/sys/bus/pci/devices/%s/driver/unbind" % pci_id
     unbind_cmd = "echo %s > %s" % (pci_id, unbind_file)
-    return process.run(unbind_cmd, ignore_status=True).exit_status == 0
+    return process.run(unbind_cmd, ignore_status=True,
+                       shell=True).exit_status == 0
 
 
 def check_device_driver(pci_id, driver_type):
@@ -3379,7 +3384,7 @@ class VFIOController(object):
         lnk = "/sys/module/vfio_iommu_type1/parameters/allow_unsafe_interrupts"
         if allow_unsafe_interrupts:
             try:
-                process.run("echo Y > %s" % lnk)
+                process.run("echo Y > %s" % lnk, shell=True)
             except process.CmdError, detail:
                 raise VFIOError(str(detail))
 
@@ -3484,7 +3489,7 @@ class SELinuxBoolean(object):
         get_sebool_cmd = "getsebool %s | awk -F'-->' '{print $2}'" % (
             self.local_bool_var)
         logging.debug("The command: %s", get_sebool_cmd)
-        result = process.run(get_sebool_cmd)
+        result = process.run(get_sebool_cmd, shell=True)
         return result.stdout.strip()
 
     def get_sebool_remote(self):
@@ -3495,7 +3500,7 @@ class SELinuxBoolean(object):
         get_sebool_cmd = "getsebool %s" % self.remote_bool_var
         cmd = ssh_cmd + "'%s'" % get_sebool_cmd + "| awk -F'-->' '{print $2}'"
         logging.debug("The command: %s", cmd)
-        result = process.run(cmd)
+        result = process.run(cmd, shell=True)
         return result.stdout.strip()
 
     def setup(self):

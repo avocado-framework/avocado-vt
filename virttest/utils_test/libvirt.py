@@ -787,7 +787,8 @@ def yum_install(pkg_list, session=None):
         if session:
             status = session.cmd_status(yum_cmd.format(pkg))
         else:
-            status = process.run(yum_cmd.format(pkg)).exit_status
+            status = process.run(yum_cmd.format(pkg),
+                                 shell=True).exit_status
         if status:
             raise exceptions.TestFail("Failed to install package: %s"
                                       % pkg)
@@ -846,7 +847,7 @@ class PoolVolumeTest(object):
                     shutil.rmtree(nfs_path)
             if pool_type == "logical":
                 cmd = "pvs |grep vg_logical|awk '{print $1}'"
-                pv = process.system_output(cmd)
+                pv = process.system_output(cmd, shell=True)
                 # Cleanup logical volume anyway
                 process.run("vgremove -f vg_logical", ignore_status=True)
                 process.run("pvremove %s" % pv, ignore_status=True)
@@ -988,7 +989,7 @@ class PoolVolumeTest(object):
                     image_size=image_size)
                 cmd = ("iscsiadm -m session -P 3 |grep -B3 %s| grep Host|awk "
                        "'{print $3}'" % logical_device.split('/')[2])
-                scsi_host = process.system_output(cmd)
+                scsi_host = process.system_output(cmd, shell=True)
                 scsi_pool_xml = pool_xml.PoolXML()
                 scsi_pool_xml.name = pool_name
                 scsi_pool_xml.pool_type = "scsi"
@@ -2086,7 +2087,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
 
         # Mount the gluster disk and create the image.
         process.run("mount -t glusterfs %s:%s /mnt; %s; umount /mnt"
-                    % (host_ip, vol_name, disk_cmd))
+                    % (host_ip, vol_name, disk_cmd), shell=True)
 
         disk_params_src = {'source_protocol': disk_src_protocol,
                            'source_name': "%s/%s" % (vol_name, dist_img),
@@ -2219,7 +2220,7 @@ def create_local_disk(disk_type, path=None,
     else:
         raise exceptions.TestError("Unknown disk type %s" % disk_type)
     if cmd:
-        process.run(cmd, ignore_status=True)
+        process.run(cmd, ignore_status=True, shell=True)
     return path
 
 
@@ -2261,7 +2262,8 @@ def create_scsi_disk(scsi_option, scsi_size="2048"):
                                   (scsi_size, scsi_option))
         # Get the scsi device name
         scsi_disk = process.run("lsscsi|grep scsi_debug|"
-                                "awk '{print $6}'").stdout.strip()
+                                "awk '{print $6}'",
+                                shell=True).stdout.strip()
         logging.info("scsi disk: %s" % scsi_disk)
         return scsi_disk
     except Exception, e:
