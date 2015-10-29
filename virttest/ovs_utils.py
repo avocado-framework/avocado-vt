@@ -68,25 +68,27 @@ class Machine(object):
         """
         Ping destination.
         """
-        if ipv is None:
-            ipv = "ipv6"
-
-        if ipv == "ipv6":
+        command = "ping"
+        if ipv is None or ":" in dst:
+            command = "ping6"
             if iface is None:
                 raise exceptions.TestError(
                     "For ipv6 ping, interface can't be None")
-
             if self.vm:
                 iface = self.get_if_vlan_name(
                     self.vm.virtnet[iface].g_nic_name,
                     vlan)
-                return ping6(iface, dst, count,
-                             self.runner)
             else:
                 iface = self.get_if_vlan_name(iface, vlan)
-                return ping6(iface, dst, count, self.runner)
-        elif ipv == "ipv4":
-            return ping4(iface, dst, count, self.runner)
+
+        if dst is not None:
+            command += " %s" % dst
+        if iface is not None:
+            command += " -I %s" % iface
+        if count is not None:
+            command += " -c %s" % count
+
+        self.runner(command)
 
     def add_vlan_iface(self, iface, vlan_id):
         """
@@ -206,24 +208,3 @@ class Machine(object):
             except AttributeError:
                 return self.session.__getattribute__(name)
         raise AttributeError("Cannot find attribute %s in class" % name)
-
-
-def ping6(iface, dst_ip, count=1, runner=None):
-    """
-    Format command for ipv6.
-    """
-    if runner is None:
-        runner = process.run
-    return runner("ping6 -I %s %s -c %s" % (iface, dst_ip, count))
-
-
-def ping4(iface, dst_ip, count=1, runner=None):
-    """
-    Format command for ipv4.
-    """
-    if runner is None:
-        runner = process.run
-    ping_cmd = "ping %s -c %s" % (dst_ip, count)
-    if iface is not None:
-        ping_cmd += " -I %s" % iface
-    return runner(ping_cmd)
