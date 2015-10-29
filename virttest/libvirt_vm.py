@@ -993,7 +993,8 @@ class VM(virt_vm.BaseVM):
             prompt = self.params.get("shell_prompt", "[\#\$]")
             self.serial_console = aexpect.ShellSession(command=cmd, auto_close=False,
                                                        output_func=output_func,
-                                                       output_params=output_params)
+                                                       output_params=output_params,
+                                                       prompt=prompt)
             # Cause serial_console.close() to close open log file
             self.serial_console.set_log_file(output_filename)
             self.serial_console_log = os.path.join(utils_misc.get_log_file_dir(),
