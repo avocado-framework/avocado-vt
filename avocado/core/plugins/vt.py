@@ -230,7 +230,7 @@ class VirtTestLoader(loader.TestLoader):
         term_support = output.TermSupport()
         return {VirtTest: term_support.healthy_str}
 
-    def discover(self, url, list_tests=False):
+    def discover(self, url, which_tests=loader.DEFAULT):
         try:
             cartesian_parser = self._get_parser()
         except Exception, details:
@@ -245,7 +245,7 @@ class VirtTestLoader(loader.TestLoader):
             # the other test plugins to handle the URL.
             except cartesian_config.LexerError:
                 return []
-        elif list_tests is loader.DEFAULT and not self.args.vt_config:
+        elif which_tests is loader.DEFAULT and not self.args.vt_config:
             # By default don't run anythinig unless vt_config provided
             return []
         # Create test_suite
