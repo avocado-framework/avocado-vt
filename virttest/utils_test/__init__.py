@@ -1161,8 +1161,13 @@ def get_loss_ratio(output):
     try:
         return int(re.findall('(\d+)% packet loss', output)[0])
     except IndexError:
-        logging.debug(output)
-        return -1
+        pass
+    try:
+        return int(re.findall('Lost = (\d+)', output)[0])
+    except IndexError:
+        pass
+    logging.debug(output)
+    return -1
 
 
 def run_virt_sub_test(test, params, env, sub_type=None, tag=None):
