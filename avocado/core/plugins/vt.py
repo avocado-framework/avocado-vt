@@ -325,6 +325,7 @@ class VirtTest(test.Test):
                                                         self.default_params)
 
         self.debugdir = self.logdir
+        self.resultsdir = self.logdir
         utils_misc.set_log_file_dir(self.logdir)
 
     def _start_logging(self):
