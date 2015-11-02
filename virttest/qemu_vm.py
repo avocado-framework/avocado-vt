@@ -1145,7 +1145,8 @@ class VM(virt_vm.BaseVM):
             if mem is not None:
                 numa_cmd += ",mem=%s" % mem
             if cpus is not None:
-                numa_cmd += ",cpus=%s" % cpus
+                cpus = ','.join(map(lambda x: "cpus=%s" % x.strip(), cpus.split(',')))
+                numa_cmd += ",%s" % cpus
             if nodeid is not None:
                 numa_cmd += ",nodeid=%s" % nodeid
             return numa_cmd
@@ -1690,7 +1691,8 @@ class VM(virt_vm.BaseVM):
                 numa_total_mem += int(numa_mem)
             if numa_cpus is not None:
                 numa_total_cpus += len(utils_misc.cpu_str_to_list(numa_cpus))
-            devices.insert(StrDev('numa', cmdline=add_numa_node(devices)))
+            cmdline = add_numa_node(devices, numa_mem, numa_cpus, numa_nodeid)
+            devices.insert(StrDev('numa', cmdline=cmdline))
 
         if params.get("numa_consistency_check_cpu_mem", "no") == "yes":
             if (numa_total_cpus > int(smp) or numa_total_mem > int(mem) or
