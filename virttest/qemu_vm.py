@@ -1370,7 +1370,8 @@ class VM(virt_vm.BaseVM):
                 pvpanic_dev = qdevices.QCustomDevice("device",
                                                      params=pvpanic_params,
                                                      backend="backend")
-                pvpanic_dev.set_param("id", utils_misc.generate_random_id())
+                pvpanic_dev.set_param("id", utils_misc.generate_random_id(),
+                                      dynamic=True)
                 devices.insert(pvpanic_dev)
 
         # Add serial console redirection
