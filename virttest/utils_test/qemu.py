@@ -21,6 +21,7 @@ import errno
 import fcntl
 import logging
 import os
+import re
 import socket
 import threading
 import time
@@ -35,6 +36,8 @@ from .. import error_context
 from .. import remote
 from .. import storage
 from .. import utils_misc
+from .. import qemu_monitor
+from ..qemu_devices import qdevices
 from ..staging import utils_memory
 
 
@@ -1455,3 +1458,229 @@ class GuestSuspend(object):
     def action_after_suspend(self, **args):
         error_context.context("Actions after suspend")
         pass
+
+
+class MemoryHotplugTest(object):
+
+    UNIT = "M"
+
+    def __init__(self, test, params, env):
+        self.test = test
+        self.env = env
+        self.params = params
+        self.sessions = {}
+
+    @classmethod
+    def normalize_mem_mb(cls, str_size):
+        """
+        Convert memory size unit
+        """
+        args = ("%sB" % str_size, cls.UNIT, 1024)
+        size = utils_misc.normalize_data_size(*args)
+        try:
+            return float(size)
+        except ValueError as details:
+            return 0.0
+
+    def update_vm_after_hotplug(self, vm, dev):
+        """
+        Update VM params to ensure hotpluged devices exist in guest
+        """
+        attrs = dev.__attributes__[:]
+        params = self.params.copy_from_keys(attrs)
+        dev_type, name = dev.get_qid().split('-')
+        for attr in attrs:
+            val = dev.get_param(attr)
+            if val:
+                key = "_".join([attr, dev_type, name])
+                params[key] = val
+        if name not in vm.params.get("mem_devs"):
+            mem_devs = vm.params.objects("mem_devs")
+            mem_devs.append(name)
+            params["mem_devs"] = " ".join(mem_devs)
+        vm.params.update(params)
+        if dev not in vm.devices:
+            vm.devices.insert(dev)
+        self.env.register_vm(vm.name, vm)
+
+    def update_vm_after_unplug(self, vm, dev):
+        """
+        Update VM params object after unplug memory devices
+        """
+        dev_type, name = dev.get_qid().split('-')
+        if name not in vm.params.get("mem_devs"):
+            return
+        mem_devs = vm.params.objects("mem_devs")
+        mem_devs.remove(name)
+        vm.params["mem_devs"] = " ".join(mem_devs)
+        if dev in vm.devices:
+            vm.devices.remove(dev)
+        self.env.register_vm(vm.name, vm)
+
+    @error_context.context_aware
+    def hotplug_memory(self, vm, name):
+        """
+        Hotplug dimm device with memory backend
+        """
+        devices = vm.devices.memory_define_by_params(self.params, name)
+        for dev in devices:
+            dev_type = "memory"
+            if isinstance(dev, qdevices.Dimm):
+                addr = self.get_mem_addr(vm, dev.get_qid())
+                dev.set_param("addr", addr)
+                dev_type = "pc-dimm"
+            step = "Hotplug %s '%s' to VM" % (dev_type, dev.get_qid())
+            error_context.context(step, logging.info)
+            vm.devices.simple_hotplug(dev, vm.monitor)
+            self.update_vm_after_hotplug(vm, dev)
+        self.check_memory(vm)
+        return devices
+
+    @error_context.context_aware
+    def unplug_memory(self, vm, name):
+        """
+        Unplug memory device
+        step 1, unplug memory object
+        step 2, unplug dimm device
+        """
+        devices = []
+        mem_qid = "mem-%s" % name
+        step = "Unplug memory object '%s'" % mem_qid
+        error_context.context(step, logging.info)
+        try:
+            mem = vm.devices.get_by_qid(mem_qid)[0]
+        except IndexError:
+            output = vm.monitor.query("memory-devices")
+            logging.debug("Memory devices: %s" % output)
+            msg = "Memory object '%s' not exists" % mem_qid
+            raise exceptions.TestError(msg)
+        vm.devices.simple_unplug(mem, vm.monitor)
+        devices.append(mem)
+        self.update_vm_after_unplug(vm, mem)
+        try:
+            dimm = vm.devices.get_by_properties({"memdev": mem_qid})[0]
+            step = "Unplug pc-dimm '%s'" % dimm.get_qid()
+            error_context.context(step, logging.info)
+            vm.devices.simple_unplug(dimm, vm.monitor)
+            devices.append(dimm)
+            self.update_vm_after_unplug(vm, dimm)
+            error_context.context(step, logging.info)
+            self.check_memory(vm)
+        except IndexError:
+            logging.warn("'%s' is not used any dimm" % mem_qid)
+        return devices
+
+    @error_context.context_aware
+    def get_guest_mem(self, vm):
+        """
+        Get physical memory size detect by guest os
+        """
+        error_context.context("Get physical memory in guest")
+        mem_size = 0.0
+        session = self.get_session(vm)
+        if self.params.get("os_type") == "windows":
+            cmd = 'systeminfo | findstr /C:"Total Physical Memory"'
+            regex = re.compile("Total Physical Memory:\s+(.*)", re.M | re.I)
+        else:
+            cmd = 'cat /proc/meminfo'
+            regex = re.compile("MemTotal:\s+(.*)", re.M | re.I)
+        output = session.cmd_output_safe(cmd, timeout=240)
+        try:
+            mem_str = regex.search(output.replace(',', '')).groups()[0]
+            mem_size = self.normalize_mem_mb(mem_str)
+            logging.info(
+                "Memory reported by OS: %.2f %sB" %
+                (mem_size, self.UNIT))
+        except Exception:
+            logging.warn("Invalid outputi from guest: %s" % output)
+        return mem_size
+
+    @error_context.context_aware
+    def get_vm_mem(self, vm):
+        """
+        Get guest memory
+        """
+        error_context.context("Get memory assign to VM")
+        mem_size = 0.0
+        for device in vm.devices:
+            if isinstance(device, qdevices.Dimm):
+                mem_qid = device.get_param("memdev")
+                mem = vm.devices.get_by_qid(mem_qid)[0]
+                mem_size += self.normalize_mem_mb(mem.get_param("size"))
+        if self.params.get("mem"):
+            mem_str = self.params.get("mem")
+            if mem_str.isdigit():
+                mem_str = "%s MB" % mem_str
+            mem_size += self.normalize_mem_mb(mem_str)
+        logging.info(
+            "Memory assigned to VM: %.2f %sB" %
+            (mem_size, self.UNIT))
+        return mem_size
+
+    @error_context.context_aware
+    def get_mem_addr(self, vm, qid):
+        """
+        Get guest memory address from qemu monitor.
+        """
+        error_context.context("Get hotpluged memory address")
+        if isinstance(vm.monitor, qemu_monitor.QMPMonitor):
+            output = vm.monitor.info("memory-devices")
+            for info in output:
+                if str(info['data']['id']) == qid:
+                    address = info['data']['addr']
+                    logging.info("Memory address: %s" % address)
+                    return address
+        else:
+            raise NotImplementedError
+
+    @error_context.context_aware
+    def check_memory(self, vm=None):
+        """
+        Check is guest memory is really match assgined to VM.
+        """
+        error_context.context("Verify memory info", logging.info)
+        if not vm:
+            vm = self.env.get_vm(self.params["main_vm"])
+        vm.verify_alive()
+        timeout = float(self.params.get("wait_resume_timeout", 60))
+        # Notes:
+        #    some sub test will pause VM, here need to wait VM resume
+        # then check memory info in guest.
+        utils_misc.wait_for(lambda: not vm.is_paused, timeout=timeout)
+        utils_misc.verify_host_dmesg()
+        guest_mem_size = self.get_guest_mem(vm)
+        vm_mem_size = self.get_vm_mem(vm)
+        threshold = vm_mem_size * 0.06
+        if abs(guest_mem_size - vm_mem_size) > threshold:
+            msg = ("Assigned '%.2fMB' memory to '%s'"
+                   "but, '%.2fMB' memory detect by OS" %
+                   (vm_mem_size, vm.name, guest_mem_size))
+            raise exceptions.TestFail(msg)
+
+    def get_session(self, vm):
+        """
+        Get connection for VM
+        """
+        key = vm.instance
+        if not self.sessions.get(key):
+            self.sessions[key] = []
+        else:
+            for session in self.sessions[key]:
+                if session.is_responsive():
+                    return session
+                else:
+                    session.close()
+                    self.sessions[key].remove(session)
+        login_timeout = float(self.params.get("login_timeout", 600))
+        session = vm.wait_for_login(timeout=login_timeout)
+        self.sessions[key].append(session)
+        return session
+
+    def close_sessions(self):
+        """
+        Close opening session, better to call it in the end of test.
+        """
+        while self.sessions:
+            _, sessions = self.sessions.popitem()
+            for session in sessions:
+                session.close()
