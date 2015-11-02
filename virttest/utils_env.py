@@ -222,9 +222,6 @@ class Env(UserDict.IterableUserDict):
             if os.path.isfile(self._filename):
                 os.unlink(self._filename)
 
-    def __del__(self):
-        self.destroy()
-
     def get_vm(self, name):
         """
         Return a VM object by its name.
