@@ -67,3 +67,17 @@ class Params(UserDict.IterableUserDict):
         for number in xrange(1, int(count) + 1):
             key = "%s%s" % (base_name, number)
             yield (key, cpy.get(key))
+
+    def copy_from_keys(self, keys):
+        """
+        Return sub dict-like object by keys
+
+        :param keys: white lists of key
+        :return: dict-like object
+        """
+        new_dict = self.copy()
+        new_dict.clear()
+        for key in keys:
+            if self.get(key):
+                new_dict[key] = self.get(key)
+        return new_dict
