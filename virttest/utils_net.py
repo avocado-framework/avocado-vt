@@ -287,6 +287,21 @@ class IPAddrGetError(NetError):
         return details_msg
 
 
+class IPAddrSetError(NetError):
+
+    def __init__(self, mac_addr, ip_addr, details=None):
+        NetError.__init__(self, mac_addr, ip_addr)
+        self.mac_addr = mac_addr
+        self.ip_addr = ip_addr
+        self.details = details
+
+    def __str__(self):
+        details_msg = "Cannot set IP %s to guest mac ['%s']." % (self.ip_addr,
+                                                                 self.mac_addr)
+        details_msg += " Error info: %s" % self.details
+        return details_msg
+
+
 class HwOperstarteGetError(NetError):
 
     def __init__(self, ifname, details=None):
@@ -1373,6 +1388,64 @@ def get_guest_ip_addr(session, mac_addr, os_type="linux", ip_version="ipv4",
     except Exception, err:
         logging.debug(session.cmd_output(info_cmd))
         raise IPAddrGetError(mac_addr, err)
+
+
+def convert_netmask(mask):
+    """
+    Convert string type netmask to int type netmask.
+
+    param mask: string type netmask, eg. 255.255.255.0
+
+    return: int type netmask eg. input '255.255.255.0' return 24
+    """
+    bin_str = ""
+    for bits in mask.split("."):
+        bin_str += bin(int(bits))[2:]
+    if not bin_str:
+        return 0
+    return sum(map(int, list(bin_str)))
+
+
+def set_guest_ip_addr(session, mac, ip_addr,
+                      netmask="255.255.255.0", os_type="linux"):
+    """
+    Get guest ip addresses by serial session, for linux guest, please
+    ensure target interface not controlled by NetworkManager service,
+    before call this function.
+
+    :param session: serial session
+    :param mac: nic mac address of the nic that you want set ip
+    :param ip_addr: IP address set to guest
+    :param os_type: guest os type, windows or linux
+
+    :return: True if set up guest ip successfully.
+    """
+    try:
+        info_cmd = ""
+        if os_type == "linux":
+            nic_ifname = get_linux_ifname(session, mac)
+            if session.cmd_status("which ip") != 0:
+                info_cmd = "ifconfig -a; ethtool -S %s" % nic_ifname
+                cmd = ("ifconfig %s %s netmask %s" %
+                       (nic_ifname, ip_addr, netmask))
+            else:
+                if "." in netmask:
+                    netmask = convert_netmask(netmask)
+                info_cmd = "ip addr show; ethtool -s %s" % nic_ifname
+                cmd = ("ip addr add %s/%s dev %s" %
+                       (ip_addr, netmask, nic_ifname))
+            session.cmd(cmd, timeout=360)
+        elif os_type == "windows":
+            info_cmd = "ipconfig /all"
+            cmd = ("wmic nicconfig where MACAddress='%s' call "
+                   "enablestatic '%s','%s'" % (mac, ip_addr, netmask))
+            session.cmd(cmd, timeout=360)
+        else:
+            info_cmd = ""
+            raise IPAddrSetError(mac, ip_addr, "Unknown os type")
+    except Exception, err:
+        logging.debug(session.cmd_output(info_cmd))
+        raise IPAddrSetError(mac, ip_addr, err)
 
 
 def restart_guest_network(session, mac_addr=None, os_type="linux",
