@@ -15,7 +15,6 @@ import os
 from . import passfd_setup
 from . import utils_misc
 from . import cartesian_config
-from . import data_dir
 
 try:
     import json
@@ -94,8 +93,7 @@ def get_monitor_filename(vm, monitor_name):
     :param monitor_name: The monitor name.
     :return: The string of socket file name for qemu monitor.
     """
-    return os.path.join(data_dir.get_tmp_dir(),
-                        "monitor-%s-%s" % (monitor_name, vm.instance))
+    return "/tmp/monitor-%s-%s" % (monitor_name, vm.instance)
 
 
 def get_monitor_filenames(vm):

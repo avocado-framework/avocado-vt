@@ -8,7 +8,6 @@ import tempfile
 
 from avocado.utils import process
 
-from .. import data_dir
 from .. import libvirt_storage
 from ..libvirt_xml import base, xcepts, accessors
 
@@ -368,7 +367,7 @@ class PoolXML(PoolXMLBase):
         Backup the pool xml file.
         """
         try:
-            xml_file = tempfile.mktemp(dir=data_dir.get_tmp_dir())
+            xml_file = tempfile.mktemp(dir="/tmp")
             virsh_instance.pool_dumpxml(name, to_file=xml_file)
             return xml_file
         except Exception, detail:

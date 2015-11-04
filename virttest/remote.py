@@ -298,7 +298,7 @@ def remote_commander(client, host, port, username, password, prompt,
     :return: A ShellSession object.
     """
     if path is None:
-        path = data_dir.get_tmp_dir()
+        path = "/tmp"
     if client == "ssh":
         cmd = ("ssh -o UserKnownHostsFile=/dev/null "
                "-o PreferredAuthentications=password "
