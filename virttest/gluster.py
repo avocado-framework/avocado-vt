@@ -254,10 +254,10 @@ def file_exists(params, filename_path):
     # should be deleted immediately when no longer needed and
     # created directory don't file tmp dir by any data.
     tmpdir = "gmount-%s" % (utils_misc.generate_random_string(6))
-    tmpdir_path = os.path.join(data_dir.get_tmp_dir(), tmpdir)
+    tmpdir_path = os.path.join("/tmp", tmpdir)
     while os.path.exists(tmpdir_path):
         tmpdir = "gmount-%s" % (utils_misc.generate_random_string(6))
-        tmpdir_path = os.path.join(data_dir.get_tmp_dir(), tmpdir)
+        tmpdir_path = os.path.join("/tmp", tmpdir)
     ret = False
     try:
         try:

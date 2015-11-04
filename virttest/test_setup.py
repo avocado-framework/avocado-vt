@@ -660,14 +660,12 @@ class PrivateBridgeConfig(object):
                        "--listen-address %s.1 --dhcp-range %s.2,%s.254 "
                        "--dhcp-lease-max=253 "
                        "--dhcp-no-override "
-                       "--pid-file=%s/dnsmasq.pid "
-                       "--log-facility=%s/dnsmasq.log" %
-                       (self.subnet, self.subnet, self.subnet,
-                        data_dir.get_tmp_dir(), data_dir.get_tmp_dir()))
+                       "--pid-file=/tmp/dnsmasq.pid "
+                       "--log-facility=/tmp/dnsmasq.log" %
+                       (self.subnet, self.subnet, self.subnet))
         self.dhcp_server_pid = None
         try:
-            self.dhcp_server_pid = int(open('%s/dnsmasq.pid' %
-                                            data_dir.get_tmp_dir(), 'r').read())
+            self.dhcp_server_pid = int(open('/tmp/dnsmasq.pid', 'r').read())
         except ValueError:
             raise PrivateBridgeError(self.brname)
         logging.debug("Started internal DHCP server with PID %s",
@@ -742,8 +740,7 @@ class PrivateBridgeConfig(object):
                 pass
         else:
             try:
-                dhcp_server_pid = int(open('%s/dnsmasq.pid' %
-                                           data_dir.get_tmp_dir(), 'r').read())
+                dhcp_server_pid = int(open('/tmp/dnsmasq.pid', 'r').read())
             except ValueError:
                 return
             try:

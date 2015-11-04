@@ -31,7 +31,6 @@ from avocado.utils import path
 from avocado.utils import process
 
 from . import utils_misc
-from . import data_dir
 
 UNIT = "B"
 COMMON_OPTS = "--noheading --nosuffix --unit=%s" % UNIT
@@ -610,7 +609,7 @@ class LVM(object):
 
 class EmulatedLVM(LVM):
 
-    def __init__(self, params, root_dir=data_dir.get_tmp_dir()):
+    def __init__(self, params, root_dir="/tmp"):
         path.find_command("losetup")
         path.find_command("dd")
         super(EmulatedLVM, self).__init__(params)

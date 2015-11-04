@@ -462,7 +462,7 @@ class WindowsVMCheck(VMCheck):
         """
         sshot_file = os.path.join(data_dir.get_tmp_dir(), "vm_screenshot.ppm")
         if self.target == "ovirt":
-            vm_sshot = os.path.join(data_dir.get_tmp_dir(), "vm_screenshot.ppm")
+            vm_sshot = "/tmp/vm_screenshot.ppm"
         else:
             vm_sshot = sshot_file
         virsh.screenshot(self.name, vm_sshot, session_id=self.virsh_session_id)
