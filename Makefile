@@ -71,7 +71,7 @@ rpm: srpm
 
 srpm-release: source-release
 	if test ! -d BUILD/SRPM; then mkdir -p BUILD/SRPM; fi
-	mock --resultdir BUILD/SRPM -D "commit $(RELEASE_COMMIT)" --buildsrpm --spec avocado.spec --sources SOURCES
+	mock --resultdir BUILD/SRPM -D "commit $(RELEASE_COMMIT)" --buildsrpm --spec avocado-plugins-vt.spec --sources SOURCES
 
 rpm-release: srpm-release
 	if test ! -d BUILD/RPM; then mkdir -p BUILD/RPM; fi
