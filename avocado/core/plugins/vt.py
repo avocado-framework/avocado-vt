@@ -270,6 +270,14 @@ class VirtTestLoader(loader.TestLoader):
         return test_suite
 
 
+def cleanup_env(env_filename, env_version):
+    """
+    Pickable function to initialize and destroy the virttest env
+    """
+    env = utils_env.Env(env_filename, env_version)
+    env.destroy()
+
+
 class VirtTest(test.Test):
 
     """
@@ -405,6 +413,9 @@ class VirtTest(test.Test):
             data_dir.get_backend_dir(params.get("vm_type")),
             params.get("env", "env"))
         env = utils_env.Env(env_filename, self.env_version)
+        self.runner_queue.put({"func_at_exit": cleanup_env,
+                               "args": (env_filename, self.env_version),
+                               "once": True})
 
         test_passed = False
         t_type = None
