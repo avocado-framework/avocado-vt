@@ -26,7 +26,7 @@ class ConfigLoader:
     Base class of the configuration parser
     """
 
-    def __init__(self, cfg, tmpdir='/tmp', raise_errors=False):
+    def __init__(self, cfg, tmpdir=data_dir.get_tmp_dir(), raise_errors=False):
         """
         Instantiate ConfigParser and load data.
 

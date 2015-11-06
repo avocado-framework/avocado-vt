@@ -77,7 +77,8 @@ def clean_tmp_files():
     if os.path.isfile(CREATE_LOCK_FILENAME):
         os.unlink(CREATE_LOCK_FILENAME)
 
-CREATE_LOCK_FILENAME = os.path.join('/tmp', 'avocado-vt-vm-create.lock')
+CREATE_LOCK_FILENAME = os.path.join(data_dir.get_tmp_dir(),
+                                    'avocado-vt-vm-create.lock')
 
 
 class VM(virt_vm.BaseVM):
@@ -282,8 +283,9 @@ class VM(virt_vm.BaseVM):
         :param name: The serial port name.
         """
         if name:
-            return "/tmp/serial-%s-%s" % (name, self.instance)
-        return "/tmp/serial-%s" % self.instance
+            return os.path.join(data_dir.get_tmp_dir(),
+                                "serial-%s-%s" % (name, self.instance))
+        return os.path.join(data_dir.get_tmp_dir(), "serial-%s" % self.instance)
 
     def get_serial_console_filenames(self):
         """
@@ -495,7 +497,8 @@ class VM(virt_vm.BaseVM):
                 return ""
 
             default_id = "seabioslog_id_%s" % self.instance
-            filename = "/tmp/seabios-%s" % self.instance
+            filename = os.path.join(data_dir.get_tmp_dir(),
+                                    "seabios-%s" % self.instance)
             self.logs["seabios"] = filename
             cmd = " -chardev socket"
             cmd += _add_option("id", default_id)
@@ -510,7 +513,8 @@ class VM(virt_vm.BaseVM):
         def add_log_anaconda(devices, pci_bus='pci.0'):
             chardev_id = "anacondalog_chardev_%s" % self.instance
             vioser_id = "anacondalog_vioser_%s" % self.instance
-            filename = "/tmp/anaconda-%s" % self.instance
+            filename = os.path.join(data_dir.get_tmp_dir(),
+                                    "anaconda-%s" % self.instance)
             self.logs["anaconda"] = filename
             dev = qdevices.QCustomDevice('chardev', backend='backend')
             dev.set_param('backend', 'socket')
@@ -2497,7 +2501,9 @@ class VM(virt_vm.BaseVM):
                 qemu_command += (" -incoming " + migration_mode +
                                  ":0:%d" % self.migration_port)
             elif migration_mode == "unix":
-                self.migration_file = "/tmp/migration-unix-%s" % self.instance
+                self.migration_file = os.path.join(data_dir.get_tmp_dir(),
+                                                   "migration-unix-%s" %
+                                                   self.instance)
                 qemu_command += " -incoming unix:%s" % self.migration_file
             elif migration_mode == "exec":
                 if migration_exec_cmd is None:
@@ -3482,7 +3488,8 @@ class VM(virt_vm.BaseVM):
     @error_context.context_aware
     def migrate(self, timeout=virt_vm.BaseVM.MIGRATE_TIMEOUT, protocol="tcp",
                 cancel_delay=None, offline=False, stable_check=False,
-                clean=True, save_path="/tmp", dest_host="localhost",
+                clean=True, save_path=data_dir.get_tmp_dir(),
+                dest_host="localhost",
                 remote_port=None, not_wait_for_migration=False,
                 fd_src=None, fd_dst=None, migration_exec_cmd_src=None,
                 migration_exec_cmd_dst=None, env=None):
