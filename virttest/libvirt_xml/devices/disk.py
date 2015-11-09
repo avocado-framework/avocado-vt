@@ -283,7 +283,7 @@ class Disk(base.TypedDeviceBase):
                 else:
                     accessors.XMLElementInt(slot, self, parent_xpath='/',
                                             tag_name=slot)
-            super(Disk.IOTune, self).__init__(virsh_instance=virsh_instance)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<iotune/>'
 
     class Encryption(base.base.LibvirtXMLBase):
@@ -306,7 +306,7 @@ class Disk(base.TypedDeviceBase):
                                    tag_name='encryption', attribute='format')
             accessors.XMLElementDict('secret', self, parent_xpath='/',
                                      tag_name='secret')
-            super(Disk.Encryption, self).__init__(
+            super(self.__class__, self).__init__(
                 virsh_instance=virsh_instance)
             self.xml = '<encryption/>'
 
