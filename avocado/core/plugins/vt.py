@@ -1001,7 +1001,7 @@ class VirtTestOptionsProcess(object):
                 self.cartesian_parser.no_filter(no_filter)
 
     def _process_extra_params(self):
-        if self.options.vt_extra_params:
+        if getattr(self.options, "vt_extra_params", False):
             for param in self.options.vt_extra_params:
                 key, value = param.split('=', 1)
                 self.cartesian_parser.assign(key, value)
