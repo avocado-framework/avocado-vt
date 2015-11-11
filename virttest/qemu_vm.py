@@ -1133,7 +1133,8 @@ class VM(virt_vm.BaseVM):
 
             return sc_cmd
 
-        def add_numa_node(devices, mem=None, cpus=None, nodeid=None):
+        def add_numa_node(devices, memdev=None, mem=None,
+                          cpus=None, nodeid=None):
             """
             This function is used to add numa node to guest command line
             """
@@ -1142,6 +1143,8 @@ class VM(virt_vm.BaseVM):
             numa_cmd = " -numa node"
             if mem is not None:
                 numa_cmd += ",mem=%s" % mem
+            elif memdev is None:
+                numa_cmd += ",memdev=%s" % memdev
             if cpus is not None:
                 cpus = ','.join(map(lambda x: "cpus=%s" % x.strip(), cpus.split(',')))
                 numa_cmd += ",%s" % cpus
@@ -1686,11 +1689,13 @@ class VM(virt_vm.BaseVM):
             numa_mem = numa_params.get("numa_mem")
             numa_cpus = numa_params.get("numa_cpus")
             numa_nodeid = numa_params.get("numa_nodeid")
+            numa_memdev = numa_params.get("numa_memdev")
             if numa_mem is not None:
                 numa_total_mem += int(numa_mem)
             if numa_cpus is not None:
                 numa_total_cpus += len(utils_misc.cpu_str_to_list(numa_cpus))
-            cmdline = add_numa_node(devices, numa_mem, numa_cpus, numa_nodeid)
+            cmdline = add_numa_node(devices, numa_memdev,
+                                    numa_mem, numa_cpus, numa_nodeid)
             devices.insert(StrDev('numa', cmdline=cmdline))
 
         if params.get("numa_consistency_check_cpu_mem", "no") == "yes":
