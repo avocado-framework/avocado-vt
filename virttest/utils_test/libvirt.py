@@ -2068,7 +2068,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                                'source_mode': disk_src_mode}
         else:
             disk_params_src = {'source_protocol': disk_src_protocol,
-                               'source_name': iscsi_target + "/" + lun_num,
+                               'source_name': iscsi_target + "/" + str(lun_num),
                                'source_host_name': disk_src_host,
                                'source_host_port': disk_src_port}
     elif disk_src_protocol == 'gluster':
