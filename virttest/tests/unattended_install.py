@@ -1207,13 +1207,21 @@ def run(test, params, env):
         # Due to a race condition, sometimes we might get a MonitorError
         # before the VM gracefully shuts down, so let's capture MonitorErrors.
         except (virt_vm.VMDeadError, qemu_monitor.MonitorError), e:
-            if not wait_ack:
-                break
-            else:
+            if wait_ack:
+                try:
+                    post_finish_str_found = string_in_serial_log(
+                        log_file, post_finish_str)
+                except IOError:
+                    logging.warn("Could not read final serial log file")
+                else:
+                    if post_finish_str_found:
+                        break
                 # Print out the original exception before copying images.
                 logging.error(e)
                 copy_images()
                 raise e
+            else:
+                break
 
         try:
             test.verify_background_errors()
