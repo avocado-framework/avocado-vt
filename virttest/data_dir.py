@@ -198,8 +198,11 @@ def get_deps_dir(target=None):
                               nesting_limit)
 
 
-def get_tmp_dir():
-    return data_dir.get_tmp_dir()
+def get_tmp_dir(public=False):
+    tmp_dir = data_dir.get_tmp_dir()
+    if public:
+        os.chmod(tmp_dir, 0755)
+    return tmp_dir
 
 
 def get_download_dir():
