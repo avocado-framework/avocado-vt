@@ -7,6 +7,7 @@ import os
 import sys
 import glob
 import shutil
+import stat
 
 from avocado.core import data_dir
 
@@ -198,8 +199,18 @@ def get_deps_dir(target=None):
                               nesting_limit)
 
 
-def get_tmp_dir():
-    return data_dir.get_tmp_dir()
+def get_tmp_dir(public=True):
+    """
+    Get the most appropriate tmp dir location.
+
+    :param public: If public for all users' access
+    """
+    tmp_dir = data_dir.get_tmp_dir()
+    if public:
+        tmp_dir_st = os.stat(tmp_dir)
+        os.chmod(tmp_dir, tmp_dir_st.st_mode | stat.S_IXUSR |
+                 stat.S_IXGRP | stat.S_IXOTH)
+    return tmp_dir
 
 
 def get_download_dir():
