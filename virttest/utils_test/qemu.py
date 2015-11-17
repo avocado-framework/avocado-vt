@@ -29,6 +29,7 @@ from avocado.core import exceptions
 from avocado.utils import crypto
 from avocado.utils import data_factory
 
+from .. import data_dir
 from .. import env_process
 from .. import error_context
 from .. import remote
@@ -279,7 +280,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
             else:
                 wait_for_migration()
                 if (dest_host == 'localhost') and stable_check:
-                    save_path = None or "/tmp"
+                    save_path = None or data_dir.get_tmp_dir()
                     save1 = os.path.join(save_path, "src")
                     save2 = os.path.join(save_path, "dst")
 
