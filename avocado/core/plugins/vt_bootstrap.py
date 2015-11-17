@@ -99,7 +99,6 @@ class VirtBootstrap(plugin.Plugin):
         args.vt_vhost = 'off'
         args.vt_malloc_perturb = 'yes'
         args.vt_qemu_sandbox = 'on'
-        args.vt_tests = ''
         args.show_job_log = False
         args.test_lister = True
 
