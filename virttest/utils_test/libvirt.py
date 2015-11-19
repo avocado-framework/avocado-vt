@@ -1500,7 +1500,6 @@ def create_disk_xml(params):
         driver_type = params.get("driver_type", "")
         driver_cache = params.get("driver_cache", "")
         driver_discard = params.get("driver_discard", "")
-        driver_iothread = params.get("driver_iothread", "")
         if driver_name:
             driver_attrs['name'] = driver_name
         if driver_type:
