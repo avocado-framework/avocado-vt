@@ -198,6 +198,10 @@ def preprocess_vm(test, params, env, name):
             # VM is alive and we just need to open the serial console
             vm.create_serial_console()
 
+    if params.get("enable_strace") == "yes":
+        strace = test_setup.StraceQemu(test, params, env)
+        strace.start(params.objects("strace_vms"))
+
     pause_vm = False
 
     if params.get("paused_after_start_vm") == "yes":
@@ -359,6 +363,10 @@ def postprocess_vm(test, params, env, name):
         if kill_vm_timeout:
             utils_misc.wait_for(vm.is_dead, kill_vm_timeout, 0, 1)
         vm.destroy(gracefully=params.get("kill_vm_gracefully") == "yes")
+
+    if params.get("enable_strace") == "yes":
+        strace = test_setup.StraceQemu(test, params, env)
+        strace.stop()
 
 
 def process_command(test, params, env, command, command_timeout,

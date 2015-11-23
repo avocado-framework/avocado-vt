@@ -10,9 +10,11 @@ import math
 import shutil
 
 from avocado.utils import process
+from avocado.utils import archive
 from avocado.utils import wait
 from avocado.utils import genio
 from avocado.utils import build
+from avocado.utils import path
 
 from . import data_dir
 from . import error_context
@@ -1767,3 +1769,76 @@ class EGDConfig(object):
             wait.wait_for(_all_killed, timeout=60)
         except OSError:
             logging.warn("egd.pl is running")
+
+
+class StraceQemu(object):
+
+    """
+    Attach strace to qemu VM processes, if enable_strace is 'yes'.
+    It's useful to analyze qemu hang issue. But it will generate
+    a large size logfile if it is enabled, so compressed original
+    logfiles after strace process terminated to safe disk space.
+    """
+
+    def __init__(self, test, params, env):
+        self.env = env
+        self.test = test
+        self.params = params
+        self.process = path.find_command("strace")
+
+    @property
+    def root_dir(self):
+        root_dir = os.path.join(self.test.debugdir, "strace")
+        if not os.path.isdir(root_dir):
+            os.makedirs(root_dir)
+        return root_dir
+
+    @property
+    def log_tarball(self):
+        return os.path.join(self.test.debugdir, "strace.tgz")
+
+    def _generate_cmd(self, vm):
+        """Generate strace start command line"""
+        pid = vm.get_pid()
+        template = ("{strace} -T -tt -e trace=all "
+                    "-o {logfile} -p {pid}")
+        logfile = os.path.join(self.root_dir, "%s.log" % pid)
+        kwargs = {"strace": self.process,
+                  "pid": pid,
+                  "logfile": logfile}
+        return template.format(**kwargs)
+
+    def _start(self, cmd):
+        """Start strace process in sub-process"""
+        p = process.SubProcess(cmd)
+        pid = p.start()
+        try:
+            self.env["strace_processes"] += [pid]
+        except:
+            self.env["strace_processes"] = [pid]
+        return self.env["strace_processes"]
+
+    def _compress_log(self):
+        """Compress and remove strace logfiles"""
+        log_tarball = os.path.join(self.root_dir, self.log_tarball)
+        archive.compress(log_tarball, self.root_dir)
+        shutil.rmtree(self.root_dir)
+
+    def start(self, vms=None):
+        """Attach strace to qemu VM process"""
+        if not vms:
+            vms = [self.params["main_vm"]]
+        for vm in self.env.get_all_vms():
+            if vm.name not in vms:
+                continue
+            cmd = self._generate_cmd(vm)
+            self._start(cmd)
+
+    def stop(self):
+        """Stop strace process and compress strace log file"""
+        while self.env.get("strace_processes"):
+            pid = self.env.get("strace_processes").pop()
+            if process.pid_exists(pid):
+                logging.info("stop strace process: %s" % pid)
+                process.kill_process_tree(pid)
+        self._compress_log()
