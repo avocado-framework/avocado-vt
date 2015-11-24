@@ -595,18 +595,14 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         device_name = setup_or_cleanup_iscsi(True)
         cleanup_iscsi = True
         # Create a partition to make sure disk pool can start
-        cmd = "parted -s %s mklabel msdos" % device_name
-        process.run(cmd)
-        cmd = "parted -s %s mkpart primary ext4 0 100" % device_name
-        process.run(cmd)
+        mk_part(device_name)
         extra = "--source-dev %s" % device_name
     elif pool_type == "fs":
         # Set up iscsi target and login
         device_name = setup_or_cleanup_iscsi(True)
         cleanup_iscsi = True
         # Format disk to make sure fs pool can start
-        cmd = "mkfs.ext4 -F %s" % device_name
-        process.run(cmd)
+        mkfs(device_name, "ext4")
         extra = "--source-dev %s" % device_name
     elif pool_type == "gluster":
         gluster_source_path = kwargs.get('gluster_source_path')
@@ -919,12 +915,11 @@ class PoolVolumeTest(object):
             if source_format:
                 extra += " --source-format %s" % source_format
         elif pool_type == "fs":
-            cmd = "mkfs.ext4 -F %s" % device_name
             pool_target = os.path.join(self.tmpdir, pool_target)
             if not os.path.exists(pool_target):
                 os.mkdir(pool_target)
+            mkfs(device_name, "ext4")
             extra = " --source-dev %s" % device_name
-            process.run(cmd)
         elif pool_type == "logical":
             logical_device = device_name
             cmd_pv = "pvcreate %s" % logical_device
