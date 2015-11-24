@@ -209,7 +209,7 @@ def get_tmp_dir(public=True):
     if public:
         tmp_dir_st = os.stat(tmp_dir)
         os.chmod(tmp_dir, tmp_dir_st.st_mode | stat.S_IXUSR |
-                 stat.S_IXGRP | stat.S_IXOTH)
+                 stat.S_IXGRP | stat.S_IXOTH | stat.S_IRGRP | stat.S_IROTH)
     return tmp_dir
 
 
