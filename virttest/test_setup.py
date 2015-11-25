@@ -1338,7 +1338,6 @@ class PciAssignable(object):
         # Check if the host support interrupt remapping
         error_context.context(
             "Clean up host env after PCI assign test", logging.info)
-        kvm_re_probe = False
         if self.kvm_params is not None:
             for kvm_param, value in self.kvm_params.items():
                 if open(kvm_param, "r").read().strip() != value:
