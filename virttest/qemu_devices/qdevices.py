@@ -166,6 +166,8 @@ class QBaseDevice(object):
 
     def __eq__(self, dev2, dynamic=True):
         """ :return: True when devs are similar, False when different. """
+        if not isinstance(dev2, QBaseDevice):
+            return False
         check_attrs = ['cmdline_nd', 'hotplug_hmp_nd', 'hotplug_qmp_nd']
         try:
             for check_attr in check_attrs:
@@ -247,7 +249,7 @@ class QBaseDevice(object):
         :return: cmdline command to define this device
                  without dynamic parameters
         """
-        self.cmdline()
+        return self.cmdline()
 
     # pylint: disable=E0202
     def hotplug(self, monitor):

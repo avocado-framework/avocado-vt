@@ -892,13 +892,17 @@ fdc
         out = qdev.get_state()
         assert out == 0, ("Status after verified hotplug is not 0 (%s)" % out)
 
-        # Hotplug is expected to fail, qdev should stay unaffected
+        # Hotplug is expected to fail (missing bus XXX)
         dev4 = qdevices.QBaseDevice("bad_dev", parent_bus={'type': "XXX"})
         dev4.hotplug = lambda _monitor: ("")
+        dev4.cmdline = lambda: "-device bad_device,id=fooBarBaz"
         self.assertRaises(qcontainer.DeviceHotplugError, qdev.simple_hotplug,
                           dev4, True)
         out = qdev.get_state()
-        assert out == 0, "Status after impossible hotplug is not 0 (%s)" % out
+        assert out == 1, "Status after impossible hotplug is not 0 (%s)" % out
+        # We should check the DeviceHotplugError.ver_out if it failed, let's
+        # say it did failed so we can set the qdev.set_clean()
+        qdev.set_clean()
 
         # Unplug
         # Unplug used drive (automatic verification not supported)
