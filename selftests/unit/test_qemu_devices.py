@@ -892,9 +892,10 @@ fdc
         out = qdev.get_state()
         assert out == 0, ("Status after verified hotplug is not 0 (%s)" % out)
 
-        # Hotplug is expected to fail, qdev should stay unaffected
+        # Hotplug is expected to fail (missing bus XXX)
         dev4 = qdevices.QBaseDevice("bad_dev", parent_bus={'type': "XXX"})
         dev4.hotplug = lambda _monitor: ("")
+        dev4.cmdline = lambda: "-device bad_device,id=fooBarBaz"
         self.assertRaises(qcontainer.DeviceHotplugError, qdev.simple_hotplug,
                           dev4, True)
         out = qdev.get_state()
