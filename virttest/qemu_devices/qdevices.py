@@ -247,7 +247,7 @@ class QBaseDevice(object):
         :return: cmdline command to define this device
                  without dynamic parameters
         """
-        self.cmdline()
+        return self.cmdline()
 
     # pylint: disable=E0202
     def hotplug(self, monitor):
