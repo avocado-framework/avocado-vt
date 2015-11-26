@@ -598,9 +598,8 @@ class DevContainer(object):
             if ver_out is True:
                 self.set_clean()
         except DeviceError, exc:
-            self.set_clean()  # qdev remains consistent
             raise DeviceHotplugError(device, 'According to qemu_device: %s'
-                                     % exc, self)
+                                     % exc, self, ver_out)
         out = device.hotplug(monitor)
 
         return out, ver_out

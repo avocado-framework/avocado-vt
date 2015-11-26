@@ -898,7 +898,10 @@ fdc
         self.assertRaises(qcontainer.DeviceHotplugError, qdev.simple_hotplug,
                           dev4, True)
         out = qdev.get_state()
-        assert out == 0, "Status after impossible hotplug is not 0 (%s)" % out
+        assert out == 1, "Status after impossible hotplug is not 0 (%s)" % out
+        # We should check the DeviceHotplugError.ver_out if it failed, let's
+        # say it did failed so we can set the qdev.set_clean()
+        qdev.set_clean()
 
         # Unplug
         # Unplug used drive (automatic verification not supported)

@@ -43,9 +43,10 @@ class DeviceHotplugError(DeviceInsertError):
 
     """ Fail to hotplug device """
 
-    def __init__(self, device, reason, vmdev):
+    def __init__(self, device, reason, vmdev, ver_out=None):
         DeviceInsertError.__init__(self, device, reason, vmdev)
         self.issue = "hotplug"
+        self.ver_out = ver_out  # Output of device.verify_hotplug (optionally)
 
 
 class DeviceUnplugError(DeviceHotplugError):
