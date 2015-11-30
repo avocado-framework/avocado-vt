@@ -2373,14 +2373,22 @@ class VM(virt_vm.BaseVM):
         """
         session = self.wait_for_login()
         try:
-            # Install the package if it does not exists
-            cmd = "rpm -q %s || yum install -y %s" % (name, name)
-            status, output = session.cmd_status_output(cmd, timeout=300)
-            # Just check status is not enough
-            # It's necessary to check if install successfully
-            if status != 0 or session.cmd_status("rpm -q %s" % name) != 0:
-                raise virt_vm.VMError("Installation of package %s failed:\n%s" %
-                                      (name, output))
+            if session.cmd_status("rpm -q %s" % name):
+                # Install the package if it does not exists
+                cmd = "yum install -y %s" % name
+                status, output = session.cmd_status_output(cmd, timeout=300)
+                # Just check status is not enough
+                # It's necessary to check if install successfully
+                if status != 0 or session.cmd_status("rpm -q %s" % name) != 0:
+                    raise virt_vm.VMError("Installation of package %s failed:"
+                                          "\n%s" % (name, output))
+            else:
+                # Update the package
+                cmd = "yum update -y %s" % name
+                status, output = session.cmd_status_output(cmd, timeout=300)
+                if status:
+                    raise virt_vm.VMError("Update of package %s failed:\n%s"
+                                          % (name, output))
         finally:
             session.close()
 
@@ -2426,6 +2434,7 @@ class VM(virt_vm.BaseVM):
         if not self.is_alive():
             self.start()
 
+        self.install_package('pm-utils')
         self.install_package('qemu-guest-agent')
 
         session = self.wait_for_login()
@@ -2503,6 +2512,8 @@ class VM(virt_vm.BaseVM):
 
         :param mode: SELinux mode [Enforcing|Permissive|1|0]
         """
+        self.install_package('selinux-policy')
+        self.install_package('selinux-policy-targeted')
         self.install_package('libselinux-utils')
         try:
             if int(mode) == 1:
