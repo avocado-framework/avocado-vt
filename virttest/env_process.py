@@ -177,12 +177,12 @@ def preprocess_vm(test, params, env, name):
             # Start the VM (or restart it if it's already up)
             if params.get("reuse_previous_config", "no") == "no":
                 vm.create(name, params, test.bindir,
-                          timeout=int(params.get("vm_create_timeout", 20)),
+                          timeout=int(params.get("vm_create_timeout", 90)),
                           migration_mode=params.get("migration_mode"),
                           migration_fd=params.get("migration_fd"),
                           migration_exec_cmd=params.get("migration_exec_cmd_dst"))
             else:
-                vm.create(timeout=int(params.get("vm_create_timeout", 20)),
+                vm.create(timeout=int(params.get("vm_create_timeout", 90)),
                           migration_mode=params.get("migration_mode"),
                           migration_fd=params.get("migration_fd"),
                           migration_exec_cmd=params.get("migration_exec_cmd_dst"))
