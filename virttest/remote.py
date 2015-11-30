@@ -365,7 +365,8 @@ def wait_for_login(client, host, port, username, password, prompt,
                         linesep, log_filename, internal_timeout, interface)
 
 
-def _remote_scp(session, password_list, transfer_timeout=600, login_timeout=20):
+def _remote_scp(
+        session, password_list, transfer_timeout=600, login_timeout=20):
     """
     Transfer files using SCP, given a command line.
 
@@ -591,8 +592,9 @@ def scp_between_remotes(src, dst, port, s_passwd, d_passwd, s_name, d_name,
 def nc_copy_between_remotes(src, dst, s_port, s_passwd, d_passwd,
                             s_name, d_name, s_path, d_path,
                             c_type="ssh", c_prompt="\n",
-                            d_port="8888", d_protocol="udp", timeout=10,
-                            check_sum=True):
+                            d_port="8888", d_protocol="tcp", timeout=2,
+                            check_sum=True, s_session=None,
+                            d_session=None, file_transfer_timeout=600):
     """
     Copy files from guest to guest using netcat.
 
@@ -608,27 +610,64 @@ def nc_copy_between_remotes(src, dst, s_port, s_passwd, d_passwd,
     :param d_protocol: nc protocol use (tcp or udp)
     :param timeout: If a connection and stdin are idle for more than timeout
                     seconds, then the connection is silently closed.
+    :param s_session: A shell session object for source or None.
+    :param d_session: A shell session object for dst or None.
+    :param timeout: timeout for file transfer.
 
     :return: True on success and False on failure.
     """
-    s_session = remote_login(c_type, src, s_port, s_name, s_passwd, c_prompt)
-    d_session = remote_login(c_type, dst, s_port, d_name, d_passwd, c_prompt)
+    check_string = "NCFT"
+    if not s_session:
+        s_session = remote_login(c_type,
+                                 src,
+                                 s_port,
+                                 s_name,
+                                 s_passwd,
+                                 c_prompt)
+    if not d_session:
+        d_session = remote_login(c_type,
+                                 dst,
+                                 s_port,
+                                 d_name,
+                                 d_passwd,
+                                 c_prompt)
 
-    s_session.cmd("iptables -I INPUT -p %s -j ACCEPT" % d_protocol)
-    d_session.cmd("iptables -I OUTPUT -p %s -j ACCEPT" % d_protocol)
+    try:
+        s_session.cmd("iptables -I INPUT -p %s -j ACCEPT" % d_protocol)
+        d_session.cmd("iptables -I OUTPUT -p %s -j ACCEPT" % d_protocol)
+    except Exception:
+        pass
 
     logging.info("Transfer data using netcat from %s to %s" % (src, dst))
-    cmd = "nc"
+    cmd = "nc -w %s" % timeout
     if d_protocol == "udp":
         cmd += " -u"
-        cmd += " -w %s" % timeout
-    s_session.sendline("%s -l %s < %s" % (cmd, d_port, s_path))
-    d_session.sendline("echo a | %s %s %s > %s" % (cmd, src, d_port, d_path))
+    receive_cmd = ("echo %s | %s -l %s > %s" %
+                   (check_string, cmd, d_port, d_path))
+    d_session.sendline(receive_cmd)
+    send_cmd = "%s %s %s < %s" % (cmd, dst, d_port, s_path)
+    status, output = s_session.cmd_status_output(
+        send_cmd, timeout=file_transfer_timeout)
+    if status:
+        err = "Fail to transfer file between %s -> %s." % (src, dst)
+        if check_string not in output:
+            err += ("src did not receive check "
+                    "string %s sent by dst." % check_string)
+        err += "send nc command %s, output %s" % (send_cmd, output)
+        err += "Receive nc command %s." % receive_cmd
+        raise exceptions.TestError(err)
 
     if check_sum:
-        if (s_session.cmd("md5sum %s" % s_path).split()[0] !=
-                d_session.cmd("md5sum %s" % d_path).split()[0]):
-            return False
+        logging.info("md5sum cmd = md5sum %s", s_path)
+        output = s_session.cmd("md5sum %s" % s_path)
+        src_md5 = output.split()[0]
+        dst_md5 = d_session.cmd("md5sum %s" % d_path).split()[0]
+        if src_md5.strip() != dst_md5.strip():
+            err_msg = ("Files md5sum mismatch, "
+                       "file %s md5sum is '%s', "
+                       "but the file %s md5sum is %s" %
+                       (s_path, src_md5, d_path, dst_md5))
+            raise exceptions.TestFail(err_msg)
     return True
 
 
@@ -734,10 +773,11 @@ def udp_copy_between_remotes(src, dst, s_port, s_passwd, d_passwd,
         start_client(d_session)
         dst_md5 = get_file_md5(d_session, d_path)
         if src_md5 != dst_md5:
-            err_msg = "Files md5sum mismatch, file %s md5sum is '%s', "
-            err_msg = "but the file %s md5sum is %s"
-            raise exceptions.TestError(err_msg % (s_path, src_md5,
-                                                  d_path, dst_md5))
+            err_msg = ("Files md5sum mismatch, "
+                       "file %s md5sum is '%s', "
+                       "but the file %s md5sum is %s" %
+                       (s_path, src_md5, d_path, dst_md5))
+            raise exceptions.TestFail(err_msg)
     finally:
         stop_server(s_session)
         s_session.close()
