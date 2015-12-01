@@ -1071,6 +1071,25 @@ def copy_file_from_nfs(src, dst, mount_point, image_name):
     utils_misc.umount(src, mount_point, "nfs")
 
 
+def string_in_serial_log(serial_log_file_path, string):
+    """
+    Check if string appears in serial console log file.
+
+    :param serial_log_file_path: Path to the installation serial log file.
+    :param string: String to look for in serial log file.
+    :return: Whether the string is found in serial log file.
+    :raise: IOError: Serial console log file could not be read.
+    """
+    with open(serial_log_file_path, 'r') as serial_log_file:
+        serial_log_msg = serial_log_file.read()
+
+    if string in serial_log_msg:
+        logging.debug("Message read from serial console log: %s", string)
+        return True
+    else:
+        return False
+
+
 @error_context.context_aware
 def run(test, params, env):
     """
@@ -1202,18 +1221,20 @@ def run(test, params, env):
             copy_images()
             raise e
 
-        # To ignore the try:except:finally problem in old version of python
-        try:
-            serial_log_msg = open(log_file, 'r').read()
-        except IOError:
-            # Only make noise after several failed reads
-            serial_read_fails += 1
-            if serial_read_fails > 10:
-                logging.warn("Cannot read from serial log file after %d tries",
-                             serial_read_fails)
-
-        if wait_ack and (post_finish_str in serial_log_msg):
-            break
+        if wait_ack:
+            try:
+                post_finish_str_found = string_in_serial_log(
+                    log_file, post_finish_str)
+            except IOError:
+                # Only make noise after several failed reads
+                serial_read_fails += 1
+                if serial_read_fails > 10:
+                    logging.warn(
+                        "Cannot read from serial log file after %d tries",
+                        serial_read_fails)
+            else:
+                if post_finish_str_found:
+                    break
 
         # Due to libvirt automatically start guest after import
         # we only need to wait for successful login.
