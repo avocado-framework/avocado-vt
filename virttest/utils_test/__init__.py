@@ -1512,7 +1512,7 @@ class VMStress(object):
             session = self.vm.wait_for_login()
             return session
         except aexpect.ShellError, detail:
-            raise StressError("Login %s failed:\n%s", self.vm.name, detail)
+            raise StressError("Login %s failed:\n%s" % (self.vm.name, detail))
 
     @error_context.context_aware
     def load_stress_tool(self):

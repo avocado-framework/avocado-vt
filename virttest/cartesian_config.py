@@ -888,10 +888,8 @@ class LApplyPreDict(LOperators):
     identifier = "apply_pre_dict"
 
     def set_operands(self, name, value):
-        # pylint: disable=W0201
-        self.name = name
-        # pylint: disable=W0201
-        self.value = value
+        self.name = name    # pylint: disable=W0201,E0237
+        self.value = value  # pylint: disable=W0201,E0237
         return self
 
     def apply_to_dict(self, d):
