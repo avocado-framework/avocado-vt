@@ -1149,6 +1149,7 @@ def run(test, params, env):
     post_finish_str = params.get("post_finish_str",
                                  "Post set up finished")
     install_timeout = int(params.get("install_timeout", 4800))
+    wait_ack = params.get("wait_no_ack", "no") == "no"
 
     migrate_background = params.get("migrate_background") == "yes"
     if migrate_background:
@@ -1187,7 +1188,7 @@ def run(test, params, env):
         # Due to a race condition, sometimes we might get a MonitorError
         # before the VM gracefully shuts down, so let's capture MonitorErrors.
         except (virt_vm.VMDeadError, qemu_monitor.MonitorError), e:
-            if params.get("wait_no_ack", "no") == "yes":
+            if not wait_ack:
                 break
             else:
                 # Print out the original exception before copying images.
@@ -1211,8 +1212,7 @@ def run(test, params, env):
                 logging.warn("Cannot read from serial log file after %d tries",
                              serial_read_fails)
 
-        if (params.get("wait_no_ack", "no") == "no" and
-                (post_finish_str in serial_log_msg)):
+        if wait_ack and (post_finish_str in serial_log_msg):
             break
 
         # Due to libvirt automatically start guest after import
