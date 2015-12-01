@@ -305,7 +305,7 @@ def get_time(session, time_command, time_filter_re, time_format):
             raise exceptions.TestError(
                 "The time string from guest is unexpected.")
         except ValueError, err:
-            logging.debug("Couldn't create float number from %s" % (reo[1]))
+            logging.debug("Couldn't parse float time offset from %s" % reo)
         except Exception, err:
             logging.debug("(time_filter_re, time_string): (%s, %s)",
                           time_filter_re, output)
