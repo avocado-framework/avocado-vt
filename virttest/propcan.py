@@ -72,6 +72,8 @@ class PropCanInternal(object):
     """
     Semi-private methods for use only by PropCanBase subclasses (NOT instances)
     """
+    #: Store all slots for debugging purposes
+    __all_slots__ = None
 
     # The following methods are intended for use by accessor-methods
     # where they may need to bypass the special attribute/key handling
