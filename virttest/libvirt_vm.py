@@ -44,7 +44,8 @@ def normalize_connect_uri(connect_uri):
         result = virsh.canonical_uri(uri=connect_uri)
 
     if not result:
-        raise ValueError("Normalizing connect_uri '%s' failed" % connect_uri)
+        raise ValueError("Normalizing connect_uri '%s' failed, is libvirt "
+                         "running?" % connect_uri)
     return result
 
 
