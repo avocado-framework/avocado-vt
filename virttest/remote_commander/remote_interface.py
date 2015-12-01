@@ -97,7 +97,7 @@ class StdOut(StdStream):
     """
     Represent message from stdout string data from remote client
     """
-    __slots__ = []
+    __slots__ = ["cmd_id", "msg"]
 
     def __init__(self, msg, cmd_id=None):
         super(StdOut, self).__init__(msg, cmd_id)
@@ -115,7 +115,7 @@ class StdErr(StdStream):
     """
     Represent message from stderr string data from remote client
     """
-    __slots__ = []
+    __slots__ = ["cmd_id", "msg"]
 
     def __init__(self, msg, cmd_id=None):
         super(StdErr, self).__init__(msg, cmd_id)
