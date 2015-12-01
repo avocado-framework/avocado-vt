@@ -203,7 +203,7 @@ class PropCanBase(dict, PropCanInternal):
             return super(PropCanBase, self).__delitem__(key)
         return accessor()
 
-    def __get__(self, key):
+    def __get__(self, key, objtype=None):
         try:
             # Attempt to call accessor methods first whenever possible
             self.__canhaz__(key, KeyError)
