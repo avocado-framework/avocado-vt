@@ -72,6 +72,8 @@ class PropCanInternal(object):
     """
     Semi-private methods for use only by PropCanBase subclasses (NOT instances)
     """
+    #: Store all slots for debugging purposes
+    __all_slots__ = None
 
     # The following methods are intended for use by accessor-methods
     # where they may need to bypass the special attribute/key handling
@@ -201,7 +203,7 @@ class PropCanBase(dict, PropCanInternal):
             return super(PropCanBase, self).__delitem__(key)
         return accessor()
 
-    def __get__(self, key):
+    def __get__(self, key, objtype=None):
         try:
             # Attempt to call accessor methods first whenever possible
             self.__canhaz__(key, KeyError)

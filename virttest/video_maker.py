@@ -126,7 +126,7 @@ class GiEncoder(object):
         else:
             if image_size[0] < 640:
                 image_size = 640
-            if image_size[1] < 480:
+            if image_size[1] < 480:     # is list pylint: disable=E1136
                 image_size = 480
 
         if self.verbose:

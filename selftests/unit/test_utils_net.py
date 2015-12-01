@@ -24,6 +24,10 @@ from virttest import utils_params
 from virttest import propcan
 
 
+# Disable some pylint checks for selftests
+# pylint: disable=E1133,E1136
+
+
 class FakeVm(object):
 
     def __init__(self, vm_name, params):

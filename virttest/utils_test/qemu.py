@@ -858,7 +858,7 @@ class MultihostMigration(object):
                                         'test_finihed',
                                         self.finish_timeout)
                 elif mig_error:
-                    raise
+                    raise exceptions.TestFail(mig_error)
 
         def wait_wrap(vms_name, srchost, dsthost):
             mig_data = MigrationData(self.params, srchost, dsthost, vms_name,
