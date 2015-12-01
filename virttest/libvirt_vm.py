@@ -653,9 +653,12 @@ class VM(virt_vm.BaseVM):
         help_text = process.system_output("%s --help" % virt_install_binary,
                                           verbose=False)
 
-        os_text = process.system_output("%s --os-variant list" %
-                                        virt_install_binary,
-                                        verbose=False)
+        try:
+            os_text = process.system_output("osinfo-query os", verbose=False)
+        except process.CmdError:
+            os_text = process.system_output("%s --os-variant list" %
+                                            virt_install_binary,
+                                            verbose=False)
 
         # Find all supported machine types, so we can rule out an unsupported
         # machine type option passed in the configuration.
