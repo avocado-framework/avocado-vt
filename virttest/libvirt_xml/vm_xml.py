@@ -633,7 +633,13 @@ class VMXML(VMXMLBase):
         if not vmxml.undefine():
             _cleanup(details="Undefine VM %s failed" % vm.name)
         # Alter the XML
+        str_old = "domain-" + vm.name
+        str_new = "domain-" + new_name
         vmxml.vm_name = new_name
+        for channel in vmxml.get_agent_channels():
+            for child in channel._children:
+                if 'path' in child.attrib.keys():
+                    child.attrib['path'] = child.attrib['path'].replace(str_old, str_new)
         if uuid is None:
             # UUID will be regenerated automatically
             del vmxml.uuid
