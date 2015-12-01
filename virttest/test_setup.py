@@ -973,8 +973,6 @@ class PciAssignable(object):
         :rtype: bool
         """
         base_dir = "/sys/bus/pci"
-        short_id = pci_id[5:]
-        vendor_id = utils_misc.get_vendor_from_pci_id(short_id)
         drv_path = os.path.join(base_dir, "devices/%s/driver" % pci_id)
         if self.device_driver in os.readlink(drv_path):
             error_context.context(
@@ -1061,7 +1059,6 @@ class PciAssignable(object):
         :rtype: builtin.list
         """
 
-        base_dir = "/sys/bus/pci/devices"
         cmd = "lspci | awk '/%s/ {print $1}'" % self.pf_filter_re
         pf_ids = [i for i in process.system_output(cmd).splitlines()]
         pf_vf_dict = []
