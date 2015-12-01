@@ -1015,14 +1015,18 @@ class UnattendedInstallConfig(object):
         else:
             raise ValueError("Unexpected installation method %s" %
                              self.medium)
-        if self.unattended_file and (self.floppy or self.cdrom_unattended):
-            self.setup_boot_disk()
-            if self.params.get("store_boot_disk") == "yes":
-                logging.info("Sotre the boot disk to result directory for"
-                             " further debug")
-                src_dir = self.floppy or self.cdrom_unattended
-                dst_dir = self.results_dir
-                shutil.copy(src_dir, dst_dir)
+
+        if self.unattended_file:
+            if self.floppy or self.cdrom_unattended:
+                self.setup_boot_disk()
+                if self.params.get("store_boot_disk") == "yes":
+                    logging.info("Storing the boot disk to result directory "
+                                 "for further debug")
+                    src_dir = self.floppy or self.cdrom_unattended
+                    dst_dir = self.results_dir
+                    shutil.copy(src_dir, dst_dir)
+            else:
+                self.setup_unattended_http_server()
 
         # Update params dictionary as some of the values could be updated
         for a in self.attributes:
