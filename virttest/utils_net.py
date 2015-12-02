@@ -2019,10 +2019,23 @@ class IPv6Manager(propcan.PropCanBase):
 
         try:
             logging.info("Prepare to configure IPv6 test environment...")
+            local_ipv6_addr_list = self.get_addr_list()
+
+            # the ipv6 address looks like this '3efe::101/64'
+            ipv6_addr_src = self.client_ipv6_addr.split('/')[0]
+            ipv6_addr_des = self.server_ipv6_addr.split('/')[0]
+
             # configure global IPv6 address for local host
-            set_net_if_ip(self.client_ifname, self.client_ipv6_addr)
+            if ipv6_addr_src  not in local_ipv6_addr_list:
+                set_net_if_ip(self.client_ifname, self.client_ipv6_addr)
+
+            self.session = self.get_session()
+            runner = self.session.cmd_output
+            remote_ipv6_addr_list = self.get_addr_list(runner)
+
             # configure global IPv6 address for remote host
-            set_net_if_ip(self.server_ifname, self.server_ipv6_addr, runner)
+            if ipv6_addr_des not in remote_ipv6_addr_list:
+                set_net_if_ip(self.server_ifname, self.server_ipv6_addr, runner)
             # check IPv6 network connectivity
             if self.check_ipv6_connectivity == "yes":
                 # the ipv6 address looks like this '3efe::101/64'
