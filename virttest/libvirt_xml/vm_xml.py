@@ -5,8 +5,6 @@ http://libvirt.org/formatdomain.html
 
 import logging
 
-from avocado.utils import process
-
 from .. import xml_utils
 from .. import utils_misc
 from ..libvirt_xml import base, accessors, xcepts
