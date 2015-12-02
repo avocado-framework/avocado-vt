@@ -1149,7 +1149,7 @@ class DevContainer(object):
                                    blk_extra_params=None, scsi=None,
                                    pci_bus='pci.0', drv_extra_params=None,
                                    num_queues=None, bus_extra_params=None,
-                                   force_fmt=None):
+                                   force_fmt=None, wwn=None):
         """
         Creates related devices by variables
         :note: To skip the argument use None, to disable it use False
@@ -1186,6 +1186,7 @@ class DevContainer(object):
         :param scsi_hba: Custom scsi HBA
         :param num_queues: performace option for virtio-scsi-pci
         :param bus_extra_params: options want to add to virtio-scsi-pci bus
+        :param wwn: disk wwn number
         """
         def define_hbas(qtype, atype, bus, unit, port, qbus, pci_bus,
                         addr_spec=None, num_queues=None,
@@ -1380,6 +1381,7 @@ class DevContainer(object):
         devices[-1].set_param('rerror', rerror)
         devices[-1].set_param('werror', werror)
         devices[-1].set_param('serial', serial)
+        devices[-1].set_param('wwn', wwn)
         devices[-1].set_param('boot', boot, bool)
         devices[-1].set_param('snapshot', snapshot, bool)
         devices[-1].set_param('readonly', readonly, bool)
@@ -1485,6 +1487,9 @@ class DevContainer(object):
         if 'serial' in options:
             devices[-1].set_param('serial', serial)
             devices[-2].set_param('serial', None)   # remove serial from drive
+        if 'wwn' in options:
+            devices[-1].set_param('wwn', wwn)
+            devices[-2].set_param('wwn', None)   # remove wwn from drive
         if blk_extra_params:
             blk_extra_params = (_.split('=', 1) for _ in
                                 blk_extra_params.split(',') if _)
@@ -1565,7 +1570,8 @@ class DevContainer(object):
                                                image_params.get("num_queues"),
                                                image_params.get(
                                                    "bus_extra_params"),
-                                               image_params.get("force_drive_format"))
+                                               image_params.get("force_drive_format"),
+                                               image_params.get("drive_wwn"))
 
     def cdroms_define_by_params(self, name, image_params, media=None,
                                 index=None, image_boot=None,
@@ -1650,7 +1656,8 @@ class DevContainer(object):
                                                None,
                                                image_params.get(
                                                    "bus_extra_params"),
-                                               image_params.get("force_drive_format"))
+                                               image_params.get("force_drive_format"),
+                                               image_params.get("drive_wwn"))
 
     def pcic_by_params(self, name, params):
         """
