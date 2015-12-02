@@ -44,7 +44,8 @@ def normalize_connect_uri(connect_uri):
         result = virsh.canonical_uri(uri=connect_uri)
 
     if not result:
-        raise ValueError("Normalizing connect_uri '%s' failed" % connect_uri)
+        raise ValueError("Normalizing connect_uri '%s' failed, is libvirt "
+                         "running?" % connect_uri)
     return result
 
 
@@ -652,9 +653,12 @@ class VM(virt_vm.BaseVM):
         help_text = process.system_output("%s --help" % virt_install_binary,
                                           verbose=False)
 
-        os_text = process.system_output("%s --os-variant list" %
-                                        virt_install_binary,
-                                        verbose=False)
+        try:
+            os_text = process.system_output("osinfo-query os", verbose=False)
+        except process.CmdError:
+            os_text = process.system_output("%s --os-variant list" %
+                                            virt_install_binary,
+                                            verbose=False)
 
         # Find all supported machine types, so we can rule out an unsupported
         # machine type option passed in the configuration.
