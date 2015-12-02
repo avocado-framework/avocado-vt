@@ -44,10 +44,15 @@ JeOS image
 
 You can find the JeOS images currently here:
 
-http://assets-avocadoproject.rhcloud.com/static/
+http://assets-avocadoproject.rhcloud.com/static/jeos-20-64.qcow2.7z
+http://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS20
+http://assets-avocadoproject.rhcloud.com/static/jeos-21-64.qcow2.7z
+http://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS21
 
-You'll find .7za (p7zipped) files for versions of
-the JeOS available, as well as their MD5SUM files.
+Unfortunately the host `assets-avocadoproject.rhcloud.com` is configured
+in such a way that exploring that base directory won't give you a file
+listing, and you have to provide the exact urls of what you're looking
+for.
 
 How to update JeOS
 ------------------
