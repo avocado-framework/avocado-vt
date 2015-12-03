@@ -654,7 +654,7 @@ class VM(virt_vm.BaseVM):
                                           verbose=False)
 
         try:
-            os_text = process.system_output("osinfo-query os", verbose=False)
+            os_text = process.system_output("osinfo-query os --fields short-id", verbose=False)
         except process.CmdError:
             os_text = process.system_output("%s --os-variant list" %
                                             virt_install_binary,
