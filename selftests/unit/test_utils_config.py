@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 
 import os
-import unittest
 import tempfile
 import sys
+
+if sys.version_info[:2] == (2, 6):
+    import unittest2 as unittest
+    PYTHON_26 = True
+else:
+    import unittest
+    PYTHON_26 = False
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -189,6 +195,7 @@ class SectionlessConfigTest(unittest.TestCase):
         finally:
             os.remove(config_path)
 
+    @unittest.skipIf(PYTHON_26, "Unreliable in python 2.6")
     def test_restore(self):
         config_file = tempfile.NamedTemporaryFile()
         config_path = config_file.name
@@ -238,6 +245,7 @@ class SectionlessConfigTest(unittest.TestCase):
                 final_file.close()
             os.remove(config_path)
 
+    @unittest.skipIf(PYTHON_26, "Unreliable in python 2.6")
     def test_sync_file(self):
         config_file = tempfile.NamedTemporaryFile()
         config_path = config_file.name
