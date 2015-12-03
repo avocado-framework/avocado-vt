@@ -1,9 +1,8 @@
 __author__ = "raphtee@google.com (Travis Miller)"
 
-
-import re
-import collections
 import StringIO
+import collections
+import re
 import sys
 
 
@@ -310,8 +309,13 @@ class mock_god(object):
 
             @classmethod
             def make_new(typ, *args, **dargs):
-                obj = super(cls_sub, typ).__new__(typ, *args,
-                                                  **dargs)
+                # pylint: disable=E1003
+                super_class = super(cls_sub, typ)
+                if isinstance(super_class, object):
+                    obj = super_class.__new__(typ)
+                else:
+                    obj = super(cls_sub, typ).__new__(typ, *args,
+                                                      **dargs)
 
                 typ.cls_count += 1
                 obj_name = "%s_%s" % (name, typ.cls_count)
@@ -447,7 +451,8 @@ class mock_god(object):
                                       _dump_function_call(symbol, args, dargs))
 
         if len(self.recording) != 0:
-            func_call = self.recording[0]
+            # self.recording is subscriptable (deque), ignore E1136
+            func_call = self.recording[0]   # pylint: disable=E1136
             if func_call.symbol != symbol:
                 msg = ("Unexpected call: %s\nExpected: %s"
                        % (_dump_function_call(symbol, args, dargs),
