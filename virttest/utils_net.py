@@ -2029,12 +2029,12 @@ class IPv6Manager(propcan.PropCanBase):
             ipv6_addr_des = self.server_ipv6_addr.split('/')[0]
 
             # configure global IPv6 address for local host
-            if ipv6_addr_src  not in local_ipv6_addr_list:
+            if ipv6_addr_src not in local_ipv6_addr_list:
                 set_net_if_ip(self.client_ifname, self.client_ipv6_addr)
                 self.is_ipv6_src_added = True
             else:
                 logging.debug("Skip to add the existing ipv6 address %s", ipv6_addr_src)
- 
+
             self.session = self.get_session()
             runner = self.session.cmd_output
             remote_ipv6_addr_list = self.get_addr_list(runner)
@@ -2072,7 +2072,7 @@ class IPv6Manager(propcan.PropCanBase):
         # delete global IPv6 address from local host
         if (ipv6_addr_src in local_ipv6_addr_list) and self.is_ipv6_src_added:
             del_net_if_ip(self.client_ifname, self.client_ipv6_addr)
-       
+
         self.session = self.get_session()
         runner = self.session.cmd_output
         remote_ipv6_addr_list = self.get_addr_list(runner)
