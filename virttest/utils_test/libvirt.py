@@ -868,7 +868,8 @@ class PoolVolumeTest(object):
                 if os.path.exists(pool_target):
                     shutil.rmtree(pool_target)
             if pool_type == "gluster" or source_format == 'glusterfs':
-                setup_or_cleanup_gluster(False, source_name)
+                setup_or_cleanup_gluster(False, source_name,
+                                         pool_name=pool_name)
 
     def pre_pool(self, pool_name, pool_type, pool_target, emulated_image,
                  **kwargs):
