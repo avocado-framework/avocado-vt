@@ -537,9 +537,6 @@ class VM(virt_vm.BaseVM):
             dev.set_param("name", "org.fedoraproject.anaconda.log.0")
             devices.insert(dev)
 
-        def add_mem(devices, mem):
-            return " -m %s" % mem
-
         def add_smp(devices):
             smp_str = " -smp %d" % self.cpuinfo.smp
             smp_pattern = "smp .*n\[,maxcpus=cpus\].*"
@@ -839,6 +836,28 @@ class VM(virt_vm.BaseVM):
                 devices.insert(rng_dev)
                 rng_pci.set_param("rng", rng_dev.get_qid())
                 devices.insert(rng_pci)
+
+        def add_mem(devices, params):
+            """
+            Add memory controler by params
+
+            :param devices: VM devices container
+            """
+            options = []
+            params = params.object_params("mem")
+            if params.get("mem"):
+                options.append("%s" % params["mem"])
+            if params.get("slots") and params.get("maxmem"):
+                options.append("slots=%s" % params["slots"])
+                options.append("maxmem=%s" % params["maxmem"])
+            if options:
+                cmdline = "-m %s" % ",".join(options)
+                dev = StrDev("mem", cmdline=cmdline)
+                devices.insert(dev)
+                for name in params.objects("mem_devs"):
+                    memdevs = devices.memory_define_by_params(params, name)
+                    for dev in memdevs:
+                        devices.insert(dev)
 
         def add_spice_rhel5(devices, spice_params, port_range=(3100, 3199)):
             """
@@ -1637,11 +1656,10 @@ class VM(virt_vm.BaseVM):
                               pci_bus=pci_bus)
                 iov += 1
 
-        mem = params.get("mem")
-        if mem:
-            devices.insert(StrDev('mem', cmdline=add_mem(devices, mem)))
-
+        # Add Memory devices
+        add_mem(devices, params)
         smp = int(params.get("smp", 0))
+        mem = int(params.get("mem", 0))
         vcpu_maxcpus = int(params.get("vcpu_maxcpus", 0))
         vcpu_sockets = int(params.get("vcpu_sockets", 0))
         vcpu_cores = int(params.get("vcpu_cores", 0))

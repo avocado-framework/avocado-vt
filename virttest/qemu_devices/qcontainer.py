@@ -18,7 +18,7 @@ from avocado.core import exceptions
 from avocado.utils import process
 
 # Internal imports
-from .. import arch, storage, data_dir, virt_vm
+from .. import arch, storage, data_dir, virt_vm, utils_misc
 from . import qbuses
 from . import qdevices
 from .utils import (DeviceError, DeviceHotplugError, DeviceInsertError,
@@ -1691,3 +1691,46 @@ class DevContainer(object):
         return qdevices.QDevice(driver, {'id': name}, aobject=name,
                                 parent_bus=parent_bus,
                                 child_bus=bus)
+
+    def memory_object_define_by_params(self, params, name):
+        """
+        Create memory object from params, default backend type is
+        'memory-backend-ram'.
+        """
+        params = params.object_params("mem")
+        attrs = qdevices.Memory.__attributes__[:]
+        params = params.copy_from_keys(attrs)
+        params.setdefault("backend", "memory-backend-ram")
+        dev = qdevices.Memory(params["backend"], params)
+        dev.set_param("id", "%s-%s" % ("mem", name))
+        return dev
+
+    def dimm_device_define_by_params(self, params, name):
+        """
+        Create pc-dimm device from params.
+        """
+        params = params.object_params("dimm")
+        attrs = qdevices.Dimm.__attributes__[:]
+        params = params.copy_from_keys(attrs)
+        dev = qdevices.Dimm(params=params)
+        dev.set_param("id", "%s-%s" % ("dimm", name))
+        return dev
+
+    def memory_define_by_params(self, params, name):
+        """
+        Create memory modules by params, include memory object and
+        pc-dimm devices.
+        """
+        devices = []
+        if not self.has_option("object"):
+            logging.warn("QOM does not support by your qemu")
+            return devices
+        mem = self.memory_object_define_by_params(params, name)
+        if mem:
+            devices.append(mem)
+            use_mem = params.object_params(name).get("use_mem", "yes")
+            if use_mem == "yes":
+                dimm = self.dimm_device_define_by_params(params, name)
+                dimm.set_param("memdev", mem.get_qid())
+                devices.append(dimm)
+        return devices
