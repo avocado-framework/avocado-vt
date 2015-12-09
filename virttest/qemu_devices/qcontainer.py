@@ -18,7 +18,7 @@ from avocado.core import exceptions
 from avocado.utils import process
 
 # Internal imports
-from .. import arch, storage, data_dir, virt_vm, utils_misc
+from .. import arch, storage, data_dir, virt_vm
 from . import qbuses
 from . import qdevices
 from .utils import (DeviceError, DeviceHotplugError, DeviceInsertError,
