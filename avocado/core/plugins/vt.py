@@ -408,6 +408,76 @@ class VirtTest(test.Test):
                             "as root may produce unexpected results!!!")
             logging.warning("")
 
+        # Find the test
+        subtest_dirs = []
+        test_filter = bootstrap.test_filter
+
+        other_subtests_dirs = params.get("other_tests_dirs", "")
+        for d in other_subtests_dirs.split():
+            d = os.path.join(*d.split("/"))
+            subtestdir = os.path.join(self.bindir, d, "tests")
+            if not os.path.isdir(subtestdir):
+                raise error.TestError("Directory %s does not "
+                                      "exist" % subtestdir)
+            subtest_dirs += data_dir.SubdirList(subtestdir,
+                                                test_filter)
+
+        provider = params.get("provider", None)
+
+        if provider is None:
+            # Verify if we have the correspondent source file for
+            # it
+            generic_subdirs = asset.get_test_provider_subdirs(
+                'generic')
+            for generic_subdir in generic_subdirs:
+                subtest_dirs += data_dir.SubdirList(generic_subdir,
+                                                    test_filter)
+            specific_subdirs = asset.get_test_provider_subdirs(
+                params.get("vm_type"))
+            for specific_subdir in specific_subdirs:
+                subtest_dirs += data_dir.SubdirList(
+                    specific_subdir, bootstrap.test_filter)
+        else:
+            provider_info = asset.get_test_provider_info(provider)
+            for key in provider_info['backends']:
+                subtest_dirs += data_dir.SubdirList(
+                    provider_info['backends'][key]['path'],
+                    bootstrap.test_filter)
+
+        subtest_dir = None
+
+        # Get the test routine corresponding to the specified
+        # test type
+        logging.debug("Searching for test modules that match "
+                      "'type = %s' and 'provider = %s' "
+                      "on this cartesian dict",
+                      params.get("type"),
+                      params.get("provider", None))
+
+        t_types = params.get("type").split()
+        # Make sure we can load provider_lib in tests
+        for s in subtest_dirs:
+            if os.path.dirname(s) not in sys.path:
+                sys.path.insert(0, os.path.dirname(s))
+
+        test_modules = {}
+        for t_type in t_types:
+            for d in subtest_dirs:
+                module_path = os.path.join(d, "%s.py" % t_type)
+                if os.path.isfile(module_path):
+                    logging.debug("Found subtest module %s",
+                                  module_path)
+                    subtest_dir = d
+                    break
+            if subtest_dir is None:
+                msg = ("Could not find test file %s.py on test"
+                       "dirs %s" % (t_type, subtest_dirs))
+                raise error.TestError(msg)
+            # Load the test module
+            f, p, d = imp.find_module(t_type, [subtest_dir])
+            test_modules[t_type] = imp.load_module(t_type, f, p, d)
+            f.close()
+
         # TODO: the environment file is deprecated code, and should be removed
         # in future versions. Right now, it's being created on an Avocado temp
         # dir that is only persisted during the runtime of one job, which is
@@ -426,75 +496,6 @@ class VirtTest(test.Test):
         try:
             try:
                 try:
-                    subtest_dirs = []
-                    test_filter = bootstrap.test_filter
-
-                    other_subtests_dirs = params.get("other_tests_dirs", "")
-                    for d in other_subtests_dirs.split():
-                        d = os.path.join(*d.split("/"))
-                        subtestdir = os.path.join(self.bindir, d, "tests")
-                        if not os.path.isdir(subtestdir):
-                            raise error.TestError("Directory %s does not "
-                                                  "exist" % subtestdir)
-                        subtest_dirs += data_dir.SubdirList(subtestdir,
-                                                            test_filter)
-
-                    provider = params.get("provider", None)
-
-                    if provider is None:
-                        # Verify if we have the correspondent source file for
-                        # it
-                        generic_subdirs = asset.get_test_provider_subdirs(
-                            'generic')
-                        for generic_subdir in generic_subdirs:
-                            subtest_dirs += data_dir.SubdirList(generic_subdir,
-                                                                test_filter)
-                        specific_subdirs = asset.get_test_provider_subdirs(
-                            params.get("vm_type"))
-                        for specific_subdir in specific_subdirs:
-                            subtest_dirs += data_dir.SubdirList(
-                                specific_subdir, bootstrap.test_filter)
-                    else:
-                        provider_info = asset.get_test_provider_info(provider)
-                        for key in provider_info['backends']:
-                            subtest_dirs += data_dir.SubdirList(
-                                provider_info['backends'][key]['path'],
-                                bootstrap.test_filter)
-
-                    subtest_dir = None
-
-                    # Get the test routine corresponding to the specified
-                    # test type
-                    logging.debug("Searching for test modules that match "
-                                  "'type = %s' and 'provider = %s' "
-                                  "on this cartesian dict",
-                                  params.get("type"),
-                                  params.get("provider", None))
-
-                    t_types = params.get("type").split()
-                    # Make sure we can load provider_lib in tests
-                    for s in subtest_dirs:
-                        if os.path.dirname(s) not in sys.path:
-                            sys.path.insert(0, os.path.dirname(s))
-
-                    test_modules = {}
-                    for t_type in t_types:
-                        for d in subtest_dirs:
-                            module_path = os.path.join(d, "%s.py" % t_type)
-                            if os.path.isfile(module_path):
-                                logging.debug("Found subtest module %s",
-                                              module_path)
-                                subtest_dir = d
-                                break
-                        if subtest_dir is None:
-                            msg = ("Could not find test file %s.py on test"
-                                   "dirs %s" % (t_type, subtest_dirs))
-                            raise error.TestError(msg)
-                        # Load the test module
-                        f, p, d = imp.find_module(t_type, [subtest_dir])
-                        test_modules[t_type] = imp.load_module(t_type, f, p, d)
-                        f.close()
-
                     # Preprocess
                     try:
                         params = env_process.preprocess(self, params, env)
