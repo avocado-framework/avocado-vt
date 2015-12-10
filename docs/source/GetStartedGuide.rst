@@ -19,12 +19,40 @@ at the top level of the avocado-vt repository has the detailed procedure.
 
     $ yum install avocado-plugins-vt
 
+   Before proceeding, make sure that you have installed all of the below mentioned packages:
+
+::
+
+    PyYAML 
+    aexpect 
+    autotest-framework 
+    avocado 
+    avocado-plugins-vt 
+    avocado-virt 
+    fabric 
+    gdb-gdbserver 
+    libtomcrypt 
+    libtommath 
+    p7zip 
+    pystache 
+    python-crypto 
+    python-ecdsa 
+    python-paramiko 
+    python3-simplejson
+
+3. Virttest is included in avocado-vt. We generally would be using this one to write tests until the avocado-virt is more mature.
+   Usual virttest location (it can be elsewhere depending on your configuration):
+
+::
+
+    /usr/lib/python2.7/site-packages/virttest/
+
 4. Run avocado-vt's bootstrap procedure for the test backend (qemu, libvirt,
    v2v, openvswitch, among others) of your interest. We'll use qemu as an example::
 
     $ avocado vt-bootstrap --vt-type qemu
 
-6. Let's test if things went well by listing the avocado plugins. In the avocado source dir, do::
+5. Let's test if things went well by listing the avocado plugins. In the avocado source dir, do::
 
     $ avocado plugins
 
@@ -34,7 +62,7 @@ at the top level of the avocado-vt repository has the detailed procedure.
     virt_test_compat_runner  Implements the avocado virt test options
     virt_test_compat_lister  Implements the avocado virt test options
 
-7. The next test is to see if virt-tests are also listed in the output of the
+6. The next test is to see if virt-tests are also listed in the output of the
    command `avocado list` (you might leave out the --vt-type if you use default)::
 
     $ avocado list --vt-type qemu --verbose
@@ -49,6 +77,21 @@ at the top level of the avocado-vt repository has the detailed procedure.
     NOT_A_TEST: 27
     SIMPLE: 3
     VT: 1906
+
+7. The test location for all test providers is logged at the beginning of the test log (after params), for example:
+
+::
+
+    Found subtest module /home/medic/avocado/data/avocado-vt/test-providers.d/downloads/io-github-autotest-qemu/generic/tests/boot.py
+   
+   Most widely used test provider locations are as follows:
+
+::
+
+   QEMU tests location:
+       /usr/share/avocado/data/avocado-vt/test-providers.d/downloads/io-github-autotest-qemu/qemu/tests
+   libvirt tests location:
+       /usr/share/avocado/data/avocado-vt/test-providers.d/downloads/io-github-autotest-libvirt/libvirt/tests
 
 8. Assuming all is well, you can try running one virt-test::
 
