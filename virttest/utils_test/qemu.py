@@ -29,6 +29,8 @@ import time
 from avocado.core import exceptions
 from avocado.utils import crypto
 from avocado.utils import data_factory
+from avocado.utils import path as utils_path
+from avocado.utils import process
 
 from .. import data_dir
 from .. import env_process
@@ -80,6 +82,28 @@ def get_numa_status(numa_node_info, qemu_pid, debug=True):
             logging.debug("qemu-kvm process using %s pages and cpu %s in "
                           "node %s" % (memory, " ".join(cpu), node_id))
     return (qemu_memory, qemu_cpu)
+
+
+def get_nic_vendor(params, cmd):
+    """
+    Get host link layer
+
+    :param params: Dictionary with the test parameters.
+    :param cmd: Command string
+    """
+    utils_path.find_command(cmd)
+
+    expected_nic_vendor = params.get("expected_nic_vendor",
+                                     "IB InfiniBand")
+    pattern = "(?<=Link layer: ).*"
+    output = process.system_output(cmd)
+    try:
+        nic_vendor = re.findall(pattern, output)[0]
+    except IndexError:
+        raise exceptions.TestError("Cannot get the link layer.")
+    if nic_vendor not in expected_nic_vendor.split():
+        raise exceptions.TestError("The Link layer is not correct, "
+                                   "expected is '%s'" % expected_nic_vendor)
 
 
 def pin_vm_threads(vm, node):
@@ -1241,8 +1265,28 @@ class MultihostMigrationExec(MultihostMigration):
 
 
 class MultihostMigrationRdma(MultihostMigration):
+    """
+    It is important to note that, in order to have multi-host
+    migration with RDMA, need setup the follow steps on src and
+    dst host:
+    1. Install some packages: libmlx, infiniband, rdma
+    2. Create configuration for rdma network card, example:
+        # cat /etc/sysconfig/network-scripts/ifcfg-ib0
+        DEVICE=ib0
+        TYPE=InfiniBand
+        ONBOOT=yes
+        NM_CONTROLLED=no
+        BOOTPROTO=static
+        BROADCAST=192.168.0.255
+        IPADDR=192.168.0.21
+        NETMASK=255.255.255.0
+    3. Restart related services: network, opensm, rdma
+    """
 
     def __init__(self, test, params, env, preprocess_env=True):
+        check_nic_vendor_cmd = "ibstat"
+        get_nic_vendor(params, check_nic_vendor_cmd)
+
         super(MultihostMigrationRdma, self).__init__(test, params, env,
                                                      preprocess_env)
 
