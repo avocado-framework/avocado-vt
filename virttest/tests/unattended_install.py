@@ -1187,10 +1187,9 @@ def run(test, params, env):
 
     logging.debug("Monitoring serial console log for completion message: %s",
                   log_file)
-    serial_log_msg = ""
     serial_read_fails = 0
 
-    # As the the install process start. We may need collect informations from
+    # As the install process start, we may need collect information from
     # the image. So use the test case instead this simple function in the
     # following code.
     if mount_point and src:
