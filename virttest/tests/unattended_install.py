@@ -1080,6 +1080,9 @@ def string_in_serial_log(serial_log_file_path, string):
     :return: Whether the string is found in serial log file.
     :raise: IOError: Serial console log file could not be read.
     """
+    if not string:
+        return
+
     with open(serial_log_file_path, 'r') as serial_log_file:
         serial_log_msg = serial_log_file.read()
 
@@ -1165,6 +1168,9 @@ def run(test, params, env):
     # unattended install config code, such as when params['url'] == auto
     vm.create(params=params)
 
+    install_error_str = params.get("install_error_str")
+    install_error_exception_str = ("Installation error reported in serial "
+                                   "console log: %s" % install_error_str)
     post_finish_str = params.get("post_finish_str",
                                  "Post set up finished")
     install_timeout = int(params.get("install_timeout", 4800))
@@ -1208,13 +1214,18 @@ def run(test, params, env):
         except (virt_vm.VMDeadError, qemu_monitor.MonitorError), e:
             if wait_ack:
                 try:
+                    install_error_str_found = string_in_serial_log(
+                        log_file, install_error_str)
                     post_finish_str_found = string_in_serial_log(
                         log_file, post_finish_str)
                 except IOError:
                     logging.warn("Could not read final serial log file")
                 else:
+                    if install_error_str_found:
+                        raise exceptions.TestFail(install_error_exception_str)
                     if post_finish_str_found:
                         break
+
                 # Print out the original exception before copying images.
                 logging.error(e)
                 copy_images()
@@ -1230,6 +1241,8 @@ def run(test, params, env):
 
         if wait_ack:
             try:
+                install_error_str_found = string_in_serial_log(
+                    log_file, install_error_str)
                 post_finish_str_found = string_in_serial_log(
                     log_file, post_finish_str)
             except IOError:
@@ -1240,6 +1253,8 @@ def run(test, params, env):
                         "Cannot read from serial log file after %d tries",
                         serial_read_fails)
             else:
+                if install_error_str_found:
+                    raise exceptions.TestFail(install_error_exception_str)
                 if post_finish_str_found:
                     break
 
