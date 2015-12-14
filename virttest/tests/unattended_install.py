@@ -154,7 +154,8 @@ class UnattendedInstallConfig(object):
                            'process_check', 'vfd_size', 'cdrom_mount_point',
                            'floppy_mount_point', 'cdrom_virtio',
                            'virtio_floppy', 're_driver_match',
-                           're_hardware_id', 'driver_in_floppy', 'vga']
+                           're_hardware_id', 'driver_in_floppy', 'vga',
+                           'unattended_file_kernel_param_name']
 
         for a in self.attributes:
             setattr(self, a, params.get(a, ''))
@@ -596,6 +597,27 @@ class UnattendedInstallConfig(object):
         for line in contents.splitlines():
             logging.debug(line)
 
+    def set_unattended_param_in_kernel(self, unattended_file_url):
+        '''
+        Check if kernel parameter that sets the unattended installation file
+        is present.
+        Add the parameter with the passed URL if it does not exist,
+        otherwise replace the existing URL.
+
+        :param unattended_file_url: URL to unattended installation file
+        :return: modified kernel parameters
+        '''
+        unattended_param = '%s=%s' % (self.unattended_file_kernel_param_name,
+                                      unattended_file_url)
+        if '%s=' % self.unattended_file_kernel_param_name in self.kernel_params:
+            kernel_params = re.sub('%s=[\w\d:\-\./]+' %
+                                   (self.unattended_file_kernel_param_name),
+                                   unattended_param,
+                                   self.kernel_params)
+        else:
+            kernel_params = '%s %s' % (self.kernel_params, unattended_param)
+        return kernel_params
+
     def setup_unattended_http_server(self):
         '''
         Setup a builtin http server for serving the kickstart file
@@ -619,15 +641,11 @@ class UnattendedInstallConfig(object):
                                            self.tmpdir)
 
         # Point installation to this kickstart url
-        ks_param = 'ks=http://%s:%s/%s' % (self.url_auto_content_ip,
-                                           self.unattended_server_port,
-                                           dest_fname)
-        if 'ks=' in self.kernel_params:
-            kernel_params = re.sub('ks=[\w\d:\-\./]+',
-                                   ks_param,
-                                   self.kernel_params)
-        else:
-            kernel_params = '%s %s' % (self.kernel_params, ks_param)
+        unattended_file_url = 'http://%s:%s/%s' % (self.url_auto_content_ip,
+                                                   self.unattended_server_port,
+                                                   dest_fname)
+        kernel_params = self.set_unattended_param_in_kernel(
+            unattended_file_url)
 
         # reflect change on params
         self.kernel_params = kernel_params
@@ -652,14 +670,10 @@ class UnattendedInstallConfig(object):
             # Red Hat kickstart install
             dest_fname = 'ks.cfg'
             if self.params.get('unattended_delivery_method') == 'integrated':
-                ks_param = 'ks=cdrom:/dev/sr0:/isolinux/%s' % dest_fname
-                kernel_params = self.kernel_params
-                if 'ks=' in kernel_params:
-                    kernel_params = re.sub('ks=[\w\d:\-\./]+',
-                                           ks_param,
-                                           kernel_params)
-                else:
-                    kernel_params = '%s %s' % (kernel_params, ks_param)
+                unattended_file_url = 'cdrom:/dev/sr0:/isolinux/%s' % (
+                    dest_fname)
+                kernel_params = self.set_unattended_param_in_kernel(
+                    unattended_file_url)
 
                 # Standard setting is kickstart disk in /dev/sr0 and
                 # install cdrom in /dev/sr1. As we merge them together,
@@ -686,14 +700,9 @@ class UnattendedInstallConfig(object):
                 boot_disk = RemoteInstall(path, self.url_auto_content_ip,
                                           self.unattended_server_port,
                                           dest_fname)
-                ks_param = 'ks=%s' % boot_disk.get_url()
-                kernel_params = self.kernel_params
-                if 'ks=' in kernel_params:
-                    kernel_params = re.sub('ks=[\w\d:\-\./]+',
-                                           ks_param,
-                                           kernel_params)
-                else:
-                    kernel_params = '%s %s' % (kernel_params, ks_param)
+                unattended_file_url = boot_disk.get_url()
+                kernel_params = self.set_unattended_param_in_kernel(
+                    unattended_file_url)
 
                 # Standard setting is kickstart disk in /dev/sr0 and
                 # install cdrom in /dev/sr1. When we get ks via http,
@@ -710,14 +719,15 @@ class UnattendedInstallConfig(object):
                 boot_disk = utils_disk.FloppyDisk(self.floppy,
                                                   self.qemu_img_binary,
                                                   self.tmpdir, self.vfd_size)
-                ks_param = 'ks=floppy'
+                ks_param = '%s=floppy' % self.unattended_file_kernel_param_name
                 kernel_params = self.kernel_params
-                if 'ks=' in kernel_params:
+                if '%s=' % self.unattended_file_kernel_param_name in kernel_params:
                     # Reading ks from floppy directly doesn't work in some OS,
                     # options 'ks=hd:/dev/fd0' can reading ks from mounted
                     # floppy, so skip repace it;
                     if not re.search("fd\d+", kernel_params):
-                        kernel_params = re.sub('ks=[\w\d\-:\./]+',
+                        kernel_params = re.sub('%s=[\w\d\-:\./]+' %
+                                               (self.unattended_file_kernel_param_name),
                                                ks_param,
                                                kernel_params)
                 else:
