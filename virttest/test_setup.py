@@ -433,7 +433,7 @@ class HugePageConfig(object):
         if not os.path.isfile(node_page_path):
             raise ValueError("%s page size nr_hugepages file of node %s did "
                              "not exist" % (pagesize, node))
-        process.system("echo %s > %s" % (num, node_page_path))
+        process.system("echo %s > %s" % (num, node_page_path), shell=True)
 
     @error_context.context_aware
     def set_hugepages(self):
