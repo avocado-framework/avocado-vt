@@ -1568,6 +1568,16 @@ class VMCPUXML(base.LibvirtXMLBase):
             feature_node.update({'policy': policy})
         xml_utils.ElementTree.SubElement(node, 'feature', feature_node)
 
+    def remove_numa_cells(self):
+        """
+        Remove numa cells from xml
+        """
+        try:
+            self.xmltreefile.remove_by_xpath('/numa', remove_all=True)
+        except (AttributeError, TypeError):
+            pass  # Element already doesn't exist
+        self.xmltreefile.write()
+
 
 class VMClockXML(VMXML):
 
