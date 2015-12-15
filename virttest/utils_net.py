@@ -1965,7 +1965,7 @@ class IPv6Manager(propcan.PropCanBase):
         Check IPv6 network connectivity
         :param client_ifname: client network interface name
         :param server_ipv6: server IPv6 address
-        ::param count: sending packets counts, default is 5
+        :param count: sending packets counts, default is 5
         """
         try:
             utils_path.find_command("ping6")
@@ -3249,3 +3249,37 @@ def check_listening_port_remote_by_service(server_ip, server_user, server_pwd,
     except:
         if session:
             session.close()
+
+
+def block_specific_ip_by_time(ip_addr, block_time="1 seconds", runner=None):
+    """
+    Using iptables tool to block specific IP address with certain time
+
+    :param ip_addr: specific host IP address
+    :param block_time: blocking time, the format looks like 'N ${time}', and
+                       N >=1, the ${time} is [hours|minutes|seconds],etc, the
+                       default is '1 seconds'
+    :param runner: command runner, it's a remote session
+    """
+    cmd = "iptables -A INPUT -s %s -m time --kerneltz --timestart \
+           $(date +%%H:%%M:%%S) --timestop $(date --date='+%s' +%%H:%%M:%%S) \
+           -j DROP" % (ip_addr, block_time)
+    list_rules = "iptables -L"
+    find_iptables = "which iptables"
+    try:
+        if not runner:
+            try:
+                utils_path.find_command("iptables")
+            except ValueError, details:
+                raise exceptions.TestNAError(details)
+            output = local_runner(cmd)
+            logging.debug("List current iptables rules:\n%s",
+                          local_runner(list_rules))
+        else:
+            if not runner(find_iptables):
+                raise exceptions.TestNAError("Missing 'iptables' command on remote")
+            output = runner(cmd)
+            logging.debug("List current iptables rules:\n%s",
+                          runner(list_rules))
+    except process.CmdError:
+        logging.error("Failed to run command '%s'", cmd)
