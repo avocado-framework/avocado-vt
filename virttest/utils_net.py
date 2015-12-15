@@ -1861,7 +1861,8 @@ class IPv6Manager(propcan.PropCanBase):
     __slots__ = ('server_ip', 'server_user', 'server_pwd', 'server_ifname',
                  'client_ifname', 'client_ipv6_addr', 'server_ipv6_addr',
                  'client', 'port', 'runner', 'prompt', 'session',
-                 'auto_recover', 'check_ipv6_connectivity')
+                 'auto_recover', 'check_ipv6_connectivity', 'client_ipv6_added',
+                 'server_ipv6_added')
 
     def __init__(self, *args, **dargs):
         init_dict = dict(*args, **dargs)
@@ -1878,6 +1879,8 @@ class IPv6Manager(propcan.PropCanBase):
         init_dict['auto_recover'] = init_dict.get('auto_recover', False)
         init_dict['check_ipv6_connectivity'] = \
             init_dict.get('check_ipv6_connectivity', 'yes')
+        init_dict['client_ipv6_added'] = False
+        init_dict['server_ipv6_added'] = False
 
         self.__dict_set__('session', None)
         super(IPv6Manager, self).__init__(init_dict)
@@ -2019,10 +2022,30 @@ class IPv6Manager(propcan.PropCanBase):
 
         try:
             logging.info("Prepare to configure IPv6 test environment...")
+            local_ipv6_addr_list = self.get_addr_list()
+
+            # the ipv6 address looks like this '3efe::101/64'
+            ipv6_addr_src = self.client_ipv6_addr.split('/')[0]
+            ipv6_addr_des = self.server_ipv6_addr.split('/')[0]
+
             # configure global IPv6 address for local host
-            set_net_if_ip(self.client_ifname, self.client_ipv6_addr)
+            if ipv6_addr_src not in local_ipv6_addr_list:
+                set_net_if_ip(self.client_ifname, self.client_ipv6_addr)
+                self.client_ipv6_added = True
+            else:
+                logging.debug("Skip to add the existing ipv6 address %s", ipv6_addr_src)
+
+            self.session = self.get_session()
+            runner = self.session.cmd_output
+            remote_ipv6_addr_list = self.get_addr_list(runner)
+
             # configure global IPv6 address for remote host
-            set_net_if_ip(self.server_ifname, self.server_ipv6_addr, runner)
+            if ipv6_addr_des not in remote_ipv6_addr_list:
+                set_net_if_ip(self.server_ifname, self.server_ipv6_addr, runner)
+                self.server_ipv6_added = True
+            else:
+                logging.debug("Skip to add the existing ipv6 address %s", ipv6_addr_des)
+
             # check IPv6 network connectivity
             if self.check_ipv6_connectivity == "yes":
                 # the ipv6 address looks like this '3efe::101/64'
@@ -2047,14 +2070,14 @@ class IPv6Manager(propcan.PropCanBase):
         ipv6_addr_des = self.server_ipv6_addr.split('/')[0]
 
         # delete global IPv6 address from local host
-        if ipv6_addr_src in local_ipv6_addr_list:
+        if (ipv6_addr_src in local_ipv6_addr_list) and self.client_ipv6_added:
             del_net_if_ip(self.client_ifname, self.client_ipv6_addr)
 
         self.session = self.get_session()
         runner = self.session.cmd_output
         remote_ipv6_addr_list = self.get_addr_list(runner)
         # delete global IPv6 address from remote host
-        if ipv6_addr_des in remote_ipv6_addr_list:
+        if (ipv6_addr_des in remote_ipv6_addr_list) and self.server_ipv6_added:
             del_net_if_ip(self.server_ifname, self.server_ipv6_addr, runner)
 
         # make sure opening session is closed
