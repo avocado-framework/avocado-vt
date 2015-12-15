@@ -155,7 +155,7 @@ class VMXMLBase(base.LibvirtXMLBase):
                  'current_vcpu', 'os', 'cpu', 'pm', 'on_poweroff', 'on_reboot',
                  'on_crash', 'features', 'mb', 'max_mem_unit',
                  'current_mem_unit', 'memtune', 'max_mem_rt', 'max_mem_rt_unit',
-                 'max_mem_rt_slots', 'iothreads')
+                 'max_mem_rt_slots', 'iothreads', 'iothreadids')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -319,6 +319,13 @@ class VMXMLBase(base.LibvirtXMLBase):
                                  parent_xpath='/',
                                  tag_name='memtune',
                                  subclass=VMMemTuneXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
+        accessors.XMLElementNest(property_name='iothreadids',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='iothreadids',
+                                 subclass=VMIothreadidsXML,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
         super(VMXMLBase, self).__init__(virsh_instance=virsh_instance)
@@ -2137,3 +2144,44 @@ class VMMemTuneXML(base.LibvirtXMLBase):
                                attribute='unit')
         super(VMMemTuneXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<memtune/>'
+
+
+class VMIothreadidsXML(VMXML):
+
+    """
+    memoryBacking tag XML class
+
+    Elements:
+        hugepages
+        nosharepages
+        locked
+    """
+
+    __slots__ = ('iothread',)
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLElementList('iothread', self, parent_xpath='/',
+                                 marshal_from=self.marshal_from_iothreads,
+                                 marshal_to=self.marshal_to_iothreads)
+        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<iothread/>'
+
+    @staticmethod
+    def marshal_from_iothreads(item, index, libvirtxml):
+        """
+        Convert a string to iothread tag and attributes.
+        """
+        del index
+        del libvirtxml
+        return ('iothread', {'id': item})
+
+    @staticmethod
+    def marshal_to_iothreads(tag, attr_dict, index, libvirtxml):
+        """
+        Convert a iothread tag and attributes to a string.
+        """
+        del index
+        del libvirtxml
+        if tag != 'iothread':
+            return None
+        return attr_dict['id']
