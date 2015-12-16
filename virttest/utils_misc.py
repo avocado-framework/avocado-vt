@@ -2604,21 +2604,35 @@ def selinux_enforcing():
     return utils_selinux.is_enforcing()
 
 
-def get_winutils_vol(session, label="WIN_UTILS"):
+def get_win_disk_vol(session, key="VolumeName", val="WIN_UTILS"):
     """
-    Return Volume ID of winutils CDROM ISO file should be create via command
-    ``mkisofs -V $label -o winutils.iso``.
+    Getting logicaldisk drive letter in windows guest.
 
-    :param session: session Object
-    :param label: volume ID of WIN_UTILS.iso
-    :return: volume ID
+    :param session: session Object.
+    :param key: supported key via cmd "wmic logicaldisk list".
+    :param val: value for the key.
+
+    :return: volume ID.
     """
-    cmd = "wmic logicaldisk where (VolumeName='%s') get DeviceID" % label
+    cmd = "wmic logicaldisk where (%s='%s') get DeviceID" % (key, val)
     output = session.cmd(cmd, timeout=120)
     device = re.search(r'(\w):', output, re.M)
     if not device:
         return ""
     return device.group(1)
+
+
+def get_winutils_vol(session, label="WIN_UTILS"):
+    """
+    Return Volume ID of winutils CDROM ISO file should be create via command
+    ``mkisofs -V $label -o winutils.iso``.
+
+    :param session: session Object.
+    :param label: volume label of WIN_UTILS.iso.
+
+    :return: volume ID.
+    """
+    return get_win_disk_vol(session, key="VolumeName", val="WIN_UTILS")
 
 
 def format_windows_disk(session, did, mountpoint=None, size=None, fstype="ntfs"):
