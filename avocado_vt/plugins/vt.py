@@ -28,10 +28,10 @@ from avocado.core import exceptions
 from avocado.core import multiplexer
 from avocado.core import test
 from avocado.core.settings import settings
-from avocado.core.plugins import plugin
 from avocado.utils import path as utils_path
 from avocado.utils import stacktrace
 from avocado.utils import genio
+from avocado.plugins.base import CLI
 
 
 # avocado-vt no longer needs autotest for the majority of its functionality,
@@ -1101,17 +1101,14 @@ class VirtTestOptionsProcess(object):
         return self.cartesian_parser
 
 
-class VirtTestCompatPlugin(plugin.Plugin):
+class VTRun(CLI):
 
     """
     Avocado VT - legacy virt-test support
     """
 
     name = 'vt'
-    enabled = True
-    configured = False
-    parser = None
-    priority = 1
+    description = "Avocado VT/virt-test support to 'run' command"
 
     def configure(self, parser):
         """
@@ -1119,7 +1116,9 @@ class VirtTestCompatPlugin(plugin.Plugin):
 
         :param parser: Main test runner parser.
         """
-        self.parser = parser
+        run_subcommand_parser = parser.subcommands.choices.get('run', None)
+        if run_subcommand_parser is None:
+            return
 
         try:
             qemu_bin_path = standalone_test.find_default_qemu_paths()[0]
@@ -1130,13 +1129,13 @@ class VirtTestCompatPlugin(plugin.Plugin):
             SUPPORTED_NET_TYPES)
         qemu_nw_msg += "Default: user"
 
-        vt_compat_group_setup = parser.runner.add_argument_group(
+        vt_compat_group_setup = run_subcommand_parser.add_argument_group(
             'Virt-Test compat layer - VM Setup options')
-        vt_compat_group_common = parser.runner.add_argument_group(
+        vt_compat_group_common = run_subcommand_parser.add_argument_group(
             'Virt-Test compat layer - Common options')
-        vt_compat_group_qemu = parser.runner.add_argument_group(
+        vt_compat_group_qemu = run_subcommand_parser.add_argument_group(
             'Virt-Test compat layer - QEMU options')
-        vt_compat_group_libvirt = parser.runner.add_argument_group(
+        vt_compat_group_libvirt = run_subcommand_parser.add_argument_group(
             'Virt-Test compat layer - Libvirt options')
 
         vt_compat_group_common.add_argument("--vt-config", action="store",
@@ -1225,13 +1224,10 @@ class VirtTestCompatPlugin(plugin.Plugin):
                                                    (supported_uris,
                                                     uri_current)))
 
-        self.configured = True
-
-    def activate(self, args):
+    def run(self, args):
         """
         Run test modules or simple tests.
 
         :param args: Command line args received from the run subparser.
         """
-        from ..loader import loader
         loader.register_plugin(VirtTestLoader)

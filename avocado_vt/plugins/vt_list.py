@@ -19,8 +19,11 @@ Avocado plugin that augments 'avocado list' with avocado-virt related options.
 import os
 import sys
 
+from avocado.core.loader import loader
 from avocado.core.settings import settings
-from avocado.core.plugins import plugin
+from avocado.plugins.base import CLI
+
+from .vt import VirtTestLoader
 
 
 # The original virt-test runner supports using autotest from a git checkout,
@@ -70,14 +73,14 @@ except (OSError, AssertionError):
                            "plugin to get rid of this message")
 
 
-class VirtTestListerPlugin(plugin.Plugin):
+class VTLister(CLI):
 
     """
     Avocado VT - implements legacy virt-test listing
     """
 
-    name = 'vt_lister'
-    enabled = True
+    name = 'vt-list'
+    description = "Avocado-VT/virt-test support for 'list' command"
 
     def configure(self, parser):
         """
@@ -85,8 +88,11 @@ class VirtTestListerPlugin(plugin.Plugin):
 
         :param parser: Main test runner parser.
         """
-        self.parser = parser
-        vt_compat_group_lister = parser.lister.add_argument_group(
+        list_subcommand_parser = parser.subcommands.choices.get('list', None)
+        if list_subcommand_parser is None:
+            return
+
+        vt_compat_group_lister = list_subcommand_parser.add_argument_group(
             'Virt-Test compat layer - Lister options')
         vt_compat_group_lister.add_argument("--vt-type", action="store",
                                             dest="vt_type",
@@ -109,3 +115,6 @@ class VirtTestListerPlugin(plugin.Plugin):
                                             action="store_true",
                                             default=False,
                                             help="List available guests")
+
+    def run(self, args):
+        loader.register_plugin(VirtTestLoader)
