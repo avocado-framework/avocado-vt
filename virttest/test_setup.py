@@ -493,7 +493,7 @@ class HugePageConfig(object):
                 process.system("umount %s" % self.hugepage_path)
             except process.CmdError:
                 return
-            process.system("echo 0 > %s" % self.kernel_hp_file)
+            process.system("echo 0 > %s" % self.kernel_hp_file, shell=True)
             logging.debug("Hugepage memory successfully deallocated")
 
 
