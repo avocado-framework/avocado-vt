@@ -582,7 +582,7 @@ class SSHConnection(ConnectionBase):
 
         logging.debug("SSH authentication recover successfully.")
 
-    def conn_setup(self):
+    def conn_setup(self, timeout=10):
         """
         Setup of SSH connection.
 
@@ -591,6 +591,8 @@ class SSHConnection(ConnectionBase):
         (3).Initialization of id_rsa.
         (4).set a ssh_agent.
         (5).copy pub key to server.
+
+        :param timeout: The time duration (in seconds) to wait for prompts
         """
         client_session = self.client_session
         ssh_rsa_pub_path = self.ssh_rsa_pub_path
@@ -603,6 +605,7 @@ class SSHConnection(ConnectionBase):
         ssh_copy_id = self.SSH_COPY_ID
         ssh_agent = self.SSH_AGENT
         shell = self.SHELL
+        assert timeout >= 0, 'Invalid timeout value: %s' % timeout
 
         tool_dict = {'ssh_keygen': ssh_keygen,
                      'ssh_add': ssh_add,
@@ -638,7 +641,7 @@ class SSHConnection(ConnectionBase):
         client_session.sendline(cmd)
         try:
             remote.handle_prompts(client_session, server_user,
-                                  server_pwd, prompt=r"[\#\$]\s*$")
+                                  server_pwd, prompt=r"[\#\$]\s*$", timeout=timeout)
         except remote.LoginError, detail:
             raise ConnCmdClientError(cmd, detail)
 
