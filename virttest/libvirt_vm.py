@@ -2385,7 +2385,7 @@ class VM(virt_vm.BaseVM):
             else:
                 # Update the package
                 cmd = "yum update -y %s" % name
-                status, output = session.cmd_status_output(cmd, timeout=300)
+                status, output = session.cmd_status_output(cmd, timeout=600)
                 if status:
                     raise virt_vm.VMError("Update of package %s failed:\n%s"
                                           % (name, output))
