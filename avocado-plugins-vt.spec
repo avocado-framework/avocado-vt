@@ -12,7 +12,7 @@ License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
 Source0: https://github.com/avocado-framework/%{name}/archive/%{commit}/%{name}-%{version}-%{shortcommit}.tar.gz
-BuildRequires: python2-devel
+BuildRequires: python2-devel, python-setuptools
 BuildArch: noarch
 Requires: python, avocado, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, aexpect
 
