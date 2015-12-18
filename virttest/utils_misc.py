@@ -3067,7 +3067,8 @@ class KSMController(object):
         if self.interface == "sysfs":
             # Get writable parameters
             for key, value in feature_args.items():
-                process.system("echo %s > %s" % (value, self.ksm_params[key]))
+                process.system("echo %s > %s" % (value, self.ksm_params[key]),
+                               shell=True)
         else:
             if "run" in feature_args.keys() and feature_args["run"] == 0:
                 process.system("ksmctl stop")
