@@ -16,7 +16,7 @@ import os
 import glob
 
 # pylint: disable=E0611
-from distutils.core import setup
+from setuptools import setup
 
 VERSION = '0.30.0'
 
@@ -78,8 +78,8 @@ setup(name='avocado-plugins-vt',
       author='Avocado Developers',
       author_email='avocado-devel@redhat.com',
       url='http://github.com/avocado-framework/avocado-vt',
-      packages=['avocado',
-                'avocado.core.plugins',
+      packages=['avocado_vt',
+                'avocado_vt.plugins',
                 'virttest',
                 'virttest.libvirt_xml',
                 'virttest.libvirt_xml.devices',
@@ -91,5 +91,14 @@ setup(name='avocado-plugins-vt',
                 'virttest.tests',
                 'virttest.unittest_utils',
                 'virttest.utils_test'],
-      data_files=get_data_files()
+      data_files=get_data_files(),
+      entry_points={
+          'avocado.plugins.cli': [
+              'vt-list = avocado_vt.plugins.vt_list:VTLister',
+              'vt = avocado_vt.plugins.vt:VTRun',
+              ],
+          'avocado.plugins.cli.cmd': [
+              'vt-bootstrap = avocado_vt.plugins.vt_bootstrap:VTBootstrap',
+              ]
+          },
       )

@@ -12,7 +12,7 @@ License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
 Source0: https://github.com/avocado-framework/%{name}/archive/%{commit}/%{name}-%{version}-%{shortcommit}.tar.gz
-BuildRequires: python2-devel
+BuildRequires: python2-devel, python-setuptools
 BuildArch: noarch
 Requires: python, avocado, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, aexpect
 
@@ -43,7 +43,7 @@ Xunit output, among others.
 %dir /etc/avocado/conf.d
 %config(noreplace)/etc/avocado/conf.d/vt.conf
 %doc README.rst LICENSE
-%{python_sitelib}/avocado*
+%{python_sitelib}/avocado_vt*
 %{python_sitelib}/virttest*
 %{_datadir}/avocado-plugins-vt/backends/*
 %{_datadir}/avocado-plugins-vt/shared/*
