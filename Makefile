@@ -22,14 +22,30 @@ COMMIT=$(shell git log --pretty=format:'%H' -n 1)
 SHORT_COMMIT=$(shell git log --pretty=format:'%h' -n 1)
 
 all:
-	@echo "make source - Create source package"
-	@echo "make install - Install on local system"
-	@echo "make build-deb-src - Generate a source debian package"
-	@echo "make build-deb-bin - Generate a binary debian package"
-	@echo "make build-deb-all - Generate both source and binary debian packages"
-	@echo "make build-rpm-all - Generate both source and binary RPMs"
-	@echo "make check - Runs static checks in the source code"
-	@echo "make clean - Get rid of scratch and byte files"
+	@echo
+	@echo "Development related targets:"
+	@echo "check:  Runs tree static check, unittests and functional tests"
+	@echo "clean:  Get rid of scratch and byte files"
+	@echo
+	@echo "Platform independent distribution/installtion related targets:"
+	@echo "source:   Create source package"
+	@echo "install:  Install on local system"
+	@echo
+	@echo "RPM related targets:"
+	@echo "srpm:  Generate a source RPM package (.srpm)"
+	@echo "rpm:   Generate binary RPMs"
+	@echo
+	@echo "Debian related targets:"
+	@echo "deb:      Generate both source and binary debian packages"
+	@echo "deb-src:  Generate a source debian package"
+	@echo "deb-bin:  Generate a binary debian package"
+	@echo
+	@echo "Release related targets:"
+	@echo "source-release:  Create source package for the latest tagged release"
+	@echo "srpm-release:    Generate a source RPM package (.srpm) for the latest tagged release"
+	@echo "rpm-release:     Generate binary RPMs for the latest tagged release"
+	@echo
+
 
 source: clean
 	if test ! -d SOURCES; then mkdir SOURCES; fi
@@ -49,15 +65,15 @@ prepare-source:
 	$(PYTHON) setup.py sdist $(COMPILE) --dist-dir=../ --prune
 	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' ../*
 
-build-deb-src: prepare-source
+deb-src: prepare-source
 	# build the source package
 	dpkg-buildpackage -S -elookkas@gmail.com -rfakeroot
 
-build-deb-bin: prepare-source
+deb-bin: prepare-source
 	# build binary package
 	dpkg-buildpackage -b -rfakeroot
 
-build-deb-all: prepare-source
+deb: prepare-source
 	# build both source and binary packages
 	dpkg-buildpackage -i -I -rfakeroot
 
