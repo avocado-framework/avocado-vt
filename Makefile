@@ -103,14 +103,6 @@ clean:
 
 link:
 	ln -sf ../../../../$(DIRNAME)/etc/avocado/conf.d/vt.conf ../$(AVOCADO_DIRNAME)/etc/avocado/conf.d/
-	ln -sf ../../../../$(DIRNAME)/avocado/core/plugins/vt.py ../$(AVOCADO_DIRNAME)/avocado/core/plugins/
-	ln -sf ../../../../$(DIRNAME)/avocado/core/plugins/vt_list.py ../$(AVOCADO_DIRNAME)/avocado/core/plugins/
-	ln -sf ../../../../$(DIRNAME)/avocado/core/plugins/vt_bootstrap.py ../$(AVOCADO_DIRNAME)/avocado/core/plugins/
-	ln -sf ../$(DIRNAME)/virttest ../$(AVOCADO_DIRNAME)/
 
 unlink:
 	test -L ../$(AVOCADO_DIRNAME)/etc/avocado/conf.d/vt.conf && rm -f ../$(AVOCADO_DIRNAME)/etc/avocado/conf.d/vt.conf || true
-	test -L ../$(AVOCADO_DIRNAME)/avocado/core/plugins/vt.py && rm -f ../$(AVOCADO_DIRNAME)/avocado/core/plugins/vt.py || true
-	test -L ../$(AVOCADO_DIRNAME)/avocado/core/plugins/vt_list.py && rm -f ../$(AVOCADO_DIRNAME)/avocado/core/plugins/vt_list.py || true
-	test -L ../$(AVOCADO_DIRNAME)/avocado/core/plugins/vt_bootstrap.py && rm -f ../$(AVOCADO_DIRNAME)/avocado/core/plugins/vt_bootstrap.py || true
-	test -L ../$(AVOCADO_DIRNAME)/virttest && rm -f ../$(AVOCADO_DIRNAME)/virttest || true
