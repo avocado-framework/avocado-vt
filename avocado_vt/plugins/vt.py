@@ -557,7 +557,7 @@ class VirtTest(test.Test):
                         logging.info("It has a %s monitor unix socket at: %s",
                                      m.protocol, m.filename)
                     logging.info("The command line used to start it was:\n%s",
-                                 vm.make_qemu_command())
+                                 vm.make_create_command())
                 raise error.JobError("Abort requested (%s)" % e)
 
         return test_passed

@@ -476,7 +476,7 @@ class BaseVM(object):
       consumed only by BaseVM and subclasses
     - Private API methods: name begins with double underline, to be consumed
       only by the VM subclass itself (usually implements virt specific
-      functionality: example: __make_qemu_command())
+      functionality)
 
     So called "protected" methods are intended to be used only by VM classes,
     and not be consumed by tests. Theses should respect a naming convention

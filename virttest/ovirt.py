@@ -102,7 +102,7 @@ class VMManager(virt_vm.BaseVM):
 
         :param name: The name of the object
         :param params: A dict containing VM params (see method
-                       make_qemu_command for a full description)
+                       make_create_command for a full description)
         :param root_dir: Base directory for relative filenames
         :param address_cache: A dict that maps MAC addresses to IP addresses
         :param state: If provided, use this as self.__dict__

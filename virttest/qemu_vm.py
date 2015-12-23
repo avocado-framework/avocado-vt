@@ -98,7 +98,7 @@ class VM(virt_vm.BaseVM):
 
         :param name: The name of the object
         :param params: A dict containing VM params
-                (see method make_qemu_command for a full description)
+                (see method make_create_command for a full description)
         :param root_dir: Base directory for relative filenames
         :param address_cache: A dict that maps MAC addresses to IP addresses
         :param state: If provided, use this as self.__dict__
@@ -260,7 +260,7 @@ class VM(virt_vm.BaseVM):
         :param root_dir: Optional new base directory for relative filenames
         :param address_cache: A dict that maps MAC addresses to IP addresses
         :param copy_state: If True, copy the original VM's state to the clone.
-                Mainly useful for make_qemu_command().
+                Mainly useful for make_create_command().
         """
         if name is None:
             name = self.name
