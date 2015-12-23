@@ -44,6 +44,7 @@ Xunit output, among others.
 %config(noreplace)/etc/avocado/conf.d/vt.conf
 %doc README.rst LICENSE
 %{python_sitelib}/avocado_vt*
+%{python_sitelib}/avocado_plugins_vt*
 %{python_sitelib}/virttest*
 %{_datadir}/avocado-plugins-vt/backends/*
 %{_datadir}/avocado-plugins-vt/shared/*
