@@ -2011,3 +2011,30 @@ class QMPMonitor(Monitor):
         self.verify_supported_cmd(cmd)
         args = {"device": device, "target": target}
         return self.cmd(cmd, args)
+
+    def qom_set(self, path, qproperty, qvalue):
+        """
+        Set the property to value for the device.
+
+        :param path: device path.
+        :param qproperty: property which needs set.
+        :param qvalue: value of the property.
+        """
+        cmd = "qom-set"
+        self.verify_supported_cmd(cmd)
+        args = {"path": path, "property": qproperty, "value": qvalue}
+        return self.cmd(cmd, args)
+
+    def qom_get(self, path, qproperty):
+        """
+        Get output of cmd "qom-get".
+
+        :param path: device path.
+        :param qproperty: property which needs set.
+
+        :return: the output of cmd "qom-get".
+        """
+        cmd = "qom-get"
+        self.verify_supported_cmd(cmd)
+        args = {"path": path, "property": qproperty}
+        return self.cmd(cmd, args)
