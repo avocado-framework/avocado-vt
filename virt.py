@@ -216,5 +216,5 @@ class virt(test.test):
                             vm.name, m.protocol, m.filename)
                     logging.info(
                         "The command line used to start '%s' was:\n%s",
-                        vm.name, vm.make_qemu_command())
+                        vm.name, vm.make_create_command())
                 raise error.JobError("Abort requested (%s)" % e)
