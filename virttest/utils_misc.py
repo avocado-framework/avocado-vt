@@ -2082,7 +2082,8 @@ def get_host_cpu_models():
 
     cpu_types = {"AuthenticAMD": ["Opteron_G5", "Opteron_G4", "Opteron_G3",
                                   "Opteron_G2", "Opteron_G1"],
-                 "GenuineIntel": ["Broadwell", "Haswell", "SandyBridge",
+                 "GenuineIntel": ["Broadwell-noTSX", "Haswell-noTSX",
+                                  "Broadwell", "Haswell", "SandyBridge",
                                   "Westmere", "Nehalem",
                                   "Penryn", "Conroe"]}
     cpu_type_re = {"Opteron_G5": "f16c,fma,tbm",
@@ -2091,6 +2092,8 @@ def get_host_cpu_models():
                    "Opteron_G3": "cx16,sse4a",
                    "Opteron_G2": "cx16",
                    "Opteron_G1": "",
+                   "Broadwell-noTSX": "adx,rdseed,3dnowprefetch",
+                   "Haswell-noTSX": "fma,avx2,movbe",
                    "Broadwell": "adx,rdseed,3dnowprefetch",
                    "Haswell": "fma,avx2,movbe,hle",
                    "SandyBridge":
