@@ -2094,7 +2094,7 @@ def get_host_cpu_models():
                    "Opteron_G1": "",
                    "Broadwell-noTSX": "adx,rdseed,3dnowprefetch",
                    "Haswell-noTSX": "fma,avx2,movbe",
-                   "Broadwell": "adx,rdseed,3dnowprefetch",
+                   "Broadwell": "adx,rdseed,3dnowprefetch,hle",
                    "Haswell": "fma,avx2,movbe,hle",
                    "SandyBridge":
                    "avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,cx16,ssse3",
