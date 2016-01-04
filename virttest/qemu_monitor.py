@@ -1143,10 +1143,10 @@ class QMPMonitor(Monitor):
     Wraps QMP monitor commands.
     """
 
-    READ_OBJECTS_TIMEOUT = 5
-    CMD_TIMEOUT = 120
-    RESPONSE_TIMEOUT = 120
-    PROMPT_TIMEOUT = 60
+    READ_OBJECTS_TIMEOUT = 10
+    CMD_TIMEOUT = 900
+    RESPONSE_TIMEOUT = 600
+    PROMPT_TIMEOUT = 90
 
     def __init__(self, vm, name, filename, suppress_exceptions=False):
         """
