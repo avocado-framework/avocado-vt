@@ -1116,14 +1116,19 @@ class VTRun(CLI):
 
         :param parser: Main test runner parser.
         """
+        def str_or_none(arg):
+            if arg is None:
+                return "Could not find one"
+            else:
+                return arg
         run_subcommand_parser = parser.subcommands.choices.get('run', None)
         if run_subcommand_parser is None:
             return
 
         try:
             qemu_bin_path = standalone_test.find_default_qemu_paths()[0]
-        except ValueError:
-            qemu_bin_path = "Could not find one"
+        except (RuntimeError, utils_path.CmdNotFoundError):
+            qemu_bin_path = None
 
         qemu_nw_msg = "QEMU network option (%s). " % ", ".join(
             SUPPORTED_NET_TYPES)
@@ -1180,24 +1185,23 @@ class VTRun(CLI):
                                                   "If --vt-config is "
                                                   "provided, this will be "
                                                   "ignored. Default: ''"))
-        qemu_bin_path_current = settings.get_value('vt.qemu', 'qemu_bin',
-                                                   default=qemu_bin_path)
+        qemu_bin = settings.get_value('vt.qemu', 'qemu_bin',
+                                      default=qemu_bin_path)
         vt_compat_group_qemu.add_argument("--vt-qemu-bin", action="store",
                                           dest="vt_qemu_bin",
-                                          default=qemu_bin_path_current,
+                                          default=qemu_bin,
                                           help=("Path to a custom qemu binary "
                                                 "to be tested. If --vt-config "
                                                 "is provided and this flag is "
                                                 "omitted, no attempt to set "
                                                 "the qemu binaries will be "
                                                 "made. Current: %s" %
-                                                qemu_bin_path_current))
-        qemu_dst_bin_path_current = settings.get_value('vt.qemu',
-                                                       'qemu_dst_bin',
-                                                       default=qemu_bin_path)
+                                                str_or_none(qemu_bin)))
+        qemu_dst = settings.get_value('vt.qemu', 'qemu_dst_bin',
+                                      default=qemu_bin_path)
         vt_compat_group_qemu.add_argument("--vt-qemu-dst-bin", action="store",
                                           dest="vt_dst_qemu_bin",
-                                          default=qemu_dst_bin_path_current,
+                                          default=qemu_dst,
                                           help=("Path to a custom qemu binary "
                                                 "to be tested for the "
                                                 "destination of a migration, "
@@ -1207,7 +1211,7 @@ class VTRun(CLI):
                                                 "no attempt to set the qemu "
                                                 "binaries will be made. "
                                                 "Current: %s" %
-                                                qemu_dst_bin_path_current))
+                                                str_or_none(qemu_dst)))
         vt_compat_group_qemu.add_argument("--vt-extra-params", nargs='*',
                                           help="List of 'key=value' pairs "
                                           "passed to cartesian parser.")
