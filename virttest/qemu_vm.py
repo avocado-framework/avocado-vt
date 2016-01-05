@@ -1166,10 +1166,11 @@ class VM(virt_vm.BaseVM):
             numa_cmd = " -numa node"
             if mem is not None:
                 numa_cmd += ",mem=%s" % mem
-            elif memdev is None:
+            elif memdev is not None:
                 numa_cmd += ",memdev=%s" % memdev
             if cpus is not None:
-                cpus = ','.join(map(lambda x: "cpus=%s" % x.strip(), cpus.split(',')))
+                cpus = map(lambda x: x.strip(), cpus.split(','))
+                cpus = ','.join(map(lambda x: "cpus=%s" % x, cpus))
                 numa_cmd += ",%s" % cpus
             if nodeid is not None:
                 numa_cmd += ",nodeid=%s" % nodeid
