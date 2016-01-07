@@ -2749,6 +2749,29 @@ def format_guest_disk(session, did, mountpoint, size, fstype, ostype):
     return format_linux_disk(session, did, mountpoint, size, fstype)
 
 
+def get_linux_drive_path(session, did, timeout=120):
+    """
+    Get drive path in guest by drive serial or wwn
+
+    :param session: session object to guest.
+    :param did: drive serial or wwn.
+    :return String: drive path
+    """
+    cmd = 'for dev_path in `ls -d /sys/block/*`; do '
+    cmd += 'echo `udevadm info -q property -p $dev_path`; done'
+    status, output = session.cmd_status_output(cmd, timeout=timeout)
+    if status != 0:
+        logging.error("Can not get drive infomation:\n%s" % output)
+        return ""
+    p = r"DEVNAME=([^\s]+)\s.*(?:ID_SERIAL|ID_SERIAL_SHORT|ID_WWN)=%s" % did
+    dev = re.search(p, output, re.M)
+    if dev:
+        return dev.groups()[0]
+    logging.error("Can not get drive path by id '%s', "
+                  "command output:\n%s" % (did, output))
+    return ""
+
+
 def get_windows_drive_letters(session):
     """
     Get drive letters has been assigned
