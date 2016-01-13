@@ -339,20 +339,20 @@ def deploy_epel_repo(guest_session, params):
         else:
             arch = arch[:-1]
         if "release 5" in guest_session.cmd("cat /etc/redhat-release"):
-            cmd = ("yum -y localinstall http://download.fedoraproject.org/"
-                   "pub/epel/5/%s/epel-release-5-4.noarch.rpm 2>&1" % arch)
+            cmd = ("yum -y localinstall https://dl.fedoraproject.org/"
+                   "pub/epel/epel-release-latest-5.noarch.rpm")
             logging.info("Installing epel repository to %s",
                          params.get("guest_vm"))
             guest_session.cmd(cmd, print_func=logging.info, timeout=90)
         elif "release 6" in guest_session.cmd("cat /etc/redhat-release"):
-            cmd = ("yum -y localinstall http://download.fedoraproject.org/"
-                   "pub/epel/6/%s/epel-release-6-8.noarch.rpm 2>&1" % arch)
+            cmd = ("yum -y localinstall https://dl.fedoraproject.org/"
+                   "pub/epel/epel-release-latest-6.noarch.rpm")
             logging.info("Installing epel repository to %s",
                          params.get("guest_vm"))
             guest_session.cmd(cmd, print_func=logging.info, timeout=90)
         elif "release 7" in guest_session.cmd("cat /etc/redhat-release"):
-            cmd = ("yum -y localinstall http://download.bos.redhat.com/"
-                   "pub/epel/7/%s/e/epel-release-7-5.noarch.rpm 2>&1" % arch)
+            cmd = ("yum -y localinstall https://dl.fedoraproject.org/"
+                   "pub/epel/epel-release-latest-7.noarch.rpm")
             logging.info("Installing epel repository to %s",
                          params.get("guest_vm"))
             guest_session.cmd(cmd, print_func=logging.info, timeout=90)
