@@ -1234,4 +1234,4 @@ class VTRun(CLI):
 
         :param args: Command line args received from the run subparser.
         """
-        loader.register_plugin(VirtTestLoader)
+        loader.loader.register_plugin(VirtTestLoader)
