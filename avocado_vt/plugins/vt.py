@@ -17,8 +17,6 @@ Avocado VT plugin
 """
 
 import os
-import sys
-import logging
 
 from avocado.core.loader import loader
 from avocado.core.settings import settings
@@ -43,44 +41,6 @@ except (OSError, AssertionError):
     raise EnvironmentError("Bootstrap missing. "
                            "Execute 'avocado vt-bootstrap' or disable this "
                            "plugin to get rid of this message")
-
-
-def configure_console_logging(loglevel=logging.DEBUG):
-    """
-    Simple helper for adding a file logger to the root logger.
-    """
-    logger = logging.getLogger()
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setLevel(loglevel)
-
-    fmt = ('%(asctime)s %(module)-10.10s L%(lineno)-.4d %('
-           'levelname)-5.5s| %(message)s')
-    formatter = logging.Formatter(fmt=fmt, datefmt='%H:%M:%S')
-
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(stream_handler)
-
-    return stream_handler
-
-
-def configure_file_logging(logfile, loglevel=logging.DEBUG):
-    """
-    Add a file logger to the root logger.
-
-    This file logger contains the formatting of the avocado
-    job log. This way all things logged by autotest go
-    straight to the avocado job log.
-    """
-    logger = logging.getLogger()
-    file_handler = logging.FileHandler(filename=logfile)
-    file_handler.setLevel(loglevel)
-    fmt = ('%(asctime)s %(module)-10.10s L%(lineno)-.4d %('
-           'levelname)-5.5s| %(message)s')
-    formatter = logging.Formatter(fmt=fmt, datefmt='%H:%M:%S')
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-
-    return file_handler
 
 
 class VTRun(CLI):
