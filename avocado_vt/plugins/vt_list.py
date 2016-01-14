@@ -23,7 +23,7 @@ from avocado.core.loader import loader
 from avocado.core.settings import settings
 from avocado.plugins.base import CLI
 
-from .vt import VirtTestLoader
+from ..loader import VirtTestLoader
 
 
 # The original virt-test runner supports using autotest from a git checkout,
