@@ -1,5 +1,6 @@
-Test Providers
-==============
+================
+ Test Providers
+================
 
 Test providers are the conjunction of a loadable module mechanism
 inside virt-test that can pull a directory that will provide tests, config
@@ -13,7 +14,7 @@ test providers are:
 The test provider spec is divided in Provider Layout and Definition files.
 
 Test Provider Layout
---------------------
+====================
 
 ::
 
@@ -52,7 +53,7 @@ is that you can configure a test definition file to point out any dir name. We'l
 get into 
 
 Types of Test Providers
------------------------
+=======================
 
 Each test provider can be either a local filesystem directory, or a subdirectory
 of a git repository. Of course, the git repo subdirectory can be the repo root
@@ -62,7 +63,7 @@ maintain its own provider, they can do this by holding the tests, say, inside
 a tests/virt-test subdirectory inside qemu.git.
 
 Test Provider definition file
------------------------------
+=============================
 
 The main virt-test suite needs a way to know about test providers. It does that
 by scanning definition files inside the 'test-providers.d' sub directory.
@@ -129,5 +130,3 @@ Let's say you want to use a directory in your file system
     subdir: virt-test/qemu/
     [openvswitch]
     subdir: virt-test/openvswitch/
-
-Any doubts about the specification, let me know - Email lmr AT redhat DOT com.

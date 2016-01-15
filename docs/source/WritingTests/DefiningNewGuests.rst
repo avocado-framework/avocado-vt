@@ -1,11 +1,12 @@
-Defining New Guests
-===================
+=====================
+ Defining New Guests
+=====================
 
 Let's say you have a guest image that you've carefully prepared, and the JeOS
 just doesn't cut it. Here's how you add new guests:
 
 Linux Based Custom Guest
-------------------------
+========================
 
 If your guest is Linux based, you can add a config file snippet describing
 your test (We have a bunch of pre-set values for linux in the default config).
@@ -63,7 +64,7 @@ Other useful params to set (not an exaustive list):
     file_transfer_port = 22
 
 Windows Based Custom Guest
---------------------------
+==========================
 
 If your guest is Linux based, you can add a config file snippet describing
 your test (We have a bunch of pre-set values for linux in the default config).
@@ -99,4 +100,3 @@ Other useful params to set (not an exaustive list):
     # since files in winutils.iso use it.
     username = Administrator
     password = 1q2w3eP
-

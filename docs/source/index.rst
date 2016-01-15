@@ -9,7 +9,7 @@ Contents:
 
    Introduction
    GetStartedGuide
-   WritingTests
+   WritingTests/index
    InstallOptionalPackages
    ListingGuests
 

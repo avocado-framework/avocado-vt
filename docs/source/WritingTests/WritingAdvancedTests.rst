@@ -1,6 +1,6 @@
-
-Writing a more advanced test
-============================
+==============================
+ Writing a more advanced test
+==============================
 
 Now that you wrote your first simple test, we'll try some more involved
 examples. First, let's talk about some useful APIs and concepts:
@@ -17,7 +17,7 @@ Let's see what some of them can do:
     from virttest import data_dir
 
 What's available upfront
-------------------------
+========================
 
 Very frequently we may get values from the config
 set. All virt tests take 3 params:
