@@ -10,9 +10,8 @@ Contents:
    Introduction
    GetStartedGuide
    TestRunner
-   InstallPrerequesitePackages
-   InstallPrerequesitePackagesDebian
    WritingTests
+   InstallOptionalPackages
 
 ===============================
 Advanced Topics and Maintenance
