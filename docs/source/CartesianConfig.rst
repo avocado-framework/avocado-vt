@@ -917,7 +917,7 @@ in-memory keys are modified, however this practice is discouraged unless
 there’s a very good reason.
 
 When ``avocado vt-bootstrap --vt-type [type]`` is executed
-(see section :ref:`running bootstrap run_bootstrap`), copies of the
+(see section :ref:`run_bootstrap`), copies of the
 sample configuration files are copied for use under the ``backends/[type]/cfg`` subdirectory of
 the virtualization technology-specific directory.  For example, ``backends/qemu/cfg/base.cfg``.
 
