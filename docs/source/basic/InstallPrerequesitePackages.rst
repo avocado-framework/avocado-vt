@@ -1,11 +1,6 @@
 Install prerequesite packages
 =============================
 
-We need autotest, not available on RHEL repos. So, on RHEL hosts, add
-`EPEL <http://fedoraproject.org/wiki/EPEL/FAQ>`_ repos. Check
-`here <http://fedoraproject.org/wiki/EPEL/FAQ#How_can_I_install_the_packages_from_the_EPEL_software_repository.3F>`_
-for up to date EPEL RPM repo location.
-
 Install the following packages:
 
 #. Install a toolchain in your host, which you can do with Fedora and RHEL with:
