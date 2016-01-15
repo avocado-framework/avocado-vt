@@ -1,141 +1,8 @@
-.. contents::
-
-=================
-Avocado-VT primer
-=================
-
-Introduction
-------------
-
-It is critical for any project to maintain a high level of software
-quality, and consistent interfaces to other software that it uses or
-uses it.
-
-Introduction
-============
-
-The avocado-vt plugin helps exercise virtualization features
-with help from qemu, libvirt, and other related tools and facilities.
-
-Within each virt-test package, are a collection of independent sub-test
-modules. These may be addressed individually or as part of a sequence.
-
-
-.. _quickstart:
-
-Quickstart
-----------
-
-.. _pre-requisites:
-
-Pre-requisites
-==============
-
-#. A supported host platforms: Red Hat Enterprise Linux (RHEL) or Fedora.
-
-Install avocado-vt from COPR repo
-=================================
-
-#. Follow instructions on
-
-https://copr.fedoraproject.org/coprs/lmr/Autotest/builds/
-
-On how to add the COPR repo. Then simply use::
-
-    $ yum install avocado avocado-vt
-
-.. _run_bootstrap:
-
-``avocado vt-bootstrap --vt-type <type>``
-=========================================
-
-Where ``<type>`` is the virtualization test type you want to setup, for example
-``"qemu"``. Doing this is highly recommended. Running it interactively allows
-for choice and modification of to the environment to suit specific testing or
-setup needs.
-
-The setup process includes checks for the minimum host software requirements and
-sets up a directory tree to hold data.  It also downloads a minimal guest OS image
-(about 220 MB) called JeOS (based on Fedora).  This is the default guest used
-when a full-blown build from an automated install is not required.
-
-When executed as a non-root user, ``avocado vt-bootstrap --vt-type [type]``
-will create
-and use ``$HOME/avocado/data/avocado-vt`` as the data directory to hold OS images,
-logs, temporary files, etc.  Whereas for ``root``, the system-wide location
-``/var/lib/avocado/data/avocado-vt`` will be used.
-
-Interactive bootstrap may be run at any time, for example to re-generate
-the default configuration after pulling down a new release.  Note that the
-``-vt-type <type>`` argument is crucial.
-
-.. _run_default_tests:
-
-Run default tests
-=================
-
-
-For qemu and libvirt subtests, the default test set does not require
-root. However, other tests might fail due to lack of privileges.
-
-::
-
-    avocado run type_specific.io-github-autotest-qemu.migrate.default.tcp --vt-test-type qemu
-
-.. _run_different_tests:
-
-Running different tests
-=======================
-
-You can list the available tests with the --list-tests parameter.
-
-::
-
-    $ avocado list
-    (will print a numbered list of tests, with a pagination)
-
-#. For qemu testing::
-
-    $ avocado run migrate time-drift file_transfer
-
-.. _checking_results:
-
-Checking the results
-====================
-
-The test runner will produce a debug log, that will be useful to debug
-problems:
-
-::
-
-    avocado run usb.usb_boot.usb_kbd.without_usb_hub
-    JOB ID     : fc92e93406a9e0944fa92e5c7f1f18233c19e589
-    JOB LOG    : /home/lmr/avocado/job-results/job-2015-07-29T03.30-fc92e93/job.log
-    JOB HTML   : /home/lmr/avocado/job-results/job-2015-07-29T03.30-fc92e93/html/results.html
-    TESTS      : 6
-    (1/6) type_specific.io-github-autotest-qemu.usb.usb_boot.usb_kbd.without_usb_hub.piix3-uhci: PASS (15.46 s)
-    (2/6) type_specific.io-github-autotest-qemu.usb.usb_boot.usb_kbd.without_usb_hub.piix4-uhci: PASS (15.19 s)
-    (3/6) type_specific.io-github-autotest-qemu.usb.usb_boot.usb_kbd.without_usb_hub.ich9-uhci: PASS (14.93 s)
-    (4/6) type_specific.io-github-autotest-qemu.usb.usb_boot.usb_kbd.without_usb_hub.ich9-ehci: PASS (14.73 s)
-    (5/6) type_specific.io-github-autotest-qemu.usb.usb_boot.usb_kbd.without_usb_hub.usb-ehci: PASS (14.80 s)
-    (6/6) type_specific.io-github-autotest-qemu.usb.usb_boot.usb_kbd.without_usb_hub.nec-xhci: PASS (14.79 s)
-    RESULTS    : PASS 6 | ERROR 0 | FAIL 0 | SKIP 0 | WARN 0 | INTERRUPT 0
-    TIME       : 89.91 s
-
-.. _results:
-
-Results
-=======
-
-As part of avocado, you can see that results follow the structure mentioned
-in this resource:
-
-http://avocado-framework.readthedocs.org/en/latest/ReferenceGuide.html#results-specification
-
 .. _cartesian_configuration:
 
-Cartesian Configuration
------------------------
+=========================
+ Cartesian Configuration
+=========================
 
 Cartesian Configuration is a highly specialized way of providing lists
 of key/value pairs within combination's of various categories. The
@@ -1032,7 +899,7 @@ Examples
 .. _default_configuration_files:
 
 Default Configuration Files
----------------------------
+===========================
 
 The test configuration files are used for controlling the framework, by
 specifying parameters for each test. The parser produces a list of
@@ -1050,7 +917,7 @@ in-memory keys are modified, however this practice is discouraged unless
 there’s a very good reason.
 
 When ``avocado vt-bootstrap --vt-type [type]`` is executed
-(see section run_bootstrap_), copies of the
+(see section :ref:`run_bootstrap`), copies of the
 sample configuration files are copied for use under the ``backends/[type]/cfg`` subdirectory of
 the virtualization technology-specific directory.  For example, ``backends/qemu/cfg/base.cfg``.
 
@@ -1116,43 +983,3 @@ the virtualization technology-specific directory.  For example, ``backends/qemu/
 |                             | specifying the host location and installation   |
 |                             | method for each driver.                         |
 +-----------------------------+-------------------------------------------------+
-
-
-Contributions
--------------
-
-
-.. _code_contributions:
-
-Code
-====
-
-Contributions of additional tests and code are always welcome. If in
-doubt, and/or for advice on approaching a particular problem, please
-contact the projects members (see section _collaboration) Before submitting code,
-please review the `git repository configuration guidelines <http://github.com/autotest/autotest/wiki/GitWorkflow>`_.
-
-To submit changes, please follow `these instructions <https://github.com/autotest/autotest/wiki/SubmissionChecklist>`_.
-Please allow up to two weeks for a maintainer to pick
-up and review your changes.  Though, if you'd like help at any stage, feel free to post on the mailing
-lists and reference your pull request.
-
-.. _docs_contribution:
-
-Docs
-====
-
-Please edit the documentation directly to correct any minor inaccuracies
-or to clarify items. The preferred markup syntax is
-`ReStructuredText <http://en.wikipedia.org/wiki/ReStructuredText>`_,
-keeping with the conventions and style found in existing documentation.
-For any graphics or diagrams, web-friendly formats should be used, such as
-PNG or SVG.
-
-Avoid using 'you', 'we', 'they', as they can be ambiguous in reference
-documentation.  It works fine in conversation and e-mail, but looks weird
-in reference material. Similarly, avoid using 'unnecessary', off-topic, or
-extra language. For example in American English, `"Rinse and repeat" 
-<http://en.wikipedia.org/wiki/Lather,_rinse,_repeat>`_ is a funny phrase,
-but could cause problems when translated into other languages. Basically,
-try to avoid anything that slows the reader down from finding facts.

@@ -1,5 +1,6 @@
-Writing Avocado VT Tests
-========================
+===============
+ Writing Tests
+===============
 
 This documentation aims to help you write virt tests of your own. It's organized
 to explain briefly the source structure, then writing simple tests, then doing
@@ -14,4 +15,3 @@ Contents:
    DevelEnvSetup
    WritingSimpleTests
    DefiningNewGuests
-   WritingAdvancedTests

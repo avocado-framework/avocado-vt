@@ -55,7 +55,7 @@ The knowledge base article associated with it is:
 http://msdn.microsoft.com/en-us/windows/hardware/gg463264
 
 You need to add the package to winutils.iso, the iso with utilities used to
-test windows. First, download the iso. :doc:`The get started documentation <../basic/GetStarted>`
+test windows. First, download the iso. :doc:`The get started documentation <GetStartedGuide>`
 can help you out with downloading if you like it, but the direct download
 link is here:
 

@@ -41,7 +41,7 @@ You need to verify that you can actually build qemu-kvm from source, as
 well as the unittest suite.
 
 #. Make sure you have the appropriate packages installed. You can read
-   :doc:`the install prerequesite packages (client) section <../basic/InstallPrerequesitePackages>` for more
+   :doc:`the install prerequesite packages (client) section <InstallOptionalPackages>` for more
    information.
 
 Step by step procedure
@@ -51,7 +51,7 @@ Step by step procedure
    See :doc:`the download source documentation <../contributing/DownloadSource>`
    Please do use git and clone the repo to the location mentioned.
 #. Execute the ``get_started.py`` script (see
-   :doc:`the get started documentation <../basic/GetStarted>`. If you just want
+   :doc:`the get started documentation <GetStartedGuide>`. If you just want
    to run
    unittests, you can safely skip each and every iso download possible,
    as *qemu-kvm will straight boot small kernel images (the unittests)*

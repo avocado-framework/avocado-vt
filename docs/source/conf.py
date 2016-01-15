@@ -43,8 +43,8 @@ master_doc = 'index'
 project = u'Avocado VT'
 copyright = u'2014, Red Hat'
 
-version = '0.28.1'
-release = '0.28.1'
+version = '0.31.0'
+release = '0.31.0'
 
 # on_rtd is whether we are on readthedocs.org, this line of code grabbed from
 # docs.readthedocs.org

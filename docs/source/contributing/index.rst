@@ -1,6 +1,6 @@
-=================
-Contribution docs
-=================
+================================
+Contribution and Community Guide
+================================
 
 Contents:
 
@@ -10,3 +10,4 @@ Contents:
    ContactInfo
    DownloadSource
    DevelopmentWorkflow
+   Guidelines

@@ -1,5 +1,6 @@
-Development workflow after the Repository Split
-===============================================
+=================================================
+ Development workflow after the Repository Split
+=================================================
 
 1) `Fork the test provider you want to contribute to in github <https://help.github.com/articles/fork-a-repo>`
 3) Clone the forked repository. In this example, we'll assume you cloned the forked repo to
@@ -40,4 +41,3 @@ Development workflow after the Repository Split
     ...
 
 7) Modify tests, or add new ones to your heart's content. When you're happy with your changes, you may create branches and `send us pull requests <https://help.github.com/articles/using-pull-requests>`__.
-
