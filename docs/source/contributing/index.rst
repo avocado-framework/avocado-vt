@@ -1,6 +1,6 @@
-=================
-Contribution docs
-=================
+================================
+Contribution and Community Guide
+================================
 
 Contents:
 

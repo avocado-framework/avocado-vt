@@ -9,10 +9,10 @@ Contents:
 
    Introduction
    GetStartedGuide
-   contributing/index
    basic/index
    advanced/index
    extra/index
+   contributing/index
    api/modules
 
 Indices and tables
