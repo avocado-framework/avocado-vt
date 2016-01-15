@@ -1,6 +1,6 @@
-================
- Test Providers
-================
+==============
+Test Providers
+==============
 
 Test providers are the conjunction of a loadable module mechanism
 inside Avocado-VT that can pull a directory that will provide tests, config
@@ -130,3 +130,4 @@ Let's say you want to use a directory in your file system
     subdir: virt-test/qemu/
     [openvswitch]
     subdir: virt-test/openvswitch/
+

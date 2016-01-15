@@ -132,7 +132,7 @@ also execute
 Network tests
 -------------
 
-Last bug not least, now we depend on libvirt to provide us a stable, working bridge.
+Last but not least, now we depend on libvirt to provide us a stable, working bridge.
 * By default, the kvm test uses user networking, so this is not entirely
 necessary. However, non root and user space networking make a good deal
 of the hardcode networking tests to not work. If you might want to use
@@ -293,7 +293,7 @@ create floppies and isos to hold kickstart files:
 Network tests
 -------------
 
-Last bug not least, now we depend on libvirt to provide us a stable, working bridge.
+Last but not least, now we depend on libvirt to provide us a stable, working bridge.
 * By default, the kvm test uses user networking, so this is not entirely
 necessary. However, non root and user space networking make a good deal
 of the hardcode networking tests to not work. If you might want to use
