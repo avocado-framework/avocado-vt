@@ -24,6 +24,8 @@ installing the `avocado-plugins-vt` package. Install it with::
 
   $ yum install avocado-plugins-vt
 
+.. _run_bootstrap:
+
 Bootstrapping Avocado-VT
 ------------------------
 
