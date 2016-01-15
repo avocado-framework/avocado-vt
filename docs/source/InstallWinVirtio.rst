@@ -1,8 +1,8 @@
-================================================
-Installing Windows virtio drivers with virt-test
-================================================
+=================================================
+Installing Windows virtio drivers with Avocado-VT
+=================================================
 
-So, you want to use virt-test to install windows guests. You also
+So, you want to use Avocado-VT to install windows guests. You also
 want them to be installed with the paravirtualized drivers developed for
 windows. You have come to the right place.
 
@@ -10,7 +10,7 @@ A bit of context on windows virtio drivers install
 --------------------------------------------------
 
 This method of install so far covers the storage (viostor) and network
-(NetKVM) drivers. virt-test uses a boot floppy with a Windows answer
+(NetKVM) drivers. Avocado-VT uses a boot floppy with a Windows answer
 file in order to perform unattended install of windows guests. For winXP
 and win2003, the unattended files are simple .ini files, while for
 win2008 and later, the unattended files are XML files.
@@ -178,10 +178,7 @@ If you want to install other guests, as you might imagine, you can
 change ``only Win7.64`` with other guests, say ``only Win2008.64.sp2``.
 Now, during the first time you perform your installs, it's good to watch
 the installation to see if there aren't problems such as a **wrong cd
-key** preventing your install from happening. virt-test prints the
+key** preventing your install from happening. Avocado-VT prints the
 qemu command line used, so you can see which vnc display you can connect
 to to watch your vm being installed.
-
-Please give us feedback on whether this procedure was helpful - email me
-at lmr AT redhat DOT com.
 

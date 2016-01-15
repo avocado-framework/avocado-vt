@@ -1,6 +1,6 @@
-================
- Listing guests
-================
+==============
+Listing guests
+==============
 
 If you want to see all guests defined, you can use
 

@@ -1,15 +1,15 @@
-================
- Test Providers
-================
+==============
+Test Providers
+==============
 
 Test providers are the conjunction of a loadable module mechanism
-inside virt-test that can pull a directory that will provide tests, config
+inside Avocado-VT that can pull a directory that will provide tests, config
 files and any dependencies, and those directories. The design goals behind
 test providers are:
 
 * Make it possible for other organizations to maintain test repositories, in other arbitrary git repositories.
 
-* Stabilize API and enforce separation of core virt-test functionality and tests.
+* Stabilize API and enforce separation of core Avocado-VT functionality and tests.
 
 The test provider spec is divided in Provider Layout and Definition files.
 
@@ -33,11 +33,11 @@ Test Provider Layout
             `-- cfg
 
 
-In fact, virt-test libraries are smart enough to support arbitrary organization
+In fact, Avocado-VT libraries are smart enough to support arbitrary organization
 of python and config files inside the 'tests' directory. You don't need to name
 the top level sub directories after backend names, although that certainly makes
 things easier. The term 'backend' is used to refer to the supported virtualization
-technologies by virt-test. As of this writing, the backends known by virt-test
+technologies by Avocado-VT. As of this writing, the backends known by Avocado-VT
 are:
 
 * generic (tests that run in multiple backends)
@@ -50,7 +50,7 @@ are:
 
 The reason why you don't need to name the directories after the backend names
 is that you can configure a test definition file to point out any dir name. We'll
-get into 
+get into
 
 Types of Test Providers
 =======================
@@ -58,14 +58,14 @@ Types of Test Providers
 Each test provider can be either a local filesystem directory, or a subdirectory
 of a git repository. Of course, the git repo subdirectory can be the repo root
 directory, but one of the points of the proposal is that people can hold
-virt-test providers inside git repos of other projects. Say qemu wants to
+Avocado-VT providers inside git repos of other projects. Say qemu wants to
 maintain its own provider, they can do this by holding the tests, say, inside
-a tests/virt-test subdirectory inside qemu.git.
+a tests/avocado_vt subdirectory inside qemu.git.
 
 Test Provider definition file
 =============================
 
-The main virt-test suite needs a way to know about test providers. It does that
+The main Avocado-VT suite needs a way to know about test providers. It does that
 by scanning definition files inside the 'test-providers.d' sub directory.
 Definition files are `config parser files <http://docs.python.org/2/library/configparser.html>`
 that encode information from a test provider. Here's an example structure of a
@@ -104,7 +104,7 @@ test provider file:
     # For each test backend, you may have different sub directories
     subdir: src/tests/generic/
 
-Example of a default virt-test provider file:
+Example of a default Avocado-VT provider file:
 
 ::
 
@@ -130,3 +130,4 @@ Let's say you want to use a directory in your file system
     subdir: virt-test/qemu/
     [openvswitch]
     subdir: virt-test/openvswitch/
+

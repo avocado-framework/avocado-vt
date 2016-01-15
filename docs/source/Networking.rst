@@ -2,13 +2,13 @@
 Networking
 ==========
 
-Here we have notes about networking setup in virt-test.
+Here we have notes about networking setup in Avocado-VT.
 
 Configuration
--------------
+=============
 
-How to configure to allow all the traffic to be forwarded across the virbr0 bridge:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+How to configure to allow all the traffic to be forwarded across the virbr0
+bridge: Execute the command
 
 ::
 
@@ -17,8 +17,8 @@ How to configure to allow all the traffic to be forwarded across the virbr0 brid
    service libvirtd reload
 
 
-How to configure Static IP address in virt-test
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Configure Static IP address in Avocado-VT
+-----------------------------------------
 
 Sometimes, we need to test with guest(s) which have static ip address(es).
 
@@ -38,10 +38,10 @@ tests.cfg:
      bridge = vbr
 
 TestCases
----------
+=========
 
 Ntttcp
-~~~~~~
+------
 
 The Nttcp test suite is a network performance test for windows, developed by
 Microsoft. It is *not* a freely redistributable binary, so you must download
@@ -109,4 +109,4 @@ Backup the old winutils.iso and create a new winutils.iso using mkisofs:
     mkisofs -o winutils.iso -max-iso9660-filenames -relaxed-filenames -D --input-charset iso8859-1 winutils
 
 And that is it. Don't forget to keep winutils in an appropriate location that
-can be seen by virt-test.
+can be seen by Avocado-VT.

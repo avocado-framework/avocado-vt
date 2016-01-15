@@ -1,8 +1,8 @@
 .. _cartesian_configuration:
 
-=========================
- Cartesian Configuration
-=========================
+=======================
+Cartesian Configuration
+=======================
 
 Cartesian Configuration is a highly specialized way of providing lists
 of key/value pairs within combination's of various categories. The

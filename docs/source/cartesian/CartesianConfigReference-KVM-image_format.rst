@@ -9,7 +9,7 @@ Sets the format of the backing image file for a given drive.
 
 The value of this configuration key is usually passed verbatim to image
 creation commands. It's worth noticing that QEMU has support for many
-formats, while virt-test currently plays really well only with
+formats, while Avocado-VT currently plays really well only with
 **qcow2** and **raw**.
 
 You can also use **vmdk**, but it's considered 'not supported', at least

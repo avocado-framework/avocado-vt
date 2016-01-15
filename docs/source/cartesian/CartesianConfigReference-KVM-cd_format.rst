@@ -10,7 +10,7 @@ some special magic for cd drive formats 'ahci' and 'usb2' (see
 `client/virt/kvm\_vm.py <https://github.com/autotest/autotest/blob/master/client/virt/kvm_vm.py>`_
 for more information).
 
-Currently used options in virt-test are: ahci and usb2.
+Currently used options in Avocado-VT are: ahci and usb2.
 
 Example:
 
