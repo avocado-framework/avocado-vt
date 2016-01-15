@@ -7,8 +7,8 @@ Here we have notes about networking setup in Avocado-VT.
 Configuration
 =============
 
-How to configure to allow all the traffic to be forwarded across the virbr0 bridge
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+How to configure to allow all the traffic to be forwarded across the virbr0
+bridge: Execute the command
 
 ::
 
@@ -17,8 +17,8 @@ How to configure to allow all the traffic to be forwarded across the virbr0 brid
    service libvirtd reload
 
 
-How to configure Static IP address in Avocado-VT
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Configure Static IP address in Avocado-VT
+-----------------------------------------
 
 Sometimes, we need to test with guest(s) which have static ip address(es).
 
@@ -38,10 +38,10 @@ tests.cfg:
      bridge = vbr
 
 TestCases
----------
+=========
 
 Ntttcp
-~~~~~~
+------
 
 The Nttcp test suite is a network performance test for windows, developed by
 Microsoft. It is *not* a freely redistributable binary, so you must download
