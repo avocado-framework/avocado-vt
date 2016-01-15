@@ -5,8 +5,8 @@ Multi Host Migration Tests
 Running Multi Host Migration Tests
 ==================================
 
-virt-test is our test suite, but for simplicity purposes it can only run on
-a single host. For multi host tests, you'll need the full autotest + virt-test
+Avocado-VT is our test suite, but for simplicity purposes it can only run on
+a single host. For multi host tests, you'll need the full autotest + Avocado-VT
 package, and the procedure is more complex. We'll try to keep this procedure
 as objective as possible.
 
@@ -47,8 +47,8 @@ the same coherent storage. fstab example::
     myserver.foo.com:/virt-test/images /var/lib/virt_test/images  nfs rw,nosuid,nodev,noatime,intr,hard,tcp 0 0
 
 The images dir must be populated with the installed guests you want to run
-your tests on. They must match the file names used by guest OS in virt-test.
-For example, for RHEL 6.4, the image name virt-test uses is::
+your tests on. They must match the file names used by guest OS in Avocado-VT.
+For example, for RHEL 6.4, the image name Avocado-VT uses is::
 
     rhel64-64.qcow2
 
@@ -75,7 +75,7 @@ to::
 
     serve_packages_from_autoserv: False
 
-Then you need to update virt-test's config files and sub tests (that live in
+Then you need to update Avocado-VT's config files and sub tests (that live in
 separate repositories that are not git submodules). You don't need to download
 the JeOS file in this step, so simply answer 'n' to the quest
 

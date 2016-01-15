@@ -1,21 +1,21 @@
-=====================================
-Running QEMU unittests with virt-test
-=====================================
+======================================
+Running QEMU unittests with Avocado-VT
+======================================
 
 For a while now, qemu-kvm does contain a unittest suite that can be used
 to assess the behavior of some KVM subsystems. Ideally, they are
-supposed to PASS, provided you are running both the latest qemu-kvm and
-the latest linux Avi's tree. virt-test for quite a long time has
+supposed to PASS, provided you are running both the latest qemu and
+the latest linux KVM tree. Avocado-VT for quite a long time has
 support for running them in an automated way. It's a good opportunity to
 put your git branch to unittest, starting from a clean state (KVM
 autotest will fetch from your git tree, leaving your actual development
 tree intact and doing things from scratch, and that is less likely to
 mask problems).
 
-A bit of context on virt-test build tests
------------------------------------------
+A bit of context on Avocado-VT build tests
+------------------------------------------
 
-People usually don't know that virt-test has support to build and
+People usually don't know that Avocado-VT has support to build and
 install QEMU/KVM for testing purposes, from many different software sources.
 You can:
 
@@ -57,7 +57,7 @@ Step by step procedure
    as *qemu-kvm will straight boot small kernel images (the unittests)*
    rather than full blown OS installs.
 #. As running unittests is something that's fairly independent of other
-   virt-test testing you can do, and it's something people are
+   Avocado-VT testing you can do, and it's something people are
    interested in, we prepared a *special control file* and a *special
    configuration file* for it. On the kvm directory, you can see the
    files ``unittests.cfg`` ``control.unittests``. You only need to edit
@@ -68,7 +68,7 @@ Step by step procedure
 
    ::
 
-       ... bunch of params needed for the virt-test preprocessor
+       ... bunch of params needed for the Avocado-VT preprocessor
        # Tests
        variants:
            - build:
@@ -111,7 +111,7 @@ Step by step procedure
    providing *extra configure script options* to your qemu-kvm userspace
    build. Right below the ``user_git_repo line``, you can set the
    variable ``extra_configure_options`` to include ``--disable-werror``.
-   Let's say you also want virt-test to fetch from my local tree,
+   Let's say you also want Avocado-VT to fetch from my local tree,
    ``/home/lmr/Code/qemu-kvm``, master branch, same for the
    kvm-unit-tests repo. If you make those changes, your build variant
    will look like:
@@ -126,7 +126,7 @@ Step by step procedure
                        user_lbranch = master
                        test_git_repo = /home/lmr/Code/kvm-unit-tests
 
-#. Now you can just run virt-test as usual, you just have to change
+#. Now you can just run Avocado-VT as usual, you just have to change
    the main control file (called ``control`` with the unittest one
    ``control.unittests``
 

@@ -6,7 +6,7 @@ Problem:
 --------
 
 For multi-host tests multiple physical systems are often required. It is possible to use
-two virtual guests for most of autotest tests except for virt-tests
+two virtual guests for most of autotest tests except for Avocado-VTs
 (kvm, libvirt, ...).
 
 However, It is possible to use Nested Virtualization to serve as first level (L0)

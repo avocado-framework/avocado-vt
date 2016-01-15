@@ -16,7 +16,7 @@ for more information).
 Currently available options in qemu include: ide, scsi, sd, mtd, floppy,
 pflash, virtio.
 
-Currently used options in virt-test are: ide, scsi, virtio, ahci,
+Currently used options in Avocado-VT are: ide, scsi, virtio, ahci,
 usb2.
 
 Example:
