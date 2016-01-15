@@ -1,113 +1,110 @@
-===============================
-Getting started with avocado-vt
-===============================
+.. _get-started:
 
-Here's a reference guide on how to get the plugin setup and running.
-We'll assume that you will use avocado and avocado-vt through RPMS,
-and will also provide pointers on how to get the latest released RPMS.
-If you are working on plugin development and want to perform the same
-procedure, but using git repos instead of RPMS, the
-`README.rst file <https://github.com/avocado-framework/avocado-vt/blob/master/README.rst>`__
-at the top level of the avocado-vt repository has the detailed procedure.
+===============
+Getting Started
+===============
 
-1. Please add the avocado RPM repository, following instructions from
-   `this link <http://avocado-framework.readthedocs.org/en/latest/GetStartedGuide.html#installing-avocado>`__.
+The first step towards using Avocado-VT is, quite obviously, installing it.
 
-2. Assuming you have followed the instructions above, the yum/dnf package
-   manager already has the information necessary to find the package
-   `avocado-plugins-vt`. Install it::
+Installing Avocado
+==================
 
-    $ yum install avocado-plugins-vt
+Start by following the instructions on `this link <http://avocado-framework.readthedocs.org/en/latest/GetStartedGuide.html#installing-avocado>`__.
 
-   Before proceeding, make sure that you have installed all of the below mentioned packages:
+Installing Avocado-VT
+=====================
 
-::
+Having installed Avocado, you should already have the right repos enabled.
 
-    PyYAML 
-    aexpect 
-    autotest-framework 
-    avocado 
-    avocado-plugins-vt 
-    avocado-virt 
-    fabric 
-    gdb-gdbserver 
-    libtomcrypt 
-    libtommath 
-    p7zip 
-    pystache 
-    python-crypto 
-    python-ecdsa 
-    python-paramiko 
-    python3-simplejson
+Fedora and Enterprise Linux
+---------------------------
 
-3. Virttest is included in avocado-vt. We generally would be using this one to write tests until the avocado-virt is more mature.
-   Usual virttest location (it can be elsewhere depending on your configuration):
+Installing Avocado-VT on Fedora or Enterprise Linux is a matter of
+installing the `avocado-plugins-vt` package. Install it with::
 
-::
+  $ yum install avocado-plugins-vt
 
-    /usr/lib/python2.7/site-packages/virttest/
+Bootstrapping Avocado-VT
+------------------------
 
-4. Run avocado-vt's bootstrap procedure for the test backend (qemu, libvirt,
-   v2v, openvswitch, among others) of your interest. We'll use qemu as an example::
+After the package, a bootstrap process must be run. Choose your test backend
+(qemu, libvirt, v2v, openvswitch, etc) and run the `vt-bootstrap` command. Example::
 
-    $ avocado vt-bootstrap --vt-type qemu
+  $ avocado vt-bootstrap --vt-type qemu
 
-5. Let's test if things went well by listing the avocado plugins. In the avocado source dir, do::
+The output should be similar to::
 
-    $ avocado plugins
+  12:02:10 INFO | qemu test config helper
+  12:02:10 INFO |
+  12:02:10 INFO | 1 - Updating all test providers
+  12:02:10 INFO |
+  12:02:10 INFO | 2 - Checking the mandatory programs and headers
+  12:02:10 INFO | /bin/7za OK
+  12:02:10 INFO | /sbin/tcpdump OK
+  ...
+  12:02:11 INFO | /usr/include/asm/unistd.h OK
+  12:02:11 INFO |
+  12:02:11 INFO | 3 - Checking the recommended programs
+  12:02:11 INFO | /bin/qemu-kvm OK
+  12:02:11 INFO | /bin/qemu-img OK
+  12:02:11 INFO | /bin/qemu-io OK
+  ...
+  12:02:33 INFO | 7 - Checking for modules kvm, kvm-intel
+  12:02:33 DEBUG| Module kvm loaded
+  12:02:33 DEBUG| Module kvm-intel loaded
+  12:02:33 INFO |
+  12:02:33 INFO | 8 - If you wish, you may take a look at the online docs for more info
+  12:02:33 INFO |
+  12:02:33 INFO | http://avocado-vt.readthedocs.org/
 
-   That command should show the loaded plugins, and hopefully no errors. The relevant lines will be::
+If there are missing requirements, please install them and re-run `vt-bootstrap`.
 
-    virt_test_compat_bootstrap  Implements the avocado 'vt-bootstrap' subcommand
-    virt_test_compat_runner  Implements the avocado virt test options
-    virt_test_compat_lister  Implements the avocado virt test options
+First steps with Avocado-VT
+===========================
 
-6. The next test is to see if virt-tests are also listed in the output of the
-   command `avocado list` (you might leave out the --vt-type if you use default)::
+Let's check if things went well by listing the Avocado plugins::
 
-    $ avocado list --vt-type qemu --verbose
+  $ avocado plugins
 
-   This should list a large amount of tests (over 1900 virt related tests)::
+That command should show the loaded plugins, and hopefully no errors. The relevant lines will be::
 
-    ACCESS_DENIED: 0
-    BROKEN_SYMLINK: 0
-    BUGGY: 0
-    INSTRUMENTED: 49
-    MISSING: 0
-    NOT_A_TEST: 27
-    SIMPLE: 3
-    VT: 1906
+  Plugins that add new commands (avocado.plugins.cli.cmd):
+  vt-bootstrap Avocado VT - implements the 'vt-bootstrap' subcommand
+  ...
+  Plugins that add new options to commands (avocado.plugins.cli):
+  vt      Avocado VT/virt-test support to 'run' command
+  vt-list Avocado-VT/virt-test support for 'list' command
 
-7. The test location for all test providers is logged at the beginning of the test log (after params), for example:
+Then let's list the tests available with::
 
-::
+  $ avocado list --vt-type qemu --verbose
 
-    Found subtest module /home/medic/avocado/data/avocado-vt/test-providers.d/downloads/io-github-autotest-qemu/generic/tests/boot.py
-   
-   Most widely used test provider locations are as follows:
+This should list a large amount of tests (over 1900 virt related tests)::
 
-::
+  ACCESS_DENIED: 0
+  BROKEN_SYMLINK: 0
+  BUGGY: 0
+  INSTRUMENTED: 49
+  MISSING: 0
+  NOT_A_TEST: 27
+  SIMPLE: 3
+  VT: 1906
 
-   QEMU tests location:
-       /usr/share/avocado/data/avocado-vt/test-providers.d/downloads/io-github-autotest-qemu/qemu/tests
-   libvirt tests location:
-       /usr/share/avocado/data/avocado-vt/test-providers.d/downloads/io-github-autotest-libvirt/libvirt/tests
+Now let's run a virt test::
 
-8. Assuming all is well, you can try running one virt-test::
-
-    $ avocado run type_specific.io-github-autotest-qemu.migrate.default.tcp
-    JOB ID     : <id>
-    JOB LOG    : /home/<user>/avocado/job-results/job-2015-06-15T19.46-1c3da89/job.log
-    JOB HTML   : /home/<user>/avocado/job-results/job-2015-06-15T19.46-1c3da89/html/results.html
-    TESTS      : 1
-    (1/1) type_specific.io-github-autotest-qemu.migrate.default.tcp: PASS (95.76 s)
-    PASS       : 1
-    ERROR      : 0
-    FAIL       : 0
-    SKIP       : 0
-    WARN       : 0
-    INTERRUPT  : 0
-    TIME       : 95.76 s
+  $ avocado run type_specific.io-github-autotest-qemu.migrate.default.tcp
+  JOB ID     : <id>
+  JOB LOG    : /home/<user>/avocado/job-results/job-2015-06-15T19.46-1c3da89/job.log
+  JOB HTML   : /home/<user>/avocado/job-results/job-2015-06-15T19.46-1c3da89/html/results.html
+  TESTS      : 1
+  (1/1) type_specific.io-github-autotest-qemu.migrate.default.tcp: PASS (95.76 s)
+  PASS       : 1
+  ERROR      : 0
+  FAIL       : 0
+  SKIP       : 0
+  WARN       : 0
+  INTERRUPT  : 0
+  TIME       : 95.76 s
 
 If you have trouble executing the steps provided in this guide, you have a few
 options:
