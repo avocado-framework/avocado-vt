@@ -1,15 +1,13 @@
-========================
-Avocado-VT documentation
-========================
-
-``avocado-vt`` is a suite of tests made to exercise different linux virtualization
-hypervisors and related tools.
+=======================
+Avocado-VT User's Guide
+=======================
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
+   Introduction
    GetStartedGuide
    contributing/index
    basic/index
