@@ -9,9 +9,9 @@ Contents:
 
    Introduction
    GetStartedGuide
-   TestRunner
    WritingTests
    InstallOptionalPackages
+   ListingGuests
 
 ===============================
 Advanced Topics and Maintenance
@@ -22,6 +22,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   HowTestsAreRun
    CartesianConfig
    BuildingTestApplications
    Networking

@@ -1,43 +1,6 @@
-==========================
-Avocado VT - Running Tests
-==========================
-
-This doc assumes you already read the introductory GetStarted documentation.
-This extra doc is just to teach you some useful tricks when using the runner.
-
-Getting Help
-============
-
-The best way to get help from the command line options is the --help flag.
-The man page is also very helpful.
-
-::
-
-    $ avocado --help
-    $ man avocado
-
-
-General Flow
-============
-
-Avocado-VT basically will:
-
-1) Get a dict with test parameters
-2) Based on these params, prepare the environment - create or destroy vm
-   instances, create/check disk images, among others
-3) Execute the test itself, that will use several of the params defined to
-   carry on with its operations, that usually involve:
-4) If a test did not raise an exception, it PASSed
-5) If a test raised a TestFail exception, it FAILed. Otherwise, it ERRORed.
-6) Based on what happened during the test, perform cleanup actions, such as
-   killing vms, and remove unused disk images.
-
-The list of parameters is obtained by parsing a set of configuration files
-The command line options usually modify even further the parser file, so
-we can introduce new data in the config set.
-
-Common Operations -- Listing guests
-===================================
+================
+ Listing guests
+================
 
 If you want to see all guests defined, you can use
 
