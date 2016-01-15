@@ -10,3 +10,4 @@ Contents:
    ContactInfo
    DownloadSource
    DevelopmentWorkflow
+   Guidelines

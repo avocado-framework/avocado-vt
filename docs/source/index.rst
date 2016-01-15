@@ -23,7 +23,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   VirtTestDocumentation
+   CartesianConfig
    BuildingTestApplications
    Networking
    PerformanceTesting
