@@ -182,6 +182,3 @@ key** preventing your install from happening. Avocado-VT prints the
 qemu command line used, so you can see which vnc display you can connect
 to to watch your vm being installed.
 
-Please give us feedback on whether this procedure was helpful - email me
-at lmr AT redhat DOT com.
-
