@@ -12,7 +12,3 @@ Contents:
 
    Introduction
    GetStarted
-   TestRunner
-   InstallPrerequesitePackages
-   InstallPrerequesitePackagesDebian
-   WritingTests
