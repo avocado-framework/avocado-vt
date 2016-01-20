@@ -988,8 +988,8 @@ class DevContainer(object):
                 # similar to i440fx one (1 PCI bus, ..)
                 devices = machine_i440FX("-M %s" % machine_type)
             else:
-                raise exceptions.TestNAError("Unsupported machine type %s." %
-                                             (machine_type))
+                raise exceptions.TestSkipError("Unsupported machine type %s." %
+                                               (machine_type))
         else:
             devices = None
             for _ in self.__machine_types.splitlines()[1:]:
@@ -1044,8 +1044,8 @@ class DevContainer(object):
             return [usb]
 
         if not self.has_device(usb_type):
-            raise exceptions.TestNAError("usb controller %s not available"
-                                         % usb_type)
+            raise exceptions.TestSkipError("usb controller %s not available"
+                                           % usb_type)
 
         usb = qdevices.QDevice(usb_type, {}, usb_id, {'aobject': pci_bus},
                                qbuses.QUSBBus(max_ports, '%s.0' % usb_id, usb_type, usb_id))
@@ -1105,8 +1105,8 @@ class DevContainer(object):
         :return: QDev device
         """
         if not self.has_device(usb_type):
-            raise exceptions.TestNAError("usb device %s not available"
-                                         % usb_type)
+            raise exceptions.TestSkipError("usb device %s not available"
+                                           % usb_type)
         if self.has_option('device'):
             device = qdevices.QDevice(usb_type, aobject=usb_name)
             device.set_param('id', 'usb-%s' % usb_name)

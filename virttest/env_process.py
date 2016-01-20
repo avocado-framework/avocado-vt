@@ -131,7 +131,7 @@ def preprocess_vm(test, params, env, name):
                               (install_test, remove_test))
                 raise exceptions.TestError(error_msg)
             else:
-                raise exceptions.TestNAError(error_msg)
+                raise exceptions.TestSkipError(error_msg)
 
     remove_vm = False
     if params.get("force_remove_vm") == "yes":
@@ -562,18 +562,18 @@ def preprocess(test, params, env):
     error_context.context("preprocessing")
     # First, let's verify if this test does require root or not. If it
     # does and the test suite is running as a regular user, we shall just
-    # throw a TestNAError exception, which will skip the test.
+    # throw a TestSkipError exception, which will skip the test.
     if params.get('requires_root', 'no') == 'yes':
         utils_misc.verify_running_as_root()
 
-    # throw a TestNAError exception if command requested by test is not
+    # throw a TestSkipError exception if command requested by test is not
     # installed.
     if params.get("cmds_installed_host"):
         for cmd in params.get("cmds_installed_host").split():
             try:
                 path.find_command(cmd)
             except path.CmdNotFoundError, msg:
-                raise exceptions.TestNAError(msg.message)
+                raise exceptions.TestSkipError(msg.message)
 
     vm_type = params.get('vm_type')
 
