@@ -53,6 +53,7 @@ from ..libvirt_xml import NetworkXML
 from ..libvirt_xml import IPXML
 from ..libvirt_xml import pool_xml
 from ..libvirt_xml import nwfilter_xml
+from ..libvirt_xml import vol_xml
 from ..libvirt_xml.devices import disk
 from ..libvirt_xml.devices import hostdev
 from ..libvirt_xml.devices import controller
@@ -1043,6 +1044,16 @@ class PoolVolumeTest(object):
             raise exceptions.TestFail("Prepare volume failed.")
         if not pv.volume_exists(vol_name):
             raise exceptions.TestFail("Can't find volume: %s" % vol_name)
+
+    def pre_vol_by_xml(self, pool_name, **vol_params):
+        """
+        Prepare volume by xml file
+        """
+        volxml = vol_xml.VolXML()
+        v_xml = volxml.new_vol(**vol_params)
+        v_xml.xmltreefile.write()
+        ret = virsh.vol_create(pool_name, v_xml.xml, ignore_status=True)
+        check_exit_status(ret, False)
 
 
 # Migration Relative functions##############
