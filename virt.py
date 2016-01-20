@@ -59,9 +59,9 @@ class virt(test.test):
         params = utils_params.Params(params)
 
         # If a dependency test prior to this test has failed, let's fail
-        # it right away as TestNA.
+        # it right away as TestSkip.
         if params.get("dependency_failed") == 'yes':
-            raise error.TestNAError("Test dependency failed")
+            raise error.TestSkipError("Test dependency failed")
 
         # Report virt test version
         logging.info(version.get_pretty_version_info())

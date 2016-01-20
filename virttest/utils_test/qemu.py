@@ -808,8 +808,9 @@ class MultihostMigration(object):
                             if pause != "yes":
                                 start_work(mig_data)
                             else:
-                                raise exceptions.TestNAError("Can't start work if "
-                                                             "vm is paused.")
+                                raise exceptions.TestSkipError("Can't start "
+                                                               "work if vm is "
+                                                               "paused.")
 
                     # Starts VM and waits timeout before migration.
                     if pause == "yes" and mig_data.is_src():
