@@ -847,6 +847,44 @@ def archive_as_tarball(source_dir, dest_dir, tarball_name=None,
     tarball.close()
 
 
+def get_guest_service_status(session, service, service_former=None):
+    """
+    Get service's status in guest.
+    Return 'active' for 'running' and 'active' case.
+    Return 'inactive' for the other cases.
+
+    :param session: An Expect or ShellSession instance to operate on
+    :type devices: Expect or ShellSession class
+    :param service: Service name that we want to check status.
+    :type service: String
+    :param service_former: Service's former name
+    :type service: String
+    :return: 'active' or 'inactive'
+    :rtype: String
+    """
+    output = ""
+    cmd = ("service %(key)s status || "
+           "systemctl %(key)s.service status || "
+           "status %(key)s")
+    try:
+        output = session.cmd_output(cmd % {'key': service})
+    except Exception:
+        if not service_former:
+            raise exceptions.TestError("Fail to get %s status.\n%s" %
+                                       (service, output))
+        output = session.cmd_output(cmd % {'key': service_former})
+
+    status = "inactive"
+    if (re.search(r"Loaded: loaded", output, re.M) and
+            output.count("Active: active") > 0):
+        status = "active"
+    elif (re.search(r"running", output.lower(), re.M) and
+            not re.search(r"not running", output.lower(), re.M)):
+        status = "active"
+
+    return status
+
+
 def parallel(targets):
     """
     Run multiple functions in parallel.
