@@ -43,7 +43,7 @@ in a dummy xfstests number 000.
 trying to build xfstests. Make sure you resolve those dependencies.
 
 * Some tests are not relevant to filesystems other than XFS, so they will return
-as TEST_NA.
+as SKIP.
 
 * Be extra careful when using TEST_DEV with device-mapper based block devices.
 For instance, xfstests may not be able to figure out that /dev/<vg>/<lv> is
