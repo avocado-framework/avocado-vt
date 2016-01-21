@@ -3045,6 +3045,18 @@ class VM(virt_vm.BaseVM):
         except (TypeError, IndexError, ValueError):
             return None
 
+    def get_qemu_threads(self):
+        """
+        Return the list of qemu SPIDs
+
+        :return: the list of qemu SPIDs
+        """
+        cmd = "ls /proc/%d/task" % self.get_pid()
+        status, output = commands.getstatusoutput(cmd)
+        if status:
+            return []
+        return output.split()
+
     def get_shell_pid(self):
         """
         Return the PID of the parent shell process.
@@ -3656,10 +3668,17 @@ class VM(virt_vm.BaseVM):
             if offline is True:
                 self.monitor.cmd("stop")
 
+            threads_list1 = self.get_qemu_threads()
+
             logging.info("Migrating to %s", uri)
             self.monitor.migrate(uri)
             if not_wait_for_migration:
                 return clone
+
+            threads_list2 = self.get_qemu_threads()
+            if len(thread_list2) <= len(thread_list1):
+                raise virt_vm.VMMigrateFailedError("Cannot find new thread "
+                                                   "for migration.")
 
             if cancel_delay:
                 error_context.context("Do migrate_cancel after %d seconds" %
