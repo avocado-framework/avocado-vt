@@ -24,6 +24,7 @@ import getpass
 import ctypes
 import threading
 import platform
+import traceback
 
 from avocado.core import status
 from avocado.core import exceptions
@@ -46,12 +47,6 @@ ARCH = platform.machine()
 
 class UnsupportedCPU(exceptions.TestError):
     pass
-
-# TODO: remove this import when log_last_traceback is moved to autotest
-import traceback
-
-# TODO: this function is being moved into autotest. For compatibility
-# reasons keep it here too but new code should use the one from base_utils.
 
 
 class InterruptedThread(threading.Thread):
@@ -162,8 +157,8 @@ def log_last_traceback(msg=None, log=logging.error):
     """
     Writes last traceback into specified log.
 
-    :warning: This function is being moved into autotest and your code should
-              use autotest.client.shared.base_utils function instead.
+    :note: Though this function had been moved into autotest,
+           keep it here for less dependencies on autotest.
 
     :param msg: Override the default message. ["Original traceback"]
     :param log: Where to log the traceback [logging.error]
