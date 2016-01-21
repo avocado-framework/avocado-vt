@@ -1589,7 +1589,7 @@ def add_identities_into_ssh_agent():
     os.environ['SSH_AUTH_SOCK'] = ssh_auth_sock
     os.system("set SSH_AUTH_SOCK " + ssh_auth_sock)
     os.environ['SSH_AGENT_PID'] = ssh_agent_pid
-    process.run("set SSH_AGENT_PID " + ssh_agent_pid)
+    process.run("set SSH_AGENT_PID " + ssh_agent_pid, shell=True)
 
     logging.info("Adds RSA or DSA identities to the authentication agent")
     process.run("ssh-add")
