@@ -3662,6 +3662,8 @@ class VM(virt_vm.BaseVM):
                 return clone
 
             if cancel_delay:
+                error_context.context("Do migrate_cancel after %d seconds" %
+                                      cancel_delay, logging.info)
                 time.sleep(cancel_delay)
                 self.monitor.cmd("migrate_cancel")
                 if not utils_misc.wait_for(self.mig_cancelled, 60, 2, 2,
