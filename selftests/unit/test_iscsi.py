@@ -23,7 +23,7 @@ class iscsi_test(unittest.TestCase):
 
     def setup_stubs_init(self):
         path.find_command.expect_call("iscsiadm")
-        path.find_command.expect_call("tgtadm")
+        path.find_command.expect_call("targetcli")
 
     def setup_stubs_set_initiatorName(self, iscsi_obj):
         os.path.isfile.expect_call(ISCSI_CONFIG_FILE).and_return(False)
@@ -45,11 +45,11 @@ class iscsi_test(unittest.TestCase):
         process.system_output.expect_call(lg_cmd).and_return(lg_msg)
 
     def setup_stubs_get_device_name(self, iscsi_obj):
-        s_msg = "tcp [15] 127.0.0.1:3260,1 %s" % iscsi_obj.target
+        s_msg = "tcp: [15] 127.0.0.1:3260,1 %s" % iscsi_obj.target
         process.system_output.expect_call("iscsiadm --mode session",
                                           ignore_status=True
                                           ).and_return(s_msg)
-        detail = "Target: iqn.iscsitest\n Attached scsi disk "
+        detail = "Target: %s\n Attached scsi disk " % iscsi_obj.target
         detail += "sdb State running"
         process.system_output.expect_call("iscsiadm -m session -P 3"
                                           ).and_return(detail)
@@ -71,12 +71,15 @@ class iscsi_test(unittest.TestCase):
         out_cmd += "--portal 127.0.0.1"
         process.system.expect_call(out_cmd, ignore_status=True).and_return("")
         os.path.isfile.expect_call(fname).and_return(False)
-        s_cmd = "tgtadm --lld iscsi --mode target --op show"
+        s_cmd = "targetcli /backstores/fileio ls"
         process.system_output.expect_call(s_cmd
                                           ).and_return("Target 1: iqn.iscsitest")
-        d_cmd = "tgtadm --lld iscsi --mode target --op delete"
-        d_cmd += " --tid %s" % iscsi_obj.emulated_id
+        cmd = "targetcli ls /iscsi 1"
+        process.system_output.expect_call(cmd).and_return(iscsi_obj.target)
+        d_cmd = "targetcli /iscsi delete %s" % iscsi_obj.target
         process.system.expect_call(d_cmd)
+        cmd = "targetcli / saveconfig"
+        process.system.expect_call(cmd)
 
     def setup_stubs_logged_in(self, result=""):
         process.system_output.expect_call("iscsiadm --mode session",
@@ -90,31 +93,37 @@ class iscsi_test(unittest.TestCase):
                                           ignore_status=True).and_return(result)
 
     def setup_stubs_export_target(self, iscsi_obj):
-        s_cmd = "tgtadm --lld iscsi --mode target --op show"
-        process.system_output.expect_call(s_cmd).and_return("")
+        cmd = "targetcli ls /iscsi 1"
+        process.system_output.expect_call(cmd).and_return("")
         utils_selinux.is_enforcing.expect_call().and_return(False)
-        process.system_output.expect_call(s_cmd).and_return("")
-        t_cmd = "tgtadm --mode target --op new --tid"
-        t_cmd += " %s --lld iscsi " % iscsi_obj.emulated_id
-        t_cmd += "--targetname %s" % iscsi_obj.target
-        process.system.expect_call(t_cmd)
-        l_cmd = "tgtadm --lld iscsi --op bind --mode target"
-        l_cmd += " --tid %s -I ALL" % iscsi_obj.emulated_id
-        process.system.expect_call(l_cmd)
-        process.system_output.expect_call(s_cmd).and_return("")
-        t_cmd = "tgtadm --mode logicalunit --op new "
-        t_cmd += "--tid %s --lld iscsi " % iscsi_obj.emulated_id
-        t_cmd += "--lun %s " % 0
-        t_cmd += "--backing-store %s" % iscsi_obj.emulated_image
-        process.system.expect_call(t_cmd)
+        cmd = "targetcli /backstores/fileio/ create %s %s" % (iscsi_obj.device,
+                                                              iscsi_obj.emulated_image)
+        process.system_output.expect_call(cmd).and_return("Created fileio")
+        cmd = "targetcli /iscsi/ create %s" % iscsi_obj.target
+        process.system_output.expect_call(cmd).and_return("Created target")
+        cmd = "targetcli /iscsi/%s/tpg1/portals ls" % iscsi_obj.target
+        process.system_output.expect_call(cmd).and_return("0.0.0.0:3260")
+        cmd = "targetcli /iscsi/%s/tpg1/luns/" % iscsi_obj.target
+        cmd += " create /backstores/fileio/%s" % iscsi_obj.device
+        process.system_output.expect_call(cmd).and_return("Created LUN 0.")
+        cmd = "firewall-cmd --state"
+        process.system_output.expect_call(cmd, ignore_status=True).and_return("running")
+        cmd = "firewall-cmd --permanent --add-port=3260/tcp"
+        process.system.expect_call(cmd)
+        cmd = "firewall-cmd --reload"
+        process.system.expect_call(cmd)
         self.setup_stubs_set_chap_auth_target(iscsi_obj)
         self.setup_stubs_portal_visible(iscsi_obj, "127.0.0.1:3260,1 %s"
                                         % iscsi_obj.target)
         self.setup_stubs_set_chap_auth_initiator(iscsi_obj)
+        cmd = "targetcli / saveconfig"
+        process.system.expect_call(cmd)
+        cmd = "systemctl restart iscsid.service"
+        process.system.expect_call(cmd)
 
-    def setup_stubs_get_target_id(self):
-        s_cmd = "tgtadm --lld iscsi --mode target --op show"
-        s_msg = "Target 1: iqn.iscsitest\nBacking store path: /tmp/iscsitest"
+    def setup_stubs_get_target_id(self, iscsi_obj):
+        s_cmd = "targetcli ls /iscsi 1"
+        s_msg = "o- iscsi ... [Targets: 1]\no- %s...[TPGs: 1]" % iscsi_obj.target
         process.system_output.expect_call(s_cmd).and_return(s_msg)
 
     def setup_stubs_get_chap_accounts(self, result=""):
@@ -141,12 +150,16 @@ class iscsi_test(unittest.TestCase):
         process.system_output.expect_call(s_cmd).and_return(s_msg)
 
     def setup_stubs_set_chap_auth_target(self, iscsi_obj):
-        self.setup_stubs_get_chap_accounts()
-        self.setup_stubs_add_chap_account(iscsi_obj)
-        self.setup_stubs_get_target_account_info()
-        b_cmd = "tgtadm --lld iscsi --op bind --mode account"
-        b_cmd += " --tid 1 --user %s" % iscsi_obj.chap_user
-        process.system.expect_call(b_cmd)
+        comm_cmd = "targetcli /iscsi/%s/tpg1/ " % iscsi_obj.target
+        cmd = "%sset attribute demo_mode_write_protect=0 " % comm_cmd
+        cmd += "generate_node_acls=1 cache_dynamic_acls=1"
+        process.system.expect_call(cmd)
+        cmd = "%s set auth userid=%s" % (comm_cmd, iscsi_obj.chap_user)
+        process.system_output.expect_call(cmd).and_return(iscsi_obj.chap_user)
+        cmd = "%s set auth password=%s" % (comm_cmd, iscsi_obj.chap_passwd)
+        process.system_output.expect_call(cmd).and_return(iscsi_obj.chap_passwd)
+        cmd = "targetcli / saveconfig"
+        process.system.expect_call(cmd)
 
     def setup_stubs_set_chap_auth_initiator(self, iscsi_obj):
         u_name = {'node.session.auth.authmethod': 'CHAP'}
@@ -166,7 +179,7 @@ class iscsi_test(unittest.TestCase):
         #                       "initiator": ""}
 
         self.iscsi_emulated_params = {"emulated_image": "/tmp/iscsitest",
-                                      "target": "iqn.iscsitest",
+                                      "target": "iqn.2003-01.org.linux:iscsitest",
                                       "image_size": "1024K",
                                       "chap_user": "tester",
                                       "chap_passwd": "123456"}
@@ -213,7 +226,7 @@ class iscsi_test(unittest.TestCase):
     def test_iscsi_target_id(self):
         self.setup_stubs_init()
         iscsi_emulated = iscsi.Iscsi.create_iSCSI(self.iscsi_emulated_params)
-        self.setup_stubs_get_target_id()
+        self.setup_stubs_get_target_id(iscsi_emulated)
         self.assertNotEqual(iscsi_emulated.get_target_id(), "")
 
 

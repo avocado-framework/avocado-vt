@@ -776,16 +776,18 @@ class Iscsi(object):
     @staticmethod
     def create_iSCSI(params, root_dir=data_dir.get_tmp_dir()):
         iscsi_instance = None
+        err_msg = "Please install package(s): %s"
         try:
             path.find_command("iscsiadm")
-            path.find_command("tgtadm")
-            iscsi_instance = IscsiTGT(params, root_dir)
+        except path.CmdNotFoundError:
+            logging.error(err_msg, "iscsi-initiator-utils")
+        try:
+            path.find_command("targetcli")
+            iscsi_instance = IscsiLIO(params, root_dir)
         except path.CmdNotFoundError:
             try:
-                path.find_command("iscsiadm")
-                path.find_command("targetcli")
-                iscsi_instance = IscsiLIO(params, root_dir)
+                path.find_command("tgtadm")
+                iscsi_instance = IscsiTGT(params, root_dir)
             except path.CmdNotFoundError:
-                pass
-
+                logging.error(err_msg, "targetcli or scsi-target-utils")
         return iscsi_instance
