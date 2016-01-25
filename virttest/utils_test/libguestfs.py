@@ -385,11 +385,11 @@ class VirtTools(object):
         """
         result = lgf.virt_filesystems(self.oldvm.name, long_format=True)
         if result.exit_status:
-            raise exceptions.TestNAError("Cannot get primary disk"
-                                         " filesystem information!")
+            raise exceptions.TestSkipError("Cannot get primary disk"
+                                           " filesystem information!")
         fs_info = result.stdout.strip().splitlines()
         if len(fs_info) <= 1:
-            raise exceptions.TestNAError("No disk filesystem information!")
+            raise exceptions.TestSkipError("No disk filesystem information!")
         try:
             primary_disk_info = fs_info[1]
             fs_type = primary_disk_info.split()[2]

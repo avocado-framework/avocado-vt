@@ -159,7 +159,7 @@ class VirtTest(test.Test):
         # This trick will give better reporting of virt tests being executed
         # into avocado (skips, warns and errors will display correctly)
         except error.TestNAError, details:
-            raise exceptions.TestNAError(details)
+            raise exceptions.TestSkipError(details)
         except error.TestWarn, details:
             raise exceptions.TestWarn(details)
         except error.TestError, details:
@@ -357,7 +357,7 @@ class VirtTest(test.Test):
 
         We have to override this method because the avocado-vt plugin
         has to override the behavior that tests shouldn't raise
-        exceptions.TestNAError by themselves in avocado. In the old
+        exceptions.TestSkipError by themselves in avocado. In the old
         avocado-vt case, that rule is not in place, so we have to be
         a little more lenient for correct test status reporting.
         """
@@ -370,9 +370,9 @@ class VirtTest(test.Test):
         stderr_check_exception = None
         try:
             self.setUp()
-        except exceptions.TestNAError, details:
+        except exceptions.TestSkipError, details:
             stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
-            raise exceptions.TestNAError(details)
+            raise exceptions.TestSkipError(details)
         except Exception, details:
             stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
             raise exceptions.TestSetupFail(details)

@@ -2509,8 +2509,8 @@ class VM(virt_vm.BaseVM):
                 logging.debug(self.devices.str_short())
                 logging.debug(self.devices.str_bus_short())
                 qemu_command = self.devices.cmdline()
-            except exceptions.TestNAError:
-                # TestNAErrors should be kept as-is so we generate SKIP
+            except exceptions.TestSkipError:
+                # TestSkipErrors should be kept as-is so we generate SKIP
                 # results instead of bogus FAIL results
                 raise
             except Exception:
@@ -3143,8 +3143,9 @@ class VM(virt_vm.BaseVM):
         try:
             self.monitor.verify_supported_cmd(vcpu_add_cmd.split()[0])
         except qemu_monitor.MonitorNotSupportedCmdError:
-            raise exceptions.TestNAError("%s monitor not support cmd '%s'" %
-                                         (self.monitor.protocol, vcpu_add_cmd))
+            raise exceptions.TestSkipError("%s monitor not support cmd '%s'" %
+                                           (self.monitor.protocol,
+                                            vcpu_add_cmd))
         try:
             cmd_output = self.monitor.send_args_cmd(vcpu_add_cmd)
         except qemu_monitor.QMPCmdError, e:

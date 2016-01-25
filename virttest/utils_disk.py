@@ -413,10 +413,11 @@ class GuestFSModiDisk(object):
                 process.run(install_cmd)
                 import guestfs
             except Exception:
-                raise exceptions.TestNAError('We need python-libguestfs (or the '
-                                             'equivalent for your distro) for this '
-                                             'particular feature (modifying guest '
-                                             'files with libguestfs)')
+                raise exceptions.TestSkipError('We need python-libguestfs (or '
+                                               'the equivalent for your '
+                                               'distro) for this particular '
+                                               'feature (modifying guest '
+                                               'files with libguestfs)')
 
         self.g = guestfs.GuestFS()
         self.disk = disk
