@@ -2640,17 +2640,16 @@ def selinux_enforcing():
     return utils_selinux.is_enforcing()
 
 
-def get_win_disk_vol(session, key="VolumeName", val="WIN_UTILS"):
+def get_win_disk_vol(session, condition="VolumeName='WIN_UTILS'"):
     """
     Getting logicaldisk drive letter in windows guest.
 
     :param session: session Object.
-    :param key: supported key via cmd "wmic logicaldisk list".
-    :param val: value for the key.
+    :param condition: supported condition via cmd "wmic logicaldisk list".
 
     :return: volume ID.
     """
-    cmd = "wmic logicaldisk where (%s='%s') get DeviceID" % (key, val)
+    cmd = "wmic logicaldisk where (%s) get DeviceID" % condition
     output = session.cmd(cmd, timeout=120)
     device = re.search(r'(\w):', output, re.M)
     if not device:
@@ -2668,7 +2667,7 @@ def get_winutils_vol(session, label="WIN_UTILS"):
 
     :return: volume ID.
     """
-    return get_win_disk_vol(session, key="VolumeName", val="WIN_UTILS")
+    return get_win_disk_vol(session, condition="VolumeName='%s'" % label)
 
 
 def format_windows_disk(session, did, mountpoint=None, size=None, fstype="ntfs"):
