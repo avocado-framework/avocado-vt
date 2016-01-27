@@ -136,6 +136,16 @@ class VirtTest(test.Test):
         """
         return None
 
+    @property
+    def filename(self):
+        """
+        Returns the name of the file (path) that holds the current test
+
+        For VT tests, this always returns None. The reason is that
+        individual VT tests do not map 1:1 to a file.
+        """
+        return None
+
     def _start_logging(self):
         super(VirtTest, self)._start_logging()
         root_logger = logging.getLogger()

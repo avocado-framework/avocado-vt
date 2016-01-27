@@ -29,10 +29,15 @@ FAKE_PARAMS = {'shortname': 'fake',
 
 class VirtTestTest(unittest.TestCase):
 
+    def setUp(self):
+        self.test = vt_test.VirtTest(job=FakeJob(),
+                                     params=FAKE_PARAMS)
+
     def test_datadir(self):
-        test = vt_test.VirtTest(job=FakeJob(),
-                                params=FAKE_PARAMS)
-        self.assertIsNone(test.datadir)
+        self.assertIsNone(self.test.datadir)
+
+    def test_filename(self):
+        self.assertIsNone(self.test.filename)
 
 if __name__ == '__main__':
     unittest.main()
