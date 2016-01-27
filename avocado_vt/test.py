@@ -404,12 +404,12 @@ class VirtTest(test.Test):
             if job_standalone or no_record_mode:
                 if not disable_output_check:
                     try:
-                        self.check_reference_stdout()
+                        self._check_reference_stdout()
                     except Exception, details:
                         stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
                         stdout_check_exception = details
                     try:
-                        self.check_reference_stderr()
+                        self._check_reference_stderr()
                     except Exception, details:
                         stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
                         stderr_check_exception = details
