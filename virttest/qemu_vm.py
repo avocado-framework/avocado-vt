@@ -2631,6 +2631,8 @@ class VM(virt_vm.BaseVM):
             self.monitors = []
             for m_name in params.objects("monitors"):
                 m_params = params.object_params(m_name)
+                if m_params.get("debugonly", "no") == "yes":
+                    continue
                 try:
                     monitor = qemu_monitor.wait_for_create_monitor(self,
                                                                    m_name,
