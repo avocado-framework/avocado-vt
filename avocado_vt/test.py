@@ -391,34 +391,6 @@ class VirtTest(test.Test):
         whiteboard_file = os.path.join(self.logdir, 'whiteboard')
         genio.write_file(whiteboard_file, self.whiteboard)
 
-        if self.job is not None:
-            job_standalone = getattr(self.job.args, 'standalone', False)
-            output_check_record = getattr(self.job.args,
-                                          'output_check_record', 'none')
-            no_record_mode = (not job_standalone and
-                              output_check_record == 'none')
-            disable_output_check = (not job_standalone and
-                                    getattr(self.job.args,
-                                            'output_check', 'on') == 'off')
-
-            if job_standalone or no_record_mode:
-                if not disable_output_check:
-                    try:
-                        self.check_reference_stdout()
-                    except Exception, details:
-                        stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
-                        stdout_check_exception = details
-                    try:
-                        self.check_reference_stderr()
-                    except Exception, details:
-                        stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
-                        stderr_check_exception = details
-            elif not job_standalone:
-                if output_check_record in ['all', 'stdout']:
-                    self.record_reference_stdout()
-                if output_check_record in ['all', 'stderr']:
-                    self.record_reference_stderr()
-
         # pylint: disable=E0702
         if test_exception is not None:
             raise test_exception
