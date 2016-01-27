@@ -303,7 +303,13 @@ class HugePageConfig(object):
             raise HPNotSupportedError("System doesn't support hugepages")
         self.pool_path = "/sys/kernel/mm/hugepages"
         self.sys_node_path = "/sys/devices/system/node"
+        # Unit is KB as default for hugepage size.
+        self.expected_hugepage_size = int(params.get("expected_hugepage_size"))
+        self.hugepage_cpu_flag = params.get("hugepage_cpu_flag")
+        self.hugepage_match_str = params.get("hugepage_match_str")
+        self.check_hugepage_support()
         self.hugepage_size = self.get_hugepage_size()
+        self.check_hugepage_size_as_expected()
         self.hugepage_force_allocate = params.get("hugepage_force_allocate",
                                                   "no")
         self.suggest_mem = None
@@ -316,6 +322,34 @@ class HugePageConfig(object):
             target_hugepages = int(target_hugepages)
 
         self.target_hugepages = target_hugepages
+
+    def check_hugepage_support(self):
+        """
+        Check whether the host support hugepage.
+        Need check the cpu flag and kernel CML.
+        """
+        error_context.context("Check whether the host support hugepage.")
+        host_cpu_flags = utils_misc.get_cpu_flags()
+        host_ker_cml = utils_misc.get_ker_cmd()
+        if self.hugepage_cpu_flag not in host_cpu_flags:
+            raise HPNotSupportedError("Your host does not support hugepage, "
+                                      "as miss the cpu flag %s on your host."
+                                      "Please check cpu flags %s on the host" %
+                                      (self.hugepage_cpu_flag, host_cpu_flags))
+        if self.hugepage_match_str not in host_ker_cml:
+            raise HPNotSupportedError("Your host does not support hugepage, "
+                                      "as miss the %s in host kernel cmdline."
+                                      "Please check kernel cmdline %s on host" %
+                                      (self.hugepage_match_str, host_ker_cml))
+
+    def check_hugepage_size_as_expected(self):
+        """
+        Check whether the hugepage size as expected
+        """
+        error_context.context("Check whether the hugepage size as expected")
+        if self.hugepage_size != self.expected_hugepage_size:
+            raise HPNotSupportedError("The current hugepage size on host does"
+                                      "not match the expected hugepage size.\n")
 
     def get_hugepage_size(self):
         """
