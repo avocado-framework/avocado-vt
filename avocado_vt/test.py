@@ -125,6 +125,17 @@ class VirtTest(test.Test):
         self.resultsdir = self.logdir
         utils_misc.set_log_file_dir(self.logdir)
 
+    @property
+    def datadir(self):
+        """
+        Returns the path to the directory that contains test data files
+
+        For VT tests, this always returns None. The reason is that
+        individual VT tests do not map 1:1 to a file and do not provide
+        the concept of a datadir.
+        """
+        return None
+
     def _start_logging(self):
         super(VirtTest, self)._start_logging()
         root_logger = logging.getLogger()
