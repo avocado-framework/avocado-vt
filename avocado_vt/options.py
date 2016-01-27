@@ -60,18 +60,23 @@ class VirtTestOptionsProcess(object):
         # is not overwhelming.
         # setup section
         self.options.vt_backup_image_before_test = settings.get_value(
-            'vt.setup', 'backup_image_before_test', key_type=bool)
+            'vt.setup', 'backup_image_before_test', key_type=bool,
+            default=True)
         self.options.vt_restore_image_after_test = settings.get_value(
-            'vt.setup', 'restore_image_after_test', key_type=bool)
+            'vt.setup', 'restore_image_after_test', key_type=bool,
+            default=True)
         self.options.vt_keep_guest_running = settings.get_value(
-            'vt.setup', 'keep_guest_running', key_type=bool)
+            'vt.setup', 'keep_guest_running', key_type=bool,
+            default=False)
         # common section
         self.options.vt_data_dir = settings.get_value(
             'vt.common', 'data_dir', default=None)
         self.options.vt_type_specific = settings.get_value(
-            'vt.common', 'type_specific_only', key_type=bool)
+            'vt.common', 'type_specific_only', key_type=bool,
+            default=False)
         self.options.vt_mem = settings.get_value(
-            'vt.common', 'mem', key_type=int)
+            'vt.common', 'mem', key_type=int,
+            default=1024)
         self.options.vt_nettype = settings.get_value(
             'vt.common', 'nettype', default=None)
         self.options.vt_netdst = settings.get_value(
