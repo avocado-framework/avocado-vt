@@ -23,7 +23,6 @@ import Queue
 import sys
 
 from avocado.core import exceptions
-from avocado.core import multiplexer
 from avocado.core import test
 from avocado.utils import genio
 from avocado.utils import stacktrace
@@ -76,7 +75,16 @@ class VirtTest(test.Test):
     env_version = utils_env.get_env_version()
 
     def __init__(self, methodName='runTest', name=None, params=None,
-                 base_logdir=None, tag=None, job=None, runner_queue=None):
+                 base_logdir=None, tag=None, job=None, runner_queue=None,
+                 vt_params=None):
+        """
+        :note: methodName, name, base_logdir, tag, job and runner_queue params
+               are inherited from test.Test
+        :param params: avocado/multiplexer params stored as
+                       `self.avocado_params`.
+        :param vt_params: avocado-vt/cartesian_config params stored as
+                          `self.params`.
+        """
         del name
         options = job.args
         self.bindir = data_dir.get_root_dir()
@@ -85,13 +93,13 @@ class VirtTest(test.Test):
         self.iteration = 0
         name = None
         if options.vt_config:
-            name = params.get("shortname")
+            name = vt_params.get("shortname")
         elif options.vt_type == 'spice':
-            short_name_map_file = params.get("_short_name_map_file")
+            short_name_map_file = vt_params.get("_short_name_map_file")
             if "tests-variants.cfg" in short_name_map_file:
                 name = short_name_map_file["tests-variants.cfg"]
         if name is None:
-            name = params.get("_short_name_map_file")["subtests.cfg"]
+            name = vt_params.get("_short_name_map_file")["subtests.cfg"]
         self.outputdir = None
         self.resultsdir = None
         self.logfile = None
@@ -99,28 +107,17 @@ class VirtTest(test.Test):
         self.background_errors = Queue.Queue()
         self.whiteboard = None
         super(VirtTest, self).__init__(methodName=methodName, name=name,
-                                       params=params, base_logdir=base_logdir,
+                                       params=params,
+                                       base_logdir=base_logdir,
                                        tag=tag, job=job,
                                        runner_queue=runner_queue)
         self.builddir = os.path.join(self.workdir, 'backends',
-                                     params.get("vm_type"))
+                                     vt_params.get("vm_type"))
         self.tmpdir = os.path.dirname(self.workdir)
-
-        self.params = utils_params.Params(params)
-        # Here we turn the data the multiplexer injected into the params and
-        # turn it into an AvocadoParams object, that will allow users to
-        # access data from it. Example:
-        # sleep_length = test.avocado_params.get('sleep_length', default=1)
-        p = params.get('avocado_params', None)
-        if p is not None:
-            params, mux_path = p[0], p[1]
-        else:
-            params, mux_path = [], []
-        self.avocado_params = multiplexer.AvocadoParams(params, self.name,
-                                                        self.tag,
-                                                        mux_path,
-                                                        self.default_params)
-
+        # Move self.params to self.avocado_params and initialize virttest
+        # (cartesian_config) params
+        self.avocado_params = self.params
+        self.params = utils_params.Params(vt_params)
         self.debugdir = self.logdir
         self.resultsdir = self.logdir
         utils_misc.set_log_file_dir(self.logdir)

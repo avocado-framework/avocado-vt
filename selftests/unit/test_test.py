@@ -31,7 +31,7 @@ class VirtTestTest(unittest.TestCase):
 
     def setUp(self):
         self.test = vt_test.VirtTest(job=FakeJob(),
-                                     params=FAKE_PARAMS)
+                                     vt_params=FAKE_PARAMS)
 
     def test_basedir(self):
         if self.test.filename is None:
