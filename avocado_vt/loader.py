@@ -162,7 +162,6 @@ class VirtTestLoader(loader.TestLoader):
             # the test params. This will allow users to access avocado params
             # from inside virt tests. This feature would only work if the virt
             # test in question is executed from inside avocado.
-            params['avocado_inject_params'] = True
             if "subtests.cfg" in params.get("_short_name_map_file"):
                 test_name = params.get("_short_name_map_file")["subtests.cfg"]
             if self.args.vt_type == 'spice':
@@ -172,6 +171,6 @@ class VirtTestLoader(loader.TestLoader):
 
             params['id'] = test_name
             test_parameters = {'name': test_name,
-                               'params': params}
+                               'vt_params': params}
             test_suite.append((VirtTest, test_parameters))
         return test_suite
