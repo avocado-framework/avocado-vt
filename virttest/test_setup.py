@@ -304,7 +304,16 @@ class HugePageConfig(object):
         self.pool_path = "/sys/kernel/mm/hugepages"
         self.sys_node_path = "/sys/devices/system/node"
         # Unit is KB as default for hugepage size.
-        self.expected_hugepage_size = int(params.get("expected_hugepage_size"))
+        default_hugepage_size = 2048
+        try:
+            self.expected_hugepage_size = int(
+                params.get("expected_hugepage_size", default_hugepage_size))
+        except TypeError:
+            logging.warn("Using default value %s as "
+                         "'expected_hugepage_size=%s' is invalid",
+                         default_hugepage_size,
+                         params.get("expected_hugepage_size"))
+            self.expected_hugepage_size = default_hugepage_size
         self.hugepage_cpu_flag = params.get("hugepage_cpu_flag")
         self.hugepage_match_str = params.get("hugepage_match_str")
         self.check_hugepage_support()
