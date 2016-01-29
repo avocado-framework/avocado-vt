@@ -3076,7 +3076,7 @@ def get_linux_ifname(session, mac_address=""):
             interface name.
     """
     def _process_output(cmd, reg_pattern):
-        sys_ifname = ["lo", "sit0"]
+        sys_ifname = ["lo", "sit0", "virbr0"]
         try:
             output = session.cmd_output_safe(cmd)
             ifname_list = re.findall(reg_pattern, output, re.I)
