@@ -389,7 +389,7 @@ class VM(virt_vm.BaseVM):
         # Each of these functions receives the output of 'qemu -help'
         # as a parameter, and should add the requested command line
         # option accordingly.
-        def add_name(devices, name):
+        def add_name(name):
             return " -name '%s'" % name
 
         def process_sandbox(devices, action):
@@ -1291,7 +1291,7 @@ class VM(virt_vm.BaseVM):
         devices.insert(StrDev('qemu', cmdline=qemu_binary))
         devices.insert(StrDev('-S', cmdline="-S"))
         # Add the VM's name
-        devices.insert(StrDev('vmname', cmdline=add_name(devices, name)))
+        devices.insert(StrDev('vmname', cmdline=add_name(name)))
 
         qemu_sandbox = params.get("qemu_sandbox")
         if qemu_sandbox == "on":
