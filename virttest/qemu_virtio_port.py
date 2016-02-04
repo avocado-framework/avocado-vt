@@ -184,8 +184,7 @@ class GuestWorker(object):
         out = self.session.cmd_output("echo on")
         if "on" in out:
             self.os_linux = True
-            guest_script_path = os.path.join(data_dir.get_tmp_dir(),
-                                             guest_script_py)
+            guest_script_path = os.path.join("/tmp", guest_script_py)
             cmd_guest_size = ("du -b %s | cut -f1"
                               % guest_script_path)
             cmd_already_compiled_chck = "ls %so" % guest_script_path
