@@ -4192,3 +4192,15 @@ class VM(virt_vm.BaseVM):
         :param target: new media file;
         """
         return self.monitor.change_media(device, target)
+
+    def balloon(self, size):
+        """
+        Balloon memory to given size megat-bytes
+
+        :param size: memory size in mega-bytes
+        """
+        if isinstance(size, int):
+            size = "%s MB" % size
+        normalize_data_size = utils_misc.normalize_data_size
+        size = int(float(normalize_data_size(size, 'B', '1024')))
+        return self.monitor.balloon(size)
