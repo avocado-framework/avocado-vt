@@ -1761,8 +1761,7 @@ class EGDConfig(object):
             make_cmd = "perl Makefile.PL && make && make install"
             make_cmd = self.params.get("build_egd_cmd", make_cmd)
             src_root = self.__extra_tarball()
-            os.chdir(src_root)
-            build.make(make=make_cmd)
+            build.make(src_root, make=make_cmd)
         except Exception, details:
             raise EGDConfigError("Install egd.pl error '%s'" % details)
         finally:
