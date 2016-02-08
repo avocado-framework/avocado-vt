@@ -1057,22 +1057,33 @@ class DevContainer(object):
         usb.set_param('firstport', firstport)
         usb.set_param('freq', freq)
         usb.set_param('addr', pci_addr)
-
         if usb_type == "ich9-usb-ehci1":
             usb.set_param('addr', '1d.7')
             usb.set_param('multifunction', 'on')
-            for i in xrange(3):
-                new_usbs.append(
-                    qdevices.QDevice('ich9-usb-uhci%d' % (i + 1), {},
-                                     usb_id))
-                new_usbs[-1].parent_bus = {'aobject': pci_bus}
-                new_usbs[-1].set_param('id', '%s.%d' % (usb_id, i))
-                new_usbs[-1].set_param('multifunction', 'on')
-                new_usbs[-1].set_param('masterbus', '%s.0' % usb_id)
-                # current qdevices doesn't support x.y addr. Plug only
-                # the 0th one into this representation.
-                new_usbs[-1].set_param('addr', '1d.%d' % (2 * i))
-                new_usbs[-1].set_param('firstport', 2 * i)
+            if arch.ARCH in ('ppc64', 'ppc64le'):
+                for i in xrange(2):
+                    new_usbs.append(qdevices.QDevice('pci-ohci', {}, usb_id))
+                    new_usbs[-1].parent_bus = {'aobject': pci_bus}
+                    new_usbs[-1].set_param('id', '%s.%d' % (usb_id, i))
+                    new_usbs[-1].set_param('multifunction', 'on')
+                    new_usbs[-1].set_param('masterbus', '%s.0' % usb_id)
+                    # current qdevices doesn't support x.y addr. Plug only
+                    # the 0th one into this representation.
+                    new_usbs[-1].set_param('addr', '1d.%d' % (3 * i))
+                    new_usbs[-1].set_param('firstport', 3 * i)
+            else:
+                for i in xrange(3):
+                    new_usbs.append(
+                        qdevices.QDevice('ich9-usb-uhci%d' % (i + 1), {},
+                                         usb_id))
+                    new_usbs[-1].parent_bus = {'aobject': pci_bus}
+                    new_usbs[-1].set_param('id', '%s.%d' % (usb_id, i))
+                    new_usbs[-1].set_param('multifunction', 'on')
+                    new_usbs[-1].set_param('masterbus', '%s.0' % usb_id)
+                    # current qdevices doesn't support x.y addr. Plug only
+                    # the 0th one into this representation.
+                    new_usbs[-1].set_param('addr', '1d.%d' % (2 * i))
+                    new_usbs[-1].set_param('firstport', 2 * i)
         return new_usbs
 
     def usbc_by_params(self, usb_name, params):
