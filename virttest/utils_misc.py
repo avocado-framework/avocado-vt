@@ -2215,30 +2215,38 @@ def get_qemu_binary(params):
     """
     Get the path to the qemu binary currently in use.
     """
-    # Update LD_LIBRARY_PATH for built libraries (libspice-server)
-    qemu_binary_path = get_path(_get_backend_dir(params),
-                                params.get("qemu_binary", "qemu"))
+    # _cmd => full command (including VAR=value, ...)
+    # _bin => binary path
+    params_qemu_cmd = params.get("qemu_binary", "qemu")
+    params_qemu_bin = process.binary_from_shell_cmd(params_qemu_cmd)
 
-    if not os.path.isfile(qemu_binary_path):
-        logging.debug('Could not find params qemu in %s, searching the '
-                      'host PATH for one to use', qemu_binary_path)
+    # Update LD_LIBRARY_PATH for built libraries (libspice-server)
+    abs_qemu_bin = get_path(_get_backend_dir(params), params_qemu_bin)
+
+    if not os.path.isfile(abs_qemu_bin):
+        logging.warning('Could not find params qemu in %s, searching the '
+                        'host PATH for one to use', abs_qemu_bin)
         try:
-            qemu_binary = utils_path.find_command('qemu-kvm')
-            logging.debug('Found %s', qemu_binary)
+            qemu_cmd = utils_path.find_command('qemu-kvm')
+            logging.debug('Found %s', qemu_cmd)
         except utils_path.CmdNotFoundError:
-            qemu_binary = utils_path.find_command('kvm')
-            logging.debug('Found %s', qemu_binary)
+            qemu_cmd = utils_path.find_command('kvm')
+            logging.debug('Found %s', qemu_cmd)
     else:
         library_path = os.path.join(
             _get_backend_dir(params), 'install_root', 'lib')
+        if abs_qemu_bin != params_qemu_bin:
+            abs_qemu_cmd = params_qemu_cmd.replace(params_qemu_bin,
+                                                   abs_qemu_bin)
+        else:
+            abs_qemu_cmd = params_qemu_cmd
         if os.path.isdir(library_path):
             library_path = os.path.abspath(library_path)
-            qemu_binary = ("LD_LIBRARY_PATH=%s %s" %
-                           (library_path, qemu_binary_path))
+            qemu_cmd = ("LD_LIBRARY_PATH=%s %s" % (library_path, abs_qemu_cmd))
         else:
-            qemu_binary = qemu_binary_path
+            qemu_cmd = abs_qemu_cmd
 
-    return qemu_binary
+    return qemu_cmd
 
 
 def get_qemu_dst_binary(params):
