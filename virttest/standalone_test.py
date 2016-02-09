@@ -33,10 +33,14 @@ SUPPORTED_NET_TYPES = ["bridge", "user", "none"]
 
 
 def find_default_qemu_paths(options_qemu=None, options_dst_qemu=None):
+    """
+    This function returns qemu-related paths. It's not trying to be smart as
+    the real paths are discovered later in utils_misc.get_qemu_img_binary().
+    :param options_qemu: User defined qemu-bin path
+    :param options_dst_qemu: User defined destination VM qemu-bin path
+    :return: qemu_path, qemu_img_path, qemu_io_path, qemu_dst_bin_path
+    """
     if options_qemu:
-        if not os.path.isfile(options_qemu):
-            raise RuntimeError("Invalid qemu binary provided (%s)" %
-                               options_qemu)
         qemu_bin_path = options_qemu
     else:
         try:
@@ -45,9 +49,6 @@ def find_default_qemu_paths(options_qemu=None, options_dst_qemu=None):
             qemu_bin_path = utils_path.find_command('kvm')
 
     if options_dst_qemu is not None:
-        if not os.path.isfile(options_dst_qemu):
-            raise RuntimeError("Invalid dst qemu binary provided (%s)" %
-                               options_dst_qemu)
         qemu_dst_bin_path = options_dst_qemu
     else:
         qemu_dst_bin_path = None
@@ -55,12 +56,6 @@ def find_default_qemu_paths(options_qemu=None, options_dst_qemu=None):
     qemu_dirname = os.path.dirname(qemu_bin_path)
     qemu_img_path = os.path.join(qemu_dirname, 'qemu-img')
     qemu_io_path = os.path.join(qemu_dirname, 'qemu-io')
-
-    if not os.path.exists(qemu_img_path):
-        qemu_img_path = utils_path.find_command('qemu-img')
-
-    if not os.path.exists(qemu_io_path):
-        qemu_io_path = utils_path.find_command('qemu-io')
 
     return [qemu_bin_path, qemu_img_path, qemu_io_path, qemu_dst_bin_path]
 
