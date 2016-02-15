@@ -2057,6 +2057,18 @@ def get_cpu_flags(cpu_info=""):
     return re.split("\s+", cpu_flags.strip())
 
 
+def get_cpu_processors(verbose=True):
+    """
+    Returns a list of the processors
+    """
+    cmd = "grep processor /proc/cpuinfo"
+    output = process.system_output(cmd, verbose=verbose, ignore_status=True)
+    processor_list = re.findall('processor\s+: (\d+)', output)
+    if verbose:
+        logging.debug("CPU processor: %s", processor_list)
+    return processor_list
+
+
 def get_cpu_vendor(cpu_info="", verbose=True):
     """
     Returns the name of the CPU vendor
