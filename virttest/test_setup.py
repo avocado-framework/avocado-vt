@@ -304,21 +304,20 @@ class HugePageConfig(object):
         self.pool_path = "/sys/kernel/mm/hugepages"
         self.sys_node_path = "/sys/devices/system/node"
         # Unit is KB as default for hugepage size.
-        default_hugepage_size = 2048
         try:
             self.expected_hugepage_size = int(
-                params.get("expected_hugepage_size", default_hugepage_size))
+                params.get("expected_hugepage_size", 0))
         except TypeError:
-            logging.warn("Using default value %s as "
-                         "'expected_hugepage_size=%s' is invalid",
-                         default_hugepage_size,
+            logging.warn("Invalid value 'expected_hugepage_size=%s'",
                          params.get("expected_hugepage_size"))
-            self.expected_hugepage_size = default_hugepage_size
+            self.expected_hugepage_size = 0
         self.hugepage_cpu_flag = params.get("hugepage_cpu_flag")
         self.hugepage_match_str = params.get("hugepage_match_str")
-        self.check_hugepage_support()
+        if self.hugepage_cpu_flag and self.hugepage_match_str:
+            self.check_hugepage_support()
         self.hugepage_size = self.get_hugepage_size()
-        self.check_hugepage_size_as_expected()
+        if self.expected_hugepage_size:
+            self.check_hugepage_size_as_expected()
         self.hugepage_force_allocate = params.get("hugepage_force_allocate",
                                                   "no")
         self.suggest_mem = None
@@ -332,6 +331,7 @@ class HugePageConfig(object):
 
         self.target_hugepages = target_hugepages
 
+    @error_context.context_aware
     def check_hugepage_support(self):
         """
         Check whether the host support hugepage.
@@ -351,6 +351,7 @@ class HugePageConfig(object):
                                       "Please check kernel cmdline %s on host" %
                                       (self.hugepage_match_str, host_ker_cml))
 
+    @error_context.context_aware
     def check_hugepage_size_as_expected(self):
         """
         Check whether the hugepage size as expected
