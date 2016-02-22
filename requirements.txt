@@ -1,3 +1,4 @@
 autotest>=0.16.2
 aexpect>=1.0.0
 simplejson>=3.5.3
+pygobject>=3.18.2
