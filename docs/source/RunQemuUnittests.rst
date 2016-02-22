@@ -130,7 +130,7 @@ Step by step procedure
    the main control file (called ``control`` with the unittest one
    ``control.unittests``
 
-   ::
+   .. code-block:: none
 
        $HOME/Code/autotest/client/bin/autotest $HOME/Code/autotest/client/tests/kvm/control.unittests
 

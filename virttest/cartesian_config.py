@@ -12,13 +12,13 @@ Filter syntax:
 
 Example:
 
-::
+.. code-block:: none
 
      qcow2..(guest_os=Fedora).14, RHEL.6..raw..boot, smp2..qcow2..migrate..ide
 
 means match all dicts whose names have:
 
-::
+.. code-block:: none
 
     (qcow2 AND ((guest_os=Fedora) IMMEDIATELY-FOLLOWED-BY 14)) OR
     ((RHEL IMMEDIATELY-FOLLOWED-BY 6) AND raw AND boot) OR
@@ -32,7 +32,7 @@ Note:
 
 Filters can be used in 3 ways:
 
-::
+.. code-block:: none
 
     only <filter>
     no <filter>
@@ -47,7 +47,7 @@ terminals and nonterminals are only for better reading of definitions.
 The base of the definitions come verbatim as follows:
 
 
-::
+.. code-block:: none
 
     E = {\\n, #, :, "-", =, +=, <=, ?=, ?+=, ?<=, !, < , del, @, variants, include, only, no, name, value}
 

@@ -16,7 +16,7 @@ The test provider spec is divided in Provider Layout and Definition files.
 Test Provider Layout
 ====================
 
-::
+.. code-block:: none
 
     .
     |-- backend_1        -> Backend name. The actual name doesn't matter.

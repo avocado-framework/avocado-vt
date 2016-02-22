@@ -106,7 +106,7 @@ can tell autotest to run a job in any machine that matches a given label.
 
 Logged as the autotest user:
 
-::
+.. code-block:: none
 
     $ /usr/local/autotest/cli/autotest-rpc-client label create -t amd64
     Created label: 
@@ -120,7 +120,7 @@ Logged as the autotest user:
 
 Then I'd create each machine with the appropriate labels
 
-::
+.. code-block:: none
 
     $ /usr/local/autotest/cli/autotest-rpc-client host create -t amd64 -b hostprovisioning foo-amd.bazcorp.com
     Added host: 
@@ -230,7 +230,7 @@ Other assumptions we have here:
 that has the Fedora 18 DVD and other ISOS. The structure for the base dir
 could look something like:
 
-::
+.. code-block:: none
 
     .
     |-- linux
@@ -247,7 +247,7 @@ for example.
 corrupted during testing, and you want people to analyze them. The structure
 would be:
 
-::
+.. code-block:: none
 
     .
     |-- foo-amd

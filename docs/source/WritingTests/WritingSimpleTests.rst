@@ -14,14 +14,18 @@ Write our own, drop-in 'uptime' test - Step by Step procedure
 Now, let's go and write our uptime test, which only purpose in life is
 to pick up a living guest, connect to it via ssh, and return its uptime.
 
-#. Git clone tp-qemu.git to a convenient location, say $HOME/Code/tp-qemu::
+#. Git clone tp-qemu.git to a convenient location, say $HOME/Code/tp-qemu:
+
+.. code-block:: none
 
     $ git clone https://github.com/autotest/tp-qemu.git
 
 #. Our uptime test won't need any qemu specific feature. Thinking about
    it, we only need a vm object and stablish an ssh session to it, so we
    can run the command. So we can store our brand new test under
-   ``tests``. At the autotest root location::
+   ``tests``. At the autotest root location:
+
+.. code-block:: none
 
     $ touch generic/tests/uptime.py
     $ git add generic/tests/uptime.py
@@ -151,11 +155,15 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
    code. I strongly encourage you guys to check your code with the `inspektor`
    tool. This tool uses pylint to catch bugs on test code. You can install
    inspektor by adding the COPR repo https://copr.fedoraproject.org/coprs/lmr/Autotest/
-   and doing ::
+   and doing:
 
-    yum install inspektor
+.. code-block:: none
 
-   After you're done, you can run it::
+       $ yum install inspektor
+
+   After you're done, you can run it:
+
+.. code-block:: none
 
         $ inspekt lint generic/tests/uptime.py
         ************* Module generic.tests.uptime
@@ -183,7 +191,9 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
            session.close()
 
 #. Let's re-run ``inspektor`` to see if it's happy with the code
-   generated::
+   generated:
+
+.. code-block:: none
 
         $ inspekt lint generic/tests/uptime.py
         Syntax check PASS
@@ -191,16 +201,22 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
 #. So we're good. Nice! Now, as good indentation does matter to python,
    `inspekt indent` will fix indentation problems, and cut trailing
    whitespaces on your code. Very nice for tidying up your test before
-   submission::
+   submission:
+
+.. code-block:: none
 
         $ inspekt indent generic/tests/uptime.py
 
 #. Now, you can test your code. When listing the qemu tests your new test should
-   appear in the list::
+   appear in the list:
 
-        avocado list uptime
+.. code-block:: none
 
-#. Now, you can run your test to see if everything went well::
+        $ avocado list uptime
+
+#. Now, you can run your test to see if everything went well:
+
+.. code-block:: none
 
         $ avocado run --vt-type uptime
 

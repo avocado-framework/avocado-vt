@@ -25,7 +25,7 @@ You can use Avocado-VT to test GlusterFS support with following steps.
 
 1) Edit qemu/cfg/tests.cfg with following changes,
 
-::
+.. code-block:: none
 
     only glusterfs_support
     remove ‘only no_glusterfs_support’ line from the file
@@ -33,7 +33,7 @@ You can use Avocado-VT to test GlusterFS support with following steps.
 2) Optionally, edit shared/cfg/guest-hw.cfg for the gluster volume name and brick path,
 default is going to be,
 
-::
+.. code-block:: none
 
     gluster_volume_name = test-vol
     gluster_brick = /tmp/gluster
@@ -46,34 +46,34 @@ The following is just an example to show how we create gluster volume and run a 
 Starting Gluster daemon
 -----------------------
 
-::
+.. code-block:: none
 
-    service glusterd start
+    $ service glusterd start
 
 
 Gluster volume creation
 -----------------------
 
-::
+.. code-block:: none
 
-    gluster volume create [volume-name]  [hostname/host_ip]:/[brick_path]
+    $ gluster volume create [volume-name]  [hostname/host_ip]:/[brick_path]
 
-E:g: `gluster volume create test-vol satheesh.ibm.com://home/satheesh/images_gluster`
+E.g.: `gluster volume create test-vol satheesh.ibm.com://home/satheesh/images_gluster`
 
 
 Qemu Img creation
 -----------------
 
-::
+.. code-block:: none
 
-    qemu-img create gluster://[hostname]:0/[volume-name]/[image-name] [size]
+    $ qemu-img create gluster://[hostname]:0/[volume-name]/[image-name] [size]
 
-E:g: `qemu-img create gluster://satheesh.ibm.com:0/test-vol/test_gluster.img 10G`
+E.g.: `qemu-img create gluster://satheesh.ibm.com:0/test-vol/test_gluster.img 10G`
 
 
 Example of qemu cmd Line
 ------------------------
 
-::
+.. code-block:: none
 
-    qemu-system-x86_64 --enable-kvm -smp 4 -m 2048 -drive file=gluster://satheesh.ibm.com/test-vol/test_gluster.img,if=virtio -net nic,macaddr=52:54:00:09:0a:0b -net tap,script=/path/to/qemu-ifupVirsh
+    $ qemu-system-x86_64 --enable-kvm -smp 4 -m 2048 -drive file=gluster://satheesh.ibm.com/test-vol/test_gluster.img,if=virtio -net nic,macaddr=52:54:00:09:0a:0b -net tap,script=/path/to/qemu-ifupVirsh
