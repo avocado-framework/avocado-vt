@@ -151,10 +151,6 @@
 					<Order>3</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c start /w pkgmgr /iu:"TelnetServer"</CommandLine>
-					<Order>4</Order>
-				</SynchronousCommand>
-				<SynchronousCommand wcm:action="add">
 					<CommandLine>%WINDIR%\System32\cmd /c sc config TlntSvr start= auto</CommandLine>
 					<Order>5</Order>
 				</SynchronousCommand>
