@@ -1926,10 +1926,15 @@ class RemoteVMManager(object):
         Setup SSH passwordless access between remote host
         and VM, which is on the remote host.
         """
-        self.runner.run("ssh-keygen -y -t rsa -q -N '' -f ~/.ssh/id_rsa")
+        pri_key = '~/.ssh/id_rsa'
+        pub_key = '~/.ssh/id_rsa.pub'
+        if os.path.exists(pri_key) and os.path.exists(pub_key):
+            logging.info("SSH key pair already exist")
+        else:
+            logging.info("Create new SSH key pair")
+            self.runner.run("ssh-keygen -y -t rsa -q -N '' -f %s" % pri_key)
         session = self.runner.session
-        session.sendline("ssh-copy-id -i ~/.ssh/id_rsa.pub root@%s"
-                         % vm_ip)
+        session.sendline("ssh-copy-id -i %s root@%s" % (pub_key, vm_ip))
         while True:
             matched_strs = [r"[Aa]re you sure", r"[Pp]assword:\s*$",
                             r"lost connection", r"]#"]
