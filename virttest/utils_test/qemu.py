@@ -1272,6 +1272,7 @@ class MultihostMigrationRdma(MultihostMigration):
     dst host:
     1. Install some packages: libmlx, infiniband, rdma
     2. Create configuration for rdma network card, example:
+
         # cat /etc/sysconfig/network-scripts/ifcfg-ib0
         DEVICE=ib0
         TYPE=InfiniBand
@@ -1281,6 +1282,7 @@ class MultihostMigrationRdma(MultihostMigration):
         BROADCAST=192.168.0.255
         IPADDR=192.168.0.21
         NETMASK=255.255.255.0
+
     3. Restart related services: network, opensm, rdma
     """
 
