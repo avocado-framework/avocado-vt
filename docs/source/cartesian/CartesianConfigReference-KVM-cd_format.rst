@@ -38,5 +38,5 @@ No other documentation currently references this configuration key.
 See also
 --------
 
--  `drive\_format <drive_format>`_
+-  `drive\_format <CartesianConfigReference-KVM-drive_format.html>`_
 

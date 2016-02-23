@@ -8,9 +8,9 @@ Description
 guest\_port is not a configuration item itself, but the basis (prefix)
 of other real configuration items such as:
 
--  `guest\_port\_remote\_shell <guest_port_remote_shell>`_
--  `guest\_port\_file\_transfer <guest_port_file_transfer>`_
--  `guest\_port\_unattended\_install <guest_port_unattended_install>`_
+-  `guest\_port\_remote\_shell <CartesianConfigReference-KVM-guest_port_remote_shell.html>`_
+-  `guest\_port\_file\_transfer <CartesianConfigReference-KVM-guest_port_file_transfer.html>`_
+-  `guest\_port\_unattended\_install <CartesianConfigReference-KVM-guest_port_unattended_install.html>`_
 
 Defined On
 ----------
@@ -29,5 +29,5 @@ No other documentation currently references this configuration key.
 See also
 --------
 
--  `redirs <redirs>`_
+-  `redirs <CartesianConfigReference-KVM-redirs.html>`_
 

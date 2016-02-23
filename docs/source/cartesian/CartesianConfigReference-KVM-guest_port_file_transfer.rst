@@ -8,15 +8,15 @@ Description
 Sets the port of the server application running inside guests that will
 be used for transferring files to and from this guest.
 
-On Linux VMs, the `file\_transfer\_client <file_transfer_client>`_
+On Linux VMs, the `file\_transfer\_client <CartesianConfigReference-KVM-file_transfer_client.html>`_
 is set by default to 'scp', and this the port is set by default to the
 standard SSH port (22).
 
 For Windows guests, the
-`file\_transfer\_client <file_transfer_client>`_ is set by default
-to 'rss', and the port is set by default to 10023.
+`file\_transfer\_client <CartesianConfigReference-KVM-file_transfer_client.html>`_
+is set by default to 'rss', and the port is set by default to 10023.
 
-This is a specialization of the `guest\_port <guest_port>`_
+This is a specialization of the `guest\_port <CartesianConfigReference-KVM-guest_port.html>`_
 configuration entry.
 
 Example, default entry:
@@ -52,7 +52,7 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `redirs <redirs>`_
--  `file\_transfer\_port <file_transfer_port>`_
--  `file\_transfer\_client <file_transfer_client>`_
+-  `redirs <CartesianConfigReference-KVM-redirs.html>`_
+-  `file\_transfer\_port <CartesianConfigReference-KVM-file_transfer_port.html>`_
+-  `file\_transfer\_client <CartesianConfigReference-KVM-file_transfer_client.html>`_
 

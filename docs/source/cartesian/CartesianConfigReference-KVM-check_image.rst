@@ -9,7 +9,7 @@ Configures if we want to run a check on the image files during post
 processing. A check usually means running 'qemu-img info' and 'qemu-img
 check'.
 
-This is currently only enabled when `image\_format <image_format>`_
+This is currently only enabled when `image\_format <CartesianConfigReference-KVM-image_format.html>`_
 is set to 'qcow2'.
 
 ::
@@ -38,9 +38,9 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `images <images>`_
--  `image\_name <image_name>`_
--  `image\_format <image_format>`_
--  `create\_image <create_image>`_
--  `remove\_image <remove_image>`_
+-  `images <CartesianConfigReference-KVM-images.html>`_
+-  `image\_name <CartesianConfigReference-KVM-image_name.html>`_
+-  `image\_format <CartesianConfigReference-KVM-image_format.html>`_
+-  `create\_image <CartesianConfigReference-KVM-create_image.html>`_
+-  `remove\_image <CartesianConfigReference-KVM-remove_image.html>`_
 
