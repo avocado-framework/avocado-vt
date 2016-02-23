@@ -8,8 +8,8 @@ Description
 Sets the port on which the application used to transfer files to and
 from the guest will be listening on.
 
-When `file\_transfer\_client <file_transfer_client>`_ is scp, this
-is by default 22:
+When `file\_transfer\_client <CartesianConfigReference-KVM-file_transfer_client.html>`_
+is scp, this is by default 22:
 
 ::
 
@@ -45,7 +45,7 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `redirs <redirs>`_
--  `file\_transfer\_client <file_transfer_client>`_
--  `guest\_port\_file\_transfer <guest_port_file_transfer>`_
+-  `redirs <CartesianConfigReference-KVM-redirs.html>`_
+-  `file\_transfer\_client <CartesianConfigReference-KVM-file_transfer_client.html>`_
+-  `guest\_port\_file\_transfer <CartesianConfigReference-KVM-guest_port_file_transfer.html>`_
 

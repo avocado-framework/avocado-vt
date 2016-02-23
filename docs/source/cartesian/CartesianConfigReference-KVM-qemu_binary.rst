@@ -40,5 +40,5 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `qemu\_img\_binary <qemu_img_binary>`_
+-  `qemu\_img\_binary <CartesianConfigReference-KVM-qemu_img_binary.html>`_
 

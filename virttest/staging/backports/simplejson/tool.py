@@ -1,6 +1,8 @@
 r"""Command-line tool to validate and pretty-print JSON
 
-Usage::
+Usage:
+
+.. code-block:: none
 
     $ echo '{"json":"obj"}' | python -m simplejson.tool
     {

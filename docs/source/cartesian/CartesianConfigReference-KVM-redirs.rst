@@ -37,6 +37,6 @@ No other documentation currently references this configuration key.
 See also
 --------
 
--  `guest\_port <guest_port>`_
--  `guest\_port\_remote\_shell <guest_port_remote_shell>`_
+-  `guest\_port <CartesianConfigReference-KVM-guest_port.html>`_
+-  `guest\_port\_remote\_shell <CartesianConfigReference-KVM-guest_port_remote_shell.html>`_
 

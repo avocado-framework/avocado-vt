@@ -29,14 +29,14 @@ Environment setup
 
 Autotest supports to numa pining. Assign "numanode=-1" in tests.cfg, then vcpu threads/vhost_net threads/VM memory will be pined to last numa node. If you want to pin other processes to numa node, you can use numctl and taskset.
 
-::
+.. code-block:: none
 
   memory: numactl -m $n $cmdline
   cpu: taskset $node_mask $thread_id
 
 The following content is manual guide.
 
-::
+.. code-block:: none
 
   1.First level pinning would be to use numa pinning when starting the guest.
   e.g  numactl -c 1 -m 1 qemu-kvm  -smp 2 -m 4G <> (pinning guest memory and cpus to numa-node 1)

@@ -9,8 +9,8 @@ Flags whether a graceful shutdown command should be sent to the VM guest
 OS before attempting to either halt the VM at the hypervisor side
 (sending an appropriate command to QEMU or even killing its process).
 
-Of course, this is only valid when `kill\_vm <kill_vm>`_ is set to
-'yes'.
+Of course, this is only valid when `kill\_vm <CartesianConfigReference-KVM-kill_vm.html>`_
+is set to 'yes'.
 
 To force killing VMs without using a graceful shutdown command (such as
 'shutdown -h now'):
@@ -40,7 +40,7 @@ No other documentation currently references this configuration key.
 See also
 --------
 
--  `kill\_vm <kill_vm>`_
--  `kill\_vm\_timeout <kill_vm_timeout>`_
--  `kill\_unresponsive\_vms <kill_unresponsive_vms>`_
+-  `kill\_vm <CartesianConfigReference-KVM-kill_vm.html>`_
+-  `kill\_vm\_timeout <CartesianConfigReference-KVM-kill_vm_timeout.html>`_
+-  `kill\_unresponsive\_vms <CartesianConfigReference-KVM-kill_unresponsive_vms.html>`_
 

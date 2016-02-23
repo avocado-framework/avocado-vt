@@ -27,6 +27,6 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `pre\_command <pre_command>`_
+-  `pre\_command <CartesianConfigReference-KVM-pre_command.html>`_
 -  pre\_command\_non\_critical?
 

@@ -167,7 +167,7 @@ SHA1 sum of it matches.
 #. As informed on the output of ``get_started.py``, the command you can
    execute to run autotest is (please run this AS ROOT or sudo)
 
-   ::
+   .. code-block:: none
 
        $HOME/Code/autotest/client/bin/autotest $HOME/Code/autotest/client/tests/kvm/control
 

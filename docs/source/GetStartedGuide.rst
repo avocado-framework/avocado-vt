@@ -20,7 +20,9 @@ Fedora and Enterprise Linux
 ---------------------------
 
 Installing Avocado-VT on Fedora or Enterprise Linux is a matter of
-installing the `avocado-plugins-vt` package. Install it with::
+installing the `avocado-plugins-vt` package. Install it with:
+
+.. code-block:: none
 
   $ yum install avocado-plugins-vt
 
@@ -30,11 +32,15 @@ Bootstrapping Avocado-VT
 ------------------------
 
 After the package, a bootstrap process must be run. Choose your test backend
-(qemu, libvirt, v2v, openvswitch, etc) and run the `vt-bootstrap` command. Example::
+(qemu, libvirt, v2v, openvswitch, etc) and run the `vt-bootstrap` command. Example:
+
+.. code-block:: none
 
   $ avocado vt-bootstrap --vt-type qemu
 
-The output should be similar to::
+The output should be similar to:
+
+.. code-block:: none
 
   12:02:10 INFO | qemu test config helper
   12:02:10 INFO |
@@ -64,11 +70,15 @@ If there are missing requirements, please install them and re-run `vt-bootstrap`
 First steps with Avocado-VT
 ===========================
 
-Let's check if things went well by listing the Avocado plugins::
+Let's check if things went well by listing the Avocado plugins:
+
+.. code-block:: none
 
   $ avocado plugins
 
-That command should show the loaded plugins, and hopefully no errors. The relevant lines will be::
+That command should show the loaded plugins, and hopefully no errors. The relevant lines will be:
+
+.. code-block:: none
 
   Plugins that add new commands (avocado.plugins.cli.cmd):
   vt-bootstrap Avocado VT - implements the 'vt-bootstrap' subcommand
@@ -77,11 +87,15 @@ That command should show the loaded plugins, and hopefully no errors. The releva
   vt      Avocado VT/virt-test support to 'run' command
   vt-list Avocado-VT/virt-test support for 'list' command
 
-Then let's list the tests available with::
+Then let's list the tests available with:
+
+.. code-block:: none
 
   $ avocado list --vt-type qemu --verbose
 
-This should list a large amount of tests (over 1900 virt related tests)::
+This should list a large amount of tests (over 1900 virt related tests):
+
+.. code-block:: none
 
   ACCESS_DENIED: 0
   BROKEN_SYMLINK: 0
@@ -92,7 +106,9 @@ This should list a large amount of tests (over 1900 virt related tests)::
   SIMPLE: 3
   VT: 1906
 
-Now let's run a virt test::
+Now let's run a virt test:
+
+.. code-block:: none
 
   $ avocado run type_specific.io-github-autotest-qemu.migrate.default.tcp
   JOB ID     : <id>

@@ -48,7 +48,9 @@ the output array. When a Cartesian configuration file contains
 two variants stanzas, the output will be all possible combination's of
 both variant contents. Variants may be nested within other variants,
 effectively nesting arbitrarily complex arrays within the cells of
-outside arrays.  For example::
+outside arrays.  For example:
+
+.. code-block:: none
 
     variants:
         - one:
@@ -71,7 +73,9 @@ name parsed will appear as the left most name component. These names can
 become quite long, and since they contain keys to distinguishing between
 results, a 'short-name' key is also used.  For example, running
 ``cartesian_config.py`` against the content above produces the following
-combinations and names::
+combinations and names:
+
+.. code-block:: none
 
     dict    1:  four.one
     dict    2:  four.two
@@ -98,7 +102,9 @@ Named variants
 
 Named variants allow assigning a parseable name to a variant set.  This enables
 an entire variant set to be used for in filters_.  All output combinations will
-inherit the named varient key, along with the specific variant name.  For example::
+inherit the named varient key, along with the specific variant name.  For example:
+
+.. code-block:: none
 
    variants var1_name:
         - one:
@@ -115,7 +121,9 @@ inherit the named varient key, along with the specific variant name.  For exampl
 
    only (var2_name=one).(var1_name=two)
 
-Results in the following outcome when parsed with ``cartesian_config.py -c``::
+Results in the following outcome when parsed with ``cartesian_config.py -c``:
+
+.. code-block:: none
 
     dict    1:  (var2_name=one).(var1_name=two)
           dep = []
@@ -126,7 +134,9 @@ Results in the following outcome when parsed with ``cartesian_config.py -c``::
           var1_name = two      # variant name in same namespace as variables.
           var2_name = one      # variant name in same namespace as variables.
 
-Named variants could also be used as normal variables.::
+Named variants could also be used as normal variables.:
+
+.. code-block:: none
 
    variants guest_os:
         - fedora:
@@ -135,7 +145,9 @@ Named variants could also be used as normal variables.::
         - virtio:
         - hda:
 
-Which then results in the following::
+Which then results in the following:
+
+.. code-block:: none
 
     dict    1:  (disk_interface=virtio).(guest_os=fedora)
         dep = []
@@ -177,7 +189,7 @@ and/or filters (see section filters_) can remove or modify dependents. For
 example, if testing unattended installs, each virtual machine must be booted
 before, and shutdown after:
 
-::
+.. code-block:: none
 
     variants:
         - one:
@@ -206,7 +218,7 @@ character(s) ‘,’ meaning OR, ‘..’ meaning AND, and ‘.’ meaning
 IMMEDIATELY-FOLLOWED-BY. When used alone, they permit modifying the list
 of key/values previously defined. For example:
 
-::
+.. code-block:: none
 
     Linux..OpenSuse:
     initrd = initrd
@@ -224,7 +236,7 @@ matching the filter. Whereas the ‘no’ keyword could be used to remove
 particular conflicting key/value sets under other variant combination
 names. For example:
 
-::
+.. code-block:: none
 
     only Linux..Fedora..64
 
@@ -236,7 +248,7 @@ variants as well. In this application, they are only evaluated when that
 variant name is selected for inclusion (implicitly or explicitly) by a
 higher-order. For example:
 
-::
+.. code-block:: none
 
     variants:
         - one:
@@ -255,7 +267,7 @@ higher-order. For example:
 
 Results in the following outcome:
 
-::
+.. code-block:: none
 
     name = default.three.one
     key1 = Hello
@@ -291,7 +303,7 @@ within a predefined top-level directory.
 
 An example of context-sensitivity,
 
-::
+.. code-block:: none
 
     key1 = default value
     key2 = default value
@@ -310,7 +322,7 @@ An example of context-sensitivity,
 
 Results in the following,
 
-::
+.. code-block:: none
 
     dict    1:  one
         dep = []
@@ -346,7 +358,7 @@ instance can be addressed. For example, a parameter ‘vms’ lists the VM
 objects names to instantiate in in the current frame’s test. Values
 specific to one of the named instances should be prefixed to the name:
 
-::
+.. code-block:: none
 
     vms = vm1 second_vm another_vm
     mem = 128

@@ -52,7 +52,9 @@ For example, for RHEL 6.4, the image name Avocado-VT uses is::
 
     rhel64-64.qcow2
 
-double check your files are there::
+double check your files are there:
+
+.. code-block:: none
 
     $ ls /var/lib/virt_test/images
     $ rhel64-64.qcow2
@@ -62,7 +64,9 @@ Setup step by step
 ==================
 
 First, clone the autotest repo recursively. It's a repo with lots of
-submodules, so you'll see a lot of output::
+submodules, so you'll see a lot of output:
+
+.. code-block:: none
 
     $ git clone --recursive https://github.com/autotest/autotest.git
     ... lots of output ...
@@ -85,7 +89,7 @@ then you will not be able to see the config files and modify filters prior
 to actually running the test. Therefore this documentation will instruct you
 to run the steps below manually.
 
-::
+.. code-block:: none
 
     16:11:14 INFO | qemu test config helper
     16:11:14 INFO |

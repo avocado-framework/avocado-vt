@@ -18,7 +18,7 @@ Human monitor:
 
 If a **main\_monitor** is not defined, the **monitor** property of a
 **VM** class instance will assume that the first monitor set in the
-`monitors <monitors>`_ list is the main monitor.
+`monitors <CartesianConfigReference-KVM-monitors.html>`_ list is the main monitor.
 
 Defined On
 ----------
@@ -39,7 +39,7 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `monitors <monitors>`_
--  `monitor\_type <monitor_type>`_
+-  `monitors <CartesianConfigReference-KVM-monitors.html>`_
+-  `monitor\_type <CartesianConfigReference-KVM-monitor_type.html>`_
 -  `client/virt/kvm\_monitor.py <https://github.com/autotest/autotest/blob/master/client/virt/kvm_monitor.py>`_
 

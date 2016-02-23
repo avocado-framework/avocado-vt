@@ -88,7 +88,9 @@ Specializing JSON object encoding::
     '[2.0, 1.0]'
 
 
-Using simplejson.tool from the shell to validate and pretty-print::
+Using simplejson.tool from the shell to validate and pretty-print:
+
+.. code-block:: none
 
     $ echo '{"json":"obj"}' | python -m simplejson.tool
     {

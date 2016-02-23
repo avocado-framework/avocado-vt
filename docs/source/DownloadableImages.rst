@@ -60,7 +60,9 @@ How to update JeOS
 The JeOS can be updated by installing it, just like a normal OS. You can do
 that for example with ``avocado-vt``, selecting an unattended install test. In
 this example, we're going to use the unattended install using https kickstart
-and network install::
+and network install:
+
+.. code-block:: none
 
     $ avocado run io-github-autotest-qemu.unattended_install.url.http_ks.default_install.aio_native
 
@@ -69,12 +71,16 @@ can squeeze these zeros later with qemu img. Once the image is installed, you
 can use our helper script, located at ``scripts/package_jeos.py`` in the
 avocado-vt source tree. That script uses qemu-img to trim the zeros of the
 image, ensuring that the resulting qcow2 image is the smallest possible. The
-command is similar to::
+command is similar to:
+
+.. code-block:: none
 
     $ qemu-img convert -f qcow2 -O qcow2 jeos-file-backup.qcow2 jeos-file.qcow2
 
 Then it'll compress it using 7zip, to save space and speed up downloads for
-``avocado-vt`` users. The command is similar to::
+``avocado-vt`` users. The command is similar to:
+
+.. code-block:: none
 
     $ 7za a jeos-file.qcow2.7z jeos-file.qcow2
 

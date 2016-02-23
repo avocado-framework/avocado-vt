@@ -7,7 +7,7 @@ Description
 
 Sets the number of display devices available through
 `SPICE <http://spice-space.org/faq>`_. This is only valid when
-`qxl <qxl>`_ is set.
+`qxl <CartesianConfigReference-KVM-qxl.html>`_ is set.
 
 The default configuration enables a single display device:
 
@@ -47,7 +47,7 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `qxl <qxl>`_
+-  `qxl <CartesianConfigReference-KVM-qxl.html>`_
 -  vga?
--  `display <display>`_
+-  `display <CartesianConfigReference-KVM-display.html>`_
 

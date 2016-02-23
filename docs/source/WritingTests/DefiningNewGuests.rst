@@ -44,7 +44,7 @@ qcow2 format image.
 
 Other useful params to set (not an exaustive list):
 
-::
+.. code-block:: cfg
 
     # shell_prompt is a regexp used to match the prompt on aexpect.
     # if your custom os is based of some distro listed in the guest-os

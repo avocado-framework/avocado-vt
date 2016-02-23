@@ -31,6 +31,6 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `post\_command\_timeout <post_command_timeout>`_
+-  `post\_command\_timeout <CartesianConfigReference-KVM-post_command_timeout.html>`_
 -  post\_command\_non\_critical?
 

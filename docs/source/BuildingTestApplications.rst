@@ -17,7 +17,7 @@ application. The below example shows a Makefile for the application for the
 timedrift test cases. The `remote_build` module requires that a Makefile is
 included with all test applications.
 
-::
+.. code-block:: makefile
 
     CFLAGS+=-Wall
     LDLIBS+=-lrt
