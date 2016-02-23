@@ -8,9 +8,9 @@ Description
 Sets the name of an image file.
 
 If the image file is not a block device (see
-`image\_raw\_device <image_raw_device>`_) the actual file created
-will be named accordingly (together with the extension, according to
-`image\_format <image_format>`_).
+`image\_raw\_device <CartesianConfigReference-KVM-image_raw_device.html>`_)
+the actual file created will be named accordingly (together with the extension,
+according to `image\_format <CartesianConfigReference-KVM-image_format.html>`_).
 
 When this configuration key is used without a suffix, it's setting the
 name of all images without a specific name. The net effect is that it
@@ -29,8 +29,8 @@ sets the name of the 'default' image. Example:
 
 This example means that when a Fedora 15 64 bits is installed, and has a
 backing image file created, it's going to be named starting with
-'f15-64'. If the `image\_format <image_format>`_ specified is
-'qcow2', then the complete filename will be 'f15-64.qcow2'.
+'f15-64'. If the `image\_format <CartesianConfigReference-KVM-image_format.html>`_
+specified is 'qcow2', then the complete filename will be 'f15-64.qcow2'.
 
 When this configuration key is used with a suffix, it sets the name of a
 specific image. Example:
@@ -65,7 +65,7 @@ Referenced By
 See Also
 --------
 
--  `images <images>`_
--  `image\_format <image_format>`_
--  `image\_raw\_device <image_raw_device>`_
+-  `images <CartesianConfigReference-KVM-images.html>`_
+-  `image\_format <CartesianConfigReference-KVM-image_format.html>`_
+-  `image\_raw\_device <CartesianConfigReference-KVM-image_raw_device.html>`_
 

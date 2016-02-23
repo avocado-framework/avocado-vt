@@ -51,7 +51,7 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `images <images>`_
--  `image\_name <image_name>`_
--  `image\_size <image_size>`_
+-  `images <CartesianConfigReference-KVM-images.html>`_
+-  `image\_name <CartesianConfigReference-KVM-image_name.html>`_
+-  `image\_size <CartesianConfigReference-KVM-image_size.html>`_
 

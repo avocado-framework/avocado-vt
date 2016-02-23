@@ -44,7 +44,7 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `redirs <redirs>`_
--  `file\_transfer\_port <file_transfer_port>`_
--  `guest\_port\_file\_transfer <guest_port_file_transfer>`_
+-  `redirs <CartesianConfigReference-KVM-redirs.html>`_
+-  `file\_transfer\_port <CartesianConfigReference-KVM-file_transfer_port.html>`_
+-  `guest\_port\_file\_transfer <CartesianConfigReference-KVM-guest_port_file_transfer.html>`_
 
