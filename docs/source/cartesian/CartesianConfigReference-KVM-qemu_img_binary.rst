@@ -34,5 +34,5 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `qemu\_binary <qemu_binary>`_
+-  `qemu\_binary <CartesianConfigReference-KVM-qemu_binary.html>`_
 

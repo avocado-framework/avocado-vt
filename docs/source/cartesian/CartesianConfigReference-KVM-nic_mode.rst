@@ -22,7 +22,7 @@ current default in Autotest:
 
 When **nic\_mode** is set to
 `Tap <http://wiki.qemu.org/Documentation/Networking#Tap>`_ you should
-also set a `bridge <bridge>`_.
+also set a `bridge <CartesianConfigReference-KVM-bridge.html>`_.
 
 Defined On
 ----------
@@ -45,6 +45,6 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `bridge <bridge>`_
--  `redirs <redirs>`_
+-  `bridge <CartesianConfigReference-KVM-bridge.html>`_
+-  `redirs <CartesianConfigReference-KVM-redirs.html>`_
 

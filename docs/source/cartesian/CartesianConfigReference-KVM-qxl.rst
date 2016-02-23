@@ -35,6 +35,6 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `qxl\_dev\_nr <qxl_dev_nr>`_
+-  `qxl\_dev\_nr <CartesianConfigReference-KVM-qxl_dev_nr.html>`_
 -  vga?
 

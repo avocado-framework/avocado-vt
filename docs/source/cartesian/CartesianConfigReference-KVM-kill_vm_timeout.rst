@@ -8,8 +8,8 @@ Description
 Configures the amount of time, in seconds, to wait for VM shutdown
 during the post processing.
 
-This is only relevant if `kill\_vm <kill_vm>`_ is actually set to
-'yes'.
+This is only relevant if `kill\_vm <CartesianConfigReference-KVM-kill_vm.html>`_ is
+actually set to 'yes'.
 
 To set the timeout to one minute:
 
@@ -36,7 +36,7 @@ No other documentation currently references this configuration key.
 See also
 --------
 
--  `kill\_vm <kill_vm>`_
--  `kill\_vm\_gracefully <kill_vm_gracefully>`_
--  `kill\_unresponsive\_vms <kill_unresponsive_vms>`_
+-  `kill\_vm <CartesianConfigReference-KVM-kill_vm.html>`_
+-  `kill\_vm\_gracefully <CartesianConfigReference-KVM-kill_vm_gracefully.html>`_
+-  `kill\_unresponsive\_vms <CartesianConfigReference-KVM-kill_unresponsive_vms.html>`_
 

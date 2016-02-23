@@ -49,5 +49,5 @@ No other documentation currently references this configuration key.
 See Also
 --------
 
--  `redirs <redirs>`_
+-  `redirs <CartesianConfigReference-KVM-redirs.html>`_
 
