@@ -28,7 +28,7 @@ Which would make it possible to specify this custom guest using
 
 ::
 
-    avocado run migrate..tcp --vt-type qemu --vt-guest-os LinuxCustom.FooLinux
+    $ avocado run migrate..tcp --vt-type qemu --vt-guest-os LinuxCustom.FooLinux
     JOB ID     : 44a399b427c51530ba2fcc37087c100917e1dd8a
     JOB LOG    : /home/lmr/avocado/job-results/job-2015-07-29T03.47-44a399b/job.log
     JOB HTML   : /home/lmr/avocado/job-results/job-2015-07-29T03.47-44a399b/html/results.html
@@ -42,9 +42,9 @@ Which would make it possible to specify this custom guest using
 Provided that you have a file called images/foo-linux.qcow2, if using the
 qcow2 format image.
 
-Other useful params to set (not an exaustive list):
+Other useful params to set (not an exhaustive list):
 
-::
+.. code-block:: cfg
 
     # shell_prompt is a regexp used to match the prompt on aexpect.
     # if your custom os is based of some distro listed in the guest-os
@@ -86,13 +86,13 @@ Which would make it possible to specify this custom guest using
 
 ::
 
-    avocado run migrate..tcp --vt-type qemu --vt-guest-os WindowsCustom.FooWindows
+    $ avocado run migrate..tcp --vt-type qemu --vt-guest-os WindowsCustom.FooWindows
 
 Provided that you have a file called images/foo-windows.qcow2.
 
 Other useful params to set (not an exaustive list):
 
-::
+.. code-block:: cfg
 
     # If you plan to use a raw device, set image_device = yes
     image_raw_device = yes

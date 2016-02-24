@@ -83,3 +83,4 @@ intersphinx_mapping = {'http://docs.python.org/': None,
                        'http://avocado-framework.readthedocs.org/en/latest/': None}
 
 autoclass_content = 'both'
+highlight_language = 'none'
