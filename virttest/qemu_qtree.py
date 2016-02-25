@@ -163,11 +163,8 @@ class QtreeDev(QtreeNode):
         super(QtreeDev, self).add_child(child)
 
     def guess_type(self):
-        if self.qtree['type'] == 'virtio-blk-device':
-            return QtreeDisk
-        elif ('drive' in self.qtree and
-              self.qtree['type'] != 'usb-storage' and
-              self.qtree['type'] != 'virtio-blk-pci'):
+        if ('drive' in self.qtree and
+                self.qtree['type'] != 'usb-storage'):
             # ^^ HOOK when usb-storage-containter is detected as disk
             return QtreeDisk
         else:
