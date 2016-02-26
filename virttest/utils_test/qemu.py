@@ -1507,15 +1507,83 @@ class GuestSuspend(object):
         pass
 
 
-class MemoryHotplugTest(object):
+class MemoryBase(object):
 
-    UNIT = "M"
+    """
+    Base class for memory functions.
+    """
 
     def __init__(self, test, params, env):
         self.test = test
         self.env = env
         self.params = params
         self.sessions = {}
+
+    @classmethod
+    def get_guest_total_mem(cls, os_type, session):
+        """
+        get physical memory size detect by guest os
+
+        :param os_type: Guest os type.
+        :param session: VM session.
+        :return mem_size: total physical memory in guest.
+        """
+        error_context.context("Get physical memory in guest")
+        mem_size = 0.0
+        if os_type == "windows":
+            cmd = 'systeminfo | findstr /C:"Total Physical Memory"'
+            regex = re.compile("Total Physical Memory:\s+(.*)", re.M | re.I)
+        else:
+            cmd = 'cat /proc/meminfo'
+            regex = re.compile("memtotal:\s+(.*)", re.M | re.I)
+        output = session.cmd_output_safe(cmd, timeout=240)
+        try:
+            mem_str = regex.search(output.replace(',', '')).groups()[0]
+            args = ("%sB" % mem_str, "M", 1024)
+            mem_size = float(utils_misc.normalize_data_size(*args))
+            logging.info("total memory reported by os: %.2f MB" % mem_size)
+        except Exception:
+            logging.warn("invalid output from guest: %s" % output)
+        return mem_size
+
+    @classmethod
+    def get_guest_free_mem(cls, os_type, session):
+        """
+        get free memory size detect by guest os.
+
+        :param os_type: Guest os type.
+        :param session: VM session.
+        :return mem_size: free physical memory in guest.
+        """
+        error_context.context("Get free memory in guest")
+        mem_size = 0.0
+        if os_type == "windows":
+            cmd = 'systeminfo | findstr /C:"Available Physical Memory"'
+            regex = re.compile("Available Physical Memory:\s+(.*)", re.M | re.I)
+        else:
+            cmd = 'cat /proc/meminfo'
+            regex = re.compile("memfree:\s+(.*)", re.M | re.I)
+        output = session.cmd_output_safe(cmd, timeout=240)
+        try:
+            mem_str = regex.search(output.replace(',', '')).groups()[0]
+            args = ("%sB" % mem_str, "M", 1024)
+            mem_size = float(utils_misc.normalize_data_size(*args))
+            logging.info("free memory reported by os: %.2f MB" % mem_size)
+        except Exception:
+            logging.warn("invalid output from guest: %s" % output)
+        return mem_size
+
+
+class MemoryHotplugTest(MemoryBase):
+
+    """
+    Class for memory hotplug.
+    """
+
+    UNIT = "M"
+
+    def __init__(self, test, params, env):
+        super(MemoryHotplugTest, self).__init__(test, params, env)
 
     @classmethod
     def normalize_mem_mb(cls, str_size):
@@ -1618,31 +1686,6 @@ class MemoryHotplugTest(object):
         return devices
 
     @error_context.context_aware
-    def get_guest_mem(self, vm):
-        """
-        Get physical memory size detect by guest os
-        """
-        error_context.context("Get physical memory in guest")
-        mem_size = 0.0
-        session = self.get_session(vm)
-        if self.params.get("os_type") == "windows":
-            cmd = 'systeminfo | findstr /C:"Total Physical Memory"'
-            regex = re.compile("Total Physical Memory:\s+(.*)", re.M | re.I)
-        else:
-            cmd = 'cat /proc/meminfo'
-            regex = re.compile("MemTotal:\s+(.*)", re.M | re.I)
-        output = session.cmd_output_safe(cmd, timeout=240)
-        try:
-            mem_str = regex.search(output.replace(',', '')).groups()[0]
-            mem_size = self.normalize_mem_mb(mem_str)
-            logging.info(
-                "Memory reported by OS: %.2f %sB" %
-                (mem_size, self.UNIT))
-        except Exception:
-            logging.warn("Invalid outputi from guest: %s" % output)
-        return mem_size
-
-    @error_context.context_aware
     def get_vm_mem(self, vm):
         """
         Get guest memory
@@ -1695,7 +1738,10 @@ class MemoryHotplugTest(object):
         # then check memory info in guest.
         utils_misc.wait_for(lambda: not vm.is_paused, timeout=timeout)
         utils_misc.verify_host_dmesg()
-        guest_mem_size = self.get_guest_mem(vm)
+        session = self.get_session(vm)
+        self.os_type = self.params.get("os_type")
+        guest_mem_size = super(MemoryHotplugTest, self).get_guest_total_mem(
+                                                        self.os_type, session)
         vm_mem_size = self.get_vm_mem(vm)
         threshold = vm_mem_size * 0.06
         if abs(guest_mem_size - vm_mem_size) > threshold:
@@ -1728,6 +1774,5 @@ class MemoryHotplugTest(object):
         Close opening session, better to call it in the end of test.
         """
         while self.sessions:
-            _, sessions = self.sessions.popitem()
-            for session in sessions:
+            for session in self.sessions.popitem()[1]:
                 session.close()
