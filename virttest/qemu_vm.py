@@ -1520,8 +1520,6 @@ class VM(virt_vm.BaseVM):
                     if self.last_boot_index > 0:
                         image_boot = False
                     self.last_boot_index += 1
-            if image_params.get("boot_drive") == "no":
-                continue
             devs = devices.images_define_by_params(image_name, image_params,
                                                    'disk', index, image_boot,
                                                    image_bootindex)
