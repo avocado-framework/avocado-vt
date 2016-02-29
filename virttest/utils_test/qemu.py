@@ -1513,11 +1513,42 @@ class MemoryBase(object):
     Base class for memory functions.
     """
 
+    UNIT = "MB"
+
     def __init__(self, test, params, env):
         self.test = test
         self.env = env
         self.params = params
         self.sessions = {}
+
+    def get_vm_mem(self, vm):
+        """
+        Get guest memory
+        """
+        PC_DIMM = qdevices.Dimm
+        mem_str = vm.params.get("mem")
+        size_strs = ['%sMB' % mem_str] if mem_str.isdigit() else [mem_str]
+        pc_dimms = [ _ for _ in vm.devices if isinstance(_, PC_DIMM)]
+        mem_ids = map(lambda x: x.get_param('memdev'), pc_dimms)
+        mem_devs = map(lambda x: vm.devices.get_by_id(x)[0], mem_ids)
+        size_strs += map(lambda x: x.get_param('size'), mem_devs)
+        total_mem = sum(map(lambda x: self.normalize_mem_size(x), size_strs))
+        mem_str = "%s %s" % (total_mem, self.UNIT)
+        logging.info("Assigned %s memory to '%s'" % (mem_str, vm.name))
+        return total_mem
+
+    @classmethod
+    def normalize_mem_size(cls, str_size):
+        """
+        Convert memory size unit
+        """
+        args = ("%sB" % str_size, cls.UNIT, 1024)
+        try:
+            size = utils_misc.normalize_data_size(*args)
+            return int(float(size))
+        except ValueError, details:
+            logging.debug("Convert memory size error('%s')" % details)
+        return 0
 
     @classmethod
     def get_guest_total_mem(cls, os_type, session):
@@ -1528,7 +1559,6 @@ class MemoryBase(object):
         :param session: VM session.
         :return mem_size: total physical memory in guest.
         """
-        error_context.context("Get physical memory in guest")
         mem_size = 0.0
         if os_type == "windows":
             cmd = 'systeminfo | findstr /C:"Total Physical Memory"'
@@ -1541,10 +1571,11 @@ class MemoryBase(object):
             mem_str = regex.search(output.replace(',', '')).groups()[0]
             args = ("%sB" % mem_str, "M", 1024)
             mem_size = float(utils_misc.normalize_data_size(*args))
-            logging.info("total memory reported by os: %.2f MB" % mem_size)
+            logging.info("total memory reported by os: %s MB" % mem_size)
         except Exception:
             logging.warn("invalid output from guest: %s" % output)
         return mem_size
+
 
     @classmethod
     def get_guest_free_mem(cls, os_type, session):
@@ -1555,7 +1586,6 @@ class MemoryBase(object):
         :param session: VM session.
         :return mem_size: free physical memory in guest.
         """
-        error_context.context("Get free memory in guest")
         mem_size = 0.0
         if os_type == "windows":
             cmd = 'systeminfo | findstr /C:"Available Physical Memory"'
@@ -1568,10 +1598,34 @@ class MemoryBase(object):
             mem_str = regex.search(output.replace(',', '')).groups()[0]
             args = ("%sB" % mem_str, "M", 1024)
             mem_size = float(utils_misc.normalize_data_size(*args))
-            logging.info("free memory reported by os: %.2f MB" % mem_size)
+            logging.info("free memory reported by os: %s MB" % mem_size)
         except Exception:
-            logging.warn("invalid output from guest: %s" % output)
+            logging.warn("invalid output from guest: '%s'" % output)
         return mem_size
+
+    def get_session(self, vm):
+        """
+        Get connection for VM
+        """
+        key = vm.instance
+        self.sessions.setdefault(key, [])
+        for session in self.sessions.get(key):
+            if session.is_responsive():
+                return session
+            session.close()
+            self.sessions[key].remove(session)
+        login_timeout = float(self.params.get("login_timeout", 600))
+        session = vm.wait_for_login(timeout=login_timeout)
+        self.sessions[key].append(session)
+        return session
+
+    def close_sessions(self):
+        """
+        Close opening session, better to call it in the end of test.
+        """
+        sessions = reduce(lambda x,y: x + y, self.sessions.values())
+        map(lambda x: x.close(), [ _ for _ in sessions if _])
+        self.sessions.clear()
 
 
 class MemoryHotplugTest(MemoryBase):
@@ -1580,27 +1634,12 @@ class MemoryHotplugTest(MemoryBase):
     Class for memory hotplug.
     """
 
-    UNIT = "M"
-
-    def __init__(self, test, params, env):
-        super(MemoryHotplugTest, self).__init__(test, params, env)
-
-    @classmethod
-    def normalize_mem_mb(cls, str_size):
-        """
-        Convert memory size unit
-        """
-        args = ("%sB" % str_size, cls.UNIT, 1024)
-        size = utils_misc.normalize_data_size(*args)
-        try:
-            return float(size)
-        except ValueError as details:
-            return 0.0
-
+    @error_context.context_aware
     def update_vm_after_hotplug(self, vm, dev):
         """
         Update VM params to ensure hotpluged devices exist in guest
         """
+        error_context.context("Update VM object after hotplug memory")
         attrs = dev.__attributes__[:]
         params = self.params.copy_from_keys(attrs)
         dev_type, name = dev.get_qid().split('-')
@@ -1618,13 +1657,15 @@ class MemoryHotplugTest(MemoryBase):
             vm.devices.insert(dev)
         self.env.register_vm(vm.name, vm)
 
+    @error_context.context_aware
     def update_vm_after_unplug(self, vm, dev):
         """
         Update VM params object after unplug memory devices
         """
+        error_context.context("Update VM object after unplug memory")
         dev_type, name = dev.get_qid().split('-')
         if name not in vm.params.get("mem_devs"):
-            return
+            return None
         mem_devs = vm.params.objects("mem_devs")
         mem_devs.remove(name)
         vm.params["mem_devs"] = " ".join(mem_devs)
@@ -1686,42 +1727,20 @@ class MemoryHotplugTest(MemoryBase):
         return devices
 
     @error_context.context_aware
-    def get_vm_mem(self, vm):
-        """
-        Get guest memory
-        """
-        error_context.context("Get memory assign to VM")
-        mem_size = 0.0
-        for device in vm.devices:
-            if isinstance(device, qdevices.Dimm):
-                mem_qid = device.get_param("memdev")
-                mem = vm.devices.get_by_qid(mem_qid)[0]
-                mem_size += self.normalize_mem_mb(mem.get_param("size"))
-        if self.params.get("mem"):
-            mem_str = self.params.get("mem")
-            if mem_str.isdigit():
-                mem_str = "%s MB" % mem_str
-            mem_size += self.normalize_mem_mb(mem_str)
-        logging.info(
-            "Memory assigned to VM: %.2f %sB" %
-            (mem_size, self.UNIT))
-        return mem_size
-
-    @error_context.context_aware
     def get_mem_addr(self, vm, qid):
         """
         Get guest memory address from qemu monitor.
         """
-        error_context.context("Get hotpluged memory address")
-        if isinstance(vm.monitor, qemu_monitor.QMPMonitor):
-            output = vm.monitor.info("memory-devices")
-            for info in output:
-                if str(info['data']['id']) == qid:
-                    address = info['data']['addr']
-                    logging.info("Memory address: %s" % address)
-                    return address
-        else:
+        error_context.context("Get hotpluged memory address", logging.info)
+        if not isinstance(vm.monitor, qemu_monitor.QMPMonitor):
             raise NotImplementedError
+        output = vm.monitor.info("memory-devices")
+        for info in output:
+            if str(info['data']['id']) == qid:
+                address = info['data']['addr']
+                logging.info("Memory address: %s" % address)
+                return address
+        return None
 
     @error_context.context_aware
     def check_memory(self, vm=None):
@@ -1736,7 +1755,7 @@ class MemoryHotplugTest(MemoryBase):
         # Notes:
         #    some sub test will pause VM, here need to wait VM resume
         # then check memory info in guest.
-        utils_misc.wait_for(lambda: not vm.is_paused, timeout=timeout)
+        utils_misc.wait_for(lambda: not vm.is_paused(), timeout=timeout)
         utils_misc.verify_host_dmesg()
         session = self.get_session(vm)
         self.os_type = self.params.get("os_type")
@@ -1745,34 +1764,7 @@ class MemoryHotplugTest(MemoryBase):
         vm_mem_size = self.get_vm_mem(vm)
         threshold = vm_mem_size * 0.06
         if abs(guest_mem_size - vm_mem_size) > threshold:
-            msg = ("Assigned '%.2fMB' memory to '%s'"
-                   "but, '%.2fMB' memory detect by OS" %
+            msg = ("Assigned '%s MB' memory to '%s'"
+                   "but, '%s MB' memory detect by OS" %
                    (vm_mem_size, vm.name, guest_mem_size))
             raise exceptions.TestFail(msg)
-
-    def get_session(self, vm):
-        """
-        Get connection for VM
-        """
-        key = vm.instance
-        if not self.sessions.get(key):
-            self.sessions[key] = []
-        else:
-            for session in self.sessions[key]:
-                if session.is_responsive():
-                    return session
-                else:
-                    session.close()
-                    self.sessions[key].remove(session)
-        login_timeout = float(self.params.get("login_timeout", 600))
-        session = vm.wait_for_login(timeout=login_timeout)
-        self.sessions[key].append(session)
-        return session
-
-    def close_sessions(self):
-        """
-        Close opening session, better to call it in the end of test.
-        """
-        while self.sessions:
-            for session in self.sessions.popitem()[1]:
-                session.close()
