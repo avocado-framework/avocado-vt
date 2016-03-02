@@ -16,6 +16,7 @@
 Avocado VT plugin
 """
 
+import logging
 import os
 import sys
 
@@ -32,16 +33,16 @@ from .options import VirtTestOptionsProcess
 from .test import VirtTest
 
 
-def guest_listing(options, view):
-    term_support = output.TermSupport()
+LOG = logging.getLogger("avocado.app")
+
+
+def guest_listing(options):
     if options.vt_type == 'lvsb':
         raise ValueError("No guest types available for lvsb testing")
     index = 0
-    view.notify(event='minor', msg=("Searched %s for guest images\n" %
-                                    os.path.join(data_dir.get_data_dir(),
-                                                 'images')))
-    view.notify(event='minor', msg="Available guests in config:")
-    view.notify(msg='')
+    LOG.debug("Searched %s for guest images\n",
+              os.path.join(data_dir.get_data_dir(), 'images'))
+    LOG.debug("Available guests in config:\n")
     guest_name_parser = standalone_test.get_guest_name_parser(options)
     guest_name_parser.only_filter('i440fx')
     for params in guest_name_parser.get_dicts():
@@ -52,10 +53,9 @@ def guest_listing(options, view):
         if os.path.isfile(image_name):
             out = name
         else:
-            out = (name + " " +
-                   term_support.warn_header_str("(missing %s)" %
-                                                os.path.basename(image_name)))
-        view.notify(event='minor', msg=out)
+            missing = "(missing %s)" % os.path.basename(image_name)
+            out = (name + " " + output.term_support.warn_header_str(missing))
+        LOG.debug(out)
 
 
 class VirtTestLoader(loader.TestLoader):
@@ -110,12 +110,7 @@ class VirtTestLoader(loader.TestLoader):
 
     def get_extra_listing(self):
         if self.args.vt_list_guests:
-            use_paginator = self.args.paginator == 'on'
-            view = output.View(use_paginator=use_paginator)
-            try:
-                guest_listing(self.args, view)
-            finally:
-                view.cleanup()
+            guest_listing(self.args)
             sys.exit(0)
 
     @staticmethod
