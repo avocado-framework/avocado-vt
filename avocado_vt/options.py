@@ -388,7 +388,8 @@ class VirtTestOptionsProcess(object):
                                              "yes")
 
     def _process_mem(self):
-        self.cartesian_parser.assign("mem", self.options.vt_mem)
+        if not self.options.vt_config:
+            self.cartesian_parser.assign("mem", self.options.vt_mem)
 
     def _process_tcpdump(self):
         """
