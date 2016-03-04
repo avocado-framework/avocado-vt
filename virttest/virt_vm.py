@@ -683,8 +683,6 @@ class BaseVM(object):
                 else:
                     raise VMAddressVerificationError(nic.mac, arp_ip)
 
-            logging.debug('Found/Verified IP %s for VM %s NIC %s',
-                          arp_ip, self.name, str(index))
             # Update address_cache since ip/mac releation ship verify pass
             self.address_cache[nic.mac.lower()] = arp_ip
             return arp_ip
@@ -771,9 +769,13 @@ class BaseVM(object):
             except (VMIPAddressMissingError, VMAddressVerificationError):
                 return False
 
-        if not utils_misc.wait_for(_get_address, timeout, internal_timeout):
+        ipaddr = utils_misc.wait_for(_get_address, timeout, internal_timeout)
+        if not ipaddr:
             raise VMIPAddressMissingError(self.virtnet[nic_index_or_name].mac)
-        return self.get_address(nic_index_or_name)
+        msg = 'Found/Verified IP %s for VM %s NIC %s' % (ipaddr, self.name,
+                                                         nic_index_or_name)
+        logging.debug(msg)
+        return ipaddr
 
     # Adding/setup networking devices methods split between 'add_*' for
     # setting up virtnet, and 'activate_' for performing actions based
@@ -1027,9 +1029,7 @@ class BaseVM(object):
             time.sleep(2)
         # Timeout expired
         logging.info("Try to get guest network status.")
-        s_session = self.wait_for_serial_login(30, internal_timeout,
-                                               username=username,
-                                               password=password)
+        s_session = self.serial_login(username=username, password=password)
         if s_session:
             output = s_session.cmd_output("ipconfig || ifconfig", timeout=60)
             txt = "Guest network status:\n %s" % output
