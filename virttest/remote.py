@@ -199,7 +199,7 @@ def handle_prompts(session, username, password, prompt, timeout=10,
 
 def remote_login(client, host, port, username, password, prompt, linesep="\n",
                  log_filename=None, timeout=10, interface=None,
-                 status_test_command="echo $?"):
+                 status_test_command="echo $?", verbose=False):
     """
     Log into a remote host (guest) using SSH/Telnet/Netcat.
 
@@ -232,19 +232,22 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
             raise LoginError("When using ipv6 linklocal an interface must "
                              "be assigned")
         host = "%s%%%s" % (host, interface)
+
+    verbose = verbose and "-vv" or ""
     if client == "ssh":
-        cmd = ("ssh -o UserKnownHostsFile=/dev/null "
+        cmd = ("ssh %s -o UserKnownHostsFile=/dev/null "
                "-o StrictHostKeyChecking=no "
                "-o PreferredAuthentications=password -p %s %s@%s" %
-               (port, username, host))
+               (verbose, port, username, host))
     elif client == "telnet":
         cmd = "telnet -l %s %s %s" % (username, host, port)
     elif client == "nc":
-        cmd = "nc %s %s" % (host, port)
+        cmd = "nc %s %s %s" % (verbose, host, port)
     else:
         raise LoginBadClientError(client)
 
-    logging.debug("Login command: '%s'", cmd)
+    if verbose:
+        logging.debug("Login command: '%s'", cmd)
     session = aexpect.ShellSession(cmd, linesep=linesep, prompt=prompt,
                                    status_test_command=status_test_command)
     try:
@@ -352,13 +355,15 @@ def wait_for_login(client, host, port, username, password, prompt,
     logging.debug("Attempting to log into %s:%s using %s (timeout %ds)",
                   host, port, client, timeout)
     end_time = time.time() + timeout
+    verbose = False
     while time.time() < end_time:
         try:
             return remote_login(client, host, port, username, password, prompt,
                                 linesep, log_filename, internal_timeout,
-                                interface)
+                                interface, verbose=verbose)
         except LoginError, e:
             logging.debug(e)
+            verbose = True
         time.sleep(2)
     # Timeout expired; try one more time but don't catch exceptions
     return remote_login(client, host, port, username, password, prompt,
