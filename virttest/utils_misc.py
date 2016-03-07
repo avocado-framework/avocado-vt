@@ -2540,48 +2540,33 @@ def normalize_data_size(value_str, order_magnitude="M", factor="1024"):
     Normalize a data size in one order of magnitude to another (MB to GB,
     for example).
 
-    :param value_str: a string include the data and unit
+    :param value_str: a string include the data default unit is 'B'
     :param order_magnitude: the magnitude order of result
     :param factor: the factor between two relative order of magnitude.
                    Normally could be 1024 or 1000
     """
-    def _get_magnitude_index(magnitude_list, magnitude_value):
-        for i in magnitude_list:
-            order_magnitude = re.findall("[\s\d](%s)" % i,
-                                         str(magnitude_value), re.I)
-            if order_magnitude:
-                return magnitude_list.index(order_magnitude[0].upper())
-        return -1
-
-    magnitude_list = ['B', 'K', 'M', 'G', 'T']
-    try:
-        data = float(re.findall("[\d\.]+", value_str)[0])
-    except IndexError:
-        logging.error("Incorrect data size format. Please check %s"
-                      " has both data and unit." % value_str)
-        return ""
-
-    magnitude_index = _get_magnitude_index(magnitude_list, value_str)
-    order_magnitude_index = _get_magnitude_index(magnitude_list,
-                                                 " %s" % order_magnitude)
-
-    if data == 0:
+    def __get_unit_index(M):
+        try:
+            return ['B', 'K', 'M', 'G', 'T'].index(M)
+        except ValueError:
+            pass
         return 0
-    elif magnitude_index < 0 or order_magnitude_index < 0:
-        logging.error("Unknown input order of magnitude. Please check your"
-                      "value '%s' and desired order of magnitude"
-                      " '%s'." % (value_str, order_magnitude))
-        return ""
 
-    if magnitude_index > order_magnitude_index:
-        multiple = float(factor)
+    regex = r"(\d+)\s*(\w?)"
+    match = re.search(regex, value_str)
+    try:
+        value = match.group(1)
+        unit = match.group(2) or 'B'
+    except TypeError:
+        raise ValueError("Invalid data size format 'value_str=%s'" % value_str)
+    from_index = __get_unit_index(unit)
+    to_index = __get_unit_index(order_magnitude)
+    scale = int(factor) ** (to_index - from_index)
+    if scale > 0:
+        data_size = float(value) / abs(scale)
     else:
-        multiple = float(factor) ** -1
-
-    for _ in range(abs(magnitude_index - order_magnitude_index)):
-        data *= multiple
-
-    return str(data)
+        data_size = float(value) * abs(scale)
+    return str(data_size)
 
 
 def get_free_disk(session, mount):
