@@ -1147,6 +1147,33 @@ class HumanMonitor(Monitor):
         size = float(normalize_data_size("%sB" % size, 'M', '1024'))
         return self.cmd("balloon %d" % size)
 
+    def set_migrate_capability(self, state, capability):
+        """
+        Set the capability of migrate to state.
+
+        :param state: Bool value of capability.
+        :param capability: capability which need to set.
+        """
+        cmd = "migrate_set_capability"
+        self.verify_supported_cmd(cmd)
+        value = "off"
+        if state:
+            value = "on"
+        cmd += " %s %s" % (capability, value)
+        return self.cmd(cmd)
+
+    def get_migrate_capability(self, capability):
+        """
+        Get the state of migrate-capability.
+
+        :param capability: capability which need to get.
+        :return: the state of migrate-capability.
+        """
+        capability_info = self.query("migrate_capabilities")
+        pattern = r"%s:\s+(on|off)" % capability
+        value = re.search(pattern, capability_info, re.M).group(1)
+        return value == "on"
+
 
 class QMPMonitor(Monitor):
 
@@ -2058,3 +2085,28 @@ class QMPMonitor(Monitor):
         """
         self.verify_supported_cmd("balloon")
         self.send_args_cmd("balloon value=%s" % size)
+
+    def set_migrate_capability(self, state, capability):
+        """
+        Set the capability of migrate to state.
+
+        :param state: Bool value of capability.
+        :param capability: capability which need to set.
+        """
+        cmd = "migrate-set-capabilities"
+        self.verify_supported_cmd(cmd)
+        args = {"capabilities": [{"state": state, "capability": capability}]}
+        return self.cmd(cmd, args)
+
+    def get_migrate_capability(self, capability):
+        """
+        Get the state of migrate-capability.
+
+        :param capability: capability which need to get.
+        :return: the state of migrate-capability.
+        """
+        capability_infos = self.query("migrate-capabilities")
+        for item in capability_infos:
+            if item["capability"] == capability:
+                return item["state"]
+        return False

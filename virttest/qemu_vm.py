@@ -3531,7 +3531,8 @@ class VM(virt_vm.BaseVM):
                 dest_host="localhost",
                 remote_port=None, not_wait_for_migration=False,
                 fd_src=None, fd_dst=None, migration_exec_cmd_src=None,
-                migration_exec_cmd_dst=None, env=None):
+                migration_exec_cmd_dst=None, env=None,
+                migrate_capabilities=None):
         """
         Migrate the VM.
 
@@ -3565,6 +3566,7 @@ class VM(virt_vm.BaseVM):
                 (e.g. 'gzip -c -d filename') if migration_mode is 'exec'
                 default to listening on a random TCP port
         :param env: Dictionary with test environment
+        :param migrate_capabilities: The capabilities for migration to need set.
         """
         if protocol not in self.MIGRATION_PROTOS:
             raise virt_vm.VMMigrateProtoUnknownError(protocol)
@@ -3668,6 +3670,17 @@ class VM(virt_vm.BaseVM):
 
             if offline is True:
                 self.monitor.cmd("stop")
+
+            if migrate_capabilities:
+                error_context.context("Set migrate capabilities.", logging.info)
+                for key, value in migrate_capabilities.items():
+                    state = value == "on"
+                    self.monitor.set_migrate_capability(state, key)
+                    s = self.monitor.get_migrate_capability(key)
+                    if s != state:
+                        msg = ("Migrate capability '%s' should be '%s', "
+                               "but actual result is '%s'" % (key, state, s))
+                        raise exceptions.TestError(msg)
 
             threads_before_migrate = self.get_qemu_threads()
 

@@ -532,11 +532,13 @@ class MultihostMigration(object):
         re implement this method.
         """
         def mig_wrapper(vm, cancel_delay, dsthost, vm_ports,
-                        not_wait_for_migration, mig_offline, mig_data):
+                        not_wait_for_migration, mig_offline, mig_data,
+                        migrate_capabilities):
             vm.migrate(protocol=self.mig_protocol, cancel_delay=cancel_delay,
                        offline=mig_offline, dest_host=dsthost,
                        remote_port=vm_ports[vm.name],
-                       not_wait_for_migration=not_wait_for_migration)
+                       not_wait_for_migration=not_wait_for_migration,
+                       migrate_capabilities=migrate_capabilities)
 
             self.post_migration(vm, cancel_delay, mig_offline, dsthost,
                                 vm_ports, not_wait_for_migration, None,
@@ -555,12 +557,20 @@ class MultihostMigration(object):
         else:
             mig_offline = False
 
+        migrate_capabilities = {'xbzrle': mig_data.params.get("xbzrle", "off"),
+                                'rdma-pin-all': mig_data.params.get("rdma-pin-all", "off"),
+                                'auto-converge': mig_data.params.get("auto-converge", "off"),
+                                'zero-blocks': mig_data.params.get("zero-blocks", "off"),
+                                'events': mig_data.params.get("events", "off"),
+                                }
+
         multi_mig = []
         for vm in mig_data.vms:
             multi_mig.append((mig_wrapper, (vm, cancel_delay, mig_data.dst,
                                             mig_data.vm_ports,
                                             not_wait_for_migration,
-                                            mig_offline, mig_data)))
+                                            mig_offline, mig_data,
+                                            migrate_capabilities)))
         utils_misc.parallel(multi_mig)
 
     def migrate_vms_dest(self, mig_data):
