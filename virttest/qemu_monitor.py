@@ -1136,6 +1136,17 @@ class HumanMonitor(Monitor):
         cmd += " %s %s" % (device, target)
         return self.cmd(cmd)
 
+    def balloon(self, size):
+        """
+        Balloon VM memory to given size bytes;
+
+        :param size: int type size value.
+        """
+        self.verify_supported_cmd("balloon")
+        normalize_data_size = utils_misc.normalize_data_size
+        size = float(normalize_data_size("%sB" % size, 'M', '1024'))
+        return self.cmd("balloon %d" % size)
+
 
 class QMPMonitor(Monitor):
 
@@ -2038,3 +2049,12 @@ class QMPMonitor(Monitor):
         self.verify_supported_cmd(cmd)
         args = {"path": path, "property": qproperty}
         return self.cmd(cmd, args)
+
+    def balloon(self, size):
+        """
+        Balloon VM memory to size bytes;
+
+        :param size: int type values.
+        """
+        self.verify_supported_cmd("balloon")
+        self.send_args_cmd("balloon value=%s" % size)
