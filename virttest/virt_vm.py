@@ -1283,16 +1283,9 @@ class BaseVM(object):
             if not cmd:
                 cmd = self.params.get("mem_chk_cmd")
             mem_str = session.cmd_output(cmd, timeout=timeout)
-            mem = re.findall(re_str, mem_str)
-            mem_size = 0
-            for m in mem:
-                mem_size += int(m)
-            if "GB" in mem_str:
-                mem_size *= 1024
-            elif "MB" in mem_str:
-                pass
-            else:
-                mem_size /= 1024
+            mem = re.findall(r"\d+\s*\w?", mem_str, re.M)
+            mem = map(lambda x: utils_misc.normalize_data_size(x), mem)
+            mem_size = sum(map(float, mem))
             return int(mem_size)
         finally:
             session.close()
