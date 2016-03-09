@@ -240,7 +240,8 @@ class NFSClient(object):
     def __init__(self, params):
         # Setup SSH connection
         self.ssh_obj = SSHConnection(params)
-        self.ssh_obj.conn_setup()
+        ssh_timeout = int(params.get("ssh_timeout", 10))
+        self.ssh_obj.conn_setup(timeout=ssh_timeout)
 
         self.mkdir_mount_remote = False
         self.mount_dir = params.get("nfs_mount_dir")
