@@ -120,14 +120,14 @@ node   0
 1236
 1237
 """},
-            {"cmd": "taskset -p 0x1 1230", "stdout": ""},
-            {"cmd": "taskset -p 0x2 1231", "stdout": ""},
-            {"cmd": "taskset -p 0x4 1232", "stdout": ""},
-            {"cmd": "taskset -p 0x8 1233", "stdout": ""},
-            {"cmd": "taskset -p 0x10 1234", "stdout": ""},
-            {"cmd": "taskset -p 0x20 1235", "stdout": ""},
-            {"cmd": "taskset -p 0x40 1236", "stdout": ""},
-            {"cmd": "taskset -p 0x80 1237", "stdout": ""},
+            {"cmd": "taskset -cp 0 1230", "stdout": ""},
+            {"cmd": "taskset -cp 1 1231", "stdout": ""},
+            {"cmd": "taskset -cp 2 1232", "stdout": ""},
+            {"cmd": "taskset -cp 3 1233", "stdout": ""},
+            {"cmd": "taskset -cp 4 1234", "stdout": ""},
+            {"cmd": "taskset -cp 5 1235", "stdout": ""},
+            {"cmd": "taskset -cp 6 1236", "stdout": ""},
+            {"cmd": "taskset -cp 7 1237", "stdout": ""},
 
         ]
 
