@@ -1888,7 +1888,7 @@ class NumaNode(object):
         for i in cpus:
             if (cpu is not None and cpu == i) or (cpu is None and not self.dict[i]):
                 self.dict[i].append(pid)
-                cmd = "taskset -p %s %s" % (hex(2 ** int(i)), pid)
+                cmd = "taskset -cp %s %s" % (int(i), pid)
                 logging.debug("NumaNode (%s): " % i + cmd)
                 process.run(cmd)
                 return i
