@@ -3546,7 +3546,8 @@ class SELinuxBoolean(object):
         # Setup SSH connection
         from utils_conn import SSHConnection
         self.ssh_obj = SSHConnection(params)
-        self.ssh_obj.conn_setup()
+        ssh_timeout = int(params.get("ssh_timeout", 10))
+        self.ssh_obj.conn_setup(timeout=ssh_timeout)
 
         self.cleanup_local = True
         self.cleanup_remote = True
