@@ -988,7 +988,7 @@ class PoolVolumeTest(object):
                     image_size=image_size)
                 cmd = ("iscsiadm -m session -P 3 |grep -B3 %s| grep Host|awk "
                        "'{print $3}'" % logical_device.split('/')[2])
-                scsi_host = process.system_output(cmd, shell=True)
+                scsi_host = process.system_output(cmd, shell=True).strip()
                 scsi_pool_xml = pool_xml.PoolXML()
                 scsi_pool_xml.name = pool_name
                 scsi_pool_xml.pool_type = "scsi"
