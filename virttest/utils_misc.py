@@ -1140,7 +1140,7 @@ def is_mounted(src, mount_point, fstype, perm=None, verbose=False,
         else:
             # Allow no passed src(None or "")
             src = ""
-    mount_string = "%s %s %s %s" % (src, mount_point, fstype_mtab, perm)
+    mount_string = "%s %s .*%s %s" % (src, mount_point, fstype_mtab, perm)
     logging.debug("Searching '%s' in mtab...", mount_string)
     if verbose:
         logging.debug("/etc/mtab contents:\n%s", file("/etc/mtab").read())
