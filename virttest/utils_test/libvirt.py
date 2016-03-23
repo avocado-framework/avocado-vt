@@ -2473,7 +2473,7 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
     Connect libvirt daemon
     """
     patterns_yes_no = r".*[Yy]es.*[Nn]o.*"
-    patterns_auth_name_comm = r".*name:.*"
+    patterns_auth_name_comm = r".*username:.*"
     patterns_auth_name_xen = r".*name.*root.*:.*"
     patterns_auth_pwd = r".*[Pp]assword.*"
 
