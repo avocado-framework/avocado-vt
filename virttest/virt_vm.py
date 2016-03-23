@@ -837,10 +837,13 @@ class BaseVM(object):
         panic_re.append(r"----------\[ cut here.* BUG .*\[ end trace .* \]---")
         panic_re.append(r"general protection fault:.* RSP.*>")
         panic_re = "|".join(panic_re)
-        if self.serial_console is not None:
+        if self.serial_console:
             data = self.serial_console.get_output()
+            if not data:
+                logging.warn("Unable to read serial console")
+                return
             match = re.search(panic_re, data, re.DOTALL | re.MULTILINE | re.I)
-            if match is not None:
+            if match:
                 raise VMDeadKernelCrashError(match.group(0))
 
     def verify_bsod(self, scrdump_file):
