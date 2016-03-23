@@ -1831,8 +1831,7 @@ class QMPMonitor(Monitor):
 
         :return: The command's output
         """
-        val = value * 10 ** 9
-        args = {"value": val}
+        args = {"value": value}
         return self.cmd("migrate_set_downtime", args)
 
     def live_snapshot(self, device, snapshot_file, snapshot_format="qcow2"):
