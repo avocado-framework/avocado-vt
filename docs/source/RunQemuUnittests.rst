@@ -132,7 +132,7 @@ Step by step procedure
 
    ::
 
-       $HOME/Code/autotest/client/bin/autotest $HOME/Code/autotest/client/tests/kvm/control.unittests
+       $ $HOME/Code/autotest/client/bin/autotest $HOME/Code/autotest/client/tests/kvm/control.unittests
 
 #. The output of a typical unittest execution looks like. Notice that
    autotest informs you where the logs of each individual unittests are

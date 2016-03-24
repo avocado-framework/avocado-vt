@@ -70,7 +70,7 @@ You'll follow the procedure described on
 
 https://github.com/autotest/autotest/wiki/AutotestServerInstallRedHat
 
-for Red Hat derivatives (such as Fedora and RHEL), and 
+for Red Hat derivatives (such as Fedora and RHEL), and
 
 https://github.com/autotest/autotest/wiki/AutotestServerInstall
 
@@ -109,13 +109,13 @@ Logged as the autotest user:
 ::
 
     $ /usr/local/autotest/cli/autotest-rpc-client label create -t amd64
-    Created label: 
+    Created label:
         'amd64'
     $ /usr/local/autotest/cli/autotest-rpc-client label create -t intel64
-    Created label: 
+    Created label:
         'intel64'
     $ /usr/local/autotest/cli/autotest-rpc-client label create hostprovisioning
-    Created label: 
+    Created label:
         'hostprovisioning'
 
 Then I'd create each machine with the appropriate labels
@@ -123,11 +123,11 @@ Then I'd create each machine with the appropriate labels
 ::
 
     $ /usr/local/autotest/cli/autotest-rpc-client host create -t amd64 -b hostprovisioning foo-amd.bazcorp.com
-    Added host: 
+    Added host:
         foo-amd.bazcorp.com
 
     $ /usr/local/autotest/cli/autotest-rpc-client host create -t amd64 -b hostprovisioning foo-intel.bazcorp.com
-    Added host: 
+    Added host:
         foo-amd.bazcorp.com
 
 
@@ -139,7 +139,7 @@ additional information for the virt jobs:
 
 ::
 
-    cp /usr/local/autotest/contrib/virt/site_job.py /usr/local/autotest/cli/
+    $ cp /usr/local/autotest/contrib/virt/site_job.py /usr/local/autotest/cli/
 
 This should be enough to enable all the extra functionality.
 
@@ -148,7 +148,7 @@ to the qemu config module:
 
 ::
 
-    cp /usr/local/autotest/contrib/virt/site-config.cfg /usr/local/autotest/client/tests/virt/qemu/cfg
+    $ cp /usr/local/autotest/contrib/virt/site-config.cfg /usr/local/autotest/client/tests/virt/qemu/cfg
 
 Be aware that you *need* to read this file well, and later, configure it to your
 testing needs. We specially stress that you might want to create private git
@@ -341,7 +341,7 @@ the autotest user, and use the command:
 
 ::
 
-    /usr/local/autotest/cli/autotest-rpc-client job create -B never -a never -s -e autotest-virt-jobs@foocorp.com -f "/usr/local/autotest/contrib/virt/control.template" -T --timestamp -m '1*hostprovisioning' -x 'only f18..sanity' "Fedora 18 koji sanity"
+    $ /usr/local/autotest/cli/autotest-rpc-client job create -B never -a never -s -e autotest-virt-jobs@foocorp.com -f "/usr/local/autotest/contrib/virt/control.template" -T --timestamp -m '1*hostprovisioning' -x 'only f18..sanity' "Fedora 18 koji sanity"
 
 As you might have guessed, this will schedule a Fedora 18 sanity job. So go
 through it and fix things step by step. If anything, you can take a look at
