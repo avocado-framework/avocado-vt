@@ -54,7 +54,7 @@ def guest_listing(options):
             out = name
         else:
             missing = "(missing %s)" % os.path.basename(image_name)
-            out = (name + " " + output.term_support.warn_header_str(missing))
+            out = (name + " " + output.TERM_SUPPORT.warn_header_str(missing))
         LOG.debug(out)
 
 
