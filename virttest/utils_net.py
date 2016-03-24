@@ -2935,7 +2935,6 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0):
                 return True
         o = commands.getoutput(arping_cmd)
         if not regex.search(o):
-            logging.debug("Verify arping result failed: %s" % o)
             return False
         return True
 
@@ -2943,24 +2942,20 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0):
     ip_cmd = utils_path.find_command("ip")
     ip_cmd = "%s route get %s; %s route | grep default" % (ip_cmd, ip, ip_cmd)
     output = commands.getoutput(ip_cmd)
-    devs = re.findall(r"dev\s+\S+", output, re.I)
-    checked_devs = []
+    devs = set(re.findall(r"dev\s+(\S+)", output, re.I))
     if not devs:
-        logging.debug("No dev in route table to %s: %s" % (ip, output))
+        logging.debug("No path to %s in route table %s: %s" % (ip, output))
         return False
     mac_regex = "|".join("(%s)" % mac for mac in macs)
     regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex), re.I)
     arping_bin = utils_path.find_command("arping")
     for dev in devs:
-        dev = dev.split()[-1]
-        if dev in checked_devs:
-            continue
         arping_cmd = "%s -f -c 3 -I %s %s" % (arping_bin, dev, ip)
         ret = utils_misc.wait_for(lambda: __arping(regex, arping_cmd, ip),
                                   timeout=timeout)
-        checked_devs.append(dev)
         if ret:
-            return bool(ret)
+            return True
+        logging.debug("Arping %s via %s failed" % (ip, dev))
     return False
 
 
