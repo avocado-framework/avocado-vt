@@ -2547,7 +2547,7 @@ def normalize_data_size(value_str, order_magnitude="M", factor="1024"):
     """
     def __get_unit_index(M):
         try:
-            return ['B', 'K', 'M', 'G', 'T'].index(M)
+            return ['B', 'K', 'M', 'G', 'T'].index(M.upper())
         except ValueError:
             pass
         return 0
@@ -2556,7 +2556,9 @@ def normalize_data_size(value_str, order_magnitude="M", factor="1024"):
     match = re.search(regex, value_str)
     try:
         value = match.group(1)
-        unit = match.group(2) or 'B'
+        unit = match.group(2)
+        if not unit:
+            unit = 'B'
     except TypeError:
         raise ValueError("Invalid data size format 'value_str=%s'" % value_str)
     from_index = __get_unit_index(unit)
