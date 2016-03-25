@@ -1612,7 +1612,7 @@ class QMPMonitor(Monitor):
 
         :return: The response to the command
         """
-        self._log_command(cmd, extra_str="(via Human Monitor)")
+        self._log_command(cmd, debug, extra_str="(via Human Monitor)")
 
         args = {"command-line": cmd}
         ret = self.cmd("human-monitor-command", args, timeout, False, fd)
