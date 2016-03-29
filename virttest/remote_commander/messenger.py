@@ -138,9 +138,10 @@ class StdIOWrapperIn(StdIOWrapper):
 
     def read(self, max_len, timeout=None):
         if timeout is not None:
-            return self._wait_for_data(max_len, timeout)
+            data = self._wait_for_data(max_len, timeout)
         else:
-            return os.read(self._obj, max_len)
+            data = os.read(self._obj, max_len)
+        return data
 
 
 class StdIOWrapperOut(StdIOWrapper):
@@ -220,7 +221,8 @@ class Messenger(object):
         pdata = cPickle.dumps(data, cPickle.HIGHEST_PROTOCOL)
         pdata = self.stdout.encode(pdata)
         len_enc = self.stdout.encode("%10d" % len(pdata))
-        return "%s%s" % (len_enc, pdata)
+        msg = "%s%s" % (len_enc, pdata)
+        return msg
 
     def flush_stdin(self):
         """
