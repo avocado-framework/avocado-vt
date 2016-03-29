@@ -1,7 +1,8 @@
 '''
 Created on Dec 11, 2013
 
-:author: jzupka
+:author: jzupka, astepano
+:contact: Andrei Stepanov <astepano@redhat.com>
 '''
 import copy
 
@@ -126,6 +127,32 @@ class StdErr(StdStream):
     def __setstate__(self, state):
         self.cmd_id = state[0]
         self.msg = state[1]
+
+
+class CmdQuery(object):
+    """Command-msg-request from VM to avocado-vt test.
+    """
+    def __init__(self, *args, **kargs):
+        """
+        Command for asking from VM to avocado-vt.
+
+        :param args: Something pickable. Is irrelevant for messenger.
+        :param kargs: Something pickable. Is irrelevant for messenger.
+        """
+        self.args = copy.deepcopy(args)
+        self.kargs = copy.deepcopy(kargs)
+
+
+class CmdRespond(object):
+    """Command-msg-answer from avocado-test to VM.
+    """
+    def __init__(self, respond):
+        """
+        Command for answering avocado-vt to VM.
+
+        :param respond: Something pickable. Is irrelevant for messenger.
+        """
+        self.respond = respond  # Must be pickable.
 
 
 class BaseCmd(CmdMessage):
