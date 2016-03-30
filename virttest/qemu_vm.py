@@ -3689,10 +3689,11 @@ class VM(virt_vm.BaseVM):
             if not_wait_for_migration:
                 return clone
 
-            threads_during_migrate = self.get_qemu_threads()
-            if not (len(threads_during_migrate) > len(threads_before_migrate)):
-                raise virt_vm.VMMigrateFailedError("Cannot find new thread "
-                                                   "for migration.")
+            if self.params.get("enable_check_mig_thread", "no") == "yes":
+                threads_during_migrate = self.get_qemu_threads()
+                if not (len(threads_during_migrate) > len(threads_before_migrate)):
+                    raise virt_vm.VMMigrateFailedError("Cannot find new thread"
+                                                       " for migration.")
 
             if cancel_delay:
                 error_context.context("Do migrate_cancel after %d seconds" %
