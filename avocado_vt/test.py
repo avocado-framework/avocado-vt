@@ -120,6 +120,7 @@ class VirtTest(test.Test):
         self.params = utils_params.Params(vt_params)
         self.debugdir = self.logdir
         self.resultsdir = self.logdir
+        self.timeout = vt_params.get("test_timeout", self.timeout)
         utils_misc.set_log_file_dir(self.logdir)
 
     @property
