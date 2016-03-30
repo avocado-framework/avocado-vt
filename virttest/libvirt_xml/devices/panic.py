@@ -10,10 +10,12 @@ from virttest.libvirt_xml.devices import base
 
 class Panic(base.UntypedDeviceBase):
 
-    __slots__ = ('addr_type', 'addr_iobase', 'addr_controller', 'addr_bus',
-                 'addr_port')
+    __slots__ = ('model', 'addr_type', 'addr_iobase', 'addr_controller',
+                 'addr_bus', 'addr_port')
 
     def __init__(self, virsh_instance=base.base.virsh):
+        accessors.XMLAttribute('model', self, parent_xpath='/',
+                               tag_name="panic", attribute='model')
         accessors.XMLAttribute('addr_type', self, parent_xpath='/',
                                tag_name="address", attribute='type')
         accessors.XMLAttribute('addr_iobase', self, parent_xpath='/',
