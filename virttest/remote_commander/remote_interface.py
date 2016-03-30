@@ -128,6 +128,37 @@ class StdErr(StdStream):
         self.msg = state[1]
 
 
+class CmdQuery(object):
+    """Command-msg-request from VM to avocado-vt test.
+    """
+    def __init__(self, *args, **kargs):
+        """Command for asking from VM to avocado-vt.
+
+        Parameters
+        ----------
+        args : Something pickable.
+            Is irrelevant for messagenger.
+        kargs : Something pickable.
+            Is irrelevant for messagenger.
+        """
+        self.args = copy.deepcopy(args)
+        self.kargs = copy.deepcopy(kargs)
+
+
+class CmdRespond(object):
+    """Command-msg-answer from avocado-test to VM.
+    """
+    def __init__(self, respond):
+        """Command for answering avocado-vt to VM.
+
+        Parameters
+        ----------
+        respond : Something pickable.
+            Is irrelevant for messagenger.
+        """
+        self.respond = respond  # Must be pickable.
+
+
 class BaseCmd(CmdMessage):
 
     """
