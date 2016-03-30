@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import aexpect
 
@@ -115,7 +116,7 @@ def setup_ssh_key(hostname, user, password, port):
     try:
         session = remote.remote_login(client='ssh', host=hostname,
                                       username=user, port=port,
-                                      password=password)
+                                      password=password, prompt=r'[$#%]')
         public_key = get_public_key()
 
         session.cmd('mkdir -p ~/.ssh')
@@ -182,3 +183,36 @@ def setup_remote_ssh_key(hostname1, user1, password1,
             session2.close()
         except:
             pass
+
+
+def setup_remote_known_hosts_file(client_ip, server_ip,
+                                  server_user, server_pwd):
+    """
+    Set the host key in local known_hosts file to remote host
+
+    :param client_ip: local host ip address where host key is copied from
+    :type client_ip: str
+    :param server_ip: remote host ip address where host key is copied to
+    :type server_ip: str
+    :param server_user: user to log on remote host
+    :type server_user: str
+    :param server_pwd: password for the user for log on remote host
+    :type server_pwd: str
+
+    :return: a RemoteFile object for the file known_hosts on remote host
+    :rtype: remote.RemoteFile
+    """
+    home = os.path.expanduser('~')
+    cmd = 'cat %s/.ssh/known_hosts' % home
+    output = process.system_output(cmd, verbose=False)
+    host_key = re.findall('(.*%s[, ].*)' % client_ip, output)[0]
+    remote_known_hosts_file = remote.RemoteFile(
+            address=server_ip,
+            client='scp',
+            username=server_user,
+            password=server_pwd,
+            port='22',
+            remote_path='~/.ssh/known_hosts')
+    pattern2repl = {r".*%s[, ].*" % client_ip: host_key}
+    remote_known_hosts_file.sub_else_add(pattern2repl)
+    return remote_known_hosts_file
