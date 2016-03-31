@@ -1060,7 +1060,7 @@ class BaseVM(object):
             if self.serial_console:
                 self.cleanup_serial_console()
             # In the case of address is changed, update arp cache
-            utils_net.update_mac_ip_address(self, self.params)
+            utils_net.update_mac_ip_address(self, self.params, timeout=timeout)
             # Try one more time but don't catch exceptions
             return self.login(nic_index, internal_timeout, username, password)
 
