@@ -195,7 +195,7 @@ def setup_runlevel(params, session):
 
     ori_runlevel = ori_runlevel.split()[-1]
     if ori_runlevel == expect_runlevel:
-        logging.info("Guest runlevel is already %s as expected") % ori_runlevel
+        logging.info("Guest runlevel is already %s as expected" % ori_runlevel)
     else:
         session.cmd("init %s" % expect_runlevel)
         tmp_runlevel = session.cmd(cmd)
