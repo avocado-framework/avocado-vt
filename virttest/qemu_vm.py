@@ -3743,7 +3743,6 @@ class VM(virt_vm.BaseVM):
             error_context.context("after migration")
             if local:
                 time.sleep(1)
-                self.verify_kernel_crash()
                 self.verify_alive()
 
             if local and stable_check:
