@@ -3162,7 +3162,7 @@ def update_mac_ip_address(vm, params, timeout=None):
         if re.match(".\d+\.\d+\.\d+\.\d+", mac):
             _ip, mac = mac, _ip
         if "-" in mac:
-            mac = mac.replace("-", ".")
+            mac = mac.replace("-", ":")
         vm.address_cache[mac.lower()] = _ip
         vm.virtnet.set_mac_address(vlan, mac)
 
