@@ -2906,6 +2906,33 @@ def get_image_info(image_file):
                                    (image_file, detail))
 
 
+def is_qemu_capability_supported(capability):
+    """
+    Check if the specified qemu capability is supported
+    using libvirt cache.
+
+    :param capability: the qemu capability to be queried
+    :type capability: str
+
+    :return: True if the capabilitity is found, otherwise False
+    :rtype: Boolean
+    :raise: exceptions.TestError: if no capability file or no directory
+    """
+    qemu_path = "/var/cache/libvirt/qemu/capabilities/"
+    if not os.path.isdir(qemu_path) or not len(os.listdir(qemu_path)):
+        raise exceptions.TestError("Missing the directory %s or no file "
+                                   "exists in the directory" % qemu_path)
+    qemu_capxml = qemu_path + os.listdir(qemu_path)[0]
+    xmltree = XMLTreeFile(qemu_capxml)
+    for elem in xmltree.getroot().findall('flag'):
+        name = elem.attrib.get('name')
+        if name == capability:
+            logging.info("The qemu capability '%s' is supported", capability)
+            return True
+    logging.info("The qemu capability '%s' is not supported.", capability)
+    return False
+
+
 def get_test_entrypoint_func(name, module):
     '''
     Returns the test entry point function for a loaded module
