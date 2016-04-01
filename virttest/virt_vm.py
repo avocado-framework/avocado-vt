@@ -1279,7 +1279,7 @@ class BaseVM(object):
                        self.params.get("mem_chk_re_str") will be
                        used.
         """
-        session = self.login()
+        session = self.wait_for_login()
         if re_str is None:
             re_str = self.params.get("mem_chk_re_str", "([0-9]+)")
         try:
