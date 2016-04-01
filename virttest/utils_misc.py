@@ -41,6 +41,7 @@ from . import error_context
 from . import cartesian_config
 from . import utils_selinux
 from .staging import utils_koji
+from .xml_utils import XMLTreeFile
 
 ARCH = platform.machine()
 
