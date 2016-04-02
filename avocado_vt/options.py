@@ -406,10 +406,14 @@ class VirtTestOptionsProcess(object):
             self.cartesian_parser.assign("run_tcpdump", "no")
 
     def _process_no_filter(self):
-        if not self.options.vt_config:
-            if self.options.vt_no_filter:
-                no_filter = ", ".join(self.options.vt_no_filter.split(' '))
-                self.cartesian_parser.no_filter(no_filter)
+        if self.options.vt_no_filter:
+            for item in self.options.vt_no_filter.split(' '):
+                self.cartesian_parser.no_filter(item)
+
+    def _process_only_filter(self):
+        if self.options.vt_only_filter:
+            for item in self.options.vt_only_filter.split(' '):
+                self.cartesian_parser.only_filter(item)
 
     def _process_extra_params(self):
         if getattr(self.options, "vt_extra_params", False):
@@ -436,6 +440,7 @@ class VirtTestOptionsProcess(object):
         self._process_mem()
         self._process_tcpdump()
         self._process_no_filter()
+        self._process_only_filter()
         self._process_qemu_img()
         self._process_bridge_mode()
         self._process_only_type_specific()
