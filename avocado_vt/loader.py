@@ -145,7 +145,7 @@ class VirtTestLoader(loader.TestLoader):
             # config parser, hence it should be ignored.
             # just return an empty params list and let
             # the other test plugins to handle the URL.
-            except cartesian_config.LexerError:
+            except cartesian_config.ParserError:
                 return []
         elif which_tests is loader.DEFAULT and not self.args.vt_config:
             # By default don't run anythinig unless vt_config provided
