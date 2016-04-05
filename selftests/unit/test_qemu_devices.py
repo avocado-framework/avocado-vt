@@ -578,7 +578,7 @@ class Container(unittest.TestCase):
                                                      shell=True,
                                                      verbose=False
                                                      ).and_return(QEMU_DEVICES)
-        qcontainer.process.system_output.expect_call("%s -M ?" % qemu_cmd,
+        qcontainer.process.system_output.expect_call("%s -M \?" % qemu_cmd,
                                                      timeout=10,
                                                      ignore_status=True,
                                                      shell=True,
