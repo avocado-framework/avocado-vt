@@ -54,11 +54,11 @@ def connect(params):
     password = params.get('ovirt_engine_password')
     version = params.get('ovirt_engine_version')
 
-    if url is None or username is None or password is None:
+    if not all([url, username, password]):
         logging.error('ovirt_engine[url|user|password] are necessary!!')
 
     if version is None:
-        version = param.Version(major='3', minor='5')
+        version = param.Version(major='3', minor='6')
     else:
         version = param.Version(version)
 
