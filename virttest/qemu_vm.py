@@ -3548,7 +3548,7 @@ class VM(virt_vm.BaseVM):
                 remote_port=None, not_wait_for_migration=False,
                 fd_src=None, fd_dst=None, migration_exec_cmd_src=None,
                 migration_exec_cmd_dst=None, env=None,
-                migrate_capabilities=None):
+                migrate_capabilities=None, mig_inner_funcs=None):
         """
         Migrate the VM.
 
@@ -3583,6 +3583,8 @@ class VM(virt_vm.BaseVM):
                 default to listening on a random TCP port
         :param env: Dictionary with test environment
         :param migrate_capabilities: The capabilities for migration to need set.
+        :param mig_inner_funcs: Functions to be executed just after the
+                migration is started
         """
         if protocol not in self.MIGRATION_PROTOS:
             raise virt_vm.VMMigrateProtoUnknownError(protocol)
@@ -3710,6 +3712,11 @@ class VM(virt_vm.BaseVM):
 
             logging.info("Migrating to %s", uri)
             self.monitor.migrate(uri)
+
+            if mig_inner_funcs:
+                for func in mig_inner_funcs:
+                    func()
+
             if not_wait_for_migration:
                 return clone
 
