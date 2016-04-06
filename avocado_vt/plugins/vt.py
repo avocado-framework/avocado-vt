@@ -124,9 +124,13 @@ class VTRun(CLI):
                                             help=("List of space separated "
                                                   "'no' filters to be passed "
                                                   "to the config parser. "
-                                                  "If --vt-config is "
-                                                  "provided, this will be "
-                                                  "ignored. Default: ''"))
+                                                  " Default: ''"))
+        vt_compat_group_common.add_argument("--vt-only-filter", action="store",
+                                            dest="vt_only_filter", default="",
+                                            help=("List of space separated "
+                                                  "'only' filters to be passed"
+                                                  " to the config parser. "
+                                                  " Default: ''"))
         qemu_bin = settings.get_value('vt.qemu', 'qemu_bin',
                                       default=qemu_bin_path)
         vt_compat_group_qemu.add_argument("--vt-qemu-bin", action="store",
