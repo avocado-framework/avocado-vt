@@ -121,6 +121,12 @@ class VTLister(CLI):
                                             help="Choose the VM machine type. "
                                             "Default: %s" % machine,
                                             default=machine)
+        vt_compat_group_lister.add_argument("--vt-only-filter", action="store",
+                                            dest="vt_only_filter", default="",
+                                            help=("List of space separated "
+                                                  "'only' filters to be passed"
+                                                  " to the config parser. "
+                                                  " Default: ''"))
 
     def run(self, args):
         loader.register_plugin(VirtTestLoader)
