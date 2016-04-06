@@ -73,6 +73,10 @@ class MonitorNotSupportedCmdError(MonitorNotSupportedError):
                 (self.cmd, self.monitor))
 
 
+class MonitorNotSupportedMigCapError(MonitorNotSupportedError):
+    pass
+
+
 class QMPCmdError(MonitorError):
 
     def __init__(self, cmd, qmp_args, data):
@@ -1188,6 +1192,7 @@ class HumanMonitor(Monitor):
 
         :param state: Bool value of capability.
         :param capability: capability which need to set.
+        :raise MonitorNotSupportedMigCapError: if the capability is unknown
         """
         cmd = "migrate_set_capability"
         self.verify_supported_cmd(cmd)
@@ -1195,18 +1200,28 @@ class HumanMonitor(Monitor):
         if state:
             value = "on"
         cmd += " %s %s" % (capability, value)
-        return self.cmd(cmd)
+        result = self.cmd(cmd)
+        if result != "":
+            raise MonitorNotSupportedMigCapError("Failed to set capability"
+                                                 "%s: %s" %
+                                                 (capability, result))
+        return result
 
     def get_migrate_capability(self, capability):
         """
         Get the state of migrate-capability.
 
         :param capability: capability which need to get.
+        :raise MonitorNotSupportedMigCapError: if the capability is unknown
         :return: the state of migrate-capability.
         """
         capability_info = self.query("migrate_capabilities")
         pattern = r"%s:\s+(on|off)" % capability
-        value = re.search(pattern, capability_info, re.M).group(1)
+        match = re.search(pattern, capability_info, re.M)
+        if match is None:
+            raise MonitorNotSupportedMigCapError("Unknown capability %s" %
+                                                 capability)
+        value = match.group(1)
         return value == "on"
 
     def system_powerdown(self):
