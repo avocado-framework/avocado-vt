@@ -142,7 +142,7 @@ class NetperfPackage(remote.Remote_Package):
 
         if aurl.is_url(netperf_source):
             logging.debug("Download URL file to local path")
-            tmp_dir = data_dir.get_download_dir()
+            tmp_dir = data_dir.get_tmp_dir()
             dst = os.path.join(tmp_dir, os.path.basename(netperf_source))
             self.netperf_source = download.get_file(src=netperf_source,
                                                     dst=dst,
