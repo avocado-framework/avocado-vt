@@ -960,7 +960,7 @@ class BaseVM(object):
         :param nic_index: The index of the NIC to connect to.
         :param timeout: Time (seconds) before giving up logging into the
                 guest.
-        :param commaner_path: Path where will be commader placed.
+        :param commander_path: Path where will be commander placed.
         :return: A ShellSession object.
         """
         if commander_path is None:
