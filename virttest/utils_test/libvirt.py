@@ -493,7 +493,6 @@ def setup_or_cleanup_iscsi(is_setup, is_login=True,
         _iscsi.emulated_id = _iscsi.get_target_id()
         _iscsi.cleanup()
         process.run("rm -f %s" % emulated_path)
-        process.run("vgscan --cache", ignore_status=True)
     return ""
 
 
