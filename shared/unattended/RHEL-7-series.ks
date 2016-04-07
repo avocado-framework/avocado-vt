@@ -54,12 +54,6 @@ ECHO "remove rhgb quiet by grubby"
 grubby --remove-args="rhgb quiet" --update-kernel=$(grubby --default-kernel)
 ECHO "dhclient"
 dhclient
-ECHO "get repo"
-wget http://fileshare.englab.nay.redhat.com/pub/section2/repo/epel/rhel-autotest.repo -O /etc/yum.repos.d/rhel-autotest.repo
-ECHO "yum makecache"
-yum makecache
-ECHO "yum install -y stress"
-yum install -y stress
 ECHO "chkconfig sshd on"
 chkconfig sshd on
 ECHO "iptables -F"
