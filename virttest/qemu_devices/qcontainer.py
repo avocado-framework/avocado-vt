@@ -98,7 +98,7 @@ class DevContainer(object):
                                                    ignore_status=True,
                                                    shell=True,
                                                    verbose=False)
-        self.__machine_types = process.system_output("%s -M ?" % qemu_binary,
+        self.__machine_types = process.system_output("%s -M \?" % qemu_binary,
                                                      timeout=10,
                                                      ignore_status=True,
                                                      shell=True,
