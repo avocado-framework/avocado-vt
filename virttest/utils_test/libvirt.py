@@ -73,55 +73,60 @@ class LibvirtNetwork(object):
         """
         Create XML for a virtual network.
         """
+        address = self.kwargs.get('address')
+        if not address:
+            raise exceptions.TestError('Create vnet need address be set')
         net_xml = NetworkXML()
         net_xml.name = self.name
-        ip = IPXML(address=self.address)
+        ip = IPXML(address=address)
+        dhcp_start = self.kwargs.get('dhcp_start')
+        dhcp_end = self.kwargs.get('dhcp_end')
+        if all([dhcp_start, dhcp_end]):
+            ip.dhcp_ranges = {'start': dhcp_start, 'end': dhcp_end}
         net_xml.ip = ip
-        return self.address, net_xml
+        return address, net_xml
 
     def create_macvtap_xml(self):
         """
         Create XML for a macvtap network.
         """
+        iface = self.kwargs.get('iface')
+        if not iface:
+            raise exceptions.TestError('Create macvtap need iface be set')
         net_xml = NetworkXML()
         net_xml.name = self.name
-        net_xml.forward = {'mode': 'bridge', 'dev': self.iface}
-        ip = utils_net.get_ip_address_by_interface(self.iface)
+        net_xml.forward = {'mode': 'bridge', 'dev': iface}
+        ip = utils_net.get_ip_address_by_interface(iface)
         return ip, net_xml
 
     def create_bridge_xml(self):
         """
         Create XML for a bridged network.
         """
+        iface = self.kwargs.get('iface')
+        if not iface:
+            raise exceptions.TestError('Create bridge need iface be set')
         net_xml = NetworkXML()
         net_xml.name = self.name
-
         net_xml.forward = {'mode': 'bridge'}
-        net_xml.bridge = {'name': self.iface}
-        ip = utils_net.get_ip_address_by_interface(self.iface)
+        net_xml.bridge = {'name': iface}
+        ip = utils_net.get_ip_address_by_interface(iface)
         return ip, net_xml
 
-    def __init__(self, net_type, address=None, iface=None, net_name=None,
-                 persistent=False):
+    def __init__(self, net_type, **kwargs):
+        self.kwargs = kwargs
+        net_name = kwargs.get('net_name')
         if net_name is None:
             self.name = 'avocado-vt-%s' % net_type
         else:
             self.name = net_name
-        self.address = address
-        self.iface = iface
-        self.persistent = persistent
+        self.persistent = kwargs.get('persistent', False)
 
         if net_type == 'vnet':
-            if not self.address:
-                raise exceptions.TestError('Create vnet need address be set')
             self.ip, net_xml = self.create_vnet_xml()
         elif net_type == 'macvtap':
-            if not self.iface:
-                raise exceptions.TestError('Create macvtap need iface be set')
             self.ip, net_xml = self.create_macvtap_xml()
         elif net_type == 'bridge':
-            if not self.iface:
-                raise exceptions.TestError('Create bridge need iface be set')
             self.ip, net_xml = self.create_bridge_xml()
         else:
             raise exceptions.TestError(

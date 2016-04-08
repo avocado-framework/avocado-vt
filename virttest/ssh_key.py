@@ -97,7 +97,7 @@ def get_remote_public_key(session):
     return session.cmd_output("cat %s" % public_key_path)
 
 
-def setup_ssh_key(hostname, user, password, port):
+def setup_ssh_key(hostname, user, password, port=22):
     """
     Setup up remote login in another server by using public key
 
