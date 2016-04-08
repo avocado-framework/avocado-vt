@@ -254,12 +254,13 @@ def cpu_allowed_list_by_task(pid, tid):
     return result.stdout.strip()
 
 
-def clean_up_snapshots(vm_name, snapshot_list=[]):
+def clean_up_snapshots(vm_name, snapshot_list=[], domxml=None):
     """
     Do recovery after snapshot
 
     :param vm_name: Name of domain
     :param snapshot_list: The list of snapshot name you want to remove
+    :param domxml: The object of domain xml for dumpxml command
     """
     if not snapshot_list:
         # Get all snapshot names from virsh snapshot-list
@@ -276,6 +277,26 @@ def clean_up_snapshots(vm_name, snapshot_list=[]):
                 os.system('rm -f %s' % disk.get('file'))
             # Delete snapshots of vm
             virsh.snapshot_delete(vm_name, snap_name)
+
+        # External disk snapshot couldn't be deleted by virsh command,
+        # It need to be deleted by qemu-img command
+        snapshot_list = virsh.snapshot_list(vm_name)
+        if snapshot_list:
+            # Delete snapshot metadata first
+            for snap_name in snapshot_list:
+                virsh.snapshot_delete(vm_name, snap_name, "--metadata")
+            # Delete all snapshot by qemu-img.
+            # Domain xml should be proviced by parameter, we can't get
+            # the image name from dumpxml command, it will return a
+            # snapshot image name
+            if domxml:
+                disks_path = domxml.xmltreefile.findall('devices/disk/source')
+                for disk in disks_path:
+                    img_name = disk.get('file')
+                    snaps = utils_misc.get_image_snapshot(img_name)
+                    cmd = "qemu-img snapshot %s" % img_name
+                    for snap in snaps:
+                        process.run("%s -d %s" % (cmd, snap))
     else:
         # Get snapshot disk path from domain xml because
         # there is no snapshot info with the name

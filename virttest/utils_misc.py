@@ -2849,6 +2849,29 @@ def valued_option_dict(options, split_pattern, start_count=0, dict_split=None):
     return option_dict
 
 
+def get_image_snapshot(image_file):
+    """
+    Get image snapshot ID and put it into a list.
+    Image snapshots like this:
+
+    Snapshot list:
+    ID        TAG                 VM SIZE                DATE       VM CLOCK
+    1         1460096943             3.1M 2016-04-08 14:29:03   00:00:00.110
+    """
+    try:
+        cmd = "qemu-img snapshot %s -l" % image_file
+        snap_info = process.run(cmd, ignore_status=False).stdout.strip()
+        snap_list = []
+        if snap_info:
+            pattern = "(\d+) +\d+ +.*"
+            for line in snap_info.splitlines():
+                snap_list.extend(re.findall(r"%s" % pattern, line))
+        return snap_list
+    except process.CmdError, detail:
+        raise exceptions.TestError("Fail to get snapshot of %s:\n%s" %
+                                   (image_file, detail))
+
+
 def get_image_info(image_file):
     """
     Get image information and put it into a dict. Image information like this:
