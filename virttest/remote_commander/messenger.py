@@ -3,7 +3,8 @@
 '''
 Created on Dec 6, 2013
 
-:author: jzupka
+:author: jzupka, astepano
+:contact: Andrei Stepanov <astepano@redhat.com>
 '''
 
 import os
