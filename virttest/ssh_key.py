@@ -1,9 +1,9 @@
 import os
-import re
 import logging
 import aexpect
 
 from avocado.utils import process
+from avocado.utils import path
 
 from . import remote
 
@@ -188,11 +188,11 @@ def setup_remote_ssh_key(hostname1, user1, password1,
 def setup_remote_known_hosts_file(client_ip, server_ip,
                                   server_user, server_pwd):
     """
-    Set the host key in local known_hosts file to remote host
+    Set the ssh host key of local host to remote host
 
-    :param client_ip: local host ip address where host key is copied from
+    :param client_ip: local host ip whose host key is sent to remote host
     :type client_ip: str
-    :param server_ip: remote host ip address where host key is copied to
+    :param server_ip: remote host ip address where host key is stored to
     :type server_ip: str
     :param server_user: user to log on remote host
     :type server_user: str
@@ -201,11 +201,19 @@ def setup_remote_known_hosts_file(client_ip, server_ip,
 
     :return: a RemoteFile object for the file known_hosts on remote host
     :rtype: remote.RemoteFile
+    :return: None if required command is not found
     """
-    home = os.path.expanduser('~')
-    cmd = 'cat %s/.ssh/known_hosts' % home
-    output = process.system_output(cmd, verbose=False)
-    host_key = re.findall('(.*%s[, ].*)' % client_ip, output)[0]
+    logging.debug('Performing known_hosts file setup on %s from %s.' %
+                  (server_ip, client_ip))
+    abs_path = ""
+    try:
+        abs_path = path.find_command("ssh-keyscan")
+    except path.CmdNotFoundError as err:
+        logging.debug("Failed to find the command: %s", err)
+        return None
+
+    cmd = "%s %s" % (abs_path, client_ip)
+    host_key = process.system_output(cmd, verbose=False)
     remote_known_hosts_file = remote.RemoteFile(
             address=server_ip,
             client='scp',
