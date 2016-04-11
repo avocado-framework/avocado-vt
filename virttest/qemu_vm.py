@@ -2271,7 +2271,7 @@ class VM(virt_vm.BaseVM):
 
     @error_context.context_aware
     def create(self, name=None, params=None, root_dir=None,
-               timeout=20, migration_mode=None,
+               timeout=120, migration_mode=None,
                migration_exec_cmd=None, migration_fd=None,
                mac_source=None):
         """
