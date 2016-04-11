@@ -183,6 +183,7 @@ class VMCheck(object):
         self.export_name = params.get('export_name')
         self.delete_vm = 'yes' == params.get('vm_cleanup', 'yes')
         self.virsh_session_id = params.get("virsh_session_id")
+        self.windows_root = params.get("windows_root", "C:\WINDOWS")
         # Need create session after create the instance
         self.session = None
 
@@ -575,7 +576,7 @@ class WindowsVMCheck(VMCheck):
         """
         Get viostor info.
         """
-        cmd = "dir C:\Windows\Drivers\VirtIO\\viostor.sys"
+        cmd = "dir %s\Drivers\VirtIO\\viostor.sys" % self.windows_root
         return self.run_cmd(cmd)[1]
 
     def get_driver_info(self, signed=True):
@@ -596,8 +597,8 @@ class WindowsVMCheck(VMCheck):
         status, output = self.run_cmd(cmd)
         if status != 0:
             # For win2003 and winXP, use following cmd
-            cmd = "CSCRIPT C:\WINDOWS\system32\eventquery.vbs /l application"
-            cmd += " /Fi \"Source eq WSH\""
+            cmd = "CSCRIPT %s\system32\eventquery.vbs " % self.windows_root
+            cmd += "/l application /Fi \"Source eq WSH\""
             output = self.run_cmd(cmd)[1]
         return output
 
