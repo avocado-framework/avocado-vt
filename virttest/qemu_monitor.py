@@ -163,7 +163,7 @@ class Monitor:
 
     ACQUIRE_LOCK_TIMEOUT = 20
     DATA_AVAILABLE_TIMEOUT = 0
-    CONNECT_TIMEOUT = 30
+    CONNECT_TIMEOUT = 60
 
     def __init__(self, vm, name, filename):
         """
