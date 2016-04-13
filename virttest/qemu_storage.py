@@ -36,7 +36,7 @@ class QemuImg(storage.QemuImg):
         storage.QemuImg.__init__(self, params, root_dir, tag)
         self.image_cmd = utils_misc.get_qemu_img_binary(params)
         q_result = process.run(self.image_cmd + ' -h', ignore_status=True,
-                               verbose=False)
+                               shell=True, verbose=False)
         self.help_text = q_result.stdout
 
     @error_context.context_aware
@@ -156,7 +156,7 @@ class QemuImg(storage.QemuImg):
         msg = "Create image by command: %s" % qemu_img_cmd
         error_context.context(msg, logging.info)
         cmd_result = process.run(
-            qemu_img_cmd, verbose=False, ignore_status=True)
+            qemu_img_cmd, shell=True, verbose=False, ignore_status=True)
         if cmd_result.exit_status != 0 and not ignore_errors:
             raise exceptions.TestError("Failed to create image %s" %
                                        self.image_filename)
@@ -446,7 +446,7 @@ class QemuImg(storage.QemuImg):
         else:
             logging.info("Comparing images %s and %s", image1, image2)
             compare_cmd = "%s compare %s %s" % (self.image_cmd, image1, image2)
-            rv = process.run(compare_cmd, ignore_status=True)
+            rv = process.run(compare_cmd, ignore_status=True, shell=True)
 
             if verbose:
                 logging.debug("Output from command: %s" % rv.stdout)
@@ -485,14 +485,14 @@ class QemuImg(storage.QemuImg):
             else:
                 try:
                     process.run("%s info %s" % (qemu_img_cmd, image_filename),
-                                verbose=False)
+                                shell=True, verbose=False)
                 except process.CmdError:
                     logging.error("Error getting info from image %s",
                                   image_filename)
 
                 cmd_result = process.run("%s check %s" %
                                          (qemu_img_cmd, image_filename),
-                                         ignore_status=True, verbose=False)
+                                         ignore_status=True, shell=True, verbose=False)
                 # Error check, large chances of a non-fatal problem.
                 # There are chances that bad data was skipped though
                 if cmd_result.exit_status == 1:
