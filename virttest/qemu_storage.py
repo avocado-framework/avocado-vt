@@ -75,14 +75,15 @@ class QemuImg(storage.QemuImg):
         :return: tuple (path to the image created, process.CmdResult object
                  containing the result of the creation command).
         """
-        if params.get("create_with_dd") == "yes" and self.image_format == "raw":
+        if params.get(
+                "create_with_dd") == "yes" and self.image_format == "raw":
             # maps K,M,G,T => (count, bs)
             human = {'K': (1, 1),
                      'M': (1, 1024),
                      'G': (1024, 1024),
                      'T': (1024, 1048576),
                      }
-            if human.has_key(self.size[-1]):
+            if self.size[-1] in human:
                 block_size = human[self.size[-1]][1]
                 size = int(self.size[:-1]) * human[self.size[-1]][0]
             qemu_img_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"
@@ -273,7 +274,8 @@ class QemuImg(storage.QemuImg):
             cmd += " -u"
         if self.base_tag:
             if self.base_tag == "null":
-                cmd += " -b \"\" -F %s %s" % (self.base_format, self.image_filename)
+                cmd += " -b \"\" -F %s %s" % (self.base_format,
+                                              self.image_filename)
             else:
                 cmd += " -b %s -F %s %s" % (self.base_image_filename,
                                             self.base_format, self.image_filename)
