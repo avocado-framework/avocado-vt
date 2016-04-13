@@ -18,7 +18,7 @@ def get_default_guest_os_info():
     Gets the default asset and variant information
     TODO: Check for the ARCH and choose corresponding default asset
     """
-    return {'asset': 'jeos-21-64', 'variant': 'JeOS.21'}
+    return {'asset': 'jeos-23-64', 'variant': 'JeOS.23'}
 
 
 DEFAULT_GUEST_OS = get_default_guest_os_info()['variant']
