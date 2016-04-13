@@ -870,6 +870,9 @@ class BaseVM(object):
         """
         if self.serial_console is not None:
             data = self.serial_console.get_output()
+            if not data:
+                logging.warn("Unable to read serial console")
+                return
             match = re.findall(r".*trap invalid opcode.*\n", data,
                                re.MULTILINE)
 
