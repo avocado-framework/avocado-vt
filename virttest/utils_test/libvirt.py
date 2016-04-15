@@ -1100,7 +1100,7 @@ class MigrationTest(object):
             self.RET_LOCK.release()
 
     def do_migration(self, vms, srcuri, desturi, migration_type, options=None,
-                     thread_timeout=60):
+                     thread_timeout=60, ignore_status=False):
         """
         Migrate vms.
 
@@ -1161,7 +1161,7 @@ class MigrationTest(object):
                     self.RET_MIGRATION = False
                     self.RET_LOCK.release()
 
-        if not self.RET_MIGRATION:
+        if not self.RET_MIGRATIONi and not ignore_status:
             raise exceptions.TestFail()
 
     def cleanup_dest_vm(self, vm, srcuri, desturi):
