@@ -133,6 +133,7 @@ class CmdMaster(object):
     def set_commander(self, commander):
         """
         For nohup commands it allows connect cmd to new created commander.
+
         """
         self.commander = commander
         if self not in commander.cmds:
@@ -214,6 +215,21 @@ class CommanderMaster(messenger.Messenger):
                                                   " not started.")
 
     def set_responder(self, responder):
+        """
+        :warning: Users's helper becomes a part of a remote_commander.
+            remote_commander is treated as a session. All sessions are part of
+            BaseVM object. If you provide unpickable helper then your BaseVM
+            also becomes unpickable. You can catch something like::
+
+                File "/usr/lib64/python2.7/copy_reg.py", line 74, in _reduce_ex
+                getstate = self.__getstate__
+                KeyError: '__getstate__'
+
+            For more info see::
+
+                https://github.com/avocado-framework/avocado-vt/issues/455
+
+        """
         self.responder = responder
 
     def close(self):
