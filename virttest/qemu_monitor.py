@@ -222,7 +222,7 @@ class Monitor:
     def __getinitargs__(self):
         # Save some information when pickling -- will be passed to the
         # constructor upon unpickling
-        return self.vm, self.name, self.filename, True
+        return self.vm, self.name, self.filename
 
     def _close_sock(self):
         try:
