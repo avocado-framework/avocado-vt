@@ -4104,7 +4104,7 @@ class VM(virt_vm.BaseVM):
         device = self.get_block({"file": base_file})
 
         output = self.monitor.live_snapshot(device, snapshot_file,
-                                            snapshot_format)
+                                            format=snapshot_format)
         logging.debug(output)
         device = self.get_block({"file": snapshot_file})
         if device:
