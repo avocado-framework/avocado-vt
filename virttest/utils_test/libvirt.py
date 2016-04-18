@@ -1096,28 +1096,46 @@ class MigrationTest(object):
         # The time spent when migrating vms
         # format: vm_name -> time(seconds)
         self.mig_time = {}
+        # The CmdResult returned from virsh migrate command
+        self.ret = None
 
-    def thread_func_migration(self, vm, desturi, options=None):
+    def thread_func_migration(self, vm, desturi, options=None,
+                              ignore_status=False):
         """
         Thread for virsh migrate command.
 
         :param vm: A libvirt vm instance(local or remote).
-        :param desturi: remote host uri.
+        :param desturi: Remote host uri.
+        :param options: The options for migration command.
+        :param ignore_status: True, means no CmdError will be caught
+                              for the failure.
+                              False, means an CmdError will be caught
+                              for the failure.
         """
         # Migrate the domain.
+        is_error = False
+
         try:
             if options is None:
                 options = "--live --timeout=60"
             stime = int(time.time())
-            vm.migrate(desturi, option=options, ignore_status=False,
-                       debug=True)
+            self.ret = vm.migrate(desturi, option=options,
+                                  ignore_status=ignore_status,
+                                  debug=True)
             etime = int(time.time())
             self.mig_time[vm.name] = etime - stime
+            if self.ret.exit_status != 0:
+                logging.debug("Migration to %s returns failed exit status %d",
+                              desturi, self.ret.exit_status)
+                is_error = True
         except process.CmdError, detail:
             logging.error("Migration to %s failed:\n%s", desturi, detail)
-            self.RET_LOCK.acquire()
-            self.RET_MIGRATION = False
-            self.RET_LOCK.release()
+            is_error = True
+        finally:
+            if is_error is True:
+                self.RET_LOCK.acquire()
+                self.RET_MIGRATION = False
+                self.RET_LOCK.release()
 
     def do_migration(self, vms, srcuri, desturi, migration_type, options=None,
                      thread_timeout=60, ignore_status=False):
@@ -1132,7 +1150,8 @@ class MigrationTest(object):
         if migration_type == "orderly":
             for vm in vms:
                 migration_thread = threading.Thread(target=self.thread_func_migration,
-                                                    args=(vm, desturi, options))
+                                                    args=(vm, desturi, options,
+                                                          ignore_status))
                 migration_thread.start()
                 migration_thread.join(thread_timeout)
                 if migration_thread.isAlive():
