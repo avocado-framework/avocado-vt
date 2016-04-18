@@ -2473,9 +2473,25 @@ def remotely_control_libvirtd(server_ip, server_user, server_pwd,
 def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
                      auth_pwd=None, vm_name="", status_error="no",
                      extra="", log_level='LIBVIRT_DEBUG=3', su_user="",
-                     patterns_virsh_cmd=".*Id\s*Name\s*State\s*.*"):
+                     patterns_virsh_cmd=".*Id\s*Name\s*State\s*.*",
+                     patterns_extra_dict=None):
     """
-    Connect libvirt daemon
+    Connect to libvirt daemon
+
+    :param uri: the uri to connect the libvirtd
+    :param read_only: the read only option for virsh
+    :param virsh_cmd: the virsh command for virsh
+    :param auth_user: the user used to connect
+    :param auth_pwd: the password for the user
+    :param vm_name: the guest name to operate
+    :param status_error: if expect error status
+    :param extra: extra parameters
+    :param log_level: logging level
+    :param su_user: the user to su
+    :param patterns_virsh_cmd: the pattern to match in virsh command output
+    :param patterns_extra_dict: a mapping with extra patterns and responses
+
+    :return: True if success, otherwise False
     """
     patterns_yes_no = r".*[Yy]es.*[Nn]o.*"
     patterns_auth_name_comm = r".*username:.*"
@@ -2497,22 +2513,37 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
         match_list = [patterns_yes_no, patterns_auth_name_comm,
                       patterns_auth_name_xen, patterns_auth_pwd,
                       patterns_virsh_cmd]
+        if patterns_extra_dict:
+            match_list = match_list + patterns_extra_dict.keys()
+        patterns_list_len = len(match_list)
+
         while True:
             match, text = session.read_until_any_line_matches(match_list,
                                                               timeout=30,
                                                               internal_timeout=1)
-            if match == -5:
+            if match == -patterns_list_len:
                 logging.info("Matched 'yes/no', details: <%s>", text)
                 session.sendline("yes")
-            elif match == -3 or match == -4:
+                continue
+            elif match == -patterns_list_len+1 or match == -patterns_list_len+2:
                 logging.info("Matched 'username', details: <%s>", text)
                 session.sendline(auth_user)
-            elif match == -2:
+                continue
+            elif match == -patterns_list_len+3:
                 logging.info("Matched 'password', details: <%s>", text)
                 session.sendline(auth_pwd)
-            elif match == -1:
+                continue
+            elif match == -patterns_list_len+4:
                 logging.info("Expected output of virsh command: <%s>", text)
                 break
+            if (patterns_list_len > 5):
+                extra_len = len(patterns_extra_dict)
+                index_in_extra_dict = match + extra_len
+                key = patterns_extra_dict.keys()[index_in_extra_dict]
+                value = patterns_extra_dict.get(key, "")
+                logging.info("Matched '%s', details:<%s>", key, text)
+                session.sendline(value)
+                continue
             else:
                 logging.error("The real prompt text: <%s>", text)
                 break
