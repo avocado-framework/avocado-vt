@@ -36,7 +36,7 @@ class QemuImg(storage.QemuImg):
         storage.QemuImg.__init__(self, params, root_dir, tag)
         self.image_cmd = utils_misc.get_qemu_img_binary(params)
         q_result = process.run(self.image_cmd + ' -h', ignore_status=True,
-                               verbose=False)
+                               shell=True, verbose=False)
         self.help_text = q_result.stdout
 
     @error_context.context_aware
@@ -75,14 +75,15 @@ class QemuImg(storage.QemuImg):
         :return: tuple (path to the image created, process.CmdResult object
                  containing the result of the creation command).
         """
-        if params.get("create_with_dd") == "yes" and self.image_format == "raw":
+        if params.get(
+                "create_with_dd") == "yes" and self.image_format == "raw":
             # maps K,M,G,T => (count, bs)
             human = {'K': (1, 1),
                      'M': (1, 1024),
                      'G': (1024, 1024),
                      'T': (1024, 1048576),
                      }
-            if human.has_key(self.size[-1]):
+            if self.size[-1] in human:
                 block_size = human[self.size[-1]][1]
                 size = int(self.size[:-1]) * human[self.size[-1]][0]
             qemu_img_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"
@@ -156,7 +157,7 @@ class QemuImg(storage.QemuImg):
         msg = "Create image by command: %s" % qemu_img_cmd
         error_context.context(msg, logging.info)
         cmd_result = process.run(
-            qemu_img_cmd, verbose=False, ignore_status=True)
+            qemu_img_cmd, shell=True, verbose=False, ignore_status=True)
         if cmd_result.exit_status != 0 and not ignore_errors:
             raise exceptions.TestError("Failed to create image %s" %
                                        self.image_filename)
@@ -273,7 +274,8 @@ class QemuImg(storage.QemuImg):
             cmd += " -u"
         if self.base_tag:
             if self.base_tag == "null":
-                cmd += " -b \"\" -F %s %s" % (self.base_format, self.image_filename)
+                cmd += " -b \"\" -F %s %s" % (self.base_format,
+                                              self.image_filename)
             else:
                 cmd += " -b %s -F %s %s" % (self.base_image_filename,
                                             self.base_format, self.image_filename)
@@ -446,7 +448,7 @@ class QemuImg(storage.QemuImg):
         else:
             logging.info("Comparing images %s and %s", image1, image2)
             compare_cmd = "%s compare %s %s" % (self.image_cmd, image1, image2)
-            rv = process.run(compare_cmd, ignore_status=True)
+            rv = process.run(compare_cmd, ignore_status=True, shell=True)
 
             if verbose:
                 logging.debug("Output from command: %s" % rv.stdout)
@@ -485,14 +487,14 @@ class QemuImg(storage.QemuImg):
             else:
                 try:
                     process.run("%s info %s" % (qemu_img_cmd, image_filename),
-                                verbose=False)
+                                shell=True, verbose=False)
                 except process.CmdError:
                     logging.error("Error getting info from image %s",
                                   image_filename)
 
                 cmd_result = process.run("%s check %s" %
                                          (qemu_img_cmd, image_filename),
-                                         ignore_status=True, verbose=False)
+                                         ignore_status=True, shell=True, verbose=False)
                 # Error check, large chances of a non-fatal problem.
                 # There are chances that bad data was skipped though
                 if cmd_result.exit_status == 1:
