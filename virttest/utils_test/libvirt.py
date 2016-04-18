@@ -1161,7 +1161,7 @@ class MigrationTest(object):
                     self.RET_MIGRATION = False
                     self.RET_LOCK.release()
 
-        if not self.RET_MIGRATIONi and not ignore_status:
+        if not self.RET_MIGRATION and not ignore_status:
             raise exceptions.TestFail()
 
     def cleanup_dest_vm(self, vm, srcuri, desturi):
