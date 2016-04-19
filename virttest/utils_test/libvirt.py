@@ -2616,14 +2616,15 @@ def do_migration(vm_name, uri, extra, auth_pwd, auth_user="root",
             else:
                 logging.error("The real prompt text: <%s>", text)
                 break
-
+        log = session.get_output()
         session.close()
-        return True
+        return (True, log)
+
     except (aexpect.ShellError, aexpect.ExpectError), details:
         log = session.get_output()
         session.close()
         logging.error("Failed to migrate %s: %s\n%s", vm_name, details, log)
-        return False
+        return (False, log)
 
 
 def update_vm_disk_source(vm_name, disk_source_path,
