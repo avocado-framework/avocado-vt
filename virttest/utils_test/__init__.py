@@ -972,7 +972,15 @@ def run_autotest(vm, session, control_path, timeout,
 
     g_fd, g_path = tempfile.mkstemp(dir=data_dir.get_tmp_dir())
     aux_file = os.fdopen(g_fd, 'w')
-    config = section_values(('CLIENT', 'COMMON'))
+    try:
+        config = section_values(('CLIENT', 'COMMON'))
+    except Exception:
+        # Leak global_config.ini, generate a mini configuration
+        # to ensure client tests can work.
+        import ConfigParser
+        config = ConfigParser.ConfigParser()
+        map(config.add_section, ['CLIENT', 'COMMON'])
+        config.set('COMMON', 'crash_handling_enabled', 'True')
     config.set('CLIENT', 'output_dir', destination_autotest_path)
     config.set('COMMON', 'autotest_top_path', destination_autotest_path)
     destination_test_dir = os.path.join(destination_autotest_path, 'tests')
