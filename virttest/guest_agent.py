@@ -64,6 +64,17 @@ class VAgentCmdError(VAgentError):
                 "error message: %r)" % (self.ecmd, self.eargs, self.edata))
 
 
+class VAgentCmdNotSupportedError(VAgentError):
+
+    def __init__(self, cmd):
+        VAgentError.__init__(self)
+        self.ecmd = cmd
+
+    def __str__(self):
+        return("The command %s is not supported by the current version qga"
+               % self.ecmd)
+
+
 class VAgentSyncError(VAgentError):
 
     def __init__(self, vm_name):
@@ -309,7 +320,7 @@ class QemuAgent(Monitor):
             self._supported_cmds = [None]
             logging.warn("Could not get supported guest agent cmds list")
 
-    def _has_command(self, cmd):
+    def check_has_command(self, cmd):
         """
         Check wheter guest agent support 'cmd'.
 
@@ -319,7 +330,7 @@ class QemuAgent(Monitor):
         """
         # Initiate supported cmds list if it's empty.
         if not self._supported_cmds:
-            self.get_supported_cmds()
+            self._get_supported_cmds()
 
         # If the first element in supported cmd list is 'None', it means
         # autotest fails to get the cmd list, so bypass cmd checking.
@@ -328,7 +339,7 @@ class QemuAgent(Monitor):
 
         if cmd and cmd in self._supported_cmds:
             return True
-        return False
+        raise VAgentCmdNotSupportedError(cmd)
 
     def _log_command(self, cmd, debug=True, extra_str=""):
         """
@@ -477,7 +488,7 @@ class QemuAgent(Monitor):
         Make sure the guest agent is responsive by sending a command.
         """
         cmd = "guest-ping"
-        if self._has_command(cmd):
+        if self.check_has_command(cmd):
             self.cmd(cmd=cmd, debug=False)
 
     @error_context.context_aware
@@ -491,9 +502,7 @@ class QemuAgent(Monitor):
                  'shutdown' is unsupported.
         """
         cmd = "guest-shutdown"
-        if not self._has_command(cmd):
-            return False
-
+        self.check_has_command(cmd)
         args = None
         if mode in [self.SHUTDOWN_MODE_POWERDOWN, self.SHUTDOWN_MODE_REBOOT,
                     self.SHUTDOWN_MODE_HALT]:
@@ -507,8 +516,7 @@ class QemuAgent(Monitor):
         Sync guest agent with cmd 'guest-sync' or 'guest-sync-delimited'.
         """
         cmd = sync_mode
-        if not self._has_command(cmd):
-            return
+        self.check_has_command(cmd)
 
         synced = self._sync(sync_mode)
         if not synced:
@@ -520,8 +528,7 @@ class QemuAgent(Monitor):
         Set the new password for the user
         """
         cmd = "guest-set-user-password"
-        if not self._has_command(cmd):
-            return False
+        self.check_has_command(cmd)
 
         if crypted:
             openssl_cmd = "openssl passwd -crypt %s" % password
@@ -537,8 +544,7 @@ class QemuAgent(Monitor):
         Get the vcpus infomation
         """
         cmd = "guest-get-vcpus"
-        if not self._has_command(cmd):
-            return False
+        self.check_has_command(cmd)
         return self.cmd(cmd=cmd)
 
     @error_context.context_aware
@@ -547,9 +553,48 @@ class QemuAgent(Monitor):
         Set the status of vcpus, bring up/down the vcpus following action
         """
         cmd = "guest-set-vcpus"
-        if not self._has_command(cmd):
-            return False
+        self.check_has_command(cmd)
         return self.cmd(cmd=cmd, args=action)
+
+    @error_context.context_aware
+    def get_time(self):
+        """
+        Get the time of guest, return the time from Epoch of 1970-01-01 in UTC
+        in nanoseconds
+        """
+        cmd = "guest-get-time"
+        self.check_has_command(cmd)
+        return self.cmd(cmd=cmd)
+
+    @error_context.context_aware
+    def set_time(self, nanoseconds=None):
+        """
+        set the time of guest, the params passed in is in nanoseconds
+        """
+        cmd = "guest-set-time"
+        args = None
+        self.check_has_command(cmd)
+        if nanoseconds:
+            args = {"time": nanoseconds}
+        return self.cmd(cmd=cmd, args=args)
+
+    @error_context.context_aware
+    def fstrim(self):
+        """
+        Discard unused blocks on a mounted filesystem by guest agent operation
+        """
+        cmd = "guest-fstrim"
+        self.check_has_command(cmd)
+        return self.cmd(cmd)
+
+    @error_context.context_aware
+    def get_network_interface(self):
+        """
+        Get the network interfaces of the guest by guest agent operation
+        """
+        cmd = "guest-network-get-interfaces"
+        self.check_has_command(cmd)
+        return self.cmd(cmd)
 
     @error_context.context_aware
     def suspend(self, mode=SUSPEND_MODE_RAM):
@@ -582,8 +627,7 @@ class QemuAgent(Monitor):
                                                 " mode '%s'" % mode)
 
         cmd = "guest-suspend-%s" % mode
-        if not self._has_command(cmd):
-            return False
+        self.check_has_command(cmd)
 
         # First, sync with guest.
         self.sync()
@@ -598,7 +642,7 @@ class QemuAgent(Monitor):
         Get guest 'fsfreeze' status. The status could be 'frozen' or 'thawed'.
         """
         cmd = "guest-fsfreeze-status"
-        if self._has_command(cmd):
+        if self.check_has_command(cmd):
             return self.cmd(cmd=cmd)
 
     def verify_fsfreeze_status(self, expected):
@@ -629,7 +673,7 @@ class QemuAgent(Monitor):
             self.verify_fsfreeze_status(self.FSFREEZE_STATUS_THAWED)
 
         cmd = "guest-fsfreeze-freeze"
-        if self._has_command(cmd):
+        if self.check_has_command(cmd):
             ret = self.cmd(cmd=cmd)
             if check_status:
                 try:
@@ -658,7 +702,7 @@ class QemuAgent(Monitor):
             self.verify_fsfreeze_status(self.FSFREEZE_STATUS_FROZEN)
 
         cmd = "guest-fsfreeze-thaw"
-        if self._has_command(cmd):
+        if self.check_has_command(cmd):
             ret = self.cmd(cmd=cmd)
             if check_status:
                 try:
