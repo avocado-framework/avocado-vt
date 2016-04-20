@@ -36,6 +36,9 @@ if 'AUTOTEST_PATH' in os.environ:
     AUTOTEST_PATH = os.path.expanduser(os.environ['AUTOTEST_PATH'])
     client_dir = os.path.join(os.path.abspath(AUTOTEST_PATH), 'client')
     setup_modules_path = os.path.join(client_dir, 'setup_modules.py')
+    if not os.path.exists(setup_modules_path):
+        raise EnvironmentError("Although AUTOTEST_PATH has been declared, "
+                               "%s missing." % setup_modules_path)
     import imp
     setup_modules = imp.load_source('autotest_setup_modules',
                                     setup_modules_path)
