@@ -325,8 +325,8 @@ class QemuImg(object):
                 logging.info("No source %s, skipping dd...", src)
 
         def backup_image_file(src, dst):
-            logging.debug("Copying %s -> %s", src, dst)
             if os.path.isfile(src):
+                logging.debug("Copying %s -> %s", src, dst)
                 _dst = dst + '.part'
                 shutil.copy(src, _dst)
                 os.rename(_dst, dst)
