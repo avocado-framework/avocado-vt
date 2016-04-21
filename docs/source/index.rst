@@ -34,6 +34,7 @@ Contents:
    RegressionTestFarm
    InstallWinVirtio
    RunQemuUnittests
+   ParallelJobs
    contributing/index
 
 =============
