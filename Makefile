@@ -108,6 +108,7 @@ clean:
 
 link:
 	ln -sf ../../../../$(DIRNAME)/etc/avocado/conf.d/vt.conf ../$(AVOCADO_DIRNAME)/etc/avocado/conf.d/
+	ln -sf ../../../../$(DIRNAME)/etc/avocado/conf.d/vt_joblock.conf ../$(AVOCADO_DIRNAME)/etc/avocado/conf.d/
 	$(PYTHON) setup.py develop --user
 
 unlink:
