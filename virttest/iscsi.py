@@ -18,6 +18,7 @@ from avocado.utils import path
 
 from . import utils_selinux
 from . import utils_net
+from . import utils_misc
 from . import data_dir
 
 ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
@@ -108,10 +109,14 @@ def iscsi_logout(target_name=None):
         cmd = "iscsiadm --mode node --logout -T %s" % target_name
     else:
         cmd = "iscsiadm --mode node --logout all"
-    output = process.system_output(cmd)
 
+    # Try more times if command fails
+    ret = utils_misc.wait_for(
+        lambda: "successful" in process.system_output(cmd,
+                                                      ignore_status=True
+                                                      ), 5)
     target_logout = ""
-    if "successful" in output:
+    if ret:
         target_logout = target_name
 
     return target_logout
