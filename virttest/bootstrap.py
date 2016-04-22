@@ -731,11 +731,6 @@ def bootstrap(options, interactive=False):
 
     logging.info("")
     step += 1
-    logging.info("%d - Updating all test providers", step)
-    asset.download_all_test_providers(options.vt_update_providers)
-
-    logging.info("")
-    step += 1
     logging.info("%d - Checking the mandatory programs and headers", step)
     guest_os = options.vt_guest_os or defaults.DEFAULT_GUEST_OS
     try:
@@ -750,6 +745,11 @@ def bootstrap(options, interactive=False):
     step += 1
     logging.info("%d - Checking the recommended programs", step)
     verify_recommended_programs(options.vt_type)
+
+    logging.info("")
+    step += 1
+    logging.info("%d - Updating all test providers", step)
+    asset.download_all_test_providers(options.vt_update_providers)
 
     logging.info("")
     step += 1
