@@ -1270,29 +1270,22 @@ class BaseVM(object):
         finally:
             session.close()
 
-    def get_memory_size(self, cmd=None, timeout=60, re_str=None):
+    def get_memory_size(self, cmd=None, timeout=60):
         """
         Get bootup memory size of the VM.
 
         :param cmd: Command used to check memory. If not provided,
                     self.params.get("mem_chk_cmd") will be used.
         :param timeout: timeout for cmd
-        :param re_str: pattern to get memory size from the command
-                       output. If not provided,
-                       self.params.get("mem_chk_re_str") will be
-                       used.
         """
+        if not cmd:
+            cmd = self.params["mem_chk_cmd"]
         session = self.wait_for_login()
-        if re_str is None:
-            re_str = self.params.get("mem_chk_re_str", "([0-9]+)")
         try:
-            if not cmd:
-                cmd = self.params.get("mem_chk_cmd")
-            mem_str = session.cmd_output(cmd, timeout=timeout)
-            mem = re.findall(r"\d+\s*\w?", mem_str, re.M)
-            mem = map(lambda x: utils_misc.normalize_data_size(x), mem)
-            mem_size = sum(map(float, mem))
-            return int(mem_size)
+            output = session.cmd_output(cmd, timeout=timeout).replace(',', '')
+            mem_size = re.findall(r"\d+\s*[BbKkMmGgTt]?", output, re.M)
+            num_mem_size = map(utils_misc.normalize_data_size, mem_size)
+            return int(sum(map(float, num_mem_size)))
         finally:
             session.close()
 
