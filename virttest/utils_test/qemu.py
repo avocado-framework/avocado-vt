@@ -1576,7 +1576,11 @@ class MemoryBaseTest(object):
         :param vm: VM object.
         :return: physical memory report by guest OS in MB
         """
-        return vm.get_current_memory_size()
+        if vm.params.get("os_type") == "windows":
+            cmd = 'wmic ComputerSystem get TotalPhysicalMemory'
+        else:
+            cmd = "grep 'MemTotal:' /proc/meminfo"
+        return vm.get_memory_size(cmd)
 
     @classmethod
     def get_guest_free_mem(cls, vm):
