@@ -213,9 +213,11 @@ def get_tmp_dir(public=True):
     return tmp_dir
 
 
+def get_base_download_dir():
+    return BASE_DOWNLOAD_DIR
+
+
 def get_download_dir():
-    if not os.path.isdir(DOWNLOAD_DIR):
-        shutil.copytree(BASE_DOWNLOAD_DIR, DOWNLOAD_DIR)
     return DOWNLOAD_DIR
 
 
