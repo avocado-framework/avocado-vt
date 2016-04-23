@@ -90,6 +90,7 @@ class VirtTest(test.Test):
         """
         del name
         options = job.args
+        self.filename = None
         self.bindir = data_dir.get_root_dir()
         self.virtdir = os.path.join(self.bindir, 'shared')
 
@@ -134,16 +135,6 @@ class VirtTest(test.Test):
         For VT tests, this always returns None. The reason is that
         individual VT tests do not map 1:1 to a file and do not provide
         the concept of a datadir.
-        """
-        return None
-
-    @property
-    def filename(self):
-        """
-        Returns the name of the file (path) that holds the current test
-
-        For VT tests, this always returns None. The reason is that
-        individual VT tests do not map 1:1 to a file.
         """
         return None
 
