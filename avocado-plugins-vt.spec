@@ -19,7 +19,7 @@ Requires: python, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, gli
 
 Requires: python-imaging
 %if 0%{?el6}
-Requires: gstreamer-python, gstreamer-plugins-good
+Requires: gstreamer-python, gstreamer-plugins-good, python-simplejson
 %else
 Requires: pygobject2, gstreamer1-plugins-good
 %endif
