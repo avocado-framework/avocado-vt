@@ -9,6 +9,8 @@ import glob
 import shutil
 import stat
 
+from distutils import dir_util  # virtualenv problem pylint: disable=E0611
+
 from avocado.core import data_dir
 
 _SYSTEM_WIDE_ROOT_PATH = '/usr/share/avocado-plugins-vt'
@@ -214,8 +216,22 @@ def get_tmp_dir(public=True):
 
 
 def get_download_dir():
-    if not os.path.isdir(DOWNLOAD_DIR):
-        shutil.copytree(BASE_DOWNLOAD_DIR, DOWNLOAD_DIR)
+    """
+    Returns the dir that holds download definition files, AKA asset files
+
+    Before retuning the download directory, it makes sure the user, writable
+    copy of the download dir is created, and that all asset definition
+    file are in sync.
+
+    In sync means that newer or non-existing asset definition files
+    are copied to the user's directory.  If the user's directory
+    contains newer files, they're not overwritten.  This sync behavior
+    is based on :func:`distutils.file_util.copy_file` parameter
+    "update".
+
+    :returns: a writable directory populated with asset definition files
+    """
+    dir_util.copy_tree(BASE_DOWNLOAD_DIR, DOWNLOAD_DIR, update=1)
     return DOWNLOAD_DIR
 
 
