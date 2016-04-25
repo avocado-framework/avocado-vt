@@ -92,6 +92,7 @@ class LibvirtdSession(object):
 
     def __init__(self, gdb=False,
                  logging_handler=None,
+                 logging_params=(),
                  logging_pattern=r'.*'):
         """
         :param gdb: Whether call the session with gdb debugging support
@@ -110,6 +111,7 @@ class LibvirtdSession(object):
             self.libvirtd_service.stop()
 
         self.logging_handler = logging_handler
+        self.logging_params = logging_params
         self.logging_pattern = logging_pattern
 
         if gdb:
@@ -124,7 +126,7 @@ class LibvirtdSession(object):
         """
         if self.logging_handler is not None:
             if re.match(self.logging_pattern, line):
-                self.logging_handler(line)
+                self.logging_handler(line, *self.logging_params)
 
     def _termination_handler(self, status):
         """
