@@ -11,6 +11,7 @@ install:
     - if [ $TRAVIS_PYTHON_VERSION == '2.6' ]; then pip install -r requirements-travis-python26.txt; fi
     - git clone https://github.com/avocado-framework/avocado.git avocado-libs
     - cd avocado-libs
+    - pip install -r requirements-travis.txt
     - python setup.py install
     - cd ..
     - rm -rf avocado-libs

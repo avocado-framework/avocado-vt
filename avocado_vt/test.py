@@ -88,21 +88,10 @@ class VirtTest(test.Test):
         :param vt_params: avocado-vt/cartesian_config params stored as
                           `self.params`.
         """
-        del name
-        options = job.args
         self.bindir = data_dir.get_root_dir()
         self.virtdir = os.path.join(self.bindir, 'shared')
 
         self.iteration = 0
-        name = None
-        if options.vt_config:
-            name = vt_params.get("shortname")
-        elif options.vt_type == 'spice':
-            short_name_map_file = vt_params.get("_short_name_map_file")
-            if "tests-variants.cfg" in short_name_map_file:
-                name = short_name_map_file["tests-variants.cfg"]
-        if name is None:
-            name = vt_params.get("_short_name_map_file")["subtests.cfg"]
         self.outputdir = None
         self.resultsdir = None
         self.logfile = None

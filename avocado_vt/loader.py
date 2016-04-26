@@ -153,17 +153,20 @@ class VirtTestLoader(loader.TestLoader):
         # Create test_suite
         test_suite = []
         for params in (_ for _ in cartesian_parser.get_dicts()):
+            # Evaluate the proper avocado-vt test name
+            test_name = None
+            if self.args.vt_config:
+                test_name = params.get("shortname")
+            elif self.args.vt_type == "spice":
+                short_name_map_file = params.get("_short_name_map_file")
+                if "tests-variants.cfg" in short_name_map_file:
+                    test_name = short_name_map_file["tests-variants.cfg"]
+            if test_name is None:
+                test_name = params.get("_short_name_map_file")["subtests.cfg"]
             # We want avocado to inject params coming from its multiplexer into
             # the test params. This will allow users to access avocado params
             # from inside virt tests. This feature would only work if the virt
             # test in question is executed from inside avocado.
-            if "subtests.cfg" in params.get("_short_name_map_file"):
-                test_name = params.get("_short_name_map_file")["subtests.cfg"]
-            if self.args.vt_type == 'spice':
-                short_name_map_file = params.get("_short_name_map_file")
-                if "tests-variants.cfg" in short_name_map_file:
-                    test_name = short_name_map_file["tests-variants.cfg"]
-
             params['id'] = test_name
             test_parameters = {'name': test_name,
                                'vt_params': params}
