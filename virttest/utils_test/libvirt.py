@@ -2395,6 +2395,8 @@ def attach_disks(vm, path, vgname, params):
                 target_dev = "vd%s" % (prefix + suffix)
             elif target == "scsi":
                 target_dev = "sd%s" % (prefix + suffix)
+            elif target == "ide":
+                target_dev = "hd%s" % (prefix + suffix)
             target_list.append(target_dev)
         return target_list
 
