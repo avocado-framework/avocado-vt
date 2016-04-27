@@ -33,26 +33,33 @@ format. A statement in the form ``<key> = <value>`` sets ``<key>`` to
 surrounding quotes completely optional (but honored). A reference of
 descriptions for most keys is included in section Configuration Parameter
 Reference.
-The key will become part of all lower-level (i.e. further indented) variant
-blocks (see section variants_).
 However, key precedence is evaluated in top-down or ‘last defined’
 order. In other words, the last parsed key has precedence over earlier
 definitions.
-
 
 .. _variants:
 
 Variants
 ========
 
-A ‘variants’ block is opened by a ‘variants:’ statement. The contents
-of the block must be indented further right than the ‘variants:’
-statement. Each variant block defines a single dimension of
-the output array. When a Cartesian configuration file contains
-two variants blocks, the output will be all possible combination's of
-both variant contents. Variants may be nested within other variants,
-effectively nesting arbitrarily complex arrays within the cells of
-outside arrays.  For example::
+A variant is a named list of key/value pairs. A variant set is a list of
+variants. The cartesian configuration parser reads a cartesian configuration
+file and creates a cartesian product of variant sets; the number of
+combinations is the multiplication of the number of variants in each variant
+set, each combination is a tuple and the number of elements in this tuple is
+equal to the number of variant sets. Eg. if variant sets A and B have 3 and 4
+variants respectively, their cartesian product will have 3 x 4 = 12 tuples of
+2 elements.
+
+A variant contains key-value pairs. Each ordered variant tuple in the cartesian
+product defines a ordered list of key-value pairs definitions. The ordered execution
+of these definitions creates a dictionary (a list of key/value pairs in which
+each key appears just once).
+
+In a cartesian configuration file, a variant set is defined using the ‘variants’
+block, which is opened by a ‘variants:’ statement. The contents of the block
+must be indented further right than the ‘variants:’ statement.  Each variant is
+defined using a ‘<variant_name>:‘ statement. For example::
 
     variants:
         - one:
@@ -69,11 +76,10 @@ outside arrays.  For example::
             key1 = foo
             key2 = bar
 
-While combining, the parser forms names for each outcome based on
-prepending each variant onto a list. In other words, the first variant
-name parsed will appear as the right most name component. These names can
-become quite long, and since they contain keys to distinguishing between
-results, a 'short-name' key is also used.  For example, running
+While combining variant sets, the parser creates names for each combination
+prepending each variant to a list. In other words, the first variant name parsed
+will appear as the right most name component. This list may be represented with
+a string with the '.' character between each component name. For example, running
 ``cartesian_config.py`` against the content above produces the following
 combinations and names::
 
@@ -87,10 +93,21 @@ combinations and names::
     dict    8:  six.two
     dict    9:  six.three
 
-Variant shortnames represent the <TESTNAME> value used when results are
-recorded (see section Job Names and Tags. For convenience
-variants who’s name begins with a ‘``@``’ do not prepend their name to
-'short-name', only 'name'. This allows creating ‘shortcuts’ for
+Dict 1 elements::
+
+    key1 = Hello
+    key3 = foo
+
+Dict 7 elements::
+
+    key1 = foo
+    key2 = bar
+
+These combinations names can become quite long and, due to this, a 'short name'
+is also used. A combination short name represent the <TESTNAME> value used
+when a combination is recorded (see section Job Names and Tags. For convenience,
+variants which name begins with a ‘``@``’ do not prepend their name to
+'short name', only 'name'. This allows creating ‘shortcuts’ for
 specifying multiple sets or changes to key/value pairs without changing
 the results directory name. For example, this is often convenient for
 providing a collection of related pre-configured tests based on a
