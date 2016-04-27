@@ -42,7 +42,7 @@ Variants
 ========
 
 A ‘variants’ stanza is opened by a ‘variants:’ statement. The contents
-of the stanza must be indented further left than the ‘variants:’
+of the stanza must be indented further right than the ‘variants:’
 statement. Each variant stanza or block defines a single dimension of
 the output array. When a Cartesian configuration file contains
 two variants stanzas, the output will be all possible combination's of
@@ -67,7 +67,7 @@ outside arrays.  For example::
 
 While combining, the parser forms names for each outcome based on
 prepending each variant onto a list. In other words, the first variant
-name parsed will appear as the left most name component. These names can
+name parsed will appear as the right most name component. These names can
 become quite long, and since they contain keys to distinguishing between
 results, a 'short-name' key is also used.  For example, running
 ``cartesian_config.py`` against the content above produces the following
