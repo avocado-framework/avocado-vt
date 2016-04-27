@@ -2565,11 +2565,12 @@ def normalize_data_size(value_str, order_magnitude="M", factor="1024"):
     from_index = __get_unit_index(unit)
     to_index = __get_unit_index(order_magnitude)
     scale = int(factor) ** (to_index - from_index)
-    if scale > 0:
-        data_size = float(value) / abs(scale)
+    data_size = float(value) / scale
+    # Control precision to avoid scientific notaion
+    if data_size.is_integer():
+        return "%.1f" % data_size
     else:
-        data_size = float(value) * abs(scale)
-    return str(data_size)
+        return ("%.20f" % data_size).rstrip('0')
 
 
 def get_free_disk(session, mount):
