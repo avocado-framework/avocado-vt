@@ -30,7 +30,7 @@ surrounding quotes completely optional (but honored). A reference of
 descriptions for most keys is included in section Configuration Parameter
 Reference.
 The key will become part of all lower-level (i.e. further indented) variant
-stanzas (see section variants_).
+blocks (see section variants_).
 However, key precedence is evaluated in top-down or ‘last defined’
 order. In other words, the last parsed key has precedence over earlier
 definitions.
@@ -41,11 +41,11 @@ definitions.
 Variants
 ========
 
-A ‘variants’ stanza is opened by a ‘variants:’ statement. The contents
-of the stanza must be indented further right than the ‘variants:’
-statement. Each variant stanza or block defines a single dimension of
+A ‘variants’ block is opened by a ‘variants:’ statement. The contents
+of the block must be indented further right than the ‘variants:’
+statement. Each variant block defines a single dimension of
 the output array. When a Cartesian configuration file contains
-two variants stanzas, the output will be all possible combination's of
+two variants blocks, the output will be all possible combination's of
 both variant contents. Variants may be nested within other variants,
 effectively nesting arbitrarily complex arrays within the cells of
 outside arrays.  For example::
