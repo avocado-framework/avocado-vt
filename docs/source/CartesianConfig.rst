@@ -4,11 +4,16 @@
 Cartesian Configuration
 =======================
 
-Cartesian Configuration is a highly specialized way of providing lists
-of key/value pairs within combination's of various categories. The
-format simplifies and condenses highly complex multidimensional arrays
-of test parameters into a flat list. The combinatorial result can be
-filtered and adjusted prior to testing, with filters, dependencies, and
+In software testing, key/value pairs are usually used as test input parameters.
+
+Cartesian product is a mathematical operation which creates a set from
+multiple sets. Given sets A and B, the cartesian product of both is
+the set of all ordered pairs (a,b) where a belongs to A and b belongs to B.
+
+In Avocado VT, cartesian configuration is a method of defining key/value pairs
+which are later combined using the cartesian product concept. Each element of
+this product is used as input by a different test execution. The product can
+be filtered and adjusted prior to testing, with filters, dependencies, and
 key/value substitutions.
 
 The parser relies on indentation, and is very sensitive to misplacement
@@ -16,7 +21,6 @@ of tab and space characters. It’s highly recommended to edit/view
 Cartesian configuration files in an editor capable of collapsing tab
 characters into four space characters. Improper attention to column
 spacing can drastically affect output.
-
 
 .. _keys_and_values:
 
