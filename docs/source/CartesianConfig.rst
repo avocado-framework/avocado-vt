@@ -381,35 +381,30 @@ relevant, and will carry through any key/value substitutions
 (see section key_sub_arrays_) as if parsing a complete, flat file.
 
 
-.. _combinatorial_outcome:
+.. developing_configurations:
 
-Combinatorial outcome
-=====================
+Developing cartesian configurations
+===================================
 
-The parser is available as both a python module and command-line tool
-for examining the parsing results in a text-based listing. To utilize it
-on the command-line, run the module followed by the path of the
-configuration file to parse. For example,
-``common_lib/cartesian_config.py tests/libvirt/tests.cfg``.
+The parser is available as both a Python module and command line tool
+for examining the cartesian configuration parsing results in a text
+output. To use it on the command line, run the module followed by the path of
+the cartesian configuration file to parse. For example,
+``virttest/cartesian_config.py tests/libvirt/tests.cfg``.
 
-The output will be just the names of the combinatorial result set items
-(see short-names, section Variants). However,
-the ‘``--contents``’ parameter may be specified to examine the output in
-more depth. Internally, the key/value data is stored/accessed similar to
-a python dictionary instance. With the collection of dictionaries all
-being part of a python list-like object. Irrespective of the internals,
-running this module from the command-line is an excellent tool for both
-reviewing and learning about the Cartesian Configuration format.
+The output will be just the names of the variants sets combinations.
+However, the ‘``--contents``’ parameter may be specified to examine the output
+in more depth. The key/value data is stored as a Python dict-like object,
+the collection of dictionaries is displayed as a Python list-like object
+and the tool output reflects that. Running this tool from the command line
+is an excellent method for both reviewing and learning about the Cartesian
+Configuration format.
 
-In general, each individual combination of the defined variants provides
-the parameters for a single test. Testing proceeds in order, through
-each result, passing the set of keys and values through to the harness
-and test code. When examining Cartesian configuration files, it’s
-helpful to consider the earliest key definitions as “defaults”, then
-look to the end of the file for other top-level override to those
-values. If in doubt of where to define or set a key, placing it at the
-top indentation level, at the end of the file, will guarantee it is
-used.
+When examining Cartesian configuration files, it is helpful to consider the
+earliest key definitions as “defaults”, then look to the end of the file for
+other top-level override to those values. If in doubt of where to define
+a key, placing it at the top indentation level  at the end of the file, will
+guarantee it is used.
 
 Advanced features
 =================
