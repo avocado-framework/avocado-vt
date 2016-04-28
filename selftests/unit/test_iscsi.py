@@ -61,7 +61,9 @@ class iscsi_test(unittest.TestCase):
                                           ).and_return(s_msg)
 
         out_cmd = "iscsiadm --mode node --logout -T %s" % iscsi_obj.target
-        process.system_output.expect_call(out_cmd).and_return("successful")
+        process.system_output.expect_call(out_cmd,
+                                          ignore_status=True
+                                          ).and_return("successful")
         out_cmd = "iscsiadm --mode node"
         ret_str = "127.0.0.1:3260,1 %s" % iscsi_obj.target
         process.system_output.expect_call(out_cmd,
