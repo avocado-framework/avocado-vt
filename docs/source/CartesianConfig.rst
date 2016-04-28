@@ -103,87 +103,6 @@ Dict 7 elements::
     key1 = foo
     key2 = bar
 
-These combinations names can become quite long and, due to this, a 'short name'
-is also used. A combination short name represent the <TESTNAME> value used
-when a combination is recorded (see section Job Names and Tags. For convenience,
-variants which name begins with a ‘``@``’ do not prepend their name to
-'short name', only 'name'. This allows creating ‘shortcuts’ for
-specifying multiple sets or changes to key/value pairs without changing
-the results directory name. For example, this is often convenient for
-providing a collection of related pre-configured tests based on a
-combination of others.
-
-
-Named variants
-==============
-
-Named variants allow assigning a parseable name to a variant set.  This enables
-an entire variant set to be used for in filters_.  All output combinations will
-inherit the named variant key, along with the specific variant name.  For example::
-
-   variants var1_name:
-        - one:
-            key1 = Hello
-        - two:
-            key2 = World
-        - three:
-   variants var2_name:
-        - one:
-            key3 = Hello2
-        - two:
-            key4 = World2
-        - three:
-
-   only (var2_name=one).(var1_name=two)
-
-Results in the following outcome when parsed with ``cartesian_config.py -c``::
-
-    dict    1:  (var2_name=one).(var1_name=two)
-          dep = []
-          key2 = World         # variable key2 from variants var1_name and variant two.
-          key3 = Hello2        # variable key3 from variants var2_name and variant one.
-          name = (var2_name=one).(var1_name=two)
-          shortname = (var2_name=one).(var1_name=two)
-          var1_name = two      # variant name in same namespace as variables.
-          var2_name = one      # variant name in same namespace as variables.
-
-Named variants could also be used as normal variables.::
-
-   variants guest_os:
-        - fedora:
-        - ubuntu:
-   variants disk_interface:
-        - virtio:
-        - hda:
-
-Which then results in the following::
-
-    dict    1:  (disk_interface=virtio).(guest_os=fedora)
-        dep = []
-        disk_interface = virtio
-        guest_os = fedora
-        name = (disk_interface=virtio).(guest_os=fedora)
-        shortname = (disk_interface=virtio).(guest_os=fedora)
-    dict    2:  (disk_interface=virtio).(guest_os=ubuntu)
-        dep = []
-        disk_interface = virtio
-        guest_os = ubuntu
-        name = (disk_interface=virtio).(guest_os=ubuntu)
-        shortname = (disk_interface=virtio).(guest_os=ubuntu)
-    dict    3:  (disk_interface=hda).(guest_os=fedora)
-        dep = []
-        disk_interface = hda
-        guest_os = fedora
-        name = (disk_interface=hda).(guest_os=fedora)
-        shortname = (disk_interface=hda).(guest_os=fedora)
-    dict    4:  (disk_interface=hda).(guest_os=ubuntu)
-        dep = []
-        disk_interface = hda
-        guest_os = ubuntu
-        name = (disk_interface=hda).(guest_os=ubuntu)
-        shortname = (disk_interface=hda).(guest_os=ubuntu)
-
-
 .. _dependencies:
 
 Dependencies
@@ -252,10 +171,10 @@ names. For example:
 Would reduce an arbitrarily large matrix to only those variants who’s
 names contain Linux, Fedora, and 64 in them.
 
-However, note that any of these filters may be used within named
-variants as well. In this application, they are only evaluated when that
-variant name is selected for inclusion (implicitly or explicitly) by a
-higher-order. For example:
+However, note that any of these filters may be used within variants as well.
+In this application, they are only evaluated when that variant name is
+selected for inclusion (implicitly or explicitly) by a higher-order.
+For example:
 
 ::
 
@@ -383,6 +302,7 @@ is not important; statements addressing a single object always override
 statements addressing all objects. Note: This is contrary to the way the
 Cartesian configuration file as a whole is parsed (top-down).
 
+=======
 
 .. _include_statements:
 
@@ -426,6 +346,171 @@ look to the end of the file for other top-level override to those
 values. If in doubt of where to define or set a key, placing it at the
 top indentation level, at the end of the file, will guarantee it is
 used.
+
+Advanced features
+=================
+
+Variant sets combinations short names
+-------------------------------------
+
+Variant set combinations names can become quite long and, due to this, a
+'short name' is also automatically created by the test framework. For
+convenience, variants which name begins with a ‘``@``’ do not prepend their
+name to 'short name', only 'name'. This allows creating ‘shortcuts’ for
+specifying multiple sets or changes to key/value pairs without changing
+the results directory name. For example, this is often convenient for
+providing a collection of related pre-configured tests based on a
+combination of others.
+
+::
+
+    key1 = value1
+    key2 = value2
+    key3 = value3
+
+    variants:
+        - one:
+            key1 = Hello World
+            key2 <= some_prefix_
+        - two: one
+            key2 <= another_prefix_
+        - three: one two
+
+    variants:
+        - @A:
+            no one
+        - B:
+            only one,three
+
+Results in the following::
+
+    Dictionary #0:
+        depend = ['A.one']
+        key1 = value1
+        key2 = another_prefix_value2
+        key3 = value3
+        name = A.two
+        shortname = two
+    Dictionary #1:
+        depend = ['A.one', 'A.two']
+        key1 = value1
+        key2 = value2
+        key3 = value3
+        name = A.three
+        shortname = three
+    Dictionary #2:
+        depend = []
+        key1 = Hello World
+        key2 = some_prefix_value2
+        key3 = value3
+        name = B.one
+        shortname = B.one
+    Dictionary #3:
+        depend = ['B.one', 'B.two']
+        key1 = value1
+        key2 = value2
+        key3 = value3
+        name = B.three
+        shortname = B.three
+
+
+Named variant set
+-----------------
+
+It is possible to assign a name to a variant set.  This enables an entire
+variant set to be used in filters_. All variant set combinations will contain an
+extra key/value pair for each named variant set it contains, the key is
+the variant set name and the value is the corresponding current variant name.
+For example::
+
+   variants var1_name:
+        - one:
+            key1 = Hello
+        - two:
+            key2 = World
+        - three:
+   variants var2_name:
+        - one:
+            key3 = Hello2
+        - two:
+            key4 = World2
+        - three:
+
+   only (var2_name=one).(var1_name=two)
+
+Results in the following when parsed with ``cartesian_config.py -c``::
+
+    dict    1:  (var2_name=one).(var1_name=two)
+          dep = []
+          key2 = World         # variable key2 from variants var1_name and variant two.
+          key3 = Hello2        # variable key3 from variants var2_name and variant one.
+          name = (var2_name=one).(var1_name=two)
+          shortname = (var2_name=one).(var1_name=two)
+          var1_name = two      # variant name in same namespace as variables.
+          var2_name = one      # variant name in same namespace as variables.
+
+Named variants could also be used as normal variables.::
+
+   variants guest_os:
+        - fedora:
+        - ubuntu:
+   variants disk_interface:
+        - virtio:
+        - hda:
+
+Results in the following::
+
+    dict    1:  (disk_interface=virtio).(guest_os=fedora)
+        dep = []
+        disk_interface = virtio
+        guest_os = fedora
+        name = (disk_interface=virtio).(guest_os=fedora)
+        shortname = (disk_interface=virtio).(guest_os=fedora)
+    dict    2:  (disk_interface=virtio).(guest_os=ubuntu)
+        dep = []
+        disk_interface = virtio
+        guest_os = ubuntu
+        name = (disk_interface=virtio).(guest_os=ubuntu)
+        shortname = (disk_interface=virtio).(guest_os=ubuntu)
+    dict    3:  (disk_interface=hda).(guest_os=fedora)
+        dep = []
+        disk_interface = hda
+        guest_os = fedora
+        name = (disk_interface=hda).(guest_os=fedora)
+        shortname = (disk_interface=hda).(guest_os=fedora)
+    dict    4:  (disk_interface=hda).(guest_os=ubuntu)
+        dep = []
+        disk_interface = hda
+        guest_os = ubuntu
+        name = (disk_interface=hda).(guest_os=ubuntu)
+        shortname = (disk_interface=hda).(guest_os=ubuntu)
+
+.. _key_sub_arrays:
+
+Implicit keys
+-------------
+
+Some special keys are expected to be defined with a list of values and
+implicitly define a set of keys for each one of its values. For example, each
+value of the 'vms' key will implicitly define keys such as 'mem_<vm>'.
+In this case a default 'mem' key is also available. Example::
+
+    vms = vm1 second_vm another_vm
+    mem = 128
+    mem_vm1 = 512
+    mem_second_vm = 1024
+
+As result, 3 virtual machine objects are created with the following
+amount of memory::
+
+    vm1: 512
+    second_vm: 1024
+    another_vm: 128 (default)
+
+The order in which these statements are written in a configuration file
+is not important. Assignments to a single object always override assignments
+to all objects. Note: This is contrary to the way the Cartesian configuration
+file as a whole is parsed (top-down).
 
 
 .. _formal_definition:
@@ -797,57 +882,6 @@ Examples
         key3 = value3
         name = A.three
         shortname = A.three
-    Dictionary #2:
-        depend = []
-        key1 = Hello World
-        key2 = some_prefix_value2
-        key3 = value3
-        name = B.one
-        shortname = B.one
-    Dictionary #3:
-        depend = ['B.one', 'B.two']
-        key1 = value1
-        key2 = value2
-        key3 = value3
-        name = B.three
-        shortname = B.three
-
--  Short-names::
-
-    key1 = value1
-    key2 = value2
-    key3 = value3
-
-    variants:
-        - one:
-            key1 = Hello World
-            key2 <= some_prefix_
-        - two: one
-            key2 <= another_prefix_
-        - three: one two
-
-    variants:
-        - @A:
-            no one
-        - B:
-            only one,three
-
-   Results in the following::
-
-    Dictionary #0:
-        depend = ['A.one']
-        key1 = value1
-        key2 = another_prefix_value2
-        key3 = value3
-        name = A.two
-        shortname = two
-    Dictionary #1:
-        depend = ['A.one', 'A.two']
-        key1 = value1
-        key2 = value2
-        key3 = value3
-        name = A.three
-        shortname = three
     Dictionary #2:
         depend = []
         key1 = Hello World
