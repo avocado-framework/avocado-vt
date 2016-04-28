@@ -131,52 +131,55 @@ Results in the correct sequence of variant sets: one, two, *then* three.
 
 .. _filters:
 
-Filters
-=======
+Variant set combination filters
+===============================
 
-Filter statements allow modifying the resultant set of keys based on the
-name of the variant set (see section variants_). Filters can be used in 3 ways:
-Limiting the set to include only combination names matching a pattern.
-Limiting the set to exclude all combination names not matching a
-pattern. Modifying the set or contents of key/value pairs within a
-matching combination name.
+Filters allow specifying a subset of all variant set combinations. Names are
+matched by combining variant names with one of the character(s) below:
 
-Names are matched by pairing a variant name component with the
-character(s) ‘,’ meaning OR, ‘..’ meaning AND, and ‘.’ meaning
-IMMEDIATELY-FOLLOWED-BY. When used alone, they permit modifying the list
-of key/values previously defined. For example:
+* ‘,’ : OR operator
+* ‘..’ : AND operator
+* ‘.’ : immediately followed by
 
-::
+Considering the list of variant set combinations below::
 
-    Linux..OpenSuse:
-    initrd = initrd
+    Linux.x86.OpenSuse
+    Linux.x86.Debian
+    Linux.OpenSuse
 
-Modifies all variants containing ‘Linux’ followed anywhere thereafter
-with ‘OpenSuse’, such that the ‘initrd’ key is created or overwritten
-with the value ‘initrd’.
+The filter::
 
-When a filter is preceded by the keyword ‘only’ or ‘no’, it limits the
-selection of variant combination's This is used where a particular set
-of one or more variant combination's should be considered selectively or
-exclusively. When given an extremely large matrix of variants, the
-‘only’ keyword is convenient to limit the result set to only those
-matching the filter. Whereas the ‘no’ keyword could be used to remove
-particular conflicting key/value sets under other variant combination
-names. For example:
+    Linux..OpenSuse
 
-::
+matches the following combinations::
 
-    only Linux..Fedora..64
+    Linux.x86.OpenSuse
+    Linux.OpenSuse
 
-Would reduce an arbitrarily large matrix to only those variants who’s
-names contain Linux, Fedora, and 64 in them.
+The filter::
 
-However, note that any of these filters may be used within variants as well.
-In this application, they are only evaluated when that variant name is
-selected for inclusion (implicitly or explicitly) by a higher-order.
-For example:
+    Linux.OpenSuse
 
-::
+matches the following combinations::
+
+    Linux.OpenSuse
+
+The filter::
+
+    Linux.OpenSuse,Linux..Debian
+
+matches the following combinations::
+
+    Linux.OpenSuse
+    Linux.x86.Debian
+
+Filters can be used in 3 ways:
+
+1. include only combinations names matching a pattern. Requires keyword 'only'
+Useful to limit the combinations list size when there is an extremely large matrix
+of variants.
+
+Example::
 
     variants:
         - one:
@@ -193,14 +196,75 @@ For example:
 
     only default
 
-Results in the following outcome:
+Results in the following:
 
 ::
 
-    name = default.three.one
-    key1 = Hello
-    key2 =
-    key3 = World
+    dict 1: default.three.one
+      key1 = Hello
+      key2 =
+      key3 = World
+
+
+2. exclude all combinations names not matching a pattern. Requires keyword 'no'
+Useful to remove particular conflicting key/value pairs from some combinations.
+
+Example::
+
+    key1 = value1
+    key2 = value2
+
+    variants:
+        - one:
+            key1 = Hello World
+            key2 = foo1
+        - two:
+            key2 = foo2
+        - three:
+
+    variants:
+        - A:
+            no one
+
+Results in the following::
+
+    Dict 1: A.two
+        key1 = value1
+        key2 = foo1
+    Dict 2: A.three
+        key1 = value1
+        key2 = value2
+
+
+3. update key/value pairs of combinations names matching a pattern
+
+Example::
+
+    variants:
+        - OpenSuse
+            initrd = b
+        - Debian
+            initrd = c
+    variants:
+        - Linux:
+            initrd = a
+
+    Linux..OpenSuse:
+    initrd = initrd
+
+Results in the following::
+
+    dict 1: Linux.Debian
+      initrd = c
+    dict 2: Linux.OpenSuse
+      initrd = initrd_value
+
+Thus, this sets the ‘initrd’ key to ‘initrd_value’ in all combinations containing
+‘Linux’ followed (immediately or not) by ‘OpenSuse’.
+
+However, note that any of these filters may be used within variants as well.
+In this case, they are only evaluated when that variant name is
+selected for inclusion (implicitly or explicitly) by a higher-order.
 
 
 .. _value_substitutions:
