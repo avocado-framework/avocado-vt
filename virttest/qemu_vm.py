@@ -692,7 +692,7 @@ class VM(virt_vm.BaseVM):
 
             return cmd, cmd_nd
 
-        def add_floppy(devices, filename, index):
+        def add_floppy(filename, index):
             cmd_list = [" -fda '%s'", " -fdb '%s'"]
             return cmd_list[index] % filename
 
@@ -717,7 +717,7 @@ class VM(virt_vm.BaseVM):
             else:
                 return " -redir tcp:%s::%s" % (host_port, guest_port)
 
-        def add_vnc(devices, vnc_port, vnc_password='no', extra_params=None):
+        def add_vnc(vnc_port, vnc_password='no', extra_params=None):
             vnc_cmd = " -vnc :%d" % (vnc_port - 5900)
             if vnc_password == "yes":
                 vnc_cmd += ",password"
@@ -731,10 +731,10 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
-        def add_nographic(devices):
+        def add_nographic():
             return " -nographic"
 
-        def add_uuid(devices, uuid):
+        def add_uuid(uuid):
             return " -uuid '%s'" % uuid
 
         def add_qemu_option(devices, name, optsinfo):
