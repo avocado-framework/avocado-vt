@@ -16,6 +16,8 @@ Installing Avocado-VT
 
 Having installed Avocado, you should already have the right repos enabled.
 
+.. note:: If you use avocado from sources, use `make link` as described `here <http://avocado-framework.readthedocs.io/en/latest/ContributionGuide.html#hacking-and-using-avocado>`__.
+
 Fedora and Enterprise Linux
 ---------------------------
 
