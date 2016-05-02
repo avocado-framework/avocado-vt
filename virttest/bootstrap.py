@@ -269,7 +269,6 @@ def sync_download_dir(interactive):
                   "into %s", base_download_dir, download_dir)
     download_file_list = glob.glob(os.path.join(base_download_dir,
                                                 "*.ini"))
-    logging.debug("Donwload file list: %s", download_file_list)
     for src_file in download_file_list:
         dst_file = os.path.join(download_dir,
                                 os.path.basename(src_file))
