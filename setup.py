@@ -91,6 +91,7 @@ setup(name='avocado-plugins-vt',
                 'virttest.tests',
                 'virttest.unittest_utils',
                 'virttest.utils_test'],
+      package_data={"virttest": ["*.*"]},
       data_files=get_data_files(),
       entry_points={
           'avocado.plugins.cli': [
