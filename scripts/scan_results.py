@@ -54,15 +54,21 @@ def fetch_data(db_file=".journal.sqlite"):
     return records
 
 
-def print_data(records):
+def print_data(records, skip_timestamp=False):
     """ Print formated tests status info"""
     if not records:
         return
-    print "%-40s %-15s %-15s %-15s %-10s %-10s" % (
-        "CaseName", "Status", "StartTime",
-        "EndTime", "Result", "TimeElapsed")
+    if not skip_timestamp:
+        print "%-40s %-15s %-15s %-15s %-10s %-10s" % (
+            "CaseName", "Status", "StartTime",
+            "EndTime", "Result", "TimeElapsed")
+    else:
+        print "%-40s %-15s %-10s" % ("CaseName", "Status", "Result")
     for row in records:
-        print "%s %s %s %s %s %s" % row
+        if not skip_timestamp:
+            print "%s %s %s %s %s %s" % row
+        else:
+            print "%s %s %s" % (row[0], row[1], row[4])
 
 
 if __name__ == "__main__":
@@ -77,6 +83,13 @@ if __name__ == "__main__":
         help="avocado test results dir, Default: %s" %
         default_results_dir)
     parser.add_argument(
+        '-s',
+        '--skip-timestamp',
+        action='store_true',
+        default=False,
+        dest='skip_timestamp',
+        help="skip timestamp output (leaving status and result enabled)")
+    parser.add_argument(
         '-v',
         '--version',
         action='version',
@@ -89,4 +102,4 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(1)
     data = fetch_data(db_file)
-    print_data(data)
+    print_data(data, arguments.skip_timestamp)
