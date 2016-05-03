@@ -93,8 +93,8 @@ class QtreeNode(object):
 
     def set_qtree_prop(self, prop, value):
         if prop in self.qtree:
-            raise ValueError("Property %s = %s, not rewriting with %s" % (prop,
-                                                                          self.qtree.get(prop), value))
+            raise ValueError("Property %s = %s, not rewriting with %s" % (
+                prop, self.qtree.get(prop), value))
         self.update_qtree_prop(prop, value)
 
     def update_qtree_prop(self, prop, value):
@@ -189,8 +189,8 @@ class QtreeDisk(QtreeDev):
 
     def set_block_prop(self, prop, value):
         if prop in self.block:
-            raise ValueError("Property %s = %s, not rewriting with %s" % (prop,
-                                                                          self.block.get(prop), value))
+            raise ValueError("Property %s = %s, not rewriting with %s" % (
+                prop, self.block.get(prop), value))
         self.update_block_prop(prop, value)
 
     def update_block_prop(self, prop, value):
@@ -528,8 +528,9 @@ class QtreeDisksContainer(object):
         # We don't have the params name so we need to map file_names instead
         qname = None
         for name in params.objects('cdroms'):
-            image_name = utils_misc.get_path(data_dir.get_data_dir(),
-                                             params.object_params(name).get('cdrom', ''))
+            image_name = utils_misc.get_path(
+                data_dir.get_data_dir(),
+                params.object_params(name).get('cdrom', ''))
             image_name = os.path.realpath(image_name)
             for (qname, disk) in disks.iteritems():
                 if disk[0].get('image_name') == image_name:
@@ -575,7 +576,8 @@ class QtreeDisksContainer(object):
                     handled = True
                 if not handled:
                     error_msg = "Disk %s property " % qname
-                    error_msg += "%s=%s doesn't match" % (prop, current.get(prop))
+                    error_msg += "%s=%s doesn't match" % (
+                        prop, current.get(prop))
                     error_msg += " params %s" % image_params.get(prop)
                     logging.error(error_msg)
                     self.errors.append(error_msg)
@@ -588,3 +590,20 @@ class QtreeDisksContainer(object):
             self.errors.append(error_msg)
             err += 1
         return err
+
+
+def traverse(qtree_node):
+    """
+    Use generator to traverse the given qtree node
+
+    :param qtree_node: qtree node to be traversed
+    """
+    if not qtree_node:
+        return
+
+    # Traverse in pre-order, please fix this
+    # if there are some special demands
+    yield qtree_node
+    for sub_node in qtree_node.get_children():
+        for node in traverse(sub_node):
+            yield node
