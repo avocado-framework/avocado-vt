@@ -163,12 +163,12 @@ class QtreeDev(QtreeNode):
         super(QtreeDev, self).add_child(child)
 
     def guess_type(self):
-        if ('drive' in self.qtree and
-                self.qtree['type'] != 'usb-storage'):
-            # ^^ HOOK when usb-storage-containter is detected as disk
-            return QtreeDisk
-        else:
-            return QtreeDev
+        guess = {True: QtreeDisk, False: QtreeDev}
+        is_disk = ('drive' in self.qtree)
+        # HOOK when usb-storage-containter is detected as disk
+        is_disk = (is_disk and (self.qtree['type'] != 'usb-storage'))
+        is_disk = (is_disk and (self.qtree['type'] != 'spapr-nvram'))
+        return guess[is_disk]
 
 
 class QtreeDisk(QtreeDev):
