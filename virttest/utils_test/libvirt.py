@@ -602,7 +602,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         nfs_path = res["export_dir"]
         selinux_bak = res["selinux_status_bak"]
         cleanup_nfs = True
-        extra = "--source-host %s --source-path %s" % ('localhost',
+        extra = "--source-host %s --source-path %s" % ('127.0.0.1',
                                                        nfs_path)
     elif pool_type == "logical":
         # Create vg by using iscsi device
@@ -614,7 +614,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         # Set up iscsi target without login
         iscsi_target, _ = setup_or_cleanup_iscsi(True, False)
         cleanup_iscsi = True
-        extra = "--source-host %s  --source-dev %s" % ('localhost',
+        extra = "--source-host %s  --source-dev %s" % ('127.0.0.1',
                                                        iscsi_target)
     elif pool_type == "disk":
         # Set up iscsi target and login
