@@ -1648,8 +1648,8 @@ class MemoryHotplugTest(MemoryBaseTest):
             if val:
                 key = "_".join([attr, dev_type, name])
                 params[key] = val
-        if name not in vm.params.get("mem_devs"):
-            mem_devs = vm.params.objects("mem_devs")
+        mem_devs = vm.params.objects("mem_devs")
+        if name not in mem_devs:
             mem_devs.append(name)
             params["mem_devs"] = " ".join(mem_devs)
         vm.params.update(params)
@@ -1667,13 +1667,12 @@ class MemoryHotplugTest(MemoryBaseTest):
         """
         error_context.context("Update VM object after unplug memory")
         dev_type, name = dev.get_qid().split('-')
-        if name not in vm.params.get("mem_devs"):
-            return None
         mem_devs = vm.params.objects("mem_devs")
-        mem_devs.remove(name)
-        vm.params["mem_devs"] = " ".join(mem_devs)
         if dev in vm.devices:
             vm.devices.remove(dev)
+        if name in mem_devs:
+            mem_devs.remove(name)
+            vm.params["mem_devs"] = " ".join(mem_devs)
         self.env.register_vm(vm.name, vm)
 
     @error_context.context_aware
