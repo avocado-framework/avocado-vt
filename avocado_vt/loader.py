@@ -19,6 +19,7 @@ Avocado VT plugin
 import logging
 import os
 import sys
+import time
 
 from avocado.core import loader
 from avocado.core import output
@@ -34,6 +35,29 @@ from .test import VirtTest
 
 
 LOG = logging.getLogger("avocado.app")
+
+
+class FileLock(object):
+    def __init__(self, filename, timeout=10):
+        self.lock = filename + ".lock"
+        self.timeout = timeout
+
+    def __enter__(self):
+        deadline = time.time() + self.timeout
+        while time.time() < deadline:
+            try:
+                fd_lock = os.open(self.lock,
+                                  os.O_CREAT | os.O_WRONLY | os.O_EXCL, 0o666)
+                os.write(fd_lock, str(os.getpid()))
+                break
+            except OSError:
+                time.sleep(0.1)
+        else:
+            raise RuntimeError("Unable to obtain lock %s in %ss"
+                               % (self.lock, self.timeout))
+
+    def __exit__(self, e_type, value, traceback):
+        os.remove(self.lock)
 
 
 def guest_listing(options):
@@ -133,10 +157,8 @@ class VirtTestLoader(loader.TestLoader):
         return {VirtTest: term_support.healthy_str}
 
     def discover(self, url, which_tests=loader.DEFAULT):
-        try:
+        with FileLock(self.args.vt_datadir, 10):
             cartesian_parser = self._get_parser()
-        except Exception, details:
-            raise EnvironmentError(details)
         if url is not None:
             try:
                 cartesian_parser.only_filter(url)
