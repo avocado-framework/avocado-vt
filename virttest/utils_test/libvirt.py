@@ -988,9 +988,14 @@ class PoolVolumeTest(object):
                                                                nfs_path)
         elif pool_type == "iscsi":
             ip_protocal = kwargs.get('ip_protocal', "ipv4")
+            if ip_protocal == "ipv6":
+                ip_addr = "::1"
+            else:
+                ip_addr = "127.0.0.1"
             setup_or_cleanup_iscsi(is_setup=True,
                                    emulated_image=emulated_image,
-                                   image_size=image_size)
+                                   image_size=image_size,
+                                   portal_ip=ip_addr)
             iscsi_sessions = iscsi.iscsi_get_sessions()
             iscsi_target = None
             for iscsi_node in iscsi_sessions:
@@ -998,10 +1003,6 @@ class PoolVolumeTest(object):
                     iscsi_target = iscsi_node[1]
                     break
             iscsi.iscsi_logout(iscsi_target)
-            if ip_protocal == "ipv6":
-                ip_addr = "::1"
-            else:
-                ip_addr = "127.0.0.1"
             extra = " --source-host %s  --source-dev %s" % (ip_addr,
                                                             iscsi_target)
         elif pool_type == "scsi":
