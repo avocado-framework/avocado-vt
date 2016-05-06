@@ -2944,7 +2944,7 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0):
     output = commands.getoutput(ip_cmd)
     devs = set(re.findall(r"dev\s+(\S+)", output, re.I))
     if not devs:
-        logging.debug("No path to %s in route table %s: %s" % (ip, output))
+        logging.debug("No path to %s in route table: %s" % (ip, output))
         return False
     mac_regex = "|".join("(%s)" % mac for mac in macs)
     regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex), re.I)
