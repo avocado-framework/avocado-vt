@@ -949,16 +949,12 @@ class PoolVolumeTest(object):
             extra = " --source-dev %s" % device_name
         elif pool_type == "logical":
             logical_device = device_name
-            cmd_pv = "pvcreate %s" % logical_device
             vg_name = "vg_%s" % pool_type
-            cmd_vg = "vgcreate %s %s" % (vg_name, logical_device)
+            lv_utils.vg_create(vg_name, logical_device)
             extra = "--source-name %s" % vg_name
-            process.run(cmd_pv)
-            process.run(cmd_vg)
             # Create a small volume for verification
             # And VG path will not exist if no any volume in.(bug?)
-            cmd_lv = "lvcreate --name default_lv --size 1M %s" % vg_name
-            process.run(cmd_lv)
+            lv_utils.lv_create(vg_name, 'default_lv', '1M')
         elif pool_type == "netfs":
             export_options = kwargs.get('export_options',
                                         "rw,async,no_root_squash")
