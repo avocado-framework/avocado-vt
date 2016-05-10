@@ -240,6 +240,15 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
 
     $ avocado list uptime
 
+#. OK still not there. We need to propagate the change to the actual config
+   by running `--vt-bootstrap`::
+
+    $ avocado --vt-bootstrap
+
+#. And now you'll finally see the test::
+
+    $ avocado list uptime
+
 #. Now, you can run your test to see if everything went well::
 
         $ avocado run --vt-type qemu uptime
