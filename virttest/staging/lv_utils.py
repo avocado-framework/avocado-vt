@@ -224,7 +224,7 @@ def vg_remove(vg_name):
     result = process.run(cmd)
     logging.info(result.stdout.rstrip())
     # Update cached state after remove VG
-    cmd = "vgscane --cache"
+    cmd = "vgscan --cache"
     result = process.run(cmd)
 
 
