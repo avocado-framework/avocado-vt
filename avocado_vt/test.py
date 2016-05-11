@@ -136,6 +136,15 @@ class VirtTest(test.Test):
         """
         return None
 
+    def get_state(self):
+        """
+        Avocado-vt replaces Test.params with avocado-vt params. This function
+        reports the original params on `get_state` call.
+        """
+        state = super(VirtTest, self).get_state()
+        state["params"] = self.__dict__.get("avocado_params")
+        return state
+
     def _start_logging(self):
         super(VirtTest, self)._start_logging()
         root_logger = logging.getLogger()
