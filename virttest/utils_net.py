@@ -3362,7 +3362,7 @@ def block_specific_ip_by_time(ip_addr, block_time="1 seconds", runner=None):
         if not runner:
             try:
                 utils_path.find_command("iptables")
-            except ValueError, details:
+            except utils_path.CmdNotFoundError, details:
                 raise exceptions.TestSkipError(details)
             output = local_runner(cmd)
             logging.debug("List current iptables rules:\n%s",
