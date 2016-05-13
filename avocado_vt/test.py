@@ -98,6 +98,8 @@ class VirtTest(test.Test):
         self.file_handler = None
         self.background_errors = Queue.Queue()
         self.whiteboard = None
+        # Avocado-vt does not have filename associated
+        self.filename = None
         super(VirtTest, self).__init__(methodName=methodName, name=name,
                                        params=params,
                                        base_logdir=base_logdir,
@@ -123,16 +125,6 @@ class VirtTest(test.Test):
         For VT tests, this always returns None. The reason is that
         individual VT tests do not map 1:1 to a file and do not provide
         the concept of a datadir.
-        """
-        return None
-
-    @property
-    def filename(self):
-        """
-        Returns the name of the file (path) that holds the current test
-
-        For VT tests, this always returns None. The reason is that
-        individual VT tests do not map 1:1 to a file.
         """
         return None
 
