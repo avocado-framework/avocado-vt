@@ -1605,13 +1605,15 @@ class DevContainer(object):
                              "instead.")
                 cd_format = 'ahci'
         shared_dir = os.path.join(data_dir.get_data_dir(), "shared")
+        cache_mode = image_params.get('image_aio') == 'native' and 'none' or ''
         return self.images_define_by_variables(name,
                                                storage.get_image_filename(
                                                    image_params,
                                                    data_dir.get_data_dir()),
                                                index,
                                                cd_format,
-                                               '',     # skip drive_cache
+                                               image_params.get(
+                                                   "drive_cache", cache_mode),
                                                image_params.get(
                                                    "drive_werror"),
                                                image_params.get(
