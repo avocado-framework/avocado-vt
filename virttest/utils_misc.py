@@ -3469,6 +3469,35 @@ def check_device_driver(pci_id, driver_type):
     return driver == driver_type
 
 
+def get_bootloader_cfg(session=None):
+    """
+    Find bootloader cfg file path of guest or host.
+
+    :param session: session of the vm needs to locate bootloader cfg file.
+    :return: bootloader cfg file path, empty string if no cfg file found.
+    """
+    bootloader_cfg = [
+        '/boot/grub/grub.conf',
+        '/boot/grub2/grub.cfg',
+        '/etc/grub.conf',
+        '/etc/grub2.cfg',
+        '/boot/etc/yaboot.conf'
+    ]
+    cfg_path = ''
+    for path in bootloader_cfg:
+        cmd = "test -f %s" % path
+        if session:
+            status = session.cmd_status(cmd)
+        else:
+            status = process.system(cmd)
+        if not status:
+            cfg_path = path
+    if not cfg_path:
+        logging.error("Failed to locate bootloader config file "
+                      "in %s." % bootloader_cfg)
+    return cfg_path
+
+
 class VFIOError(Exception):
 
     def __init__(self, err):
