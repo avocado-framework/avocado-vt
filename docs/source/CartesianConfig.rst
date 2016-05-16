@@ -954,7 +954,8 @@ the virtualization technology-specific directory.  For example, ``backends/qemu/
 |                             | Modifications are discouraged since they will   |
 |                             | be lost next time bootstrap is used.            |
 +-----------------------------+-------------------------------------------------+
-| cfg/guest-os.cfg            | Automatically generated from                    |
+| cfg/guest-os.cfg            | Automatically generated when                    |
+|                             | ``avocado vt-bootstrap`` is used from           |
 |                             | files within ``shared/cfg/guest-os/``.  Defines |
 |                             | all supported guest operating system            |
 |                             | types, architectures, installation images,      |
