@@ -23,7 +23,6 @@ import sys
 from avocado.core import loader
 from avocado.core import output
 
-from virttest import bootstrap
 from virttest import cartesian_config
 from virttest import data_dir
 from virttest import standalone_test
@@ -103,8 +102,6 @@ class VirtTestLoader(loader.TestLoader):
         add_if_not_exist('test_lister', True)
 
     def _get_parser(self):
-        bootstrap.create_guest_os_cfg(self.args.vt_type)
-        bootstrap.create_subtests_cfg(self.args.vt_type)
         options_processor = VirtTestOptionsProcess(self.args)
         return options_processor.get_parser()
 
