@@ -1395,6 +1395,9 @@ class DevContainer(object):
         devices[-1].set_param('snapshot', snapshot, bool)
         devices[-1].set_param('readonly', readonly, bool)
         if 'aio' in self.get_help_text():
+            if aio == 'native' and snapshot == 'yes':
+                logging.warn('snapshot is on, fallback aio to threads.')
+                aio = 'threads'
             devices[-1].set_param('aio', aio)
         devices[-1].set_param('media', media)
         devices[-1].set_param('format', imgfmt)
