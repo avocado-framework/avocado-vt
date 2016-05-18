@@ -602,7 +602,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         nfs_path = res["export_dir"]
         selinux_bak = res["selinux_status_bak"]
         cleanup_nfs = True
-        extra = "--source-host %s --source-path %s" % ('localhost',
+        extra = "--source-host %s --source-path %s" % ('127.0.0.1',
                                                        nfs_path)
     elif pool_type == "logical":
         # Create vg by using iscsi device
@@ -614,7 +614,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         # Set up iscsi target without login
         iscsi_target, _ = setup_or_cleanup_iscsi(True, False)
         cleanup_iscsi = True
-        extra = "--source-host %s  --source-dev %s" % ('localhost',
+        extra = "--source-host %s  --source-dev %s" % ('127.0.0.1',
                                                        iscsi_target)
     elif pool_type == "disk":
         # Set up iscsi target and login
@@ -984,9 +984,14 @@ class PoolVolumeTest(object):
                                                                nfs_path)
         elif pool_type == "iscsi":
             ip_protocal = kwargs.get('ip_protocal', "ipv4")
+            if ip_protocal == "ipv6":
+                ip_addr = "::1"
+            else:
+                ip_addr = "127.0.0.1"
             setup_or_cleanup_iscsi(is_setup=True,
                                    emulated_image=emulated_image,
-                                   image_size=image_size)
+                                   image_size=image_size,
+                                   portal_ip=ip_addr)
             iscsi_sessions = iscsi.iscsi_get_sessions()
             iscsi_target = None
             for iscsi_node in iscsi_sessions:
@@ -994,10 +999,6 @@ class PoolVolumeTest(object):
                     iscsi_target = iscsi_node[1]
                     break
             iscsi.iscsi_logout(iscsi_target)
-            if ip_protocal == "ipv6":
-                ip_addr = "::1"
-            else:
-                ip_addr = "127.0.0.1"
             extra = " --source-host %s  --source-dev %s" % (ip_addr,
                                                             iscsi_target)
         elif pool_type == "scsi":
