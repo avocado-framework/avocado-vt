@@ -8,26 +8,29 @@ In this article, we'll talk about:
 #. Write a simple test file
 #. Try out your new test, send it to the mailing list
 
-Write our own, drop-in 'uptime' test - Step by Step procedure
--------------------------------------------------------------
+Write our own 'uptime' test - Step by Step procedure
+----------------------------------------------------
 
 Now, let's go and write our uptime test, which only purpose in life is
 to pick up a living guest, connect to it via ssh, and return its uptime.
 
-#. Git clone tp-qemu.git to a convenient location, say $HOME/Code/tp-qemu::
+#. First we need to locate our provider directory. It's inside Avocado
+   `data` directory (`avocado config --datadir`), usually in
+   `~/avocado/data/avocado-vt`. We are going to write a generic `tp-qemu`
+   test, so let's move into the right git location::
 
-    $ git clone https://github.com/autotest/tp-qemu.git
+    $ cd $AVOCADO_DATA/avocado-vt/test-providers.d/downloads/io-github-autotest-qemu
 
 #. Our uptime test won't need any qemu specific feature. Thinking about
    it, we only need a vm object and establish an ssh session to it, so we
    can run the command. So we can store our brand new test under
-   ``tests``. At the autotest root location::
+   ``generic/tests``::
 
     $ touch generic/tests/uptime.py
     $ git add generic/tests/uptime.py
 
 #. OK, so that's a start. So, we have *at least* to implement a
-   function ``run_uptime``. Let's start with it and just put the keyword
+   function ``run``. Let's start with it and just put the keyword
    pass, which is a no op. Our test will be like:
 
 .. code-block:: python
@@ -212,16 +215,46 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
         $ inspekt indent generic/tests/uptime.py
 
 #. Now, you can test your code. When listing the qemu tests your new test should
-   appear in the list::
+   appear in the list (or shouldn't it?)::
 
         $ avocado list uptime
 
+#. There is one more thing to do. Avocado-vt does not walk the directories,
+   it uses `Cartesian config` to define test and all possible variants of
+   tests. To add our test to `Cartesian config` we need yet another file::
+
+    $ touch generic/tests/cfg/uptime.cfg
+    $ git add generic/tests/cfg/uptime.cfg
+
+#. The file might look like this::
+
+    - uptime:
+        virt_test_type = qemu libvirt
+        type = uptime
+
+   where the `virt_test_type` specifies what backends can run this test and
+   `type` specifies the test file. The `.py` will be appended and it'll be
+   searched for in the usual location.
+
+#. For the second time, let's try to discover the test::
+
+    $ avocado list uptime
+
+#. OK still not there. We need to propagate the change to the actual config
+   by running `vt-bootstrap`::
+
+    $ avocado vt-bootstrap
+
+#. And now you'll finally see the test::
+
+    $ avocado list uptime
+
 #. Now, you can run your test to see if everything went well::
 
-        $ avocado run --vt-type uptime
+        $ avocado run --vt-type qemu uptime
 
 #. OK, so now, we have something that can be git committed and sent to
-   the mailing list:
+   the mailing list (partial):
 
 .. code-block:: diff
 
