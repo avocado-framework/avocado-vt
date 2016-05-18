@@ -18,6 +18,7 @@ Avocado VT plugin
 
 import logging
 import os
+from shutil import copyfile
 
 from avocado.core.settings import settings
 from avocado.utils import path as utils_path
@@ -474,7 +475,22 @@ class VirtTestOptionsProcess(object):
         self.cartesian_parser = cartesian_config.Parser(debug=False)
 
         if self.options.vt_config:
-            cfg = os.path.abspath(self.options.vt_config)
+            config_files = ['tests.cfg', 'subtests.cfg', 'guest-os.cfg',
+                            'machines.cfg', 'guest-hw.cfg', 'virtio-win.cfg',
+                            'guest-hw.cfg', 'cdkeys.cfg', 'base.cfg',
+                            'tests-shared.cfg', 'drivers.cfg']
+            local_cfg = os.path.abspath(self.options.vt_config)
+            local_cfg_filename = local_cfg.split('/')[-1]
+            if local_cfg_filename not in config_files:
+                cfg = data_dir.get_backend_cfg_path(self.options.vt_type,
+                                                    local_cfg_filename)
+                # Skip if cfg path is happended to local config path given
+                if local_cfg != cfg:
+                    copyfile(local_cfg, cfg)
+            else:
+                raise ValueError("Invalid test config file name: %s\n "
+                                 "Choose config files names apart from: %s"
+                                 % local_cfg_filename, " ".join(config_files))
 
         if not self.options.vt_config:
             cfg = data_dir.get_backend_cfg_path(self.options.vt_type,
