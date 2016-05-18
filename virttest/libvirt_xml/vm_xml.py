@@ -1192,7 +1192,8 @@ class VMXML(VMXMLBase):
         devices = self.get_devices()
         for device in devices:
             if device == value:
-                logging.debug("Device %s is already in VM %s.", value, self)
+                logging.debug("Device %s is already in VM %s.",
+                              value, self.vm_name)
                 return
         devices.append(value)
         self.set_devices(devices)
@@ -1215,7 +1216,8 @@ class VMXML(VMXMLBase):
                 devices.remove(device)
                 break
         if not_found:
-            logging.debug("Device %s does not exist in VM %s.", value, self)
+            logging.debug("Device %s does not exist in VM %s.",
+                          value, self.vm_name)
             return
         self.set_devices(devices)
 
