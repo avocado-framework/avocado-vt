@@ -3289,7 +3289,7 @@ def get_host_default_gateway():
     """
     cmd = "ip route | awk '/default/ { print $3 }'"
     try:
-        output = process.system_output(cmd)
+        output = process.system_output(cmd, shell=True)
     except:
         raise exceptions.TestError("Failed to get the host's default GateWay.")
 
