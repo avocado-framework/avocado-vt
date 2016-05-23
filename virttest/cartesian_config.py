@@ -1939,6 +1939,7 @@ class Parser(object):
             for d in self.get_dicts_plain(node, ctx, content, shortname, dep):
                 if parent:
                     self.drop_suffixes(d)
+                postfix_parse(d)
                 yield d
         else:
             # Rewrite all separate joins in one node as many `only'
@@ -1954,6 +1955,7 @@ class Parser(object):
             for d in self.multiply_join(onlys, node, ctx, content, shortname, dep):
                 if parent:
                     self.drop_suffixes(d)
+                postfix_parse(d)
                 yield d
             node.content = old_conten[:]
 
