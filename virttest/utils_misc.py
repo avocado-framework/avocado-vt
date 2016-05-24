@@ -102,9 +102,9 @@ class InterruptedThread(threading.Thread):
                 if not suppress_exception:
                     # Because the exception was raised in another thread, we
                     # need to explicitly insert the current context into it
-                    s = exceptions.exception_context(self._e[1])
-                    s = exceptions.join_contexts(exceptions.get_context(), s)
-                    exceptions.set_exception_context(self._e[1], s)
+                    s = error_context.exception_context(self._e[1])
+                    s = error_context.join_contexts(error_context.get_context(), s)
+                    error_context.set_exception_context(self._e[1], s)
                     raise self._e[0], self._e[1], self._e[2]
             else:
                 return self._retval
