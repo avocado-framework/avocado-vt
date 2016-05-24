@@ -3644,10 +3644,14 @@ class SELinuxBoolean(object):
         # Change SELinux boolean value on local host
         if self.set_bool_local == "yes":
             self.setup_local()
+        else:
+            self.cleanup_local = False
 
         # Change SELinux boolean value on remote host
         if self.set_bool_remote == "yes":
             self.setup_remote()
+        else:
+            self.cleanup_remote = False
 
     def cleanup(self, keep_authorized_keys=False):
         """
