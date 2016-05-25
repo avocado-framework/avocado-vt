@@ -2022,6 +2022,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     driver_iothread = params.get("driver_iothread", "")
     mnt_path_name = params.get("mnt_path_name", "nfs-mount")
     exp_opt = params.get("export_options", "rw,no_root_squash,fsid=0")
+    exp_dir = params.get("export_dir", "nfs-export")
     first_disk = vm.get_first_disk_devices()
     blk_source = first_disk['source']
     disk_xml = vmxml.devices.by_device_tag('disk')[0]
@@ -2148,7 +2149,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         # Setup nfs
         res = setup_or_cleanup_nfs(True, mnt_path_name,
                                    is_mount=True,
-                                   export_options=exp_opt)
+                                   export_options=exp_opt,
+                                   export_dir=exp_dir)
         exp_path = res["export_dir"]
         mnt_path = res["mount_dir"]
         params["selinux_status_bak"] = res["selinux_status_bak"]
@@ -2162,6 +2164,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
 
         src_file_path = "%s/%s" % (mnt_path, dist_img)
         disk_params_src = {'source_file': src_file_path}
+        params["source_file"] = src_file_path
     elif disk_src_protocol == 'rbd':
         mon_host = params.get("mon_host")
         if image_convert:
