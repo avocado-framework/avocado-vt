@@ -580,34 +580,34 @@ class VMXML(VMXMLBase):
         """
         return librarian.get(type_name)
 
-    def undefine(self, options=None):
+    def undefine(self, options=None, virsh_instance=base.virsh):
         """Undefine this VM with libvirt retaining XML in instance"""
-        return self.virsh.remove_domain(self.vm_name, options)
+        return virsh_instance.remove_domain(self.vm_name, options)
 
-    def define(self):
+    def define(self, virsh_instance=base.virsh):
         """Define VM with virsh from this instance"""
-        result = self.virsh.define(self.xml)
+        result = virsh_instance.define(self.xml)
         if result.exit_status:
             logging.debug("Define %s failed.\n"
                           "Detail: %s.", self.vm_name, result.stderr)
             return False
         return True
 
-    def sync(self, options=None):
+    def sync(self, options=None, virsh_instance=base.virsh):
         """Rebuild VM with the config file."""
         # If target vm no longer exist, this will raise an exception.
         try:
-            backup = self.new_from_dumpxml(self.vm_name)
+            backup = self.new_from_dumpxml(self.vm_name, virsh_instance=virsh_instance)
         except IOError:
             logging.debug("Failed to backup %s.", self.vm_name)
             backup = None
 
-        if not self.undefine(options):
+        if not self.undefine(options, virsh_instance=virsh_instance):
             raise xcepts.LibvirtXMLError("Failed to undefine %s."
                                          % self.vm_name)
-        if not self.define():
+        if not self.define(virsh_instance=virsh_instance):
             if backup:
-                backup.define()
+                backup.define(virsh_instance=virsh_instance)
             raise xcepts.LibvirtXMLError("Failed to define %s, from %s."
                                          % (self.vm_name, self.xml))
 
