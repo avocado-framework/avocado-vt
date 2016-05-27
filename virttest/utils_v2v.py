@@ -19,6 +19,7 @@ from . import virsh
 from . import ppm_utils
 from . import data_dir
 from . import remote
+from . import utils_misc
 
 try:
     V2V_EXEC = path.find_command('virt-v2v')
@@ -86,14 +87,14 @@ class Target(object):
         if target is None:
             # libvirt is a default target
             target = "libvirt"
-        self.tgt = target
+        self.target = target
         self.uri = uri
 
     def get_cmd_options(self, params):
         """
         Target dispatcher.
         """
-        opts_func = getattr(self, "_get_%s_options" % self.tgt)
+        opts_func = getattr(self, "_get_%s_options" % self.target)
         self.params = params
         self.input_mode = self.params.get('input_mode')
         self.vm_name = self.params.get('main_vm')
@@ -182,11 +183,7 @@ class VMCheck(object):
         self.export_name = params.get('export_name')
         self.delete_vm = 'yes' == params.get('vm_cleanup', 'yes')
         self.virsh_session_id = params.get("virsh_session_id")
-        self.pool_type = params.get("pool_type", "dir")
-        self.pool_name = params.get("pool_name", "v2v_test")
-        self.target_path = params.get("target_path", "pool_path")
-        self.emulated_img = params.get("emulated_image_path",
-                                       "v2v-emulated-img")
+        self.windows_root = params.get("windows_root", "C:\WINDOWS")
         # Need create session after create the instance
         self.session = None
 
@@ -221,8 +218,6 @@ class VMCheck(object):
         if self.target == "libvirt":
             if self.vm.exists() and self.vm.is_persistent():
                 self.vm.undefine()
-                self.pv.cleanup_pool(self.pool_name, self.pool_type,
-                                     self.target_path, self.emulated_img)
 
         if self.target == "ovirt":
             self.vm.delete()
@@ -233,6 +228,16 @@ class VMCheck(object):
         Cleanup storage pool and volume
         """
         raise NotImplementedError
+
+    def run_cmd(self, cmd, debug=True):
+        """
+        Run command in VM
+        """
+        status, output = self.session.cmd_status_output(cmd)
+        if debug:
+            logging.debug("Command return status: %s", status)
+            logging.debug("Command output:\n%s", output)
+        return status, output
 
 
 class LinuxVMCheck(VMCheck):
@@ -246,30 +251,24 @@ class LinuxVMCheck(VMCheck):
         Get vm kernel info.
         """
         cmd = "uname -r"
-        output = self.session.cmd(cmd)
-        logging.debug("%s output:\n%s", cmd, output)
-        return output
+        return self.run_cmd(cmd)[1]
 
     def get_vm_os_info(self):
         """
         Get vm os info.
         """
-        check_issue = False
-        cmd = "cat /etc/os-release"
-        status, output = self.session.cmd_status_output(cmd)
-        if status != 0:
-            cmd = "cat /etc/issue"
-            output = self.session.cmd(cmd)
-            check_issue = True
-        logging.debug("%s output:\n%s", cmd, output)
         os_info = ""
         try:
-            if check_issue:
+            cmd = "cat /etc/os-release"
+            status, output = self.run_cmd(cmd)
+            if status != 0:
+                cmd = "cat /etc/issue"
+                output = self.run_cmd(cmd)[1]
                 os_info = output.splitlines()[0]
             else:
-                os_info = output.splitlines()[5].split('=')[1]
-        except IndexError:
-            logging.error("Fail to get os release info")
+                os_info = re.search(r'PRETTY_NAME="(.+)"', output).group(1)
+        except Exception, e:
+            logging.error("Fail to get os distribution: %s", e)
         return os_info
 
     def get_vm_os_vendor(self):
@@ -293,61 +292,50 @@ class LinuxVMCheck(VMCheck):
                       (self.vm.name, vendor))
         return vendor
 
+    def get_vm_dmesg(self):
+        """
+        Get VM dmesg output.
+        """
+        cmd = "dmesg"
+        return self.run_cmd(cmd)[1]
+
     def get_vm_parted(self):
         """
         Get vm parted info.
         """
         cmd = "parted -l"
-        output = self.session.cmd(cmd)
-        logging.debug("%s output:\n%s", cmd, output)
-        return output
-
-    def get_vm_modprobe_conf(self):
-        """
-        Get /etc/modprobe.conf content.
-        """
-        cmd = "cat /etc/modprobe.conf"
-        output = self.session.cmd(cmd, ok_status=[0, 1])
-        logging.debug("%s output:\n%s", cmd, output)
-        return output
+        return self.run_cmd(cmd)[1]
 
     def get_vm_modules(self):
         """
         Get vm modules list.
         """
         cmd = "lsmod"
-        output = self.session.cmd(cmd)
-        logging.debug("%s output:\n%s", cmd, output)
-        return output
+        return self.run_cmd(cmd)[1]
 
     def get_vm_pci_list(self):
         """
         Get vm pci list.
         """
         cmd = "lspci"
-        output = self.session.cmd(cmd)
-        logging.debug("%s output:\n%s", cmd, output)
-        return output
+        return self.run_cmd(cmd)[1]
 
     def get_vm_rc_local(self):
         """
         Get vm /etc/rc.local output.
         """
         cmd = "cat /etc/rc.local"
-        output = self.session.cmd(cmd, ok_status=[0, 1])
-        logging.debug("%s output:\n%s", cmd, output)
-        return output
+        return self.run_cmd(cmd)[1]
 
     def has_vmware_tools(self):
         """
         Check vmware tools.
         """
         cmd = "rpm -q VMwareTools"
-        status, output = self.session.cmd_status_output(cmd)
+        status, output = self.run_cmd(cmd)
         if status != 0:
             cmd = "ls /usr/bin/vmware-uninstall-tools.pl"
-            status, output = self.session.cmd_status_output(cmd)
-        logging.debug("%s output:\n%s", cmd, output)
+            status, output = self.run_cmd(cmd)
         return status == 0
 
     def get_vm_tty(self):
@@ -359,27 +347,34 @@ class LinuxVMCheck(VMCheck):
         all_output = ''
         for conf in confs:
             cmd = "cat " + conf
-            output = self.session.cmd(cmd, ok_status=[0, 1])
-            logging.debug("%s output:\n%s", cmd, output)
+            output = self.run_cmd(cmd)[1]
             all_output += output
         return all_output
 
-    def get_vm_video(self):
+    def wait_for_x_start(self, timeout=30):
         """
-        Get vm video config.
+        Wait for S server start
         """
+        cmd = 'xset -q'
+        if self.run_cmd(cmd)[0] == 127:
+            return
+        utils_misc.wait_for(lambda: not bool(self.run_cmd(cmd, debug=False)[0]),
+                            timeout)
+
+    def get_vm_xorg(self):
+        """
+        Get vm Xorg config/log.
+        """
+        self.wait_for_x_start()
         cmd = "cat /etc/X11/xorg.conf /var/log/Xorg.0.log"
-        output = self.session.cmd(cmd, ok_status=[0, 1])
-        logging.debug("%s output:\n%s", cmd, output)
-        return output
+        return self.run_cmd(cmd)[1]
 
     def is_net_virtio(self):
         """
         Check whether vm's interface is virtio
         """
         cmd = "ls -l /sys/class/net/eth%s/device" % self.nic_index
-        output = self.session.cmd(cmd, ok_status=[0, 1])
-        logging.debug("%s output:\n%s", cmd, output)
+        output = self.run_cmd(cmd)[1]
         try:
             if re.search("virtio", output.split('/')[-1]):
                 return True
@@ -392,19 +387,17 @@ class LinuxVMCheck(VMCheck):
         Check whether disk is virtio.
         """
         cmd = "fdisk -l %s" % disk
-        output = self.session.cmd(cmd, ok_status=[0, 1])
-        logging.debug("%s output:\n%s", cmd, output)
+        output = self.run_cmd(cmd)[1]
         if re.search(disk, output):
             return True
         return False
 
-    def get_grub_device(self, dev_map="/boot/grub2/device.map"):
+    def get_grub_device(self, dev_map="/boot/grub*/device.map"):
         """
         Check whether vd[a-z] device is in device map.
         """
         cmd = "cat %s" % dev_map
-        output = self.session.cmd(cmd, ok_status=[0, 1])
-        logging.debug("%s output:\n%s", cmd, output)
+        output = self.run_cmd(cmd)[1]
         if re.search("vd[a-z]", output):
             return True
         return False
@@ -512,23 +505,23 @@ class WindowsVMCheck(VMCheck):
         else:
             return -1
 
-    def init_windows(self, timeout=300):
+    def boot_windows(self, timeout=300):
         """
-        Click buttons to activate windows and install
-        ethernet controller driver.
+        Click buttons to activate windows and install ethernet controller driver
+        to boot windows.
         """
-        logging.info("Activating Windows in %s seconds", timeout)
+        logging.info("Booting Windows in %s seconds", timeout)
         compare_screenshot_vms = ["win2003", "win2008", "win2008r2", "win7"]
         timeout_msg = "No matching screenshots found after %s seconds" % timeout
         timeout_msg += ", trying to log into the VM directly"
         match_image_list = []
         if self.os_version in compare_screenshot_vms:
-            image_name_list = self.params.get("images_for_match", '').split(',')
+            image_name_list = self.params.get("screenshots_for_match",
+                                              '').split(',')
             for image_name in image_name_list:
                 match_image = os.path.join(data_dir.get_data_dir(), image_name)
                 if not os.path.exists(match_image):
-                    logging.error("Stopping windows activation as '%s' does not exist",
-                                  match_image)
+                    logging.error("Screenshot '%s' does not exist", match_image)
                     return
                 match_image_list.append(match_image)
             img_match_ret = self.wait_for_match(match_image_list,
@@ -576,19 +569,15 @@ class WindowsVMCheck(VMCheck):
         """
         Reboot Windows immediately
         """
-        logging.debug("Reboot windows")
         cmd = "shutdown -t 0 -r -f"
-        self.session.cmd(cmd)
+        self.run_cmd(cmd)
 
     def get_viostor_info(self):
         """
         Get viostor info.
         """
-        cmd = "dir C:\Windows\Drivers\VirtIO\\viostor.sys"
-        status, output = self.session.cmd_status_output(cmd)
-        if status == 0:
-            logging.debug("The viostor info is: %s", output)
-            return output
+        cmd = "dir %s\Drivers\VirtIO\\viostor.sys" % self.windows_root
+        return self.run_cmd(cmd)[1]
 
     def get_driver_info(self, signed=True):
         """
@@ -598,21 +587,19 @@ class WindowsVMCheck(VMCheck):
         if signed:
             cmd += " /SI"
         status, output = self.session.cmd_status_output(cmd)
-        if status == 0:
-            logging.debug("Windows drivers info: %s", output)
-            return output
+        return self.run_cmd(cmd)[1]
 
     def get_windows_event_info(self):
         """
         Get windows event log info about WSH.
         """
-        cmd = "CSCRIPT C:\WINDOWS\system32\eventquery.vbs /l application /Fi \"Source eq WSH\""
-        status, output = self.session.cmd_status_output(cmd)
+        cmd = "wevtutil qe application | find \"WSH\""
+        status, output = self.run_cmd(cmd)
         if status != 0:
-            #if the OS version was not win2003 or winXP, use following cmd
-            cmd = "wevtutil qe application | find \"WSH\""
-            output = self.session.cmd(cmd)
-        logging.debug("The windows event log info about WSH is: %s", output)
+            # For win2003 and winXP, use following cmd
+            cmd = "CSCRIPT %s\system32\eventquery.vbs " % self.windows_root
+            cmd += "/l application /Fi \"Source eq WSH\""
+            output = self.run_cmd(cmd)[1]
         return output
 
     def get_network_restart(self):
@@ -620,28 +607,21 @@ class WindowsVMCheck(VMCheck):
         Get windows network restart.
         """
         cmd = "ipconfig /renew"
-        status, output = self.session.cmd_status_output(cmd)
-        if status == 0:
-            logging.debug("The windows network restart info is: %s", output)
-            return output
+        return self.run_cmd(cmd)[1]
 
     def copy_windows_file(self):
         """
         Copy a widnows file
         """
         cmd = "COPY /y C:\\rss.reg C:\\rss.reg.bak"
-        status, _ = self.session.cmd_status_output(cmd)
-        logging.debug("Copy a windows file status is : %s", status)
-        return status
+        return self.run_cmd(cmd)[0]
 
     def delete_windows_file(self):
         """
         Delete a widnows file
         """
         cmd = "DEL C:\rss.reg.bak"
-        status, _ = self.session.cmd_status_output(cmd)
-        logging.debug("Delete a windows file status is : %s", status)
-        return status
+        return self.run_cmd(cmd)[0]
 
 
 def v2v_cmd(params):
@@ -667,9 +647,9 @@ def v2v_cmd(params):
     # Return actual 'uri' according to 'hostname' and 'hypervisor'
     uri = uri_obj.get_uri(hostname, vpx_dc, esx_ip)
 
-    tgt_obj = Target(target, uri)
+    target_obj = Target(target, uri)
     # Return virt-v2v command line options based on 'target' and 'hypervisor'
-    options = tgt_obj.get_cmd_options(params)
+    options = target_obj.get_cmd_options(params)
 
     if opts_extra:
         options = options + ' ' + opts_extra
@@ -700,6 +680,9 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
     logging.info("Current storage domain list: %s", sdm.list())
     vm = ovirt.VMManager(vm_name, params, address_cache=address_cache)
     logging.info("Current VM list: %s", vm.list())
+    if vm_name in vm.list():
+        logging.error("%s already exist", vm_name)
+        return False
     wait_for_up = True
     if os_type == 'windows':
         wait_for_up = False

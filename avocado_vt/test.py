@@ -50,6 +50,9 @@ if 'AUTOTEST_PATH' in os.environ:
     AUTOTEST_PATH = os.path.expanduser(os.environ['AUTOTEST_PATH'])
     client_dir = os.path.join(os.path.abspath(AUTOTEST_PATH), 'client')
     setup_modules_path = os.path.join(client_dir, 'setup_modules.py')
+    if not os.path.exists(setup_modules_path):
+        raise EnvironmentError("Although AUTOTEST_PATH has been declared, "
+                               "%s missing." % setup_modules_path)
     setup_modules = imp.load_source('autotest_setup_modules',
                                     setup_modules_path)
     setup_modules.setup(base_path=client_dir,
@@ -85,21 +88,10 @@ class VirtTest(test.Test):
         :param vt_params: avocado-vt/cartesian_config params stored as
                           `self.params`.
         """
-        del name
-        options = job.args
         self.bindir = data_dir.get_root_dir()
         self.virtdir = os.path.join(self.bindir, 'shared')
 
         self.iteration = 0
-        name = None
-        if options.vt_config:
-            name = vt_params.get("shortname")
-        elif options.vt_type == 'spice':
-            short_name_map_file = vt_params.get("_short_name_map_file")
-            if "tests-variants.cfg" in short_name_map_file:
-                name = short_name_map_file["tests-variants.cfg"]
-        if name is None:
-            name = vt_params.get("_short_name_map_file")["subtests.cfg"]
         self.outputdir = None
         self.resultsdir = None
         self.logfile = None
@@ -120,6 +112,7 @@ class VirtTest(test.Test):
         self.params = utils_params.Params(vt_params)
         self.debugdir = self.logdir
         self.resultsdir = self.logdir
+        self.timeout = vt_params.get("test_timeout", self.timeout)
         utils_misc.set_log_file_dir(self.logdir)
 
     @property
@@ -142,6 +135,15 @@ class VirtTest(test.Test):
         individual VT tests do not map 1:1 to a file.
         """
         return None
+
+    def get_state(self):
+        """
+        Avocado-vt replaces Test.params with avocado-vt params. This function
+        reports the original params on `get_state` call.
+        """
+        state = super(VirtTest, self).get_state()
+        state["params"] = self.__dict__.get("avocado_params")
+        return state
 
     def _start_logging(self):
         super(VirtTest, self)._start_logging()

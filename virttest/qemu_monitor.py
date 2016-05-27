@@ -163,7 +163,7 @@ class Monitor:
 
     ACQUIRE_LOCK_TIMEOUT = 20
     DATA_AVAILABLE_TIMEOUT = 0
-    CONNECT_TIMEOUT = 30
+    CONNECT_TIMEOUT = 60
 
     def __init__(self, vm, name, filename):
         """
@@ -222,7 +222,7 @@ class Monitor:
     def __getinitargs__(self):
         # Save some information when pickling -- will be passed to the
         # constructor upon unpickling
-        return self.vm, self.name, self.filename, True
+        return self.vm, self.name, self.filename
 
     def _close_sock(self):
         try:
@@ -1612,7 +1612,7 @@ class QMPMonitor(Monitor):
 
         :return: The response to the command
         """
-        self._log_command(cmd, extra_str="(via Human Monitor)")
+        self._log_command(cmd, debug, extra_str="(via Human Monitor)")
 
         args = {"command-line": cmd}
         ret = self.cmd("human-monitor-command", args, timeout, False, fd)
@@ -1831,8 +1831,7 @@ class QMPMonitor(Monitor):
 
         :return: The command's output
         """
-        val = value * 10 ** 9
-        args = {"value": val}
+        args = {"value": value}
         return self.cmd("migrate_set_downtime", args)
 
     def live_snapshot(self, device, snapshot_file, snapshot_format="qcow2"):

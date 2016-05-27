@@ -262,6 +262,39 @@ def get_directory_structure(rootdir, guest_file):
         previous_indent = indent
 
 
+def sync_download_dir(interactive):
+    base_download_dir = data_dir.get_base_download_dir()
+    download_dir = data_dir.get_download_dir()
+    logging.debug("Copying downloadable assets file definitions from %s "
+                  "into %s", base_download_dir, download_dir)
+    download_file_list = glob.glob(os.path.join(base_download_dir,
+                                                "*.ini"))
+    for src_file in download_file_list:
+        dst_file = os.path.join(download_dir,
+                                os.path.basename(src_file))
+        if not os.path.isfile(dst_file):
+            shutil.copyfile(src_file, dst_file)
+        else:
+            diff_cmd = "diff -Naur %s %s" % (dst_file, src_file)
+            diff_result = process.run(
+                diff_cmd, ignore_status=True, verbose=False)
+            if diff_result.exit_status != 0:
+                logging.info("%s result:\n %s",
+                             diff_result.command, diff_result.stdout)
+                answer = genio.ask('Download file "%s" differs from "%s". '
+                                   'Overwrite?' % (dst_file, src_file),
+                                   auto=not interactive)
+                if answer == "y":
+                    logging.debug("Restoring download file %s from sample",
+                                  dst_file)
+                    shutil.copyfile(src_file, dst_file)
+                else:
+                    logging.debug("Preserving existing %s file", dst_file)
+            else:
+                logging.debug('Download file %s exists, not touching',
+                              dst_file)
+
+
 def create_guest_os_cfg(t_type):
     root_dir = data_dir.get_root_dir()
     guest_os_cfg_dir = os.path.join(root_dir, 'shared', 'cfg', 'guest-os')
@@ -731,11 +764,6 @@ def bootstrap(options, interactive=False):
 
     logging.info("")
     step += 1
-    logging.info("%d - Updating all test providers", step)
-    asset.download_all_test_providers(options.vt_update_providers)
-
-    logging.info("")
-    step += 1
     logging.info("%d - Checking the mandatory programs and headers", step)
     guest_os = options.vt_guest_os or defaults.DEFAULT_GUEST_OS
     try:
@@ -753,10 +781,15 @@ def bootstrap(options, interactive=False):
 
     logging.info("")
     step += 1
+    logging.info("%d - Updating all test providers", step)
+    asset.download_all_test_providers(options.vt_update_providers)
+
+    logging.info("")
+    step += 1
     logging.info("%d - Verifying directories", step)
     datadir = data_dir.get_data_dir()
     shared_dir = data_dir.get_shared_dir()
-    sub_dir_list = ["images", "isos", "steps_data", "gpg"]
+    sub_dir_list = ["images", "isos", "steps_data", "gpg", "downloads"]
     for sub_dir in sub_dir_list:
         sub_dir_path = os.path.join(datadir, sub_dir)
         if not os.path.isdir(sub_dir_path):
@@ -771,6 +804,8 @@ def bootstrap(options, interactive=False):
     logging.info("Syncing backend dirs %s -> %s", base_backend_dir,
                  local_backend_dir)
     dir_util.copy_tree(base_backend_dir, local_backend_dir)
+
+    sync_download_dir(interactive)
 
     test_dir = data_dir.get_backend_dir(options.vt_type)
     if options.vt_type == 'libvirt':

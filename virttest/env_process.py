@@ -8,6 +8,7 @@ import threading
 import shutil
 import sys
 import copy
+import urllib2
 import multiprocessing
 
 import aexpect
@@ -574,6 +575,16 @@ def preprocess(test, params, env):
                 path.find_command(cmd)
             except path.CmdNotFoundError, msg:
                 raise exceptions.TestSkipError(msg.message)
+
+    # enable network proxies setting in urllib2
+    if params.get("network_proxies"):
+        proxies = {}
+        for proxy in re.split(r"[,;]\s*", params["network_proxies"]):
+            proxy = dict([re.split(r"_proxy:\s*", proxy)])
+            proxies.update(proxy)
+        handler = urllib2.ProxyHandler(proxies)
+        opener = urllib2.build_opener(handler)
+        urllib2.install_opener(opener)
 
     vm_type = params.get('vm_type')
 

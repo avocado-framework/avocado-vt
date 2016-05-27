@@ -2935,7 +2935,6 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0):
                 return True
         o = commands.getoutput(arping_cmd)
         if not regex.search(o):
-            logging.debug("Verify arping result failed: %s" % o)
             return False
         return True
 
@@ -2943,24 +2942,20 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0):
     ip_cmd = utils_path.find_command("ip")
     ip_cmd = "%s route get %s; %s route | grep default" % (ip_cmd, ip, ip_cmd)
     output = commands.getoutput(ip_cmd)
-    devs = re.findall(r"dev\s+\S+", output, re.I)
-    checked_devs = []
+    devs = set(re.findall(r"dev\s+(\S+)", output, re.I))
     if not devs:
-        logging.debug("No dev in route table to %s: %s" % (ip, output))
+        logging.debug("No path to %s in route table: %s" % (ip, output))
         return False
     mac_regex = "|".join("(%s)" % mac for mac in macs)
     regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex), re.I)
     arping_bin = utils_path.find_command("arping")
     for dev in devs:
-        dev = dev.split()[-1]
-        if dev in checked_devs:
-            continue
         arping_cmd = "%s -f -c 3 -I %s %s" % (arping_bin, dev, ip)
         ret = utils_misc.wait_for(lambda: __arping(regex, arping_cmd, ip),
                                   timeout=timeout)
-        checked_devs.append(dev)
         if ret:
-            return bool(ret)
+            return True
+        logging.debug("Arping %s via %s failed" % (ip, dev))
     return False
 
 
@@ -3167,7 +3162,7 @@ def update_mac_ip_address(vm, params, timeout=None):
         if re.match(".\d+\.\d+\.\d+\.\d+", mac):
             _ip, mac = mac, _ip
         if "-" in mac:
-            mac = mac.replace("-", ".")
+            mac = mac.replace("-", ":")
         vm.address_cache[mac.lower()] = _ip
         vm.virtnet.set_mac_address(vlan, mac)
 
@@ -3294,7 +3289,7 @@ def get_host_default_gateway():
     """
     cmd = "ip route | awk '/default/ { print $3 }'"
     try:
-        output = process.system_output(cmd)
+        output = process.system_output(cmd, shell=True)
     except:
         raise exceptions.TestError("Failed to get the host's default GateWay.")
 
@@ -3367,7 +3362,7 @@ def block_specific_ip_by_time(ip_addr, block_time="1 seconds", runner=None):
         if not runner:
             try:
                 utils_path.find_command("iptables")
-            except ValueError, details:
+            except utils_path.CmdNotFoundError, details:
                 raise exceptions.TestSkipError(details)
             output = local_runner(cmd)
             logging.debug("List current iptables rules:\n%s",

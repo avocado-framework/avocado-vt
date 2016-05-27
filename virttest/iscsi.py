@@ -19,8 +19,40 @@ from avocado.utils import path
 from . import utils_selinux
 from . import utils_net
 from . import data_dir
+from .staging import service
 
 ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
+
+
+def restart_iscsid(reset_failed=True):
+    """
+    Restart iscsid service.
+    """
+    path.find_command('iscsid')
+    iscsid = service.Factory.create_service('iscsid')
+    if reset_failed:
+        iscsid.reset_failed()
+    if not iscsid.restart():
+        return False
+    else:
+        # Make sure exist connection is operational after recovery
+        process.run('iscsiadm -m node --rescan', timeout=30,
+                    verbose=False, ignore_status=True,
+                    shell=True)
+        return True
+
+
+def restart_tgtd(reset_failed=True):
+    """
+    Restart tgtd service.
+    """
+    path.find_command('tgtd')
+    tgtd = service.Factory.create_service('tgtd')
+    if reset_failed:
+        tgtd.reset_failed()
+    if not tgtd.restart():
+        return False
+    return True
 
 
 def iscsi_get_sessions():
@@ -215,12 +247,14 @@ class _IscsiComm(object):
         """
         if os.path.isfile("%s" % ISCSI_CONFIG_FILE):
             logging.debug("Try to update iscsi initiatorname")
-            cmd = "mv %s %s-%s" % (ISCSI_CONFIG_FILE, ISCSI_CONFIG_FILE, id)
-            process.system(cmd)
+            # Don't override the backup file
+            if not os.path.isfile("%s-%s" % (ISCSI_CONFIG_FILE, id)):
+                cmd = "mv %s %s-%s" % (ISCSI_CONFIG_FILE, ISCSI_CONFIG_FILE, id)
+                process.system(cmd)
             fd = open(ISCSI_CONFIG_FILE, 'w')
             fd.write("InitiatorName=%s" % name)
             fd.close()
-            process.system("service iscsid restart")
+            restart_iscsid()
 
     def login(self):
         """
@@ -297,8 +331,7 @@ class _IscsiComm(object):
         if os.path.isfile("%s-%s" % (ISCSI_CONFIG_FILE, self.id)):
             cmd = "mv %s-%s %s" % (ISCSI_CONFIG_FILE, self.id, ISCSI_CONFIG_FILE)
             process.system(cmd)
-            cmd = "service iscsid restart"
-            process.system(cmd)
+            restart_iscsid()
         if self.export_flag:
             self.delete_target()
 
@@ -417,7 +450,7 @@ class IscsiTGT(_IscsiComm):
         try:
             output = process.system_output(cmd)
         except process.CmdError:
-            process.system("service tgtd restart")
+            restart_tgtd()
             output = process.system_output(cmd)
         if not re.findall("%s$" % self.target, output, re.M):
             logging.debug("Need to export target in host")
@@ -449,7 +482,7 @@ class IscsiTGT(_IscsiComm):
         try:
             output = process.system_output(cmd)
         except process.CmdError:   # In case service stopped
-            process.system("service tgtd restart")
+            restart_tgtd()
             output = process.system_output(cmd)
 
         # Create a LUN with emulated image
@@ -496,8 +529,7 @@ class IscsiTGT(_IscsiComm):
                 cmd += "--tid %s" % self.emulated_id
                 process.system(cmd)
         if self.restart_tgtd:
-            cmd = "service tgtd restart"
-            process.system(cmd)
+            restart_tgtd()
 
 
 class IscsiLIO(_IscsiComm):
@@ -736,7 +768,7 @@ class IscsiLIO(_IscsiComm):
         process.system("targetcli / saveconfig")
 
         # Restart iSCSI service
-        process.system("systemctl restart iscsid.service")
+        restart_iscsid()
 
     def delete_target(self):
         """

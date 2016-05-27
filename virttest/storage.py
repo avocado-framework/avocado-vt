@@ -186,7 +186,8 @@ def get_image_filename_filesytem(params, root_dir):
     if indirect_image_select:
         re_name = image_name
         indirect_image_select = int(indirect_image_select)
-        matching_images = process.system_output("ls -1d %s" % re_name)
+        matching_images = process.system_output("ls -1d %s" % re_name,
+                                                shell=True)
         matching_images = sorted(matching_images.split('\n'), cmp=sort_cmp)
         if matching_images[-1] == '':
             matching_images = matching_images[:-1]
@@ -325,8 +326,8 @@ class QemuImg(object):
                 logging.info("No source %s, skipping dd...", src)
 
         def backup_image_file(src, dst):
-            logging.debug("Copying %s -> %s", src, dst)
             if os.path.isfile(src):
+                logging.debug("Copying %s -> %s", src, dst)
                 _dst = dst + '.part'
                 shutil.copy(src, _dst)
                 os.rename(_dst, dst)

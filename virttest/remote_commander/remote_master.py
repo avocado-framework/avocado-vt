@@ -3,7 +3,8 @@
 '''
 Created on Dec 6, 2013
 
-:author: jzupka
+:author: jzupka, astepano
+:contact: Andrei Stepanov <astepano@redhat.com>
 '''
 import sys
 import time
@@ -49,6 +50,7 @@ class CmdMaster(object):
         self._results_cnt = 0
         self._stdout_cnt = 0
         self._stderr_cnt = 0
+        self.timeout = kargs.get('timeout', None)
 
     def getbasecmd(self):
         """
@@ -114,11 +116,11 @@ class CmdMaster(object):
         """
         return self.commander.wait(self)
 
-    def wait_response(self, timeout=None):
+    def wait_response(self):
         """
         Wait until command return any cmd.
         """
-        self.commander.wait_response(self, timeout)
+        self.commander.wait_response(self)
 
     def __getattr__(self, name):
         """
@@ -131,6 +133,7 @@ class CmdMaster(object):
     def set_commander(self, commander):
         """
         For nohup commands it allows connect cmd to new created commander.
+
         """
         self.commander = commander
         if self not in commander.cmds:
@@ -202,6 +205,7 @@ class CommanderMaster(messenger.Messenger):
         super(CommanderMaster, self).__init__(stdin, stdout)
         self.cmds = {}
         self.debug = debug
+        self.responder = None
 
         self.flush_stdin()
         self.write_msg("start")
@@ -209,6 +213,24 @@ class CommanderMaster(messenger.Messenger):
         if not succ or msg != "Started":
             raise remote_interface.CommanderError("Remote commander"
                                                   " not started.")
+
+    def set_responder(self, responder):
+        """
+        :warning: Users's helper becomes a part of a remote_commander.
+            remote_commander is treated as a session. All sessions are part of
+            BaseVM object. If you provide unpickable helper then your BaseVM
+            also becomes unpickable. You can catch something like::
+
+                File "/usr/lib64/python2.7/copy_reg.py", line 74, in _reduce_ex
+                getstate = self.__getstate__
+                KeyError: '__getstate__'
+
+            For more info see::
+
+                https://github.com/avocado-framework/avocado-vt/issues/455
+
+        """
+        self.responder = responder
 
     def close(self):
         try:
@@ -259,6 +281,15 @@ class CommanderMaster(messenger.Messenger):
                             remote_interface.MessengerError)):
             raise cmd
 
+    def listen_queries(self, cmd):
+        """Manage queries from slave side.
+        """
+        if isinstance(cmd, remote_interface.CmdQuery):
+            assert self.responder  # Should be set by set_responder()
+            data = self.responder(cmd.args, cmd.kargs)
+            reply = remote_interface.CmdRespond(data)
+            self.write_msg(reply)
+
     def listen_cmds(self, cmd):
         """
         Manage basecmds from slave side.
@@ -286,9 +317,10 @@ class CommanderMaster(messenger.Messenger):
         self.listen_errors(r_cmd)
         self.listen_streams(r_cmd)
         self.listen_cmds(r_cmd)
+        self.listen_queries(r_cmd)
         return r_cmd
 
-    def cmd(self, cmd, timeout=60):
+    def cmd(self, cmd):
         """
         Invoke command on client side.
         """
@@ -297,13 +329,13 @@ class CommanderMaster(messenger.Messenger):
         while (1):
             if cmd.basecmd.func[0] not in ["async", "nohup"]:
                 # If not async wait for finish.
-                self.wait(cmd, timeout)
+                self.wait(cmd)
             else:
-                ancmd = self.wait_response(cmd, timeout)
+                ancmd = self.wait_response(cmd)
                 cmd.update_cmd_hash(ancmd)
             return cmd
 
-    def wait(self, cmd, timeout=60):
+    def wait(self, cmd):
         """
         Wait until command return results.
         """
@@ -316,6 +348,7 @@ class CommanderMaster(messenger.Messenger):
         r_cmd = None
 
         time_step = None
+        timeout = cmd.timeout
         if timeout is not None:
             time_step = timeout / 10.0
         w = wait_timeout(timeout)
@@ -336,7 +369,7 @@ class CommanderMaster(messenger.Messenger):
         if r_cmd is None:
             raise CmdTimeout("%ss during %s" % (timeout, str(cmd)))
 
-    def wait_response(self, cmd, timeout=60):
+    def wait_response(self, cmd):
         """
         Wait until command return any cmd.
         """
@@ -349,6 +382,7 @@ class CommanderMaster(messenger.Messenger):
         r_cmd = None
 
         time_step = None
+        timeout = cmd.timeout
         if timeout is not None:
             time_step = timeout / 10.0
         w = wait_timeout(timeout)

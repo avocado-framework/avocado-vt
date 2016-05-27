@@ -8,27 +8,32 @@ In this article, we'll talk about:
 #. Write a simple test file
 #. Try out your new test, send it to the mailing list
 
-Write our own, drop-in 'uptime' test - Step by Step procedure
--------------------------------------------------------------
+Write our own 'uptime' test - Step by Step procedure
+----------------------------------------------------
 
 Now, let's go and write our uptime test, which only purpose in life is
 to pick up a living guest, connect to it via ssh, and return its uptime.
 
-#. Git clone tp-qemu.git to a convenient location, say $HOME/Code/tp-qemu::
+#. First we need to locate our provider directory. It's inside Avocado
+   `data` directory (`avocado config --datadir`), usually in
+   `~/avocado/data/avocado-vt`. We are going to write a generic `tp-qemu`
+   test, so let's move into the right git location::
 
-    $ git clone https://github.com/autotest/tp-qemu.git
+    $ cd $AVOCADO_DATA/avocado-vt/test-providers.d/downloads/io-github-autotest-qemu
 
 #. Our uptime test won't need any qemu specific feature. Thinking about
-   it, we only need a vm object and stablish an ssh session to it, so we
+   it, we only need a vm object and establish an ssh session to it, so we
    can run the command. So we can store our brand new test under
-   ``tests``. At the autotest root location::
+   ``generic/tests``::
 
     $ touch generic/tests/uptime.py
     $ git add generic/tests/uptime.py
 
-#. Ok, so that's a start. So, we have *at least* to implement a
-   function ``run_uptime``. Let's start with it and just put the keyword
-   pass, which is a no op. Our test will be like::
+#. OK, so that's a start. So, we have *at least* to implement a
+   function ``run``. Let's start with it and just put the keyword
+   pass, which is a no op. Our test will be like:
+
+.. code-block:: python
 
        def run(test, params, env):
            """
@@ -41,7 +46,9 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
    name stored in our environment. Some of them have aliases. ``main_vm``
    contains the name of the main vm present in the environment, which
    is, most of the time, ``vm1``. ``env.get_vm`` returns a vm object, which
-   we'll store on the variable vm. It'll be like this::
+   we'll store on the variable vm. It'll be like this:
+
+.. code-block:: python
 
        def run(test, params, env):
            """
@@ -58,7 +65,9 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
    of these conditions are not satisfied due to any problem, an
    exception will be thrown and the test will fail. This requirement is
    because sometimes due to a bug the vm process might be dead on the
-   water, or the monitors are not responding::
+   water, or the monitors are not responding:
+
+.. code-block:: python
 
        def run(test, params, env):
            """
@@ -67,7 +76,7 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
            vm = env.get_vm(params["main_vm"])
            vm.verify_alive()
 
-#. Next step, we want to log into the vm. the vm method that does return
+#. Next step, we want to log into the vm. The vm method that does return
    a remote session object is called ``wait_for_login()``, and as one of
    the parameters, it allows you to adjust the timeout, that is, the
    time we want to wait to see if we can grab an ssh prompt. We have top
@@ -77,7 +86,9 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
    variable will affect all tests. Note that it is completely OK to just
    override this value, or pass nothing to ``wait_for_login()``, since
    this method does have a default timeout value. Back to business,
-   picking up login timeout from our dict of parameters::
+   picking up login timeout from our dict of parameters:
+
+.. code-block:: python
 
        def run(test, params, env):
            """
@@ -89,7 +100,9 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
 
 
 #. Now we'll call ``wait_for_login()`` and pass the timeout to it,
-   storing the resulting session object on a variable named session::
+   storing the resulting session object on a variable named session:
+
+.. code-block:: python
 
        def run(test, params, env):
            """
@@ -106,12 +119,14 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
    Assuming that things went well, now you have a session object, that
    allows you to type in commands on your guest and retrieve the
    outputs. So most of the time, we can get the output of these commands
-   throught the method ``cmd()``. It will type in the command, grab the
+   through the method ``cmd()``. It will type in the command, grab the
    stdin and stdout, return them so you can store it in a variable, and
    if the exit code of the command is != 0, it'll throw a
    aexpect.ShellError?. So getting the output of the unix command uptime
    is as simple as calling ``cmd()`` with 'uptime' as a parameter and
-   storing the result in a variable called uptime::
+   storing the result in a variable called uptime:
+
+.. code-block:: python
 
        def run(test, params, env):
            """
@@ -132,7 +147,9 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
    went from its beginning to its end without unhandled exceptions,
    autotest assumes the test automatically as PASSed, *no need to mark a
    test as explicitly passed*. If you have explicit points of failure,
-   for more complex tests, you might want to add some exception raising::
+   for more complex tests, you might want to add some exception raising:
+
+.. code-block:: python
 
        def run(test, params, env):
            """
@@ -153,7 +170,7 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
    inspektor by adding the COPR repo https://copr.fedoraproject.org/coprs/lmr/Autotest/
    and doing ::
 
-    yum install inspektor
+    $ yum install inspektor
 
    After you're done, you can run it::
 
@@ -166,7 +183,9 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
 #. Ouch. So there's this undefined variable called logging on line 10 of
    the code. It's because I forgot to import the logging library, which
    is a python library to handle info, debug, warning messages. Let's Fix it
-   and the code becomes::
+   and the code becomes:
+
+.. code-block:: python
 
        import logging
 
@@ -196,16 +215,48 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
         $ inspekt indent generic/tests/uptime.py
 
 #. Now, you can test your code. When listing the qemu tests your new test should
-   appear in the list::
+   appear in the list (or shouldn't it?)::
 
-        avocado list uptime
+        $ avocado list uptime
+
+#. There is one more thing to do. Avocado-vt does not walk the directories,
+   it uses `Cartesian config` to define test and all possible variants of
+   tests. To add our test to `Cartesian config` we need yet another file::
+
+    $ touch generic/tests/cfg/uptime.cfg
+    $ git add generic/tests/cfg/uptime.cfg
+
+#. The file might look like this::
+
+    - uptime:
+        virt_test_type = qemu libvirt
+        type = uptime
+
+   where the `virt_test_type` specifies what backends can run this test and
+   `type` specifies the test file. The `.py` will be appended and it'll be
+   searched for in the usual location.
+
+#. For the second time, let's try to discover the test::
+
+    $ avocado list uptime
+
+#. OK still not there. We need to propagate the change to the actual config
+   by running `vt-bootstrap`::
+
+    $ avocado vt-bootstrap
+
+#. And now you'll finally see the test::
+
+    $ avocado list uptime
 
 #. Now, you can run your test to see if everything went well::
 
-        $ avocado run --vt-type uptime
+        $ avocado run --vt-type qemu uptime
 
-#. Ok, so now, we have something that can be git committed and sent to
-   the mailing list::
+#. OK, so now, we have something that can be git committed and sent to
+   the mailing list (partial):
+
+.. code-block:: diff
 
         diff --git a/generic/tests/uptime.py b/generic/tests/uptime.py
         index e69de29..65d46fa 100644
@@ -226,7 +277,9 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
         +    logging.info("Guest uptime result is: %s", uptime)
         +    session.close()
 
-#. Oh, we forgot to add a decent docstring description. So doing it::
+#. Oh, we forgot to add a decent docstring description. So doing it:
+
+.. code-block:: python
 
        import logging
 

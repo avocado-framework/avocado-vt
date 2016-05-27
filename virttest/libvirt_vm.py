@@ -1071,6 +1071,28 @@ class VM(virt_vm.BaseVM):
         logging.debug("Set kernel params for %s failed.", device)
         return False
 
+    def get_grub_file(self, session):
+        """
+        Find grub file path of vm.
+
+        :param session: session of the vm whose grub path needs to be found.
+        :return: grub file path, None if no grub file found.
+        """
+        grub_paths = [
+            '/boot/grub/grub.conf',
+            '/boot/grub2/grub.cfg',
+            '/etc/grub.conf',
+            '/etc/grub2.cfg',
+        ]
+        grub_path = ''
+        for path in grub_paths:
+            if not session.cmd_status("ls %s" % path):
+                return path
+        if not grub_path:
+            logging.error("Failed to locate grub config file "
+                          "in %s." % grub_paths)
+            return
+
     def set_kernel_param(self, parameter, value=None, remove=False):
         """
         Set a specific kernel parameter.
@@ -1086,22 +1108,9 @@ class VM(virt_vm.BaseVM):
 
         session = self.wait_for_login()
         try:
-            grub_paths = [
-                '/etc/grub.conf',
-                '/etc/grub2.cfg',
-                '/boot/grub/grub.conf',
-                '/boot/grub2/grub.cfg',
-            ]
-            grub_path = ''
-            for path in grub_paths:
-                if not session.cmd_status("ls %s" % path):
-                    grub_path = path
-                    break
+            grub_path = self.get_grub_file(session)
             if not grub_path:
-                logging.error("Failed to locate grub config file "
-                              "in %s." % grub_paths)
                 return False
-
             grub_text = session.cmd_output("cat %s" % grub_path)
             kernel_lines = [l.strip() for l in grub_text.splitlines()
                             if re.match(r"\s*(linux|kernel).*", l)]
@@ -1153,6 +1162,58 @@ class VM(virt_vm.BaseVM):
                 logging.debug("Set kernel params %s to %s successfully.",
                               parameter, value)
             return True
+        finally:
+            session.close()
+
+    def set_boot_kernel(self, index, debug_kernel=False):
+        """
+        Set default kernel to the second one or to debug kernel
+
+        :param index: index of kernel to set to default
+        :param debug_kernel: True if set debug kernel to default
+        :return: default kernel
+        """
+        if self.is_dead():
+            logging.error("Can't set kernel param on a dead VM.")
+            return False
+
+        session = self.wait_for_login()
+        try:
+            grub_path = self.get_grub_file(session)
+            if not grub_path:
+                return
+            if "grub2" in grub_path:
+                grub = 2
+                output = session.cmd("cat %s |grep menuentry" % grub_path)
+                kernel_list = re.findall("menuentry '.*?'", output)
+            else:
+                grub = 1
+                output = session.cmd("cat %s |grep initramfs" % grub_path)
+                kernel_list = re.findall("-.*", output)
+            if index >= len(kernel_list):
+                logging.error("Index out of kernel list")
+                return
+            logging.debug("kernel list of vm:")
+            logging.debug(kernel_list)
+            if debug_kernel:
+                index = -1
+                logging.info("Setting debug kernel as default")
+                for i in range(len(kernel_list)):
+                    if "debug" in kernel_list[i]:
+                        index = i
+                        break
+                if index == -1:
+                    logging.error("No debug kernel in grub file!")
+                    return
+            if grub == 1:
+                cmd_set_grub = "sed -i 's/default=./default=%d/' " % index
+                cmd_set_grub += grub_path
+                boot_kernel = kernel_list[index].strip("-")
+            else:
+                boot_kernel = kernel_list[index].split("'")[1].strip("'")
+                cmd_set_grub = 'grub2-set-default %d' % index
+            session.cmd(cmd_set_grub)
+            return boot_kernel
         finally:
             session.close()
 

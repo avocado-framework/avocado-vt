@@ -48,7 +48,7 @@ Starting Gluster daemon
 
 ::
 
-    service glusterd start
+    $ service glusterd start
 
 
 Gluster volume creation
@@ -56,9 +56,9 @@ Gluster volume creation
 
 ::
 
-    gluster volume create [volume-name]  [hostname/host_ip]:/[brick_path]
+    $ gluster volume create [volume-name]  [hostname/host_ip]:/[brick_path]
 
-E:g: `gluster volume create test-vol satheesh.ibm.com://home/satheesh/images_gluster`
+E.g.: `gluster volume create test-vol satheesh.ibm.com://home/satheesh/images_gluster`
 
 
 Qemu Img creation
@@ -66,9 +66,9 @@ Qemu Img creation
 
 ::
 
-    qemu-img create gluster://[hostname]:0/[volume-name]/[image-name] [size]
+    $ qemu-img create gluster://[hostname]:0/[volume-name]/[image-name] [size]
 
-E:g: `qemu-img create gluster://satheesh.ibm.com:0/test-vol/test_gluster.img 10G`
+E.g.: `qemu-img create gluster://satheesh.ibm.com:0/test-vol/test_gluster.img 10G`
 
 
 Example of qemu cmd Line
@@ -76,4 +76,4 @@ Example of qemu cmd Line
 
 ::
 
-    qemu-system-x86_64 --enable-kvm -smp 4 -m 2048 -drive file=gluster://satheesh.ibm.com/test-vol/test_gluster.img,if=virtio -net nic,macaddr=52:54:00:09:0a:0b -net tap,script=/path/to/qemu-ifupVirsh
+    $ qemu-system-x86_64 --enable-kvm -smp 4 -m 2048 -drive file=gluster://satheesh.ibm.com/test-vol/test_gluster.img,if=virtio -net nic,macaddr=52:54:00:09:0a:0b -net tap,script=/path/to/qemu-ifupVirsh

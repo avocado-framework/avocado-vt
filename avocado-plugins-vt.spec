@@ -1,13 +1,13 @@
 %global modulename avocado
 %if ! 0%{?commit:1}
- %define commit 385e9de1fe0434efb4a098c3200df57b299dc68a
+ %define commit 2f163d503dbb8bc5d327e7ab8d39bc7741615f87
 %endif
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 0.34.0
-Release: 0%{?dist}
+Version: 35.0
+Release: 1%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -15,11 +15,11 @@ Source0: https://github.com/avocado-framework/%{name}/archive/%{commit}/%{name}-
 BuildRequires: python2-devel, python-setuptools
 BuildArch: noarch
 Requires: avocado == %{version}
-Requires: python, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, aexpect
+Requires: python, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, aexpect, git
 
 Requires: python-imaging
 %if 0%{?el6}
-Requires: gstreamer-python, gstreamer-plugins-good
+Requires: gstreamer-python, gstreamer-plugins-good, python-simplejson
 %else
 Requires: pygobject2, gstreamer1-plugins-good
 %endif
@@ -53,6 +53,12 @@ Xunit output, among others.
 
 
 %changelog
+* Mon May  2 2016 Cleber Rosa <cleber@redhat.com> - 35.0-1
+- Added git to requires
+
+* Wed Apr 27 2016 Cleber Rosa <cleber@redhat.com> - 35.0-0
+- Update to upstream release 35.0
+
 * Mon Mar 21 2016 Cleber Rosa <cleber@redhat.com> - 0.34.0-0
 - Update to upstream version 0.34.0
 

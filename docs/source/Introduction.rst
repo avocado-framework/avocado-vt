@@ -36,10 +36,10 @@ Intel), and Intel 32 and 64 bit guest operating systems.
 About virt-test
 ---------------
 
-Virt-test is the the project that became Avocado-VT. It used to live under
+Virt-test is the project that became Avocado-VT. It used to live under
 the Autotest umbrella, under:
 
 http://github.com/autotest/virt-test
 
 That repository is now frozen and only available at that location for
-historical purporses.
+historical purposes.

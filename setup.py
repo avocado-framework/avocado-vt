@@ -18,7 +18,7 @@ import glob
 # pylint: disable=E0611
 from setuptools import setup
 
-VERSION = '0.34.0'
+VERSION = '35.0'
 
 VIRTUAL_ENV = 'VIRTUAL_ENV' in os.environ
 
@@ -91,6 +91,7 @@ setup(name='avocado-plugins-vt',
                 'virttest.tests',
                 'virttest.unittest_utils',
                 'virttest.utils_test'],
+      package_data={"virttest": ["*.*"]},
       data_files=get_data_files(),
       entry_points={
           'avocado.plugins.cli': [

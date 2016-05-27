@@ -36,6 +36,9 @@ if 'AUTOTEST_PATH' in os.environ:
     AUTOTEST_PATH = os.path.expanduser(os.environ['AUTOTEST_PATH'])
     client_dir = os.path.join(os.path.abspath(AUTOTEST_PATH), 'client')
     setup_modules_path = os.path.join(client_dir, 'setup_modules.py')
+    if not os.path.exists(setup_modules_path):
+        raise EnvironmentError("Although AUTOTEST_PATH has been declared, "
+                               "%s missing." % setup_modules_path)
     import imp
     setup_modules = imp.load_source('autotest_setup_modules',
                                     setup_modules_path)
@@ -58,7 +61,7 @@ if VIRT_TEST_PATH is not None:
     sys.path.append(os.path.expanduser(VIRT_TEST_PATH))
 
 from virttest.standalone_test import SUPPORTED_TEST_TYPES
-from virttest.defaults import DEFAULT_GUEST_OS
+from virttest import defaults
 from virttest import data_dir
 
 
@@ -110,11 +113,23 @@ class VTLister(CLI):
                                                   "available guests "
                                                   "with --vt-list-guests. "
                                                   "Default: %s" %
-                                                  DEFAULT_GUEST_OS))
+                                                  defaults.DEFAULT_GUEST_OS))
         vt_compat_group_lister.add_argument("--vt-list-guests",
                                             action="store_true",
                                             default=False,
                                             help="List available guests")
+        machine = settings.get_value('vt.common', 'machine_type',
+                                     default=defaults.DEFAULT_MACHINE_TYPE)
+        vt_compat_group_lister.add_argument("--vt-machine-type",
+                                            help="Choose the VM machine type. "
+                                            "Default: %s" % machine,
+                                            default=machine)
+        vt_compat_group_lister.add_argument("--vt-only-filter", action="store",
+                                            dest="vt_only_filter", default="",
+                                            help=("List of space separated "
+                                                  "'only' filters to be passed"
+                                                  " to the config parser. "
+                                                  " Default: ''"))
 
     def run(self, args):
         loader.register_plugin(VirtTestLoader)

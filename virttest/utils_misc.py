@@ -41,6 +41,7 @@ from . import error_context
 from . import cartesian_config
 from . import utils_selinux
 from .staging import utils_koji
+from .xml_utils import XMLTreeFile
 
 ARCH = platform.machine()
 
@@ -101,9 +102,9 @@ class InterruptedThread(threading.Thread):
                 if not suppress_exception:
                     # Because the exception was raised in another thread, we
                     # need to explicitly insert the current context into it
-                    s = exceptions.exception_context(self._e[1])
-                    s = exceptions.join_contexts(exceptions.get_context(), s)
-                    exceptions.set_exception_context(self._e[1], s)
+                    s = error_context.exception_context(self._e[1])
+                    s = error_context.join_contexts(error_context.get_context(), s)
+                    error_context.set_exception_context(self._e[1], s)
                     raise self._e[0], self._e[1], self._e[2]
             else:
                 return self._retval
@@ -2191,8 +2192,9 @@ def extract_qemu_cpu_models(qemu_cpu_help_text):
 
     x86_pattern_list = "x86\s+\[?([a-zA-Z0-9_-]+)\]?.*\n"
     ppc64_pattern_list = "PowerPC\s+\[?([a-zA-Z0-9_-]+\.?[0-9]?)\]?.*\n"
+    s390_pattern_list = "s390\s+\[?([a-zA-Z0-9_-]+)\]?.*\n"
 
-    for pattern_list in [x86_pattern_list, ppc64_pattern_list]:
+    for pattern_list in [x86_pattern_list, ppc64_pattern_list, s390_pattern_list]:
         model_list = check_model_list(pattern_list)
         if model_list is not None:
             return model_list
@@ -2547,7 +2549,7 @@ def normalize_data_size(value_str, order_magnitude="M", factor="1024"):
     """
     def __get_unit_index(M):
         try:
-            return ['B', 'K', 'M', 'G', 'T'].index(M)
+            return ['B', 'K', 'M', 'G', 'T'].index(M.upper())
         except ValueError:
             pass
         return 0
@@ -2556,7 +2558,9 @@ def normalize_data_size(value_str, order_magnitude="M", factor="1024"):
     match = re.search(regex, value_str)
     try:
         value = match.group(1)
-        unit = match.group(2) or 'B'
+        unit = match.group(2)
+        if not unit:
+            unit = 'B'
     except TypeError:
         raise ValueError("Invalid data size format 'value_str=%s'" % value_str)
     from_index = __get_unit_index(unit)
@@ -2846,6 +2850,29 @@ def valued_option_dict(options, split_pattern, start_count=0, dict_split=None):
     return option_dict
 
 
+def get_image_snapshot(image_file):
+    """
+    Get image snapshot ID and put it into a list.
+    Image snapshots like this:
+
+    Snapshot list:
+    ID        TAG                 VM SIZE                DATE       VM CLOCK
+    1         1460096943             3.1M 2016-04-08 14:29:03   00:00:00.110
+    """
+    try:
+        cmd = "qemu-img snapshot %s -l" % image_file
+        snap_info = process.run(cmd, ignore_status=False).stdout.strip()
+        snap_list = []
+        if snap_info:
+            pattern = "(\d+) +\d+ +.*"
+            for line in snap_info.splitlines():
+                snap_list.extend(re.findall(r"%s" % pattern, line))
+        return snap_list
+    except process.CmdError, detail:
+        raise exceptions.TestError("Fail to get snapshot of %s:\n%s" %
+                                   (image_file, detail))
+
+
 def get_image_info(image_file):
     """
     Get image information and put it into a dict. Image information like this:
@@ -2902,6 +2929,33 @@ def get_image_info(image_file):
     except (KeyError, IndexError, process.CmdError), detail:
         raise exceptions.TestError("Fail to get information of %s:\n%s" %
                                    (image_file, detail))
+
+
+def is_qemu_capability_supported(capability):
+    """
+    Check if the specified qemu capability is supported
+    using libvirt cache.
+
+    :param capability: the qemu capability to be queried
+    :type capability: str
+
+    :return: True if the capabilitity is found, otherwise False
+    :rtype: Boolean
+    :raise: exceptions.TestError: if no capability file or no directory
+    """
+    qemu_path = "/var/cache/libvirt/qemu/capabilities/"
+    if not os.path.isdir(qemu_path) or not len(os.listdir(qemu_path)):
+        raise exceptions.TestError("Missing the directory %s or no file "
+                                   "exists in the directory" % qemu_path)
+    qemu_capxml = qemu_path + os.listdir(qemu_path)[0]
+    xmltree = XMLTreeFile(qemu_capxml)
+    for elem in xmltree.getroot().findall('flag'):
+        name = elem.attrib.get('name')
+        if name == capability:
+            logging.info("The qemu capability '%s' is supported", capability)
+            return True
+    logging.info("The qemu capability '%s' is not supported.", capability)
+    return False
 
 
 def get_test_entrypoint_func(name, module):
@@ -3590,10 +3644,14 @@ class SELinuxBoolean(object):
         # Change SELinux boolean value on local host
         if self.set_bool_local == "yes":
             self.setup_local()
+        else:
+            self.cleanup_local = False
 
         # Change SELinux boolean value on remote host
         if self.set_bool_remote == "yes":
             self.setup_remote()
+        else:
+            self.cleanup_remote = False
 
     def cleanup(self, keep_authorized_keys=False):
         """

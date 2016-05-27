@@ -8,6 +8,7 @@ import socket
 import time
 import logging
 import random
+import base64
 try:
     import json
 except ImportError:
@@ -16,6 +17,7 @@ except ImportError:
 
 from .qemu_monitor import Monitor, MonitorError
 from . import error_context
+from avocado.utils import process
 
 
 class VAgentError(MonitorError):
@@ -210,6 +212,8 @@ class QemuAgent(Monitor):
         objs = []
         for line in s.splitlines():
             try:
+                if line[0] == '\xff':
+                    line = line[1:]
                 objs += [json.loads(line)]
                 self._log_lines(line)
             except Exception:
@@ -246,7 +250,7 @@ class QemuAgent(Monitor):
         # Return empty dict when timeout.
         return {}
 
-    def _sync(self, timeout=RESPONSE_TIMEOUT * 3):
+    def _sync(self, sync_mode="guest-sync", timeout=RESPONSE_TIMEOUT * 3):
         """
         Helper for guest agent socket sync.
 
@@ -255,6 +259,7 @@ class QemuAgent(Monitor):
         socket synced.
 
         :param timeout: Time duration to wait for response
+        :param sync_mode: sync or sync-delimited
         :return: True if socket is synced.
         """
         def check_result(response):
@@ -268,7 +273,7 @@ class QemuAgent(Monitor):
                                   " for the future message,"
                                   " detail: '%s'" % r["error"])
 
-        cmd = "guest-sync"
+        cmd = sync_mode
         rnd_num = random.randint(1000, 9999)
         args = {"id": rnd_num}
         self._log_command(cmd)
@@ -497,17 +502,54 @@ class QemuAgent(Monitor):
         return True
 
     @error_context.context_aware
-    def sync(self):
+    def sync(self, sync_mode="guest-sync"):
         """
-        Sync guest agent with cmd 'guest-sync'.
+        Sync guest agent with cmd 'guest-sync' or 'guest-sync-delimited'.
         """
-        cmd = "guest-sync"
+        cmd = sync_mode
         if not self._has_command(cmd):
             return
 
-        synced = self._sync()
+        synced = self._sync(sync_mode)
         if not synced:
             raise VAgentSyncError(self.vm.name)
+
+    @error_context.context_aware
+    def set_user_password(self, password, crypted=False, username="root"):
+        """
+        Set the new password for the user
+        """
+        cmd = "guest-set-user-password"
+        if not self._has_command(cmd):
+            return False
+
+        if crypted:
+            openssl_cmd = "openssl passwd -crypt %s" % password
+            password = process.system_output(openssl_cmd).strip('\n')
+
+        args = {"crypted": crypted, "username": username,
+                "password": base64.b64encode(password)}
+        return self.cmd(cmd=cmd, args=args)
+
+    @error_context.context_aware
+    def get_vcpus(self):
+        """
+        Get the vcpus infomation
+        """
+        cmd = "guest-get-vcpus"
+        if not self._has_command(cmd):
+            return False
+        return self.cmd(cmd=cmd)
+
+    @error_context.context_aware
+    def set_vcpus(self, action):
+        """
+        Set the status of vcpus, bring up/down the vcpus following action
+        """
+        cmd = "guest-set-vcpus"
+        if not self._has_command(cmd):
+            return False
+        return self.cmd(cmd=cmd, args=action)
 
     @error_context.context_aware
     def suspend(self, mode=SUSPEND_MODE_RAM):

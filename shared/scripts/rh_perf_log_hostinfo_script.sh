@@ -26,22 +26,21 @@ ports=`brctl show|grep -v "bridge.*name.*bridge.*id"|awk {'print $4'}`
 for i in $bridges;do
     call echo "ethtool -k $i"
     call ethtool -k $i
+    call brctl showstp $i
 done
 for i in $ports;do
     call ethtool -k $i
     call ethtool -i $i
-    call brctl showstp $i
 done
 
 echo "=========================== Test steps ================================="
 
 echo "------------------------- (netperf cmdline) ----------------------------"
-grep "Start netperf thread by cmd" $1/../debug.log |sed -e "s/^.*|//"
+grep "Start netperf thread by cmd" $1/debug.log |sed -e "s/^.*|//"
 
 echo "------------------------- (qemu cmdline) -------------------------------"
-grep "Running qemu command" $1/../debug.log -A 1 |sed -e "s/^.*|//"
-grep "Running qemu command" $1/../debug.log -A 100|grep "^ *-"
+grep "Running qemu command" $1/debug.log -A 1 |sed -e "s/^.*|//"
+grep "Running qemu command" $1/debug.log -A 100|grep "^ *-"
 
 echo "------------------------- (thread pinning) -----------------------------"
-grep "pin .* thread(.*) to cpu(.*)" $1/../debug.log -A 1 |sed -e "s/^.*|//"
-
+grep "pin .* thread(.*) to cpu(.*)" $1/debug.log -A 1 |sed -e "s/^.*|//"

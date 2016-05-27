@@ -73,55 +73,60 @@ class LibvirtNetwork(object):
         """
         Create XML for a virtual network.
         """
+        address = self.kwargs.get('address')
+        if not address:
+            raise exceptions.TestError('Create vnet need address be set')
         net_xml = NetworkXML()
         net_xml.name = self.name
-        ip = IPXML(address=self.address)
+        ip = IPXML(address=address)
+        dhcp_start = self.kwargs.get('dhcp_start')
+        dhcp_end = self.kwargs.get('dhcp_end')
+        if all([dhcp_start, dhcp_end]):
+            ip.dhcp_ranges = {'start': dhcp_start, 'end': dhcp_end}
         net_xml.ip = ip
-        return self.address, net_xml
+        return address, net_xml
 
     def create_macvtap_xml(self):
         """
         Create XML for a macvtap network.
         """
+        iface = self.kwargs.get('iface')
+        if not iface:
+            raise exceptions.TestError('Create macvtap need iface be set')
         net_xml = NetworkXML()
         net_xml.name = self.name
-        net_xml.forward = {'mode': 'bridge', 'dev': self.iface}
-        ip = utils_net.get_ip_address_by_interface(self.iface)
+        net_xml.forward = {'mode': 'bridge', 'dev': iface}
+        ip = utils_net.get_ip_address_by_interface(iface)
         return ip, net_xml
 
     def create_bridge_xml(self):
         """
         Create XML for a bridged network.
         """
+        iface = self.kwargs.get('iface')
+        if not iface:
+            raise exceptions.TestError('Create bridge need iface be set')
         net_xml = NetworkXML()
         net_xml.name = self.name
-
         net_xml.forward = {'mode': 'bridge'}
-        net_xml.bridge = {'name': self.iface}
-        ip = utils_net.get_ip_address_by_interface(self.iface)
+        net_xml.bridge = {'name': iface}
+        ip = utils_net.get_ip_address_by_interface(iface)
         return ip, net_xml
 
-    def __init__(self, net_type, address=None, iface=None, net_name=None,
-                 persistent=False):
+    def __init__(self, net_type, **kwargs):
+        self.kwargs = kwargs
+        net_name = kwargs.get('net_name')
         if net_name is None:
             self.name = 'avocado-vt-%s' % net_type
         else:
             self.name = net_name
-        self.address = address
-        self.iface = iface
-        self.persistent = persistent
+        self.persistent = kwargs.get('persistent', False)
 
         if net_type == 'vnet':
-            if not self.address:
-                raise exceptions.TestError('Create vnet need address be set')
             self.ip, net_xml = self.create_vnet_xml()
         elif net_type == 'macvtap':
-            if not self.iface:
-                raise exceptions.TestError('Create macvtap need iface be set')
             self.ip, net_xml = self.create_macvtap_xml()
         elif net_type == 'bridge':
-            if not self.iface:
-                raise exceptions.TestError('Create bridge need iface be set')
             self.ip, net_xml = self.create_bridge_xml()
         else:
             raise exceptions.TestError(
@@ -249,12 +254,13 @@ def cpu_allowed_list_by_task(pid, tid):
     return result.stdout.strip()
 
 
-def clean_up_snapshots(vm_name, snapshot_list=[]):
+def clean_up_snapshots(vm_name, snapshot_list=[], domxml=None):
     """
     Do recovery after snapshot
 
     :param vm_name: Name of domain
     :param snapshot_list: The list of snapshot name you want to remove
+    :param domxml: The object of domain xml for dumpxml command
     """
     if not snapshot_list:
         # Get all snapshot names from virsh snapshot-list
@@ -271,6 +277,26 @@ def clean_up_snapshots(vm_name, snapshot_list=[]):
                 os.system('rm -f %s' % disk.get('file'))
             # Delete snapshots of vm
             virsh.snapshot_delete(vm_name, snap_name)
+
+        # External disk snapshot couldn't be deleted by virsh command,
+        # It need to be deleted by qemu-img command
+        snapshot_list = virsh.snapshot_list(vm_name)
+        if snapshot_list:
+            # Delete snapshot metadata first
+            for snap_name in snapshot_list:
+                virsh.snapshot_delete(vm_name, snap_name, "--metadata")
+            # Delete all snapshot by qemu-img.
+            # Domain xml should be proviced by parameter, we can't get
+            # the image name from dumpxml command, it will return a
+            # snapshot image name
+            if domxml:
+                disks_path = domxml.xmltreefile.findall('devices/disk/source')
+                for disk in disks_path:
+                    img_name = disk.get('file')
+                    snaps = utils_misc.get_image_snapshot(img_name)
+                    cmd = "qemu-img snapshot %s" % img_name
+                    for snap in snaps:
+                        process.run("%s -d %s" % (cmd, snap))
     else:
         # Get snapshot disk path from domain xml because
         # there is no snapshot info with the name
@@ -488,7 +514,6 @@ def setup_or_cleanup_iscsi(is_setup, is_login=True,
         _iscsi.emulated_id = _iscsi.get_target_id()
         _iscsi.cleanup()
         process.run("rm -f %s" % emulated_path)
-        process.run("vgscan --cache", ignore_status=True)
     return ""
 
 
@@ -577,7 +602,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         nfs_path = res["export_dir"]
         selinux_bak = res["selinux_status_bak"]
         cleanup_nfs = True
-        extra = "--source-host %s --source-path %s" % ('localhost',
+        extra = "--source-host %s --source-path %s" % ('127.0.0.1',
                                                        nfs_path)
     elif pool_type == "logical":
         # Create vg by using iscsi device
@@ -589,7 +614,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         # Set up iscsi target without login
         iscsi_target, _ = setup_or_cleanup_iscsi(True, False)
         cleanup_iscsi = True
-        extra = "--source-host %s  --source-dev %s" % ('localhost',
+        extra = "--source-host %s  --source-dev %s" % ('127.0.0.1',
                                                        iscsi_target)
     elif pool_type == "disk":
         # Set up iscsi target and login
@@ -924,16 +949,12 @@ class PoolVolumeTest(object):
             extra = " --source-dev %s" % device_name
         elif pool_type == "logical":
             logical_device = device_name
-            cmd_pv = "pvcreate %s" % logical_device
             vg_name = "vg_%s" % pool_type
-            cmd_vg = "vgcreate %s %s" % (vg_name, logical_device)
+            lv_utils.vg_create(vg_name, logical_device)
             extra = "--source-name %s" % vg_name
-            process.run(cmd_pv)
-            process.run(cmd_vg)
             # Create a small volume for verification
             # And VG path will not exist if no any volume in.(bug?)
-            cmd_lv = "lvcreate --name default_lv --size 1M %s" % vg_name
-            process.run(cmd_lv)
+            lv_utils.lv_create(vg_name, 'default_lv', '1M')
         elif pool_type == "netfs":
             export_options = kwargs.get('export_options',
                                         "rw,async,no_root_squash")
@@ -963,9 +984,14 @@ class PoolVolumeTest(object):
                                                                nfs_path)
         elif pool_type == "iscsi":
             ip_protocal = kwargs.get('ip_protocal', "ipv4")
+            if ip_protocal == "ipv6":
+                ip_addr = "::1"
+            else:
+                ip_addr = "127.0.0.1"
             setup_or_cleanup_iscsi(is_setup=True,
                                    emulated_image=emulated_image,
-                                   image_size=image_size)
+                                   image_size=image_size,
+                                   portal_ip=ip_addr)
             iscsi_sessions = iscsi.iscsi_get_sessions()
             iscsi_target = None
             for iscsi_node in iscsi_sessions:
@@ -973,10 +999,6 @@ class PoolVolumeTest(object):
                     iscsi_target = iscsi_node[1]
                     break
             iscsi.iscsi_logout(iscsi_target)
-            if ip_protocal == "ipv6":
-                ip_addr = "::1"
-            else:
-                ip_addr = "127.0.0.1"
             extra = " --source-host %s  --source-dev %s" % (ip_addr,
                                                             iscsi_target)
         elif pool_type == "scsi":
@@ -1071,31 +1093,49 @@ class MigrationTest(object):
         # The time spent when migrating vms
         # format: vm_name -> time(seconds)
         self.mig_time = {}
+        # The CmdResult returned from virsh migrate command
+        self.ret = None
 
-    def thread_func_migration(self, vm, desturi, options=None):
+    def thread_func_migration(self, vm, desturi, options=None,
+                              ignore_status=False):
         """
         Thread for virsh migrate command.
 
         :param vm: A libvirt vm instance(local or remote).
-        :param desturi: remote host uri.
+        :param desturi: Remote host uri.
+        :param options: The options for migration command.
+        :param ignore_status: True, means no CmdError will be caught
+                              for the failure.
+                              False, means an CmdError will be caught
+                              for the failure.
         """
         # Migrate the domain.
+        is_error = False
+
         try:
             if options is None:
                 options = "--live --timeout=60"
             stime = int(time.time())
-            vm.migrate(desturi, option=options, ignore_status=False,
-                       debug=True)
+            self.ret = vm.migrate(desturi, option=options,
+                                  ignore_status=ignore_status,
+                                  debug=True)
             etime = int(time.time())
             self.mig_time[vm.name] = etime - stime
+            if self.ret.exit_status != 0:
+                logging.debug("Migration to %s returns failed exit status %d",
+                              desturi, self.ret.exit_status)
+                is_error = True
         except process.CmdError, detail:
             logging.error("Migration to %s failed:\n%s", desturi, detail)
-            self.RET_LOCK.acquire()
-            self.RET_MIGRATION = False
-            self.RET_LOCK.release()
+            is_error = True
+        finally:
+            if is_error is True:
+                self.RET_LOCK.acquire()
+                self.RET_MIGRATION = False
+                self.RET_LOCK.release()
 
     def do_migration(self, vms, srcuri, desturi, migration_type, options=None,
-                     thread_timeout=60):
+                     thread_timeout=60, ignore_status=False):
         """
         Migrate vms.
 
@@ -1107,7 +1147,8 @@ class MigrationTest(object):
         if migration_type == "orderly":
             for vm in vms:
                 migration_thread = threading.Thread(target=self.thread_func_migration,
-                                                    args=(vm, desturi, options))
+                                                    args=(vm, desturi, options,
+                                                          ignore_status))
                 migration_thread.start()
                 migration_thread.join(thread_timeout)
                 if migration_thread.isAlive():
@@ -1156,7 +1197,7 @@ class MigrationTest(object):
                     self.RET_MIGRATION = False
                     self.RET_LOCK.release()
 
-        if not self.RET_MIGRATION:
+        if not self.RET_MIGRATION and not ignore_status:
             raise exceptions.TestFail()
 
     def cleanup_dest_vm(self, vm, srcuri, desturi):
@@ -1981,6 +2022,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     driver_iothread = params.get("driver_iothread", "")
     mnt_path_name = params.get("mnt_path_name", "nfs-mount")
     exp_opt = params.get("export_options", "rw,no_root_squash,fsid=0")
+    exp_dir = params.get("export_dir", "nfs-export")
     first_disk = vm.get_first_disk_devices()
     blk_source = first_disk['source']
     disk_xml = vmxml.devices.by_device_tag('disk')[0]
@@ -1994,13 +2036,14 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     secret_type = params.get("secret_type")
     secret_usage = params.get("secret_usage")
     secret_uuid = params.get("secret_uuid")
+    driver_cache = params.get("driver_cache", "none")
     disk_params = {'device_type': disk_device,
                    'disk_snapshot_attr': disk_snapshot_attr,
                    'type_name': disk_type,
                    'target_dev': disk_target,
                    'target_bus': disk_target_bus,
                    'driver_type': disk_format,
-                   'driver_cache': 'none',
+                   'driver_cache': driver_cache,
                    'driver_iothread': driver_iothread,
                    'sec_model': sec_model,
                    'relabel': relabel,
@@ -2107,7 +2150,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         # Setup nfs
         res = setup_or_cleanup_nfs(True, mnt_path_name,
                                    is_mount=True,
-                                   export_options=exp_opt)
+                                   export_options=exp_opt,
+                                   export_dir=exp_dir)
         exp_path = res["export_dir"]
         mnt_path = res["mount_dir"]
         params["selinux_status_bak"] = res["selinux_status_bak"]
@@ -2121,6 +2165,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
 
         src_file_path = "%s/%s" % (mnt_path, dist_img)
         disk_params_src = {'source_file': src_file_path}
+        params["source_file"] = src_file_path
     elif disk_src_protocol == 'rbd':
         mon_host = params.get("mon_host")
         if image_convert:
@@ -2390,6 +2435,8 @@ def attach_disks(vm, path, vgname, params):
                 target_dev = "vd%s" % (prefix + suffix)
             elif target == "scsi":
                 target_dev = "sd%s" % (prefix + suffix)
+            elif target == "ide":
+                target_dev = "hd%s" % (prefix + suffix)
             target_list.append(target_dev)
         return target_list
 
@@ -2468,9 +2515,25 @@ def remotely_control_libvirtd(server_ip, server_user, server_pwd,
 def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
                      auth_pwd=None, vm_name="", status_error="no",
                      extra="", log_level='LIBVIRT_DEBUG=3', su_user="",
-                     patterns_virsh_cmd=".*Id\s*Name\s*State\s*.*"):
+                     patterns_virsh_cmd=".*Id\s*Name\s*State\s*.*",
+                     patterns_extra_dict=None):
     """
-    Connect libvirt daemon
+    Connect to libvirt daemon
+
+    :param uri: the uri to connect the libvirtd
+    :param read_only: the read only option for virsh
+    :param virsh_cmd: the virsh command for virsh
+    :param auth_user: the user used to connect
+    :param auth_pwd: the password for the user
+    :param vm_name: the guest name to operate
+    :param status_error: if expect error status
+    :param extra: extra parameters
+    :param log_level: logging level
+    :param su_user: the user to su
+    :param patterns_virsh_cmd: the pattern to match in virsh command output
+    :param patterns_extra_dict: a mapping with extra patterns and responses
+
+    :return: True if success, otherwise False
     """
     patterns_yes_no = r".*[Yy]es.*[Nn]o.*"
     patterns_auth_name_comm = r".*username:.*"
@@ -2492,22 +2555,37 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
         match_list = [patterns_yes_no, patterns_auth_name_comm,
                       patterns_auth_name_xen, patterns_auth_pwd,
                       patterns_virsh_cmd]
+        if patterns_extra_dict:
+            match_list = match_list + patterns_extra_dict.keys()
+        patterns_list_len = len(match_list)
+
         while True:
             match, text = session.read_until_any_line_matches(match_list,
                                                               timeout=30,
                                                               internal_timeout=1)
-            if match == -5:
+            if match == -patterns_list_len:
                 logging.info("Matched 'yes/no', details: <%s>", text)
                 session.sendline("yes")
-            elif match == -3 or match == -4:
+                continue
+            elif match == -patterns_list_len+1 or match == -patterns_list_len+2:
                 logging.info("Matched 'username', details: <%s>", text)
                 session.sendline(auth_user)
-            elif match == -2:
+                continue
+            elif match == -patterns_list_len+3:
                 logging.info("Matched 'password', details: <%s>", text)
                 session.sendline(auth_pwd)
-            elif match == -1:
+                continue
+            elif match == -patterns_list_len+4:
                 logging.info("Expected output of virsh command: <%s>", text)
                 break
+            if (patterns_list_len > 5):
+                extra_len = len(patterns_extra_dict)
+                index_in_extra_dict = match + extra_len
+                key = patterns_extra_dict.keys()[index_in_extra_dict]
+                value = patterns_extra_dict.get(key, "")
+                logging.info("Matched '%s', details:<%s>", key, text)
+                session.sendline(value)
+                continue
             else:
                 logging.error("The real prompt text: <%s>", text)
                 break
@@ -2580,14 +2658,15 @@ def do_migration(vm_name, uri, extra, auth_pwd, auth_user="root",
             else:
                 logging.error("The real prompt text: <%s>", text)
                 break
-
+        log = session.get_output()
         session.close()
-        return True
+        return (True, log)
+
     except (aexpect.ShellError, aexpect.ExpectError), details:
         log = session.get_output()
         session.close()
         logging.error("Failed to migrate %s: %s\n%s", vm_name, details, log)
-        return False
+        return (False, log)
 
 
 def update_vm_disk_source(vm_name, disk_source_path,

@@ -13,7 +13,7 @@ PYTHON=$(shell which python)
 DESTDIR=/
 BUILDIR=$(CURDIR)/debian/avocado-vt
 PROJECT=avocado
-VERSION="0.34.0"
+VERSION="35.0"
 AVOCADO_DIRNAME?=avocado
 DIRNAME=$(shell echo $${PWD\#\#*/})
 
@@ -94,6 +94,9 @@ srpm-release: source-release
 rpm-release: srpm-release
 	if test ! -d BUILD/RPM; then mkdir -p BUILD/RPM; fi
 	mock --resultdir BUILD/RPM -D "commit $(RELEASE_COMMIT)" --rebuild BUILD/SRPM/avocado-plugins-vt-$(VERSION)-*.src.rpm
+
+requirements:
+	- pip install -r requirements.txt
 
 check:
 	selftests/checkall

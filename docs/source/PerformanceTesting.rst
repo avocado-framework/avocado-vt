@@ -31,41 +31,43 @@ Autotest supports to numa pining. Assign "numanode=-1" in tests.cfg, then vcpu t
 
 ::
 
-  memory: numactl -m $n $cmdline
-  cpu: taskset $node_mask $thread_id
+  memory:
+  $ numactl -m $n $cmdline
+  cpu:
+  $ taskset $node_mask $thread_id
 
 The following content is manual guide.
 
 ::
 
   1.First level pinning would be to use numa pinning when starting the guest.
-  e.g  numactl -c 1 -m 1 qemu-kvm  -smp 2 -m 4G <> (pinning guest memory and cpus to numa-node 1)
+  e.g.  $ numactl -c 1 -m 1 qemu-kvm  -smp 2 -m 4G <> (pinning guest memory and cpus to numa-node 1)
 
   2.For a single instance test, it would suggest trying a one to one mapping of vcpu to pyhsical core.
-  e.g
+  e.g.
   get guest vcpu threads id
-  #taskset -p 40 $vcpus1  (pinning vcpu1 thread to pyshical cpu #6 )
-  #taskset -p 80 $vcpus2  (pinning vcpu2 thread to physical cpu #7 )
+  $ taskset -p 40 $vcpus1  #(pinning vcpu1 thread to pyshical cpu #6 )
+  $ taskset -p 80 $vcpus2  #(pinning vcpu2 thread to physical cpu #7 )
 
   3.To pin vhost on host. get vhost PID and then use taskset to pin it on the same soket.
   e.g
-  taskset -p 20 $vhost (pinning vcpu2 thread to physical cpu #5 )
+  $ taskset -p 20 $vhost #(pinning vcpu2 thread to physical cpu #5 )
 
   4.In guest,pin the IRQ to one core and the netperf to another.
-  1) make sure irqbalance is off - `service irqbalance stop`
-  2) find the interrupts - `cat /proc/interrupts`
-  3) find the affinity mask for the interrupt(s) - `cat /proc/irq/<irq#>/smp_affinity`
+  1) make sure irqbalance is off - `$ service irqbalance stop`
+  2) find the interrupts - `$ cat /proc/interrupts`
+  3) find the affinity mask for the interrupt(s) - `$ cat /proc/irq/<irq#>/smp_affinity`
   4) change the value to match the proper core.make sure the vlaue is cpu mask.
-  e.g pin the IRQ to first core.
-     echo 01>/proc/irq/$virti0-input/smp_affinity
-     echo 01>/proc/irq/$virti0-output/smp_affinity
+  e.g. pin the IRQ to first core.
+     $ echo 01>/proc/irq/$virti0-input/smp_affinity
+     $ echo 01>/proc/irq/$virti0-output/smp_affinity
   5)pin the netserver to another core.
-  e.g
-  taskset -p 02 netserver
+  e.g.
+  $ taskset -p 02 netserver
 
   5.For host to guest scenario. to get maximum performance. make sure to run netperf on different cores on the same numa node as the guest.
-  e.g
-  numactl  -m 1 netperf -T 4 (pinning netperf to physical cpu #4)
+  e.g.
+  $ numactl -m 1 netperf -T 4 (pinning netperf to physical cpu #4)
 
 Execute testing
 ===============
@@ -95,8 +97,8 @@ Result files:
 
 ::
 
-  # cd /usr/local/autotest/results/8-debug_user/192.168.122.1/
-  # find .|grep RHS
+  $ cd /usr/local/autotest/results/8-debug_user/192.168.122.1/
+  $ find .|grep RHS
   kvm.repeat1.r61.virtio_blk.smp2.virtio_net.RHEL.6.1.x86_64.netperf.exhost_guest/results/netperf-result.RHS
   kvm.repeat2.r61.virtio_blk.smp2.virtio_net.RHEL.6.1.x86_64.netperf.exhost_guest/results/netperf-result.RHS
   kvm.repeat3.r61.virtio_blk.smp2.virtio_net.RHEL.6.1.x86_64.netperf.exhost_guest/results/netperf-result.RHS
@@ -107,8 +109,8 @@ Result files:
 
 ::
 
-  # cd /usr/local/autotest/results/9-debug_user/192.168.122.1/
-  # find .|grep RHS
+  $ cd /usr/local/autotest/results/9-debug_user/192.168.122.1/
+  $ find .|grep RHS
   kvm.repeat1.r61.virtio_blk.smp2.virtio_net.RHEL.6.1.x86_64.netperf.exhost_guest/results/netperf-result.RHS
   kvm.repeat2.r61.virtio_blk.smp2.virtio_net.RHEL.6.1.x86_64.netperf.exhost_guest/results/netperf-result.RHS
   kvm.repeat3.r61.virtio_blk.smp2.virtio_net.RHEL.6.1.x86_64.netperf.exhost_guest/results/netperf-result.RHS
@@ -118,7 +120,7 @@ Analysis result
 
 Config file: perf.conf
 
-::
+.. code-block:: cfg
 
   [ntttcp]
   result_file_pattern = .*.RHS
@@ -138,8 +140,8 @@ Execute regression.py to compare two results:
 ::
 
   login autotest server
-  # cd /usr/local/autotest/client/tools
-  # python regression.py netperf /usr/local/autotest/results/8-debug_user/192.168.122.1/ /usr/local/autotest/results/9-debug_user/192.168.122.1/
+  $ cd /usr/local/autotest/client/tools
+  $ python regression.py netperf /usr/local/autotest/results/8-debug_user/192.168.122.1/ /usr/local/autotest/results/9-debug_user/192.168.122.1/
 
 T-test:
 

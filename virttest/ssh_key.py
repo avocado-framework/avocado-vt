@@ -3,6 +3,7 @@ import logging
 import aexpect
 
 from avocado.utils import process
+from avocado.utils import path
 
 from . import remote
 
@@ -96,7 +97,7 @@ def get_remote_public_key(session):
     return session.cmd_output("cat %s" % public_key_path)
 
 
-def setup_ssh_key(hostname, user, password, port):
+def setup_ssh_key(hostname, user, password, port=22):
     """
     Setup up remote login in another server by using public key
 
@@ -115,7 +116,7 @@ def setup_ssh_key(hostname, user, password, port):
     try:
         session = remote.remote_login(client='ssh', host=hostname,
                                       username=user, port=port,
-                                      password=password)
+                                      password=password, prompt=r'[$#%]')
         public_key = get_public_key()
 
         session.cmd('mkdir -p ~/.ssh')
@@ -182,3 +183,44 @@ def setup_remote_ssh_key(hostname1, user1, password1,
             session2.close()
         except:
             pass
+
+
+def setup_remote_known_hosts_file(client_ip, server_ip,
+                                  server_user, server_pwd):
+    """
+    Set the ssh host key of local host to remote host
+
+    :param client_ip: local host ip whose host key is sent to remote host
+    :type client_ip: str
+    :param server_ip: remote host ip address where host key is stored to
+    :type server_ip: str
+    :param server_user: user to log on remote host
+    :type server_user: str
+    :param server_pwd: password for the user for log on remote host
+    :type server_pwd: str
+
+    :return: a RemoteFile object for the file known_hosts on remote host
+    :rtype: remote.RemoteFile
+    :return: None if required command is not found
+    """
+    logging.debug('Performing known_hosts file setup on %s from %s.' %
+                  (server_ip, client_ip))
+    abs_path = ""
+    try:
+        abs_path = path.find_command("ssh-keyscan")
+    except path.CmdNotFoundError as err:
+        logging.debug("Failed to find the command: %s", err)
+        return None
+
+    cmd = "%s %s" % (abs_path, client_ip)
+    host_key = process.system_output(cmd, verbose=False)
+    remote_known_hosts_file = remote.RemoteFile(
+            address=server_ip,
+            client='scp',
+            username=server_user,
+            password=server_pwd,
+            port='22',
+            remote_path='~/.ssh/known_hosts')
+    pattern2repl = {r".*%s[, ].*" % client_ip: host_key}
+    remote_known_hosts_file.sub_else_add(pattern2repl)
+    return remote_known_hosts_file

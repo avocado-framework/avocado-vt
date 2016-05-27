@@ -23,7 +23,7 @@ Nested Virtualization:
 1. Emulated:
     * qemu very slow
 
-2. hardware accelerated:
+2. Hardware accelerated:
     * Hardware for the accelerated nested virtualization
       AMD Phenom and never            core extension (smv, NPT)
       Intel Nehalem and never         core extension (vmx, EPT)
@@ -79,14 +79,14 @@ Connect to host bridge with guest L0 bridge without DHCP (dhcp collision with ho
 ::
 
         # interface connected to host system bridge
-        vi /etc/sysconfig/network-scripts/ifcfg-eth0
+        $ vi /etc/sysconfig/network-scripts/ifcfg-eth0
              NM_CONTROLLED="no"
              DEVICE="eth0"
              ONBOOT="yes"
              BRIDGE=virbr0
 
         # Bridge has name virbr0 for compatibility with standard autotest settings.
-        vi /etc/sysconfig/network-scripts/ifcfg-virbr0
+        $ vi /etc/sysconfig/network-scripts/ifcfg-virbr0
             DHCP_HOSTNAME="atest-guest"
             NM_CONTROLLED="no"
             BOOTPROTO="dhcp"
@@ -111,8 +111,8 @@ Manually from host machine
 
 ::
 
-    cd autotest/client/tests/virt/qemu/
-    sudo rm -rf results.*; sudo ../../../../server/autoserv -m guestL0_1,guestL0_2 multi_host.srv
+    $ cd autotest/client/tests/virt/qemu/
+    $ sudo rm -rf results.*; sudo ../../../../server/autoserv -m guestL0_1,guestL0_2 multi_host.srv
 
 More details:
 -------------

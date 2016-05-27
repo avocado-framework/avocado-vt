@@ -98,7 +98,7 @@ Named variants
 
 Named variants allow assigning a parseable name to a variant set.  This enables
 an entire variant set to be used for in filters_.  All output combinations will
-inherit the named varient key, along with the specific variant name.  For example::
+inherit the named variant key, along with the specific variant name.  For example::
 
    variants var1_name:
         - one:
@@ -951,10 +951,11 @@ the virtualization technology-specific directory.  For example, ``backends/qemu/
 | cfg/subtests.cfg            | Automatically generated based on the test       |
 |                             | modules and test configuration files found      |
 |                             | when the ``avocado vt-bootstrap`` is used.      |
-|                             | Modifications are discourraged since they will  |
+|                             | Modifications are discouraged since they will   |
 |                             | be lost next time bootstrap is used.            |
 +-----------------------------+-------------------------------------------------+
-| cfg/guest-os.cfg            | Automatically generated from                    |
+| cfg/guest-os.cfg            | Automatically generated when                    |
+|                             | ``avocado vt-bootstrap`` is used from           |
 |                             | files within ``shared/cfg/guest-os/``.  Defines |
 |                             | all supported guest operating system            |
 |                             | types, architectures, installation images,      |

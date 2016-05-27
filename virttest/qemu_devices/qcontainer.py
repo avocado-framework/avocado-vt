@@ -98,7 +98,7 @@ class DevContainer(object):
                                                    ignore_status=True,
                                                    shell=True,
                                                    verbose=False)
-        self.__machine_types = process.system_output("%s -M ?" % qemu_binary,
+        self.__machine_types = process.system_output("%s -M \?" % qemu_binary,
                                                      timeout=10,
                                                      ignore_status=True,
                                                      shell=True,
@@ -1395,6 +1395,9 @@ class DevContainer(object):
         devices[-1].set_param('snapshot', snapshot, bool)
         devices[-1].set_param('readonly', readonly, bool)
         if 'aio' in self.get_help_text():
+            if aio == 'native' and snapshot == 'yes':
+                logging.warn('snapshot is on, fallback aio to threads.')
+                aio = 'threads'
             devices[-1].set_param('aio', aio)
         devices[-1].set_param('media', media)
         devices[-1].set_param('format', imgfmt)
@@ -1605,13 +1608,15 @@ class DevContainer(object):
                              "instead.")
                 cd_format = 'ahci'
         shared_dir = os.path.join(data_dir.get_data_dir(), "shared")
+        cache_mode = image_params.get('image_aio') == 'native' and 'none' or ''
         return self.images_define_by_variables(name,
                                                storage.get_image_filename(
                                                    image_params,
                                                    data_dir.get_data_dir()),
                                                index,
                                                cd_format,
-                                               '',     # skip drive_cache
+                                               image_params.get(
+                                                   "drive_cache", cache_mode),
                                                image_params.get(
                                                    "drive_werror"),
                                                image_params.get(

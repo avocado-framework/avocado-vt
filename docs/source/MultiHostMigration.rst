@@ -137,7 +137,9 @@ Now, edit the file::
 
 In there, you have to change the EXTRA_PARAMS to restrict the number of guests
 you want to run the tests on. On this example, we're going to restrict our tests
-to RHEL 6.4. The particular section of the control file should look like::
+to RHEL 6.4. The particular section of the control file should look like:
+
+.. code-block:: python
 
     EXTRA_PARAMS = """
     only RHEL.6.4.x86_64
@@ -147,7 +149,7 @@ It is important to stress that the guests must be installed for this to work
 smoothly. Then the last step would be to run the tests. Using the same convention
 for the machine hostnames, here's the command you should use::
 
-    server/autotest-remote -m host1.foo.com,host2.foo.com server/tests/multihost_migration/control.srv
+    $ server/autotest-remote -m host1.foo.com,host2.foo.com server/tests/multihost_migration/control.srv
 
 Now, you'll see a boatload of output from the autotest remote output. This is
 normal, and you should be patient until all the tests are done.
@@ -169,7 +171,7 @@ Scheme:
 Example:
 ~~~~~~~~
 
-::
+.. code-block:: python
 
     class TestMultihostMigration(virt_utils.MultihostMigration):
         def __init__(self, test, params, env):
@@ -217,9 +219,9 @@ Example:
 
 When you call:
 
-::
+.. code-block:: python
 
-    mig = TestMultihostMigration(test, params, env):
+    mig = TestMultihostMigration(test, params, env)
 
 What happens is
 
@@ -229,9 +231,9 @@ What happens is
 
 When you call the method:
 
-::
+.. code-block:: python
 
-    migrate():
+    migrate()
 
 What happens in a diagram is:
 
@@ -252,7 +254,7 @@ What happens in a diagram is:
 It's important to note that the migrations are made using the ``tcp`` protocol,
 since the others don't support multi host migration.
 
-::
+.. code-block:: python
 
     def migrate_vms_src(self, mig_data):
         vm = mig_data.vms[0]

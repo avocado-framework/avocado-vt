@@ -92,7 +92,7 @@ SHA1 sum of it matches.
 #. Git clone autotest to a convenient location, say $HOME/Code/autotest.
    See :doc:`the download source documentation <../contributing/DownloadSource>`
    Please do use git and clone the repo to the location mentioned.
-#. Execute the ``get_started.py`` script (see the get started documentation <../basic/GetStarted>`.
+#. Execute the ``get_started.py`` script (see the `get started documentation <../basic/GetStarted>`.
    It will create the
    directories where we expect the cd files to be available. You don't
    need to download the Fedora 14 DVD, but you do need to download the
@@ -169,7 +169,7 @@ SHA1 sum of it matches.
 
    ::
 
-       $HOME/Code/autotest/client/bin/autotest $HOME/Code/autotest/client/tests/kvm/control
+       $ $HOME/Code/autotest/client/bin/autotest $HOME/Code/autotest/client/tests/kvm/control
 
 #. Profit! You automated install of Windows 7 with the virtio drivers
    will be carried out.

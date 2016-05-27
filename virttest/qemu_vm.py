@@ -389,7 +389,7 @@ class VM(virt_vm.BaseVM):
         # Each of these functions receives the output of 'qemu -help'
         # as a parameter, and should add the requested command line
         # option accordingly.
-        def add_name(devices, name):
+        def add_name(name):
             return " -name '%s'" % name
 
         def process_sandbox(devices, action):
@@ -1291,7 +1291,7 @@ class VM(virt_vm.BaseVM):
         devices.insert(StrDev('qemu', cmdline=qemu_binary))
         devices.insert(StrDev('-S', cmdline="-S"))
         # Add the VM's name
-        devices.insert(StrDev('vmname', cmdline=add_name(devices, name)))
+        devices.insert(StrDev('vmname', cmdline=add_name(name)))
 
         qemu_sandbox = params.get("qemu_sandbox")
         if qemu_sandbox == "on":
@@ -2271,7 +2271,7 @@ class VM(virt_vm.BaseVM):
 
     @error_context.context_aware
     def create(self, name=None, params=None, root_dir=None,
-               timeout=20, migration_mode=None,
+               timeout=120, migration_mode=None,
                migration_exec_cmd=None, migration_fd=None,
                mac_source=None):
         """
@@ -3689,10 +3689,11 @@ class VM(virt_vm.BaseVM):
             if not_wait_for_migration:
                 return clone
 
-            threads_during_migrate = self.get_qemu_threads()
-            if not (len(threads_during_migrate) > len(threads_before_migrate)):
-                raise virt_vm.VMMigrateFailedError("Cannot find new thread "
-                                                   "for migration.")
+            if self.params.get("enable_check_mig_thread", "no") == "yes":
+                threads_during_migrate = self.get_qemu_threads()
+                if not (len(threads_during_migrate) > len(threads_before_migrate)):
+                    raise virt_vm.VMMigrateFailedError("Cannot find new thread"
+                                                       " for migration.")
 
             if cancel_delay:
                 error_context.context("Do migrate_cancel after %d seconds" %
@@ -3742,7 +3743,6 @@ class VM(virt_vm.BaseVM):
             error_context.context("after migration")
             if local:
                 time.sleep(1)
-                self.verify_kernel_crash()
                 self.verify_alive()
 
             if local and stable_check:

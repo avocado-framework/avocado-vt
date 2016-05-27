@@ -3,11 +3,13 @@
 '''
 Created on Dec 6, 2013
 
-:author: jzupka
+:author: jzupka, astepano
+:contact: Andrei Stepanov <astepano@redhat.com>
 '''
 
 import os
 import sys
+import imp
 import select
 import time
 import stat
@@ -22,10 +24,9 @@ import signal
 
 import remote_interface
 import messenger as ms
-from .. import data_dir
 
 
-def daemonize(pipe_root_path=data_dir.get_tmp_dir()):
+def daemonize(pipe_root_path="/tmp"):
     """
     Init daemon.
 
@@ -305,6 +306,12 @@ class CmdSlave(object):
         if func_name[0] == "nohup":  # start command in new daemon process.
             self.nohup = True
             func_name = func_name[1:]
+        if func_name[0] == "python_file_run_with_helper" and not self.manage:
+            # the `async` and other prefixes are already consumed.
+            raise NotImplementedError(
+                "The 'python_file_run_with_helper' is only implemented for "
+                "'manage' target.  Please use "
+                "'commander.manage.python_file_run_with_helper' to run this.")
         if hasattr(commander, func_name[0]):
             obj = getattr(commander, func_name[0])
         elif func_name[0] in commander.globals:
@@ -333,7 +340,7 @@ class CmdSlave(object):
             self.basecmd._async = True
         elif self.nohup:   # start command in new daemon process
             if self.basecmd.cmd_hash is None:
-                self.basecmd.cmd_hash = gen_tmp_dir(data_dir.get_tmp_dir())
+                self.basecmd.cmd_hash = gen_tmp_dir("/tmp")
             self.basecmd.results = self.__call_nohup__(commander)
             self.basecmd._async = True
         else:  # start command in new process but wait for input.
@@ -544,6 +551,10 @@ class CommanderSlave(ms.Messenger):
                     cmd = CmdSlave(self.read_msg()[1])
                     self.cmds[cmd.cmd_id] = cmd
                     try:
+                        # There is hidden bug. We can bump into condition when
+                        # we running some function-command. That function dump
+                        # some data to stdio. But, stdio is out of
+                        # consideration at this point. It can stuck.
                         cmd(self)
                         self.write_msg(cmd.basecmd)
                     except Exception:
@@ -702,6 +713,49 @@ class CommanderSlaveCmds(CommanderSlave):
         """
         self._exit = True
         return "bye"
+
+    def python_file_run_with_helper(self, test_path):
+        """
+        Call run() function at external python module.
+
+        :param test_path: Path to python file. Call run() at this module.
+        :return: module.run().return
+        """
+        assert os.path.isfile(test_path)
+        module = imp.load_source('ext_test', test_path)
+        assert hasattr(module, "run")
+        run = getattr(module, "run")
+        helper = Helper(self)
+        run(helper)
+
+
+class Helper(object):
+    """Passed to external test on VM."""
+    __slots__ = ["messenger"]
+
+    def __init__(self, messenger):
+        self.messenger = messenger
+
+    def query_master(self, *args, **kargs):
+        """Read CmdRespond from master."""
+        # First of all, dump stdio to master. Otherwise it can block on
+        # logging.info() function.
+        msg = self.messenger
+        stdios = [msg.o_stdout, msg.o_stderr]
+        r, _, _ = select.select(stdios, [], [], 0)  # Not blocking.
+        if msg.o_stdout in r:  # Send message from stdout
+            data = os.read(msg.o_stdout, 16384)
+            msg.write_msg(remote_interface.StdOut(data))
+        if msg.o_stderr in r:  # Send message from stdout
+            data = os.read(msg.o_stderr, 16384)
+            msg.write_msg(remote_interface.StdErr(data))
+        # Sent actual request.
+        cmd = remote_interface.CmdQuery(args, kargs)
+        msg.write_msg(cmd)
+        succ, data = msg.read_msg()
+        assert succ
+        assert isinstance(data, remote_interface.CmdRespond)
+        return data.respond
 
 
 def remote_agent(in_stream_cls, out_stream_cls):
