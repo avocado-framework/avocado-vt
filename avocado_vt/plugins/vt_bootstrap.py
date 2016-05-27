@@ -16,7 +16,13 @@ import sys
 import logging
 
 from avocado.utils import process
-from avocado.plugins.base import CLICmd
+
+# Avocado's plugin interface module has changed location. Let's keep
+# compatibility with old for at, least, a new LTS release
+try:
+    from avocado.core.plugin_interfaces import CLICmd
+except ImportError:
+    from avocado.plugins.base import CLICmd
 
 from virttest import bootstrap
 from virttest import defaults
