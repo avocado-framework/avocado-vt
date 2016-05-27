@@ -4127,23 +4127,30 @@ class VM(virt_vm.BaseVM):
         return self.monitor.block_stream(device, speed, base,
                                          cmd, correct=correct)
 
-    def block_mirror(self, device, target, speed, sync,
-                     format, mode="absolute-paths", correct=True):
+    def block_mirror(self, device, target, sync,
+                     correct=True, **kwargs):
         """
         Mirror block device to target file;
 
         :param device: device ID
         :param target: destination image file name;
-        :param speed: max limited speed, default unit is B/s;
         :param sync: what parts of the disk image should be copied to the
                      destination;
-        :param mode: new image open mode
-        :param format: target image format
         :param correct: auto correct cmd, correct by default
+        :param kwargs: optional keyword arguments including but not limited to below
+        :keyword Args:
+                format (str): format of target image file
+                mode (str): target image create mode, 'absolute-paths' or 'existing'
+                speed (int): maximum speed of the streaming job, in bytes per second
+                replaces (str): the block driver node name to replace when finished
+                granularity (int): granularity of the dirty bitmap, in bytes
+                buf_size (int): maximum amount of data in flight from source to target, in bytes
+                on-source-error (str): the action to take on an error on the source
+                on-target-error (str): the action to take on an error on the target
         """
         cmd = self.params.get("block_mirror_cmd", "drive-mirror")
-        return self.monitor.block_mirror(device, target, speed, sync,
-                                         format, mode, cmd, correct=correct)
+        return self.monitor.block_mirror(device, target, sync, cmd,
+                                         correct=correct, **kwargs)
 
     def block_reopen(self, device, new_image, format="qcow2", correct=True):
         """
