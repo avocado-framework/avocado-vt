@@ -770,8 +770,10 @@ class VM(virt_vm.BaseVM):
                 dev = QDevice(device_driver, parent_bus=pci_bus)
             else:
                 dev = qdevices.QCustomDevice('pcidevice', parent_bus=pci_bus)
-            help_cmd = "%s -device %s,\\? 2>&1" % (qemu_binary, device_driver)
-            pcidevice_help = process.system_output(help_cmd, verbose=False)
+            help_cmd = "%s -device %s,\? 2>&1" % (qemu_binary, device_driver)
+            pcidevice_help = process.system_output(help_cmd,
+                                                   shell=True,
+                                                   verbose=False)
             dev.set_param('host', host)
             dev.set_param('id', 'id_%s' % host.replace(":", "."))
             fail_param = []
