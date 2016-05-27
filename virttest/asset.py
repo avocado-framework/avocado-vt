@@ -9,7 +9,6 @@ import ConfigParser
 import StringIO
 import commands
 import shutil
-from distutils import dir_util  # virtualenv problem pylint: disable=E0611
 
 from avocado.utils import process
 from avocado.utils import genio
@@ -208,9 +207,6 @@ def get_test_provider_names(backend=None):
     :return: List with the names of all test providers.
     """
     provider_name_list = []
-    tp_base_dir = data_dir.get_base_test_providers_dir()
-    tp_local_dir = data_dir.get_test_providers_dir()
-    dir_util.copy_tree(tp_base_dir, tp_local_dir)
     provider_dir = data_dir.get_test_providers_dir()
     for provider in glob.glob(os.path.join(provider_dir, '*.ini')):
         provider_name = os.path.basename(provider).split('.')[0]
