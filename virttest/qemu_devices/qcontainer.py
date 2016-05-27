@@ -1387,7 +1387,6 @@ class DevContainer(object):
         else:       # very old qemu without 'addr' support
             devices.append(qdevices.QOldDrive(name, use_device))
         devices[-1].set_param('if', 'none')
-        devices[-1].set_param('cache', cache)
         devices[-1].set_param('rerror', rerror)
         devices[-1].set_param('werror', werror)
         devices[-1].set_param('serial', serial)
@@ -1399,6 +1398,12 @@ class DevContainer(object):
                 logging.warn('snapshot is on, fallback aio to threads.')
                 aio = 'threads'
             devices[-1].set_param('aio', aio)
+            if aio == 'native':
+                # Since qemu 2.6, aio=native has no effect without
+                # cache.direct=on or cache=none, It will be error out.
+                # Please refer to qemu commit d657c0c.
+                cache = cache not in ['none', 'directsync'] and 'none' or cache
+            devices[-1].set_param('cache', cache)
         devices[-1].set_param('media', media)
         devices[-1].set_param('format', imgfmt)
         if blkdebug is not None:
