@@ -782,6 +782,11 @@ def bootstrap(options, interactive=False):
     logging.info("")
     step += 1
     logging.info("%d - Updating all test providers", step)
+    # First update the test-providers-ini from base to data dir
+    tp_base_dir = data_dir.get_base_test_providers_dir()
+    tp_local_dir = data_dir.get_test_providers_dir()
+    dir_util.copy_tree(tp_base_dir, tp_local_dir)
+    # Now try to download/update the providers (if necessary)
     asset.download_all_test_providers(options.vt_update_providers)
 
     logging.info("")
