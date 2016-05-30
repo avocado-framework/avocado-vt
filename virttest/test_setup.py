@@ -1106,7 +1106,7 @@ class PciAssignable(object):
         """
 
         cmd = "lspci | awk '/%s/ {print $1}'" % self.pf_filter_re
-        pf_ids = [i for i in process.system_output(cmd).splitlines()]
+        pf_ids = [i for i in process.system_output(cmd, shell=True).splitlines()]
         pf_vf_dict = []
         for pf_id in pf_ids:
             pf_info = {}
@@ -1131,7 +1131,7 @@ class PciAssignable(object):
         ethnames = re.findall(self.nic_name_re, if_out)
         for eth in ethnames:
             cmd = "ethtool -i %s | awk '/bus-info/ {print $2}'" % eth
-            pci_id = process.system_output(cmd)
+            pci_id = process.system_output(cmd, shell=True)
             if not pci_id:
                 continue
             for pf in pf_vf_dict:
@@ -1236,7 +1236,7 @@ class PciAssignable(object):
         # 'virtual function' belongs to which physical card considering
         # that if the host has more than one 82576 card. PCI_ID?
         cmd = "lspci | grep '%s' | wc -l" % self.vf_filter_re
-        vf_num = int(process.system_output(cmd, verbose=False))
+        vf_num = int(process.system_output(cmd, shell=True, verbose=False))
         logging.info("Found %s vf in host", vf_num)
         return vf_num
 

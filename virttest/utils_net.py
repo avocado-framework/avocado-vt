@@ -3312,7 +3312,7 @@ def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
                 utils_path.find_command("netstat")
             except utils_path.CmdNotFoundError, details:
                 raise exceptions.TestSkipError(details)
-            output = process.system_output(cmd)
+            output = process.system_output(cmd, shell=True)
         else:
             if not runner(find_netstat_cmd):
                 raise exceptions.TestSkipError("Missing netstat command on "

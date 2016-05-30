@@ -1477,7 +1477,7 @@ def get_thread_cpu(thread):
     :rtype: builtin.list
     """
     cmd = "ps -o cpuid,lwp -eL | grep -w %s$" % thread
-    cpu_thread = process.system_output(cmd)
+    cpu_thread = process.system_output(cmd, shell=True)
     if not cpu_thread:
         return []
     return list(set([_.strip().split()[0] for _ in cpu_thread.splitlines()]))
