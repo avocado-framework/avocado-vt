@@ -1003,24 +1003,32 @@ class PoolVolumeTest(object):
                                                             iscsi_target)
         elif pool_type == "scsi":
             scsi_xml_file = self.params.get("scsi_xml_file", "")
+            scsi_adp_type = self.params.get("pool_adapter_type", "")
+            scsi_adp_parent = kwargs.get("pool_adapter_parent", "")
+            scsi_wwnn = self.params.get("pool_wwnn", "")
+            scsi_wwpn = self.params.get("pool_wwpn", "")
             if not os.path.exists(scsi_xml_file):
-                logical_device = setup_or_cleanup_iscsi(
-                    is_setup=True,
-                    emulated_image=emulated_image,
-                    image_size=image_size)
-                cmd = ("iscsiadm -m session -P 3 |grep -B3 %s| grep Host|awk "
-                       "'{print $3}'" % logical_device.split('/')[2])
-                scsi_host = process.system_output(cmd, shell=True).strip()
                 scsi_pool_xml = pool_xml.PoolXML()
                 scsi_pool_xml.name = pool_name
-                scsi_pool_xml.pool_type = "scsi"
                 scsi_pool_xml.target_path = pool_target
                 scsi_pool_source_xml = pool_xml.SourceXML()
-                scsi_pool_source_xml.adp_type = 'scsi_host'
-                scsi_pool_source_xml.adp_name = "host" + scsi_host
+                if scsi_adp_type == "fc_host":
+                    scsi_pool_source_xml.adp_type = 'fc_host'
+                    scsi_pool_source_xml.adp_wwnn = scsi_wwnn
+                    scsi_pool_source_xml.adp_wwpn = scsi_wwpn
+                    scsi_pool_source_xml.adp_parent = scsi_adp_parent
+                else:
+                    logical_device = setup_or_cleanup_iscsi(
+                        is_setup=True,
+                        emulated_image=emulated_image,
+                        image_size=image_size)
+                    cmd = ("iscsiadm -m session -P 3 |grep -B3 %s| grep Host|awk '{print $3}'" % logical_device.split('/')[2])
+                    scsi_host = process.system_output(cmd, shell=True).strip()
+                    scsi_pool_source_xml.adp_type = 'scsi_host'
+                    scsi_pool_source_xml.adp_name = "host" + scsi_host
+                scsi_pool_xml.pool_type = "scsi"
                 scsi_pool_xml.set_source(scsi_pool_source_xml)
-                logging.debug("SCSI pool XML %s:\n%s", scsi_pool_xml.xml,
-                              str(scsi_pool_xml))
+                logging.debug("SCSI pool XML %s:\n%s", scsi_pool_xml.xml, str(scsi_pool_xml))
                 scsi_xml_file = scsi_pool_xml.xml
                 self.params['scsi_xml_file'] = scsi_xml_file
         elif pool_type == "gluster":
