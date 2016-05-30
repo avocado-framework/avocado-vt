@@ -1071,28 +1071,6 @@ class VM(virt_vm.BaseVM):
         logging.debug("Set kernel params for %s failed.", device)
         return False
 
-    def get_grub_file(self, session):
-        """
-        Find grub file path of vm.
-
-        :param session: session of the vm whose grub path needs to be found.
-        :return: grub file path, None if no grub file found.
-        """
-        grub_paths = [
-            '/boot/grub/grub.conf',
-            '/boot/grub2/grub.cfg',
-            '/etc/grub.conf',
-            '/etc/grub2.cfg',
-        ]
-        grub_path = ''
-        for path in grub_paths:
-            if not session.cmd_status("ls %s" % path):
-                return path
-        if not grub_path:
-            logging.error("Failed to locate grub config file "
-                          "in %s." % grub_paths)
-            return
-
     def set_kernel_param(self, parameter, value=None, remove=False):
         """
         Set a specific kernel parameter.
@@ -1108,7 +1086,7 @@ class VM(virt_vm.BaseVM):
 
         session = self.wait_for_login()
         try:
-            grub_path = self.get_grub_file(session)
+            grub_path = utils_misc.get_bootloader_cfg(session)
             if not grub_path:
                 return False
             grub_text = session.cmd_output("cat %s" % grub_path)
@@ -1179,7 +1157,7 @@ class VM(virt_vm.BaseVM):
 
         session = self.wait_for_login()
         try:
-            grub_path = self.get_grub_file(session)
+            grub_path = utils_misc.get_bootloader_cfg(session)
             if not grub_path:
                 return
             if "grub2" in grub_path:
