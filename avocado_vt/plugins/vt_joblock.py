@@ -1,4 +1,3 @@
-import errno
 import logging
 import os
 import re
@@ -57,6 +56,18 @@ class VTJobLock(JobPre, JobPost):
             msg = ('Failed to create VT Job lock file "%s". Exiting...' % path)
             self._abort(msg, job)
 
+    def _get_lock_files(self):
+        """
+        :returns: Iterator with matching lock files
+        """
+        if not os.path.isdir(self.lock_dir):    # Does not exists
+            return iter(())
+        pattern = re.compile(r'avocado-vt-joblock-[0-9a-f]{40}-[0-9]+'
+                             '-[0-9a-z]{8}\.pid')
+        return (os.path.join(self.lock_dir, _)
+                for _ in os.listdir(self.lock_dir)
+                if pattern.match(_))
+
     def _get_lock_file_pid(self):
         """
         Gets the lock file path and the process ID
@@ -66,24 +77,13 @@ class VTJobLock(JobPre, JobPost):
         :returns: the path and the (integer) process id
         :rtype: tuple(str, int)
         """
-        try:
-            files = os.listdir(self.lock_dir)
-            if not files:
-                return (None, 0)
-        except OSError as e:
-            if e.errno == errno.ENOENT:
-                return (None, 0)
-
-        pattern = re.compile(r'avocado-vt-joblock-[0-9a-f]{40}-[0-9]+'
-                             '-[0-9a-z]{8}\.pid')
-        for lock_file in files:
-            if pattern.match(lock_file):
-                path = os.path.join(self.lock_dir, lock_file)
-                if os.path.isfile(path):
-                    content = int(open(path, 'r').read())
-                    pid = int(content)
-                    if pid > 0:
-                        return (path, pid)
+        for lock_file in self._get_lock_files():
+            path = os.path.join(self.lock_dir, lock_file)
+            if os.path.isfile(path):
+                content = int(open(path, 'r').read())
+                pid = int(content)
+                if pid > 0:
+                    return (path, pid)
         return (None, 0)
 
     def _lock(self, job):
@@ -105,6 +105,11 @@ class VTJobLock(JobPre, JobPost):
                 self._lock(job)
         except Exception as detail:
             msg = "Failure trying to set Avocado-VT job lock: %s" % detail
+            files = list(self._get_lock_files())
+            if files:
+                msg += "\nLock files: %s" % ", ".join(files)
+            else:
+                msg += "\nLockdir: %s" % self.lock_dir
             self._abort(msg, job)
 
     def post(self, job):
