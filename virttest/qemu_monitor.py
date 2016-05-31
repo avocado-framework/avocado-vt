@@ -116,18 +116,18 @@ def create_monitor(vm, monitor_name, monitor_params):
     :param monitor_name: The name of this monitor object.
     :param monitor_params: The dict for creating this monitor object.
     """
-    monitor_creator = HumanMonitor
+    MonitorClass = HumanMonitor
     if monitor_params.get("monitor_type") == "qmp":
         if not utils_misc.qemu_has_option("qmp", vm.qemu_binary):
             # Add a "human" monitor on non-qmp version of qemu.
-            logging.warn("QMP monitor is unsupported by this version of qemu,"
-                         " creating human monitor instead.")
+            logging.warn("QMP monitor is unsupported by %s,"
+                         " creating human monitor instead." % vm.qemu_version)
         else:
-            monitor_creator = QMPMonitor
+            MonitorClass = QMPMonitor
 
     monitor_filename = get_monitor_filename(vm, monitor_name)
-    logging.info("Connecting to monitor '%s'", monitor_name)
-    monitor = monitor_creator(vm, monitor_name, monitor_filename)
+    logging.info("Connecting to monitor '<%s> %s'", MonitorClass, monitor_name)
+    monitor = MonitorClass(vm, monitor_name, monitor_filename)
     monitor.verify_responsive()
 
     return monitor
@@ -329,7 +329,7 @@ class Monitor:
 
     def is_responsive(self):
         """
-        Return True iff the monitor is responsive.
+        Return True if the monitor is responsive.
         """
         try:
             self.verify_responsive()
