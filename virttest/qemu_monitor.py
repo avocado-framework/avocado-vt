@@ -959,33 +959,36 @@ class HumanMonitor(Monitor):
             pass
         return backing_file
 
-    def block_mirror(self, device, target, speed, sync, format, mode,
-                     cmd="drive_mirror", correct=True):
+    def block_mirror(self, device, target, sync, cmd="drive_mirror",
+                     correct=True, **kwargs):
         """
         Start mirror type block device copy job
 
-        :param device: device ID
-        :param target: target image
-        :param speed: limited speed, unit is B/s
-        :param sync: full copy to target image(unsupport in human monitor)
-        :param mode: target image create mode, 'absolute-paths' or 'existing'
-        :param format: target image format
+        :param device: device name to operate on
+        :param target: name of new image file
+        :param sync: what parts of the disk image should be copied to the
+                     destination
         :param cmd: block mirror command
         :param correct: auto correct command, correct by default
+        :param kwargs: optional keyword arguments including but not limited to below
+        :keyword Args:
+            format (str): format of target image file
+            mode (str): target image create mode, 'absolute-paths' or 'existing'
+            speed (int): maximum speed of the streaming job, in bytes per second
 
         :return: The command's output
         """
         if correct:
             cmd = self.correct(cmd)
         self.verify_supported_cmd(cmd)
-        args = " %s %s %s" % (device, target, format)
+        args = " %s %s %s" % (device, target, kwargs.get("format", "qcow2"))
         info = str(self.cmd("help %s" % cmd))
-        if (mode == "existing") and "-n" in info:
+        if (kwargs.get("mode", "absolute-paths") == "existing") and "-n" in info:
             args = "-n %s" % args
         if (sync == "full") and "-f" in info:
             args = "-f %s" % args
-        if (speed is not None) and ("speed" in info):
-            args = "%s %s" % (args, speed)
+        if "speed" in info:
+            args = "%s %s" % (args, kwargs.get("speed", ""))
         cmd = "%s %s" % (cmd, args)
         return self.cmd(cmd)
 
@@ -1938,20 +1941,27 @@ class QMPMonitor(Monitor):
             pass
         return backing_file
 
-    def block_mirror(self, device, target, speed, sync, format, mode,
-                     cmd="drive-mirror", correct=True):
+    def block_mirror(self, device, target, sync, cmd="drive-mirror",
+                     correct=True, **kwargs):
         """
         Start mirror type block device copy job
 
-        :param device: device ID
-        :param target: target image
-        :param speed: limited speed, unit is B/s
+        :param device: device name to operate on
+        :param target: name of new image file
         :param sync: what parts of the disk image should be copied to the
-                     destination;
-        :param mode: 'absolute-paths' or 'existing'
-        :param format: target image format
+                     destination
         :param cmd: block mirror command
         :param correct: auto correct command, correct by default
+        :param kwargs: optional keyword arguments including but not limited to below
+        :keyword Args:
+                format (str): format of target image file
+                mode (str): target image create mode, 'absolute-paths' or 'existing'
+                speed (int): maximum speed of the streaming job, in bytes per second
+                replaces (str): the block driver node name to replace when finished
+                granularity (int): granularity of the dirty bitmap, in bytes
+                buf_size (int): maximum amount of data in flight from source to target, in bytes
+                on-source-error (str): the action to take on an error on the source
+                on-target-error (str): the action to take on an error on the target
 
         :return: The command's output
         """
@@ -1964,13 +1974,8 @@ class QMPMonitor(Monitor):
             args["full"] = sync
         else:
             args["sync"] = sync
-        if mode:
-            args["mode"] = mode
-        if format:
-            args["format"] = format
-        if speed:
-            args["speed"] = speed
-        return self.cmd(cmd, args)
+        kwargs.update(args)
+        return self.cmd(cmd, kwargs)
 
     def block_reopen(self, device, new_image_file, image_format,
                      cmd="block-job-complete", correct=True):
