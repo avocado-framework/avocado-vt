@@ -165,7 +165,7 @@ class Monitor:
     DATA_AVAILABLE_TIMEOUT = 0
     CONNECT_TIMEOUT = 60
 
-    def __init__(self, vm, name, filename):
+    def __init__(self, vm, name, filename, suppress_exceptions=False):
         """
         Initialize the instance.
 
@@ -222,7 +222,7 @@ class Monitor:
     def __getinitargs__(self):
         # Save some information when pickling -- will be passed to the
         # constructor upon unpickling
-        return self.vm, self.name, self.filename
+        return self.vm, self.name, self.filename, False
 
     def _close_sock(self):
         try:
