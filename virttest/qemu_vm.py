@@ -455,7 +455,7 @@ class VM(virt_vm.BaseVM):
             cmd += _add_option("chardev", serial_id)
             return cmd
 
-        def add_virtio_port(devices, name, bus, filename, porttype, chardev,
+        def add_virtio_port(name, bus, filename, porttype, chardev,
                             name_prefix=None, index=None, extra_params=""):
             """
             Appends virtio_serialport or virtio_console device to cmdline.
@@ -692,7 +692,7 @@ class VM(virt_vm.BaseVM):
 
             return cmd, cmd_nd
 
-        def add_floppy(devices, filename, index):
+        def add_floppy(filename, index):
             cmd_list = [" -fda '%s'", " -fdb '%s'"]
             return cmd_list[index] % filename
 
@@ -717,7 +717,7 @@ class VM(virt_vm.BaseVM):
             else:
                 return " -redir tcp:%s::%s" % (host_port, guest_port)
 
-        def add_vnc(devices, vnc_port, vnc_password='no', extra_params=None):
+        def add_vnc(vnc_port, vnc_password='no', extra_params=None):
             vnc_cmd = " -vnc :%d" % (vnc_port - 5900)
             if vnc_password == "yes":
                 vnc_cmd += ",password"
@@ -731,10 +731,10 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
-        def add_nographic(devices):
+        def add_nographic():
             return " -nographic"
 
-        def add_uuid(devices, uuid):
+        def add_uuid(uuid):
             return " -uuid '%s'" % uuid
 
         def add_qemu_option(devices, name, optsinfo):
@@ -1042,10 +1042,10 @@ class VM(virt_vm.BaseVM):
         def add_vga(vga):
             return " -vga %s" % vga
 
-        def add_kernel(devices, filename):
+        def add_kernel(filename):
             return " -kernel '%s'" % filename
 
-        def add_initrd(devices, filename):
+        def add_initrd(filename):
             return " -initrd '%s'" % filename
 
         def add_rtc(devices):
@@ -1061,7 +1061,7 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
-        def add_kernel_cmdline(devices, cmdline):
+        def add_kernel_cmdline(cmdline):
             return " -append '%s'" % cmdline
 
         def add_testdev(devices, filename=None):
@@ -1132,8 +1132,8 @@ class VM(virt_vm.BaseVM):
         def add_sga(devices):
             if not devices.has_option("device"):
                 return ""
-
-            return " -device sga"
+            else:
+                return " -device sga"
 
         def add_watchdog(devices, device_type=None, action="reset"):
             watchdog_cmd = ""
@@ -1150,7 +1150,7 @@ class VM(virt_vm.BaseVM):
 
             return " -option-rom %s" % opt_rom
 
-        def add_smartcard(devices, sc_chardev, sc_id):
+        def add_smartcard(sc_chardev, sc_id):
             sc_cmd = " -device usb-ccid,id=ccid0"
             sc_cmd += " -chardev " + sc_chardev
             sc_cmd += ",id=" + sc_id + ",name=smartcard"
@@ -1454,7 +1454,7 @@ class VM(virt_vm.BaseVM):
                 if bus is not False:
                     bus = "virtio_serial_pci%d.0" % bus
                 # Add actual ports
-                cmd = add_virtio_port(devices, port_name, bus,
+                cmd = add_virtio_port(port_name, bus,
                                       self.get_virtio_port_filename(port_name),
                                       port_params.get('virtio_port_type'),
                                       port_params.get('virtio_port_chardev'),
@@ -1840,18 +1840,18 @@ class VM(virt_vm.BaseVM):
         if kernel:
             kernel = utils_misc.get_path(data_dir.get_data_dir(), kernel)
             devices.insert(StrDev('kernel',
-                                  cmdline=add_kernel(devices, kernel)))
+                                  cmdline=add_kernel(kernel)))
 
         kernel_params = params.get("kernel_params")
         if kernel_params:
-            cmd = add_kernel_cmdline(devices, kernel_params)
+            cmd = add_kernel_cmdline(kernel_params)
             devices.insert(StrDev('kernel-params', cmdline=cmd))
 
         initrd = params.get("initrd")
         if initrd:
             initrd = utils_misc.get_path(data_dir.get_data_dir(), initrd)
             devices.insert(StrDev('initrd',
-                                  cmdline=add_initrd(devices, initrd)))
+                                  cmdline=add_initrd(initrd)))
 
         for host_port, guest_port in redirs:
             cmd = add_tcp_redir(devices, host_port, guest_port)
@@ -1861,12 +1861,11 @@ class VM(virt_vm.BaseVM):
         if params.get("display") == "vnc":
             vnc_extra_params = params.get("vnc_extra_params")
             vnc_password = params.get("vnc_password", "no")
-            cmd += add_vnc(devices, self.vnc_port, vnc_password,
-                           vnc_extra_params)
+            cmd += add_vnc(self.vnc_port, vnc_password, vnc_extra_params)
         elif params.get("display") == "sdl":
             cmd += add_sdl(devices)
         elif params.get("display") == "nographic":
-            cmd += add_nographic(devices)
+            cmd += add_nographic()
         elif params.get("display") == "spice":
             if params.get("rhel5_spice"):
                 spice_params = params.get("spice_params")
@@ -1898,10 +1897,10 @@ class VM(virt_vm.BaseVM):
             devices.insert(StrDev('display', cmdline=cmd))
 
         if params.get("uuid") == "random":
-            cmd = add_uuid(devices, vm.uuid)
+            cmd = add_uuid(vm.uuid)
             devices.insert(StrDev('uuid', cmdline=cmd))
         elif params.get("uuid"):
-            cmd = add_uuid(devices, params.get("uuid"))
+            cmd = add_uuid(params.get("uuid"))
             devices.insert(StrDev('uuid', cmdline=cmd))
 
         if params.get("testdev") == "yes":
@@ -2041,7 +2040,7 @@ class VM(virt_vm.BaseVM):
             sc_chardev = params.get("smartcard_chardev")
             sc_id = params.get("smartcard_id")
             devices.insert(StrDev('smartcard',
-                                  cmdline=add_smartcard(devices, sc_chardev, sc_id)))
+                                  cmdline=add_smartcard(sc_chardev, sc_id)))
 
         if params.get("enable_watchdog", "no") == "yes":
             cmd = add_watchdog(devices,
