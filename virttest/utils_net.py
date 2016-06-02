@@ -1360,6 +1360,8 @@ def get_guest_ip_addr(session, mac_addr, os_type="linux", ip_version="ipv4",
     """
     if ip_version == "ipv6" and linklocal:
         return ipv6_from_mac_addr(mac_addr)
+
+    info_cmd = ""
     try:
         if os_type == "linux":
             nic_ifname = get_linux_ifname(session, mac_addr)
@@ -1420,8 +1422,8 @@ def set_guest_ip_addr(session, mac, ip_addr,
 
     :return: True if set up guest ip successfully.
     """
+    info_cmd = ""
     try:
-        info_cmd = ""
         if os_type == "linux":
             nic_ifname = get_linux_ifname(session, mac)
             if session.cmd_status("which ip") != 0:
