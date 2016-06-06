@@ -1246,6 +1246,8 @@ class VM(virt_vm.BaseVM):
         qemu_binary = utils_misc.get_qemu_binary(params)
 
         self.qemu_binary = qemu_binary
+        self.qemu_version = commands.getoutput("%s -version" %
+                                               qemu_binary).split(',')[0]
         support_cpu_model = commands.getoutput("%s -cpu \\?" % qemu_binary)
 
         self.last_driver_index = 0
