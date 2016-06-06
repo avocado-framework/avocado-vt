@@ -86,6 +86,19 @@ class QMPCmdError(MonitorError):
                 "error message: %r)" % (self.cmd, self.qmp_args, self.data))
 
 
+class QMPEventError(MonitorError):
+
+    def __init__(self, cmd, qmp_event, name):
+        MonitorError.__init__(self, cmd, qmp_event, name)
+        self.cmd = cmd
+        self.qmp_event = qmp_event
+        self.name = name
+
+    def __str__(self):
+        return ("QMP event %s not received after %s (monitor '%s')"
+                % (self.qmp_event, self.cmd, self.name))
+
+
 def get_monitor_filename(vm, monitor_name):
     """
     Return the filename corresponding to a given monitor name.
@@ -2087,8 +2100,17 @@ class QMPMonitor(Monitor):
 
         :param size: int type values.
         """
-        self.verify_supported_cmd("balloon")
-        self.send_args_cmd("balloon value=%s" % size)
+        cmd = "balloon"
+        qmp_event = "BALLOON_CHANGE"
+        self.verify_supported_cmd(cmd)
+        # Clear the event list of QMP monitors
+        self.clear_event(qmp_event)
+        # Send a balloon monitor command
+        self.send_args_cmd("%s value=%s" % (cmd, size))
+        # Look for BALLOON QMP events
+        if not utils_misc.wait_for(lambda: self.get_event(qmp_event), 120):
+            raise QMPEventError(cmd, qmp_event, self.name)
+        logging.info("%s QMP event received" % qmp_event)
 
     def set_migrate_capability(self, state, capability):
         """
