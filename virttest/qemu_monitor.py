@@ -849,18 +849,21 @@ class HumanMonitor(Monitor):
             status = self.on_str
         return self.cmd("set_link %s %s" % (name, status))
 
-    def live_snapshot(self, device, snapshot_file, snapshot_format="qcow2"):
+    def live_snapshot(self, device, snapshot_file, **kwargs):
         """
         Take a live disk snapshot.
 
-        :param device: device id of base image
-        :param snapshot_file: image file name of snapshot
-        :param snapshot_format: image format of snapshot
+        :param device: the name of the device to generate the snapshot from.
+        :param snapshot_file: the target of the new image. A new file will be created.
+        :param kwargs: optional keyword arguments to pass to func.
+        :keyword args (optional):
+            format: the format of the snapshot image, default is 'qcow2'.
 
-        :return: The response to the command
+        :return: The response to the command.
         """
-        cmd = ("snapshot_blkdev %s %s %s" %
-               (device, snapshot_file, snapshot_format))
+        cmd = "snapshot_blkdev %s %s" % (device, snapshot_file)
+        if 'format' in kwargs:
+            cmd += " %s" % kwargs['format']
         return self.cmd(cmd)
 
     def block_stream(self, device, speed=None, base=None,
@@ -1837,20 +1840,29 @@ class QMPMonitor(Monitor):
         args = {"value": value}
         return self.cmd("migrate_set_downtime", args)
 
-    def live_snapshot(self, device, snapshot_file, snapshot_format="qcow2"):
+    def live_snapshot(self, device, snapshot_file, **kwargs):
         """
         Take a live disk snapshot.
 
-        :param device: device id of base image
-        :param snapshot_file: image file name of snapshot
-        :param snapshot_format: image format of snapshot
+        :param device: the name of the device to generate the snapshot from.
+        :param snapshot_file: the target of the new image. A new file will
+                              be created if mode is "absolute-paths".
+        :param kwargs: optional keyword arguments to pass to func.
+        :keyword args (optional):
+            format: the format of the snapshot image, default is 'qcow2'.
+            mode: whether and how QEMU should create a new image,
+            default is 'absolute-paths'.
 
         :return: The response to the command
         """
         args = {"device": device,
-                "snapshot-file": snapshot_file,
-                "format": snapshot_format}
-        return self.cmd("blockdev-snapshot-sync", args)
+                "snapshot-file": snapshot_file}
+        kwargs.update(args)
+        if 'format' not in kwargs:
+            kwargs.update({"format": "qcow2"})
+        if 'mode' not in kwargs:
+            kwargs.update({"mode": "absolute-paths"})
+        return self.cmd("blockdev-snapshot-sync", kwargs)
 
     def block_stream(self, device, speed=None, base=None,
                      cmd="block-stream", correct=True):
