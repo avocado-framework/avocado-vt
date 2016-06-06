@@ -335,20 +335,20 @@ class QemuImg(storage.QemuImg):
 
         :note: params should contain:
                snapshot_image_name -- the name of snapshot image file
+        :return: class: CmdResult object.
         """
 
-        cmd = self.image_cmd
-        if self.snapshot_tag:
-            cmd += " snapshot -d %s" % self.snapshot_image_filename
-        else:
+        if not self.snapshot_tag:
             raise exceptions.TestError("Can not find the snapshot image"
                                        " parameters")
         if blkdebug_cfg:
-            cmd += " blkdebug:%s:%s" % (blkdebug_cfg, self.image_filename)
+            cmd = ("%s snapshot -d %s blkdebug:%s:%s" % (self.image_cmd,
+                   self.snapshot_image_filename, blkdebug_cfg,
+                   self.image_filename))
         else:
-            cmd += " %s" % self.image_filename
-
-        process.system_output(cmd)
+            cmd = ("%s snapshot -d %s %s" % (self.image_cmd,
+                   self.snapshot_image_filename, self.image_filename))
+        return process.run(cmd, shell=True)
 
     def snapshot_list(self):
         """
