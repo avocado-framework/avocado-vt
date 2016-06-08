@@ -132,6 +132,21 @@ def pin_vm_threads(vm, node):
         logging.info("Skip pinning, no enough nodes")
 
 
+def check_driver_verifier(session, driver, timeout=300):
+    """
+    Check driver verifier status
+    : param session: VM session
+    : param driver: The driver need to query
+    : param timeout: Timeout in seconds
+    : return: driver verifier status
+    """
+    logging.info("Check %s driver verifier status" % driver)
+    query_cmd = "verifier /querysettings"
+    output = session.cmd_output(query_cmd, timeout=timeout)
+    return (driver in output, output)
+
+
+@error_context.context_aware
 def setup_win_driver_verifier(session, driver, vm, timeout=300):
     """
     Enable driver verifier for windows guest.
@@ -140,23 +155,21 @@ def setup_win_driver_verifier(session, driver, vm, timeout=300):
     :param driver: The driver which needs enable the verifier.
     :param vm: VM object.
     :param timeout: Timeout in seconds.
-    :return: Session after reboot.
     """
-    verifier_setup_cmd = "verifier.exe /standard /driver %s.sys" % driver
-    if driver:
+    verifier_status = check_driver_verifier(session, driver)[1]
+    if not verifier_status:
+        error_context.context("Enable %s driver verifier" % driver,
+                              logging.info)
+        verifier_setup_cmd = "verifier /standard /driver %s.sys" % driver
         session.cmd(verifier_setup_cmd,
                     timeout=timeout,
                     ignore_all_errors=True)
-    session = vm.reboot(session)
-
-    verifier_query_cmd = "verifier.exe /querysettings"
-    output = session.cmd_output(verifier_query_cmd, timeout=timeout)
-    if driver not in output:
-        msg = "Verify device driver failed, "
-        msg += "guest report driver is %s, " % output
-        msg += "expect is '%s'" % driver
-        raise exceptions.TestFail(msg)
-    return session
+        session = vm.reboot(session)
+        verifier_status, output = check_driver_verifier(session, driver)
+        if not verifier_status:
+            msg = "%s verifier is not enabled, details: %s" % (driver, output)
+            raise exceptions.TestFail(msg)
+    logging.info("%s verifier is enabled already" % driver)
 
 
 def clear_win_driver_verifier(session, vm, timeout=300):
@@ -165,13 +178,15 @@ def clear_win_driver_verifier(session, vm, timeout=300):
 
     :param session: VM session.
     :param timeout: Timeout in seconds.
-    :return: Session after reboot.
     """
-    verifier_clear_cmd = "verifier.exe /reset"
-    session.cmd(verifier_clear_cmd,
-                timeout=timeout,
-                ignore_all_errors=True)
-    return vm.reboot(session)
+    verifier_status = check_driver_verifier(session, driver)[1]
+    if verifier_status:
+        logging.info("Clear driver verifier")
+        verifier_clear_cmd = "verifier /reset"
+        session.cmd(verifier_clear_cmd,
+                    timeout=timeout,
+                    ignore_all_errors=True)
+        vm.reboot(session)
 
 
 def setup_runlevel(params, session):
