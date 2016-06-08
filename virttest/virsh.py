@@ -190,7 +190,7 @@ class VirshSession(aexpect.ShellSession):
                 raise aexpect.ShellStatusError(virsh_exec, 'list')
 
     def cmd_status_output(self, cmd, timeout=60, internal_timeout=None,
-                          print_func=None):
+                          print_func=None, safe=False):
         """
         Send a virsh command and return its exit status and output.
 
@@ -208,7 +208,7 @@ class VirshSession(aexpect.ShellSession):
         :raise ShellStatusError: Raised if the exit status cannot be obtained
         :raise ShellError: Raised if an unknown error occurs
         """
-        out = self.cmd_output(cmd, timeout, internal_timeout, print_func)
+        out = self.cmd_output(cmd, timeout, internal_timeout, print_func, safe)
         for line in out.splitlines():
             if self.match_patterns(line, self.ERROR_REGEX_LIST) is not None:
                 return 1, out
