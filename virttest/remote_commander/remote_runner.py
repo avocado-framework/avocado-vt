@@ -750,7 +750,7 @@ class Helper(object):
             data = os.read(msg.o_stderr, 16384)
             msg.write_msg(remote_interface.StdErr(data))
         # Sent actual request.
-        cmd = remote_interface.CmdQuery(args, kargs)
+        cmd = remote_interface.CmdQuery(*args, **kargs)
         msg.write_msg(cmd)
         succ, data = msg.read_msg()
         assert succ
