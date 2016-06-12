@@ -789,9 +789,37 @@ def udp_copy_between_remotes(src, dst, s_port, s_passwd, d_passwd,
         d_session.close()
 
 
+def throughput_transfer(func):
+    """
+    wrapper function for copy_files_to/copy_files_from function, will
+    print throughput if filesize is not none, else will print elapsed time
+    """
+    def transfer(*args, **kwargs):
+        if "to" in func.__name__:
+            msg = (
+                "Copy file from %s:%s to %s, " %
+                (args[0], args[6], args[5]))
+        else:
+            msg = (
+                "Copy file from %s to %s:%s, " %
+                (args[5], args[0], args[6]))
+        start_time = time.time()
+        ret = func(*args, **kwargs)
+        elapsed_time = time.time() - start_time
+        if "filesize" in kwargs:
+            throughput = kwargs["filesize"] / elapsed_time
+            msg += "estimated throughput: %.2f MB/s" % throughput
+        else:
+            msg += "elapsed time: %s" % elapsed_time
+        logging.info(msg)
+        return ret
+    return transfer
+
+
+@throughput_transfer
 def copy_files_to(address, client, username, password, port, local_path,
                   remote_path, limit="", log_filename=None,
-                  verbose=False, timeout=600, interface=None):
+                  verbose=False, timeout=600, interface=None, filesize=None):
     """
     Copy files to a remote host (guest) using the selected client.
 
@@ -806,8 +834,9 @@ def copy_files_to(address, client, username, password, port, local_path,
     :param verbose: If True, log some stats using logging.debug (RSS only)
     :param timeout: The time duration (in seconds) to wait for the transfer to
             complete.
-    :interface: The interface the neighbours attach to (only use when using ipv6
+    :param interface: The interface the neighbours attach to (only use when using ipv6
                 linklocal address.)
+    :param filesize: size of file will be transferred
     :raise: Whatever remote_scp() raises
     """
     if client == "scp":
@@ -828,9 +857,10 @@ def copy_files_to(address, client, username, password, port, local_path,
                                    "are scp and rss" % client)
 
 
+@throughput_transfer
 def copy_files_from(address, client, username, password, port, remote_path,
                     local_path, limit="", log_filename=None,
-                    verbose=False, timeout=600, interface=None):
+                    verbose=False, timeout=600, interface=None, filesize=None):
     """
     Copy files from a remote host (guest) using the selected client.
 
@@ -845,8 +875,9 @@ def copy_files_from(address, client, username, password, port, remote_path,
     :param verbose: If True, log some stats using ``logging.debug`` (RSS only)
     :param timeout: The time duration (in seconds) to wait for the transfer to
                     complete.
-    :interface: The interface the neighbours attach to (only use when using ipv6
+    :param interface: The interface the neighbours attach to (only use when using ipv6
                 linklocal address.)
+    :param filesize: size of file will be transferred
     :raise: Whatever ``remote_scp()`` raises
     """
     if client == "scp":
