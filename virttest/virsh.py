@@ -190,7 +190,7 @@ class VirshSession(aexpect.ShellSession):
                 raise aexpect.ShellStatusError(virsh_exec, 'list')
 
     def cmd_status_output(self, cmd, timeout=60, internal_timeout=None,
-                          print_func=None):
+                          print_func=None, safe=False):
         """
         Send a virsh command and return its exit status and output.
 
@@ -200,6 +200,12 @@ class VirshSession(aexpect.ShellSession):
         :param internal_timeout: The timeout to pass to read_nonblocking
         :param print_func: A function to be used to print the data being read
                 (should take a string parameter)
+        :param safe: Whether using safe mode when execute cmd.
+                In serial sessions, frequently the kernel might print debug or
+                error messages that make read_up_to_prompt to timeout. Let's
+                try to be a little more robust and send a carriage return, to
+                see if we can get to the prompt when safe=True.
+
         :return: A tuple (status, output) where status is the exit status and
                 output is the output of cmd
         :raise ShellTimeoutError: Raised if timeout expires
@@ -208,7 +214,7 @@ class VirshSession(aexpect.ShellSession):
         :raise ShellStatusError: Raised if the exit status cannot be obtained
         :raise ShellError: Raised if an unknown error occurs
         """
-        out = self.cmd_output(cmd, timeout, internal_timeout, print_func)
+        out = self.cmd_output(cmd, timeout, internal_timeout, print_func, safe)
         for line in out.splitlines():
             if self.match_patterns(line, self.ERROR_REGEX_LIST) is not None:
                 return 1, out
