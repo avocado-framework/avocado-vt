@@ -286,7 +286,7 @@ class CommanderMaster(messenger.Messenger):
         """
         if isinstance(cmd, remote_interface.CmdQuery):
             assert self.responder  # Should be set by set_responder()
-            data = self.responder(cmd.args, cmd.kargs)
+            data = self.responder(*cmd.args, **cmd.kargs)
             reply = remote_interface.CmdRespond(data)
             self.write_msg(reply)
 
