@@ -20,6 +20,7 @@ Downloads blobs defined in assets. Assets are .ini files that contain the
 """
 import sys
 import os
+import logging
 import urllib2
 
 # simple magic for using scripts within a source tree
@@ -28,32 +29,29 @@ if os.path.isdir(os.path.join(basedir, 'virttest')):
     sys.path.append(basedir)
 
 from virttest import asset
+from virttest.utils_misc import LoggingConfig
 
-from avocado.core import log
-from avocado.core import output
-
-view = output.View()
+from avocado.core.output import TERM_SUPPORT
 
 
 def download_assets():
     all_assets = asset.get_all_assets()
     all_assets_sorted = []
     if all_assets:
-        view.notify(msg="Available download assets:")
-        view.notify(msg="")
+        logging.info("Available download assets:")
         title_list = [a['title'] for a in all_assets]
         for index, title in enumerate(sorted(title_list)):
             asset_info = [a for a in all_assets if a['title'] == title][0]
             all_assets_sorted.append(asset_info)
-            asset_present_str = output.term_support.partial_str('Missing')
+            asset_present_str = TERM_SUPPORT.partial_str('Missing')
             if asset_info['asset_exists']:
-                asset_present_str = output.term_support.healthy_str('Present')
+                asset_present_str = TERM_SUPPORT.healthy_str('Present')
             asset_msg = ("%s - [%s] %s (%s)" %
                          (index + 1,
                           asset_present_str,
-                          output.term_support.header_str(asset_info['title']),
+                          TERM_SUPPORT.header_str(asset_info['title']),
                           asset_info['destination']))
-            view.notify(event='minor', msg=asset_msg)
+            logging.info(asset_msg)
     indexes = raw_input("Type the index for the assets you want to "
                         "download (comma separated, leave empty to abort): ")
 
@@ -66,7 +64,7 @@ def download_assets():
             index_list.append(index)
             all_assets_sorted[index]
         except (ValueError, IndexError, AssertionError):
-            view.notify(event='error', msg="Invalid index(es), aborting...")
+            logging.error("Invalid index(es), aborting...")
             sys.exit(1)
 
     for idx in index_list:
@@ -74,16 +72,18 @@ def download_assets():
         try:
             asset.download_file(asset_info, interactive=True)
         except urllib2.HTTPError, http_error:
-            view.notify(event='error', msg='HTTP Error %s: URL %s' %
-                                           (http_error.code,
-                                            asset_info['url']))
+            logging.error("HTTP Error %s: URL %s",
+                          http_error.code,
+                          asset_info['url'])
             os.remove(asset_info['destination'])
 
 
 if __name__ == "__main__":
-    log.configure()
+    log_cfg = LoggingConfig(set_fmt=False)
+    log_cfg.configure_logging()
+
     try:
         download_assets()
     except KeyboardInterrupt:
-        view.notify("Aborting...")
+        logging.info("Aborting...")
         sys.exit(1)
