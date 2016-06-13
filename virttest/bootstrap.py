@@ -93,13 +93,11 @@ def get_guest_os_info_list(test_name, guest_os):
     return os_info_list
 
 
-def _get_config_filter():
+def get_config_filter():
     config_filter = ['__init__', ]
     for provider_subdir in asset.get_test_provider_subdirs():
         config_filter.append(os.path.join('%s' % provider_subdir, 'cfg'))
     return config_filter
-
-config_filter = _get_config_filter()
 
 
 def verify_recommended_programs(t_type):
@@ -310,6 +308,7 @@ def create_subtests_cfg(t_type):
     specific_file_list = []
     specific_subdirs = asset.get_test_provider_subdirs(t_type)
     provider_names_specific = asset.get_test_provider_names(t_type)
+    config_filter = get_config_filter()
 
     provider_info_specific = []
     for specific_provider in provider_names_specific:
@@ -478,7 +477,7 @@ def create_config_files(test_dir, shared_dir, interactive, t_type, step=None,
     logging.info("%d - Generating config set", step)
     config_file_list = data_dir.SubdirGlobList(os.path.join(test_dir, "cfg"),
                                                "*.cfg",
-                                               config_filter)
+                                               get_config_filter())
     config_file_list = [cf for cf in config_file_list if is_file_tracked(cf)]
     config_file_list_shared = glob.glob(os.path.join(shared_dir, "cfg",
                                                      "*.cfg"))
