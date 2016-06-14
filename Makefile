@@ -13,7 +13,7 @@ PYTHON=$(shell which python)
 DESTDIR=/
 BUILDIR=$(CURDIR)/debian/avocado-vt
 PROJECT=avocado
-VERSION="35.0"
+VERSION="37.0"
 AVOCADO_DIRNAME?=avocado
 DIRNAME=$(shell echo $${PWD\#\#*/})
 
