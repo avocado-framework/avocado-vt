@@ -6,6 +6,8 @@ import re
 import socket
 import traceback
 
+from aexpect.exceptions import ShellError
+from aexpect.exceptions import ExpectError
 from avocado.core import exceptions
 
 from . import utils_misc
@@ -1206,33 +1208,31 @@ class BaseVM(object):
         :params virtio: is a virtio console.
         :return: A ShellSession object.
         """
-        error_messages = []
         logging.debug("Attempting to log into '%s' via serial console "
                       "(timeout %ds)", self.name, timeout)
-        end_time = time.time() + timeout
+        end_time, exception = time.time() + timeout, None
         while time.time() < end_time:
             try:
-                session = self.serial_login(internal_timeout, username,
-                                            password, virtio=virtio)
-                if restart_network:
-                    os_type = self.params.get("os_type")
-                    try:
-                        logging.debug("Attempting to restart guest network")
-                        utils_net.restart_guest_network(session,
-                                                        os_type=os_type)
-                    except Exception:
-                        pass
-                return session
+                session = self.serial_login(internal_timeout,
+                                            username,
+                                            password,
+                                            virtio=virtio)
             except remote.LoginError, e:
+                exception = e
                 self.verify_alive()
-                e = str(e)
-                if e not in error_messages:
-                    logging.debug(e)
-                    error_messages.append(e)
-            time.sleep(2)
-        session = self.serial_login(internal_timeout, username,
-                                    password, virtio=virtio)
-        return session
+                time.sleep(2)
+                continue
+            if restart_network:
+                try:
+                    logging.debug("Attempting to restart guest network")
+                    os_type = self.params.get('os_type')
+                    utils_net.restart_guest_network(session, os_type=os_type)
+                except (ShellError, ExpectError), e:
+                    session.close()
+                    exception = e
+                    continue
+            return session
+        raise (exception or remote.LoginTimeoutError("timeout %ds" % timeout))
 
     def get_uuid(self):
         """
