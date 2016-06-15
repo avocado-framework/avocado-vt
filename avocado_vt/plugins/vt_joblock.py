@@ -9,6 +9,7 @@ import sys
 from avocado.core import exit_codes
 from avocado.core.settings import settings
 from avocado.plugins.base import JobPre, JobPost
+from avocado.utils.process import pid_exists
 
 from ..test import VirtTest
 
@@ -89,9 +90,14 @@ class VTJobLock(JobPre, JobPost):
     def _lock(self, job):
         filename, lock_pid = self._get_lock_file_pid()
         if lock_pid > 0:
-            msg = ('Avocado-VT job lock file "%s" acquired by PID %u. '
-                   'Aborting...' % (filename, lock_pid))
-            self._abort(msg, job)
+            if not pid_exists(lock_pid):
+                self.log.error('Ignoring Avocado-VT job lock file "%s" because'
+                               ' PID %u does not exist... Please clean it up to'
+                               ' avoid this message.', filename, lock_pid)
+            else:
+                msg = ('Avocado-VT job lock file "%s" acquired by PID %u. '
+                       'Aborting...' % (filename, lock_pid))
+                self._abort(msg, job)
         self._set_lock(job)
 
     def _unlock(self):
