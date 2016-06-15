@@ -102,6 +102,8 @@ class Target(object):
         self.network = self.params.get('network')
         self.storage = self.params.get('storage')
         self.format = self.params.get('output_format', 'raw')
+        self.input_file = self.params.get('input_file')
+        self.new_name = self.params.get('new_name')
         self.net_vm_opts = ""
 
         if self.bridge:
@@ -114,8 +116,13 @@ class Target(object):
 
         options = opts_func()
 
+        if self.new_name:
+            options += ' -on %s' % self.new_name
+
         if self.input_mode is not None:
             options = " -i %s %s" % (self.input_mode, options)
+            if self.input_mode in ['ova', 'disk'] and self.input_file:
+                options = options.replace(self.vm_name, self.input_file)
         return options
 
     def _get_libvirt_options(self):
@@ -149,6 +156,16 @@ class Target(object):
 
         return options
 
+    def _get_local_options(self):
+        """
+        Return command options.
+        """
+        options = " -ic %s -o local -os %s -of %s" % (self.uri,
+                                                      self.storage,
+                                                      self.format)
+        options = options + self.net_vm_opts
+
+        return options
     # add new target in here.
 
 
@@ -211,7 +228,7 @@ class VMCheck(object):
         """
         Cleanup VM and remove all of storage files about guest
         """
-        if self.vm.is_alive():
+        if self.vm.instance and self.vm.is_alive():
             self.vm.destroy(gracefully=False)
             time.sleep(5)
 
@@ -366,6 +383,9 @@ class LinuxVMCheck(VMCheck):
         Get vm Xorg config/log.
         """
         self.wait_for_x_start()
+        cmd_file_exist = "ls /etc/X11/xorg.conf || ls /var/log/Xorg.0.log"
+        if self.run_cmd(cmd_file_exist)[0]:
+            return False
         cmd = "cat /etc/X11/xorg.conf /var/log/Xorg.0.log"
         return self.run_cmd(cmd)[1]
 
@@ -656,7 +676,7 @@ def v2v_cmd(params):
 
     # Construct a final virt-v2v command
     cmd = '%s %s' % (V2V_EXEC, options)
-    cmd_result = process.run(cmd, timeout=v2v_timeout, verbose=True)
+    cmd_result = process.run(cmd, timeout=v2v_timeout, verbose=True, ignore_status=True)
     return cmd_result
 
 
@@ -703,5 +723,35 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
         vm.start(wait_for_up=wait_for_up)
     except Exception, e:
         logging.error("Start %s failed: %s", vm.name, e)
+        return False
+    return True
+
+
+def check_log(log, content_list, expect=True):
+    """
+    Check if Error Message exists in v2v log
+
+    :param log: The log string to be checked
+    :param content_list: Content to be searched from log
+    :param expect: True if expect to find message from log, otherwise False
+    :return: True if search result meets expectation, otherwise False
+    """
+    found = False
+    for content in content_list:
+        line = '\s*'.join(content.split())
+        logging.info('Searching for: %s' % content)
+        pattern = re.compile(line)
+        search = re.search(pattern, log)
+        if search:
+            # Found log not expect
+            if not expect:
+                logging.error('Found error log of virt-v2v: %s' %
+                              search.group(0))
+                return False
+            found = True
+            logging.info('Found log: \n%s' % search.group(0))
+    # Expect to find log but failed
+    if not found and expect:
+        logging.error('Log not found: %s' % '\n'.join(content_list))
         return False
     return True
