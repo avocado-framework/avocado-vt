@@ -942,6 +942,26 @@ class DevContainer(object):
                                                   parent_bus={'aobject': 'pci.0'}))
             return devices
 
+        def machine_s390(cmd=False):
+            """
+            s390x (s390) doesn't support PCI bus.
+            :param cmd: If set uses "-M $cmd" to force this machine type
+            :return: List of added devices (including default buses)
+            """
+            devices = []
+            # Add virtio-bus
+            # TODO: Currently this uses QNoAddrCustomBus and does not
+            # set the device's properties. This means that the qemu qtree
+            # and autotest's representations are completelly different and
+            # can't be used.
+            bus = qbuses.QNoAddrCustomBus('bus', [['addr'], [32]],
+                                          'virtio-blk-ccw', 'virtio-bus',
+                                          'virtio-blk-ccw')
+            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
+                                                  child_bus=bus,
+                                                  aobject="virtio-blk-ccw"))
+            return devices
+
         def machine_other(cmd=False):
             """
             isapc or unknown machine type. This type doesn't add any default
@@ -981,6 +1001,8 @@ class DevContainer(object):
                     devices = machine_arm64_mmio(cmd)
                 elif 'isapc' not in machine_type:   # i440FX
                     devices = machine_i440FX(cmd)
+                elif machine_type.startswith("s390"):  #IBM s390 platform
+                    devices = machine_s390(cmd)
                 else:   # isapc (or other)
                     devices = machine_other(cmd)
             elif params.get("invalid_machine_type", "no") == "yes":
@@ -1370,6 +1392,8 @@ class DevContainer(object):
         elif fmt == 'virtio':
             dev_parent = pci_bus
         elif fmt == 'virtio-blk-device':
+            dev_parent = {'type': 'virtio-bus'}
+        elif fmt == 'virtio-blk-ccw':  # For IBM s390 platform
             dev_parent = {'type': 'virtio-bus'}
         else:
             dev_parent = {'type': fmt}
