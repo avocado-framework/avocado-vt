@@ -1618,7 +1618,7 @@ class VM(virt_vm.BaseVM):
                                      "on cdrom  install. "
                                      "Try using the "
                                      "unattended_install.cdrom.http_ks method "
-                                     "instead." % details.result_obj)
+                                     "instead." % details.result)
                             raise exceptions.TestSkipError(e_msg)
                 if stderr.count('failed to launch bridge helper'):
                     if utils_selinux.is_enforcing():
