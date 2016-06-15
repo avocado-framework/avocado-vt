@@ -343,8 +343,8 @@ Key sub-arrays
 Parameters for objects like VM’s utilize array’s of keys specific to a
 particular object instance. In this way, values specific to an object
 instance can be addressed. For example, a parameter ‘vms’ lists the VM
-objects names to instantiate in in the current frame’s test. Values
-specific to one of the named instances should be prefixed to the name:
+objects names to instantiate in the current frame’s test. Values specific
+to one of the named instances should be prefixed to the name:
 
 ::
 
@@ -477,7 +477,7 @@ Formal definition
       block content as the key for each variant contained in it's the
       block.
 
-   -  The name of the variants are specified as ``- <variant\_name>:``.
+   -  The name of the variants are specified as ``- <variant_name>:``.
       Each name is pre-pended to the name field of each dict of the variant's
       frame, along with a separator dot ('.').
 
@@ -511,7 +511,7 @@ Formal definition
 
       -  ::
 
-             <filter>: (starts a conditional block, see 4.4 Filters)
+             <filter>: starts a conditional block (see section :ref:`filters_`)
 
    -  Syntax:
 

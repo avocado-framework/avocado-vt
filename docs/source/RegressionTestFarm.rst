@@ -126,9 +126,9 @@ Then I'd create each machine with the appropriate labels
     Added host:
         foo-amd.bazcorp.com
 
-    $ /usr/local/autotest/cli/autotest-rpc-client host create -t amd64 -b hostprovisioning foo-intel.bazcorp.com
+    $ /usr/local/autotest/cli/autotest-rpc-client host create -t intel64 -b hostprovisioning foo-intel.bazcorp.com
     Added host:
-        foo-amd.bazcorp.com
+        foo-intel.bazcorp.com
 
 
 Step 3 - Prepare the test jobs

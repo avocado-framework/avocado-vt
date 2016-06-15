@@ -92,13 +92,12 @@ SHA1 sum of it matches.
 #. Git clone autotest to a convenient location, say $HOME/Code/autotest.
    See :doc:`the download source documentation <../contributing/DownloadSource>`
    Please do use git and clone the repo to the location mentioned.
-#. Execute the ``get_started.py`` script (see the `get started documentation <../basic/GetStarted>`.
-   It will create the
-   directories where we expect the cd files to be available. You don't
-   need to download the Fedora 14 DVD, but you do need to download the
-   winutils.iso cd (on the example below, I have skipped the download
-   because I do have the file, so I can copy it to the expected
-   location, which is in this case
+#. Execute the ``get_started.py`` script (see the `get started documentation <../GetStartedGuide>`.
+   It will create the directories where we expect the cd files to be
+   available. You don't need to download the Fedora 14 DVD, but you do
+   need to download the winutils.iso cd (on the example below, I have
+   skipped the download because I do have the file, so I can copy it to
+   the expected location, which is in this case
    ``/tmp/kvm_autotest_root/isos/windows``). Please, do read the
    documentation mentioned on the script to avoid missing packages
    installed and other misconfiguration.
