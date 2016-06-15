@@ -849,6 +849,12 @@ class HumanMonitor(Monitor):
         """
         return self.cmd(cmd="screendump %s" % filename, debug=debug)
 
+    def system_reset(self):
+        """ Reset guest system """
+        cmd = "system_reset"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd=cmd)
+
     def set_link(self, name, up):
         """
         Set link up/down.
@@ -1785,6 +1791,16 @@ class QMPMonitor(Monitor):
 
         args = {"filename": filename}
         return self.cmd(cmd=cmd, args=args, debug=debug)
+
+    def system_reset(self):
+        """ Reset guest system """
+        cmd, event = "system_reset", "RESET"
+        self.verify_supported_cmd(cmd)
+        self.clear_event(event)
+        ret = self.cmd(cmd=cmd)
+        if not utils_misc.wait_for(lambda: self.get_event(event), timeout=120):
+            raise QMPEventError(cmd, event, self.name)
+        return ret
 
     def sendkey(self, keystr, hold_time=1):
         """

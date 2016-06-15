@@ -3792,66 +3792,84 @@ class VM(virt_vm.BaseVM):
         :param serial: Serial login or not (default is False).
         :return: A new shell session object.
         """
-        def __reboot(session):
+
+        def __get_session(nic_index=0, serial=False):
+            """
+            Get connection to VM
+            """
+            if serial:
+                return self.serial_login()
+            return self.login(nic_index=nic_index)
+
+        def __go_down(session, nic_index, serial):
             """
             Check guest rebooting.
             """
+            timeout = self.CLOSE_SESSION_TIMEOUT
+            try:
+                if serial:
+                    patterns = [r".*[Rr]ebooting.*", r".*[Rr]estarting system.*",
+                                r".*[Mm]achine restart.*", r".*Linux version.*"]
+                    if session.read_until_any_line_matches(
+                            patterns, timeout=timeout):
+                        session.close()
+                        return True
+                else:
+                    session = __get_session(nic_index, serial)
+                    session.close()
+                    return False
+            except (remote.LoginError, aexpect.ShellError):
+                return True
+            return False
+
+        def wait_for_go_down(session, nic_index, serial, timeout):
+            """ Wait for VM go down
+            :param session: VM session object
+            :param nic_index: which nic what to login VM
+            :param serial: login VM via serial console or not
+            :param timeout: timeout wait for VM go down
+            """
+            if not utils_misc.wait_for(
+                    lambda: __go_down(session, nic_index, serial),
+                    timeout=timeout):
+                raise virt_vm.VMRebootError("Guest refuses to go down")
+
+            logging.info("VM go down, wait for it boot up")
+
+        def shell_reboot(session, nic_index, serial, timeout):
+            """
+            Reboot guest OS via shell command
+
+            :param session: VM session object
+            :param nic_index: which nic what to login VM
+            :param serial: login VM via serial console or not
+            :param timeout: timeout wait for VM go down
+            """
+            if not session or not session.is_responsive():
+                session = __get_session(nic_index=nic_index, serial=serial)
             console = session.cmd("tty", ignore_all_errors=True)
             serial = console and ("pts" not in console)
-            session.sendline(self.params.get("reboot_command"))
-            if serial:
-                patterns = [r".*[Rr]ebooting.*", r".*[Rr]estarting system.*",
-                            r".*[Mm]achine restart.*", r".*Linux version.*"]
-                try:
-                    timeout = go_down_timeout / 2
-                    return session.read_until_any_line_matches(patterns,
-                                                               timeout=timeout)
-                except Exception:
-                    return False
-            return not session.is_responsive(timeout=self.CLOSE_SESSION_TIMEOUT)
+            reboot_cmd = self.params.get("reboot_command")
+            step_info = "Send %s command, wait for VM rebooting" % reboot_cmd
+            error_context.context(step_info)
+            session.sendline(reboot_cmd)
+            wait_for_go_down(session, nic_index, serial, timeout=timeout)
 
         error_context.base_context("rebooting '%s'" % self.name, logging.info)
         error_context.context("before reboot")
         error_context.context()
         if method == "shell":
-            if not session:
-                if not serial:
-                    session = self.login(nic_index=nic_index)
-                else:
-                    session = self.serial_login()
-            error_context.context("waiting for guest to go down", logging.info)
-            go_down_timeout = timeout * 2 / 3
-            if not utils_misc.wait_for(lambda: __reboot(session),
-                                       timeout=go_down_timeout):
-                raise virt_vm.VMRebootError("Guest refuses to go down")
-            login_timeout = timeout / 2
+            shell_reboot(session, nic_index, serial, timeout / 2)
         elif method == "system_reset":
-            # Clear the event list of all QMP monitors
-            qmp_monitors = [m for m in self.monitors if m.protocol == "qmp"]
-            for m in qmp_monitors:
-                m.clear_events()
-            # Send a system_reset monitor command
-            self.monitor.cmd("system_reset")
-            # Look for RESET QMP events
-            time.sleep(1)
-            login_timeout = timeout - 1
-            for m in qmp_monitors:
-                if m.get_event("RESET"):
-                    logging.info("RESET QMP event received")
-                else:
-                    raise virt_vm.VMRebootError("RESET QMP event not received "
-                                                "after system_reset "
-                                                "(monitor '%s')" % m.name)
+            self.system_reset()
         else:
             raise virt_vm.VMRebootError("Unknown reboot method: %s" % method)
-
         if self.params.get("mac_changeable") == "yes":
             utils_net.update_mac_ip_address(self, self.params)
-
         error_context.context("logging in after reboot", logging.info)
         if serial:
-            return self.wait_for_serial_login(timeout=login_timeout)
-        return self.wait_for_login(nic_index=nic_index, timeout=login_timeout)
+            return self.wait_for_serial_login(timeout=(timeout / 2))
+        return self.wait_for_login(nic_index=nic_index, timeout=(timeout / 2))
 
     def send_key(self, keystr):
         """
@@ -4227,3 +4245,7 @@ class VM(virt_vm.BaseVM):
         normalize_data_size = utils_misc.normalize_data_size
         size = int(float(normalize_data_size(size, 'B', '1024')))
         return self.monitor.balloon(size)
+
+    def system_reset(self):
+        """ Send system_reset to monitor"""
+        return self.monitor.system_reset()
