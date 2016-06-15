@@ -5,7 +5,6 @@ This is the main class which represent qdev-structure. It allows to create,
 interact and verify the qemu qdev structure.
 
 :copyright: 2012-2013 Red Hat Inc.
-"""
 
 # Python imports
 import logging
@@ -999,10 +998,10 @@ class DevContainer(object):
                     devices = machine_arm64_pci(cmd)
                 elif arm_machine == 'arm64-mmio':
                     devices = machine_arm64_mmio(cmd)
-                elif 'isapc' not in machine_type:   # i440FX
-                    devices = machine_i440FX(cmd)
                 elif machine_type.startswith("s390"):
                     devices = machine_s390(cmd)
+                elif 'isapc' not in machine_type:   # i440FX
+                    devices = machine_i440FX(cmd)
                 else:   # isapc (or other)
                     devices = machine_other(cmd)
             elif params.get("invalid_machine_type", "no") == "yes":
