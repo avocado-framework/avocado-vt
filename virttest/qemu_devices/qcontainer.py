@@ -5,6 +5,7 @@ This is the main class which represent qdev-structure. It allows to create,
 interact and verify the qemu qdev structure.
 
 :copyright: 2012-2013 Red Hat Inc.
+"""
 
 # Python imports
 import logging
