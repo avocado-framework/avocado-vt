@@ -942,6 +942,26 @@ class DevContainer(object):
                                                   parent_bus={'aobject': 'pci.0'}))
             return devices
 
+        def machine_s390(cmd=False):
+            """
+            s390x (s390) doesn't support PCI bus.
+            :param cmd: If set uses "-M $cmd" to force this machine type
+            :return: List of added devices (including default buses)
+            """
+            devices = []
+            # Add virtio-bus
+            # TODO: Currently this uses QNoAddrCustomBus and does not
+            # set the device's properties. This means that the qemu qtree
+            # and autotest's representations are completelly different and
+            # can't be used.
+            bus = qbuses.QNoAddrCustomBus('bus', [['addr'], [32]],
+                                          'virtio-blk-ccw', 'virtio-bus',
+                                          'virtio-blk-ccw')
+            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
+                                                  child_bus=bus,
+                                                  aobject="virtio-blk-ccw"))
+            return devices
+
         def machine_other(cmd=False):
             """
             isapc or unknown machine type. This type doesn't add any default
