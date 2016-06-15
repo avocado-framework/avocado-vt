@@ -531,7 +531,7 @@ class WindowsVMCheck(VMCheck):
         to boot windows.
         """
         logging.info("Booting Windows in %s seconds", timeout)
-        compare_screenshot_vms = ["win2003", "win2008", "win2008r2", "win7"]
+        compare_screenshot_vms = ["win2003"]
         timeout_msg = "No matching screenshots found after %s seconds" % timeout
         timeout_msg += ", trying to log into the VM directly"
         match_image_list = []
@@ -581,7 +581,7 @@ class WindowsVMCheck(VMCheck):
                     else:
                         self.click_install_driver()
         else:
-            # No need sendkey/click button for Win8, Win8.1, Win2012, Win2012r2
+            # No need sendkey/click button for any os except Win2003
             logging.info("%s is booting up without program intervention",
                          self.os_version)
 
