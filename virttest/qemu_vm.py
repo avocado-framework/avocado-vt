@@ -436,7 +436,7 @@ class VM(virt_vm.BaseVM):
         def add_serial(devices, name, filename):
             if (not devices.has_option("chardev") or
                     not (devices.has_device("isa-serial") or
-                         devices.has_device("sclpconsole") or # For s390 console
+                         devices.has_device("sclpconsole") or  # For s390 console
                          devices.has_device("spapr-vty"))):
                 return " -serial unix:'%s',server,nowait" % filename
 
@@ -574,7 +574,7 @@ class VM(virt_vm.BaseVM):
                 # pci devices and store the number.
                 if model == 'virtio-net-device':
                     dev.parent_bus = {'type': 'virtio-bus'}
-                if model == 'virtio-net-ccw': # From s390 platform
+                if model == 'virtio-net-ccw':  # For s390 platform
                     dev.parent_bus = {'type': 'virtio-bus'}
                 elif model != 'spapr-vlan':
                     dev.parent_bus = pci_bus
@@ -1115,7 +1115,7 @@ class VM(virt_vm.BaseVM):
                 logging.warn("-boot on ARM is usually not supported, use "
                              "bootindex instead.")
                 return ""
-            if params.get('machine_type', "").startswith("s390"): # For s390
+            if params.get('machine_type', "").startswith("s390"):
                 logging.warn("-boot on s390 only support boot strict=on")
                 return "-boot strict=on"
             cmd = " -boot"
