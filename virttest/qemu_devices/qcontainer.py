@@ -1001,6 +1001,8 @@ class DevContainer(object):
                     devices = machine_arm64_mmio(cmd)
                 elif 'isapc' not in machine_type:   # i440FX
                     devices = machine_i440FX(cmd)
+                elif machine_type.startswith("s390"):  #IBM s390 platform
+                    devices = machine_s390(cmd)
                 else:   # isapc (or other)
                     devices = machine_other(cmd)
             elif params.get("invalid_machine_type", "no") == "yes":
@@ -1390,6 +1392,8 @@ class DevContainer(object):
         elif fmt == 'virtio':
             dev_parent = pci_bus
         elif fmt == 'virtio-blk-device':
+            dev_parent = {'type': 'virtio-bus'}
+        elif fmt == 'virtio-blk-ccw':  # For IBM s390 platform
             dev_parent = {'type': 'virtio-bus'}
         else:
             dev_parent = {'type': fmt}
