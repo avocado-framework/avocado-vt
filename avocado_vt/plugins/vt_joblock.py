@@ -13,6 +13,14 @@ from avocado.plugins.base import JobPre, JobPost
 from ..test import VirtTest
 
 
+class LockCreationError(Exception):
+
+    """
+    Represents any error situation when attempting to create a lock file
+    """
+    pass
+
+
 class VTJobLock(JobPre, JobPost):
 
     name = 'vt-joblock'
@@ -34,7 +42,16 @@ class VTJobLock(JobPre, JobPost):
         self.log.error(message)
         sys.exit(exit_codes.AVOCADO_JOB_FAIL | job.exitcode)
 
-    def _set_lock(self, job):
+    def _create_self_lock_file(self, job):
+        """
+        Creates the lock file for this job process
+
+        :param job: the currently running job
+        :type job: :class:`avocado.core.job.Job`
+        :raises: :class:`LockCreationError`
+        :returns: the full path for the lock file created
+        :rtype: str
+        """
         if not os.path.isdir(self.lock_dir):
             msg = ('VT Job lock directory "%s" does not exist... '
                    'exiting...' % self.lock_dir)
@@ -52,10 +69,9 @@ class VTJobLock(JobPre, JobPost):
         try:
             with open(path, 'w') as lockfile:
                 lockfile.write("%u" % os.getpid())
-            self.lock_file = path
-        except IOError as e:
-            msg = ('Failed to create VT Job lock file "%s". Exiting...' % path)
-            self._abort(msg, job)
+            return path
+        except Exception as e:
+            raise LockCreationError(e)
 
     def _get_lock_file_pid(self):
         """
@@ -92,7 +108,7 @@ class VTJobLock(JobPre, JobPost):
             msg = ('Avocado-VT job lock file "%s" acquired by PID %u. '
                    'Aborting...' % (filename, lock_pid))
             self._abort(msg, job)
-        self._set_lock(job)
+        self.lock_file = self._create_self_lock_file(job)
 
     def _unlock(self):
         if self.lock_file:
