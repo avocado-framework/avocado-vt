@@ -3067,17 +3067,18 @@ class KSMController(object):
 
     def is_module_loaded(self):
         """Check whether ksm module has been loaded."""
-        if process.system("lsmod |grep ksm", ignore_status=True):
+        cmd = "lsmod | grep ksm"
+        if process.system(cmd, ignore_status=True, shell=True):
             return False
         return True
 
     def load_ksm_module(self):
         """Try to load ksm module."""
-        process.system("modprobe ksm")
+        process.system("modprobe ksm", shell=True)
 
     def unload_ksm_module(self):
         """Try to unload ksm module."""
-        process.system("modprobe -r ksm")
+        process.system("modprobe -r ksm", shell=True)
 
     def get_ksmtuned_pid(self):
         """
@@ -3088,8 +3089,8 @@ class KSMController(object):
         except utils_path.CmdNotFoundError:
             raise KSMTunedNotSupportedError
 
-        process_id = process.system_output("ps -C ksmtuned -o pid=",
-                                           ignore_status=True)
+        cmd = "ps -C ksmtuned -o pid="
+        process_id = process.system_output(cmd, ignore_status=True, shell=True)
         if process_id:
             return int(re.findall("\d+", process_id)[0])
         return 0
@@ -3097,13 +3098,14 @@ class KSMController(object):
     def start_ksmtuned(self):
         """Start ksmtuned service"""
         if self.get_ksmtuned_pid() == 0:
-            process.system("ksmtuned")
+            process.system("ksmtuned", shell=True)
 
     def stop_ksmtuned(self):
         """Stop ksmtuned service"""
         pid = self.get_ksmtuned_pid()
         if pid:
-            process.system("kill -1 %s" % pid)
+            cmd = "kill -1 %s" % pid
+            process.system(cmd, shell=True)
 
     def restart_ksmtuned(self):
         """Restart ksmtuned service"""
@@ -3142,9 +3144,11 @@ class KSMController(object):
         Verify whether ksm is running.
         """
         if self.interface == "sysfs":
-            running = process.system_output("cat %s" % self.ksm_params["run"])
+            cmd = "cat %s" % self.ksm_params["run"]
+            running = process.system_output(cmd)
         else:
-            output = process.system_output("ksmctl info")
+            cmd = "ksmctl info"
+            output = process.system_output(cmd, shell=True)
             try:
                 running = re.findall("\d+", output)[0]
             except IndexError:
@@ -3183,7 +3187,7 @@ class KSMController(object):
                                shell=True)
         else:
             if "run" in feature_args.keys() and feature_args["run"] == 0:
-                process.system("ksmctl stop")
+                process.system("ksmctl stop", shell=True)
             else:
                 # For ksmctl both pages_to_scan and sleep_ms should have value
                 # So start it anyway if run is 1
@@ -3196,7 +3200,8 @@ class KSMController(object):
                     ms = self.get_ksm_feature("sleep_millisecs")
                 else:
                     ms = feature_args["sleep_millisecs"]
-                process.system("ksmctl start %s %s" % (pts, ms))
+                cmd = "ksmctl start %s %s" % (pts, ms)
+                process.system(cmd, shell=True)
 
     def get_ksm_feature(self, feature):
         """
