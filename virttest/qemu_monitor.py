@@ -1199,6 +1199,14 @@ class HumanMonitor(Monitor):
         value = re.search(pattern, capability_info, re.M).group(1)
         return value == "on"
 
+    def system_powerdown(self):
+        """
+        Requests that a guest perform a powerdown operation.
+        """
+        cmd = "system_powerdown"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd)
+
 
 class QMPMonitor(Monitor):
 
@@ -2164,3 +2172,19 @@ class QMPMonitor(Monitor):
             if item["capability"] == capability:
                 return item["state"]
         return False
+
+    def system_powerdown(self):
+        """
+        Requests that a guest perform a powerdown operation.
+        """
+        cmd = "system_powerdown"
+        qmp_event = "POWERDOWN"
+        self.verify_supported_cmd(cmd)
+        # Clear the event list of QMP monitors
+        self.clear_event(qmp_event)
+        # Send a powerdown monitor command
+        self.cmd(cmd)
+        # Look for POWERDOWN QMP events
+        if not utils_misc.wait_for(lambda: self.get_event(qmp_event), 120):
+            raise QMPEventError(cmd, qmp_event, self.name)
+        logging.info("%s QMP event received" % qmp_event)
