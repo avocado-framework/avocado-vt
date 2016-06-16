@@ -74,6 +74,24 @@ class VTJobLock(JobPre, JobPost):
         except Exception as e:
             raise LockCreationError(e)
 
+    def _get_lock_files(self):
+        """
+        Get the list of lock file names under the current lock dir
+
+        :returns: a list with the full path of files that match the
+                  lockfile pattern
+        :rtype: list
+        """
+        try:
+            files = os.listdir(self.lock_dir)
+            pattern = re.compile(r'avocado-vt-joblock-[0-9a-f]{40}-[0-9]+'
+                                 '-[0-9a-z]{8}\.pid')
+            return [os.path.join(self.lock_dir, _) for _ in files
+                    if pattern.match(_)]
+        except OSError as e:
+            if e.errno == errno.ENOENT:
+                return []
+
     def _get_lock_file_pid(self):
         """
         Gets the lock file path and the process ID
@@ -83,25 +101,14 @@ class VTJobLock(JobPre, JobPost):
         :returns: the path and the (integer) process id
         :rtype: tuple(str, int)
         """
-        try:
-            files = os.listdir(self.lock_dir)
-            if not files:
-                return (None, 0)
-        except OSError as e:
-            if e.errno == errno.ENOENT:
-                return (None, 0)
-
-        pattern = re.compile(r'avocado-vt-joblock-[0-9a-f]{40}-[0-9]+'
-                             '-[0-9a-z]{8}\.pid')
-        for lock_file in files:
-            if pattern.match(lock_file):
-                path = os.path.join(self.lock_dir, lock_file)
-                if os.path.isfile(path):
-                    content = int(open(path, 'r').read())
-                    pid = int(content)
-                    if pid > 0:
-                        return (path, pid)
-        return (None, 0)
+        files = self._get_lock_files()
+        if not files:
+            return (None, 0)
+        path = files[0]
+        content = int(open(path, 'r').read())
+        pid = int(content)
+        if pid > 0:
+            return (path, pid)
 
     def _lock(self, job):
         filename, lock_pid = self._get_lock_file_pid()
