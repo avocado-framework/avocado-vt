@@ -58,11 +58,6 @@ class VTJobLock(JobPre, JobPost):
         :returns: the full path for the lock file created
         :rtype: str
         """
-        if not os.path.isdir(self.lock_dir):
-            msg = ('VT Job lock directory "%s" does not exist... '
-                   'exiting...' % self.lock_dir)
-            self._abort(msg, job)
-
         pattern = 'avocado-vt-joblock-%(jobid)s-%(uid)s-%(random)s.pid'
         # the job unique id is already random, but, let's add yet another one
         rand = ''.join([random.choice(string.ascii_lowercase + string.digits)
