@@ -8,6 +8,7 @@ import sys
 
 from avocado.core import exit_codes
 from avocado.core.settings import settings
+from avocado.utils.process import pid_exists
 
 # Avocado's plugin interface module has changed location. Let's keep
 # compatibility with old for at, least, a new LTS release
@@ -27,6 +28,13 @@ class LockCreationError(Exception):
     pass
 
 
+class OtherProcessHoldsLockError(Exception):
+
+    """
+    Represents a condition where other process has the lock
+    """
+
+
 class VTJobLock(JobPre, JobPost):
 
     name = 'vt-joblock'
@@ -40,13 +48,6 @@ class VTJobLock(JobPre, JobPost):
             key_type=str,
             default='/tmp'))
         self.lock_file = None
-
-    def _abort(self, message, job):
-        """
-        Aborts the Job by exiting Avocado, adding a failure to the job status
-        """
-        self.log.error(message)
-        sys.exit(exit_codes.AVOCADO_JOB_FAIL | job.exitcode)
 
     def _create_self_lock_file(self, job):
         """
@@ -92,35 +93,17 @@ class VTJobLock(JobPre, JobPost):
             if e.errno == errno.ENOENT:
                 return []
 
-    def _get_lock_file_pid(self):
-        """
-        Gets the lock file path and the process ID
-
-        If the lock file can not be located, this returns (None, 0).
-
-        :returns: the path and the (integer) process id
-        :rtype: tuple(str, int)
-        """
-        files = self._get_lock_files()
-        if not files:
-            return (None, 0)
-        path = files[0]
-        content = int(open(path, 'r').read())
-        pid = int(content)
-        if pid > 0:
-            return (path, pid)
-
     def _lock(self, job):
-        filename, lock_pid = self._get_lock_file_pid()
-        if lock_pid > 0:
-            msg = ('Avocado-VT job lock file "%s" acquired by PID %u. '
-                   'Aborting...' % (filename, lock_pid))
-            self._abort(msg, job)
         self.lock_file = self._create_self_lock_file(job)
-
-    def _unlock(self):
-        if self.lock_file:
-            os.unlink(self.lock_file)
+        lock_files = self._get_lock_files()
+        lock_files.remove(self.lock_file)
+        for path in lock_files:
+            lock_pid = int(open(path, 'r').read())
+            if pid_exists(lock_pid):
+                msg = 'File "%s" acquired by PID %u. ' % (path, lock_pid)
+                raise OtherProcessHoldsLockError(msg)
+            else:
+                os.unlink(path)
 
     def pre(self, job):
         try:
@@ -129,8 +112,9 @@ class VTJobLock(JobPre, JobPost):
                 self._lock(job)
         except Exception as detail:
             msg = "Failure trying to set Avocado-VT job lock: %s" % detail
-            self._abort(msg, job)
+            self.log.error(msg)
+            sys.exit(exit_codes.AVOCADO_JOB_FAIL | job.exitcode)
 
     def post(self, job):
         if self.lock_file is not None:
-            self._unlock()
+            os.unlink(self.lock_file)
