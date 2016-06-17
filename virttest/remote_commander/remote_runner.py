@@ -726,7 +726,7 @@ class CommanderSlaveCmds(CommanderSlave):
         assert hasattr(module, "run")
         run = getattr(module, "run")
         helper = Helper(self)
-        run(helper)
+        return run(helper)
 
 
 class Helper(object):
