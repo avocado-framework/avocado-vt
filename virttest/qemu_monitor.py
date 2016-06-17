@@ -2166,8 +2166,16 @@ class QMPMonitor(Monitor):
         Wakeup suspended guest.
         """
         cmd = "system_wakeup"
+        qmp_event = "WAKEUP"
         self.verify_supported_cmd(cmd)
-        return self.cmd(cmd)
+        # Clear the event of QMP monitors
+        self.clear_event(qmp_event)
+        # Send a system_wakeup monitor command
+        self.cmd(cmd)
+        # Look for WAKEUP QMP event
+        if not utils_misc.wait_for(lambda: self.get_event(qmp_event), 120):
+            raise QMPEventError(cmd, qmp_event, self.name)
+        logging.info("%s QMP event received" % qmp_event)
 
     def nmi(self):
         """
