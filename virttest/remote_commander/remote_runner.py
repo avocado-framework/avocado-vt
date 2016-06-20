@@ -26,6 +26,13 @@ import remote_interface
 import messenger as ms
 
 
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+handler = logging.FileHandler("/tmp/remote_runner.log", "w", encoding=None,
+                              delay="true")
+logger.addHandler(handler)
+
+
 def daemonize(pipe_root_path="/tmp"):
     """
     Init daemon.
@@ -548,7 +555,14 @@ class CommanderSlave(ms.Messenger):
                     stdios + r_pipes + stdouts + stderrs, [], [])
 
                 if self.stdin in r:  # command from controller
-                    cmd = CmdSlave(self.read_msg()[1])
+                    m = self.read_msg()
+                    if m[0] == False:
+                        logger.info("Other side is closed.")
+                        break
+                    if m[0] == None:
+                        logger.info("Reading is timeouted.")
+                        break
+                    cmd = CmdSlave(m[1])
                     self.cmds[cmd.cmd_id] = cmd
                     try:
                         # There is hidden bug. We can bump into condition when
@@ -736,10 +750,11 @@ class Helper(object):
     def __init__(self, messenger):
         self.messenger = messenger
 
-    def query_master(self, *args, **kargs):
-        """Read CmdRespond from master."""
-        # First of all, dump stdio to master. Otherwise it can block on
-        # logging.info() function.
+    def info(self, *args, **kargs):
+        logger.info(*args, **kargs)
+        self.flush_buf()
+
+    def flush_buf(self):
         msg = self.messenger
         stdios = [msg.o_stdout, msg.o_stderr]
         r, _, _ = select.select(stdios, [], [], 0)  # Not blocking.
@@ -749,8 +764,15 @@ class Helper(object):
         if msg.o_stderr in r:  # Send message from stdout
             data = os.read(msg.o_stderr, 16384)
             msg.write_msg(remote_interface.StdErr(data))
+
+    def query_master(self, *args, **kargs):
+        """Read CmdRespond from master."""
+        # First of all, dump stdio to master. Otherwise it can block on
+        # logging.info() function.
+        self.flush_buf()
         # Sent actual request.
         cmd = remote_interface.CmdQuery(*args, **kargs)
+        msg = self.messenger
         msg.write_msg(cmd)
         succ, data = msg.read_msg()
         assert succ
@@ -768,19 +790,31 @@ def remote_agent(in_stream_cls, out_stream_cls):
     :params out_stream_cls: Class encapsulated output stream.
     """
     try:
-        fd_stdout = sys.stdout.fileno()
-        fd_stderr = sys.stderr.fileno()
-        fd_stdin = sys.stdin.fileno()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        fd_stdin = sys.stdin.fileno()    # == 0
+        fd_stdout = sys.stdout.fileno()  # == 1
+        fd_stderr = sys.stderr.fileno()  # == 2
+        orig_stdout = os.dup(fd_stdout)  # Original stdout to master.
+        orig_stderr = os.dup(fd_stderr)  # Original srderr to master.
         soutr, soutw = os.pipe()
         serrr, serrw = os.pipe()
-        sys.stdout = os.fdopen(soutw, 'w', 0)
-        sys.stderr = os.fdopen(serrw, 'w', 0)
-        os.write(fd_stdout, "#")
+        os.dup2(soutw, fd_stdout)        # Stdout == pipe
+        os.dup2(serrw, fd_stderr)        # Stderr == pipe
+        os.close(soutw)  # Close pipe as it stays opened in stdout.
+        os.close(serrw)  # Close pipe as it stays opened in stderr.
+        sys.stdout = os.fdopen(fd_stdout, 'w', 0)
+        sys.stderr = os.fdopen(fd_stderr, 'w', 0)
+        os.write(orig_stdout, "#")
 
-        logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+        # Logging goes to the pipe.
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        logger.addHandler(handler)
+        #logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
         w_stdin = None
-        w_stdout = out_stream_cls(fd_stdout)
+        w_stdout = out_stream_cls(orig_stdout)
         w_stdin = in_stream_cls(fd_stdin)
 
         cmd = CommanderSlaveCmds(w_stdin,
