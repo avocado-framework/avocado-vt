@@ -362,7 +362,7 @@ def check_blockjob(vm_name, target, check_point="none", value="0"):
 
     try:
         cmd_result = virsh.blockjob(
-            vm_name, target, "--info", ignore_status=True)
+            vm_name, target, "--info", debug=True, ignore_status=True)
         output = cmd_result.stdout.strip()
         err = cmd_result.stderr.strip()
         status = cmd_result.exit_status
@@ -2081,15 +2081,9 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                          emulated_image=emu_image,
                          image_size=image_size)
             # Get volume name
-            cmd_result = virsh.vol_list(pool_name)
-            try:
-                vol_name = re.findall(r"(\S+)\ +(\S+)[\ +\n]",
-                                      str(cmd_result.stdout))[1][0]
-            except IndexError:
-                raise exceptions.TestError("Fail to get volume name in "
-                                           "pool %s" % pool_name)
-            emulated_path = virsh.vol_path(vol_name, pool_name,
-                                           debug=True).stdout.strip()
+            vols = get_vol_list(pool_name)
+            vol_name = vols.keys()[0]
+            emulated_path = vols[vol_name]
         else:
             # Setup iscsi target
             if is_login:
@@ -2814,3 +2808,33 @@ def update_polkit_rule(params, pattern, new_value):
         polkit.polkitd.restart()
     except IOError, e:
         logging.error(e)
+
+
+def get_vol_list(pool_name, vol_check=True, timeout=5):
+    """
+    This is a wrapper to get all volumes of a pool, especially for
+    iscsi type pool as the volume may not appear immediately after
+    iscsi target login.
+
+    :param pool_name: Libvirt pool name
+    :param vol_check: Check if volume and volume path exist
+    :param timeout: Timeout in seconds.
+    :return: A dict include volumes' name(key) and path(value).
+    """
+    poolvol = libvirt_storage.PoolVolume(pool_name=pool_name)
+    vols = utils_misc.wait_for(poolvol.list_volumes, timeout,
+                               text='Waitting for volume show up')
+    if not vol_check:
+        return vols
+
+    # Check volume name
+    if not vols:
+        raise exceptions.TestError("No volume in pool %s" % pool_name)
+
+    # Check volume
+    for vol_path in vols.itervalues():
+        if not utils_misc.wait_for(lambda: os.path.exists(vol_path), timeout,
+                                   text='Waitting for vol path created'):
+            raise exceptions.TestError("Volume path %s not exist" % vol_path)
+
+    return vols
