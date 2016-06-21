@@ -930,7 +930,9 @@ class PciAssignable(object):
                 if "allow_unsafe_assigned_interrupts" in i:
                     self.auai_path = i
         if self.setup:
-            self.sr_iov_setup()
+            if not self.sr_iov_setup():
+                msg = "SR-IOV setup on host failed"
+                logging.error(msg)
 
     def add_device(self, device_type="vf", name=None, mac=None):
         """
@@ -1356,6 +1358,9 @@ class PciAssignable(object):
                                       "command '%s'" % (self.driver, cmd),
                                       logging.info)
                 status = process.system(cmd, ignore_status=True)
+            if not self.check_vfs_count():
+            # Even after re-probe there are no VFs created
+                return False
             dmesg = process.system_output("dmesg", timeout=60,
                                           ignore_status=True,
                                           verbose=False)
