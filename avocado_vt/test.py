@@ -420,6 +420,10 @@ class VirtTest(test.Test):
             raise stdout_check_exception
         elif stderr_check_exception is not None:
             raise stderr_check_exception
+        elif self._Test__log_warn_used:
+            raise exceptions.TestWarn("Test passed but there were warnings "
+                                      "during execution. Check the log for "
+                                      "details.")
 
         self.status = 'PASS'
         self.sysinfo_logger.end_test_hook()
