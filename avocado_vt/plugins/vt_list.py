@@ -21,7 +21,13 @@ import sys
 
 from avocado.core.loader import loader
 from avocado.core.settings import settings
-from avocado.plugins.base import CLI
+
+# Avocado's plugin interface module has changed location. Let's keep
+# compatibility with old for at, least, a new LTS release
+try:
+    from avocado.core.plugin_interfaces import CLI
+except ImportError:
+    from avocado.plugins.base import CLI
 
 from ..loader import VirtTestLoader
 
