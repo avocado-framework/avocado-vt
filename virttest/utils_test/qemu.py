@@ -834,7 +834,8 @@ class MultihostMigration(object):
                         self.prepare_for_migration(mig_data, None)
                     elif self.hostid == dsthost:
                         if host_offline_migration != "yes":
-                            self.prepare_for_migration(mig_data, self.mig_protocol)
+                            self.prepare_for_migration(
+                                mig_data, self.mig_protocol)
                     else:
                         return
 
@@ -868,7 +869,8 @@ class MultihostMigration(object):
                                                 'wait_for_offline_mig',
                                                 self.finish_timeout)
                             if mig_data.is_dst():
-                                self.prepare_for_migration(mig_data, self.mig_protocol)
+                                self.prepare_for_migration(
+                                    mig_data, self.mig_protocol)
                             self._hosts_barrier(self.hosts,
                                                 mig_data.mig_id,
                                                 'wait2_for_offline_mig',
@@ -1722,7 +1724,7 @@ class MemoryHotplugTest(MemoryBaseTest):
             qid_dimm = "dimm-%s" % name
             dimm = vm.devices.get_by_qid(qid_dimm)[0]
         except IndexError:
-            logging.warn("'%s' is not used by any dimm" %qid_mem)
+            logging.warn("'%s' is not used by any dimm" % qid_mem)
         step = "Unplug pc-dimm '%s'" % qid_dimm
         error_context.context(step, logging.info)
         vm.devices.simple_unplug(dimm, vm.monitor)
@@ -1737,7 +1739,7 @@ class MemoryHotplugTest(MemoryBaseTest):
     @error_context.context_aware
     def get_mem_addr(self, vm, qid):
         """
-        Get guest memory address from qemu monitor.
+        Get guest memory address from qemu monitor
 
         :param vm: VM object
         :param qid: memory device qid
@@ -1745,13 +1747,11 @@ class MemoryHotplugTest(MemoryBaseTest):
         error_context.context("Get hotpluged memory address", logging.info)
         if not isinstance(vm.monitor, qemu_monitor.QMPMonitor):
             raise NotImplementedError
-        output = vm.monitor.info("memory-devices")
-        for info in output:
+        for info in vm.monitor.info("memory-devices"):
             if str(info['data']['id']) == qid:
                 address = info['data']['addr']
                 logging.info("Memory address: %s" % address)
                 return address
-        return None
 
     @error_context.context_aware
     def check_memory(self, vm=None):
