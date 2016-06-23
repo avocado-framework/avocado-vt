@@ -1765,6 +1765,7 @@ class MemoryHotplugTest(MemoryBaseTest):
         if not vm:
             vm = self.env.get_vm(self.params["main_vm"])
         vm.verify_alive()
+        threshold = float(self.params.get("threshold", 0.10))
         timeout = float(self.params.get("wait_resume_timeout", 60))
         # Notes:
         #    some sub test will pause VM, here need to wait VM resume
@@ -1774,8 +1775,7 @@ class MemoryHotplugTest(MemoryBaseTest):
         self.os_type = self.params.get("os_type")
         guest_mem_size = super(MemoryHotplugTest, self).get_guest_total_mem(vm)
         vm_mem_size = self.get_vm_mem(vm)
-        threshold = vm_mem_size * 0.06
-        if abs(guest_mem_size - vm_mem_size) > threshold:
+        if abs(guest_mem_size - vm_mem_size) > vm_mem_size * threshold:
             msg = ("Assigned '%s MB' memory to '%s'"
                    "but, '%s MB' memory detect by OS" %
                    (vm_mem_size, vm.name, guest_mem_size))
