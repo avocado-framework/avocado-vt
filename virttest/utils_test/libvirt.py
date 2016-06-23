@@ -2618,7 +2618,7 @@ def get_all_vol_paths():
 
 def do_migration(vm_name, uri, extra, auth_pwd, auth_user="root",
                  options="--verbose", virsh_patterns=".*100\s%.*",
-                 su_user="", timeout=30):
+                 su_user="", timeout=30, extra_opt=""):
     """
     Migrate VM to target host.
     """
@@ -2626,7 +2626,8 @@ def do_migration(vm_name, uri, extra, auth_pwd, auth_user="root",
     patterns_auth_name = r".*name:.*"
     patterns_auth_pwd = r".*[Pp]assword.*"
 
-    command = "%s virsh migrate %s %s %s" % (extra, vm_name, options, uri)
+    command = "%s virsh %s migrate %s %s %s" % (extra, extra_opt,
+                                                vm_name, options, uri)
     # allow specific user to run virsh command
     if su_user != "":
         command = "su %s -c '%s'" % (su_user, command)
