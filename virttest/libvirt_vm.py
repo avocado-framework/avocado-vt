@@ -403,8 +403,18 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
-        def add_smp(help_text, smp):
-            return " --vcpu=%s" % smp
+        def add_smp(help_text, smp, maxvcpus=None, sockets=None,
+                    cores=None, threads=None):
+            cmd = " --vcpu=%s" % smp
+            if maxvcpus:
+                cmd += ",maxvcpus=%s" % maxvcpus
+            if sockets:
+                cmd += ",sockets=%s" % sockets
+            if cores:
+                cmd += ",cores=%s" % cores
+            if threads:
+                cmd += ",threads=%s" % threads
+            return cmd
 
         def add_location(help_text, location):
             if has_option(help_text, "location"):
@@ -718,8 +728,13 @@ class VM(virt_vm.BaseVM):
             virt_install_cmd += add_check_cpu(help_text)
 
         smp = params.get("smp")
+        vcpu_max_cpus = params.get("vcpu_maxcpus")
+        vcpu_sockets = params.get("vcpu_sockets")
+        vcpu_cores = params.get("vcpu_cores")
+        vcpu_threads = params.get("vcpu_threads")
         if smp:
-            virt_install_cmd += add_smp(help_text, smp)
+            virt_install_cmd += add_smp(help_text, smp, vcpu_max_cpus,
+                                        vcpu_sockets, vcpu_cores, vcpu_threads)
 
         # TODO: directory location for vmlinuz/kernel for cdrom install ?
         location = None
