@@ -25,6 +25,7 @@ import re
 import socket
 import threading
 import time
+from functools import reduce
 
 from avocado.core import exceptions
 from avocado.utils import crypto
@@ -1779,3 +1780,42 @@ class MemoryHotplugTest(MemoryBaseTest):
                    "but, '%s MB' memory detect by OS" %
                    (vm_mem_size, vm.name, guest_mem_size))
             raise exceptions.TestFail(msg)
+
+    @error_context.context_aware
+    def memory_operate(self, vm, memory, operation='online'):
+        error_context.context(
+            "%s %s in guest OS" %
+            (operation, memory), logging.info)
+        mem_sys_path = "/sys/devices/system/memory/%s" % memory
+        mem_state_path = os.path.join(mem_sys_path, 'state')
+        session = self.get_session(vm)
+        session.cmd("echo %s > %s" % (operation, mem_state_path))
+        output = session.cmd_output_safe("cat %s" % mem_state_path)
+        if operation not in output:
+            return exceptions.TestFail("Fail to %s %s" % (operation, memory))
+
+    def get_memory_state(self, vm, memory):
+        """Get memorys state in guest OS"""
+        mem_sys_path = "/sys/devices/system/memory/%s" % memory
+        mem_state_path = os.path.join(mem_sys_path, 'state')
+        session = self.get_session(vm)
+        status, output = session.cmd_status_output("cat %s" % mem_state_path)
+        if status != 0:
+            raise exceptions.TestError("Fail to read %s state" % memory)
+        return output.strip()
+
+    def get_offline_memorys(self, vm):
+        """Get unusable memory in guest OS"""
+        def is_offline_memory(x):
+            return self.get_memory_state(vm, x) == 'offline'
+
+        memorys = self.get_all_memorys(vm)
+        return set(filter(is_offline_memory, memorys))
+
+    def get_all_memorys(self, vm):
+        """Get all memorys detected in guest OS"""
+        mem_sys_path = "/sys/devices/system/memory"
+        cmd = "ls %s | grep memory" % mem_sys_path
+        session = self.get_session(vm)
+        output = session.cmd_output_safe(cmd, timeout=90)
+        return set([ _ for _ in output.splitlines() if _])
