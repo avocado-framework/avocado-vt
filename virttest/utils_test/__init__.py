@@ -952,7 +952,10 @@ def run_autotest(vm, session, control_path, timeout,
             tarball_url = params.get("client_test_url", tarball_url)
             tests_timeout = int(params.get("download_tests_timeout", "600"))
             tests_tarball = os.path.join(data_dir.get_tmp_dir(), "tests.tgz")
-            download.url_download(tarball_url, tests_tarball, timeout=tests_timeout)
+            download.url_download(
+                tarball_url,
+                tests_tarball,
+                timeout=tests_timeout)
             copy_if_hash_differs(vm, tests_tarball, tests_tarball)
             extract(vm, tests_tarball, tests_dir)
             os.remove(tests_tarball)
