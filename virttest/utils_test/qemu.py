@@ -1695,7 +1695,6 @@ class MemoryHotplugTest(MemoryBaseTest):
             error_context.context(step, logging.info)
             vm.devices.simple_hotplug(dev, vm.monitor)
             self.update_vm_after_hotplug(vm, dev)
-        self.check_memory(vm)
         return devices
 
     @error_context.context_aware
@@ -1709,30 +1708,30 @@ class MemoryHotplugTest(MemoryBaseTest):
         :param name: memory device name
         """
         devices = []
-        mem_qid = "mem-%s" % name
-        step = "Unplug memory object '%s'" % mem_qid
+        qid_mem = "mem-%s" % name
+        step = "Unplug memory object '%s'" % qid_mem
         error_context.context(step, logging.info)
         try:
-            mem = vm.devices.get_by_qid(mem_qid)[0]
+            mem = vm.devices.get_by_qid(qid_mem)[0]
         except IndexError:
             output = vm.monitor.query("memory-devices")
             logging.debug("Memory devices: %s" % output)
-            msg = "Memory object '%s' not exists" % mem_qid
+            msg = "Memory object '%s' not exists" % qid_mem
             raise exceptions.TestError(msg)
+        try:
+            qid_dimm = "dimm-%s" % name
+            dimm = vm.devices.get_by_qid(qid_dimm)[0]
+        except IndexError:
+            logging.warn("'%s' is not used by any dimm" %qid_mem)
+        step = "Unplug pc-dimm '%s'" % qid_dimm
+        error_context.context(step, logging.info)
+        vm.devices.simple_unplug(dimm, vm.monitor)
+        devices.append(dimm)
+        self.update_vm_after_unplug(vm, dimm)
+        error_context.context(step, logging.info)
         vm.devices.simple_unplug(mem, vm.monitor)
         devices.append(mem)
         self.update_vm_after_unplug(vm, mem)
-        try:
-            dimm = vm.devices.get_by_properties({"memdev": mem_qid})[0]
-            step = "Unplug pc-dimm '%s'" % dimm.get_qid()
-            error_context.context(step, logging.info)
-            vm.devices.simple_unplug(dimm, vm.monitor)
-            devices.append(dimm)
-            self.update_vm_after_unplug(vm, dimm)
-            error_context.context(step, logging.info)
-            self.check_memory(vm)
-        except IndexError:
-            logging.warn("'%s' is not used any dimm" % mem_qid)
         return devices
 
     @error_context.context_aware
@@ -1789,7 +1788,7 @@ class MemoryHotplugTest(MemoryBaseTest):
         mem_sys_path = "/sys/devices/system/memory/%s" % memory
         mem_state_path = os.path.join(mem_sys_path, 'state')
         session = self.get_session(vm)
-        session.cmd("echo %s > %s" % (operation, mem_state_path))
+        session.cmd("echo '%s' > %s" % (operation, mem_state_path))
         output = session.cmd_output_safe("cat %s" % mem_state_path)
         if operation not in output:
             return exceptions.TestFail("Fail to %s %s" % (operation, memory))
@@ -1818,4 +1817,4 @@ class MemoryHotplugTest(MemoryBaseTest):
         cmd = "ls %s | grep memory" % mem_sys_path
         session = self.get_session(vm)
         output = session.cmd_output_safe(cmd, timeout=90)
-        return set([ _ for _ in output.splitlines() if _])
+        return set([_ for _ in output.splitlines() if _])
