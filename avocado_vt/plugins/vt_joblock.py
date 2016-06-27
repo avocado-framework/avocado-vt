@@ -9,6 +9,7 @@ import sys
 from avocado.core import exit_codes
 from avocado.core.settings import settings
 from avocado.utils.process import pid_exists
+from avocado.utils.stacktrace import log_exc_info
 
 # Avocado's plugin interface module has changed location. Let's keep
 # compatibility with old for at, least, a new LTS release
@@ -113,6 +114,7 @@ class VTJobLock(JobPre, JobPost):
         except Exception as detail:
             msg = "Failure trying to set Avocado-VT job lock: %s" % detail
             self.log.error(msg)
+            log_exc_info(sys.exc_info(), self.log.name)
             sys.exit(exit_codes.AVOCADO_JOB_FAIL | job.exitcode)
 
     def post(self, job):
