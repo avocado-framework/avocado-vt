@@ -8,7 +8,13 @@ import sys
 
 from avocado.core import exit_codes
 from avocado.core.settings import settings
-from avocado.plugins.base import JobPre, JobPost
+
+# Avocado's plugin interface module has changed location. Let's keep
+# compatibility with old for at, least, a new LTS release
+try:
+    from avocado.core.plugin_interfaces import JobPre, JobPost
+except ImportError:
+    from avocado.plugins.base import JobPre, JobPost
 
 from ..test import VirtTest
 
