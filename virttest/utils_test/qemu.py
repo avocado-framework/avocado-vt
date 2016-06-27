@@ -25,6 +25,7 @@ import re
 import socket
 import threading
 import time
+from functools import reduce
 
 from avocado.core import exceptions
 from avocado.utils import crypto
@@ -848,7 +849,8 @@ class MultihostMigration(object):
                         self.prepare_for_migration(mig_data, None)
                     elif self.hostid == dsthost:
                         if host_offline_migration != "yes":
-                            self.prepare_for_migration(mig_data, self.mig_protocol)
+                            self.prepare_for_migration(
+                                mig_data, self.mig_protocol)
                     else:
                         return
 
@@ -882,7 +884,8 @@ class MultihostMigration(object):
                                                 'wait_for_offline_mig',
                                                 self.finish_timeout)
                             if mig_data.is_dst():
-                                self.prepare_for_migration(mig_data, self.mig_protocol)
+                                self.prepare_for_migration(
+                                    mig_data, self.mig_protocol)
                             self._hosts_barrier(self.hosts,
                                                 mig_data.mig_id,
                                                 'wait2_for_offline_mig',
@@ -1663,8 +1666,8 @@ class MemoryHotplugTest(MemoryBaseTest):
             if val:
                 key = "_".join([attr, dev_type, name])
                 params[key] = val
-        if name not in vm.params.get("mem_devs"):
-            mem_devs = vm.params.objects("mem_devs")
+        mem_devs = vm.params.objects("mem_devs")
+        if name not in mem_devs:
             mem_devs.append(name)
             params["mem_devs"] = " ".join(mem_devs)
         vm.params.update(params)
@@ -1682,13 +1685,12 @@ class MemoryHotplugTest(MemoryBaseTest):
         """
         error_context.context("Update VM object after unplug memory")
         dev_type, name = dev.get_qid().split('-')
-        if name not in vm.params.get("mem_devs"):
-            return None
         mem_devs = vm.params.objects("mem_devs")
-        mem_devs.remove(name)
-        vm.params["mem_devs"] = " ".join(mem_devs)
         if dev in vm.devices:
             vm.devices.remove(dev)
+        if name in mem_devs:
+            mem_devs.remove(name)
+            vm.params["mem_devs"] = " ".join(mem_devs)
         self.env.register_vm(vm.name, vm)
 
     @error_context.context_aware
@@ -1710,7 +1712,6 @@ class MemoryHotplugTest(MemoryBaseTest):
             error_context.context(step, logging.info)
             vm.devices.simple_hotplug(dev, vm.monitor)
             self.update_vm_after_hotplug(vm, dev)
-        self.check_memory(vm)
         return devices
 
     @error_context.context_aware
@@ -1724,36 +1725,36 @@ class MemoryHotplugTest(MemoryBaseTest):
         :param name: memory device name
         """
         devices = []
-        mem_qid = "mem-%s" % name
-        step = "Unplug memory object '%s'" % mem_qid
+        qid_mem = "mem-%s" % name
+        step = "Unplug memory object '%s'" % qid_mem
         error_context.context(step, logging.info)
         try:
-            mem = vm.devices.get_by_qid(mem_qid)[0]
+            mem = vm.devices.get_by_qid(qid_mem)[0]
         except IndexError:
             output = vm.monitor.query("memory-devices")
             logging.debug("Memory devices: %s" % output)
-            msg = "Memory object '%s' not exists" % mem_qid
+            msg = "Memory object '%s' not exists" % qid_mem
             raise exceptions.TestError(msg)
+        try:
+            qid_dimm = "dimm-%s" % name
+            dimm = vm.devices.get_by_qid(qid_dimm)[0]
+        except IndexError:
+            logging.warn("'%s' is not used by any dimm" % qid_mem)
+        step = "Unplug pc-dimm '%s'" % qid_dimm
+        error_context.context(step, logging.info)
+        vm.devices.simple_unplug(dimm, vm.monitor)
+        devices.append(dimm)
+        self.update_vm_after_unplug(vm, dimm)
+        error_context.context(step, logging.info)
         vm.devices.simple_unplug(mem, vm.monitor)
         devices.append(mem)
         self.update_vm_after_unplug(vm, mem)
-        try:
-            dimm = vm.devices.get_by_properties({"memdev": mem_qid})[0]
-            step = "Unplug pc-dimm '%s'" % dimm.get_qid()
-            error_context.context(step, logging.info)
-            vm.devices.simple_unplug(dimm, vm.monitor)
-            devices.append(dimm)
-            self.update_vm_after_unplug(vm, dimm)
-            error_context.context(step, logging.info)
-            self.check_memory(vm)
-        except IndexError:
-            logging.warn("'%s' is not used any dimm" % mem_qid)
         return devices
 
     @error_context.context_aware
     def get_mem_addr(self, vm, qid):
         """
-        Get guest memory address from qemu monitor.
+        Get guest memory address from qemu monitor
 
         :param vm: VM object
         :param qid: memory device qid
@@ -1761,13 +1762,11 @@ class MemoryHotplugTest(MemoryBaseTest):
         error_context.context("Get hotpluged memory address", logging.info)
         if not isinstance(vm.monitor, qemu_monitor.QMPMonitor):
             raise NotImplementedError
-        output = vm.monitor.info("memory-devices")
-        for info in output:
+        for info in vm.monitor.info("memory-devices"):
             if str(info['data']['id']) == qid:
                 address = info['data']['addr']
                 logging.info("Memory address: %s" % address)
                 return address
-        return None
 
     @error_context.context_aware
     def check_memory(self, vm=None):
@@ -1780,6 +1779,7 @@ class MemoryHotplugTest(MemoryBaseTest):
         if not vm:
             vm = self.env.get_vm(self.params["main_vm"])
         vm.verify_alive()
+        threshold = float(self.params.get("threshold", 0.10))
         timeout = float(self.params.get("wait_resume_timeout", 60))
         # Notes:
         #    some sub test will pause VM, here need to wait VM resume
@@ -1789,9 +1789,47 @@ class MemoryHotplugTest(MemoryBaseTest):
         self.os_type = self.params.get("os_type")
         guest_mem_size = super(MemoryHotplugTest, self).get_guest_total_mem(vm)
         vm_mem_size = self.get_vm_mem(vm)
-        threshold = vm_mem_size * 0.06
-        if abs(guest_mem_size - vm_mem_size) > threshold:
+        if abs(guest_mem_size - vm_mem_size) > vm_mem_size * threshold:
             msg = ("Assigned '%s MB' memory to '%s'"
                    "but, '%s MB' memory detect by OS" %
                    (vm_mem_size, vm.name, guest_mem_size))
             raise exceptions.TestFail(msg)
+
+    @error_context.context_aware
+    def memory_operate(self, vm, memory, operation='online'):
+        error_context.context(
+            "%s %s in guest OS" %
+            (operation, memory), logging.info)
+        mem_sys_path = "/sys/devices/system/memory/%s" % memory
+        mem_state_path = os.path.join(mem_sys_path, 'state')
+        session = self.get_session(vm)
+        session.cmd("echo '%s' > %s" % (operation, mem_state_path))
+        output = session.cmd_output_safe("cat %s" % mem_state_path)
+        if operation not in output:
+            return exceptions.TestFail("Fail to %s %s" % (operation, memory))
+
+    def get_memory_state(self, vm, memory):
+        """Get memorys state in guest OS"""
+        mem_sys_path = "/sys/devices/system/memory/%s" % memory
+        mem_state_path = os.path.join(mem_sys_path, 'state')
+        session = self.get_session(vm)
+        status, output = session.cmd_status_output("cat %s" % mem_state_path)
+        if status != 0:
+            raise exceptions.TestError("Fail to read %s state" % memory)
+        return output.strip()
+
+    def get_offline_memorys(self, vm):
+        """Get unusable memory in guest OS"""
+        def is_offline_memory(x):
+            return self.get_memory_state(vm, x) == 'offline'
+
+        memorys = self.get_all_memorys(vm)
+        return set(filter(is_offline_memory, memorys))
+
+    def get_all_memorys(self, vm):
+        """Get all memorys detected in guest OS"""
+        mem_sys_path = "/sys/devices/system/memory"
+        cmd = "ls %s | grep memory" % mem_sys_path
+        session = self.get_session(vm)
+        output = session.cmd_output_safe(cmd, timeout=90)
+        return set([_ for _ in output.splitlines() if _])
