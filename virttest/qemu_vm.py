@@ -435,8 +435,8 @@ class VM(virt_vm.BaseVM):
 
         def add_serial(devices, name, filename):
             if (not devices.has_option("chardev") or
-                    not (devices.has_device("isa-serial") or
-                         devices.has_device("spapr-vty"))):
+                    not any(devices.has_device(dev)
+                            for dev in ("isa-serial", "sclpconsole", "spapr-vty"))):
                 return " -serial unix:'%s',server,nowait" % filename
 
             serial_id = "serial_id_%s" % name
@@ -452,6 +452,10 @@ class VM(virt_vm.BaseVM):
                 # Workaround for console issue, details:
                 #   lists.gnu.org/archive/html/qemu-ppc/2013-10/msg00129.html
                 cmd += _add_option("reg", "0x30000000")
+            elif 's390x' in params.get('vm_arch_name', arch.ARCH):
+                # Only for s390x console:
+                # This is only console option supported now.
+                cmd += " -device sclpconsole"
             cmd += _add_option("chardev", serial_id)
             return cmd
 
@@ -568,6 +572,8 @@ class VM(virt_vm.BaseVM):
                 # value by parsing the xml file, i.e. counting all the
                 # pci devices and store the number.
                 if model == 'virtio-net-device':
+                    dev.parent_bus = {'type': 'virtio-bus'}
+                if model == 'virtio-net-ccw':  # For s390x platform
                     dev.parent_bus = {'type': 'virtio-bus'}
                 elif model != 'spapr-vlan':
                     dev.parent_bus = pci_bus
@@ -1108,6 +1114,9 @@ class VM(virt_vm.BaseVM):
                 logging.warn("-boot on ARM is usually not supported, use "
                              "bootindex instead.")
                 return ""
+            if params.get('machine_type', "").startswith("s390"):
+                logging.warn("-boot on s390x only support boot strict=on")
+                return "-boot strict=on"
             cmd = " -boot"
             patterns = ["order", "once", "menu", "strict"]
             options = []
