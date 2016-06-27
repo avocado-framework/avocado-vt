@@ -447,70 +447,60 @@ def run_file_transfer(test, params, env):
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
     login_timeout = int(params.get("login_timeout", 360))
-
-    error_context.context("Login to guest", logging.info)
     session = vm.wait_for_login(timeout=login_timeout)
-
-    dir_name = test.tmpdir
+    error_context.context("Login to guest", logging.info)
     transfer_timeout = int(params.get("transfer_timeout"))
-    tmp_dir = params.get("tmp_dir", data_dir.get_tmp_dir())
     clean_cmd = params.get("clean_cmd", "rm -f")
     filesize = int(params.get("filesize", 4000))
-    count = int(filesize / 10)
-    if count == 0:
-        count = 1
-
-    host_path = os.path.join(dir_name, "tmp-%s" %
-                             utils_misc.generate_random_string(8))
-    host_path2 = host_path + ".2"
+    count = int(filesize / 10) or 1
+    host_path = tempfile.mktemp(prefix="tmp-", dir=test.tmpdir)
+    if params.get("os_type") != 'windows':
+        tmp_dir = params.get("tmp_dir", "/var/tmp")
+        guest_path = tempfile.mktemp(prefix="transferred-", dir=tmp_dir)
+    else:
+        tmp_dir = params.get("tmp_dir", "c:\\")
+        guest_path = "\\".join([tmp_dir, utils_misc.generate_random_string(8)])
+        guest_path = "\\".join(filter(None, re.split(r"\\+", guest_path)))
     cmd = "dd if=/dev/zero of=%s bs=10M count=%d" % (host_path, count)
-    guest_path = (tmp_dir + "file_transfer-%s" %
-                  utils_misc.generate_random_string(8))
-
     try:
         error_context.context(
             "Creating %dMB file on host" % filesize, logging.info)
         process.run(cmd)
+        original_md5 = crypto.hash_file(host_path, algorithm="md5")
+        error_context.context("Transferring file host -> guest, "
+                              "timeout: %ss" % transfer_timeout, logging.info)
+        vm.copy_files_to(
+            host_path,
+            guest_path,
+            timeout=transfer_timeout,
+            filesize=filesize)
 
-        error_context.context("Transferring file host -> guest,"
-                              " timeout: %ss" % transfer_timeout, logging.info)
-        t_begin = time.time()
-        vm.copy_files_to(host_path, guest_path, timeout=transfer_timeout)
-        t_end = time.time()
-        throughput = filesize / (t_end - t_begin)
-        logging.info("File transfer host -> guest succeed, "
-                     "estimated throughput: %.2fMB/s", throughput)
+        error_context.context("Transferring file guest -> host, "
+                              "timeout: %ss" % transfer_timeout, logging.info)
+        vm.copy_files_from(
+            guest_path,
+            host_path,
+            timeout=transfer_timeout,
+            filesize=filesize)
+        current_md5 = crypto.hash_file(host_path, algorithm="md5")
 
-        error_context.context("Transferring file guest -> host,"
-                              " timeout: %ss" % transfer_timeout, logging.info)
-        t_begin = time.time()
-        vm.copy_files_from(guest_path, host_path2, timeout=transfer_timeout)
-        t_end = time.time()
-        throughput = filesize / (t_end - t_begin)
-        logging.info("File transfer guest -> host succeed, "
-                     "estimated throughput: %.2fMB/s", throughput)
-
-        error_context.context("Compare md5sum between original file and"
-                              " transferred file", logging.info)
-        if (crypto.hash_file(host_path, algorithm="md5") !=
-                crypto.hash_file(host_path2, algorithm="md5")):
+        error_context.context("Compare md5sum between original file and "
+                              "transferred file", logging.info)
+        if original_md5 != current_md5:
             raise exceptions.TestFail("File changed after transfer host -> guest "
                                       "and guest -> host")
-
     finally:
+        try:
+            os.remove(host_path)
+        except OSError, detail:
+            logging.warn("Could not remove temp files in host: '%s'", detail)
         logging.info('Cleaning temp file on guest')
         try:
             session.cmd("%s %s" % (clean_cmd, guest_path))
         except aexpect.ShellError, detail:
             logging.warn("Could not remove temp files in guest: '%s'", detail)
-
-        logging.info('Cleaning temp files on host')
-        try:
-            os.remove(host_path)
-            os.remove(host_path2)
-        except OSError:
-            pass
-        session.close()
+        finally:
+            session.close()
 
 
 @error_context.context_aware
@@ -962,7 +952,10 @@ def run_autotest(vm, session, control_path, timeout,
             tarball_url = params.get("client_test_url", tarball_url)
             tests_timeout = int(params.get("download_tests_timeout", "600"))
             tests_tarball = os.path.join(data_dir.get_tmp_dir(), "tests.tgz")
-            download.url_download(tarball_url, tests_tarball, timeout=tests_timeout)
+            download.url_download(
+                tarball_url,
+                tests_tarball,
+                timeout=tests_timeout)
             copy_if_hash_differs(vm, tests_tarball, tests_tarball)
             extract(vm, tests_tarball, tests_dir)
             os.remove(tests_tarball)

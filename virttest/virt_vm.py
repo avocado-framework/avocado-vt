@@ -1072,7 +1072,7 @@ class BaseVM(object):
     @error_context.context_aware
     def copy_files_to(self, host_path, guest_path, nic_index=0, limit="",
                       verbose=False, timeout=COPY_FILES_TIMEOUT,
-                      username=None, password=None):
+                      username=None, password=None, filesize=None):
         """
         Transfer files to the remote host(guest).
 
@@ -1083,6 +1083,7 @@ class BaseVM(object):
         :param verbose: If True, log some stats using logging.debug (RSS only)
         :param timeout: Time (seconds) before giving up on doing the remote
                 copy.
+        :param filesize: size of file will be transferred
         """
         error_context.context("sending file(s) to '%s'" % self.name)
         if not username:
@@ -1100,13 +1101,14 @@ class BaseVM(object):
                          utils_misc.generate_random_string(4)))
         remote.copy_files_to(address, client, username, password, port,
                              host_path, guest_path, limit, log_filename,
-                             verbose, timeout, interface=neigh_attach_if)
+                             verbose, timeout, interface=neigh_attach_if,
+                             filesize=filesize)
         utils_misc.close_log_file(log_filename)
 
     @error_context.context_aware
     def copy_files_from(self, guest_path, host_path, nic_index=0, limit="",
                         verbose=False, timeout=COPY_FILES_TIMEOUT,
-                        username=None, password=None):
+                        username=None, password=None, filesize=None):
         """
         Transfer files from the guest.
 
@@ -1117,6 +1119,7 @@ class BaseVM(object):
         :param verbose: If True, log some stats using logging.debug (RSS only)
         :param timeout: Time (seconds) before giving up on doing the remote
                 copy.
+        :param filesize: size of file will be transferred
         """
         error_context.context("receiving file(s) from '%s'" % self.name)
         if not username:
@@ -1134,7 +1137,8 @@ class BaseVM(object):
                          utils_misc.generate_random_string(4)))
         remote.copy_files_from(address, client, username, password, port,
                                guest_path, host_path, limit, log_filename,
-                               verbose, timeout, interface=neigh_attach_if)
+                               verbose, timeout, interface=neigh_attach_if,
+                               filesize=filesize)
         utils_misc.close_log_file(log_filename)
 
     def create_serial_console(self):
