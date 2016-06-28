@@ -104,7 +104,10 @@ class VTJobLock(JobPre, JobPost):
                 msg = 'File "%s" acquired by PID %u. ' % (path, lock_pid)
                 raise OtherProcessHoldsLockError(msg)
             else:
-                os.unlink(path)
+                try:
+                    os.unlink(path)
+                except OSError:
+                    self.log.warn("Unable to remove stalled lock: %s" % path)
 
     def pre(self, job):
         try:
