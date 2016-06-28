@@ -578,6 +578,8 @@ class VM(virt_vm.BaseVM):
                     for key, val in nic_extra_params:
                         dev.set_param(key, val)
                 dev.set_param("bootindex", bootindex)
+                if 'aarch64' in params.get('vm_arch_name', arch.ARCH):
+                    dev.set_param("rombar", 0)
             else:
                 dev = qdevices.QCustomDevice('net', backend='type')
                 dev.set_param('type', 'nic')
