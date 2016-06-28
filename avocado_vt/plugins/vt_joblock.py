@@ -8,7 +8,7 @@ import sys
 
 from avocado.core import exit_codes
 from avocado.core.settings import settings
-from avocado.plugins.base import JobPre, JobPost
+from avocado.core.plugin_interfaces import JobPre, JobPost
 
 from ..test import VirtTest
 
