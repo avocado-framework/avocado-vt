@@ -43,7 +43,7 @@ TestCases
 Ntttcp
 ------
 
-The Nttcp test suite is a network performance test for windows, developed by
+The Ntttcp test suite is a network performance test for windows, developed by
 Microsoft. It is *not* a freely redistributable binary, so you must download
 it from the website, here's the direct link for download (keep in mind it might
 change):
@@ -86,7 +86,7 @@ Copy all contents from the original cd to the new structure:
 
     $ cp -r original/* winutils/
 
-Create the destination nttcp directory on that new structure:
+Create the destination ntttcp directory on that new structure:
 
 ::
 

@@ -11,7 +11,7 @@ such downloads. In the source tree:
 
 ::
 
-    shared/download.d/
+    shared/downloads/
 
 Contains a bunch of .ini files, each one with
 download definitions. It is expected that this
@@ -45,9 +45,16 @@ JeOS image
 You can find the JeOS images currently here:
 
 http://assets-avocadoproject.rhcloud.com/static/jeos-20-64.qcow2.7z
+
 http://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS20
+
 http://assets-avocadoproject.rhcloud.com/static/jeos-21-64.qcow2.7z
+
 http://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS21
+
+http://assets-avocadoproject.rhcloud.com/static/jeos-23-64.qcow2.7z
+
+http://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS23
 
 Unfortunately the host `assets-avocadoproject.rhcloud.com` is configured
 in such a way that exploring that base directory won't give you a file

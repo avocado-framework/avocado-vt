@@ -23,7 +23,7 @@ https://help.github.com/articles/fork-a-repo
 ::
 
     [provider]
-    uri: file:///home/user/code/tp-qemu
+    uri: file:///home/user/code/tp-libvirt
     [libvirt]
     subdir: libvirt/
     [libguestfs]
