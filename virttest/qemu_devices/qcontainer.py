@@ -942,7 +942,7 @@ class DevContainer(object):
                                                   parent_bus={'aobject': 'pci.0'}))
             return devices
 
-        def machine_s390x_virtio(cmd=False):
+        def machine_s390_virtio(cmd=False):
             """
             s390x (s390) doesn't support PCI bus.
             :param cmd: If set uses "-M $cmd" to force this machine type
@@ -1001,7 +1001,7 @@ class DevContainer(object):
                 elif arm_machine == 'arm64-mmio':
                     devices = machine_arm64_mmio(cmd)
                 elif machine_type.startswith("s390"):
-                    devices = machine_s390x_virtio(cmd)
+                    devices = machine_s390_virtio(cmd)
                 elif 'isapc' not in machine_type:   # i440FX
                     devices = machine_i440FX(cmd)
                 else:   # isapc (or other)
