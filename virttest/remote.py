@@ -806,7 +806,7 @@ def throughput_transfer(func):
         start_time = time.time()
         ret = func(*args, **kwargs)
         elapsed_time = time.time() - start_time
-        if "filesize" in kwargs:
+        if kwargs.get("fileszie", None) is not None:
             throughput = kwargs["filesize"] / elapsed_time
             msg += "estimated throughput: %.2f MB/s" % throughput
         else:
