@@ -173,7 +173,7 @@ def setup_win_driver_verifier(session, driver, vm, timeout=300):
     logging.info("%s verifier is enabled already" % driver)
 
 
-def clear_win_driver_verifier(session, vm, timeout=300):
+def clear_win_driver_verifier(session, driver, vm, timeout=300):
     """
     Clear the driver verifier in windows guest.
 
