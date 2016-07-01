@@ -171,6 +171,25 @@ class VirtTest(test.Test):
         else:
             raise exc[1], None, exc[2]
 
+    def __safe_env_save(self, env):
+        """
+        Treat "env.save()" exception as warnings
+
+        :param env: The virttest env object
+        :return: True on failure
+        """
+        try:
+            env.save()
+        except Exception as details:
+            if hasattr(stacktrace, "str_unpickable_object"):
+                self.log.warn("Unable to save environment: %s",
+                              stacktrace.str_unpickable_object(env.data))
+            else:    # TODO: Remove when 36.0 LTS is not supported
+                self.log.warn("Unable to save environment: %s (%s)", details,
+                              env.data)
+            return True
+        return False
+
     def runTest(self):
         env_lang = os.environ.get('LANG')
         os.environ['LANG'] = 'C'
@@ -309,7 +328,7 @@ class VirtTest(test.Test):
                     try:
                         params = env_process.preprocess(self, params, env)
                     finally:
-                        env.save()
+                        self.__safe_env_save(env)
 
                     # Run the test function
                     for t_type in t_types:
@@ -320,7 +339,7 @@ class VirtTest(test.Test):
                             run_func(self, params, env)
                             self.verify_background_errors()
                         finally:
-                            env.save()
+                            self.__safe_env_save(env)
                     test_passed = True
                     error_message = funcatexit.run_exitfuncs(env, t_type)
                     if error_message:
@@ -335,7 +354,7 @@ class VirtTest(test.Test):
                     try:
                         env_process.postprocess_on_error(self, params, env)
                     finally:
-                        env.save()
+                        self.__safe_env_save(env)
                     raise
 
             finally:
@@ -350,7 +369,8 @@ class VirtTest(test.Test):
                         logging.error("Exception raised during "
                                       "postprocessing: %s", e)
                 finally:
-                    env.save()
+                    if self.__safe_env_save(env):
+                        env.destroy()   # Force-clean as it can't be stored
 
         except Exception, e:
             if params.get("abort_on_error") != "yes":
@@ -420,6 +440,10 @@ class VirtTest(test.Test):
             raise stdout_check_exception
         elif stderr_check_exception is not None:
             raise stderr_check_exception
+        elif self._Test__log_warn_used:
+            raise exceptions.TestWarn("Test passed but there were warnings "
+                                      "during execution. Check the log for "
+                                      "details.")
 
         self.status = 'PASS'
         self.sysinfo_logger.end_test_hook()
