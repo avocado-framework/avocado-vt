@@ -24,7 +24,9 @@ python
 %end
 
 %post
-function ECHO { for TTY in `cat /proc/consoles | cut -f1 -d' '`; do echo "$*" > /dev/$TTY; done }
+# FIXME: Remove the /dev/ttysclp0 workaround when s390x console bug is resolved
+# https://bugzilla.redhat.com/show_bug.cgi?id=1351968
+function ECHO { for TTY in `[ -e /dev/ttysclp0 ] && echo ttysclp0; cat /proc/consoles | cut -f1 -d' '`; do echo "$*" > /dev/$TTY; done }
 ECHO "OS install is completed"
 grubby --remove-args="rhgb quiet" --update-kernel=$(grubby --default-kernel)
 dhclient

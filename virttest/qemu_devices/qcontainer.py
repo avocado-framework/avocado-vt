@@ -1365,14 +1365,15 @@ class DevContainer(object):
             if scsi_hba != "virtio-scsi-pci":
                 num_queues = None
             addr_spec = None
-            if scsi_hba == 'lsi53c895a' or scsi_hba == 'spapr-vscsi':
+            if scsi_hba == 'lsi53c895a':
                 addr_spec = [8, 16384]
             elif scsi_hba == 'virtio-scsi-pci':
                 addr_spec = [256, 16384]
             elif scsi_hba == 'virtio-scsi-device':
                 addr_spec = [256, 16384]
                 pci_bus = {'type': 'virtio-bus'}
-            if scsi_hba == 'spapr-vscsi':
+            if scsi_hba in ('spapr-vscsi', "virtio-scsi-ccw"):
+                addr_spec = [8, 16384]
                 pci_bus = None
             _, bus, dev_parent = define_hbas('SCSI', scsi_hba, bus, unit, port,
                                              qbuses.QSCSIBus, pci_bus,
