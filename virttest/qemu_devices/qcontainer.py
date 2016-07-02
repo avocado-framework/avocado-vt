@@ -427,10 +427,19 @@ class DevContainer(object):
         """
         if self.__execute_qemu_last != options:
             cmd = "%s %s 2>&1" % (self.__qemu_binary, options)
-            self.__execute_qemu_out = str(process.run(cmd, timeout=timeout,
-                                                      ignore_status=True,
-                                                      shell=True,
-                                                      verbose=False).stdout)
+            result = process.run(cmd, timeout=timeout,
+                                 ignore_status=True,
+                                 shell=True,
+                                 verbose=False)
+            if result.exit_status and "machine specified" in result.stdout:
+                # TODO: Arm requires machine to be specified, let's try again
+                # with dummy "virt" machine
+                result = process.run("%s -machine virt %s 2>&1"
+                                     % (self.__qemu_binary, options),
+                                     ignore_status=True, shell=True,
+                                     verbose=False)
+            self.__execute_qemu_out = str(result.stdout)
+        self.__execute_qemu_last = options
         return self.__execute_qemu_out
 
     def get_buses(self, bus_spec, type_test=False):
