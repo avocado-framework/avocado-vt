@@ -439,6 +439,7 @@ class DevContainer(object):
                                      ignore_status=True, shell=True,
                                      verbose=False)
             self.__execute_qemu_out = str(result.stdout)
+        self.__execute_qemu_last = options
         return self.__execute_qemu_out
 
     def get_buses(self, bus_spec, type_test=False):
