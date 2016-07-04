@@ -286,11 +286,14 @@ class _IscsiComm(object):
         Get device name from the target name.
         """
         cmd = "iscsiadm -m session -P 3"
-        device_name = ""
+        pattern = r"%s.*?disk\s(\w+)\s+\S+\srunning" % self.target
+        device_name = []
         if self.logged_in():
             output = process.system_output(cmd)
-            pattern = r"Target:\s+%s.*?disk\s(\w+)\s+\S+\srunning" % self.target
-            device_name = re.findall(pattern, output, re.S)
+            targets = output.split('Target: ')[1:]
+            for target in targets:
+                if self.target in target:
+                    device_name = re.findall(pattern, target, re.S)
             try:
                 device_name = "/dev/%s" % device_name[0]
             except IndexError:
