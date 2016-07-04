@@ -1,6 +1,48 @@
-======================================
-Running QEMU unittests with Avocado-VT
-======================================
+===========================
+Running QEMU kvm-unit-tests
+===========================
+
+Currently there are two ways to run kvm-unit-tests. Newer one with per test
+results method is `Run kvm-unit-tests in avocado`_ and the older one
+`Run kvm-unit-tests in avocado-vt`_ which requires manual modifications and
+only reports overall results.
+
+
+Run kvm-unit-tests in avocado
+=============================
+
+There is a contrib script to run kvm-unit-test using `external-runner`
+Avocado feature. It optionally downloads the latest kvm-unit-test from
+Git, compiles it and runs the tests inside avocado.
+
+The contrib script is located in ``$AVOCADO/contrib/testsuites/run-kvm-unit-test.sh``
+or can be downloaded from:
+https://raw.githubusercontent.com/avocado-framework/avocado/master/contrib/testsuites/run-kvm-unit-test.sh
+
+Then you simply run it and wait for results::
+
+    $ ./contrib/testsuites/run-kvm-unit-test.sh
+    JOB ID     : ca00d570f03b4942368ec9c407d69a881d98eb9d
+    JOB LOG    : /home/medic/avocado/job-results/job-2016-07-04T09.38-ca00d57/job.log
+    TESTS      : 38
+     (01/38) access: PASS (4.77 s)
+     (02/38) apic: PASS (5.10 s)
+     (03/38) debug: PASS (1.82 s)
+     (04/38) emulator:  ^C
+    Interrupt requested. Waiting 2 seconds for test to finish (ignoring new Ctrl+C until then)
+
+    INTERRUPTED (0.84 s)
+    RESULTS    : PASS 3 | ERROR 0 | FAIL 0 | SKIP 34 | WARN 0 | INTERRUPT 1
+    JOB HTML   : /home/medic/avocado/job-results/job-2016-07-04T09.38-ca00d57/html/results.html
+    TESTS TIME : 12.54 s
+
+.. note:: You can specify various options including the avocado arguments.
+          Use the `-h` to see them all (eg. wildcard to specify tests pattern
+          or path to avoid (re)downloading of the kvm-unit-test)
+
+
+Run kvm-unit-tests in avocado-vt
+================================
 
 For a while now, qemu-kvm does contain a unittest suite that can be used
 to assess the behavior of some KVM subsystems. Ideally, they are
