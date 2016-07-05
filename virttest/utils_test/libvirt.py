@@ -353,44 +353,59 @@ def check_blockjob(vm_name, target, check_point="none", value="0"):
     :param vm_name: Domain name
     :param target: Domian disk target dev
     :param check_point: Job progrss, bandwidth or none(no job)
-    :param value: Value of progress, bandwidth or 0(no job)
+    :param value: Value of progress, bandwidth(with unit) or 0(no job)
     :return: Boolean value, true for pass, false for fail
     """
     if check_point not in ["progress", "bandwidth", "none"]:
         logging.error("Check point must be: progress, bandwidth or none")
         return False
-
     try:
         cmd_result = virsh.blockjob(
             vm_name, target, "--info", debug=True, ignore_status=True)
         output = cmd_result.stdout.strip()
         err = cmd_result.stderr.strip()
         status = cmd_result.exit_status
-    except:
-        raise exceptions.TestFail("Error occur when running blockjob command.")
-    if status == 0:
-        # libvirt print job progress to stderr
-        if not len(err):
-            logging.debug("No block job find")
-            if check_point == "none":
-                return True
-        else:
-            if check_point == "none":
-                logging.error("Expect no job but find block job:\n%s", err)
-            elif check_point == "progress":
-                progress = value + " %"
-                if re.search(progress, err):
-                    return True
-            elif check_point == "bandwidth":
-                bandwidth = value + " MiB/s"
-                if bandwidth == output.split(':')[1].strip():
-                    logging.debug("Bandwidth is equal to %s", bandwidth)
-                    return True
-                else:
-                    logging.error("Bandwidth is not equal to %s", bandwidth)
-    else:
+    except Exception, e:
+        logging.error("Error occurred: %s", e)
+        return False
+    if status:
         logging.error("Run blockjob command fail")
-    return False
+        return False
+    # libvirt print block job progress to stderr
+    if check_point == 'none':
+        if len(err):
+            logging.error("Expect no job but find block job:\n%s", err)
+            return False
+        return True
+    if check_point == "progress":
+        progress = value + " %"
+        if re.search(progress, err):
+            return True
+        return False
+    # Since 1.3.3-1, libvirt support bytes and scaled integers for bandwith,
+    # and the output of blockjob may looks like:
+    # # virsh blockjob avocado-vt-vm1 vda --info
+    # Block Copy: [100 %]    Bandwidth limit: 9223372036853727232 bytes/s (8.000 EiB/s)
+    #
+    # So we need specific the bandwidth unit when calling this function
+    # and universalize the unit before comparing
+    if check_point == "bandwidth":
+        try:
+            bandwidth, unit = re.findall(r'(\d+) (\w+)/s', output)[0]
+            # unit could be 'bytes' or 'Mib'
+            if unit == 'bytes':
+                unit = 'B'
+            else:
+                unit = 'M'
+            u_value = utils_misc.normalize_data_size(value, unit)
+            if float(u_value) == float(bandwidth):
+                logging.debug("Bandwidth is equal to %s", bandwidth)
+                return True
+            logging.error("Bandwidth is not equal to %s", bandwidth)
+            return False
+        except Exception, e:
+            logging.error("Fail to get bandwidth: %s", e)
+            return False
 
 
 def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
