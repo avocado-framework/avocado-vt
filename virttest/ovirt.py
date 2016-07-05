@@ -168,8 +168,15 @@ class VMManager(virt_vm.BaseVM):
         """
         Return MAC address of a VM.
         """
+        vnet_list = self.instance.nics.list()
         try:
-            return self.instance.nics.get(name=net_name).get_mac().get_address()
+            if len(vnet_list) == 1:
+                return self.instance.nics.get(name=net_name).get_mac().get_address()
+            # Multiple network interfaces
+            elif len(vnet_list) > 1:
+                for vnet in vnet_list:
+                    if self.address_cache.get(vnet.get_mac().get_address()):
+                        return vnet.get_mac().get_address()
         except Exception, e:
             logging.error('Failed to get %s status:\n%s' % (self.name, str(e)))
 
