@@ -78,10 +78,10 @@ class VirtTest(test.Test):
     env_version = utils_env.get_env_version()
 
     def __init__(self, methodName='runTest', name=None, params=None,
-                 base_logdir=None, tag=None, job=None, runner_queue=None,
+                 base_logdir=None, job=None, runner_queue=None,
                  vt_params=None):
         """
-        :note: methodName, name, base_logdir, tag, job and runner_queue params
+        :note: methodName, name, base_logdir, job and runner_queue params
                are inherited from test.Test
         :param params: avocado/multiplexer params stored as
                        `self.avocado_params`.
@@ -100,8 +100,7 @@ class VirtTest(test.Test):
         self.whiteboard = None
         super(VirtTest, self).__init__(methodName=methodName, name=name,
                                        params=params,
-                                       base_logdir=base_logdir,
-                                       tag=tag, job=job,
+                                       base_logdir=base_logdir, job=job,
                                        runner_queue=runner_queue)
         self.builddir = os.path.join(self.workdir, 'backends',
                                      vt_params.get("vm_type"))
@@ -222,7 +221,7 @@ class VirtTest(test.Test):
         # Report virt test version
         logging.info(version.get_pretty_version_info())
         # Report the parameters we've received and write them as keyvals
-        logging.info("Starting test %s", self.tag)
+        logging.info("Starting test %s", self.name)
         logging.debug("Test parameters:")
         keys = params.keys()
         keys.sort()
