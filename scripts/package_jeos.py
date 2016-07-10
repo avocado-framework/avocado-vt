@@ -33,7 +33,7 @@ def package_jeos(img):
     shutil.move(img, backup)
     logging.info("Backup %s saved", backup)
 
-    process.system("%s convert -f qcow2 -O qcow2 %s %s" % (qemu_img, backup, img))
+    process.system("%s convert -f qcow2 -O qcow2 -o compat=0.10 %s %s" % (qemu_img, backup, img))
     logging.info("Sparse file %s created successfully", img)
 
     archiver = utils_misc.find_command('7za')
