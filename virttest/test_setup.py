@@ -15,6 +15,7 @@ from avocado.utils import wait
 from avocado.utils import genio
 from avocado.utils import build
 from avocado.utils import path
+from avocado.core import exceptions
 
 from . import data_dir
 from . import error_context
@@ -930,7 +931,9 @@ class PciAssignable(object):
                 if "allow_unsafe_assigned_interrupts" in i:
                     self.auai_path = i
         if self.setup:
-            self.sr_iov_setup()
+            if not self.sr_iov_setup():
+                msg = "SR-IOV setup on host failed"
+                raise exceptions.TestSetupFail(msg)
 
     def add_device(self, device_type="vf", name=None, mac=None):
         """
@@ -1106,7 +1109,8 @@ class PciAssignable(object):
         """
 
         cmd = "lspci | awk '/%s/ {print $1}'" % self.pf_filter_re
-        pf_ids = [i for i in process.system_output(cmd, shell=True).splitlines()]
+        pf_ids = [i for i in process.system_output(
+            cmd, shell=True).splitlines()]
         pf_vf_dict = []
         for pf_id in pf_ids:
             pf_info = {}
@@ -1356,6 +1360,9 @@ class PciAssignable(object):
                                       "command '%s'" % (self.driver, cmd),
                                       logging.info)
                 status = process.system(cmd, ignore_status=True)
+            if not self.check_vfs_count():
+                # Even after re-probe there are no VFs created
+                return False
             dmesg = process.system_output("dmesg", timeout=60,
                                           ignore_status=True,
                                           verbose=False)
