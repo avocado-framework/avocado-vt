@@ -21,6 +21,7 @@ import string
 import random
 import shutil
 import signal
+import tempfile
 
 import remote_interface
 import messenger as ms
@@ -28,8 +29,8 @@ import messenger as ms
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-handler = logging.FileHandler("/tmp/remote_runner.log", "w", encoding=None,
-                              delay="true")
+logfile = tempfile.mktemp(suffix='.log', prefix='remote_runner', dir="/tmp")
+handler = logging.FileHandler(logfile, "w", encoding=None, delay="true")
 logger.addHandler(handler)
 
 
