@@ -937,8 +937,9 @@ class PoolVolumeTest(object):
                                                  emulated_image=emulated_image,
                                                  image_size=image_size)
 
-        if pool_type == "dir" and not persistent:
-            pool_target = os.path.join(self.tmpdir, pool_target)
+        if pool_type == "dir":
+            if not os.path.isdir(pool_target):
+                pool_target = os.path.join(self.tmpdir, pool_target)
             if not os.path.exists(pool_target):
                 os.mkdir(pool_target)
         elif pool_type == "disk":
