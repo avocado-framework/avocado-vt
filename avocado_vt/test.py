@@ -221,7 +221,6 @@ class VirtTest(test.Test):
         # Report virt test version
         logging.info(version.get_pretty_version_info())
         # Report the parameters we've received and write them as keyvals
-        logging.info("Starting test %s", self.name)
         logging.debug("Test parameters:")
         keys = params.keys()
         keys.sort()
