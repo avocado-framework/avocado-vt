@@ -3497,6 +3497,7 @@ def get_bootloader_cfg(session=None):
             status = process.system(cmd)
         if not status:
             cfg_path = path
+            break
     if not cfg_path:
         logging.error("Failed to locate bootloader config file "
                       "in %s." % bootloader_cfg)
