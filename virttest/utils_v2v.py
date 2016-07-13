@@ -606,8 +606,23 @@ class WindowsVMCheck(VMCheck):
         cmd = "DRIVERQUERY"
         if signed:
             cmd += " /SI"
-        status, output = self.session.cmd_status_output(cmd)
-        return self.run_cmd(cmd)[1]
+        # Try 5 times to get driver info
+        output, count = '', 5
+        while count > 0:
+            logging.debug('%d times remaining for getting driver info' % count)
+            try:
+                output = self.session.cmd_output(cmd)
+            except Exception as detail:
+                logging.error(detail)
+                count -= 1
+                # Clean up output
+                self.session.cmd('cls')
+            else:
+                break
+        if not output:
+            logging.error('Fail to get driver info')
+        logging.debug("Command output:\n%s", output)
+        return output
 
     def get_windows_event_info(self):
         """
