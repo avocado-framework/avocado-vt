@@ -1,6 +1,5 @@
 import os
 import time
-import commands
 import re
 import logging
 import glob
@@ -662,8 +661,7 @@ def preprocess(test, params, env):
 
     if kvm_ver_cmd:
         try:
-            cmd_result = avocado_process.run(kvm_ver_cmd)
-            kvm_version = cmd_result.stdout.strip()
+            kvm_version = avocado_process.system_output(kvm_ver_cmd).strip()
         except avocado_process.CmdError:
             kvm_version = "Unknown"
     else:
@@ -685,13 +683,14 @@ def preprocess(test, params, env):
 
     if kvm_userspace_ver_cmd:
         try:
-            cmd_result = avocado_process.run(kvm_userspace_ver_cmd)
-            kvm_userspace_version = cmd_result.stdout.strip()
+            kvm_userspace_version = avocado_process.system_output(
+                kvm_userspace_ver_cmd).strip()
         except avocado_process.CmdError:
             kvm_userspace_version = "Unknown"
     else:
         qemu_path = utils_misc.get_qemu_binary(params)
-        version_line = commands.getoutput("%s -help | head -n 1" % qemu_path)
+        version_output = avocado_process.system_output("%s -help" % qemu_path)
+        version_line = version_output.split('\n')[0]
         matches = re.findall("[Vv]ersion .*?,", version_line)
         if matches:
             kvm_userspace_version = " ".join(matches[0].split()[1:]).strip(",")
