@@ -99,15 +99,20 @@ class VTJobLock(JobPre, JobPost):
         lock_files = self._get_lock_files()
         lock_files.remove(self.lock_file)
         for path in lock_files:
-            lock_pid = int(open(path, 'r').read())
-            if pid_exists(lock_pid):
-                msg = 'File "%s" acquired by PID %u. ' % (path, lock_pid)
-                raise OtherProcessHoldsLockError(msg)
+            try:
+                lock_pid = int(open(path, 'r').read())
+            except:
+                msg = 'Cannot read PID from "%s".' % path
+                raise LockCreationError(msg)
             else:
-                try:
-                    os.unlink(path)
-                except OSError:
-                    self.log.warn("Unable to remove stale lock: %s", path)
+                if pid_exists(lock_pid):
+                    msg = 'File "%s" acquired by PID %u. ' % (path, lock_pid)
+                    raise OtherProcessHoldsLockError(msg)
+                else:
+                    try:
+                        os.unlink(path)
+                    except OSError:
+                        self.log.warn("Unable to remove stale lock: %s", path)
 
     def pre(self, job):
         try:
