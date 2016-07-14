@@ -960,3 +960,177 @@ class Dimm(QDevice):
         if dev_id_name not in out:
             return True
         return False
+
+
+class CharDevice(QCustomDevice):
+    """
+    Qemu Char Device object, hotplug and hotunplug only support via QMP
+    monitor.
+    """
+    backends = [
+        "null", "socket", "udp", "msmouse", "vc", "ringbuf", "file",
+        "pipe", "pty", "stdio", "serial", "tty", "parallel", "parport",
+        "spicevmc", "spiceport"
+    ]
+
+    def __init__(self,
+                 params=None,
+                 aobject=None,
+                 parent_bus=None,
+                 child_bus=None):
+        backend = params.get("backend", "socket")
+        self.verify_supported_backend(backend)
+        options = self.get_supported_options(backend)
+        params = params.copy_from_keys(options)
+        params = self.format_params(params)
+        params['backend'] = backend
+        super(CharDevice, self).__init__(
+            'chardev',
+            backend='backend',
+            params=params,
+            aobject=aobject,
+            parent_bus=parent_bus,
+            child_bus=child_bus)
+
+    def verify_supported_backend(self, backend):
+        if backend not in self.backends:
+            raise DeviceError("Unknow chardev backend '%s'" % backend)
+
+    def get_supported_options(self, backend):
+        """
+        Get chardev backend support options.
+
+        :param backend: chardev backend type which include in backends list.
+        :return set: set of support options.
+        """
+        special_opts, common_opts = [], ["id", "logfile", "logappend"]
+
+        if backend not in ["socket", "vc", "ringbuf",
+                           "spiceport", "spicevmc"]:
+            common_opts.append("mux")
+
+        elif backend in ["file", "pipe", "serial",
+                         "tty", "parallel", "parport"]:
+            special_opts.append("path")
+
+        elif backend in ["spicevmc", "spiceport"]:
+            special_opts += ["name", "debug"]
+
+        elif backend in ["stdio"]:
+            special_opts.append("signal")
+
+        elif backend in ["socket"]:
+            common_opts += ["server", "nowait", "reconnect"]
+            special_opts = ["host", "port", "to", "ipv4",
+                            "ipv6", "nodelay", "path"]
+
+        elif backend == 'udp':
+            special_opts = ["host", "port", "localaddr",
+                            "localport", "ipv4", "ipv6"]
+
+        return set(common_opts + special_opts)
+
+    def format_params(self, params):
+        """
+        Format params by support options type
+
+        :param params: chardev test params.
+        :return dict: formated params only include suppprt options.
+        """
+        for opt in ["server", "telnet", "nowait",
+                    "ipv4", "ipv6", "nodelay"]:
+            if params.get(opt) in ["yes", "on", True]:
+                params[opt] = "NO_EQUAL_STRING"
+            elif opt in params:
+                del params[opt]
+        for opt in ["mux", "signal"]:
+            if params.get(opt) in ["yes", "on", True]:
+                params[opt] = True
+            elif params.get(opt) in ["no", "off", False]:
+                params[opt] = False
+            elif opt in params:
+                del params[opt]
+
+        return params
+
+    def get_qmp_args(self):
+        """
+        Get chardev hotplug requried args by backend type
+
+        :return dict: dict include chardev-add requried args.
+        """
+        args = {"id": self.get_qid(),
+                "backend": {"type": self.params.get("backend"),
+                            "data": {}}}
+        if self.params.get("backend") == "socket":
+            if self.get_param("port"):
+                addr_type = "inet"
+                host = self.get_param("host") or "0.0.0.0"
+                addr_data = {"host": host, "port": self.get_param("port")}
+            else:
+                addr_type = "unix"
+                addr_data = {"path": self.get_param("path")}
+            args["backend"]["data"]["addr"] = {"type": addr_type,
+                                               "data": addr_data}
+            if addr_type == "inet":
+                sock_params = ["telnet", "ipv4", "ipv6", "nodelay"]
+            else:
+                sock_params = ["server", "nowait"]
+
+            for param in sock_params:
+                if self.get_param(param) is None:
+                    continue
+                value = True if self.get_param(param) else False
+                if param == "nowait":
+                    value = not value
+                    param = "wait"
+                args["backend"]["data"][param] = value
+            return args
+
+        if self.params.get("backend") == "file":
+            args["backend"]["data"] = {"out": self.get_param("path")}
+            return args
+
+        if self.params.get("backend") in ["null", "pty"]:
+            return args
+
+        if self.params.get("backend") in ["serial", "parallel"]:
+            args["backend"]["data"] = {"device": self.get_param("path")}
+            return args
+
+        raise DeviceError("chardev '%s' not support hotplug" %
+                          self.params.get("backend"))
+
+    def hotplug_qmp(self):
+        """ :return: hotplug command and args"""
+        return "chardev-add", self.get_qmp_args()
+
+    def hotplug_hmp(self):
+        """ :return: the hotplug monitor command """
+        raise NotImplementedError
+
+    def unplug_hmp(self):
+        """ :return: the unplug monitor command """
+        raise NotImplementedError
+
+    def unplug_qmp(self):
+        """ :return: unplug command and args"""
+        return "chardev-remove", {"id": self.get_qid()}
+
+    def verify_hotplug(self, out, monitor):
+        """
+        :param out: Output of the hotplug command
+        :param monitor: Monitor used for hotplug
+        :return: True when successful, False when unsuccessful, string/None
+                 when can't decide.
+        """
+        out = monitor.query("chardev")
+        return self.get_qid() in out
+
+    def verify_unplug(self, out, monitor):  # pylint: disable=W0613,R0201
+        """
+        :param out: Output of the unplug command
+        :param monitor: Monitor used for unplug
+        """
+        out = monitor.query("chardev")
+        return self.get_qid() not in out
