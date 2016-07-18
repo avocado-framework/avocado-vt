@@ -3,17 +3,17 @@ Running QEMU kvm-unit-tests
 ===========================
 
 Currently there are two ways to run kvm-unit-tests. Newer one with per test
-results method is `Run kvm-unit-test in avocado`_ and the older one
-`Run kvm-unit-test in avocado-vt`_ which requires manual modifications and
+results method is `Run kvm-unit-tests in avocado`_ and the older one
+`Run kvm-unit-tests in avocado-vt`_ which requires manual modifications and
 only reports overall results.
 
 
-Run kvm-unit-test in avocado
-============================
+Run kvm-unit-tests in avocado
+=============================
 
 There is a contrib script to run kvm-unit-test using `external-runner`
-avocado feature. It optionally downloads the latest kvm-unit-test from
-git, compiles it and runs the tests inside avocado.
+Avocado feature. It optionally downloads the latest kvm-unit-test from
+Git, compiles it and runs the tests inside avocado.
 
 The contrib script is located in ``$AVOCADO/contrib/testsuites/run-kvm-unit-test.sh``
 or can be downloaded from:
@@ -41,8 +41,8 @@ Then you simply run it and wait for results::
           or path to avoid (re)downloading of the kvm-unit-test)
 
 
-Run kvm-unit-test in avocado-vt
-===============================
+Run kvm-unit-tests in avocado-vt
+================================
 
 For a while now, qemu-kvm does contain a unittest suite that can be used
 to assess the behavior of some KVM subsystems. Ideally, they are
