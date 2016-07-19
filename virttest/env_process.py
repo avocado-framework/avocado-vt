@@ -689,7 +689,8 @@ def preprocess(test, params, env):
             kvm_userspace_version = "Unknown"
     else:
         qemu_path = utils_misc.get_qemu_binary(params)
-        version_output = avocado_process.system_output("%s -help" % qemu_path)
+        version_output = avocado_process.system_output("%s -help" % qemu_path,
+                                                       verbose=False)
         version_line = version_output.split('\n')[0]
         matches = re.findall("[Vv]ersion .*?,", version_line)
         if matches:
