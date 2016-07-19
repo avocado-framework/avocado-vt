@@ -573,7 +573,7 @@ class VM(virt_vm.BaseVM):
                 # pci devices and store the number.
                 if model == 'virtio-net-device':
                     dev.parent_bus = {'type': 'virtio-bus'}
-                if model == 'virtio-net-ccw':  # For s390x platform
+                elif model == 'virtio-net-ccw':  # For s390x platform
                     dev.parent_bus = {'type': 'virtio-bus'}
                 elif model != 'spapr-vlan':
                     dev.parent_bus = pci_bus
