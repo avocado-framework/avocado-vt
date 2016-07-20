@@ -1,8 +1,6 @@
 import platform
 ARCH = platform.machine()
-# Set the default machine to i440fx for unidentifed arch also
-# Below line can be removed once support for all possible arch is covered
-DEFAULT_MACHINE_TYPE = "i440fx"
+DEFAULT_MACHINE_TYPE = None
 
 if ARCH in ('ppc64', 'ppc64le'):
     DEFAULT_MACHINE_TYPE = "pseries"
