@@ -39,9 +39,9 @@ def guest_listing(options):
     if options.vt_type == 'lvsb':
         raise ValueError("No guest types available for lvsb testing")
     index = 0
-    LOG.debug("Searched %s for guest images\n",
+    LOG.debug("Using %s for guest images\n",
               os.path.join(data_dir.get_data_dir(), 'images'))
-    LOG.debug("Available guests in config:\n")
+    LOG.info("Available guests in config:")
     guest_name_parser = standalone_test.get_guest_name_parser(options)
     guest_name_parser.only_filter('i440fx')
     for params in guest_name_parser.get_dicts():
@@ -55,6 +55,7 @@ def guest_listing(options):
             missing = "(missing %s)" % os.path.basename(image_name)
             out = (name + " " + output.TERM_SUPPORT.warn_header_str(missing))
         LOG.debug(out)
+    LOG.debug("")
 
 
 class VirtTestLoader(loader.TestLoader):
