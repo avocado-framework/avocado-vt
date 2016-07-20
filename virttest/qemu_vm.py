@@ -561,7 +561,13 @@ class VM(virt_vm.BaseVM):
                 if not model:
                     model = "rtl8139"
                 elif model == "virtio":
-                    model = "virtio-net-pci"
+                    machine_type = self.params.get("machine_type")
+                    if "s390" in machine_type:
+                        model = "virtio-net-ccw"
+                    elif "mmio" in machine_type:
+                        model = "virtio-net-device"
+                    else:
+                        model = "virtio-net-pci"
                 dev = QDevice(model)
                 if ctrl_mac_addr and ctrl_mac_addr in ["on", "off"]:
                     dev.set_param('ctrl_mac_addr', ctrl_mac_addr)
