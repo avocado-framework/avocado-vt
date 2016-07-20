@@ -19,7 +19,6 @@ Avocado VT plugin
 import copy
 import logging
 import os
-import sys
 
 from avocado.core import loader
 from avocado.core import output
@@ -37,6 +36,9 @@ LOG = logging.getLogger("avocado.app")
 
 
 def guest_listing(options):
+    """
+    List available guest os and info about image availability
+    """
     if options.vt_type == 'lvsb':
         raise ValueError("No guest types available for lvsb testing")
     index = 0
@@ -60,6 +62,10 @@ def guest_listing(options):
 
 class VirtTestLoader(loader.TestLoader):
 
+    """
+    Avocado loader plugin to load avocado-vt tests
+    """
+
     name = 'vt'
 
     def __init__(self, args, extra_params):
@@ -67,40 +73,40 @@ class VirtTestLoader(loader.TestLoader):
         self._fill_optional_args()
 
     def _fill_optional_args(self):
-        def add_if_not_exist(arg, value):
+        def _add_if_not_exist(arg, value):
             if not hasattr(self.args, arg):
                 setattr(self.args, arg, value)
-        add_if_not_exist('vt_config', None)
-        add_if_not_exist('vt_verbose', True)
-        add_if_not_exist('vt_log_level', 'debug')
-        add_if_not_exist('vt_console_level', 'debug')
-        add_if_not_exist('vt_datadir', data_dir.get_data_dir())
-        add_if_not_exist('vt_config', None)
-        add_if_not_exist('vt_arch', None)
-        add_if_not_exist('vt_machine_type', None)
-        add_if_not_exist('vt_keep_guest_running', False)
-        add_if_not_exist('vt_backup_image_before_test', True)
-        add_if_not_exist('vt_restore_image_after_test', True)
-        add_if_not_exist('vt_mem', 1024)
-        add_if_not_exist('vt_no_filter', '')
-        add_if_not_exist('vt_qemu_bin', None)
-        add_if_not_exist('vt_dst_qemu_bin', None)
-        add_if_not_exist('vt_nettype', 'user')
-        add_if_not_exist('vt_only_type_specific', False)
-        add_if_not_exist('vt_tests', '')
-        add_if_not_exist('vt_connect_uri', 'qemu:///system')
-        add_if_not_exist('vt_accel', 'kvm')
-        add_if_not_exist('vt_monitor', 'human')
-        add_if_not_exist('vt_smp', 1)
-        add_if_not_exist('vt_image_type', 'qcow2')
-        add_if_not_exist('vt_nic_model', 'virtio_net')
-        add_if_not_exist('vt_disk_bus', 'virtio_blk')
-        add_if_not_exist('vt_vhost', 'off')
-        add_if_not_exist('vt_malloc_perturb', 'yes')
-        add_if_not_exist('vt_qemu_sandbox', 'on')
-        add_if_not_exist('vt_tests', '')
-        add_if_not_exist('show_job_log', False)
-        add_if_not_exist('test_lister', True)
+        _add_if_not_exist('vt_config', None)
+        _add_if_not_exist('vt_verbose', True)
+        _add_if_not_exist('vt_log_level', 'debug')
+        _add_if_not_exist('vt_console_level', 'debug')
+        _add_if_not_exist('vt_datadir', data_dir.get_data_dir())
+        _add_if_not_exist('vt_config', None)
+        _add_if_not_exist('vt_arch', None)
+        _add_if_not_exist('vt_machine_type', None)
+        _add_if_not_exist('vt_keep_guest_running', False)
+        _add_if_not_exist('vt_backup_image_before_test', True)
+        _add_if_not_exist('vt_restore_image_after_test', True)
+        _add_if_not_exist('vt_mem', 1024)
+        _add_if_not_exist('vt_no_filter', '')
+        _add_if_not_exist('vt_qemu_bin', None)
+        _add_if_not_exist('vt_dst_qemu_bin', None)
+        _add_if_not_exist('vt_nettype', 'user')
+        _add_if_not_exist('vt_only_type_specific', False)
+        _add_if_not_exist('vt_tests', '')
+        _add_if_not_exist('vt_connect_uri', 'qemu:///system')
+        _add_if_not_exist('vt_accel', 'kvm')
+        _add_if_not_exist('vt_monitor', 'human')
+        _add_if_not_exist('vt_smp', 1)
+        _add_if_not_exist('vt_image_type', 'qcow2')
+        _add_if_not_exist('vt_nic_model', 'virtio_net')
+        _add_if_not_exist('vt_disk_bus', 'virtio_blk')
+        _add_if_not_exist('vt_vhost', 'off')
+        _add_if_not_exist('vt_malloc_perturb', 'yes')
+        _add_if_not_exist('vt_qemu_sandbox', 'on')
+        _add_if_not_exist('vt_tests', '')
+        _add_if_not_exist('show_job_log', False)
+        _add_if_not_exist('test_lister', True)
 
     def _get_parser(self):
         options_processor = VirtTestOptionsProcess(self.args)

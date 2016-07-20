@@ -27,7 +27,7 @@ from avocado.utils import path as utils_path
 try:
     from avocado.core.plugin_interfaces import CLI
 except ImportError:
-    from avocado.plugins.base import CLI
+    from avocado.plugins.base import CLI    # pylint: disable=E0611,E0401
 
 from virttest import data_dir
 from virttest import defaults
