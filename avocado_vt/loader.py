@@ -109,7 +109,6 @@ class VirtTestLoader(loader.TestLoader):
     def get_extra_listing(self):
         if self.args.vt_list_guests:
             guest_listing(self.args)
-            sys.exit(0)
 
     @staticmethod
     def get_type_label_mapping():
