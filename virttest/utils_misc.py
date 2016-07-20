@@ -566,7 +566,7 @@ def generate_tmp_file_name(file_name, ext=None,
     return file_name
 
 
-def format_str_for_message(sr):
+def format_str_for_message(msg):
     """
     Format str so that it can be appended to a message.
     If str consists of one line, prefix it with a space.
@@ -574,15 +574,15 @@ def format_str_for_message(sr):
 
     :param str: string that will be formatted.
     """
-    lines = str.splitlines()
+    lines = msg.splitlines()
     num_lines = len(lines)
-    sr = "\n".join(lines)
+    msg = "\n".join(lines)
     if num_lines == 0:
         return ""
     elif num_lines == 1:
-        return " " + sr
+        return " " + msg
     else:
-        return "\n" + sr
+        return "\n" + msg
 
 
 def wait_for(func, timeout, first=0.0, step=1.0, text=None):
