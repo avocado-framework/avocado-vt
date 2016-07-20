@@ -43,7 +43,6 @@ def guest_listing(options):
               os.path.join(data_dir.get_data_dir(), 'images'))
     LOG.info("Available guests in config:")
     guest_name_parser = standalone_test.get_guest_name_parser(options)
-    guest_name_parser.only_filter('i440fx')
     for params in guest_name_parser.get_dicts():
         index += 1
         base_dir = params.get("images_base_dir", data_dir.get_data_dir())
