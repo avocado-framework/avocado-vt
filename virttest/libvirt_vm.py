@@ -777,7 +777,10 @@ class VM(virt_vm.BaseVM):
         if location:
             virt_install_cmd += add_location(help_text, location)
 
-        if params.get("display") == "vnc":
+        # Disable display when vga is disabled (used mainly by machines.cfg)
+        if params.get("vga") == "none":
+            virt_install_cmd += add_nographic(help_text)
+        elif params.get("display") == "vnc":
             if params.get("vnc_autoport") == "yes":
                 vm.vnc_autoport = True
             else:
