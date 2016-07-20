@@ -48,14 +48,14 @@ AUTOTEST_PATH = None
 
 if 'AUTOTEST_PATH' in os.environ:
     AUTOTEST_PATH = os.path.expanduser(os.environ['AUTOTEST_PATH'])
-    client_dir = os.path.join(os.path.abspath(AUTOTEST_PATH), 'client')
-    setup_modules_path = os.path.join(client_dir, 'setup_modules.py')
-    if not os.path.exists(setup_modules_path):
+    CLIENT_DIR = os.path.join(os.path.abspath(AUTOTEST_PATH), 'client')
+    SETUP_MODULES_PATH = os.path.join(CLIENT_DIR, 'SETUP_MODULES.py')
+    if not os.path.exists(SETUP_MODULES_PATH):
         raise EnvironmentError("Although AUTOTEST_PATH has been declared, "
-                               "%s missing." % setup_modules_path)
-    setup_modules = imp.load_source('autotest_setup_modules',
-                                    setup_modules_path)
-    setup_modules.setup(base_path=client_dir,
+                               "%s missing." % SETUP_MODULES_PATH)
+    SETUP_MODULES = imp.load_source('autotest_setup_modules',
+                                    SETUP_MODULES_PATH)
+    SETUP_MODULES.setup(base_path=CLIENT_DIR,
                         root_module_name="autotest.client")
 
 from autotest.client.shared import error
