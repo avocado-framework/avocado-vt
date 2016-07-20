@@ -16,6 +16,7 @@
 Avocado VT plugin
 """
 
+import copy
 import logging
 import os
 import sys
@@ -107,7 +108,10 @@ class VirtTestLoader(loader.TestLoader):
 
     def get_extra_listing(self):
         if self.args.vt_list_guests:
-            guest_listing(self.args)
+            args = copy.copy(self.args)
+            args.vt_config = None
+            args.vt_guest_os = None
+            guest_listing(args)
 
     @staticmethod
     def get_type_label_mapping():
