@@ -27,8 +27,9 @@ from avocado.core.settings import settings
 try:
     from avocado.core.plugin_interfaces import CLI
 except ImportError:
-    from avocado.plugins.base import CLI
+    from avocado.plugins.base import CLI    # pylint: disable=E0401,E0611
 
+from .vt import add_basic_vt_options, add_qemu_bin_vt_option
 from ..loader import VirtTestLoader
 
 
@@ -40,15 +41,15 @@ AUTOTEST_PATH = None
 
 if 'AUTOTEST_PATH' in os.environ:
     AUTOTEST_PATH = os.path.expanduser(os.environ['AUTOTEST_PATH'])
-    client_dir = os.path.join(os.path.abspath(AUTOTEST_PATH), 'client')
-    setup_modules_path = os.path.join(client_dir, 'setup_modules.py')
-    if not os.path.exists(setup_modules_path):
+    CLIENT_DIR = os.path.join(os.path.abspath(AUTOTEST_PATH), 'client')
+    SETUP_MODULES_PATH = os.path.join(CLIENT_DIR, 'SETUP_MODULES.py')
+    if not os.path.exists(SETUP_MODULES_PATH):
         raise EnvironmentError("Although AUTOTEST_PATH has been declared, "
-                               "%s missing." % setup_modules_path)
+                               "%s missing." % SETUP_MODULES_PATH)
     import imp
-    setup_modules = imp.load_source('autotest_setup_modules',
-                                    setup_modules_path)
-    setup_modules.setup(base_path=client_dir,
+    SETUP_MODULES = imp.load_source('autotest_setup_modules',
+                                    SETUP_MODULES_PATH)
+    SETUP_MODULES.setup(base_path=CLIENT_DIR,
                         root_module_name="autotest.client")
 
 # The code below is used by this plugin to find the virt test directory,
@@ -66,9 +67,7 @@ else:
 if VIRT_TEST_PATH is not None:
     sys.path.append(os.path.expanduser(VIRT_TEST_PATH))
 
-from virttest.standalone_test import SUPPORTED_TEST_TYPES
-from virttest import defaults
-from virttest import data_dir
+from virttest import data_dir   # pylint: disable=C0413
 
 
 _PROVIDERS_DOWNLOAD_DIR = os.path.join(data_dir.get_test_providers_dir(),
@@ -103,39 +102,14 @@ class VTLister(CLI):
 
         vt_compat_group_lister = list_subcommand_parser.add_argument_group(
             'Virt-Test compat layer - Lister options')
-        vt_compat_group_lister.add_argument("--vt-type", action="store",
-                                            dest="vt_type",
-                                            help="Choose test type (%s). "
-                                                 "Default: qemu" %
-                                            ", ".join(SUPPORTED_TEST_TYPES),
-                                            default='qemu')
-        vt_compat_group_lister.add_argument("--vt-guest-os", action="store",
-                                            dest="vt_guest_os",
-                                            default=None,
-                                            help=("Select the guest OS to be "
-                                                  "used (different guests "
-                                                  "support different test "
-                                                  "lists). You can list "
-                                                  "available guests "
-                                                  "with --vt-list-guests. "
-                                                  "Default: %s" %
-                                                  defaults.DEFAULT_GUEST_OS))
         vt_compat_group_lister.add_argument("--vt-list-guests",
                                             action="store_true",
                                             default=False,
-                                            help="List available guests")
-        machine = settings.get_value('vt.common', 'machine_type',
-                                     default=defaults.DEFAULT_MACHINE_TYPE)
-        vt_compat_group_lister.add_argument("--vt-machine-type",
-                                            help="Choose the VM machine type. "
-                                            "Default: %s" % machine,
-                                            default=machine)
-        vt_compat_group_lister.add_argument("--vt-only-filter", action="store",
-                                            dest="vt_only_filter", default="",
-                                            help=("List of space separated "
-                                                  "'only' filters to be passed"
-                                                  " to the config parser. "
-                                                  " Default: ''"))
+                                            help="Also list the available "
+                                            "guests (this option ignores the "
+                                            "--vt-config and --vt-guest-os)")
+        add_basic_vt_options(vt_compat_group_lister)
+        add_qemu_bin_vt_option(vt_compat_group_lister)
 
     def run(self, args):
         loader.register_plugin(VirtTestLoader)

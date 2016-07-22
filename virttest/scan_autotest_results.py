@@ -94,8 +94,8 @@ if __name__ == "__main__":
     import glob
     import os
     dirname = os.path.dirname(sys.modules[__name__].__file__)
-    client_dir = os.path.abspath(os.path.join(dirname, ".."))
-    resfiles = glob.glob(os.path.join(client_dir, 'results', '*', 'status*'))
+    CLIENT_DIR = os.path.abspath(os.path.join(dirname, ".."))
+    resfiles = glob.glob(os.path.join(CLIENT_DIR, 'results', '*', 'status*'))
 
     if len(sys.argv) > 1:
         if sys.argv[1] == "-h" or sys.argv[1] == "--help":
