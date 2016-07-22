@@ -1947,13 +1947,20 @@ class RemoteVMManager(object):
         """
         pri_key = '~/.ssh/id_rsa'
         pub_key = '~/.ssh/id_rsa.pub'
-        if os.path.exists(pri_key) and os.path.exists(pub_key):
-            logging.info("SSH key pair already exist")
+        # Check the private key and public key file on remote host.
+        cmd = "ls %s %s" % (pri_key, pub_key)
+        result = self.runner.run(cmd, ignore_status=True)
+        if result.exit_status:
+            logging.debug("Create new SSH key pair")
+            self.runner.run("ssh-keygen -t rsa -q -N '' -f %s" % pri_key)
         else:
-            logging.info("Create new SSH key pair")
-            self.runner.run("ssh-keygen -y -t rsa -q -N '' -f %s" % pri_key)
+            logging.info("SSH key pair already exist")
         session = self.runner.session
-        session.sendline("ssh-copy-id -i %s root@%s" % (pub_key, vm_ip))
+        # To avoid the host key checking
+        ssh_options = "%s %s" % ("-o UserKnownHostsFile=/dev/null",
+                                 "-o StrictHostKeyChecking=no")
+        session.sendline("ssh-copy-id %s -i %s root@%s"
+                         % (ssh_options, pub_key, vm_ip))
         while True:
             matched_strs = [r"[Aa]re you sure", r"[Pp]assword:\s*$",
                             r"lost connection", r"]#"]
@@ -2004,15 +2011,32 @@ class RemoteVMManager(object):
             raise exceptions.TestFail("Failed to ping %s: %s" % (vm_ip,
                                                                  result.stdout))
 
-    def run_command(self, vm_ip, command, vm_user="root", runner=None):
+    def run_command(self, vm_ip, command, vm_user="root", runner=None,
+                    ignore_status=False):
         """
         Run command in the VM.
+
+        :param vm_ip: The IP address of the VM
+        :param command: The command to be executed in the VM
+        :param vm_user: The logon user to the VM
+        :param runner: The runner to execute the command
+        :param ignore_status: True, not raise an exception and
+            will return CmdResult object. False, raise an exception.
+
+        :raise: exceptions.TestFail, if the command fails
+        :return: CmdResult object
         """
-        cmd = "ssh %s@%s '%s'" % (vm_user, vm_ip, command)
+        ssh_options = "%s %s" % ("-o UserKnownHostsFile=/dev/null",
+                                 "-o StrictHostKeyChecking=no")
+        cmd = 'ssh %s %s@%s "%s"' % (ssh_options, vm_user, vm_ip, command)
+        ret = None
         try:
-            self.runner.run(cmd)
-        except exceptions.CmdError, detail:
+            ret = self.runner.run(cmd, ignore_status=ignore_status)
+        except process.CmdError, detail:
             logging.debug("Failed to run '%s' in the VM: %s", cmd, detail)
+            raise exceptions.TestFail("Failed to run '%s' in the VM: %s",
+                                      cmd, detail)
+        return ret
 
 
 def canonicalize_disk_address(disk_address):
