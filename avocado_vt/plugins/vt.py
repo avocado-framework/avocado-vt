@@ -27,7 +27,7 @@ from avocado.utils import path as utils_path
 try:
     from avocado.core.plugin_interfaces import CLI
 except ImportError:
-    from avocado.plugins.base import CLI
+    from avocado.plugins.base import CLI    # pylint: disable=E0611,E0401
 
 from virttest import data_dir
 from virttest import defaults
@@ -49,6 +49,72 @@ except (OSError, AssertionError):
                            "plugin to get rid of this message")
 
 
+def add_basic_vt_options(parser):
+    """
+    Add basic vt options to parser
+    """
+    parser.add_argument("--vt-config", action="store", dest="vt_config",
+                        help="Explicitly choose a cartesian config. When "
+                        "choosing this, some options will be ignored (see "
+                        "options below)")
+    msg = ("Choose test type (%s). Default: %%(default)s" %
+           ", ".join(SUPPORTED_TEST_TYPES))
+    parser.add_argument("--vt-type", action="store", dest="vt_type",
+                        help=msg, default='qemu')
+    arch = settings.get_value('vt.common', 'arch', default=None)
+    parser.add_argument("--vt-arch", help="Choose the VM architecture. "
+                        "Default: %(default)s", default=arch)
+    machine = settings.get_value('vt.common', 'machine_type',
+                                 default=defaults.DEFAULT_MACHINE_TYPE)
+    parser.add_argument("--vt-machine-type", help="Choose the VM machine type."
+                        " Default: %(default)s", default=machine)
+    parser.add_argument("--vt-guest-os", action="store",
+                        dest="vt_guest_os", default=defaults.DEFAULT_GUEST_OS,
+                        help="Select the guest OS to be used. If --vt-config "
+                        "is provided, this will be ignored. Default: "
+                        "%(default)s")
+    parser.add_argument("--vt-no-filter", action="store", dest="vt_no_filter",
+                        default="", help="List of space separated 'no' filters"
+                        " to be passed to the config parser.  Default: "
+                        "'%(default)s'")
+    parser.add_argument("--vt-only-filter", action="store",
+                        dest="vt_only_filter", default="", help="List of space"
+                        " separated 'only' filters to be passed to the config "
+                        "parser.  Default: '%(default)s'")
+
+
+def add_qemu_bin_vt_option(parser):
+    """
+    Add qemu-bin vt option to parser
+    """
+    def _str_or_none(arg):
+        if arg is None:
+            return "Could not find one"
+        else:
+            return arg
+
+    try:
+        qemu_bin_path = standalone_test.find_default_qemu_paths()[0]
+    except (RuntimeError, utils_path.CmdNotFoundError):
+        qemu_bin_path = None
+    qemu_bin = settings.get_value('vt.qemu', 'qemu_bin',
+                                  default=qemu_bin_path)
+    parser.add_argument("--vt-qemu-bin", action="store", dest="vt_qemu_bin",
+                        default=qemu_bin, help="Path to a custom qemu binary "
+                        "to be tested. If --vt-config is provided and this "
+                        "flag is omitted, no attempt to set the qemu binaries "
+                        "will be made. Current: %s" % _str_or_none(qemu_bin))
+    qemu_dst = settings.get_value('vt.qemu', 'qemu_dst_bin',
+                                  default=qemu_bin_path)
+    parser.add_argument("--vt-qemu-dst-bin", action="store",
+                        dest="vt_dst_qemu_bin", default=qemu_dst, help="Path "
+                        "to a custom qemu binary to be tested for the "
+                        "destination of a migration, overrides --vt-qemu-bin. "
+                        "If --vt-config is provided and this flag is omitted, "
+                        "no attempt to set the qemu binaries will be made. "
+                        "Current: %s" % _str_or_none(qemu_dst))
+
+
 class VTRun(CLI):
 
     """
@@ -64,26 +130,14 @@ class VTRun(CLI):
 
         :param parser: Main test runner parser.
         """
-        def str_or_none(arg):
-            if arg is None:
-                return "Could not find one"
-            else:
-                return arg
         run_subcommand_parser = parser.subcommands.choices.get('run', None)
         if run_subcommand_parser is None:
             return
-
-        try:
-            qemu_bin_path = standalone_test.find_default_qemu_paths()[0]
-        except (RuntimeError, utils_path.CmdNotFoundError):
-            qemu_bin_path = None
 
         qemu_nw_msg = "QEMU network option (%s). " % ", ".join(
             SUPPORTED_NET_TYPES)
         qemu_nw_msg += "Default: user"
 
-        vt_compat_group_setup = run_subcommand_parser.add_argument_group(
-            'Virt-Test compat layer - VM Setup options')
         vt_compat_group_common = run_subcommand_parser.add_argument_group(
             'Virt-Test compat layer - Common options')
         vt_compat_group_qemu = run_subcommand_parser.add_argument_group(
@@ -91,94 +145,21 @@ class VTRun(CLI):
         vt_compat_group_libvirt = run_subcommand_parser.add_argument_group(
             'Virt-Test compat layer - Libvirt options')
 
-        vt_compat_group_common.add_argument("--vt-config", action="store",
-                                            dest="vt_config",
-                                            help=("Explicitly choose a "
-                                                  "cartesian config. "
-                                                  "When choosing this, "
-                                                  "some options will be "
-                                                  "ignored (see options "
-                                                  "below)"))
-        vt_compat_group_common.add_argument("--vt-type", action="store",
-                                            dest="vt_type",
-                                            help=("Choose test type (%s). "
-                                                  "Default: qemu" %
-                                                  ", ".join(
-                                                      SUPPORTED_TEST_TYPES)),
-                                            default='qemu')
-        arch = settings.get_value('vt.common', 'arch', default=None)
-        vt_compat_group_common.add_argument("--vt-arch",
-                                            help="Choose the VM architecture. "
-                                            "Default: %s" % arch,
-                                            default=arch)
-        machine = settings.get_value('vt.common', 'machine_type',
-                                     default=defaults.DEFAULT_MACHINE_TYPE)
-        vt_compat_group_common.add_argument("--vt-machine-type",
-                                            help="Choose the VM machine type. "
-                                            "Default: %s" % machine,
-                                            default=machine)
-        vt_compat_group_common.add_argument("--vt-guest-os", action="store",
-                                            dest="vt_guest_os",
-                                            default=defaults.DEFAULT_GUEST_OS,
-                                            help=("Select the guest OS to "
-                                                  "be used. If --vt-config is "
-                                                  "provided, this will be "
-                                                  "ignored. Default: %s" %
-                                                  defaults.DEFAULT_GUEST_OS))
-        vt_compat_group_common.add_argument("--vt-no-filter", action="store",
-                                            dest="vt_no_filter", default="",
-                                            help=("List of space separated "
-                                                  "'no' filters to be passed "
-                                                  "to the config parser. "
-                                                  " Default: ''"))
-        vt_compat_group_common.add_argument("--vt-only-filter", action="store",
-                                            dest="vt_only_filter", default="",
-                                            help=("List of space separated "
-                                                  "'only' filters to be passed"
-                                                  " to the config parser. "
-                                                  " Default: ''"))
-        qemu_bin = settings.get_value('vt.qemu', 'qemu_bin',
-                                      default=qemu_bin_path)
-        vt_compat_group_qemu.add_argument("--vt-qemu-bin", action="store",
-                                          dest="vt_qemu_bin",
-                                          default=qemu_bin,
-                                          help=("Path to a custom qemu binary "
-                                                "to be tested. If --vt-config "
-                                                "is provided and this flag is "
-                                                "omitted, no attempt to set "
-                                                "the qemu binaries will be "
-                                                "made. Current: %s" %
-                                                str_or_none(qemu_bin)))
-        qemu_dst = settings.get_value('vt.qemu', 'qemu_dst_bin',
-                                      default=qemu_bin_path)
-        vt_compat_group_qemu.add_argument("--vt-qemu-dst-bin", action="store",
-                                          dest="vt_dst_qemu_bin",
-                                          default=qemu_dst,
-                                          help=("Path to a custom qemu binary "
-                                                "to be tested for the "
-                                                "destination of a migration, "
-                                                "overrides --vt-qemu-bin. "
-                                                "If --vt-config is provided "
-                                                "and this flag is omitted, "
-                                                "no attempt to set the qemu "
-                                                "binaries will be made. "
-                                                "Current: %s" %
-                                                str_or_none(qemu_dst)))
+        add_basic_vt_options(vt_compat_group_common)
+        add_qemu_bin_vt_option(vt_compat_group_qemu)
         vt_compat_group_qemu.add_argument("--vt-extra-params", nargs='*',
                                           help="List of 'key=value' pairs "
                                           "passed to cartesian parser.")
         supported_uris = ", ".join(SUPPORTED_LIBVIRT_URIS)
+        msg = ("Choose test connect uri for libvirt (E.g: %s). "
+               "Current: %%(default)s" % supported_uris)
         uri_current = settings.get_value('vt.libvirt', 'connect_uri',
                                          default=None)
         vt_compat_group_libvirt.add_argument("--vt-connect-uri",
                                              action="store",
                                              dest="vt_connect_uri",
                                              default=uri_current,
-                                             help=("Choose test connect uri "
-                                                   "for libvirt (E.g: %s). "
-                                                   "Current: %s" %
-                                                   (supported_uris,
-                                                    uri_current)))
+                                             help=msg)
 
     def run(self, args):
         """
