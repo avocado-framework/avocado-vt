@@ -1763,7 +1763,7 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
     """
 
     __slots__ = ('vcpupins', 'emulatorpin', 'shares', 'period', 'quota',
-                 'emulator_period', 'emulator_quota')
+                 'emulator_period', 'emulator_quota', 'iothreadpins')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementList('vcpupins', self, parent_xpath='/',
@@ -1771,6 +1771,9 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
                                  marshal_to=self.marshal_to_vcpupins)
         accessors.XMLAttribute('emulatorpin', self, parent_xpath='/',
                                tag_name='emulatorpin', attribute='cpuset')
+        accessors.XMLElementList('iothreadpins', self, parent_xpath='/',
+                                 marshal_from=self.marshal_from_iothreadpins,
+                                 marshal_to=self.marshal_to_iothreadpins)
         for slot in self.__all_slots__:
             if slot in ('shares', 'period', 'quota', 'emulator_period',
                         'emulator_quota'):
@@ -1800,6 +1803,30 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
         del index
         del libvirtxml
         if tag != 'vcpupin':
+            return None
+        return dict(attr_dict)
+
+    @staticmethod
+    def marshal_from_iothreadpins(item, index, libvirtxml):
+        """
+        Convert a dict to iothreadpin tag and attributes.
+        """
+        del index
+        del libvirtxml
+        if not isinstance(item, dict):
+            raise xcepts.LibvirtXMLError("Expected a dictionary of host "
+                                         "attributes, not a %s"
+                                         % str(item))
+        return ('iothreadpin', dict(item))
+
+    @staticmethod
+    def marshal_to_iothreadpins(tag, attr_dict, index, libvirtxml):
+        """
+        Convert a iothreadpin tag and attributes to a dict.
+        """
+        del index
+        del libvirtxml
+        if tag != 'iothreadpin':
             return None
         return dict(attr_dict)
 
@@ -2179,12 +2206,10 @@ class VMMemTuneXML(base.LibvirtXMLBase):
 class VMIothreadidsXML(VMXML):
 
     """
-    memoryBacking tag XML class
+    iothreadids tag XML class
 
     Elements:
-        hugepages
-        nosharepages
-        locked
+        iothread
     """
 
     __slots__ = ('iothread',)
@@ -2194,7 +2219,7 @@ class VMIothreadidsXML(VMXML):
                                  marshal_from=self.marshal_from_iothreads,
                                  marshal_to=self.marshal_to_iothreads)
         super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-        self.xml = '<iothread/>'
+        self.xml = '<iothreadids/>'
 
     @staticmethod
     def marshal_from_iothreads(item, index, libvirtxml):

@@ -4194,3 +4194,71 @@ def click_button(name, left_button=True, **dargs):
     cmd = "mouse_button 0"
     qemu_monitor_command(name=name, cmd=cmd, options='--hmp', **dargs)
     time.sleep(1)
+
+
+def iothreadadd(name, thread_id, options=None, **dargs):
+    """
+    Add an IOThread to the guest domain.
+
+    :param name: domain name
+    :param thread_id: domain iothread ID
+    :param options: options may be live, config and current
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult instance
+    """
+    cmd = "iothreadadd %s %s" % (name, thread_id)
+    if options:
+        cmd += " %s" % options
+
+    return command(cmd, **dargs)
+
+
+def iothreaddel(name, thread_id, options=None, **dargs):
+    """
+    Delete an IOThread from the guest domain.
+
+    :param name: domain name
+    :param thread_id: domain iothread ID
+    :param options: options may be live, config and current
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult instance
+    """
+    cmd = "iothreaddel %s %s" % (name, thread_id)
+    if options:
+        cmd += " %s" % options
+
+    return command(cmd, **dargs)
+
+
+def iothreadinfo(name, options=None, **dargs):
+    """
+    View domain IOThreads.
+
+    :param name: domain name
+    :param options: options may be live, config and current
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult instance
+    """
+    cmd = "iothreadinfo %s" % name
+    if options:
+        cmd += " %s" % options
+
+    return command(cmd, **dargs)
+
+
+def iothreadpin(name, thread_id, cpuset, options=None, **dargs):
+    """
+    Control domain IOThread affinity.
+
+    :param name: domain name
+    :param thread_id: domain iothread ID
+    :param cpuset: host cpu number(s) to set
+    :param options: options may be live, config and current
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult instance
+    """
+    cmd = "iothreadpin %s %s %s" % (name, thread_id, cpuset)
+    if options:
+        cmd += " %s" % options
+
+    return command(cmd, **dargs)

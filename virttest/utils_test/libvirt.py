@@ -2855,3 +2855,37 @@ def get_vol_list(pool_name, vol_check=True, timeout=5):
             raise exceptions.TestError("Volume path %s not exist" % vol_path)
 
     return vols
+
+
+def get_iothreadsinfo(vm_name, options=None):
+    """
+    Parse domain iothreadinfo.
+
+    :param vm_name: Domain name
+    :return: The dict of domain iothreads
+
+    ::
+        # virsh iothreadinfo vm2
+        IOThread ID CPU Affinity
+        ---------------------------------------------------
+        2 3
+        1 0-4
+        4 0-7
+        3 0-7
+
+    The function return a dict like:
+
+    ::
+        {'2': '3', '1': '0-4', '4': '0-7', '3': '0-7'}
+    """
+    info_dict = {}
+    ret = virsh.iothreadinfo(vm_name, options,
+                             debug=True, ignore_status=True)
+    if ret.exit_status:
+        logging.warning(ret.stderr.strip())
+        return info_dict
+    info_list = re.findall(r"(\d+) +(\S+)", ret.stdout, re.M)
+    for info in info_list:
+        info_dict[info[0]] = info[1]
+
+    return info_dict
