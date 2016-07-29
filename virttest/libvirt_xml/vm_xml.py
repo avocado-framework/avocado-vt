@@ -1222,7 +1222,7 @@ class VMXML(VMXMLBase):
         self.set_devices(devices)
 
     @staticmethod
-    def add_security_info(vmxml, passwd):
+    def add_security_info(vmxml, passwd, virsh_instance=base.virsh):
         """
         Add passwd for graphic
 
@@ -1234,7 +1234,25 @@ class VMXML(VMXMLBase):
         graphics = devices[graphics_index]
         graphics.passwd = passwd
         vmxml.devices = devices
-        vmxml.define()
+        vmxml.define(virsh_instance)
+
+    @staticmethod
+    def set_graphics_attr(vm_name, attr, index=0, virsh_instance=base.virsh):
+        """
+        Set attributes of graphics label of vm xml
+
+        :param vm_name: name of vm
+        :param attr: attributes dict to set
+        :param index: index of graphics label to set
+        :param virsh_instance: virsh instance
+        """
+        vmxml = VMXML.new_from_inactive_dumpxml(
+                vm_name, virsh_instance=virsh_instance)
+        graphic = vmxml.xmltreefile.find('devices').findall('graphics')
+        for key in attr:
+            logging.debug("Set %s='%s'" % (key, attr[key]))
+            graphic[index].set(key, attr[key])
+        vmxml.sync(virsh_instance=virsh_instance)
 
     def get_graphics_devices(self, type_name=""):
         """
