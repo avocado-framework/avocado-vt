@@ -939,6 +939,36 @@ class HumanMonitor(Monitor):
         cmd += " %s" % device
         return self.send_args_cmd(cmd)
 
+    def pause_block_job(self, device, cmd="block_job_pause", correct=True):
+        """
+        Pause an active block streaming operation.
+        :param device: device ID
+        :param cmd: pause block job command
+        :param correct: auto correct command, correct by default
+
+        :return: The command's output
+        """
+        if correct:
+            cmd = self.correct(cmd)
+        self.verify_supported_cmd(cmd)
+        cmd += " %s" % device
+        return self.send_args_cmd(cmd)
+
+    def resume_block_job(self, device, cmd="block_job_resume", correct=True):
+        """
+        Resume a paused block streaming operation.
+        :param device: device ID
+        :param cmd: resume block job command
+        :param correct: auto correct command, correct by default
+
+        :return: The command's output
+        """
+        if correct:
+            cmd = self.correct(cmd)
+        self.verify_supported_cmd(cmd)
+        cmd += " %s" % device
+        return self.send_args_cmd(cmd)
+
     def query_block_job(self, device):
         """
         Get block job status on the device
@@ -1956,6 +1986,36 @@ class QMPMonitor(Monitor):
         Cancel running block stream/mirror job on the device
 
         :param device: device ID
+        :param correct: auto correct command, correct by default
+
+        :return: The command's output
+        """
+        if correct:
+            cmd = self.correct(cmd)
+        self.verify_supported_cmd(cmd)
+        args = {"device": device}
+        return self.cmd(cmd, args)
+
+    def pause_block_job(self, device, cmd="block-job-pause", correct=True):
+        """
+        Pause an active block streaming operation.
+        :param device: device ID
+        :param cmd: pause block job command
+        :param correct: auto correct command, correct by default
+
+        :return: The command's output
+        """
+        if correct:
+            cmd = self.correct(cmd)
+        self.verify_supported_cmd(cmd)
+        args = {"device": device}
+        return self.cmd(cmd, args)
+
+    def resume_block_job(self, device, cmd="block-job-resume", correct=True):
+        """
+        Resume a paused block streaming operation.
+        :param device: device ID
+        :param cmd: resume block job command
         :param correct: auto correct command, correct by default
 
         :return: The command's output

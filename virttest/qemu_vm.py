@@ -4209,6 +4209,28 @@ class VM(virt_vm.BaseVM):
         cmd = self.params.get("block_job_cancel_cmd", "block-job-cancel")
         return self.monitor.cancel_block_job(device, cmd, correct=correct)
 
+    def pause_block_job(self, device, correct=True):
+        """
+        Pause an active block streaming operation.
+        :param device: device ID
+        :param correct: auto correct command, correct by default
+
+        :return: The command's output
+        """
+        cmd = self.params.get("block_job_pause_cmd", "block-job-pause")
+        return self.monitor.pause_block_job(device, cmd, correct=correct)
+
+    def resume_block_job(self, device, correct=True):
+        """
+        Resume a paused block streaming operation.
+        :param device: device ID
+        :param correct: auto correct command, correct by default
+
+        :return: The command's output
+        """
+        cmd = self.params.get("block_job_resume_cmd", "block-job-resume")
+        return self.monitor.resume_block_job(device, cmd, correct=correct)
+
     def set_job_speed(self, device, speed="0", correct=True):
         """
         set max speed of block job;
