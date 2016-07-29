@@ -2557,7 +2557,7 @@ def normalize_data_size(value_str, order_magnitude="M", factor="1024"):
             pass
         return 0
 
-    regex = r"(\d+)\s*(\w?)"
+    regex = r"(\d+\.?\d*)\s*(\w?)"
     match = re.search(regex, value_str)
     try:
         value = match.group(1)
