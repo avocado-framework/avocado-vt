@@ -766,6 +766,8 @@ class IscsiLIO(_IscsiComm):
                          "cache_dynamic_acls=1"))
             output = process.system_output(auth_cmd + attr_cmd)
             logging.info("Define access rights: %s" % output)
+            # Discovery the target
+            self.portal_visible()
 
         # Save configuration
         process.system("targetcli / saveconfig")

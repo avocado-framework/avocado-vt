@@ -10,7 +10,6 @@ This exports:
 import re
 import logging
 
-from avocado.core import exceptions
 from avocado.utils import process
 
 from . import storage
@@ -410,7 +409,7 @@ class StoragePool(object):
                      (source_host, source_name, extra))
             self.virsh_instance.pool_define_as(name, "rbd", "",
                                                extra, ignore_status=False)
-        except exceptions.CmdError:
+        except process.CmdError:
             logging.error("Define rbd pool '%s' failed.", name)
             return False
         logging.info("Define pool '%s'", name)
