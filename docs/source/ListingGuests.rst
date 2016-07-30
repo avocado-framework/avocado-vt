@@ -6,7 +6,7 @@ If you want to see all guests defined, you can use
 
 ::
 
-    $ avocado list -vt-type [test type] --vt-list-guests
+    $ avocado list --vt-type [test type] --vt-list-guests
 
 
 This will generate a list of possible guests that can be used for tests,
