@@ -1151,7 +1151,8 @@ class MigrationTest(object):
                 self.RET_LOCK.release()
 
     def do_migration(self, vms, srcuri, desturi, migration_type, options=None,
-                     thread_timeout=60, ignore_status=False):
+                     thread_timeout=60, ignore_status=False, func=None,
+                     func_params=None):
         """
         Migrate vms.
 
@@ -1159,6 +1160,12 @@ class MigrationTest(object):
         :param srcuri: local uri, used when migrate vm from remote to local
         :param descuri: remote uri, used when migrate vm from local to remote
         :param migration_type: do orderly for simultaneous migration
+        :param options: migration options
+        :param thread_timeout: time out seconds for the migration thread running
+        :param ignore_status: determine if an exception is raised for errors
+        :param func: the function executed during migration thread is running
+        :param func_params: used by func
+
         """
         if migration_type == "orderly":
             for vm in vms:
@@ -1166,7 +1173,14 @@ class MigrationTest(object):
                                                     args=(vm, desturi, options,
                                                           ignore_status))
                 migration_thread.start()
-                migration_thread.join(thread_timeout)
+                eclipse_time = 0
+                if func:
+                    stime = int(time.time())
+                    func(func_params)
+                    eclipse_time = int(time.time()) - stime
+                    logging.debug("start_time:%s, eclipse_time:%s", stime, eclipse_time)
+                if eclipse_time < thread_timeout:
+                    migration_thread.join(thread_timeout - eclipse_time)
                 if migration_thread.isAlive():
                     logging.error("Migrate %s timeout.", migration_thread)
                     self.RET_LOCK.acquire()
