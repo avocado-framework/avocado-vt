@@ -282,7 +282,7 @@ class NFSClient(object):
         if self.remote_nfs_mount == "yes":
             self.setup_remote()
 
-    def cleanup(self):
+    def cleanup(self, ssh_auto_recover=True):
         """
         Cleanup NFS client.
         """
@@ -306,7 +306,7 @@ class NFSClient(object):
             raise exceptions.TestFail("Failed to umount %s" % self.mount_dir)
 
         # Recover SSH connection
-        self.ssh_obj.auto_recover = True
+        self.ssh_obj.auto_recover = ssh_auto_recover
         del self.ssh_obj
 
     def setup_remote(self):
