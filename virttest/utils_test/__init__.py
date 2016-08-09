@@ -1903,28 +1903,30 @@ class RemoteDiskManager(object):
             self.runner.run("lvremove -f %s" % path, ignore_status=True)
 
 
-def check_dest_vm_network(vm, ip, remote_host, username, password):
+def check_dest_vm_network(vm, vm_ip, remote_host, username, password,
+                          shell_prompt=None, timeout=60):
     """
     Ping migrated vms on remote host.
     """
-    runner = remote.RemoteRunner(host=remote_host, username=username,
-                                 password=password)
-    # Timeout to wait vm's network
-    logging.debug("Verifying VM IP...")
-    timeout = 60
+    runner = remote.RemoteRunner(host=remote_host,
+                                 username=username,
+                                 password=password,
+                                 prompt=shell_prompt)
+
+    logging.debug("Check VM network connectivity...")
     ping_failed = True
-    ping_cmd = "ping -c 4 %s" % ip
+    ping_cmd = "ping -c 5 %s" % ip
     while timeout > 0:
-        ping_result = runner.run(ping_cmd, ignore_status=True)
-        if ping_result.exit_status:
+        result = runner.run(ping_cmd, ignore_status=True)
+        if result.exit_status:
             time.sleep(5)
             timeout -= 5
             continue
         ping_failed = False
         break
     if ping_failed:
-        raise exceptions.TestFail("Check %s IP failed:%s" % (vm.name,
-                                                             ping_result.stdout))
+        raise exceptions.TestFail("Failed to ping %s: %s" % (vm.name,
+                                                             result.stdout))
 
 
 class RemoteVMManager(object):
