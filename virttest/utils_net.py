@@ -3062,6 +3062,88 @@ def get_correspond_ip(remote_ip):
     return local_ip
 
 
+def get_linux_mac(session, nic):
+    """
+    Get MAC address by nic name
+    """
+    sys_path = "%s/%s" % (SYSFS_NET_PATH, nic)
+    pattern = "(\w{2}:\w{2}:\w{2}:\w{2}\:\w{2}:\w{2})"
+    if session.cmd_status("test -d %s" % sys_path) == 0:
+        mac_index = 1
+        show_mac_cmd = "cat %s/address" % sys_path
+        out = session.cmd_output(show_mac_cmd)
+    else:
+        pattern = "(ether|HWaddr) %s" % pattern
+        mac_index = 2
+        show_mac_cmd = "ifconfig %s || ip link show %s" % (nic, nic)
+        out = session.cmd_output(show_mac_cmd)
+    try:
+        return re.search(pattern, out, re.M | re.I).group(mac_index)
+    except Exception:
+        logging.error("No HWaddr/ether found for nic %s: %s" % (nic, out))
+
+
+def get_linux_ipaddr(session, nic):
+    """
+    Get IP addresses by nic name
+    """
+    cmd = "ifconfig %s || ip address show %s" % (nic, nic)
+    out = session.cmd_output(cmd)
+    try:
+        inet = re.findall("inet (\S+)", out, re.M)[0]
+    except IndexError:
+        inet = None
+    inet6 = re.findall("inet6 (\S+)", out, re.M)
+    if not inet6:
+        inet6 = [None]
+    return (inet, inet6)
+
+
+def windows_mac_ip_maps(session):
+    """
+    Windows get MAC IP addresses maps
+    """
+    maps = {}
+    cmd = "wmic nicconfig where IPEnabled=True get ipaddress, macaddress"
+    out = session.cmd_output(cmd)
+    for line in out.splitlines()[1:]:
+        line = line.split(',')
+        inets = line[1].lstrip('{').rstrip('}').split(';')
+        try:
+            inet = inets[0]
+        except IndexError:
+            inet = None
+        inet6 = inets[1:]
+        if not inet6:
+            inet6 = [None]
+        mac = line[2]
+        maps[mac] = (inet, inet6)
+    return maps
+
+
+def linux_mac_ip_maps(session):
+    """
+    Linux get MAC IP addresses maps
+    """
+    maps = {}
+    for nic in get_linux_ifname(session):
+        mac = get_linux_mac(session, nic)
+        maps[mac] = get_linux_ipaddr(session, nic)
+    return maps
+
+
+def get_mac_ip_maps(session):
+    """
+    Get guest MAC IP addresses maps
+    """
+    os = session.cmd_output("echo %OS%")
+    if "Win" in os:
+        maps = windows_mac_ip_maps(session)
+    else:
+        maps = linux_mac_ip_maps(session)
+    return maps
+
+
 def get_linux_ifname(session, mac_address=""):
     """
     Get the interface name through the mac address.
@@ -3118,55 +3200,31 @@ def update_mac_ip_address(vm, params, timeout=None):
     :param vm: VM object
     :param params: Dictionary with the test parameters.
     """
-    network_query = params.get("network_query", "ifconfig")
-    restart_network = params.get("restart_network", "service network restart")
-    filter_list = []
-    mac_ip_filter = params.get("mac_ip_filter")
-    if mac_ip_filter:
-        filter_list.append(mac_ip_filter)
-    else:
-        # Provide a list of patterns for different linux version
-        filter_list.extend([(r"HWaddr (.\w+:\w+:\w+:\w+:\w+:\w+)\s+?"
-                             "inet addr:(.\d+\.\d+\.\d+\.\d+)"),
-                            (r"inet (.\d+.\d+.\d+.\d+).*?"
-                             "ether (.\w+:\w+:\w+:\w+:\w+:\w+)")])
-    if timeout is None:
-        timeout = int(params.get("login_timeout"))
     session = vm.wait_for_serial_login(timeout=360)
-    end_time = time.time() + timeout
-    macs_ips = []
-    num = 0
-    while time.time() < end_time:
-        try:
-            if num % 3 == 0 and num != 0:
-                # Ignore any errors here for further operation
-                session.cmd(restart_network, ignore_all_errors=True)
-            output = session.cmd_status_output(network_query)[1]
-            for mac_ip_filter in filter_list:
-                macs_ips = re.findall(mac_ip_filter, output, re.S)
-                if macs_ips:
-                    break
-            # Get nics number
-        except Exception, err:
-            logging.error(err)
-        nics = params.get("nics")
-        nic_minimum = len(re.split(r"\s+", nics.strip()))
-        if len(macs_ips) == nic_minimum:
-            break
-        num += 1
-        time.sleep(5)
-    if len(macs_ips) < nic_minimum:
-        logging.error("Not all nics get ip address")
-
-    for (_ip, mac) in macs_ips:
-        vlan = macs_ips.index((_ip, mac))
-        # _ip, mac are in different sequence in Fedora and RHEL guest.
-        if re.match(".\d+\.\d+\.\d+\.\d+", mac):
-            _ip, mac = mac, _ip
+    maps = get_mac_ip_maps(session)
+    if len(maps) < len(vm.virtnet):
+        logging.warn("Not all nic get IP address, restart networking")
+        default_cmd = "service network restart"
+        restart_network = params.get("restart_network", default_cmd)
+        session.cmd(restart_network, timeout=240)
+        maps = get_mac_ip_maps(session)
+    for idx, key in enumerate(maps):
+        mac = key.lower()
         if "-" in mac:
             mac = mac.replace("-", ":")
-        vm.address_cache[mac.lower()] = _ip
-        vm.virtnet.set_mac_address(vlan, mac)
+        try:
+            vm.virtnet.set_mac_address(idx, mac)
+        except IndexError:
+            if vm.params.get("os_type") == "linux":
+                ifname = get_linux_ifname(session, mac)
+            else:
+                ifname = get_windows_nic_attribute(session,
+                                                   "MACAddress",
+                                                   mac,
+                                                   "NetConnectionID")
+            logging.warn("'%s' not belong to VM '%s'" % (ifname, vm.name))
+        vm.address_cache[mac] = maps[key][0]
+        vm.address_cache["%s_6" % mac] = maps[key][1][-1]
 
 
 def get_windows_nic_attribute(session, key, value, target, timeout=240,
