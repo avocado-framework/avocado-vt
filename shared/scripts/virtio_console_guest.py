@@ -693,13 +693,23 @@ class VirtioGuestPosix(VirtioGuest):
         :param port: Port to check poll information.
         """
         fd = self._open([port])[0]
-
-        maskstr = self.pollmask_to_str(self.poll_fds[fd][1])
-        if (self.poll_fds[fd][0] ^ self.poll_fds[fd][1]):
-            emaskstr = self.pollmask_to_str(self.poll_fds[fd][0])
-            print "FAIL: Events: " + maskstr + "  Expected: " + emaskstr
-        else:
-            print "PASS: Events: " + maskstr
+        state = self.poll_fds[fd][:]
+        print state
+        end = time.time() + 5   # wait up to 5s for new signals
+        while state[0] != state[1]:
+            while time.time() < end:
+                if state != self.poll_fds[fd]:  # new signal arrived
+                    break
+                time.sleep(0)   # schedule another thread
+            else:
+                print ("FAIL: Timeout reached, Events: %s  Expected: %s"
+                       % (self.pollmask_to_str(state[1]),
+                          self.pollmask_to_str(state[0])))
+                self.poll_fds[fd][1] = 0
+                return
+            state = self.poll_fds[fd][:]
+            print state
+        print "PASS: Events: " + self.pollmask_to_str(state[1])
         self.poll_fds[fd][1] = 0
 
     def set_pool_want_return(self, port, poll_value):
