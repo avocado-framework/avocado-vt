@@ -2847,7 +2847,7 @@ class VM(virt_vm.BaseVM):
         Do cleanup works
             .removes VM monitor files.
             .process close
-            .serial_console close
+            .{serial,virtio}_console close
             .logsessions close
             .delete tmp files
             .free_mac_addresses, if needed
@@ -2862,9 +2862,7 @@ class VM(virt_vm.BaseVM):
             self.pci_assignable = None
         if self.process:
             self.process.close()
-        if self.serial_console:
-            self.serial_console.close()
-            self.serial_console_log = None
+        self.cleanup_serial_console()
         if self.logsessions:
             for key in self.logsessions:
                 self.logsessions[key].close()
