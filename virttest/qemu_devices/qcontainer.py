@@ -1561,13 +1561,23 @@ class DevContainer(object):
         :param params: Disk params (params.object_params(name))
         """
         shared_dir = os.path.join(data_dir.get_data_dir(), "shared")
+        drive_format = image_params.get("drive_format")
+        scsi_hba = image_params.get("scsi_hba")
+        if drive_format == "virtio":    # translate virtio to ccw/device
+            machine_type = image_params.get("machine_type")
+            if "s390" in machine_type:      # s390
+                drive_format = "virtio-blk-ccw"
+            elif "mmio" in machine_type:    # mmio-based machine
+                drive_format = "virtio-blk-device"
+        if scsi_hba == "virtio-scsi-pci":
+            if "mmio" in image_params.get("machine_type"):
+                scsi_hba = "virtio-scsi-device"
         return self.images_define_by_variables(name,
                                                storage.get_image_filename(
                                                    image_params,
                                                    data_dir.get_data_dir()),
                                                index,
-                                               image_params.get(
-                                                   "drive_format"),
+                                               drive_format,
                                                image_params.get("drive_cache"),
                                                image_params.get(
                                                    "drive_werror"),
@@ -1605,7 +1615,7 @@ class DevContainer(object):
                                                    "image_format"),
                                                image_params.get(
                                                    "drive_pci_addr"),
-                                               image_params.get("scsi_hba"),
+                                               scsi_hba,
                                                image_params.get(
                                                    "x-data-plane"),
                                                image_params.get(
@@ -1642,11 +1652,27 @@ class DevContainer(object):
                                                       )
         image_params['image_raw_device'] = 'yes'
         cd_format = image_params.get('cd_format')
+        scsi_hba = image_params.get("scsi_hba")
         if cd_format is None or cd_format is 'ide':
-            if not self.get_buses({'atype': 'ide'}):
+            machine_type = image_params.get("machine_type")
+            if machine_type == "pseries":
+                cd_format = "scsi-cd"
+            elif "mmio" in machine_type:
+                cd_format = "scsi-cd"
+                scsi_hba = "virtio-scsi-device"
+            elif "pci" in machine_type:
+                cd_format = "scsi-cd"
+                scsi_hba = "virtio-scsi-pci"
+            elif "s390" in machine_type:
+                cd_format = "scsi-cd"
+                scsi_hba = "virtio-scsi-ccw"
+            elif not self.get_buses({'atype': 'ide'}):
                 logging.warn("cd_format IDE not available, using AHCI "
                              "instead.")
                 cd_format = 'ahci'
+        if scsi_hba == "virtio-scsi-pci":
+            if "mmio" in image_params.get("machine_type"):
+                scsi_hba = "virtio-scsi-device"
         shared_dir = os.path.join(data_dir.get_data_dir(), "shared")
         cache_mode = image_params.get('image_aio') == 'native' and 'none' or ''
         return self.images_define_by_variables(name,
@@ -1692,7 +1718,7 @@ class DevContainer(object):
                                                None,     # skip img_fmt
                                                image_params.get(
                                                    "drive_pci_addr"),
-                                               image_params.get("scsi_hba"),
+                                               scsi_hba,
                                                image_params.get(
                                                    "x-data-plane"),
                                                image_params.get(

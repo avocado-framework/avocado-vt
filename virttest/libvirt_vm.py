@@ -230,12 +230,12 @@ class VM(virt_vm.BaseVM):
         """
         return virsh.domain_exists(self.name, uri=self.connect_uri)
 
-    def undefine(self):
+    def undefine(self, options=None):
         """
         Undefine the VM.
         """
         try:
-            virsh.undefine(self.name, uri=self.connect_uri,
+            virsh.undefine(self.name, options=options, uri=self.connect_uri,
                            ignore_status=False)
         except process.CmdError, detail:
             logging.error("Undefined VM %s failed:\n%s", self.name, detail)
@@ -777,7 +777,10 @@ class VM(virt_vm.BaseVM):
         if location:
             virt_install_cmd += add_location(help_text, location)
 
-        if params.get("display") == "vnc":
+        # Disable display when vga is disabled (used mainly by machines.cfg)
+        if params.get("vga") == "none":
+            virt_install_cmd += add_nographic(help_text)
+        elif params.get("display") == "vnc":
             if params.get("vnc_autoport") == "yes":
                 vm.vnc_autoport = True
             else:
@@ -1805,7 +1808,12 @@ class VM(virt_vm.BaseVM):
 
     def remove(self):
         self.destroy(gracefully=True, free_mac_addresses=False)
-        if not self.undefine():
+        # If the current machine contains nvram, we have to set --nvram
+        if self.params.get("vir_domain_undefine_nvram") == "yes":
+            options = "--nvram"
+        else:
+            options = None
+        if not self.undefine(options):
             raise virt_vm.VMRemoveError("VM '%s' undefine error" % self.name)
         self.destroy(gracefully=False, free_mac_addresses=True)
         logging.debug("VM '%s' was removed", self.name)
