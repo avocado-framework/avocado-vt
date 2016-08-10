@@ -84,6 +84,7 @@ class VirtTestLoader(loader.TestLoader):
     def __init__(self, args, extra_params):
         super(VirtTestLoader, self).__init__(args, extra_params)
         self._fill_optional_args()
+        self.__extra_listing_used = False
 
     def _fill_optional_args(self):
         def _add_if_not_exist(arg, value):
@@ -131,11 +132,13 @@ class VirtTestLoader(loader.TestLoader):
             args.vt_config = None
             args.vt_guest_os = None
             guest_listing(args)
+            self.__extra_listing_used = True
         if self.args.vt_list_archs:
             args = copy.copy(self.args)
             args.vt_machine_type = None
             args.vt_arch = None
             arch_listing(args)
+            self.__extra_listing_used = True
 
     @staticmethod
     def get_type_label_mapping():
@@ -157,6 +160,8 @@ class VirtTestLoader(loader.TestLoader):
         return {VirtTest: term_support.healthy_str}
 
     def discover(self, url, which_tests=loader.DEFAULT):
+        if self.__extra_listing_used:   # Skip normal test discovery
+            return []                   # on extra_listing
         try:
             cartesian_parser = self._get_parser()
         except Exception, details:

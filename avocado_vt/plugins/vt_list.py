@@ -105,12 +105,12 @@ class VTLister(CLI):
         vt_compat_group_lister.add_argument("--vt-list-guests",
                                             action="store_true",
                                             default=False,
-                                            help="Also list the available "
+                                            help="List the available "
                                             "guests (this option ignores the "
                                             "--vt-config and --vt-guest-os)")
         vt_compat_group_lister.add_argument("--vt-list-archs", default=False,
                                             action="store_true",
-                                            help="Also list the available "
+                                            help="List the available "
                                             "arch/machines for the given "
                                             "guest os. (Use \"--vt-guest-os "
                                             "''\" to see all combinations; "
