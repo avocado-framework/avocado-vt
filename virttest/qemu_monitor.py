@@ -1239,6 +1239,25 @@ class HumanMonitor(Monitor):
         value = re.search(pattern, capability_info, re.M).group(1)
         return value == "on"
 
+    def set_migrate_cache_size(self, value):
+        """
+        Set the cache size of migrate to value.
+
+        :param value: the cache size to set.
+        """
+        cmd = "migrate_set_cache_size"
+        self.verify_supported_cmd(cmd)
+        cmd += " %s" % value
+        return self.cmd(cmd)
+
+    def get_migrate_cache_size(self):
+        """
+        Get the xbzrel cache size. e.g. xbzrel cache size: 1048576 kbytes
+        """
+        cache_size_info = self.query("migrate_cache_size")
+        value = cache_size_info.split(":")[1].split()[0].strip()
+        return value
+
     def system_powerdown(self):
         """
         Requests that a guest perform a powerdown operation.
@@ -2254,6 +2273,23 @@ class QMPMonitor(Monitor):
             if item["capability"] == capability:
                 return item["state"]
         return False
+
+    def set_migrate_cache_size(self, value):
+        """
+        Set the cache size of migrate to value.
+
+        :param value: the cache size to set.
+        """
+        cmd = "migrate-set-cache-size"
+        self.verify_supported_cmd(cmd)
+        args = {"value": value}
+        return self.cmd(cmd, args)
+
+    def get_migrate_cache_size(self):
+        """
+        Get the xbzrel cache size.
+        """
+        return self.query("migrate-cache-size")
 
     def system_powerdown(self):
         """
