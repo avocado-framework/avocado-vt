@@ -58,6 +58,21 @@ def guest_listing(options):
     LOG.debug("")
 
 
+def arch_listing(options):
+    """
+    List available machine/archs for given guest os
+    """
+    if options.vt_guest_os:
+        extra = " for guest os \"%s\"" % options.vt_guest_os
+    else:
+        extra = ""
+    LOG.info("Available machine_type/arch profiles%s", extra)
+    guest_name_parser = standalone_test.get_guest_name_parser(options)
+    for params in guest_name_parser.get_dicts():
+        LOG.debug(params["name"])
+    LOG.debug("")
+
+
 class VirtTestLoader(loader.TestLoader):
 
     """
@@ -116,6 +131,11 @@ class VirtTestLoader(loader.TestLoader):
             args.vt_config = None
             args.vt_guest_os = None
             guest_listing(args)
+        if self.args.vt_list_archs:
+            args = copy.copy(self.args)
+            args.vt_machine_type = None
+            args.vt_arch = None
+            arch_listing(args)
 
     @staticmethod
     def get_type_label_mapping():
