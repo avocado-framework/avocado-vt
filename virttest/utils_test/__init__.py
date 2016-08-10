@@ -1915,7 +1915,7 @@ def check_dest_vm_network(vm, vm_ip, remote_host, username, password,
 
     logging.debug("Check VM network connectivity...")
     ping_failed = True
-    ping_cmd = "ping -c 5 %s" % ip
+    ping_cmd = "ping -c 5 %s" % vm_ip
     while timeout > 0:
         result = runner.run(ping_cmd, ignore_status=True)
         if result.exit_status:
