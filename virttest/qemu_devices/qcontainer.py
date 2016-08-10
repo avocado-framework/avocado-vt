@@ -1745,7 +1745,7 @@ class DevContainer(object):
         :warning: x3130-upstream device creates only x3130-upstream device
                   and you are responsible for creating the downstream ports.
         """
-        driver = params.get('type', 'ioh3420')
+        driver = params.get('bus_type', 'ioh3420')
         if driver in ('ioh3420', 'x3130-upstream', 'x3130'):
             bus_type = 'PCIE'
         else:
