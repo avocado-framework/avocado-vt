@@ -108,6 +108,14 @@ class VTLister(CLI):
                                             help="Also list the available "
                                             "guests (this option ignores the "
                                             "--vt-config and --vt-guest-os)")
+        vt_compat_group_lister.add_argument("--vt-list-archs", default=False,
+                                            action="store_true",
+                                            help="Also list the available "
+                                            "arch/machines for the given "
+                                            "guest os. (Use \"--vt-guest-os "
+                                            "''\" to see all combinations; "
+                                            "--vt-config --vt-machine-type "
+                                            "and --vt-arch args are ignored)")
         add_basic_vt_options(vt_compat_group_lister)
         add_qemu_bin_vt_option(vt_compat_group_lister)
 
