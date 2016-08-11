@@ -13,7 +13,6 @@ from avocado.utils import process
 from avocado.utils import archive
 from avocado.utils import wait
 from avocado.utils import genio
-from avocado.utils import build
 from avocado.utils import path
 
 from . import data_dir
@@ -1762,7 +1761,7 @@ class EGDConfig(object):
             make_cmd = "perl Makefile.PL && make && make install"
             make_cmd = self.params.get("build_egd_cmd", make_cmd)
             src_root = self.__extra_tarball()
-            build.make(src_root, make=make_cmd)
+            process.system("cd %s && %s" % (src_root, make_cmd), shell=True)
         except Exception, details:
             raise EGDConfigError("Install egd.pl error '%s'" % details)
         finally:
