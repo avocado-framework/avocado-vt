@@ -384,6 +384,17 @@ class VM(virt_vm.BaseVM):
                 return fmt % (option, str(value))
             return ""
 
+        def _get_pci_bus(params, name=None):
+            """
+            Get device pattern pci bus.
+
+            :param params: device params
+            :param name: deivce type name
+            """
+            name = name and "%s_pci_bus" % name or "pci_bus"
+            pci_bus = {"aobject": params.get(name, "pci.0")}
+            return pci_bus
+
         # Wrappers for all supported qemu command line parameters.
         # This is meant to allow support for multiple qemu versions.
         # Each of these functions receives the output of 'qemu -help'
@@ -1244,7 +1255,7 @@ class VM(virt_vm.BaseVM):
         have_ahci = False
         have_virtio_scsi = False
         virtio_scsi_pcis = []
-        pci_bus = {'aobject': params.get('pci_bus', 'pci.0')}
+        pci_bus = _get_pci_bus(params)
 
         # init value by default.
         # PCI addr 0,1,2 are taken by PCI/ISA/IDE bridge and the GPU.
@@ -1459,7 +1470,8 @@ class VM(virt_vm.BaseVM):
                     if params.get('machine_type').startswith("arm64-mmio"):
                         dev = QDevice('virtio-serial-device')
                     else:
-                        dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
+                        parent_bus = _get_pci_bus(port_params, "virtio_port")
+                        dev = QDevice('virtio-serial-pci', parent_bus=parent_bus)
                     dev.set_param('id',
                                   'virtio_serial_pci%d' % no_virtio_serial_pcis)
                     devices.insert(dev)
@@ -1468,7 +1480,8 @@ class VM(virt_vm.BaseVM):
                     if params.get('machine_type').startswith("arm64-mmio"):
                         dev = QDevice('virtio-serial-device')
                     else:
-                        dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
+                        parent_bus = _get_pci_bus(port_params, "virtio_port")
+                        dev = QDevice('virtio-serial-pci', parent_bus=parent_bus)
                     dev.set_param('id', 'virtio_serial_pci%d' % i)
                     devices.insert(dev)
                     no_virtio_serial_pcis += 1
@@ -1487,13 +1500,15 @@ class VM(virt_vm.BaseVM):
 
         # Add virtio-rng devices
         for virtio_rng in params.objects("virtio_rngs"):
-            virtio_rng_params = params.object_params(virtio_rng)
-            add_virtio_rng(devices, virtio_rng_params, pci_bus)
+            rng_params = params.object_params(virtio_rng)
+            rng_bus = _get_pci_bus(rng_params, "rng")
+            add_virtio_rng(devices, rng_params, rng_bus)
 
         # Add logging
         devices.insert(StrDev('isa-log', cmdline=add_log_seabios(devices)))
         if params.get("anaconda_log", "no") == "yes":
-            add_log_anaconda(devices, pci_bus)
+            parent_bus = _get_pci_bus(params, "anacondalog")
+            add_log_anaconda(devices, parent_bus)
 
         # Add USB controllers
         usbs = params.objects("usbs")
@@ -1543,6 +1558,8 @@ class VM(virt_vm.BaseVM):
                     if self.last_boot_index > 0:
                         image_boot = False
                     self.last_boot_index += 1
+            image_pci_bus = _get_pci_bus(image_params, "hba")
+            image_params["pci_bus"] = image_pci_bus.get("aobject", "pci.0")
             devs = devices.images_define_by_params(image_name, image_params,
                                                    'disk', index, image_boot,
                                                    image_bootindex)
@@ -1633,12 +1650,12 @@ class VM(virt_vm.BaseVM):
                         tapfd_list = re.split(":", tapfds)
                         if tapfds_len < len(tapfd_list):
                             tapfds = ":".join(tapfd_list[:tapfds_len])
-
                 # Handle the '-net nic' part
+                nic_pci_bus = _get_pci_bus(nic_params, "nic")
                 add_nic(devices, vlan, nic_model, mac,
                         device_id, netdev_id, nic_extra,
                         nic_params.get("nic_pci_addr"),
-                        bootindex, queues, vectors, pci_bus,
+                        bootindex, queues, vectors, nic_pci_bus,
                         nic_params.get("ctrl_mac_addr"))
 
                 # Handle the '-net tap' or '-net user' or '-netdev' part
@@ -2080,12 +2097,12 @@ class VM(virt_vm.BaseVM):
         for balloon_device in params.objects("balloon"):
             params_balloon = params.object_params(balloon_device)
             balloon_devid = params_balloon.get("balloon_dev_devid")
-            balloon_bus = None
             use_ofmt = params_balloon.get("balloon_use_old_format",
                                           "no") == "yes"
-            if params_balloon.get("balloon_dev_add_bus") == "yes":
-                balloon_bus = pci_bus
-            add_balloon(devices, devid=balloon_devid, bus=balloon_bus,
+            balloon_pci_bus = _get_pci_bus(params_balloon, "balloon")
+            add_balloon(devices,
+                        devid=balloon_devid,
+                        bus=balloon_pci_bus,
                         use_old_format=use_ofmt)
 
         # Add qemu options

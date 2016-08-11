@@ -1623,7 +1623,7 @@ class DevContainer(object):
                                                image_params.get(
                                                    "virtio-blk-pci_scsi"),
                                                image_params.get(
-                                                   'pci_bus', 'pci.0'),
+                                                   "pci_bus", "pci.0"),
                                                image_params.get(
                                                    "drv_extra_params"),
                                                image_params.get("num_queues"),
