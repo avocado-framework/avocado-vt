@@ -459,44 +459,72 @@ class VM(virt_vm.BaseVM):
             cmd += _add_option("chardev", serial_id)
             return cmd
 
-        def add_virtio_port(name, bus, filename, porttype, chardev,
-                            name_prefix=None, index=None, extra_params=""):
+        def add_chardev(devices, params, qid=None):
+            """
+            Generate qdevices.CharDevice object
+
+            :param devices: device container object
+            :param params: dict to create char device object
+            :param qid: char device ID
+            """
+            if not devices.has_option("chardev"):
+                logging.warn("'chardev' option not support")
+                return None
+
+            dynamic = False
+            chardev = qdevices.CharDevice(params=params)
+            if not qid:
+                devid = utils_misc.generate_random_id()
+                dynamic = True
+            chardev.set_param("id", devid, dynamic=dynamic)
+
+            return chardev
+
+        def add_virtio_port(devices, chardev, params, name, bus, index=None):
             """
             Appends virtio_serialport or virtio_console device to cmdline.
-            :param help: qemu -h output
+            :param chardev: qdevices.CharDevice object
+            :param params: Space sepparated chardev params
             :param name: Name of the port
             :param bus: Which virtio-serial-pci device use
-            :param filename: Path to chardev filename
-            :param porttype: Type of the port (*serialport, console)
-            :param chardev: Which chardev to use (*socket, spicevmc)
-            :param name_prefix: Custom name prefix (port index is appended)
             :param index: Index of the current virtio_port
-            :param extra_params: Space sepparated chardev params
             """
-            cmd = ''
-            # host chardev
-            if chardev == "spicevmc":   # SPICE
-                cmd += " -chardev spicevmc,id=dev%s,name=%s" % (name, name)
-            else:   # SOCKET
-                cmd = (" -chardev socket,id=dev%s,path=%s,server,nowait"
-                       % (name, filename))
-            # virtport device
-            if porttype in ("console", "virtio_console"):
-                cmd += " -device virtconsole"
+            def get_extra_options(params):
+                """Get extra params pairs"""
+                options = dict()
+                extra_params = params.get('virtio_port_params', '')
+                for _ in extra_params.split():
+                    try:
+                        if "=" not in _:
+                            key, value = _, "NO_EQUAL_STRING"
+                        else:
+                            key, value = _.split('=')
+                        options[key] = value
+                    except Exception:
+                        options.clear()
+                        msg = ("Invaild params %s in " % _ +
+                               "'virtio_port_param' = %s" % extra_params)
+                        logging.error(msg)
+                return options
+
+            # used by spiceagent (com.redhat.spice.*)
+            if 'console' in params.get('virtio_port_type'):
+                port_type = 'virtconsole'
             else:
-                cmd += " -device virtserialport"
-            if name_prefix:     # used by spiceagent (com.redhat.spice.*)
-                port_name = "%s%d" % (name_prefix, index)
-            else:
-                port_name = name
-            cmd += ",chardev=dev%s,name=%s,id=%s" % (name, port_name, name)
-            cmd += _add_option("bus", bus)
-            # Space sepparated chardev params
-            _params = ""
-            for parm in extra_params.split():
-                _params += ',' + parm
-            cmd += _params
-            return cmd
+                port_type = 'virtserialport'
+            virtio_port = QDevice(port_type)
+            virtio_port.set_param("bus", bus)
+            if params.get('virtio_port_name_prefix'):
+                prefix = params["virtio_port_name_prefix"]
+                name = "%s%d" % (prefix, index)
+            virtio_port.set_param("name", name)
+            virtio_port.set_param("chardev", chardev.get_qid())
+            for key, value in get_extra_options(params).items():
+                virtio_port.set_param(key, value)
+            if not virtio_port.get_param("id"):
+                devid = utils_misc.generate_random_id()
+                virtio_port.set_param("id", devid, dynamic=True)
+            return virtio_port
 
         def add_log_seabios(devices):
             if not devices.has_device("isa-debugcon"):
@@ -1475,16 +1503,23 @@ class VM(virt_vm.BaseVM):
                 if bus is not False:
                     bus = "virtio_serial_pci%d.0" % bus
                 # Add actual ports
-                cmd = add_virtio_port(port_name, bus,
-                                      self.get_virtio_port_filename(port_name),
-                                      port_params.get('virtio_port_type'),
-                                      port_params.get('virtio_port_chardev'),
-                                      port_params.get('virtio_port_name_prefix'),
-                                      no_virtio_ports,
-                                      port_params.get('virtio_port_params', ''))
-                devices.insert(StrDev('VIO-%s' % port_name, cmdline=cmd))
+                char_params = port_params.copy()
+                backend = port_params.get("virtio_port_chardev", "socket")
+                port_file = self.get_virtio_port_filename(port_name)
+                char_params.update({"backend": backend,
+                                    "server": "yes",
+                                    "nowait": "yes",
+                                    "name": port_name,
+                                    "path": port_file})
+                char_dev = add_chardev(devices, char_params)
+                virtio_port = add_virtio_port(devices,
+                                              char_dev,
+                                              port_params,
+                                              port_name,
+                                              bus,
+                                              no_virtio_ports)
+                devices.insert([char_dev, virtio_port])
                 no_virtio_ports += 1
-
         # Add virtio-rng devices
         for virtio_rng in params.objects("virtio_rngs"):
             virtio_rng_params = params.object_params(virtio_rng)
