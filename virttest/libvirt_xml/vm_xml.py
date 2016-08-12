@@ -1230,7 +1230,10 @@ class VMXML(VMXMLBase):
         :param passwd: Password you want to set
         """
         devices = vmxml.devices
-        graphics_index = devices.index(devices.by_device_tag('graphics')[0])
+        try:
+            graphics_index = devices.index(devices.by_device_tag('graphics')[0])
+        except IndexError:
+            raise xcepts.LibvirtXMLError("No graphics device defined in guest xml")
         graphics = devices[graphics_index]
         graphics.passwd = passwd
         vmxml.devices = devices
