@@ -41,13 +41,11 @@ def guest_listing(options):
     """
     if options.vt_type == 'lvsb':
         raise ValueError("No guest types available for lvsb testing")
-    index = 0
     LOG.debug("Using %s for guest images\n",
               os.path.join(data_dir.get_data_dir(), 'images'))
     LOG.info("Available guests in config:")
     guest_name_parser = standalone_test.get_guest_name_parser(options)
     for params in guest_name_parser.get_dicts():
-        index += 1
         base_dir = params.get("images_base_dir", data_dir.get_data_dir())
         image_name = storage.get_image_filename(params, base_dir)
         name = params['name']
@@ -57,6 +55,21 @@ def guest_listing(options):
             missing = "(missing %s)" % os.path.basename(image_name)
             out = (name + " " + output.TERM_SUPPORT.warn_header_str(missing))
         LOG.debug(out)
+    LOG.debug("")
+
+
+def arch_listing(options):
+    """
+    List available machine/archs for given guest os
+    """
+    if options.vt_guest_os:
+        extra = " for guest os \"%s\"" % options.vt_guest_os
+    else:
+        extra = ""
+    LOG.info("Available machine_type/arch profiles%s", extra)
+    guest_name_parser = standalone_test.get_guest_name_parser(options)
+    for params in guest_name_parser.get_dicts():
+        LOG.debug(params["name"])
     LOG.debug("")
 
 
@@ -71,6 +84,7 @@ class VirtTestLoader(loader.TestLoader):
     def __init__(self, args, extra_params):
         super(VirtTestLoader, self).__init__(args, extra_params)
         self._fill_optional_args()
+        self.__extra_listing_used = False
 
     def _fill_optional_args(self):
         def _add_if_not_exist(arg, value):
@@ -118,6 +132,13 @@ class VirtTestLoader(loader.TestLoader):
             args.vt_config = None
             args.vt_guest_os = None
             guest_listing(args)
+            self.__extra_listing_used = True
+        if self.args.vt_list_archs:
+            args = copy.copy(self.args)
+            args.vt_machine_type = None
+            args.vt_arch = None
+            arch_listing(args)
+            self.__extra_listing_used = True
 
     @staticmethod
     def get_type_label_mapping():
@@ -139,6 +160,8 @@ class VirtTestLoader(loader.TestLoader):
         return {VirtTest: term_support.healthy_str}
 
     def discover(self, url, which_tests=loader.DEFAULT):
+        if self.__extra_listing_used:   # Skip normal test discovery
+            return []                   # on extra_listing
         try:
             cartesian_parser = self._get_parser()
         except Exception, details:
