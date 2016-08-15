@@ -2894,6 +2894,17 @@ def get_image_info(image_file):
         virtual size: 1.0M (1024000 bytes)
         disk size: 196M
         ....
+        image: n3.qcow2
+        file format: qcow2
+        virtual size: 1.0G (1073741824 bytes)
+        disk size: 260K
+        cluster_size: 512
+        Format specific information:
+            compat: 1.1
+            lazy refcounts: false
+            refcount bits: 16
+            corrupt: false
+        ....
         *******************************
 
     And the image info dict will be like this
@@ -2929,6 +2940,12 @@ def get_image_info(image_file):
                 elif line.find("cluster_size") != -1:
                     csize = line.split(':')[-1].strip()
                     image_info_dict['csize'] = int(csize)
+                elif line.find("compat") != -1:
+                    compat = line.split(':')[-1].strip()
+                    image_info_dict['compat'] = compat
+                elif line.find("lazy refcounts") != -1:
+                    lazy_refcounts = line.split(':')[-1].strip()
+                    image_info_dict['lcounts'] = lazy_refcounts
         return image_info_dict
     except (KeyError, IndexError, process.CmdError), detail:
         raise exceptions.TestError("Fail to get information of %s:\n%s" %

@@ -196,6 +196,7 @@ class QemuImg(storage.QemuImg):
         compat = params.get("compat")
         lazy_refcounts = params.get("lazy_refcounts")
         cluster_size = params.get("cluster_size")
+        sparse_size = params.get("sparse_size")
         convert_format = params["convert_format_%s" % convert_image_tag]
         params_convert = {"image_name": convert_image,
                           "image_format": convert_format}
@@ -207,6 +208,8 @@ class QemuImg(storage.QemuImg):
         cmd += " convert"
         if convert_compressed == "yes":
             cmd += " -c"
+        if sparse_size:
+            cmd += " -S %s" % sparse_size
 
         options = []
         if convert_encrypted != "off":
