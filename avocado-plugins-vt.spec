@@ -6,7 +6,7 @@
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 39.0
+Version: 40.0
 Release: 0%{?dist}
 License: GPLv2
 Group: Development/Tools
@@ -53,6 +53,9 @@ Xunit output, among others.
 
 
 %changelog
+* Tue Aug 16 2016 Cleber Rosa <cleber@redhat.com> - 40.0-0
+- Update to upstream version 40.0
+
 * Tue Jul 26 2016 Cleber Rosa <cleber@redhat.com> - 39.0-0
 - Update to upstream version 39.0
 
