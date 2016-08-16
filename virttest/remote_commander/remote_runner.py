@@ -557,10 +557,10 @@ class CommanderSlave(ms.Messenger):
 
                 if self.stdin in r:  # command from controller
                     m = self.read_msg()
-                    if m[0] == False:
+                    if m[0] is False:
                         logger.info("Other side is closed.")
                         break
-                    if m[0] == None:
+                    if m[0] is None:
                         logger.info("Reading is timeouted.")
                         break
                     cmd = CmdSlave(m[1])
