@@ -96,6 +96,7 @@ rpm-release: srpm-release
 	mock --resultdir BUILD/RPM -D "commit $(RELEASE_COMMIT)" --rebuild BUILD/SRPM/avocado-plugins-vt-$(VERSION)-*.src.rpm
 
 requirements:
+	- pip install "pip>=6.0.1"
 	- pip install -r requirements.txt
 
 check:
