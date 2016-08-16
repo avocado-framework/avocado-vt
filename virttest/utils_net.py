@@ -1257,12 +1257,12 @@ def find_dnsmasq_listen_address():
     return re.findall("--listen-address (.+?) ", result, re.MULTILINE)
 
 
-def local_runner(cmd, timeout=None):
-    return process.run(cmd, verbose=False, timeout=timeout).stdout
+def local_runner(cmd, timeout=None, shell=False):
+    return process.run(cmd, verbose=False, timeout=timeout, shell=shell).stdout
 
 
-def local_runner_status(cmd, timeout=None):
-    return process.run(cmd, verbose=False, timeout=timeout).exit_status
+def local_runner_status(cmd, timeout=None, shell=False):
+    return process.run(cmd, verbose=False, timeout=timeout, shell=shell).exit_status
 
 
 def get_net_if(runner=None, state=None):
@@ -3446,7 +3446,7 @@ def block_specific_ip_by_time(ip_addr, block_time="1 seconds", runner=None):
                 utils_path.find_command("iptables")
             except utils_path.CmdNotFoundError, details:
                 raise exceptions.TestSkipError(details)
-            output = local_runner(cmd)
+            output = local_runner(cmd, shell=True)
             logging.debug("List current iptables rules:\n%s",
                           local_runner(list_rules))
         else:
