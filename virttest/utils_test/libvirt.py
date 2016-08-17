@@ -1175,6 +1175,8 @@ class MigrationTest(object):
                 migration_thread.start()
                 eclipse_time = 0
                 if func:
+                    # Need time for thread to start migration before executing func
+                    time.sleep(5)
                     stime = int(time.time())
                     func(func_params)
                     eclipse_time = int(time.time()) - stime
