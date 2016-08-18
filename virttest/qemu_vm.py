@@ -1237,24 +1237,6 @@ class VM(virt_vm.BaseVM):
                 dev.set_param("id", devid)
             devices.insert(dev)
 
-        def add_disable_legacy(devices, dev, dev_type):
-            """
-            This function is used to add disable_legacy option for virtio-pci
-            """
-            options = devices.execute_qemu("-device %s,?" % dev_type)
-            if "disable-legacy" in options:
-                value = params.get("disable_legacy", "off")
-                dev.set_param("disable-legacy", value)
-
-        def add_disable_modern(devices, dev, dev_type):
-            """
-            This function is used to add disable_modern option for virtio-pci
-            """
-            options = devices.execute_qemu("-device %s,?" % dev_type)
-            if "disable-modern" in options:
-                value = params.get("disable_modern", "on")
-                dev.set_param("disable-modern", value)
-
         # End of command line option wrappers
 
         # If nothing changed and devices exists, return imediatelly
@@ -2140,9 +2122,21 @@ class VM(virt_vm.BaseVM):
                               "virtio-serial-pci", "virtio-rng-pci"]
         for device in devices:
             dev_type = device.get_param("driver")
-            if dev_type in virtio_pci_devices:
-                add_disable_legacy(devices, device, dev_type)
-                add_disable_modern(devices, device, dev_type)
+            options = devices.execute_qemu("-device %s,?" % dev_type)
+            host_kernel_ver = process.system_output("uname -r",
+                                                   shell=True,
+                                                   verbose=False)
+            # Currently only need to add the options for RHEL.7.2 host,
+            # you can add them to other hosts if necessary
+            if "3.10.0-327." in host_kernel_ver and ("disable-legacy" and "disable-modern") in options:
+                set_disable_legacy_modern = True
+                disable_legacy = params.get("disable_legacy", "off")
+                disable_modern = params.get("disable_modern", "on")
+            else:
+                set_disable_legacy_modern = False
+            if set_disable_legacy_modern and dev_type in virtio_pci_devices:
+                device.set_param("disable-legacy", disable_legacy)
+                device.set_param("disable-modern", disable_modern)
 
         return devices
 
