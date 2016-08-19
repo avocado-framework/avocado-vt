@@ -7,7 +7,7 @@ keyboard us
 network --bootproto dhcp --hostname atest-guest
 rootpw 123456
 firewall --enabled --ssh
-selinux --enforcing
+selinux --disable
 timezone --utc America/New_York
 firstboot --disable
 bootloader --location=mbr --append="console=tty0 console=ttyS0,115200"
