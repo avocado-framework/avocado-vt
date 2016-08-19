@@ -2083,9 +2083,16 @@ class VM(virt_vm.BaseVM):
                               "virtio-serial-pci", "virtio-rng-pci"]
         for device in devices:
             dev_type = device.get_param("driver")
+            # Currently virtio1.0 behaviour on latest RHEL.7.2/RHEL.7.3
+            # qemu versions is default, we don't need to specify the
+            # disable-legacy and disable-modern options explicitly.
+            set_disable_legacy = params.get("set_disable_legacy", "no")
+            set_disable_modern = params.get("set_disable_modern", "no")
             if dev_type in virtio_pci_devices:
-                add_disable_legacy(devices, device, dev_type)
-                add_disable_modern(devices, device, dev_type)
+                if set_disable_legacy == "yes":
+                    add_disable_legacy(devices, device, dev_type)
+                if set_disable_modern == "yes":
+                    add_disable_modern(devices, device, dev_type)
 
         return devices
 
