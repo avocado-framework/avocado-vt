@@ -1032,7 +1032,7 @@ class PciAssignable(object):
             logging.info("Run command in host: %s" % cmd)
             try:
                 output = None
-                output = process.system_output(cmd, timeout=60)
+                output = process.system_output(cmd, shell=True, timeout=60)
             except Exception:
                 msg = "Command %s fail with output %s" % (cmd, output)
                 logging.error(msg)
@@ -1043,13 +1043,18 @@ class PciAssignable(object):
             logging.info("Run command in host: %s" % cmd)
             try:
                 output = None
-                output = process.system_output(cmd, timeout=60)
+                output = process.system_output(cmd, shell=True, timeout=60)
             except Exception:
                 msg = "Command %s fail with output %s" % (cmd, output)
                 logging.error(msg)
                 return False
         if self.is_binded_to_stub(pci_id):
             return False
+        else:
+            for pf in self.pf_vf_info:
+                for vf in pf["vf_ids"]:
+                    if vf["vf_id"] == pci_id:
+                        vf["occupied"] = False
         return True
 
     def get_vf_status(self, vf_id):
