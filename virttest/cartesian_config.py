@@ -2241,6 +2241,9 @@ def compare_string(str1, str2):
 def postfix_parse(dic):
     tmp_dict = {}
     for key in dic:
+        # Bypass the case that use tuple as key value
+        if isinstance(key, tuple):
+            continue
         if key.endswith("_max"):
             tmp_key = key.split("_max")[0]
             if (not dic.has_key(tmp_key) or
