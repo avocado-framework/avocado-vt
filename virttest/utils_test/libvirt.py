@@ -1152,7 +1152,7 @@ class MigrationTest(object):
 
     def do_migration(self, vms, srcuri, desturi, migration_type, options=None,
                      thread_timeout=60, ignore_status=False, func=None,
-                     func_params=None):
+                     **args):
         """
         Migrate vms.
 
@@ -1164,7 +1164,11 @@ class MigrationTest(object):
         :param thread_timeout: time out seconds for the migration thread running
         :param ignore_status: determine if an exception is raised for errors
         :param func: the function executed during migration thread is running
-        :param func_params: used by func
+        :param args: dictionary used by func,
+                     'func_param' is mandatory if no real func_param, none is
+                     requested.
+                     'shell' is optional, where shell=True(bool) can be used
+                     for process.run
 
         """
         if migration_type == "orderly":
@@ -1176,7 +1180,13 @@ class MigrationTest(object):
                 eclipse_time = 0
                 if func:
                     stime = int(time.time())
-                    func(func_params)
+                    if func == process.run:
+                        try:
+                            func(args['func_params'], shell=args['shell'])
+                        except KeyError:
+                            func(args['func_params'])
+                    else:
+                        func(args['func_params'])
                     eclipse_time = int(time.time()) - stime
                     logging.debug("start_time:%s, eclipse_time:%s", stime, eclipse_time)
                 if eclipse_time < thread_timeout:
