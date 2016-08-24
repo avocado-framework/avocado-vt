@@ -129,11 +129,13 @@ def get_image_filename(params, root_dir):
     enable_gluster = params.get("enable_gluster", "no") == "yes"
     enable_ceph = params.get("enable_ceph", "no") == "yes"
     image_name = params.get("image_name")
+    only_disk_enable_gluster = params.get("only_disk_enable_gluster", "no") == "yes"
     if image_name:
-        if enable_gluster:
-            image_name = params.get("image_name", "image")
-            image_format = params.get("image_format", "qcow2")
-            return gluster.get_image_filename(params, image_name, image_format)
+        if not only_disk_enable_gluster:
+            if enable_gluster:
+                image_name = params.get("image_name", "image")
+                image_format = params.get("image_format", "qcow2")
+                return gluster.get_image_filename(params, image_name, image_format)
         if enable_ceph:
             image_format = params.get("image_format", "qcow2")
             ceph_monitor = params["ceph_monitor"]
