@@ -376,28 +376,39 @@ def get_file_asset(title, src_path, destination):
     return None
 
 
-def get_asset_info(asset):
+def get_asset_info(asset, ini_dir=None, section=None):
+    """"
+    Parse $asset.ini file and returns a dictionary suitable for
+    asset.download_file()
+
+    :param asset: Asset name. A file ending in .ini.
+    :param ini_dir: Directory where to search .ini file.
+    :param section: Name of the [] section in .ini file. If None, then use
+                    asset name.
+    """
     asset_info = {}
-    asset_path = os.path.join(data_dir.get_download_dir(), '%s.ini' % asset)
-    assert os.path.exists(asset_path)
+    ini_dir = ini_dir or data_dir.get_download_dir()
+    asset_path = os.path.join(ini_dir, '%s.ini' % asset)
+    assert os.path.exists(asset_path), "Missing asset file %s" % asset_path
     asset_cfg = ConfigLoader(asset_path)
 
-    asset_info['url'] = asset_cfg.get(asset, 'url')
-    asset_info['sha1_url'] = asset_cfg.get(asset, 'sha1_url')
-    asset_info['title'] = asset_cfg.get(asset, 'title')
-    destination = asset_cfg.get(asset, 'destination')
+    section = section or asset
+    asset_info['url'] = asset_cfg.get(section, 'url')
+    asset_info['sha1_url'] = asset_cfg.get(section, 'sha1_url')
+    asset_info['title'] = asset_cfg.get(section, 'title')
+    destination = asset_cfg.get(section, 'destination')
     if not os.path.isabs(destination):
         destination = os.path.join(data_dir.get_data_dir(), destination)
     asset_info['destination'] = destination
     asset_info['asset_exists'] = os.path.isfile(destination)
 
     # Optional fields
-    d_uncompressed = asset_cfg.get(asset, 'destination_uncompressed')
+    d_uncompressed = asset_cfg.get(section, 'destination_uncompressed')
     if d_uncompressed is not None and not os.path.isabs(d_uncompressed):
         d_uncompressed = os.path.join(data_dir.get_data_dir(),
                                       d_uncompressed)
     asset_info['destination_uncompressed'] = d_uncompressed
-    asset_info['uncompress_cmd'] = asset_cfg.get(asset, 'uncompress_cmd')
+    asset_info['uncompress_cmd'] = asset_cfg.get(section, 'uncompress_cmd')
 
     return asset_info
 
