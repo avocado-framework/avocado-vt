@@ -1192,9 +1192,9 @@ class VM(virt_vm.BaseVM):
                 model = "virtio-balloon-pci"
             dev = QDevice(model)
             if model == 'virtio-balloon-ccw':  # For s390x platform
-               dev.parent_bus = {'type': 'virtio-bus'}
+                dev.parent_bus = {'type': 'virtio-bus'}
             else:
-               dev.parent_bus = bus
+                dev.parent_bus = bus
             if devid:
                 dev.set_param("id", devid)
             devices.insert(dev)
