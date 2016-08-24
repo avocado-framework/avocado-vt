@@ -553,7 +553,7 @@ echo ttyS0 >> /etc/securetty]]>
 chkconfig sshd on
 sed -i -e 's/\(PasswordAuthentication\s\)no/\1yes/g'  /etc/ssh/sshd_config
 service sshd restart
-##Since the guest will perform system initialization at first boot after installation, so it's better to run a basic test to make following script to take effect.
+#Since the guest will perform system initialization at first boot after installation, so it's better to run a basic test to make following script to take effect.
 # generate ethernet interface configuration template
 cat > /etc/sysconfig/network/.ifcfg-ethx <<eof
 BOOTPROTO='dhcp'
