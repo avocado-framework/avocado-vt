@@ -658,8 +658,19 @@ class BaseVM(object):
             macs = self.virtnet.mac_list()
             if not arp_ip:
                 arp_ip = self.address_cache.get(nic.mac.upper())
+            devs = set()
+            if nic.has_key('netdst'):
+                """At this point we know that VM's NIC is attached to a certain
+                bridge. Therefore, next call verify_ip_address_ownership() will
+                be ran faster, as it will not need to go through all available
+                interfaces in the system. Otherwise, for each 'wrong' interface
+                there will be a pause for 1 minute. Moreover, this pause will
+                be for each wait_for_login() call.
+                """
+                devs = set([nic.netdst])
             if (not arp_ip or
-                    not utils_net.verify_ip_address_ownership(arp_ip, macs) or
+                    not utils_net.verify_ip_address_ownership(arp_ip, macs,
+                                                              devs=devs) or
                     os.geteuid() != 0):
                 # For non-root, tcpdump won't work for finding IP address,
                 # or IP missed in address_cache, try to find it from arp table.
@@ -671,7 +682,8 @@ class BaseVM(object):
             nic_params = self.params.object_params(nic.nic_name)
             pci_assignable = nic_params.get("pci_assignable") != "no"
 
-            if not utils_net.verify_ip_address_ownership(arp_ip, macs):
+            if not utils_net.verify_ip_address_ownership(arp_ip, macs,
+                                                         devs=devs):
                 # SR-IOV/Macvtap cards may not be in same subnet with the cards
                 # used by host by default, so arp checks won't work. Therefore,
                 # do not raise VMAddressVerificationError when SR-IOV is used.
