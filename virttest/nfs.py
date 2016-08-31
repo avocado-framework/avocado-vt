@@ -288,7 +288,7 @@ class NFSClient(object):
         """
         ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.nfs_client_ip)
         logging.debug("Umount %s from %s" %
-                      (self.mount_dir, self.nfs_server_ip))
+                      (self.mount_dir, self.nfs_client_ip))
         umount_cmd = ssh_cmd + "'umount -l %s'" % self.mount_dir
         try:
             process.system(umount_cmd, verbose=True)
@@ -327,13 +327,14 @@ class NFSClient(object):
 
         self.mount_src = "%s:%s" % (self.nfs_server_ip, self.mount_src)
         logging.debug("Mount %s to %s" % (self.mount_src, self.mount_dir))
-        mount_cmd = ssh_cmd + "'mount -t nfs %s %s -o %s'" % (self.mount_src,
-                                                              self.mount_dir,
-                                                              self.mount_options)
+        mount_cmd = "mount -t nfs %s %s" % (self.mount_src, self.mount_dir)
+        if self.mount_options:
+            mount_cmd += " -o %s" % self.mount_options
         try:
-            process.system(mount_cmd, verbose=True)
+            cmd = "%s '%s'" % (ssh_cmd, mount_cmd)
+            process.system(cmd, verbose=True)
         except process.CmdError:
-            raise exceptions.TestFail("Failed to run: %s" % mount_cmd)
+            raise exceptions.TestFail("Failed to run: %s" % cmd)
 
         # Check if the sharing directory is mounted
         if not self.is_mounted():
