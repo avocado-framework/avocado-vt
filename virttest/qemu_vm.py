@@ -1188,13 +1188,10 @@ class VM(virt_vm.BaseVM):
             machine_type = self.params.get("machine_type")
             if "s390" in machine_type:    # For s390x platform
                 model = "virtio-balloon-ccw"
-            else:
+                bus = {'type': 'virtio-bus'}
+            else:  
                 model = "virtio-balloon-pci"
-            dev = QDevice(model)
-            if model == 'virtio-balloon-ccw':  # For s390x platform
-                dev.parent_bus = {'type': 'virtio-bus'}
-            else:
-                dev.parent_bus = bus
+                dev = QDevice(model, parent_bus=bus)
             if devid:
                 dev.set_param("id", devid)
             devices.insert(dev)
