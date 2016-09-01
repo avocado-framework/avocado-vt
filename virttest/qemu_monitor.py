@@ -2314,3 +2314,15 @@ class QMPMonitor(Monitor):
         if not utils_misc.wait_for(lambda: self.get_event(qmp_event), 120):
             raise QMPEventError(cmd, qmp_event, self.name)
         logging.info("%s QMP event received" % qmp_event)
+
+    def transaction(self, job_list):
+        """
+        Atomically operate on a group of one or more block devices.
+
+        :param job_list: List of block jobs information.
+
+        :return: nothing on success
+                 If @device is not a valid block device, DeviceNotFound
+        """
+        transaction_args = {"actions": job_list}
+        return self.cmd("transaction", transaction_args)
