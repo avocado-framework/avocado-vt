@@ -795,10 +795,10 @@ def throughput_transfer(func):
     print throughput if filesize is not none, else will print elapsed time
     """
     def transfer(*args, **kwargs):
-        if "to" in func.__name__:
+        if "from" in func.__name__:
             msg = (
                 "Copy file from %s:%s to %s, " %
-                (args[0], args[6], args[5]))
+                (args[0], args[5], args[6]))
         else:
             msg = (
                 "Copy file from %s to %s:%s, " %
