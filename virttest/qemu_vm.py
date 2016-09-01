@@ -1189,7 +1189,7 @@ class VM(virt_vm.BaseVM):
             if "s390" in machine_type:    # For s390x platform
                 model = "virtio-balloon-ccw"
                 bus = {'type': 'virtio-bus'}
-            else:  
+            else:
                 model = "virtio-balloon-pci"
             dev = QDevice(model, parent_bus=bus)
             if devid:
