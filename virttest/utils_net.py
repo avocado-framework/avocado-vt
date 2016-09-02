@@ -2919,13 +2919,15 @@ def parse_arp():
     return ret
 
 
-def verify_ip_address_ownership(ip, macs, timeout=60.0):
+def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None):
     """
     Use arping and the ARP cache to make sure a given IP address belongs to one
     of the given MAC addresses.
 
     :param ip: An IP address.
     :param macs: A list or tuple of MAC addresses.
+    :param devs: A set of network interfaces to check on. If is absent then use
+                 route table to get a name for possible network interfaces.
     :return: True if ip is assigned to a MAC address in macs.
     """
     def __arping(regex, arping_cmd, ip):
@@ -2940,11 +2942,12 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0):
             return False
         return True
 
-    # Get the name of the bridge device for ip route cache
-    ip_cmd = utils_path.find_command("ip")
-    ip_cmd = "%s route get %s; %s route | grep default" % (ip_cmd, ip, ip_cmd)
-    output = commands.getoutput(ip_cmd)
-    devs = set(re.findall(r"dev\s+(\S+)", output, re.I))
+    if not devs:
+        # Get the name of the bridge device for ip route cache
+        ip_cmd = utils_path.find_command("ip")
+        ip_cmd = "%s route get %s; %s route | grep default" % (ip_cmd, ip, ip_cmd)
+        output = commands.getoutput(ip_cmd)
+        devs = set(re.findall(r"dev\s+(\S+)", output, re.I))
     if not devs:
         logging.debug("No path to %s in route table: %s" % (ip, output))
         return False
