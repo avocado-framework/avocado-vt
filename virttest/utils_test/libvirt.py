@@ -930,6 +930,10 @@ class PoolVolumeTest(object):
         source_name = kwargs.get('source_name', None)
         persistent = kwargs.get('persistent', False)
         device_name = kwargs.get('device_name', "/DEV/EXAMPLE")
+        adapter_type = kwargs.get('pool_adapter_type', 'scsi_host')
+        pool_wwnn = kwargs.get('pool_wwnn', None)
+        pool_wwpn = kwargs.get('pool_wwpn', None)
+
         # If tester does not provide block device, creating one
         if (device_name.count("EXAMPLE") and
                 pool_type in ["disk", "fs", "logical"]):
@@ -1034,6 +1038,11 @@ class PoolVolumeTest(object):
                 scsi_pool_source_xml = pool_xml.SourceXML()
                 scsi_pool_source_xml.adp_type = 'scsi_host'
                 scsi_pool_source_xml.adp_name = "host" + scsi_host
+                if pool_wwpn:
+                    scsi_pool_source_xml.adp_wwpn = pool_wwpn
+                if pool_wwnn:
+                    scsi_pool_source_xml.adp_wwnn = pool_wwnn
+
                 scsi_pool_xml.set_source(scsi_pool_source_xml)
                 logging.debug("SCSI pool XML %s:\n%s", scsi_pool_xml.xml,
                               str(scsi_pool_xml))
