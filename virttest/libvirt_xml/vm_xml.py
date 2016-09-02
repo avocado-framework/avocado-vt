@@ -727,6 +727,17 @@ class VMXML(VMXMLBase):
             raise xcepts.LibvirtXMLError(
                 "The cpu mode '%s' is invalid!" % mode)
 
+    def get_cpu_topology(self):
+        """
+        Return cpu topology dict
+        """
+        topology = {}
+        try:
+            topology = self.cpu.topology
+        except:
+            logging.error("Can't find <cpu>/<topology> element")
+        return topology
+
     def get_disk_all(self):
         """
         Return VM's disk from XML definition, None if not set
