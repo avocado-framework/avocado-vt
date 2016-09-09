@@ -787,7 +787,11 @@ def mkfs(partition, fs_type, options="", session=None):
     """
     Make a file system on the partition
     """
-    mkfs_cmd = "mkfs.%s -F %s %s" % (fs_type, partition, options)
+    if fs_type == "xfs":
+        force = "-f"
+    else:
+        force = "-F"
+    mkfs_cmd = "mkfs.%s %s %s %s" % (fs_type, force, partition, options)
     if session:
         session.cmd(mkfs_cmd)
     else:
@@ -933,6 +937,7 @@ class PoolVolumeTest(object):
         adapter_type = kwargs.get('pool_adapter_type', 'scsi_host')
         pool_wwnn = kwargs.get('pool_wwnn', None)
         pool_wwpn = kwargs.get('pool_wwpn', None)
+        fs_type = kwargs.get('fs_type', 'xfs')
 
         # If tester does not provide block device, creating one
         if (device_name.count("EXAMPLE") and
@@ -965,7 +970,7 @@ class PoolVolumeTest(object):
             pool_target = os.path.join(self.tmpdir, pool_target)
             if not os.path.exists(pool_target):
                 os.mkdir(pool_target)
-            mkfs(device_name, "ext4")
+            mkfs(device_name, fs_type)
             extra = " --source-dev %s" % device_name
         elif pool_type == "logical":
             logical_device = device_name
