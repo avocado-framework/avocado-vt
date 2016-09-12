@@ -834,6 +834,7 @@ fdc
         assert out == 6, "Number of devices of this VM is not 5 (%s)" % out
 
         dev1, dev2 = qdev.images_define_by_variables('disk', '/tmp/a',
+                                                     {'aobject': 'pci.0'},
                                                      fmt="virtio")
 
         out = dev1.hotplug_hmp()
