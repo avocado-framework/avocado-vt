@@ -749,7 +749,9 @@ class DevContainer(object):
                                                    child_bus=bus))
             else:
                 _name = 'lsi53c895a%s' % i
-                bus = qbuses.QSCSIBus("scsi.0", 'SCSI', [8, 16384], atype='lsi53c895a')
+                bus = qbuses.QSCSIBus(
+                    "scsi.0", 'SCSI', [
+                        8, 16384], atype='lsi53c895a')
                 self.insert(qdevices.QStringDevice(_name,
                                                    parent_bus={'aobject':
                                                                params.get('pci_bus',
@@ -790,7 +792,8 @@ class DevContainer(object):
                                                   parent_bus={'aobject': 'pci.0'}))
             devices.append(qdevices.QStringDevice('ICH9-ahci', {'addr': '1f.2',
                                                                 'driver': 'ich9-ahci'},
-                                                  parent_bus={'aobject': 'pci.0'},
+                                                  parent_bus={
+                                                      'aobject': 'pci.0'},
                                                   child_bus=qbuses.QAHCIBus('ide')))
             if self.has_option('device') and self.has_option("global"):
                 devices.append(qdevices.QStringDevice('fdc',
@@ -828,7 +831,8 @@ class DevContainer(object):
                                                   parent_bus={'aobject': 'pci.0'}))
             devices.append(qdevices.QStringDevice('piix3-ide', {'addr': '01.1',
                                                                 'driver': 'piix3-ide'},
-                                                  parent_bus={'aobject': 'pci.0'},
+                                                  parent_bus={
+                                                      'aobject': 'pci.0'},
                                                   child_bus=qbuses.QIDEBus('ide')))
             if self.has_option('device') and self.has_option("global"):
                 devices.append(qdevices.QStringDevice('fdc',
@@ -1545,7 +1549,7 @@ class DevContainer(object):
 
         return devices
 
-    def images_define_by_params(self, name, image_params,media=None,
+    def images_define_by_params(self, name, image_params, media=None,
                                 index=None, image_boot=None,
                                 image_bootindex=None,
                                 pci_bus={"aobject": "pci.0"}):
