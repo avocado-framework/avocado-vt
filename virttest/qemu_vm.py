@@ -10,7 +10,6 @@ import logging
 import fcntl
 import re
 import commands
-import pdb
 
 import aexpect
 from avocado.core import exceptions
@@ -1422,17 +1421,9 @@ class VM(virt_vm.BaseVM):
         devices.hook_fill_scsi_hbas(params)
 
         # Additional PCI RC/switch/bridges
-        import pprint
         for pcic in params.objects("pci_controllers"):
             devs = devices.pcic_by_params(pcic, params.object_params(pcic))
             devices.insert(devs)
-
-        #
-        #buses = devices.get_buses({"type": ["PCI"]})
-        #for bus in buses:
-        #    print "atype: %s" % bus.atype
-        #    print "busid: %s" % bus.busid
-        #    print "aobject: %s" % bus.aobject
 
         # -soundhw addresses are always the lowest after scsi
         soundhw = params.get("soundcards")
