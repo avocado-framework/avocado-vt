@@ -285,7 +285,8 @@ class VM(virt_vm.BaseVM):
         if name:
             return os.path.join(data_dir.get_tmp_dir(),
                                 "serial-%s-%s" % (name, self.instance))
-        return os.path.join(data_dir.get_tmp_dir(), "serial-%s" % self.instance)
+        return os.path.join(data_dir.get_tmp_dir(),
+                            "serial-%s" % self.instance)
 
     def get_serial_console_filenames(self):
         """
@@ -1280,8 +1281,8 @@ class VM(virt_vm.BaseVM):
                 return {"aobject": params["%s_pci_bus" % dtype]}
 
             pcic = virtio and "x3130-upstream" or "pci-bridge"
-            devices = [ _ for _ in devices if isinstance(_, QDevice)]
-            devices = [ _ for _ in devices if _.get_param('driver') == pcic]
+            devices = [_ for _ in devices if isinstance(_, QDevice)]
+            devices = [_ for _ in devices if _.get_param('driver') == pcic]
 
             try:
                 return {"aobject": devices[0].get_qid()}
@@ -1380,9 +1381,19 @@ class VM(virt_vm.BaseVM):
 
         qemu_sandbox = params.get("qemu_sandbox")
         if qemu_sandbox == "on":
-            devices.insert(StrDev('qemu_sandbox', cmdline=process_sandbox(devices, "add")))
+            devices.insert(
+                StrDev(
+                    'qemu_sandbox',
+                    cmdline=process_sandbox(
+                        devices,
+                        "add")))
         elif qemu_sandbox == "off":
-            devices.insert(StrDev('qemu_sandbox', cmdline=process_sandbox(devices, "rem")))
+            devices.insert(
+                StrDev(
+                    'qemu_sandbox',
+                    cmdline=process_sandbox(
+                        devices,
+                        "rem")))
         del qemu_sandbox
 
         devs = devices.machine_by_params(params)
@@ -1522,7 +1533,8 @@ class VM(virt_vm.BaseVM):
                     if params.get('machine_type').startswith("arm64-mmio"):
                         dev = QDevice('virtio-serial-device')
                     else:
-                        dev = QDevice('virtio-serial-pci', parent_bus=parent_bus)
+                        dev = QDevice(
+                            'virtio-serial-pci', parent_bus=parent_bus)
                     dev.set_param('id',
                                   'virtio_serial_pci%d' % no_virtio_serial_pcis)
                     devices.insert(dev)
@@ -1531,7 +1543,8 @@ class VM(virt_vm.BaseVM):
                     if params.get('machine_type').startswith("arm64-mmio"):
                         dev = QDevice('virtio-serial-device')
                     else:
-                        dev = QDevice('virtio-serial-pci', parent_bus=parent_bus)
+                        dev = QDevice(
+                            'virtio-serial-pci', parent_bus=parent_bus)
                     dev.set_param('id', 'virtio_serial_pci%d' % i)
                     devices.insert(dev)
                     no_virtio_serial_pcis += 1
@@ -1616,7 +1629,7 @@ class VM(virt_vm.BaseVM):
                         image_boot = False
                     self.last_boot_index += 1
             if ("virtio" in image_params.get("drive_format", "") or
-                "virtio" in image_params.get("scsi_hba", "")):
+                    "virtio" in image_params.get("scsi_hba", "")):
                 parent_bus = _get_pci_bus(devices, params, "disk", True)
             else:
                 parent_bus = _get_pci_bus(devices, params, "disk", False)
@@ -1896,7 +1909,7 @@ class VM(virt_vm.BaseVM):
             iso = image_params.get("cdrom")
             if iso or image_params.get("cdrom_without_file") == "yes":
                 if ("virtio" in image_params.get("driver_format", "") or
-                    "virtio" in image_params.get("scsi_hba", "")):
+                        "virtio" in image_params.get("scsi_hba", "")):
                     parent_bus = _get_pci_bus(devices, params, "cdrom", True)
                 else:
                     parent_bus = _get_pci_bus(devices, params, "cdrom", False)
@@ -3341,7 +3354,7 @@ class VM(virt_vm.BaseVM):
             nic, self.name))
         for propertea in ['netdev_id', 'ifname', 'queues',
                           'tapfds', 'tapfd_ids', 'vectors']:
-            if nic.has_key(propertea):
+            if propertea in nic:
                 del nic[propertea]
 
     def add_nic(self, **params):
@@ -3360,7 +3373,7 @@ class VM(virt_vm.BaseVM):
         nic.set_if_none('vlan', str(nic_index))
         nic.set_if_none('device_id', utils_misc.generate_random_id())
         nic.set_if_none('queues', '1')
-        if not nic.has_key('netdev_id'):
+        if 'netdev_id' not in nic:
             # virtnet items are lists that act like dicts
             nic.netdev_id = self.add_netdev(**dict(nic))
         nic.set_if_none('nic_model', params['nic_model'])
@@ -3447,9 +3460,13 @@ class VM(virt_vm.BaseVM):
         else:  # unsupported nettype
             raise virt_vm.VMUnknownNetTypeError(self.name, nic_index_or_name,
                                                 nic.nettype)
-        if nic.has_key('netdev_extra_params') and nic.netdev_extra_params:
+        if 'netdev_extra_params' in nic and nic.netdev_extra_params:
             attach_cmd += nic.netdev_extra_params
-        error_context.context("Hotplugging " + msg_sfx + attach_cmd, logging.debug)
+        error_context.context(
+            "Hotplugging " +
+            msg_sfx +
+            attach_cmd,
+            logging.debug)
 
         if self.monitor.protocol == 'qmp':
             self.monitor.send_args_cmd(attach_cmd)
@@ -3475,19 +3492,19 @@ class VM(virt_vm.BaseVM):
             nic_index_or_name, self.name))
         nic = self.virtnet[nic_index_or_name]
         device_add_cmd = "device_add"
-        if nic.has_key('nic_model'):
+        if 'nic_model' in nic:
             device_add_cmd += ' driver=%s' % nic.nic_model
         device_add_cmd += ",netdev=%s" % nic.device_id
-        if nic.has_key('mac'):
+        if 'mac' in nic:
             device_add_cmd += ",mac=%s" % nic.mac
         device_add_cmd += ",id=%s" % nic.nic_name
         if nic['nic_model'] == 'virtio-net-pci':
             if int(nic['queues']) > 1:
                 device_add_cmd += ",mq=on"
-            if nic.has_key('vectors'):
+            if 'vectors' in nic:
                 device_add_cmd += ",vectors=%s" % nic.vectors
         device_add_cmd += nic.get('nic_extra_params', '')
-        if nic.has_key('romfile'):
+        if 'romfile' in nic:
             device_add_cmd += ",romfile=%s" % nic.romfile
         error_context.context("Activating nic on VM %s with monitor command %s" % (
             self.name, device_add_cmd))
@@ -3580,7 +3597,9 @@ class VM(virt_vm.BaseVM):
         :param fd: File descriptor.
         :param fd_name: File descriptor identificator in VM.
         """
-        error_context.context("Send fd %d like %s to VM %s" % (fd, fd_name, self.name))
+        error_context.context(
+            "Send fd %d like %s to VM %s" %
+            (fd, fd_name, self.name))
 
         logging.debug("Send file descriptor %s to source VM.", fd_name)
         if self.monitor.protocol == 'human':
@@ -3786,7 +3805,8 @@ class VM(virt_vm.BaseVM):
                 self.monitor.cmd("stop")
 
             if migrate_capabilities:
-                error_context.context("Set migrate capabilities.", logging.info)
+                error_context.context(
+                    "Set migrate capabilities.", logging.info)
                 for key, value in migrate_capabilities.items():
                     state = value == "on"
                     self.monitor.set_migrate_capability(state, key)
@@ -3805,7 +3825,8 @@ class VM(virt_vm.BaseVM):
 
             if self.params.get("enable_check_mig_thread", "no") == "yes":
                 threads_during_migrate = self.get_qemu_threads()
-                if not (len(threads_during_migrate) > len(threads_before_migrate)):
+                if not (len(threads_during_migrate) >
+                        len(threads_before_migrate)):
                     raise virt_vm.VMMigrateFailedError("Cannot find new thread"
                                                        " for migration.")
 
