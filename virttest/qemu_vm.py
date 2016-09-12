@@ -10,6 +10,7 @@ import logging
 import fcntl
 import re
 import commands
+import pdb
 
 import aexpect
 from avocado.core import exceptions
@@ -1261,6 +1262,34 @@ class VM(virt_vm.BaseVM):
                 value = params.get("disable_modern", "on")
                 dev.set_param("disable-modern", value)
 
+        def _get_pci_bus(devices, params, dtype=None, virtio=False):
+            """
+            Get device parent pci bus by dtype
+
+            :param devices: DevContainer object
+            :param params: test params
+            :param dtype: device type
+            :param virtio: is it a virtio device (bool type)
+
+            :return: return QPCIBus object.
+            """
+            pci_bus = {'aobject': params.get('pci_bus', 'pci.0')}
+            if params.get("machine_type") != "q35":
+                return pci_bus
+
+            if dtype and "%s_pci_bus" % dtype in params:
+                return {"aobject": params["%s_pci_bus" % dtype]}
+
+            pcic = virtio and "x3130-upstream" or "pci-bridge"
+            devices = [ _ for _ in devices if isinstance(_, QDevice)]
+            devices = [ _ for _ in devices if _.get_param('driver') == pcic]
+
+            try:
+                return {"aobject": devices[0].get_qid()}
+            except Exception:
+                pass
+            return pci_bus
+
         # End of command line option wrappers
 
         # If nothing changed and devices exists, return imediatelly
@@ -1358,8 +1387,7 @@ class VM(virt_vm.BaseVM):
         del qemu_sandbox
 
         devs = devices.machine_by_params(params)
-        for dev in devs:
-            devices.insert(dev)
+        devices.insert(devs)
 
         # no automagic devices please
         defaults = params.get("defaults", "no")
@@ -1394,18 +1422,27 @@ class VM(virt_vm.BaseVM):
         devices.hook_fill_scsi_hbas(params)
 
         # Additional PCI RC/switch/bridges
+        import pprint
         for pcic in params.objects("pci_controllers"):
             devs = devices.pcic_by_params(pcic, params.object_params(pcic))
             devices.insert(devs)
 
+        #
+        #buses = devices.get_buses({"type": ["PCI"]})
+        #for bus in buses:
+        #    print "atype: %s" % bus.atype
+        #    print "busid: %s" % bus.busid
+        #    print "aobject: %s" % bus.aobject
+
         # -soundhw addresses are always the lowest after scsi
         soundhw = params.get("soundcards")
         if soundhw:
+            parent_bus = _get_pci_bus(devices, params, "soundcard")
             if not devices.has_option('device') or soundhw == "all":
                 for sndcard in ('AC97', 'ES1370', 'intel-hda'):
                     # Add all dummy PCI devices and the actuall command below
                     devices.insert(StrDev("SND-%s" % sndcard,
-                                          parent_bus=pci_bus))
+                                          parent_bus=parent_bus))
                 devices.insert(StrDev('SoundHW',
                                       cmdline="-soundhw %s" % soundhw))
             else:
@@ -1413,14 +1450,14 @@ class VM(virt_vm.BaseVM):
                 for sound_device in soundhw.split(","):
                     if "hda" in sound_device:
                         devices.insert(QDevice('intel-hda',
-                                               parent_bus=pci_bus))
+                                               parent_bus=parent_bus))
                         devices.insert(QDevice('hda-duplex'))
                     elif sound_device in ["es1370", "ac97"]:
                         devices.insert(QDevice(sound_device.upper(),
-                                               parent_bus=pci_bus))
+                                               parent_bus=parent_bus))
                     else:
                         devices.insert(QDevice(sound_device,
-                                               parent_bus=pci_bus))
+                                               parent_bus=parent_bus))
 
         # Add monitors
         catch_monitor = params.get("catch_monitor")
@@ -1469,6 +1506,7 @@ class VM(virt_vm.BaseVM):
             no_virtio_serial_pcis = 0
             no_virtio_ports = 0
             virtio_port_spread = int(params.get('virtio_port_spread', 2))
+            parent_bus = _get_pci_bus(devices, params, "vio_port", True)
             for port_name in params.objects("virtio_ports"):
                 port_params = params.object_params(port_name)
                 bus = params.get('virtio_port_bus', False)
@@ -1493,7 +1531,7 @@ class VM(virt_vm.BaseVM):
                     if params.get('machine_type').startswith("arm64-mmio"):
                         dev = QDevice('virtio-serial-device')
                     else:
-                        dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
+                        dev = QDevice('virtio-serial-pci', parent_bus=parent_bus)
                     dev.set_param('id',
                                   'virtio_serial_pci%d' % no_virtio_serial_pcis)
                     devices.insert(dev)
@@ -1502,7 +1540,7 @@ class VM(virt_vm.BaseVM):
                     if params.get('machine_type').startswith("arm64-mmio"):
                         dev = QDevice('virtio-serial-device')
                     else:
-                        dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
+                        dev = QDevice('virtio-serial-pci', parent_bus=parent_bus)
                     dev.set_param('id', 'virtio_serial_pci%d' % i)
                     devices.insert(dev)
                     no_virtio_serial_pcis += 1
@@ -1528,13 +1566,15 @@ class VM(virt_vm.BaseVM):
                 no_virtio_ports += 1
         # Add virtio-rng devices
         for virtio_rng in params.objects("virtio_rngs"):
+            parent_bus = _get_pci_bus(devices, params, "vio_rng", True)
             virtio_rng_params = params.object_params(virtio_rng)
-            add_virtio_rng(devices, virtio_rng_params, pci_bus)
+            add_virtio_rng(devices, virtio_rng_params, parent_bus)
 
         # Add logging
         devices.insert(StrDev('isa-log', cmdline=add_log_seabios(devices)))
         if params.get("anaconda_log", "no") == "yes":
-            add_log_anaconda(devices, pci_bus)
+            parent_bus = _get_pci_bus(devices, params, None, True)
+            add_log_anaconda(devices, parent_bus)
 
         # Add USB controllers
         usbs = params.objects("usbs")
@@ -1584,9 +1624,15 @@ class VM(virt_vm.BaseVM):
                     if self.last_boot_index > 0:
                         image_boot = False
                     self.last_boot_index += 1
+            if ("virtio" in image_params.get("drive_format", "") or
+                "virtio" in image_params.get("scsi_hba", "")):
+                parent_bus = _get_pci_bus(devices, params, "disk", True)
+            else:
+                parent_bus = _get_pci_bus(devices, params, "disk", False)
             devs = devices.images_define_by_params(image_name, image_params,
                                                    'disk', index, image_boot,
-                                                   image_bootindex)
+                                                   image_bootindex,
+                                                   pci_bus=parent_bus)
             for _ in devs:
                 devices.insert(_)
 
@@ -1676,10 +1722,12 @@ class VM(virt_vm.BaseVM):
                             tapfds = ":".join(tapfd_list[:tapfds_len])
 
                 # Handle the '-net nic' part
+                virtio = "virtio" in nic_model
+                parent_bus = _get_pci_bus(devices, params, "nic", virtio)
                 add_nic(devices, vlan, nic_model, mac,
                         device_id, netdev_id, nic_extra,
                         nic_params.get("nic_pci_addr"),
-                        bootindex, queues, vectors, pci_bus,
+                        bootindex, queues, vectors, parent_bus,
                         nic_params.get("ctrl_mac_addr"))
 
                 # Handle the '-net tap' or '-net user' or '-netdev' part
@@ -1856,10 +1904,16 @@ class VM(virt_vm.BaseVM):
                     self.last_boot_index += 1
             iso = image_params.get("cdrom")
             if iso or image_params.get("cdrom_without_file") == "yes":
+                if ("virtio" in image_params.get("driver_format", "") or
+                    "virtio" in image_params.get("scsi_hba", "")):
+                    parent_bus = _get_pci_bus(devices, params, "cdrom", True)
+                else:
+                    parent_bus = _get_pci_bus(devices, params, "cdrom", False)
                 devs = devices.cdroms_define_by_params(cdrom, image_params,
                                                        'cdrom', index,
                                                        image_boot,
-                                                       image_bootindex)
+                                                       image_bootindex,
+                                                       pci_bus=parent_bus)
                 for _ in devs:
                     devices.insert(_)
 
@@ -2024,7 +2078,8 @@ class VM(virt_vm.BaseVM):
 
             devices.insert(StrDev('fsdev', cmdline=cmd))
 
-            dev = QDevice('virtio-9p-pci', parent_bus=pci_bus)
+            parent_bus = _get_pci_bus(devices, params, 'vio_9p', True)
+            dev = QDevice('virtio-9p-pci', parent_bus=parent_bus)
             dev.set_param('fsdev', 'local1')
             dev.set_param('mount_tag', 'autotest_tag')
             devices.insert(dev)
@@ -2125,7 +2180,7 @@ class VM(virt_vm.BaseVM):
             use_ofmt = params_balloon.get("balloon_use_old_format",
                                           "no") == "yes"
             if params_balloon.get("balloon_dev_add_bus") == "yes":
-                balloon_bus = pci_bus
+                balloon_bus = _get_pci_bus(devices, params, 'balloon', True)
             add_balloon(devices, devid=balloon_devid, bus=balloon_bus,
                         use_old_format=use_ofmt)
 
