@@ -121,7 +121,7 @@ class Target(object):
 
         if self.input_mode is not None:
             options = " -i %s %s" % (self.input_mode, options)
-            if self.input_mode in ['ova', 'disk'] and self.input_file:
+            if self.input_mode in ['ova', 'disk', 'libvirtxml'] and self.input_file:
                 options = options.replace(self.vm_name, self.input_file)
         return options
 
