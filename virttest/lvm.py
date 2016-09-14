@@ -22,6 +22,7 @@ Required params:
         PhysicalVolume name eg, /dev/sdb or /dev/sdb1;
 """
 import os
+import time
 import re
 import math
 import logging
@@ -90,11 +91,12 @@ class Volume(object):
         if self.exists():
             cmd = "umount %s" % extra_args
             fd = open("/proc/mounts", "r")
-            for line in fd.readlines():
+            mount_list = fd.readlines()
+            fd.close()
+            for line in mount_list:
                 dev, mount_point = line.split()[0], line.split()[2]
                 if os.path.exists(dev) and os.path.samefile(dev, self.path):
                     process.system("%s %s" % (cmd, mount_point))
-            fd.close()
 
 
 class PhysicalVolume(Volume):
@@ -196,7 +198,7 @@ class VolumeGroup(object):
             if pv.vg and pv.vg.name != self.name:
                 try:
                     pv.vg.reduce_pv(pv)
-                except:
+                except Exception:
                     pv.vg.remove()
             cmd += " %s" % pv.name
         process.system(cmd)
@@ -294,16 +296,23 @@ class LogicalVolume(Volume):
         logging.info("create logical volume %s", self.path)
         return self.get_attr("lv_path")
 
-    def remove(self, extra_args="-ff --yes"):
+    def remove(self, extra_args="-ff --yes", timeout=300):
         """
         Remove LogicalVolume device;
 
         :param extra_args: extra argurments pass to lvm command;
+        :param timeout: timeout in seconds;
         """
-        self.umount()
-        cmd = "lvm lvremove %s %s/%s" % (extra_args, self.vg.name, self.name)
-        process.system(cmd)
-        logging.info("logical volume(%s) removed", self.name)
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            self.umount()
+            cmd = "lvm lvremove %s %s/%s" % (extra_args,
+                                             self.vg.name, self.name)
+            status = process.system(cmd, ignore_status=True)
+            if status == 0:
+                logging.info("logical volume(%s) removed", self.name)
+                break
+            time.sleep(0.5)
 
     def resize(self, size, extra_args="-ff"):
         """
@@ -490,29 +499,15 @@ class LVM(object):
         :return: list of PhysicalVolume object;
         """
         pvs = []
-        cmd = "lvm pvs -opv_name,pv_size %s %s" % (COMMON_OPTS, vg.name)
-        output = process.system_output(cmd)
-        for line in output.splitlines():
-            pv_name, pv_size = line.split()
+        for pv_name in self.params["pv_name"].split():
             pv = self.get_vol(pv_name, "pvs")
             if pv is None:
-                pv = PhysicalVolume(pv_name, pv_size)
-                pv.create()
-                self.register(pv)
-            else:
-                logging.info("PhysicalVolume(%s) really exists" % pv_name +
-                             "skip to create it")
-            pv.set_vg(vg)
-            pvs.append(pv)
-        else:
-            for pv_name in self.params["pv_name"].split():
                 pv = PhysicalVolume(pv_name, 0)
                 pv.create()
                 self.register(pv)
-                pv.set_vg(vg)
-                pvs.append(pv)
-        for pv in pvs:
+                self.pvs.append(pv)
             pv.set_vg(vg)
+            pvs.append(pv)
         return pvs
 
     def setup_vg(self, lv):
@@ -530,15 +525,21 @@ class LVM(object):
             vg = VolumeGroup(vg_name, 0, pvs)
             vg.create()
             self.register(vg)
+            for pv in pvs:
+                pv.set_vg(vg)
+            self.vgs.append(vg)
         else:
             logging.info("VolumeGroup(%s) really exists" % vg_name +
                          "skip to create it")
-            pv_name = self.params.get("pv_name")
-            if pv_name:
-                # if set pv_name then add pvs into volume group
-                pvs = self.setup_pv(vg)
-                for pv in pvs:
-                    vg.extend_pv(pv)
+            pv_name = self.params["pv_name"].split()[0]
+            pv = self.get_vol(pv_name, "pvs")
+            if pv and pv.vg is vg:
+                vg.append_lv(lv)
+                return vg
+            # if set pv_name then add pvs into volume group
+            pvs = self.setup_pv(vg)
+            for pv in pvs:
+                vg.extend_pv(pv)
         vg.append_lv(lv)
         return vg
 
@@ -561,6 +562,7 @@ class LVM(object):
             lv = LogicalVolume(lv_name, lv_size, vg)
             lv.create()
             self.register(lv)
+            self.lvs.append(lv)
         else:
             logging.info("LogicalVolume(%s) really exists " % lv_name +
                          "skip to create it")
@@ -587,13 +589,18 @@ class LVM(object):
         """
         if self.params.get("force_remove_image", "no") == "yes":
             self.trash.reverse()
-            for vol in self.trash:
+            trash = self.trash[:]
+            for vol in trash:
                 if isinstance(vol, LogicalVolume):
                     vol.umount()
                 if isinstance(vol, PhysicalVolume):
                     vg = vol.vg
                     if vg is not None:
                         vg.reduce_pv(vol)
+                if isinstance(vol, VolumeGroup):
+                    for pv in self.pvs:
+                        if pv.vg is vol:
+                            pv.vg = None
                 vol.remove()
                 self.unregister(vol)
         self.rescan()
