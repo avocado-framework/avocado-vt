@@ -1036,7 +1036,7 @@ class PoolVolumeTest(object):
                 scsi_pool_xml.pool_type = "scsi"
                 scsi_pool_xml.target_path = pool_target
                 scsi_pool_source_xml = pool_xml.SourceXML()
-                scsi_pool_source_xml.adp_type = 'scsi_host'
+                scsi_pool_source_xml.adp_type = adapter_type
                 scsi_pool_source_xml.adp_name = "host" + scsi_host
                 if pool_wwpn:
                     scsi_pool_source_xml.adp_wwpn = pool_wwpn
