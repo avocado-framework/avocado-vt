@@ -308,7 +308,9 @@ class QemuAgent(Monitor):
         """
         Get supported qmp cmds list.
         """
-        self._sync()
+        synced = self._sync()
+        if not synced:
+            raise VAgentSyncError(self.vm.name)
         cmds = self.cmd("guest-info", debug=False)
         if cmds and cmds.has_key("supported_commands"):
             cmd_list = cmds["supported_commands"]
