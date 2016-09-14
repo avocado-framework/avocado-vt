@@ -3092,13 +3092,17 @@ def get_linux_ipaddr(session, nic):
     """
     cmd = "ifconfig %s || ip address show %s" % (nic, nic)
     out = session.cmd_output(cmd)
+    inet_regex = "inet (addr:\s?)?(\d+.\d+.\d+.\d+)"
     try:
-        inet = re.findall("inet (\S+)", out, re.M)[0]
-    except IndexError:
+        inet = re.search(inet_regex, out, re.M).groups()[1]
+    except Exception:
         inet = None
-    inet6 = re.findall("inet6 (\S+)", out, re.M)
-    if not inet6:
-        inet6 = [None]
+
+    inet6_regex = "inet6 (addr:\s?)?(\S+)"
+    try:
+        inet6 = re.search(inet6_regex, out, re.M).groups()[1].split('/')[0]
+    except Exception:
+        inet6 = None
     return (inet, inet6)
 
 
@@ -3109,18 +3113,22 @@ def windows_mac_ip_maps(session):
     maps = {}
     cmd = "wmic nicconfig where IPEnabled=True get ipaddress, macaddress"
     out = session.cmd_output(cmd)
-    for line in out.splitlines()[1:]:
-        line = line.split(',')
-        inets = line[1].lstrip('{').rstrip('}').split(';')
+    for line in out.splitlines():
+        try:
+            mac = re.search("\w{2}:\w{2}:\w{2}:\w{2}:\w{2}:\w{2}", line).group(0)
+        except Exception:
+            continue
+        inets = re.findall("\"([\w.:]*)\"", line)
         try:
             inet = inets[0]
         except IndexError:
             inet = None
-        inet6 = inets[1:]
-        if not inet6:
-            inet6 = [None]
-        mac = line[2]
+        try:
+            inet6 = inets[1]
+        except IndexError:
+            inet6 = None
         maps[mac] = (inet, inet6)
+
     return maps
 
 
@@ -3225,9 +3233,10 @@ def update_mac_ip_address(vm, params, timeout=None):
                                                    "MACAddress",
                                                    mac,
                                                    "NetConnectionID")
-            logging.warn("'%s' not belong to VM '%s'" % (ifname, vm.name))
+            if ifname:
+                logging.warn("'%s' not belong to VM '%s'" % (ifname, vm.name))
         vm.address_cache[mac] = maps[key][0]
-        vm.address_cache["%s_6" % mac] = maps[key][1][-1]
+        vm.address_cache["%s_6" % mac] = maps[key][1]
 
 
 def get_windows_nic_attribute(session, key, value, target, timeout=240,
