@@ -311,7 +311,7 @@ class QemuAgent(Monitor):
         synced = self._sync()
         if not synced:
             raise VAgentSyncError(self.vm.name)
-        cmds = self.cmd("guest-info", debug=False)
+        cmds = self.guest_info()
         if cmds and cmds.has_key("supported_commands"):
             cmd_list = cmds["supported_commands"]
             self._supported_cmds = [n["name"] for n in cmd_list if
@@ -579,6 +579,14 @@ class QemuAgent(Monitor):
         if nanoseconds:
             args = {"time": nanoseconds}
         return self.cmd(cmd=cmd, args=args)
+
+    @error_context.context_aware
+    def guest_info(self):
+        """
+        Send "guest-info", return all supported cmds.
+        """
+        cmd = "guest-info"
+        return self.cmd(cmd=cmd, debug=False)
 
     @error_context.context_aware
     def fstrim(self):
