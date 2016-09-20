@@ -883,7 +883,7 @@ class VM(virt_vm.BaseVM):
                 rng_pci.set_param("rng", rng_dev.get_qid())
                 devices.insert(rng_pci)
 
-        def add_mem(devices, params):
+        def add_memorys(devices, params):
             """
             Add memory controler by params
 
@@ -896,14 +896,17 @@ class VM(virt_vm.BaseVM):
             if params.get("slots") and params.get("maxmem"):
                 options.append("slots=%s" % params["slots"])
                 options.append("maxmem=%s" % params["maxmem"])
-            if options:
-                cmdline = "-m %s" % ",".join(options)
-                dev = StrDev("mem", cmdline=cmdline)
-                devices.insert(dev)
-                for name in params.objects("mem_devs"):
-                    memdevs = devices.memory_define_by_params(params, name)
-                    for dev in memdevs:
-                        devices.insert(dev)
+            if not options:
+                return devices
+
+            cmdline = "-m %s" % ",".join(options)
+            dev = StrDev("mem", cmdline=cmdline)
+            devices.insert(dev)
+            for name in params.objects("mem_devs"):
+                mem_params = params.object_params(name)
+                memdevs = devices.memory_define_by_params(mem_params, name)
+                devices.insert(memdevs)
+            return devices
 
         def add_spice_rhel5(devices, spice_params, port_range=(3100, 3199)):
             """
@@ -1720,7 +1723,7 @@ class VM(virt_vm.BaseVM):
                 iov += 1
 
         # Add Memory devices
-        add_mem(devices, params)
+        add_memorys(devices, params)
         smp = int(params.get("smp", 0))
         mem = int(params.get("mem", 0))
         vcpu_maxcpus = int(params.get("vcpu_maxcpus", 0))
