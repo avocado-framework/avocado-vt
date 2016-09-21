@@ -1258,6 +1258,29 @@ class HumanMonitor(Monitor):
         value = cache_size_info.split(":")[1].split()[0].strip()
         return value
 
+    def set_migrate_parameter(self, parameter, value):
+        """
+        Set parameters of migrate.
+
+        :param parameter: the parameter which need to set
+        :param value: the value of parameter
+        """
+        cmd = "migrate_set_parameter"
+        self.verify_supported_cmd(cmd)
+        cmd += " %s %s" % (parameter, value)
+        return self.cmd(cmd)
+
+    def get_migrate_parameter(self, parameter):
+        """
+        Get the parameter value. e.g. cpu-throttle-initial: 30
+
+        :param parameter: the parameter which need to get
+        """
+        parameter_info = self.query("migrate_parameters")
+        parameter_info = parameter_info.split(" ")
+        value = parameter_info[parameter_info.index("parameter")+1]
+        return value
+
     def system_powerdown(self):
         """
         Requests that a guest perform a powerdown operation.
@@ -2298,6 +2321,30 @@ class QMPMonitor(Monitor):
         Get the xbzrel cache size.
         """
         return self.query("migrate-cache-size")
+
+    def set_migrate_parameter(self, parameter, value):
+        """
+        Set the parameters of migrate.
+
+        :param parameter: the parameter which need to set.
+        :param value: the value of parameter
+        """
+        cmd = "migrate-set-parameters"
+        self.verify_supported_cmd(cmd)
+        args = {parameter: value}
+        return self.cmd(cmd, args)
+
+    def get_migrate_parameter(self, parameter):
+        """
+        Get the value of parameter.
+
+        :param parameter: parameter which need to get.
+        """
+        parameter_info = self.query("migrate-parameters")
+        if parameter in parameter_info:
+            return parameter_info[parameter]
+        else:
+            return False
 
     def system_powerdown(self):
         """
