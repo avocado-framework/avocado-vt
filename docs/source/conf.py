@@ -43,8 +43,10 @@ master_doc = 'index'
 project = u'Avocado VT'
 copyright = u'2014, Red Hat'
 
-version = '41.0'
-release = '41.0'
+version_file = os.path.join(root_path, 'VERSION')
+VERSION = open(version_file, 'r').read().strip()
+version = VERSION
+release = VERSION
 
 # on_rtd is whether we are on readthedocs.org, this line of code grabbed from
 # docs.readthedocs.org
