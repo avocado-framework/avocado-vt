@@ -3295,6 +3295,7 @@ def verify_host_dmesg(dmesg_log_file=None, trace_re=None):
             else:
                 err += " Please check host dmesg log in debug log."
                 logging.debug(d_log)
+            process.system("dmesg -C", ignore_status=True)
             raise exceptions.TestError(err)
 
 
