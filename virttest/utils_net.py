@@ -1723,7 +1723,7 @@ def change_iface_bridge(ifname, new_bridge, ovs=None):
     if br_manager_new is None:
         raise BRNotExistError(new_bridge, "")
 
-    if type(ifname) is str:
+    if isinstance(ifname, str):
         (br_manager_old, br_old) = find_current_bridge(ifname, ovs)
         if br_manager_old is not None:
             br_manager_old.del_port(br_old, ifname)
@@ -1798,7 +1798,7 @@ def add_to_bridge(ifname, brname, ovs=None):
         ovs = __ovs
 
     _ifname = None
-    if type(ifname) is str:
+    if isinstance(ifname, str):
         _ifname = ifname
     elif issubclass(type(ifname), VirtIface):
         _ifname = ifname.ifname
@@ -1828,7 +1828,7 @@ def del_from_bridge(ifname, brname, ovs=None):
         ovs = __ovs
 
     _ifname = None
-    if type(ifname) is str:
+    if isinstance(ifname, str):
         _ifname = ifname
     elif issubclass(type(ifname), VirtIface):
         _ifname = ifname.ifname
@@ -2109,7 +2109,9 @@ class IPv6Manager(propcan.PropCanBase):
                 set_net_if_ip(self.client_ifname, self.client_ipv6_addr)
                 self.client_ipv6_added = True
             else:
-                logging.debug("Skip to add the existing ipv6 address %s", ipv6_addr_src)
+                logging.debug(
+                    "Skip to add the existing ipv6 address %s",
+                    ipv6_addr_src)
 
             self.session = self.get_session()
             runner = self.session.cmd_output
@@ -2117,10 +2119,15 @@ class IPv6Manager(propcan.PropCanBase):
 
             # configure global IPv6 address for remote host
             if ipv6_addr_des not in remote_ipv6_addr_list:
-                set_net_if_ip(self.server_ifname, self.server_ipv6_addr, runner)
+                set_net_if_ip(
+                    self.server_ifname,
+                    self.server_ipv6_addr,
+                    runner)
                 self.server_ipv6_added = True
             else:
-                logging.debug("Skip to add the existing ipv6 address %s", ipv6_addr_des)
+                logging.debug(
+                    "Skip to add the existing ipv6 address %s",
+                    ipv6_addr_des)
 
             # check IPv6 network connectivity
             if self.check_ipv6_connectivity == "yes":
@@ -2429,7 +2436,7 @@ class VMNet(list):
         Return the first index with prop_name key matching prop_value or None
         """
         for nic_index in xrange(0, len(self)):
-            if self[nic_index].has_key(prop_name):
+            if prop_name in self[nic_index]:
                 if self[nic_index][prop_name] == prop_value:
                     return nic_index
         return None
@@ -2818,7 +2825,7 @@ class VirtNet(DbNet, ParamsNet):
         :raise: NetError if mac generation failed
         """
         nic = self[nic_index_or_name]
-        if nic.has_key('mac'):
+        if 'mac' in nic:
             logging.warning("Overwriting mac %s for nic %s with random"
                             % (nic.mac, str(nic_index_or_name)))
         self.free_mac_address(nic_index_or_name)
@@ -2864,7 +2871,7 @@ class VirtNet(DbNet, ParamsNet):
         :raise: NetError if mac already assigned
         """
         nic = self[nic_index_or_name]
-        if nic.has_key('mac'):
+        if 'mac' in nic:
             logging.warning("Overwriting mac %s for nic %s with %s"
                             % (nic.mac, str(nic_index_or_name), mac))
         nic.mac = mac.lower()
@@ -2945,7 +2952,8 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None):
     if not devs:
         # Get the name of the bridge device for ip route cache
         ip_cmd = utils_path.find_command("ip")
-        ip_cmd = "%s route get %s; %s route | grep default" % (ip_cmd, ip, ip_cmd)
+        ip_cmd = "%s route get %s; %s route | grep default" % (
+            ip_cmd, ip, ip_cmd)
         output = commands.getoutput(ip_cmd)
         devs = set(re.findall(r"dev\s+(\S+)", output, re.I))
     if not devs:
@@ -3092,13 +3100,17 @@ def get_linux_ipaddr(session, nic):
     """
     cmd = "ifconfig %s || ip address show %s" % (nic, nic)
     out = session.cmd_output(cmd)
+    inet_regex = "inet (addr:\s?)?(\d+.\d+.\d+.\d+)"
     try:
-        inet = re.findall("inet (\S+)", out, re.M)[0]
-    except IndexError:
+        inet = re.search(inet_regex, out, re.M).groups()[1]
+    except Exception:
         inet = None
-    inet6 = re.findall("inet6 (\S+)", out, re.M)
-    if not inet6:
-        inet6 = [None]
+
+    inet6_regex = "inet6 (addr:\s?)?(\S+)"
+    try:
+        inet6 = re.search(inet6_regex, out, re.M).groups()[1].split('/')[0]
+    except Exception:
+        inet6 = None
     return (inet, inet6)
 
 
@@ -3109,18 +3121,22 @@ def windows_mac_ip_maps(session):
     maps = {}
     cmd = "wmic nicconfig where IPEnabled=True get ipaddress, macaddress"
     out = session.cmd_output(cmd)
-    for line in out.splitlines()[1:]:
-        line = line.split(',')
-        inets = line[1].lstrip('{').rstrip('}').split(';')
+    for line in out.splitlines():
+        try:
+            mac = re.search("\w{2}:\w{2}:\w{2}:\w{2}:\w{2}:\w{2}", line).group(0)
+        except Exception:
+            continue
+        inets = re.findall("\"([\w.:]*)\"", line)
         try:
             inet = inets[0]
         except IndexError:
             inet = None
-        inet6 = inets[1:]
-        if not inet6:
-            inet6 = [None]
-        mac = line[2]
+        try:
+            inet6 = inets[1]
+        except IndexError:
+            inet6 = None
         maps[mac] = (inet, inet6)
+
     return maps
 
 
@@ -3225,9 +3241,10 @@ def update_mac_ip_address(vm, params, timeout=None):
                                                    "MACAddress",
                                                    mac,
                                                    "NetConnectionID")
-            logging.warn("'%s' not belong to VM '%s'" % (ifname, vm.name))
+            if ifname:
+                logging.warn("'%s' not belong to VM '%s'" % (ifname, vm.name))
         vm.address_cache[mac] = maps[key][0]
-        vm.address_cache["%s_6" % mac] = maps[key][1][-1]
+        vm.address_cache["%s_6" % mac] = maps[key][1]
 
 
 def get_windows_nic_attribute(session, key, value, target, timeout=240,
@@ -3385,7 +3402,9 @@ def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
         logging.error("Failed to run command '%s'", cmd)
 
     if not re.search(find_str, output, re.M):
-        raise exceptions.TestFail("Failed to listen %s: %s" % (find_str, output))
+        raise exceptions.TestFail(
+            "Failed to listen %s: %s" %
+            (find_str, output))
     logging.info("The listening is active: %s", output)
 
 
