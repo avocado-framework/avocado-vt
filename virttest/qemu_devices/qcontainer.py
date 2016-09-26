@@ -749,7 +749,9 @@ class DevContainer(object):
                                                    child_bus=bus))
             else:
                 _name = 'lsi53c895a%s' % i
-                bus = qbuses.QSCSIBus("scsi.0", 'SCSI', [8, 16384], atype='lsi53c895a')
+                bus = qbuses.QSCSIBus(
+                    "scsi.0", 'SCSI', [
+                        8, 16384], atype='lsi53c895a')
                 self.insert(qdevices.QStringDevice(_name,
                                                    parent_bus={'aobject':
                                                                params.get('pci_bus',
@@ -790,7 +792,8 @@ class DevContainer(object):
                                                   parent_bus={'aobject': 'pci.0'}))
             devices.append(qdevices.QStringDevice('ICH9-ahci', {'addr': '1f.2',
                                                                 'driver': 'ich9-ahci'},
-                                                  parent_bus={'aobject': 'pci.0'},
+                                                  parent_bus={
+                                                      'aobject': 'pci.0'},
                                                   child_bus=qbuses.QAHCIBus('ide')))
             if self.has_option('device') and self.has_option("global"):
                 devices.append(qdevices.QStringDevice('fdc',
@@ -828,7 +831,8 @@ class DevContainer(object):
                                                   parent_bus={'aobject': 'pci.0'}))
             devices.append(qdevices.QStringDevice('piix3-ide', {'addr': '01.1',
                                                                 'driver': 'piix3-ide'},
-                                                  parent_bus={'aobject': 'pci.0'},
+                                                  parent_bus={
+                                                      'aobject': 'pci.0'},
                                                   child_bus=qbuses.QIDEBus('ide')))
             if self.has_option('device') and self.has_option("global"):
                 devices.append(qdevices.QStringDevice('fdc',
@@ -1051,9 +1055,9 @@ class DevContainer(object):
         return devices
 
     # USB Controller related methods
-    def usbc_by_variables(self, usb_id, usb_type, multifunction=False,
+    def usbc_by_variables(self, usb_id, usb_type, pci_bus, multifunction=False,
                           masterbus=None, firstport=None, freq=None,
-                          max_ports=6, pci_addr=None, pci_bus='pci.0'):
+                          max_ports=6, pci_addr=None):
         """
         Creates usb-controller devices by variables
         :param usb_id: Usb bus name
@@ -1079,7 +1083,7 @@ class DevContainer(object):
             raise exceptions.TestSkipError("usb controller %s not available"
                                            % usb_type)
 
-        usb = qdevices.QDevice(usb_type, {}, usb_id, {'aobject': pci_bus},
+        usb = qdevices.QDevice(usb_type, {}, usb_id, pci_bus,
                                qbuses.QUSBBus(max_ports, '%s.0' % usb_id, usb_type, usb_id))
         new_usbs = [usb]    # each usb dev might compound of multiple devs
         # TODO: Add 'bus' property (it was not in the original version)
@@ -1095,7 +1099,7 @@ class DevContainer(object):
             if arch.ARCH in ('ppc64', 'ppc64le'):
                 for i in xrange(2):
                     new_usbs.append(qdevices.QDevice('pci-ohci', {}, usb_id))
-                    new_usbs[-1].parent_bus = {'aobject': pci_bus}
+                    new_usbs[-1].parent_bus = pci_bus
                     new_usbs[-1].set_param('id', '%s.%d' % (usb_id, i))
                     new_usbs[-1].set_param('multifunction', 'on')
                     new_usbs[-1].set_param('masterbus', '%s.0' % usb_id)
@@ -1108,7 +1112,7 @@ class DevContainer(object):
                     new_usbs.append(
                         qdevices.QDevice('ich9-usb-uhci%d' % (i + 1), {},
                                          usb_id))
-                    new_usbs[-1].parent_bus = {'aobject': pci_bus}
+                    new_usbs[-1].parent_bus = pci_bus
                     new_usbs[-1].set_param('id', '%s.%d' % (usb_id, i))
                     new_usbs[-1].set_param('multifunction', 'on')
                     new_usbs[-1].set_param('masterbus', '%s.0' % usb_id)
@@ -1118,7 +1122,7 @@ class DevContainer(object):
                     new_usbs[-1].set_param('firstport', 2 * i)
         return new_usbs
 
-    def usbc_by_params(self, usb_name, params):
+    def usbc_by_params(self, usb_name, params, pci_bus={"aobject": "pci.0"}):
         """
         Wrapper for creating usb bus from autotest usb params.
         :param usb_name: Name of the usb bus
@@ -1127,13 +1131,13 @@ class DevContainer(object):
         """
         return self.usbc_by_variables(usb_name,
                                       params.get('usb_type'),
+                                      pci_bus,
                                       params.get('multifunction'),
                                       params.get('masterbus'),
                                       params.get('firstport'),
                                       params.get('freq'),
                                       params.get('max_ports', 6),
-                                      params.get('pci_addr'),
-                                      params.get('pci_bus', 'pci.0'))
+                                      params.get('pci_addr'))
 
     # USB Device related methods
     def usb_by_variables(self, usb_name, usb_type, controller_type, bus=None,
@@ -1180,7 +1184,7 @@ class DevContainer(object):
                                      params.get("port"))
 
     # Images (disk, cdrom, floppy) device related methods
-    def images_define_by_variables(self, name, filename, index=None, fmt=None,
+    def images_define_by_variables(self, name, filename, pci_bus, index=None, fmt=None,
                                    cache=None, werror=None, rerror=None, serial=None,
                                    snapshot=None, boot=None, blkdebug=None, bus=None,
                                    unit=None, port=None, bootindex=None, removable=None,
@@ -1190,7 +1194,7 @@ class DevContainer(object):
                                    strict_mode=None, media=None, imgfmt=None,
                                    pci_addr=None, scsi_hba=None, x_data_plane=None,
                                    blk_extra_params=None, scsi=None,
-                                   pci_bus='pci.0', drv_extra_params=None,
+                                   drv_extra_params=None,
                                    num_queues=None, bus_extra_params=None,
                                    force_fmt=None):
         """
@@ -1333,8 +1337,6 @@ class DevContainer(object):
             logging.warn("drive_pci_addr is obsolete, use drive_bus instead "
                          "(disk %s)", name)
             bus = none_or_int(pci_addr)
-
-        pci_bus = {'aobject': pci_bus}
 
         #
         # HBA
@@ -1549,7 +1551,8 @@ class DevContainer(object):
 
     def images_define_by_params(self, name, image_params, media=None,
                                 index=None, image_boot=None,
-                                image_bootindex=None):
+                                image_bootindex=None,
+                                pci_bus={"aobject": "pci.0"}):
         """
         Wrapper for creating disks and related hbas from autotest image params.
 
@@ -1576,6 +1579,7 @@ class DevContainer(object):
                                                storage.get_image_filename(
                                                    image_params,
                                                    data_dir.get_data_dir()),
+                                               pci_bus,
                                                index,
                                                drive_format,
                                                image_params.get("drive_cache"),
@@ -1623,8 +1627,6 @@ class DevContainer(object):
                                                image_params.get(
                                                    "virtio-blk-pci_scsi"),
                                                image_params.get(
-                                                   'pci_bus', 'pci.0'),
-                                               image_params.get(
                                                    "drv_extra_params"),
                                                image_params.get("num_queues"),
                                                image_params.get(
@@ -1633,7 +1635,8 @@ class DevContainer(object):
 
     def cdroms_define_by_params(self, name, image_params, media=None,
                                 index=None, image_boot=None,
-                                image_bootindex=None):
+                                image_bootindex=None,
+                                pci_bus={"aobject": "pci.0"}):
         """
         Wrapper for creating cdrom and related hbas from autotest image params.
 
@@ -1679,6 +1682,7 @@ class DevContainer(object):
                                                storage.get_image_filename(
                                                    image_params,
                                                    data_dir.get_data_dir()),
+                                               pci_bus,
                                                index,
                                                cd_format,
                                                image_params.get(
@@ -1725,8 +1729,6 @@ class DevContainer(object):
                                                    "blk_extra_params"),
                                                image_params.get(
                                                    "virtio-blk-pci_scsi"),
-                                               image_params.get(
-                                                   'pci_bus', 'pci.0'),
                                                image_params.get(
                                                    "drv_extra_params"),
                                                None,
