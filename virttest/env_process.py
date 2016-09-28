@@ -1151,7 +1151,9 @@ def postprocess(test, params, env):
     if err:
         raise virt_vm.VMError("Failures occurred while postprocess:%s" % err)
     if params.get("verify_host_dmesg", "yes") == "yes":
-        utils_misc.verify_host_dmesg()
+        dmesg_log_file = params.get("host_dmesg_logfile", "host_dmesg.log")
+        dmesg_log_file = utils_misc.get_path(test.debugdir, dmesg_log_file)
+        utils_misc.verify_host_dmesg(dmesg_log_file=dmesg_log_file)
 
 
 def postprocess_on_error(test, params, env):
