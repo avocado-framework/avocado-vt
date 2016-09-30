@@ -428,9 +428,14 @@ class PoolVolume(object):
         """
         Return a dict include volumes' name(key) and path(value).
         """
-        result = self.virsh_instance.vol_list(self.pool_name,
-                                              ignore_status=False)
         volumes = {}
+        try:
+            result = self.virsh_instance.vol_list(self.pool_name,
+                                                  ignore_status=False)
+        except process.CmdError, detail:
+            logging.error('List volume failed: %s', detail)
+            return volumes
+
         lines = result.stdout.strip().splitlines()
         if len(lines) > 2:
             head = lines[0]
@@ -450,10 +455,7 @@ class PoolVolume(object):
         return volumes
 
     def volume_exists(self, name):
-        try:
-            volumes = self.list_volumes()
-        except process.CmdError:
-            return False
+        volumes = self.list_volumes()
         return name in volumes
 
     def volume_info(self, name):
@@ -465,7 +467,7 @@ class PoolVolume(object):
             result = self.virsh_instance.vol_info(name, self.pool_name,
                                                   ignore_status=False)
         except process.CmdError, detail:
-            logging.error("Get volume information failed:%s", detail)
+            logging.error("Get volume information failed: %s", detail)
             return info
 
         for line in result.stdout.strip().splitlines():
