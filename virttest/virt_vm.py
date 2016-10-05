@@ -638,6 +638,12 @@ class BaseVM(object):
         :raise VMAddressVerificationError: If the MAC-IP address mapping cannot
                 be verified (using arping)
         """
+
+        flexible_index = ("yes" == self.params.get("flexible_nic_index", 'no'))
+        if flexible_index:
+            nics = []
+            logging.debug("In case index %s NIC has no IP,"
+                          "flexible index will be used", index)
         nic = self.virtnet[index]
         self.ip_version = self.params.get("ip_version", "ipv4").lower()
         # TODO: Determine port redirection in use w/o checking nettype
@@ -656,8 +662,6 @@ class BaseVM(object):
             arp_ip = self.address_cache.get(nic.mac.lower())
             # Make sure IP is assigned to one or more macs for this guest
             macs = self.virtnet.mac_list()
-            if not arp_ip:
-                arp_ip = self.address_cache.get(nic.mac.upper())
             devs = set()
             if nic.has_key('netdst'):
                 """At this point we know that VM's NIC is attached to a certain
@@ -668,6 +672,33 @@ class BaseVM(object):
                 be for each wait_for_login() call.
                 """
                 devs = set([nic.netdst])
+            # Lets validate whether we got valid IP here if not ensure to remove
+            # stale entry from address_cache, atleast next iteration will
+            # get valid IPADDR
+            if arp_ip:
+                if not utils_net.verify_ip_address_ownership(arp_ip, macs, devs=devs):
+                    self.address_cache[nic.mac.lower()] = None
+                    arp_ip = None
+
+            if (not arp_ip) and (len(macs) > 1) and flexible_index:
+                # Try to poke for each index
+                for idx in range(len(macs)):
+                    nics.append(self.virtnet[idx])
+                    if not nics[idx].has_key('mac'):
+                        if self.params.get('vm_type') in ['libvirt', 'v2v']:
+                            nics[idx]['mac'] = self.get_virsh_mac_address(idx)
+                    # else TODO: Look up mac from existing qemu-kvm process
+                    arp_ip = self.address_cache.get(nics[idx]['mac'].lower())
+                    # Lets validate whether we got valid IP here if not ensure
+                    # to remove stale entry from address_cache,
+                    # atleaset next iteration will get valid IPADDR
+                    if arp_ip:
+                        if not utils_net.verify_ip_address_ownership(arp_ip, macs, devs=devs):
+                            self.address_cache[nics[idx]['mac'].lower()] = None
+                            arp_ip = None
+                        else:
+                            break
+
             if (not arp_ip or
                     not utils_net.verify_ip_address_ownership(arp_ip, macs,
                                                               devs=devs) or
@@ -676,6 +707,11 @@ class BaseVM(object):
                 # or IP missed in address_cache, try to find it from arp table.
                 ip_map = utils_net.parse_arp()
                 arp_ip = ip_map.get(nic.mac.lower())
+                if (not arp_ip) and (len(macs) > 1) and flexible_index:
+                    for idx in range(len(macs)):
+                        arp_ip = ip_map.get(nics[idx]['mac'].lower())
+                        if arp_ip:
+                            break
             if not arp_ip:
                 raise VMIPAddressMissingError(nic.mac)
 
