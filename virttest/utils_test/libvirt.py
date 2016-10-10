@@ -2873,7 +2873,7 @@ def get_vol_list(pool_name, vol_check=True, timeout=5):
     """
     poolvol = libvirt_storage.PoolVolume(pool_name=pool_name)
     vols = utils_misc.wait_for(poolvol.list_volumes, timeout,
-                               text='Waitting for volume show up')
+                               text='Waiting for volume show up')
     if not vol_check:
         return vols
 
@@ -2884,7 +2884,7 @@ def get_vol_list(pool_name, vol_check=True, timeout=5):
     # Check volume
     for vol_path in vols.itervalues():
         if not utils_misc.wait_for(lambda: os.path.exists(vol_path), timeout,
-                                   text='Waitting for vol path created'):
+                                   text='Waiting for %s show up' % vol_path):
             raise exceptions.TestError("Volume path %s not exist" % vol_path)
 
     return vols
