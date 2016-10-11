@@ -158,6 +158,7 @@ class Nfs(object):
             path.find_command("service")
             path.find_command("exportfs")
             self.nfs_service = service.Factory.create_service("nfs")
+            self.rpcbind_service = service.Factory.create_service("rpcbind")
 
             self.export_dir = (params.get("export_dir") or
                                self.mount_src.split(":")[-1])
@@ -199,6 +200,7 @@ class Nfs(object):
         if self.nfs_setup:
             if not self.nfs_service.status():
                 logging.debug("Restart NFS service.")
+                self.rpcbind_service.restart()
                 self.nfs_service.restart()
 
             if not os.path.isdir(self.export_dir):
