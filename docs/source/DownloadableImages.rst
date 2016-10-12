@@ -44,17 +44,13 @@ JeOS image
 
 You can find the JeOS images currently here:
 
-http://assets-avocadoproject.rhcloud.com/static/jeos-20-64.qcow2.7z
+https://assets-avocadoproject.rhcloud.com/static/jeos-21-64.qcow2.7z
 
-http://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS20
+https://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS21
 
-http://assets-avocadoproject.rhcloud.com/static/jeos-21-64.qcow2.7z
+https://assets-avocadoproject.rhcloud.com/static/jeos-23-64.qcow2.7z
 
-http://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS21
-
-http://assets-avocadoproject.rhcloud.com/static/jeos-23-64.qcow2.7z
-
-http://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS23
+https://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS23
 
 Unfortunately the host `assets-avocadoproject.rhcloud.com` is configured
 in such a way that exploring that base directory won't give you a file
