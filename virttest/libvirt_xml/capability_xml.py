@@ -99,6 +99,13 @@ class CapabilityXML(base.LibvirtXMLBase):
                 arch_prop = guest_arch.get(arch_name, {})
                 arch_prop['wordsize'] = arch.find('wordsize').text
                 arch_prop['emulator'] = arch.find('emulator').text
+                # TODO: maxcpus differs for machine in a given arch.
+                # Right now takes first machine as default for the given
+                # arch and assigns maxcpu for the arch, ideally below machine
+                # list to get popluated with maxcpu for each machine
+                # not modifying as no requirement for now and as it would break
+                # other places where machine list is used.
+                arch_prop['maxcpus'] = arch.findall('machine')[0].get('maxCpus')
                 m_list = []
                 for machine in arch.findall('machine'):
                     machine_text = machine.text
