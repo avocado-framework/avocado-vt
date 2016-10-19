@@ -1128,8 +1128,7 @@ def __init_openvswitch(func):
                 if (not __ovs.check()):
                     raise Exception("Check of OpenVSwitch failed.")
             except Exception, e:
-                logging.debug("Host does not support OpenVSwitch: %s", e)
-
+                raise exceptions.TestFail("Host does not support OpenVSwitch")
         return func(*args, **kargs)
     return wrap_init
 
@@ -3123,7 +3122,8 @@ def windows_mac_ip_maps(session):
     out = session.cmd_output(cmd)
     for line in out.splitlines():
         try:
-            mac = re.search("\w{2}:\w{2}:\w{2}:\w{2}:\w{2}:\w{2}", line).group(0)
+            mac = re.search(
+                "\w{2}:\w{2}:\w{2}:\w{2}:\w{2}:\w{2}", line).group(0)
         except Exception:
             continue
         inets = re.findall("\"([\w.:]*)\"", line)
