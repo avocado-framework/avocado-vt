@@ -988,7 +988,7 @@ def postprocess(test, params, env):
             if params.object_params(image).get('remove_image') == 'yes':
                 destroy = True
         if destroy and not vm.is_dead():
-            logging.debug('Image of VM %s was removed, destroing it.', vm.name)
+            logging.debug('Image of VM %s was removed, destroying it.', vm.name)
             vm.destroy()
 
     # Terminate the tcpdump thread
