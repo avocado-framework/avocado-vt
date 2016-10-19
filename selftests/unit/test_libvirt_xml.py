@@ -34,8 +34,8 @@ threads='1'/><feature name='vme'/></cpu><power_management><suspend_mem/>
 <topology><cells num='1'><cell id='0'><cpus num='1'><cpu id='0'/></cpus></cell>
 </cells></topology><secmodel><model>selinux</model><doi>0</doi></secmodel>
 </host><guest><os_type>hvm</os_type><arch name='x86_64'><wordsize>64</wordsize>
-<emulator>/usr/libexec/qemu-kvm</emulator><machine>rhel6.3.0</machine><machine
-canonical='rhel6.3.0'>pc</machine><domain type='qemu'></domain><domain
+<emulator>/usr/libexec/qemu-kvm</emulator><machine maxCpus='255'>rhel6.3.0</machine><machine
+canonical='rhel6.3.0' maxCpus='255'>pc</machine><domain type='qemu'></domain><domain
 type='kvm'><emulator>/usr/libexec/qemu-kvm</emulator></domain></arch><features>
 <cpuselection/><deviceboot/><acpi default='on' toggle='yes'/><apic default='on'
 toggle='no'/></features></guest></capabilities>"""
@@ -620,6 +620,7 @@ class TestLibvirtXML(LibvirtXMLTestBase):
         expected_guest = {'wordsize': '64',
                           'emulator': '/usr/libexec/qemu-kvm',
                           'machine': ['rhel6.3.0', 'pc'],
+                          'maxcpus': '255',
                           'domain_qemu': {},
                           'domain_kvm': {'emulator': '/usr/libexec/qemu-kvm'}}
         expected = {expected_os: {expected_arch: expected_guest}}
