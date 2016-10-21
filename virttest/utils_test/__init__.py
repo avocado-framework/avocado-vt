@@ -352,6 +352,43 @@ def get_memory_info(lvms):
 
 
 @error_context.context_aware
+def get_image_version(qemu_image):
+    """
+    Get image version of qcow2 image
+
+    :param qemu_image: Object QemuImg
+
+    :return: compatibility level
+    """
+    error_context.context("Get qcow2 image('%s') version"
+                          % qemu_image.image_filename, logging.info)
+    info_out = qemu_image.info()
+    compat = re.search(r'compat: +(.*)', info_out, re.M)
+    if compat:
+        return compat.group(1)
+    return '0.10'
+
+
+@error_context.context_aware
+def update_qcow2_image_version(qemu_image, ver_from, ver_to):
+    """
+    Update qcow2 image version.
+
+    :param qemu_image: Object QemuImg
+    :param ver_from: Original version of qcow2 image. Valid values: '0.10'
+                 and '1.1'
+    :param ver_to: Version which is expected to be set. Valid values: '0.10'
+               and '1.1'
+    """
+    if ver_from == ver_to:
+        return None
+    error_context.context("Update qcow2 image version from %s to %s"
+                          % (ver_from, ver_to), logging.info)
+    qemu_image.params.update({"amend_compat": "%s" % ver_to})
+    qemu_image.amend(qemu_image.params)
+
+
+@error_context.context_aware
 def run_image_copy(test, params, env):
     """
     Copy guest images from nfs server.

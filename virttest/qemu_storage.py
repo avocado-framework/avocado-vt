@@ -542,6 +542,61 @@ class QemuImg(storage.QemuImg):
                     "Image format %s is not checkable, skipping check",
                     self.image_format)
 
+    def amend(self, params, cache_mode=None, ignore_status=False):
+        """
+        Amend the image format specific options for the image
+
+        :param params: dictionary containing the test parameters
+        :param cache_mode: the cache mode used to write the output disk image,
+                           the valid options are: 'none', 'writeback'
+                           (default), 'writethrough', 'directsync' and
+                           'unsafe'.
+        :param ignore_status: Whether to raise an exception when command
+                              returns =! 0 (False), or not (True).
+
+        :note: params may contain amend options:
+
+               amend_size
+                   virtual disk size of the image (a string qemu-img can
+                   understand, such as '10G')
+               amend_compat
+                   compatibility level (0.10 or 1.1)
+               amend_backing_file
+                   file name of a base image
+               amend_backing_fmt
+                   image format of the base image
+               amend_encryption
+                   encrypt the image, allowed values: on and off.
+                   Default is "off"
+               amend_cluster_size
+                   cluster size for the image
+               amend_preallocation
+                   preallocation mode when create image, allowed values: off,
+                   metadata. Default is "off"
+               amend_lazy_refcounts
+                   postpone refcount updates, allowed values: on and off.
+                   Default is "off"
+               amend_refcount_bits
+                   width of a reference count entry in bits
+               amend_extra_params
+                   additional options, used for extending amend
+
+        :return: process.CmdResult object containing the result of the
+                command
+        """
+        cmd_list = [self.image_cmd, 'amend']
+        options = ["%s=%s" % (key[6:], val) for key, val in params.iteritems()
+                   if key.startswith('amend_')]
+        if cache_mode:
+            cmd_list.append("-t %s" % cache_mode)
+        if options:
+            cmd_list.append("-o %s" %
+                            ",".join(options).replace("extra_params=", ""))
+        cmd_list.append("-f %s %s" % (self.image_format, self.image_filename))
+        logging.info("Amend image %s" % self.image_filename)
+        cmd_result = process.run(" ".join(cmd_list), ignore_status=False)
+        return cmd_result
+
 
 class Iscsidev(storage.Iscsidev):
 
