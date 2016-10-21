@@ -370,6 +370,12 @@ class VM(virt_vm.BaseVM):
         def has_os_variant(os_text, os_variant):
             return bool(re.search(r"%s" % os_variant, os_text, re.MULTILINE))
 
+        def has_sub_option(option, sub_option):
+            option_help_text = process.system_output("%s --%s help" %
+                                                     (virt_install_binary, option),
+                                                     verbose=False)
+            return bool(re.search(r"%s" % sub_option, option_help_text, re.MULTILINE))
+
         # Wrappers for all supported libvirt command line parameters.
         # This is meant to allow support for multiple libvirt versions.
         # Each of these functions receives the output of 'libvirt --help' as a
@@ -394,8 +400,14 @@ class VM(virt_vm.BaseVM):
                 logging.warning("Unknown virt type hvm_or_pv, using default.")
                 return ""
 
-        def add_mem(help_text, mem):
-            return " --ram=%s" % mem
+        def add_mem(help_text, mem, maxmem=None):
+            if has_option(help_text, "memory"):
+                cmd = " --memory=%s" % mem
+                if maxmem and has_sub_option('memory', 'maxmemory'):
+                    cmd += ",maxmemory=%s" % maxmem
+                return cmd
+            else:
+                return " --ram=%s" % mem
 
         def add_check_cpu(help_text):
             if has_option(help_text, "check-cpu"):
@@ -719,8 +731,9 @@ class VM(virt_vm.BaseVM):
                                                (machine_type))
 
         mem = params.get("mem")
+        maxmemory = params.get("maxmemory", None)
         if mem:
-            virt_install_cmd += add_mem(help_text, mem)
+            virt_install_cmd += add_mem(help_text, mem, maxmemory)
 
         # TODO: should we do the check before we call ? negative case ?
         check_cpu = params.get("use_check_cpu")
