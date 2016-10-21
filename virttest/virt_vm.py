@@ -840,6 +840,21 @@ class BaseVM(object):
         except KeyError:
             pass  # continue to not exist
 
+    def get_nic_index_by_mac(self, mac):
+        """
+        Get the nic index specified by MAC address
+
+        :param mac: MAC address
+        :return: nic index number
+        """
+        for index, nic in enumerate(self.virtnet):
+            if not nic.has_key('mac'):
+                continue
+            elif nic.mac == mac:
+                return index
+        logging.warn("Not find nic by '%s'", mac)
+        return -1
+
     def verify_kernel_crash(self):
         """
         Find kernel crash message on the VM serial console.
