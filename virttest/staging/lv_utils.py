@@ -204,7 +204,7 @@ def vg_create(vg_name, pv_list):
         raise exceptions.TestError("Volume group '%s' already exist" % vg_name)
     # Update cached state before create VG
     cmd = "vgscan --cache"
-    result = process.run(cmd)
+    result = process.run(cmd, ignore_status=True)
     cmd = "vgcreate %s %s" % (vg_name, pv_list)
     result = process.run(cmd)
     logging.info(result.stdout.rstrip())
@@ -225,7 +225,7 @@ def vg_remove(vg_name):
     logging.info(result.stdout.rstrip())
     # Update cached state after remove VG
     cmd = "vgscan --cache"
-    result = process.run(cmd)
+    result = process.run(cmd, ignore_status=True)
 
 
 def lv_check(vg_name, lv_name):
