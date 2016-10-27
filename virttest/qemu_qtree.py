@@ -343,9 +343,10 @@ class QtreeContainer(object):
                     # key into line[0] to distinguish GPIOs, and save exact
                     # value into line[1].
                     elif line[0] == 'gpio-in' or line[0] == 'gpio-out':
-                        tmp_field = line[1].split(' ', 1)
-                        line[0] = "%s %s" % (line[0], tmp_field[0])
-                        line[1] = tmp_field[1]
+                        if ' ' in line[1]:
+                            tmp_field = line[1].split(' ', 1)
+                            line[0] = "%s %s" % (line[0], tmp_field[0])
+                            line[1] = tmp_field[1]
                 else:
                     # Corrupted qtree
                     raise ValueError('qtree line not recognized:\n%s' % line)
