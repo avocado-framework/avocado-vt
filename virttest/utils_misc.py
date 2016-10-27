@@ -115,6 +115,27 @@ class InterruptedThread(threading.Thread):
             self._retval = None
 
 
+def get_guest_cmd_status_output(vm, cmd, timeout=120):
+    """
+    Get guest cmd status and output.
+    Encapsulate session.cmd_status_output() with getting a new session.
+
+    :param vm: Guest vm.
+    :param cmd: Cmd will be executed in guest.
+    :param timeout: Timeout for cmd execution in seconds.
+
+    :return: A tuple (status, output) where status is the exit status and
+            output is the output of cmd.
+    """
+    if vm:
+        session = vm.wait_for_login()
+        try:
+            return session.cmd_status_output(cmd, timeout=timeout)
+        finally:
+            session.close()
+    return (None, None)
+
+
 def write_keyval(path, dictionary, type_tag=None, tap_report=None):
     """
     Write a key-value pair format file out to a file. This uses append
