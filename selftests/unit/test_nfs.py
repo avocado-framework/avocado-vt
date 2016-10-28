@@ -45,6 +45,8 @@ class nfs_test(unittest.TestCase):
         path.find_command.expect_call("exportfs")
         service.Factory.create_service.expect_call("nfs").and_return(
             FakeService("nfs"))
+        service.Factory.create_service.expect_call("rpcbind").and_return(
+            FakeService("rpcbind"))
         mount_src = self.nfs_params.get("nfs_mount_src")
         export_dir = (self.nfs_params.get("export_dir") or
                       mount_src.split(":")[-1])
