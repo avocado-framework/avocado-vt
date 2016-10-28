@@ -486,19 +486,28 @@ class HugePageConfig(object):
         """
         error_context.context(
             "setting hugepages limit to %s" % self.target_hugepages)
-        hugepage_cfg = open(self.kernel_hp_file, "r+")
-        hp = hugepage_cfg.readline()
+        try:
+            hugepage_cfg = open(self.kernel_hp_file, "r+")
+            hp = hugepage_cfg.readline().strip()
+            hugepage_cfg.close()
+        except IOError:
+            raise exceptions.TestSetupFail("Can't read kernel hugepage file")
         while int(hp) < self.target_hugepages:
             loop_hp = hp
-            hugepage_cfg.write(str(self.target_hugepages))
-            hugepage_cfg.flush()
-            hugepage_cfg.seek(0)
-            hp = int(hugepage_cfg.readline())
+            try:
+                hugepage_cfg = open(self.kernel_hp_file, "r+")
+                hugepage_cfg.write(str(self.target_hugepages))
+                hugepage_cfg.flush()
+                hugepage_cfg.seek(0)
+                hp = int(hugepage_cfg.readline().strip())
+                hugepage_cfg.close()
+            except IOError:
+                msg = "Can't read/write from kernel hugepage file"
+                raise exceptions.TestSetupFail(msg)
             if loop_hp == hp:
                 raise ValueError("Cannot set the kernel hugepage setting "
                                  "to the target value of %d hugepages." %
                                  self.target_hugepages)
-        hugepage_cfg.close()
         logging.debug("Successfully set %s large memory pages on host ",
                       self.target_hugepages)
 
