@@ -28,6 +28,7 @@ from .. import utils_test
 from .. import funcatexit
 from .. import storage
 from .. import error_context
+from .. import qemu_storage
 
 
 # Whether to print all shell commands called
@@ -1129,7 +1130,14 @@ def run(test, params, env):
                 logging.warn(e)
             from virttest import utils_test
             error_context.context("Copy image from NFS Server")
+            image = params.get("images").split()[0]
+            t_params = params.object_params(image)
+            qemu_image = qemu_storage.QemuImg(t_params, data_dir.get_data_dir(), image)
+            ver_to = utils_test.get_image_version(qemu_image)
             utils_test.run_image_copy(test, params, env)
+            qemu_image = qemu_storage.QemuImg(t_params, data_dir.get_data_dir(), image)
+            ver_from = utils_test.get_image_version(qemu_image)
+            utils_test.update_qcow2_image_version(qemu_image, ver_from, ver_to)
 
     src = params.get('images_good')
     base_dir = params.get("images_base_dir", data_dir.get_data_dir())
