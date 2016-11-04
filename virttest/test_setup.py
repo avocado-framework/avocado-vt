@@ -14,6 +14,7 @@ from avocado.utils import archive
 from avocado.utils import wait
 from avocado.utils import genio
 from avocado.utils import path
+from avocado.utils import distro
 from avocado.core import exceptions
 
 from . import data_dir
@@ -1555,7 +1556,12 @@ class LibvirtPolkitConfig(object):
         self.libvirtd_backup_path = "/etc/libvirt/libvirtd.conf.virttest.backup"
         self.polkit_rules_path = "/etc/polkit-1/rules.d/"
         self.polkit_rules_path += "500-libvirt-acl-virttest.rules"
-        self.polkitd = service.Factory.create_service("polkit")
+        self.polkit_name = "polkit"
+        distro_obj = distro.detect()
+        # For ubuntu polkitd have to be used
+        if distro_obj.name.lower().strip() == 'ubuntu':
+            self.polkit_name = "polkitd"
+        self.polkitd = service.Factory.create_service(self.polkit_name)
 
         if params.get("action_id"):
             self.action_id = params.get("action_id").split()
