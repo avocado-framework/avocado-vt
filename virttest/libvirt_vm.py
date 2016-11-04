@@ -1340,7 +1340,7 @@ class VM(virt_vm.BaseVM):
             output = session.cmd_output(cmd)
             # Sample output of 'df /swapfile':
             # Filesystem 1K-blocks     Used Available Use% Mounted on
-            #/dev/vdb    52403200 15513848  36889352  30% /
+            # /dev/vdb    52403200 15513848  36889352  30% /
             device = output.splitlines()[1].split()[0]
 
             # Set kernel parameters.
@@ -2449,6 +2449,24 @@ class VM(virt_vm.BaseVM):
         session.close()
         return mac.strip()
 
+    def get_distro(self):
+        """
+        Get distribution name of the vm instance.
+        """
+        distro = ""
+        session = self.wait_for_login()
+        cmd = "cat /etc/os-release | grep '^ID='"
+        try:
+            status, output = session.cmd_status_output(cmd, timeout=300)
+            if status:
+                raise virt_vm.VMError("Unable to get the distro name: %s"
+                                      % output)
+            else:
+                distro = output.split('=')[1].strip()
+        finally:
+            session.close()
+            return distro
+
     def install_package(self, name):
         """
         Install a package on VM.
@@ -2457,20 +2475,30 @@ class VM(virt_vm.BaseVM):
         :param name: Name of package to be installed
         """
         session = self.wait_for_login()
+        vm_distro = self.get_distro()
         try:
-            if session.cmd_status("rpm -q %s" % name):
-                # Install the package if it does not exists
+            # distro specific support for package manager
+            if vm_distro.lower() == 'ubuntu':
+                query_cmd = "dpkg -l | grep %s" % name
+                cmd = "apt install -y %s" % name
+                update_cmd = "apt upgrade -y %s" % name
+            else:
+                query_cmd = "rqm -q %s" % name
                 cmd = "yum install -y %s" % name
+                update_cmd = "yum update -y %s" % name
+
+            if session.cmd_status(query_cmd):
+                # Install the package if it does not exists
                 status, output = session.cmd_status_output(cmd, timeout=300)
                 # Just check status is not enough
                 # It's necessary to check if install successfully
-                if status != 0 or session.cmd_status("rpm -q %s" % name) != 0:
+                if status != 0 or session.cmd_status(query_cmd) != 0:
                     raise virt_vm.VMError("Installation of package %s failed:"
                                           "\n%s" % (name, output))
             else:
                 # Update the package
-                cmd = "yum update -y %s" % name
-                status, output = session.cmd_status_output(cmd, timeout=600)
+                status, output = session.cmd_status_output(update_cmd,
+                                                           timeout=600)
                 if status:
                     raise virt_vm.VMError("Update of package %s failed:\n%s"
                                           % (name, output))
@@ -2485,9 +2513,14 @@ class VM(virt_vm.BaseVM):
         :param name: Name of package to be removed
         """
         session = self.wait_for_login()
+        vm_distro = self.get_distro()
         try:
             # Remove the package if it exists
-            cmd = "! rpm -q %s || rpm -e %s" % (name, name)
+            if vm_distro.lower() == 'ubuntu':
+                cmd = "! (dpkg -l | grep %s | grep ^ii) || apt remove -y %s"\
+                      % (name, name)
+            else:
+                cmd = "! rpm -q %s || rpm -e %s" % (name, name)
             status, output = session.cmd_status_output(cmd, timeout=300)
             if status != 0:
                 raise virt_vm.VMError("Removal of package %s failed:\n%s" %
