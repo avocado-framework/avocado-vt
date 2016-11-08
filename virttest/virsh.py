@@ -759,7 +759,7 @@ def setvcpus(name, count, extra="", **dargs):
     return command(cmd, **dargs)
 
 
-def vcpupin(name, vcpu="", cpu_list="", options="", **dargs):
+def vcpupin(name, vcpu=None, cpu_list=None, options=None, **dargs):
     """
     Changes the cpu affinity for respective vcpu.
 
@@ -770,8 +770,14 @@ def vcpupin(name, vcpu="", cpu_list="", options="", **dargs):
     :param options: --live, --current or --config.
     :return: CmdResult object.
     """
-    cmd_vcpupin = "vcpupin %s %s %s %s" % (name, vcpu, cpu_list, options)
-    return command(cmd_vcpupin, **dargs)
+    cmd = "vcpupin --domain %s" % name
+    if vcpu is not None:
+        cmd += " --vcpu %s" % vcpu
+    if cpu_list is not None:
+        cmd += " --cpulist %s" % cpu_list
+    if options is not None:
+        cmd += " %s" % options
+    return command(cmd, **dargs)
 
 
 def vcpuinfo(name, **dargs):
