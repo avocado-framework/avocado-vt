@@ -1295,7 +1295,7 @@ class VM(virt_vm.BaseVM):
 
         # End of command line option wrappers
 
-        # If nothing changed and devices exists, return imediatelly
+        # If nothing changed and devices exists, return immediately
         if (name is None and params is None and root_dir is None and
                 self.devices is not None):
             return self.devices
