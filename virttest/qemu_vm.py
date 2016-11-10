@@ -1769,7 +1769,13 @@ class VM(virt_vm.BaseVM):
             else:
                 device_driver = nic_params.get("device_driver", "pci-assign")
                 pci_id = vm.pa_pci_ids[iov]
-                pci_id = ":".join(pci_id.split(":")[1:])
+                # On Power architecture using short id would result in
+                # pci device lookup failure while writing vendor id to
+                # stub_new_id/stub_remove_id. Instead we should be using
+                # pci id as-is for vendor id.
+                if arch.ARCH != 'ppc64le':
+                    pci_id = ":".join(pci_id.split(":")[1:])
+
                 add_pcidevice(devices, pci_id, params=nic_params,
                               device_driver=device_driver,
                               pci_bus=pci_bus)
@@ -2544,7 +2550,11 @@ class VM(virt_vm.BaseVM):
                             vf_filter_re=params.get("vf_filter_re"),
                             pf_filter_re=params.get("pf_filter_re"),
                             device_driver=device_driver,
-                            nic_name_re=params.get("nic_name_re"))
+                            nic_name_re=params.get("nic_name_re"),
+                            static_ip=int(params.get("static_ip", 0)),
+                            start_addr_PF=params.get("start_addr_PF", None),
+                            net_mask=params.get("net_mask", None))
+
                     # Virtual Functions (VF) assignable devices
                     if pa_type == "vf":
                         self.pci_assignable.add_device(device_type=pa_type,
