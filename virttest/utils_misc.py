@@ -2641,6 +2641,28 @@ def get_free_mem(session, os_type):
     return int(free)
 
 
+def get_used_mem(session, os_type):
+    """
+    Get Used memory for given OS.
+
+    :parm session: shell Object.
+    :parm os_type: os type (eg. linux or windows)
+
+    :return string: usedspace M-bytes
+    """
+    if os_type == "windows":
+        cmd = "systeminfo"
+        pattern = r'Virtual Memory: In Use: (.+) MB'
+    else:
+        cmd = "free -m | grep 'Mem'"
+        pattern = r'Mem:\s+\d+\s+(\d+)\s+'
+    output = session.cmd_output(cmd)
+    match = re.search(pattern, output, re.M | re.I)
+    used = "%sM" % ''.join(match.group(1).split(","))
+    used = float(normalize_data_size(used, order_magnitude="M"))
+    return int(used)
+
+
 def verify_running_as_root():
     """
     Verifies whether we're running under UID 0 (root).

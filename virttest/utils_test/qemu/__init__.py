@@ -462,6 +462,22 @@ class MemoryBaseTest(object):
         session = vm.wait_for_login(timeout=timeout)
         return utils_misc.get_free_mem(session, os_type)
 
+    @classmethod
+    def get_guest_used_mem(cls, vm):
+        """
+        Guest OS reported used memory size in MB.
+
+        :param vm: VM Object
+        :return: used memory report by guest OS in MB
+        """
+        os_type = vm.params.get("os_type")
+        timeout = float(vm.params.get("login_timeout", 600))
+        session = vm.wait_for_login(timeout=timeout)
+        try:
+            return utils_misc.get_used_mem(session, os_type)
+        finally:
+            session.close()
+
     def get_session(self, vm):
         """
         Get connection to VM.
