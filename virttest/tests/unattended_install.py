@@ -386,11 +386,11 @@ class UnattendedInstallConfig(object):
         dummy_logging_re = r'\bKVM_TEST_LOGGING\b'
         if re.search(dummy_logging_re, contents):
             if self.syslog_server_enabled == 'yes':
-                l = 'logging --host=%s --port=%s --level=debug'
-                l = l % (self.syslog_server_ip, self.syslog_server_port)
+                log = 'logging --host=%s --port=%s --level=debug'
+                log = log % (self.syslog_server_ip, self.syslog_server_port)
             else:
-                l = ''
-            contents = re.sub(dummy_logging_re, l, contents)
+                log = ''
+            contents = re.sub(dummy_logging_re, log, contents)
 
         dummy_graphical_re = re.compile('GRAPHICAL_OR_TEXT')
         if dummy_graphical_re.search(contents):

@@ -96,19 +96,19 @@ class Sample(object):
             for i in range(len(files)):
                 fd = open(files[i], "r")
                 f = []
-                for l in fd.readlines():
-                    l = l.strip()
-                    if re.findall("^### ", l):
-                        if "kvm-userspace-ver" in l:
-                            self.kvmver = l.split(':')[-1]
-                        elif "kvm_version" in l:
-                            self.hostkernel = l.split(':')[-1]
-                        elif "guest-kernel-ver" in l:
-                            self.guestkernel = l.split(':')[-1]
-                        elif "session-length" in l:
-                            self.len = l.split(':')[-1]
+                for line in fd.readlines():
+                    line = line.strip()
+                    if re.findall("^### ", line):
+                        if "kvm-userspace-ver" in line:
+                            self.kvmver = line.split(':')[-1]
+                        elif "kvm_version" in line:
+                            self.hostkernel = line.split(':')[-1]
+                        elif "guest-kernel-ver" in line:
+                            self.guestkernel = line.split(':')[-1]
+                        elif "session-length" in line:
+                            self.len = line.split(':')[-1]
                     else:
-                        f.append(l.strip())
+                        f.append(line.strip())
                 self.files_dict.append(f)
                 fd.close()
 
@@ -151,8 +151,8 @@ class Sample(object):
             testidx = None
             job_dict = []
             test_dict = []
-            for l in data:
-                s = l.split()
+            for line in data:
+                s = line.split()
                 if not testidx:
                     testidx = s[0]
                 if testidx != s[0]:
@@ -317,10 +317,10 @@ Please check sysinfo directory in autotest result to get more details.
             ret.append(func(data_list))
 
         if avg_update:
-            for i in avg_update.split('|'):
-                l = i.split(',')
-                ret[int(l[0])] = "%f" % (float(ret[int(l[1])]) /
-                                         float(ret[int(l[2])]))
+            for row in avg_update.split('|'):
+                items = row.split(',')
+                ret[int(items[0])] = "%f" % (float(ret[int(items[1])]) /
+                                             float(ret[int(items[2])]))
         if merge:
             return "|".join(ret)
         return ret
