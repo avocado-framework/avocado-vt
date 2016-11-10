@@ -138,5 +138,6 @@ def get_pretty_version_info():
         version_str += ", SHA1 '%s'" % top_commit
     return version_str
 
+
 if __name__ == "__main__":
     print get_pretty_version_info()

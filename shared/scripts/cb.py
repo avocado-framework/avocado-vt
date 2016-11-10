@@ -130,6 +130,7 @@ def main(argv):
         text = clipboard.wait_for_text()
         print 'clipboard=' + str(text)
 
+
 if __name__ == "__main__":
     main(sys.argv[1:])
     sys.exit(0)

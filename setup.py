@@ -72,6 +72,7 @@ def get_data_files():
 
     return data_files
 
+
 setup(name='avocado-plugins-vt',
       version=VERSION,
       description='Avocado Virt Test Compatibility Layer plugin',

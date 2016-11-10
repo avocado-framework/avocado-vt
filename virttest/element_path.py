@@ -166,6 +166,7 @@ class Path:
                 return []
             nodeset = set
 
+
 _cache = {}
 
 #

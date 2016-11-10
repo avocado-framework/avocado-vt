@@ -15,5 +15,6 @@ def check_cpu_flag():
             print err_msg
             raise check_error(err_msg)
 
+
 if __name__ == "__main__":
     check_cpu_flag()

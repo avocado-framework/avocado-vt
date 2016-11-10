@@ -1155,5 +1155,6 @@ fdc
         out = qdev.cmdline()
         assert out == exp, (out, exp)
 
+
 if __name__ == "__main__":
     unittest.main()

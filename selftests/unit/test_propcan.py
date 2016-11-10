@@ -278,5 +278,6 @@ class TestPropCan(unittest.TestCase):
             self.assertTrue(testcan == {'bar': value})
             self.assertEqual(str(testcan), str({'bar': value}))
 
+
 if __name__ == '__main__':
     unittest.main()

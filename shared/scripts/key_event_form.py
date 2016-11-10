@@ -31,6 +31,7 @@ class TestForm(gtk.Window):
         input_file.write("{0} ".format(event.keyval))
         input_file.close()
 
+
 if __name__ == "__main__":
     TestForm()
     gtk.main()

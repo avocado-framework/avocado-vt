@@ -753,5 +753,6 @@ class CartesianConfigTest(unittest.TestCase):
         self._checkConfigDump('testcfg.huge/test1.cfg',
                               'testcfg.huge/test1.cfg.repr.gz')
 
+
 if __name__ == '__main__':
     unittest.main()

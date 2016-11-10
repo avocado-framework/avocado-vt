@@ -143,6 +143,7 @@ node   0
 def utils_run(cmd, shell=True):
     return FakeCmd(cmd)
 
+
 all_nodes_contents = "0\n"
 online_nodes_contents = "0\n"
 
