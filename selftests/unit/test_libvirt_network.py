@@ -150,5 +150,6 @@ class NetworkXMLTest(NetworkTestBase):
             else:
                 self.assertEqual(state, new_state)
 
+
 if __name__ == '__main__':
     unittest.main()

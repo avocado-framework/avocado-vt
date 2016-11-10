@@ -47,6 +47,7 @@ def combine(first, second, offset):
         out += '\n' + offset + line
     return out
 
+
 # Dummy variables
 qtree_header = """bus: main-system-bus
   type System

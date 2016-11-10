@@ -162,25 +162,25 @@ class EfiVar(object):
         '''
         Returns the variable name in a list ready for struct.pack()
         '''
-        l = []
+        normalized_name = []
         for i in range(512):
-            l.append(0)
+            normalized_name.append(0)
 
         for i in range(len(self.name)):
-            l[i] = ord(self.name[i])
-        return l
+            normalized_name[i] = ord(self.name[i])
+        return normalized_name
 
     def get_data(self):
         '''
         Returns the variable data in a list ready for struct.pack()
         '''
-        l = []
+        normalized_data = []
         for i in range(512):
-            l.append(0)
+            normalized_data.append(0)
 
         for i in range(len(self.data)):
-            l[i] = ord(self.data[i])
-        return l
+            normalized_data[i] = ord(self.data[i])
+        return normalized_data
 
     def get_packed(self):
         '''

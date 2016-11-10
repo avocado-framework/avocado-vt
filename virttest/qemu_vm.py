@@ -77,6 +77,7 @@ def clean_tmp_files():
     if os.path.isfile(CREATE_LOCK_FILENAME):
         os.unlink(CREATE_LOCK_FILENAME)
 
+
 CREATE_LOCK_FILENAME = os.path.join(data_dir.get_tmp_dir(),
                                     'avocado-vt-vm-create.lock')
 

@@ -25,6 +25,7 @@ def set_labels(mutable_issue):
     if len(labels) > 0:
         mutable_issue['labels'] = labels
 
+
 gh = Github(login_or_token=raw_input("Enter github username: "),
             password=getpass.getpass('Enter github password: '),
             user_agent='PyGithub/Python')

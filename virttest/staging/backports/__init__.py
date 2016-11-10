@@ -104,6 +104,7 @@ def _bin(number):
     tmp = [BIN_HEX_DICT[hstr] for hstr in hex(number)[2:]]
     return BIN_ZSTRIP.sub('0b', ''.join(tmp))
 
+
 if not hasattr(__builtins__, 'next'):
     next = _next
 else:

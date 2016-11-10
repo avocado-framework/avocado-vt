@@ -408,6 +408,7 @@ class _ElementInterface(object):
             nodes.extend(node.getiterator(tag))
         return nodes
 
+
 # compatibility
 _Element = _ElementInterface
 
@@ -488,6 +489,7 @@ def ProcessingInstruction(target, text=None):
     if text:
         element.text = element.text + " " + text
     return element
+
 
 PI = ProcessingInstruction
 
@@ -751,6 +753,7 @@ def _encode(s, encoding):
     except AttributeError:
         return s  # 1.5.2: assume the string uses the right encoding
 
+
 if sys.version[:3] == "1.5":
     _escape = re.compile(r"[&<>\"\x80-\xff]+")  # 1.5.2
 else:
@@ -991,6 +994,7 @@ def XMLID(text):
         if id:
             ids[id] = elem
     return tree, ids
+
 
 #
 # Parses an XML document from a string constant.  Same as {@link #XML}.
@@ -1268,6 +1272,7 @@ class XMLTreeBuilder(object):
         tree = self._target.close()
         del self._target, self._parser  # get rid of circular references
         return tree
+
 
 # compatibility
 XMLParser = XMLTreeBuilder

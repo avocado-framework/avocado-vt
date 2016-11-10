@@ -429,5 +429,6 @@ class LibvirtConfigTest(unittest.TestCase):
         finally:
             os.remove(config_path)
 
+
 if __name__ == '__main__':
     unittest.main()

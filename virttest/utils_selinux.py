@@ -51,6 +51,7 @@ class RestoreconError(SelinuxError):
         return ("Output from the restorecon command"
                 "does not match the expected format")
 
+
 STATUS_LIST = ['enforcing', 'permissive', 'disabled']
 
 

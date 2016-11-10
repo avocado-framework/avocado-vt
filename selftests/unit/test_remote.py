@@ -93,5 +93,6 @@ class RemoteFileTest(unittest.TestCase):
         test_data = self._read_test_file()
         self.assertEqual(test_data, self.default_data)
 
+
 if __name__ == "__main__":
     unittest.main()

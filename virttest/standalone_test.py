@@ -19,6 +19,7 @@ def _variant_only_file(filename):
     return ", ".join([_.strip() for _ in open(filename)
                       if not _.lstrip().startswith('#')])
 
+
 SUPPORTED_TEST_TYPES = [
     'qemu', 'libvirt', 'libguestfs', 'openvswitch', 'v2v', 'lvsb', 'spice']
 

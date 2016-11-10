@@ -23,6 +23,7 @@ class FakeJob(object):
         self.args = argparse.Namespace()
         self.args.vt_config = True
 
+
 FAKE_PARAMS = {'shortname': 'fake',
                'vm_type': 'fake'}
 
@@ -42,6 +43,7 @@ class VirtTestTest(unittest.TestCase):
 
     def test_filename(self):
         self.assertIsNone(self.test.filename)
+
 
 if __name__ == '__main__':
     unittest.main()
