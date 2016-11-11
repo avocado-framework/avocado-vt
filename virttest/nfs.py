@@ -9,6 +9,7 @@ import commands
 
 from avocado.utils import path
 from avocado.utils import process
+from avocado.utils import distro
 from avocado.core import exceptions
 
 from . import utils_misc
@@ -152,12 +153,16 @@ class Nfs(object):
         path.find_command("mount")
         self.mk_mount_dir = False
         self.unexportfs_in_clean = False
+        distro_details = distro.detect()
 
         if params.get("setup_local_nfs") == "yes":
             self.nfs_setup = True
             path.find_command("service")
             path.find_command("exportfs")
-            self.nfs_service = service.Factory.create_service("nfs")
+            if distro_details.name == 'Ubuntu':
+                self.nfs_service = service.Factory.create_service("nfs-server")
+            else:
+                self.nfs_service = service.Factory.create_service("nfs")
             self.rpcbind_service = service.Factory.create_service("rpcbind")
 
             self.export_dir = (params.get("export_dir") or
