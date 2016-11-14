@@ -198,7 +198,7 @@ class Monitor:
         self._passfd = None
         self._supported_cmds = []
         self.debug_log = False
-        self.log_file = os.path.basename(self.filename + ".log")
+        self.log_file = "%s-%s.log" % (name, vm.name)
         self.open_log_files = {}
 
         try:
