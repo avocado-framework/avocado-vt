@@ -403,8 +403,12 @@ class VM(virt_vm.BaseVM):
         def add_mem(help_text, mem, maxmem=None):
             if has_option(help_text, "memory"):
                 cmd = " --memory=%s" % mem
-                if maxmem and has_sub_option('memory', 'maxmemory'):
-                    cmd += ",maxmemory=%s" % maxmem
+                if maxmem:
+                    if not has_sub_option('memory', 'maxmemory'):
+                        logging.warning("maxmemory option not supported by "
+                                        "virt-install")
+                    else:
+                        cmd += ",maxmemory=%s" % maxmem
                 return cmd
             else:
                 return " --ram=%s" % mem
@@ -968,8 +972,11 @@ class VM(virt_vm.BaseVM):
             virt_install_cmd += " --debug"
 
         emulator_path = params.get("emulator_path", None)
-        if emulator_path and has_sub_option('boot', 'emulator'):
-            virt_install_cmd += " --boot emulator=%s" % emulator_path
+        if emulator_path:
+            if not has_sub_option('boot', 'emulator'):
+                logging.warning("emulator option not supported by virt-install")
+            else:
+                virt_install_cmd += " --boot emulator=%s" % emulator_path
 
         # bz still open, not fully functional yet
         if params.get("use_virt_install_wait") == "yes":
