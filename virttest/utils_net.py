@@ -3008,15 +3008,24 @@ def get_ip_address_by_interface(ifname):
 
 def get_host_ip_address(params):
     """
-    returns ip address of host specified in host_ip_addr parameter If provided
-    otherwise ip address on interface specified in netdst parameter is returned
+    Returns ip address of host specified in host_ip_addr parameter if provided.
+    Otherwise ip address on interface specified in netdst parameter is returned.
+    In case of "nettype == user" "netdst" parameter is left empty, then the
+    default interface of the system is used.
     :param params
     """
     host_ip = params.get('host_ip_addr', None)
-    if not host_ip:
-        host_ip = get_ip_address_by_interface(params.get('netdst'))
-        logging.warning("No IP address of host was provided, using IP address"
-                        " on %s interface", str(params.get('netdst')))
+    if host_ip:
+        logging.debug("Use IP address at config %s=%s", 'host_ip_addr', host_ip)
+        return host_ip
+    net_dev = params.get('netdst')
+    if not net_dev:
+        net_dev = get_host_default_gateway(iface_name=True)
+    if not net_dev:
+        raise NetError("Error while retrieving IP address for host.")
+    logging.warning("No IP address of host was provided, using IP address"
+                    " on %s interface", str(net_dev))
+    host_ip = get_ip_address_by_interface(net_dev)
     return host_ip
 
 
@@ -3361,18 +3370,24 @@ def get_host_iface():
     return [_.strip() for _ in re.findall("(.*):", host_iface_info)]
 
 
-def get_host_default_gateway():
+def get_host_default_gateway(iface_name=False):
     """
-    Get the Default Gateway in host.
-    :return: a string of the host's default gateway.
+    Get the Default Gateway or Interface of host.
+
+    :param iface_name: Whether default interface (True), or default gateway
+                       (False) is returned.
+    :return: A string of the host's default gateway or interface.
     :rtype: string
     """
-    cmd = "ip route | awk '/default/ { print $3 }'"
+    if iface_name:
+        cmd = "ip route | awk '/default/ { print $5 }'"
+    else:
+        cmd = "ip route | awk '/default/ { print $3 }'"
     try:
         output = process.system_output(cmd, shell=True)
-    except:
-        raise exceptions.TestError("Failed to get the host's default GateWay.")
-
+    except process.CmdError:
+        logging.error("Failed to get the host's default GateWay")
+        return None
     return output
 
 
