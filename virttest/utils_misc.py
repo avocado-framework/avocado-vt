@@ -2696,6 +2696,19 @@ def get_winutils_vol(session, label="WIN_UTILS"):
     return get_win_disk_vol(session, condition="VolumeName='%s'" % label)
 
 
+def set_winutils_letter(session, cmd, label="WIN_UTILS"):
+    """
+    Replace label in command to real winutils CDROM drive letter.
+
+    :param session: session Objest
+    :param cmd: cmd path in winutils.iso
+    :param label: volume label of WIN_UTILS.iso
+    """
+    if label in cmd:
+        return cmd.replace(label, get_winutils_vol(session))
+    return cmd
+
+
 def format_windows_disk(session, did, mountpoint=None, size=None, fstype="ntfs"):
     """
     Create a partition on disk in windows guest and format it.
