@@ -560,6 +560,16 @@ def preprocess(test, params, env):
     :param env: The environment (a dict-like object).
     """
     error_context.context("preprocessing")
+
+    # For KVM to work in Power8 systems we need to have SMT=off
+    # and it needs to be done as root, here we do a check whether
+    # we satisfy that condition, if not try to make it off
+    # otherwise throw TestError with respective error message
+    cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
+    cpu_output = avocado_process.system_output(cmd, shell=True).strip().upper()
+    if "POWER8" in cpu_output:
+        test_setup.disable_smt()
+
     # First, let's verify if this test does require root or not. If it
     # does and the test suite is running as a regular user, we shall just
     # throw a TestSkipError exception, which will skip the test.

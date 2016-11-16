@@ -1904,3 +1904,18 @@ class StraceQemu(object):
                 logging.info("stop strace process: %s" % pid)
                 process.kill_process_tree(pid)
         self._compress_log()
+
+
+def disable_smt():
+    """
+    Checks whether smt is on, if so disables it in PowerPC system
+    This function is used in env_process to check & disable smt in Power8
+    """
+    smt_output = process.system_output("ppc64_cpu --smt", shell=True).strip()
+    if smt_output != "SMT is off":
+        try:
+            utils_misc.verify_running_as_root()
+            process.run("ppc64_cpu --smt=off", verbose=True, shell=True)
+            logging.debug("SMT turned off successfully")
+        except process.CmdError, info:
+            raise exceptions.TestSetupFail("VM can not be started :%s", info)
