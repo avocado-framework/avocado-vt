@@ -398,6 +398,8 @@ class QtreeDisksContainer(object):
         """
         additional = 0
         missing = 0
+        keys = info.keys()
+        info[re.sub("\ \(#\w+\)", "", keys[0])] = info.pop(keys[0])
         for i in xrange(len(self.disks)):
             disk = self.disks[i]
             name = disk.get_qname()
