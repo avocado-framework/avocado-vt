@@ -682,7 +682,10 @@ def preprocess(test, params, env):
             except Exception:
                 kvm_version = os.uname()[2]
         else:
-            logging.warning("KVM module not loaded")
+            warning_msg = "KVM module not loaded"
+            if params.get("enable_kvm", "yes") == "yes":
+                raise exceptions.TestSkipError(warning_msg)
+            logging.warning(warning_msg)
             kvm_version = "Unknown"
 
     logging.debug("KVM version: %s" % kvm_version)
