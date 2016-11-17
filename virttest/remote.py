@@ -137,7 +137,8 @@ def handle_prompts(session, username, password, prompt, timeout=10,
                  r"(?<![Ll]ast )[Ll]ogin:\s*$",  # Don't match "Last Login:"
                  r"[Cc]onnection.*closed", r"[Cc]onnection.*refused",
                  r"[Pp]lease wait", r"[Ww]arning", r"[Ee]nter.*username",
-                 r"[Ee]nter.*password", r"[Cc]onnection timed out", prompt],
+                 r"[Ee]nter.*password", r"[Cc]onnection timed out", prompt,
+                 r"*Escape character is.*"],
                 timeout=timeout, internal_timeout=0.5)
             output += text
             if match == 0:  # "Are you sure you want to continue connecting"
@@ -189,6 +190,9 @@ def handle_prompts(session, username, password, prompt, timeout=10,
                 if debug:
                     logging.debug("Got shell prompt -- logged in")
                 break
+            elif match == 13:  # console prompt
+                logging.debug("Got console prompt, send return to show login")
+                session.sendline()
         except aexpect.ExpectTimeoutError, e:
             raise LoginTimeoutError(e.output)
         except aexpect.ExpectProcessTerminatedError, e:
