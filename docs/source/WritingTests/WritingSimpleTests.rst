@@ -138,6 +138,10 @@ to pick up a living guest, connect to it via ssh, and return its uptime.
            session = vm.wait_for_login(timeout=timeout)
            uptime = session.cmd('uptime')
 
+.. warning:: Some guests OS's do not respect terminal ``echo`` setting,
+   corrupting the output. There are some workaround described in
+   https://github.com/avocado-framework/avocado-vt/issues/231
+
 #. If you want to just print this value so it can be seen on the test
    logs, just log the value of uptime using the logging library. Since
    that is all we want to do, we may close the remote connection, to
