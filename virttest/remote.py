@@ -138,7 +138,7 @@ def handle_prompts(session, username, password, prompt, timeout=10,
                  r"[Cc]onnection.*closed", r"[Cc]onnection.*refused",
                  r"[Pp]lease wait", r"[Ww]arning", r"[Ee]nter.*username",
                  r"[Ee]nter.*password", r"[Cc]onnection timed out", prompt,
-                 r"*Escape character is.*"],
+                 r"Escape character is.*"],
                 timeout=timeout, internal_timeout=0.5)
             output += text
             if match == 0:  # "Are you sure you want to continue connecting"
