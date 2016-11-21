@@ -138,7 +138,7 @@ def setup_ssh_key(hostname, user, password, port=22):
 
 def setup_remote_ssh_key(hostname1, user1, password1,
                          hostname2=None, user2=None, password2=None,
-                         port=22):
+                         port=22, config_options=None):
     """
     Setup up remote to remote login in another server by using public key
     If hostname2 is not supplied, setup to local.
@@ -152,6 +152,8 @@ def setup_remote_ssh_key(hostname1, user1, password1,
     :type password: str
     :param port: port number
     :type port: int
+    :param config_options: list of options eg: ["StrictHostKeyChecking=no"]
+    :type config_options: list of str
     """
     logging.debug('Performing SSH key setup on %s:%d as %s.' %
                   (hostname1, port, user1))
@@ -165,11 +167,19 @@ def setup_remote_ssh_key(hostname1, user1, password1,
         if hostname2 is None:
             # Simply create a session to local
             session2 = aexpect.ShellSession("sh", linesep='\n', prompt='#')
+            # set config in local machine
+            if config_options:
+                for each_option in config_options:
+                    session2.cmd_output("echo '%s' >> ~/.ssh/config" % each_option)
         else:
             session2 = remote.remote_login(client='ssh', host=hostname2,
                                            port=port, username=user2,
                                            password=password2,
                                            prompt=r'[$#%]')
+            # set config in remote machine
+            if config_options:
+                for each_option in config_options:
+                    session1.cmd_output("echo '%s' >> ~/.ssh/config" % each_option)
         session2.cmd_output('mkdir -p ~/.ssh')
         session2.cmd_output('chmod 700 ~/.ssh')
         session2.cmd_output("echo '%s' >> ~/.ssh/authorized_keys; " %
