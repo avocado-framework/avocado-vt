@@ -2490,7 +2490,7 @@ class VM(virt_vm.BaseVM):
                 cmd = "apt install -y %s" % name
                 update_cmd = "apt upgrade -y %s" % name
             else:
-                query_cmd = "rqm -q %s" % name
+                query_cmd = "rpm -q %s" % name
                 cmd = "yum install -y %s" % name
                 update_cmd = "yum update -y %s" % name
 
