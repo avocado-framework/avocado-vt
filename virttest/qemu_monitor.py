@@ -1004,8 +1004,9 @@ class HumanMonitor(Monitor):
         """
         backing_file = None
         block_info = self.query("block")
+        block_info = block_info.replace('\n',' ')
         try:
-            pattern = "%s:.*backing_file=([^\s]*)" % device
+            pattern = "%s.*:.*Backing file:\s*([^\s]*)" % device
             backing_file = re.search(pattern, block_info, re.M).group(1)
         except Exception:
             pass
