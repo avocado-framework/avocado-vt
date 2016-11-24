@@ -8,6 +8,8 @@ import re
 import random
 import math
 import shutil
+import platform
+from netaddr import *
 
 from avocado.utils import process
 from avocado.utils import archive
@@ -24,6 +26,8 @@ from . import versionable_class
 from . import openvswitch
 from .staging import service
 from .staging import utils_memory
+
+ARCH = platform.machine()
 
 
 class THPError(Exception):
@@ -873,7 +877,7 @@ class PciAssignable(object):
 
     def __init__(self, driver=None, driver_option=None, host_set_flag=None,
                  kvm_params=None, vf_filter_re=None, pf_filter_re=None,
-                 device_driver=None, nic_name_re=None):
+                 device_driver=None, nic_name_re=None, static_ip=None, net_mask=None, start_addr_PF=None):
         """
         Initialize parameter 'type' which could be:
         vf: Virtual Functions
@@ -905,6 +909,9 @@ class PciAssignable(object):
         :type vf_filter_re: string
         :param pf_filter_re: Regex used to filter pf from lspci.
         :type pf_filter_re: string
+        :param static_ip: Flag to be set if the test should assign static IP
+        :param start_addr_PF: Starting private IPv4 address for the PF interface
+
         """
         self.devices = []
         self.driver = driver
@@ -916,6 +923,10 @@ class PciAssignable(object):
         self.dev_drivers = {}
         self.vf_filter_re = vf_filter_re
         self.pf_filter_re = pf_filter_re
+        self.static_ip = static_ip
+        self.net_mask = net_mask
+        self.start_addr_PF = start_addr_PF
+
         if nic_name_re:
             self.nic_name_re = nic_name_re
         else:
@@ -1134,7 +1145,7 @@ class PciAssignable(object):
             pf_info["occupied"] = False
             d_link = os.path.join("/sys/bus/pci/devices", full_id)
             txt = process.system_output("ls %s" % d_link)
-            re_vfn = "(virtfn[0-9])"
+            re_vfn = "(virtfn\d+)"
             paths = re.findall(re_vfn, txt)
             for path in paths:
                 f_path = os.path.join(d_link, path)
@@ -1145,11 +1156,19 @@ class PciAssignable(object):
                 vf_ids.append(vf_info)
             pf_info["vf_ids"] = vf_ids
             pf_vf_dict.append(pf_info)
+        # When the VFs loaded on a PF are > 10 [I have tested till 63 which is
+        # max VF supported by Mellanox CX4 cards],VFs probe on host takes bit
+        # more time than usual.
+        # Without this sleep ifconfig would fail With below error, since not all
+        # probed interfaces of VF would have got properly renamed:
+        # CmdError: Command 'ifconfig -a' failed (rc=1)
+        if int(self.driver_option) > 10:
+            time.sleep(60)
         if_out = process.system_output("ifconfig -a")
         ethnames = re.findall(self.nic_name_re, if_out)
         for eth in ethnames:
             cmd = "ethtool -i %s | awk '/bus-info/ {print $2}'" % eth
-            pci_id = process.system_output(cmd, shell=True)
+            pci_id = process.system_output(cmd, shell=True).strip()
             if not pci_id:
                 continue
             for pf in pf_vf_dict:
@@ -1277,6 +1296,17 @@ class PciAssignable(object):
             pci_ids = out.split()
         return pci_ids
 
+    def get_pf_mlx(self):
+        """
+        Get the PF devices for mlx5_core driver
+        """
+        # This function returns the network device associated with
+        # mellanox cx4 card
+        cmd = "lshw -c network -businfo | grep '%s' | awk '{print $2}'" % self.pf_filter_re
+        PF_devices = process.system_output(
+            cmd, shell=True, timeout=60).splitlines()
+        return (PF_devices)
+
     def check_vfs_count(self):
         """
         Check VFs count number according to the parameter driver_options.
@@ -1284,7 +1314,7 @@ class PciAssignable(object):
         # Network card 82576 has two network interfaces and each can be
         # virtualized up to 7 virtual functions, therefore we multiply
         # two for the value of driver_option 'max_vfs'.
-        expected_count = int((re.findall("(\d)", self.driver_option)[0])) * 2
+        expected_count = int((re.findall("(\d+)", self.driver_option)[0])) * 2
         return (self.get_vfs_count() == expected_count)
 
     def is_binded_to_stub(self, full_id):
@@ -1294,7 +1324,7 @@ class PciAssignable(object):
         :param full_id: Full ID for the given PCI device
         :type full_id: String
         """
-        base_dir = "/sys/bus/pci"
+        base_dir = "/sys/bus/pci/"
         stub_path = os.path.join(base_dir, "drivers/%s" % self.device_driver)
         return os.path.exists(os.path.join(stub_path, full_id))
 
@@ -1309,51 +1339,68 @@ class PciAssignable(object):
         :return: True, if the setup was completed successfully, False otherwise.
         :rtype: bool
         """
-        # Check if the host support interrupt remapping
+        # Check if the host support interrupt remapping. On PowerPC interrupt
+        # remapping is not required
         error_context.context(
             "Set up host env for PCI assign test", logging.info)
-        kvm_re_probe = True
-        o = process.system_output("dmesg")
-        ecap = re.findall("ecap\s+(.\w+)", o)
-        if not ecap:
-            logging.error("Fail to check host interrupt remapping support.")
-        else:
-            if int(ecap[0], 16) & 8 == 8:
-                # host support interrupt remapping.
-                # No need enable allow_unsafe_assigned_interrupts.
-                kvm_re_probe = False
-            if self.kvm_params is not None:
-                if self.auai_path and self.kvm_params[self.auai_path] == "Y":
+        if ARCH != 'ppc64le':
+            kvm_re_probe = True
+            o = process.system_output("dmesg")
+            ecap = re.findall("ecap\s+(.\w+)", o)
+            if not ecap:
+                logging.error(
+                    "Fail to check host interrupt remapping support.")
+            else:
+                if int(ecap[0], 16) & 8 == 8:
+                    # host support interrupt remapping.
+                    # No need enable allow_unsafe_assigned_interrupts.
                     kvm_re_probe = False
-        # Try to re probe kvm module with interrupt remapping support
-        if kvm_re_probe and self.auai_path:
-            cmd = "echo Y > %s" % self.auai_path
-            error_context.context("enable PCI passthrough with '%s'" % cmd,
-                                  logging.info)
-            try:
-                process.system(cmd)
-            except Exception:
-                logging.debug("Can not enable the interrupt remapping support")
-        lnk = "/sys/module/vfio_iommu_type1/parameters/allow_unsafe_interrupts"
-        if self.device_driver == "vfio-pci":
-            status = process.system('lsmod | grep vfio', ignore_status=True)
-            if status:
-                logging.info("Load vfio-pci module.")
-                cmd = "modprobe vfio-pci"
-                process.run(cmd)
-                time.sleep(3)
-            if not ecap or (int(ecap[0], 16) & 8 != 8):
-                cmd = "echo Y > %s" % lnk
+                if self.kvm_params is not None:
+                    if self.auai_path and self.kvm_params[self.auai_path] == "Y":
+                        kvm_re_probe = False
+            # Try to re probe kvm module with interrupt remapping support
+            if kvm_re_probe and self.auai_path:
+                cmd = "echo Y > %s" % self.auai_path
                 error_context.context("enable PCI passthrough with '%s'" % cmd,
                                       logging.info)
-                process.run(cmd)
+                try:
+                    process.system(cmd)
+                except Exception:
+                    logging.debug(
+                        "Can not enable the interrupt remapping support")
+            lnk = "/sys/module/vfio_iommu_type1/parameters/allow_unsafe_interrupts"
+            if self.device_driver == "vfio-pci":
+                status = process.system(
+                    'lsmod | grep vfio', ignore_status=True)
+                if status:
+                    logging.info("Load vfio-pci module.")
+                    cmd = "modprobe vfio-pci"
+                    process.run(cmd)
+                    time.sleep(3)
+                if not ecap or (int(ecap[0], 16) & 8 != 8):
+                    cmd = "echo Y > %s" % lnk
+                    error_context.context("enable PCI passthrough with '%s'" % cmd,
+                                          logging.info)
+                    process.run(cmd)
+        else:
+            if self.device_driver == "vfio-pci":
+                status = process.system(
+                    'lsmod | grep vfio', ignore_status=True)
+                if status:
+                    logging.info("Load vfio-pci module.")
+                    cmd = "modprobe vfio-pci"
+                    process.run(cmd)
+                    time.sleep(3)
         re_probe = False
         status = process.system("lsmod | grep %s" % self.driver,
                                 ignore_status=True)
         if status:
+            if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
+                cmd = "modprobe %s " % self.driver
+                s = process.system(cmd, shell=True, ignore_status=True)
             re_probe = True
         elif not self.check_vfs_count():
-            if self.driver:
+            if self.driver and ARCH != 'ppc64le':
                 process.system_output(
                     "modprobe -r %s" % self.driver, timeout=60)
             re_probe = True
@@ -1365,15 +1412,47 @@ class PciAssignable(object):
         if re_probe:
             cmd = None
             status = 0
-            if self.driver:
+            if self.driver and self.driver != 'mlx5_core':
                 cmd = "modprobe %s " % self.driver
                 if self.driver_option:
                     cmd += " %s" % self.driver_option
+            if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
+                set_ip = 0
+                pf_devices = self.get_pf_mlx()
+                if (self.get_vfs_count() > 0):
+                    for PF in pf_devices:
+                        reset_cmd = "echo 0"
+                        reset_cmd += " > /sys/class/net/%s/device/sriov_numvfs" % PF
+                        process.system_output(
+                            reset_cmd, shell=True, timeout=60)
+                if (self.static_ip):
+                    if (not self.start_addr_PF) or (not self.net_mask):
+                        raise exceptions.TestSetupFail(
+                            "No IP / netmask found, please populate starting IP address for PF devices in configuration file")
+                    ip_addr = IPAddress(self.start_addr_PF)
+                    set_ip = 1
+                for PF in pf_devices:
+                    if set_ip:
+                        ip_assign = "ifconfig %s %s netmask %s up" % (
+                            PF, ip_addr, self.net_mask)
+                        logging.info(
+                            "assign IP to PF device %s : %s", PF, ip_assign)
+                        status = process.system(
+                            ip_assign, shell=True, ignore_status=True)
+                        ip_addr = ip_addr + 1
+                    logging.info("PF device '%s'.", PF)
+                    if cmd:
+                        cmd += ";"
+                        cmd += "echo %s" % self.driver_option
+                        cmd += " > /sys/class/net/%s/device/sriov_numvfs" % PF
+                    else:
+                        cmd = "echo %s" % self.driver_option
+                        cmd += " > /sys/class/net/%s/device/sriov_numvfs" % PF
             if cmd:
                 error_context.context("Loading the driver '%s' with "
                                       "command '%s'" % (self.driver, cmd),
                                       logging.info)
-                status = process.system(cmd, ignore_status=True)
+                status = process.system(cmd, shell=True, ignore_status=True)
             if not self.check_vfs_count():
                 # Even after re-probe there are no VFs created
                 return False
@@ -1399,41 +1478,64 @@ class PciAssignable(object):
         :return: True, if the setup was completed successfully, False otherwise.
         :rtype: bool
         """
-        # Check if the host support interrupt remapping
+        # Check if the host support interrupt remapping. On PowerPC interrupt
+        # remapping is not required
         error_context.context(
             "Clean up host env after PCI assign test", logging.info)
-        if self.kvm_params is not None:
-            for kvm_param, value in self.kvm_params.items():
-                if open(kvm_param, "r").read().strip() != value:
-                    cmd = "echo %s > %s" % (value, kvm_param)
-                    logging.info("Write '%s' to '%s'", value, kvm_param)
-                    try:
-                        process.system(cmd)
-                    except Exception:
-                        logging.error("Failed to write  '%s' to '%s'", value,
-                                      kvm_param)
+        if ARCH != 'ppc64le':
+            if self.kvm_params is not None:
+                for kvm_param, value in self.kvm_params.items():
+                    if open(kvm_param, "r").read().strip() != value:
+                        cmd = "echo %s > %s" % (value, kvm_param)
+                        logging.info("Write '%s' to '%s'", value, kvm_param)
+                        try:
+                            process.system(cmd)
+                        except Exception:
+                            logging.error("Failed to write  '%s' to '%s'", value,
+                                          kvm_param)
 
         re_probe = False
         status = process.system('lsmod | grep %s' % self.driver,
                                 ignore_status=True)
         if status:
-            if self.driver:
+            if self.driver and self.driver != "mlx5_core":
                 cmd = "modprobe -r %s" % self.driver
-                logging.info("Running host command: %s" % cmd)
-                process.system_output(cmd, timeout=60)
+            if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
+                pf_devices = self.get_pf_mlx()
+                logging.info("Mellanox CX4 PF devices '%s'", pf_devices)
+                for PF in pf_devices:
+                    cmd = "echo 0"
+                    cmd += " > /sys/class/net/%s/device/sriov_numvfs" % PF
+                    process.system_output(cmd, shell=True, timeout=60)
+                cmd = "rmmod mlx5_ib;modprobe -r mlx5_core;modprobe mlx5_ib"
+            logging.info("Running host command: %s" % cmd)
+            process.system_output(cmd, shell=True, timeout=60)
             re_probe = True
         else:
             return True
 
         # Re-probe driver with proper number of VFs
         if re_probe:
-            if self.driver:
+            if self.driver and self.driver != "mlx5_core":
                 cmd = "modprobe %s" % self.driver
                 msg = "Loading the driver '%s' without option" % self.driver
                 error_context.context(msg, logging.info)
                 status = process.system(cmd, ignore_status=True)
                 if status:
                     return False
+            if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
+                pf_devices = self.get_pf_mlx()
+                logging.info("Mellanox CX4 PF devices '%s'", pf_devices)
+                for PF in pf_devices:
+                    logging.info("PF device '%s'.", PF)
+                    cmd = "echo %s" % self.driver_option
+                    cmd += " > /sys/class/net/%s/device/sriov_numvfs" % PF
+                    msg = "Loading back the VFs on %s after cleanup" % PF
+                    error_context.context(msg, logging.info)
+                    status = process.system(
+                        cmd, shell=True, ignore_status=True)
+                    if status:
+                        return False
             return True
 
     def request_devs(self, devices=None):
@@ -1463,17 +1565,32 @@ class PciAssignable(object):
             else:
                 pci_ids = [p_id]
             for pci_id in pci_ids:
-                short_id = pci_id[5:]
                 drv_path = os.path.join(base_dir, "devices/%s/driver" % pci_id)
-                dev_prev_driver = os.path.realpath(os.path.join(drv_path,
-                                                                os.readlink(drv_path)))
+                # In some cases, for example on ppc64le platform when using
+                # Mellanox Connectx 4 or Mellanox Connectx-Pro SR-IOV enabled
+                # cards, initially drv_path will not exist for the VF PCI device
+                # and the test_setup will fail. Introducing below check to
+                # handle such situations
+                if not os.path.exists(drv_path):
+                    dev_prev_driver = ""
+                else:
+                    dev_prev_driver = os.path.realpath(os.path.join(drv_path,
+                                                                    os.readlink(drv_path)))
                 self.dev_drivers[pci_id] = dev_prev_driver
 
                 # Judge whether the device driver has been binded to stub
                 if not self.is_binded_to_stub(pci_id):
                     error_context.context("Bind device %s to stub" % pci_id,
                                           logging.info)
-                    vendor_id = utils_misc.get_vendor_from_pci_id(short_id)
+                    # On Power architecture using short id would result in
+                    # pci device lookup failure while writing vendor id to
+                    # stub_new_id/stub_remove_id. Instead we should be using
+                    # pci id as-is for vendor id.
+                    if ARCH != 'ppc64le':
+                        short_id = pci_id[5:]
+                        vendor_id = utils_misc.get_vendor_from_pci_id(short_id)
+                    else:
+                        vendor_id = utils_misc.get_vendor_from_pci_id(pci_id)
                     stub_new_id = os.path.join(stub_path, 'new_id')
                     unbind_dev = os.path.join(drv_path, 'unbind')
                     stub_bind = os.path.join(stub_path, 'bind')
