@@ -2922,3 +2922,23 @@ def get_iothreadsinfo(vm_name, options=None):
         info_dict[info[0]] = info[1]
 
     return info_dict
+
+
+def virsh_cmd_has_option(cmd, option, raise_skip=True):
+    """
+    Check whether virsh command support given option.
+
+    :param cmd: Virsh command name
+    :param option: Virsh command option
+    :raise_skip: Whether raise exception when option not find
+    :return: True/False or raise TestSkipError
+    """
+    found = False
+    if virsh.has_command_help_match(cmd, option):
+        found = True
+    msg = "command '%s' has option '%s': %s" % (cmd, option, str(found))
+    if not found and raise_skip:
+        raise exceptions.TestSkipError(msg)
+    else:
+        logging.debug(msg)
+        return found
