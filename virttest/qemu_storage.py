@@ -436,32 +436,41 @@ class QemuImg(storage.QemuImg):
 
         return supports_cmd
 
-    def compare_images(self, image1, image2, verbose=True):
+    def compare_images(self, image1, image2, strict_mode=False, verbose=True):
         """
         Compare 2 images using the appropriate tools for each virt backend.
 
         :param image1: image path of first image
         :param image2: image path of second image
+        :param strict_mode: Boolean value, True for strict mode,
+                            False for default mode.
         :param verbose: Record output in debug file or not
+
+        :return: process.CmdResult object containing the result of the command
         """
         compare_images = self.support_cmd("compare")
         if not compare_images:
-            logging.debug("Skipping image comparison "
-                          "(lack of support in qemu-img)")
+            logging.warn("sub-command compare not supported by qemu-img")
+            return None
         else:
             logging.info("Comparing images %s and %s", image1, image2)
-            compare_cmd = "%s compare %s %s" % (self.image_cmd, image1, image2)
-            rv = process.run(compare_cmd, ignore_status=True, shell=True)
+            compare_cmd = "%s compare" % self.image_cmd
+            if strict_mode:
+                compare_cmd += " -s"
+            compare_cmd += " %s %s" % (image1, image2)
+            cmd_result = process.run(compare_cmd, ignore_status=True,
+                                     shell=True)
 
             if verbose:
-                logging.debug("Output from command: %s" % rv.stdout)
+                logging.debug("Output from command: %s" % cmd_result.stdout)
 
-            if rv.exit_status == 0:
+            if cmd_result.exit_status == 0:
                 logging.info("Compared images are equal")
-            elif rv.exit_status == 1:
+            elif cmd_result.exit_status == 1:
                 raise exceptions.TestFail("Compared images differ")
             else:
                 raise exceptions.TestError("Error in image comparison")
+            return cmd_result
 
     def check_image(self, params, root_dir):
         """
