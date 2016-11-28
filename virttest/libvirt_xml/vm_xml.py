@@ -701,34 +701,57 @@ class VMXML(VMXMLBase):
         vmxml.sync()
 
     @staticmethod
-    def set_vm_vcpus(vm_name, value, current=None, virsh_instance=base.virsh):
+    def set_vm_vcpus(vm_name, vcpus, current=None, sockets=None, cores=None,
+                     threads=None, add_topology=False,
+                     virsh_instance=base.virsh):
         """
-        Convenience method for updating 'vcpu' and 'current' attribute property
-        of a defined VM
+        Convenience method for updating 'vcpu', 'current' and
+        'cpu topology' attribute property with of a defined VM
 
         :param vm_name: Name of defined vm to change vcpu elemnet data
-        :param value: New data value, None to delete.
+        :param vcpus: New vcpus count, None to delete.
         :param current: New current value, None will not change current value
+        :param sockets: number of socket, default None
+        :param cores: number of cores, default None
+        :param threads: number of threads, default None
+        :param add_topology: True to add new topology definition if not present
+        :parma virsh_instance: virsh instance
         """
         vmxml = VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
-        if value is not None:
+        if vcpus is not None:
             if current is not None:
                 try:
-                    current_int = int(current)
+                    if(int(current) > vcpus):
+                        raise xcepts.LibvirtXMLError("The cpu current value %s "
+                                                     "is larger than max "
+                                                     "number %s" % (current,
+                                                                    vcpus))
+                    else:
+                        vmxml['current_vcpu'] = current
                 except ValueError:
                     raise xcepts.LibvirtXMLError("Invalid 'current' value '%s'"
                                                  % current)
-                if current_int > value:
-                    raise xcepts.LibvirtXMLError(
-                        "The cpu current value %s is larger than max number %s"
-                        % (current, value))
-                else:
-                    vmxml['current_vcpu'] = current
-            vmxml['vcpu'] = value  # call accessor method to change XML
+            topology = vmxml.get_cpu_topology()
+            if topology:
+                if not sockets:
+                    sockets = topology['sockets']
+                if not cores:
+                    cores = topology['cores']
+                if not threads:
+                    threads = topology['threads']
+            # One case is left to fail when topology is false and add_topology
+            # is set true and not have all topology definition, it would fail
+            # let us leave it to the user give proper values
+            if (topology or add_topology) and (sockets or cores or threads):
+                vmcpu_xml = VMCPUXML()
+                vmcpu_xml['topology'] = {'sockets': sockets,
+                                         'cores': cores,
+                                         'threads': threads}
+                vmxml['cpu'] = vmcpu_xml
+            vmxml['vcpu'] = vcpus  # call accessor method to change XML
         else:  # value is None
             del vmxml.vcpu
-        vmxml.undefine()
-        vmxml.define()
+        vmxml.sync()
         # Temporary files for vmxml cleaned up automatically
         # when it goes out of scope here.
 
