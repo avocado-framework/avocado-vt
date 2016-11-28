@@ -326,7 +326,9 @@ def create_subtests_cfg(t_type):
     shared_test_list = []
     shared_file_list = []
     shared_subdirs = asset.get_test_provider_subdirs('generic')
+    shared_subdirs += asset.get_test_provider_subdirs('multi_host_migration')
     provider_names_shared = asset.get_test_provider_names('generic')
+    provider_names_shared += asset.get_test_provider_names('multi_host_migration')
 
     provider_info_shared = []
     for shared_provider in provider_names_shared:
@@ -362,6 +364,10 @@ def create_subtests_cfg(t_type):
             if provider_base_path in test:
                 provider_name = p['name']
                 break
+            provider_base_path = p['backends']['multi_host_migration']['path']
+            if provider_base_path in test:
+                provider_name = p['name']
+                break
 
         basename = os.path.basename(test)
         if basename != "__init__.py":
@@ -382,6 +388,10 @@ def create_subtests_cfg(t_type):
         for p in provider_info_shared:
             provider_base_path = p['backends']['generic']['path']
             if provider_base_path in shared_file:
+                provider_name = p['name']
+                break
+            provider_base_path = p['backends']['multi_host_migration']['path']
+            if provider_base_path in test:
                 provider_name = p['name']
                 break
 

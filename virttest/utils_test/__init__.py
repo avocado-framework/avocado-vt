@@ -34,7 +34,6 @@ from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils import aurl
 from avocado.utils import download
-from avocado.utils import archive
 from avocado.utils import crypto
 from avocado.utils import path
 
@@ -53,10 +52,6 @@ from .. import utils_net
 from .. import virt_vm
 from ..staging import utils_memory
 
-# Get back to importing these
-from . import qemu
-from . import libvirt
-from . import libguestfs
 
 # This is so that other tests won't break when importing the names
 # 'ping' and 'raw_ping' from this namespace
@@ -1246,6 +1241,10 @@ def run_virt_sub_test(test, params, env, sub_type=None, tag=None):
         # Verify if we have the correspondent source file for it
         for generic_subdir in asset.get_test_provider_subdirs('generic'):
             subtest_dirs += data_dir.SubdirList(generic_subdir,
+                                                bootstrap.test_filter)
+        for multi_host_migration_subdir in asset.get_test_provider_subdirs(
+                'multi_host_migration'):
+            subtest_dirs += data_dir.SubdirList(multi_host_migration_subdir,
                                                 bootstrap.test_filter)
 
         for specific_subdir in asset.get_test_provider_subdirs(
