@@ -52,6 +52,17 @@ from .. import utils_net
 from .. import virt_vm
 from ..staging import utils_memory
 
+# Get back to importing submodules
+# This is essential for accessing these submodules directly from
+# utils_test namespace like:
+# >>> from virttest import utils_test
+# >>> utils_test.qemu.SomeClass()
+#
+# pylint: disable=unused-import
+from . import qemu
+from . import libvirt
+from . import libguestfs
+
 
 # This is so that other tests won't break when importing the names
 # 'ping' and 'raw_ping' from this namespace
