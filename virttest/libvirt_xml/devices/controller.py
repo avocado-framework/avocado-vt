@@ -11,7 +11,7 @@ from virttest.libvirt_xml.devices import base, librarian
 class Controller(base.TypedDeviceBase):
 
     __slots__ = ('type', 'index', 'model', 'ports', 'vectors', 'driver',
-                 'address', 'pcihole64')
+                 'address', 'pcihole64', 'target', 'alias')
 
     def __init__(self, type_name, virsh_instance=base.base.virsh):
         super(Controller, self).__init__(device_tag='controller',
@@ -35,6 +35,10 @@ class Controller(base.TypedDeviceBase):
                                  tag_name='address', subclass=self.Address,
                                  subclass_dargs={'type_name': 'pci',
                                                  'virsh_instance': virsh_instance})
+        accessors.XMLElementDict('target', self, parent_xpath='/',
+                                 tag_name='target')
+        accessors.XMLElementDict('alias', self, parent_xpath='/',
+                                 tag_name='alias')
 
     Address = librarian.get('address')
 
