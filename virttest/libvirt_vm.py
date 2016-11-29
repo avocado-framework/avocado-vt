@@ -49,20 +49,25 @@ def normalize_connect_uri(connect_uri):
     return result
 
 
-def complete_uri(ip_address):
+def complete_uri(ip_address, protocol=None, port=None):
     """
     Return a complete URI with the combination of ip_address and local uri.
     It is useful when you need to connect remote hypervisor.
 
     :param ip_address: an ip address or a hostname
+    :param protocol: protocol for uri eg: tcp, spice etc.
+    :param port: port for the protocol
     :return: a complete uri
     """
-    # Allow to raise CmdError if canonical_uri is failed
-    uri = virsh.canonical_uri(ignore_status=False)
-    driver = uri.split(":")[0]
-    # The libvirtd daemon's mode(system or session on qemu)
-    daemon_mode = uri.split("/")[-1]
-    complete_uri = "%s+ssh://%s/%s" % (driver, ip_address, daemon_mode)
+    if protocol and port:
+        complete_uri = "%s://%s:%s" % (protocol, ip_address, port)
+    else:
+        # Allow to raise CmdError if canonical_uri is failed
+        uri = virsh.canonical_uri(ignore_status=False)
+        driver = uri.split(":")[0]
+        # The libvirtd daemon's mode(system or session on qemu)
+        daemon_mode = uri.split("/")[-1]
+        complete_uri = "%s+ssh://%s/%s" % (driver, ip_address, daemon_mode)
     return complete_uri
 
 
