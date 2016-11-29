@@ -140,7 +140,17 @@ def iscsi_logout(target_name=None):
         cmd = "iscsiadm --mode node --logout -T %s" % target_name
     else:
         cmd = "iscsiadm --mode node --logout all"
-    output = process.system_output(cmd)
+
+    output = ''
+    try:
+        output = process.system_output(cmd)
+    except process.CmdError as detail:
+        # iscsiadm will fail when no matching sessions found
+        # This failure makes no sense when target name is not specified
+        if not target_name and 'No matching sessions' in detail.result.stderr:
+            logging.info("%s: %s", detail, detail.result.stderr)
+        else:
+            raise
 
     target_logout = ""
     if "successful" in output:
