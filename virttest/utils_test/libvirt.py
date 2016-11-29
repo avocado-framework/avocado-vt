@@ -43,8 +43,8 @@ from .. import libvirt_storage
 from .. import utils_net
 from .. import gluster
 from .. import remote
+from .. import test_setup
 from ..staging import lv_utils
-from ..test_setup import LibvirtPolkitConfig
 from ..utils_libvirtd import service_libvirtd_control
 from ..libvirt_xml import vm_xml
 from ..libvirt_xml import network_xml
@@ -1158,6 +1158,54 @@ class MigrationTest(object):
                 self.RET_LOCK.acquire()
                 self.RET_MIGRATION = False
                 self.RET_LOCK.release()
+
+    def migrate_pre_setup(self, desturi, params, cleanup=False):
+        """
+        # Setup before migration,
+        # 1. To enable migration ports using iptables
+        # 2. Turn off SMT for power8 machine in remote machine to migrate
+
+        :param desturi: uri of destination machine to which VM gets migrated
+        :param params: Test params dict
+        :param cleanup: if True revert back to default setting, used to cleanup
+        """
+        iptable_rule = ["INPUT -p tcp -m tcp --dport 49152:49216 -j ACCEPT"]
+        try:
+            dest_ip = re.search(r'//.*/', desturi,
+                                re.I).group(0).strip('/').strip()
+            source_ip = params.get("migrate_source_host", "").strip()
+            # check whether migrate back to source machine or not
+            if ((desturi == "qemu:///system") or (dest_ip == source_ip)):
+                # open migration ports in local machine using iptables
+                setup_or_cleanup_iptables_rules(iptable_rule, cleanup=cleanup)
+                # SMT for Power8 machine is turned off for local machine during
+                # test setup
+            else:
+                # open migration ports in remote machine using iptables
+                setup_or_cleanup_iptables_rules(iptable_rule, params=params,
+                                                cleanup=cleanup)
+                cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
+                server_ip = params.get("server_ip")
+                server_user = params.get("server_user", "root")
+                server_pwd = params.get("server_pwd")
+                server_session = remote.wait_for_login('ssh', server_ip, '22',
+                                                       server_user, server_pwd,
+                                                       r"[\#\$]\s*$")
+                # Check if remote machine is Power8, if so check for smt state
+                # and turn off if it is on.
+                cmd_output = server_session.cmd_status_output(cmd)
+                server_session.close()
+                if (cmd_output[0] == 0):
+                    cmd_output = cmd_output[1].strip().upper()
+                    if "POWER8" in cmd_output:
+                        test_setup.disable_smt(params=params)
+                else:
+                    raise exceptions.TestError("Failed to get cpuinfo of remote "
+                                               "server", cmd_output[1])
+        except AttributeError:
+            # Negative scenarios will have invalid desturi for which test should
+            # continue
+            pass
 
     def do_migration(self, vms, srcuri, desturi, migration_type, options=None,
                      thread_timeout=60, ignore_status=False, func=None,
@@ -2844,7 +2892,7 @@ def update_polkit_rule(params, pattern, new_value):
     :param pattern: Regex pattern for updating
     :param new_value: New value for updating
     """
-    polkit = LibvirtPolkitConfig(params)
+    polkit = test_setup.LibvirtPolkitConfig(params)
     polkit_rules_path = polkit.polkit_rules_path
     try:
         polkit_f = open(polkit_rules_path, 'r+')
