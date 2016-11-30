@@ -765,7 +765,7 @@ def preprocess(test, params, env):
     kernel_extra_params_add = params.get("kernel_extra_params_add", "")
     kernel_extra_params_remove = params.get("kernel_extra_params_remove", "")
     if params.get("disable_pci_msi"):
-        disable_pci_msi = params.get("disable-pci_msi")
+        disable_pci_msi = params.get("disable_pci_msi")
         if disable_pci_msi == "yes":
             if "pci=" in kernel_extra_params_add:
                 kernel_extra_params_add = re.sub("pci=.*?\s+", "pci=nomsi ",

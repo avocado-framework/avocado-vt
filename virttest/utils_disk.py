@@ -13,6 +13,7 @@ import re
 
 from avocado.core import exceptions
 from avocado.utils import process
+from avocado.utils.service import SpecificServiceManager
 
 from . import error_context
 
@@ -422,6 +423,12 @@ class GuestFSModiDisk(object):
         self.g = guestfs.GuestFS()
         self.disk = disk
         self.g.add_drive(disk)
+        libvirtd = SpecificServiceManager("libvirtd")
+        libvirtd_status = libvirtd.status()
+        if libvirtd_status is None:
+            raise exceptions.TestError('libvirtd: service not found')
+        if (not libvirtd_status) and (not libvirtd.start()):
+            raise exceptions.TestError('libvirtd: failed to start')
         logging.debug("Launch the disk %s, wait..." % self.disk)
         self.g.launch()
 
