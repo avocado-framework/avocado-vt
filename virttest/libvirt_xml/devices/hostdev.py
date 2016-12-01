@@ -40,11 +40,16 @@ class Hostdev(base.TypedDeviceBase):
             new_one.product_id = dargs.pop("product_id", None)
             new_address = new_one.new_untyped_address(**dargs)
             new_one.untyped_address = new_address
+        if self.hostdev_type == 'scsi':
+            new_one.adapter_name = dargs.pop("adapter_name", None)
+            new_address = new_one.new_untyped_address(**dargs)
+            new_one.untyped_address = new_address
         return new_one
 
     class Source(base.base.LibvirtXMLBase):
 
-        __slots__ = ('untyped_address', 'vendor_id', 'product_id')
+        __slots__ = ('untyped_address', 'vendor_id', 'product_id',
+                     'adapter_name')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLAttribute('vendor_id', self, parent_xpath='/',
@@ -55,6 +60,8 @@ class Hostdev(base.TypedDeviceBase):
                                      tag_name='address', subclass=self.UntypedAddress,
                                      subclass_dargs={
                                          'virsh_instance': virsh_instance})
+            accessors.XMLAttribute('adapter_name', self, parent_xpath='/',
+                                   tag_name='adapter', attribute='name')
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<source/>'
 
@@ -66,7 +73,8 @@ class Hostdev(base.TypedDeviceBase):
 
         class UntypedAddress(base.UntypedDeviceBase):
 
-            __slots__ = ('device', 'domain', 'bus', 'slot', 'function',)
+            __slots__ = ('device', 'domain', 'bus', 'slot', 'function',
+                         'target', 'unit')
 
             def __init__(self, virsh_instance=base.base.virsh):
                 accessors.XMLAttribute('domain', self, parent_xpath='/',
@@ -79,6 +87,10 @@ class Hostdev(base.TypedDeviceBase):
                                        tag_name='address', attribute='device')
                 accessors.XMLAttribute('function', self, parent_xpath='/',
                                        tag_name='address', attribute='function')
+                accessors.XMLAttribute('target', self, parent_xpath='/',
+                                       tag_name='address', attribute='target')
+                accessors.XMLAttribute('unit', self, parent_xpath='/',
+                                       tag_name='address', attribute='unit')
                 super(self.__class__, self).__init__(
                     "address", virsh_instance=virsh_instance)
                 self.xml = "<address/>"
