@@ -2652,13 +2652,13 @@ def get_used_mem(session, os_type):
     """
     if os_type == "windows":
         cmd = "systeminfo"
-        pattern = r'Virtual Memory: In Use: (.+) MB'
+        pattern = r'(Virtual Memory|Page File): In Use: (.+) MB'
     else:
         cmd = "free -m | grep 'Mem'"
-        pattern = r'Mem:\s+\d+\s+(\d+)\s+'
+        pattern = r'Mem:\s+(\d+)\s+(\d+)\s+'
     output = session.cmd_output(cmd)
     match = re.search(pattern, output, re.M | re.I)
-    used = "%sM" % ''.join(match.group(1).split(","))
+    used = "%sM" % ''.join(match.group(2).split(","))
     used = float(normalize_data_size(used, order_magnitude="M"))
     return int(used)
 
