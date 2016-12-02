@@ -98,12 +98,18 @@ def add_qemu_bin_vt_option(parser):
     except (RuntimeError, utils_path.CmdNotFoundError):
         qemu_bin_path = None
     qemu_bin = settings.get_value('vt.qemu', 'qemu_bin',
-                                  default=qemu_bin_path)
+                                  default=None)
+    if qemu_bin is None:    # Allow default to be None when not set in setting
+        default_qemu_bin = None
+        qemu_bin = qemu_bin_path
+    else:
+        default_qemu_bin = qemu_bin
     parser.add_argument("--vt-qemu-bin", action="store", dest="vt_qemu_bin",
-                        default=qemu_bin, help="Path to a custom qemu binary "
-                        "to be tested. If --vt-config is provided and this "
-                        "flag is omitted, no attempt to set the qemu binaries "
-                        "will be made. Current: %s" % _str_or_none(qemu_bin))
+                        default=default_qemu_bin, help="Path to a custom qemu"
+                        " binary to be tested. If --vt-config is provided and"
+                        " this flag is omitted, no attempt to set the qemu "
+                        "binaries will be made. Current: %s"
+                        % _str_or_none(qemu_bin))
     qemu_dst = settings.get_value('vt.qemu', 'qemu_dst_bin',
                                   default=qemu_bin_path)
     parser.add_argument("--vt-qemu-dst-bin", action="store",
