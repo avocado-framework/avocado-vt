@@ -3705,16 +3705,17 @@ class SELinuxBoolean(object):
     """
 
     def __init__(self, params):
-        # Setup SSH connection
-        from utils_conn import SSHConnection
-        self.ssh_obj = SSHConnection(params)
-        ssh_timeout = int(params.get("ssh_timeout", 10))
-        self.ssh_obj.conn_setup(timeout=ssh_timeout)
+        self.server_ip = params.get("server_ip", None)
+        if self.server_ip:
+            # Setup SSH connection
+            from utils_conn import SSHConnection
+            self.ssh_obj = SSHConnection(params)
+            ssh_timeout = int(params.get("ssh_timeout", 10))
+            self.ssh_obj.conn_setup(timeout=ssh_timeout)
 
         self.cleanup_local = True
         self.cleanup_remote = True
         self.ssh_user = params.get("server_user", "root")
-        self.server_ip = params.get("server_ip")
         self.set_bool_local = params.get("set_sebool_local", "no")
         self.set_bool_remote = params.get("set_sebool_remote", "no")
         self.local_bool_var = params.get("local_boolean_varible")
