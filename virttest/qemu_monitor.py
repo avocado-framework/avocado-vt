@@ -2373,3 +2373,51 @@ class QMPMonitor(Monitor):
         """
         transaction_args = {"actions": job_list}
         return self.cmd("transaction", transaction_args)
+
+    def operate_dirty_bitmap(self, operation, node, name, granularity=65536):
+        """
+        Add, remove or clear a dirty bitmap.
+
+        :param operation: operations to bitmap, can be 'add', 'remove', and 'clear'
+        :param node: device/node on which to operate dirty bitmap
+        :param name: name of the dirty bitmap to operate
+        :param granularity: granularity to track writes with
+        """
+        cmd = "block-dirty-bitmap-%s" % operation
+        self.verify_supported_cmd(cmd)
+        args = {"node": node, "name": name}
+        if operation == "add":
+            args["granularity"] = granularity
+        return self.cmd(cmd, args)
+
+    def drive_backup(self, device, target, format, sync, speed=0,
+                     mode='absolute-paths', bitmap=''):
+        """
+        Start a point-in-time copy of a block device to a new destination.
+
+        :param device: the device name or node-name of a root node which should be copied
+        :param target: the target of the new image
+        :param format: the format of the new destination, default is to probe if 'mode' is
+            'existing', else the format of the source
+        :param sync:  what parts of the disk image should be copied to the destination;
+            possibilities include "full" for all the disk, "top" for only the sectors
+            allocated in the topmost image, "incremental" for only the dirty sectors in
+            the bitmap, or "none" to only replicate new I/O
+        :param speed: the maximum speed, in bytes per second
+        :param mode: whether and how QEMU should create a new image
+            (NewImageMode, optional, default 'absolute-paths')
+        :param bitmap: dirty bitmap name for sync==incremental. Must be present if sync
+            is "incremental", must NOT be present otherwise
+        """
+        cmd = "drive-backup"
+        self.verify_supported_cmd(cmd)
+        args = {"device": device,
+                "target": target,
+                "format": format,
+                "sync": sync,
+                "mode": mode}
+        if sync.lower() == "incremental":
+            args["bitmap"] = bitmap
+        if speed:
+            args["speed"] = speed
+        return self.cmd(cmd, args)
