@@ -692,7 +692,11 @@ class NetworkXML(NetworkXMLBase):
         """
         Adds non-persistant / transient network to libvirt with net-create
         """
-        self.virsh.net_create(self.xml)
+        cmd_result = self.virsh.net_create(self.xml)
+        if cmd_result.exit_status:
+            raise xcepts.LibvirtXMLError("Failed to create transient network %s.\n"
+                                         "Detail: %s" %
+                                         (self.name, cmd_result.stderr))
 
     def orbital_nuclear_strike(self):
         """It's the only way to really be sure.  Remove all libvirt state"""
