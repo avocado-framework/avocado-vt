@@ -1222,6 +1222,15 @@ def run(test, params, env):
 
     send_key_timeout = int(params.get("send_key_timeout", 60))
     while (time.time() - start_time) < install_timeout:
+        # Due to libvirt automatically start guest after import
+        # we only need to wait for successful login.
+        if params.get("medium") == "import":
+            try:
+                flexible_nic_index = ("yes" == params.get("flexible_nic_index", 'no'))
+                vm.login(flexible_index=flexible_nic_index)
+                break
+            except (remote.LoginError, Exception), e:
+                pass
         try:
             vm.verify_alive()
             if (params.get("send_key_at_install") and
@@ -1275,15 +1284,6 @@ def run(test, params, env):
                     raise exceptions.TestFail(install_error_exception_str)
                 if post_finish_str_found:
                     break
-
-        # Due to libvirt automatically start guest after import
-        # we only need to wait for successful login.
-        if params.get("medium") == "import":
-            try:
-                vm.login()
-                break
-            except (remote.LoginError, Exception), e:
-                pass
 
         if migrate_background:
             vm.migrate(timeout=mig_timeout, protocol=mig_protocol)

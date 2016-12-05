@@ -624,7 +624,7 @@ class BaseVM(object):
         except KeyError:
             raise VMMACAddressMissingError(nic_index)
 
-    def get_address(self, index=0):
+    def get_address(self, index=0, flexible_index=False):
         """
         Return the IP address of a NIC or guest (in host space).
 
@@ -638,6 +638,7 @@ class BaseVM(object):
         :raise VMAddressVerificationError: If the MAC-IP address mapping cannot
                 be verified (using arping)
         """
+
         nic = self.virtnet[index]
         self.ip_version = self.params.get("ip_version", "ipv4").lower()
         # TODO: Determine port redirection in use w/o checking nettype
@@ -656,8 +657,6 @@ class BaseVM(object):
             arp_ip = self.address_cache.get(nic.mac.lower())
             # Make sure IP is assigned to one or more macs for this guest
             macs = self.virtnet.mac_list()
-            if not arp_ip:
-                arp_ip = self.address_cache.get(nic.mac.upper())
             devs = set()
             if nic.has_key('netdst'):
                 """At this point we know that VM's NIC is attached to a certain
@@ -668,6 +667,17 @@ class BaseVM(object):
                 be for each wait_for_login() call.
                 """
                 devs = set([nic.netdst])
+            if not arp_ip:
+                if (len(macs) > 1) and flexible_index:
+                    # Try to poke for each index
+                    for idx in range(len(macs)):
+                        try:
+                            mac = self.get_virsh_mac_address(idx)
+                        except IndexError:
+                            break
+                        arp_ip = self.address_cache.get(mac.lower())
+                        if arp_ip:
+                            break
             if (not arp_ip or
                     not utils_net.verify_ip_address_ownership(arp_ip, macs,
                                                               devs=devs) or
@@ -676,6 +686,15 @@ class BaseVM(object):
                 # or IP missed in address_cache, try to find it from arp table.
                 ip_map = utils_net.parse_arp()
                 arp_ip = ip_map.get(nic.mac.lower())
+                if not arp_ip and (len(macs) > 1) and flexible_index:
+                    for idx in range(len(macs)):
+                        try:
+                            mac = self.get_virsh_mac_address(idx)
+                            arp_ip = ip_map.get(mac.lower())
+                            if arp_ip:
+                                break
+                        except IndexError:
+                            break
             if not arp_ip:
                 raise VMIPAddressMissingError(nic.mac)
 
@@ -770,7 +789,8 @@ class BaseVM(object):
 
     @error_context.context_aware
     def wait_for_get_address(self, nic_index_or_name, timeout=30,
-                             internal_timeout=1, ip_version='ipv4'):
+                             internal_timeout=1, ip_version='ipv4',
+                             flexible_index=False):
         """
         Wait for a nic to acquire an IP address, then return it.
         For ipv6 linklocal address, we can generate it by nic mac,
@@ -779,7 +799,7 @@ class BaseVM(object):
         # Don't let VMIPAddressMissingError/VMAddressVerificationError through
         def _get_address():
             try:
-                return self.get_address(nic_index_or_name)
+                return self.get_address(nic_index_or_name, flexible_index)
             except (VMIPAddressMissingError, VMAddressVerificationError):
                 return False
 
@@ -939,7 +959,7 @@ class BaseVM(object):
 
     @error_context.context_aware
     def login(self, nic_index=0, timeout=LOGIN_TIMEOUT,
-              username=None, password=None):
+              username=None, password=None, flexible_index=False):
         """
         Log into the guest via SSH/Telnet/Netcat.
         If timeout expires while waiting for output from the guest (e.g. a
@@ -959,7 +979,7 @@ class BaseVM(object):
         linesep = eval("'%s'" % self.params.get("shell_linesep", r"\n"))
         client = self.params.get("shell_client")
         neigh_attach_if = ""
-        address = self.get_address(nic_index)
+        address = self.get_address(nic_index, flexible_index)
         if address and address.lower().startswith("fe80"):
             neigh_attach_if = utils_net.get_neigh_attch_interface(address)
         port = self.get_port(int(self.params.get("shell_port")))
@@ -975,15 +995,16 @@ class BaseVM(object):
         return session
 
     def remote_login(self, nic_index=0, timeout=LOGIN_TIMEOUT,
-                     username=None, password=None):
+                     username=None, password=None, flexible_index=False):
         """
         Alias for login() for backward compatibility.
         """
-        return self.login(nic_index, timeout, username, password)
+        return self.login(nic_index, timeout, username, password, flexible_index)
 
     @error_context.context_aware
     def commander(self, nic_index=0, timeout=LOGIN_TIMEOUT,
-                  username=None, password=None, commander_path=None):
+                  username=None, password=None, commander_path=None,
+                  flexible_index=False):
         """
         Log into the guest via SSH/Telnet/Netcat.
         If timeout expires while waiting for output from the guest (e.g. a
@@ -1005,7 +1026,7 @@ class BaseVM(object):
         prompt = "^\s*#"
         linesep = eval("'%s'" % self.params.get("shell_linesep", r"\n"))
         client = self.params.get("shell_client")
-        address = self.get_address(nic_index)
+        address = self.get_address(nic_index, flexible_index)
         port = self.get_port(int(self.params.get("shell_port")))
         log_filename = None
 
@@ -1034,7 +1055,7 @@ class BaseVM(object):
     def wait_for_login(self, nic_index=0, timeout=LOGIN_WAIT_TIMEOUT,
                        internal_timeout=LOGIN_TIMEOUT,
                        serial=False, restart_network=False,
-                       username=None, password=None):
+                       username=None, password=None, flexible_index=False):
         """
         Make multiple attempts to log into the guest via SSH/Telnet/Netcat.
 
@@ -1054,7 +1075,7 @@ class BaseVM(object):
         while time.time() < end_time:
             try:
                 return self.login(nic_index, internal_timeout,
-                                  username, password)
+                                  username, password, flexible_index)
             except (remote.LoginError, VMError), e:
                 self.verify_alive()
                 e = str(e)
@@ -1099,7 +1120,8 @@ class BaseVM(object):
     @error_context.context_aware
     def copy_files_to(self, host_path, guest_path, nic_index=0, limit="",
                       verbose=False, timeout=COPY_FILES_TIMEOUT,
-                      username=None, password=None, filesize=None):
+                      username=None, password=None, filesize=None,
+                      flexible_index=False):
         """
         Transfer files to the remote host(guest).
 
@@ -1118,7 +1140,7 @@ class BaseVM(object):
         if not password:
             password = self.params.get("password", "")
         client = self.params.get("file_transfer_client")
-        address = self.get_address(nic_index)
+        address = self.get_address(nic_index, flexible_index)
         neigh_attach_if = ""
         if address.lower().startswith("fe80"):
             neigh_attach_if = utils_net.get_neigh_attch_interface(address)
@@ -1135,7 +1157,8 @@ class BaseVM(object):
     @error_context.context_aware
     def copy_files_from(self, guest_path, host_path, nic_index=0, limit="",
                         verbose=False, timeout=COPY_FILES_TIMEOUT,
-                        username=None, password=None, filesize=None):
+                        username=None, password=None, filesize=None,
+                        flexible_index=False):
         """
         Transfer files from the guest.
 
@@ -1154,7 +1177,7 @@ class BaseVM(object):
         if not password:
             password = self.params.get("password", "")
         client = self.params.get("file_transfer_client")
-        address = self.get_address(nic_index)
+        address = self.get_address(nic_index, flexible_index)
         neigh_attach_if = ""
         if address.lower().startswith("fe80"):
             neigh_attach_if = utils_net.get_neigh_attch_interface(address)
