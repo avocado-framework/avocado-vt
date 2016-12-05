@@ -608,8 +608,8 @@ class VMXML(VMXMLBase):
         if not self.define(virsh_instance=virsh_instance):
             if backup:
                 backup.define(virsh_instance=virsh_instance)
-            raise xcepts.LibvirtXMLError("Failed to define %s, from %s."
-                                         % (self.vm_name, self.xml))
+            raise xcepts.LibvirtXMLError("Failed to define %s, from xml:\n%s."
+                                         % (self.vm_name, self.xmltree))
 
     @staticmethod
     def vm_rename(vm, new_name, uuid=None, virsh_instance=base.virsh):
