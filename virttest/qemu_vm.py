@@ -4294,6 +4294,20 @@ class VM(virt_vm.BaseVM):
         return self.monitor.block_stream(device, speed, base,
                                          cmd, correct=correct)
 
+    def block_commit(self, device, speed, base=None, top=None, correct=True):
+        """
+        start to commit block device, aka merge snapshot
+
+        :param device: device ID
+        :param speed: limited speed, default unit B/s
+        :param base: base file
+        :param top: top file
+        :param correct: auto correct cmd, correct by default
+        """
+        cmd = self.params.get("block_commit_cmd", "block-commit")
+        return self.monitor.block_commit(device, speed, base, top,
+                                         cmd, correct=correct)
+
     def block_mirror(self, device, target, sync,
                      correct=True, **kwargs):
         """
