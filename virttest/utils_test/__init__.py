@@ -1953,7 +1953,7 @@ class RemoteDiskManager(object):
 
 
 def check_dest_vm_network(vm, vm_ip, remote_host, username, password,
-                          shell_prompt=None, timeout=60):
+                          shell_prompt=r"[\#\$]\s*$", timeout=60):
     """
     Ping migrated vms on remote host.
     """
