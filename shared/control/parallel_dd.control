@@ -10,12 +10,16 @@ the files system.
 """
 
 # YOU NEED TO SPECIFY A FILESYSTEM
-if os.path.exists("/dev/sdb"):
-    fs = job.filesystem('/dev/sdb', job.tmpdir)
-elif os.path.exists("/dev/hdb"):
-    fs = job.filesystem("/dev/hdb", job.tmpdir)
-else:
-    fs = job.filesystem("/dev/vdb", job.tmpdir)
+path = glob.glob("/dev/[hsv]d?")
+path.sort()
+fs = path[-1]
+platform = subprocess.check_output("uname -m", shell=True)
+if "ppc" in platform:
+    if not subprocess.check_output("lsscsi"):
+        fs = path[0]
+if not os.path.exists(fs):
+    raise IOError, "%s doesn't exist" % fs
+fs = job.filesystem(fs, job.tmpdir)
 job.run_test('parallel_dd', fs=fs, fstype='', iterations=5, megabytes=1000,
              streams=2, fs_dd_woptions='oflag:direct',
              fs_dd_roptions='iflag:direct')
