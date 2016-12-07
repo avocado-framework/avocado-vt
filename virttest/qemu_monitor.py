@@ -907,6 +907,32 @@ class HumanMonitor(Monitor):
             cmd += " %s" % base
         return self.cmd(cmd)
 
+    def block_commit(self, device, speed=None, base=None, top=None,
+                     cmd="block_commit", correct=True):
+        """
+        Start block-commit job
+
+        :param device: device ID
+        :param speed: int type, limited speed(B/s)
+        :param base: base file
+        :param top: top file
+        :param cmd: block commit job command
+        :param correct: auto correct command, correct by default
+
+        :return: The command's output
+        """
+        if correct:
+            cmd = self.correct(cmd)
+        self.verify_supported_cmd(cmd)
+        cmd += " %s" % device
+        if speed:
+            cmd += " %sB" % speed
+        if base:
+            cmd += " %s" % base
+        if top:
+            cmd += " %s" % top
+        return self.cmd(cmd)
+
     def set_block_job_speed(self, device, speed=0,
                             cmd="block_job_set_speed", correct=True):
         """
@@ -2003,6 +2029,32 @@ class QMPMonitor(Monitor):
             args["speed"] = speed
         if base:
             args["base"] = base
+        return self.cmd(cmd, args)
+
+    def block_commit(self, device, speed=None, base=None, top=None,
+                     cmd="block-commit", correct=True):
+        """
+        Start block-commit job
+
+        :param device: device ID
+        :param speed: int type, limited speed(B/s)
+        :param base: base file
+        :param top: top file
+        :param cmd: block commit job command
+        :param correct: auto correct command, correct by default
+
+        :return: The command's output
+        """
+        if correct:
+            cmd = self.correct(cmd)
+        self.verify_supported_cmd(cmd)
+        args = {"device": device}
+        if speed:
+            args["speed"] = speed
+        if base:
+            args["base"] = base
+        if top:
+            args["top"] = top
         return self.cmd(cmd, args)
 
     def set_block_job_speed(self, device, speed=0,
