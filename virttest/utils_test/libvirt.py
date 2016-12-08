@@ -1055,18 +1055,31 @@ class PoolVolumeTest(object):
             logging.debug("Gluster host ip address: %s", hostip)
             extra = "--source-host %s --source-path %s --source-name %s" % \
                     (hostip, source_path, source_name)
+        elif pool_type == "mpath":
+            mpath_xml_file = self.params.get("mpath_xml_file", "")
+            if not os.path.exists(mpath_xml_file):
+                mpath_pool_xml = pool_xml.PoolXML()
+                mpath_pool_xml.name = pool_name
+                mpath_pool_xml.pool_type = "mpath"
+                mpath_pool_xml.target_path = pool_target
+                logging.debug("mpath pool XML %s:\n%s",
+                              mpath_pool_xml.xml, str(mpath_pool_xml))
+                mpath_xml_file = mpath_pool_xml.xml
+                self.params['mpath_xml_file'] = mpath_xml_file
 
         func = virsh.pool_create_as
-        if pool_type == "scsi":
+        if pool_type == "scsi" or pool_type == "mpath":
             func = virsh.pool_create
         if persistent:
             func = virsh.pool_define_as
-            if pool_type == "scsi":
+            if pool_type == "scsi" or pool_type == "mpath":
                 func = virsh.pool_define
 
         # Create/define pool
         if pool_type == "scsi":
             result = func(scsi_xml_file, debug=True)
+        elif pool_type == "mpath":
+            result = func(mpath_xml_file, debug=True)
         else:
             result = func(pool_name, pool_type, pool_target, extra, debug=True)
         # Here, virsh.pool_create_as return a boolean value and all other 3
