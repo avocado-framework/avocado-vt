@@ -886,12 +886,12 @@ class Memory(QObject):
     """
     QOM memory object, support for pinning memory on host NUMA nodes.
     The existing options 'prealloc', 'mem-path', 'host-nodes', 'size',
-    and 'backend' are subsumed by the QOM objects 'memory-backend-ram',
+    'share', and 'backend' are subsumed by the QOM objects 'memory-backend-ram',
     and 'memory-backend-file'.
     """
 
     __attributes__ = ["size", "prealloc", "mem-path",
-                      "backend", "policy", "host-nodes"]
+                      "backend", "policy", "host-nodes", "share"]
 
     def __init__(self, backend, params=None):
         super(Memory, self).__init__(backend, params)
@@ -928,19 +928,18 @@ class Memory(QObject):
 
 
 class Dimm(QDevice):
-
     """
-    PC-Dimm device, support for memory hotplug using the device and
+    PC-Dimm or NVDIMM device, support for memory hotplug using the device and
     the QOM objects 'memory-backend-ram' and 'memory-backend-file'
     """
 
     __attributes__ = ["memdev", "slot", "addr", "node"]
 
-    def __init__(self, params=None):
-        kwargs = {'driver': 'pc-dimm',
+    def __init__(self, params=None, dimm_type='pc-dimm'):
+        kwargs = {'driver': dimm_type,
                   'params': params}
         super(Dimm, self).__init__(**kwargs)
-        self.set_param('driver', 'pc-dimm')
+        self.set_param('driver', dimm_type)
         self.hook_drive_bus = None
 
     def verify_hotplug(self, out, monitor):
