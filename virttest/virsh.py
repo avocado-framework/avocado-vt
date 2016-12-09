@@ -626,6 +626,7 @@ def command(cmd, **dargs):
 
     virsh_exec = dargs.get('virsh_exec', VIRSH_EXEC)
     uri = dargs.get('uri', None)
+    virsh_opt = dargs.get('virsh_opt', '')
     debug = dargs.get('debug', False)
     # Caller deals with errors
     ignore_status = dargs.get('ignore_status', True)
@@ -673,8 +674,7 @@ def command(cmd, **dargs):
         else:
             uri_arg = " "  # No uri argument being used
 
-        cmd = "%s%s%s" % (virsh_exec, uri_arg, cmd)
-
+        cmd = "%s%s%s%s" % (virsh_exec, virsh_opt, uri_arg, cmd)
         if unprivileged_user:
             # Run cmd as unprivileged user
             cmd = "su - %s -c '%s'" % (unprivileged_user, cmd)

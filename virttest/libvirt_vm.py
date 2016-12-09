@@ -1726,7 +1726,7 @@ class VM(virt_vm.BaseVM):
             lockfile.close()
 
     def migrate(self, dest_uri="", option="--live --timeout 60", extra="",
-                ignore_status=False, debug=False):
+                ignore_status=False, debug=False, virsh_opt=""):
         """
         Migrate a VM to a remote host.
 
@@ -1740,7 +1740,7 @@ class VM(virt_vm.BaseVM):
         result = virsh.migrate(self.name, dest_uri, option,
                                extra, uri=self.connect_uri,
                                ignore_status=ignore_status,
-                               debug=debug)
+                               debug=debug, virsh_opt=virsh_opt)
         # Close down serial_console logging process
         self.cleanup_serial_console()
         # On successful migration, point to guests new hypervisor.

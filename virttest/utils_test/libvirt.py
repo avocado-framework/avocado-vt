@@ -1136,7 +1136,8 @@ class MigrationTest(object):
         self.ret = None
 
     def thread_func_migration(self, vm, desturi, options=None,
-                              ignore_status=False):
+                              ignore_status=False, virsh_opt="",
+                              extra_opts=""):
         """
         Thread for virsh migrate command.
 
@@ -1157,7 +1158,8 @@ class MigrationTest(object):
             stime = int(time.time())
             self.ret = vm.migrate(desturi, option=options,
                                   ignore_status=ignore_status,
-                                  debug=True)
+                                  debug=True, virsh_opt=virsh_opt,
+                                  extra=extra_opts)
             etime = int(time.time())
             self.mig_time[vm.name] = etime - stime
             if self.ret.exit_status != 0:
@@ -1223,9 +1225,10 @@ class MigrationTest(object):
             # continue
             pass
 
-    def do_migration(self, vms, srcuri, desturi, migration_type, options=None,
-                     thread_timeout=60, ignore_status=False, func=None,
-                     **args):
+    def do_migration(self, vms, srcuri, desturi, migration_type,
+                     options=None, thread_timeout=60,
+                     ignore_status=False, func=None, virsh_opt="",
+                     extra_opts="", **args):
         """
         Migrate vms.
 
@@ -1248,7 +1251,8 @@ class MigrationTest(object):
             for vm in vms:
                 migration_thread = threading.Thread(target=self.thread_func_migration,
                                                     args=(vm, desturi, options,
-                                                          ignore_status))
+                                                          ignore_status, virsh_opt,
+                                                          extra_opts))
                 migration_thread.start()
                 eclipse_time = 0
                 if func:
