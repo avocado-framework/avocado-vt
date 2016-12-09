@@ -1322,7 +1322,8 @@ def check_exit_status(result, expect_error=False):
         else:
             logging.debug("Command output:\n%s", result.stdout.strip())
     elif expect_error and result.exit_status == 0:
-        raise exceptions.TestFail("Expect fail, but run successfully.")
+        raise exceptions.TestFail("Run '%s' expect fail, but run "
+                                  "successfully." % result.command)
 
 
 def get_interface_details(vm_name):
