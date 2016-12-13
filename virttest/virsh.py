@@ -759,6 +759,23 @@ def setvcpus(name, count, extra="", **dargs):
     return command(cmd, **dargs)
 
 
+def guestvcpus(name, cpu_list=None, options=None, **dargs):
+    """
+    Query or modify state of vcpu in the guest (via agent)
+    :param name: name of domain
+    :param cpu_list: list of cpus to enable or disable
+    :param options: --enable, --disable
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "guestvcpus --domain %s" % name
+    if cpu_list:
+        cmd += " --cpulist %s" % cpu_list
+    if options:
+        cmd += " %s" % options
+    return command(cmd, **dargs)
+
+
 def vcpupin(name, vcpu=None, cpu_list=None, options=None, **dargs):
     """
     Changes the cpu affinity for respective vcpu.
