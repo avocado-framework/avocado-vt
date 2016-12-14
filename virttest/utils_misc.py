@@ -2152,8 +2152,8 @@ def get_host_cpu_models():
 
     cpu_types = {"AuthenticAMD": ["Opteron_G5", "Opteron_G4", "Opteron_G3",
                                   "Opteron_G2", "Opteron_G1"],
-                 "GenuineIntel": ["Broadwell-noTSX", "Haswell-noTSX",
-                                  "Broadwell", "Haswell", "SandyBridge",
+                 "GenuineIntel": ["Broadwell", "Broadwell-noTSX",
+                                  "Haswell", "Haswell-noTSX", "SandyBridge",
                                   "Westmere", "Nehalem",
                                   "Penryn", "Conroe"]}
     cpu_type_re = {"Opteron_G5": "f16c,fma,tbm",
@@ -2162,10 +2162,10 @@ def get_host_cpu_models():
                    "Opteron_G3": "cx16,sse4a",
                    "Opteron_G2": "cx16",
                    "Opteron_G1": "",
-                   "Broadwell-noTSX": "adx,rdseed,3dnowprefetch",
-                   "Haswell-noTSX": "fma,avx2,movbe",
                    "Broadwell": "adx,rdseed,3dnowprefetch,hle",
+                   "Broadwell-noTSX": "adx,rdseed,3dnowprefetch",
                    "Haswell": "fma,avx2,movbe,hle",
+                   "Haswell-noTSX": "fma,avx2,movbe",
                    "SandyBridge":
                    "avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,cx16,ssse3",
                    "Westmere": "aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
@@ -2188,13 +2188,9 @@ def get_host_cpu_models():
             pattern = _make_up_pattern(cpu_type_re.get(cpu_type))
             if re.findall(pattern, cpu_flags):
                 cpu_model = cpu_type
-                break
+                cpu_support_model.append(cpu_model)
     else:
         logging.warn("Can not Get cpu flags from cpuinfo")
-
-    if cpu_model:
-        cpu_type_list = cpu_types.get(vendor)
-        cpu_support_model = cpu_type_list[cpu_type_list.index(cpu_model):]
 
     return cpu_support_model
 
