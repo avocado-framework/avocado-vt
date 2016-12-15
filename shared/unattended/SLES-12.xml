@@ -5,53 +5,15 @@
   <bootloader>
     <global>
       <activate>true</activate>
+      <append> console=tty0 console=ttyS0,115200</append>
       <boot_boot>false</boot_boot>
       <boot_extended>false</boot_extended>
       <boot_mbr>false</boot_mbr>
-      <boot_root>true</boot_root>
-      <debug>false</debug>
-      <default>SUSE Linux Enterprise Server 12 - 3.12.28-4.6</default>
-      <generic_mbr>true</generic_mbr>
-      <hiddenmenu>false</hiddenmenu>
-      <lines_cache_id>2</lines_cache_id>
+      <boot_root>false</boot_root>
+      <default>0</default>
       <timeout config:type="integer">8</timeout>
-      <trusted_grub>false</trusted_grub>
     </global>
-    <initrd_modules config:type="list">
-      <initrd_module>
-        <module>processor</module>
-      </initrd_module>
-      <initrd_module>
-        <module>thermal</module>
-      </initrd_module>
-      <initrd_module>
-        <module>ata_piix</module>
-      </initrd_module>
-      <initrd_module>
-        <module>ata_generic</module>
-      </initrd_module>
-      <initrd_module>
-        <module>piix</module>
-      </initrd_module>
-      <initrd_module>
-        <module>ide_pci_generic</module>
-      </initrd_module>
-      <initrd_module>
-        <module>fan</module>
-      </initrd_module>
-      <initrd_module>
-        <module>jbd</module>
-      </initrd_module>
-      <initrd_module>
-        <module>ext3</module>
-      </initrd_module>
-      <initrd_module>
-        <module>edd</module>
-      </initrd_module>
-    </initrd_modules>
-    <append>console=tty0 console=ttyS0,115200</append>
     <loader_type>grub2</loader_type>
-    <sections config:type="list"/>
   </bootloader>
   <ca_mgm>
     <CAName>YaST_Default_CA</CAName>
@@ -106,6 +68,10 @@
       <accept_verification_failed config:type="boolean">false</accept_verification_failed>
       <import_gpg_key config:type="boolean">true</import_gpg_key>
     </signature-handling>
+    <storage>
+      <partition_alignment config:type="symbol">align_optimal</partition_alignment>
+      <start_multipath config:type="boolean">false</start_multipath>
+    </storage>
   </general>
   <groups config:type="list">
     <group>
@@ -445,7 +411,7 @@
   </keyboard>
   <language>
     <language>en_US</language>
-    <languages>en_US</languages>
+    <languages/>
   </language>
   <ldap>
     <base_config_dn></base_config_dn>
@@ -496,7 +462,7 @@
     <drive>
       <initialize config:type="boolean">true</initialize>
       <partitions config:type="list"/>
-      <pesize></pesize>
+      <pesize/>
       <type config:type="symbol">CT_DISK</type>
       <use>all</use>
     </drive>
@@ -541,7 +507,9 @@
       <chrooted config:type="boolean">true</chrooted>
       <source>
         <![CDATA[sed -i 's/^#S0\(.*\)9600\(.*\)/S0\1115200\2/g' /etc/inittab
-echo ttyS0 >> /etc/securetty]]>
+echo ttyS0 >> /etc/securetty
+echo hvc0 >> /etc/securetty
+sed -i "s/^/#/g" /lib/udev/rules.d/75-persistent-net-generator.rules]]>
       </source>
     </script>
   </chroot-scripts>
@@ -554,23 +522,6 @@ echo ttyS0 >> /etc/securetty]]>
 chkconfig sshd on
 sed -i -e 's/\(PasswordAuthentication\s\)no/\1yes/g'  /etc/ssh/sshd_config
 service sshd restart
-#Since guest will perform system initialization at first boot after installation, so it's better to run a basic test to make following script to take effect.
-# generate ethernet interface configuration template
-cat > /etc/sysconfig/network/.ifcfg-ethx <<eof
-BOOTPROTO='dhcp'
-STARTMODE='auto'
-USERCONTROL='no'
-eof
-
-# auto generate ethernet interface configuration
-echo '''interfaces=$(ls /sys/class/net)
-net_dir="/etc/sysconfig/network"
-net_temp="$net_dir/.ifcfg-ethx"
-for iface in $interfaces; do
-    conf="$net_dir/ifcfg-$iface"
-    test -f "$conf" || cp $net_temp $conf
-done
-''' >> /etc/init.d/boot.local
 ]]></source>
       </script>
     </post-scripts>
@@ -596,7 +547,6 @@ sed -i "/--lock-media/s/^/#/" /lib/udev/rules.d/60-cdrom_id.rules 2>/dev/null>&1
     <patterns config:type="list">
       <pattern>Basis-Devel</pattern>
       <pattern>base</pattern>
-      <pattern>laptop</pattern>
       <pattern>Minimal</pattern>
     </patterns>
   </software>
