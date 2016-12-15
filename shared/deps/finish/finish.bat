@@ -1,3 +1,4 @@
+taskkill /IM serialport.exe /f
 :check_net
 if [%2]==[] goto check_process
 
@@ -28,4 +29,6 @@ reg add "HKLM\System\CurrentControlSet\Control\CrashControl" /v AlwaysKeepMemory
 reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\Windows Error Reporting" /v Disabled /d 1 /t REG_DWORD /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\vds" /v Start /t REG_DWORD /d 3 /f
 
-echo Post set up finished>  COM1
+for /L %i in (1,1,3) do (echo Post set up finished> COM1)
+
+start "Serialport" c:\serialport.exe
