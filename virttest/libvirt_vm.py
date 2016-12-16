@@ -1467,7 +1467,7 @@ class VM(virt_vm.BaseVM):
     def wait_for_login(self, nic_index=0, timeout=None,
                        internal_timeout=None,
                        serial=False, restart_network=False,
-                       username=None, password=None):
+                       username=None, password=None, flexible_index=False):
         """
         Override the wait_for_login method of virt_vm to support other
         guest in libvirt.
@@ -1494,7 +1494,8 @@ class VM(virt_vm.BaseVM):
         return super(VM, self).wait_for_login(nic_index, timeout,
                                               internal_timeout,
                                               serial, restart_network,
-                                              username, password)
+                                              username, password,
+                                              flexible_index)
 
     @error_context.context_aware
     def create(self, name=None, params=None, root_dir=None, timeout=5.0,
