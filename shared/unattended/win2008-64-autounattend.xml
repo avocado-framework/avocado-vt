@@ -172,44 +172,52 @@
 					<Order>5</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c net start telnet</CommandLine>
+					<CommandLine>%WINDIR%\System32\cmd /c tlntadmn config maxconn=30</CommandLine>
 					<Order>6</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c bcdedit /set {current} bootstatuspolicy ignoreallfailures</CommandLine>
+					<CommandLine>%WINDIR%\System32\cmd /c tlntadmn config timeout=10:0:0</CommandLine>
 					<Order>7</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c E:\autoit3.exe E:\git\git.au3</CommandLine>
+					<CommandLine>%WINDIR%\System32\cmd /c net start telnet</CommandLine>
 					<Order>8</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" dhcp</CommandLine>
+					<CommandLine>%WINDIR%\System32\cmd /c bcdedit /set {current} bootstatuspolicy ignoreallfailures</CommandLine>
 					<Order>9</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c KVM_TEST_VIRTIO_BALLOON_INSTALLER</CommandLine>
+					<CommandLine>%WINDIR%\System32\cmd /c E:\autoit3.exe E:\git\git.au3</CommandLine>
 					<Order>10</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c KVM_TEST_VIRTIO_QXL_INSTALLER</CommandLine>
+					<CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" dhcp</CommandLine>
 					<Order>11</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c E:\setuprss.bat</CommandLine>
+					<CommandLine>%WINDIR%\System32\cmd /c KVM_TEST_VIRTIO_BALLOON_INSTALLER</CommandLine>
 					<Order>12</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c E:\setupsp.bat</CommandLine>
+					<CommandLine>%WINDIR%\System32\cmd /c KVM_TEST_VIRTIO_QXL_INSTALLER</CommandLine>
 					<Order>13</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c E:\software_install_64.bat</CommandLine>
+					<CommandLine>%WINDIR%\System32\cmd /c E:\setuprss.bat</CommandLine>
 					<Order>14</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c wmic datafile where "filename='finish' and extension='bat'" call copy "c:\\finish.bat" &amp;&amp; c:\finish.bat PROCESS_CHECK</CommandLine>
+					<CommandLine>%WINDIR%\System32\cmd /c E:\setupsp.bat</CommandLine>
 					<Order>15</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c E:\software_install_64.bat</CommandLine>
+					<Order>16</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c wmic datafile where "filename='finish' and extension='bat'" call copy "c:\\finish.bat" &amp;&amp; c:\finish.bat PROCESS_CHECK</CommandLine>
+					<Order>17</Order>
 				</SynchronousCommand>
 			</FirstLogonCommands>
 			<OOBE>
