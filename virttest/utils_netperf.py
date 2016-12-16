@@ -50,7 +50,8 @@ class NetperfTestError(NetperfError):
 class NetperfPackage(remote.Remote_Package):
 
     def __init__(self, address, netperf_path, md5sum="", netperf_source="",
-                 client="ssh", port="22", username="root", password="123456"):
+                 client="ssh", port="22", username="root", password="123456",
+                 prompt="^root@.*[\#\$]\s*$|", linesep="\n", status_test_command="echo $?"):
         """
         Class NetperfPackage just represent the netperf package
         Init NetperfPackage class.
@@ -75,14 +76,7 @@ class NetperfPackage(remote.Remote_Package):
         self.netperf_base_dir = self.remote_path
         self.netperf_file = os.path.basename(self.netperf_source)
 
-        if client == "nc":
-            self.prompt = r"^\w:\\.*>\s*$"
-            self.linesep = "\r\n"
-            self.status_test_command = "echo %errorlevel%"
-        else:
-            self.prompt = "^\[.*\][\#\$]\s*$"
-            self.linesep = "\n"
-            self.status_test_command = "echo $?"
+        if client == "ssh":
             if self.netperf_source.endswith("tar.bz2"):
                 self.pack_suffix = ".tar.bz2"
                 self.decomp_cmd = "tar jxvf"
@@ -106,9 +100,9 @@ class NetperfPackage(remote.Remote_Package):
         logging.debug("Create remote session")
         self.session = remote.remote_login(self.client, self.address,
                                            self.port, self.username,
-                                           self.password, self.prompt,
-                                           self.linesep, timeout=360,
-                                           status_test_command=self.status_test_command)
+                                           self.password, prompt,
+                                           linesep, timeout=360,
+                                           status_test_command=status_test_command)
 
     def __del__(self):
         self.env_cleanup()
@@ -180,6 +174,7 @@ class Netperf(object):
 
     def __init__(self, address, netperf_path, md5sum="", netperf_source="",
                  client="ssh", port="22", username="root", password="redhat",
+                 prompt="^root@.*[\#\$]\s*$|", linesep="\n", status_test_command="echo $?",
                  compile_option="--enable-demo=yes", install=True):
         """
         Init NetperfServer class.
@@ -197,25 +192,17 @@ class Netperf(object):
         :param install: Whether need install netperf or not.
         """
         self.client = client
-        if client == "nc":
-            self.prompt = r"^\w:\\.*>\s*$"
-            self.linesep = "\r\n"
-            self.status_test_command = "echo %errorlevel%"
-        else:
-            self.prompt = "^\[.*\][\#\$]\s*$"
-            self.linesep = "\n"
-            self.status_test_command = "echo $?"
 
         self.package = NetperfPackage(address, netperf_path, md5sum,
                                       netperf_source, client, port, username,
-                                      password)
+                                      password, prompt, linesep, status_test_command)
         self.netserver_path, self.netperf_path = self.package.install(install,
                                                                       compile_option)
         logging.debug("Create remote session")
         self.session = remote.remote_login(client, address, port, username,
-                                           password, self.prompt,
-                                           self.linesep, timeout=360,
-                                           status_test_command=self.status_test_command)
+                                           password, prompt,
+                                           linesep, timeout=360,
+                                           status_test_command=status_test_command)
 
     def is_target_running(self, target):
         list_cmd = "ps -C %s" % target
@@ -245,6 +232,7 @@ class NetperfServer(Netperf):
 
     def __init__(self, address, netperf_path, md5sum="", netperf_source="",
                  client="ssh", port="22", username="root", password="redhat",
+                 prompt="^root@.*[\#\$]\s*$|", linesep="\n", status_test_command="echo $?",
                  compile_option="--enable-demo=yes", install=True):
         """
         Init NetperfServer class.
@@ -263,7 +251,8 @@ class NetperfServer(Netperf):
         """
         super(NetperfServer, self).__init__(address, netperf_path, md5sum,
                                             netperf_source, client, port, username,
-                                            password, compile_option, install)
+                                            password, prompt, linesep, status_test_command,
+                                            compile_option, install)
 
     def start(self, restart=False):
         """
@@ -300,6 +289,7 @@ class NetperfClient(Netperf):
 
     def __init__(self, address, netperf_path, md5sum="", netperf_source="",
                  client="ssh", port="22", username="root", password="redhat",
+                 prompt="^root@.*[\#\$]\s*$|", linesep="\n", status_test_command="echo $?",
                  compile_option="", install=True):
         """
         Init NetperfClient class.
@@ -318,7 +308,8 @@ class NetperfClient(Netperf):
         """
         super(NetperfClient, self).__init__(address, netperf_path, md5sum,
                                             netperf_source, client, port, username,
-                                            password, compile_option, install)
+                                            password, prompt, linesep, status_test_command,
+                                            compile_option, install)
 
     def start(self, server_address, test_option="", timeout=1200,
               cmd_prefix="", package_sizes=""):
