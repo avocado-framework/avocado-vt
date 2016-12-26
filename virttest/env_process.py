@@ -387,7 +387,9 @@ def process_command(test, params, env, command, command_timeout,
         os.putenv("KVM_TEST_%s" % k, str(params[k]))
     # Execute commands
     try:
-        avocado_process.system("cd %s; %s" % (test.bindir, command), shell=True)
+        avocado_process.system(
+            "cd %s; %s" %
+            (test.bindir, command), shell=True)
     except avocado_process.CmdError, e:
         if command_noncritical:
             logging.warn(e)
@@ -1029,7 +1031,9 @@ def postprocess(test, params, env):
             if params.object_params(image).get('remove_image') == 'yes':
                 destroy = True
         if destroy and not vm.is_dead():
-            logging.debug('Image of VM %s was removed, destroying it.', vm.name)
+            logging.debug(
+                'Image of VM %s was removed, destroying it.',
+                vm.name)
             vm.destroy()
 
     # Terminate the tcpdump thread
