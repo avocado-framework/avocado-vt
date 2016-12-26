@@ -892,28 +892,23 @@ class VM(virt_vm.BaseVM):
             :param devices: VM devices container
             """
             options = []
-            mem_params = params.object_params("mem")
-            mem = float(mem_params.get("mem", 512))
-            if mem_params.get("maxmem"):
-                maxmem = float(utils_misc.normalize_data_size(mem_params.get("maxmem"), order_magnitude="M"))
-                actual_mem = int(min(mem, maxmem))
-            else:
-                actual_mem = int(mem)
-            params["mem"] = actual_mem
-            options.append("%s" % params["mem"])
-            if mem_params.get("slots") and mem_params.get("maxmem"):
-                options.append("slots=%s" % mem_params["slots"])
-                options.append("maxmem=%s" % mem_params["maxmem"])
-            if not options:
-                return devices
+            if params.get("maxmem"):
+                normalize_data_size = utils_misc.normalize_data_size
+                values = map(lambda x: "%sM" % params.get(x, 512), ["maxmem", "mem"])
+                values = map(lambda x: int(float(normalize_data_size(x))), values)
+                params["mem"] = min(values)
+            options.append("%s" % params.get("mem", 512))
+            if params.get("slots") and params.get("maxmem"):
+                options.append("slots=%s" % params["slots"])
+                options.append("maxmem=%s" % params["maxmem"])
 
             cmdline = "-m %s" % ",".join(options)
             dev = StrDev("mem", cmdline=cmdline)
             devices.insert(dev)
-            for name in mem_params.objects("mem_devs"):
-                mem_dev_params = mem_params.object_params(name)
-                memdevs = devices.memory_define_by_params(mem_dev_params, name)
-                devices.insert(memdevs)
+            for name in params.objects("mem_devs"):
+                mem_params = params.object_params(name)
+                mem_devs = devices.memory_define_by_params(mem_params, name)
+                devices.insert(mem_devs)
             return devices
 
         def add_spice_rhel5(devices, spice_params, port_range=(3100, 3199)):
@@ -1788,7 +1783,7 @@ class VM(virt_vm.BaseVM):
                 iov += 1
 
         # Add Memory devices
-        add_memorys(devices, params)
+        add_memorys(devices, params.object_params("mem"))
         smp = int(params.get("smp", 0))
         mem = int(params.get("mem", 0))
         vcpu_maxcpus = int(params.get("vcpu_maxcpus", 0))
