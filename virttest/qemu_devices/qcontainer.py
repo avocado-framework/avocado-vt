@@ -1748,10 +1748,13 @@ class DevContainer(object):
                   and you are responsible for creating the downstream ports.
         """
         driver = params.get('type', 'ioh3420')
+        pcic_params = {"id": name}
         if driver in ('ioh3420', 'x3130-upstream', 'x3130'):
             bus_type = 'PCIE'
         else:
             bus_type = 'PCI'
+        if driver == "ioh3420" and params.get("slot"):
+            pcic_params["slot"] = params["slot"]
         parent_bus = [{'aobject': params.get('pci_bus', 'pci.0')}]
         if driver == 'x3130':
             bus = qbuses.QPCISwitchBus(
@@ -1772,7 +1775,7 @@ class DevContainer(object):
                 name, bus_type, name, bus_length, bus_first_port)
         for addr in params.get('reserved_slots', '').split():
             bus.reserve(addr)
-        return qdevices.QDevice(driver, {'id': name}, aobject=name,
+        return qdevices.QDevice(driver, pcic_params, aobject=name,
                                 parent_bus=parent_bus,
                                 child_bus=bus)
 
