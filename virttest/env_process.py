@@ -701,7 +701,8 @@ def preprocess(test, params, env):
 
     if kvm_ver_cmd:
         try:
-            kvm_version = avocado_process.system_output(kvm_ver_cmd).strip()
+            kvm_version = avocado_process.system_output(
+                    kvm_ver_cmd, shell=True).strip()
         except avocado_process.CmdError:
             kvm_version = "Unknown"
     else:
@@ -727,7 +728,7 @@ def preprocess(test, params, env):
     if kvm_userspace_ver_cmd:
         try:
             kvm_userspace_version = avocado_process.system_output(
-                kvm_userspace_ver_cmd).strip()
+                kvm_userspace_ver_cmd, shell=True).strip()
         except avocado_process.CmdError:
             kvm_userspace_version = "Unknown"
     else:
