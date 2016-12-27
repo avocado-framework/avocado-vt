@@ -198,7 +198,7 @@ class Monitor:
         self._passfd = None
         self._supported_cmds = []
         self.debug_log = False
-        self.log_file = "%s-%s.log" % (name, vm.name)
+        self.log_file = os.path.basename(self.filename + ".log")
         self.open_log_files = {}
 
         try:
@@ -1284,29 +1284,6 @@ class HumanMonitor(Monitor):
         value = cache_size_info.split(":")[1].split()[0].strip()
         return value
 
-    def set_migrate_parameter(self, parameter, value):
-        """
-        Set parameters of migrate.
-
-        :param parameter: the parameter which need to set
-        :param value: the value of parameter
-        """
-        cmd = "migrate_set_parameter"
-        self.verify_supported_cmd(cmd)
-        cmd += " %s %s" % (parameter, value)
-        return self.cmd(cmd)
-
-    def get_migrate_parameter(self, parameter):
-        """
-        Get the parameter value. e.g. cpu-throttle-initial: 30
-
-        :param parameter: the parameter which need to get
-        """
-        parameter_info = self.query("migrate_parameters")
-        parameter_info = parameter_info.split(" ")
-        value = parameter_info[parameter_info.index("parameter")+1]
-        return value
-
     def system_powerdown(self):
         """
         Requests that a guest perform a powerdown operation.
@@ -2374,30 +2351,6 @@ class QMPMonitor(Monitor):
         """
         return self.query("migrate-cache-size")
 
-    def set_migrate_parameter(self, parameter, value):
-        """
-        Set the parameters of migrate.
-
-        :param parameter: the parameter which need to set.
-        :param value: the value of parameter
-        """
-        cmd = "migrate-set-parameters"
-        self.verify_supported_cmd(cmd)
-        args = {parameter: value}
-        return self.cmd(cmd, args)
-
-    def get_migrate_parameter(self, parameter):
-        """
-        Get the value of parameter.
-
-        :param parameter: parameter which need to get.
-        """
-        parameter_info = self.query("migrate-parameters")
-        if parameter in parameter_info:
-            return parameter_info[parameter]
-        else:
-            return False
-
     def system_powerdown(self):
         """
         Requests that a guest perform a powerdown operation.
@@ -2425,3 +2378,78 @@ class QMPMonitor(Monitor):
         """
         transaction_args = {"actions": job_list}
         return self.cmd("transaction", transaction_args)
+
+    def add_dirty_bitmap(self, node, name, granularity=65536):
+        """
+        Create a dirty bitmap.
+
+        :param node: device/node on which to create dirty bitmap
+        :param name: name of the new dirty bitmap
+        :param granularity: granularity to track writes with
+        :return:
+        """
+        cmd = "block-dirty-bitmap-add"
+        self.verify_supported_cmd(cmd)
+        args = {"node": node,
+                "name": name,
+                "granularity": granularity}
+        return self.cmd(cmd, args)
+
+    def remove_dirty_bitmap(self, node, name):
+        """
+        Stop write tracking and remove the dirty bitmap.
+
+        :param node: device/node on which to remove dirty bitmap
+        :param name: name of the dirty bitmap to remove
+        :return:
+        """
+
+        cmd = "block-dirty-bitmap-remove"
+        self.verify_supported_cmd(cmd)
+        args = {"node": node, "name": name}
+        return self.cmd(cmd, args)
+
+    def clear_dirty_bitmap(self, node, name):
+        """
+        Reset the dirty bitmap associated with a node.
+
+        :param node: device/node on which to remove dirty bitmap
+        :param name: name of the dirty bitmap to remove
+        :return:
+        """
+        cmd = "block-dirty-bitmap-clear"
+        self.verify_supported_cmd(cmd)
+        args = {"node": node, "name": name}
+        return self.cmd(cmd, args)
+
+    def drive_backup(self, device, target, format, sync, speed=0,
+                     mode='absolute-paths', bitmap=''):
+        """
+        Start a point-in-time copy of a block device to a new destination.
+
+        :param device: the device name or node-name of a root node which should be copied
+        :param target: the target of the new image.
+        :param format: the format of the new destination, default is to probe if 'mode' is
+            'existing', else the format of the source
+        :param sync:  what parts of the disk image should be copied to the destination;
+            possibilities include "full" for all the disk, "top" for only the sectors
+            allocated in the topmost image, "incremental" for only the dirty sectors in
+            the bitmap, or "none" to only replicate new I/O
+        :param bitmap: dirty bitmap name for sync==incremental. Must be present if sync
+            is "incremental", must NOT be present otherwise.
+        :param mode: whether and how QEMU should create a new image
+            (NewImageMode, optional, default 'absolute-paths')
+        :return:
+        """
+        cmd = "drive-backup"
+        self.verify_supported_cmd(cmd)
+        args = {"device": device,
+                "target": target,
+                "format": format,
+                "sync": sync,
+                "mode": mode}
+        if sync == "incremental":
+            args["bitmap"] = bitmap
+        if speed != 0:
+            args["speed"] = speed
+        return self.cmd(cmd, args)
