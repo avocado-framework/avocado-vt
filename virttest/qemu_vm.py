@@ -491,9 +491,8 @@ class VM(virt_vm.BaseVM):
             :param bus: Which virtio-serial-pci device use
             :param index: Index of the current virtio_port
             """
-            def get_extra_options(params):
-                """Get extra params pairs"""
-                options = dict()
+            def set_extra_options(virtio_port, params):
+                """Set extra params pairs"""
                 extra_params = params.get('virtio_port_params', '')
                 for _ in extra_params.split():
                     try:
@@ -501,13 +500,12 @@ class VM(virt_vm.BaseVM):
                             key, value = _, "NO_EQUAL_STRING"
                         else:
                             key, value = _.split('=')
-                        options[key] = value
+                        virtio_port.set_param(key, value)
                     except Exception:
-                        options.clear()
                         msg = ("Invaild params %s in " % _ +
                                "'virtio_port_param' = %s" % extra_params)
                         logging.error(msg)
-                return options
+                return virtio_port
 
             # used by spiceagent (com.redhat.spice.*)
             if 'console' in params.get('virtio_port_type'):
@@ -515,17 +513,22 @@ class VM(virt_vm.BaseVM):
             else:
                 port_type = 'virtserialport'
             virtio_port = QDevice(port_type)
-            virtio_port.set_param("bus", bus)
+
+            if not virtio_port.get_param("id"):
+                devid = utils_misc.generate_random_id()
+                virtio_port.set_param("id", devid, dynamic=True)
+
             if params.get('virtio_port_name_prefix'):
                 prefix = params["virtio_port_name_prefix"]
                 name = "%s%d" % (prefix, index)
             virtio_port.set_param("name", name)
+
+            if bus:
+                virtio_port.set_param("bus", bus)
+
             virtio_port.set_param("chardev", chardev.get_qid())
-            for key, value in get_extra_options(params).items():
-                virtio_port.set_param(key, value)
-            if not virtio_port.get_param("id"):
-                devid = utils_misc.generate_random_id()
-                virtio_port.set_param("id", devid, dynamic=True)
+            set_extra_options(virtio_port, params)
+
             return virtio_port
 
         def add_log_seabios(devices):
