@@ -14,6 +14,7 @@ import aexpect
 from avocado.utils import process as avocado_process
 from avocado.utils import crypto
 from avocado.utils import path
+from avocado.utils import memory
 from avocado.core import exceptions
 
 from . import error_context
@@ -386,7 +387,9 @@ def process_command(test, params, env, command, command_timeout,
         os.putenv("KVM_TEST_%s" % k, str(params[k]))
     # Execute commands
     try:
-        avocado_process.system("cd %s; %s" % (test.bindir, command), shell=True)
+        avocado_process.system(
+            "cd %s; %s" %
+            (test.bindir, command), shell=True)
     except avocado_process.CmdError, e:
         if command_noncritical:
             logging.warn(e)
@@ -509,7 +512,34 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
     :param vm_func: A function to call for each VM.
     :param vm_first: Call vm_func first or not.
     """
+    def validate_memory_resource():
+        """Validate host has enough memory to lauch VMs"""
+        magnification, requried_mem, count = 1.0, 0, 1
+        for vm_name in params.objects("vms"):
+            vm_params = params.object_params(vm_name)
+            if vm_params.get("start_vm") == "yes":
+                mem = "%sM" % vm_params.get("mem", 512)
+                requried_mem += float(
+                    utils_misc.normalize_data_size(mem))
+                count += 1
+        if (params.get("setup_ksm") == "yes" and
+                params.get("ksm_run", "1") == "1"):
+            magnification = 1.2
+        free_mem = "%s KB" % memory.freememtotal()
+        free_mem = float(utils_misc.normalize_data_size(free_mem))
+        provide_mem = free_mem * magnification
+        # make memory size aligned to 256Mib
+        suggest_mem = int(provide_mem / count / 256) * 256 + 256
+        return (requried_mem > provide_mem, suggest_mem)
+
     def _call_vm_func():
+        len_vms = len(params.objects("vms"))
+        need_reset, suggest_mem = validate_memory_resource()
+        if need_reset:
+            # Convert freememtotal from KB to MB, then split it evenly
+            params["mem"] = suggest_mem
+            logging.warn("No enough free memory to launch VMs, "
+                         "reset guest memory to %s MB" % params["mem"])
         for vm_name in params.objects("vms"):
             vm_params = params.object_params(vm_name)
             vm_func(test, vm_params, env, vm_name)
@@ -671,7 +701,8 @@ def preprocess(test, params, env):
 
     if kvm_ver_cmd:
         try:
-            kvm_version = avocado_process.system_output(kvm_ver_cmd).strip()
+            kvm_version = avocado_process.system_output(
+                    kvm_ver_cmd, shell=True).strip()
         except avocado_process.CmdError:
             kvm_version = "Unknown"
     else:
@@ -697,7 +728,7 @@ def preprocess(test, params, env):
     if kvm_userspace_ver_cmd:
         try:
             kvm_userspace_version = avocado_process.system_output(
-                kvm_userspace_ver_cmd).strip()
+                kvm_userspace_ver_cmd, shell=True).strip()
         except avocado_process.CmdError:
             kvm_userspace_version = "Unknown"
     else:
@@ -1001,7 +1032,9 @@ def postprocess(test, params, env):
             if params.object_params(image).get('remove_image') == 'yes':
                 destroy = True
         if destroy and not vm.is_dead():
-            logging.debug('Image of VM %s was removed, destroying it.', vm.name)
+            logging.debug(
+                'Image of VM %s was removed, destroying it.',
+                vm.name)
             vm.destroy()
 
     # Terminate the tcpdump thread
