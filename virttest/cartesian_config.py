@@ -1939,7 +1939,6 @@ class Parser(object):
             for d in self.get_dicts_plain(node, ctx, content, shortname, dep):
                 if parent:
                     self.drop_suffixes(d)
-                postfix_parse(d)
                 yield d
         else:
             # Rewrite all separate joins in one node as many `only'
@@ -1955,7 +1954,6 @@ class Parser(object):
             for d in self.multiply_join(onlys, node, ctx, content, shortname, dep):
                 if parent:
                     self.drop_suffixes(d)
-                postfix_parse(d)
                 yield d
             node.content = old_conten[:]
 
@@ -2152,13 +2150,13 @@ class Parser(object):
                  "shortname": ".".join([str(sn.name) for sn in shortname])}
             for _, _, op in new_content:
                 op.apply_to_dict(d)
+            postfix_parse(d)
             yield d
 
 
 def print_dicts_default(options, dicts):
     """Print dictionaries in the default mode"""
     for count, dic in enumerate(dicts):
-        postfix_parse(dic)
         if options.fullname:
             print "dict %4d:  %s" % (count + 1, dic["name"])
         else:
@@ -2175,7 +2173,6 @@ def print_dicts_repr(options, dicts):
     import pprint
     print "["
     for dic in dicts:
-        postfix_parse(dic)
         print "%s," % (pprint.pformat(dic))
     print "]"
 
