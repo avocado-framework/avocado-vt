@@ -24,6 +24,7 @@ from . import error_context
 from . import utils_misc
 from . import versionable_class
 from . import openvswitch
+from . import remote
 from .staging import service
 from .staging import utils_memory
 
@@ -2029,16 +2030,50 @@ class StraceQemu(object):
         self._compress_log()
 
 
-def disable_smt():
+def disable_smt(params=None):
     """
     Checks whether smt is on, if so disables it in PowerPC system
-    This function is used in env_process to check & disable smt in Power8
+    This function is used in env_process and in libvirt.py to check
+    & disable smt in Power8 for local and remote machine respectively.
+
+    :param params: Test params dict for remote machine login details
     """
-    smt_output = process.system_output("ppc64_cpu --smt", shell=True).strip()
-    if smt_output != "SMT is off":
-        try:
-            utils_misc.verify_running_as_root()
-            process.run("ppc64_cpu --smt=off", verbose=True, shell=True)
-            logging.debug("SMT turned off successfully")
-        except process.CmdError, info:
-            raise exceptions.TestSetupFail("VM can not be started :%s", info)
+    smt_output = ""
+    cmd = "ppc64_cpu --smt"
+    if params:
+        server_ip = params["server_ip"]
+        server_user = params.get("server_user", "root")
+        server_pwd = params["server_pwd"]
+        server_session = remote.wait_for_login('ssh', server_ip, '22',
+                                               server_user, server_pwd,
+                                               r"[\#\$]\s*$")
+        cmd_output = server_session.cmd_status_output(cmd)
+        if (cmd_output[0] == 0):
+            smt_output = cmd_output[1].strip()
+        else:
+            server_session.close()
+            raise exceptions.TestSetupFail("Couldn't get SMT of server: %s"
+                                           % cmd_output[1])
+    else:
+        smt_output = process.system_output(cmd, shell=True).strip()
+    if (smt_output != "SMT is off"):
+        cmd = "ppc64_cpu --smt=off"
+        if params:
+            if (server_user.lower() != "root"):
+                raise exceptions.TestSkipError("Turning SMT off requires root "
+                                               "privileges(currently running "
+                                               "with user %s)" % server_user)
+            cmd_output = server_session.cmd_status_output(cmd)
+            server_session.close()
+            if (cmd_output[0] != 0):
+                raise exceptions.TestSetupFail("VM cant be started :%s"
+                                               % cmd_output[1])
+            else:
+                logging.debug("SMT turned off successfully in remote server")
+        else:
+            try:
+                utils_misc.verify_running_as_root()
+                process.run(cmd, verbose=True, shell=True)
+                logging.debug("SMT turned off successfully")
+            except process.CmdError, info:
+                raise exceptions.TestSetupFail("VM can not be started :%s" % info)
