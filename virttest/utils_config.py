@@ -3,6 +3,7 @@ import logging
 import os.path
 import ConfigParser
 import StringIO
+import platform
 
 
 class ConfigError(Exception):
@@ -431,7 +432,11 @@ class LibvirtdSysConfig(LibvirtConfigCommon):
     """
     Class for sysconfig libvirtd config file.
     """
-    conf_path = '/etc/sysconfig/libvirtd'
+    distro = platform.dist()
+    if 'Ubuntu' in distro:
+        conf_path = '/etc/default/libvirtd'
+    else:
+        conf_path = '/etc/sysconfig/libvirtd'
     __option_types__ = {
         'LIBVIRTD_CONFIG': 'string',
         'LIBVIRTD_ARGS': 'string',
