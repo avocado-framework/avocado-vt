@@ -260,9 +260,10 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
         session.close()
         raise
     if log_filename:
+        log_file = utils_misc.get_log_filename(log_filename)
         session.set_output_func(utils_misc.log_line)
-        session.set_output_params((log_filename,))
-        session.set_log_file(log_filename)
+        session.set_output_params((log_file,))
+        session.set_log_file(os.path.basename(log_file))
     return session
 
 
@@ -326,9 +327,10 @@ def remote_commander(client, host, port, username, password, prompt,
         session.close()
         raise
     if log_filename:
+        log_file = utils_misc.get_log_filename(log_filename)
         session.set_output_func(utils_misc.log_line)
-        session.set_output_params((log_filename,))
-        session.set_log_file(log_filename)
+        session.set_output_params((log_file,))
+        session.set_log_file(os.path.basename(log_file))
 
     session.send_ctrl("raw")
     # Wrap io interfaces.

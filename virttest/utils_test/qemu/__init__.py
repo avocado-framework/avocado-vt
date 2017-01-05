@@ -459,8 +459,11 @@ class MemoryBaseTest(object):
         """
         os_type = vm.params.get("os_type")
         timeout = float(vm.params.get("login_timeout", 600))
-        session = vm.wait_for_login(timeout=timeout)
-        return utils_misc.get_free_mem(session, os_type)
+        try:
+            session = vm.wait_for_login(timeout=timeout)
+            return utils_misc.get_free_mem(session, os_type)
+        finally:
+            session.close()
 
     @classmethod
     def get_guest_used_mem(cls, vm):

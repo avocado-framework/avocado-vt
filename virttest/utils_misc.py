@@ -26,6 +26,8 @@ import threading
 import platform
 import traceback
 
+from aexpect.utils.genio import _open_log_files
+
 from avocado.core import status
 from avocado.core import exceptions
 from avocado.utils import git
@@ -431,7 +433,6 @@ def find_free_ports(start_port, end_port, count, address="localhost"):
 
 # An easy way to log lines to files when the logging system can't be used
 
-_open_log_files = {}
 _log_file_dir = data_dir.get_tmp_dir()
 _log_lock = threading.RLock()
 
@@ -462,20 +463,21 @@ def log_line(filename, line):
     if not _acquire_lock(_log_lock):
         raise LogLockError("Could not acquire exclusive lock to access"
                            " _open_log_files")
+    log_file = get_log_filename(filename)
+    base_file = os.path.basename(log_file)
     try:
-        path = get_path(_log_file_dir, filename)
-        if path not in _open_log_files:
+        if base_file not in _open_log_files:
             # First, let's close the log files opened in old directories
-            close_log_file(filename)
+            close_log_file(base_file)
             # Then, let's open the new file
             try:
-                os.makedirs(os.path.dirname(path))
+                os.makedirs(os.path.dirname(log_file))
             except OSError:
                 pass
-            _open_log_files[path] = open(path, "w")
+            _open_log_files[base_file] = open(log_file, "w")
         timestr = time.strftime("%Y-%m-%d %H:%M:%S")
-        _open_log_files[path].write("%s: %s\n" % (timestr, line))
-        _open_log_files[path].flush()
+        _open_log_files[base_file].write("%s: %s\n" % (timestr, line))
+        _open_log_files[base_file].flush()
     finally:
         _log_lock.release()
 
@@ -497,6 +499,11 @@ def get_log_file_dir():
     """
     global _log_file_dir
     return _log_file_dir
+
+
+def get_log_filename(filename):
+    """return full path of log file name"""
+    return get_path(_log_file_dir, filename)
 
 
 def close_log_file(filename):
