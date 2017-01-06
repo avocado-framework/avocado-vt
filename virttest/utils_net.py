@@ -1550,6 +1550,63 @@ def get_net_if_operstate(ifname, runner=None):
         raise HwOperstarteGetError(ifname, "run operstate cmd error.")
 
 
+def get_vm_network_cfg_file(vm, iface_name):
+    """
+    Get absolute network cfg file path of the vm instance.
+
+    :param vm: VM object
+    :param iface_name: Name of the network interface
+    :return: absolute path of network script file
+    """
+    vm_distro = vm.get_distro()
+    iface_cfg_file = ""
+    if "ubuntu" in vm_distro.lower():
+        iface_cfg_file = "/etc/network/interfaces"
+    elif "suse" in vm_distro.lower():
+        iface_cfg_file = "/etc/sysconfig/network/ifcfg-%s" % (iface_name)
+    else:
+        iface_cfg_file = "/etc/sysconfig/network-scripts/"
+        iface_cfg_file += "ifcfg-%s" % (iface_name)
+    return iface_cfg_file
+
+
+def create_vm_network_script(vm, iface_name, mac_addr, boot_proto, net_mask,
+                             ip_addr=None, **dargs):
+    """
+    Form network script with its respective network param for vm instance
+
+    :param vm: VM object
+    :param iface_name: Name of the network interface
+    :param mac_addr: Mac address of the network interface
+    :param boot_proto: static ip or dhcp of the interface
+    :param net_mask: network mask for the interface
+    :param ip_addr: ip address for the interface
+    :param dargs: dict of additional attributes
+    :return: network interface parameters as list
+    """
+    vm_distro = vm.get_distro()
+    network_param_list = []
+    if "ubuntu" in vm_distro.lower():
+        network_param_list = ['auto %s' % iface_name, 'iface %s inet %s' %
+                              (iface_name, boot_proto), 'netmask %s' %
+                              net_mask]
+        if ip_addr and (boot_proto.strip().lower() != 'dhcp'):
+            network_param_list.append('address %s' % ip_addr)
+    else:
+        network_param_list = ['NAME=%s' % iface_name, 'BOOTPROTO=%s' %
+                              boot_proto, 'NETMASK=%s' % net_mask,
+                              'HWADDR=%s' % mac_addr]
+        if ip_addr and (boot_proto.strip().lower() != 'dhcp'):
+            network_param_list.append('IPADDR=%s' % ip_addr)
+        if "suse" in vm_distro.lower():
+            network_param_list.append("STARTMODE=%s" %
+                                      dargs.get("start_mode", "auto"))
+        else:
+            network_param_list.append("ONBOOT=%s" % dargs.get("on_boot",
+                                                              "yes"))
+    return network_param_list
+
+
 def ipv6_from_mac_addr(mac_addr):
     """
     :return: Ipv6 address for communication in link range.
