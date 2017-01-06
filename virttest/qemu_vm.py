@@ -4112,12 +4112,14 @@ class VM(virt_vm.BaseVM):
         Pause the VM operation.
         """
         self.monitor.cmd("stop")
+        self.verify_status("paused")
 
     def resume(self):
         """
         Resume the VM operation in case it's stopped.
         """
         self.monitor.cmd("cont")
+        self.verify_status("running")
 
     def set_link(self, netdev_name, up):
         """
