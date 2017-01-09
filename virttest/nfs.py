@@ -203,10 +203,9 @@ class Nfs(object):
         service and exportfs too.
         """
         if self.nfs_setup:
-            if not self.nfs_service.status():
-                logging.debug("Restart NFS service.")
-                self.rpcbind_service.restart()
-                self.nfs_service.restart()
+            logging.debug("Restart NFS service.")
+            self.rpcbind_service.restart()
+            self.nfs_service.restart()
 
             if not os.path.isdir(self.export_dir):
                 os.makedirs(self.export_dir)
