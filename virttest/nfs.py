@@ -287,11 +287,15 @@ class NFSClient(object):
 
         # Mount sharing directory to remote host
         if self.remote_nfs_mount == "yes":
+            # stale file mounted causes test to fail instead
+            # unmount it and perform the setup
+            if self.is_mounted():
+                self.umount()
             self.setup_remote()
 
-    def cleanup(self, ssh_auto_recover=True):
+    def umount(self):
         """
-        Cleanup NFS client.
+        Unmount the mount directory in remote host
         """
         ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.nfs_client_ip)
         logging.debug("Umount %s from %s" %
@@ -302,6 +306,11 @@ class NFSClient(object):
         except process.CmdError:
             raise exceptions.TestFail("Failed to run: %s" % umount_cmd)
 
+    def cleanup(self, ssh_auto_recover=True):
+        """
+        Cleanup NFS client.
+        """
+        self.umount()
         if self.mkdir_mount_remote:
             rmdir_cmd = ssh_cmd + "'rm -rf %s'" % self.mount_dir
             try:
