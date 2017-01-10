@@ -25,6 +25,7 @@ class DocBuildTest(unittest.TestCase):
         ignore_list = ['No python imaging library installed',
                        'ovirtsdk module not present',
                        'Virsh executable not set or found on path',
+                       'virt-admin executable not set or found on path',
                        "failed to import module u'virttest.passfd'",
                        "failed to import module u'virttest.step_editor'"]
         failure_lines = []
