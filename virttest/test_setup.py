@@ -614,26 +614,30 @@ class KSMConfig(object):
 
     def cleanup(self, env):
         default_status = env.data.get("KSM_default_config")
-
-        # Get original ksm loaded status
-        default_ksm_loaded = default_status.pop()
-        # Remove pid of ksmtuned
-        if default_status.pop() != 0:
-            # ksmtuned used to run in host. Start the process
-            # and don't need set up the configures.
-            self.ksmctler.start_ksmtuned()
-            return
-
         if default_status == self.default_status:
             # Nothing changed
             return
 
-        self.ksmctler.set_ksm_feature({"run": default_status[0],
-                                       "pages_to_scan": default_status[1],
-                                       "sleep_millisecs": default_status[2]})
-
+        # If ksm not load in orignal, unload it
+        default_ksm_loaded = default_status.pop()
         if self.ksm_module and not default_ksm_loaded:
             self.ksmctler.unload_ksm_module()
+            return
+
+        # Remove pid of ksmtuned
+        if default_status.pop() == 0:
+            if self.ksmctler.get_ksmtuned_pid() != 0:
+                self.ksmctler.stop_ksmtuned()
+            return
+        # ksmtuned used to run in host. Start the process
+        # and don't need set up the configures.
+        if self.ksmctler.get_ksmtuned_pid() == 0:
+            self.ksmctler.start_ksmtuned()
+        kwargs = {"run": default_status[0],
+                  "pages_to_scan": default_status[1],
+                  "sleep_millisecs": default_status[2]}
+        self.ksmctler.set_ksm_feature(kwargs)
+
 
 
 class PrivateBridgeError(Exception):
