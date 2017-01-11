@@ -536,10 +536,12 @@ def get_path(base_path, user_path):
     :param base_path: The base path of relative user specified paths.
     :param user_path: The user specified path.
     """
-    if os.path.isabs(user_path) or aurl.is_url(user_path):
+    if aurl.is_url(user_path):
         return user_path
-    else:
-        return os.path.join(base_path, user_path)
+    if not os.path.isabs(user_path):
+        user_path = os.path.join(base_path, user_path)
+        user_path = os.path.abspath(user_path)
+    return os.path.realpath(user_path)
 
 
 def generate_random_string(length, ignore_str=string.punctuation,
