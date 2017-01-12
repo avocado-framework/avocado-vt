@@ -664,6 +664,33 @@ class VM(virt_vm.BaseVM):
             logging.debug("vm.add_memballoon returning: %s", result)
             return result
 
+        def add_kernel(help_text, cmdline, kernel_path=None, initrd_path=None,
+                       kernel_args=None):
+            """
+            Adding Custom kernel option to boot.
+
+            : param help_text: string, virt-install help text
+            : param cmdline: string, current virt-install cmdline
+            : param kernel_path: string, custom kernel path.
+            : param initrd_path: string, custom initrd path.
+            : param kernel_args: string, custom boot args.
+            """
+            if has_option(help_text, "boot"):
+                if "--boot" in cmdline:
+                    result = ","
+                else:
+                    result = " --boot "
+                if has_sub_option("boot", "kernel") and kernel_path:
+                    result += "kernel=%s," % kernel_path
+                if has_sub_option("boot", "initrd") and initrd_path:
+                    result += "initrd=%s," % initrd_path
+                if has_sub_option("boot", "kernel_args") and kernel_args:
+                    result += "kernel_args=%s," % kernel_args
+            else:
+                result = ""
+                logging.warning("boot option is not supported")
+            return result.strip(',')
+
         # End of command line option wrappers
 
         if name is None:
@@ -982,6 +1009,13 @@ class VM(virt_vm.BaseVM):
                 logging.warning("emulator option not supported by virt-install")
             else:
                 virt_install_cmd += " --boot emulator=%s" % emulator_path
+
+        kernel = params.get("kernel", None)
+        initrd = params.get("initrd", None)
+        kernel_args = params.get("kernel_args", None)
+        if (kernel or initrd) and kernel_args:
+            virt_install_cmd += add_kernel(help_text, virt_install_cmd, kernel,
+                                           initrd, kernel_args)
 
         # bz still open, not fully functional yet
         if params.get("use_virt_install_wait") == "yes":
