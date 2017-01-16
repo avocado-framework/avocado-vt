@@ -1647,12 +1647,14 @@ class DevContainer(object):
         :param name: Name of the new disk
         :param params: Disk params (params.object_params(name))
         """
+        image_params["image_name"] = ""
         iso = image_params.get('cdrom')
-        image_params['image_name'] = ""
         if iso:
-            image_params['image_name'] = os.path.join(data_dir.get_data_dir(),
-                                                      image_params.get('cdrom')
-                                                      )
+            image_name = os.path.realpath(
+                os.path.join(
+                    data_dir.get_data_dir(),
+                    image_params.get('cdrom')))
+            image_params['image_name'] = image_name
         image_params['image_raw_device'] = 'yes'
         cd_format = image_params.get('cd_format')
         scsi_hba = image_params.get("scsi_hba")
