@@ -4,6 +4,7 @@ import os
 import glob
 import shutil
 import sys
+import re
 
 from avocado.utils import path as utils_path
 from avocado.utils import process
@@ -398,7 +399,7 @@ def create_subtests_cfg(t_type):
         shared_file_obj = open(shared_file, 'r')
         for line in shared_file_obj.readlines():
             line = line.strip()
-            if line.startswith("type"):
+            if re.match("type\s*=.*", line):
                 cartesian_parser = cartesian_config.Parser()
                 cartesian_parser.parse_string(line)
                 td = cartesian_parser.get_dicts().next()
