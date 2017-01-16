@@ -617,8 +617,13 @@ class KSMConfig(object):
 
         # Get original ksm loaded status
         default_ksm_loaded = default_status.pop()
+        if self.ksm_module and not default_ksm_loaded:
+            self.ksmctler.unload_ksm_module()
+            return
+
         # Remove pid of ksmtuned
-        if default_status.pop() != 0:
+        ksmtuned_pid = default_status.pop()
+        if ksmtuned_pid != 0:
             # ksmtuned used to run in host. Start the process
             # and don't need set up the configures.
             self.ksmctler.start_ksmtuned()
@@ -631,9 +636,6 @@ class KSMConfig(object):
         self.ksmctler.set_ksm_feature({"run": default_status[0],
                                        "pages_to_scan": default_status[1],
                                        "sleep_millisecs": default_status[2]})
-
-        if self.ksm_module and not default_ksm_loaded:
-            self.ksmctler.unload_ksm_module()
 
 
 class PrivateBridgeError(Exception):
