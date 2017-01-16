@@ -4007,13 +4007,16 @@ class VM(virt_vm.BaseVM):
             step_info = "Send %s command, wait for VM rebooting" % reboot_cmd
             error_context.context(step_info)
             session.sendline(reboot_cmd)
+            start_time = time.time()
             wait_for_go_down(session, nic_index, serial, timeout=timeout)
+            return int(time.time() - start_time)
 
         error_context.base_context("rebooting '%s'" % self.name, logging.info)
         error_context.context("before reboot")
         error_context.context()
+        shutdown_dur = 0
         if method == "shell":
-            shell_reboot(session, nic_index, serial, timeout / 2)
+            shutdown_dur = shell_reboot(session, nic_index, serial, timeout)
         elif method == "system_reset":
             self.system_reset()
         else:
@@ -4022,8 +4025,9 @@ class VM(virt_vm.BaseVM):
             utils_net.update_mac_ip_address(self, self.params)
         error_context.context("logging in after reboot", logging.info)
         if serial:
-            return self.wait_for_serial_login(timeout=(timeout / 2))
-        return self.wait_for_login(nic_index=nic_index, timeout=(timeout / 2))
+            return self.wait_for_serial_login(timeout=(timeout - shutdown_dur))
+        return self.wait_for_login(nic_index=nic_index,
+                                   timeout=(timeout - shutdown_dur))
 
     def send_key(self, keystr):
         """
