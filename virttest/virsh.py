@@ -1858,7 +1858,8 @@ def _pool_type_check(pool_type):
     :param pool_type: pool type
     :return: valid pool type or None
     """
-    valid_types = ['dir', 'fs', 'netfs', 'disk', 'iscsi', 'logical', 'gluster', 'rbd']
+    valid_types = ['dir', 'fs', 'netfs', 'disk', 'iscsi', 'logical',
+                   'gluster', 'rbd', 'scsi']
 
     if pool_type and pool_type not in valid_types:
         logging.error("Specified pool type '%s' not in '%s'",
