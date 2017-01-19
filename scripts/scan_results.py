@@ -8,8 +8,17 @@ import os
 import sys
 import sqlite3
 import argparse
+
 from avocado.core import data_dir
 from dateutil import parser as dateparser
+
+
+def colour_result(result):
+    """Colour result in the test status info"""
+    colours_map = {"PASS": "\033[92mPASS\033[00m",
+                   "ERROR": "\033[93mERROR\033[00m",
+                   "FAIL": "\033[91mFAIL\033[00m"}
+    return colours_map.get(result) or result
 
 
 def get_total_seconds(td):
@@ -66,9 +75,10 @@ def print_data(records, skip_timestamp=False):
         print "%-40s %-15s %-10s" % ("CaseName", "Status", "Result")
     for row in records:
         if not skip_timestamp:
-            print "%s %s %s %s %s %s" % row
+            print "%s %s %s %s %s %s" % (
+                row[0], row[1], row[2], row[3], colour_result(row[4]), row[5])
         else:
-            print "%s %s %s" % (row[0], row[1], row[4])
+            print "%s %s %s" % (row[0], row[1], colour_result(row[4]))
 
 
 if __name__ == "__main__":
