@@ -1,3 +1,5 @@
+from subprocess import Popen, PIPE
+
 NAME = "Parallel DD"
 AUTHOR = "Martin Bligh <mbligh@google.com>"
 TIME = "MEDIUM"
@@ -13,9 +15,9 @@ the files system.
 path = glob.glob("/dev/[hsv]d?")
 path.sort()
 fs = path[-1]
-platform = subprocess.check_output("uname -m", shell=True)
+platform = Popen(["uname", "-m"], stdout=PIPE).communicate()[0]
 if "ppc" in platform:
-    if not subprocess.check_output("lsscsi"):
+    if not Popen("lsscsi", stdout=PIPE).communicate()[0]:
         fs = path[0]
 if not os.path.exists(fs):
     raise IOError, "%s doesn't exist" % fs
@@ -23,5 +25,3 @@ fs = job.filesystem(fs, job.tmpdir)
 job.run_test('parallel_dd', fs=fs, fstype='', iterations=5, megabytes=1000,
              streams=2, fs_dd_woptions='oflag:direct',
              fs_dd_roptions='iflag:direct')
-
-
