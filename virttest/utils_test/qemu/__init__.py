@@ -517,15 +517,28 @@ class MemoryHotplugTest(MemoryBaseTest):
     Class for memory hotplug/unplug test.
     """
 
-    @error_context.context_aware
-    def update_vm_after_hotplug(self, vm, dev):
+    def get_guest_total_mem(self, vm):
+        """
+        Guest OS reported physical memory size in MB.
+
+        :param vm: VM object.
+        :return: physical memory report by guest OS in MB
+        """
+        # Notes:
+        #    some sub test will pause VM, here need to wait VM resume
+        # then check memory info in guest.
+        timeout = float(self.params.get("wait_resume_timeout", 60))
+        utils_misc.wait_for(lambda: not vm.is_paused(), timeout=timeout)
+        utils_misc.verify_host_dmesg()
+        return super(MemoryHotplugTest, self).get_guest_total_mem(vm)
+
+    def _update_vm_after_hotplug(self, vm, dev):
         """
         Update VM params to ensure hotpluged devices exist in guest.
 
         :param vm: VM object
         :param dev: Qdevice object.
         """
-        error_context.context("Update VM object after hotplug memory")
         attrs = dev.__attributes__[:]
         params = self.params.copy_from_keys(attrs)
         dev_type, name = dev.get_qid().split('-')
@@ -543,15 +556,13 @@ class MemoryHotplugTest(MemoryBaseTest):
             vm.devices.insert(dev)
         self.env.register_vm(vm.name, vm)
 
-    @error_context.context_aware
-    def update_vm_after_unplug(self, vm, dev):
+    def _update_vm_after_unplug(self, vm, dev):
         """
         Update VM params object after unplug memory devices.
 
         :param vm: VM object
         :param dev: Qdevice object
         """
-        error_context.context("Update VM object after unplug memory")
         dev_type, name = dev.get_qid().split('-')
         mem_devs = vm.params.objects("mem_devs")
         if dev in vm.devices:
@@ -565,37 +576,69 @@ class MemoryHotplugTest(MemoryBaseTest):
     def hotplug_memory(self, vm, name):
         """
         Hotplug dimm device with memory backend
+        step 1, hotplug memory object
+        step 2, hotplug dimm device
 
         :param vm: VM object
         :param name: memory device name
         """
         devices = vm.devices.memory_define_by_params(self.params, name)
-        for dev in devices:
-            dev_type = "memory"
-            if isinstance(dev, qdevices.Dimm):
-                addr = self.get_mem_addr(vm, dev.get_qid())
-                dev.set_param("addr", addr)
-                dev_type = "pc-dimm"
-            step = "Hotplug %s '%s' to VM" % (dev_type, dev.get_qid())
-            error_context.context(step, logging.info)
-            vm.devices.simple_hotplug(dev, vm.monitor)
-            self.update_vm_after_hotplug(vm, dev)
-        return devices
+        errmsg = "Could not find %s "
+        errmsg += "by memory device name '%s'" % name
+        try:
+            mem = devices[0]
+        except IndexError:
+            raise exceptions.TestError(errmsg % "memory object")
+        try:
+            dimm = devices[1]
+        except IndexError:
+            raise exceptions.TestError(errmsg % "pc-dimm device")
+
+        step = "Hotplug memory object '%s' to VM" % mem.get_qid()
+        error_context.context(step, logging.info)
+        vm.devices.simple_hotplug(mem, vm.monitor)
+        self._update_vm_after_hotplug(vm, mem)
+
+        qid_dimm = dimm.get_qid()
+        dimm.set_param("addr", self.get_mem_addr(vm, qid_dimm))
+        step = "Hotplug pc-dimm device '%s' to VM" % qid_dimm
+        error_context.context(step, logging.info)
+        vm.devices.simple_hotplug(dimm, vm.monitor)
+        self._update_vm_after_hotplug(vm, dimm)
+
+        return self.normalize_mem_size(mem.get_param('size'))
+
+    @error_context.context_aware
+    def hotplug_and_check_memory(self, vm, name):
+        """
+        Hotplug memory device and verify the change
+
+        :param vm: VM object
+        :param name: memory device name
+        """
+        step = "Hotplug memory device '%s'" % name
+        error_context.context(step, logging.info)
+        guest_old_msize = self.get_guest_total_mem(vm)
+        mem_dev_size = self.hotplug_memory(vm, name)
+
+        error_context.context("Verify memory info", logging.info)
+        added_mem_size = self.get_guest_total_mem(vm) - guest_old_msize
+        if abs(added_mem_size - mem_dev_size) > 1:
+            errmsg = "Added '%sMB' memory, but guest reported '%sMB'" % (
+                mem_dev_size, added_mem_size)
+            raise exceptions.TestFail(errmsg)
 
     @error_context.context_aware
     def unplug_memory(self, vm, name):
         """
         Unplug memory device
-        step 1, unplug memory object
-        step 2, unplug dimm device
+        step 1, unplug dimm device
+        step 2, unplug memory object
 
         :param vm: VM object
         :param name: memory device name
         """
-        devices = []
         qid_mem = "mem-%s" % name
-        step = "Unplug memory object '%s'" % qid_mem
-        error_context.context(step, logging.info)
         try:
             mem = vm.devices.get_by_qid(qid_mem)[0]
         except IndexError:
@@ -603,21 +646,43 @@ class MemoryHotplugTest(MemoryBaseTest):
             logging.debug("Memory devices: %s" % output)
             msg = "Memory object '%s' not exists" % qid_mem
             raise exceptions.TestError(msg)
+        qid_dimm = "dimm-%s" % name
         try:
-            qid_dimm = "dimm-%s" % name
             dimm = vm.devices.get_by_qid(qid_dimm)[0]
         except IndexError:
             logging.warn("'%s' is not used by any dimm" % qid_mem)
-        step = "Unplug pc-dimm '%s'" % qid_dimm
+
+        step = "Unplug pc-dimm device '%s'" % qid_dimm
         error_context.context(step, logging.info)
         vm.devices.simple_unplug(dimm, vm.monitor)
-        devices.append(dimm)
-        self.update_vm_after_unplug(vm, dimm)
+        self._update_vm_after_unplug(vm, dimm)
+
+        step = "Unplug memory object'%s'" % qid_mem
         error_context.context(step, logging.info)
         vm.devices.simple_unplug(mem, vm.monitor)
-        devices.append(mem)
-        self.update_vm_after_unplug(vm, mem)
-        return devices
+        self._update_vm_after_unplug(vm, mem)
+
+        return self.normalize_mem_size(mem.get_param('size'))
+
+    @error_context.context_aware
+    def unplug_and_check_memory(self, vm, name):
+        """
+        Unplug memory device and verify the change
+
+        :param vm: VM object
+        :param name: memory device name
+        """
+        step = "Unplug memory device '%s'" % name
+        error_context.context(step, logging.info)
+        guest_old_msize = self.get_guest_total_mem(vm)
+        mem_dev_size = self.unplug_memory(vm, name)
+
+        error_context.context("Verify memory info", logging.info)
+        removed_mem_size = guest_old_msize - self.get_guest_total_mem(vm)
+        if abs(removed_mem_size - mem_dev_size) > 1:
+            errmsg = "Removed '%sMB' memory, but guest reported '%sMB'" % (
+                mem_dev_size, removed_mem_size)
+            raise exceptions.TestFail(errmsg)
 
     @error_context.context_aware
     def get_mem_addr(self, vm, qid):
@@ -635,33 +700,6 @@ class MemoryHotplugTest(MemoryBaseTest):
                 address = info['data']['addr']
                 logging.info("Memory address: %s" % address)
                 return address
-
-    @error_context.context_aware
-    def check_memory(self, vm=None):
-        """
-        Check is guest memory is really match assgined to VM.
-
-        :param vm: VM object, get VM object from env if vm is None.
-        """
-        error_context.context("Verify memory info", logging.info)
-        if not vm:
-            vm = self.env.get_vm(self.params["main_vm"])
-        vm.verify_alive()
-        threshold = float(self.params.get("threshold", 0.10))
-        timeout = float(self.params.get("wait_resume_timeout", 60))
-        # Notes:
-        #    some sub test will pause VM, here need to wait VM resume
-        # then check memory info in guest.
-        utils_misc.wait_for(lambda: not vm.is_paused(), timeout=timeout)
-        utils_misc.verify_host_dmesg()
-        self.os_type = self.params.get("os_type")
-        guest_mem_size = super(MemoryHotplugTest, self).get_guest_total_mem(vm)
-        vm_mem_size = self.get_vm_mem(vm)
-        if abs(guest_mem_size - vm_mem_size) > vm_mem_size * threshold:
-            msg = ("Assigned '%s MB' memory to '%s'"
-                   "but, '%s MB' memory detect by OS" %
-                   (vm_mem_size, vm.name, guest_mem_size))
-            raise exceptions.TestFail(msg)
 
     @error_context.context_aware
     def memory_operate(self, vm, memory, operation='online'):
