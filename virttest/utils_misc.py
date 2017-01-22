@@ -2783,7 +2783,7 @@ def format_windows_disk(session, did, mountpoint=None, size=None, fstype="ntfs")
                 mkpart_cmd = 'echo create partition primary size=%s >> disk' % size
             mkpart_cmd = ' '.join([cmd_header, mkpart_cmd, cmd_footer])
             logging.info("Create partition on 'Disk%s'" % did)
-            session.cmd(mkpart_cmd)
+            session.cmd(mkpart_cmd, timeout=120)
             logging.info("Format the 'Disk%s' to %s" % (did, fstype))
             format_cmd = 'echo list partition >> disk && '
             format_cmd += 'echo select partition 1 >> disk && '
