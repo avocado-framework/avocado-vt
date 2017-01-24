@@ -2800,7 +2800,8 @@ def format_windows_disk(session, did, mountpoint=None, size=None, fstype="ntfs")
     return False
 
 
-def format_linux_disk(session, did, mountpoint, size, fstype="ext3"):
+def format_linux_disk(session, did, mountpoint, size, label_type="gpt",
+                      fstype="ext3"):
     """
     Create a partition on disk in linux guest and format and mount it.
 
@@ -2818,10 +2819,12 @@ def format_linux_disk(session, did, mountpoint, size, fstype="ext3"):
         if did in disk:
             kname = disk.split()[0]
             logging.info("Create partition on disk '%s'" % kname)
-            mkpart_cmd = "parted -s %s  mkpart primary 0 %s" % (kname, size)
+            mkpart_cmd = "parted -s %s" % kname
+            mkpart_cmd += " mklabel %s " % label_type
+            mkpart_cmd += " mkpart primary 0 %s" % size
             session.cmd(mkpart_cmd)
             logging.info("Format partition to '%s'" % fstype)
-            format_cmd = "yes|mkfs -t %s %s" % (kname, fstype)
+            format_cmd = "yes|mkfs %s -t %s" % (kname, fstype)
             session.cmd(format_cmd)
             logging.info("Mount the disk to '%s'" % mountpoint)
             mount_cmd = "mount -t %s %s %s" % (fstype, kname, mountpoint)
