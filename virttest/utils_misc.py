@@ -2817,14 +2817,26 @@ def format_linux_disk(session, did, mountpoint, size, fstype="ext3"):
     for disk in disks.splitlines():
         if did in disk:
             kname = disk.split()[0]
+            list_parttable_cmd = "parted %s -s print" % kname
+            status = session.cmd_output(list_parttable_cmd)
+            if "Error" in status:
+                logging.info("Create partition table on disk '%s'" % kname)
+                mklabel_cmd = "parted %s -s mklabel msdos" % kname
+                session.cmd(mklabel_cmd)
             logging.info("Create partition on disk '%s'" % kname)
-            mkpart_cmd = "parted -s %s  mkpart primary 0 %s" % (kname, size)
+            mkpart_cmd = "parted %s  -s mkpart primary 0 %s" % (kname, size)
             session.cmd(mkpart_cmd)
+            time.sleep(2)
+            logging.info("Try to get the partitions of '%s'" % kname)
+            get_part_cmd = "partprobe %s" -s % kname
+            output = session.cmd(get_part_cmd)
+            parts = re.findall(r"\d", output)
+            logging.info("The partitions are %s%s" % (kname, parts))
             logging.info("Format partition to '%s'" % fstype)
-            format_cmd = "yes|mkfs -t %s %s" % (kname, fstype)
+            format_cmd = "yes|mkfs  %s%s -t %s" % (kname, parts[-1], fstype)
             session.cmd(format_cmd)
             logging.info("Mount the disk to '%s'" % mountpoint)
-            mount_cmd = "mount -t %s %s %s" % (fstype, kname, mountpoint)
+            mount_cmd = "mount -t %s %s%s %s" % (fstype, kname, parts[-1], mountpoint)
             session.cmd(mount_cmd)
             return True
 
