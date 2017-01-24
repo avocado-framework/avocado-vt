@@ -745,17 +745,20 @@ def qemu_attach(pid, extra="", **dargs):
     return command(cmd_str, **dargs)
 
 
-def setvcpus(name, count, extra="", **dargs):
+def setvcpus(name, count, extra="", remote_uri="", **dargs):
     """
     Change the number of virtual CPUs in the guest domain.
 
     :param name: name of vm to affect
     :param count: value for vcpu parameter
     :param options: any extra command options.
+    :param remote_uri: remote machine's connect uri
     :param dargs: standardized virsh function API keywords
     :return: CmdResult object from command
     """
     cmd = "setvcpus %s %s %s" % (name, count, extra)
+    if remote_uri:
+        cmd = "-c %s %s" % (remote_uri, cmd)
     return command(cmd, **dargs)
 
 
