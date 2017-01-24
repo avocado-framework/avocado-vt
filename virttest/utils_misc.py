@@ -3176,13 +3176,13 @@ class KSMController(object):
     def start_ksmtuned(self):
         """Start ksmtuned service"""
         if self.get_ksmtuned_pid() == 0:
-            process.system("ksmtuned")
+            process.system("setsid ksmtuned >& /dev/null", shell=True)
 
     def stop_ksmtuned(self):
         """Stop ksmtuned service"""
         pid = self.get_ksmtuned_pid()
         if pid:
-            process.system("kill -1 %s" % pid)
+            os.kill(pid, signal.SIGTERM)
 
     def restart_ksmtuned(self):
         """Restart ksmtuned service"""
