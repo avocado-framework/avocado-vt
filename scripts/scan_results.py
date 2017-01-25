@@ -21,6 +21,19 @@ def colour_result(result):
     return colours_map.get(result) or result
 
 
+def summarise_records(records):
+    """Summarise test records and print it in cyan"""
+    num_row = len(records[0])
+    rows = tuple([("row%s" % x) for x in xrange(num_row)])
+    records_summary = {}
+    for rows in records:
+        records_summary[rows[1]] = records_summary.get(rows[1], 0) + 1
+        records_summary[rows[4]] = records_summary.get(rows[4], 0) + 1
+    res = ", ".join("%s=%r" % (
+        key, val) for (key, val) in records_summary.iteritems())
+    print "\033[96mSummary: \n" + res + "\033[00m"
+
+
 def get_total_seconds(td):
     """ Alias for get total_seconds in python2.6 """
     if hasattr(td, 'total_seconds'):
@@ -79,6 +92,7 @@ def print_data(records, skip_timestamp=False):
                 row[0], row[1], row[2], row[3], colour_result(row[4]), row[5])
         else:
             print "%s %s %s" % (row[0], row[1], colour_result(row[4]))
+    summarise_records(records)
 
 
 if __name__ == "__main__":
