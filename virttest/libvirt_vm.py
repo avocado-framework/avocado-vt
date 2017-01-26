@@ -2495,24 +2495,6 @@ class VM(virt_vm.BaseVM):
         session.close()
         return mac.strip()
 
-    def get_distro(self):
-        """
-        Get distribution name of the vm instance.
-        """
-        distro = ""
-        session = self.wait_for_login()
-        cmd = "cat /etc/os-release | grep '^ID='"
-        try:
-            status, output = session.cmd_status_output(cmd, timeout=300)
-            if status:
-                raise virt_vm.VMError("Unable to get the distro name: %s"
-                                      % output)
-            else:
-                distro = output.split('=')[1].strip()
-        finally:
-            session.close()
-            return distro
-
     def install_package(self, name):
         """
         Install a package on VM.
