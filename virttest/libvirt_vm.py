@@ -2513,12 +2513,17 @@ class VM(virt_vm.BaseVM):
             session.close()
             return distro
 
-    def install_package(self, name):
+    def install_package(self, name, pkg_path=None, need_update=True):
         """
         Install a package on VM.
         ToDo: Support multiple package manager.
 
         :param name: Name of package to be installed
+        :param pkg_path: The full path of the package to be installed
+        :param need_update: True, do update if the package is already
+                            installed.
+                            False, do not update if the package is already
+                            installed.
         """
         session = self.wait_for_login()
         vm_distro = self.get_distro()
@@ -2526,11 +2531,17 @@ class VM(virt_vm.BaseVM):
             # distro specific support for package manager
             if vm_distro.lower() == 'ubuntu':
                 query_cmd = "dpkg -l | grep %s" % name
-                cmd = "apt install -y %s" % name
+                if pkg_path:
+                    cmd = "apt install -y %s" % pkg_path
+                else:
+                    cmd = "apt install -y %s" % name
                 update_cmd = "apt upgrade -y %s" % name
             else:
                 query_cmd = "rpm -q %s" % name
-                cmd = "yum install -y %s" % name
+                if pkg_path:
+                    cmd = "yum install -y %s" % pkg_path
+                else:
+                    cmd = "yum install -y %s" % name
                 update_cmd = "yum update -y %s" % name
 
             if session.cmd_status(query_cmd):
@@ -2541,7 +2552,7 @@ class VM(virt_vm.BaseVM):
                 if status != 0 or session.cmd_status(query_cmd) != 0:
                     raise virt_vm.VMError("Installation of package %s failed:"
                                           "\n%s" % (name, output))
-            else:
+            elif need_update:
                 # Update the package
                 status, output = session.cmd_status_output(update_cmd,
                                                            timeout=600)
