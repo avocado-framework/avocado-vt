@@ -311,6 +311,7 @@ class NFSClient(object):
         Cleanup NFS client.
         """
         self.umount()
+        ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.nfs_client_ip)
         if self.mkdir_mount_remote:
             rmdir_cmd = ssh_cmd + "'rm -rf %s'" % self.mount_dir
             try:
