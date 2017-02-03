@@ -88,7 +88,7 @@ def _read_release_version():
             return version.strip()
         finally:
             f.close()
-    except:
+    except Exception:
         return None
 
 
@@ -97,7 +97,7 @@ def _write_release_version(version):
         f = open(RELEASE_VERSION_PATH, "w")
         f.write("%s\n" % version)
         f.close()
-    except:
+    except Exception:
         pass
 
 

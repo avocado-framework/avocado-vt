@@ -213,7 +213,7 @@ def gen_tmp_dir(root_path):
             if not os.path.exists(path):
                 os.mkdir(path)
                 return path
-        except:
+        except Exception:
             continue
 
 
@@ -826,7 +826,7 @@ def remote_agent(in_stream_cls, out_stream_cls):
         cmd.cmd_loop()
     except SystemExit:
         pass
-    except:
+    except Exception:
         e = traceback.format_exc()
         sys.stderr.write(e)
         # traceback.print_exc()

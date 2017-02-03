@@ -58,7 +58,7 @@ class Libvirtd(object):
                 else:
                     process.run(virsh_cmd, timeout=2)
                 return True
-            except:
+            except Exception:
                 return False
         return utils_misc.wait_for(_check_start, timeout=timeout)
 

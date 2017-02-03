@@ -79,7 +79,7 @@ class WinBufferedReadFile(object):
                     txt += "[%s]" % ','.join(map(lambda x: str(len(x)),
                                                  self._bufs))
                     print(txt)
-            except:
+            except Exception:
                 pass
         # Never Reached
         raise Exception("Error in WinBufferedReadFile - should never be reached")

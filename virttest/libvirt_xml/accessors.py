@@ -123,7 +123,7 @@ class AccessorBase(PropCanBase):
                 raise xcepts.LibvirtXMLAccessorError(excpt_str)
         try:
             element = parent_element.find(tag_name)
-        except:
+        except Exception:
             logging.error(excpt_str)
             raise
         if element is None:

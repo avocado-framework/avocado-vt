@@ -1860,7 +1860,7 @@ class QMPMonitor(Monitor):
                             value = value.replace('/', ',')
                         if opt[0]:
                             args[opt[0].strip()] = value
-                    except:
+                    except Exception:
                         logging.debug("Fail to create args, please check cmd")
                 cmd_output.append(self.cmd(command, args, timeout=timeout))
         if len(cmd_output) == 1:

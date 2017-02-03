@@ -127,7 +127,7 @@ def start_vdagent(guest_session, test_timeout):
     except ShellStatusError:
         logging.debug("Status code of \"%s\" was not obtained, most likely"
                       "due to a problem with colored output" % cmd)
-    except:
+    except Exception:
         raise exceptions.TestFail("Guest Vdagent Daemon Start failed")
 
     logging.debug("------------ End of guest checking for Spice Vdagent"
@@ -148,7 +148,7 @@ def restart_vdagent(guest_session, test_timeout):
                           timeout=test_timeout)
     except ShellCmdError:
         raise exceptions.TestFail("Couldn't restart spice vdagent process")
-    except:
+    except Exception:
         raise exceptions.TestFail("Guest Vdagent Daemon Check failed")
 
     logging.debug("------------ End of Spice Vdagent"
@@ -172,7 +172,7 @@ def stop_vdagent(guest_session, test_timeout):
                       "due to a problem with colored output" % cmd)
     except ShellCmdError:
         raise exceptions.TestFail("Couldn't turn off spice vdagent process")
-    except:
+    except Exception:
         raise exceptions.TestFail("Guest Vdagent Daemon Check failed")
 
     logging.debug("------------ End of guest checking for Spice Vdagent"
@@ -214,7 +214,7 @@ def get_vdagent_status(vm_session, test_timeout):
         # getting the status of vdagent stopped returns 3, which results in a
         # ShellCmdError
         return("stopped")
-    except:
+    except Exception:
         print "Unexpected error:", sys.exc_info()[0]
         raise exceptions.TestFail(
             "Failed attempting to get status of spice-vdagentd")
@@ -252,7 +252,7 @@ def install_rv_win(client, host_path, client_path='C:\\virt-viewer.msi'):
     try:
         session.cmd_output('start /wait msiexec /i ' + client_path +
                            ' INSTALLDIR="C:\\virt-viewer"')
-    except:
+    except Exception:
         pass
 
 
@@ -269,7 +269,7 @@ def install_usbclerk_win(client, host_path, client_path="C:\\usbclerk.msi"):
     client.copy_files_to(host_path, client_path)
     try:
         session.cmd_output("start /wait msiexec /i " + client_path + " /qn")
-    except:
+    except Exception:
         pass
 
 
@@ -284,7 +284,7 @@ def clear_interface(vm, login_timeout=360, timeout=5):
         session = vm.wait_for_login()
         try:
             session.cmd("taskkill /F /IM remote-viewer.exe")
-        except:
+        except Exception:
             logging.info("Remote-viewer not running")
     else:
         clear_interface_linux(vm, login_timeout, timeout)
@@ -312,7 +312,7 @@ def clear_interface_linux(vm, login_timeout, timeout):
         session.cmd("killall %s" % command)
         utils_misc.wait_for(lambda: _is_pid_alive(session, pid), 10,
                             timeout, 0.2)
-    except:
+    except Exception:
         pass
 
     try:

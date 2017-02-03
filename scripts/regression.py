@@ -53,7 +53,7 @@ def get_test_keyval(jobid, keyname, default=''):
         return exec_sql('select value from tko_test_attributes'
                         ' where test_idx=%s and attribute="%s"'
                         % (test_idx, keyname))[-1]
-    except:
+    except Exception:
         return default
 
 
