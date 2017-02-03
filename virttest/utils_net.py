@@ -1968,7 +1968,7 @@ class IPv6Manager(propcan.PropCanBase):
         if self.auto_recover:
             try:
                 self.cleanup()
-            except:
+            except Exception:
                 raise exceptions.TestError(
                     "Failed to cleanup test environment")
 
@@ -3436,7 +3436,7 @@ def check_listening_port_remote_by_service(server_ip, server_user, server_pwd,
                                         server_pwd, r"[\#\$]\s*$")
         runner = session.cmd_output
         check_listening_port_by_service(service, port, listen_addr, runner)
-    except:
+    except Exception:
         if session:
             session.close()
 

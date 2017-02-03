@@ -747,7 +747,7 @@ class MultihostMigration(object):
                             self.check_vms_src(mig_data)
                             if check_work:
                                 check_work(mig_data)
-                except:
+                except Exception:
                     mig_error = True
                     raise
             finally:

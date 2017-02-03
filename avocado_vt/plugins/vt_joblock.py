@@ -101,7 +101,7 @@ class VTJobLock(JobPre, JobPost):
         for path in lock_files:
             try:
                 lock_pid = int(open(path, 'r').read())
-            except:
+            except Exception:
                 msg = 'Cannot read PID from "%s".' % path
                 raise LockCreationError(msg)
             else:

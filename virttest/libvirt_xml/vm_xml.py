@@ -734,7 +734,7 @@ class VMXML(VMXMLBase):
         topology = {}
         try:
             topology = self.cpu.topology
-        except:
+        except Exception:
             logging.error("Can't find <cpu>/<topology> element")
         return topology
 

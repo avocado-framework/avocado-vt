@@ -765,25 +765,25 @@ class PrivateBridgeConfig(object):
             logging.info("Configuring KVM test private bridge %s", self.brname)
             try:
                 self._add_bridge()
-            except:
+            except Exception:
                 self._remove_bridge()
                 raise
             try:
                 self._bring_bridge_up()
-            except:
+            except Exception:
                 self._bring_bridge_down()
                 self._remove_bridge()
                 raise
             try:
                 self._enable_nat()
-            except:
+            except Exception:
                 self._disable_nat()
                 self._bring_bridge_down()
                 self._remove_bridge()
                 raise
             try:
                 self._start_dhcp_server()
-            except:
+            except Exception:
                 self._stop_dhcp_server()
                 self._disable_nat()
                 self._bring_bridge_down()
@@ -2002,7 +2002,7 @@ class StraceQemu(object):
         pid = p.start()
         try:
             self.env["strace_processes"] += [pid]
-        except:
+        except Exception:
             self.env["strace_processes"] = [pid]
         return self.env["strace_processes"]
 

@@ -155,7 +155,7 @@ class OpenVSwitchControl(object):
         try:
             a = re.findall('^(\d+)\.?(\d+)\.?(\d+)\-?', version)[0]
             int_ver = ''.join(a)
-        except:
+        except Exception:
             raise ValueError("Wrong version format '%s'" % version)
         return int_ver
 

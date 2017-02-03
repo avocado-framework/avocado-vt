@@ -2163,7 +2163,7 @@ class VM(virt_vm.BaseVM):
                 virsh.suspend(
                     self.name, uri=self.connect_uri, ignore_statues=False)
             return True
-        except:
+        except Exception:
             logging.error("VM %s failed to suspend", self.name)
             return False
 

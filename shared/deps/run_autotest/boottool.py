@@ -789,7 +789,7 @@ class Grubby(object):
                                       stdin=subprocess.PIPE,
                                       stdout=subprocess.PIPE,
                                       close_fds=True).stdout.read()
-        except:
+        except Exception:
             pass
 
         if result is not None:
@@ -815,7 +815,7 @@ class Grubby(object):
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE,
                                       close_fds=True).stdout.read()
-        except:
+        except Exception:
             pass
 
         if result is not None:
@@ -1407,7 +1407,7 @@ class Grubby(object):
                 not os.path.exists(backup_path)):
             try:
                 shutil.move(path, backup_path)
-            except:
+            except Exception:
                 self.log.warn('Failed to backup the current grubby binary')
 
     def grubby_install_fetch_tarball(self, topdir):
@@ -1420,20 +1420,20 @@ class Grubby(object):
         try:
             tarball = tarball_name
             f = open(tarball)
-        except:
+        except Exception:
             try:
                 # then the autotest source directory
                 from autotest.client.shared.settings import settings
                 top_path = settings.get_value('COMMON', 'autotest_top_path')
                 tarball = os.path.join(top_path, tarball_name)
                 f = open(tarball)
-            except:
+            except Exception:
                 # then try to grab it from github
                 try:
                     tarball = os.path.join(topdir, tarball_name)
                     urllib.urlretrieve(GRUBBY_TARBALL_URI, tarball)
                     f = open(tarball)
-                except:
+                except Exception:
                     return None
 
         tarball_md5 = md5.md5(f.read()).hexdigest()
@@ -1529,7 +1529,7 @@ class Grubby(object):
                                          'binary to directory "%s"' % inst_dir)
         try:
             shutil.copy(grubby_bin, path)
-        except:
+        except Exception:
             raise GrubbyInstallException('Failed to copy grubby binary to '
                                          'directory "%s"' % inst_dir)
 

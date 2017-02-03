@@ -556,7 +556,7 @@ def _subtitution(value, d):
                 st += value[start:match.start()] + str(val)
                 start = match.end()
                 match = match_subtitute.search(value, start)
-        except:
+        except Exception:
             pass
         st += value[start:len(value)]
         return st

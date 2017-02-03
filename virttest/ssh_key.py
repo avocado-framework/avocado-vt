@@ -191,7 +191,7 @@ def setup_remote_ssh_key(hostname1, user1, password1,
         try:
             session1.close()
             session2.close()
-        except:
+        except Exception:
             pass
 
 

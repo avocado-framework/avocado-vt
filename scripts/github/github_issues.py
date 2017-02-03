@@ -92,7 +92,7 @@ class GithubCache(object):
             else:
                 return self.github.create_from_raw_data(data['klass'],
                                                         data['raw_data'])
-        except:
+        except Exception:
             try:
                 self.cache_del()
             except KeyError:
@@ -166,7 +166,7 @@ class GithubCache(object):
             return self.cache_get()  # maybe raise KeyError or TypeError
         except KeyError:
             raise
-        except:
+        except Exception:
             # Try to delete the entry
             self.cache_del()
             raise
@@ -588,7 +588,7 @@ class GithubIssues(GithubIssuesBase, object):
                 user_fetch_partial = Partial(getattr, comment, 'user')
                 try:
                     user = self.get_gh_obj(user_cache_key, user_fetch_partial)
-                except:
+                except Exception:
                     # Also clean up comments cache
                     self.clean_cache_entry(cache_key)
                     raise  # original exception
@@ -623,7 +623,7 @@ class GithubIssues(GithubIssuesBase, object):
                 try:
                     author_obj = self.get_gh_obj(author_cache_key,
                                                  author_fetch_partial)
-                except:
+                except Exception:
                     # clean up commit list cache entry also
                     self.clean_cache_entry(cache_key)
                     raise  # original exception
@@ -637,7 +637,7 @@ class GithubIssues(GithubIssuesBase, object):
                     try:
                         gitcommit = self.get_gh_obj(gitcommit_cache_key,
                                                     gitcommit_fetch_partial)
-                    except:
+                    except Exception:
                         # Need to clean commit and gitcommit entries
                         self.clean_cache_entry(cache_key)
                         self.clean_cache_entry(gitcommit_cache_key)

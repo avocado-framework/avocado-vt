@@ -49,7 +49,7 @@ class SASL(propcan.PropCanBase):
         if self.auto_recover:
             try:
                 self.cleanup()
-            except:
+            except Exception:
                 raise exceptions.TestError(
                     "Failed to clean up test environment!")
 
