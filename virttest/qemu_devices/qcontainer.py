@@ -1763,9 +1763,9 @@ class DevContainer(object):
                 name, bus_type, 'xio3130-downstream', name)
             driver = 'x3130-upstream'
         else:
-            if driver == 'pci-bridge':  # addr 1-19, chasis_nr
+            if driver == 'pci-bridge':  # addr 1-32, chasis_nr
                 parent_bus.append({'busid': '_PCI_CHASSIS_NR'})
-                bus_length = 20
+                bus_length = 31
                 bus_first_port = 1
             elif driver == 'i82801b11-bridge':  # addr 1-19
                 bus_length = 20
