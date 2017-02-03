@@ -340,8 +340,9 @@ class Monitor:
         :param extra_str: Extra string would be printed in log.
         """
         if self.debug_log or debug:
+            vm_name = "" if not hasattr(self.vm, "name") else self.vm.name
             logging.debug("(monitor %s.%s) Sending command '%s' %s",
-                          self.vm.name, self.name, cmd, extra_str)
+                          vm_name, self.name, cmd, extra_str)
 
     def _log_lines(self, log_str):
         """
