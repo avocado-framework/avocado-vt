@@ -15,6 +15,7 @@ from avocado.utils import process as avocado_process
 from avocado.utils import crypto
 from avocado.utils import path
 from avocado.utils import memory
+from avocado.utils import distro
 from avocado.core import exceptions
 
 from . import error_context
@@ -660,6 +661,14 @@ def preprocess(test, params, env):
     if params.get("storage_type") == "nfs":
         image_nfs = nfs.Nfs(params)
         image_nfs.setup()
+        distro_details = distro.detect()
+        if distro_details.name.upper() != 'UBUNTU':
+            if params.get('set_sebool_local', 'yes') == "yes":
+                params['set_sebool_local'] = "yes"
+                params['local_boolean_varible'] = "virt_use_nfs"
+                params['local_boolean_value'] = "on"
+                seLinuxBool = utils_misc.SELinuxBoolean(params)
+                seLinuxBool.setup()
         image_name_only = os.path.basename(params["image_name"])
         params['image_name'] = os.path.join(image_nfs.mount_dir,
                                             image_name_only)
