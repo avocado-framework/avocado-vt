@@ -2132,6 +2132,22 @@ def get_support_machine_type(qemu_binary="/usr/libexec/qemu-kvm"):
     return (s, c)
 
 
+def get_recognized_cpuid_flags(qemu_binary="/usr/libexec/qemu-kvm"):
+    """
+    Get qemu recongnized CPUID flags
+
+    :param qemu_binary: qemu-kvm binary file path
+    :return: flags list
+    """
+    out = process.system_output("%s -cpu ?" % qemu_binary)
+    match = re.search("Recognized CPUID flags:(.*)", out, re.M | re.S)
+    try:
+        return filter(None, re.split('\s', match.group(1)))
+    except AttributeError:
+        pass
+    return []
+
+
 def get_host_cpu_models():
     """
     Get cpu model from host cpuinfo
