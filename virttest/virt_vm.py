@@ -1273,9 +1273,6 @@ class BaseVM(object):
         console.set_linesep(linesep)
         console.set_status_test_command(status_test_command)
 
-        # Try to get a login prompt
-        console.sendline()
-
         remote.handle_prompts(console, username, password, prompt, timeout)
         return console
 
