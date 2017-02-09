@@ -1753,6 +1753,36 @@ def create_disk_xml(params):
     return diskxml.xml
 
 
+def set_disk_attr(vmxml, target, tag, attr):
+    """
+    Set value of disk tag attributes for a given target dev.
+    :param vmxml: domain VMXML instance
+    :param target: dev of the disk
+    :param tag: disk tag
+    :param attr: the tag attribute dict to set
+
+    :return: True if success, otherwise, False
+    """
+    key = ""
+    try:
+        disk = vmxml.get_disk_all()[target]
+        if tag in ["driver", "boot", "address", "alias", "source"]:
+            for key in attr:
+                disk.find(tag).set(key, attr[key])
+                logging.debug("key '%s' value '%s' pair is "
+                              "set", key, attr[key])
+            vmxml.xmltreefile.write()
+        else:
+            logging.debug("tag '%s' is not supported now", tag)
+            return False
+    except AttributeError:
+        logging.error("Fail to set attribute '%s' with value "
+                      "'%s'.", key, attr[key])
+        return False
+
+    return True
+
+
 def create_net_xml(net_name, params):
     """
     Create a new network or update an existed network xml
