@@ -2697,6 +2697,37 @@ def setmaxmem(domainarg=None, sizearg=None, domain=None,
     return command(cmd, **dargs)
 
 
+def set_user_password(domain=None, user=None, password=None,
+                      encrypted=False, option=True, **dargs):
+    """
+    Set the user password inside the domain
+    :param domain: Option to --domain parameter
+    :param user: Option to --user parameter
+    :param password: Option to --password
+    :param encrypted: True for --encrypted
+    :param option: True for --domain/user/password
+    :return: CmdResult instance
+    """
+    cmd = "set-user-password"
+    if option:
+        if domain:
+            cmd += " --domain %s" % domain
+        if user:
+            cmd += " --user %s" % user
+        if password:
+            cmd += " --password %s" % password
+    else:
+        if domain:
+            cmd += " %s" % domain
+        if user:
+            cmd += " %s" % user
+        if password:
+            cmd += " %s" % password
+    if encrypted:
+        cmd += " --encrypted"
+    return command(cmd, **dargs)
+
+
 def snapshot_create(name, options="", **dargs):
     """
     Create snapshot of domain.
