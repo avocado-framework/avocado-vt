@@ -7,7 +7,7 @@
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 45.0
-Release: 0%{?dist}
+Release: 1%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -15,7 +15,7 @@ Source0: https://github.com/avocado-framework/%{name}/archive/%{commit}/%{name}-
 BuildRequires: python2-devel, python-setuptools
 BuildArch: noarch
 Requires: avocado == %{version}
-Requires: python, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, aexpect, git
+Requires: python, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, aexpect, git, python-netaddr
 
 Requires: python-imaging
 %if 0%{?el6}
@@ -53,6 +53,9 @@ Xunit output, among others.
 
 
 %changelog
+* Thu Feb  9 2017 Lukas Doktor <ldoktor@redhat.com> - 45.0-1
+- Added python-netaddr to requires
+
 * Tue Jan 17 2017 Cleber Rosa <cleber@redhat.com> - 45.0-0
 - New upstream release
 
