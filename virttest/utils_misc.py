@@ -2620,8 +2620,8 @@ def get_free_disk(session, mount):
     """
     Get FreeSpace for given mount point.
 
-    :parm session: shell Object.
-    :parm mount: mount point(eg. C:, /mnt)
+    :param session: shell Object.
+    :param mount: mount point(eg. C:, /mnt)
 
     :return string: freespace M-bytes
     """
@@ -2639,12 +2639,27 @@ def get_free_disk(session, mount):
     return int(free)
 
 
+def get_win_mon_free_mem(session):
+    """
+    Get Performace Monitored Free memory for Windows.
+
+    :param session: shell Object.
+
+    :return string: freespace M-bytes
+    """
+    cmd = 'typeperf "\Memory\Free & Zero Page List Bytes" -sc 1'
+    output = session.cmd_output(cmd)
+    free = "%s" % re.findall("\d+\.\d+", output)[2]
+    free = float(normalize_data_size(free, order_magnitude="M"))
+    return int(free)
+
+
 def get_free_mem(session, os_type):
     """
     Get Free memory for given OS.
 
-    :parm session: shell Object.
-    :parm os_type: os type (eg. linux or windows)
+    :param session: shell Object.
+    :param os_type: os type (eg. linux or windows)
 
     :return string: freespace M-bytes
     """
@@ -2663,8 +2678,8 @@ def get_used_mem(session, os_type):
     """
     Get Used memory for given OS.
 
-    :parm session: shell Object.
-    :parm os_type: os type (eg. linux or windows)
+    :param session: shell Object.
+    :param os_type: os type (eg. linux or windows)
 
     :return string: usedspace M-bytes
     """
