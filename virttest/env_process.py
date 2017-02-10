@@ -534,7 +534,6 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
         return (requried_mem > provide_mem, suggest_mem)
 
     def _call_vm_func():
-        len_vms = len(params.objects("vms"))
         need_reset, suggest_mem = validate_memory_resource()
         if need_reset:
             # Convert freememtotal from KB to MB, then split it evenly
