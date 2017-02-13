@@ -3007,26 +3007,28 @@ def get_ip_address_by_interface(ifname):
             "Error while retrieving IP address from interface %s." % ifname)
 
 
-def get_host_ip_address(params):
+def get_host_ip_address(params, ip_version="ipv4"):
     """
     Returns ip address of host specified in host_ip_addr parameter if provided.
     Otherwise ip address on interface specified in netdst parameter is returned.
     In case of "nettype == user" "netdst" parameter is left empty, then the
     default interface of the system is used.
     :param params
+    :param ip_version: Host IP version, ipv4 or ipv6.
     """
     host_ip = params.get('host_ip_addr', None)
     if host_ip:
         logging.debug("Use IP address at config %s=%s", 'host_ip_addr', host_ip)
         return host_ip
     net_dev = params.get('netdst')
-    if not net_dev:
+    if net_dev not in get_host_iface():
         net_dev = get_host_default_gateway(iface_name=True)
     if not net_dev:
         raise NetError("Error while retrieving IP address for host.")
     logging.warning("No IP address of host was provided, using IP address"
                     " on %s interface", str(net_dev))
-    host_ip = get_ip_address_by_interface(net_dev)
+    nic_address = get_net_if_addrs(net_dev)
+    host_ip = nic_address[ip_version][0]
     return host_ip
 
 
@@ -3385,7 +3387,7 @@ def get_host_default_gateway(iface_name=False):
     else:
         cmd = "ip route | awk '/default/ { print $3 }'"
     try:
-        output = process.system_output(cmd, shell=True)
+        output = process.system_output(cmd, shell=True).rstrip()
     except process.CmdError:
         logging.error("Failed to get the host's default GateWay")
         return None

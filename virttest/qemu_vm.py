@@ -995,17 +995,10 @@ class VM(virt_vm.BaseVM):
                 set_value("port=%s", "spice_port")
 
             set_value("password=%s", "spice_password", "disable-ticketing")
-            if optget("listening_addr") == "ipv4":
-                host_ip = utils_net.get_host_ip_address(self.params)
-                self.spice_options['listening_addr'] = "ipv4"
+            ip_ver = optget("listening_addr")
+            if ip_ver:
+                host_ip = utils_net.get_host_ip_address(self.params, ip_ver)
                 spice_opts.append("addr=%s" % host_ip)
-                # set_value("addr=%s", "listening_addr", )
-            elif optget("listening_addr") == "ipv6":
-                host_ip = utils_net.get_host_ip_address(self.params)
-                host_ip_ipv6 = utils_misc.convert_ipv4_to_ipv6(host_ip)
-                self.spice_options['listening_addr'] = "ipv6"
-                spice_opts.append("addr=%s" % host_ip_ipv6)
-
             set_yes_no_value(
                 "disable_copy_paste", yes_value="disable-copy-paste")
             set_value("addr=%s", "spice_addr")
