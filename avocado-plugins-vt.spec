@@ -1,13 +1,13 @@
 %global modulename avocado
 %if ! 0%{?commit:1}
- %define commit 900a51c50be0d71f2bf20d652dfd8c1c25ae8b5e
+ %define commit e1c20088823d8480a8eff6f9c16fb77e1dd59301
 %endif
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 45.0
-Release: 1%{?dist}
+Version: 46.0
+Release: 0%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -53,6 +53,9 @@ Xunit output, among others.
 
 
 %changelog
+* Tue Feb 14 2017 Cleber Rosa <cleber@redhat.com> - 46.0-0
+- New upstream release
+
 * Thu Feb  9 2017 Lukas Doktor <ldoktor@redhat.com> - 45.0-1
 - Added python-netaddr to requires
 
