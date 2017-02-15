@@ -168,6 +168,14 @@ def wait_for_create_monitor(vm, monitor_name, monitor_params, timeout):
         raise MonitorConnectError(monitor_name)
 
 
+class VM(object):
+    """
+    Dummy class to represent "vm.name" for pickling to avoid circular deps
+    """
+    def __init__(self, name):
+        self.name = name
+
+
 class Monitor:
 
     """
@@ -188,7 +196,7 @@ class Monitor:
 
         :raise MonitorConnectError: Raised if the connection fails
         """
-        self.vm = vm
+        self.vm = VM(vm.name)
         self.name = name
         self.filename = filename
         self._lock = threading.RLock()
@@ -233,9 +241,22 @@ class Monitor:
         pass
 
     def __getinitargs__(self):
-        # Save some information when pickling -- will be passed to the
-        # constructor upon unpickling
-        return self.vm, self.name, self.filename, False
+        """
+        Unsafe way to allow pickling of this object
+
+        The monitor compounds of several unpickable objects like locks,
+        sockets and files. During unpickling this makes the Montior object
+        to re-connect and create new locks, which only works well when
+        the original object (pickled one) was already destroyed. If not
+        than this new object won't be able to connect to the already opened
+        resources and will be crippled. Anyway it's sufficient for our use
+        case, but don't tell you were not warned.
+        """
+        # The Monitor object is usually part of VM. Let's avoid the circular
+        # dependency by creating fake VM object which only contains `vm.name`,
+        # which is in reality the only information required by Monitor object
+        # at this time.
+        return VM(self.vm.name), self.name, self.filename, False
 
     def _close_sock(self):
         try:
