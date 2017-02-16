@@ -2,3 +2,4 @@ autotest>=0.16.2
 aexpect>=1.2.0
 simplejson>=3.5.3
 netaddr>=0.7.18
+netifaces>=0.10.5

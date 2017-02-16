@@ -10,6 +10,7 @@ import time
 import shelve
 import commands
 import signal
+import netifaces
 
 import aexpect
 from avocado.core import exceptions
@@ -2983,51 +2984,44 @@ def generate_mac_address_simple():
     return mac
 
 
-def get_ip_address_by_interface(ifname):
+def get_ip_address_by_interface(ifname, ip_ver="ipv4"):
     """
     returns ip address by interface
-    :param ifname - interface name
-    :raise NetError - When failed to fetch IP address (ioctl raised IOError.).
-
-    Retrieves interface address from socket fd trough ioctl call
-    and transforms it into string from 32-bit packed binary
-    by using socket.inet_ntoa().
-
+    :param ifname: interface name
+    :param ip_ver: Host IP version, ipv4 or ipv6.
+    :raise NetError: When failed to fetch IP address (ioctl raised IOError.).
     """
-    mysocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    if ip_ver == "ipv6":
+        ver = netifaces.AF_INET6
+    else:
+        ver = netifaces.AF_INET
     try:
-        return socket.inet_ntoa(fcntl.ioctl(
-            mysocket.fileno(),
-            arch.SIOCGIFADDR,
-            # ifname to binary IFNAMSIZ == 16
-            struct.pack('256s', ifname[:15])
-        )[20:24])
-    except IOError:
-        raise NetError(
-            "Error while retrieving IP address from interface %s." % ifname)
+        addr = netifaces.ifaddresses(ifname).get(ver)
+        return [a['addr'] for a in addr if not a['addr'].startswith('fe80')][0]
+    except Exception, e:
+        raise exceptions.TestError("Cannot get %s address form %s interface: %s"
+                                   % (ip_ver, ifname, e))
 
 
-def get_host_ip_address(params):
+def get_host_ip_address(params, ip_ver="ipv4"):
     """
     Returns ip address of host specified in host_ip_addr parameter if provided.
     Otherwise ip address on interface specified in netdst parameter is returned.
     In case of "nettype == user" "netdst" parameter is left empty, then the
     default interface of the system is used.
     :param params
+    :param ip_ver: Host IP version, ipv4 or ipv6.
     """
     host_ip = params.get('host_ip_addr', None)
     if host_ip:
         logging.debug("Use IP address at config %s=%s", 'host_ip_addr', host_ip)
         return host_ip
-    net_dev = params.get('netdst')
+    net_dev = params.get("netdst")
     if not net_dev:
         net_dev = get_host_default_gateway(iface_name=True)
-    if not net_dev:
-        raise NetError("Error while retrieving IP address for host.")
     logging.warning("No IP address of host was provided, using IP address"
-                    " on %s interface", str(net_dev))
-    host_ip = get_ip_address_by_interface(net_dev)
-    return host_ip
+                    " on %s interface", net_dev)
+    return get_ip_address_by_interface(net_dev, ip_ver)
 
 
 def get_all_ips():
@@ -3385,7 +3379,7 @@ def get_host_default_gateway(iface_name=False):
     else:
         cmd = "ip route | awk '/default/ { print $3 }'"
     try:
-        output = process.system_output(cmd, shell=True)
+        output = process.system_output(cmd, shell=True).rstrip()
     except process.CmdError:
         logging.error("Failed to get the host's default GateWay")
         return None
