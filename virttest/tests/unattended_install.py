@@ -245,8 +245,14 @@ class UnattendedInstallConfig(object):
         # Content server params
         # lookup host ip address for first nic by interface name
         try:
-            auto_ip = utils_net.get_ip_address_by_interface(
-                vm.virtnet[0].netdst)
+            netdst = vm.virtnet[0].netdst
+            # 'netdst' parameter is taken from cartesian config. Sometimes
+            # netdst=<empty>. Call get_ip_address_by_interface() only for case
+            # when netdst= is defined to something.
+            if netdst:
+                auto_ip = utils_net.get_ip_address_by_interface(netdst)
+            else:
+                auto_ip = utils_net.get_host_ip_address(params)
         except utils_net.NetError:
             auto_ip = None
 
