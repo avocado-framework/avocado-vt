@@ -1748,6 +1748,25 @@ class NumaInfo(object):
 
         return node_distance.strip().split()
 
+    def get_all_node_meminfo(self):
+        """
+        Get the complete meminfo of all nodes.
+
+        :return: All nodes' meminfo
+        :rtype: Dict
+        """
+        meminfo = {}
+        meminfo_file = os.path.join(self.numa_sys_path, "node%s/meminfo")
+        for node in get_all_nodes():
+            node_meminfo = {}
+            meminfo_f = open(meminfo_file % node, 'r')
+            for info in meminfo_f.readlines():
+                key, value = re.match(r'Node \d+ (\S+):\s+(\d+)', info).groups()
+                node_meminfo[key] = value
+            meminfo_f.close()
+            meminfo[node] = node_meminfo
+        return meminfo
+
     def read_from_node_meminfo(self, node_id, key):
         """
         Get specific value of a given node from memoinfo file
@@ -1759,13 +1778,7 @@ class NumaInfo(object):
         :return: The value in KB
         :rtype: string
         """
-        memory_path = os.path.join(self.numa_sys_path,
-                                   "node%s/meminfo" % node_id)
-        memory_file = open(memory_path, "r")
-        memory_info = memory_file.read()
-        memory_file.close()
-
-        return re.findall("%s:\s+(\d+)" % key, memory_info)[0]
+        return get_all_node_meminfo()[node_id][key]
 
 
 class NumaNode(object):
