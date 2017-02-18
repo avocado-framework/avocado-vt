@@ -1757,7 +1757,7 @@ class NumaInfo(object):
         """
         meminfo = {}
         meminfo_file = os.path.join(self.numa_sys_path, "node%s/meminfo")
-        for node in get_all_nodes():
+        for node in self.get_all_nodes():
             node_meminfo = {}
             meminfo_f = open(meminfo_file % node, 'r')
             for info in meminfo_f.readlines():
@@ -1778,7 +1778,7 @@ class NumaInfo(object):
         :return: The value in KB
         :rtype: string
         """
-        return get_all_node_meminfo()[node_id][key]
+        return self.get_all_node_meminfo()[node_id][key]
 
 
 class NumaNode(object):
