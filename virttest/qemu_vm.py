@@ -897,22 +897,23 @@ class VM(virt_vm.BaseVM):
             :param devices: VM devices container
             """
             options = []
-            if params.get("maxmem"):
+            mem_params = params.object_params("mem")
+            if mem_params.get("maxmem"):
                 normalize_data_size = utils_misc.normalize_data_size
-                values = map(lambda x: "%sM" % params.get(x, 512), ["maxmem", "mem"])
+                values = map(lambda x: "%sM" % mem_params.get(x, 512), ["maxmem", "mem"])
                 values = map(lambda x: int(float(normalize_data_size(x))), values)
                 params["mem"] = min(values)
             options.append("%s" % params.get("mem", 512))
-            if params.get("slots") and params.get("maxmem"):
-                options.append("slots=%s" % params["slots"])
-                options.append("maxmem=%s" % params["maxmem"])
+            if mem_params.get("slots") and mem_params.get("maxmem"):
+                options.append("slots=%s" % mem_params["slots"])
+                options.append("maxmem=%s" % mem_params["maxmem"])
 
             cmdline = "-m %s" % ",".join(options)
             dev = StrDev("mem", cmdline=cmdline)
             devices.insert(dev)
-            for name in params.objects("mem_devs"):
-                mem_params = params.object_params(name)
-                mem_devs = devices.memory_define_by_params(mem_params, name)
+            for name in mem_params.objects("mem_devs"):
+                memdev_params = mem_params.object_params(name)
+                mem_devs = devices.memory_define_by_params(memdev_params, name)
                 devices.insert(mem_devs)
             return devices
 
@@ -1781,7 +1782,7 @@ class VM(virt_vm.BaseVM):
                 iov += 1
 
         # Add Memory devices
-        add_memorys(devices, params.object_params("mem"))
+        add_memorys(devices, params)
         smp = int(params.get("smp", 0))
         mem = int(params.get("mem", 0))
         vcpu_maxcpus = int(params.get("vcpu_maxcpus", 0))
