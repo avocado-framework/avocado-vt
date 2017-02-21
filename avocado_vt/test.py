@@ -92,12 +92,9 @@ class VirtTest(test.Test):
         self.virtdir = os.path.join(self.bindir, 'shared')
 
         self.iteration = 0
-        self.outputdir = None
         self.resultsdir = None
-        self.logfile = None
         self.file_handler = None
         self.background_errors = Queue.Queue()
-        self.whiteboard = None
         super(VirtTest, self).__init__(methodName=methodName, name=name,
                                        params=params,
                                        base_logdir=base_logdir, job=job,
