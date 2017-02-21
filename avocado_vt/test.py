@@ -104,12 +104,39 @@ class VirtTest(test.Test):
         self.tmpdir = os.path.dirname(self.workdir)
         # Move self.params to self.avocado_params and initialize virttest
         # (cartesian_config) params
-        self.avocado_params = self.params
-        self.params = utils_params.Params(vt_params)
+        self.__params = utils_params.Params(vt_params)
         self.debugdir = self.logdir
         self.resultsdir = self.logdir
         self.timeout = vt_params.get("test_timeout", self.timeout)
         utils_misc.set_log_file_dir(self.logdir)
+
+    @property
+    def params(self):
+        """
+        Avocado-vt test params
+
+        During `avocado.Test.__init__` this reports the original params but
+        once the Avocado-vt params are set it reports those instead. This
+        is necessary to complete the `avocado.Test.__init__` phase
+        """
+        try:
+            return self.__params
+        except AttributeError:
+            return self.avocado_params
+
+    @params.setter
+    def params(self, value):
+        """
+        For compatibility with 36lts we need to support setter on params
+        """
+        self.__params = value
+
+    @property
+    def avocado_params(self):
+        """
+        Original Avocado (multiplexer/varianter) params
+        """
+        return super(VirtTest, self).params
 
     @property
     def datadir(self):
