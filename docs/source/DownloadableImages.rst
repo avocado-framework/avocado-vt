@@ -42,11 +42,7 @@ make changes, remaster the iso and upload back to the main location.
 JeOS image
 ==========
 
-You can find the JeOS images currently here:
-
-https://assets-avocadoproject.rhcloud.com/static/jeos-21-64.qcow2.7z
-
-https://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS21
+You can find the JeOS images currently available here:
 
 https://assets-avocadoproject.rhcloud.com/static/jeos-23-64.qcow2.7z
 
