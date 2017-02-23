@@ -21,6 +21,7 @@ import logging
 import os
 import Queue
 import sys
+import signal
 
 from avocado.core import exceptions
 from avocado.core import test
@@ -399,6 +400,7 @@ class VirtTest(test.Test):
         avocado-vt case, that rule is not in place, so we have to be
         a little more lenient for correct test status reporting.
         """
+        signal.signal(signal.SIGPIPE, signal.SIG_IGN)
         testMethod = getattr(self, self._testMethodName)
         self._start_logging()
         self.sysinfo_logger.start_test_hook()
@@ -425,6 +427,7 @@ class VirtTest(test.Test):
             except Exception, details:
                 stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
                 cleanup_exception = details
+            signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
         whiteboard_file = os.path.join(self.logdir, 'whiteboard')
         genio.write_file(whiteboard_file, self.whiteboard)
