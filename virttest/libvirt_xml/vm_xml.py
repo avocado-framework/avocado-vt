@@ -122,6 +122,10 @@ class VMXMLBase(base.LibvirtXMLBase):
             get: return a string for 'cpuset' attribute of vcpu
             set: change 'cpuset' attribute of vcpu
             del: remove 'cpuset' attribute of vcpu
+        vcpus: VMVCPUSXML
+            get: return VMVCPUSXML instance for the domain
+            set: define vcpus tag from a VMVCPUSXML instance
+            del: remove vcpus tag
         emulatorpin: string, cpuset value (see man virsh: cpulist)
             get: return text value of cputune/emulatorpin attributes
             set: set cputune/emulatorpin attributes from string
@@ -152,8 +156,8 @@ class VMXMLBase(base.LibvirtXMLBase):
     __slots__ = ('hypervisor_type', 'vm_name', 'uuid', 'vcpu', 'max_mem',
                  'current_mem', 'dumpcore', 'numa_memory', 'numa_memnode',
                  'devices', 'seclabel', 'cputune', 'placement', 'cpuset',
-                 'current_vcpu', 'os', 'cpu', 'pm', 'on_poweroff', 'on_reboot',
-                 'on_crash', 'features', 'mb', 'max_mem_unit',
+                 'current_vcpu', 'vcpus', 'os', 'cpu', 'pm', 'on_poweroff',
+                 'on_reboot', 'on_crash', 'features', 'mb', 'max_mem_unit',
                  'current_mem_unit', 'memtune', 'max_mem_rt', 'max_mem_rt_unit',
                  'max_mem_rt_slots', 'iothreads', 'iothreadids')
 
@@ -276,6 +280,13 @@ class VMXMLBase(base.LibvirtXMLBase):
                                  parent_xpath='/',
                                  tag_name='cpu',
                                  subclass=VMCPUXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
+        accessors.XMLElementNest(property_name='vcpus',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='vcpus',
+                                 subclass=VMVCPUSXML,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
         accessors.XMLElementNest(property_name='pm',
@@ -2049,6 +2060,49 @@ class VMFeaturesXML(base.LibvirtXMLBase):
             logging.error("Feature %s doesn't exist", name)
         else:
             root.remove(remove_feature)
+
+
+class VMVCPUSXML(base.LibvirtXMLBase):
+
+    """
+    vcpus tag XML class
+
+    Elements:
+        vcpu: list of dict - id, enabled, hotpluggable, order
+    """
+
+    __slots__ = ('vcpu')
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLElementList('vcpu', self, parent_xpath="/",
+                                 marshal_from=self.marshal_from_vcpu,
+                                 marshal_to=self.marshal_to_vcpu)
+        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<vcpus/>'
+
+    @staticmethod
+    def marshal_from_vcpu(item, index, libvirtxml):
+        """
+        Convert a dict to vcpu tag and attributes
+        """
+        del index
+        del libvirtxml
+        if not isinstance(item, dict):
+            raise xcepts.LibvirtXMLError("Expected a dictionary of vcpu "
+                                         "attributes, not a %s"
+                                         % str(item))
+        return ('vcpu', dict(item))
+
+    @staticmethod
+    def marshal_to_vcpu(tag, attr_dict, index, libvirtxml):
+        """
+        Convert a vcpu tag and attributes to a dict
+        """
+        del index
+        del libvirtxml
+        if tag != 'vcpu':
+            return None
+        return dict(attr_dict)
 
 
 # Sub-element of memoryBacking
