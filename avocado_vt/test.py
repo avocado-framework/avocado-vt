@@ -24,7 +24,6 @@ import sys
 
 from avocado.core import exceptions
 from avocado.core import test
-from avocado.utils import genio
 from avocado.utils import stacktrace
 
 from virttest import asset
@@ -213,7 +212,13 @@ class VirtTest(test.Test):
             return True
         return False
 
-    def runTest(self):
+    def setUp(self):
+        """
+        Avocado-vt uses custom setUp/test/tearDown handling and unlike
+        Avocado it allows skipping tests from any phase. To convince
+        Avocado to allow skips let's say our tests run during setUp
+        phase and don't do anything during runTest/tearDown.
+        """
         env_lang = os.environ.get('LANG')
         os.environ['LANG'] = 'C'
         try:
@@ -413,59 +418,8 @@ class VirtTest(test.Test):
 
         return test_passed
 
-    def _run_avocado(self):
+    def runTest(self):
         """
-        Auxiliary method to run_avocado.
-
-        We have to override this method because the avocado-vt plugin
-        has to override the behavior that tests shouldn't raise
-        exceptions.TestSkipError by themselves in avocado. In the old
-        avocado-vt case, that rule is not in place, so we have to be
-        a little more lenient for correct test status reporting.
+        Don't do anything as the test was already executed during setUp phase
         """
-        testMethod = getattr(self, self._testMethodName)
-        self._start_logging()
-        self.sysinfo_logger.start_test_hook()
-        test_exception = None
-        cleanup_exception = None
-        stdout_check_exception = None
-        stderr_check_exception = None
-        try:
-            self.setUp()
-        except exceptions.TestSkipError, details:
-            stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
-            raise exceptions.TestSkipError(details)
-        except Exception, details:
-            stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
-            raise exceptions.TestSetupFail(details)
-        try:
-            testMethod()
-        except Exception, details:
-            stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
-            test_exception = details
-        finally:
-            try:
-                self.tearDown()
-            except Exception, details:
-                stacktrace.log_exc_info(sys.exc_info(), logger='avocado.test')
-                cleanup_exception = details
-
-        whiteboard_file = os.path.join(self.logdir, 'whiteboard')
-        genio.write_file(whiteboard_file, self.whiteboard)
-
-        # pylint: disable=E0702
-        if test_exception is not None:
-            raise test_exception
-        elif cleanup_exception is not None:
-            raise exceptions.TestSetupFail(cleanup_exception)
-        elif stdout_check_exception is not None:
-            raise stdout_check_exception
-        elif stderr_check_exception is not None:
-            raise stderr_check_exception
-        elif self._Test__log_warn_used:
-            raise exceptions.TestWarn("Test passed but there were warnings "
-                                      "during execution. Check the log for "
-                                      "details.")
-
-        self.status = 'PASS'
-        self.sysinfo_logger.end_test_hook()
+        pass
