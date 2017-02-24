@@ -896,25 +896,32 @@ class VM(virt_vm.BaseVM):
 
             :param devices: VM devices container
             """
-            options = []
+            options, devs = [], []
+            params.setdefault("mem", "512")
             mem_params = params.object_params("mem")
-            if mem_params.get("maxmem"):
+            mem_params.setdefault("automem", "yes")
+            automem = mem_params["automem"] == "yes"
+            if automem:
                 normalize_data_size = utils_misc.normalize_data_size
-                values = map(lambda x: "%sM" % mem_params.get(x, 512), ["maxmem", "mem"])
-                values = map(lambda x: int(float(normalize_data_size(x))), values)
-                params["mem"] = min(values)
-            options.append("%s" % params.get("mem", 512))
-            if mem_params.get("slots") and mem_params.get("maxmem"):
-                options.append("slots=%s" % mem_params["slots"])
-                options.append("maxmem=%s" % mem_params["maxmem"])
-
-            cmdline = "-m %s" % ",".join(options)
-            dev = StrDev("mem", cmdline=cmdline)
-            devices.insert(dev)
-            for name in mem_params.objects("mem_devs"):
-                memdev_params = mem_params.object_params(name)
-                mem_devs = devices.memory_define_by_params(memdev_params, name)
-                devices.insert(mem_devs)
+                mem_size_m = "%sM" % mem_params["mem"]
+                mem_size_m = int(float(normalize_data_size(mem_size_m)))
+                max_usable_mem_m = int(mem_params["max_usable_mem"])
+                if mem_size_m >= max_usable_mem_m:
+                    logging.debug("Host no enough free memory, reset guest"
+                                  " memory size to %s MB" % max_usable_mem)
+                    params["mem"] = max_usable_mem_m
+            options.append(params["mem"])
+            if devices.has_device("pc-dimm"):
+                if mem_params.get("slots") and mem_params.get("maxmem"):
+                    options.append("slots=%s" % mem_params["slots"])
+                    options.append("maxmem=%s" % mem_params["maxmem"])
+                for name in mem_params.objects("mem_devs"):
+                    memdev_params = mem_params.object_params(name)
+                    dev = devices.memory_define_by_params(memdev_params, name)
+                    devs.extend(dev)
+            cmdline = "-m %s" % ",".join(map(str, options))
+            devs.insert(0, StrDev("mem", cmdline=cmdline))
+            devices.insert(devs)
             return devices
 
         def add_spice_rhel5(devices, spice_params, port_range=(3100, 3199)):

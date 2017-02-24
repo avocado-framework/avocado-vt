@@ -1810,8 +1810,8 @@ class DevContainer(object):
         pc-dimm devices.
         """
         devices = []
-        if not self.has_option("object"):
-            logging.warn("QOM does not support by your qemu")
+        if not self.has_device("pc-dimm"):
+            logging.warn("'PC-DIMM' does not support by your qemu")
             return devices
         mem = self.memory_object_define_by_params(params, name)
         if mem:

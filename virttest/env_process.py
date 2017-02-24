@@ -8,6 +8,7 @@ import shutil
 import sys
 import copy
 import urllib2
+import math
 import multiprocessing
 
 import aexpect
@@ -513,35 +514,13 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
     :param vm_func: A function to call for each VM.
     :param vm_first: Call vm_func first or not.
     """
-    def validate_memory_resource():
-        """Validate host has enough memory to lauch VMs"""
-        magnification, requried_mem, count = 1.0, 0, 1
-        for vm_name in params.objects("vms"):
-            vm_params = params.object_params(vm_name)
-            if vm_params.get("start_vm") == "yes":
-                mem = "%sM" % vm_params.get("mem", 512)
-                requried_mem += float(
-                    utils_misc.normalize_data_size(mem))
-                count += 1
-        if (params.get("setup_ksm") == "yes" and
-                params.get("ksm_run", "1") == "1"):
-            magnification = 1.2
-        free_mem = "%s KB" % memory.read_from_meminfo('MemFree')
-        free_mem = float(utils_misc.normalize_data_size(free_mem))
-        provide_mem = free_mem * magnification
-        # make memory size aligned to 256Mib
-        suggest_mem = int(provide_mem / count / 256) * 256 + 256
-        return (requried_mem > provide_mem, suggest_mem)
-
     def _call_vm_func():
-        need_reset, suggest_mem = validate_memory_resource()
-        if need_reset:
-            # Convert 'MemFree' from KB to MB, then split it evenly
-            params["mem"] = suggest_mem
-            logging.warn("No enough free memory to launch VMs, "
-                         "reset guest memory to %s MB" % params["mem"])
         for vm_name in params.objects("vms"):
+            free_mem = "%s KB" % memory.read_from_meminfo('MemFree')
+            free_mem = float(utils_misc.normalize_data_size(free_mem))
+            max_mem = int(math.ceil(free_mem / 1024) * 1024)
             vm_params = params.object_params(vm_name)
+            vm_params["max_usable_mem"] = str(max_mem)
             vm_func(test, vm_params, env, vm_name)
 
     def _call_image_func():
