@@ -31,7 +31,13 @@ class Params(UserDict.IterableUserDict):
         :param key: The name of the key whose value lists the objects
                 (e.g. 'nics').
         """
-        return self.get(key, "").split()
+        lst = self.get(key, "").split()
+        # remove duplicate elements
+        objs = {}.fromkeys(lst).keys()
+        # sort list to keep origin order
+        objs.sort(key=lst.index)
+        del lst
+        return objs
 
     def object_params(self, obj_name):
         """
