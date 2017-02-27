@@ -2674,7 +2674,7 @@ def get_used_mem(session, os_type):
     else:
         cmd = "free -m | grep 'Mem'"
         pattern = r'Mem:\s+(\d+)\s+(\d+)\s+'
-    output = session.cmd_output(cmd)
+    output = session.cmd_output(cmd, timeout=300)
     match = re.search(pattern, output, re.M | re.I)
     used = "%sM" % ''.join(match.group(2).split(","))
     used = float(normalize_data_size(used, order_magnitude="M"))
