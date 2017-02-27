@@ -2071,7 +2071,7 @@ class VMVCPUSXML(base.LibvirtXMLBase):
         vcpu: list of dict - id, enabled, hotpluggable, order
     """
 
-    __slots__ = ('vcpu')
+    __slots__ = ('vcpu',)
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementList('vcpu', self, parent_xpath="/",
