@@ -1,4 +1,3 @@
-taskkill /IM serialport.exe /f
 :check_net
 if [%2]==[] goto check_process
 
@@ -30,5 +29,4 @@ reg add "HKEY_CURRENT_USER\Software\Microsoft\Windows\Windows Error Reporting" /
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\vds" /v Start /t REG_DWORD /d 3 /f
 
 for /L %%i in (1,1,3) do (echo Post set up finished> COM1)
-
-start "Serialport" c:\serialport.exe
+shutdown -t 0 -r -f
