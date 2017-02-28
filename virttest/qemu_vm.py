@@ -1293,6 +1293,34 @@ class VM(virt_vm.BaseVM):
                     pass
             return {'aobject': params.get('pci_bus', 'pci.0')}
 
+        def add_pci_controllers(devices, params):
+            """
+            Insert pci controllers into qcontainer by order.
+
+            :param devices: qcontainer object
+            :param params: test params
+            """
+            def sort_key(dev):
+                """
+                Function used to sort pcic list
+                """
+                order_pcics = ['ioh3420', 'x3130-upstream',
+                               'x3130', 'i82801b11-bridge',
+                               'pci-bridge']
+                try:
+                    return order_pcics.index(dev.get_param('driver'))
+                except ValueError:
+                    return -1
+
+            pcics = []
+            for pcic in params.objects("pci_controllers"):
+                dev = devices.pcic_by_params(pcic, params.object_params(pcic))
+                slot = len([_ for _ in pcics if _.get_param('driver') == 'ioh3420'])
+                if dev.get_param('driver') == 'ioh3420':
+                    dev.set_param('slot', hex(slot))
+                pcics.append(dev)
+            pcics.sort(key=sort_key, reverse=False)
+            map(devices.insert, pcics)
         # End of command line option wrappers
 
         # If nothing changed and devices exists, return immediately
@@ -1435,9 +1463,7 @@ class VM(virt_vm.BaseVM):
         devices.hook_fill_scsi_hbas(params)
 
         # Additional PCI RC/switch/bridges
-        for pcic in params.objects("pci_controllers"):
-            devs = devices.pcic_by_params(pcic, params.object_params(pcic))
-            devices.insert(devs)
+        add_pci_controllers(devices, params)
 
         # -soundhw addresses are always the lowest after scsi
         soundhw = params.get("soundcards")

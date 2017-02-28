@@ -1755,8 +1755,6 @@ class DevContainer(object):
             bus_type = 'PCIE'
         else:
             bus_type = 'PCI'
-        if driver == "ioh3420" and params.get("slot"):
-            pcic_params["slot"] = params["slot"]
         parent_bus = [{'aobject': params.get('pci_bus', 'pci.0')}]
         if driver == 'x3130':
             bus = qbuses.QPCISwitchBus(
