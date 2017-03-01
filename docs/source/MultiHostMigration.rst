@@ -96,7 +96,7 @@ to run the steps below manually.
     16:11:19 INFO | git commit ID is edc07c0c4346f9029930b062c573ff6f5433bc53 (no tag found)
     16:11:20 INFO |
     16:11:20 INFO | 2 - Checking the mandatory programs and headers
-    16:11:20 INFO | /usr/bin/7za
+    16:11:20 INFO | /usr/bin/xz
     16:11:20 INFO | /usr/sbin/tcpdump
     16:11:20 INFO | /usr/bin/nc
     16:11:20 INFO | /sbin/ip

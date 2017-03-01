@@ -422,6 +422,7 @@ def uncompress_asset(asset_info, force=False):
     if destination_uncompressed is not None:
         if uncompress_cmd is None:
             match = archive_re.match(destination)
+ rockstar full song
             if match:
                 if match.group(1) == 'gz':
                     uncompress_cmd = ('gzip -cd %s > %s' %
