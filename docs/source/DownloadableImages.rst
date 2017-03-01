@@ -44,9 +44,9 @@ JeOS image
 
 You can find the JeOS images currently available here:
 
-https://assets-avocadoproject.rhcloud.com/static/jeos-23-64.qcow2.7z
+https://assets-avocadoproject.rhcloud.com/static/jeos-23-64.qcow2.xz
 
-https://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS23
+https://assets-avocadoproject.rhcloud.com/static/SHA1SUM_JEOS23_XZ
 
 Unfortunately the host `assets-avocadoproject.rhcloud.com` is configured
 in such a way that exploring that base directory won't give you a file
@@ -72,9 +72,9 @@ command is similar to::
 
     $ qemu-img convert -f qcow2 -O qcow2 jeos-file-backup.qcow2 jeos-file.qcow2
 
-Then it'll compress it using 7zip, to save space and speed up downloads for
+Then it'll compress it using xz, to save space and speed up downloads for
 ``avocado-vt`` users. The command is similar to::
 
-    $ 7za a jeos-file.qcow2.7z jeos-file.qcow2
+    $ xz jeos-file.qcow2.xz jeos-file.qcow2
 
 As mentioned, the script is supposed to help you with the process.
