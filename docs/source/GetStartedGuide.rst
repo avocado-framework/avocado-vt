@@ -37,8 +37,8 @@ After the package, a bootstrap process must be run. Choose your test backend
     $ avocado vt-bootstrap --vt-type qemu
 
 .. note:: If you don't intend to use ``JeOS`` and don't want to install the
-   ``7za`` you can use ``avocado vt-bootstrap --vt-type qemu --vt-guest-os
-   $OS_OF_YOUR_CHOICE`` which bypasses the ``7za`` check.
+   ``xz`` you can use ``avocado vt-bootstrap --vt-type qemu --vt-guest-os
+   $OS_OF_YOUR_CHOICE`` which bypasses the ``xz`` check.
 
 The output should be similar to::
 
@@ -47,7 +47,7 @@ The output should be similar to::
     12:02:10 INFO | 1 - Updating all test providers
     12:02:10 INFO |
     12:02:10 INFO | 2 - Checking the mandatory programs and headers
-    12:02:10 INFO | /bin/7za OK
+    12:02:10 INFO | /bin/xz OK
     12:02:10 INFO | /sbin/tcpdump OK
     ...
     12:02:11 INFO | /usr/include/asm/unistd.h OK
