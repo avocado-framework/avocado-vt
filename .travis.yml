@@ -8,7 +8,7 @@ sudo: false
 install:
     - pip install "Sphinx==1.3b1"   # autotest requires Sphinx during install
     - pip install -r requirements-travis.txt
-    - git clone https://github.com/avocado-framework/avocado.git avocado-libs
+    - if [ "$TRAVIS_PYTHON_VERSION" == "2.6" ]; then AVOCADO_BRANCH=36lts; else AVOCADO_BRANCH=master; fi; git clone --depth 1 --branch $AVOCADO_BRANCH https://github.com/avocado-framework/avocado.git avocado-libs    # avocado-46+ does not supports python-2.6
     - cd avocado-libs
     - pip install -r requirements-travis.txt
     - python setup.py install
