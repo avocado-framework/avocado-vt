@@ -1,4 +1,4 @@
-%global modulename avocado
+%global modulename avocado-vt
 %if ! 0%{?commit:1}
  %define commit e1c20088823d8480a8eff6f9c16fb77e1dd59301
 %endif
@@ -11,7 +11,7 @@ Release: 2%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
-Source0: https://github.com/avocado-framework/%{name}/archive/%{commit}/%{name}-%{version}-%{shortcommit}.tar.gz
+Source0: https://github.com/avocado-framework/%{modulename}/archive/%{commit}/%{modulename}-%{version}-%{shortcommit}.tar.gz
 BuildRequires: python2-devel, python-setuptools
 BuildArch: noarch
 Requires: avocado >= 36.3
@@ -30,7 +30,7 @@ with all the avocado convenience features, such as HTML report,
 Xunit output, among others.
 
 %prep
-%setup -q -n %{name}-%{commit}
+%setup -q -n %{modulename}-%{commit}
 
 %build
 %{__python} setup.py build
@@ -55,6 +55,7 @@ Xunit output, among others.
 %changelog
 * Thu Mar  2 2017 Cleber Rosa <cleber@redhat.com> - 46.0-2
 - Allow Avocado LTS version (or later) with avocado-plugins-vt
+- Fixed URL of Source0 (and modulename variable)
 
 * Fri Feb 15 2017 Radek Duda <rduda@redhat.com> - 46.0-1
 - Added python-netifaces to requires

@@ -51,7 +51,7 @@ all:
 
 source: clean
 	if test ! -d SOURCES; then mkdir SOURCES; fi
-	git archive --prefix="avocado-plugins-vt-$(COMMIT)/" -o "SOURCES/avocado-plugins-vt-$(VERSION)-$(SHORT_COMMIT).tar.gz" HEAD
+	git archive --prefix="avocado-vt-$(COMMIT)/" -o "SOURCES/avocado-vt-$(VERSION)-$(SHORT_COMMIT).tar.gz" HEAD
 
 source-release: clean
 	if test ! -d SOURCES; then mkdir SOURCES; fi
