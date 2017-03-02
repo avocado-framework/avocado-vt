@@ -48,9 +48,10 @@ class UnknownBackendError(Exception):
         self.backend = backend
 
     def __str__(self):
-        return ("Virt Backend %s is not currently supported by avocado-vt. "
-                "Check for typos and the list of supported backends" %
-                self.backend)
+        return ('Virt Backend %s is not currently supported by avocado-vt. '
+                'Check for typos and the list of supported backends. '
+                'If you\'re using a package based install, make sure the '
+                '"-%s" package is installed' % (self.backend, self.backend))
 
 
 class SubdirList(list):

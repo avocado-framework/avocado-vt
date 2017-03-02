@@ -29,6 +29,15 @@ Avocado Virt Test is a plugin that lets you execute virt-tests
 with all the avocado convenience features, such as HTML report,
 Xunit output, among others.
 
+%package qemu
+Summary: Avocado-VT requirements for running (tp-)qemu tests
+Requires: avocado-plugins-vt == %{version}
+Requires: qemu-system-x86, qemu-img, bridge-utils
+
+%description qemu
+Collection of requirements to run qemu tests based on tp-qemu
+test provider.
+
 %prep
 %setup -q -n %{modulename}-%{commit}
 
@@ -46,17 +55,28 @@ Xunit output, among others.
 %doc README.rst LICENSE
 %{python_sitelib}/avocado_vt*
 %{python_sitelib}/avocado_plugins_vt*
+%exclude %{python_sitelib}/virttest/qemu*
+%exclude %{python_sitelib}/virttest/utils_test/qemu*
 %{python_sitelib}/virttest*
+%exclude %{_datadir}/avocado-plugins-vt/backends/qemu*
 %{_datadir}/avocado-plugins-vt/backends/*
 %{_datadir}/avocado-plugins-vt/shared/*
+%exclude %{_datadir}/avocado-plugins-vt/test-providers.d/io-github-autotest-qemu.ini
 %{_datadir}/avocado-plugins-vt/test-providers.d/*
 
+%files qemu
+%defattr(-,root,root,-)
+%{python_sitelib}/virttest/qemu*
+%{python_sitelib}/virttest/utils_test/qemu*
+%{_datadir}/avocado-plugins-vt/backends/qemu*
+%{_datadir}/avocado-plugins-vt/test-providers.d/io-github-autotest-qemu.ini
 
 %changelog
 * Thu Mar  2 2017 Cleber Rosa <cleber@redhat.com> - 46.0-2
 - Allow Avocado LTS version (or later) with avocado-plugins-vt
 - Fixed URL of Source0 (and modulename variable)
 - Fixed date of previous release
+- Added subpackage avocado-plugins-vt-qemu
 
 * Wed Feb 15 2017 Radek Duda <rduda@redhat.com> - 46.0-1
 - Added python-netifaces to requires
