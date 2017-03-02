@@ -56,8 +56,9 @@ Xunit output, among others.
 * Thu Mar  2 2017 Cleber Rosa <cleber@redhat.com> - 46.0-2
 - Allow Avocado LTS version (or later) with avocado-plugins-vt
 - Fixed URL of Source0 (and modulename variable)
+- Fixed date of previous release
 
-* Fri Feb 15 2017 Radek Duda <rduda@redhat.com> - 46.0-1
+* Wed Feb 15 2017 Radek Duda <rduda@redhat.com> - 46.0-1
 - Added python-netifaces to requires
 
 * Tue Feb 14 2017 Cleber Rosa <cleber@redhat.com> - 46.0-0
