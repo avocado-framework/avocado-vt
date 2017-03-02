@@ -9,6 +9,8 @@ import re
 import time
 import logging
 
+import aexpect
+
 from avocado.utils import path
 from avocado.utils import process
 from avocado.core import exceptions
@@ -702,6 +704,9 @@ def v2v_cmd(params):
     opts_extra = params.get('v2v_opts')
     v2v_timeout = params.get('v2v_timeout', 2400)
     rhv_upload_opts = params.get('rhv_upload_opts')
+    custom_inputs = params.get('custom_inputs')
+    sasl_user = params.get('sasl_user')
+    sasl_pwd = params.get('sasl_pwd')
 
     uri_obj = Uri(hypervisor)
     # Return actual 'uri' according to 'hostname' and 'hypervisor'
@@ -718,6 +723,23 @@ def v2v_cmd(params):
 
     # Construct a final virt-v2v command
     cmd = '%s %s' % (V2V_EXEC, options)
+    logging.debug(cmd)
+
+    # To deal with inputs during conversion
+    if custom_inputs or (sasl_user and sasl_pwd):
+        v2v_log = os.path.join(data_dir.get_tmp_dir(), 'v2v_log')
+        v2v_session = aexpect.ShellSession(command=cmd,
+                                           output_func=utils_misc.log_line,
+                                           output_params=(v2v_log,))
+        remote.handle_v2v_prompts(v2v_session, sasl_user, sasl_pwd, timeout=v2v_timeout/2,
+                                  debug=True, input_line=custom_inputs)
+        # Wait until the session is dead, then get the output and exit_status
+        # of the session
+        utils_misc.wait_for(lambda: v2v_session.is_alive() is not True, v2v_timeout)
+        cmd_result = process.CmdResult(command=cmd,
+                                       stdout=v2v_session.get_output(),
+                                       exit_status=v2v_session.get_status())
+        return cmd_result
     cmd_result = process.run(cmd, timeout=v2v_timeout,
                              verbose=True, ignore_status=True)
     cmd_result.stdout = results_stdout_52lts(cmd_result)
