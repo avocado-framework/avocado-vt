@@ -681,8 +681,8 @@ class BaseVM(object):
                         self.address_cache[nic.mac.lower()] = None
                         arp_ip = None
                     else:
-                        arp_ip =None
-
+                        arp_ip = self.address_cache.get(nic.mac.lower())
+                        
             if (not arp_ip) and (len(macs) > 1) and flexible_index:
                 # Try to poke for each index
                 for idx in range(len(macs)):
