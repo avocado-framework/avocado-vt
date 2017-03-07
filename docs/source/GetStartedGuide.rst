@@ -38,7 +38,7 @@ After the package, a bootstrap process must be run. Choose your test backend
 
 .. note:: If you don't intend to use ``JeOS`` and don't want to install the
    ``xz`` you can use ``avocado vt-bootstrap --vt-type qemu --vt-guest-os
-   $OS_OF_YOUR_CHOICE`` which bypasses the ``xz` check.
+   $OS_OF_YOUR_CHOICE`` which bypasses the ``xz`` check.
 
 The output should be similar to::
 
