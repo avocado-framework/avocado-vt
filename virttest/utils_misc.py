@@ -1750,14 +1750,15 @@ class NumaInfo(object):
 
     def get_all_node_meminfo(self):
         """
-        Get the complete meminfo of all nodes.
+        Get the complete meminfo of all online nodes.
 
         :return: All nodes' meminfo
         :rtype: Dict
         """
         meminfo = {}
         meminfo_file = os.path.join(self.numa_sys_path, "node%s/meminfo")
-        for node in self.get_all_nodes():
+        # meminfo for online nodes are taken from numa_sys_path
+        for node in self.get_online_nodes():
             node_meminfo = {}
             meminfo_f = open(meminfo_file % node, 'r')
             for info in meminfo_f.readlines():
