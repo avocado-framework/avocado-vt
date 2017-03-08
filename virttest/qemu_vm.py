@@ -3263,21 +3263,27 @@ class VM(virt_vm.BaseVM):
         return self.spice_options.get(spice_var, None)
 
     @error_context.context_aware
-    def hotplug_vcpu(self, cpu_id=None, plug_command=""):
+    def hotplug_vcpu(self, cpu_id=None, plug_command="", unplug=""):
         """
-        Hotplug a vcpu, if not assign the cpu_id, will use the minimum unused.
-        the function will use the plug_command if you assigned it, else the
-        function will use the command automatically generated based on the
-        type of monitor
+        Hotplug/unplug a vcpu, if not assign the cpu_id, will use the minimum
+        unused. The function will use the plug_command if you assigned it,
+        else the function will use the command automatically generated based
+        on the type of monitor
 
-        :param cpu_id  the cpu_id you want hotplug.
+        :param cpu_id  the cpu_id you want hotplug/unplug.
         """
         vcpu_threads_count = len(self.vcpu_threads)
         plug_cpu_id = cpu_id
         if plug_cpu_id is None:
             plug_cpu_id = vcpu_threads_count
         if plug_command:
-            vcpu_add_cmd = plug_command % plug_cpu_id
+            # vcpu device based hotplug command for ppc64le looks like
+            # device_add CPU_MODEL-spapr-cpu-core,id=core{0},core-id={0}
+            # to place the cpu_id multiple places, used format.
+            if plug_command.__contains__('{'):
+                vcpu_add_cmd = plug_command.format(plug_cpu_id)
+            else:
+                vcpu_add_cmd = plug_command % plug_cpu_id
         else:
             if self.monitor.protocol == 'human':
                 vcpu_add_cmd = "cpu_set %s online" % plug_cpu_id
@@ -3291,14 +3297,22 @@ class VM(virt_vm.BaseVM):
                                            (self.monitor.protocol,
                                             vcpu_add_cmd))
         try:
-            cmd_output = self.monitor.send_args_cmd(vcpu_add_cmd)
+            # vcpu device based hotplug command contains arguments and with
+            # convert=True, arguments will be filtered.
+            cmd_output = self.monitor.send_args_cmd(vcpu_add_cmd, convert=False)
         except qemu_monitor.QMPCmdError, e:
             return (False, str(e))
 
         vcpu_thread_pattern = self.params.get("vcpu_thread_pattern",
                                               r"thread_id.?[:|=]\s*(\d+)")
         self.vcpu_threads = self.get_vcpu_pids(vcpu_thread_pattern)
-        if len(self.vcpu_threads) == vcpu_threads_count + 1:
+        # Will hotplug/unplug more than one vcpu.
+        add_remove_count = int(self.params.get("vcpu_threads", 1))
+        if unplug == "yes":
+            modified_vcpu_threads = vcpu_threads_count - add_remove_count
+        else:
+            modified_vcpu_threads = vcpu_threads_count + add_remove_count
+        if len(self.vcpu_threads) == modified_vcpu_threads:
             return(True, plug_cpu_id)
         else:
             return(False, cmd_output)
