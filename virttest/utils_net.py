@@ -3054,7 +3054,10 @@ def get_ip_address_by_interface(ifname, ip_ver="ipv4"):
         ver = netifaces.AF_INET
     try:
         addr = netifaces.ifaddresses(ifname).get(ver)
-        return [a['addr'] for a in addr if not a['addr'].startswith('fe80')][0]
+        if addr is not None:
+            return [a['addr'] for a in addr if not a['addr'].startswith('fe80')][0]
+        else:
+            return None
     except Exception, e:
         raise exceptions.TestError("Cannot get %s address form %s interface: %s"
                                    % (ip_ver, ifname, e))
