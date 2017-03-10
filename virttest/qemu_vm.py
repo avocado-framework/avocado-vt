@@ -1137,20 +1137,27 @@ class VM(virt_vm.BaseVM):
 
         def add_cpu_flags(devices, cpu_model, flags=None, vendor_id=None,
                           family=None):
-            if devices.has_option('cpu'):
-                cmd = " -cpu '%s'" % cpu_model
-
-                if vendor_id:
-                    cmd += ",vendor=\"%s\"" % vendor_id
-                if flags:
-                    if not flags.startswith(","):
-                        cmd += ","
-                    cmd += "%s" % flags
-                if family is not None:
-                    cmd += ",family=%s" % family
-                return cmd
-            else:
+            if not devices.has_option('cpu'):
                 return ""
+
+            cmd = " -cpu '%s'" % cpu_model
+            if vendor_id:
+                cmd += ",vendor=\"%s\"" % vendor_id
+            if flags:
+                if not flags.startswith(","):
+                    cmd += ","
+                cmd += "%s" % flags
+            # CPU flag 'erms' is required by Win10 and Win2016 guest, if VM's
+            # CPU model is 'Penryn' or 'Nehalem'(see detail RHBZ#1252134), and
+            # it's harmless for other guest, so add it here.
+            if cpu_model in ['Penryn', 'Nehalem']:
+                recognize_flags = utils_misc.get_recognized_cpuid_flags(
+                     qemu_binary)
+                if not ('erms' in flags or 'erms' in recognize_flags):
+                    cmd += ',+erms'
+            if family:
+                cmd += ",family=%s" % family
+            return cmd
 
         def add_boot(devices, boot_order, boot_once, boot_menu, boot_strict):
             if params.get('machine_type', "").startswith("arm"):
@@ -1875,9 +1882,9 @@ class VM(virt_vm.BaseVM):
             cpu_model = params.get("default_cpu_model")
 
         if cpu_model:
-            vendor = params.get("cpu_model_vendor")
-            flags = params.get("cpu_model_flags")
-            family = params.get("cpu_family")
+            family = params.get("cpu_family", "")
+            flags = params.get("cpu_model_flags", "")
+            vendor = params.get("cpu_model_vendor", "")
             self.cpuinfo.model = cpu_model
             self.cpuinfo.vendor = vendor
             self.cpuinfo.flags = flags
