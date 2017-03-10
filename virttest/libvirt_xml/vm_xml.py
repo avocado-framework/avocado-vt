@@ -754,7 +754,7 @@ class VMXML(VMXMLBase):
         try:
             topology = self.cpu.topology
         except Exception:
-            logging.error("Can't find <cpu>/<topology> element")
+            logging.debug("<cpu>/<topology> xml element not found")
         return topology
 
     def get_disk_all(self):
