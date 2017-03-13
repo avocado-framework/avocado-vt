@@ -125,6 +125,7 @@ def handle_prompts(session, username, password, prompt, timeout=10,
     """
     password_prompt_count = 0
     login_prompt_count = 0
+    last_chance = False
 
     output = ""
     while True:
@@ -194,7 +195,16 @@ def handle_prompts(session, username, password, prompt, timeout=10,
                 logging.debug("Got console prompt, send return to show login")
                 session.sendline()
         except aexpect.ExpectTimeoutError, e:
-            raise LoginTimeoutError(e.output)
+            # sometimes, linux kernel print some message to console
+            # the message maybe impact match login pattern, so send
+            # a empty line to avoid unexpect login timeout
+            if not last_chance:
+                time.sleep(0.5)
+                session.sendline()
+                last_chance = True
+                continue
+            else:
+                raise LoginTimeoutError(e.output)
         except aexpect.ExpectProcessTerminatedError, e:
             raise LoginProcessTerminatedError(e.status, e.output)
 
