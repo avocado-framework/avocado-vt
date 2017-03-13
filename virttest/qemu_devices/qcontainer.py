@@ -1763,14 +1763,14 @@ class DevContainer(object):
                 name, bus_type, 'xio3130-downstream', name)
             driver = 'x3130-upstream'
         else:
-            if driver == 'pci-bridge':  # addr 1-19, chasis_nr
+            if driver == 'pci-bridge':  # addr 0x01-0x1f, chasis_nr
                 parent_bus.append({'busid': '_PCI_CHASSIS_NR'})
+                bus_length = 32
+                bus_first_port = 1
+            elif driver == 'i82801b11-bridge':  # addr 0x1-0x13
                 bus_length = 20
                 bus_first_port = 1
-            elif driver == 'i82801b11-bridge':  # addr 1-19
-                bus_length = 20
-                bus_first_port = 1
-            else:   # addr = 0-31
+            else:   # addr = 0x0-0x1f
                 bus_length = 32
                 bus_first_port = 0
             bus = qbuses.QPCIBus(
