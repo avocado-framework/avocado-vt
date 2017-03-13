@@ -372,7 +372,7 @@ Slots:
                          % (out, exp, dev.str_long(), bus.str_long()))
 
         # Compare short repr
-        exp = ("pci.0(pci): {00-00:a'dev1',0a-00:a'dev2',1f-00:a'dev3'}")
+        exp = ("pci.0(pci): {0x0-0x0:a'dev1',0x1f-0x0:a'dev3',0xa-0x0:a'dev2'}")
         out = str(bus.str_short())
         self.assertEqual(out, exp, "Short representation corrupted:\n%s\n%s"
                          "\n\n%s" % (out, exp, bus.str_long()))
@@ -395,7 +395,7 @@ Slots:
                          % (out, exp, dev.str_long(), bus.str_long()))
 
         # Compare short repr
-        exp = ("pci.0(pci): {00-00:a'dev1',0a-00:a'dev2',1f-00:a'dev3'}")
+        exp = ("pci.0(pci): {0x0-0x0:a'dev1',0x1f-0x0:a'dev3',0xa-0x0:a'dev2'}")
         out = str(bus.str_short())
         self.assertEqual(out, exp, "Short representation corrupted:\n%s\n%s"
                          "\n\n%s" % (out, exp, bus.str_long()))
@@ -419,17 +419,37 @@ Slots:
         # All devices will have 'addr' set as we are in the strict mode
         exp = """Bus pci.0, type=pci
 Slots:
----------------< 1e-00 >---------------
+---------------< 0x0-0x0 >---------------
   device
     aid = None
     aobject = None
     parent_bus = {'type': 'pci'}
     child_bus = []
     params:
-      addr = 1e
       driver = dev1
       bus = pci.0
----------------< 02-00 >---------------
+      addr = 0x0
+---------------< 0xc-0x0 >---------------
+  device
+    aid = None
+    aobject = None
+    parent_bus = {'type': 'pci'}
+    child_bus = []
+    params:
+      addr = 0xc
+      driver = dev1
+      bus = pci.0
+---------------< 0x1e-0x0 >---------------
+  device
+    aid = None
+    aobject = None
+    parent_bus = {'type': 'pci'}
+    child_bus = []
+    params:
+      addr = 0x1e
+      driver = dev1
+      bus = pci.0
+---------------< 0x2-0x0 >---------------
   device
     aid = None
     aobject = None
@@ -438,38 +458,8 @@ Slots:
     params:
       driver = dev3
       bus = pci.0
-      addr = 02
----------------< 1f-00 >---------------
-  device
-    aid = None
-    aobject = None
-    parent_bus = {'type': 'pci'}
-    child_bus = []
-    params:
-      addr = 1f
-      driver = dev1
-      bus = pci.0
----------------< 00-00 >---------------
-  device
-    aid = None
-    aobject = None
-    parent_bus = {'type': 'pci'}
-    child_bus = []
-    params:
-      driver = dev1
-      bus = pci.0
-      addr = 00
----------------< 0c-00 >---------------
-  device
-    aid = None
-    aobject = None
-    parent_bus = {'type': 'pci'}
-    child_bus = []
-    params:
-      addr = 0c
-      driver = dev1
-      bus = pci.0
----------------< 01-00 >---------------
+      addr = 0x2
+---------------< 0x1-0x0 >---------------
   device
     aid = None
     aobject = None
@@ -478,7 +468,17 @@ Slots:
     params:
       driver = dev2
       bus = pci.0
-      addr = 01
+      addr = 0x1
+---------------< 0x1f-0x0 >---------------
+  device
+    aid = None
+    aobject = None
+    parent_bus = {'type': 'pci'}
+    child_bus = []
+    params:
+      addr = 0x1f
+      driver = dev1
+      bus = pci.0
 """
         out = str(bus.str_long())
         self.assertEqual(out, exp, "Long representation corrupted:\n%s\n%s"
@@ -686,8 +686,8 @@ fdc
                "  ide(ide): [None,None,None,None]\n"
                "  _PCI_CHASSIS_NR(None): {}\n"
                "  _PCI_CHASSIS(None): {}\n"
-               "  pci.0(PCI): {00-00:t'i440FX',01-00:t'PIIX3',"
-               "01-01:t'piix3-ide',01-03:t'PIIX4_PM'}")
+               "  pci.0(PCI): {0x0-0x0:t'i440FX',0x1-0x0:t'PIIX3',"
+               "0x1-0x1:t'piix3-ide',0x1-0x3:t'PIIX4_PM'}")
         out = qdev.str_bus_short()
         assert out == exp, "Bus representation is ocrrupted:\n%s\n%s" % (out,
                                                                          exp)
@@ -734,8 +734,8 @@ fdc
                "  ide(ide): [None,None,None,None]\n"
                "  _PCI_CHASSIS_NR(None): {}\n"
                "  _PCI_CHASSIS(None): {}\n"
-               "  pci.0(PCI): {00-00:t'i440FX',01-00:t'PIIX3',"
-               "01-01:t'piix3-ide',01-03:t'PIIX4_PM',0a-00:hba1}")
+               "  pci.0(PCI): {0x0-0x0:t'i440FX',0x1-0x0:t'PIIX3',"
+               "0x1-0x1:t'piix3-ide',0x1-0x3:t'PIIX4_PM',0xa-0x0:hba1}")
         out = qdev.str_bus_short()
         assert out == exp, 'Bus representation iscorrupted:\n%s\n%s' % (out,
                                                                         exp)
@@ -752,8 +752,8 @@ fdc
                "  ide(ide): [None,None,None,None]\n"
                "  _PCI_CHASSIS_NR(None): {}\n"
                "  _PCI_CHASSIS(None): {}\n"
-               "  pci.0(PCI): {00-00:t'i440FX',01-00:t'PIIX3',"
-               "01-01:t'piix3-ide',01-03:t'PIIX4_PM',0a-00:hba1}")
+               "  pci.0(PCI): {0x0-0x0:t'i440FX',0x1-0x0:t'PIIX3',"
+               "0x1-0x1:t'piix3-ide',0x1-0x3:t'PIIX4_PM',0xa-0x0:hba1}")
         out = qdev.str_bus_short()
         assert out == exp, 'Bus representation is corrupted:\n%s\n%s' % (out,
                                                                          exp)
@@ -776,7 +776,7 @@ fdc
         self.assertNotEqual(qdev2, qdev, "Other qdev matches this one:\n%s\n%s"
                             % (qdev, qdev2))
         # cmdline
-        exp = ("-machine pc -device HBA,id=hba1,addr=0a,bus=pci.0 -device dev "
+        exp = ("-machine pc -device HBA,id=hba1,addr=0xa,bus=pci.0 -device dev "
                "-device dev -device dev")
         out = qdev.cmdline()
         self.assertEqual(out, exp, 'Corrupted qdev.cmdline() output:\n%s\n%s'
@@ -813,8 +813,8 @@ fdc
                "  ide(ide): [None,None,None,None]\n"
                "  _PCI_CHASSIS_NR(None): {}\n"
                "  _PCI_CHASSIS(None): {}\n"
-               "  pci.0(PCI): {00-00:t'i440FX',01-00:t'PIIX3',"
-               "01-01:t'piix3-ide',01-03:t'PIIX4_PM'}")
+               "  pci.0(PCI): {0x0-0x0:t'i440FX',0x1-0x0:t'PIIX3',"
+               "0x1-0x1:t'piix3-ide',0x1-0x3:t'PIIX4_PM'}")
         out = qdev.str_bus_short()
         assert out == exp, 'Bus representation is corrupted:\n%s\n%s' % (out,
                                                                          exp)
@@ -1137,21 +1137,21 @@ fdc
                                      parent_bus={'type': ('PCI', 'PCIE'),
                                                  'aobject': 'pci.0'}))
 
-        exp = ("-machine pc -device ioh3420,id=root.1,bus=pci.0,addr=02 "
-               "-device x3130-upstream,id=pci_switch,bus=root.1,addr=00 "
-               "-device pci-bridge,id=pci_bridge,bus=root.1,addr=01,"
-               "chassis_nr=1 -device ahci,id=in_bridge,bus=pci_bridge,addr=01"
+        exp = ("-machine pc -device ioh3420,id=root.1,bus=pci.0,addr=0x2 "
+               "-device x3130-upstream,id=pci_switch,bus=root.1,addr=0x0 "
+               "-device pci-bridge,id=pci_bridge,bus=root.1,addr=0x1,"
+               "chassis_nr=1 -device ahci,id=in_bridge,bus=pci_bridge,addr=0x1"
                " -device xio3130-downstream,bus=pci_switch,id=pci_switch.0,"
-               "addr=00,chassis=1 -device ahci,id=in_switch1,bus=pci_switch.0"
-               ",addr=00 "
+               "addr=0x0,chassis=1 -device ahci,id=in_switch1,bus=pci_switch.0"
+               ",addr=0x0 "
                "-device xio3130-downstream,bus=pci_switch,id=pci_switch.1,"
-               "addr=01,chassis=2 -device ahci,id=in_switch2,bus=pci_switch.1"
-               ",addr=00 "
+               "addr=0x1,chassis=2 -device ahci,id=in_switch2,bus=pci_switch.1"
+               ",addr=0x0 "
                "-device xio3130-downstream,bus=pci_switch,id=pci_switch.2,"
-               "addr=02,chassis=3 -device ahci,id=in_switch3,bus=pci_switch.2"
-               ",addr=00 "
-               "-device ahci,id=in_root1,bus=root.1,addr=02 "
-               "-device ahci,id=in_pci.0,bus=pci.0,addr=03")
+               "addr=0x2,chassis=3 -device ahci,id=in_switch3,bus=pci_switch.2"
+               ",addr=0x0 "
+               "-device ahci,id=in_root1,bus=root.1,addr=0x2 "
+               "-device ahci,id=in_pci.0,bus=pci.0,addr=0x3")
         out = qdev.cmdline()
         assert out == exp, (out, exp)
 

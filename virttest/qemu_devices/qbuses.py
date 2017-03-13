@@ -607,7 +607,7 @@ class QPCIBus(QSparseBus):
             if value is None:
                 out += '*-'
             else:
-                out += '%02x-' % value
+                out += '0x%x-' % value
         if out:
             return out[:-1]
         else:
@@ -632,9 +632,9 @@ class QPCIBus(QSparseBus):
         orig_addr = device.get_param('addr')
         if addr[1] or (isinstance(orig_addr, str) and
                        orig_addr.find('.') != -1):
-            device.set_param('addr', '%02x.%x' % (addr[0], addr[1]))
+            device.set_param('addr', '0x%x.%x' % (addr[0], addr[1]))
         else:
-            device.set_param('addr', '%02x' % (addr[0]))
+            device.set_param('addr', '0x%x' % addr[0])
 
     def _update_device_props(self, device, addr):
         """ Always set properties """
@@ -664,13 +664,14 @@ class QPCISwitchBus(QPCIBus):
         Add downstream port of the certain address
         """
         if addr not in self.__downstream_ports:
-            bus_id = "%s.%s" % (self.busid, int(addr, 16))
+            _addr = int(addr, 16)
+            bus_id = "%s.%s" % (self.busid, _addr)
             bus = QPCIBus(bus_id, 'PCIE', bus_id)
-            self.__downstream_ports[addr] = bus
+            self.__downstream_ports["0x%x" % _addr] = bus
             downstream = qdevices.QDevice(self.__downstream_type,
                                           {'id': bus_id,
                                            'bus': self.busid,
-                                           'addr': addr},
+                                           'addr': "0x%x" % _addr},
                                           aobject=self.aobject,
                                           parent_bus={'busid': '_PCI_CHASSIS'},
                                           child_bus=bus)
@@ -699,7 +700,7 @@ class QPCISwitchBus(QPCIBus):
         Instead of setting the addr this insert the device into the
         downstream port.
         """
-        self.__downstream_ports['%02x' % addr[0]].insert(device)
+        self.__downstream_ports['0x%x' % addr[0]].insert(device)
 
 
 class QSCSIBus(QSparseBus):
