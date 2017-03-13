@@ -15,11 +15,11 @@ Source0: https://github.com/avocado-framework/%{modulename}/archive/%{commit}/%{
 BuildRequires: python2-devel, python-setuptools
 BuildArch: noarch
 Requires: avocado >= 36.3
-Requires: python, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, aexpect, git, python-netaddr, python-netifaces
+Requires: python, autotest-framework, p7zip, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, aexpect, git, python-netaddr, python-netifaces, python-simplejson
 
 Requires: python-imaging
 %if 0%{?el6}
-Requires: gstreamer-python, gstreamer-plugins-good, python-simplejson
+Requires: gstreamer-python, gstreamer-plugins-good
 %else
 Requires: pygobject2, gstreamer1-plugins-good
 %endif
