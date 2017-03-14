@@ -863,10 +863,10 @@ def srv_clients_set(server_name, max_unauth_clients=None,
 def client_disconnect(server_name, client_id, **dargs):
     """
     Run client-disconnect: force disconnect a client from the given server
-    :param server_name: server which the client is currently connected to.
-    :param client_id: client which to disconnect.
+    :param server_name: the name of the server the client is currently connected to
+    :param client_id: close a connection originating from client client_id
     :param dargs: standardized virt-admin function API keywords.
     :return: CmdResult object
     """
-    cmd = "client_disconnect %s %s" % (server_name, client_id)
+    cmd = "client-disconnect %s %s" % (server_name, client_id)
     return command(cmd, **dargs)
