@@ -52,7 +52,7 @@ def get_public_key():
     return public_key_str
 
 
-def get_remote_public_key(session):
+def get_remote_public_key(session, public_key="dsa"):
     """
     Return a valid string ssh public key for the user executing autoserv or
     autotest. If there's no DSA or RSA public key, create a DSA keypair with
@@ -80,19 +80,24 @@ def get_remote_public_key(session):
     has_dsa_keypair = dsa_public_s == 0 and dsa_private_s == 0
     has_rsa_keypair = rsa_public_s == 0 and rsa_private_s == 0
 
-    if has_dsa_keypair:
+    if has_dsa_keypair and public_key == "dsa":
         logging.info('DSA keypair found on %s, using it', session)
         public_key_path = dsa_public_key_path
 
-    elif has_rsa_keypair:
+    elif has_rsa_keypair and public_key == "rsa":
         logging.info('RSA keypair found on %s, using it', session)
         public_key_path = rsa_public_key_path
 
     else:
         logging.info('Neither RSA nor DSA keypair found, '
-                     'creating DSA ssh key pair')
-        session.cmd('ssh-keygen -t dsa -q -N "" -f %s' % dsa_private_key_path)
+                     'creating %s ssh key pair' % public_key)
+        key_path = dsa_private_key_path
         public_key_path = dsa_public_key_path
+        if public_key == "rsa":
+            key_path = rsa_private_key_path
+            public_key_path = rsa_public_key_path
+        session.cmd('ssh-keygen -t %s -q -N "" -f %s' %
+                    (public_key, key_path))
 
     return session.cmd_output("cat %s" % public_key_path)
 
@@ -138,7 +143,7 @@ def setup_ssh_key(hostname, user, password, port=22):
 
 def setup_remote_ssh_key(hostname1, user1, password1,
                          hostname2=None, user2=None, password2=None,
-                         port=22, config_options=None):
+                         port=22, config_options=None, public_key="dsa"):
     """
     Setup up remote to remote login in another server by using public key
     If hostname2 is not supplied, setup to local.
@@ -162,7 +167,7 @@ def setup_remote_ssh_key(hostname1, user1, password1,
         session1 = remote.remote_login(client='ssh', host=hostname1, port=port,
                                        username=user1, password=password1,
                                        prompt=r'[$#%]')
-        public_key = get_remote_public_key(session1)
+        public_key = get_remote_public_key(session1, public_key=public_key)
 
         if hostname2 is None:
             # Simply create a session to local
@@ -170,7 +175,8 @@ def setup_remote_ssh_key(hostname1, user1, password1,
             # set config in local machine
             if config_options:
                 for each_option in config_options:
-                    session2.cmd_output("echo '%s' >> ~/.ssh/config" % each_option)
+                    session2.cmd_output("echo '%s' >> ~/.ssh/config" %
+                                        each_option)
         else:
             session2 = remote.remote_login(client='ssh', host=hostname2,
                                            port=port, username=user2,
@@ -179,7 +185,8 @@ def setup_remote_ssh_key(hostname1, user1, password1,
             # set config in remote machine
             if config_options:
                 for each_option in config_options:
-                    session1.cmd_output("echo '%s' >> ~/.ssh/config" % each_option)
+                    session1.cmd_output("echo '%s' >> ~/.ssh/config" %
+                                        each_option)
         session2.cmd_output('mkdir -p ~/.ssh')
         session2.cmd_output('chmod 700 ~/.ssh')
         session2.cmd_output("echo '%s' >> ~/.ssh/authorized_keys; " %
