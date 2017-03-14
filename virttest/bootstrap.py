@@ -19,7 +19,7 @@ from . import utils_selinux
 from . import defaults
 from . import arch
 
-basic_program_requirements = ['xz' 'tcpdump', 'nc', 'ip', 'arping']
+basic_program_requirements = ['xz', 'tcpdump', 'nc', 'ip', 'arping']
 
 recommended_programs = {'qemu': [('qemu-kvm', 'kvm'), ('qemu-img',),
                                  ('qemu-io',)],
