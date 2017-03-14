@@ -3448,7 +3448,7 @@ def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
     """
     Check TCP/IP listening by service
     """
-    cmd = "netstat -tunlp | grep -E '^tcp.*LISTEN.*%s.*'" % service
+    cmd = "netstat -tunlpW | grep -E '^tcp.*LISTEN.*%s.*'" % service
     find_netstat_cmd = "which netstat"
     output = ""
     find_str = listen_addr + ":" + port

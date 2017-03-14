@@ -999,7 +999,7 @@ class VM(virt_vm.BaseVM):
             ip_ver = optget("listening_addr")
             if ip_ver:
                 host_ip = utils_net.get_host_ip_address(self.params, ip_ver)
-                spice_opts.append("addr=%s" % host_ip)
+                self.spice_options['spice_addr'] = host_ip
             set_yes_no_value(
                 "disable_copy_paste", yes_value="disable-copy-paste")
             set_value("addr=%s", "spice_addr")
