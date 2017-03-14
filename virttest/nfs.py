@@ -245,6 +245,12 @@ class NFSClient(object):
     """
 
     def __init__(self, params):
+        self.nfs_client_ip = params.get("nfs_client_ip")
+        # To Avoid host key verification failure
+        output = process.run("ssh-keygen -R %s" % self.nfs_client_ip)
+        if output.exit_status:
+            raise exceptions.TestFail("Failed to update host key: %s" %
+                                      output.stderr)
         # Setup SSH connection
         self.ssh_obj = SSHConnection(params)
         ssh_timeout = int(params.get("ssh_timeout", 10))
@@ -254,10 +260,13 @@ class NFSClient(object):
         self.mount_dir = params.get("nfs_mount_dir")
         self.mount_options = params.get("nfs_mount_options")
         self.mount_src = params.get("nfs_mount_src")
-        self.nfs_client_ip = params.get("nfs_client_ip")
         self.nfs_server_ip = params.get("nfs_server_ip")
         self.ssh_user = params.get("ssh_username", "root")
         self.remote_nfs_mount = params.get("remote_nfs_mount", "yes")
+        self.ssh_hostkey_check = params.get("ssh_hostkey_check", "no") == "yes"
+        self.ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.nfs_client_ip)
+        if not self.ssh_hostkey_check:
+            self.ssh_cmd += "-o StrictHostKeyChecking=no "
 
     def is_mounted(self):
         """
@@ -266,10 +275,9 @@ class NFSClient(object):
         :return: If the src is mounted as expect
         :rtype: Boolean
         """
-        ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.nfs_client_ip)
         find_mountpoint_cmd = "mount | grep -E '.*%s.*%s.*'" % (self.mount_src,
                                                                 self.mount_dir)
-        cmd = ssh_cmd + "'%s'" % find_mountpoint_cmd
+        cmd = self.ssh_cmd + "'%s'" % find_mountpoint_cmd
         logging.debug("The command: %s", cmd)
         status, output = commands.getstatusoutput(cmd)
         if status:
@@ -297,10 +305,9 @@ class NFSClient(object):
         """
         Unmount the mount directory in remote host
         """
-        ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.nfs_client_ip)
         logging.debug("Umount %s from %s" %
                       (self.mount_dir, self.nfs_client_ip))
-        umount_cmd = ssh_cmd + "'umount -l %s'" % self.mount_dir
+        umount_cmd = self.ssh_cmd + "'umount -l %s'" % self.mount_dir
         try:
             process.system(umount_cmd, verbose=True)
         except process.CmdError:
@@ -311,9 +318,8 @@ class NFSClient(object):
         Cleanup NFS client.
         """
         self.umount()
-        ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.nfs_client_ip)
         if self.mkdir_mount_remote:
-            rmdir_cmd = ssh_cmd + "'rm -rf %s'" % self.mount_dir
+            rmdir_cmd = self.ssh_cmd + "'rm -rf %s'" % self.mount_dir
             try:
                 process.system(rmdir_cmd, verbose=True)
             except process.CmdError:
@@ -330,16 +336,16 @@ class NFSClient(object):
         """
         Mount sharing directory to remote host.
         """
-        ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.nfs_client_ip)
-        check_mount_dir_cmd = ssh_cmd + "'ls -d %s'" % self.mount_dir
+        check_mount_dir_cmd = self.ssh_cmd + "'ls -d %s'" % self.mount_dir
         logging.debug("To check if the %s exists", self.mount_dir)
         output = commands.getoutput(check_mount_dir_cmd)
         if re.findall("No such file or directory", output, re.M):
-            mkdir_cmd = ssh_cmd + "'mkdir -p %s'" % self.mount_dir
+            mkdir_cmd = self.ssh_cmd + "'mkdir -p %s'" % self.mount_dir
             logging.debug("Prepare to create %s", self.mount_dir)
             s, o = commands.getstatusoutput(mkdir_cmd)
             if s != 0:
-                raise exceptions.TestFail("Failed to run %s: %s" % (mkdir_cmd, o))
+                raise exceptions.TestFail("Failed to run %s: %s" %
+                                          (mkdir_cmd, o))
             self.mkdir_mount_remote = True
 
         self.mount_src = "%s:%s" % (self.nfs_server_ip, self.mount_src)
@@ -348,7 +354,7 @@ class NFSClient(object):
         if self.mount_options:
             mount_cmd += " -o %s" % self.mount_options
         try:
-            cmd = "%s '%s'" % (ssh_cmd, mount_cmd)
+            cmd = "%s '%s'" % (self.ssh_cmd, mount_cmd)
             process.system(cmd, verbose=True)
         except process.CmdError:
             raise exceptions.TestFail("Failed to run: %s" % cmd)
