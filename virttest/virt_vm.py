@@ -1291,29 +1291,29 @@ class BaseVM(object):
         """
         logging.debug("Attempting to log into '%s' via serial console "
                       "(timeout %ds)", self.name, timeout)
-        end_time, exception = time.time() + timeout, None
+        end_time = time.time() + timeout
         while time.time() < end_time:
             try:
                 session = self.serial_login(internal_timeout,
                                             username,
                                             password,
                                             virtio=virtio)
+                break
             except remote.LoginError, e:
-                exception = e
                 self.verify_alive()
-                time.sleep(2)
+                time.sleep(0.5)
                 continue
-            if restart_network:
-                try:
-                    logging.debug("Attempting to restart guest network")
-                    os_type = self.params.get('os_type')
-                    utils_net.restart_guest_network(session, os_type=os_type)
-                except (ShellError, ExpectError), e:
-                    session.close()
-                    exception = e
-                    continue
-            return session
-        raise (exception or remote.LoginTimeoutError("timeout %ds" % timeout))
+        else:
+            raise
+        if restart_network:
+            try:
+                logging.debug("Attempting to restart guest network")
+                os_type = self.params.get('os_type')
+                utils_net.restart_guest_network(session, os_type=os_type)
+            except (ShellError, ExpectError), e:
+                session.close()
+                raise
+        return session
 
     def get_uuid(self):
         """
