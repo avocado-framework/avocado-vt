@@ -89,7 +89,7 @@ def get_guest_os_info_list(test_name, guest_os):
     if not os_info_list:
         logging.error("Could not find any assets compatible with %s for %s",
                       guest_os, test_name)
-        raise ValueError("Missing compatible assets for %s", guest_os)
+        raise ValueError("Missing compatible assets for %s" % guest_os)
 
     return os_info_list
 
@@ -864,13 +864,18 @@ def bootstrap(options, interactive=False):
         step += 1
         logging.info("%s - Verifying (and possibly downloading) guest image",
                      step)
-        for os_info in get_guest_os_info_list(options.vt_type, guest_os):
-            os_asset = os_info['asset']
-            try:
-                asset.download_asset(os_asset, interactive=interactive,
-                                     restore_image=restore_image)
-            except AssertionError:
-                pass    # Not all files are managed via asset
+        try:
+            for os_info in get_guest_os_info_list(options.vt_type, guest_os):
+                os_asset = os_info['asset']
+                try:
+                    asset.download_asset(os_asset, interactive=interactive,
+                                         restore_image=restore_image)
+                except AssertionError:
+                    pass    # Not all files are managed via asset
+
+        except ValueError as details:
+            logging.info(details)
+            sys.exit(1)
 
     check_modules = []
     if options.vt_type == "qemu":
