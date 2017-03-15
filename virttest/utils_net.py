@@ -1304,6 +1304,43 @@ def get_sorted_net_if():
     return (phy_interfaces, vir_interfaces)
 
 
+def get_remote_host_net_ifs(session, state=None):
+    """
+    Get all network interfaces of remote host and sort them as physical
+    and virtual interfaces.
+
+    :param session: remote session object
+    :param state: regex used for state
+    :return: Tuple of physical and virtual interfaces lists
+    """
+    phy_interfaces = []
+    vir_interfaces = []
+    cmd = "ip link"
+    if not state:
+        state = ".*"
+    cmd_output = session.cmd_status_output(cmd)
+    if cmd_output[0]:
+        exceptions.TestError("Failed to fetch %s from remote"
+                             "machine" % cmd)
+    else:
+        result = cmd_output[1].strip()
+    host_interfaces = re.findall(r"^\d+: (\S+?)[@:].*state %s.*$" % (state),
+                                 result,
+                                 re.MULTILINE)
+    for each_path in host_interfaces:
+        path = os.path.join(SYSFS_NET_PATH, each_path)
+        cmd = "ls %s" % path
+        if session.cmd_status_output(cmd)[0]:
+            continue
+        cmd = "ls %s" % os.path.join(path, "device")
+        if session.cmd_status_output(cmd)[0]:
+            vir_interfaces.append(str(each_path))
+        else:
+            phy_interfaces.append(str(each_path))
+
+    return (phy_interfaces, vir_interfaces)
+
+
 def get_net_if_addrs(if_name, runner=None):
     """
     Get network device ip addresses. ioctl not used because it's not
