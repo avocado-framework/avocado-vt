@@ -89,7 +89,7 @@ def get_guest_os_info_list(test_name, guest_os):
     if not os_info_list:
         logging.error("Could not find any assets compatible with %s for %s",
                       guest_os, test_name)
-        raise ValueError("Missing compatible assets for %s", guest_os)
+        raise ValueError("Missing compatible assets for %s" % guest_os)
 
     return os_info_list
 
