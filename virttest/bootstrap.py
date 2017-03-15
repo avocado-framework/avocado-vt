@@ -864,13 +864,18 @@ def bootstrap(options, interactive=False):
         step += 1
         logging.info("%s - Verifying (and possibly downloading) guest image",
                      step)
-        for os_info in get_guest_os_info_list(options.vt_type, guest_os):
-            os_asset = os_info['asset']
-            try:
-                asset.download_asset(os_asset, interactive=interactive,
-                                     restore_image=restore_image)
-            except AssertionError:
-                pass    # Not all files are managed via asset
+        try:
+            for os_info in get_guest_os_info_list(options.vt_type, guest_os):
+                os_asset = os_info['asset']
+                try:
+                    asset.download_asset(os_asset, interactive=interactive,
+                                         restore_image=restore_image)
+                except AssertionError:
+                    pass    # Not all files are managed via asset
+
+        except ValueError as details:
+            logging.info(details)
+            sys.exit(1)
 
     check_modules = []
     if options.vt_type == "qemu":
