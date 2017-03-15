@@ -968,7 +968,7 @@ class HumanMonitor(Monitor):
         if correct:
             cmd = self.correct(cmd)
         self.verify_supported_cmd(cmd)
-        cmd += " %s %sB" % (device, speed)
+        cmd += " %s %sB" % (device.split(" ")[0], speed)
         return self.cmd(cmd)
 
     def cancel_block_job(self, device, cmd="block_job_cancel", correct=True):
