@@ -3988,69 +3988,53 @@ class VM(virt_vm.BaseVM):
         :param serial: Serial login or not (default is False).
         :return: A new shell session object.
         """
-
-        def __get_session(nic_index=0, serial=False):
-            """
-            Get connection to VM
-            """
-            if serial:
-                return self.serial_login()
-            return self.login(nic_index=nic_index)
-
-        def __go_down(session, nic_index, serial):
+        def _go_down(session, timeout):
             """
             Check guest rebooting.
             """
-            timeout = self.CLOSE_SESSION_TIMEOUT
             try:
-                if serial:
+                status, output = session.cmd_status_output("tty", timeout=10)
+                linux_session = (status == 0) and ("pts" not in output)
+                if linux_session:
                     patterns = [r".*[Rr]ebooting.*", r".*[Rr]estarting system.*",
                                 r".*[Mm]achine restart.*", r".*Linux version.*"]
-                    if session.read_until_any_line_matches(
-                            patterns, timeout=timeout):
-                        session.close()
-                        return True
-                else:
-                    session = __get_session(nic_index, serial)
-                    session.close()
-                    return False
-            except (remote.LoginError, aexpect.ShellError):
+                    try:
+                        if session.read_until_any_line_matches(
+                             patterns, timeout=timeout):
+                            return True
+                    except Exception:
+                        return False
+            except Exception:
                 return True
-            return False
 
-        def wait_for_go_down(session, nic_index, serial, timeout):
+        def wait_for_go_down(session, timeout):
             """ Wait for VM go down
             :param session: VM session object
-            :param nic_index: which nic what to login VM
-            :param serial: login VM via serial console or not
             :param timeout: timeout wait for VM go down
             """
-            if not utils_misc.wait_for(
-                    lambda: __go_down(session, nic_index, serial),
-                    timeout=timeout):
-                raise virt_vm.VMRebootError("Guest refuses to go down")
+            try:
+                if not utils_misc.wait_for(
+                        lambda: _go_down(session, timeout),
+                        timeout=timeout):
+                    raise virt_vm.VMRebootError("Guest refuses to go down")
+                else:
+                    logging.info("VM go down, wait for it boot up")
+            finally:
+                session.close()
 
-            logging.info("VM go down, wait for it boot up")
-
-        def shell_reboot(session, nic_index, serial, timeout):
+        def shell_reboot(session, timeout):
             """
             Reboot guest OS via shell command
 
             :param session: VM session object
-            :param nic_index: which nic what to login VM
-            :param serial: login VM via serial console or not
             :param timeout: timeout wait for VM go down
             """
-            if not session or not session.is_responsive():
-                session = __get_session(nic_index=nic_index, serial=serial)
-            console = session.cmd("tty", ignore_all_errors=True)
-            serial = console and ("pts" not in console)
             reboot_cmd = self.params.get("reboot_command")
             step_info = "Send %s command, wait for VM rebooting" % reboot_cmd
             error_context.context(step_info)
             session.sendline(reboot_cmd)
             start_time = time.time()
-            wait_for_go_down(session, nic_index, serial, timeout=timeout)
+            wait_for_go_down(session, timeout=timeout)
             return int(time.time() - start_time)
 
         error_context.base_context("rebooting '%s'" % self.name, logging.info)
@@ -4058,7 +4042,15 @@ class VM(virt_vm.BaseVM):
         error_context.context()
         shutdown_dur = 0
         if method == "shell":
-            shutdown_dur = shell_reboot(session, nic_index, serial, timeout)
+            # ensure VM bootup really
+            if not session:
+                if not serial:
+                    session = self.wait_for_login(nic_index=nic_index,
+                                                  timeout=timeout)
+                else:
+                    session = self.wait_for_serial_login(timeout=timeout)
+            # send reboot command via session
+            shutdown_dur = shell_reboot(session, timeout)
         elif method == "system_reset":
             self.system_reset()
         else:
