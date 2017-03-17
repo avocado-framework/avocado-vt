@@ -33,11 +33,11 @@ Install the following packages:
     $ yum install nmap-ncat
 
 
-#. Install the p7zip file archiver so you can uncompress the JeOS [2] image.
+#. Install the xz file archiver so you can uncompress the JeOS [2] image.
 
 ::
 
-    $ yum install p7zip
+    $ yum install xz
 
 #. Install the autotest-framework package, to provide the needed autotest libs.
 
@@ -190,11 +190,11 @@ Install the following packages:
     $ apt-get install autotest
 
 
-#. Install the p7zip file archiver so you can uncompress the JeOS [2] image.
+#. Install the xz-utils file archiver so you can uncompress the JeOS [2] image.
 
 ::
 
-    $ apt-get install p7zip-full
+    $ apt-get install xz-utils
 
 
 #. Install tcpdump, necessary to determine guest IPs automatically
