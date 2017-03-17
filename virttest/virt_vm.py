@@ -1299,7 +1299,7 @@ class BaseVM(object):
                                             password,
                                             virtio=virtio)
                 break
-            except remote.LoginError, e:
+            except remote.LoginError:
                 self.verify_alive()
                 time.sleep(0.5)
                 continue
@@ -1310,7 +1310,7 @@ class BaseVM(object):
                 logging.debug("Attempting to restart guest network")
                 os_type = self.params.get('os_type')
                 utils_net.restart_guest_network(session, os_type=os_type)
-            except (ShellError, ExpectError), e:
+            except (ShellError, ExpectError):
                 session.close()
                 raise
         return session
