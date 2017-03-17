@@ -23,7 +23,7 @@ def package_jeos(img):
     Steps:
     1) Move /path/to/jeos.qcow2 to /path/to/jeos.qcow2.backup
     2) Sparsify the image, creating a new, trimmed down /path/to/jeos.qcow2
-    3) Compress the sparsified image with 7za
+    3) Compress the sparsified image with xz
 
     :param img: Path to a qcow2 image
     """
@@ -35,10 +35,9 @@ def package_jeos(img):
 
     process.system("%s convert -f qcow2 -O qcow2 -o compat=0.10 %s %s" % (qemu_img, backup, img))
     logging.info("Sparse file %s created successfully", img)
-
-    archiver = utils_misc.find_command('7za')
-    compressed_img = img + ".7z"
-    process.system("%s a %s %s" % (archiver, compressed_img, img))
+    compressed_img = img + ".xz"
+    archiver = utils_misc.find_command('xz')
+    process.system("%s -9 -e %s" % (archiver, img))
     logging.info("JeOS compressed file %s created successfuly",
                  compressed_img)
 
