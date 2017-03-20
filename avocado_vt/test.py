@@ -108,6 +108,7 @@ class VirtTest(test.Test):
         self.resultsdir = self.logdir
         self.timeout = vt_params.get("test_timeout", self.timeout)
         utils_misc.set_log_file_dir(self.logdir)
+        self.__status = None
 
     @property
     def params(self):
@@ -217,27 +218,46 @@ class VirtTest(test.Test):
         Avocado-vt uses custom setUp/test/tearDown handling and unlike
         Avocado it allows skipping tests from any phase. To convince
         Avocado to allow skips let's say our tests run during setUp
-        phase and don't do anything during runTest/tearDown.
+        phase and report the status in test.
         """
         env_lang = os.environ.get('LANG')
         os.environ['LANG'] = 'C'
         try:
             self._runTest()
+            self.__status = "PASS"
         # This trick will give better reporting of virt tests being executed
         # into avocado (skips, warns and errors will display correctly)
-        except error.TestNAError, details:
-            raise exceptions.TestSkipError(details)
-        except error.TestWarn, details:
-            raise exceptions.TestWarn(details)
-        except error.TestError, details:
-            raise exceptions.TestError(details)
-        except error.TestFail, details:
-            raise exceptions.TestFail(details)
+        except exceptions.TestSkipError:
+            raise   # This one has to be raised in setUp
+        except:  # Old-style exceptions are not inherited from Exception()
+            details = sys.exc_info()[1]
+            self.__status = details
+            if not hasattr(self, "cancel"):     # Old Avocado, skip here
+                if isinstance(self.__status, error.TestNAError):
+                    raise exceptions.TestSkipError(self.__status)
         finally:
             if env_lang:
                 os.environ['LANG'] = env_lang
             else:
                 del os.environ['LANG']
+
+    def runTest(self):
+        """
+        This only reports the results
+
+        The actual testing happens inside setUp stage, this only
+        reports the correct results
+        """
+        if self.__status == "PASS":
+            pass
+        elif isinstance(self.__status, error.TestNAError):
+            self.cancel(self.__status)
+        elif isinstance(self.__status, error.TestWarn):
+            self.log.warn(details)
+        elif isinstance(self.__status, error.TestFail):
+            self.fail(self.__status)
+        else:
+            raise self.__status
 
     def _runTest(self):
         params = self.params
@@ -417,9 +437,3 @@ class VirtTest(test.Test):
                 raise error.JobError("Abort requested (%s)" % e)
 
         return test_passed
-
-    def runTest(self):
-        """
-        Don't do anything as the test was already executed during setUp phase
-        """
-        pass
