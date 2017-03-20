@@ -99,7 +99,7 @@ class VirtTest(test.Test):
                                        base_logdir=base_logdir, job=job,
                                        runner_queue=runner_queue)
         self.builddir = os.path.join(self.workdir, 'backends',
-                                     vt_params.get("vm_type"))
+                                     vt_params.get("vm_type", ""))
         self.tmpdir = os.path.dirname(self.workdir)
         # Move self.params to self.avocado_params and initialize virttest
         # (cartesian_config) params

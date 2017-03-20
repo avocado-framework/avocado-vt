@@ -2281,7 +2281,7 @@ def _get_backend_dir(params):
     Get the appropriate backend directory. Example: backends/qemu.
     """
     return os.path.join(data_dir.get_root_dir(), 'backends',
-                        params.get("vm_type"))
+                        params.get("vm_type", ""))
 
 
 def get_qemu_binary(params):
