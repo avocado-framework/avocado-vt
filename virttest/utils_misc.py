@@ -385,7 +385,7 @@ def is_port_free(port, address):
     """
     try:
         s = socket.socket()
-        #s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if address == "localhost":
             s.bind(("localhost", port))
             free = True
@@ -912,7 +912,7 @@ def get_guest_service_status(session, service, service_former=None):
             output.count("Active: active") > 0):
         status = "active"
     elif (re.search(r"running", output.lower(), re.M) and
-            not re.search(r"not running", output.lower(), re.M)):
+          not re.search(r"not running", output.lower(), re.M)):
         status = "active"
 
     return status
@@ -1611,34 +1611,6 @@ def get_cpu_info(session=None):
     return cpu_info
 
 
-def yum_install(pkg_list, session=None, timeout=300):
-    """
-    Try to install packages on system
-
-    :param pkg_list: list of packages
-    :session: session Object
-    :return: True if all packages installed, False if any error
-    """
-    if not isinstance(pkg_list, list):
-        logging.error("Parameter exceptions.")
-        return False
-    yum_cmd = "rpm -q {0} || yum -y install {0}"
-    for pkg in pkg_list:
-        if session:
-            status = session.cmd_status(yum_cmd.format(pkg),
-                                        timeout=timeout)
-        else:
-            status = process.run(yum_cmd.format(pkg),
-                                 timeout=timeout,
-                                 ignore_status=False,
-                                 shell=True).exit_status
-        if status:
-            logging.error("Failed to install package: %s"
-                          % pkg)
-            return False
-    return True
-
-
 def add_identities_into_ssh_agent():
     """
     Adds RSA or DSA identities to the authentication agent
@@ -2018,16 +1990,16 @@ kvm_map_flags_aliases = {
     'ffxsr': 'fxsr_opt',
     'xd': 'nx',
     'i64': 'lm',
-           'psn': 'pn',
-           'clfsh': 'clflush',
-           'dts': 'ds',
-           'htt': 'ht',
-           'CMPXCHG8B': 'cx8',
-           'Page1GB': 'pdpe1gb',
-           'LahfSahf': 'lahf_lm',
-           'ExtApicSpace': 'extapic',
-           'AltMovCr8': 'cr8_legacy',
-           'cr8legacy': 'cr8_legacy'
+    'psn': 'pn',
+    'clfsh': 'clflush',
+    'dts': 'ds',
+    'htt': 'ht',
+    'CMPXCHG8B': 'cx8',
+    'Page1GB': 'pdpe1gb',
+    'LahfSahf': 'lahf_lm',
+    'ExtApicSpace': 'extapic',
+    'AltMovCr8': 'cr8_legacy',
+    'cr8legacy': 'cr8_legacy'
 }
 
 
