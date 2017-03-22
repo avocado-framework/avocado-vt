@@ -11,6 +11,7 @@ import shelve
 import commands
 import signal
 import netifaces
+import netaddr
 
 import aexpect
 from avocado.core import exceptions
@@ -3196,45 +3197,47 @@ def get_linux_ipaddr(session, nic):
     """
     Get IP addresses by nic name
     """
+    rex = r"inet6?\s+(addr:)?\s*(\S+)\s+"
     cmd = "ifconfig %s || ip address show %s" % (nic, nic)
-    out = session.cmd_output(cmd)
-    inet_regex = "inet (addr:\s?)?(\d+.\d+.\d+.\d+)"
-    try:
-        inet = re.search(inet_regex, out, re.M).groups()[1]
-    except Exception:
-        inet = None
-
-    inet6_regex = "inet6 (addr:\s?)?(\S+)"
-    try:
-        inet6 = re.search(inet6_regex, out, re.M).groups()[1].split('/')[0]
-    except Exception:
-        inet6 = None
-    return (inet, inet6)
+    out = session.cmd_output_safe(cmd)
+    addrs = re.findall(rex, out, re.M)
+    addrs = map(lambda x: x[1].split('/')[0], addrs)
+    addrs = map(lambda x: netaddr.IPAddress(x), addrs)
+    ipv4_addr = filter(lambda x: x.version == 4, addrs)
+    ipv6_addr = filter(lambda x: x.version == 6, addrs)
+    ipv4_addr = str(ipv4_addr[0]) if ipv4_addr else None
+    ipv6_addr = str(ipv6_addr[0]) if ipv6_addr else None
+    return (ipv4addr, ipv6addr)
 
 
 def windows_mac_ip_maps(session):
     """
     Windows get MAC IP addresses maps
     """
+    def str2ipaddr(str_ip):
+        try:
+            return netaddr.IPAddress(str_ip)
+        except Exception:
+            pass
+        return None
+
     maps = {}
     cmd = "wmic nicconfig where IPEnabled=True get ipaddress, macaddress"
     out = session.cmd_output(cmd)
+    regex = r".*\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}\s*"
     for line in out.splitlines():
-        try:
-            mac = re.search("\w{2}:\w{2}:\w{2}:\w{2}:\w{2}:\w{2}", line).group(0)
-        except Exception:
+        if not re.match(regex, line):
             continue
-        inets = re.findall("\"([\w.:]*)\"", line)
-        try:
-            inet = inets[0]
-        except IndexError:
-            inet = None
-        try:
-            inet6 = inets[1]
-        except IndexError:
-            inet6 = None
-        maps[mac] = (inet, inet6)
-
+        line = re.sub(r"[\{\},\"]", "", line)
+        addr_info = re.split(r"\s+", line)
+        mac = addr_info.pop().lower().replace("-", ":")
+        addrs = filter(None, map(str2ipaddr, addr_info))
+        ipv4_addr = filter(lambda x: x.version == 4, addrs)
+        ipv6_addr = filter(lambda x: x.version == 6, addrs)
+        if ipv4_addr:
+            maps[mac] = str(ipv4_addr[0])
+        if ipv6_addr:
+            maps["%s_6" % mac] = str(ipv6_addr[0])
     return maps
 
 
@@ -3245,11 +3248,16 @@ def linux_mac_ip_maps(session):
     maps = {}
     for nic in get_linux_ifname(session):
         mac = get_linux_mac(session, nic)
-        maps[mac] = get_linux_ipaddr(session, nic)
+        mac = mac.lower().replace("-", ":")
+        ipv4_addr, ipv6_addr = get_linux_ipaddr(session, nic)
+        if ipv4_addr:
+            maps[mac] = ipv4_addr
+        if ipv6_addr:
+            maps["%s_6" % mac] = ipv6_addr
     return maps
 
 
-def get_mac_ip_maps(session):
+def get_guest_address_map(session):
     """
     Get guest MAC IP addresses maps
     """
@@ -3317,32 +3325,19 @@ def update_mac_ip_address(vm, params, timeout=None):
     :param vm: VM object
     :param params: Dictionary with the test parameters.
     """
-    session = vm.wait_for_serial_login(timeout=360)
-    maps = get_mac_ip_maps(session)
-    if len(maps) < len(vm.virtnet):
-        logging.warn("Not all nic get IP address, restart networking")
-        default_cmd = "service network restart"
-        restart_network = params.get("restart_network", default_cmd)
-        session.cmd(restart_network, timeout=240)
-        maps = get_mac_ip_maps(session)
-    for idx, key in enumerate(maps):
-        mac = key.lower()
-        if "-" in mac:
-            mac = mac.replace("-", ":")
-        try:
-            vm.virtnet.set_mac_address(idx, mac)
-        except IndexError:
-            if vm.params.get("os_type") == "linux":
-                ifname = get_linux_ifname(session, mac)
-            else:
-                ifname = get_windows_nic_attribute(session,
-                                                   "MACAddress",
-                                                   mac,
-                                                   "NetConnectionID")
-            if ifname:
-                logging.warn("'%s' not belong to VM '%s'" % (ifname, vm.name))
-        vm.address_cache[mac] = maps[key][0]
-        vm.address_cache["%s_6" % mac] = maps[key][1]
+    try:
+        session = vm.wait_for_serial_login(timeout=timeout)
+        addr_map = get_guest_address_map(session)
+        session.close()
+        if len(addr_map) != len(vm.virtnet):
+            logging.warn("Not all nic get IP address, restart networking")
+            session = vm.wait_for_serial_login(timeout=timeout,
+                                               restart_network=True)
+            addr_map = get_guest_address_map(session)
+            session.close()
+        vm.address_cache.update(addr_map)
+    except Exception, e:
+        logging.warn("Error occur when update VM address cache: %s" % str(e))
 
 
 def get_windows_nic_attribute(session, key, value, target, timeout=240,
