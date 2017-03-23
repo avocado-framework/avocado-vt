@@ -247,8 +247,8 @@ class NFSClient(object):
     def __init__(self, params):
         self.nfs_client_ip = params.get("nfs_client_ip")
         # To Avoid host key verification failure
-        output = process.run("ssh-keygen -R %s" % self.nfs_client_ip)
-        if output.exit_status:
+        ret = process.run("ssh-keygen -R %s" % self.nfs_client_ip)
+        if ret.exit_status and "No such file or directory" not in ret.stderr:
             raise exceptions.TestFail("Failed to update host key: %s" %
                                       output.stderr)
         # Setup SSH connection
