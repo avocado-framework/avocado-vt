@@ -798,9 +798,10 @@ def run_autotest(vm, session, control_path, timeout,
         extract_cmd = "tar %s %s -C %s" % (options,
                                            basename,
                                            os.path.dirname(dest_dir))
+        extract_cmd += " & wait ${!}"
         output = session.cmd(extract_cmd, timeout=120)
         autotest_dirname = ""
-        for line in output.splitlines()[1:]:
+        for line in output.splitlines()[2:]:
             autotest_dirname = line.split("/")[0]
             break
         if autotest_dirname != os.path.basename(dest_dir):
@@ -1128,7 +1129,8 @@ def run_autotest(vm, session, control_path, timeout,
                 else:
                     verbose = ""
                 session.cmd_output(
-                    "python -x ./autotest-local %s control" % verbose,
+                    "python -x ./autotest-local %s control & wait ${!}" %
+                    verbose,
                     timeout=timeout,
                     print_func=logging.info)
         finally:
