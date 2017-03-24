@@ -4004,6 +4004,10 @@ class VM(virt_vm.BaseVM):
                             return True
                     except Exception:
                         return False
+                elif not serial:
+                    net_session = self.login(nic_index=nic_index)
+                    net_session.close()
+                    return False
             except Exception:
                 return True
 
