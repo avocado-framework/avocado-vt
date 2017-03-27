@@ -23,7 +23,7 @@ except ImportError:
 # We will use 2 workers of each type for each CPU detected
 threads = 2 * utils.count_cpus()
 
-mem = utils_memory.memtotal() / 1024 / 512
+mem = utils_memory.read_from_meminfo('MemTotal') / 1024 / 512
 memory_per_thread = 256 * 1024
 
 free_disk = utils.freespace(os.getcwd())

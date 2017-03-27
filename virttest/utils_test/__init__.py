@@ -337,7 +337,7 @@ def get_memory_info(lvms):
 
     try:
         meminfo = "Host: memfree = "
-        meminfo += str(int(utils_memory.freememtotal()) / 1024) + "M; "
+        meminfo += str(int(utils_memory.read_from_meminfo('MemFree')) / 1024) + "M; "
         meminfo += "swapfree = "
         mf = int(utils_memory.read_from_meminfo("SwapFree")) / 1024
         meminfo += str(mf) + "M; "
