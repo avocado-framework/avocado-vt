@@ -754,9 +754,6 @@ def bootstrap(options, interactive=False):
 
     :param options: Command line options.
     :param interactive: Whether to ask for confirmation.
-
-    :raise error.CmdError: If JeOS image failed to uncompress
-    :raise ValueError: If xz was not found
     """
     if options.yes_to_all:
         interactive = False
