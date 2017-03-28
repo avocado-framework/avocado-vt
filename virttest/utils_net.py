@@ -3358,11 +3358,14 @@ def get_windows_nic_attribute(session, key, value, target, timeout=240,
 
     """
     cmd = 'wmic %s where %s="%s" get %s' % (global_switch, key, value, target)
-    o = session.cmd(cmd, timeout=timeout).strip()
-    if not o:
-        err_msg = "Get guest %s attribute %s failed!" % (global_switch, target)
+    status, out = session.cmd_status_output(cmd, timeout=timeout)
+    if status != 0:
+        err_msg = ("Execute guest shell command('%s') "
+                   "failed with error: '%s'" % (cmd, out))
         raise exceptions.TestError(err_msg)
-    return o.splitlines()[-1]
+    lines = [l.strip() for l in out.splitlines() if l.strip()]
+    # First line is header, return second line
+    return lines[1]
 
 
 def set_win_guest_nic_status(session, connection_id, status, timeout=240):
