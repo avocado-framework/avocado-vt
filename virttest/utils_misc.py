@@ -478,7 +478,9 @@ def log_line(filename, line):
             _open_log_files[base_file] = open(log_file, "w")
         timestr = time.strftime("%Y-%m-%d %H:%M:%S")
         _open_log_files[base_file].write("%s: %s\n"
-                                         % (timestr, line.encode(ENCODING)))
+                                         % (timestr,
+                                            line.encode(ENCODING,
+                                                        'ignore')))
         _open_log_files[base_file].flush()
     finally:
         _log_lock.release()
