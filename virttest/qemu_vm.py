@@ -992,7 +992,8 @@ class VM(virt_vm.BaseVM):
                 else:
                     self.spice_options['spice_port'] = self.spice_port
                     spice_opts.append("port=%s" % self.spice_port)
-            else:
+            # spice_port = no: spice_port value is not present on qemu cmdline
+            elif optget("spice_port") != "no":
                 set_value("port=%s", "spice_port")
 
             set_value("password=%s", "spice_password", "disable-ticketing")
