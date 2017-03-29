@@ -1060,6 +1060,11 @@ class VM(virt_vm.BaseVM):
                     for item in tmp.split(","):
                         spice_opts.append("tls-channel=%s" % (item.strip()))
 
+                tmp = optget("spice_plaintext_channels")
+                if tmp:
+                    for item in tmp.split(","):
+                        spice_opts.append("plaintext-channel=%s" % (item.strip()))
+
             # Less common options
             set_value("seamless-migration=%s", "spice_seamless_migration")
             set_value("image-compression=%s", "spice_image_compression")
@@ -2043,8 +2048,8 @@ class VM(virt_vm.BaseVM):
                     "spice_x509_key_file", "spice_x509_cacert_file",
                     "spice_x509_key_password", "spice_x509_secure",
                     "spice_x509_cacert_subj", "spice_x509_server_subj",
-                    "spice_secure_channels", "spice_image_compression",
-                    "spice_jpeg_wan_compression",
+                    "spice_secure_channels", "spice_plaintext_channels",
+                    "spice_image_compression", "spice_jpeg_wan_compression",
                     "spice_zlib_glz_wan_compression", "spice_streaming_video",
                     "spice_agent_mouse", "spice_playback_compression",
                     "spice_ipv4", "spice_ipv6", "spice_x509_cert_file",
