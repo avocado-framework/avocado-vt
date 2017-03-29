@@ -557,18 +557,21 @@ class VMXML(VMXMLBase):
         self.xml = u"<domain type='%s'></domain>" % hypervisor_type
 
     @staticmethod  # static method (no self) needed b/c calls VMXML.__new__
-    def new_from_dumpxml(vm_name, options="", virsh_instance=base.virsh):
+    def new_from_dumpxml(vm_name, options="", virsh_instance=base.virsh,
+                         uri=None):
         """
         Return new VMXML instance from virsh dumpxml command
 
         :param vm_name: Name of VM to dumpxml
         :param virsh_instance: virsh module or instance to use
+        :param uri: target uri for virsh to connect
         :return: New initialized VMXML instance
         """
         # TODO: Look up hypervisor_type on incoming XML
         vmxml = VMXML(virsh_instance=virsh_instance)
         vmxml['xml'] = virsh_instance.dumpxml(vm_name,
-                                              extra=options).stdout.strip()
+                                              extra=options,
+                                              uri=uri).stdout.strip()
         return vmxml
 
     @staticmethod
