@@ -240,10 +240,10 @@ def get_time(session, time_command, time_filter_re, time_format):
                 msg = "Fail to get guest time offset. Command "
                 msg += "'%s', output: %s" % (time_command, output)
                 raise exceptions.TestError(msg)
-            if re.match('PM', guest_time):
+            if re.search('PM', guest_time):
                 hour = re.findall('\d+ (\d+):', guest_time)[0]
                 hour = str(int(hour) + 12)
-                guest_time = re.sub('\d+\s\d+:', "\d+\s%s:" % hour,
+                guest_time = re.sub('\s\d+:', " %s:" % hour,
                                     guest_time)[:-3]
             else:
                 guest_time = guest_time[:-3]
