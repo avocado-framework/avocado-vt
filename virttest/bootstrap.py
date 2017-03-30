@@ -109,7 +109,7 @@ def verify_recommended_programs(t_type):
             found = None
             try:
                 found = utils_path.find_command(cmd)
-                logging.info('%s OK', found)
+                logging.debug('%s OK', found)
                 break
             except utils_path.CmdNotFoundError:
                 pass
@@ -129,7 +129,7 @@ def verify_mandatory_programs(t_type, guest_os):
     cmds = mandatory_programs[t_type]
     for cmd in cmds:
         try:
-            logging.info('%s OK', utils_path.find_command(cmd))
+            logging.debug('%s OK', utils_path.find_command(cmd))
         except utils_path.CmdNotFoundError:
             if cmd == 'xz' and guest_os != defaults.DEFAULT_GUEST_OS:
                 logging.warn("Command xz (required to uncompress JeOS) "
@@ -145,7 +145,7 @@ def verify_mandatory_programs(t_type, guest_os):
     for include in available_includes:
         include_basename = os.path.basename(include)
         if include_basename in includes:
-            logging.info('%s OK', include)
+            logging.debug('%s OK', include)
             includes.pop(includes.index(include_basename))
 
     if includes:
@@ -769,7 +769,7 @@ def bootstrap(options, interactive=False):
     if options.yes_to_all:
         interactive = False
 
-    logging.info("%s test config helper", options.vt_type)
+    logging.info("Running bootstrap for %s", options.vt_type)
     step = 0
 
     logging.info("")
@@ -899,6 +899,4 @@ def bootstrap(options, interactive=False):
     logging.info("")
     step += 1
     logging.info("%d - If you wish, you may take a look at the online docs for "
-                 "more info", step)
-    logging.info("")
-    logging.info(online_docs_url)
+                 "more info: %s", step, online_docs_url)
