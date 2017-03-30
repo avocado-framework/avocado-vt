@@ -315,7 +315,6 @@ def download_test_provider(provider, update=False):
                     process.run('git remote add origin %s' % uri)
                 except process.CmdError:
                     pass
-                process.run('git pull origin %s' % branch)
         except Exception:
             if not dir_existed and os.path.isdir(download_dst):
                 logging.error('Cleaning up provider %s download dir %s', provider,
