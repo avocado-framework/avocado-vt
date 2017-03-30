@@ -522,6 +522,7 @@ class BaseVM(object):
             self.virtnet = utils_net.VirtNet(self.params,
                                              self.name,
                                              self.instance)
+        self.ip_version = params.get("ip_version", "ipv4").lower()
 
         if not hasattr(self, 'cpuinfo'):
             self.cpuinfo = CpuInfo()
@@ -641,11 +642,13 @@ class BaseVM(object):
         except KeyError:
             raise VMMACAddressMissingError(nic_index)
 
-    def get_address(self, index=0):
+    def get_address(self, index=0, ip_version="ipv4"):
         """
         Return the IP address of a NIC or guest (in host space).
 
         :param index: Name or index of the NIC whose address is requested.
+        :param ip_version: IP version, value in 'ipv4' or 'ipv6,
+                           default value is 'ipv4'
         :return: 'localhost': Port redirection is in use
         :return: IP address of NIC if valid in arp cache.
         :raise VMMACAddressMissingError: If no MAC address is defined for the
@@ -655,106 +658,92 @@ class BaseVM(object):
         :raise VMAddressVerificationError: If the MAC-IP address mapping cannot
                 be verified (using arping)
         """
+        def _get_mac_addr(nic_index):
+            """
+            wrap for get_mac_address, if VM type is 'libvirt' or 'v2v'
+            find nic mac address from xml file
+            """
+            mac = None
+            try:
+                mac = self.get_mac_address(nic_index)
+            except VMMACAddressMissingError:
+                if self.params.get('vm_type') not in ['libvirt', 'v2v']:
+                    raise
+                mac = self.get_virsh_mac_address(index)
+            if not mac:
+                raise VMMACAddressMissingError(nic_index)
+            return mac.lower()
 
-        flexible_index = ("yes" == self.params.get("flexible_nic_index", 'no'))
-        if flexible_index:
-            nics = []
-            logging.debug("In case index %s NIC has no IP,"
-                          "flexible index will be used", index)
         nic = self.virtnet[index]
-        self.ip_version = self.params.get("ip_version", "ipv4").lower()
         # TODO: Determine port redirection in use w/o checking nettype
         if nic.nettype not in ['bridge', 'macvtap']:
             hostname = socket.gethostname()
             return socket.gethostbyname(hostname)
-        if not nic.has_key('mac'):
-            if self.params.get('vm_type') in ['libvirt', 'v2v']:
-                # Look it up from xml
-                nic.mac = self.get_virsh_mac_address(index)
-        # else TODO: Look up mac from existing qemu-kvm process
-        if not nic.has_key('mac'):
-            raise VMMACAddressMissingError(index)
-        if self.ip_version == "ipv4":
-            # Get the IP address from arp cache
-            arp_ip = self.address_cache.get(nic.mac.lower())
-            # Make sure IP is assigned to one or more macs for this guest
-            macs = self.virtnet.mac_list()
-            devs = set()
-            if nic.has_key('netdst'):
-                """At this point we know that VM's NIC is attached to a certain
-                bridge. Therefore, next call verify_ip_address_ownership() will
-                be ran faster, as it will not need to go through all available
-                interfaces in the system. Otherwise, for each 'wrong' interface
-                there will be a pause for 1 minute. Moreover, this pause will
-                be for each wait_for_login() call.
-                """
-                devs = set([nic.netdst])
-            # Lets validate whether we got valid IP here if not ensure to remove
-            # stale entry from address_cache, atleast next iteration will
-            # get valid IPADDR
-            if arp_ip:
-                if not utils_net.verify_ip_address_ownership(arp_ip, macs, devs=devs):
-                    self.address_cache[nic.mac.lower()] = None
-                    arp_ip = None
 
-            if (not arp_ip) and (len(macs) > 1) and flexible_index:
-                # Try to poke for each index
-                for idx in range(len(macs)):
-                    nics.append(self.virtnet[idx])
-                    if not nics[idx].has_key('mac'):
-                        if self.params.get('vm_type') in ['libvirt', 'v2v']:
-                            nics[idx]['mac'] = self.get_virsh_mac_address(idx)
-                    # else TODO: Look up mac from existing qemu-kvm process
-                    arp_ip = self.address_cache.get(nics[idx]['mac'].lower())
-                    # Lets validate whether we got valid IP here if not ensure
-                    # to remove stale entry from address_cache,
-                    # atleaset next iteration will get valid IPADDR
-                    if arp_ip:
-                        if not utils_net.verify_ip_address_ownership(arp_ip, macs, devs=devs):
-                            self.address_cache[nics[idx]['mac'].lower()] = None
-                            arp_ip = None
-                        else:
-                            break
+        mac = _get_mac_addr(index)
+        if 'mac' not in nic:
+            if self.params.get("vm_type") in ["libvirt", "v2v"]:
+                nic.set_mac_address(index, mac)
 
-            if (not arp_ip or
-                    not utils_net.verify_ip_address_ownership(arp_ip, macs,
-                                                              devs=devs) or
-                    os.geteuid() != 0):
-                # For non-root, tcpdump won't work for finding IP address,
-                # or IP missed in address_cache, try to find it from arp table.
-                ip_map = utils_net.parse_arp()
-                arp_ip = ip_map.get(nic.mac.lower())
-                if (not arp_ip) and (len(macs) > 1) and flexible_index:
-                    for idx in range(len(macs)):
-                        arp_ip = ip_map.get(nics[idx]['mac'].lower())
-                        if arp_ip:
-                            break
-            if not arp_ip:
-                raise VMIPAddressMissingError(nic.mac)
-
-            nic_params = self.params.object_params(nic.nic_name)
-            pci_assignable = nic_params.get("pci_assignable") != "no"
-
-            if not utils_net.verify_ip_address_ownership(arp_ip, macs,
-                                                         devs=devs):
+        if ip_version == "ipv4":
+            ip_addr = None
+            devs = set([nic.netdst]) if nic.has_key('netdst') else set()
+            try:
+                ip_addr = (self.address_cache.get(mac) or
+                           utils_net.parse_arp().get(mac))
+                if not ip_addr:
+                    raise VMIPAddressMissingError(mac, ip_version)
+                macs = self.virtnet.mac_list()
+                reachable = utils_net.verify_ip_address_ownership(
+                    ip_addr, macs, timeout=16, devs=devs)
+                if not reachable:
+                    raise VMAddressVerificationError(mac, ip_addr)
+            except VMAddressVerificationError:
+                nic_params = self.params.object_params(nic.nic_name)
+                pci_assignable = nic_params.get("pci_assignable") != "no"
                 # SR-IOV/Macvtap cards may not be in same subnet with the cards
                 # used by host by default, so arp checks won't work. Therefore,
                 # do not raise VMAddressVerificationError when SR-IOV is used.
                 if pci_assignable or nic.nettype == "macvtap":
                     nic_backend = pci_assignable and "SR-IOV" or "macvtap"
                     msg = "Could not verify DHCP lease: %s-> %s." % (nic.mac,
-                                                                     arp_ip)
-                    msg += " Maybe %s is not in the same subnet " % arp_ip
+                                                                     ip_addr)
+                    msg += " Maybe %s is not in the same subnet " % ip_addr
                     msg += "as the host (%s in use)" % nic_backend
                     logging.error(msg)
                 else:
-                    raise VMAddressVerificationError(nic.mac, arp_ip)
-
+                    if mac in self.address_cache:
+                        self.address_cache[mac] = None
+                    else:
+                        # clean item in host arp table
+                        os.system("arp -d %s" % ip_addr)
+                    logging.debug("Clean up outdated address info, "
+                                  "MAC: %s, IP: %s" % (mac, ip_addr))
+                    raise
+            except VMIPAddressMissingError:
+                flexible_index = ("yes" == self.params.get("flexible_nic_index", "no"))
+                macs = self.virtnet.mac_list()
+                if not flexible_index or len(macs) < 2:
+                    raise
+                indexs = range(len(macs))
+                indexs.pop(index)
+                for index in indexs:
+                    try:
+                        mac = _get_mac_addr(index)
+                        ip_addr = self.get_address(index)
+                        break
+                    except (VMAddressVerificationError,
+                            VMIPAddressMissingError,
+                            VMMACAddressMissingError):
+                        continue
+                else:
+                    raise
+            if not ip_addr:
+                raise VMIPAddressMissingError(mac, ip_version)
             # Update address_cache since ip/mac releation ship verify pass
-            self.address_cache[nic.mac.lower()] = arp_ip
-            return arp_ip
-
-        elif self.ip_version == "ipv6":
+            self.address_cache[mac] = ip_addr
+            return ip_addr
+        else:
             # Try to get and return IPV6 address
             if self.params.get('using_linklocal') == "yes":
                 ipv6_addr = utils_net.ipv6_from_mac_addr(nic.mac)
@@ -763,7 +752,7 @@ class BaseVM(object):
                 mac_key = "%s_6" % nic.mac
                 ipv6_addr = self.address_cache.get(mac_key.lower())
             if not ipv6_addr:
-                raise VMIPAddressMissingError(nic.mac)
+                raise VMIPAddressMissingError(nic.mac, ip_version)
             # Check whether the ipv6 address is reachable
             utils_net.refresh_neigh_table(nic.netdst, ipv6_addr)
             if not utils_misc.wait_for(lambda: utils_net.neigh_reachable(
@@ -823,7 +812,7 @@ class BaseVM(object):
 
     @error_context.context_aware
     def wait_for_get_address(self, nic_index_or_name, timeout=30,
-                             internal_timeout=1, ip_version='ipv4'):
+                             interval=0.5, ip_version='ipv4'):
         """
         Wait for a nic to acquire an IP address, then return it.
         For ipv6 linklocal address, we can generate it by nic mac,
@@ -832,13 +821,16 @@ class BaseVM(object):
         # Don't let VMIPAddressMissingError/VMAddressVerificationError through
         def _get_address():
             try:
-                return self.get_address(nic_index_or_name)
-            except (VMIPAddressMissingError, VMAddressVerificationError):
+                return self.get_address(nic_index_or_name, ip_version)
+            except (VMIPAddressMissingError, VMAddressVerificationError), e:
                 return False
 
-        ipaddr = utils_misc.wait_for(_get_address, timeout, internal_timeout)
+        ipaddr = utils_misc.wait_for(_get_address, timeout, step=interval)
         if not ipaddr:
-            raise VMIPAddressMissingError(self.virtnet[nic_index_or_name].mac)
+            # Read guest address via serial console and update VM address
+            # cache to avoid get out-dated address.
+            utils_net.update_mac_ip_address(self, self.params, timeout)
+            ipaddr = self.get_address(nic_index_or_name, ip_version)
         msg = 'Found/Verified IP %s for VM %s NIC %s' % (ipaddr, self.name,
                                                          nic_index_or_name)
         logging.debug(msg)
@@ -1011,8 +1003,8 @@ class BaseVM(object):
         prompt = self.params.get("shell_prompt", "[\#\$]")
         linesep = eval("'%s'" % self.params.get("shell_linesep", r"\n"))
         client = self.params.get("shell_client")
+        address = self.get_address(nic_index, self.ip_version)
         neigh_attach_if = ""
-        address = self.get_address(nic_index)
         if address and address.lower().startswith("fe80"):
             neigh_attach_if = utils_net.get_neigh_attch_interface(address)
         port = self.get_port(int(self.params.get("shell_port")))
