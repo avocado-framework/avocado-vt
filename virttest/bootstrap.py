@@ -11,13 +11,14 @@ from avocado.utils import process
 from avocado.utils import genio
 from avocado.utils import linux_modules
 
-from . import utils_misc
 from . import data_dir
 from . import asset
 from . import cartesian_config
 from . import utils_selinux
 from . import defaults
 from . import arch
+
+LOG = logging.getLogger("avocado.app")
 
 basic_program_requirements = ['xz', 'tcpdump', 'nc', 'ip', 'arping']
 
@@ -87,8 +88,8 @@ def get_guest_os_info_list(test_name, guest_os):
         os_info_list.append({'asset': image_name, 'variant': shortname})
 
     if not os_info_list:
-        logging.error("Could not find any assets compatible with %s for %s",
-                      guest_os, test_name)
+        LOG.error("Could not find any assets compatible with %s for %s",
+                  guest_os, test_name)
         raise ValueError("Missing compatible assets for %s" % guest_os)
 
     return os_info_list
@@ -109,19 +110,19 @@ def verify_recommended_programs(t_type):
             found = None
             try:
                 found = utils_path.find_command(cmd)
-                logging.debug('%s OK', found)
+                LOG.debug('%s OK', found)
                 break
             except utils_path.CmdNotFoundError:
                 pass
         if not found:
             if len(cmd_aliases) == 1:
-                logging.info("Recommended command %s missing. You may "
-                             "want to install it if not building from "
-                             "source.", cmd_aliases[0])
+                LOG.info("Recommended command %s missing. You may "
+                         "want to install it if not building from "
+                         "source.", cmd_aliases[0])
             else:
-                logging.info("Recommended command missing. You may "
-                             "want to install it if not building it from "
-                             "source. Aliases searched: %s", cmd_aliases)
+                LOG.info("Recommended command missing. You may "
+                         "want to install it if not building it from "
+                         "source. Aliases searched: %s", cmd_aliases)
 
 
 def verify_mandatory_programs(t_type, guest_os):
@@ -129,15 +130,15 @@ def verify_mandatory_programs(t_type, guest_os):
     cmds = mandatory_programs[t_type]
     for cmd in cmds:
         try:
-            logging.debug('%s OK', utils_path.find_command(cmd))
+            LOG.debug('%s OK', utils_path.find_command(cmd))
         except utils_path.CmdNotFoundError:
             if cmd == 'xz' and guest_os != defaults.DEFAULT_GUEST_OS:
-                logging.warn("Command xz (required to uncompress JeOS) "
-                             "missing. You can still use avocado-vt with guest"
-                             " OS's other than JeOS.")
+                LOG.warn("Command xz (required to uncompress JeOS) "
+                         "missing. You can still use avocado-vt with guest"
+                         " OS's other than JeOS.")
                 continue
-            logging.error("Required command %s is missing. You must "
-                          "install it", cmd)
+            LOG.error("Required command %s is missing. You must "
+                      "install it", cmd)
             failed_cmds.append(cmd)
 
     includes = mandatory_headers[t_type]
@@ -145,13 +146,13 @@ def verify_mandatory_programs(t_type, guest_os):
     for include in available_includes:
         include_basename = os.path.basename(include)
         if include_basename in includes:
-            logging.debug('%s OK', include)
+            LOG.debug('%s OK', include)
             includes.pop(includes.index(include_basename))
 
     if includes:
         for include in includes:
-            logging.error("Required include %s is missing. You may have to "
-                          "install it", include)
+            LOG.error("Required include %s is missing. You may have to "
+                      "install it", include)
 
     failures = failed_cmds + includes
 
@@ -264,8 +265,8 @@ def get_directory_structure(rootdir, guest_file):
 def sync_download_dir(interactive):
     base_download_dir = data_dir.get_base_download_dir()
     download_dir = data_dir.get_download_dir()
-    logging.debug("Copying downloadable assets file definitions from %s "
-                  "into %s", base_download_dir, download_dir)
+    LOG.debug("Copying downloadable assets file definitions from %s "
+              "into %s", base_download_dir, download_dir)
     download_file_list = glob.glob(os.path.join(base_download_dir,
                                                 "*.ini"))
     for src_file in download_file_list:
@@ -278,20 +279,20 @@ def sync_download_dir(interactive):
             diff_result = process.run(
                 diff_cmd, ignore_status=True, verbose=False)
             if diff_result.exit_status != 0:
-                logging.info("%s result:\n %s",
-                             diff_result.command, diff_result.stdout)
+                LOG.debug("%s result:\n %s",
+                          diff_result.command, diff_result.stdout)
                 answer = genio.ask('Download file "%s" differs from "%s". '
                                    'Overwrite?' % (dst_file, src_file),
                                    auto=not interactive)
                 if answer == "y":
-                    logging.debug("Restoring download file %s from sample",
-                                  dst_file)
+                    LOG.debug("Restoring download file %s from sample",
+                              dst_file)
                     shutil.copyfile(src_file, dst_file)
                 else:
-                    logging.debug("Preserving existing %s file", dst_file)
+                    LOG.debug("Preserving existing %s file", dst_file)
             else:
-                logging.debug('Download file %s exists, not touching',
-                              dst_file)
+                LOG.debug('Download file %s exists, not touching',
+                          dst_file)
 
 
 def create_guest_os_cfg(t_type):
@@ -300,8 +301,8 @@ def create_guest_os_cfg(t_type):
     guest_os_cfg_path = data_dir.get_backend_cfg_path(t_type, 'guest-os.cfg')
     guest_os_cfg_file = open(guest_os_cfg_path, 'w')
     get_directory_structure(guest_os_cfg_dir, guest_os_cfg_file)
-    logging.debug("Config file %s auto generated from guest OS samples",
-                  guest_os_cfg_path)
+    LOG.debug("Config file %s auto generated from guest OS samples",
+              guest_os_cfg_path)
 
 
 def create_subtests_cfg(t_type):
@@ -470,8 +471,8 @@ def create_subtests_cfg(t_type):
     write_subtests_files(last_subtest_file, subtests_file)
 
     subtests_file.close()
-    logging.debug("Config file %s auto generated from subtest samples",
-                  subtests_cfg)
+    LOG.debug("Config file %s auto generated from subtest samples",
+              subtests_cfg)
 
 
 def create_config_files(test_dir, shared_dir, interactive, t_type, step=None,
@@ -483,9 +484,9 @@ def create_config_files(test_dir, shared_dir, interactive, t_type, step=None,
 
     if step is None:
         step = 0
-    logging.info("")
+    LOG.info("")
     step += 1
-    logging.info("%d - Generating config set", step)
+    LOG.info("%d - Generating config set", step)
     config_file_list = data_dir.SubdirGlobList(os.path.join(test_dir, "cfg"),
                                                "*.cfg",
                                                get_config_filter())
@@ -523,31 +524,31 @@ def create_config_files(test_dir, shared_dir, interactive, t_type, step=None,
         src_file = config_file
         dst_file = os.path.join(test_dir, "cfg", os.path.basename(config_file))
         if not os.path.isfile(dst_file):
-            logging.debug("Creating config file %s from sample", dst_file)
+            LOG.debug("Creating config file %s from sample", dst_file)
             shutil.copyfile(src_file, dst_file)
         else:
             diff_cmd = "diff -Naur %s %s" % (dst_file, src_file)
             diff_result = process.run(
                 diff_cmd, ignore_status=True, verbose=False)
             if diff_result.exit_status != 0:
-                logging.info("%s result:\n %s",
-                             diff_result.command, diff_result.stdout)
+                LOG.info("%s result:\n %s",
+                         diff_result.command, diff_result.stdout)
                 answer = genio.ask("Config file  %s differs from %s."
                                    "Overwrite?" % (dst_file, src_file),
                                    auto=force_update or not interactive)
 
                 if answer == "y":
-                    logging.debug("Restoring config file %s from sample",
-                                  dst_file)
+                    LOG.debug("Restoring config file %s from sample",
+                              dst_file)
                     shutil.copyfile(src_file, dst_file)
                 else:
-                    logging.debug("Preserving existing %s file", dst_file)
+                    LOG.debug("Preserving existing %s file", dst_file)
             else:
                 if force_update:
                     update_msg = 'Config file %s exists, equal to sample'
                 else:
                     update_msg = 'Config file %s exists, not touching'
-                logging.debug(update_msg, dst_file)
+                LOG.debug(update_msg, dst_file)
     return step
 
 
@@ -631,7 +632,7 @@ def set_defcon(datadir, imagesdir, isosdir, tmpdir):
     if existing_data is None or existing_data is not 'virt_var_lib_t':
         # semanage gives errors if don't treat /usr & /usr/local the same
         data_regex = utils_selinux.transmogrify_usr_local(datadir)
-        logging.info(msg)
+        LOG.info(msg)
         could_be_slow = True
         # This applies only to datadir symlink, not sub-directories!
         utils_selinux.set_defcon('virt_var_lib_t', data_regex)
@@ -642,7 +643,7 @@ def set_defcon(datadir, imagesdir, isosdir, tmpdir):
         images_regex = utils_selinux.transmogrify_usr_local(imagesdir)
         images_regex = utils_selinux.transmogrify_sub_dirs(images_regex)
         if not could_be_slow:
-            logging.info(msg)
+            LOG.info(msg)
             could_be_slow = True
         utils_selinux.set_defcon('virt_image_t', images_regex)
         made_changes = True
@@ -652,7 +653,7 @@ def set_defcon(datadir, imagesdir, isosdir, tmpdir):
         isos_regex = utils_selinux.transmogrify_usr_local(isosdir)
         isos_regex = utils_selinux.transmogrify_sub_dirs(isos_regex)
         if not could_be_slow:
-            logging.info(msg)
+            LOG.info(msg)
             could_be_slow = True
         utils_selinux.set_defcon('virt_content_t', isos_regex)
         made_changes = True
@@ -661,7 +662,7 @@ def set_defcon(datadir, imagesdir, isosdir, tmpdir):
         tmp_regex = utils_selinux.transmogrify_usr_local(tmpdir)
         tmp_regex = utils_selinux.transmogrify_sub_dirs(tmp_regex)
         if not could_be_slow:
-            logging.info(msg)
+            LOG.info(msg)
             could_be_slow = True
         utils_selinux.set_defcon('user_tmp_t', tmp_regex)
         made_changes = True
@@ -710,33 +711,33 @@ def verify_selinux(datadir, imagesdir, isosdir, tmpdir,
             if labels_ok:
                 needs_relabel = False
             else:
-                logging.warning("On-disk SELinux labels do not match defaults")
+                LOG.warning("On-disk SELinux labels do not match defaults")
                 needs_relabel = True
         # Disabled or Permissive mode is same result as not installed
         else:
-            logging.info("SELinux in permissive or disabled, testing"
-                         "in enforcing mode is highly encourraged.")
+            LOG.info("SELinux in permissive or disabled, testing"
+                     "in enforcing mode is highly encourraged.")
     except utils_selinux.SemanageError:
-        logging.info("Could not set default SELinux contexts. Please")
-        logging.info("consider installing the semanage program then ")
-        logging.info("verifying and/or running running:")
+        LOG.info("Could not set default SELinux contexts. Please")
+        LOG.info("consider installing the semanage program then ")
+        LOG.info("verifying and/or running running:")
         # Paths must be transmogrified (changed) into regular expressions
-        logging.info("semanage fcontext --add -t virt_var_lib_t '%s'",
-                     utils_selinux.transmogrify_usr_local(datadir))
-        logging.info("semanage fcontext --add -t virt_image_t '%s'",
-                     utils_selinux.transmogrify_usr_local(
-                         utils_selinux.transmogrify_sub_dirs(imagesdir)))
-        logging.info("semanage fcontext --add -t virt_content_t '%s'",
-                     utils_selinux.transmogrify_usr_local(
-                         utils_selinux.transmogrify_sub_dirs(isosdir)))
-        logging.info("semanage fcontext --add -t user_tmp_t '%s'",
-                     utils_selinux.transmogrify_usr_local(
-                         utils_selinux.transmogrify_sub_dirs(tmpdir)))
+        LOG.info("semanage fcontext --add -t virt_var_lib_t '%s'",
+                 utils_selinux.transmogrify_usr_local(datadir))
+        LOG.info("semanage fcontext --add -t virt_image_t '%s'",
+                 utils_selinux.transmogrify_usr_local(
+                     utils_selinux.transmogrify_sub_dirs(imagesdir)))
+        LOG.info("semanage fcontext --add -t virt_content_t '%s'",
+                 utils_selinux.transmogrify_usr_local(
+                     utils_selinux.transmogrify_sub_dirs(isosdir)))
+        LOG.info("semanage fcontext --add -t user_tmp_t '%s'",
+                 utils_selinux.transmogrify_usr_local(
+                     utils_selinux.transmogrify_sub_dirs(tmpdir)))
         needs_relabel = None  # Next run will catch if relabeling needed
     except utils_selinux.SelinuxError:  # Catchall SELinux related
-        logging.info("SELinux not available, or error in command/setup.")
-        logging.info("Please manually verify default file contexts before")
-        logging.info("testing with SELinux enabled and enforcing.")
+        LOG.info("SELinux not available, or error in command/setup.")
+        LOG.info("Please manually verify default file contexts before")
+        LOG.info("testing with SELinux enabled and enforcing.")
     if needs_relabel:
         if selinux:
             answer = "y"
@@ -748,8 +749,8 @@ def verify_selinux(datadir, imagesdir, isosdir, tmpdir,
             changes += utils_selinux.apply_defcon(imagesdir, True)
             changes += utils_selinux.apply_defcon(isosdir, True)
             changes += utils_selinux.apply_defcon(tmpdir, True)
-            logging.info("Corrected contexts on %d files/dirs",
-                         len(changes))
+            LOG.info("Corrected contexts on %d files/dirs",
+                     len(changes))
 
 
 def bootstrap(options, interactive=False):
@@ -762,36 +763,32 @@ def bootstrap(options, interactive=False):
     :raise error.CmdError: If JeOS image failed to uncompress
     :raise ValueError: If xz was not found
     """
-    if interactive:
-        log_cfg = utils_misc.VirtLoggingConfig()
-        log_cfg.configure_logging(verbose=True)
-
     if options.yes_to_all:
         interactive = False
 
-    logging.info("Running bootstrap for %s", options.vt_type)
+    LOG.info("Running bootstrap for %s", options.vt_type)
     step = 0
 
-    logging.info("")
+    LOG.info("")
     step += 1
-    logging.info("%d - Checking the mandatory programs and headers", step)
+    LOG.info("%d - Checking the mandatory programs and headers", step)
     guest_os = options.vt_guest_os or defaults.DEFAULT_GUEST_OS
     try:
         verify_mandatory_programs(options.vt_type, guest_os)
     except Exception, details:
-        logging.info(details)
-        logging.info('Install the missing programs and/or headers and '
-                     're-run boostrap')
+        LOG.debug(details)
+        LOG.debug('Install the missing programs and/or headers and '
+                  're-run boostrap')
         sys.exit(1)
 
-    logging.info("")
+    LOG.info("")
     step += 1
-    logging.info("%d - Checking the recommended programs", step)
+    LOG.info("%d - Checking the recommended programs", step)
     verify_recommended_programs(options.vt_type)
 
-    logging.info("")
+    LOG.info("")
     step += 1
-    logging.info("%d - Updating all test providers", step)
+    LOG.info("%d - Updating all test providers", step)
     # First update the test-providers-ini from base to data dir
     tp_base_dir = data_dir.get_base_test_providers_dir()
     tp_local_dir = data_dir.get_test_providers_dir()
@@ -799,25 +796,25 @@ def bootstrap(options, interactive=False):
     # Now try to download/update the providers (if necessary)
     asset.download_all_test_providers(options.vt_update_providers)
 
-    logging.info("")
+    LOG.info("")
     step += 1
-    logging.info("%d - Verifying directories", step)
+    LOG.info("%d - Verifying directories", step)
     datadir = data_dir.get_data_dir()
     shared_dir = data_dir.get_shared_dir()
     sub_dir_list = ["images", "isos", "steps_data", "gpg", "downloads"]
     for sub_dir in sub_dir_list:
         sub_dir_path = os.path.join(datadir, sub_dir)
         if not os.path.isdir(sub_dir_path):
-            logging.debug("Creating %s", sub_dir_path)
+            LOG.debug("Creating %s", sub_dir_path)
             os.makedirs(sub_dir_path)
         else:
-            logging.debug("Dir %s exists, not creating",
-                          sub_dir_path)
+            LOG.debug("Dir %s exists, not creating",
+                      sub_dir_path)
 
     base_backend_dir = data_dir.get_base_backend_dir()
     local_backend_dir = data_dir.get_local_backend_dir()
-    logging.info("Syncing backend dirs %s -> %s", base_backend_dir,
-                 local_backend_dir)
+    LOG.info("Syncing backend dirs %s -> %s", base_backend_dir,
+             local_backend_dir)
     dir_util.copy_tree(base_backend_dir, local_backend_dir)
 
     sync_download_dir(interactive)
@@ -860,10 +857,10 @@ def bootstrap(options, interactive=False):
         restore_image = False
 
     if restore_image:
-        logging.info("")
+        LOG.info("")
         step += 1
-        logging.info("%s - Verifying (and possibly downloading) guest image",
-                     step)
+        LOG.info("%s - Verifying (and possibly downloading) guest image",
+                 step)
         try:
             for os_info in get_guest_os_info_list(options.vt_type, guest_os):
                 os_asset = os_info['asset']
@@ -874,7 +871,7 @@ def bootstrap(options, interactive=False):
                     pass    # Not all files are managed via asset
 
         except ValueError as details:
-            logging.info(details)
+            LOG.error(details)
             sys.exit(1)
 
     check_modules = []
@@ -884,19 +881,19 @@ def bootstrap(options, interactive=False):
         check_modules = ["openvswitch"]
 
     if check_modules:
-        logging.info("")
+        LOG.info("")
         step += 1
-        logging.info("%d - Checking for modules %s", step,
-                     ", ".join(check_modules))
+        LOG.info("%d - Checking for modules %s", step,
+                 ", ".join(check_modules))
         for module in check_modules:
             if not linux_modules.module_is_loaded(module):
-                logging.warning("Module %s is not loaded. You might want to "
-                                "load it", module)
+                LOG.warning("Module %s is not loaded. You might want to "
+                            "load it", module)
             else:
-                logging.debug("Module %s loaded", module)
+                LOG.debug("Module %s loaded", module)
 
     online_docs_url = 'http://avocado-vt.readthedocs.org/'
-    logging.info("")
+    LOG.info("")
     step += 1
-    logging.info("%d - If you wish, you may take a look at the online docs for "
-                 "more info: %s", step, online_docs_url)
+    LOG.info("%d - If you wish, you may take a look at the online docs for "
+             "more info: %s", step, online_docs_url)
