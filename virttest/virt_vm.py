@@ -1005,7 +1005,7 @@ class BaseVM(object):
         client = self.params.get("shell_client")
         address = self.get_address(nic_index, self.ip_version)
         neigh_attach_if = ""
-        if address and address.lower().startswith("fe80"):
+        if self.ip_version == "ipv6" and address.lower().startswith("fe80"):
             neigh_attach_if = utils_net.get_neigh_attch_interface(address)
         port = self.get_port(int(self.params.get("shell_port")))
         log_filename = ("session-%s-%s.log" %
@@ -1165,7 +1165,7 @@ class BaseVM(object):
         client = self.params.get("file_transfer_client")
         address = self.get_address(nic_index)
         neigh_attach_if = ""
-        if address.lower().startswith("fe80"):
+        if self.ip_version == "ipv6" and address.lower().startswith("fe80"):
             neigh_attach_if = utils_net.get_neigh_attch_interface(address)
         port = self.get_port(int(self.params.get("file_transfer_port")))
         log_filename = ("transfer-%s-to-%s-%s.log" %
@@ -1201,7 +1201,7 @@ class BaseVM(object):
         client = self.params.get("file_transfer_client")
         address = self.get_address(nic_index)
         neigh_attach_if = ""
-        if address.lower().startswith("fe80"):
+        if self.ip_version == "ipv6" and address.lower().startswith("fe80"):
             neigh_attach_if = utils_net.get_neigh_attch_interface(address)
         port = self.get_port(int(self.params.get("file_transfer_port")))
         log_filename = ("transfer-%s-from-%s-%s.log" %
