@@ -1003,7 +1003,11 @@ class BaseVM(object):
         prompt = self.params.get("shell_prompt", "[\#\$]")
         linesep = eval("'%s'" % self.params.get("shell_linesep", r"\n"))
         client = self.params.get("shell_client")
-        address = self.get_address(nic_index, self.ip_version)
+        try:
+            address = self.get_address(nic_index, self.ip_version)
+        except (VMIPAddressMissingError, VMAddressVerificationError), e:
+            utils_net.update_mac_ip_address(self, self.params, timeout)
+            address = self.get_address(nic_index, self.ip_version)
         neigh_attach_if = ""
         if self.ip_version == "ipv6" and address.lower().startswith("fe80"):
             neigh_attach_if = utils_net.get_neigh_attch_interface(address)
@@ -1092,54 +1096,62 @@ class BaseVM(object):
                 when remote login (ssh, rss) failed.
         :return: A ShellSession object.
         """
-        error_messages = []
-        logging.debug("Attempting to log into '%s' (timeout %ds)", self.name,
-                      timeout)
-        end_time = time.time() + timeout
-        while time.time() < end_time:
+        def print_guest_network_info():
+            """
+            Print guest network information into debug log file
+            """
+            session = self.serial_login(internal_timeout, username, password, False)
             try:
-                return self.login(nic_index, internal_timeout,
-                                  username, password)
-            except (remote.LoginError, VMError), e:
-                self.verify_alive()
-                e = str(e)
-                if e not in error_messages:
-                    logging.debug(e)
-                    error_messages.append(e)
-            time.sleep(2)
-        # Timeout expired
-        logging.info("Try to get guest network status.")
-        s_session = self.serial_login(username=username, password=password)
-        if s_session:
-            output = s_session.cmd_output("ipconfig || ifconfig", timeout=60)
-            txt = "Guest network status:\n %s" % output
-            logging.debug(txt)
-            out = s_session.cmd_output("ip route || route print", timeout=60)
-            txt = "Guest route table:\n %s" % out
-            logging.debug(txt)
+                out = session.cmd_output("ipconfig || ifconfig", timeout=60)
+                txt = ["Guest network status:\n %s" % out]
+                out = session.cmd_output("ip route || route print", timeout=60)
+                txt += ["Guest route table:\n %s" % out]
+                logging.debug("\n".join(txt))
+            finally:
+                session.close()
 
-        if serial:
-            return s_session
+        logging.debug("Attempting to log into '%s' (timeout %ds)",
+                      self.name, timeout)
+        start = time.time()
+        try:
+            self.wait_for_get_address(nic_index,
+                                      timeout=timeout,
+                                      ip_version=self.ip_version)
+        except Exception:
+            self.verify_alive()
+            print_guest_network_info()
+            if not (serial or restart_network):
+                raise
+            if restart_network:
+                serial_login_args = (timeout, internal_timeout,
+                                     restart_network, username,
+                                     password, False)
+                session = self.wait_for_serial_login(*serial_login_args)
+                if serial:
+                    return session
+                session.close()
 
-        if restart_network:
-            os_type = self.params.get("os_type")
-            utils_net.restart_guest_network(s_session, os_type=os_type)
-            # Try one more time after restarting guest network.
-            session = self.login(nic_index, internal_timeout, username,
-                                 password)
-            s_session.close()
-            return session
-        else:
-            # Close serial session
-            s_session.close()
-            # TODO Need to clean up existed serial console,
-            # otherwise, following serial login will fail. Any other solution?
-            if self.serial_console:
-                self.cleanup_serial_console()
-            # In the case of address is changed, update arp cache
-            utils_net.update_mac_ip_address(self, self.params, timeout=timeout)
-            # Try one more time but don't catch exceptions
-            return self.login(nic_index, internal_timeout, username, password)
+        end = time.time()
+        # try to login if VM bootup really
+        timeout -= (end - start)
+        login_timeout = time.time() + timeout
+        login_args = (nic_index, internal_timeout, username, password)
+        serial_login_args = (internal_timeout, username, password, False)
+        exception = None
+        while True:
+            try:
+                return self.login(*login_args)
+            except Exception:
+                pass
+            # Re-try login via serial console, if seiral is true
+            if serial:
+                try:
+                    return self.serial_login(*serial_login_args)
+                except Exception:
+                    pass
+            if time.time() > login_timeout:
+                print_guest_network_info()
+                raise
 
     @error_context.context_aware
     def copy_files_to(self, host_path, guest_path, nic_index=0, limit="",
