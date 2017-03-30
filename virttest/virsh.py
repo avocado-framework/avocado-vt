@@ -759,6 +759,20 @@ def setvcpus(name, count, extra="", **dargs):
     return command(cmd, **dargs)
 
 
+def setvcpu(name, cpulist, extra="", **dargs):
+    """
+    attach/detach vcpu or groups of threads
+
+    :param name: name of vm to affect
+    :param cpulist: group of vcpu numbers
+    :param options: any extra command options.
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object from command
+    """
+    cmd = "setvcpu %s %s %s" % (name, cpulist, extra)
+    return command(cmd, **dargs)
+
+
 def guestvcpus(name, cpu_list=None, options=None, **dargs):
     """
     Query or modify state of vcpu in the guest (via agent)
