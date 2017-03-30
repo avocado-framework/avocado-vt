@@ -3041,10 +3041,10 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None):
         for mac in macs:
             if ip_map.get(mac) == ip:
                 return True
-        o = commands.getoutput(arping_cmd)
-        if not regex.search(o):
+        s, o = commands.getstatusoutput(arping_cmd)
+        if s != 0:
             return False
-        return True
+        return bool(regex.search(o))
 
     if not devs:
         # Get the name of the bridge device for ip route cache
@@ -3056,13 +3056,14 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None):
     if not devs:
         logging.debug("No path to %s in route table: %s" % (ip, output))
         return False
+
     mac_regex = "|".join("(%s)" % mac for mac in macs)
     regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex), re.I)
     arping_bin = utils_path.find_command("arping")
     for dev in devs:
-        arping_cmd = "%s -f -c 3 -I %s %s" % (arping_bin, dev, ip)
+        arping_cmd = "%s -f -c3 -w5 -I %s %s" % (arping_bin, dev, ip)
         ret = utils_misc.wait_for(lambda: __arping(regex, arping_cmd, ip),
-                                  timeout=timeout)
+                                  timeout=timeout, step=0.1)
         if ret:
             return True
         logging.debug("Arping %s via %s failed" % (ip, dev))
