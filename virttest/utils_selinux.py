@@ -65,7 +65,11 @@ def get_status():
                     but the output is not expected.
     """
     cmd = 'getenforce'
-    result = process.run(cmd, ignore_status=True)
+    try:
+        result = process.run(cmd, ignore_status=True)
+    except OSError:
+        raise SeCmdError(cmd, "Command not available")
+
     if result.exit_status:
         raise SeCmdError(cmd, result.stderr)
 
