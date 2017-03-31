@@ -899,17 +899,17 @@ class VM(virt_vm.BaseVM):
             options, devs = [], []
             params.setdefault("mem", "512")
             mem_params = params.object_params("mem")
-            mem_params.setdefault("automem", "yes")
+            mem_params.setdefault("automem", "no")
             automem = mem_params["automem"] == "yes"
             if automem:
                 normalize_data_size = utils_misc.normalize_data_size
                 mem_size_m = "%sM" % mem_params["mem"]
-                mem_size_m = int(float(normalize_data_size(mem_size_m)))
-                max_usable_mem_m = int(mem_params["max_usable_mem"])
-                if mem_size_m >= max_usable_mem_m:
+                mem_size_m = float(normalize_data_size(mem_size_m))
+                usable_mem_m = utils_misc.get_usable_memory_size(align=1024)
+                if mem_size_m >= usable_mem_m:
                     logging.debug("Host no enough free memory, reset guest"
-                                  " memory size to %s MB" % max_usable_mem)
-                    params["mem"] = max_usable_mem_m
+                                  " memory size to %s MB" % usable_mem_m)
+                    params["mem"] = str(int(usable_mem_m))
             options.append(params["mem"])
             if devices.has_device("pc-dimm"):
                 if mem_params.get("slots") and mem_params.get("maxmem"):

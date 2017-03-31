@@ -8,14 +8,12 @@ import shutil
 import sys
 import copy
 import urllib2
-import math
 import multiprocessing
 
 import aexpect
 from avocado.utils import process as avocado_process
 from avocado.utils import crypto
 from avocado.utils import path
-from avocado.utils import memory
 from avocado.utils import distro
 from avocado.core import exceptions
 
@@ -516,11 +514,7 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
     """
     def _call_vm_func():
         for vm_name in params.objects("vms"):
-            free_mem = "%s KB" % memory.read_from_meminfo('MemFree')
-            free_mem = float(utils_misc.normalize_data_size(free_mem))
-            max_mem = int(math.ceil(free_mem / 1024) * 1024)
             vm_params = params.object_params(vm_name)
-            vm_params["max_usable_mem"] = str(max_mem)
             vm_func(test, vm_params, env, vm_name)
 
     def _call_image_func():
