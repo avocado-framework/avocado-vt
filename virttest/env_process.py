@@ -526,7 +526,11 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
         if (params.get("setup_ksm") == "yes" and
                 params.get("ksm_run", "1") == "1"):
             magnification = 1.2
-        free_mem = "%s KB" % memory.read_from_meminfo('MemFree')
+        # Test whether is MemAvailable already introduced
+        try:
+            free_mem = "%s KB" % memory.read_from_meminfo('MemAvailable')
+        except avocado_process.CmdError:
+            free_mem = "%s KB" % memory.read_from_meminfo('MemFree')
         free_mem = float(utils_misc.normalize_data_size(free_mem))
         provide_mem = free_mem * magnification
         # make memory size aligned to 256Mib
