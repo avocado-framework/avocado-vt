@@ -3824,16 +3824,23 @@ class SELinuxBoolean(object):
 
     def __init__(self, params):
         self.server_ip = params.get("server_ip", None)
+        self.ssh_user = params.get("server_user", "root")
+        self.ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.server_ip)
         if self.server_ip:
             # Setup SSH connection
             from utils_conn import SSHConnection
             self.ssh_obj = SSHConnection(params)
             ssh_timeout = int(params.get("ssh_timeout", 10))
             self.ssh_obj.conn_setup(timeout=ssh_timeout)
-
+            cmd = "%s'getenforce'" % self.ssh_cmd
+            try:
+                result = process.run(cmd, shell=True)
+                self.rem_selinux_disabled = (result.stdout.strip().lower() ==
+                                             "disabled")
+            except process.CmdError:
+                self.rem_selinux_disabled = True
         self.cleanup_local = True
         self.cleanup_remote = True
-        self.ssh_user = params.get("server_user", "root")
         self.set_bool_local = params.get("set_sebool_local", "no")
         self.set_bool_remote = params.get("set_sebool_remote", "no")
         self.local_bool_var = params.get("local_boolean_varible")
@@ -3842,6 +3849,10 @@ class SELinuxBoolean(object):
         self.local_bool_value = params.get("local_boolean_value")
         self.remote_bool_value = params.get("remote_boolean_value",
                                             self.local_bool_value)
+        try:
+            self.selinux_disabled = utils_selinux.get_status() == "disabled"
+        except utils_selinux.SeCmdError, utils_selinux.SelinuxError:
+            self.selinux_disabled = True
 
     def get_sebool_local(self):
         """
@@ -3857,9 +3868,9 @@ class SELinuxBoolean(object):
         """
         Get SELinux boolean value from remote host.
         """
-        ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.server_ip)
         get_sebool_cmd = "getsebool %s" % self.remote_bool_var
-        cmd = ssh_cmd + "'%s'" % get_sebool_cmd + "| awk -F'-->' '{print $2}'"
+        cmd = (self.ssh_cmd + "'%s'" %
+               (get_sebool_cmd + "'| awk -F'-->' '{print $2}''"))
         logging.debug("The command: %s", cmd)
         result = process.run(cmd, shell=True)
         return result.stdout.strip()
@@ -3869,13 +3880,13 @@ class SELinuxBoolean(object):
         Set SELinux boolean value.
         """
         # Change SELinux boolean value on local host
-        if self.set_bool_local == "yes":
+        if self.set_bool_local == "yes" and not self.selinux_disabled:
             self.setup_local()
         else:
             self.cleanup_local = False
 
         # Change SELinux boolean value on remote host
-        if self.set_bool_remote == "yes":
+        if self.set_bool_remote == "yes" and not self.rem_selinux_disabled:
             self.setup_remote()
         else:
             self.cleanup_remote = False
@@ -3887,17 +3898,16 @@ class SELinuxBoolean(object):
         self.ssh_obj.auto_recover = True
 
         # Recover local SELinux boolean value
-        if self.cleanup_local:
+        if self.cleanup_local and not self.selinux_disabled:
             result = process.run("setsebool %s %s" % (self.local_bool_var,
                                                       self.local_boolean_orig))
             if result.exit_status:
                 raise exceptions.TestError(result.stderr.strip())
 
         # Recover remote SELinux boolean value
-        if self.cleanup_remote:
-            ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.server_ip)
-            cmd = ssh_cmd + "'setsebool %s %s'" % (self.remote_bool_var,
-                                                   self.remote_boolean_orig)
+        if self.cleanup_remote and not self.rem_selinux_disabled:
+            cmd = (self.ssh_cmd + "'setsebool %s %s'" %
+                   (self.remote_bool_var, self.remote_boolean_orig))
             result = process.run(cmd)
             if result.exit_status:
                 raise exceptions.TestError(result.stderr.strip())
@@ -3938,9 +3948,8 @@ class SELinuxBoolean(object):
             self.cleanup_remote = False
             return
 
-        ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.server_ip)
-        set_boolean_cmd = ssh_cmd + "'setsebool %s %s'" % (
-            self.remote_bool_var, self.remote_bool_value)
+        set_boolean_cmd = (self.ssh_cmd + "'setsebool %s %s'" %
+                           (self.remote_bool_var, self.remote_bool_value))
 
         result = process.run(set_boolean_cmd)
         if result.exit_status:
