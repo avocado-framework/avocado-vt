@@ -3207,7 +3207,7 @@ def get_linux_ipaddr(session, nic):
     ipv6_addr = filter(lambda x: x.version == 6, addrs)
     ipv4_addr = str(ipv4_addr[0]) if ipv4_addr else None
     ipv6_addr = str(ipv6_addr[0]) if ipv6_addr else None
-    return (ipv4addr, ipv6addr)
+    return (ipv4_addr, ipv6_addr)
 
 
 def windows_mac_ip_maps(session):

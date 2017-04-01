@@ -25,6 +25,7 @@ import ctypes
 import threading
 import platform
 import traceback
+import math
 
 from aexpect.utils.genio import _open_log_files
 
@@ -37,6 +38,7 @@ from avocado.utils import genio
 from avocado.utils import aurl
 from avocado.utils import download
 from avocado.utils import linux_modules
+from avocado.utils import memory
 
 from . import data_dir
 from . import error_context
@@ -176,6 +178,21 @@ def write_keyval(path, dictionary, type_tag=None, tap_report=None):
     # same for tap
     if tap_report is not None and tap_report.do_tap_report:
         tap_report.record_keyval(path, dictionary, type_tag=type_tag)
+
+
+def get_usable_memory_size(align=None):
+    """
+    Sync, then drop host caches, then return host free memory size.
+
+    :param align: MB use to align free memory size
+    :return: host free memory size in MB
+    """
+    memory.drop_caches()
+    usable_mem = memory.read_from_meminfo('MemFree')
+    usable_mem = float(normalize_data_size("%s KB" % usable_mem))
+    if align:
+        usable_mem = math.ceil(usable_mem / align) * align
+    return usable_mem
 
 
 def log_last_traceback(msg=None, log=logging.error):
