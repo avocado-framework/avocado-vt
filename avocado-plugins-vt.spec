@@ -1,13 +1,13 @@
 %global modulename avocado-vt
 %if ! 0%{?commit:1}
- %define commit 7c5e2eac619c0359c1476316c70dd091c5139bbc
+ %define commit 78941a7e1eba8ff7a3ccc5af5995b24ef1d3a78e
 %endif
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 47.0
-Release: 1%{?dist}
+Version: 48.0
+Release: 0%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -53,6 +53,9 @@ Xunit output, among others.
 
 
 %changelog
+* Mon Apr  3 2017 Cleber Rosa <cleber@redhat.com> - 48.0-0
+- New upstream release
+
 * Sat Mar 18 2017 Cleber Rosa <cleber@redhat.com> - 47.0-1
 - Replaced 7z dependency for xz
 
