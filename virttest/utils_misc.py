@@ -39,6 +39,7 @@ from avocado.utils import aurl
 from avocado.utils import download
 from avocado.utils import linux_modules
 from avocado.utils import memory
+from avocado.utils.astring import string_safe_encode
 
 from . import data_dir
 from . import error_context
@@ -48,7 +49,6 @@ from .staging import utils_koji
 from .xml_utils import XMLTreeFile
 
 ARCH = platform.machine()
-ENCODING = os.environ.get("PYTHONENCODING", "utf-8")
 
 
 class UnsupportedCPU(exceptions.TestError):
@@ -494,9 +494,11 @@ def log_line(filename, line):
                 pass
             _open_log_files[base_file] = open(log_file, "w")
         timestr = time.strftime("%Y-%m-%d %H:%M:%S")
-        line = unicode("%s: %s" % (timestr, line), errors="ignore")
-        line = line.encode(ENCODING, errors='ignore')
-        _open_log_files[base_file].write("%s\n" % line)
+        try:
+            line = string_safe_encode(line)
+        except UnicodeDecodeError:
+            line = line.decode("utf-8", "ignore").encode("utf-8")
+        _open_log_files[base_file].write("%s: %s\n" % (timestr, line))
         _open_log_files[base_file].flush()
     finally:
         _log_lock.release()
