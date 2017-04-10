@@ -3189,7 +3189,7 @@ def get_linux_mac(session, nic):
         show_mac_cmd = "ifconfig %s || ip link show %s" % (nic, nic)
         out = session.cmd_output(show_mac_cmd)
     try:
-        return re.search(pattern, out, re.M | re.I).group(mac_index)
+        return str(re.search(pattern, out, re.M | re.I).group(mac_index))
     except Exception:
         logging.error("No HWaddr/ether found for nic %s: %s" % (nic, out))
 
@@ -3226,11 +3226,11 @@ def windows_mac_ip_maps(session):
     cmd = "wmic nicconfig where IPEnabled=True get ipaddress, macaddress"
     out = session.cmd_output(cmd)
     regex = r".*\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}[:-]\w{2}\s*"
-    for line in out.splitlines():
-        if not re.match(regex, line):
-            continue
+    lines = [l.strip() for l in out.splitlines() if l.strip()]
+    lines = [l for l in lines if re.match(regex, l)]
+    for line in lines:
         line = re.sub(r"[\{\},\"]", "", line)
-        addr_info = re.split(r"\s+", line)
+        addr_info = map(str, re.split(r"\s+", line))
         mac = addr_info.pop().lower().replace("-", ":")
         addrs = filter(None, map(str2ipaddr, addr_info))
         ipv4_addr = filter(lambda x: x.version == 4, addrs)
@@ -3318,7 +3318,7 @@ def get_linux_ifname(session, mac_address=""):
                                "mac %s" % mac_address)
 
 
-def update_mac_ip_address(vm, params, timeout=None):
+def update_mac_ip_address(vm, params, timeout=240):
     """
     Get mac and ip address from guest then update the mac pool and
     address cache
@@ -3336,7 +3336,9 @@ def update_mac_ip_address(vm, params, timeout=None):
                                                restart_network=True)
             addr_map = get_guest_address_map(session)
             session.close()
-        vm.address_cache.update(addr_map)
+        if addr_map:
+            logging.debug("Update address_cache: %s" % addr_map)
+            vm.address_cache.update(addr_map)
     except Exception, e:
         logging.warn("Error occur when update VM address cache: %s" % str(e))
 
