@@ -131,11 +131,6 @@ def verify_mandatory_programs(t_type, guest_os):
         try:
             logging.info('%s OK', utils_path.find_command(cmd))
         except utils_path.CmdNotFoundError:
-            if cmd == 'xz' and guest_os != defaults.DEFAULT_GUEST_OS:
-                logging.warn("Command xz (required to uncompress JeOS) "
-                             "missing. You can still use avocado-vt with guest"
-                             " OS's other than JeOS.")
-                continue
             logging.error("Required command %s is missing. You must "
                           "install it", cmd)
             failed_cmds.append(cmd)
@@ -758,9 +753,6 @@ def bootstrap(options, interactive=False):
 
     :param options: Command line options.
     :param interactive: Whether to ask for confirmation.
-
-    :raise error.CmdError: If JeOS image failed to uncompress
-    :raise ValueError: If xz was not found
     """
     if interactive:
         log_cfg = utils_misc.VirtLoggingConfig()
