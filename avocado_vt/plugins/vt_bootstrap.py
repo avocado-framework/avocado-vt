@@ -103,6 +103,11 @@ class VTBootstrap(CLICmd):
         args.show_job_log = False
         args.test_lister = True
 
+        # Enable root logger as some Avocado-vt libraries use that
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        logging.getLogger("").addHandler(handler)
+
         try:
             bootstrap.bootstrap(options=args, interactive=True)
             sys.exit(0)

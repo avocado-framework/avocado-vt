@@ -464,18 +464,10 @@ class IOzonePlotter(object):
             self.plot_3d_graphs()
 
 
-class AnalyzerLoggingConfig(utils_misc.LoggingConfig):
-
-    def configure_logging(self, results_dir=None, verbose=False):
-        super(AnalyzerLoggingConfig, self).configure_logging(use_console=True,
-                                                             verbose=verbose)
-
-
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     parser = optparse.OptionParser("usage: %prog [options] [filenames]")
     options, args = parser.parse_args()
-
-    AnalyzerLoggingConfig.configure_logging()
 
     if args:
         filenames = args
