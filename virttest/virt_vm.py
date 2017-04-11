@@ -694,9 +694,12 @@ class BaseVM(object):
             # get valid IPADDR
             if arp_ip:
                 if not utils_net.verify_ip_address_ownership(arp_ip, macs, devs=devs):
-                    self.address_cache[nic.mac.lower()] = None
-                    arp_ip = None
-
+                    if self.address_cache.get(nic.mac.lower()) == arp_ip:
+                        self.address_cache[nic.mac.lower()] = None
+                        arp_ip = None
+                    else:
+                        arp_ip = self.address_cache.get(nic.mac.lower())
+                        
             if (not arp_ip) and (len(macs) > 1) and flexible_index:
                 # Try to poke for each index
                 for idx in range(len(macs)):
