@@ -1222,14 +1222,9 @@ def get_loss_ratio(output):
     :param output: Ping output.
     """
     try:
-        return int(re.findall('(\d+)% packet loss', output)[0])
+        return int(re.findall('(\d+)%.*loss', output)[0])
     except IndexError:
-        pass
-    try:
-        return int(re.findall('Lost = (\d+)', output)[0])
-    except IndexError:
-        pass
-    logging.debug(output)
+        loggging.warn("Invaild output of ping command: %s" % output)
     return -1
 
 
