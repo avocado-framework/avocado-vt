@@ -830,6 +830,9 @@ class Iscsi(object):
             logging.error(err_msg, "iscsi-initiator-utils")
         try:
             path.find_command("targetcli")
+            cmd = "targetcli clearconfig confirm=true"
+            if process.system(cmd, shell=True) != 0:
+                logging.error(err_msg, "targetcli configuration unable to clear")
             iscsi_instance = IscsiLIO(params, root_dir)
         except path.CmdNotFoundError:
             try:
