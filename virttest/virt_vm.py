@@ -1000,7 +1000,7 @@ class BaseVM(object):
             username = self.params.get("username", "")
         if not password:
             password = self.params.get("password", "")
-        prompt = self.params.get("shell_prompt", "[\#\$]")
+        prompt = self.params.get("shell_prompt", r"[\#\$]\s*$")
         linesep = eval("'%s'" % self.params.get("shell_linesep", r"\n"))
         client = self.params.get("shell_client")
         try:
@@ -1265,7 +1265,7 @@ class BaseVM(object):
             username = self.params.get("username", "")
         if not password:
             password = self.params.get("password", "")
-        prompt = self.params.get("shell_prompt", "[\#\$]")
+        prompt = self.params.get("shell_prompt", r"[\#\$]\s*$")
         linesep = eval("'%s'" % self.params.get("shell_linesep", r"\n"))
         status_test_command = self.params.get("status_test_command", "")
         console = getattr(self, console_type)
