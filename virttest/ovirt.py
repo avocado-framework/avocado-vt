@@ -554,7 +554,7 @@ class VMManager(virt_vm.BaseVM):
         except Exception, e:
             logging.error('Failed to create VM from template:\n%s' % str(e))
 
-    def get_address(self, index=0):
+    def get_address(self, index=0, *args):
         """
         Return the address of the guest through ovirt node tcpdump cache.
 
