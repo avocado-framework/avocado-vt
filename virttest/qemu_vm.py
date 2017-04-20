@@ -1202,7 +1202,7 @@ class VM(virt_vm.BaseVM):
             return index
 
         def add_sga(devices):
-            if not devices.has_option("device"):
+            if not devices.has_device("sga"):
                 return ""
             else:
                 return " -device sga"
