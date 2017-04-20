@@ -632,9 +632,9 @@ class QPCIBus(QSparseBus):
         orig_addr = device.get_param('addr')
         if addr[1] or (isinstance(orig_addr, str) and
                        orig_addr.find('.') != -1):
-            device.set_param('addr', '%02x.%x' % (addr[0], addr[1]))
+            device.set_param('addr', '0x%02x.%x' % (addr[0], addr[1]))
         else:
-            device.set_param('addr', '%02x' % (addr[0]))
+            device.set_param('addr', '0x%02x' % (addr[0]))
 
     def _update_device_props(self, device, addr):
         """ Always set properties """
@@ -666,11 +666,11 @@ class QPCISwitchBus(QPCIBus):
         if addr not in self.__downstream_ports:
             bus_id = "%s.%s" % (self.busid, int(addr, 16))
             bus = QPCIBus(bus_id, 'PCIE', bus_id)
-            self.__downstream_ports[addr] = bus
+            self.__downstream_ports['0x%02x' % addr] = bus
             downstream = qdevices.QDevice(self.__downstream_type,
                                           {'id': bus_id,
                                            'bus': self.busid,
-                                           'addr': addr},
+                                           'addr': '0x%02x' % addr},
                                           aobject=self.aobject,
                                           parent_bus={'busid': '_PCI_CHASSIS'},
                                           child_bus=bus)
@@ -699,7 +699,7 @@ class QPCISwitchBus(QPCIBus):
         Instead of setting the addr this insert the device into the
         downstream port.
         """
-        self.__downstream_ports['%02x' % addr[0]].insert(device)
+        self.__downstream_ports['0x%02x' % addr[0]].insert(device)
 
 
 class QSCSIBus(QSparseBus):

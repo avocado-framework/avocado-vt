@@ -776,7 +776,7 @@ fdc
         self.assertNotEqual(qdev2, qdev, "Other qdev matches this one:\n%s\n%s"
                             % (qdev, qdev2))
         # cmdline
-        exp = ("-machine pc -device HBA,id=hba1,addr=0a,bus=pci.0 -device dev "
+        exp = ("-machine pc -device HBA,id=hba1,addr=0x0a,bus=pci.0 -device dev "
                "-device dev -device dev")
         out = qdev.cmdline()
         self.assertEqual(out, exp, 'Corrupted qdev.cmdline() output:\n%s\n%s'
