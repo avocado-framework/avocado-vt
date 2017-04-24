@@ -637,6 +637,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         device_name = setup_or_cleanup_iscsi(True)
         cleanup_iscsi = True
         # Create a partition to make sure disk pool can start
+        mk_label(device_name)
         mk_part(device_name)
         extra = "--source-dev %s" % device_name
     elif pool_type == "fs":
@@ -644,8 +645,9 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         device_name = setup_or_cleanup_iscsi(True)
         cleanup_iscsi = True
         # Format disk to make sure fs pool can start
-        mkfs(device_name, "ext4")
-        extra = "--source-dev %s" % device_name
+        source_format = kwargs.get('source_format', 'ext4')
+        mkfs(device_name, source_format)
+        extra = "--source-dev %s --source-format %s" % (device_name, source_format)
     elif pool_type == "gluster":
         gluster_source_path = kwargs.get('gluster_source_path')
         gluster_source_name = kwargs.get('gluster_source_name')
@@ -772,23 +774,65 @@ def mk_label(disk, label="msdos", session=None):
         process.run(mklabel_cmd)
 
 
-def mk_part(disk, size="100M", session=None):
+def mk_part(disk, size="100M", fs_type='ext4', session=None):
     """
     Create a partition for disk
     """
-    mkpart_cmd = ("parted -s -a optimal %s mklabel msdos -- "
-                  "mkpart primary ext4 0 %s" % (disk, size))
+    # TODO: This is just a temporary function to create partition for
+    # testing usage, should be replaced by a more robust one.
+    support_lable = ['unknown', 'gpt', 'msdos']
+    disk_label = 'msdos'
+    part_type = 'primary'
+    part_start = '0'
+
+    run_cmd = process.system_output
     if session:
-        session.cmd(mkpart_cmd)
-    else:
-        process.run(mkpart_cmd)
+        run_cmd = session.get_command_output
+
+    print_cmd = "parted -s %s print" % disk
+    output = run_cmd(print_cmd)
+    current_label = re.search(r'Partition Table: (\w+)', output).group(1)
+    if current_label not in support_lable:
+        logging.error('Not support create partition on %s disk', current_label)
+        return
+
+    disk_size = re.search(r"Disk %s: (\w+)" % disk, output).group(1)
+    pat = r'(?P<num>\d+)\s+(?P<start>\S+)\s+(?P<end>\S+)\s+(?P<size>\S+)\s+'
+    current_parts = [m.groupdict() for m in re.finditer(pat, output)]
+
+    mkpart_cmd = "parted -s -a optimal %s" % disk
+    if current_label == 'unknown':
+        mkpart_cmd += " mklabel %s" % disk_label
+    if len(current_parts) > 0:
+        part_start = current_parts[-1]['end']
+    part_end = (float(utils_misc.normalize_data_size(part_start, factor='1000'))
+                + float(utils_misc.normalize_data_size(size, factor='1000')))
+
+    # Deal with msdos disk
+    if current_label == 'msdos':
+        if len(current_parts) == 3:
+            extended_cmd = " mkpart extended %s %s" % (part_start, disk_size)
+            run_cmd(mkpart_cmd + extended_cmd)
+        if len(current_parts) > 2:
+            part_type = 'logical'
+
+    mkpart_cmd += ' mkpart %s %s %s %s' % (part_type, fs_type, part_start,
+                                           part_end)
+    run_cmd(mkpart_cmd)
 
 
 def mkfs(partition, fs_type, options="", session=None):
     """
-    Make a file system on the partition
+    Force to make a file system on the partition
     """
-    mkfs_cmd = "mkfs.%s -F %s %s" % (fs_type, partition, options)
+    force_option = ''
+    if fs_type in ['ext2', 'ext3', 'ext4', 'ntfs']:
+        force_option = '-F'
+    elif fs_type in ['fat', 'vfat', 'msdos']:
+        force_option = '-I'
+    elif fs_type in ['xfs', 'btrfs']:
+        force_option = '-f'
+    mkfs_cmd = "mkfs.%s %s %s %s" % (fs_type, force_option, partition, options)
     if session:
         session.cmd(mkfs_cmd)
     else:
@@ -948,26 +992,33 @@ class PoolVolumeTest(object):
             if not os.path.exists(pool_target):
                 os.mkdir(pool_target)
         elif pool_type == "disk":
+            extra = " --source-dev %s" % device_name
+            # msdos is libvirt default pool source format, but libvirt use
+            # notion 'dos' here
+            if not source_format:
+                source_format = 'dos'
+            extra += " --source-format %s" % source_format
+            disk_label = source_format
+            if disk_label == 'dos':
+                disk_label = 'msdos'
+            mk_label(device_name, disk_label)
             # Disk pool does not allow to create volume by virsh command,
             # so introduce parameter 'pre_disk_vol' to create partition(s)
             # by 'parted' command, the parameter is a list of partition size,
-            # and the max number of partitions is 4. If pre_disk_vol is None,
-            # disk pool will have no volume
+            # and the max number of partitions depends on the disk label.
+            # If pre_disk_vol is None, disk pool will have no volume
             pre_disk_vol = kwargs.get('pre_disk_vol', None)
             if type(pre_disk_vol) == list and len(pre_disk_vol):
                 for vol in pre_disk_vol:
                     mk_part(device_name, vol)
-            else:
-                mk_label(device_name, "gpt")
-            extra = " --source-dev %s" % device_name
-            if source_format:
-                extra += " --source-format %s" % source_format
         elif pool_type == "fs":
             pool_target = os.path.join(self.tmpdir, pool_target)
             if not os.path.exists(pool_target):
                 os.mkdir(pool_target)
-            mkfs(device_name, "ext4")
-            extra = " --source-dev %s" % device_name
+            source_format = kwargs.get('source_format', 'ext4')
+            mkfs(device_name, source_format)
+            extra = " --source-dev %s --source-format %s" % (device_name,
+                                                             source_format)
         elif pool_type == "logical":
             logical_device = device_name
             vg_name = "vg_%s" % pool_type
