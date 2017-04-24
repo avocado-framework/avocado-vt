@@ -815,17 +815,15 @@ class BaseVM(object):
         self.virtnet.free_mac_address(nic_index_or_name)
 
     @error_context.context_aware
-    def wait_for_get_address(self, nic_index_or_name, timeout=30,
+    def wait_for_get_address(self, nic_index, timeout=30,
                              interval=0.5, ip_version='ipv4'):
         """
         Wait for a nic to acquire an IP address, then return it.
-        For ipv6 linklocal address, we can generate it by nic mac,
-        so we can ignore this case
         """
         # Don't let VMIPAddressMissingError/VMAddressVerificationError through
         def _get_address():
             try:
-                return self.get_address(nic_index_or_name, ip_version)
+                return self.get_address(nic_index, ip_version)
             except (VMIPAddressMissingError, VMAddressVerificationError), e:
                 return False
 
@@ -834,9 +832,10 @@ class BaseVM(object):
             # Read guest address via serial console and update VM address
             # cache to avoid get out-dated address.
             utils_net.update_mac_ip_address(self, self.params, timeout)
-            ipaddr = self.get_address(nic_index_or_name, ip_version)
-        msg = 'Found/Verified IP %s for VM %s NIC %s' % (ipaddr, self.name,
-                                                         nic_index_or_name)
+            ipaddr = self.get_address(nic_index, ip_version)
+        msg = 'Found/Verified IP %s for VM %s NIC %s' % (ipaddr,
+                                                         self.name,
+                                                         nic_index)
         logging.debug(msg)
         return ipaddr
 
