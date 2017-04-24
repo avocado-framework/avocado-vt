@@ -644,6 +644,28 @@ class BaseVM(object):
 
     def get_address(self, index=0, ip_version="ipv4"):
         """
+        Wrapper for self._get_address. if 'flexible_nic_index' is 'yes',
+        will traverses from first nic to first element toward the end
+        util get a reachable IP address;
+        """
+        flexible_nic_index = ("yes" == self.params.get("flexible_nic_index", "no"))
+        macs, nics_index = self.virtnet.mac_list(), [index]
+        flexible_nic_index &= bool(len(macs) > 1)
+        if flexible_nic_index:
+            nics_index += [i for i in xrange(len(macs)) if i != index]
+        for index in nics_index:
+            try:
+                return self._get_address(index, ip_version)
+            except VMAddressError:
+                if not flexible_nic_index:
+                    raise
+                else:
+                    continue
+        else:
+            raise VMAddressError("VM '%s' no reachable %s address found" % (self.name, ip_version))
+
+    def _get_address(self, index=0, ip_version="ipv4"):
+        """
         Return the IP address of a NIC or guest (in host space).
 
         :param index: Name or index of the NIC whose address is requested.
@@ -719,24 +741,6 @@ class BaseVM(object):
                         os.system("arp -d %s" % ip_addr)
                     logging.debug("Clean up outdated address info, "
                                   "MAC: %s, IP: %s" % (mac, ip_addr))
-                    raise
-            except VMIPAddressMissingError:
-                flexible_index = ("yes" == self.params.get("flexible_nic_index", "no"))
-                macs = self.virtnet.mac_list()
-                if not flexible_index or len(macs) < 2:
-                    raise
-                indexs = range(len(macs))
-                indexs.pop(index)
-                for index in indexs:
-                    try:
-                        mac = _get_mac_addr(index)
-                        ip_addr = self.get_address(index)
-                        break
-                    except (VMAddressVerificationError,
-                            VMIPAddressMissingError,
-                            VMMACAddressMissingError):
-                        continue
-                else:
                     raise
             if not ip_addr:
                 raise VMIPAddressMissingError(mac, ip_version)
