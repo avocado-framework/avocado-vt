@@ -1,12 +1,12 @@
 %global modulename avocado-vt
 %if ! 0%{?commit:1}
- %define commit 78941a7e1eba8ff7a3ccc5af5995b24ef1d3a78e
+ %define commit c12fce358a7b171809386c0cc9c4eb97bada8e67
 %endif
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 48.0
+Version: 49.0
 Release: 0%{?dist}
 License: GPLv2
 Group: Development/Tools
@@ -14,7 +14,7 @@ URL: http://avocado-framework.readthedocs.org/
 Source0: https://github.com/avocado-framework/%{modulename}/archive/%{commit}/%{modulename}-%{version}-%{shortcommit}.tar.gz
 BuildRequires: python2-devel, python-setuptools
 BuildArch: noarch
-Requires: avocado >= 36.3
+Requires: avocado >= 36.4
 Requires: python, autotest-framework, xz, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, aexpect, git, python-netaddr, python-netifaces, python-simplejson
 
 Requires: python-imaging
@@ -53,6 +53,10 @@ Xunit output, among others.
 
 
 %changelog
+* Tue Apr 25 2017 Cleber Rosa <cleber@redhat.com> - 49.0-0
+- New upstream release
+- Used latest avocado LTS as mininum required version
+
 * Mon Apr  3 2017 Cleber Rosa <cleber@redhat.com> - 48.0-0
 - New upstream release
 
