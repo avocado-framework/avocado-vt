@@ -691,7 +691,7 @@ class BaseVM(object):
             except VMMACAddressMissingError:
                 if self.params.get('vm_type') not in ['libvirt', 'v2v']:
                     raise
-                mac = self.get_virsh_mac_address(index)
+                mac = self.get_virsh_mac_address(nic_index)
             if not mac:
                 raise VMMACAddressMissingError(nic_index)
             return mac.lower()
@@ -706,6 +706,7 @@ class BaseVM(object):
         if 'mac' not in nic:
             if self.params.get("vm_type") in ["libvirt", "v2v"]:
                 nic.set_mac_address(index, mac)
+                self.virtnet[index] = nic
 
         if ip_version == "ipv4":
             ip_addr = None
