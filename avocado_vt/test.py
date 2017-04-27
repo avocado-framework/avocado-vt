@@ -227,14 +227,14 @@ class VirtTest(test.Test):
             self.__status = "PASS"
         # This trick will give better reporting of virt tests being executed
         # into avocado (skips, warns and errors will display correctly)
-        except exceptions.TestSkipError:
+        except exceptions.TestSkip:
             raise   # This one has to be raised in setUp
         except:  # Old-style exceptions are not inherited from Exception()
             details = sys.exc_info()[1]
             self.__status = details
             if not hasattr(self, "cancel"):     # Old Avocado, skip here
                 if isinstance(self.__status, error.TestNAError):
-                    raise exceptions.TestSkipError(self.__status)
+                    raise exceptions.TestSkip(self.__status)
         finally:
             if env_lang:
                 os.environ['LANG'] = env_lang

@@ -282,7 +282,7 @@ class VMMigrateFailedError(VMMigrateError):
     pass
 
 
-class VMMigrateProtoUnknownError(exceptions.TestSkipError):
+class VMMigrateProtoUnknownError(exceptions.TestSkip):
 
     def __init__(self, protocol):
         self.protocol = protocol

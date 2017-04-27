@@ -132,7 +132,7 @@ def preprocess_vm(test, params, env, name):
                               (install_test, remove_test))
                 raise exceptions.TestError(error_msg)
             else:
-                raise exceptions.TestSkipError(error_msg)
+                raise exceptions.TestSkip(error_msg)
 
     remove_vm = False
     if params.get("force_remove_vm") == "yes":
@@ -575,18 +575,18 @@ def preprocess(test, params, env):
 
     # First, let's verify if this test does require root or not. If it
     # does and the test suite is running as a regular user, we shall just
-    # throw a TestSkipError exception, which will skip the test.
+    # throw a TestSkip exception, which will skip the test.
     if params.get('requires_root', 'no') == 'yes':
         utils_misc.verify_running_as_root()
 
-    # throw a TestSkipError exception if command requested by test is not
+    # throw a TestSkip exception if command requested by test is not
     # installed.
     if params.get("cmds_installed_host"):
         for cmd in params.get("cmds_installed_host").split():
             try:
                 path.find_command(cmd)
             except path.CmdNotFoundError, msg:
-                raise exceptions.TestSkipError(msg.message)
+                raise exceptions.TestSkip(msg.message)
 
     # enable network proxies setting in urllib2
     if params.get("network_proxies"):
@@ -696,7 +696,7 @@ def preprocess(test, params, env):
         else:
             warning_msg = "KVM module not loaded"
             if params.get("enable_kvm", "yes") == "yes":
-                raise exceptions.TestSkipError(warning_msg)
+                raise exceptions.TestSkip(warning_msg)
             logging.warning(warning_msg)
             kvm_version = "Unknown"
 

@@ -2062,9 +2062,9 @@ def disable_smt(params=None):
         cmd = "ppc64_cpu --smt=off"
         if params:
             if (server_user.lower() != "root"):
-                raise exceptions.TestSkipError("Turning SMT off requires root "
-                                               "privileges(currently running "
-                                               "with user %s)" % server_user)
+                raise exceptions.TestSkip("Turning SMT off requires root "
+                                          "privileges(currently running "
+                                          "with user %s)" % server_user)
             cmd_output = server_session.cmd_status_output(cmd)
             server_session.close()
             if (cmd_output[0] != 0):

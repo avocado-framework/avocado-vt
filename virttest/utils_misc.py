@@ -1942,7 +1942,7 @@ def set_cpu_status(cpu_num, enable=True):
     Set assigned cpu to be enable or disable
     """
     if cpu_num == 0:
-        raise exceptions.TestSkipError("The 0 cpu cannot be set!")
+        raise exceptions.TestSkip("The 0 cpu cannot be set!")
     cpu_status = get_cpu_status(cpu_num)
     if cpu_status == -1:
         return False
@@ -2594,12 +2594,12 @@ def verify_running_as_root():
     """
     Verifies whether we're running under UID 0 (root).
 
-    :raise: exceptions.TestSkipError
+    :raise: exceptions.TestSkip
     """
     if os.getuid() != 0:
-        raise exceptions.TestSkipError("This test requires root privileges "
-                                       "(currently running with user %s)" %
-                                       getpass.getuser())
+        raise exceptions.TestSkip("This test requires root privileges "
+                                  "(currently running with user %s)" %
+                                  getpass.getuser())
 
 
 def selinux_enforcing():
@@ -3818,7 +3818,7 @@ class SELinuxBoolean(object):
         result = process.run("setsebool %s %s" % (self.local_bool_var,
                                                   self.local_bool_value))
         if result.exit_status:
-            raise exceptions.TestSkipError(result.stderr.strip())
+            raise exceptions.TestSkip(result.stderr.strip())
 
         boolean_curr = self.get_sebool_local()
         logging.debug("To check local boolean value: %s", boolean_curr)
@@ -3841,7 +3841,7 @@ class SELinuxBoolean(object):
 
         result = process.run(set_boolean_cmd)
         if result.exit_status:
-            raise exceptions.TestSkipError(result.stderr.strip())
+            raise exceptions.TestSkip(result.stderr.strip())
 
         boolean_curr = self.get_sebool_remote()
         logging.debug("To check remote boolean value: %s", boolean_curr)

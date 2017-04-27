@@ -4,7 +4,7 @@ from threading import Lock
 from avocado.core import exceptions
 
 
-class ParamNotFound(exceptions.TestSkipError):
+class ParamNotFound(exceptions.TestSkip):
     pass
 
 
