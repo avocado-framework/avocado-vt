@@ -662,7 +662,7 @@ class BaseVM(object):
                 else:
                     continue
         else:
-            raise VMAddressError("VM '%s' no reachable %s address found" % (self.name, ip_version))
+            raise
 
     def _get_address(self, index=0, ip_version="ipv4"):
         """
