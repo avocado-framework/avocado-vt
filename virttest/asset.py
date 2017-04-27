@@ -494,9 +494,12 @@ def download_file(asset_info, interactive=False, force=False):
         else:
             answer = 'y'
         if answer == 'y':
-            download.url_download_interactive(url, destination,
-                                              "Downloading %s" % title)
-            had_to_download = True
+            try:
+                download.url_download_interactive(url, destination,
+                                                  "Downloading %s" % title)
+                had_to_download = True
+            except Exception, e:
+                logging.error("Check your internet connection: %s", e)
         else:
             logging.warning("Missing file %s", destination)
     else:
@@ -519,8 +522,12 @@ def download_file(asset_info, interactive=False, force=False):
                 if answer == 'y':
                     logging.info("Updating image to the latest available...")
                     while not file_ok:
-                        download.url_download_interactive(url, destination,
-                                                          title)
+                        try:
+                            download.url_download_interactive(url, destination,
+                                                              title)
+                        except Exception, e:
+                            logging.error("Check your internet connection: %s",
+                                          e)
                         sha1_post_download = crypto.hash_file(destination,
                                                               algorithm='sha1')
                         had_to_download = True
