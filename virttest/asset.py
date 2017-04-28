@@ -7,7 +7,6 @@ import types
 import glob
 import ConfigParser
 import StringIO
-import commands
 import shutil
 
 from avocado.utils import process
@@ -444,7 +443,7 @@ def uncompress_asset(asset_info, force=False):
             os.chdir(os.path.dirname(destination_uncompressed))
             logging.debug('Uncompressing %s -> %s', destination,
                           destination_uncompressed)
-            commands.getstatusoutput(uncompress_cmd)
+            process.run(uncompress_cmd, shell=True)
             backup_file = destination_uncompressed + '.backup'
             if os.path.isfile(backup_file):
                 logging.debug('Copying %s -> %s', destination_uncompressed,
