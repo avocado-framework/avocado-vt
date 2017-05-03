@@ -73,6 +73,14 @@ def get_data_files():
     return data_files
 
 
+def pre_post_plugin_type():
+    try:
+        from avocado.core.plugin_interfaces import JobPreTests as Pre
+        return 'avocado.plugins.result_events'
+    except ImportError:
+        return 'avocado.plugins.job.prepost'
+
+
 setup(name='avocado-plugins-vt',
       version=VERSION,
       description='Avocado Virt Test Compatibility Layer plugin',
@@ -103,8 +111,8 @@ setup(name='avocado-plugins-vt',
           'avocado.plugins.cli.cmd': [
               'vt-bootstrap = avocado_vt.plugins.vt_bootstrap:VTBootstrap',
               ],
-          'avocado.plugins.job.prepost': [
-              'vt-joblock = avocado_vt.plugins.vt_joblock:VTJobLock'
+          pre_post_plugin_type(): [
+              'vt-joblock = avocado_vt.plugins.vt_joblock:VTJobLock',
               ],
           },
       )
