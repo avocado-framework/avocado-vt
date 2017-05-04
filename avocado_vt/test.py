@@ -165,7 +165,7 @@ class VirtTest(test.Test):
         reports the original params on `get_state` call.
         """
         state = super(VirtTest, self).get_state()
-        state["params"] = self.__dict__.get("avocado_params")
+        state["params"] = self.avocado_params
         return state
 
     def _start_logging(self):
