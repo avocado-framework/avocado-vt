@@ -87,6 +87,8 @@ class VirtTest(test.Test):
         :param vt_params: avocado-vt/cartesian_config params stored as
                           `self.params`.
         """
+        self.__params = None
+        self.__avocado_params = None
         self.bindir = data_dir.get_root_dir()
         self.virtdir = os.path.join(self.bindir, 'shared')
 
@@ -103,6 +105,12 @@ class VirtTest(test.Test):
         self.tmpdir = os.path.dirname(self.workdir)
         # Move self.params to self.avocado_params and initialize virttest
         # (cartesian_config) params
+        try:
+            self.__avocado_params = super(VirtTest, self).params
+        except AttributeError:
+            # 36LTS set's `self.params` instead of having it as a property
+            # which stores the avocado params in `self.__params`
+            self.__avocado_params = self.__params
         self.__params = utils_params.Params(vt_params)
         self.debugdir = self.logdir
         self.resultsdir = self.logdir
@@ -119,10 +127,13 @@ class VirtTest(test.Test):
         once the Avocado-vt params are set it reports those instead. This
         is necessary to complete the `avocado.Test.__init__` phase
         """
-        try:
+        if self.__params is not None:
             return self.__params
-        except AttributeError:
-            return self.avocado_params
+        else:
+            # The `self.__params` is set after the `avocado.test.__init__`,
+            # but in newer Avocado `self.params` is used during `__init__`
+            # Report the parent's value in such case.
+            return super(VirtTest, self).params
 
     @params.setter
     def params(self, value):
@@ -136,7 +147,7 @@ class VirtTest(test.Test):
         """
         Original Avocado (multiplexer/varianter) params
         """
-        return super(VirtTest, self).params
+        return self.__avocado_params
 
     @property
     def datadir(self):
