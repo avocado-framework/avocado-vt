@@ -72,6 +72,27 @@ class VTBootstrap(CLICmd):
                             default=False, help=("All interactive "
                                                  "questions will be "
                                                  "answered with yes (y)"))
+        parser.add_argument("--vt-host-distro-name", action="store",
+                            metavar="HOST_DISTRO_NAME",
+                            help=("The name of the distro to be used when "
+                                  "generating the host configuration entry"))
+        parser.add_argument("--vt-host-distro-version", action="store",
+                            metavar="HOST_DISTRO_VERSION",
+                            help=("The version of the distro to be used when "
+                                  "generating the host configuration entry"))
+        parser.add_argument("--vt-host-distro-release", action="store",
+                            metavar="HOST_DISTRO_RELEASE",
+                            help=("The release of the distro to be used when "
+                                  "generating the host configuration entry."))
+        parser.add_argument("--vt-host-distro-arch", action="store",
+                            metavar="HOST_DISTRO_ARCH",
+                            help=("The architecture of the distro to be used when "
+                                  "generating the host configuration entry."))
+        parser.add_argument("--vt-host-distro-compat",
+                            action="store_true", default=False,
+                            help=("Whether to generate host distro "
+                                  "configuration suitable for use with current"
+                                  " test provider configuration"))
 
     def run(self, args):
         args.vt_config = None
