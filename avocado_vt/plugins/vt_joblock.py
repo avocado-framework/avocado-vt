@@ -11,12 +11,20 @@ from avocado.core.settings import settings
 from avocado.utils.process import pid_exists
 from avocado.utils.stacktrace import log_exc_info
 
-# Avocado's plugin interface module has changed location. Let's keep
-# compatibility with old for at, least, a new LTS release
 try:
-    from avocado.core.plugin_interfaces import JobPre, JobPost
+    try:
+        # JobPre has become JobPreTests on newer avocado versions
+        from avocado.core.plugin_interfaces import JobPreTests as Pre
+        # JobPost has become JobPostTests on newer avocado versions
+        from avocado.core.plugin_interfaces import JobPostTests as Post
+    # Avocado's plugin interface module has changed location. Let's keep
+    # compatibility with older for at least a new LTS release
+    except ImportError:
+        from avocado.core.plugin_interfaces import JobPre as Pre
+        from avocado.core.plugin_interfaces import JobPost as Post
 except ImportError:
-    from avocado.plugins.base import JobPre, JobPost
+    from avocado.plugins.base import JobPre as Pre
+    from avocado.plugins.base import JobPost as Post
 
 from ..test import VirtTest
 
@@ -36,12 +44,12 @@ class OtherProcessHoldsLockError(Exception):
     """
 
 
-class VTJobLock(JobPre, JobPost):
+class VTJobLock(Pre, Post):
 
     name = 'vt-joblock'
     description = 'Avocado-VT Job Lock/Unlock'
 
-    def __init__(self):
+    def __init__(self, args=None):
         self.log = logging.getLogger("avocado.app")
         self.lock_dir = os.path.expanduser(settings.get_value(
             section="plugins.vtjoblock",
@@ -114,7 +122,7 @@ class VTJobLock(JobPre, JobPost):
                     except OSError:
                         self.log.warn("Unable to remove stale lock: %s", path)
 
-    def pre(self, job):
+    def pre_tests(self, job):
         try:
             if any(test_factory[0] is VirtTest
                    for test_factory in job.test_suite):
@@ -125,6 +133,10 @@ class VTJobLock(JobPre, JobPost):
             log_exc_info(sys.exc_info(), self.log.name)
             sys.exit(exit_codes.AVOCADO_JOB_FAIL | job.exitcode)
 
-    def post(self, job):
+    def post_tests(self, job):
         if self.lock_file is not None:
             os.unlink(self.lock_file)
+
+    # compatibility with older versions, including 36.0 LTS
+    pre = pre_tests
+    post = post_tests
