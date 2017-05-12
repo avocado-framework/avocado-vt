@@ -241,8 +241,9 @@ class VirtTest(test.Test):
         except exceptions.TestSkipError:
             raise   # This one has to be raised in setUp
         except:  # Old-style exceptions are not inherited from Exception()
-            details = sys.exc_info()[1]
-            self.__status = details
+            details = sys.exc_info()
+            stacktrace.log_exc_info(details)
+            self.__status = details[1]
             if not hasattr(self, "cancel"):     # Old Avocado, skip here
                 if isinstance(self.__status, error.TestNAError):
                     raise exceptions.TestSkipError(self.__status)
