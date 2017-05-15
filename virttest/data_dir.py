@@ -11,21 +11,19 @@ import stat
 
 from avocado.core import data_dir
 
-_SYSTEM_WIDE_ROOT_PATH = '/usr/share/avocado-plugins-vt'
-if os.path.isdir(_SYSTEM_WIDE_ROOT_PATH):
-    _INSTALLED_SYSTEM_WIDE = len(os.listdir(os.path.join(_SYSTEM_WIDE_ROOT_PATH,
-                                                         'shared'))) > 0
+if hasattr(sys, 'real_prefix'):
+    # unlike default execution venv prefix does not contain /usr
+    _DEFAULT_SHARED_PATH = os.path.join(sys.prefix, "shared")
 else:
-    _INSTALLED_SYSTEM_WIDE = False
+    _DEFAULT_SHARED_PATH = os.path.join(sys.prefix, "share",
+                                        "avocado-plugins-vt",
+                                        "shared")
 
-if _INSTALLED_SYSTEM_WIDE:
-    # avocado-vt is installed
-    _ROOT_PATH = _SYSTEM_WIDE_ROOT_PATH
+if (os.path.isdir(_DEFAULT_SHARED_PATH) and
+        len(os.listdir(_DEFAULT_SHARED_PATH)) > 0):
+    _ROOT_PATH = os.path.dirname(_DEFAULT_SHARED_PATH)
 else:
-    # we're running from source code directories
-    virttest_init = sys.modules['virttest'].__file__
-    virttest_dir = os.path.realpath(os.path.dirname(virttest_init))
-    _ROOT_PATH = os.path.dirname(virttest_dir)
+    _ROOT_PATH = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
 
 ROOT_DIR = os.path.abspath(_ROOT_PATH)
 BASE_BACKEND_DIR = os.path.join(ROOT_DIR, 'backends')
