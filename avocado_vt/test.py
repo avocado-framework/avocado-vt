@@ -242,6 +242,7 @@ class VirtTest(test.Test):
             raise   # This one has to be raised in setUp
         except:  # Old-style exceptions are not inherited from Exception()
             details = sys.exc_info()[1]
+            stacktrace.log_exc_info(sys.exc_info(), 'avocado.test')
             self.__status = details
             if not hasattr(self, "cancel"):     # Old Avocado, skip here
                 if isinstance(self.__status, error.TestNAError):
