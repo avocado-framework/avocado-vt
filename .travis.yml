@@ -16,4 +16,14 @@ install:
     - rm -rf avocado-libs
 
 script:
+    # Create some fake binaries to make vt-bootstrap happy
+    - mkdir -p /tmp/dummy_bin
+    - touch /tmp/dummy_bin/arping
+    - touch /tmp/dummy_bin/tcpdump
+    - chmod 777 /tmp/dummy_bin/*
+    - export PATH="/tmp/dummy_bin:$PATH"
+    # Setup Avocado-vt for functional tests
+    - make install
+    - AVOCADO_LOG_DEBUG=yes avocado vt-bootstrap --vt-no-downloads --yes-to-all
+    # Run tests
     - make check

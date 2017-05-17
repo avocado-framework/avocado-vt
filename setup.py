@@ -13,6 +13,7 @@
 # Author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 
 import os
+import sys
 import glob
 
 # pylint: disable=E0611
@@ -20,7 +21,7 @@ from setuptools import setup
 
 VERSION = open('VERSION', 'r').read().strip()
 
-VIRTUAL_ENV = 'VIRTUAL_ENV' in os.environ
+VIRTUAL_ENV = hasattr(sys, 'real_prefix')
 
 
 def get_dir(system_path=None, virtual_path=None):
@@ -57,10 +58,7 @@ def get_data_files():
     data_files = [(get_dir(['etc', 'avocado', 'conf.d']),
                    ['etc/avocado/conf.d/vt.conf'])]
 
-    data_files += [(get_dir(['usr', 'share', 'avocado-plugins-vt',
-                             'test-providers.d']),
-                    glob.glob('test-providers.d/*'))]
-
+    data_files += add_files(["test-providers.d"])
     data_files_dirs = ['backends', 'shared']
 
     for data_file_dir in data_files_dirs:
