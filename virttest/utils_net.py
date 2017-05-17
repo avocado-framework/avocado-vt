@@ -3095,8 +3095,8 @@ def get_ip_address_by_interface(ifname, ip_ver="ipv4"):
         addr = netifaces.ifaddresses(ifname).get(ver)
         return [a['addr'] for a in addr if not a['addr'].startswith('fe80')][0]
     except Exception, e:
-        raise exceptions.TestError("Cannot get %s address form %s interface: %s"
-                                   % (ip_ver, ifname, e))
+        raise IPAddrGetError("Cannot get %s address form %s interface: %s"
+                             % (ip_ver, ifname, e))
 
 
 def get_host_ip_address(params, ip_ver="ipv4"):
