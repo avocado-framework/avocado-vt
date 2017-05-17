@@ -742,31 +742,45 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
     return True
 
 
-def check_log(log, content_list, expect=True):
+def check_log(params, log):
     """
-    Check if Error Message exists in v2v log
+    Check if error/warning meets expectation in v2v log
 
+    :param params: A dictionary includes all of required parameters such as
+                    'expect_msg', 'msg_content', etc.
     :param log: The log string to be checked
-    :param content_list: Content to be searched from log
-    :param expect: True if expect to find message from log, otherwise False
     :return: True if search result meets expectation, otherwise False
     """
-    found = False
-    for content in content_list:
-        line = '\s*'.join(content.split())
-        logging.info('Searching for: %s' % content)
-        pattern = re.compile(line)
-        search = re.search(pattern, log)
-        if search:
-            # Found log not expect
-            if not expect:
-                logging.error('Found error log of virt-v2v: %s' %
-                              search.group(0))
-                return False
-            found = True
-            logging.info('Found log: \n%s' % search.group(0))
-    # Expect to find log but failed
-    if not found and expect:
-        logging.error('Log not found: %s' % '\n'.join(content_list))
-        return False
-    return True
+
+    def _check_log(pattern_list, expect=True):
+        for pattern in pattern_list:
+            line = '\s*'.join(pattern.split())
+            expected = 'expected' if expect else 'not expected'
+            logging.info('Searching for %s log: %s' % (expected, pattern))
+            compiled_pattern = re.compile(line)
+            search = re.search(compiled_pattern, log)
+            if search:
+                logging.info('Found log: %s', search.group(0))
+                if not expect:
+                    return False
+            else:
+                logging.info('Not find log: %s', pattern)
+                if expect:
+                    return False
+        return True
+
+    expect_msg = params.get('expect_msg')
+    ret = ''
+    if not expect_msg:
+        logging.info('No need to check v2v log')
+    else:
+        expect = expect_msg == 'yes'
+        if params.get('msg_content'):
+            msg_list = params['msg_content'].split('%')
+            if _check_log(msg_list, expect=expect):
+                logging.info('Finish checking v2v log')
+            else:
+                ret = 'Check v2v log failed'
+        else:
+            ret = 'Missing error message to compare'
+    return ret
