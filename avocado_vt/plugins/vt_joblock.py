@@ -124,9 +124,10 @@ class VTJobLock(Pre, Post):
 
     def pre_tests(self, job):
         try:
-            if any(test_factory[0] is VirtTest
-                   for test_factory in job.test_suite):
-                self._lock(job)
+            if job.test_suite is not None:
+                if any(test_factory[0] is VirtTest
+                       for test_factory in job.test_suite):
+                    self._lock(job)
         except Exception as detail:
             msg = "Failure trying to set Avocado-VT job lock: %s" % detail
             self.log.error(msg)
