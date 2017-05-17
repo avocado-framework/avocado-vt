@@ -73,6 +73,13 @@ def arch_listing(options):
     LOG.debug("")
 
 
+class NotAvocadoVTTest(object):
+
+    """
+    Not an Avocado-vt test (for reporting purposes)
+    """
+
+
 class VirtTestLoader(loader.TestLoader):
 
     """
@@ -107,6 +114,7 @@ class VirtTestLoader(loader.TestLoader):
         _add_if_not_exist('vt_log_level', 'debug')
         _add_if_not_exist('vt_console_level', 'debug')
         _add_if_not_exist('vt_datadir', data_dir.get_data_dir())
+        _add_if_not_exist('vt_config', None)
         _add_if_not_exist('vt_arch', None)
         _add_if_not_exist('vt_machine_type', None)
         _add_if_not_exist('vt_keep_guest_running', False)
@@ -156,7 +164,7 @@ class VirtTestLoader(loader.TestLoader):
 
         :return: Dict {TestClass: 'TEST_LABEL_STRING'}
         """
-        return {VirtTest: 'VT'}
+        return {VirtTest: 'VT', NotAvocadoVTTest: "!VT"}
 
     @staticmethod
     def get_decorator_mapping():
@@ -166,13 +174,21 @@ class VirtTestLoader(loader.TestLoader):
         :return: Dict {TestClass: decorator function}
         """
         term_support = output.TermSupport()
-        return {VirtTest: term_support.healthy_str}
+        return {VirtTest: term_support.healthy_str,
+                NotAvocadoVTTest: term_support.fail_header_str}
+
+    @staticmethod
+    def _report_bad_discovery(name, reason, which_tests):
+        if which_tests is loader.ALL:
+            return [(NotAvocadoVTTest, {"name": "%s: %s" % (name, reason)})]
+        else:
+            return []
 
     def discover(self, url, which_tests=loader.DEFAULT):
         try:
             cartesian_parser = self._get_parser()
-        except Exception as details:
-            raise EnvironmentError(details)
+        except Exception, details:
+            return self._report_bad_discovery(url, details, which_tests)
         if url is not None:
             try:
                 cartesian_parser.only_filter(url)
@@ -181,8 +197,8 @@ class VirtTestLoader(loader.TestLoader):
             # config parser, hence it should be ignored.
             # just return an empty params list and let
             # the other test plugins to handle the URL.
-            except cartesian_config.ParserError:
-                return []
+            except cartesian_config.ParserError as details:
+                return self._report_bad_discovery(url, details, which_tests)
         elif which_tests is loader.DEFAULT and not self.args.vt_config:
             # By default don't run anythinig unless vt_config provided
             return []
@@ -207,4 +223,7 @@ class VirtTestLoader(loader.TestLoader):
             test_parameters = {'name': test_name,
                                'vt_params': params}
             test_suite.append((VirtTest, test_parameters))
+        if which_tests is loader.ALL and not test_suite:
+            return self._report_bad_discovery(url, "No matching tests",
+                                              which_tests)
         return test_suite
