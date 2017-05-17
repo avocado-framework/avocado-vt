@@ -1064,7 +1064,7 @@ class VM(virt_vm.BaseVM):
         if not self.serial_ports:
             for serial in self.params.objects("serials"):
                 self.serial_ports.append(serial)
-        if self.serial_console is None:
+        if self.serial_console is None or self.serial_console.closed:
             try:
                 cmd = 'virsh'
                 if self.connect_uri:
