@@ -805,8 +805,9 @@ def mk_part(disk, size="100M", fs_type='ext4', session=None):
         mkpart_cmd += " mklabel %s" % disk_label
     if len(current_parts) > 0:
         part_start = current_parts[-1]['end']
-    part_end = (float(utils_misc.normalize_data_size(part_start, factor='1000'))
-                + float(utils_misc.normalize_data_size(size, factor='1000')))
+    part_end = (float(utils_misc.normalize_data_size(part_start,
+                                                     factor='1000')) +
+                float(utils_misc.normalize_data_size(size, factor='1000')))
 
     # Deal with msdos disk
     if current_label == 'msdos':
@@ -1015,7 +1016,8 @@ class PoolVolumeTest(object):
             pool_target = os.path.join(self.tmpdir, pool_target)
             if not os.path.exists(pool_target):
                 os.mkdir(pool_target)
-            source_format = kwargs.get('source_format', 'ext4')
+            if not source_format:
+                source_format = 'ext4'
             mkfs(device_name, source_format)
             extra = " --source-dev %s --source-format %s" % (device_name,
                                                              source_format)
