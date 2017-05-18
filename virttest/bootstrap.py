@@ -6,10 +6,11 @@ import shutil
 import sys
 import re
 
-from avocado.utils import path as utils_path
-from avocado.utils import process
+from avocado.utils import distro
 from avocado.utils import genio
 from avocado.utils import linux_modules
+from avocado.utils import path as utils_path
+from avocado.utils import process
 
 from . import data_dir
 from . import asset
@@ -298,6 +299,79 @@ def create_guest_os_cfg(t_type):
     get_directory_structure(guest_os_cfg_dir, guest_os_cfg_file)
     LOG.debug("Config file %s auto generated from guest OS samples",
               guest_os_cfg_path)
+
+
+def host_os_get_distro_name(options, detected, compat=False):
+    """
+    :param compat: If set, name is returned as uppercase or capitalized
+    """
+    if options.vt_host_distro_name:
+        return options.vt_host_distro_name
+    if compat:
+        if detected.name == 'rhel':
+            return 'RHEL'
+        elif detected.name == 'fedora':
+            return 'Fedora'
+    return detected.name
+
+
+def host_os_get_distro_version(options, detected, compat=False):
+    """
+    :param compat: If set, distro version with an "m" (as in major) prefix
+    """
+    if options.vt_host_distro_version:
+        version = options.vt_host_distro_version
+    else:
+        version = detected.version
+    if compat:
+        return "m%s" % version
+    else:
+        return version
+
+
+def host_os_get_distro_release(options, detected, compat=False):
+    """
+    :param compat: If set, distro version with an "u" (as in update) prefix
+    """
+    if options.vt_host_distro_release:
+        release = options.vt_host_distro_release
+    else:
+        release = detected.release
+    if compat:
+        return "u%s" % release
+    else:
+        return release
+
+
+def create_host_os_cfg(options):
+    compat = options.vt_host_distro_compat
+    host_os_cfg_path = data_dir.get_backend_cfg_path(options.vt_type, 'host-os.cfg')
+    with open(host_os_cfg_path, 'w') as cfg:
+        detected = distro.detect()
+        name = host_os_get_distro_name(options, detected, compat)
+        version_raw = host_os_get_distro_version(options, detected, False)
+        version = host_os_get_distro_version(options, detected, compat)
+        release_raw = host_os_get_distro_release(options, detected, False)
+        release = host_os_get_distro_release(options, detected, compat)
+        cfg.write("variants:\n")
+        cfg.write("    - @Host_%s:\n" % name)
+        cfg.write("        host_kernel_ver_str = Host_%s\n" % name)
+        cfg.write("        variants:\n")
+        cfg.write("            - %s:\n" % version)
+        cfg.write("                host_kernel_ver_str += .%s\n" % version_raw)
+        cfg.write("                variants:\n")
+        cfg.write("                - %s:\n" % release)
+        cfg.write("                    host_kernel_ver_str += .%s\n" % release_raw)
+
+    count = [options.vt_host_distro_name, options.vt_host_distro_version,
+             options.vt_host_distro_release].count(None)
+    if count == 3:
+        source = "distro detection"
+    elif count == 0:
+        source = "command line parameters"
+    else:
+        source = "distro detection and command line parameters"
+    LOG.debug("Config file %s generated from %s", host_os_cfg_path, source)
 
 
 def create_subtests_cfg(t_type):
@@ -842,6 +916,7 @@ def bootstrap(options, interactive=False):
                                    force_update=options.vt_update_config)
         create_subtests_cfg(options.vt_type)
         create_guest_os_cfg(options.vt_type)
+    create_host_os_cfg(options)
 
     if not options.vt_config:
         restore_image = not (options.vt_no_downloads or options.vt_keep_image)
