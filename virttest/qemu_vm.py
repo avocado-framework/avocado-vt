@@ -12,6 +12,8 @@ import re
 import commands
 import random
 
+from functools import partial
+
 import aexpect
 from avocado.core import exceptions
 from avocado.utils import process
@@ -3993,9 +3995,6 @@ class VM(virt_vm.BaseVM):
         :return: A new shell session object.
         """
         def _go_down(session, timeout):
-            """
-            Check guest rebooting.
-            """
             try:
                 status, output = session.cmd_status_output("tty", timeout=10)
                 linux_session = (status == 0) and ("pts" not in output)
@@ -4015,57 +4014,52 @@ class VM(virt_vm.BaseVM):
             except Exception:
                 return True
 
-        def wait_for_go_down(session, timeout):
-            """ Wait for VM go down
-            :param session: VM session object
-            :param timeout: timeout wait for VM go down
-            """
-            try:
-                if not utils_misc.wait_for(
-                        lambda: _go_down(session, timeout),
-                        timeout=timeout):
-                    raise virt_vm.VMRebootError("Guest refuses to go down")
-                else:
-                    logging.info("VM go down, wait for it boot up")
-            finally:
-                session.close()
-
-        def shell_reboot(session, timeout):
-            """
-            Reboot guest OS via shell command
-
-            :param session: VM session object
-            :param timeout: timeout wait for VM go down
-            """
-            reboot_cmd = self.params.get("reboot_command")
-            step_info = "Send %s command, wait for VM rebooting" % reboot_cmd
-            error_context.context(step_info)
-            session.sendline(reboot_cmd)
-            start_time = time.time()
-            wait_for_go_down(session, timeout=timeout)
-            return int(time.time() - start_time)
-
-        error_context.base_context("rebooting '%s'" % self.name, logging.info)
-        error_context.context("before reboot")
-        error_context.context()
-        shutdown_dur = 0
-        if method == "shell":
-            # ensure VM bootup really
+        def _shell_reboot(session, timeout):
             if not session:
                 if not serial:
                     session = self.wait_for_login(nic_index=nic_index,
                                                   timeout=timeout)
                 else:
                     session = self.wait_for_serial_login(timeout=timeout)
-            # send reboot command via session
-            shutdown_dur = shell_reboot(session, timeout)
+            reboot_cmd = self.params.get("reboot_command")
+            logging.debug("Send command: %s" % reboot_cmd)
+            session.sendline(reboot_cmd)
+
+        error_context.base_context("rebooting '%s'" % self.name, logging.info)
+        error_context.context("before reboot")
+        error_context.context()
+
+        start_time = time.time()
+        if method == "shell":
+            _reboot = partial(_shell_reboot, session, timeout)
+            _check_go_down = partial(_go_down, session, timeout)
         elif method == "system_reset":
-            self.system_reset()
+            _reboot = self.system_reset
+            _check_go_down = partial(bool, True)
         else:
             raise virt_vm.VMRebootError("Unknown reboot method: %s" % method)
+
+        if isinstance(self.monitor, qemu_monitor.QMPMonitor):
+            _check_go_down = partial(self.monitor.get_event, "RESET")
+            self.monitor.clear_event("RESET")
+
+        try:
+            # TODO detect and handle guest crash?
+            _reboot()
+            error_context.context("waiting for guest to go down", logging.info)
+            if not utils_misc.wait_for(_check_go_down, timeout=timeout):
+                raise virt_vm.VMRebootError("Guest refuses to go down")
+        finally:
+            if session:
+                session.close()
+        if isinstance(self.monitor, qemu_monitor.QMPMonitor):
+            self.monitor.clear_event("RESET")
+        shutdown_dur = int(time.time() - start_time)
+
+        error_context.context("logging in after reboot", logging.info)
         if self.params.get("mac_changeable") == "yes":
             utils_net.update_mac_ip_address(self, self.params)
-        error_context.context("logging in after reboot", logging.info)
+
         if serial:
             return self.wait_for_serial_login(timeout=(timeout - shutdown_dur))
         return self.wait_for_login(nic_index=nic_index,
