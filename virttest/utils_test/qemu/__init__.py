@@ -20,6 +20,7 @@ import os
 import re
 import time
 import logging
+import copy
 from functools import reduce
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
@@ -701,3 +702,308 @@ class MemoryHotplugTest(MemoryBaseTest):
         session = self.get_session(vm)
         output = session.cmd_output_safe(cmd, timeout=90)
         return set([_ for _ in output.splitlines() if _])
+
+
+class UsbDevTest(object):
+
+    """
+    Provide basic test for usb devices
+    """
+
+    def __init__(self, test, params, env):
+        self.params = params
+        self.test = test
+        self.env = env
+        self.vm = env.get_vm(params["main_vm"])
+
+    def check_usb_dev_monitor(self, usb_type):
+        """
+        check if the usb device exist in monitor
+        """
+        logging.info("Verify USB device in monitor.")
+        o = self.vm.monitor.info("usb")
+        devnums =[]
+        devs =[]
+        for line in o.splitlines():
+            if "testdev" in line:
+                for i in range(2):
+                    num = re.search("\d+(\.\d)?", line.split(",")[i]).group(0)
+                    devnums.append(num)
+                devs.append(devnums)
+        if devs:
+            return devs
+        raise exceptions.TestFail("Could not find '%s' device, monitor "
+                                  "returns: \n%s" % (usb_type, o))
+
+    def check_usb_dev(self, usb_type):
+        """
+        check if the usb device exist in vm
+        """
+        if usb_type == 'usb-storage' or usb_type == 'usb-bot':
+            self.add_udisk()
+        timeout = float(self.params.get("login_timeout", 600))
+        session = self.vm.wait_for_login(timeout=timeout)
+        devs = self.check_usb_dev_monitor(usb_type)
+        if devs:
+            logging.info("The %s device can find in the monitor." % usb_type)
+        exist = self.check_usb_dev_guest(usb_type, session, devs)
+        if exist:
+            logging.info(" %s %s device was found in guest" % (exist, usb_type)
+        else:
+            raise exceptions.TestFail("Could not find '%s' in guest" % usb_type)
+
+    def check_usb_dev_guest(self, usb_type, session, devs):
+        """
+        check if the usb device exist in guest
+        """
+        logging.info("Verify %s device in guest." % usb_type)
+        cmd ="lsusb.py"
+        output = session.cmd_output(cmd)
+        num = 0
+        for devnum in devs:
+            for i in range(1,3):
+                key = "%s-%s" % (int(devnum[0][0])+i, devnum[1])
+                if key not in output:
+                    continue
+                else:
+                    num += 1
+        if num > 0:
+            return num
+        else:
+            return False
+
+    def create_img(self, image="usb", fmt="qcow2", size="200M"):
+
+        """
+        create image file for drive
+        """
+        self.params['images'] += " %s" % image
+        self.params["image_name_%s" % image] = "images/%s" % image
+        self.params["image_format_%s" % image] = fmt
+        self.params["image_size_%s" % image] = size
+        self.params["remove_image_%s" % image] = "yes"
+        self.params["create_image_%s" % image] = "yes"
+        env_process.process_images(env_process.preprocess_image,
+                                   self.test, self.params)
+
+    def drive_set(self, image, interface='none', fmt='qcow2',
+                  serial=None, cache=None, snapshot='off'):
+
+        """
+        create and set a drive object
+        """
+        self.create_img(image)
+        usb_params = self.params.object_params(image)
+        filename = storage.get_image_filename(usb_params,
+                                              data_dir.get_data_dir())
+        drive = qdevices.QRHDrive(image)
+        drive.set_param('if', interface)
+        drive.set_param('format', fmt)
+        drive.set_param('file', filename)
+        if serial:
+            drive.set_param('serial', serial)
+        if cache:
+            drive.set_param('cache', cache)
+        if snapshot:
+            drive.set_param('snapshot', snapshot)
+        return drive
+
+    def device_set(self, usb_name, driver, controller_type=None,
+                   drive='drive_%s', bus='usbtest.0', port=None):
+
+        """
+        create and set a device
+        """
+        dev = qdevices.QDevice(driver, aobject=usb_name)
+        dev.set_param('id', 'usb-%s' % usb_name)
+        if drive:
+            dev.set_param('drive', drive % usb_name)
+        dev.set_param('bus', bus)
+        if port:
+            dev.set_param('port', port)
+        if controller_type:
+            dev.parent_bus += ({'type': controller_type},)
+        return dev
+
+    def device_add(self, dev, driver):
+
+        """
+        hot plug a usb device
+        """
+        logging.info("Begin to hot plug %s device" % driver)
+        out = dev.hotplug(self.vm.monitor)
+        if out:
+            logging.info("Hot plug %s device with error %s" %
+                         (driver, out))
+        time.sleep(3)
+        logging.info("Begin to verify %s device" % driver)
+        result = dev.verify_hotplug(out, self.vm.monitor)
+        if not result:
+            raise exceptions.TestFail(" %s device wasn't found in monitor" %
+                                      driver)
+        logging.info(" %s device was found in monitor" % driver)
+
+    def device_del(self, dev, driver):
+
+        """
+        hot unplug a usb device
+        """
+        logging.info("Begin to unplug %s device" % driver)
+        out = dev.unplug(self.vm.monitor)
+        if out:
+            logging.info("Unplug %s device with error %s" % (driver, out))
+        time.sleep(3)
+        logging.info("Begin to verify %s device" % driver)
+        result = dev.verify_unplug(out, self.vm.monitor)
+        if not result:
+            raise exceptions.TestFail(" %s device was found in monitor" %
+                                      driver)
+        logging.info(" %s device wasn't found in monitor" % driver)
+
+    def local_migration_usbdev(self, usb_type, mig_protocol):
+
+        """
+        migrate vm with usb device
+        """
+
+        logging.info("Start to migrate vm with usb device %s on localhost" %
+                     usb_type)
+        timeout = float(self.params.get("login_timeout", 600))
+        if usb_type == 'usb-storage' or usb_type == 'usb-bot':
+            newdevs = self.add_udisk(mig_protocol)
+            clone = self.vm.clone()
+            vnc_port = utils_misc.find_free_port(5900, 6100)
+            clone.vnc_port = vnc_port
+            clonedevs = clone.make_create_command()
+            for ds in newdevs:
+                clonedevs.insert(ds)
+            clone.devices = clonedevs
+            clone.create(migration_mode=mig_protocol, mac_source=self.vm,
+                         migration_fd=None, migration_exec_cmd=None)
+            uri = mig_protocol + ":localhost:%d" % clone.migration_port
+            logging.info("Migrating to %s", uri)
+            self.vm.monitor.migrate(uri)
+            self.vm.wait_for_migration(timeout)
+            self.vm.verify_alive()
+            if self.vm.mig_succeeded():
+                logging.info("Migration completed successfully")
+                clone.destroy()
+            elif self.vm.mig_failed():
+                raise virt_vm.VMMigrateFailedError("Migration failed")
+            else:
+                raise virt_vm.VMMigrateFailedError("Migration ended with "
+                                                   "unknown status")
+        else:
+            self.vm.migrate(timeout, mig_protocol)
+
+    def define_usb_image(self, udev, driver, controller_type, port=None):
+
+        """
+        define a usb storage device
+        """
+        devs = []
+        if driver == 'usb-bot':
+            dev = self.device_set(udev, driver, controller_type,
+                                  drive=None, port=port)
+            devs.append(dev)
+            drive = self.drive_set(image='%shd' % udev)
+            devs.append(drive)
+            dev = self.device_set('%shd' % udev, 'scsi-hd',
+                                  bus='usb-%s.0' % udev, port=None)
+            devs.append(dev)
+            return devs
+        if driver == 'usb-storage':
+            drive = self.drive_set(udev)
+            devs.append(drive)
+            dev = self.device_set(udev, driver, controller_type, port=port)
+            devs.append(dev)
+            return devs
+
+    def add_udisk(self, mig_protocol=None):
+
+        """
+        add a usb disk to vm
+        """
+        newdevs = []
+        vnc_port = utils_misc.find_free_port(5900, 6100)
+        self.vm.vnc_port = vnc_port
+        devs = self.vm.make_create_command()
+        for udev in self.params.objects("udevs"):
+            usb_dev_params = self.params.object_params(udev)
+            for d in self.\
+                    define_usb_image(udev,
+                                     usb_dev_params.get("usb_type"),
+                                     usb_dev_params.get("usb_controller"),
+                                     usb_dev_params.get("port")):
+                if mig_protocol:
+                    tmp = copy.deepcopy(d)
+                    newdevs.append(tmp)
+                devs.insert(d)
+        self.vm.devices = devs
+        self.vm.create()
+        return newdevs
+
+
+class UsbStorageTest(UsbDevTest):
+
+    def __init__(self, test, params, env):
+        super(UsbStorageTest, self).__init__(test, params, env)
+
+    def get_usb_disk_list(self, session):
+
+        """
+        get the path of usb disk
+        """
+        list_disks = "readlink -f `ls /dev/disk/by-path/*|grep usb`"
+        output = session.cmd_output(list_disks).strip()
+        devlist = re.findall("/dev/sd\w", output)
+        return devlist
+
+    def usb_disk_io(self, with_fs, devname, session):
+
+        """
+        usb disk io test
+        """
+        if with_fs == "no":
+            write_cmd = "dd if=/dev/zero of=%s bs=1M count=100"
+            write_cmd = write_cmd % devname
+            read_cmd = "dd if=%s of=/dev/null bs=1M count=100"
+            read_cmd = read_cmd % devname
+            logging.info("Begin to write usb disk with dd cmd")
+            status, output = session.cmd_status_output(write_cmd,
+                                                       timeout=int(120))
+            if status != 0:
+                raise exceptions.TestFail("Failed to write usb disk "
+                                          "with error: %s" % output)
+            logging.info("Begin to read usb disk with dd cmd")
+            status, output = session.cmd_status_output(read_cmd,
+                                                       timeout=int(120))
+            if status != 0:
+                raise exceptions.TestFail("Failed to read usb disk "
+                                          "with error: %s" % output)
+        elif with_fs == "yes":
+            ranstr=utils_misc.generate_random_string(100)
+            write_cmd = "echo %s >> /media/testfile" % ranstr
+            read_cmd = "cat /media/testfile"
+            status, output = session.cmd_status_output(write_cmd,
+                                                       timeout=int(60))
+            if status != 0:
+                raise exceptions.TestFail("Write to file error: %s" % output)
+            status, output = session.cmd_status_output(read_cmd,
+                                                       timeout=int(60))
+            if status != 0:
+                raise exceptions.TestFail("Read file error: %s" % output)
+            if output.strip() != ranstr:
+                raise exceptions.TestFail("The content written to file has "
+                                          "changed,from: %s, to: %s" %
+                                          (ranstr, output.strip()))
+
+    def format_usb_disk(self, devname, session):
+
+        """
+        format usb disk
+        """
+        result = utils_misc.format_guest_disk(session, devname, "/media", 100,
+                                              "xfs", "linux")
+        if not result:
+            raise exceptions.TestFail("Failed to format usb disk")
