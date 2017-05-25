@@ -8,6 +8,7 @@ This exports:
 import logging
 import os
 import re
+import json
 
 from avocado.core import exceptions
 from avocado.utils import process
@@ -127,6 +128,14 @@ class QemuImg(storage.QemuImg):
             qemu_img_cmd = qemu_img_cmd.rstrip(",")
 
             if self.base_tag:
+                if params.get("image_json_file.driver"):
+                    jdict = {}
+                    keys = [key for key in params.keys()
+                            if key.startswith('image_json')]
+                    for key in keys:
+                        jdict[key.split("image_json_")[1]] = params[key]
+                    jstring = json.dumps(jdict)
+                    self.base_image_filename = "\'json: {}\'".format(jstring)
                 qemu_img_cmd += " -b %s" % self.base_image_filename
                 if self.base_format:
                     qemu_img_cmd += " -F %s" % self.base_format
@@ -134,6 +143,9 @@ class QemuImg(storage.QemuImg):
             qemu_img_cmd += " %s" % self.image_filename
 
             qemu_img_cmd += " %s" % self.size
+        command_prefix = params.get("qemu_img_command_prefix")
+        if command_prefix:
+            qemu_img_cmd = "%s %s" % (command_prefix, qemu_img_cmd)
 
         if (params.get("image_backend", "filesystem") == "filesystem"):
             image_dirname = os.path.dirname(self.image_filename)
