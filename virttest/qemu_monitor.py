@@ -2349,9 +2349,12 @@ class QMPMonitor(Monitor):
         # Send a balloon monitor command
         self.send_args_cmd("%s value=%s" % (cmd, size))
         # Look for BALLOON QMP events
-        if not utils_misc.wait_for(lambda: self.get_event(qmp_event), 120):
-            raise QMPEventError(cmd, qmp_event, self.name)
-        logging.info("%s QMP event received" % qmp_event)
+        if self.verify_status('running'):
+            # For guest in paused status, no need to get the event
+            # since the memory will change util guest is resumed
+            if not utils_misc.wait_for(lambda: self.get_event(qmp_event), 120):
+                raise QMPEventError(cmd, qmp_event, self.name)
+            logging.info("%s QMP event received" % qmp_event)
 
     def set_migrate_capability(self, state, capability):
         """
