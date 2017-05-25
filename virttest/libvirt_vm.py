@@ -2463,6 +2463,21 @@ class VM(virt_vm.BaseVM):
                 disks.append("/dev/%s" % line.split()[0])
         return disks
 
+    def get_vm_disks(self):
+        """
+        Get disks list in VM.
+
+        return: list of disks in VM
+        """
+        session = self.wait_for_login()
+        cmd = "fdisk -l|grep \"^Disk /dev\""
+        output = session.cmd_output(cmd).strip()
+        session.close()
+        disks = []
+        for line in output.splitlines():
+            disks.append(line.split(":")[0].split()[-1])
+        return disks
+
     def get_interfaces(self):
         """
         Get available interfaces in vm.
