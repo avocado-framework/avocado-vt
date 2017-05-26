@@ -339,13 +339,12 @@ class QtreeContainer(object):
                             current.set_qtree_prop('mmio', [])
                         current.qtree['mmio'].append(line[1])
                         line = None
-                    # qemu commit a5f5429 introduced named GPIOs, So add string
-                    # key into line[0] to distinguish GPIOs, and save exact
-                    # value into line[1].
+                    # old version: gpio-in 24, gpio-out 1
+                    # new version: gpio-in "" 1, gpio-out "a20" 1
                     elif line[0] == 'gpio-in' or line[0] == 'gpio-out':
-                        tmp_field = line[1].split(' ', 1)
-                        line[0] = "%s %s" % (line[0], tmp_field[0])
-                        line[1] = tmp_field[1]
+                        if '"' in line[1]:
+                            gpio_name, line[1] = line[1].split(' ', 1)
+                            line[0] += " %s" % gpio_name
                 else:
                     # Corrupted qtree
                     raise ValueError('qtree line not recognized:\n%s' % line)
