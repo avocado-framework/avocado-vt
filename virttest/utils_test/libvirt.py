@@ -24,13 +24,16 @@ import shutil
 import threading
 import time
 import sys
+import platform
 
 import aexpect
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
 from avocado.utils import process
 from avocado.utils import stacktrace
+from avocado.utils import download
 from avocado.utils import linux_modules
+from avocado.utils.software_manager import RpmBackend
 
 from .. import virsh
 from .. import xml_utils
@@ -3074,6 +3077,61 @@ def get_iothreadsinfo(vm_name, options=None):
         info_dict[info[0]] = info[1]
 
     return info_dict
+
+
+def load_stress_tool(params):
+    """
+    Download and install stress tool with specified params.
+
+    :param params: Parameters for running stress tool
+       stress_download_url: URL to download the package
+       vm_migration: The VM instance for migration
+       vm_session: The session to the VM
+       in_vm: True if run stress within the guest. False if run stress
+       on the host.
+    """
+    stress_download_url = params.get("stress_download_url")
+    vm = params.get("vm_migration")
+    vm_session = params.get("vm_session")
+    in_vm = params.get("in_vm", True)
+    file = "/etc/redhat-release"
+
+    if in_vm:
+        if vm_session is None:
+            vm_session = vm.wait_for_login()
+        curr_os_ver = vm_session.cmd_output("ls %s && cat %s"
+                                            % (file, file))
+        arch = vm_session.cmd_output("uname -m").strip()
+    else:
+        if not os.path.isfile(file):
+            raise exceptions.TestSkipError("The required file %s "
+                                           "does not exist" % file)
+        curr_os_ver = process.system_output("cat %s" % file)
+        arch = platform.machine()
+
+    if 'release 6' in curr_os_ver:
+        stress_download_url = '%s/stress.el6.%s.rpm' % (stress_download_url,
+                                                        arch)
+    elif 'release 7' in curr_os_ver:
+        stress_download_url = '%s/stress.el7.%s.rpm' % (stress_download_url,
+                                                        arch)
+    else:
+        raise exceptions.TestSkipError("The current OS version '%s'"
+                                       "is not supported", curr_os_ver)
+    dest = "%s/stress.rpm" % data_dir.get_tmp_dir()
+    download.get_file(stress_download_url, dest, download_retries=3)
+
+    if in_vm:
+        guest_path = '/tmp'
+        vm.copy_files_to(host_path=dest, guest_path=guest_path)
+        pkg_path = "%s/%s" % (guest_path, os.path.basename(dest))
+        vm.install_package("stress", pkg_path=pkg_path, need_update=False)
+    else:
+        rpm_utils = RpmBackend()
+        if not rpm_utils.check_installed('stress'):
+            yum_cmd = "yum install -y %s" % dest
+            process.system_output(yum_cmd, shell=True)
+    logging.debug("Preparing stress is done.")
 
 
 def virsh_cmd_has_option(cmd, option, raise_skip=True):
