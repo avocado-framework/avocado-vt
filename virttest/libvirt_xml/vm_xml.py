@@ -1038,15 +1038,18 @@ class VMXML(VMXMLBase):
         """
         Get all qemu guest agent channels
         """
-        channels = self.xmltreefile.findall("./devices/channel")
         ga_channels = []
-        for channel in channels:
-            target = channel.find('./target')
-            if target is not None:
-                name = target.get('name')
-                if name and name.startswith("org.qemu.guest_agent"):
-                    ga_channels.append(channel)
-        return ga_channels
+        try:
+            channels = self.xmltreefile.findall("./devices/channel")
+            for channel in channels:
+                target = channel.find('./target')
+                if target is not None:
+                    name = target.get('name')
+                    if name and name.startswith("org.qemu.guest_agent"):
+                        ga_channels.append(channel)
+            return ga_channels
+        except xcepts.LibvirtXMLError:
+            return ga_channels
 
     def set_agent_channel(self, src_path=None,
                           tgt_name='org.qemu.guest_agent.0',
