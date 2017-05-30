@@ -343,19 +343,19 @@ def deploy_epel_repo(guest_session, params):
                    "pub/epel/epel-release-latest-5.noarch.rpm")
             logging.info("Installing epel repository to %s",
                          params.get("guest_vm"))
-            guest_session.cmd(cmd, print_func=logging.info, timeout=90)
+            guest_session.cmd(cmd, print_func=logging.info, timeout=300)
         elif "release 6" in guest_session.cmd("cat /etc/redhat-release"):
             cmd = ("yum -y localinstall https://dl.fedoraproject.org/"
                    "pub/epel/epel-release-latest-6.noarch.rpm")
             logging.info("Installing epel repository to %s",
                          params.get("guest_vm"))
-            guest_session.cmd(cmd, print_func=logging.info, timeout=90)
+            guest_session.cmd(cmd, print_func=logging.info, timeout=300)
         elif "release 7" in guest_session.cmd("cat /etc/redhat-release"):
             cmd = ("yum -y localinstall https://dl.fedoraproject.org/"
                    "pub/epel/epel-release-latest-7.noarch.rpm")
             logging.info("Installing epel repository to %s",
                          params.get("guest_vm"))
-            guest_session.cmd(cmd, print_func=logging.info, timeout=90)
+            guest_session.cmd(cmd, print_func=logging.info, timeout=300)
         else:
             raise Exception("Unsupported RHEL guest")
 
