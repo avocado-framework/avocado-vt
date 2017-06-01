@@ -2375,6 +2375,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                            'source_config_file': disk_src_config}
         if disk_snap_name:
             disk_params_src.update({'source_snap_name': disk_snap_name})
+            disk_params.update({'readonly': params.get("read_only", "no")})
     else:
         # use current source file with update params
         disk_params_src = {'source_file': blk_source}
