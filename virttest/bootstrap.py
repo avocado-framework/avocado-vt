@@ -315,90 +315,31 @@ def host_os_get_distro_name(options, detected):
     """
     if options.vt_host_distro_name:
         return options.vt_host_distro_name
-    if options.vt_host_distro_compat:
-        if detected.name == 'rhel':
-            return 'RHEL'
-        elif detected.name == 'fedora':
-            return 'Fedora'
-    return detected.name
-
-
-def host_os_get_distro_version(options, detected):
-    """
-    Gets the distro version, either from the command line or auto detection
-
-    If option vt_host_distro_compat is set, distro version with an "m"
-    (as in major) prefix
-
-    :param options: parsed command line arguments results
-    :type options: :class:`argparse.Namespace`
-    :param detected: result of :class:`avocado.utils.distro.detect`
-    :type detected: :class:`avocado.utils.distro.LinuxDistro`
-    """
-    if options.vt_host_distro_version:
-        version = options.vt_host_distro_version
-    else:
-        version = detected.version
-    if options.vt_host_distro_compat:
-        return "m%s" % version
-    else:
-        return version
-
-
-def host_os_get_distro_release(options, detected):
-    """
-    Gets the distro release, either from the command line or auto detection
-
-    If option vt_host_distro_compat is set, distro version with an "u"
-    (as in update) prefix
-
-    :param options: parsed command line arguments results
-    :type options: :class:`argparse.Namespace`
-    :param detected: result of :class:`avocado.utils.distro.detect`
-    :type detected: :class:`avocado.utils.distro.LinuxDistro`
-    """
-    if options.vt_host_distro_release:
-        release = options.vt_host_distro_release
-    else:
-        release = detected.release
-    if options.vt_host_distro_compat:
-        return "u%s" % release
-    else:
-        return release
-
-
-def host_os_get_distro_arch(options, detected):
-    """
-    Gets the distro arch, either from the command line or auto detection
-
-    If option vt_host_distro_compat is set, distro is prefixed with with a
-    ``Host_arch_`` prefix.
-
-    :param options: parsed command line arguments results
-    :type options: :class:`argparse.Namespace`
-    :param detected: result of :class:`avocado.utils.distro.detect`
-    :type detected: :class:`avocado.utils.distro.LinuxDistro`
-    """
-    if options.vt_host_distro_arch:
-        arch = options.vt_host_distro_arch
-    else:
-        arch = detected.arch
-    if options.vt_host_distro_compat:
-        return "Host_arch_%s" % arch
-    else:
-        return arch
+    if detected.name == 'rhel':
+        return 'RHEL'
+    elif detected.name == 'fedora':
+        return 'Fedora'
+    return "Host_%s" % detected.name
 
 
 def create_host_os_cfg(options):
+    def _forced_or_detected(forced, detected):
+        if forced:
+            return forced
+        else:
+            return detected
     host_os_cfg_path = data_dir.get_backend_cfg_path(options.vt_type, 'host-os.cfg')
     with open(host_os_cfg_path, 'w') as cfg:
         detected = distro.detect()
         name = host_os_get_distro_name(options, detected)
-        version = host_os_get_distro_version(options, detected)
-        release = host_os_get_distro_release(options, detected)
-        arch = host_os_get_distro_arch(options, detected)
+        version = _forced_or_detected(options.vt_host_distro_version,
+                                      "m%s" % detected.version)
+        release = _forced_or_detected(options.vt_host_distro_release,
+                                      "u%s" % detected.release)
+        arch = _forced_or_detected(options.vt_host_distro_arch,
+                                   "Host_arch_%s" % detected.arch)
         cfg.write("variants:\n")
-        cfg.write("    - @Host_%s:\n" % name)
+        cfg.write("    - @%s:\n" % name)
         cfg.write("        variants:\n")
         cfg.write("            - @%s:\n" % version)
         cfg.write("                variants:\n")
