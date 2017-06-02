@@ -259,7 +259,8 @@ class _IscsiComm(object):
             logging.debug("Try to update iscsi initiatorname")
             # Don't override the backup file
             if not os.path.isfile("%s-%s" % (ISCSI_CONFIG_FILE, id)):
-                cmd = "mv %s %s-%s" % (ISCSI_CONFIG_FILE, ISCSI_CONFIG_FILE, id)
+                cmd = "mv %s %s-%s"\
+                      % (ISCSI_CONFIG_FILE, ISCSI_CONFIG_FILE, id)
                 process.system(cmd)
             fd = open(ISCSI_CONFIG_FILE, 'w')
             fd.write("InitiatorName=%s" % name)
@@ -342,7 +343,8 @@ class _IscsiComm(object):
         self.logout()
         iscsi_node_del(self.target)
         if os.path.isfile("%s-%s" % (ISCSI_CONFIG_FILE, self.id)):
-            cmd = "mv %s-%s %s" % (ISCSI_CONFIG_FILE, self.id, ISCSI_CONFIG_FILE)
+            cmd = "mv %s-%s %s"\
+                  % (ISCSI_CONFIG_FILE, self.id, ISCSI_CONFIG_FILE)
             process.system(cmd)
             restart_iscsid()
         if self.export_flag:
@@ -822,6 +824,9 @@ class Iscsi(object):
     """
     @staticmethod
     def create_iSCSI(params, root_dir=data_dir.get_tmp_dir()):
+        cmd = "targetcli clearconfig confirm=true"
+        if process.system(cmd, shell=True) != 0:
+            self.skip("targetcli configuration unable to clear")
         iscsi_instance = None
         err_msg = "Please install package(s): %s"
         try:
