@@ -88,15 +88,16 @@ class QMPCmdError(MonitorError):
 
 class QMPEventError(MonitorError):
 
-    def __init__(self, cmd, qmp_event, name):
-        MonitorError.__init__(self, cmd, qmp_event, name)
+    def __init__(self, cmd, qmp_event, vm_name, name):
+        MonitorError.__init__(self, cmd, qmp_event, vm_name, name)
         self.cmd = cmd
         self.qmp_event = qmp_event
         self.name = name
+        self.vm_name = vm_name
 
     def __str__(self):
-        return ("QMP event %s not received after %s (monitor '%s')"
-                % (self.qmp_event, self.cmd, self.name))
+        return ("QMP event %s not received after %s (monitor '%s.%s')"
+                % (self.qmp_event, self.cmd, self.vm_name, self.name))
 
 
 def get_monitor_filename(vm, monitor_name):
@@ -316,8 +317,8 @@ class Monitor:
         :param extra_str: Extra string would be printed in log.
         """
         if self.debug_log or debug:
-            logging.debug("(monitor %s) Sending command '%s' %s",
-                          self.name, cmd, extra_str)
+            logging.debug("(monitor %s.%s) Sending command '%s' %s",
+                          self.vm.name, self.name, cmd, extra_str)
 
     def _log_lines(self, log_str):
         """
@@ -710,9 +711,11 @@ class HumanMonitor(Monitor):
         :param debug: Whether to print the commands.
         """
         if self.debug_log or debug:
-            logging.debug("(monitor %s) Response to '%s'", self.name, cmd)
+            logging.debug("(monitor %s.%s) Response to '%s'",
+                          self.vm.name, self.name, cmd)
             for l in resp.splitlines():
-                logging.debug("(monitor %s)    %s", self.name, l)
+                logging.debug("(monitor %s.%s)    %s",
+                              self.vm.name, self.name, l)
 
     # Public methods
     def cmd(self, cmd, timeout=CMD_TIMEOUT, debug=True, fd=None):
@@ -1544,8 +1547,8 @@ class QMPMonitor(Monitor):
         :param debug: Whether to print the commands.
         """
         def _log_output(o, indent=0):
-            logging.debug("(monitor %s)    %s%s",
-                          self.name, " " * indent, o)
+            logging.debug("(monitor %s.%s)    %s%s",
+                          self.vm.name, self.name, " " * indent, o)
 
         def _dump_list(li, indent=0):
             for l in li:
@@ -1568,8 +1571,8 @@ class QMPMonitor(Monitor):
                     _log_output(o, indent)
 
         if self.debug_log or debug:
-            logging.debug("(monitor %s) Response to '%s' "
-                          "(re-formated)", self.name, cmd)
+            logging.debug("(monitor %s.%s) Response to '%s' "
+                          "(re-formated)", self.vm.name, self.name, cmd)
             if isinstance(resp, dict):
                 _dump_dict(resp)
             elif isinstance(resp, list):
@@ -1936,7 +1939,7 @@ class QMPMonitor(Monitor):
         self.clear_event(event)
         ret = self.cmd(cmd=cmd)
         if not utils_misc.wait_for(lambda: self.get_event(event), timeout=120):
-            raise QMPEventError(cmd, event, self.name)
+            raise QMPEventError(cmd, event, self.vm.name, self.name)
         return ret
 
     def sendkey(self, keystr, hold_time=1):
@@ -2270,7 +2273,7 @@ class QMPMonitor(Monitor):
         self.cmd(cmd)
         # Look for WAKEUP QMP event
         if not utils_misc.wait_for(lambda: self.get_event(qmp_event), 120):
-            raise QMPEventError(cmd, qmp_event, self.name)
+            raise QMPEventError(cmd, qmp_event, self.vm.name, self.name)
         logging.info("%s QMP event received" % qmp_event)
 
     def nmi(self):
@@ -2350,7 +2353,7 @@ class QMPMonitor(Monitor):
         self.send_args_cmd("%s value=%s" % (cmd, size))
         # Look for BALLOON QMP events
         if not utils_misc.wait_for(lambda: self.get_event(qmp_event), 120):
-            raise QMPEventError(cmd, qmp_event, self.name)
+            raise QMPEventError(cmd, qmp_event, self.vm.name, self.name)
         logging.info("%s QMP event received" % qmp_event)
 
     def set_migrate_capability(self, state, capability):
@@ -2432,7 +2435,7 @@ class QMPMonitor(Monitor):
         self.cmd(cmd)
         # Look for POWERDOWN QMP events
         if not utils_misc.wait_for(lambda: self.get_event(qmp_event), 120):
-            raise QMPEventError(cmd, qmp_event, self.name)
+            raise QMPEventError(cmd, qmp_event, self.vm.name, self.name)
         logging.info("%s QMP event received" % qmp_event)
 
     def transaction(self, job_list):
