@@ -2548,6 +2548,21 @@ def get_free_disk(session, mount):
     return int(free)
 
 
+def get_win_mon_free_mem(session):
+    """
+    Get Performace Monitored Free memory for Windows.
+
+    :param session: shell Object.
+
+    :return string: freespace M-bytes
+    """
+    cmd = 'typeperf "\Memory\Free & Zero Page List Bytes" -sc 1'
+    output = session.cmd_output(cmd)
+    free = "%s" % re.findall("\d+\.\d+", output)[2]
+    free = float(normalize_data_size(free, order_magnitude="M"))
+    return int(free)
+
+
 def get_free_mem(session, os_type):
     """
     Get Free memory for given OS.
