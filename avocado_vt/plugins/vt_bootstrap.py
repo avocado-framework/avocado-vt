@@ -90,9 +90,6 @@ class VTBootstrap(CLICmd):
                                   "generating the host configuration entry."))
 
     def run(self, args):
-        args.vt_config = None
-        args.vt_keep_image = False
-
         # Enable root logger as some Avocado-vt libraries use that
         handler = logging.StreamHandler()
         handler.setLevel(logging.DEBUG)

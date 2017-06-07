@@ -904,11 +904,7 @@ def bootstrap(options, interactive=False):
         create_guest_os_cfg(options.vt_type)
     create_host_os_cfg(options)
 
-    if not options.vt_config:
-        restore_image = not (options.vt_no_downloads or options.vt_keep_image)
-    else:
-        restore_image = False
-
+    restore_image = not options.vt_no_downloads
     if restore_image:
         LOG.info("")
         step += 1
