@@ -91,33 +91,7 @@ class VTBootstrap(CLICmd):
 
     def run(self, args):
         args.vt_config = None
-        args.vt_verbose = True
-        args.vt_log_level = 'debug'
-        args.vt_console_level = 'debug'
-        args.vt_arch = None
-        args.vt_machine_type = None
         args.vt_keep_image = False
-        args.vt_keep_guest_running = False
-        args.vt_keep_image_between_tests = False
-        args.vt_mem = 1024
-        args.vt_no_filter = ''
-        args.vt_qemu_bin = None
-        args.vt_dst_qemu_bin = None
-        args.vt_nettype = 'user'
-        args.vt_only_type_specific = False
-        args.vt_tests = ''
-        args.vt_connect_uri = 'qemu:///system'
-        args.vt_accel = 'kvm'
-        args.vt_monitor = 'human'
-        args.vt_smp = 1
-        args.vt_image_type = 'qcow2'
-        args.vt_nic_model = 'virtio_net'
-        args.vt_disk_bus = 'virtio_blk'
-        args.vt_vhost = 'off'
-        args.vt_malloc_perturb = 'yes'
-        args.vt_qemu_sandbox = 'on'
-        args.show_job_log = False
-        args.test_lister = True
 
         # Enable root logger as some Avocado-vt libraries use that
         handler = logging.StreamHandler()
