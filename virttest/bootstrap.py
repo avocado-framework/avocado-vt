@@ -941,8 +941,8 @@ def bootstrap(options, interactive=False):
             else:
                 LOG.debug("Module %s loaded", module)
 
-    online_docs_url = 'http://avocado-vt.readthedocs.org/'
     LOG.info("")
-    step += 1
-    LOG.info("%d - If you wish, you may take a look at the online docs for "
-             "more info: %s", step, online_docs_url)
+    LOG.info("VT-BOOTSTRAP FINISHED")
+    LOG.debug("You may take a look at the following online docs for more info:")
+    LOG.debug(" - http://avocado-vt.readthedocs.org/")
+    LOG.debug(" - http://avocado-framework.readthedocs.org/")
