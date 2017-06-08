@@ -2495,7 +2495,7 @@ class VM(virt_vm.BaseVM):
         session.close()
         return mac.strip()
 
-    def install_package(self, name):
+    def install_package(self, name, ignore_status=False):
         """
         Install a package on VM.
         ToDo: Support multiple package manager.
@@ -2521,15 +2521,23 @@ class VM(virt_vm.BaseVM):
                 # Just check status is not enough
                 # It's necessary to check if install successfully
                 if status != 0 or session.cmd_status(query_cmd) != 0:
-                    raise virt_vm.VMError("Installation of package %s failed:"
-                                          "\n%s" % (name, output))
+                    if not ignore_status:
+                        raise virt_vm.VMError("Installation of package %s "
+                                              "failed:\n%s" % (name, output))
+                    else:
+                        logging.error("Installation of package %s failed:"
+                                      "\n%s", name, output)
             else:
                 # Update the package
                 status, output = session.cmd_status_output(update_cmd,
                                                            timeout=600)
                 if status:
-                    raise virt_vm.VMError("Update of package %s failed:\n%s"
-                                          % (name, output))
+                    if not ignore_status:
+                        raise virt_vm.VMError("Update of package %s failed:"
+                                              "\n%s" % (name, output))
+                    else:
+                        logging.error("Update of package %s failed:"
+                                      "\n%s", name, output)
         finally:
             session.close()
 
@@ -2580,7 +2588,7 @@ class VM(virt_vm.BaseVM):
         if not self.is_alive():
             self.start()
 
-        self.install_package('pm-utils')
+        self.install_package('pm-utils', ignore_status=True)
         self.install_package('qemu-guest-agent')
 
         session = self.wait_for_login()
