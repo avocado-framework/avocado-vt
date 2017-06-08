@@ -763,8 +763,8 @@ class VM(virt_vm.BaseVM):
             if machine_type in support_machine_type:
                 virt_install_cmd += add_machine_type(help_text, machine_type)
             else:
-                raise exceptions.TestSkipError("Unsupported machine type %s." %
-                                               (machine_type))
+                raise exceptions.TestSkip("Unsupported machine type %s." %
+                                          (machine_type))
 
         mem = params.get("mem")
         maxmemory = params.get("maxmemory", None)
@@ -864,10 +864,10 @@ class VM(virt_vm.BaseVM):
         # selectable OS variant
         if params.get("use_os_variant") == "yes":
             if not has_os_variant(os_text, params.get("os_variant")):
-                raise exceptions.TestSkipError("Unsupported OS variant: %s.\n"
-                                               "Supported variants: %s" %
-                                               (params.get('os_variant'),
-                                                os_text))
+                raise exceptions.TestSkip("Unsupported OS variant: %s.\n"
+                                          "Supported variants: %s" %
+                                          (params.get('os_variant'),
+                                           os_text))
             virt_install_cmd += add_os_variant(
                 help_text, params.get("os_variant"))
 
@@ -1700,17 +1700,17 @@ class VM(virt_vm.BaseVM):
                                      "Try using the "
                                      "unattended_install.cdrom.http_ks method "
                                      "instead." % details.result)
-                            raise exceptions.TestSkipError(e_msg)
+                            raise exceptions.TestSkip(e_msg)
                 if stderr.count('failed to launch bridge helper'):
                     if utils_selinux.is_enforcing():
-                        raise exceptions.TestSkipError("SELinux is enabled "
-                                                       "and preventing the "
-                                                       "bridge helper from "
-                                                       "accessing the bridge. "
-                                                       "Consider running as "
-                                                       "root or placing "
-                                                       "SELinux into "
-                                                       "permissive mode.")
+                        raise exceptions.TestSkip("SELinux is enabled "
+                                                  "and preventing the "
+                                                  "bridge helper from "
+                                                  "accessing the bridge. "
+                                                  "Consider running as "
+                                                  "root or placing "
+                                                  "SELinux into "
+                                                  "permissive mode.")
                 # some other problem happened, raise normally
                 raise
             # Wait for the domain to be created

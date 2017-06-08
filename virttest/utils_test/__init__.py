@@ -1670,8 +1670,8 @@ class HostStress(object):
         try:
             path.find_command(self.stress_type)
         except path.CmdNotFoundError, detail:
-            raise exceptions.TestSkipError("Stress tool %s is missing: %s"
-                                           % (self.stress_type, str(detail)))
+            raise exceptions.TestSkip("Stress tool %s is missing: %s"
+                                      % (self.stress_type, str(detail)))
 
         args = [self.stress_type, '--args=%s' % self.stress_args,
                 '--verbose']

@@ -331,7 +331,7 @@ def get_all_cells():
     fc_result = virsh.freecell(options="--all", ignore_status=True)
     if fc_result.exit_status:
         if fc_result.stderr.count("NUMA not supported"):
-            raise exceptions.TestSkipError(fc_result.stderr.strip())
+            raise exceptions.TestSkip(fc_result.stderr.strip())
         else:
             raise exceptions.TestFail(fc_result.stderr.strip())
     output = fc_result.stdout.strip()
@@ -563,7 +563,7 @@ def setup_or_cleanup_gluster(is_setup, vol_name, brick_path="", pool_name="",
     try:
         utils_path.find_command("gluster")
     except utils_path.CmdNotFoundError:
-        raise exceptions.TestSkipError("Missing command 'gluster'")
+        raise exceptions.TestSkip("Missing command 'gluster'")
     if not brick_path:
         tmpdir = data_dir.get_tmp_dir()
         brick_path = os.path.join(tmpdir, pool_name)
@@ -671,7 +671,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         extra = "--source-host %s --source-path %s --source-name %s" % \
                 (hostip, gluster_source_path, gluster_source_name)
     elif pool_type in ["scsi", "mpath", "rbd", "sheepdog"]:
-        raise exceptions.TestSkipError(
+        raise exceptions.TestSkip(
             "Pool type '%s' has not yet been supported in the test." %
             pool_type)
     else:
@@ -1395,7 +1395,7 @@ def check_result(result, expected_fails=[], skip_if=[], any_error=False):
     :param expected_fails: list of regex of expected stderr patterns. The check
                            will pass if any of these patterns matches.
     :param skip_if: list of regex of expected patterns. The check will raise a
-                    TestSkipError if any of these patterns matches.
+                    TestSkip if any of these patterns matches.
     :param any_error: Whether expect on any error message. Setting to True will
                       will override expected_fails
     """
@@ -1403,9 +1403,9 @@ def check_result(result, expected_fails=[], skip_if=[], any_error=False):
     if skip_if:
         for patt in skip_if:
             if re.search(patt, result.stderr):
-                raise exceptions.TestSkipError("Test skipped: found '%s' in test "
-                                               "result:\n%s" %
-                                               (patt, result.stderr))
+                raise exceptions.TestSkip("Test skipped: found '%s' in test "
+                                          "result:\n%s" %
+                                          (patt, result.stderr))
     if any_error:
         if result.exit_status:
             return
@@ -1668,7 +1668,7 @@ def create_disk_xml(params):
             if transport:
                 source_host[0].update({'transport': transport})
         else:
-            exceptions.TestSkipError("Unsupport disk type %s" % type_name)
+            exceptions.TestSkip("Unsupport disk type %s" % type_name)
         source_startupPolicy = params.get("source_startupPolicy")
         if source_startupPolicy:
             source_attrs['startupPolicy'] = source_startupPolicy
@@ -2121,8 +2121,8 @@ def set_domain_state(vm, vm_state):
         # Execute "pm-suspend-hybrid" command directly will get Timeout error,
         # so here execute it in background, and wait for 3s manually
         if session.cmd_status("which pm-suspend-hybrid"):
-            raise exceptions.TestSkipError("Cannot execute this test for domain"
-                                           " doesn't have pm-suspend-hybrid command!")
+            raise exceptions.TestSkip("Cannot execute this test for domain"
+                                      " doesn't have pm-suspend-hybrid command!")
         session.cmd("pm-suspend-hybrid &")
         time.sleep(3)
 
@@ -2500,7 +2500,7 @@ def create_scsi_disk(scsi_option, scsi_size="2048"):
     try:
         utils_path.find_command("lsscsi")
     except utils_path.CmdNotFoundError:
-        raise exceptions.TestSkipError("Missing command 'lsscsi'.")
+        raise exceptions.TestSkip("Missing command 'lsscsi'.")
 
     try:
         # Load scsi_debug kernel module.
@@ -3084,14 +3084,14 @@ def virsh_cmd_has_option(cmd, option, raise_skip=True):
     :param cmd: Virsh command name
     :param option: Virsh command option
     :raise_skip: Whether raise exception when option not find
-    :return: True/False or raise TestSkipError
+    :return: True/False or raise TestSkip
     """
     found = False
     if virsh.has_command_help_match(cmd, option):
         found = True
     msg = "command '%s' has option '%s': %s" % (cmd, option, str(found))
     if not found and raise_skip:
-        raise exceptions.TestSkipError(msg)
+        raise exceptions.TestSkip(msg)
     else:
         logging.debug(msg)
         return found

@@ -478,8 +478,8 @@ class Interface(object):
         Get ip network netmask
         """
         if not CTYPES_SUPPORT:
-            raise exceptions.TestSkipError("Getting the netmask requires "
-                                           "python > 2.4")
+            raise exceptions.TestSkip("Getting the netmask requires "
+                                      "python > 2.4")
         ifreq = struct.pack('16sH14s', self.name, socket.AF_INET, '\x00' * 14)
         try:
             res = fcntl.ioctl(sockfd, arch.SIOCGIFNETMASK, ifreq)
@@ -495,8 +495,8 @@ class Interface(object):
         Set netmask
         """
         if not CTYPES_SUPPORT:
-            raise exceptions.TestSkipError("Setting the netmask requires "
-                                           "python > 2.4")
+            raise exceptions.TestSkip("Setting the netmask requires "
+                                      "python > 2.4")
         netmask = ctypes.c_uint32(~((2 ** (32 - netmask)) - 1)).value
         nmbytes = socket.htonl(netmask)
         ifreq = struct.pack('16sH2si8s', self.name,
@@ -867,7 +867,7 @@ def ping(dest=None, count=None, interval=None, interface=None,
         else:
             if dest.upper().startswith("FE80"):
                 err_msg = "Using ipv6 linklocal must assigne interface"
-                raise exceptions.TestSkipError(err_msg)
+                raise exceptions.TestSkip(err_msg)
         if packetsize:
             command += " -s %s" % packetsize
         if ttl:
@@ -2144,13 +2144,13 @@ class IPv6Manager(propcan.PropCanBase):
         try:
             utils_path.find_command("ping6")
         except utils_path.CmdNotFoundError:
-            raise exceptions.TestSkipError("Can't find ping6 command")
+            raise exceptions.TestSkip("Can't find ping6 command")
         command = "ping6 -I %s %s -c %s" % (client_ifname, server_ipv6, count)
         result = process.run(command, ignore_status=True)
         if result.exit_status:
-            raise exceptions.TestSkipError("The '%s' destination is "
-                                           "unreachable: %s", server_ipv6,
-                                           result.stderr)
+            raise exceptions.TestSkip("The '%s' destination is "
+                                      "unreachable: %s", server_ipv6,
+                                      result.stderr)
         else:
             logging.info("The '%s' destination is connectivity!", server_ipv6)
 
@@ -2167,7 +2167,7 @@ class IPv6Manager(propcan.PropCanBase):
         try:
             utils_path.find_command("ip6tables")
         except utils_path.CmdNotFoundError:
-            raise exceptions.TestSkipError(test_skip_err)
+            raise exceptions.TestSkip(test_skip_err)
         # flush local ip6tables rules
         result = process.run(flush_cmd, ignore_status=True)
         if result.exit_status:
@@ -2178,7 +2178,7 @@ class IPv6Manager(propcan.PropCanBase):
 
         # check if ip6tables command exists on the remote
         if self.session.cmd_status(find_ip6tables_cmd):
-            raise exceptions.TestSkipError(test_skip_err)
+            raise exceptions.TestSkip(test_skip_err)
         # flush remote ip6tables rules
         if self.session.cmd_status(flush_cmd):
             raise exceptions.TestFail("%s on the remote host" % test_fail_err)
@@ -3496,12 +3496,12 @@ def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
             try:
                 utils_path.find_command("netstat")
             except utils_path.CmdNotFoundError, details:
-                raise exceptions.TestSkipError(details)
+                raise exceptions.TestSkip(details)
             output = process.system_output(cmd, shell=True)
         else:
             if not runner(find_netstat_cmd):
-                raise exceptions.TestSkipError("Missing netstat command on "
-                                               "remote")
+                raise exceptions.TestSkip("Missing netstat command on "
+                                          "remote")
             output = runner(cmd)
     except process.CmdError:
         logging.error("Failed to run command '%s'", cmd)
@@ -3550,14 +3550,14 @@ def block_specific_ip_by_time(ip_addr, block_time="1 seconds", runner=None):
             try:
                 utils_path.find_command("iptables")
             except utils_path.CmdNotFoundError, details:
-                raise exceptions.TestSkipError(details)
+                raise exceptions.TestSkip(details)
             output = local_runner(cmd, shell=True)
             logging.debug("List current iptables rules:\n%s",
                           local_runner(list_rules))
         else:
             if not runner(find_iptables):
-                raise exceptions.TestSkipError("Missing 'iptables' command on "
-                                               "remote")
+                raise exceptions.TestSkip("Missing 'iptables' command on "
+                                          "remote")
             output = runner(cmd)
             logging.debug("List current iptables rules:\n%s",
                           runner(list_rules))
