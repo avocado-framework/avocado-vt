@@ -918,8 +918,7 @@ def bootstrap(options, interactive=False):
         create_guest_os_cfg(options.vt_type)
     create_host_os_cfg(options)
 
-    restore_image = not options.vt_no_downloads
-    if restore_image:
+    if not (options.vt_no_downloads or options.vt_skip_verify_download_assets):
         LOG.info("")
         step += 1
         LOG.info("%s - Verifying (and possibly downloading) guest image",
@@ -929,7 +928,7 @@ def bootstrap(options, interactive=False):
                 os_asset = os_info['asset']
                 try:
                     asset.download_asset(os_asset, interactive=interactive,
-                                         restore_image=restore_image)
+                                         restore_image=True)
                 except AssertionError:
                     pass    # Not all files are managed via asset
 

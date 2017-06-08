@@ -24,6 +24,6 @@ script:
     - export PATH="/tmp/dummy_bin:$PATH"
     # Setup Avocado-vt for functional tests
     - make install
-    - AVOCADO_LOG_DEBUG=yes avocado vt-bootstrap --yes-to-all
+    - AVOCADO_LOG_DEBUG=yes avocado vt-bootstrap --vt-skip-verify-download-assets --yes-to-all
     # Run tests
     - make check

@@ -56,6 +56,11 @@ class VTBootstrap(CLICmd):
         parser.add_argument("--vt-no-downloads", action="store_true",
                             default=False,
                             help="Do not attempt any download")
+        parser.add_argument("--vt-skip-verify-download-assets",
+                            action='store_true', default=False,
+                            help=("Skip the bootstrap phase that verifies "
+                                  "and possibly downloads assets files "
+                                  "(usually a JeOS image)"))
         parser.add_argument("--vt-update-config", action="store_true",
                             default=False, help=("Forces configuration "
                                                  "updates (all manual "
