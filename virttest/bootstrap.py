@@ -840,13 +840,25 @@ def bootstrap(options, interactive=False):
 
     LOG.info("")
     step += 1
-    LOG.info("%d - Updating all test providers", step)
-    # First update the test-providers-ini from base to data dir
+    LOG.info("%d - Updating test providers repo configuration from local copy", step)
     tp_base_dir = data_dir.get_base_test_providers_dir()
     tp_local_dir = data_dir.get_test_providers_dir()
     dir_util.copy_tree(tp_base_dir, tp_local_dir)
-    # Now try to download/update the providers (if necessary)
-    asset.download_all_test_providers(options.vt_update_providers)
+
+    not_downloaded = asset.test_providers_not_downloaded()
+    if not_downloaded:
+        action = "Downloading"
+    else:
+        action = "Updating"
+    if not options.vt_no_downloads:
+        LOG.info("")
+        step += 1
+        LOG.info("%d - %s the test providers from remote repos", step, action)
+        asset.download_all_test_providers(options.vt_update_providers)
+    else:
+        if not_downloaded:
+            LOG.warn("The following test providers have not been downloaded: %s",
+                     ", ".join(not_downloaded))
 
     LOG.info("")
     step += 1

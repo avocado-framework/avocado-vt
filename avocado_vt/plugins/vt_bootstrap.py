@@ -55,7 +55,7 @@ class VTBootstrap(CLICmd):
                             help="Define default contexts of directory.")
         parser.add_argument("--vt-no-downloads", action="store_true",
                             default=False,
-                            help="Do not attempt to download JeOS images")
+                            help="Do not attempt any download")
         parser.add_argument("--vt-update-config", action="store_true",
                             default=False, help=("Forces configuration "
                                                  "updates (all manual "
