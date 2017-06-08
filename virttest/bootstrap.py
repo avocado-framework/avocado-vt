@@ -865,7 +865,9 @@ def bootstrap(options, interactive=False):
 
     base_backend_dir = data_dir.get_base_backend_dir()
     local_backend_dir = data_dir.get_local_backend_dir()
-    LOG.info("Syncing backend dirs %s -> %s", base_backend_dir,
+    LOG.info("")
+    step += 1
+    LOG.info("%d - Syncing backend dirs %s -> %s", step, base_backend_dir,
              local_backend_dir)
     dir_util.copy_tree(base_backend_dir, local_backend_dir)
 
