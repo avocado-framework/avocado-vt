@@ -75,8 +75,7 @@ class VirtTestOptionsProcess(object):
             'vt.common', 'type_specific_only', key_type=bool,
             default=False)
         self.options.vt_mem = settings.get_value(
-            'vt.common', 'mem', key_type=int,
-            default=1024)
+            'vt.common', 'mem', key_type=int, default=None)
         self.options.vt_nettype = settings.get_value(
             'vt.common', 'nettype', default=None)
         self.options.vt_netdst = settings.get_value(
@@ -390,7 +389,9 @@ class VirtTestOptionsProcess(object):
 
     def _process_mem(self):
         if not self.options.vt_config:
-            self.cartesian_parser.assign("mem", self.options.vt_mem)
+            mem = self.options.vt_mem
+            if mem is not None:
+                self.cartesian_parser.assign("mem", mem)
 
     def _process_tcpdump(self):
         """
