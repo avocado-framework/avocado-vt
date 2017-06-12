@@ -1,12 +1,12 @@
 %global modulename avocado-vt
 %if ! 0%{?commit:1}
- %define commit 690a4a0032ff9adab5d3d98c6ae5c17014398b2a
+ %define commit f7b349c2219fa59c4a073a23327a8d3e0bd05264
 %endif
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 50.1
+Version: 51.0
 Release: 0%{?dist}
 License: GPLv2
 Group: Development/Tools
@@ -53,6 +53,9 @@ Xunit output, among others.
 
 
 %changelog
+* Mon Jun 12 2017 Cleber Rosa <cleber@redhat.com> - 51.0-0
+- New upstream release
+
 * Wed May 17 2017 Cleber Rosa <cleber@redhat.com> - 50.1-0
 - New minor upstream release with VT JobLock fix
 
