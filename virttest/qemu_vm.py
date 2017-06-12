@@ -4331,7 +4331,7 @@ class VM(virt_vm.BaseVM):
 
         return current_file
 
-    def block_stream(self, device, speed, base=None, correct=True):
+    def block_stream(self, device, speed, base=None, correct=True, backing_file=None):
         """
         start to stream block device, aka merge snapshot;
 
@@ -4339,10 +4339,11 @@ class VM(virt_vm.BaseVM):
         :param speed: limited speed, default unit B/s;
         :param base: base file;
         :param correct: auto correct cmd, correct by default
+        :param backing_file: backing file
         """
         cmd = self.params.get("block_stream_cmd", "block-stream")
         return self.monitor.block_stream(device, speed, base,
-                                         cmd, correct=correct)
+                                         cmd, correct=correct, backing_file=backing_file)
 
     def block_commit(self, device, speed, base=None, top=None, correct=True):
         """

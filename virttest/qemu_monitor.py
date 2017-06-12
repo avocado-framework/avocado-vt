@@ -2034,7 +2034,7 @@ class QMPMonitor(Monitor):
         return self.cmd("blockdev-snapshot-sync", kwargs)
 
     def block_stream(self, device, speed=None, base=None,
-                     cmd="block-stream", correct=True):
+                     cmd="block-stream", correct=True, backing_file=None):
         """
         Start block-stream job;
 
@@ -2042,6 +2042,7 @@ class QMPMonitor(Monitor):
         :param speed: int type, limited speed(B/s)
         :param base: base file
         :param correct: auto correct command, correct by default
+        :param backing_file: backing file
 
         :return: The command's output
         """
@@ -2053,6 +2054,8 @@ class QMPMonitor(Monitor):
             args["speed"] = speed
         if base:
             args["base"] = base
+        if backing_file:
+            args["backing-file"] = backing_file
         return self.cmd(cmd, args)
 
     def block_commit(self, device, speed=None, base=None, top=None,
