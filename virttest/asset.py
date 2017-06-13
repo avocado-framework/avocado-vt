@@ -333,6 +333,19 @@ def download_test_provider(provider, update=False):
             os.chdir(original_dir)
 
 
+def test_providers_not_downloaded():
+    """
+    Return the list of test providers that have not being downloaded
+    """
+    result = []
+    for provider in get_test_provider_names():
+        download_dst = data_dir.get_test_provider_dir(provider)
+        repo_downloaded = os.path.isdir(os.path.join(download_dst, '.git'))
+        if not repo_downloaded:
+            result.append(provider)
+    return result
+
+
 def download_all_test_providers(update=False):
     """
     Download all available test providers.
