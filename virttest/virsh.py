@@ -28,8 +28,9 @@ import re
 import weakref
 import time
 import select
-
+import base64
 import aexpect
+
 from avocado.utils import path
 from avocado.utils import process
 
@@ -3606,19 +3607,25 @@ def secret_get_value(uuid, options=None, **dargs):
     return command(cmd, **dargs)
 
 
-def secret_set_value(uuid, base64, options=None, **dargs):
+def secret_set_value(uuid, password, encode=False, options=None, **dargs):
     """
     Set a secret value
 
     :param uuid: secret UUID
-    :param base64: base64-encoded secret value
+    :param password: secret value
+    :param encode: if False, that means you've already provided a base64-encoded
+                   password. if True, will base64-encode password before use it.
     :return: CmdResult object.
     """
     cmd = "secret-set-value --secret %s" % uuid
-    if base64:
-        cmd += " --base64 %s" % base64
+    if password:
+        if encode:
+            cmd += " --base64 %s" % base64.b64encode(password)
+        else:
+            cmd += " --base64 %s" % password
     if options:
         cmd += " --%s" % options
+
     return command(cmd, **dargs)
 
 
