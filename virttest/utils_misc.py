@@ -3331,34 +3331,35 @@ def monotonic_time():
         return monotonic_time_os()
 
 
-def verify_host_dmesg(dmesg_log_file=None, trace_re=None):
+def verify_host_dmesg(dmesg_log_file=None, ignore_result=False, level_check=3):
     """
     Find host call trace in dmesg log.
 
     :param dmesg_log_file: The file used to save host dmesg. If None, will save
                            host dmesg to logging.debug.
-    :param trace_re: re string used to filter call trace.
+    :param ignore_result: True or False, whether to fail test case on issues
+    :param level_check: level of severity of issues to be checked
+                        1 - emerg
+                        2 - emerg,alert
+                        3 - emerg,alert,crit
+                        4 - emerg,alert,crit,err
+                        5 - emerg,alert,crit,err,warn
     """
-    panic_re = [r"BUG:.*---\[ end trace .* \]---"]
-    panic_re.append(r"----------\[ cut here.* BUG .*\[ end trace .* \]---")
-    panic_re.append(r"general protection fault:.* RSP.*>")
-    panic_re.append(r"Out of memory: Kill process .*Call Trace:")
-    panic_re = "|".join(panic_re)
-    dmesg = process.system_output("dmesg", timeout=30, ignore_status=True,
-                                  verbose=False)
-    if dmesg:
-        match = re.search(panic_re, dmesg, re.DOTALL | re.MULTILINE | re.I)
-        if match is not None:
-            err = "Found call trace in host dmesg."
-            d_log = "Host dmesg log:\n%s" % dmesg
-            if dmesg_log_file:
-                file(dmesg_log_file, "w+").write(d_log)
-                err += " Please check host dmesg log %s." % dmesg_log_file
-            else:
-                err += " Please check host dmesg log in debug log."
-                logging.debug(d_log)
-            process.system("dmesg -C", ignore_status=True)
-            raise exceptions.TestError(err)
+    cmd = "dmesg -T -l %s|grep ." % ",".join(map(str, xrange(0, int(level_check))))
+    output = process.run(cmd, timeout=30, ignore_status=True,
+                         verbose=False, shell=True)
+    if output.exit_status == 0:
+        err = "Found failures in dmesg log"
+        d_log = "Host dmesg log:\n%s" % output.stdout
+        if dmesg_log_file:
+            file(dmesg_log_file, "w+").write(d_log)
+            err += " Please check host dmesg log %s." % dmesg_log_file
+        else:
+            err += " Please check host dmesg log in debug log."
+            logging.debug(d_log)
+        process.system("dmesg -C", ignore_status=True)
+        if not ignore_result:
+            raise exceptions.TestFail(err)
 
 
 def add_ker_cmd(kernel_cmdline, kernel_param, remove_similar=False):
