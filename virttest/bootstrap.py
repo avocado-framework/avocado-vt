@@ -850,7 +850,7 @@ def bootstrap(options, interactive=False):
         action = "Downloading"
     else:
         action = "Updating"
-    if not options.vt_no_downloads:
+    if not options.vt_skip_providers:
         LOG.info("")
         step += 1
         LOG.info("%d - %s the test providers from remote repos", step, action)
@@ -918,7 +918,7 @@ def bootstrap(options, interactive=False):
         create_guest_os_cfg(options.vt_type)
     create_host_os_cfg(options)
 
-    if not (options.vt_no_downloads or options.vt_skip_verify_download_assets):
+    if not options.vt_no_downloads:
         LOG.info("")
         step += 1
         LOG.info("%s - Verifying (and possibly downloading) guest image",
