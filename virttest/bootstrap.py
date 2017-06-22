@@ -850,6 +850,7 @@ def bootstrap(options, interactive=False):
         action = "Downloading"
     else:
         action = "Updating"
+
     if not options.vt_skip_providers:
         LOG.info("")
         step += 1
@@ -955,7 +956,6 @@ def bootstrap(options, interactive=False):
                 LOG.debug("Module %s loaded", module)
 
     LOG.info("")
-    LOG.info("VT-BOOTSTRAP FINISHED")
-    LOG.debug("You may take a look at the following online docs for more info:")
-    LOG.debug(" - http://avocado-vt.readthedocs.org/")
-    LOG.debug(" - http://avocado-framework.readthedocs.org/")
+    LOG.info("vt-bootstrap finished")
+    LOG.debug("You may take a look at the following online docs for more "
+              "info: http://avocado-vt.readthedocs.org/")
