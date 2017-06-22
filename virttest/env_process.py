@@ -600,6 +600,14 @@ def preprocess(test, params, env):
 
     vm_type = params.get('vm_type')
 
+    if vm_type == 'libvirt' and params.get("enable_libvirtd_debug_log", False):
+        log_level = params.get("libvirtd_debug_level", 1)
+        log_file = params.get("libvirtd_debug_file", "")
+        libvirtd_debug_log = test_setup.LibvirtdDebugLog(test,
+                                                         log_level,
+                                                         log_file)
+        libvirtd_debug_log.enable()
+
     setup_pb = False
     ovs_pb = False
     for nic in params.get('nics', "").split():
@@ -749,6 +757,11 @@ def preprocess(test, params, env):
         egd.setup()
 
     if vm_type == "libvirt":
+        connect_uri = params.get("connect_uri")
+        connect_uri = libvirt_vm.normalize_connect_uri(connect_uri)
+        # Set the LIBVIRT_DEFAULT_URI to make virsh command
+        # work on connect_uri as default behavior.
+        os.environ['LIBVIRT_DEFAULT_URI'] = connect_uri
         if params.get("setup_libvirt_polkit") == "yes":
             pol = test_setup.LibvirtPolkitConfig(params)
             try:
@@ -760,13 +773,6 @@ def preprocess(test, params, env):
             except Exception, e:
                 logging.error("Unexpected error: '%s'" % str(e))
             libvirtd_inst.restart()
-
-    if vm_type == "libvirt":
-        connect_uri = params.get("connect_uri")
-        connect_uri = libvirt_vm.normalize_connect_uri(connect_uri)
-        # Set the LIBVIRT_DEFAULT_URI to make virsh command
-        # work on connect_uri as default behavior.
-        os.environ['LIBVIRT_DEFAULT_URI'] = connect_uri
 
     # Execute any pre_commands
     if params.get("pre_command"):
@@ -1087,6 +1093,9 @@ def postprocess(test, params, env):
                 err += "\nPolkit cleanup: %s" % str(details
                                                     ).replace('\\n', '\n  ')
                 logging.error("Unexpected error: %s" % details)
+        if params.get("enable_libvirtd_debug_log", False):
+            libvirtd_debug_log = test_setup.LibvirtdDebugLog(test)
+            libvirtd_debug_log.disable()
 
     global kernel_cmdline, kernel_modified
     if kernel_modified and params.get("restore_kernel_cmd", "yes") == "yes":
