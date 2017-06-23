@@ -402,6 +402,12 @@ def run_image_copy(test, params, env):
     2) Check the existence of source image
     3) If it exists, copy the image from NFS
 
+    Note about 'source_image_name' parameter.  'image_copy' test is used for
+    copying existing/pristine image for usage in further tests.
+    'source_image_name' parameter gives you ability to copy one image to
+    different image_copy(_vm_suffix_name) = image.  This parameter could be
+    helpful in case of two and more simultaneously running vms: vms = vm1 vm2
+
     :param test: kvm test object
     :param params: Dictionary with the test parameters
     :param env: Dictionary with test environment.
@@ -412,6 +418,11 @@ def run_image_copy(test, params, env):
 
     src = params.get('images_good')
     asset_name = '%s' % (os.path.split(params['image_name'])[1])
+    # Define special image to be taken as a source.
+    source_image_name = params.get('source_image_name')
+    if source_image_name:
+        logging.info('Using image as source image: %s', source_image_name)
+        asset_name = '%s' % (os.path.split(source_image_name)[1])
     image = '%s.%s' % (params['image_name'], params['image_format'])
     dst_path = storage.get_image_filename(params, data_dir.get_data_dir())
     image_dir = os.path.dirname(dst_path)
