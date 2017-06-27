@@ -347,6 +347,9 @@ class _IscsiComm(object):
             restart_iscsid()
         if self.export_flag:
             self.delete_target()
+        cmd = "targetcli clearconfig confirm=true"
+        if process.system(cmd, shell=True) != 0:
+            logging.error("targetcli configuration unable to clear")
 
 
 class IscsiTGT(_IscsiComm):
