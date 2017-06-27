@@ -24,8 +24,8 @@ import shutil
 import threading
 import time
 import sys
-
 import aexpect
+
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
 from avocado.utils import process
@@ -55,6 +55,7 @@ from ..libvirt_xml import IPXML
 from ..libvirt_xml import pool_xml
 from ..libvirt_xml import nwfilter_xml
 from ..libvirt_xml import vol_xml
+from ..libvirt_xml import secret_xml
 from ..libvirt_xml.devices import disk
 from ..libvirt_xml.devices import hostdev
 from ..libvirt_xml.devices import controller
@@ -3095,3 +3096,58 @@ def virsh_cmd_has_option(cmd, option, raise_skip=True):
     else:
         logging.debug(msg)
         return found
+
+
+def create_secret(params):
+    """
+    Create a secret with 'virsh secret-define'
+
+    :param params: Test run params
+    :return: UUID of the secret
+    """
+    sec_usage_type = params.get("sec_usage", "volume")
+    sec_desc = params.get("sec_desc", "secret_description")
+    sec_ephemeral = params.get("sec_ephemeral", "no") == "yes"
+    sec_private = params.get("sec_private", "no") == "yes"
+    sec_uuid = params.get("sec_uuid", "")
+    sec_volume = params.get("sec_volume", "/path/to/volume")
+    sec_name = params.get("sec_name", "secret_name")
+    sec_target = params.get("sec_target", "secret_target")
+
+    supporting_usage_types = ['volume', 'ceph', 'iscsi', 'tls']
+    if sec_usage_type not in supporting_usage_types:
+        raise exceptions.TestError("Supporting secret usage types are: %s" %
+                                   supporting_usage_types)
+
+    # prepare secret xml
+    sec_xml = secret_xml.SecretXML("no", "yes")
+    # set common attributes
+    sec_xml.description = sec_desc
+    sec_xml.usage = sec_usage_type
+    if sec_ephemeral:
+        sec_xml.secret_ephmeral = "yes"
+    if sec_private:
+        sec_xml.secret_private = "yes"
+    if sec_uuid:
+        sec_xml.uuid = sec_uuid
+    sec_xml.usage = sec_usage_type
+    # set specific attributes for different usage type
+    if sec_usage_type in ['volume']:
+        sec_xml.volume = sec_volume
+    if sec_usage_type in ['ceph', 'tls']:
+        sec_xml.usage_name = sec_name
+    if sec_usage_type in ['iscsi']:
+        sec_xml.target = sec_target
+    sec_xml.xmltreefile.write()
+    logging.debug("The secret xml is: %s" % sec_xml)
+
+    # define the secret and get its uuid
+    ret = virsh.secret_define(sec_xml.xml)
+    check_exit_status(ret)
+    try:
+        sec_uuid = re.findall(r".+\S+(\ +\S+)\ +.+\S+",
+                              ret.stdout)[0].lstrip()
+    except IndexError:
+        raise exceptions.TestError("Fail to get newly created secret uuid")
+
+    return sec_uuid
