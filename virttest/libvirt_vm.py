@@ -29,6 +29,7 @@ from . import libvirt_xml
 from . import data_dir
 from . import xml_utils
 from . import utils_selinux
+from . import test_setup
 
 
 def normalize_connect_uri(connect_uri):
@@ -405,7 +406,7 @@ class VM(virt_vm.BaseVM):
                 logging.warning("Unknown virt type hvm_or_pv, using default.")
                 return ""
 
-        def add_mem(help_text, mem, maxmem=None):
+        def add_mem(help_text, mem, maxmem=None, hugepage=False):
             if has_option(help_text, "memory"):
                 cmd = " --memory=%s" % mem
                 if maxmem:
@@ -414,6 +415,18 @@ class VM(virt_vm.BaseVM):
                                         "virt-install")
                     else:
                         cmd += ",maxmemory=%s" % maxmem
+                if hugepage:
+                    if not has_sub_option('memory', 'hugepages'):
+                        logging.warning("hugepages option not supported by "
+                                        "virt-install")
+                    else:
+                        # checks whether host supports Hugepage and calculate
+                        # target hugepages required for the VM, set the
+                        # calculated hugepages in host nr_hugepages for
+                        # guest to use it
+                        hp = test_setup.HugePageConfig(params)
+                        hp.set_hugepages()
+                        cmd += ",hugepages=yes"
                 return cmd
             else:
                 return " --ram=%s" % mem
@@ -768,8 +781,9 @@ class VM(virt_vm.BaseVM):
 
         mem = params.get("mem")
         maxmemory = params.get("maxmemory", None)
+        hugepage = params.get("hugepage", "no") == "yes"
         if mem:
-            virt_install_cmd += add_mem(help_text, mem, maxmemory)
+            virt_install_cmd += add_mem(help_text, mem, maxmemory, hugepage)
 
         # TODO: should we do the check before we call ? negative case ?
         check_cpu = params.get("use_check_cpu")
