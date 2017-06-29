@@ -2069,7 +2069,9 @@ class VM(virt_vm.BaseVM):
 
                 for skey in spice_keys:
                     value = params.get(skey, None)
-                    if value:
+                    if value is not None:
+                        # parameter can be defined as empty string in Cartesian
+                        # config.  Example: spice_password =
                         self.spice_options[skey] = value
 
                 cmd += add_spice()
