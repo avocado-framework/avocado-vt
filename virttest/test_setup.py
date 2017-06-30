@@ -1373,8 +1373,8 @@ class PciAssignable(object):
                         "Can not enable the interrupt remapping support")
             lnk = "/sys/module/vfio_iommu_type1/parameters/allow_unsafe_interrupts"
             if self.device_driver == "vfio-pci":
-                status = process.system(
-                    'lsmod | grep vfio', ignore_status=True)
+                status = process.system('lsmod | grep vfio',
+                                        ignore_status=True, shell=True)
                 if status:
                     logging.info("Load vfio-pci module.")
                     cmd = "modprobe vfio-pci"
@@ -1387,8 +1387,8 @@ class PciAssignable(object):
                     process.run(cmd)
         else:
             if self.device_driver == "vfio-pci":
-                status = process.system(
-                    'lsmod | grep vfio', ignore_status=True)
+                status = process.system('lsmod | grep vfio',
+                                        ignore_status=True, shell=True)
                 if status:
                     logging.info("Load vfio-pci module.")
                     cmd = "modprobe vfio-pci"
@@ -1396,7 +1396,7 @@ class PciAssignable(object):
                     time.sleep(3)
         re_probe = False
         status = process.system("lsmod | grep %s" % self.driver,
-                                ignore_status=True)
+                                ignore_status=True, shell=True)
         if status:
             if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
                 cmd = "modprobe %s " % self.driver
@@ -1499,7 +1499,7 @@ class PciAssignable(object):
 
         re_probe = False
         status = process.system('lsmod | grep %s' % self.driver,
-                                ignore_status=True)
+                                ignore_status=True, shell=True)
         if status:
             if self.driver and self.driver != "mlx5_core":
                 cmd = "modprobe -r %s" % self.driver
