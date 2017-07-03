@@ -3607,7 +3607,7 @@ def secret_get_value(uuid, options=None, **dargs):
     return command(cmd, **dargs)
 
 
-def secret_set_value(uuid, password, encode=False, options=None, **dargs):
+def secret_set_value(uuid, password, options=None, encode=False, **dargs):
     """
     Set a secret value
 
