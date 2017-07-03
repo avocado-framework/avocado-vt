@@ -25,6 +25,8 @@ from . import utils_misc
 from . import versionable_class
 from . import openvswitch
 from . import remote
+from . import utils_libvirtd
+from . import utils_config
 from .staging import service
 from .staging import utils_memory
 
@@ -2079,3 +2081,45 @@ def disable_smt(params=None):
                 logging.debug("SMT turned off successfully")
             except process.CmdError, info:
                 raise exceptions.TestSetupFail("VM can not be started :%s" % info)
+
+
+class LibvirtdDebugLog(object):
+    """
+    Enable libvirtd log for testcase incase
+    with the use of param "enable_libvirtd_debug_log",
+    with additional params log level("libvirtd_debug_level")
+    and log file path("libvirtd_debug_file") can be controlled.
+    """
+    def __init__(self, test, log_level=1, log_file=""):
+        """
+        initialize variables
+
+        :param test: Test object
+        :param log_level: debug level for libvirtd log
+        :param log_file: debug file path
+        """
+        self.log_level = log_level
+        self.log_file = log_file
+        self.test = test
+        self.libvirtd = utils_libvirtd.Libvirtd()
+        self.libvirtd_conf = utils_config.LibvirtdConfig()
+        self.backupfile = "%s.bkup.debuglog" % self.libvirtd_conf.conf_path
+
+    def enable(self):
+        """ Enable libvirtd debug log """
+        if not self.log_file or not os.path.isdir(os.path.dirname(self.log_file)):
+            self.log_file = utils_misc.get_path(self.test.debugdir,
+                                                "libvirtd.log")
+        logging.debug("libvirtd debug log stored in: %s", self.log_file)
+        self.libvirtd_conf["log_level"] = self.log_level
+        self.libvirtd_conf["log_outputs"] = '"%s:file:%s"' % (self.log_level,
+                                                              self.log_file)
+        self.libvirtd.restart()
+        fd = open(self.backupfile, "w")
+        fd.write(self.libvirtd_conf.backup_content)
+        fd.close()
+
+    def disable(self):
+        """ Disable libvirtd debug log """
+        os.rename(self.backupfile, self.libvirtd_conf.conf_path)
+        self.libvirtd.restart()
