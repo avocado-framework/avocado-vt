@@ -1567,8 +1567,10 @@ class VM(virt_vm.BaseVM):
                 if bus is not False:     # Manually set bus
                     bus = int(bus)
                 elif not virtio_port_spread:
-                    # bus not specified, let qemu decide
-                    pass
+                    # bus not specified
+                    bus = no_virtio_serial_pcis - 1
+                    if bus < 0:     # First bus
+                        bus = 0
                 elif not no_virtio_ports % virtio_port_spread:
                     # Add new vio-pci every n-th port. (Spread ports)
                     bus = no_virtio_serial_pcis
