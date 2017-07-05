@@ -1543,6 +1543,7 @@ class PciAssignable(object):
                         return False
             return True
 
+    @error_context.context_aware
     def request_devs(self, devices=None):
         """
         Implement setup process: unbind the PCI device and then bind it
