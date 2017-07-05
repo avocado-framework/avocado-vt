@@ -74,7 +74,10 @@ def context(s="", log=None):
     :param log: A logging function to pass the context message to.  If None, no
             function will be called.
     """
-    ctx.contexts[-1] = s
+    if ctx.contexts:
+        ctx.contexts[-1] = s
+    else:
+        ctx.contexts.append(s)
     if s and log:
         log("Context: %s" % get_context())
 
