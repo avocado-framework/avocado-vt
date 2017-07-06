@@ -806,6 +806,64 @@ def get_full_pci_id(pci_id):
     return full_id
 
 
+def get_pci_id_using_filter(pci_filter, session=None):
+    """
+    Get PCI ID from pci filter in host or in guest.
+
+    :param pci_filter: PCI filter regex of a device (adapter name)
+    :param session: vm session object, if none use host pci info
+
+    :return: list of pci ids with adapter name regex
+    """
+    cmd = "lspci | grep -F '%s' | awk '{print $1}'" % pci_filter
+    if session:
+        status, output = session.cmd_status_output(cmd)
+    else:
+        cmd_output = process.run(cmd, shell=True)
+        status = cmd_output.exit_status
+        output = cmd_output.stdout
+    if status != 0 or not output:
+        return []
+    return str(output).strip().split()
+
+
+def get_interface_from_pci_id(pci_id, session=None, nic_regex=""):
+    """
+    Get interface from pci id in host or in guest.
+
+    :param pci_id: PCI id of the interface to be identified
+    :param session: vm session object, if none use host interface
+    :param nic_regex: regex to match nic interfaces
+
+    :return: interface name associated with the pci id
+    """
+    if not nic_regex:
+        nic_regex = "\w+(?=: flags)|\w+(?=\s*Link)"
+    cmd = "ifconfig -a"
+    if session:
+        status, output = session.cmd_status_output(cmd)
+    else:
+        cmd_output = process.run(cmd, shell=True)
+        status = cmd_output.exit_status
+        output = cmd_output.stdout
+    if status:
+        return None
+    ethnames = re.findall(nic_regex, output.strip())
+    for each_interface in ethnames:
+        cmd = "ethtool -i %s | awk '/bus-info/ {print $2}'" % each_interface
+        if session:
+            status, output = session.cmd_status_output(cmd)
+        else:
+            cmd_output = process.run(cmd, shell=True)
+            status = cmd_output.exit_status
+            output = cmd_output.stdout
+        if status:
+            continue
+        if pci_id in output.strip():
+            return each_interface
+    return None
+
+
 def get_vendor_from_pci_id(pci_id):
     """
     Check out the device vendor ID according to pci_id.
