@@ -2034,7 +2034,7 @@ def get_support_machine_type(qemu_binary="/usr/libexec/qemu-kvm"):
     """
     o = process.system_output("%s -M ?" % qemu_binary)
     s = re.findall("(\S*)\s*RHEL[-\s]", o)
-    c = re.findall("(RHEL.*PC)", o)
+    c = re.findall("(RHEL.*)", o)
     return (s, c)
 
 
