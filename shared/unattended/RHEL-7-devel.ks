@@ -55,6 +55,7 @@ SDL
 totem
 dmidecode
 alsa-utils
+sg3_utils
 -gnome-initial-setup
 %end
 
