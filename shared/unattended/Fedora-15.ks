@@ -23,6 +23,7 @@ autopart
 @development-tools
 ntpdate
 dmidecode
+sg3_utils
 %end
 
 %post

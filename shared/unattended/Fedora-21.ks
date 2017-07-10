@@ -21,6 +21,7 @@ autopart
 %packages
 @standard
 @development-tools
+sg3_utils
 %end
 
 %post

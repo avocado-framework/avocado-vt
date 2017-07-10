@@ -49,6 +49,7 @@ spice-vdagent
 usbredir
 SDL
 totem
+sg3_utils
 %end
 
 %post

@@ -25,6 +25,7 @@ patch
 make
 nc
 ntp
+sg3_utils
 redhat-lsb
 
 %post

@@ -21,6 +21,7 @@ autopart
 @base
 @development-libs
 @development-tools
+sg3_utils
 %end
 
 %post

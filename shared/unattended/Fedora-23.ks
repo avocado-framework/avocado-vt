@@ -21,6 +21,7 @@ autopart
 %packages
 @standard
 python
+sg3_utils
 %end
 
 %post
