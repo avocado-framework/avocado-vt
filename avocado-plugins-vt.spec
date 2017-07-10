@@ -7,14 +7,14 @@
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 51.0
-Release: 1%{?dist}
+Release: 2%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
 Source0: https://github.com/avocado-framework/%{modulename}/archive/%{commit}/%{modulename}-%{version}-%{shortcommit}.tar.gz
 BuildRequires: python2-devel, python-setuptools
 BuildArch: noarch
-Requires: avocado >= 36.4
+Requires: python-avocado >= 51.0
 Requires: python, autotest-framework, xz, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, python-aexpect, git, python-netaddr, python-netifaces, python-simplejson
 
 Requires: python-imaging
@@ -53,6 +53,9 @@ Xunit output, among others.
 
 
 %changelog
+* Mon Jul 10 2017 Cleber Rosa <cleber@redhat.com> - 51.0-2
+- Satisfy avocado requirement with EPEL package
+
 * Wed Jun 14 2017 Cleber Rosa <cleber@redhat.com> - 51.0-1
 - Replace aexpect dependency with python-aexpect
 
