@@ -21,6 +21,7 @@ autopart
 @standard
 @development-tools
 dmidecode
+sg3_utils
 %end
 
 %post

@@ -20,6 +20,7 @@ autopart
 
 %packages
 @standard
+sg3_utils
 %end
 
 %post

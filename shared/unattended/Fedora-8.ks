@@ -21,6 +21,7 @@ autopart
 @development-libs
 @development-tools
 ntpdate
+sg3_utils
 
 %post
 function ECHO { for TTY in ttyS0 hvc0; do echo "$*" > /dev/$TTY; done }

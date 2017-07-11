@@ -21,6 +21,7 @@ autopart
 @development-libs
 @development-tools
 ntpdate
+sg3_utils
 %end
 
 %post
