@@ -68,6 +68,13 @@ class VTBootstrap(CLICmd):
                                                  "will be lost). "
                                                  "Requires --vt-type "
                                                  "to be set"))
+        parser.add_argument("--vt-extra-guest-os",
+                            action="append", metavar="PATH", default=[],
+                            help=("Adds extra guest OS configuration from "
+                                  "external repos.  PATH is location to a "
+                                  "guest-os directory, with the same directory"
+                                  " structure as the one provided by "
+                                  "Avocado-VT.  Can be given multiple times."))
         parser.add_argument("--vt-update-providers", action="store_true",
                             default=False, help=("Forces test "
                                                  "providers to be "

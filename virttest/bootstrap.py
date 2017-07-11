@@ -208,19 +208,36 @@ def write_subtests_files(config_file_list, output_file_object, test_type=None):
         config_file.close()
 
 
-def get_directory_structure(rootdir, guest_file):
-    rootdir = rootdir.rstrip(os.sep)
-    start = rootdir.rfind(os.sep) + 1
+def guest_os_write_from_directory_structure(primary_dir,
+                                            output_file,
+                                            optional_dirs=[]):
+    """
+    Writes a `guest-os.cfg` file based on a number of config directories
+
+    :param primary_dir: the primary directory from where config files will
+                        be got and merged into output_file.
+    :param output_file: the file object that will receive writes with the
+                        content found on primary_dir and optional_dirs
+                        files.
+    :param optional_dirs: a list of optional directories, each one can contain
+                          contain the same directory structure as primary_dir.
+                          If a file is found in any of the optional_dirs, with
+                          the same relative path to the primary_dir (that is,
+                          same 'dir1/dir2/file.cfg', its contents will also be
+                          be added to output_file.
+    """
+    primary_dir = primary_dir.rstrip(os.sep)
+    start = primary_dir.rfind(os.sep) + 1
     previous_indent = 0
     indent = 0
     number_variants = 0
-    for path, subdirs, files in os.walk(rootdir):
+    for path, subdirs, files in os.walk(primary_dir):
         folders = path[start:].split(os.sep)
         folders = folders[1:]
         indent = len(folders)
         if indent > previous_indent:
-            guest_file.write("%svariants:\n" %
-                             (4 * (indent + number_variants - 1) * " "))
+            output_file.write("%svariants:\n" %
+                              (4 * (indent + number_variants - 1) * " "))
             number_variants += 1
         elif indent < previous_indent:
             number_variants = indent
@@ -234,11 +251,11 @@ def get_directory_structure(rootdir, guest_file):
         if os.path.isfile(base_cfg_path):
             base_file = open(base_cfg_path, 'r')
             for line in base_file.readlines():
-                guest_file.write("%s%s" % ((4 * (indent - 1) * " "), line))
+                output_file.write("%s%s" % ((4 * (indent - 1) * " "), line))
         else:
             if base_folder:
-                guest_file.write("%s- %s:\n" %
-                                 ((4 * (indent - 1) * " "), base_folder))
+                output_file.write("%s- %s:\n" %
+                                  ((4 * (indent - 1) * " "), base_folder))
         variant_printed = False
         if files:
             files.sort()
@@ -247,13 +264,20 @@ def get_directory_structure(rootdir, guest_file):
                     bf = f[:len(f) - 4]
                     if bf not in subdirs:
                         if not variant_printed:
-                            guest_file.write("%svariants:\n" %
-                                             ((4 * (indent) * " ")))
+                            output_file.write("%svariants:\n" %
+                                              ((4 * (indent) * " ")))
                             variant_printed = True
                         base_file = open(os.path.join(path, f), 'r')
                         for line in base_file.readlines():
-                            guest_file.write("%s%s" %
-                                             ((4 * (indent + 1) * " "), line))
+                            output_file.write("%s%s" %
+                                              ((4 * (indent + 1) * " "), line))
+                        rel_path = os.path.join(path[len(primary_dir)+1:], f)
+                        for optional_dir in optional_dirs:
+                            optional_cfg_path = os.path.join(optional_dir, rel_path)
+                            if os.path.exists(optional_cfg_path):
+                                for line in open(optional_cfg_path).readlines():
+                                    output_file.write("%s%s" %
+                                                      ((4 * (indent + 1) * " "), line))
         indent -= number_variants
         previous_indent = indent
 
@@ -291,12 +315,14 @@ def sync_download_dir(interactive):
                           dst_file)
 
 
-def create_guest_os_cfg(t_type):
+def create_guest_os_cfg(t_type, extra_guest_os):
     root_dir = data_dir.get_root_dir()
     guest_os_cfg_dir = os.path.join(root_dir, 'shared', 'cfg', 'guest-os')
     guest_os_cfg_path = data_dir.get_backend_cfg_path(t_type, 'guest-os.cfg')
     guest_os_cfg_file = open(guest_os_cfg_path, 'w')
-    get_directory_structure(guest_os_cfg_dir, guest_os_cfg_file)
+    guest_os_write_from_directory_structure(guest_os_cfg_dir,
+                                            guest_os_cfg_file,
+                                            extra_guest_os)
     LOG.debug("Config file %s auto generated from guest OS samples",
               guest_os_cfg_path)
 
@@ -891,7 +917,7 @@ def bootstrap(options, interactive=False):
                                    options.vt_type, step,
                                    force_update=options.vt_update_config)
         create_subtests_cfg(options.vt_type)
-        create_guest_os_cfg(options.vt_type)
+        create_guest_os_cfg(options.vt_type, options.vt_extra_guest_os)
         # Don't bother checking if changes can't be made
         if os.getuid() == 0:
             verify_selinux(datadir,
@@ -915,7 +941,7 @@ def bootstrap(options, interactive=False):
                                    options.vt_type, step,
                                    force_update=options.vt_update_config)
         create_subtests_cfg(options.vt_type)
-        create_guest_os_cfg(options.vt_type)
+        create_guest_os_cfg(options.vt_type, options.vt_extra_guest_os)
     create_host_os_cfg(options)
 
     if not (options.vt_no_downloads or options.vt_skip_verify_download_assets):
