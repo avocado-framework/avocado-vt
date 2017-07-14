@@ -12,6 +12,7 @@ import commands
 import signal
 import netifaces
 import netaddr
+import platform
 
 import aexpect
 from avocado.core import exceptions
@@ -1589,19 +1590,23 @@ def get_net_if_operstate(ifname, runner=None):
         raise HwOperstarteGetError(ifname, "run operstate cmd error.")
 
 
-def get_vm_network_cfg_file(vm, iface_name):
+def get_network_cfg_file(iface_name, vm=None):
     """
-    Get absolute network cfg file path of the vm instance.
+    Get absolute network cfg file path of the VM or Host.
 
-    :param vm: VM object
     :param iface_name: Name of the network interface
+    :param vm: VM object, if None uses Host
+
     :return: absolute path of network script file
     """
-    vm_distro = vm.get_distro()
+    if vm:
+        distro = vm.get_distro().lower()
+    else:
+        distro = platform.platform().lower()
     iface_cfg_file = ""
-    if "ubuntu" in vm_distro.lower():
+    if "ubuntu" in distro:
         iface_cfg_file = "/etc/network/interfaces"
-    elif "suse" in vm_distro.lower():
+    elif "suse" in distro:
         iface_cfg_file = "/etc/sysconfig/network/ifcfg-%s" % (iface_name)
     else:
         iface_cfg_file = "/etc/sysconfig/network-scripts/"
@@ -1609,23 +1614,33 @@ def get_vm_network_cfg_file(vm, iface_name):
     return iface_cfg_file
 
 
-def create_vm_network_script(vm, iface_name, mac_addr, boot_proto, net_mask,
-                             ip_addr=None, **dargs):
+def create_network_script(iface_name, mac_addr, boot_proto, net_mask,
+                          vm=None, ip_addr=None, **dargs):
     """
-    Form network script with its respective network param for vm instance
+    Form network script with its respective network param for vm or Host.
 
-    :param vm: VM object
     :param iface_name: Name of the network interface
     :param mac_addr: Mac address of the network interface
     :param boot_proto: static ip or dhcp of the interface
     :param net_mask: network mask for the interface
+    :param vm: VM object, if None uses Host
     :param ip_addr: ip address for the interface
-    :param dargs: dict of additional attributes
-    :return: network interface parameters as list
+    :param dargs: dict of additional attributes, onboot="yes", start_mode="auto"
+
+    :raise: test.error() if creation of network script fails
     """
-    vm_distro = vm.get_distro()
     network_param_list = []
-    if "ubuntu" in vm_distro.lower():
+    script_file = get_network_cfg_file(iface_name, vm=vm)
+    if os.path.isfile(script_file):
+        logging.error("network script file for %s already exists in %s",
+                      iface_name, script_file)
+        return
+    if vm:
+        session = vm.wait_for_login()
+        distro = vm.get_distro().lower()
+    else:
+        distro = platform.platform().lower()
+    if "ubuntu" in distro:
         network_param_list = ['auto %s' % iface_name, 'iface %s inet %s' %
                               (iface_name, boot_proto), 'netmask %s' %
                               net_mask]
@@ -1637,13 +1652,23 @@ def create_vm_network_script(vm, iface_name, mac_addr, boot_proto, net_mask,
                               'HWADDR=%s' % mac_addr]
         if ip_addr and (boot_proto.strip().lower() != 'dhcp'):
             network_param_list.append('IPADDR=%s' % ip_addr)
-        if "suse" in vm_distro.lower():
+        if "suse" in distro.lower():
             network_param_list.append("STARTMODE=%s" %
                                       dargs.get("start_mode", "auto"))
         else:
             network_param_list.append("ONBOOT=%s" % dargs.get("on_boot",
                                                               "yes"))
-    return network_param_list
+
+    cmd = "echo '%s' >> %s"
+    for each in network_param_list:
+        command = cmd % (each, script_file)
+        if vm:
+            if session.cmd_status(command):
+                raise exceptions.TestError("Failed to create network script file")
+        else:
+            if process.system(command, shell=True):
+                raise exceptions.TestError("Failed to create network script file")
+    logging.debug("Network script file created in %s:", script_file)
 
 
 def ipv6_from_mac_addr(mac_addr):
