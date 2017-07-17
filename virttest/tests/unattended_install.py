@@ -1147,7 +1147,8 @@ def run(test, params, env):
             utils_test.update_qcow2_image_version(qemu_image, ver_from, ver_to)
 
     src = params.get('images_good')
-    base_dir = params.get("images_base_dir", data_dir.get_data_dir())
+    vt_data_dir = data_dir.get_data_dir()
+    base_dir = params.get("images_base_dir", vt_data_dir)
     dst = storage.get_image_filename(params, base_dir)
     if params.get("storage_type") == "iscsi":
         dd_cmd = "dd if=/dev/zero of=%s bs=1M count=1" % dst
@@ -1167,7 +1168,7 @@ def run(test, params, env):
             # check for image availability in NFS shared path
             if(not os.path.isfile(dst) or
                utils_misc.get_image_info(dst)['lcounts'].lower() == "true"):
-                source = os.path.join(data_dir.get_data_dir(),
+                source = os.path.join(vt_data_dir,
                                       os.path.join("images", image_name))
                 logging.debug("Checking for image available in image data "
                               "path - %s", source)
@@ -1187,29 +1188,26 @@ def run(test, params, env):
                             dst, mount_point, image_name)
 
     vm = env.get_vm(params["main_vm"])
-    local_dir = params.get("local_dir")
-    if local_dir:
-        local_dir = utils_misc.get_path(test.bindir, local_dir)
-    else:
-        local_dir = test.bindir
-    if params.get("copy_to_local"):
-        for param in params.get("copy_to_local").split():
-            l_value = params.get(param)
-            if l_value:
-                need_copy = True
-                nfs_link = utils_misc.get_path(test.bindir, l_value)
-                i_name = os.path.basename(l_value)
-                local_link = os.path.join(local_dir, i_name)
-                if os.path.isfile(local_link):
-                    file_hash = crypto.hash_file(local_link, algorithm="md5")
-                    expected_hash = crypto.hash_file(nfs_link, algorithm="md5")
-                    if file_hash == expected_hash:
-                        need_copy = False
-                if need_copy:
-                    msg = "Copy %s to %s in local host." % (i_name, local_link)
-                    error_context.context(msg, logging.info)
-                    download.get_file(nfs_link, local_link)
-                    params[param] = local_link
+    local_dir = params.get("local_dir", os.path.abspath(vt_data_dir))
+    local_dir = utils_misc.get_path(vt_data_dir, local_dir)
+    for media in params.get("copy_to_local", "").split():
+        media_path = params.get(media)
+        if not media_path:
+            logging.warn("Media '%s' is not available, will not "
+                         "be copied into local directory", media)
+            continue
+        media_name = os.path.basename(media_path)
+        nfs_link = utils_misc.get_path(vt_data_dir, media_path)
+        local_link = os.path.join(local_dir, media_name)
+        if os.path.isfile(local_link):
+            file_hash = crypto.hash_file(local_link, algorithm="md5")
+            expected_hash = crypto.hash_file(nfs_link, algorithm="md5")
+            if file_hash == expected_hash:
+                continue
+        msg = "Copy %s to %s in local host." % (media_name, local_link)
+        error_context.context(msg, logging.info)
+        download.get_file(nfs_link, local_link)
+        params[media] = local_link
 
     unattended_install_config = UnattendedInstallConfig(test, params, vm)
     unattended_install_config.setup()
