@@ -503,7 +503,7 @@ class Monitor:
                 continue
             if not line.startswith(' '):   # new block device
                 line = line.split(':', 1)
-                name = line[0].strip()
+                name = line[0].split(' ', 1)[0]  # disregard extra info such as #(blockNNN)
                 line = line[1][1:]
                 blocks[name] = {}
                 if line == "[not inserted]":
