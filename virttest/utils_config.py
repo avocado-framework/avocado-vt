@@ -460,5 +460,6 @@ class LibvirtGuestsConfig(LibvirtConfigCommon):
         'ON_SHUTDOWN': 'string',
         'PARALLEL_SHUTDOWN': 'int',
         'SHUTDOWN_TIMEOUT': 'int',
-        'BYPASS_CACHE': 'boolean'
+        'BYPASS_CACHE': 'boolean',
+        'SYNC_TIME': 'boolean',
     }
