@@ -1518,8 +1518,8 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
                 list_find = True
             logging.debug("Find '%s' in virsh iface-list output: %s",
                           iface_name, list_find)
-            # Check network script
-            iface_script = "/etc/sysconfig/network-scripts/ifcfg-" + iface_name
+            # Check network script independent of distro
+            iface_script = utils_net.get_network_cfg_file(iface_name)
             ifcfg_find = os.path.exists(iface_script)
             logging.debug("Find '%s': %s", iface_script, ifcfg_find)
             check_pass = list_find and ifcfg_find
