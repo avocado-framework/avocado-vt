@@ -16,7 +16,7 @@ class DomCapabilityXML(base.LibvirtXMLBase):
         features:
             DomCapFeaturesXML instance to deal with domain features
     """
-    __slots__ = ('features')
+    __slots__ = ('features', 'max')
     __schema_name__ = 'domcapabilities'
 
     def __init__(self, virsh_instance=base.virsh):
@@ -27,7 +27,8 @@ class DomCapabilityXML(base.LibvirtXMLBase):
                                  subclass=DomCapFeaturesXML,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
-
+        accessors.XMLAttribute('max', self, parent_xpath='/',
+                               tag_name='vcpu', attribute='max')
         super(DomCapabilityXML, self).__init__(virsh_instance)
         self['xml'] = self.__dict_get__('virsh').domcapabilities().stdout.strip()
 
