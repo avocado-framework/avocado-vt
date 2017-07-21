@@ -450,6 +450,45 @@ class VM(virt_vm.BaseVM):
                 cmd += ",threads=%s" % threads
             return cmd
 
+        def add_numa(vcpus, max_mem, numa_nodes):
+            """
+            Method to add Numa node to guest
+
+            :param vcpus: vcpus of guest
+            :param max_mem: max memory of guest
+            :param numa_nodes: No of guest numa nodes required
+
+            :return: appended numa parameter to virt-install cmd
+            """
+            cmd = " --cpu"
+            cell = "cell%s.cpus=%s,cell%s.id=%s,cell%s.memory=%s"
+            cells = ""
+
+            # we need atleast 1 vcpu for 1 numa node
+            if numa_nodes > vcpus:
+                numa_nodes = vcpus
+            if vcpus > 1:
+                cpus = vcpus / numa_nodes
+                cpus_balance = vcpus % numa_nodes
+                memory = max_mem / numa_nodes
+                memory_balance = max_mem % numa_nodes
+            else:
+                cpus = vcpus
+                memory = max_mem
+            cpu_start = 0
+            for numa in range(numa_nodes):
+                if numa == numa_nodes - 1 and vcpus > 1:
+                    cpus = cpus + cpus_balance
+                    memory = memory + memory_balance
+                if cpus == 1:
+                    cpu_str = "%s" % (cpu_start + (cpus - 1))
+                else:
+                    cpu_str = "%s-%s" % (cpu_start, cpu_start + (cpus - 1))
+                cpu_start += cpus
+                cells += "%s," % cell % (numa, cpu_str, numa, numa, numa, memory)
+            cmd += " %s" % cells
+            return cmd.strip(",")
+
         def add_location(help_text, location):
             if has_option(help_text, "location"):
                 return " --location %s" % location
@@ -798,6 +837,17 @@ class VM(virt_vm.BaseVM):
         if smp:
             virt_install_cmd += add_smp(help_text, smp, vcpu_max_cpus,
                                         vcpu_sockets, vcpu_cores, vcpu_threads)
+
+        if params.get("numa", "no") == "yes":
+            # Number of numa nodes required can be set in param
+            numa_nodes = int(params.get("numa_nodes", 2))
+            numa_vcpus = int(smp)
+            numa_memory = int(mem)
+            if vcpu_max_cpus:
+                numa_vcpus = int(vcpu_max_cpus)
+            if maxmemory:
+                numa_memory = int(maxmemory)
+            virt_install_cmd += add_numa(numa_vcpus, numa_memory, numa_nodes)
 
         # TODO: directory location for vmlinuz/kernel for cdrom install ?
         location = None
