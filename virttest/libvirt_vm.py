@@ -460,6 +460,8 @@ class VM(virt_vm.BaseVM):
 
             :return: appended numa parameter to virt-install cmd
             """
+            if not has_sub_option('cpu', 'cell'):
+                return ""
             cmd = " --cpu"
             cell = "cell%s.cpus=%s,cell%s.id=%s,cell%s.memory=%s"
             cells = ""
@@ -467,6 +469,7 @@ class VM(virt_vm.BaseVM):
             # we need atleast 1 vcpu for 1 numa node
             if numa_nodes > vcpus:
                 numa_nodes = vcpus
+                params['numa_nodes'] = vcpus
             if vcpus > 1:
                 cpus = vcpus / numa_nodes
                 cpus_balance = vcpus % numa_nodes
@@ -488,6 +491,32 @@ class VM(virt_vm.BaseVM):
                 cells += "%s," % cell % (numa, cpu_str, numa, numa, numa, memory)
             cmd += " %s" % cells
             return cmd.strip(",")
+
+        def pin_hugepage(help_text, hp_size, guest_numa):
+            """
+            Method to pin hugepages to guest numa with virt-install
+
+            :param help_text: virt-install help message text
+            :param hp_size: hugepage size supported
+            :param guest_numa: guest numa nodes to be pinned with hugepage
+
+            :return: cmd parameter to pin hugepage with Numa with virt-install
+            """
+            if not has_option(help_text, "memorybacking"):
+                return ""
+            cmd = " --memorybacking"
+            hp_unit = params.get("hugepage_unit", "KiB")
+            cmd += " size=%s,nodeset=%s,unit=%s" % (hp_size, guest_numa, hp_unit)
+            # Instructs hypervisor to disable shared pages (memory merge, KSM) for
+            # this domain
+            if params.get("hp_nosharepages", "no") == "yes":
+                cmd += ",nosharepages=yes"
+
+            # memory pages belonging to the domain will be locked in host's memory
+            # and the host will not be allowed to swap them out
+            if params.get("hp_locked", "no") == "yes":
+                cmd += ",locked=yes"
+            return cmd
 
         def add_location(help_text, location):
             if has_option(help_text, "location"):
@@ -837,8 +866,8 @@ class VM(virt_vm.BaseVM):
         if smp:
             virt_install_cmd += add_smp(help_text, smp, vcpu_max_cpus,
                                         vcpu_sockets, vcpu_cores, vcpu_threads)
-
-        if params.get("numa", "no") == "yes":
+        numa = params.get("numa", "no") == "yes"
+        if numa:
             # Number of numa nodes required can be set in param
             numa_nodes = int(params.get("numa_nodes", 2))
             numa_vcpus = int(smp)
@@ -848,6 +877,25 @@ class VM(virt_vm.BaseVM):
             if maxmemory:
                 numa_memory = int(maxmemory)
             virt_install_cmd += add_numa(numa_vcpus, numa_memory, numa_nodes)
+
+        if params.get("hugepage_pin", "no") == "yes":
+            if numa and hugepage:
+                # get host hugepage size
+                hp_obj = test_setup.HugePageConfig(params)
+                hp_size = hp_obj.get_hugepage_size()
+                # specify numa nodes to be backed by HP by comma separated
+                # string, hugepage_pinnned_numa = "0-2,4" to back guest numa
+                # nodes 0 to 2 and 4.
+                guest_numa = str(params.get("hugepage_pinned_numa"))
+                if guest_numa == 'None':
+                    # if user didn't mention hugepage_pinnned_numa use
+                    # numa_nodes to back all the numa nodes.
+                    guest_numa = int(params.get("numa_nodes", 2))
+                    guest_numa = ','.join(map(str, range(guest_numa)))
+                virt_install_cmd += pin_hugepage(help_text, hp_size, guest_numa)
+            else:
+                logging.error("Can't pin hugepage without hugepage enabled"
+                              "and Numa enabled")
 
         # TODO: directory location for vmlinuz/kernel for cdrom install ?
         location = None
