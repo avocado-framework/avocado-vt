@@ -901,6 +901,10 @@ def postprocess(test, params, env):
     """
     error_context.context("postprocessing")
     err = ""
+    if params.get("verify_guest_dmesg", "yes") == "yes" and params.get("start_vm", "no") == "yes":
+        guest_dmesg_log_file = params.get("guest_dmesg_logfile", "guest_dmesg.log")
+        guest_dmesg_log_file = utils_misc.get_path(test.debugdir, guest_dmesg_log_file)
+        virt_vm.verify_dmesg(dmesg_log_file=guest_dmesg_log_file)
 
     # Postprocess all VMs and images
     try:
