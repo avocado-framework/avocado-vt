@@ -653,7 +653,7 @@ class MemoryHotplugTest(MemoryBaseTest):
         #    some sub test will pause VM, here need to wait VM resume
         # then check memory info in guest.
         utils_misc.wait_for(lambda: not vm.is_paused(), timeout=timeout)
-        utils_misc.verify_host_dmesg()
+        utils_misc.verify_dmesg()
         self.os_type = self.params.get("os_type")
         guest_mem_size = super(MemoryHotplugTest, self).get_guest_total_mem(vm)
         vm_mem_size = self.get_vm_mem(vm)
