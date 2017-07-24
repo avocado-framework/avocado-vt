@@ -27,6 +27,7 @@ from . import openvswitch
 from . import remote
 from . import utils_libvirtd
 from . import utils_config
+from . import utils_net
 from .staging import service
 from .staging import utils_memory
 
@@ -1333,6 +1334,73 @@ class PciAssignable(object):
         stub_path = os.path.join(base_dir, "drivers/%s" % self.device_driver)
         return os.path.exists(os.path.join(stub_path, full_id))
 
+    def set_vf(self, pci_pf, vf_no="0"):
+        """
+        For ppc64le we have to echo no of VFs to be enabled
+
+        :params pci_pf: Pci id to be virtualized with VFs
+        :params vf_no: Number of Vfs to be virtualized
+        :return: True on success, Fail on failure
+        """
+        cmd = "echo %s > /sys/class/net/%s/device/sriov_numvfs" % (vf_no, pci_pf)
+        if process.system(cmd, shell=True, ignore_status=True):
+            logging.debug("Failed to set %s vfs in %s", vf_no, pci_pf)
+            return False
+        return True
+
+    def remove_driver(self, driver=None):
+        """
+        Method to remove driver
+
+        :param driver: driver name
+        :return: True on success, Fail on failure
+        """
+        if not driver:
+            driver = self.driver
+        if driver and driver != "mlx5_core":
+            cmd = "modprobe -r %s" % driver
+        if ARCH == 'ppc64le' and driver == 'mlx5_core':
+            pf_devices = self.get_pf_mlx()
+            logging.info("Mellanox PF devices '%s'", pf_devices)
+            for PF in pf_devices:
+                if not self.set_vf(PF):
+                    return False
+            cmd = "rmmod mlx5_ib;modprobe -r mlx5_core;modprobe mlx5_ib"
+        if process.system(cmd, ignore_status=True, shell=True):
+            logging.debug("Failed to remove driver: %s", driver)
+            return False
+        return True
+
+    @error_context.context_aware
+    def modprobe_driver(self, driver=None, option=None):
+        """
+        Method to modprobe driver
+
+        :param driver: driver name
+        :param option: modprobe options to driver
+        :return: True on success, Fail on failure
+        """
+        msg = "Loading the driver '%s' without option" % driver
+        error_context.context(msg, logging.info)
+        if not driver:
+            driver = self.driver
+        cmd = "modprobe %s" % driver
+        if not option:
+            option = self.driver_option
+        if driver and driver != "mlx5_core":
+            if option:
+                cmd += " %s" % option
+        if process.system(cmd, ignore_status=True, shell=True):
+            logging.debug("Failed to modprobe driver: %s", driver)
+            return False
+        if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
+            pf_devices = self.get_pf_mlx()
+            if (self.get_vfs_count() > 0):
+                for PF in pf_devices:
+                    if not self.set_vf(PF, option):
+                        return False
+        return True
+
     @error_context.context_aware
     def sr_iov_setup(self):
         """
@@ -1346,15 +1414,14 @@ class PciAssignable(object):
         """
         # Check if the host support interrupt remapping. On PowerPC interrupt
         # remapping is not required
-        error_context.context(
-            "Set up host env for PCI assign test", logging.info)
+        error_context.context("Set up host env for PCI assign test",
+                              logging.info)
         if ARCH != 'ppc64le':
             kvm_re_probe = True
             o = process.system_output("dmesg")
             ecap = re.findall("ecap\s+(.\w+)", o)
             if not ecap:
-                logging.error(
-                    "Fail to check host interrupt remapping support.")
+                logging.error("Fail to check host interrupt remapping support")
             else:
                 if int(ecap[0], 16) & 8 == 8:
                     # host support interrupt remapping.
@@ -1375,12 +1442,10 @@ class PciAssignable(object):
                         "Can not enable the interrupt remapping support")
             lnk = "/sys/module/vfio_iommu_type1/parameters/allow_unsafe_interrupts"
             if self.device_driver == "vfio-pci":
-                status = process.system('lsmod | grep vfio',
-                                        ignore_status=True, shell=True)
-                if status:
-                    logging.info("Load vfio-pci module.")
-                    cmd = "modprobe vfio-pci"
-                    process.run(cmd)
+                # If driver is not available modprobe it
+                if process.system('lsmod | grep vfio', ignore_status=True,
+                                  shell=True):
+                    self.modprobe_driver(driver="vfio-pci")
                     time.sleep(3)
                 if not ecap or (int(ecap[0], 16) & 8 != 8):
                     cmd = "echo Y > %s" % lnk
@@ -1389,75 +1454,54 @@ class PciAssignable(object):
                     process.run(cmd)
         else:
             if self.device_driver == "vfio-pci":
-                status = process.system('lsmod | grep vfio',
-                                        ignore_status=True, shell=True)
-                if status:
-                    logging.info("Load vfio-pci module.")
-                    cmd = "modprobe vfio-pci"
-                    process.run(cmd)
+                if process.system('lsmod | grep vfio', ignore_status=True,
+                                  shell=True):
+                    self.modprobe_driver(driver="vfio-pci")
                     time.sleep(3)
         re_probe = False
-        status = process.system("lsmod | grep %s" % self.driver,
-                                ignore_status=True, shell=True)
-        if status:
-            if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
-                cmd = "modprobe %s " % self.driver
-                s = process.system(cmd, shell=True, ignore_status=True)
+        # If driver not available after modprobe try to remove it and reprobe
+        if process.system("lsmod | grep %s" % self.driver, ignore_status=True,
+                          shell=True):
             re_probe = True
-        elif not self.check_vfs_count():
-            if self.driver and ARCH != 'ppc64le':
-                process.system_output(
-                    "modprobe -r %s" % self.driver, timeout=60)
-            re_probe = True
+        # If driver is available then set VFs for ppc64le
         else:
-            self.setup = None
-            return True
+            if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
+                pf_devices = self.get_pf_mlx()
+                for PF in pf_devices:
+                    if not self.set_vf(PF, self.driver_option):
+                        re_probe = True
+            if not self.check_vfs_count():
+                re_probe = True
+            if not re_probe:
+                self.setup = None
+                return True
 
-        # Re-probe driver with proper number of VFs
+        # Re-probe driver with proper number of VFs once more and raise
+        # exception
         if re_probe:
-            cmd = None
-            status = 0
-            if self.driver and self.driver != 'mlx5_core':
-                cmd = "modprobe %s " % self.driver
-                if self.driver_option:
-                    cmd += " %s" % self.driver_option
+            if not self.remove_driver() and not self.modprobe_driver():
+                return False
             if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
                 set_ip = 0
-                pf_devices = self.get_pf_mlx()
-                if (self.get_vfs_count() > 0):
-                    for PF in pf_devices:
-                        reset_cmd = "echo 0"
-                        reset_cmd += " > /sys/class/net/%s/device/sriov_numvfs" % PF
-                        process.system_output(
-                            reset_cmd, shell=True, timeout=60)
                 if (self.static_ip):
                     if (not self.start_addr_PF) or (not self.net_mask):
                         raise exceptions.TestSetupFail(
                             "No IP / netmask found, please populate starting IP address for PF devices in configuration file")
-                    ip_addr = IPAddress(self.start_addr_PF)
+                    ip_addr = utils_net.IPAddress(self.start_addr_PF)
                     set_ip = 1
                 for PF in pf_devices:
                     if set_ip:
                         ip_assign = "ifconfig %s %s netmask %s up" % (
                             PF, ip_addr, self.net_mask)
-                        logging.info(
-                            "assign IP to PF device %s : %s", PF, ip_assign)
-                        status = process.system(
-                            ip_assign, shell=True, ignore_status=True)
+                        logging.info("assign IP to PF device %s : %s", PF,
+                                     ip_assign)
+                        if process.system(ip_assign, shell=True,
+                                          ignore_status=True):
+                            return False
                         ip_addr = ip_addr + 1
                     logging.info("PF device '%s'.", PF)
-                    if cmd:
-                        cmd += ";"
-                        cmd += "echo %s" % self.driver_option
-                        cmd += " > /sys/class/net/%s/device/sriov_numvfs" % PF
-                    else:
-                        cmd = "echo %s" % self.driver_option
-                        cmd += " > /sys/class/net/%s/device/sriov_numvfs" % PF
-            if cmd:
-                error_context.context("Loading the driver '%s' with "
-                                      "command '%s'" % (self.driver, cmd),
-                                      logging.info)
-                status = process.system(cmd, shell=True, ignore_status=True)
+                    if not self.set_vf(PF, self.driver_option):
+                        return False
             if not self.check_vfs_count():
                 # Even after re-probe there are no VFs created
                 return False
@@ -1468,8 +1512,6 @@ class PciAssignable(object):
             logging.info("Log dmesg after loading '%s' to '%s'.", self.driver,
                          file_name)
             utils_misc.log_line(file_name, dmesg)
-            if status:
-                return False
             self.setup = None
             return True
 
@@ -1500,48 +1542,18 @@ class PciAssignable(object):
                                           kvm_param)
 
         re_probe = False
-        status = process.system('lsmod | grep %s' % self.driver,
-                                ignore_status=True, shell=True)
-        if status:
-            if self.driver and self.driver != "mlx5_core":
-                cmd = "modprobe -r %s" % self.driver
-            if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
-                pf_devices = self.get_pf_mlx()
-                logging.info("Mellanox CX4 PF devices '%s'", pf_devices)
-                for PF in pf_devices:
-                    cmd = "echo 0"
-                    cmd += " > /sys/class/net/%s/device/sriov_numvfs" % PF
-                    process.system_output(cmd, shell=True, timeout=60)
-                cmd = "rmmod mlx5_ib;modprobe -r mlx5_core;modprobe mlx5_ib"
-            logging.info("Running host command: %s" % cmd)
-            process.system_output(cmd, shell=True, timeout=60)
-            re_probe = True
-        else:
-            return True
+        # if lsmod lists the driver then remove it to clean up
+        if not process.system('lsmod | grep %s' % self.driver,
+                              ignore_status=True, shell=True):
+            if not self.remove_driver():
+                re_probe = True
 
-        # Re-probe driver with proper number of VFs
+        # if removing driver fails, give one more try to remove the driver and
+        # raise exception
         if re_probe:
-            if self.driver and self.driver != "mlx5_core":
-                cmd = "modprobe %s" % self.driver
-                msg = "Loading the driver '%s' without option" % self.driver
-                error_context.context(msg, logging.info)
-                status = process.system(cmd, ignore_status=True)
-                if status:
-                    return False
-            if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
-                pf_devices = self.get_pf_mlx()
-                logging.info("Mellanox CX4 PF devices '%s'", pf_devices)
-                for PF in pf_devices:
-                    logging.info("PF device '%s'.", PF)
-                    cmd = "echo %s" % self.driver_option
-                    cmd += " > /sys/class/net/%s/device/sriov_numvfs" % PF
-                    msg = "Loading back the VFs on %s after cleanup" % PF
-                    error_context.context(msg, logging.info)
-                    status = process.system(
-                        cmd, shell=True, ignore_status=True)
-                    if status:
-                        return False
-            return True
+            if not self.remove_driver():
+                return False
+        return True
 
     @error_context.context_aware
     def request_devs(self, devices=None):
