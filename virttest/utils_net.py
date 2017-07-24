@@ -3116,12 +3116,13 @@ def get_ip_address_by_interface(ifname, ip_ver="ipv4"):
         ver = netifaces.AF_INET6
     else:
         ver = netifaces.AF_INET
-    try:
-        addr = netifaces.ifaddresses(ifname).get(ver)
+    addr = netifaces.ifaddresses(ifname).get(ver)
+    if addr is not None:
         return [a['addr'] for a in addr if not a['addr'].startswith('fe80')][0]
-    except Exception, e:
-        raise IPAddrGetError("Cannot get %s address form %s interface: %s"
-                             % (ip_ver, ifname, e))
+    else:
+        logging.warning("No IP address configured for the network interface"
+                        "%s !", ifname)
+        return None
 
 
 def get_host_ip_address(params, ip_ver="ipv4"):
