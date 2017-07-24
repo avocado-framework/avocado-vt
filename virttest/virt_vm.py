@@ -930,6 +930,18 @@ class BaseVM(object):
             if match:
                 raise VMDeadKernelCrashError(match.group(0))
 
+    def verify_dmesg(self, dmesg_log_file=None):
+        """
+        Verify guest dmesg
+        """
+        session = self.wait_for_login()
+        level = self.params.get("guest_dmesg_level", 3)
+        ignore_result = self.params.get("guest_dmesg_ignore", "no") == "yes"
+        utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
+                                ignore_result=ignore_result,
+                                level_check=level, session=session)
+        session.close()
+
     def verify_bsod(self, scrdump_file):
         # For windows guest
         if (os.path.exists(scrdump_file) and
