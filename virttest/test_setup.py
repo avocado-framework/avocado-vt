@@ -1138,9 +1138,7 @@ class PciAssignable(object):
         :rtype: builtin.list
         """
 
-        cmd = "lspci | awk '/%s/ {print $1}'" % self.pf_filter_re
-        pf_ids = [i for i in process.system_output(
-            cmd, shell=True).splitlines()]
+        pf_ids = self.get_pf_ids()
         pf_vf_dict = []
         for pf_id in pf_ids:
             pf_info = {}
@@ -1161,14 +1159,6 @@ class PciAssignable(object):
                 vf_ids.append(vf_info)
             pf_info["vf_ids"] = vf_ids
             pf_vf_dict.append(pf_info)
-        # When the VFs loaded on a PF are > 10 [I have tested till 63 which is
-        # max VF supported by Mellanox CX4 cards],VFs probe on host takes bit
-        # more time than usual.
-        # Without this sleep ifconfig would fail With below error, since not all
-        # probed interfaces of VF would have got properly renamed:
-        # CmdError: Command 'ifconfig -a' failed (rc=1)
-        if int(self.driver_option) > 10:
-            time.sleep(60)
         if_out = process.system_output("ifconfig -a")
         ethnames = re.findall(self.nic_name_re, if_out)
         for eth in ethnames:
@@ -1261,6 +1251,8 @@ class PciAssignable(object):
                 process.run(set_mac_cmd)
 
             elif d_type == "pf":
+                if not pf_ids:
+                    raise exceptions.TestSkipError("No specified pf found in the host!")
                 dev_id = pf_ids.pop(0)
             dev_ids.append(dev_id)
             unbind_driver = os.path.realpath(os.path.join(base_dir,
@@ -1312,6 +1304,15 @@ class PciAssignable(object):
             cmd, shell=True, timeout=60).splitlines()
         return (PF_devices)
 
+    def get_pf_ids(self):
+        """
+        Get the PF devices
+        """
+        cmd = "lspci | grep -v 'Virtual Function' |awk '/%s/ {print $1}'" % self.pf_filter_re
+        PF_devices = [i for i in process.system_output(
+            cmd, shell=True).splitlines()]
+        return (PF_devices)
+
     def check_vfs_count(self):
         """
         Check VFs count number according to the parameter driver_options.
@@ -1319,7 +1320,12 @@ class PciAssignable(object):
         # Network card 82576 has two network interfaces and each can be
         # virtualized up to 7 virtual functions, therefore we multiply
         # two for the value of driver_option 'max_vfs'.
-        expected_count = int((re.findall("(\d+)", self.driver_option)[0])) * 2
+        pf_ids = self.get_pf_ids()
+        expected_count = 0
+        for PF in pf_ids:
+            full_id = utils_misc.get_full_pci_id(PF)
+            cmd = "cat /sys/bus/pci/devices/%s/sriov_totalvfs" % full_id
+            expected_count += int(process.system_output(cmd, shell=True))
         return (self.get_vfs_count() == expected_count)
 
     def is_binded_to_stub(self, full_id):
@@ -1453,11 +1459,29 @@ class PciAssignable(object):
                     else:
                         cmd = "echo %s" % self.driver_option
                         cmd += " > /sys/class/net/%s/device/sriov_numvfs" % PF
+            elif ARCH == 'x86_64':
+                pf_devices = self.get_pf_ids()
+                if not pf_devices:
+                    raise exceptions.TestSkipError("No specified pf found on the host!")
+                cmd = ""
+                for PF in pf_devices:
+                    full_id = utils_misc.get_full_pci_id(PF)
+                    numvfs_cmd = "cat /sys/bus/pci/devices/%s/sriov_totalvfs" % full_id
+                    self.driver_option = process.system_output(numvfs_cmd, shell=True)
+                    cmd += "echo %s > /sys/bus/pci/devices/%s/sriov_numvfs;" % (self.driver_option , full_id)
             if cmd:
                 error_context.context("Loading the driver '%s' with "
                                       "command '%s'" % (self.driver, cmd),
                                       logging.info)
                 status = process.system(cmd, shell=True, ignore_status=True)
+                # When the VFs loaded on a PF are > 10 [I have tested till 63 which is
+                # max VF supported by Mellanox CX4 cards],VFs probe on host takes bit
+                # more time than usual.
+                # Without this sleep ifconfig would fail With below error, since not all
+                # probed interfaces of VF would have got properly renamed:
+                # CmdError: Command 'ifconfig -a' failed (rc=1)
+                if int(self.driver_option) > 10:
+                    time.sleep(60)
             if not self.check_vfs_count():
                 # Even after re-probe there are no VFs created
                 return False
@@ -1513,6 +1537,12 @@ class PciAssignable(object):
                     cmd += " > /sys/class/net/%s/device/sriov_numvfs" % PF
                     process.system_output(cmd, shell=True, timeout=60)
                 cmd = "rmmod mlx5_ib;modprobe -r mlx5_core;modprobe mlx5_ib"
+            elif ARCH == 'x86_64':
+                pf_devices = self.get_pf_ids()
+                cmd = ""
+                for PF in pf_devices:
+                    full_id = utils_misc.get_full_pci_id(PF)
+                    cmd += "echo 0 > /sys/bus/pci/devices/%s/sriov_numvfs;" % full_id
             logging.info("Running host command: %s" % cmd)
             process.system_output(cmd, shell=True, timeout=60)
             re_probe = True
