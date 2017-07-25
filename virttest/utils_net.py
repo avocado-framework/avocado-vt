@@ -3105,6 +3105,31 @@ def generate_mac_address_simple():
     return mac
 
 
+def gen_ipv4_addr(network_num="10.0.0.0", network_prefix="24", exclude_ips=[]):
+    """
+    generate ipv4 address
+    :param network_num: network number to be used
+    :param network_prefix: prefix used to get subnet mask to calculate ip range
+    :param exclude_ips: the list of ipaddress should be excluded
+
+    :return: ipaddress of type str
+    """
+    ip_regex = "^\d+.\d+.\d+.\d+$"
+    exclude_ips = set(exclude_ips)
+    if not re.match(ip_regex, network_num):
+        network_num = "10.0.0.0"
+    if not exclude_ips and network_prefix == "24":
+        exclude_ips.add(network_num)
+        exclude_ips.add('.'.join(network_num.split('.')[0:3]) + ".%s" %
+                        str(1))
+        exclude_ips.add(('.'.join(network_num.split('.')[0:3]) + ".%s" %
+                        str(255)))
+    network = netaddr.IPNetwork("%s/%s" % (network_num, network_prefix))
+    for ip_address in network:
+        if str(ip_address) not in exclude_ips:
+            yield str(ip_address)
+
+
 def get_ip_address_by_interface(ifname, ip_ver="ipv4"):
     """
     returns ip address by interface
