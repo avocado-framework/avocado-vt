@@ -894,7 +894,7 @@ class VM(virt_vm.BaseVM):
 
         def add_memorys(devices, params):
             """
-            Add memory controler by params
+            Add memory controller by params
 
             :param devices: VM devices container
             """
@@ -903,10 +903,19 @@ class VM(virt_vm.BaseVM):
             mem_params = params.object_params("mem")
             mem_params.setdefault("automem", "no")
             automem = mem_params["automem"] == "yes"
+
+            normalize_data_size = utils_misc.normalize_data_size
+            mem_size_m = "%sM" % mem_params["mem"]
+            mem_size_m = float(normalize_data_size(mem_size_m))
+            if mem_params.get("vm_mem_limit"):
+                max_mem_size_m = params.get("vm_mem_limit")
+                max_mem_size_m = float(normalize_data_size(max_mem_size_m))
+                if mem_size_m >= max_mem_size_m:
+                    logging.debug("Guest max memory is limited to %s"
+                                  % max_mem_size_m)
+                    mem_size_m = max_mem_size_m
+                    params["mem"] = str(int(max_mem_size_m))
             if automem:
-                normalize_data_size = utils_misc.normalize_data_size
-                mem_size_m = "%sM" % mem_params["mem"]
-                mem_size_m = float(normalize_data_size(mem_size_m))
                 usable_mem_m = utils_misc.get_usable_memory_size(align=1024)
                 if mem_size_m >= usable_mem_m:
                     logging.debug("Host no enough free memory, reset guest"
