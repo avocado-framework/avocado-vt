@@ -1100,6 +1100,10 @@ class VM(virt_vm.BaseVM):
                                              sec_label=sec_label,
                                              sec_relabel=sec_relabel)
 
+        virtinstall_extra_args = params.get("virtinstall_extra_args", "")
+        if virtinstall_extra_args:
+            virt_install_cmd += " %s" % virtinstall_extra_args
+
         return virt_install_cmd
 
     def get_serial_console_filename(self, name):
