@@ -2716,25 +2716,37 @@ def set_winutils_letter(session, cmd, label="WIN_UTILS"):
     return cmd
 
 
-def list_linux_guest_disks(session, partition=False):
+def get_linux_disks(session, parted=True):
     """
     List all disks OR disks with no partition in linux guest.
 
     :param session: session object to guest
-    :param partition: if true, list all disks; otherwise,
-                      list only disks with no partition.
+    :param partition: if true, list all disks include partition;
+                      otherwise, list disks not parted only.
     :return: the disks set.
     """
-    cmd = "ls /dev/[vhs]d*"
-    if not partition:
-        cmd = "%s | grep -v [0-9]$" % cmd
-    status, output = session.cmd_status_output(cmd)
-    if status != 0:
-        raise exceptions.TestFail("Get disks failed with output %s" % output)
-    return set(output.split())
+    list_disk_cmd = "lsblk -o KNAME,SIZE,TYPE"
+    output = session.cmd_output_safe(list_disk_cmd)
+    devs = output.splitlines()
+    disks_list = {}
+    part_list = {}
+    for dev in devs:
+        dev = dev.split()
+        if "disk" in dev:
+            disks_list[dev[0]] = dev
+        if "part" in dev:
+            part_list[dev[0]] = dev
+    if not parted:
+        for disk in disks_list.keys():
+            if disk in ",".join(part_list.keys()):
+                disks_list.pop(disk)
+    else:
+        for part in part_list.keys():
+            disks_list[part] = part_list[part]
+    return disks_list
 
 
-def get_all_disks_did(session, partition=False):
+def get_linux_disks_did(session, parted=True):
     """
     Get all disks did lists in a linux guest, each disk list
     include disk kname, serial and wwn.
@@ -2745,20 +2757,15 @@ def get_all_disks_did(session, partition=False):
     :return: a dict with all disks did lists each include disk
              kname, serial and wwn.
     """
-    disks = list_linux_guest_disks(session, partition)
-    logging.debug("Disks detail: %s" % disks)
-    all_disks_did = {}
-    for line in disks:
-        kname = line.split('/')[2]
-        get_disk_info_cmd = "udevadm info -q property -p /sys/block/%s" % kname
-        output = session.cmd_output_safe(get_disk_info_cmd)
-        re_str = r"(?<=DEVNAME=/dev/)(.*)|(?<=ID_SERIAL=)(.*)|"
-        re_str += "(?<=ID_SERIAL_SHORT=)(.*)|(?<=ID_WWN=)(.*)"
-        did_list_group = re.finditer(re_str, output, re.M)
-        did_list = [match.group() for match in did_list_group if match]
-        all_disks_did[kname] = did_list
-
-    return all_disks_did
+    disks_did = get_linux_disks(session, parted)
+    for disk in disks_did.keys():
+        get_info_cmd = "udevadm info -q property /dev/%s" % disk
+        output = session.cmd_output_safe(get_info_cmd)
+        serial = re.findall(r"(?<=ID_SERIAL=)(.*)", output, re.M)
+        disks_did.get(disk).extend(serial)
+        wwn = re.findall(r"(?<=ID_WWN=)(.*)", output, re.M)
+        disks_did.get(disk).extend(wwn)
+    return disks_did
 
 
 def format_windows_disk(session, did, mountpoint=None, size=None,
@@ -2823,13 +2830,15 @@ def format_windows_disk(session, did, mountpoint=None, size=None,
             format_cmd = ' '.join([cmd_header, format_cmd, cmd_footer])
             session.cmd(format_cmd, timeout=300)
 
-            return True
+            return mountpoint
 
-    return False
+    return None
 
 
-def format_linux_disk(session, did, all_disks_did, partition=False,
-                      mountpoint=None, size=None, fstype="ext3"):
+def format_linux_disk(session, did, mountpoint=None, size=None,
+                      fstype="ext3", parted=False, labeltype="gpt",
+                      all_disks_did=None):
+
     """
     Create a partition on disk in linux guest and format and mount it.
 
@@ -2844,44 +2853,42 @@ def format_linux_disk(session, did, all_disks_did, partition=False,
     :param fstype: filesystem type for the disk.
     :return Boolean: disk usable or not.
     """
-    disks = list_linux_guest_disks(session, partition)
-    logging.debug("Disks detail: %s" % disks)
-    for line in disks:
-        kname = line.split('/')[2]
-        did_list = all_disks_did[kname]
-        if did not in did_list:
-            # Continue to search target disk
+    if not all_disks_did:
+        all_disks_did = get_linux_disks_did(session).values()
+
+    for disk_did in all_disks_did:
+        if did not in disk_did:
             continue
+        kname = disk_did[0]
         if not size:
-            size_output = session.cmd_output_safe("lsblk -oKNAME,SIZE|grep %s"
-                                                  % kname)
-            size = size_output.splitlines()[0].split()[1]
-        all_disks_before = list_linux_guest_disks(session, True)
-        devname = line
-        logging.info("Create partition on disk '%s'" % devname)
-        mkpart_cmd = "parted -s %s mklabel gpt mkpart "
-        mkpart_cmd += "primary 0 %s"
-        mkpart_cmd = mkpart_cmd % (devname, size)
+            size = disk_did[1]
+        devname = '/dev/%s' % kname
+        disks_before_part = get_linux_disks(session).keys()
+        logging.info("Create partition on disk %s" % devname)
+        mkpart_cmd = "parted -s %s mklabel %s mkpart primary 0 %s"
+        mkpart_cmd = mkpart_cmd % (devname, labeltype, size)
         session.cmd_output_safe(mkpart_cmd)
         session.cmd_output_safe("partprobe %s" % devname)
-        all_disks_after = list_linux_guest_disks(session, True)
-        partname = (all_disks_after - all_disks_before).pop()
+
+        disks_after_part = get_linux_disks(session).keys()
+        partname = (set(disks_after_part) - set(disks_before_part)).pop()
         logging.info("Format partition to '%s'" % fstype)
-        format_cmd = "yes|mkfs -t %s %s" % (fstype, partname)
+        format_cmd = "yes|mkfs '/dev/%s' -t %s" % (partname, fstype)
         session.cmd_output_safe(format_cmd)
         if not mountpoint:
-            session.cmd_output_safe("mkdir /mnt/%s" % kname)
-            mountpoint = os.path.join("/mnt", kname)
-        logging.info("Mount the disk to '%s'" % mountpoint)
-        mount_cmd = "mount -t %s %s %s" % (fstype, partname, mountpoint)
+            mountpoint = "/mnt/%s" % partname
+            session.cmd_output_safe("rm -rf %s & mkdir %s" %
+                                    (mountpoint, mountpoint))
+        mount_cmd = "mount -t %s '/dev/%s' %s" % (fstype, partname, mountpoint)
         session.cmd_output_safe(mount_cmd)
-        return True
+        return mountpoint
 
-    return False
+    return None
 
 
-def format_guest_disk(session, did, all_disks_did, ostype, partition=False,
-                      mountpoint=None, size=None, fstype=None):
+def format_guest_disk(session, ostype, did, fstype=None, mountpoint=None,
+                      size=None, parted=False, labeltype="gpt",
+                      all_disks_did=None):
     """
     Create a partition on disk in guest and format and mount it.
 
@@ -2902,8 +2909,8 @@ def format_guest_disk(session, did, all_disks_did, ostype, partition=False,
     fstype = fstype or default_fstype
     if ostype == "windows":
         return format_windows_disk(session, did, mountpoint, size, fstype)
-    return format_linux_disk(session, did, all_disks_did, partition,
-                             mountpoint, size, fstype)
+    return format_linux_disk(session, did, mountpoint, size, fstype,
+                             parted, labeltype, all_disks_did)
 
 
 def get_linux_drive_path(session, did, timeout=120):
