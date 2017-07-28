@@ -1139,9 +1139,7 @@ class PciAssignable(object):
         :rtype: builtin.list
         """
 
-        cmd = "lspci | awk '/%s/ {print $1}'" % self.pf_filter_re
-        pf_ids = [i for i in process.system_output(
-            cmd, shell=True).splitlines()]
+        pf_ids = self.get_pf_ids()
         pf_vf_dict = []
         for pf_id in pf_ids:
             pf_info = {}
@@ -1162,14 +1160,6 @@ class PciAssignable(object):
                 vf_ids.append(vf_info)
             pf_info["vf_ids"] = vf_ids
             pf_vf_dict.append(pf_info)
-        # When the VFs loaded on a PF are > 10 [I have tested till 63 which is
-        # max VF supported by Mellanox CX4 cards],VFs probe on host takes bit
-        # more time than usual.
-        # Without this sleep ifconfig would fail With below error, since not all
-        # probed interfaces of VF would have got properly renamed:
-        # CmdError: Command 'ifconfig -a' failed (rc=1)
-        if int(self.driver_option) > 10:
-            time.sleep(60)
         if_out = process.system_output("ifconfig -a")
         ethnames = re.findall(self.nic_name_re, if_out)
         for eth in ethnames:
@@ -1313,6 +1303,21 @@ class PciAssignable(object):
             cmd, shell=True, timeout=60).splitlines()
         return (PF_devices)
 
+    def get_pf_ids(self):
+        """
+        Get the PF devices on x86 host
+        """
+        cmd = "lspci | grep -v 'Virtual Function' |awk '/%s/ {print $1}'" % self.pf_filter_re
+        PF_devices = [i for i in process.system_output(
+                cmd, shell=True).splitlines()]
+        if not PF_devices:
+            raise exceptions.TestSkipError("No specified pf found in the host!")
+        pf_ids = []
+        for pf in PF_devices:
+            pf_id = utils_misc.get_full_pci_id(pf)
+            pf_ids.append(pf_id)
+        return pf_ids
+
     def check_vfs_count(self):
         """
         Check VFs count number according to the parameter driver_options.
@@ -1340,12 +1345,20 @@ class PciAssignable(object):
 
         :params pci_pf: Pci id to be virtualized with VFs
         :params vf_no: Number of Vfs to be virtualized
-        :return: True on success, Fail on failure
+        :return: True on success, False on failure
         """
-        cmd = "echo %s > /sys/class/net/%s/device/sriov_numvfs" % (vf_no, pci_pf)
+        cmd = "echo %s > /sys/bus/pci/devices/%s/sriov_numvfs" % (vf_no, pci_pf)
         if process.system(cmd, shell=True, ignore_status=True):
             logging.debug("Failed to set %s vfs in %s", vf_no, pci_pf)
             return False
+        # When the VFs loaded on a PF are > 10 [I have tested till 63 which is
+        # max VF supported by Mellanox CX4 cards],VFs probe on host takes bit
+        # more time than usual.
+        # Without this sleep ifconfig would fail With below error, since not all
+        # probed interfaces of VF would have got properly renamed:
+        # CmdError: Command 'ifconfig -a' failed (rc=1)
+        if int(self.driver_option) > 10:
+            time.sleep(60)
         return True
 
     def remove_driver(self, driver=None):
@@ -1353,7 +1366,7 @@ class PciAssignable(object):
         Method to remove driver
 
         :param driver: driver name
-        :return: True on success, Fail on failure
+        :return: True on success, False on failure
         """
         if not driver:
             driver = self.driver
@@ -1362,10 +1375,12 @@ class PciAssignable(object):
         if ARCH == 'ppc64le' and driver == 'mlx5_core':
             pf_devices = self.get_pf_mlx()
             logging.info("Mellanox PF devices '%s'", pf_devices)
-            for PF in pf_devices:
-                if not self.set_vf(PF):
-                    return False
             cmd = "rmmod mlx5_ib;modprobe -r mlx5_core;modprobe mlx5_ib"
+        elif ARCH == 'x86_64':
+            pf_devices = self.get_pf_ids()
+        for PF in pf_devices:
+            if not self.set_vf(PF):
+                return False
         if process.system(cmd, ignore_status=True, shell=True):
             logging.debug("Failed to remove driver: %s", driver)
             return False
@@ -1378,7 +1393,7 @@ class PciAssignable(object):
 
         :param driver: driver name
         :param option: modprobe options to driver
-        :return: True on success, Fail on failure
+        :return: True on success, False on failure
         """
         msg = "Loading the driver '%s' without option" % driver
         error_context.context(msg, logging.info)
@@ -1387,7 +1402,7 @@ class PciAssignable(object):
         cmd = "modprobe %s" % driver
         if not option:
             option = self.driver_option
-        if driver and driver != "mlx5_core":
+        if driver and driver != "mlx5_core" and ARCH != 'x86_64':
             if option:
                 cmd += " %s" % option
         if process.system(cmd, ignore_status=True, shell=True):
@@ -1443,7 +1458,7 @@ class PciAssignable(object):
             lnk = "/sys/module/vfio_iommu_type1/parameters/allow_unsafe_interrupts"
             if self.device_driver == "vfio-pci":
                 # If driver is not available modprobe it
-                if process.system('lsmod | grep vfio', ignore_status=True,
+                if process.system('lsmod | grep vfio_pci', ignore_status=True,
                                   shell=True):
                     self.modprobe_driver(driver="vfio-pci")
                     time.sleep(3)
@@ -1454,7 +1469,7 @@ class PciAssignable(object):
                     process.run(cmd)
         else:
             if self.device_driver == "vfio-pci":
-                if process.system('lsmod | grep vfio', ignore_status=True,
+                if process.system('lsmod | grep vfio_pci', ignore_status=True,
                                   shell=True):
                     self.modprobe_driver(driver="vfio-pci")
                     time.sleep(3)
@@ -1467,9 +1482,11 @@ class PciAssignable(object):
         else:
             if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
                 pf_devices = self.get_pf_mlx()
-                for PF in pf_devices:
-                    if not self.set_vf(PF, self.driver_option):
-                        re_probe = True
+            elif ARCH == 'x86_64':
+                pf_devices = self.get_pf_ids()
+            for PF in pf_devices:
+                if not self.set_vf(PF, self.driver_option):
+                    re_probe = True
             if not self.check_vfs_count():
                 re_probe = True
             if not re_probe:
@@ -1500,6 +1517,11 @@ class PciAssignable(object):
                             return False
                         ip_addr = ip_addr + 1
                     logging.info("PF device '%s'.", PF)
+                    if not self.set_vf(PF, self.driver_option):
+                        return False
+            elif ARCH == 'x86_64':
+                pf_devices = self.get_pf_ids()
+                for PF in pf_devices:
                     if not self.set_vf(PF, self.driver_option):
                         return False
             if not self.check_vfs_count():
