@@ -5,12 +5,6 @@
     <add_on_products config:type="list"/>
   </add-on>
   <bootloader>
-    <device_map config:type="list">
-      <device_map_entry>
-        <firmware>hd0</firmware>
-        <linux>/dev/vda</linux>
-      </device_map_entry>
-    </device_map>
     <global>
       <activate>true</activate>
       <boot_boot>false</boot_boot>
@@ -54,6 +48,7 @@
     <ask-list config:type="list"/>
     <mode>
       <confirm config:type="boolean">false</confirm>
+      <halt config:type="boolean">true</halt>
     </mode>
     <proposals config:type="list"/>
     <signature-handling>
@@ -373,13 +368,6 @@
     <ipv6 config:type="boolean">true</ipv6>
     <keep_install_network config:type="boolean">false</keep_install_network>
     <managed config:type="boolean">false</managed>
-    <net-udev config:type="list">
-      <rule>
-        <name>eth0</name>
-        <rule>ATTR{address}</rule>
-        <value>52:54:00:7d:73:7f</value>
-      </rule>
-    </net-udev>
     <routing>
       <ipv4_forward config:type="boolean">false</ipv4_forward>
       <ipv6_forward config:type="boolean">false</ipv6_forward>
@@ -540,8 +528,9 @@
   </ntp-client>
   <partitioning config:type="list">
     <drive>
-      <device>/dev/vda</device>
+      <initialize config:type="boolean">true</initialize>
       <partitions config:type="list"/>
+      <pesize></pesize>
       <type config:type="symbol">CT_DISK</type>
       <use>all</use>
     </drive>
@@ -577,6 +566,55 @@
       <timeout config:type="integer">10</timeout>
     </yesno_messages>
   </report>
+  <scripts>
+  <chroot-scripts config:type="list">
+    <script>
+      <chrooted config:type="boolean">true</chrooted>
+      <source>
+        <![CDATA[sed -i 's/^#S0\(.*\)9600\(.*\)/S0\1115200\2/g' /etc/inittab
+echo ttyS0 >> /etc/securetty]]>
+      </source>
+    </script>
+  </chroot-scripts>
+   <post-scripts config:type="list">
+      <script>
+        <debug config:type="boolean">true</debug>
+        <filename>config</filename>
+        <source><![CDATA[!/bin/bash
+###Enable ssh service when it is start
+chkconfig sshd on
+sed -i -e 's/\(PasswordAuthentication\s\)no/\1yes/g'  /etc/ssh/sshd_config
+service sshd restart
+#Since guest will perform system initialization at first boot after installation, so it's better to run a basic test to make following script to take effect.
+# generate ethernet interface configuration template
+cat > /etc/sysconfig/network/.ifcfg-ethx <<eof
+BOOTPROTO='dhcp'
+STARTMODE='auto'
+USERCONTROL='no'
+eof
+
+# auto generate ethernet interface configuration
+echo '''interfaces=$(ls /sys/class/net)
+net_dir="/etc/sysconfig/network"
+net_temp="$net_dir/.ifcfg-ethx"
+for iface in $interfaces; do
+    conf="$net_dir/ifcfg-$iface"
+    test -f "$conf" || cp $net_temp $conf
+done
+''' >> /etc/init.d/boot.local
+]]></source>
+      </script>
+    </post-scripts>
+   <init-scripts config:type="list">
+      <script>
+        <debug config:type="boolean">true</debug>
+        <filename>config</filename>
+        <source><![CDATA[echo "Disable lock cdrom udev rules" > /dev/ttyS0
+sed -i "/--lock-media/s/^/#/" /lib/udev/rules.d/60-cdrom_id.rules 2>/dev/null>&1
+]]></source>
+      </script>
+   </init-scripts>
+  </scripts>
   <services-manager>
     <default_target>multi-user</default_target>
     <services>
@@ -592,9 +630,6 @@
       <package>dhcp-client</package>
       <package>dhcp-tools</package>
       <package>sg3_utils</package>
-      <package>autoyast2-installation</package>
-      <package>autoyast2-installation</package>
-      <package>autoyast2-installation</package>
     </packages>  
     <patterns config:type="list">
       <pattern>sw_management</pattern>
