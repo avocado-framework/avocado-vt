@@ -2791,7 +2791,8 @@ def format_windows_disk(session, did, mountpoint=None, size=None,
             logging.debug("Detail for 'Disk%s'" % did)
             details = session.cmd_output(detail_cmd)
 
-            if re.search("Status.*Offline", details, re.I | re.M):
+            pattern = "DISK %s.*Offline" % did
+            if re.search(pattern, details, re.I | re.M):
                 online_cmd = 'echo online disk>> disk'
                 online_cmd = ' '.join([cmd_header, online_cmd, cmd_footer])
                 logging.info("Online 'Disk%s'" % did)
