@@ -152,7 +152,8 @@ class Nfs(object):
         self.mount_src = params.get("nfs_mount_src")
         self.nfs_setup = False
         path.find_command("mount")
-        self.mk_mount_dir = False
+        self.rm_mount_dir = False
+        self.rm_export_dir = False
         self.unexportfs_in_clean = False
         distro_details = distro.detect()
 
@@ -211,6 +212,7 @@ class Nfs(object):
 
             if not os.path.isdir(self.export_dir):
                 os.makedirs(self.export_dir)
+                self.rm_export_dir = True
             self.exportfs.export()
             self.unexportfs_in_clean = not self.exportfs.already_exported
 
@@ -222,7 +224,7 @@ class Nfs(object):
 
         if not os.path.isdir(self.mount_dir):
             os.makedirs(self.mount_dir)
-            self.mk_mount_dir = True
+            self.rm_mount_dir = True
         self.mount()
 
     def cleanup(self):
@@ -235,7 +237,9 @@ class Nfs(object):
         self.umount()
         if self.nfs_setup and self.unexportfs_in_clean:
             self.exportfs.reset_export()
-        if self.mk_mount_dir and os.path.isdir(self.mount_dir):
+            if self.rm_export_dir and os.path.isdir(self.export_dir):
+                utils_misc.safe_rmdir(self.export_dir)
+        if self.rm_mount_dir and os.path.isdir(self.mount_dir):
             utils_misc.safe_rmdir(self.mount_dir)
 
 

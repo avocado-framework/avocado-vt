@@ -478,6 +478,8 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
         if restore_selinux:
             utils_selinux.set_status(restore_selinux)
         _nfs.unexportfs_in_clean = True
+        _nfs.rm_mount_dir = True
+        _nfs.rm_export_dir = True
         _nfs.cleanup()
     return result
 
