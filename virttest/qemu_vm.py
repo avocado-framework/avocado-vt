@@ -2867,14 +2867,18 @@ class VM(virt_vm.BaseVM):
                     port_name = port_name + str(i)
                 else:           # Implicit name - port
                     port_name = port
+
+                portdev = self.devices.get_by_params({"name": port})
+                port_qemuid = portdev[0].get_param("id")
+
                 if port_params.get('virtio_port_type') in ("console",
                                                            "virtio_console"):
                     self.virtio_ports.append(
-                        qemu_virtio_port.VirtioConsole(port, port_name,
+                        qemu_virtio_port.VirtioConsole(port_qemuid, port_name,
                                                        filename))
                 else:
                     self.virtio_ports.append(
-                        qemu_virtio_port.VirtioSerial(port, port_name,
+                        qemu_virtio_port.VirtioSerial(port_qemuid, port_name,
                                                       filename))
                 i += 1
             self.create_virtio_console()
