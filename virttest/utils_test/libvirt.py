@@ -1061,13 +1061,25 @@ class PoolVolumeTest(object):
                                                                nfs_path)
         elif pool_type == "iscsi":
             ip_protocal = kwargs.get('ip_protocal', "ipv4")
+            iscsi_chap_user = kwargs.get('iscsi_chap_user', None)
+            iscsi_chap_password = kwargs.get('iscsi_chap_password', None)
+            iscsi_secret_usage = kwargs.get('iscsi_secret_usage', None)
             if ip_protocal == "ipv6":
                 ip_addr = "::1"
             else:
                 ip_addr = "127.0.0.1"
+            if iscsi_chap_user and iscsi_chap_password and iscsi_secret_usage:
+                logging.debug("setup iscsi pool with chap authentication")
+                extra = (" --auth-type chap --auth-username %s "
+                         "--secret-usage %s" %
+                         (iscsi_chap_user, iscsi_secret_usage))
+            else:
+                logging.debug("setup iscsi pool without authentication")
             setup_or_cleanup_iscsi(is_setup=True,
                                    emulated_image=emulated_image,
                                    image_size=image_size,
+                                   chap_user=iscsi_chap_user,
+                                   chap_passwd=iscsi_chap_password,
                                    portal_ip=ip_addr)
             iscsi_sessions = iscsi.iscsi_get_sessions()
             iscsi_target = None
@@ -1076,8 +1088,8 @@ class PoolVolumeTest(object):
                     iscsi_target = iscsi_node[1]
                     break
             iscsi.iscsi_logout(iscsi_target)
-            extra = " --source-host %s  --source-dev %s" % (ip_addr,
-                                                            iscsi_target)
+            extra += " --source-host %s  --source-dev %s" % (ip_addr,
+                                                             iscsi_target)
         elif pool_type == "scsi":
             scsi_xml_file = self.params.get("scsi_xml_file", "")
             if not os.path.exists(scsi_xml_file):
