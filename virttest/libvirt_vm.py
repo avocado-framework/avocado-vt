@@ -842,7 +842,9 @@ class VM(virt_vm.BaseVM):
             # Number of numa nodes required can be set in param
             numa_nodes = int(params.get("numa_nodes", 2))
             numa_vcpus = int(smp)
-            numa_memory = int(mem)
+            # virt-install takes --memory in MiB but --cpu cell adds numa
+            # memory in KiB by default
+            numa_memory = int(mem) * 1024
             if vcpu_max_cpus:
                 numa_vcpus = int(vcpu_max_cpus)
             if maxmemory:
