@@ -1235,7 +1235,7 @@ def get_loss_ratio(output):
     try:
         return int(re.findall('(\d+)%.*loss', output)[0])
     except IndexError:
-        loggging.warn("Invaild output of ping command: %s" % output)
+        logging.warn("Invaild output of ping command: %s" % output)
     return -1
 
 
