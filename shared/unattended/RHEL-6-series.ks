@@ -70,6 +70,8 @@ chkconfig sshd on
 iptables -F
 echo 0 > /selinux/enforce
 chkconfig NetworkManager on
-sed -i "/^HWADDR/d" /etc/sysconfig/network-scripts/ifcfg-eth0
+sed -i "/^HWADDR/d" /etc/sysconfig/network-scripts/ifcfg-*
+ECHO "Remove 70-persistent-net.rules (prevent network device rename)"
+rm -f /etc/udev/rules.d/70-persistent-net.rules
 ECHO 'Post set up finished'
 %end
