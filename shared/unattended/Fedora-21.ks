@@ -22,6 +22,7 @@ autopart
 @standard
 @development-tools
 sg3_utils
+net-tools
 %end
 
 %post

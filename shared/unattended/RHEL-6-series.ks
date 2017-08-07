@@ -43,6 +43,7 @@ patch
 make
 git
 nc
+net-tools
 NetworkManager
 ntpdate
 redhat-lsb

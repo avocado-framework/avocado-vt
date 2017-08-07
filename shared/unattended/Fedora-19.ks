@@ -21,6 +21,7 @@ autopart
 @standard
 @development-tools
 dmidecode
+net-tools
 sg3_utils
 %end
 

@@ -33,6 +33,7 @@ KVM_TEST_LOGGING
 gnome-utils
 python-imaging
 python-six
+net-tools
 NetworkManager
 ntpdate
 watchdog

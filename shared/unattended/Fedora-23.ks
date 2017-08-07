@@ -21,6 +21,7 @@ autopart
 %packages
 @standard
 python
+net-tools
 sg3_utils
 %end
 
