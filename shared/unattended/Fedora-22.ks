@@ -20,6 +20,7 @@ autopart
 
 %packages
 @standard
+net-tools
 sg3_utils
 %end
 

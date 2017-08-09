@@ -33,6 +33,7 @@ gnome-utils
 python-imaging
 python-six
 pyparsing
+net-tools
 NetworkManager
 ntpdate
 dconf

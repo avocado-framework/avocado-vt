@@ -22,6 +22,7 @@ autopart
 @c-development
 @development-tools
 python
+net-tools
 sg3_utils
 %end
 

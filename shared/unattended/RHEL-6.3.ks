@@ -32,6 +32,7 @@ KVM_TEST_LOGGING
 @Smart Card Support
 NetworkManager
 ntpdate
+net-tools
 watchdog
 coreutils
 usbutils
