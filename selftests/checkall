@@ -8,9 +8,9 @@ run_rc() {
     fi
     echo ""
 }
-run_rc 'inspekt --exclude=.git lint'
-run_rc 'inspekt --exclude=.git indent'
-run_rc 'inspekt --exclude=.git style --disable E501,E265,W503,W601,E402,E722'
+run_rc 'inspekt lint --exclude=.git'
+run_rc 'inspekt indent --exclude=.git'
+run_rc 'inspekt style --disable E501,E265,W503,W601,E402,E722 --exclude=.git'
 run_rc 'selftests/run'
 exit ${GR}
 

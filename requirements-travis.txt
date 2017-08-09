@@ -1,5 +1,5 @@
 Sphinx==1.3b1
-inspektor==0.2.2
+inspektor==0.4.0
 autotest==0.16.2
 aexpect==1.0.0
 simplejson==3.8.0
