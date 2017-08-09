@@ -513,8 +513,8 @@ class HugePageConfig(object):
             except IOError:
                 msg = "Can't read/write from kernel hugepage file"
                 raise exceptions.TestSetupFail(msg)
-            if loop_hp == hp:
-                raise ValueError("Cannot set the kernel hugepage setting "
+            if hp != self.target_hugepages:
+                raise exceptions.TestCancel("Cannot set the kernel hugepage setting "
                                  "to the target value of %d hugepages." %
                                  self.target_hugepages)
         logging.debug("Successfully set %s large memory pages on host ",
