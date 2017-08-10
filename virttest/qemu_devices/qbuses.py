@@ -443,7 +443,7 @@ class QUSBBus(QSparseBus):
     """
 
     def __init__(self, length, busid, bus_type, aobject=None,
-                 port_prefix=None):
+                 port_prefix=""):
         """
         Bus type have to be generalized and parsed from original bus type:
         (usb-ehci == ehci, ich9-usb-uhci1 == uhci, ...)
@@ -483,6 +483,9 @@ class QUSBBus(QSparseBus):
         value = device.get_param('port')
         if value is None:
             addr = [None]
+        # this part allows to speicfy the port of usb devices on the root bus
+        elif not self.__port_prefix:
+            addr = [int(value)]
         else:
             addr = [int(value[len(self.__port_prefix) + 1:])]
         return addr
