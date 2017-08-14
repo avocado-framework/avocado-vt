@@ -47,6 +47,7 @@ from .. import qemu_virtio_port
 from .. import remote
 from .. import scan_autotest_results
 from .. import storage
+from .. import qemu_storage
 from .. import utils_misc
 from .. import utils_net
 from .. import virt_vm
@@ -356,23 +357,22 @@ def get_memory_info(lvms):
 
     return meminfo
 
-
 @error_context.context_aware
-def get_image_version(qemu_image):
+def get_image_format(qemu_image):
     """
-    Get image version of qcow2 image
+    Get image format.
 
     :param qemu_image: Object QemuImg
 
     :return: compatibility level
     """
-    error_context.context("Get qcow2 image('%s') version"
+    error_context.context("Get image ('%s') format"
                           % qemu_image.image_filename, logging.info)
     info_out = qemu_image.info()
-    compat = re.search(r'compat: +(.*)', info_out, re.M)
-    if compat:
-        return compat.group(1)
-    return '0.10'
+    image_format = re.search(r'file format: +(.*)', info_out, re.M)
+    if image_format:
+        return image_format.group(1)
+    return None
 
 
 @error_context.context_aware
@@ -392,6 +392,43 @@ def update_qcow2_image_version(qemu_image, ver_from, ver_to):
                           % (ver_from, ver_to), logging.info)
     qemu_image.params.update({"amend_compat": "%s" % ver_to})
     qemu_image.amend(qemu_image.params)
+
+
+def get_image_version(qemu_image):
+    """
+    Get image version of qcow2 image
+
+    :param qemu_image: Object QemuImg
+
+    :return: compatibility level
+    """
+    error_context.context("Get qcow2 image('%s') version"
+                          % qemu_image.image_filename, logging.info)
+    info_out = qemu_image.info()
+    compat = re.search(r'compat: +(.*)', info_out, re.M)
+    if compat:
+        return compat.group(1)
+    return '0.10'
+
+@error_context.context_aware
+def convert_image(qemu_image, **kwargs):
+    """
+    Convert image format.
+
+    :param qemu_image: Object QemuImg
+    :param kwargs: optional keyword arguments to pass to func.
+    """
+    if 'format_to' in kwargs:
+        qemu_image.params["image_convert"] = qemu_image.params["image_name"].split('/')[-1]
+        image_convert = qemu_image.params["image_convert"]
+        qemu_image.params["convert_format_%s" % image_convert] = kwargs.get("format_to")
+        qemu_image.params.update({"image_convert": "%s" %
+                                  qemu_image.params["image_convert"],
+                                  "convert_format": "%s" %
+                                  qemu_image.params["convert_format_%s" % image_convert]})
+        if 'ver_to' in kwargs:
+            qemu_image.params.update({"compat": ver_to})
+        qemu_image.convert(qemu_image.params, data_dir.get_data_dir())
 
 
 @error_context.context_aware
@@ -455,7 +492,18 @@ def run_image_copy(test, params, env):
                                  params['image_format'])
         asset_info = asset.get_file_asset(asset_name, src_path, dst_path)
         if asset_info is None:
-            raise exceptions.TestError('Could not find %s' % image)
+            if params['image_format'] == "qcow2":
+                src_path = '%s/%s.%s' % (mount_dest_dir, asset_name,
+                                         "raw")
+                dst_path = dst_path.split('.')[-1]
+                dst_path = '%s.%s' % (dst_path, "raw")
+                asset_info = asset.get_file_asset(asset_name, src_path,
+                                                  dst_path)
+                image = '%s.%s' % (params['image_name'], "raw")
+                if asset_info is None:
+                    raise exceptions.TestError('Could not find %s' % image)
+            else:
+                raise exceptions.TestError('Could not find %s' % image)
     else:
         asset_info = asset.get_asset_info(asset_name)
 
@@ -472,6 +520,13 @@ def run_image_copy(test, params, env):
                                 force=force)
         else:
             download.get_file(asset_info['url'], asset_info['destination'])
+
+        convert_copy_image = params.get("convert_copy_image", "no")
+        if params.get("convert_copy_image") == "yes":
+            image = params.get("images").split()[0]
+            qemu_image = qemu_storage.QemuImg(params, data_dir.get_data_dir(), image)
+            image_args = {"format_to": params['image_format']}
+            convert_image(qemu_image, **image_args)
 
     finally:
         sub_type = params.get("sub_type")
