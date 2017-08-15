@@ -2,7 +2,7 @@
 %if ! 0%{?commit:1}
  %define commit f7b349c2219fa59c4a073a23327a8d3e0bd05264
 %endif
-%global shortcommit %(c=%{commit}; echo ${c:0:7})
+%global shortcommit %(c=%{commit}; echo ${c:0:8})
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt

@@ -6,11 +6,11 @@ VERSION=$(shell cat $(CURDIR)/VERSION)
 AVOCADO_DIRNAME?=avocado
 DIRNAME=$(shell echo $${PWD\#\#*/})
 
-RELEASE_COMMIT=$(shell git log --pretty=format:'%H' -n 1 $(VERSION))
-RELEASE_SHORT_COMMIT=$(shell git log --pretty=format:'%h' -n 1 $(VERSION))
+RELEASE_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%H' -n 1 $(VERSION))
+RELEASE_SHORT_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%h' -n 1 $(VERSION))
 
-COMMIT=$(shell git log --pretty=format:'%H' -n 1)
-SHORT_COMMIT=$(shell git log --pretty=format:'%h' -n 1)
+COMMIT=$(shell git log --abbrev=8 --pretty=format:'%H' -n 1)
+SHORT_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%h' -n 1)
 
 all:
 	@echo
