@@ -725,3 +725,15 @@ class QemuAgent(Monitor):
                     raise
             return ret
         return -1
+
+    def file_operate(self, args, cmd):
+        """
+        File operation via guest agent command,For example,
+        open close reading and writing,and so on.
+
+        :params args: It is guest agent command parameters.
+        :params cmd: It is guest agent command.
+        :return: true if the response received, False if return NULL
+        """
+        if self.check_has_command(cmd):
+            return self.cmd(cmd, args)
