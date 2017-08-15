@@ -1478,6 +1478,16 @@ def convert_ipv4_to_ipv6(ipv4):
     return converted_ip
 
 
+def count_online_cpus():
+    """Total number of online CPUs in the local machine"""
+    return os.sysconf('SC_NPROCESSORS_ONLN')
+
+
+def count_total_cpus():
+    """Total number of (online+offline) CPUs in the local machine"""
+    return os.sysconf('SC_NPROCESSORS_CONF')
+
+
 def get_thread_cpu(thread):
     """
     Get the light weight process(thread) used cpus.
