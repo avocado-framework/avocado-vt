@@ -1,14 +1,3 @@
-#
-# NOTE: to build Avocado-vt RPM packages extra deps not present out of the box
-# are necessary. These packages are currently hosted at:
-#
-# - https://repos-avocadoproject.rhcloud.com/static/avocado-fedora.repo
-# - https://repos-avocadoproject.rhcloud.com/static/avocado-el.repo
-#
-# Since the RPM build steps are based on mock, edit your chroot config
-# file (/etc/mock/<your-config>.cnf) and add the COPR repo configuration there.
-#
-
 PYTHON=$(shell which python)
 DESTDIR=/
 BUILDIR=$(CURDIR)/debian/avocado-vt
