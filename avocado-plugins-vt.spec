@@ -1,13 +1,13 @@
 %global modulename avocado-vt
 %if ! 0%{?commit:1}
- %define commit f7b349c2219fa59c4a073a23327a8d3e0bd05264
+ %define commit 6af3829c38f8181bdbd79ecdf6521797d17e0ed3
 %endif
 %global shortcommit %(c=%{commit}; echo ${c:0:8})
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 51.0
-Release: 2%{?dist}
+Version: 53.0
+Release: 0%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -53,6 +53,9 @@ Xunit output, among others.
 
 
 %changelog
+* Tue Aug 15 2017 Cleber Rosa <cleber@redhat.com> - 53.0-0
+- New upstream release
+
 * Mon Jul 10 2017 Cleber Rosa <cleber@redhat.com> - 51.0-2
 - Satisfy avocado requirement with EPEL package
 
