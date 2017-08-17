@@ -29,9 +29,10 @@ if os.path.isdir(os.path.join(basedir, 'virttest')):
     sys.path.append(basedir)
 
 from virttest import asset
-from virttest.utils_misc import LoggingConfig
 
 from avocado.core.output import TERM_SUPPORT
+
+from logging_config import LoggingConfig
 
 
 def download_assets():
