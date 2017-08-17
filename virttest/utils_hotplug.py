@@ -72,7 +72,7 @@ def hotplug_supported(vm_name, mtype):
                                                  debug=False)
         try:
             result = json.loads(json_result.stdout)
-        except:
+        except Exception:
             # Failure to parse json output and default support to False
             # TODO: Handle for failure cases
             return supported

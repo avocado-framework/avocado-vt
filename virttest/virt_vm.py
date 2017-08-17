@@ -424,6 +424,10 @@ class VMScreenInactiveError(VMError):
         return msg
 
 
+class VMLoginError(VMError):
+    pass
+
+
 class CpuInfo(object):
 
     """
@@ -664,7 +668,7 @@ class BaseVM(object):
                 else:
                     continue
         else:
-            raise
+            raise VMAddressError(index)
 
     def _get_address(self, index=0, ip_version="ipv4"):
         """
@@ -1141,23 +1145,27 @@ class BaseVM(object):
         # try to login if VM bootup really
         timeout -= (end - start)
         login_timeout = time.time() + timeout
-        login_args = (nic_index, internal_timeout, username, password)
-        serial_login_args = (internal_timeout, username, password, False)
-        exception = None
         while True:
             try:
-                return self.login(*login_args)
+                return self.login(nic_index,
+                                  internal_timeout,
+                                  username,
+                                  password)
             except Exception:
                 pass
             # Re-try login via serial console, if seiral is true
             if serial:
                 try:
-                    return self.serial_login(*serial_login_args)
+                    return self.serial_login(internal_timeout,
+                                             username,
+                                             password,
+                                             False)
                 except Exception:
                     pass
             if time.time() > login_timeout:
                 print_guest_network_info()
-                raise
+                raise remote.LoginTimeoutError('exceeded %s s timeout' %
+                                               login_timeout)
 
     @error_context.context_aware
     def copy_files_to(self, host_path, guest_path, nic_index=0, limit="",
@@ -1314,7 +1322,8 @@ class BaseVM(object):
                 time.sleep(0.5)
                 continue
         else:
-            raise
+            raise remote.LoginTimeoutError('exceeded %s s timeout' %
+                                           timeout)
         if restart_network:
             try:
                 logging.debug("Attempting to restart guest network")

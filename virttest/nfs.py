@@ -256,7 +256,7 @@ class NFSClient(object):
                           ignore_status=True)
         if ret.exit_status and "No such file or directory" not in ret.stderr:
             raise exceptions.TestFail("Failed to update host key: %s" %
-                                      output.stderr)
+                                      ret.stderr)
         # Setup SSH connection
         self.ssh_obj = SSHConnection(params)
         ssh_timeout = int(params.get("ssh_timeout", 10))

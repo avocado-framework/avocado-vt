@@ -1118,6 +1118,11 @@ class Bridge(object):
         return bridge_stp
 
 
+# Global variable for OpenVSwitch
+__ovs = None
+__bridge = Bridge()
+
+
 def __init_openvswitch(func):
     """
     Decorator used for late init of __ovs variable.
@@ -1135,11 +1140,6 @@ def __init_openvswitch(func):
 
         return func(*args, **kargs)
     return wrap_init
-
-
-# Global variable for OpenVSwitch
-__ovs = None
-__bridge = Bridge()
 
 
 def if_nametoindex(ifname):
