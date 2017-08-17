@@ -125,5 +125,5 @@ class Sctp(base.TypedDeviceBase):
             accessors.XMLAttribute('ipsetflags', self, parent_xpath='/',
                                    tag_name='sctp', attribute='ipsetflags')
 
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(Sctp.Attr, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<sctp/>'

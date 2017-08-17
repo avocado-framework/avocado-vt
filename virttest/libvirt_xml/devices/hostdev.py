@@ -26,9 +26,9 @@ class Hostdev(base.TypedDeviceBase):
         accessors.XMLAttribute('boot_order', self, parent_xpath='/',
                                tag_name='boot', attribute='order')
 
-        super(self.__class__, self).__init__(device_tag='hostdev',
-                                             type_name=type_name,
-                                             virsh_instance=virsh_instance)
+        super(Hostdev, self).__init__(device_tag='hostdev',
+                                      type_name=type_name,
+                                      virsh_instance=virsh_instance)
 
     def new_source(self, **dargs):
         new_one = self.Source(virsh_instance=self.virsh)
@@ -62,7 +62,7 @@ class Hostdev(base.TypedDeviceBase):
                                          'virsh_instance': virsh_instance})
             accessors.XMLAttribute('adapter_name', self, parent_xpath='/',
                                    tag_name='adapter', attribute='name')
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(Hostdev.Source, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<source/>'
 
         def new_untyped_address(self, **dargs):
@@ -91,6 +91,6 @@ class Hostdev(base.TypedDeviceBase):
                                        tag_name='address', attribute='target')
                 accessors.XMLAttribute('unit', self, parent_xpath='/',
                                        tag_name='address', attribute='unit')
-                super(self.__class__, self).__init__(
+                super(Hostdev.Source.UntypedAddress, self).__init__(
                     "address", virsh_instance=virsh_instance)
                 self.xml = "<address/>"

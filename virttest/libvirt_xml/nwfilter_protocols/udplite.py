@@ -121,5 +121,5 @@ class Udplite(base.TypedDeviceBase):
             accessors.XMLAttribute('ipsetflags', self, parent_xpath='/',
                                    tag_name='udplite', attribute='ipsetflags')
 
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(Udplite.Attr, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<udplite/>'

@@ -123,5 +123,5 @@ class Ah_ipv6(base.TypedDeviceBase):
             accessors.XMLAttribute('ipsetflags', self, parent_xpath='/',
                                    tag_name='ah-ipv6', attribute='ipsetflags')
 
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(Ah_ipv6.Attr, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<ah-ipv6/>'

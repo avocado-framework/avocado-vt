@@ -141,7 +141,7 @@ class Interface(base.TypedDeviceBase):
                                      tag_name="inbound")
             accessors.XMLElementDict("outbound", self, parent_xpath="/",
                                      tag_name="outbound")
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(Interface.Bandwidth, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<bandwidth/>'
 
     class Driver(base.base.LibvirtXMLBase):
@@ -167,7 +167,7 @@ class Interface(base.TypedDeviceBase):
                                      tag_name="host")
             accessors.XMLElementDict("driver_guest", self, parent_xpath="/",
                                      tag_name="guest")
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(Interface.Driver, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<driver/>'
 
     class Filterref(base.base.LibvirtXMLBase):
@@ -196,7 +196,7 @@ class Interface(base.TypedDeviceBase):
                                      parent_xpath='/',
                                      marshal_from=self.marshal_from_parameter,
                                      marshal_to=self.marshal_to_parameter)
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(Interface.Filterref, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<filterref/>'
 
         @staticmethod
