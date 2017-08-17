@@ -120,5 +120,5 @@ class Ah(base.TypedDeviceBase):
             accessors.XMLAttribute('ipsetflags', self, parent_xpath='/',
                                    tag_name='ah', attribute='ipsetflags')
 
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(Ah.Attr, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<ah/>'

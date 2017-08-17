@@ -117,5 +117,5 @@ class Igmp(base.TypedDeviceBase):
             accessors.XMLAttribute('ipsetflags', self, parent_xpath='/',
                                    tag_name='igmp', attribute='ipsetflags')
 
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(Igmp.Attr, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<igmp/>'

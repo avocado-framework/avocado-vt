@@ -109,5 +109,5 @@ class Rarp(base.TypedDeviceBase):
             accessors.XMLAttribute('gratuitous', self, parent_xpath='/',
                                    tag_name='rarp', attribute='gratuitous')
 
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(Rarp.Attr, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<rarp/>'

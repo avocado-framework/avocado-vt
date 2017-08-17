@@ -137,5 +137,5 @@ class SnapshotXML(SnapshotXMLBase):
             """
             accessors.XMLAttribute('disk_name', self, parent_xpath='/',
                                    tag_name='disk', attribute='name')
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(SnapshotXML.SnapDiskXML, self).__init__(virsh_instance=virsh_instance)
             self.xml = u"<disk></disk>"

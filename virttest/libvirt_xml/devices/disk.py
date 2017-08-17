@@ -203,7 +203,7 @@ class Disk(base.TypedDeviceBase):
                                    tag_name='config', attribute='file')
             accessors.XMLAttribute('snapshot_name', self, parent_xpath='/',
                                    tag_name='snapshot', attribute='name')
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(Disk.DiskSource, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<source/>'
 
         @staticmethod
@@ -283,7 +283,7 @@ class Disk(base.TypedDeviceBase):
                 else:
                     accessors.XMLElementInt(slot, self, parent_xpath='/',
                                             tag_name=slot)
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(Disk.IOTune, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<iotune/>'
 
     class Encryption(base.base.LibvirtXMLBase):
@@ -306,7 +306,7 @@ class Disk(base.TypedDeviceBase):
                                    tag_name='encryption', attribute='format')
             accessors.XMLElementDict('secret', self, parent_xpath='/',
                                      tag_name='secret')
-            super(self.__class__, self).__init__(
+            super(Disk.Encryption, self).__init__(
                 virsh_instance=virsh_instance)
             self.xml = '<encryption/>'
 
@@ -338,5 +338,5 @@ class Disk(base.TypedDeviceBase):
                                    tag_name='secret', attribute='uuid')
             accessors.XMLAttribute('secret_usage', self, parent_xpath='/',
                                    tag_name='secret', attribute='usage')
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            super(Disk.Auth, self).__init__(virsh_instance=virsh_instance)
             self.xml = u"<auth/>"
