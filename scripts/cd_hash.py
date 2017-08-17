@@ -10,9 +10,9 @@ import sys
 import logging
 import optparse
 
-from virttest.utils_misc import LoggingConfig
-
 from avocado.utils import crypto
+
+from logging_config import LoggingConfig
 
 
 if __name__ == "__main__":

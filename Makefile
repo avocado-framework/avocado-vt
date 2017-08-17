@@ -89,7 +89,8 @@ requirements:
 	- pip install -r requirements.txt
 
 check:
-	selftests/checkall
+	inspekt checkall --disable-lint W,R,C,E1002,E1101,E1103,E1120,F0401,I0011,E1003 --no-license-check
+
 clean:
 	$(PYTHON) setup.py clean
 	$(MAKE) -f $(CURDIR)/debian/rules clean || true

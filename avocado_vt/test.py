@@ -240,7 +240,7 @@ class VirtTest(test.Test):
         # into avocado (skips, warns and errors will display correctly)
         except exceptions.TestSkipError:
             raise   # This one has to be raised in setUp
-        except:  # Old-style exceptions are not inherited from Exception()
+        except:  # nopep8 Old-style exceptions are not inherited from Exception()
             details = sys.exc_info()[1]
             stacktrace.log_exc_info(sys.exc_info(), 'avocado.test')
             self.__status = details
@@ -260,16 +260,15 @@ class VirtTest(test.Test):
         The actual testing happens inside setUp stage, this only
         reports the correct results
         """
-        if self.__status == "PASS":
-            pass
-        elif isinstance(self.__status, error.TestNAError):
-            self.cancel(self.__status)
-        elif isinstance(self.__status, error.TestWarn):
-            self.log.warn(details)
-        elif isinstance(self.__status, error.TestFail):
-            self.fail(self.__status)
-        else:
-            raise self.__status
+        if self.__status != "PASS":
+            if isinstance(self.__status, error.TestNAError):
+                self.cancel(str(self.__status))
+            elif isinstance(self.__status, error.TestWarn):
+                self.log.warn(str(self.__status))
+            elif isinstance(self.__status, error.TestFail):
+                self.fail(str(self.__status))
+            else:
+                raise self.__status  # pylint: disable=E0702
 
     def _runTest(self):
         params = self.params
