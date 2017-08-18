@@ -2004,6 +2004,22 @@ class VM(virt_vm.BaseVM):
         # IndexError (range check) or mac is None
         raise virt_vm.VMMACAddressMissingError(nic_index)
 
+    def get_mac_address(self, nic_index=0):
+        """
+        Return the MAC address of a NIC.
+
+        :param nic_index: Index of the NIC
+        :return: MAC address of the NIC
+        :raise VMMACAddressMissingError: If no MAC address is defined for the
+                requested NIC
+        """
+        try:
+            return super(VM, self).get_mac_address(nic_index)
+        except virt_vm.VMMACAddressMissingError:
+            mac = self.get_virsh_mac_address(nic_index)
+            self.virtnet.set_mac_address(nic_index, mac)
+            return mac
+
     def get_pid(self):
         """
         Return the VM's PID.

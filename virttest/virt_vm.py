@@ -637,6 +637,7 @@ class BaseVM(object):
         Return the MAC address of a NIC.
 
         :param nic_index: Index of the NIC
+        :return: MAC address of the NIC
         :raise VMMACAddressMissingError: If no MAC address is defined for the
                 requested NIC
         """
@@ -686,34 +687,13 @@ class BaseVM(object):
         :raise VMAddressVerificationError: If the MAC-IP address mapping cannot
                 be verified (using arping)
         """
-        def _get_mac_addr(nic_index):
-            """
-            wrap for get_mac_address, if VM type is 'libvirt' or 'v2v'
-            find nic mac address from xml file
-            """
-            mac = None
-            try:
-                mac = self.get_mac_address(nic_index)
-            except VMMACAddressMissingError:
-                if self.params.get('vm_type') not in ['libvirt', 'v2v']:
-                    raise
-                mac = self.get_virsh_mac_address(nic_index)
-            if not mac:
-                raise VMMACAddressMissingError(nic_index)
-            return mac.lower()
-
         nic = self.virtnet[index]
         # TODO: Determine port redirection in use w/o checking nettype
         if nic.nettype not in ['bridge', 'macvtap']:
             hostname = socket.gethostname()
             return socket.gethostbyname(hostname)
 
-        mac = _get_mac_addr(index)
-        if 'mac' not in nic:
-            if self.params.get("vm_type") in ["libvirt", "v2v"]:
-                self.virtnet.set_mac_address(index, mac)
-                self.virtnet[index] = nic
-
+        mac = self.get_mac_address(index).lower()
         if ip_version == "ipv4":
             ip_addr = None
             devs = set([nic.netdst]) if nic.has_key('netdst') else set()
