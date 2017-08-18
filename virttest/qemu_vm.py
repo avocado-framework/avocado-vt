@@ -3593,6 +3593,16 @@ class VM(virt_vm.BaseVM):
                 device_add_cmd += ",mq=on"
             if 'vectors' in nic:
                 device_add_cmd += ",vectors=%s" % nic.vectors
+        bus = nic.get("pci_bus")
+        if bus is not None:
+            # Bus is aobject, not the actual bus id
+            buses = self.devices.get_buses({"aobject": bus})
+            if len(buses) == 1:
+                device_add_cmd += ",bus=%s" % buses[0].busid
+            else:
+                logging.warning("Ignoring pci_bus %s on %s because did not "
+                                "found correct candidate: %s", bus,
+                                nic_index_or_name, buses)
         device_add_cmd += nic.get('nic_extra_params', '')
         if 'romfile' in nic:
             device_add_cmd += ",romfile=%s" % nic.romfile
