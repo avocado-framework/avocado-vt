@@ -2436,7 +2436,7 @@ class QemuIface(VirtIface):
                  'tapfd_ids', 'netdev_id', 'tftp',
                  'romfile', 'nic_extra_params',
                  'netdev_extra_params', 'queues', 'vhostfds',
-                 'vectors']
+                 'vectors', 'pci_bus']
 
 
 class VMNet(list):
