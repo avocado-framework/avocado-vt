@@ -1396,6 +1396,27 @@ class BaseVM(object):
         cmd = self.params.get("mem_chk_cur_cmd")
         return self.get_memory_size(cmd)
 
+    def get_totalmem_sys(self):
+        """
+        To get the total guest memory(ram) as detected by system
+        MemTotal in /proc/meminfo would display
+        total usable memory(i.e. physical ram minus
+        a few reserved bits and the kernel binary code)
+
+        :return: system memory in Kb as float
+        """
+        session = self.wait_for_login()
+        try:
+            cmd = "count=0;cd /sys/devices/system/memory/;for i in `ls`;"
+            cmd += "do [ -f $i/online ] && a=$(<$i/online) && "
+            cmd += "count=$(( $count + $a ));a=0;done;echo $count"
+            no_memblocks = int(session.cmd_output(cmd, timeout=360))
+            cmd = "cat /sys/devices/system/memory/block_size_bytes"
+            block_size = int(session.cmd_output(cmd), 16)
+            return (no_memblocks * block_size)/1024.0
+        finally:
+            session.close()
+
     #
     # Public API - *must* be reimplemented with virt specific code
     #
