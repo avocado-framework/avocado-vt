@@ -1141,14 +1141,15 @@ class DevContainer(object):
 
     # USB Device related methods
     def usb_by_variables(self, usb_name, usb_type, controller_type, bus=None,
-                         port=None):
+                         port=None, serial=None):
         """
         Creates usb-devices by variables.
         :param usb_name: usb name
         :param usb_type: usb type (usb-tablet, usb-serial, ...)
         :param controller_type: type of the controller (uhci, ehci, xhci, ...)
         :param bus: the bus name (my_bus.0, ...)
-        :param port: port specifiacation (4, 4.1.2, ...)
+        :param port: port specification (4, 4.1.2, ...)
+        :param serial: serial specification (1234, d1, ...)
         :return: QDev device
         """
         if not self.has_device(usb_type):
@@ -1159,6 +1160,7 @@ class DevContainer(object):
             device.set_param('id', 'usb-%s' % usb_name)
             device.set_param('bus', bus)
             device.set_param('port', port)
+            device.set_param('serial', serial)
             device.parent_bus += ({'type': controller_type},)
         else:
             if "tablet" in usb_type:
@@ -1181,7 +1183,8 @@ class DevContainer(object):
                                      params.get("usb_type"),
                                      params.get("usb_controller"),
                                      params.get("bus"),
-                                     params.get("port"))
+                                     params.get("port"),
+                                     params.get("usbdev_serial"))
 
     # Images (disk, cdrom, floppy) device related methods
     def images_define_by_variables(self, name, filename, pci_bus, index=None, fmt=None,
