@@ -139,5 +139,5 @@ class Udplite_ipv6(base.TypedDeviceBase):
                                    tag_name='udplite-ipv6',
                                    attribute='ipsetflags')
 
-            super(Udplite_ipv6.Attr, self).__init__(virsh_instance=virsh_instance)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<udplite-ipv6/>'

@@ -60,7 +60,7 @@ class Memory(base.UntypedDeviceBase):
             accessors.XMLElementInt('node',
                                     self, parent_xpath='/',
                                     tag_name='node')
-            super(Memory.Target, self).__init__(virsh_instance=virsh_instance)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<target/>'
 
     class Source(base.base.LibvirtXMLBase):
@@ -90,7 +90,7 @@ class Memory(base.UntypedDeviceBase):
             accessors.XMLElementText('nodemask',
                                      self, parent_xpath='/',
                                      tag_name='nodemask')
-            super(Memory.Source, self).__init__(virsh_instance=virsh_instance)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<source/>'
 
     def new_mem_address(self, type_name='dimm', **dargs):

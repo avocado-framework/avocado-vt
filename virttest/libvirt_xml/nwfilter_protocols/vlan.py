@@ -89,5 +89,5 @@ class Vlan(base.TypedDeviceBase):
             accessors.XMLAttribute('comment', self, parent_xpath='/',
                                    tag_name='vlan', attribute='comment')
 
-            super(Vlan.Attr, self).__init__(virsh_instance=virsh_instance)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<vlan/>'

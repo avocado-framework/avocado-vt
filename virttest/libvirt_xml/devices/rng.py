@@ -71,7 +71,7 @@ class Rng(base.UntypedDeviceBase):
                                    parent_xpath='/',
                                    tag_name='protocol',
                                    attribute='type')
-            super(Rng.Backend, self).__init__(virsh_instance=virsh_instance)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<backend/>'
 
         @staticmethod

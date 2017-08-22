@@ -16,9 +16,9 @@ class Address(base.TypedDeviceBase):
         # Blindly accept any/all attributes as simple dictionary
         accessors.XMLElementDict('attrs', self, parent_xpath='/',
                                  tag_name='address')
-        super(Address, self).__init__(device_tag='address',
-                                      type_name=type_name,
-                                      virsh_instance=virsh_instance)
+        super(self.__class__, self).__init__(device_tag='address',
+                                             type_name=type_name,
+                                             virsh_instance=virsh_instance)
 
     @classmethod
     def new_from_dict(cls, attributes, virsh_instance=base.base.virsh):
