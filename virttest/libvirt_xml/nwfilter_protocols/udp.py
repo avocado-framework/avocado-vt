@@ -124,5 +124,5 @@ class Udp(base.TypedDeviceBase):
             accessors.XMLAttribute('ipsetflags', self, parent_xpath='/',
                                    tag_name='udp', attribute='ipsetflags')
 
-            super(Udp.Attr, self).__init__(virsh_instance=virsh_instance)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<udp/>'

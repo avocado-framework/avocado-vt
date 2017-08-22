@@ -110,5 +110,5 @@ class Arp(base.TypedDeviceBase):
             accessors.XMLAttribute('gratuitous', self, parent_xpath='/',
                                    tag_name='arp', attribute='gratuitous')
 
-            super(Arp.Attr, self).__init__(virsh_instance=virsh_instance)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<arp/>'

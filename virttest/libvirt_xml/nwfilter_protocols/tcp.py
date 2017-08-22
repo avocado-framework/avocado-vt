@@ -127,5 +127,5 @@ class Tcp(base.TypedDeviceBase):
             accessors.XMLAttribute('ipsetflags', self, parent_xpath='/',
                                    tag_name='tcp', attribute='ipsetflags')
 
-            super(Tcp.Attr, self).__init__(virsh_instance=virsh_instance)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<tcp/>'

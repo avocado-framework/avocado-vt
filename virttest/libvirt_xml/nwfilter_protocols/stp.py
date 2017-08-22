@@ -152,5 +152,5 @@ class Stp(base.TypedDeviceBase):
             accessors.XMLAttribute('comment', self, parent_xpath='/',
                                    tag_name='stp', attribute='comment')
 
-            super(Stp.Attr, self).__init__(virsh_instance=virsh_instance)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<stp/>'

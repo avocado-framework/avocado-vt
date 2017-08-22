@@ -113,5 +113,5 @@ class Ipv6(base.TypedDeviceBase):
             accessors.XMLAttribute('comment', self, parent_xpath='/',
                                    tag_name='ipv6', attribute='comment')
 
-            super(Ipv6.Attr, self).__init__(virsh_instance=virsh_instance)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<ipv6/>'

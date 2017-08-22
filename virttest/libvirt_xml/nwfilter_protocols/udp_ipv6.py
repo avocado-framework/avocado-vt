@@ -127,5 +127,5 @@ class Udp_ipv6(base.TypedDeviceBase):
             accessors.XMLAttribute('ipsetflags', self, parent_xpath='/',
                                    tag_name='udp-ipv6', attribute='ipsetflags')
 
-            super(Udp_ipv6.Attr, self).__init__(virsh_instance=virsh_instance)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<udp-ipv6/>'

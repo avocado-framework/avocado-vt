@@ -1838,7 +1838,7 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
                         'emulator_quota'):
                 accessors.XMLElementInt(slot, self, parent_xpath='/',
                                         tag_name=slot)
-        super(VMCPUTuneXML, self).__init__(virsh_instance=virsh_instance)
+        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<cputune/>'
 
     @staticmethod
@@ -1952,7 +1952,7 @@ class VMOSXML(base.LibvirtXMLBase):
                                  tag_name='dtb')
         accessors.XMLElementText('init', self, parent_xpath='/',
                                  tag_name='init')
-        super(VMOSXML, self).__init__(virsh_instance=virsh_instance)
+        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<os/>'
 
     @staticmethod
@@ -1993,7 +1993,7 @@ class VMPMXML(base.LibvirtXMLBase):
                                tag_name='suspend-to-disk', attribute='enabled')
         accessors.XMLAttribute('mem_enabled', self, parent_xpath='/',
                                tag_name='suspend-to-mem', attribute='enabled')
-        super(VMPMXML, self).__init__(virsh_instance=virsh_instance)
+        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<pm/>'
 
 
@@ -2048,7 +2048,7 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                                attribute='state')
         accessors.AllForbidden(property_name="feature_list",
                                libvirtxml=self)
-        super(VMFeaturesXML, self).__init__(virsh_instance=virsh_instance)
+        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<features/>'
 
     def get_feature_list(self):
@@ -2111,7 +2111,7 @@ class VMVCPUSXML(base.LibvirtXMLBase):
         accessors.XMLElementList('vcpu', self, parent_xpath="/",
                                  marshal_from=self.marshal_from_vcpu,
                                  marshal_to=self.marshal_to_vcpu)
-        super(VMVCPUSXML, self).__init__(virsh_instance=virsh_instance)
+        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<vcpus/>'
 
     @staticmethod
@@ -2153,7 +2153,7 @@ class VMHugepagesXML(VMXML):
                                  parent_xpath="/",
                                  marshal_from=self.marshal_from_page,
                                  marshal_to=self.marshal_to_page)
-        super(VMHugepagesXML, self).__init__(virsh_instance=virsh_instance)
+        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<hugepages/>'
 
     # Sub-element of hugepages
@@ -2240,7 +2240,7 @@ class VMMemBackingXML(VMXML):
         for slot in ('nosharepages', 'locked'):
             accessors.XMLElementBool(slot, self, parent_xpath='/',
                                      tag_name=slot)
-        super(VMMemBackingXML, self).__init__(virsh_instance=virsh_instance)
+        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<memoryBacking/>'
 
 
@@ -2320,7 +2320,7 @@ class VMIothreadidsXML(VMXML):
         accessors.XMLElementList('iothread', self, parent_xpath='/',
                                  marshal_from=self.marshal_from_iothreads,
                                  marshal_to=self.marshal_to_iothreads)
-        super(VMIothreadidsXML, self).__init__(virsh_instance=virsh_instance)
+        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<iothreadids/>'
 
     @staticmethod
