@@ -1631,15 +1631,33 @@ def create_network_script(iface_name, mac_addr, boot_proto, net_mask,
     """
     network_param_list = []
     script_file = get_network_cfg_file(iface_name, vm=vm)
-    if os.path.isfile(script_file):
-        logging.error("network script file for %s already exists in %s",
-                      iface_name, script_file)
-        return
+    cmd = "cat %s" % script_file
     if vm:
         session = vm.wait_for_login()
         distro = vm.get_distro().lower()
+        status, output = session.cmd_status_output(cmd)
+        if "ubuntu" in distro:
+            if iface_name in output.strip():
+                logging.error("network script file for %s already exists in "
+                              "guest %s", iface_name, script_file)
+                return
+        else:
+            if not status:
+                logging.error("network script file for %s already exists in "
+                              "guest %s", iface_name, script_file)
+                return
     else:
         distro = platform.platform().lower()
+        if "ubuntu" in distro:
+            if iface_name in process.system_output(cmd).strip():
+                logging.error("network script file for %s already exists in "
+                              "host %s", iface_name, script_file)
+                return
+        else:
+            if os.path.isfile(script_file):
+                logging.error("network script file for %s already exists in "
+                              "host %s", iface_name, script_file)
+                return
     if "ubuntu" in distro:
         network_param_list = ['auto %s' % iface_name, 'iface %s inet %s' %
                               (iface_name, boot_proto), 'netmask %s' %
