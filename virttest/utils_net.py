@@ -3066,50 +3066,65 @@ def parse_arp():
     return ret
 
 
-def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None):
+def verify_ip_address_ownership(ip, macs, timeout=20.0, devs=None):
     """
-    Use arping and the ARP cache to make sure a given IP address belongs to one
-    of the given MAC addresses.
+    Make sure a given IP address belongs to one of the given
+    MAC addresses.
 
-    :param ip: An IP address.
+    :param ip: The IP address to be verified.
     :param macs: A list or tuple of MAC addresses.
-    :param devs: A set of network interfaces to check on. If is absent then use
-                 route table to get a name for possible network interfaces.
+    :param devs: A set of network interfaces to check on. If is absent
+                 then use route table to get a name for possible
+                 network interfaces.
     :return: True if ip is assigned to a MAC address in macs.
     """
-    def __arping(regex, arping_cmd, ip):
+    def __arping(ip, macs, dev, timeout):
         # Compile a regex that matches the given IP address and any of the
         # given MAC addresses from arping output
         ip_map = parse_arp()
         for mac in macs:
             if ip_map.get(mac) == ip:
                 return True
+
+        mac_regex = "|".join("(%s)" % mac for mac in macs)
+        regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex), re.I)
+        arping_bin = utils_path.find_command("arping")
+        arping_cmd = "%s -f -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
+                                                  dev, ip)
         s, o = commands.getstatusoutput(arping_cmd)
         if s != 0:
             return False
         return bool(regex.search(o))
 
+    def __verify_neigh(ip, macs, dev, timeout):
+        refresh_neigh_table(dev, ip)
+        try:
+            neigh_mac = get_neigh_mac(ip)
+            for mac in macs:
+                if neigh_mac.lower() == mac.lower():
+                    return True
+        except VMIPV6NeighNotFoundError:
+            pass
+        return False
+
+    ip_ver = netaddr.IPAddress(ip).version
+
     if not devs:
         # Get the name of the bridge device for ip route cache
         ip_cmd = utils_path.find_command("ip")
-        ip_cmd = "%s route get %s; %s route | grep default" % (
-            ip_cmd, ip, ip_cmd)
+        ip_cmd = "%s route get %s; %s -%d route | grep default" % (
+            ip_cmd, ip, ip_cmd, ip_ver)
         output = commands.getoutput(ip_cmd)
         devs = set(re.findall(r"dev\s+(\S+)", output, re.I))
     if not devs:
         logging.debug("No path to %s in route table: %s" % (ip, output))
         return False
 
-    mac_regex = "|".join("(%s)" % mac for mac in macs)
-    regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex), re.I)
-    arping_bin = utils_path.find_command("arping")
+    # TODO: use same verification function for both ipv4 and ipv6
+    verify_func = __verify_neigh if ip_ver == 6 else __arping
     for dev in devs:
-        arping_cmd = "%s -f -c3 -w5 -I %s %s" % (arping_bin, dev, ip)
-        ret = utils_misc.wait_for(lambda: __arping(regex, arping_cmd, ip),
-                                  timeout=timeout, step=0.1)
-        if ret:
+        if verify_func(ip, macs, dev, timeout):
             return True
-        logging.debug("Arping %s via %s failed" % (ip, dev))
     return False
 
 
