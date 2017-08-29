@@ -793,7 +793,7 @@ class BaseVM(object):
         if not ipaddr:
             # Read guest address via serial console and update VM address
             # cache to avoid get out-dated address.
-            utils_net.update_mac_ip_address(self, self.params, timeout)
+            utils_net.update_mac_ip_address(self, timeout)
             ipaddr = self.get_address(nic_index, ip_version)
         msg = 'Found/Verified IP %s for VM %s NIC %s' % (ipaddr,
                                                          self.name,
@@ -971,7 +971,7 @@ class BaseVM(object):
         try:
             address = self.get_address(nic_index, self.ip_version)
         except (VMIPAddressMissingError, VMAddressVerificationError), e:
-            utils_net.update_mac_ip_address(self, self.params, timeout)
+            utils_net.update_mac_ip_address(self, timeout)
             address = self.get_address(nic_index, self.ip_version)
         neigh_attach_if = ""
         if self.ip_version == "ipv6" and address.lower().startswith("fe80"):

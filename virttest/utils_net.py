@@ -3402,29 +3402,25 @@ def get_linux_ifname(session, mac_address=""):
                                "mac %s" % mac_address)
 
 
-def update_mac_ip_address(vm, params, timeout=240):
+def update_mac_ip_address(vm, timeout=240):
     """
     Get mac and ip address from guest then update the mac pool and
     address cache
 
-    :param vm: VM object
-    :param params: Dictionary with the test parameters.
+    :param vm: VM object.
+    :param timeout: Time (seconds) to keep trying to log in.
     """
     try:
         session = vm.wait_for_serial_login(timeout=timeout)
         addr_map = get_guest_address_map(session)
         session.close()
-        if len(addr_map) != len(vm.virtnet):
-            logging.warn("Not all nic get IP address, restart networking")
-            session = vm.wait_for_serial_login(timeout=timeout,
-                                               restart_network=True)
-            addr_map = get_guest_address_map(session)
-            session.close()
-        if addr_map:
-            logging.debug("Update address_cache: %s" % addr_map)
-            vm.address_cache.update(addr_map)
+        if not addr_map:
+            logging.warn("No VM's NIC got IP address")
+            return
+        logging.debug("Update address_cache: %s", addr_map)
+        vm.address_cache.update(addr_map)
     except Exception, e:
-        logging.warn("Error occur when update VM address cache: %s" % str(e))
+        logging.warn("Error occur when update VM address cache: %s", str(e))
 
 
 def get_windows_nic_attribute(session, key, value, target, timeout=240,
