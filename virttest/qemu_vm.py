@@ -1311,9 +1311,8 @@ class VM(virt_vm.BaseVM):
             """
             if dtype and "%s_pci_bus" % dtype in params:
                 return {"aobject": params["%s_pci_bus" % dtype]}
-
-            if params.get("machine_type") == "q35":
-                pcic = pcie and "x3130-upstream" or "pci-bridge"
+            if params.get("machine_type") == "q35" and not pcie:
+                pcic = "pci-bridge"
                 devices = [
                     d for d in devices if isinstance(
                         d, QDevice) and d.get_param("driver") == pcic]
@@ -1335,7 +1334,7 @@ class VM(virt_vm.BaseVM):
                 """
                 Function used to sort pcic list
                 """
-                order_pcics = ['ioh3420', 'x3130-upstream',
+                order_pcics = ['pcie-root-port', 'ioh3420', 'x3130-upstream',
                                'x3130', 'i82801b11-bridge',
                                'pci-bridge']
                 try:
@@ -1346,9 +1345,6 @@ class VM(virt_vm.BaseVM):
             pcics = []
             for pcic in params.objects("pci_controllers"):
                 dev = devices.pcic_by_params(pcic, params.object_params(pcic))
-                slot = len([_ for _ in pcics if _.get_param('driver') == 'ioh3420'])
-                if dev.get_param('driver') == 'ioh3420':
-                    dev.set_param('slot', hex(slot))
                 pcics.append(dev)
             pcics.sort(key=sort_key, reverse=False)
             map(devices.insert, pcics)
