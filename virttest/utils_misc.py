@@ -1113,7 +1113,8 @@ def mount(src, mount_point, fstype, perm=None, verbose=False, fstype_mtab=None):
         process.system(mount_cmd, verbose=verbose)
     except process.CmdError:
         return False
-    return is_mounted(src, mount_point, fstype, perm, verbose, fstype_mtab)
+    return wait_for(lambda: is_mounted(src, mount_point, fstype, perm, verbose, fstype_mtab),
+                    timeout=5)
 
 
 def is_mounted(src, mount_point, fstype, perm=None, verbose=False,
