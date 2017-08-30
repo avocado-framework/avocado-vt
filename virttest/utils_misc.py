@@ -1478,6 +1478,27 @@ def convert_ipv4_to_ipv6(ipv4):
     return converted_ip
 
 
+def cpu_adapter_mod(par_list, std_list):
+    """
+    Adapt expected nodes list to actual nodes list
+
+    :param par_list: a list of expected nodes
+    :param std_list: a list of actual nodes
+    """
+    if not set(par_list).issubset(std_list):
+        if not len(par_list) > len(std_list):
+            tmp_list = []
+            tmp_list.extend(list(set(par_list).intersection(set(std_list))))
+            for nd in std_list:
+                if not len(par_list) > len(tmp_list):
+                    break
+                if nd not in tmp_list:
+                    tmp_list.append(nd)
+            if len(par_list) == len(tmp_list):
+                par_list = tmp_list
+    return par_list
+
+
 def get_thread_cpu(thread):
     """
     Get the light weight process(thread) used cpus.
@@ -1717,6 +1738,20 @@ class NumaInfo(object):
             meminfo_f.close()
             meminfo[node] = node_meminfo
         return meminfo
+
+    def get_available_nodes(self):
+        """
+        Get node ids available in host
+
+        :return: The ids of node which is available
+        :rtype: builtin.list
+        """
+        node_list = self.online_nodes
+        memory_list = self.get_all_node_meminfo()
+        for nodenum in memory_list:
+            if int(memory_list[nodenum]["MemTotal"]) == 0 and nodenum in node_list:
+                node_list.remove(nodenum)
+        return node_list
 
     def read_from_node_meminfo(self, node_id, key):
         """
