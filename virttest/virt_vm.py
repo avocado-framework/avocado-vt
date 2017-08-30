@@ -988,13 +988,6 @@ class BaseVM(object):
         self.remote_sessions.append(session)
         return session
 
-    def remote_login(self, nic_index=0, timeout=LOGIN_TIMEOUT,
-                     username=None, password=None):
-        """
-        Alias for login() for backward compatibility.
-        """
-        return self.login(nic_index, timeout, username, password)
-
     @error_context.context_aware
     def commander(self, nic_index=0, timeout=LOGIN_TIMEOUT,
                   username=None, password=None, commander_path=None):
@@ -1037,13 +1030,6 @@ class BaseVM(object):
                                       timeout, commander_path)
         self.remote_sessions.append(cmd)
         return cmd
-
-    def remote_commander(self, nic_index=0, timeout=LOGIN_TIMEOUT,
-                         username=None, password=None):
-        """
-        Alias for commander() for backward compatibility.
-        """
-        return self.commander(nic_index, timeout, username, password)
 
     def wait_for_login(self, nic_index=0, timeout=LOGIN_WAIT_TIMEOUT,
                        internal_timeout=LOGIN_TIMEOUT,
