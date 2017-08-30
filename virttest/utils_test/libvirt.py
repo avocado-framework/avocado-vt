@@ -414,7 +414,8 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
                          export_options="rw,no_root_squash",
                          mount_options="rw",
                          export_dir="nfs-export",
-                         restore_selinux=""):
+                         restore_selinux="",
+                         rm_export_dir=True):
     """
     Set SElinux to "permissive" and Set up nfs service on localhost.
     Or clean up nfs service on localhost and restore SElinux.
@@ -443,6 +444,8 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
     :param export_dir: NFS export dir. This can be an absolute path on the
                       host or a relative path origin from libvirt tmp dir.
                       Default to "nfs-export".
+    :param rm_export_dir: Boolean, True for forcely removing nfs export dir
+                                   False for keeping nfs export dir
     :return: A dict contains export and mount result parameters:
              export_dir: Absolute directory of exported local NFS file system.
              mount_dir: Absolute directory NFS file system mounted on.
@@ -479,7 +482,7 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
             utils_selinux.set_status(restore_selinux)
         _nfs.unexportfs_in_clean = True
         _nfs.rm_mount_dir = True
-        _nfs.rm_export_dir = True
+        _nfs.rm_export_dir = rm_export_dir
         _nfs.cleanup()
     return result
 
