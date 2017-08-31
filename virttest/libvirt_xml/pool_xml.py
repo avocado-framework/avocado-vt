@@ -228,6 +228,13 @@ class PoolXMLBase(base.LibvirtXMLBase):
         root.append(value.xmltreefile.getroot())
         xmltreefile.write()
 
+    def del_uuid(self):
+        xmltreefile = self.__dict_get__('xml')
+        element = xmltreefile.find('/uuid')
+        if element is not None:
+            xmltreefile.remove(element)
+            xmltreefile.write()
+
 
 class PoolXML(PoolXMLBase):
 
