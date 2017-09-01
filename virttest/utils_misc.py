@@ -2091,9 +2091,14 @@ def get_support_machine_type(qemu_binary="/usr/libexec/qemu-kvm"):
     """
     Get the machine type the host support,return a list of machine type
     """
-    o = process.system_output("%s -M ?" % qemu_binary)
-    s = re.findall("(\S*)\s*RHEL[-\s]", o)
-    c = re.findall("(RHEL.*)", o)
+    o = process.system_output("%s -M ?" % qemu_binary).splitlines()
+    s = []
+    c = []
+    for item in o[1:]:
+        machine_list = re.split(r"\s+", item, 1)
+        if machine_list[0] != "none":
+            s.append(machine_list[0])
+            c.append(machine_list[1])
     return (s, c)
 
 
