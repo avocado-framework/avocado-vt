@@ -1052,62 +1052,65 @@ class BaseVM(object):
             """
             Print guest network information into debug log file
             """
-            session = self.serial_login(internal_timeout, username, password, False)
+            session = None
             try:
+                session = self.serial_login(internal_timeout, username,
+                                            password)
                 out = session.cmd_output("ipconfig || ifconfig", timeout=60)
                 txt = ["Guest network status:\n %s" % out]
                 out = session.cmd_output("ip route || route print", timeout=60)
                 txt += ["Guest route table:\n %s" % out]
-                logging.debug("\n".join(txt))
+                logging.error("\n".join(txt))
+            except Exception, e:
+                logging.error("Can't get guest network status "
+                              "information, reason: %s", e)
             finally:
-                session.close()
+                if session:
+                    session.close()
 
+        error = None
         logging.debug("Attempting to log into '%s' (timeout %ds)",
                       self.name, timeout)
-        start = time.time()
+        start_time = time.time()
         try:
             self.wait_for_get_address(nic_index,
                                       timeout=timeout,
                                       ip_version=self.ip_version)
-        except Exception:
+        except Exception, error:
             self.verify_alive()
             print_guest_network_info()
             if not (serial or restart_network):
                 raise
-            if restart_network:
-                serial_login_args = (timeout, internal_timeout,
-                                     restart_network, username,
-                                     password, False)
-                session = self.wait_for_serial_login(*serial_login_args)
-                if serial:
-                    return session
-                session.close()
-
-        end = time.time()
-        # try to login if VM bootup really
-        timeout -= (end - start)
-        login_timeout = time.time() + timeout
-        while True:
-            try:
-                return self.login(nic_index,
-                                  internal_timeout,
-                                  username,
-                                  password)
-            except Exception:
-                pass
-            # Re-try login via serial console, if seiral is true
+            session = self.wait_for_serial_login(timeout, internal_timeout,
+                                                 restart_network, username,
+                                                 password, False)
             if serial:
-                try:
-                    return self.serial_login(internal_timeout,
-                                             username,
-                                             password,
-                                             False)
-                except Exception:
-                    pass
-            if time.time() > login_timeout:
-                print_guest_network_info()
-                raise remote.LoginTimeoutError('exceeded %s s timeout' %
-                                               login_timeout)
+                return session
+            session.close()
+
+        # try to login if VM bootup really, at least once
+        not_tried = True
+        end_time = start_time + timeout
+        while time.time() < end_time or not_tried:
+            try:
+                return self.login(nic_index, internal_timeout,
+                                  username, password)
+            except (remote.LoginAuthenticationError,
+                    remote.LoginBadClientError):
+                if serial:
+                    break
+                raise
+            except Exception, error:
+                pass
+            not_tried = False
+
+        print_guest_network_info()
+        if serial:
+            return self.wait_for_serial_login(timeout, internal_timeout,
+                                              False, username, password)
+
+        raise remote.LoginTimeoutError("exceeded %s s timeout, last "
+                                       "failure: %s" % (timeout, error))
 
     @error_context.context_aware
     def copy_files_to(self, host_path, guest_path, nic_index=0, limit="",
