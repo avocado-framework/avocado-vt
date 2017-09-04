@@ -80,6 +80,17 @@ def pre_post_plugin_type():
 
 
 if __name__ == "__main__":
+    requirements = ["netifaces", "aexpect", "netaddr", "simplejson"]
+    if sys.version_info[:2] >= (2, 7):
+        requirements.append("avocado-framework")
+    else:
+        # Latest py2 supported stevedore is 1.10.0, need to limit it here
+        # as older avocado versions were not limiting it.
+        # Note: Avocado 70+ doesn't require stevedore and older Avocado
+        # can use whatever version of stevedore on py3
+        requirements.append("stevedore>=1.8.0,<=1.10.0")
+        requirements.append("avocado-framework<70.0")
+
     setup(name='avocado-plugins-vt',
           version=VERSION,
           description='Avocado Virt Test Compatibility Layer plugin',
@@ -101,4 +112,5 @@ if __name__ == "__main__":
                   'vt-joblock = avocado_vt.plugins.vt_joblock:VTJobLock',
                   ],
               },
+          install_requires=requirements,
           )
