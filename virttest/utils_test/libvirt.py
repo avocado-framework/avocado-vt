@@ -31,6 +31,7 @@ from avocado.utils import path as utils_path
 from avocado.utils import process
 from avocado.utils import stacktrace
 from avocado.utils import linux_modules
+from avocado.utils import distro
 
 from .. import virsh
 from .. import xml_utils
@@ -452,6 +453,7 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
              selinux_status_bak: SELinux status before set
     """
     result = {}
+    ubuntu = distro.detect().name == 'Ubuntu'
 
     tmpdir = data_dir.get_tmp_dir()
     if not os.path.isabs(export_dir):
@@ -460,7 +462,8 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
         mount_dir = os.path.join(tmpdir, mount_dir)
     result["export_dir"] = export_dir
     result["mount_dir"] = mount_dir
-    result["selinux_status_bak"] = utils_selinux.get_status()
+    if not ubuntu:
+        result["selinux_status_bak"] = utils_selinux.get_status()
 
     nfs_params = {"nfs_mount_dir": mount_dir, "nfs_mount_options": mount_options,
                   "nfs_mount_src": export_dir, "setup_local_nfs": "yes",
@@ -470,7 +473,7 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
     if is_setup:
         # Set selinux to permissive that the file in nfs
         # can be used freely
-        if utils_selinux.is_enforcing():
+        if not ubuntu and utils_selinux.is_enforcing():
             utils_selinux.set_status("permissive")
 
         _nfs.setup()
@@ -478,7 +481,7 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
             _nfs.umount()
             del result["mount_dir"]
     else:
-        if restore_selinux:
+        if not ubuntu and restore_selinux:
             utils_selinux.set_status(restore_selinux)
         _nfs.unexportfs_in_clean = True
         _nfs.rm_mount_dir = True
