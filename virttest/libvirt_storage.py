@@ -172,17 +172,20 @@ class StoragePool(object):
         :return: active/inactive, and None when something wrong.
         """
         try:
-            pools = self.list_pools()
-        except process.CmdError:
+            return self.list_pools()[name]['State']
+        except process.CmdError, KeyError:
             return None
 
-        if self.pool_exists(name):
-            details_dict = pools[name]
-            try:
-                return details_dict['State']
-            except KeyError:
-                pass
-        return None
+    def pool_autostart(self, name):
+        """
+        Get pool's autostart.
+
+        :return: yes/no, and None when something wrong.
+        """
+        try:
+            return self.list_pools()[name]['Autostart']
+        except process.CmdError, KeyError:
+            return None
 
     def pool_info(self, name):
         """
@@ -191,7 +194,6 @@ class StoragePool(object):
         :return: A dict include pool's information:
                 Name ==> value
                 UUID ==> value
-                ...
         """
         info = {}
         try:
