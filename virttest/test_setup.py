@@ -1475,7 +1475,7 @@ class PciAssignable(object):
                     time.sleep(3)
         re_probe = False
         # If driver not available after modprobe try to remove it and reprobe
-        if process.system("lsmod | grep %s" % self.driver, ignore_status=True,
+        if process.system("lsmod | grep -w %s" % self.driver, ignore_status=True,
                           shell=True):
             re_probe = True
         # If driver is available then set VFs for ppc64le
@@ -1496,7 +1496,7 @@ class PciAssignable(object):
         # Re-probe driver with proper number of VFs once more and raise
         # exception
         if re_probe:
-            if not self.remove_driver() and not self.modprobe_driver():
+            if not self.remove_driver() or not self.modprobe_driver():
                 return False
             if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
                 set_ip = 0
