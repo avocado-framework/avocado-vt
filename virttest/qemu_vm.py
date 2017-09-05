@@ -939,7 +939,7 @@ class VM(virt_vm.BaseVM):
             """
             processes spice parameters on rhel5 host.
 
-            :param spice_options - dict with spice keys/values
+            :param spice_params - dict with spice keys/values
             :param port_range - tuple with port range, default: (3000, 3199)
             """
 
@@ -950,9 +950,12 @@ class VM(virt_vm.BaseVM):
             spice_help = ""
             if devices.has_option("spice-help"):
                 spice_help = commands.getoutput("%s -device \\?" % qemu_binary)
-            s_port = str(utils_misc.find_free_port(*port_range))
-            self.spice_options['spice_port'] = s_port
-            cmd += " port=%s" % s_port
+            if not self.is_alive():
+                s_port = str(utils_misc.find_free_port(*port_range))
+                self.spice_port = s_port
+                cmd += " port=%s" % s_port
+            else:
+                cmd += "port=%s" % self.spice_port
             for param in spice_params.split():
                 value = params.get(param)
                 if value:
@@ -970,7 +973,7 @@ class VM(virt_vm.BaseVM):
                 cmd += " -qxl %s" % qxl_dev_nr
             return cmd
 
-        def add_spice(port_range=(3000, 3199),
+        def add_spice(spice_options, port_range=(3000, 3199),
                       tls_port_range=(3200, 3399)):
             """
             processes spice parameters
@@ -983,7 +986,7 @@ class VM(virt_vm.BaseVM):
 
             def optget(opt):
                 """a helper function"""
-                return self.spice_options.get(opt)
+                return spice_options.get(opt)
 
             def set_yes_no_value(key, yes_value=None, no_value=None):
                 """just a helper function"""
@@ -1001,14 +1004,14 @@ class VM(virt_vm.BaseVM):
                     spice_opts.append(opt_string % tmp)
                 elif fallback:
                     spice_opts.append(fallback)
-            s_port = str(utils_misc.find_free_port(*port_range))
             if optget("spice_port") == "generate":
                 if not self.is_alive():
-                    self.spice_options['spice_port'] = s_port
+                    s_port = str(utils_misc.find_free_port(*port_range))
+                    spice_options['spice_port'] = s_port
                     spice_opts.append("port=%s" % s_port)
                     self.spice_port = s_port
                 else:
-                    self.spice_options['spice_port'] = self.spice_port
+                    spice_options['spice_port'] = self.spice_port
                     spice_opts.append("port=%s" % self.spice_port)
             # spice_port = no: spice_port value is not present on qemu cmdline
             elif optget("spice_port") != "no":
@@ -1018,21 +1021,22 @@ class VM(virt_vm.BaseVM):
             ip_ver = optget("listening_addr")
             if ip_ver:
                 host_ip = utils_net.get_host_ip_address(self.params, ip_ver)
-                self.spice_options['spice_addr'] = host_ip
+                spice_options['spice_addr'] = host_ip
             set_yes_no_value(
                 "disable_copy_paste", yes_value="disable-copy-paste")
             set_value("addr=%s", "spice_addr")
 
             if optget("spice_ssl") == "yes":
                 # SSL only part
-                t_port = str(utils_misc.find_free_port(*tls_port_range))
                 if optget("spice_tls_port") == "generate":
                     if not self.is_alive():
-                        self.spice_options['spice_tls_port'] = t_port
+                        t_port = str(utils_misc.
+                                     find_free_port(*tls_port_range))
+                        spice_options['spice_tls_port'] = t_port
                         spice_opts.append("tls-port=%s" % t_port)
                         self.spice_tls_port = t_port
                     else:
-                        self.spice_options[
+                        spice_options[
                             'spice_tls_port'] = self.spice_tls_port
                         spice_opts.append("tls-port=%s" % self.spice_tls_port)
                 else:
@@ -1357,7 +1361,7 @@ class VM(virt_vm.BaseVM):
         # If nothing changed and devices exists, return immediately
         if (name is None and params is None and root_dir is None and
                 self.devices is not None):
-            return self.devices
+            return self.devices, self.spice_options
 
         if name is None:
             name = self.name
@@ -2075,15 +2079,15 @@ class VM(virt_vm.BaseVM):
                     "disable_copy_paste", "spice_seamless_migration",
                     "listening_addr"
                 )
-
+                spice_options = {}
                 for skey in spice_keys:
                     value = params.get(skey, None)
                     if value is not None:
                         # parameter can be defined as empty string in Cartesian
                         # config.  Example: spice_password =
-                        self.spice_options[skey] = value
+                        spice_options[skey] = value
 
-                cmd += add_spice()
+                cmd += add_spice(spice_options)
         if cmd:
             devices.insert(StrDev('display', cmdline=cmd))
 
@@ -2288,7 +2292,7 @@ class VM(virt_vm.BaseVM):
                 if set_disable_modern == "yes":
                     add_disable_modern(devices, device, dev_type)
 
-        return devices
+        return devices, spice_options
 
     def _nic_tap_add_helper(self, nic):
         if nic.nettype == 'macvtap':
@@ -2711,7 +2715,7 @@ class VM(virt_vm.BaseVM):
                 self.update_system_dependent_devs()
             # Make qemu command
             try:
-                self.devices = self.make_create_command()
+                self.devices, self.spice_options = self.make_create_command()
                 self.update_vga_global_default(params, migration_mode)
                 logging.debug(self.devices.str_short())
                 logging.debug(self.devices.str_bus_short())
