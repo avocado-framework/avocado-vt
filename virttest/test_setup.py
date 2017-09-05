@@ -66,14 +66,6 @@ class THPKhugepagedError(THPError):
     pass
 
 
-class HPNotSupportedError(Exception):
-
-    """
-    Thrown when host does not support hugepages.
-    """
-    pass
-
-
 class PolkitConfigError(Exception):
 
     """
@@ -309,7 +301,7 @@ class HugePageConfig(object):
         if os.path.exists('/proc/sys/vm/nr_hugepages'):
             self.kernel_hp_file = '/proc/sys/vm/nr_hugepages'
         else:
-            raise HPNotSupportedError("System doesn't support hugepages")
+            raise exceptions.TestSkipError("System doesn't support hugepages")
         self.pool_path = "/sys/kernel/mm/hugepages"
         self.sys_node_path = "/sys/devices/system/node"
         # Unit is KB as default for hugepage size.
@@ -350,15 +342,15 @@ class HugePageConfig(object):
         host_cpu_flags = utils_misc.get_cpu_flags()
         host_ker_cml = utils_misc.get_ker_cmd()
         if self.hugepage_cpu_flag not in host_cpu_flags:
-            raise HPNotSupportedError("Your host does not support hugepage, "
-                                      "as miss the cpu flag %s on your host."
-                                      "Please check cpu flags %s on the host" %
-                                      (self.hugepage_cpu_flag, host_cpu_flags))
+            raise exceptions.TestSkipError("Your host does not support hugepage,"
+                                           "as miss the cpu flag %s on your host."
+                                           "Please check cpu flags %s on the host" %
+                                           (self.hugepage_cpu_flag, host_cpu_flags))
         if self.hugepage_match_str not in host_ker_cml:
-            raise HPNotSupportedError("Your host does not support hugepage, "
-                                      "as miss the %s in host kernel cmdline."
-                                      "Please check kernel cmdline %s on host" %
-                                      (self.hugepage_match_str, host_ker_cml))
+            raise exceptions.TestSkipError("Your host does not support hugepage, "
+                                           "as miss the %s in host kernel cmdline."
+                                           "Please check kernel cmdline %s on host" %
+                                           (self.hugepage_match_str, host_ker_cml))
 
     @error_context.context_aware
     def check_hugepage_size_as_expected(self):
@@ -367,8 +359,8 @@ class HugePageConfig(object):
         """
         error_context.context("Check whether the hugepage size as expected")
         if self.hugepage_size != self.expected_hugepage_size:
-            raise HPNotSupportedError("The current hugepage size on host does"
-                                      "not match the expected hugepage size.\n")
+            raise exceptions.TestSkipError("The current hugepage size on host does "
+                                           "not match the expected hugepage size.\n")
 
     def get_hugepage_size(self):
         """
