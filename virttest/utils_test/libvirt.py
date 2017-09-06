@@ -49,6 +49,8 @@ from virttest import gluster
 from virttest import remote
 from virttest import test_setup
 from virttest import data_dir
+from virttest import utils_libvirtd
+from virttest import utils_config
 from virttest.utils_iptables import Iptables
 from virttest.staging import lv_utils
 from virttest.utils_libvirtd import service_libvirtd_control
@@ -3451,3 +3453,81 @@ def check_machine_type_arch(machine_type):
                                        "supported on the host with "
                                        "arch '%s'" % (machine_type,
                                                       arch))
+
+
+def customize_libvirt_config(params,
+                             config_type="libvirtd",
+                             remote_host=False,
+                             extra_params=None,
+                             is_recover=False,
+                             config_object=None):
+    """
+    Customize configuration files for libvirt
+    on local and remote host if needed
+
+    :param params: A dict used to configure
+    :param config_type: "libvirtd" for /etc/libvirt/libvirtd.conf
+                        "qemu" for /etc/libvirt/qemu.conf
+                        "sysconfig" for /etc/sysconfig/libvirtd
+                        "guestconfig" for /etc/sysconfig/libvirt-guests
+    :param remote_host True for setting up for remote host, too.
+                       False for not setting up
+    :param extra_params: Parameters for remote host
+    :param is_recover: True for recovering the configuration and
+                               config_object should be provided
+                       False for configuring specified libvirt configuration
+    :param config_object: an existing utils_config.LibvirtConfigCommon object
+    :return: utils_config.LibvirtConfigCommon object
+    """
+
+    config_list_support = ["libvirtd", "qemu", "sysconfig", "guestconfig"]
+    if config_type not in config_list_support:
+        logging.debug("'%s' is not in the support list '%s'",
+                      config_type, config_list_support)
+        return None
+
+    if not is_recover:
+        target_conf = None
+        # Handle local
+        if not params or not isinstance(params, dict):
+            return None
+        #if params and isinstance(params, dict):
+        if config_type == "libvirtd":
+            target_conf = utils_config.LibvirtdConfig()
+        elif config_type == "qemu":
+            target_conf = utils_config.LibvirtQemuConfig()
+        elif config_type == "sysconfig":
+            target_conf = utils_config.LibvirtdSysConfig()
+        else:
+            target_conf = utils_config.LibvirtGuestsConfig()
+
+        for key, value in params.items():
+            target_conf[key] = value
+        logging.debug("The '%s' config file is updated with:\n %s",
+                      target_conf.conf_path, params)
+
+        libvirtd = utils_libvirtd.Libvirtd()
+        libvirtd.restart()
+        obj_conf = target_conf
+    else:
+        if not isinstance(config_object, utils_config.LibvirtConfigCommon):
+            return None
+        # Handle local libvirtd
+        config_object.restore()
+        libvirtd = utils_libvirtd.Libvirtd()
+        libvirtd.restart()
+        obj_conf = config_object
+
+    if remote_host:
+        server_ip = extra_params.get("server_ip", "")
+        server_user = extra_params.get("server_user", "")
+        server_pwd = extra_params.get("server_pwd", "")
+        local_path = obj_conf.conf_path
+        remote.scp_to_remote(server_ip, '22', server_user, server_pwd,
+                             local_path, local_path, limit="",
+                             log_filename=None, timeout=600, interface=None)
+        remotely_control_libvirtd(server_ip, server_user,
+                                  server_pwd, action='restart',
+                                  status_error='no')
+
+    return obj_conf
