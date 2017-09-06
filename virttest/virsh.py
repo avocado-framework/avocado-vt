@@ -4069,6 +4069,22 @@ def blkdeviotune(name, device=None, options=None,
     return command(cmd, **dargs)
 
 
+def perf(domain, options="", events="", other_opt="", **dargs):
+    """
+    Enable or disable perf events
+
+    :param domain: Domain name, id
+    :param options: --enable | --disable
+    :param events: perf event names seperated by comma
+    :param other_opt: --config | --live | --current
+    :param dargs: Standardized virsh function API keywords
+    :return: CmdResult instance
+    """
+
+    cmd = "perf %s %s %s %s" % (domain, options, events, other_opt)
+    return command(cmd, **dargs)
+
+
 def domstats(domains="", options="", **dargs):
     """
     Get statistics about one or multiple domains
