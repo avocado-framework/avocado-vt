@@ -4354,3 +4354,17 @@ def iothreadpin(name, thread_id, cpuset, options=None, **dargs):
         cmd += " %s" % options
 
     return command(cmd, **dargs)
+
+
+def domrename(domain, new_name, options="", **dargs):
+    """
+    Rename an inactive domain.
+
+    :param domain:domain name, id or uuid.
+    :param new_name:new domain name.
+    :param options:extra param.
+    :param dargs: standardized virsh function API keywords
+    :return: result from command
+    """
+    cmd = "domrename %s %s %s" % (domain, new_name, options)
+    return command(cmd, **dargs)
