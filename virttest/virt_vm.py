@@ -655,21 +655,19 @@ class BaseVM(object):
         will traverses from first nic to first element toward the end
         util get a reachable IP address;
         """
-        flexible_nic_index = ("yes" == self.params.get("flexible_nic_index", "no"))
-        macs, nics_index = self.virtnet.mac_list(), [index]
-        flexible_nic_index &= bool(len(macs) > 1)
-        if flexible_nic_index:
-            nics_index += [i for i in xrange(len(macs)) if i != index]
-        for index in nics_index:
+        nr_nics = len(self.virtnet.mac_list())
+        nics_index = [index]
+        flexible = self.params.get("flexible_nic_index") == "yes"
+        if (flexible and nr_nics > 1):
+            nics_index += [i for i in xrange(nr_nics) if i != index]
+
+        for nic in nics_index:
             try:
-                return self._get_address(index, ip_version)
-            except VMAddressError:
-                if not flexible_nic_index:
+                return self._get_address(nic, ip_version)
+            except (VMMACAddressMissingError, VMIPAddressMissingError,
+                    VMAddressVerificationError):
+                if nic == nics_index[-1]:
                     raise
-                else:
-                    continue
-        else:
-            raise VMAddressError(index)
 
     def _get_address(self, index=0, ip_version="ipv4"):
         """
@@ -685,72 +683,49 @@ class BaseVM(object):
         :raise VMIPAddressMissingError: If no IP address is found for the the
                 NIC's MAC address
         :raise VMAddressVerificationError: If the MAC-IP address mapping cannot
-                be verified (using arping)
+                be verified
         """
         nic = self.virtnet[index]
+
         # TODO: Determine port redirection in use w/o checking nettype
         if nic.nettype not in ['bridge', 'macvtap']:
             hostname = socket.gethostname()
             return socket.gethostbyname(hostname)
 
         mac = self.get_mac_address(index).lower()
-        if ip_version == "ipv4":
-            ip_addr = None
-            devs = set([nic.netdst]) if nic.has_key('netdst') else set()
-            try:
-                ip_addr = (self.address_cache.get(mac) or
-                           utils_net.parse_arp().get(mac))
-                if not ip_addr:
-                    raise VMIPAddressMissingError(mac, ip_version)
-                macs = self.virtnet.mac_list()
-                reachable = utils_net.verify_ip_address_ownership(
-                    ip_addr, macs, timeout=16, devs=devs)
-                if not reachable:
-                    raise VMAddressVerificationError(mac, ip_addr)
-            except VMAddressVerificationError:
-                nic_params = self.params.object_params(nic.nic_name)
-                pci_assignable = nic_params.get("pci_assignable") != "no"
-                # SR-IOV/Macvtap cards may not be in same subnet with the cards
-                # used by host by default, so arp checks won't work. Therefore,
-                # do not raise VMAddressVerificationError when SR-IOV is used.
-                if pci_assignable or nic.nettype == "macvtap":
-                    nic_backend = pci_assignable and "SR-IOV" or "macvtap"
-                    msg = "Could not verify DHCP lease: %s-> %s." % (nic.mac,
-                                                                     ip_addr)
-                    msg += " Maybe %s is not in the same subnet " % ip_addr
-                    msg += "as the host (%s in use)" % nic_backend
-                    logging.error(msg)
-                else:
-                    if mac in self.address_cache:
-                        self.address_cache[mac] = None
-                    else:
-                        # clean item in host arp table
-                        os.system("arp -d %s" % ip_addr)
-                    logging.debug("Clean up outdated address info, "
-                                  "MAC: %s, IP: %s" % (mac, ip_addr))
-                    raise
-            if not ip_addr:
-                raise VMIPAddressMissingError(mac, ip_version)
-            # Update address_cache since ip/mac releation ship verify pass
-            self.address_cache[mac] = ip_addr
-            return ip_addr
-        else:
-            # Try to get and return IPV6 address
-            if self.params.get('using_linklocal') == "yes":
-                ipv6_addr = utils_net.ipv6_from_mac_addr(nic.mac)
-            # Using global address
-            else:
-                mac_key = "%s_6" % nic.mac
-                ipv6_addr = self.address_cache.get(mac_key.lower())
-            if not ipv6_addr:
-                raise VMIPAddressMissingError(nic.mac, ip_version)
-            # Check whether the ipv6 address is reachable
-            utils_net.refresh_neigh_table(nic.netdst, ipv6_addr)
-            if not utils_misc.wait_for(lambda: utils_net.neigh_reachable(
-                                       ipv6_addr, nic.netdst),
-                                       30, 0, 1, "Wait neighbour reachable"):
-                raise VMAddressVerificationError(nic.mac, ipv6_addr)
-            return ipv6_addr
+        if (self.params.get('using_linklocal') == "yes" and
+                ip_version == "ipv6"):
+            return utils_net.ipv6_from_mac_addr(mac)
+
+        # TODO: Redesign address_cache and declare it in this class
+        mac_pattern = "%s_6" if ip_version == "ipv6" else "%s"
+        ip_addr = self.address_cache.get(mac_pattern % mac)
+        if not ip_addr:
+            raise VMIPAddressMissingError(mac, ip_version)
+
+        devs = set([nic.netdst]) if nic.has_key('netdst') else set()
+        if not utils_net.verify_ip_address_ownership(ip_addr, [mac],
+                                                     devs=devs):
+            logging.debug("Clean up outdated address info, "
+                          "MAC: %s, IP: %s" % (mac, ip_addr))
+            self.address_cache.pop(mac_pattern % mac)
+
+            nic_params = self.params.object_params(nic.nic_name)
+            pci_assignable = nic_params.get("pci_assignable") != "no"
+
+            if not (pci_assignable or nic.nettype == "macvtap"):
+                raise VMAddressVerificationError(mac, ip_addr)
+
+            # SR-IOV/Macvtap cards may not be in same subnet with the cards
+            # used by host by default, so arp checks won't work. Therefore,
+            # do not raise VMAddressVerificationError when SR-IOV is used.
+            nic_backend = pci_assignable and "SR-IOV" or "macvtap"
+            msg = "Could not verify DHCP lease: %s-> %s." % (mac, ip_addr)
+            msg += " Maybe %s is not in the same subnet " % ip_addr
+            msg += "as the host (%s in use)" % nic_backend
+            logging.error(msg)
+
+        return ip_addr
 
     def fill_addrs(self, addrs):
         """
