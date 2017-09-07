@@ -3870,15 +3870,22 @@ def quit(**dargs):
     return command(cmd, **dargs)
 
 
-def sendkey(name, options="", **dargs):
+def sendkey(name, keycode, codeset="", holdtime="", **dargs):
     """
     Send keycodes to the guest
     :param name: name of domain
-    :param codeset: the codeset of keycodes
     :param keycode: the key code
+    :param codeset: the codeset of keycodes
+    :param holdtime: milliseconds for each keystroke to be held
+    :param dargs: standardized virsh function API keywords
     :return: CmdResult object
     """
-    cmd = "send-key %s %s" % (name, options)
+    cmd = "send-key %s" % name
+    if codeset:
+        cmd += " --codeset %s" % codeset
+    if holdtime:
+        cmd += " --holdtime %s" % holdtime
+    cmd += " %s" % keycode
     return command(cmd, **dargs)
 
 
