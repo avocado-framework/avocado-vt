@@ -2624,7 +2624,8 @@ class VM(virt_vm.BaseVM):
                             nic_name_re=params.get("nic_name_re"),
                             static_ip=int(params.get("static_ip", 0)),
                             start_addr_PF=params.get("start_addr_PF", None),
-                            net_mask=params.get("net_mask", None))
+                            net_mask=params.get("net_mask", None),
+                            pa_type=pa_type)
 
                     # Virtual Functions (VF) assignable devices
                     if pa_type == "vf":
