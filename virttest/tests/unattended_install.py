@@ -406,6 +406,10 @@ class UnattendedInstallConfig(object):
             else:
                 contents = dummy_graphical_re.sub('graphical', contents)
 
+        if self.params.get("ks_disk_specified", "no") == "yes":
+            insert_info = "ignoredisk --only-use=disk/by-id/*SYSTEM_DISK0\n"
+            insert_pos = "install\n"
+            contents = contents.replace(insert_pos, insert_pos + insert_info)
         logging.debug("Unattended install contents:")
         for line in contents.splitlines():
             logging.debug(line)
