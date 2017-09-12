@@ -79,25 +79,26 @@ def pre_post_plugin_type():
         return 'avocado.plugins.job.prepost'
 
 
-setup(name='avocado-plugins-vt',
-      version=VERSION,
-      description='Avocado Virt Test Compatibility Layer plugin',
-      author='Avocado Developers',
-      author_email='avocado-devel@redhat.com',
-      url='http://github.com/avocado-framework/avocado-vt',
-      packages=find_packages(exclude=('selftests*',)),
-      package_data={"virttest": ["*.*"]},
-      data_files=get_data_files(),
-      entry_points={
-          'avocado.plugins.cli': [
-              'vt-list = avocado_vt.plugins.vt_list:VTLister',
-              'vt = avocado_vt.plugins.vt:VTRun',
-              ],
-          'avocado.plugins.cli.cmd': [
-              'vt-bootstrap = avocado_vt.plugins.vt_bootstrap:VTBootstrap',
-              ],
-          pre_post_plugin_type(): [
-              'vt-joblock = avocado_vt.plugins.vt_joblock:VTJobLock',
-              ],
-          },
-      )
+if __name__ == "__main__":
+    setup(name='avocado-plugins-vt',
+          version=VERSION,
+          description='Avocado Virt Test Compatibility Layer plugin',
+          author='Avocado Developers',
+          author_email='avocado-devel@redhat.com',
+          url='http://github.com/avocado-framework/avocado-vt',
+          packages=find_packages(exclude=('selftests*',)),
+          package_data={"virttest": ["*.*"]},
+          data_files=get_data_files(),
+          entry_points={
+              'avocado.plugins.cli': [
+                  'vt-list = avocado_vt.plugins.vt_list:VTLister',
+                  'vt = avocado_vt.plugins.vt:VTRun',
+                  ],
+              'avocado.plugins.cli.cmd': [
+                  'vt-bootstrap = avocado_vt.plugins.vt_bootstrap:VTBootstrap',
+                  ],
+              pre_post_plugin_type(): [
+                  'vt-joblock = avocado_vt.plugins.vt_joblock:VTJobLock',
+                  ],
+              },
+          )
