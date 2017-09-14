@@ -637,6 +637,7 @@ class BaseVM(object):
         Return the MAC address of a NIC.
 
         :param nic_index: Index of the NIC
+        :return: MAC address of the NIC
         :raise VMMACAddressMissingError: If no MAC address is defined for the
                 requested NIC
         """
@@ -654,21 +655,19 @@ class BaseVM(object):
         will traverses from first nic to first element toward the end
         util get a reachable IP address;
         """
-        flexible_nic_index = ("yes" == self.params.get("flexible_nic_index", "no"))
-        macs, nics_index = self.virtnet.mac_list(), [index]
-        flexible_nic_index &= bool(len(macs) > 1)
-        if flexible_nic_index:
-            nics_index += [i for i in xrange(len(macs)) if i != index]
-        for index in nics_index:
+        nr_nics = len(self.virtnet.mac_list())
+        nics_index = [index]
+        flexible = self.params.get("flexible_nic_index") == "yes"
+        if (flexible and nr_nics > 1):
+            nics_index += [i for i in xrange(nr_nics) if i != index]
+
+        for nic in nics_index:
             try:
-                return self._get_address(index, ip_version)
-            except VMAddressError:
-                if not flexible_nic_index:
+                return self._get_address(nic, ip_version)
+            except (VMMACAddressMissingError, VMIPAddressMissingError,
+                    VMAddressVerificationError):
+                if nic == nics_index[-1]:
                     raise
-                else:
-                    continue
-        else:
-            raise VMAddressError(index)
 
     def _get_address(self, index=0, ip_version="ipv4"):
         """
@@ -684,93 +683,49 @@ class BaseVM(object):
         :raise VMIPAddressMissingError: If no IP address is found for the the
                 NIC's MAC address
         :raise VMAddressVerificationError: If the MAC-IP address mapping cannot
-                be verified (using arping)
+                be verified
         """
-        def _get_mac_addr(nic_index):
-            """
-            wrap for get_mac_address, if VM type is 'libvirt' or 'v2v'
-            find nic mac address from xml file
-            """
-            mac = None
-            try:
-                mac = self.get_mac_address(nic_index)
-            except VMMACAddressMissingError:
-                if self.params.get('vm_type') not in ['libvirt', 'v2v']:
-                    raise
-                mac = self.get_virsh_mac_address(nic_index)
-            if not mac:
-                raise VMMACAddressMissingError(nic_index)
-            return mac.lower()
-
         nic = self.virtnet[index]
+
         # TODO: Determine port redirection in use w/o checking nettype
         if nic.nettype not in ['bridge', 'macvtap']:
             hostname = socket.gethostname()
             return socket.gethostbyname(hostname)
 
-        mac = _get_mac_addr(index)
-        if 'mac' not in nic:
-            if self.params.get("vm_type") in ["libvirt", "v2v"]:
-                self.virtnet.set_mac_address(index, mac)
-                self.virtnet[index] = nic
+        mac = self.get_mac_address(index).lower()
+        if (self.params.get('using_linklocal') == "yes" and
+                ip_version == "ipv6"):
+            return utils_net.ipv6_from_mac_addr(mac)
 
-        if ip_version == "ipv4":
-            ip_addr = None
-            devs = set([nic.netdst]) if nic.has_key('netdst') else set()
-            try:
-                ip_addr = (self.address_cache.get(mac) or
-                           utils_net.parse_arp().get(mac))
-                if not ip_addr:
-                    raise VMIPAddressMissingError(mac, ip_version)
-                macs = self.virtnet.mac_list()
-                reachable = utils_net.verify_ip_address_ownership(
-                    ip_addr, macs, timeout=16, devs=devs)
-                if not reachable:
-                    raise VMAddressVerificationError(mac, ip_addr)
-            except VMAddressVerificationError:
-                nic_params = self.params.object_params(nic.nic_name)
-                pci_assignable = nic_params.get("pci_assignable") != "no"
-                # SR-IOV/Macvtap cards may not be in same subnet with the cards
-                # used by host by default, so arp checks won't work. Therefore,
-                # do not raise VMAddressVerificationError when SR-IOV is used.
-                if pci_assignable or nic.nettype == "macvtap":
-                    nic_backend = pci_assignable and "SR-IOV" or "macvtap"
-                    msg = "Could not verify DHCP lease: %s-> %s." % (nic.mac,
-                                                                     ip_addr)
-                    msg += " Maybe %s is not in the same subnet " % ip_addr
-                    msg += "as the host (%s in use)" % nic_backend
-                    logging.error(msg)
-                else:
-                    if mac in self.address_cache:
-                        self.address_cache[mac] = None
-                    else:
-                        # clean item in host arp table
-                        os.system("arp -d %s" % ip_addr)
-                    logging.debug("Clean up outdated address info, "
-                                  "MAC: %s, IP: %s" % (mac, ip_addr))
-                    raise
-            if not ip_addr:
-                raise VMIPAddressMissingError(mac, ip_version)
-            # Update address_cache since ip/mac releation ship verify pass
-            self.address_cache[mac] = ip_addr
-            return ip_addr
-        else:
-            # Try to get and return IPV6 address
-            if self.params.get('using_linklocal') == "yes":
-                ipv6_addr = utils_net.ipv6_from_mac_addr(nic.mac)
-            # Using global address
-            else:
-                mac_key = "%s_6" % nic.mac
-                ipv6_addr = self.address_cache.get(mac_key.lower())
-            if not ipv6_addr:
-                raise VMIPAddressMissingError(nic.mac, ip_version)
-            # Check whether the ipv6 address is reachable
-            utils_net.refresh_neigh_table(nic.netdst, ipv6_addr)
-            if not utils_misc.wait_for(lambda: utils_net.neigh_reachable(
-                                       ipv6_addr, nic.netdst),
-                                       30, 0, 1, "Wait neighbour reachable"):
-                raise VMAddressVerificationError(nic.mac, ipv6_addr)
-            return ipv6_addr
+        # TODO: Redesign address_cache and declare it in this class
+        mac_pattern = "%s_6" if ip_version == "ipv6" else "%s"
+        ip_addr = self.address_cache.get(mac_pattern % mac)
+        if not ip_addr:
+            raise VMIPAddressMissingError(mac, ip_version)
+
+        devs = set([nic.netdst]) if nic.has_key('netdst') else set()
+        if not utils_net.verify_ip_address_ownership(ip_addr, [mac],
+                                                     devs=devs):
+            logging.debug("Clean up outdated address info, "
+                          "MAC: %s, IP: %s" % (mac, ip_addr))
+            self.address_cache.pop(mac_pattern % mac)
+
+            nic_params = self.params.object_params(nic.nic_name)
+            pci_assignable = nic_params.get("pci_assignable") != "no"
+
+            if not (pci_assignable or nic.nettype == "macvtap"):
+                raise VMAddressVerificationError(mac, ip_addr)
+
+            # SR-IOV/Macvtap cards may not be in same subnet with the cards
+            # used by host by default, so arp checks won't work. Therefore,
+            # do not raise VMAddressVerificationError when SR-IOV is used.
+            nic_backend = pci_assignable and "SR-IOV" or "macvtap"
+            msg = "Could not verify DHCP lease: %s-> %s." % (mac, ip_addr)
+            msg += " Maybe %s is not in the same subnet " % ip_addr
+            msg += "as the host (%s in use)" % nic_backend
+            logging.error(msg)
+
+        return ip_addr
 
     def fill_addrs(self, addrs):
         """
@@ -838,7 +793,7 @@ class BaseVM(object):
         if not ipaddr:
             # Read guest address via serial console and update VM address
             # cache to avoid get out-dated address.
-            utils_net.update_mac_ip_address(self, self.params, timeout)
+            utils_net.update_mac_ip_address(self, timeout)
             ipaddr = self.get_address(nic_index, ip_version)
         msg = 'Found/Verified IP %s for VM %s NIC %s' % (ipaddr,
                                                          self.name,
@@ -1016,14 +971,15 @@ class BaseVM(object):
         try:
             address = self.get_address(nic_index, self.ip_version)
         except (VMIPAddressMissingError, VMAddressVerificationError), e:
-            utils_net.update_mac_ip_address(self, self.params, timeout)
+            utils_net.update_mac_ip_address(self, timeout)
             address = self.get_address(nic_index, self.ip_version)
         neigh_attach_if = ""
         if self.ip_version == "ipv6" and address.lower().startswith("fe80"):
             neigh_attach_if = utils_net.get_neigh_attch_interface(address)
         port = self.get_port(int(self.params.get("shell_port")))
-        log_filename = ("session-%s-%s.log" %
-                        (self.name, utils_misc.generate_random_string(4)))
+        log_filename = ("session-%s-%s-%s.log" %
+                        (self.name, time.strftime("%m-%d-%H:%M:%S"),
+                         utils_misc.generate_random_string(4)))
         session = remote.remote_login(client, address, port, username,
                                       password, prompt, linesep,
                                       log_filename, timeout,
@@ -1032,13 +988,6 @@ class BaseVM(object):
                                                         ""))
         self.remote_sessions.append(session)
         return session
-
-    def remote_login(self, nic_index=0, timeout=LOGIN_TIMEOUT,
-                     username=None, password=None):
-        """
-        Alias for login() for backward compatibility.
-        """
-        return self.login(nic_index, timeout, username, password)
 
     @error_context.context_aware
     def commander(self, nic_index=0, timeout=LOGIN_TIMEOUT,
@@ -1083,13 +1032,6 @@ class BaseVM(object):
         self.remote_sessions.append(cmd)
         return cmd
 
-    def remote_commander(self, nic_index=0, timeout=LOGIN_TIMEOUT,
-                         username=None, password=None):
-        """
-        Alias for commander() for backward compatibility.
-        """
-        return self.commander(nic_index, timeout, username, password)
-
     def wait_for_login(self, nic_index=0, timeout=LOGIN_WAIT_TIMEOUT,
                        internal_timeout=LOGIN_TIMEOUT,
                        serial=False, restart_network=False,
@@ -1110,62 +1052,65 @@ class BaseVM(object):
             """
             Print guest network information into debug log file
             """
-            session = self.serial_login(internal_timeout, username, password, False)
+            session = None
             try:
+                session = self.serial_login(internal_timeout, username,
+                                            password)
                 out = session.cmd_output("ipconfig || ifconfig", timeout=60)
                 txt = ["Guest network status:\n %s" % out]
                 out = session.cmd_output("ip route || route print", timeout=60)
                 txt += ["Guest route table:\n %s" % out]
-                logging.debug("\n".join(txt))
+                logging.error("\n".join(txt))
+            except Exception, e:
+                logging.error("Can't get guest network status "
+                              "information, reason: %s", e)
             finally:
-                session.close()
+                if session:
+                    session.close()
 
+        error = None
         logging.debug("Attempting to log into '%s' (timeout %ds)",
                       self.name, timeout)
-        start = time.time()
+        start_time = time.time()
         try:
             self.wait_for_get_address(nic_index,
                                       timeout=timeout,
                                       ip_version=self.ip_version)
-        except Exception:
+        except Exception, error:
             self.verify_alive()
             print_guest_network_info()
             if not (serial or restart_network):
                 raise
-            if restart_network:
-                serial_login_args = (timeout, internal_timeout,
-                                     restart_network, username,
-                                     password, False)
-                session = self.wait_for_serial_login(*serial_login_args)
-                if serial:
-                    return session
-                session.close()
-
-        end = time.time()
-        # try to login if VM bootup really
-        timeout -= (end - start)
-        login_timeout = time.time() + timeout
-        while True:
-            try:
-                return self.login(nic_index,
-                                  internal_timeout,
-                                  username,
-                                  password)
-            except Exception:
-                pass
-            # Re-try login via serial console, if seiral is true
+            session = self.wait_for_serial_login(timeout, internal_timeout,
+                                                 restart_network, username,
+                                                 password, False)
             if serial:
-                try:
-                    return self.serial_login(internal_timeout,
-                                             username,
-                                             password,
-                                             False)
-                except Exception:
-                    pass
-            if time.time() > login_timeout:
-                print_guest_network_info()
-                raise remote.LoginTimeoutError('exceeded %s s timeout' %
-                                               login_timeout)
+                return session
+            session.close()
+
+        # try to login if VM bootup really, at least once
+        not_tried = True
+        end_time = start_time + timeout
+        while time.time() < end_time or not_tried:
+            try:
+                return self.login(nic_index, internal_timeout,
+                                  username, password)
+            except (remote.LoginAuthenticationError,
+                    remote.LoginBadClientError):
+                if serial:
+                    break
+                raise
+            except Exception, error:
+                pass
+            not_tried = False
+
+        print_guest_network_info()
+        if serial:
+            return self.wait_for_serial_login(timeout, internal_timeout,
+                                              False, username, password)
+
+        raise remote.LoginTimeoutError("exceeded %s s timeout, last "
+                                       "failure: %s" % (timeout, error))
 
     @error_context.context_aware
     def copy_files_to(self, host_path, guest_path, nic_index=0, limit="",
