@@ -609,8 +609,6 @@ class DevContainer(object):
         except DeviceError, exc:
             raise DeviceHotplugError(device, 'According to qemu_device: %s'
                                      % exc, self, ver_out)
-        out = device.hotplug(monitor)
-
         return out, ver_out
 
     def simple_unplug(self, device, monitor):
