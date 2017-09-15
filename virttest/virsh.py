@@ -4375,3 +4375,20 @@ def domrename(domain, new_name, options="", **dargs):
     """
     cmd = "domrename %s %s %s" % (domain, new_name, options)
     return command(cmd, **dargs)
+
+
+def nodedev_event(event=None, event_timeout=None, options="", **dargs):
+    """
+    List event types, or wait for nodedevice events to occur
+    :param event: Event type to wait for
+    :param event_timeout: Timeout seconds
+    :param options: Extra options
+    :param dargs: Standardized virsh function API keywords
+    :return: CmdResult instance
+    """
+    cmd = "nodedev-event %s" % options
+    if event:
+        cmd += " --event %s" % event
+    if event_timeout:
+        cmd += " --timeout %s" % event_timeout
+    return command(cmd, **dargs)
