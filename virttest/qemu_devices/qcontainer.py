@@ -1578,6 +1578,8 @@ class DevContainer(object):
         if scsi_hba == "virtio-scsi-pci":
             if "mmio" in image_params.get("machine_type"):
                 scsi_hba = "virtio-scsi-device"
+            elif "s390" in image_params.get("machine_type"):
+                scsi_hba = "virtio-scsi-ccw"
         return self.images_define_by_variables(name,
                                                storage.get_image_filename(
                                                    image_params,
@@ -1681,6 +1683,8 @@ class DevContainer(object):
         if scsi_hba == "virtio-scsi-pci":
             if "mmio" in image_params.get("machine_type"):
                 scsi_hba = "virtio-scsi-device"
+            elif "s390" in image_params.get("machine_type"):
+                scsi_hba = "virtio-scsi-ccw"
         shared_dir = os.path.join(data_dir.get_data_dir(), "shared")
         cache_mode = image_params.get('image_aio') == 'native' and 'none' or ''
         return self.images_define_by_variables(name,
