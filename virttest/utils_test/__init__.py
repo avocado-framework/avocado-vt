@@ -727,6 +727,7 @@ def run_avocado(vm, params, test, testlist=[], timeout=3600,
 
     :param vm: VM object
     :param params: VM param
+    :param test: test object
     :param testlist: testlist as list of tuples like (testcase, muxfile)
     :param timeout: test timeout
     :param testrepo: test repository default is avocado-misc-tests
@@ -1699,6 +1700,41 @@ def get_date(session=None):
         return date_info
     except (process.CmdError, aexpect.ShellError), detail:
         raise exceptions.TestFail("Get date failed. %s " % detail)
+
+
+def run_avocado_bg(vm, params, test):
+    """
+    Function to run avocado tests inside guest in background
+
+    :param vm: VM object
+    :param params: VM param
+    :param test: test object
+    :return: background test thread
+    """
+    testlist = []
+    avocado_test = params.get("avocado_test", "")
+    avocado_mux = params.get("avocado_mux", "")
+    avocado_testargs = params.get("avocado_testargs", "")
+    avocado_timeout = int(params.get("avocado_timeout", 3600))
+    avocado_testrepo = params.get("avocado_testrepo",
+                                  "https://github.com/avocado-framework-tests/avocado-misc-tests.git")
+    for index, item in enumerate(avocado_test.split(',')):
+        try:
+            mux = ''
+            mux = avocado_mux.split(',')[index]
+        except IndexError:
+            pass
+        testlist.append((item, mux))
+    if testlist:
+        bt = BackgroundTest(run_avocado,
+                            [vm, params, test, testlist,
+                             avocado_timeout, avocado_testrepo, "pip",
+                             True, avocado_testargs, True])
+        bt.start()
+        return bt
+    else:
+        logging.warning("Background guest tests not run")
+        return None
 
 
 # Stress functions################
