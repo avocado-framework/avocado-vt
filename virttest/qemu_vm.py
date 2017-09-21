@@ -1320,7 +1320,7 @@ class VM(virt_vm.BaseVM):
                 try:
                     idx = random.randint(0, (len(devices) - 1))
                     return {"aobject": devices[idx].get_qid()}
-                except IndexError:
+                except (IndexError, ValueError):
                     pass
             return {'aobject': params.get('pci_bus', 'pci.0')}
 
