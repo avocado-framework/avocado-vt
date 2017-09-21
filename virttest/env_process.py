@@ -51,6 +51,11 @@ kernel_modified = False
 kernel_cmdline = None
 
 
+#: QEMU version regex.  Attempts to extract the simple and extended version
+#: information from the output produced by `qemu -version`
+QEMU_VERSION_RE = r"QEMU (?:PC )?emulator version\s([0-9]+\.[0-9]+\.[0-9]+)\s?\((.*?)\)"
+
+
 def preprocess_image(test, params, image_name, vm_process_status=None):
     """
     Preprocess a single QEMU image according to the instructions in params.
@@ -722,12 +727,12 @@ def preprocess(test, params, env):
             kvm_userspace_version = "Unknown"
     else:
         qemu_path = utils_misc.get_qemu_binary(params)
-        version_output = avocado_process.system_output("%s -help" % qemu_path,
+        version_output = avocado_process.system_output("%s -version" % qemu_path,
                                                        verbose=False)
         version_line = version_output.split('\n')[0]
-        matches = re.findall("[Vv]ersion .*?,", version_line)
+        matches = re.match(QEMU_VERSION_RE, version_line)
         if matches:
-            kvm_userspace_version = " ".join(matches[0].split()[1:]).strip(",")
+            kvm_userspace_version = "%s (%s)" % matches.groups()
         else:
             kvm_userspace_version = "Unknown"
 
