@@ -3396,12 +3396,13 @@ def monotonic_time():
         return monotonic_time_os()
 
 
-def verify_host_dmesg(dmesg_log_file=None, ignore_result=False, level_check=3):
+def verify_dmesg(dmesg_log_file=None, ignore_result=False, level_check=3,
+                 session=None):
     """
-    Find host call trace in dmesg log.
+    Find host/guest call trace in dmesg log.
 
     :param dmesg_log_file: The file used to save host dmesg. If None, will save
-                           host dmesg to logging.debug.
+                           guest/host dmesg to logging.debug.
     :param ignore_result: True or False, whether to fail test case on issues
     :param level_check: level of severity of issues to be checked
                         1 - emerg
@@ -3409,20 +3410,31 @@ def verify_host_dmesg(dmesg_log_file=None, ignore_result=False, level_check=3):
                         3 - emerg,alert,crit
                         4 - emerg,alert,crit,err
                         5 - emerg,alert,crit,err,warn
+    :param session: session object to guest
     """
     cmd = "dmesg -T -l %s|grep ." % ",".join(map(str, xrange(0, int(level_check))))
-    output = process.run(cmd, timeout=30, ignore_status=True,
-                         verbose=False, shell=True)
-    if output.exit_status == 0:
-        err = "Found failures in dmesg log"
-        d_log = "Host dmesg log:\n%s" % output.stdout
+    if session:
+        environ = "guest"
+        status, output = session.cmd_status_output(cmd)
+    else:
+        environ = "host"
+        out = process.run(cmd, timeout=30, ignore_status=True,
+                          verbose=False, shell=True)
+        status = out.exit_status
+        output = out.stdout
+    if status == 0:
+        err = "Found failures in %s dmesg log" % environ
+        d_log = "dmesg log:\n%s" % output
         if dmesg_log_file:
             file(dmesg_log_file, "w+").write(d_log)
-            err += " Please check host dmesg log %s." % dmesg_log_file
+            err += " Please check %s dmesg log %s." % (environ, dmesg_log_file)
         else:
-            err += " Please check host dmesg log in debug log."
+            err += " Please check %s dmesg log in debug log." % environ
             logging.debug(d_log)
-        process.system("dmesg -C", ignore_status=True)
+        if session:
+            session.cmd("dmesg -C")
+        else:
+            process.system("dmesg -C", ignore_status=True)
         if not ignore_result:
             raise exceptions.TestFail(err)
 
