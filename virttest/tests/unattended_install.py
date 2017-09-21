@@ -406,6 +406,12 @@ class UnattendedInstallConfig(object):
             else:
                 contents = dummy_graphical_re.sub('graphical', contents)
 
+        """
+        cmd_only_use_disk is used for specifying disk which will be used during installation.
+        """
+        if self.params.get("cmd_only_use_disk"):
+            insert_info = self.params.get("cmd_only_use_disk") + '\n'
+            contents += insert_info
         logging.debug("Unattended install contents:")
         for line in contents.splitlines():
             logging.debug(line)
