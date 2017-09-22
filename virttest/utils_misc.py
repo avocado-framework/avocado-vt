@@ -1630,6 +1630,7 @@ class NumaInfo(object):
         self.numa_sys_path = "/sys/devices/system/node"
         self.all_nodes = self.get_all_nodes(all_nodes_path)
         self.online_nodes = self.get_online_nodes(online_nodes_path)
+        self.online_nodes_withmem = self.get_online_nodes_withmem()
         self.nodes = {}
         self.distances = {}
         for node_id in self.online_nodes:
@@ -1731,6 +1732,23 @@ class NumaInfo(object):
         :rtype: string
         """
         return self.get_all_node_meminfo()[node_id][key]
+
+    def get_online_nodes_withmem(self):
+        """
+        Get online node with memory
+        """
+
+        online_nodes_mem = get_path(self.numa_sys_path,
+                                    "has_normal_memory")
+        if os.path.isfile(online_nodes_mem):
+            online_nodes_mem_file = open(online_nodes_mem, "r")
+            nodes_info = online_nodes_mem_file.read()
+            online_nodes_mem_file.close()
+        else:
+            logging.warning("sys numa node with memory file not"
+                            "present, fallback to online nodes")
+            return self.online_nodes
+        return cpu_str_to_list(nodes_info)
 
 
 class NumaNode(object):
