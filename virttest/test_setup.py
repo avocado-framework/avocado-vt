@@ -2050,7 +2050,7 @@ def disable_smt(params=None):
 
     :param params: Test params dict for remote machine login details
     """
-    smt_output = ""
+    SMT_DISABLED_STRS = ["SMT is off", "Machine is not SMT capable"]
     cmd = "ppc64_cpu --smt"
     if params:
         server_ip = params["server_ip"]
@@ -2060,15 +2060,21 @@ def disable_smt(params=None):
                                                server_user, server_pwd,
                                                r"[\#\$]\s*$")
         cmd_output = server_session.cmd_status_output(cmd)
-        if (cmd_output[0] == 0):
-            smt_output = cmd_output[1].strip()
-        else:
+        smt_output = cmd_output[1].strip()
+        if (cmd_output[0] != 0) and (smt_output not in SMT_DISABLED_STRS):
             server_session.close()
             raise exceptions.TestSetupFail("Couldn't get SMT of server: %s"
                                            % cmd_output[1])
     else:
-        smt_output = process.system_output(cmd, shell=True).strip()
-    if (smt_output != "SMT is off"):
+        try:
+            smt_output = process.system_output(cmd, shell=True).strip()
+        except process.CmdError as info:
+            smt_output = info.result.stderr.strip()
+            if smt_output not in SMT_DISABLED_STRS:
+                raise exceptions.TestSetupFail("Couldn't get SMT of server: %s"
+                                               % smt_output)
+    smt_enabled = smt_output not in SMT_DISABLED_STRS
+    if smt_enabled:
         cmd = "ppc64_cpu --smt=off"
         if params:
             if (server_user.lower() != "root"):
