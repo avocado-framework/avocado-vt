@@ -904,7 +904,10 @@ def postprocess(test, params, env):
     if params.get("verify_guest_dmesg", "yes") == "yes" and params.get("start_vm", "no") == "yes":
         guest_dmesg_log_file = params.get("guest_dmesg_logfile", "guest_dmesg.log")
         guest_dmesg_log_file = utils_misc.get_path(test.debugdir, guest_dmesg_log_file)
-        virt_vm.verify_dmesg(dmesg_log_file=guest_dmesg_log_file)
+        living_vms = [vm for vm in env.get_all_vms() if vm.is_alive()]
+        for vm in living_vms:
+            guest_dmesg_log_file += ".%s" % vm.name
+            vm.verify_dmesg(dmesg_log_file=guest_dmesg_log_file)
 
     # Postprocess all VMs and images
     try:
