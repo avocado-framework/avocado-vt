@@ -2464,6 +2464,20 @@ class VM(virt_vm.BaseVM):
                 qdev = qdevices.QGlobal(vga_type, pro, val)
                 self.devices.insert(qdev)
 
+    @property
+    def spice_port(self):
+        logging.warning("'VM.spice_port' will be removed by the end of "
+                        "the year 2017, please use 'self.spice_options."
+                        "get(\"spice_port\")' instead")
+        return self.spice_options.get("spice_port")
+
+    @property
+    def spice_tls_port(self):
+        logging.warning("'VM.spice_tls_port' will be removed by the end of "
+                        "the year 2017, please use 'self.spice_options."
+                        "get(\"spice_tls_port\")' instead")
+        return self.spice_options.get("spice_tls_port")
+
     @error_context.context_aware
     def create(self, name=None, params=None, root_dir=None,
                timeout=120, migration_mode=None,
@@ -2707,8 +2721,6 @@ class VM(virt_vm.BaseVM):
             try:
                 self.devices, self.spice_options = self.make_create_command()
                 self.update_vga_global_default(params, migration_mode)
-                self.spice_port = self.spice_options.get("spice_port")
-                self.spice_tls_port = self.spice_options.get("spice_tls_port")
                 logging.debug(self.devices.str_short())
                 logging.debug(self.devices.str_bus_short())
                 qemu_command = self.devices.cmdline()
