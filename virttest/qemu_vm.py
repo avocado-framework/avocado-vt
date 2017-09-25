@@ -939,7 +939,7 @@ class VM(virt_vm.BaseVM):
             """
             processes spice parameters on rhel5 host.
 
-            :param spice_options - dict with spice keys/values
+            :param spice_params - dict with spice keys/values
             :param port_range - tuple with port range, default: (3000, 3199)
             """
 
