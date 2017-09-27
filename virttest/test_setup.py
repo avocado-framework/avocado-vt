@@ -1379,33 +1379,21 @@ class PciAssignable(object):
         return True
 
     @error_context.context_aware
-    def modprobe_driver(self, driver=None, option=None):
+    def modprobe_driver(self, driver=None):
         """
         Method to modprobe driver
 
         :param driver: driver name
-        :param option: modprobe options to driver
         :return: True on success, False on failure
         """
-        msg = "Loading the driver '%s' without option" % driver
-        error_context.context(msg, logging.info)
         if not driver:
             driver = self.driver
+        msg = "Loading the driver '%s'" % driver
+        error_context.context(msg, logging.info)
         cmd = "modprobe %s" % driver
-        if not option:
-            option = self.driver_option
-        if driver and driver != "mlx5_core" and ARCH != 'x86_64':
-            if option:
-                cmd += " %s" % option
         if process.system(cmd, ignore_status=True, shell=True):
             logging.debug("Failed to modprobe driver: %s", driver)
             return False
-        if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
-            pf_devices = self.get_pf_mlx()
-            if (self.get_vfs_count() > 0):
-                for PF in pf_devices:
-                    if not self.set_vf(PF, option):
-                        return False
         return True
 
     @error_context.context_aware
@@ -1425,8 +1413,8 @@ class PciAssignable(object):
                               logging.info)
         if ARCH != 'ppc64le':
             kvm_re_probe = True
-            o = process.system_output("dmesg")
-            ecap = re.findall("ecap\s+(.\w+)", o)
+            dmesg = process.system_output("dmesg", verbose=False)
+            ecap = re.findall("ecap\s+(.\w+)", dmesg)
             if not ecap:
                 logging.error("Fail to check host interrupt remapping support")
             else:
