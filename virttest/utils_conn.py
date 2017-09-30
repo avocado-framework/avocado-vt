@@ -804,6 +804,7 @@ class TLSConnection(ConnectionBase):
                  'tls_port', 'listen_addr', 'tls_allowed_dn_list',
                  'custom_pki_path', 'tls_verify_cert', 'tls_sanity_cert',
                  'ca_cakey_path', 'scp_new_cacert', 'restart_libvirtd',
+                 'client_libvirtdconf', 'client_syslibvirtd', 'server_hosts',
                  'credential_dict', 'qemu_tls')
 
     def __init__(self, *args, **dargs):
@@ -874,6 +875,12 @@ class TLSConnection(ConnectionBase):
                                               password=self.client_pwd,
                                               port='22',
                                               remote_path='/etc/hosts')
+        self.server_hosts = remote.RemoteFile(address=self.server_ip,
+                                              client='scp',
+                                              username=self.server_user,
+                                              password=self.server_pwd,
+                                              port='22',
+                                              remote_path='/etc/hosts')
 
         self.server_syslibvirtd = remote.RemoteFile(
             address=self.server_ip,
@@ -888,6 +895,22 @@ class TLSConnection(ConnectionBase):
             client='scp',
             username=self.server_user,
             password=self.server_pwd,
+            port='22',
+            remote_path='/etc/libvirt/libvirtd.conf')
+
+        self.client_syslibvirtd = remote.RemoteFile(
+            address=self.client_ip,
+            client='scp',
+            username=self.client_user,
+            password=self.client_pwd,
+            port='22',
+            remote_path='/etc/sysconfig/libvirtd')
+
+        self.client_libvirtdconf = remote.RemoteFile(
+            address=self.client_ip,
+            client='scp',
+            username=self.client_user,
+            password=self.client_pwd,
             port='22',
             remote_path='/etc/libvirt/libvirtd.conf')
 
@@ -911,6 +934,10 @@ class TLSConnection(ConnectionBase):
         del self.client_hosts
         del self.server_syslibvirtd
         del self.server_libvirtdconf
+        del self.server_hosts
+        del self.client_syslibvirtd
+        del self.client_libvirtdconf
+
         # restart libvirtd service on server
         try:
             session = remote.wait_for_login('ssh', server_ip, '22',
@@ -963,11 +990,19 @@ class TLSConnection(ConnectionBase):
         server_session.close()
         logging.debug("TLS certifications recover successfully.")
 
-    def conn_setup(self, server_setup=True, client_setup=True):
+    def conn_setup(self, server_setup=True, client_setup=True,
+                   server_setup_local=False):
         """
         setup a TLS connection between server and client.
         At first check the certtool needed to setup.
         Then call some setup functions to complete connection setup.
+
+        :param server_setup: True to setup TLS server on target host,
+                             False to not setup
+        :param client_setup: True to setup TLS client on source host,
+                             False to not setup
+        :param server_setup_local: True to setup TLS server on source host,
+                             False to not setup
         """
         if self.CERTTOOL == '/bin/true':
             raise ConnToolNotFoundError('certtool',
@@ -982,11 +1017,13 @@ class TLSConnection(ConnectionBase):
             self.server_setup()
         if client_setup:
             self.client_setup()
+        if server_setup_local:
+            self.server_setup(on_local=True)
 
         self.close_session()
         logging.debug("TLS connection setup successfully.")
 
-    def server_setup(self):
+    def server_setup(self, on_local=False):
         """
         setup private key and certificate file for server.
 
@@ -996,21 +1033,37 @@ class TLSConnection(ConnectionBase):
         (4).edit /etc/sysconfig/libvirtd on server.
         (5).edit /etc/libvirt/libvirtd.conf on server.
         (6).restart libvirtd service on server.
+
+        :param on_local: True to setup TLS server on source host,
+                         otherwise not.
         """
         # initialize variables
         tmp_dir = self.tmp_dir
         scp_new_cacert = self.scp_new_cacert
         # sometimes, need to reuse previous CA cert
         if self.ca_cakey_path and scp_new_cacert == 'no':
-            cacert_path = '%s/%s' % (self.ca_cakey_path,
-                                     self.credential_dict['cacert'])
+            cacert_path = os.path.join(self.ca_cakey_path, self.credential_dict['cacert'])
+            cakey_path = os.path.join(self.ca_cakey_path, self.credential_dict['cakey'])
         else:
-            cacert_path = '%s/%s' % (tmp_dir, self.credential_dict['cacert'])
-        serverkey_path = '%s/%s' % (tmp_dir, self.credential_dict['serverkey'])
-        servercert_path = '%s/%s' % (tmp_dir, self.credential_dict['servercert'])
-        server_ip = self.server_ip
-        server_user = self.server_user
-        server_pwd = self.server_pwd
+            cacert_path = os.path.join(tmp_dir, self.credential_dict['cacert'])
+            cakey_path = os.path.join(tmp_dir, self.credential_dict['cakey'])
+
+        serverkey_path = os.path.join(tmp_dir, self.credential_dict['serverkey'])
+        servercert_path = os.path.join(tmp_dir, self.credential_dict['servercert'])
+
+        # If need setup TLS server on source machine,
+        # we need switch the machine information between source and target machines
+        if on_local:
+            server_ip = self.client_ip
+            server_user = self.client_user
+            server_pwd = self.client_pwd
+            server_cn = self.client_cn
+        else:
+            server_ip = self.server_ip
+            server_user = self.server_user
+            server_pwd = self.server_pwd
+            server_cn = self.server_cn
+
         auth_tls = self.auth_tls
         tls_port = self.tls_port
         listen_addr = self.listen_addr
@@ -1022,16 +1075,21 @@ class TLSConnection(ConnectionBase):
 
         # build a server key.
         build_server_key(tmp_dir, self.ca_cakey_path,
-                         self.server_cn, self.CERTTOOL, self.credential_dict)
+                         server_cn, self.CERTTOOL,
+                         self.credential_dict, on_local)
 
         # scp cacert.pem, servercert.pem and serverkey.pem to server.
-        server_session = self.server_session
+        if on_local:
+            server_session = self.client_session
+        else:
+            server_session = self.server_session
         cmd = "mkdir -p %s" % self.libvirt_pki_private_dir
         status, output = server_session.cmd_status_output(cmd)
         if status:
             raise ConnMkdirError(self.libvirt_pki_private_dir, output)
 
         scp_dict = {cacert_path: self.pki_CA_dir,
+                    cakey_path: self.pki_CA_dir,
                     servercert_path: self.libvirt_pki_dir,
                     serverkey_path: self.libvirt_pki_private_dir}
 
@@ -1048,38 +1106,47 @@ class TLSConnection(ConnectionBase):
         # configuration files, so simply return.
         if self.qemu_tls:
             return
+
+        # Ensure to use proper configuration objects
+        if on_local:
+            operate_libvirtdconf = self.client_libvirtdconf
+            operate_syslibvirtd = self.client_syslibvirtd
+        else:
+            operate_libvirtdconf = self.server_libvirtdconf
+            operate_syslibvirtd = self.server_syslibvirtd
+
         # edit the /etc/sysconfig/libvirtd to add --listen args in libvirtd
         pattern2repl = {r".*LIBVIRTD_ARGS\s*=\s*\"\s*--listen\s*\".*":
                         "LIBVIRTD_ARGS=\"--listen\""}
-        self.server_syslibvirtd.sub_else_add(pattern2repl)
+        operate_syslibvirtd.sub_else_add(pattern2repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add listen_tls=1
         pattern2repl = {r".*listen_tls\s*=\s*.*": "listen_tls=1"}
-        self.server_libvirtdconf.sub_else_add(pattern2repl)
+        operate_libvirtdconf.sub_else_add(pattern2repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add
         # listen_addr=$listen_addr
         if listen_addr:
             pattern2repl[r".*listen_addr\s*=.*"] = \
                 "listen_addr='%s'" % (listen_addr)
-            self.server_libvirtdconf.sub_else_add(pattern2repl)
+            operate_libvirtdconf.sub_else_add(pattern2repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add auth_tls=$auth_tls
         if auth_tls != 'none':
             pattern2repl = {r".*auth_tls\s*=\s*.*": 'auth_tls="%s"' % auth_tls}
-            self.server_libvirtdconf.sub_else_add(pattern2repl)
+            operate_libvirtdconf.sub_else_add(pattern2repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add tls_port=$tls_port
         if tls_port != '16514':
             pattern2repl = {r".*tls_port\s*=\s*.*": 'tls_port="%s"' % tls_port}
-            self.server_libvirtdconf.sub_else_add(pattern2repl)
+            operate_libvirtdconf.sub_else_add(pattern2repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add
         # tls_allowed_dn_list=$tls_allowed_dn_list
         if isinstance(tls_allowed_dn_list, list):
             pattern2repl = {r".*tls_allowed_dn_list\s*=\s*.*":
                             'tls_allowed_dn_list=%s' % tls_allowed_dn_list}
-            self.server_libvirtdconf.sub_else_add(pattern2repl)
+            operate_libvirtdconf.sub_else_add(pattern2repl)
 
         # edit the /etc/libvirt/libvirtd.conf to override
         # the default server certification file path
@@ -1093,30 +1160,41 @@ class TLSConnection(ConnectionBase):
                 abs_cert_file = os.path.join(pki_path, cert_file)
                 pattern2repl[r".*%s\s*=.*" % (cert_name)] = \
                     '%s="%s"' % (cert_name, abs_cert_file)
-            self.server_libvirtdconf.sub_else_add(pattern2repl)
+            operate_libvirtdconf.sub_else_add(pattern2repl)
 
         # edit the /etc/libvirt/libvirtd.conf to disable client verification
         if tls_verify_cert == "no":
             pattern2repl = {r".*tls_no_verify_certificate\s*=\s*.*":
                             'tls_no_verify_certificate=1'}
-            self.server_libvirtdconf.sub_else_add(pattern2repl)
+            operate_libvirtdconf.sub_else_add(pattern2repl)
 
         # edit the /etc/libvirt/libvirtd.conf to disable server sanity checks
         if tls_sanity_cert == "no":
             pattern2repl = {r".*tls_no_sanity_certificate\s*=\s*.*":
                             'tls_no_sanity_certificate=1'}
-            self.server_libvirtdconf.sub_else_add(pattern2repl)
+            operate_libvirtdconf.sub_else_add(pattern2repl)
 
         # restart libvirtd service on server
         if restart_libvirtd == "yes":
-            try:
-                session = remote.wait_for_login('ssh', server_ip, '22',
-                                                server_user, server_pwd,
-                                                r"[\#\$]\s*$")
-                libvirtd_service = utils_libvirtd.Libvirtd(session=session)
+            if on_local:
+                libvirtd_service = utils_libvirtd.Libvirtd()
                 libvirtd_service.restart()
-            except (remote.LoginError, aexpect.ShellError), detail:
-                raise ConnServerRestartError(detail)
+            else:
+                try:
+                    session = remote.wait_for_login('ssh', server_ip, '22',
+                                                    server_user, server_pwd,
+                                                    r"[\#\$]\s*$")
+                    libvirtd_service = utils_libvirtd.Libvirtd(session=session)
+                    libvirtd_service.restart()
+                except (remote.LoginError, aexpect.ShellError), detail:
+                    raise ConnServerRestartError(detail)
+
+        # edit /etc/hosts on remote host in case of connecting
+        # from remote host to local host
+        if not on_local:
+            pattern2repl = {r".*%s.*" % self.client_cn:
+                            "%s %s" % (self.client_ip, self.client_cn)}
+            self.server_hosts.sub_else_add(pattern2repl)
 
     def client_setup(self):
         """
@@ -1129,9 +1207,12 @@ class TLSConnection(ConnectionBase):
         """
         # initialize variables
         tmp_dir = self.tmp_dir
-        cacert_path = '%s/%s' % (tmp_dir, self.credential_dict['cacert'])
-        clientkey_path = '%s/%s' % (tmp_dir, self.credential_dict['clientkey'])
-        clientcert_path = '%s/%s' % (tmp_dir, self.credential_dict['clientcert'])
+
+        cacert_path = os.path.join(tmp_dir, self.credential_dict['cacert'])
+        cakey_path = os.path.join(tmp_dir, self.credential_dict['cakey'])
+        clientkey_path = os.path.join(tmp_dir, self.credential_dict['clientkey'])
+        clientcert_path = os.path.join(tmp_dir, self.credential_dict['clientcert'])
+
         client_ip = self.client_ip
         client_user = self.client_user
         client_pwd = self.client_pwd
@@ -1148,6 +1229,7 @@ class TLSConnection(ConnectionBase):
             raise ConnMkdirError(self.libvirt_pki_private_dir, output)
 
         scp_dict = {cacert_path: self.pki_CA_dir,
+                    cakey_path: self.pki_CA_dir,
                     clientcert_path: self.libvirt_pki_dir,
                     clientkey_path: self.libvirt_pki_private_dir}
 
@@ -1168,19 +1250,24 @@ class TLSConnection(ConnectionBase):
 
 
 def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool",
-                     names_dict=None):
+                     credential_dict=None):
     """
     (1).initialization for variables.
     (2).make a private key with certtool command.
     (3).prepare a info file.
     (4).make a certificate file with certtool command.
+
+    :param client_cn: cn for client info
+    :param certtool: cert command
+    :param credential_dict: A dict for credential files' names
     """
     # Initialize variables
-    cakey_path = '%s/%s' % (tmp_dir, names_dict['cakey'])
-    cacert_path = '%s/%s' % (tmp_dir, names_dict['cacert'])
-    clientkey_path = '%s/%s' % (tmp_dir, names_dict['clientkey'])
-    clientcert_path = '%s/%s' % (tmp_dir, names_dict['clientcert'])
-    clientinfo_path = '%s/client.info' % tmp_dir
+
+    cakey_path = os.path.join(tmp_dir, credential_dict['cakey'])
+    cacert_path = os.path.join(tmp_dir, credential_dict['cacert'])
+    clientkey_path = os.path.join(tmp_dir, credential_dict['clientkey'])
+    clientcert_path = os.path.join(tmp_dir, credential_dict['clientcert'])
+    clientinfo_path = os.path.join(tmp_dir, 'client.info')
 
     # make a private key.
     cmd = "%s --generate-privkey > %s" % (certtool, clientkey_path)
@@ -1210,23 +1297,40 @@ def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool",
 
 def build_server_key(tmp_dir, ca_cakey_path=None,
                      server_cn="TLSServer", certtool="certtool",
-                     names_dict=None):
+                     credential_dict=None, on_local=False):
     """
     (1).initialization for variables.
     (2).make a private key with certtool command.
     (3).prepare a info file.
     (4).make a certificate file with certtool command.
+
+    :param client_cn: cn for client info
+    :param certtool: cert command
+    :param credential_dict: A dict for credential files' names
+    :param on_local: True to clean up old server key on source host
     """
     # initialize variables
     # sometimes, need to reuse previous CA cert
     if not ca_cakey_path:
-        cakey_path = '%s/%s' % (tmp_dir, names_dict['cakey'])
+        cakey_path = os.path.join(tmp_dir, credential_dict['cakey'])
+        cacert_path = os.path.join(tmp_dir, credential_dict['cacert'])
     else:
-        cakey_path = '%s/%s' % (ca_cakey_path, names_dict['cakey'])
-    serverkey_path = '%s/%s' % (tmp_dir, names_dict['serverkey'])
-    cacert_path = '%s/%s' % (tmp_dir, names_dict['cacert'])
-    servercert_path = '%s/%s' % (tmp_dir, names_dict['servercert'])
-    serverinfo_path = '%s/server.info' % tmp_dir
+        cakey_path = os.path.join(ca_cakey_path, credential_dict['cakey'])
+        cacert_path = os.path.join(ca_cakey_path, credential_dict['cacert'])
+
+    serverkey_path = os.path.join(tmp_dir, credential_dict['serverkey'])
+    servercert_path = os.path.join(tmp_dir, credential_dict['servercert'])
+    serverinfo_path = os.path.join(tmp_dir, 'server.info')
+
+    if on_local:
+        # delete serverkey.pem, servercert.pem and server.info
+        # already created for remote host
+        if os.path.exists(serverkey_path):
+            os.remove(serverkey_path)
+        if os.path.exists(servercert_path):
+            os.remove(servercert_path)
+        if os.path.exists(serverinfo_path):
+            os.remove(serverinfo_path)
 
     # make a private key
     cmd = "%s --generate-privkey > %s" % (certtool, serverkey_path)
@@ -1255,7 +1359,7 @@ def build_server_key(tmp_dir, ca_cakey_path=None,
 
 
 def build_CA(tmp_dir, cn="AUTOTEST.VIRT", ca_cakey_path=None,
-             certtool="certtool", names_dict=None):
+             certtool="certtool", credential_dict=None):
     """
     setup private key and certificate file which are needed to build.
     certificate file for client and server.
@@ -1264,14 +1368,19 @@ def build_CA(tmp_dir, cn="AUTOTEST.VIRT", ca_cakey_path=None,
     (2).make a private key with certtool command.
     (3).prepare a info file.
     (4).make a certificate file with certtool command.
+    :param tmp_dir: temp directory to store credentail files in
+    :param cn: cn for CA info
+    :param ca_cakey_path: path of CA key file
+    :param certtool: cert command
+    :param credential_dict: A dict for credential files' names
     """
     # initialize variables
     if not ca_cakey_path:
-        cakey_path = '%s/%s' % (tmp_dir, names_dict['cakey'])
+        cakey_path = os.path.join(tmp_dir, credential_dict['cakey'])
     else:
-        cakey_path = '%s/%s' % (ca_cakey_path, names_dict['cakey'])
-    cainfo_path = '%s/ca.info' % tmp_dir
-    cacert_path = '%s/%s' % (tmp_dir, names_dict['cacert'])
+        cakey_path = os.path.join(ca_cakey_path, credential_dict['cakey'])
+    cainfo_path = os.path.join(tmp_dir, 'ca.info')
+    cacert_path = os.path.join(tmp_dir, credential_dict['cacert'])
 
     # make a private key
     # sometimes, may reuse previous CA cert, so don't always need to
