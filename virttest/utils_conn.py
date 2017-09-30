@@ -795,13 +795,16 @@ class TLSConnection(ConnectionBase):
     ca_cakey_path: CA certification path, sometimes need to reuse previous cert
     scp_new_cacert: copy new CA certification, default is to always copy
     restart_libvirtd: default is to restart libvirtd
+    credential_dict: A dict for required file names in libvirt or qemu style
+    qemu_tls: True for qemu native TLS support
     """
     __slots__ = ('server_cn', 'client_cn', 'ca_cn', 'CERTTOOL', 'pki_CA_dir',
                  'libvirt_pki_dir', 'libvirt_pki_private_dir', 'client_hosts',
                  'server_libvirtdconf', 'server_syslibvirtd', 'auth_tls',
                  'tls_port', 'listen_addr', 'tls_allowed_dn_list',
                  'custom_pki_path', 'tls_verify_cert', 'tls_sanity_cert',
-                 'ca_cakey_path', 'scp_new_cacert', 'restart_libvirtd')
+                 'ca_cakey_path', 'scp_new_cacert', 'restart_libvirtd',
+                 'credential_dict', 'qemu_tls')
 
     def __init__(self, *args, **dargs):
         """
@@ -827,6 +830,7 @@ class TLSConnection(ConnectionBase):
         init_dict['scp_new_cacert'] = init_dict.get('scp_new_cacert', 'yes')
         init_dict['restart_libvirtd'] = init_dict.get(
             'restart_libvirtd', 'yes')
+
         super(TLSConnection, self).__init__(init_dict)
         # check and set CERTTOOL in slots
         try:
@@ -836,6 +840,18 @@ class TLSConnection(ConnectionBase):
                             "TLS connection will not setup normally")
             CERTTOOL = '/bin/true'
         self.CERTTOOL = CERTTOOL
+
+        self.qemu_tls = "yes" == init_dict.get('qemu_tls', 'no')
+        delimeter = ''
+        if self.qemu_tls:
+            delimeter = '-'
+
+        self.credential_dict = {'cacert': 'ca%scert.pem' % delimeter,
+                                'cakey': 'ca%skey.pem' % delimeter,
+                                'servercert': 'server%scert.pem' % delimeter,
+                                'serverkey': 'server%skey.pem' % delimeter,
+                                'clientcert': 'client%scert.pem' % delimeter,
+                                'clientkey': 'client%skey.pem' % delimeter}
         # set some pki related dir values
         if not self.custom_pki_path:
             self.pki_CA_dir = ('/etc/pki/CA/')
@@ -958,7 +974,9 @@ class TLSConnection(ConnectionBase):
                                         "certtool executable not set or found on path.")
 
         # support build multiple CAs with different CA CN
-        build_CA(self.tmp_dir, self.ca_cn, self.ca_cakey_path, self.CERTTOOL)
+        build_CA(self.tmp_dir, self.ca_cn,
+                 self.ca_cakey_path, self.CERTTOOL,
+                 self.credential_dict)
         # not always need to setup CA, client and server together
         if server_setup:
             self.server_setup()
@@ -984,11 +1002,12 @@ class TLSConnection(ConnectionBase):
         scp_new_cacert = self.scp_new_cacert
         # sometimes, need to reuse previous CA cert
         if self.ca_cakey_path and scp_new_cacert == 'no':
-            cacert_path = '%s/cacert.pem' % self.ca_cakey_path
+            cacert_path = '%s/%s' % (self.ca_cakey_path,
+                                     self.credential_dict['cacert'])
         else:
-            cacert_path = '%s/cacert.pem' % tmp_dir
-        serverkey_path = '%s/serverkey.pem' % tmp_dir
-        servercert_path = '%s/servercert.pem' % tmp_dir
+            cacert_path = '%s/%s' % (tmp_dir, self.credential_dict['cacert'])
+        serverkey_path = '%s/%s' % (tmp_dir, self.credential_dict['serverkey'])
+        servercert_path = '%s/%s' % (tmp_dir, self.credential_dict['servercert'])
         server_ip = self.server_ip
         server_user = self.server_user
         server_pwd = self.server_pwd
@@ -1003,7 +1022,7 @@ class TLSConnection(ConnectionBase):
 
         # build a server key.
         build_server_key(tmp_dir, self.ca_cakey_path,
-                         self.server_cn, self.CERTTOOL)
+                         self.server_cn, self.CERTTOOL, self.credential_dict)
 
         # scp cacert.pem, servercert.pem and serverkey.pem to server.
         server_session = self.server_session
@@ -1025,7 +1044,10 @@ class TLSConnection(ConnectionBase):
             except remote.SCPError, detail:
                 raise ConnSCPError('AdminHost', local_path,
                                    server_ip, remote_path, detail)
-
+        # When qemu supports TLS, it needs not to modify below
+        # configuration files, so simply return.
+        if self.qemu_tls:
+            return
         # edit the /etc/sysconfig/libvirtd to add --listen args in libvirtd
         pattern2repl = {r".*LIBVIRTD_ARGS\s*=\s*\"\s*--listen\s*\".*":
                         "LIBVIRTD_ARGS=\"--listen\""}
@@ -1107,15 +1129,16 @@ class TLSConnection(ConnectionBase):
         """
         # initialize variables
         tmp_dir = self.tmp_dir
-        cacert_path = '%s/cacert.pem' % tmp_dir
-        clientkey_path = '%s/clientkey.pem' % tmp_dir
-        clientcert_path = '%s/clientcert.pem' % tmp_dir
+        cacert_path = '%s/%s' % (tmp_dir, self.credential_dict['cacert'])
+        clientkey_path = '%s/%s' % (tmp_dir, self.credential_dict['clientkey'])
+        clientcert_path = '%s/%s' % (tmp_dir, self.credential_dict['clientcert'])
         client_ip = self.client_ip
         client_user = self.client_user
         client_pwd = self.client_pwd
 
         # build a client key.
-        build_client_key(tmp_dir, self.client_cn, self.CERTTOOL)
+        build_client_key(tmp_dir, self.client_cn, self.CERTTOOL,
+                         self.credential_dict)
 
         # scp cacert.pem, clientcert.pem and clientkey.pem to client.
         client_session = self.client_session
@@ -1144,7 +1167,8 @@ class TLSConnection(ConnectionBase):
         self.client_hosts.sub_else_add(pattern2repl)
 
 
-def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool"):
+def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool",
+                     names_dict=None):
     """
     (1).initialization for variables.
     (2).make a private key with certtool command.
@@ -1152,10 +1176,10 @@ def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool"):
     (4).make a certificate file with certtool command.
     """
     # Initialize variables
-    cakey_path = '%s/cakey.pem' % tmp_dir
-    cacert_path = '%s/cacert.pem' % tmp_dir
-    clientkey_path = '%s/clientkey.pem' % tmp_dir
-    clientcert_path = '%s/clientcert.pem' % tmp_dir
+    cakey_path = '%s/%s' % (tmp_dir, names_dict['cakey'])
+    cacert_path = '%s/%s' % (tmp_dir, names_dict['cacert'])
+    clientkey_path = '%s/%s' % (tmp_dir, names_dict['clientkey'])
+    clientcert_path = '%s/%s' % (tmp_dir, names_dict['clientcert'])
     clientinfo_path = '%s/client.info' % tmp_dir
 
     # make a private key.
@@ -1185,7 +1209,8 @@ def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool"):
 
 
 def build_server_key(tmp_dir, ca_cakey_path=None,
-                     server_cn="TLSServer", certtool="certtool"):
+                     server_cn="TLSServer", certtool="certtool",
+                     names_dict=None):
     """
     (1).initialization for variables.
     (2).make a private key with certtool command.
@@ -1195,12 +1220,12 @@ def build_server_key(tmp_dir, ca_cakey_path=None,
     # initialize variables
     # sometimes, need to reuse previous CA cert
     if not ca_cakey_path:
-        cakey_path = '%s/cakey.pem' % tmp_dir
+        cakey_path = '%s/%s' % (tmp_dir, names_dict['cakey'])
     else:
-        cakey_path = '%s/cakey.pem' % ca_cakey_path
-    serverkey_path = '%s/serverkey.pem' % tmp_dir
-    cacert_path = '%s/cacert.pem' % tmp_dir
-    servercert_path = '%s/servercert.pem' % tmp_dir
+        cakey_path = '%s/%s' % (ca_cakey_path, names_dict['cakey'])
+    serverkey_path = '%s/%s' % (tmp_dir, names_dict['serverkey'])
+    cacert_path = '%s/%s' % (tmp_dir, names_dict['cacert'])
+    servercert_path = '%s/%s' % (tmp_dir, names_dict['servercert'])
     serverinfo_path = '%s/server.info' % tmp_dir
 
     # make a private key
@@ -1229,7 +1254,8 @@ def build_server_key(tmp_dir, ca_cakey_path=None,
         raise ConnCertError(serverinfo_path, CmdResult.stderr)
 
 
-def build_CA(tmp_dir, cn="AUTOTEST.VIRT", ca_cakey_path=None, certtool="certtool"):
+def build_CA(tmp_dir, cn="AUTOTEST.VIRT", ca_cakey_path=None,
+             certtool="certtool", names_dict=None):
     """
     setup private key and certificate file which are needed to build.
     certificate file for client and server.
@@ -1241,11 +1267,11 @@ def build_CA(tmp_dir, cn="AUTOTEST.VIRT", ca_cakey_path=None, certtool="certtool
     """
     # initialize variables
     if not ca_cakey_path:
-        cakey_path = '%s/cakey.pem' % tmp_dir
+        cakey_path = '%s/%s' % (tmp_dir, names_dict['cakey'])
     else:
-        cakey_path = '%s/cakey.pem' % ca_cakey_path
+        cakey_path = '%s/%s' % (ca_cakey_path, names_dict['cakey'])
     cainfo_path = '%s/ca.info' % tmp_dir
-    cacert_path = '%s/cacert.pem' % tmp_dir
+    cacert_path = '%s/%s' % (tmp_dir, names_dict['cacert'])
 
     # make a private key
     # sometimes, may reuse previous CA cert, so don't always need to
