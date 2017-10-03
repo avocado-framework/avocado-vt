@@ -154,15 +154,14 @@ class VirtTestOptionsProcess(object):
         nettype_setting = 'config vt.qemu.nettype'
         if not self.options.vt_config:
             # Let's select reasonable defaults depending on vt_type
-            if self.options.vt_type == 'qemu':
-                self.options.vt_nettype = (self.options.vt_nettype if
-                                           self.options.vt_nettype else 'user')
-            elif self.options.vt_type == 'spice':
-                self.options.vt_nettype = (self.options.vt_nettype if
-                                           self.options.vt_nettype else 'none')
-            else:
-                self.options.vt_nettype = (self.options.vt_nettype if
-                                           self.options.vt_nettype else 'bridge')
+            if not self.options.vt_nettype:
+                if self.options.vt_type == 'qemu':
+                    self.options.vt_nettype = ("bridge" if os.getuid() == 0
+                                               else "user")
+                elif self.options.vt_type == 'spice':
+                    self.options.vt_nettype = "none"
+                else:
+                    self.options.vt_nettype = "bridge"
 
             if self.options.vt_nettype not in SUPPORTED_NET_TYPES:
                 raise ValueError("Invalid %s '%s'. "
