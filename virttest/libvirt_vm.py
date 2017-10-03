@@ -492,6 +492,40 @@ class VM(virt_vm.BaseVM):
             cmd += " %s" % cells
             return cmd.strip(",")
 
+        def pin_numa(help_text, host_numa_node_list):
+            """
+            Method to pin guest numa with host numa
+            :param help_text: virt-install help message to check the option
+            :param host_numa_node_list: list of online host numa nodes
+
+            :return: parameter to pin host and guest numa with virt-install
+            """
+            if not has_option(help_text, "numatune"):
+                return ""
+            cmd = " --numatune"
+            numa_pin_mode = params.get("numa_pin_mode", "strict")
+            # If user gives specific host numa nodes to pin by comma separated
+            # string pin_to_host_numa_node = "0,1,2", check if the numa
+            # node is in online numa list and use.
+            host_numa = str(params.get("pin_to_host_numa_node", ""))
+            if host_numa:
+                host_numa_list = host_numa.split(',')
+                for each_numa in host_numa_list:
+                    if each_numa not in host_numa_node_list:
+                        logging.error("host numa node - %s is not online or "
+                                      "doesn't have memory", each_numa)
+                        host_numa_list.remove(each_numa)
+                if host_numa_list:
+                    host_numa = ','.join(map(str, host_numa_list))
+                else:
+                    return ""
+            # If user haven't mention any specific host numa nodes, use
+            # available online numa nodes
+            else:
+                host_numa = ','.join((map(str, host_numa_node_list)))
+            cmd += " %s,mode=%s" % (host_numa, numa_pin_mode)
+            return cmd
+
         def pin_hugepage(help_text, hp_size, guest_numa):
             """
             Method to pin hugepages to guest numa with virt-install
@@ -879,6 +913,31 @@ class VM(virt_vm.BaseVM):
             if maxmemory:
                 numa_memory = int(maxmemory)
             virt_install_cmd += add_numa(numa_vcpus, numa_memory, numa_nodes)
+            if params.get("numa_pin", "no") == "yes":
+                # Get online host numa nodes
+                host_numa_node = utils_misc.NumaInfo()
+                host_numa_node_list = host_numa_node.online_nodes
+                # check if memory is available in host numa node
+                for each_numa in host_numa_node_list:
+                    if hugepage:
+                        hp = test_setup.HugePageConfig(params)
+                        free_hp = host_numa_node.read_from_node_meminfo(each_numa,
+                                                                        "HugePages_Free")
+                        free_mem = int(free_hp) * int(hp.get_hugepage_size())
+                    else:
+                        free_mem = int(host_numa_node.read_from_node_meminfo(each_numa,
+                                                                             'MemFree'))
+                    # Numa might be online but if it doesn't have free memory,
+                    # skip it
+                    if free_mem == 0:
+                        logging.debug("Host numa node: %s doesn't have memory",
+                                      each_numa)
+                        host_numa_node_list.remove(each_numa)
+                if not host_numa_node_list:
+                    logging.error("Host Numa nodes are not online or doesn't "
+                                  "have memory to pin")
+                else:
+                    virt_install_cmd += pin_numa(help_text, host_numa_node_list)
 
         if params.get("hugepage_pin", "no") == "yes":
             if numa and hugepage:
