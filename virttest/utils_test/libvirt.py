@@ -1249,7 +1249,9 @@ class MigrationTest(object):
                 self.RET_MIGRATION = False
                 self.RET_LOCK.release()
 
-    def migrate_pre_setup(self, desturi, params, cleanup=False):
+    def migrate_pre_setup(self, desturi, params,
+                          cleanup=False,
+                          ports='49152:49216'):
         """
         # Setup before migration,
         # 1. To enable migration ports using iptables
@@ -1258,8 +1260,9 @@ class MigrationTest(object):
         :param desturi: uri of destination machine to which VM gets migrated
         :param params: Test params dict
         :param cleanup: if True revert back to default setting, used to cleanup
+        :param ports: ports used for allowing migration
         """
-        iptable_rule = ["INPUT -p tcp -m tcp --dport 49152:49216 -j ACCEPT"]
+        iptable_rule = ["INPUT -p tcp -m tcp --dport %s -j ACCEPT" % ports]
         try:
             dest_ip = re.search(r'//.*/', desturi,
                                 re.I).group(0).strip('/').strip()
