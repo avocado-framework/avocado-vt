@@ -420,12 +420,6 @@ class VM(virt_vm.BaseVM):
                         logging.warning("hugepages option not supported by "
                                         "virt-install")
                     else:
-                        # checks whether host supports Hugepage and calculate
-                        # target hugepages required for the VM, set the
-                        # calculated hugepages in host nr_hugepages for
-                        # guest to use it
-                        hp = test_setup.HugePageConfig(params)
-                        hp.set_hugepages()
                         cmd += ",hugepages=yes"
                 return cmd
             else:
@@ -883,6 +877,8 @@ class VM(virt_vm.BaseVM):
 
         mem = params.get("mem")
         maxmemory = params.get("maxmemory", None)
+
+        # hugepage setup in host will be taken care in env_process
         hugepage = params.get("hugepage", "no") == "yes"
         if mem:
             virt_install_cmd += add_mem(help_text, mem, maxmemory, hugepage)
