@@ -889,13 +889,17 @@ class BaseVM(object):
         """
         Verify guest dmesg
         """
-        session = self.wait_for_login()
-        level = self.params.get("guest_dmesg_level", 3)
-        ignore_result = self.params.get("guest_dmesg_ignore", "no") == "yes"
-        utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
-                                ignore_result=ignore_result,
-                                level_check=level, session=session)
-        session.close()
+        try:
+            session = self.wait_for_login()
+        except Exception, details:
+            logging.warning("Unable to login to vm: %s\nSkipping dmesg check", details)
+        else:
+            level = self.params.get("guest_dmesg_level", 3)
+            ignore_result = self.params.get("guest_dmesg_ignore", "no") == "yes"
+            utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
+                                    ignore_result=ignore_result,
+                                    level_check=level, session=session)
+            session.close()
 
     def verify_bsod(self, scrdump_file):
         # For windows guest
