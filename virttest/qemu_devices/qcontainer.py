@@ -908,7 +908,8 @@ class DevContainer(object):
                 # Don't add pci-representation
                 return devices
             # And this is the pcie bus
-            bus = (qbuses.QPCIBus('pcie.0', 'PCIE', 'pci.0'),
+            pcie = qbuses.QPCIEWithRootPorts('pcie.0', 'PCIE', 'pci.0')
+            bus = (pcie,
                    qbuses.QStrictCustomBus(None, [['chassis'], [256]],
                                            '_PCI_CHASSIS', first_port=[1]),
                    qbuses.QStrictCustomBus(None, [['chassis_nr'], [256]],
@@ -918,6 +919,10 @@ class DevContainer(object):
             devices.append(qdevices.QStringDevice('gpex-root',
                                                   {'addr': 0, 'driver': 'gpex-root'},
                                                   parent_bus={'aobject': 'pci.0'}))
+            if self.has_device("pcie-root-port"):
+                # skip ports 0x0 - gpex
+                for addr in xrange(1, 31):
+                    devices.append(pcie.add_root_port(hex(addr)))
             return devices
 
         def machine_s390_virtio(cmd=False):
