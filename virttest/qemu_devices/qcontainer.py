@@ -843,7 +843,7 @@ class DevContainer(object):
                                )
             return devices
 
-        def machine_arm64_mmio(cmd=False):
+        def machine_arm64(cmd=False, bus="pci"):
             """
             aarch64 (arm64) doesn't support PCI bus, only MMIO transports.
             Also it requires pflash for EFI boot.
@@ -892,56 +892,9 @@ class DevContainer(object):
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
                                                   child_bus=bus,
                                                   aobject="virtio-mmio-bus"))
-            return devices
-
-        def machine_arm64_pci(cmd=False):
-            """
-            Experimental support for pci-based aarch64
-            :param cmd: If set uses "-M $cmd" to force this machine type
-            :return: List of added devices (including default buses)
-            """
-            def get_aavmf_vars(params):
-                """
-                Naive implementation of obtaining the main (first) image name
-                """
-                try:
-                    first_image = params.objects('images')[0]
-                    name = params.object_params(first_image).get('image_name')
-                    return os.path.join(data_dir.DATA_DIR,
-                                        name + "_AAVMF_VARS.fd")
-                except IndexError:
-                    raise DeviceError("Unable to map main image name to "
-                                      "AAVMF variables file.")
-            logging.warn('Support for aarch64 is highly experimental!')
-            devices = []
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd))
-            # EFI pflash
-            aavmf_code = ("-drive file=/usr/share/AAVMF/AAVMF_CODE.fd,"
-                          "if=pflash,format=raw,unit=0,readonly=on")
-            devices.append(qdevices.QStringDevice('AAVMF_CODE',
-                                                  cmdline=aavmf_code))
-            aavmf_vars = get_aavmf_vars(params)
-            if not os.path.exists(aavmf_vars):
-                logging.warn("AAVMF variables file '%s' doesn't exist, "
-                             "recreating it from the template (this should "
-                             "only happen when you install the machine as "
-                             "there is no default boot in EFI!)", aavmf_vars)
-                shutil.copy2('/usr/share/AAVMF/AAVMF_VARS.fd', aavmf_vars)
-            aavmf_vars = ("-drive file=%s,if=pflash,format=raw,unit=1"
-                          % aavmf_vars)
-            devices.append(qdevices.QStringDevice('AAVMF_VARS',
-                                                  cmdline=aavmf_vars))
-            # Add virtio-bus
-            # TODO: Currently this uses QNoAddrCustomBus and does not
-            # set the device's properties. This means that the qemu qtree
-            # and autotest's representations are completelly different and
-            # can't be used.
-            bus = qbuses.QNoAddrCustomBus('bus', [['addr'], [32]],
-                                          'virtio-mmio-bus', 'virtio-bus',
-                                          'virtio-mmio-bus')
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="virtio-mmio-bus"))
+            if bus == "mmio":
+                # Don't add pci-representation
+                return devices
             # And this is the pcie bus
             bus = (qbuses.QPCIBus('pcie.0', 'PCIE', 'pci.0'),
                    qbuses.QStrictCustomBus(None, [['chassis'], [256]],
@@ -1010,9 +963,9 @@ class DevContainer(object):
                 if 'q35' in machine_type:   # Q35 + ICH9
                     devices = machine_q35(cmd)
                 elif arm_machine == 'arm64-pci':
-                    devices = machine_arm64_pci(cmd)
+                    devices = machine_arm64(cmd, bus="pci")
                 elif arm_machine == 'arm64-mmio':
-                    devices = machine_arm64_mmio(cmd)
+                    devices = machine_arm64(cmd, bus="mmio")
                 elif machine_type.startswith("s390"):
                     devices = machine_s390_virtio(cmd)
                 elif 'isapc' not in machine_type:   # i440FX
