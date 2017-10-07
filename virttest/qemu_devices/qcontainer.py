@@ -774,7 +774,8 @@ class DevContainer(object):
             logging.warn('Using Q35 machine which is not yet fully tested on '
                          'avocado-vt. False errors might occur.')
             devices = []
-            bus = (qbuses.QPCIBus('pcie.0', 'PCIE', 'pci.0'),
+            pcie = qbuses.QPCIEWithRootPorts('pcie.0', 'PCIE', 'pci.0')
+            bus = (pcie,
                    qbuses.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
                                            first_port=[1]),
                    qbuses.QStrictCustomBus(None, [['chassis_nr'], [256]],
@@ -795,6 +796,17 @@ class DevContainer(object):
                                                   parent_bus={
                                                       'aobject': 'pci.0'},
                                                   child_bus=qbuses.QAHCIBus('ide')))
+            if self.has_device("pcie-root-port"):
+                root_port_type = "pcie-root-port"
+            elif self.has_device("ioh3420"):
+                root_port_type = "ioh3420"
+            else:
+                root_port_type = None
+            if root_port_type is not None:
+                # skip ports 0x0 - mch; 0x1 - std vga; 0x1f - ich9
+                for addr in xrange(2, 30):
+                    devices.append(pcie.add_root_port(hex(addr),
+                                                      root_port_type))
             if self.has_option('device') and self.has_option("global"):
                 devices.append(qdevices.QStringDevice('fdc',
                                                       child_bus=qbuses.QFloppyBus('floppy')))
