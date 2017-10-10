@@ -21,7 +21,7 @@ You can add, say, foo.cfg to that dir with the content:
 
 ::
 
-    FooLinux:
+    - FooLinux:
         image_name = images/foo-linux
 
 Which would make it possible to specify this custom guest using
@@ -79,7 +79,7 @@ You can add, say, foo.cfg to that dir with the content:
 
 ::
 
-    FooWindows:
+    - FooWindows:
         image_name = images/foo-windows
 
 Which would make it possible to specify this custom guest using
