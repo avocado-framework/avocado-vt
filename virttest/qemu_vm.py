@@ -1815,8 +1815,9 @@ class VM(virt_vm.BaseVM):
                     net_params["guest_port%d" % i] = guest_port
 
                 # TODO: Is every NIC a PCI device?
-                devices.insert(StrDev("NET-%s" % nettype, cmdline=cmd,
-                                      params=net_params, cmdline_nd=cmd_nd))
+                devices.insert(StrDev("NET-%s" % nettype, aobject=netdev_id,
+                                      cmdline=cmd, params=net_params,
+                                      cmdline_nd=cmd_nd))
             else:
                 device_driver = nic_params.get("device_driver", "pci-assign")
                 pci_id = vm.pa_pci_ids[iov]
@@ -3601,6 +3602,22 @@ class VM(virt_vm.BaseVM):
                 device_add_cmd += ",mq=on"
             if 'vectors' in nic:
                 device_add_cmd += ",vectors=%s" % nic.vectors
+        bus = nic.get("pci_bus")
+        if bus is not None:
+            # Bus is aobject, not the actual bus id
+            buses = self.devices.get_buses({"aobject": bus})
+            qdev_type = "NET-%s" % nic.nettype
+            for bus in buses:
+                # Add device into internal representation to get the expected
+                # bus id
+                dev = qdevices.QBaseDevice(qdev_type, aobject=nic.nic_name)
+                if isinstance(bus.insert(dev), list):
+                    device_add_cmd += ",bus=%s" % dev.get_param("bus")
+                    break
+            else:
+                logging.warning("Ignoring pci_bus %s on %s because did "
+                                "not found correct candidate: %s", bus,
+                                nic_index_or_name, buses)
         device_add_cmd += nic.get('nic_extra_params', '')
         if 'romfile' in nic:
             device_add_cmd += ",romfile=%s" % nic.romfile
@@ -3648,6 +3665,24 @@ class VM(virt_vm.BaseVM):
                                             "guest, please check whether the "
                                             "hotplug module was loaded in "
                                             "guest")
+
+        bus = nic.get("pci_bus")
+        if bus is not None:
+            # Bus is aobject, not the actual bus id
+            buses = self.devices.get_buses({"aobject": bus})
+            aobject = nic.nic_name
+            for bus in buses:
+                for device in bus:
+                    if getattr(device, "aobject", None) == aobject:
+                        # Remove the device from internal representation
+                        if bus.remove(device):
+                            break
+                else:
+                    continue
+                break
+            else:
+                logging.warning("Unable to find nic %s in pci_buses %s.",
+                                nic_index_or_name, buses)
 
     @error_context.context_aware
     def deactivate_netdev(self, nic_index_or_name):

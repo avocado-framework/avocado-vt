@@ -706,6 +706,62 @@ class QPCISwitchBus(QPCIBus):
         self.__downstream_ports['0x%x' % addr[0]].insert(device)
 
 
+class QPCIEWithRootPorts(QPCIBus):
+
+    """
+    PCIE bus with injected root ports (devices are placed into root ports,
+    rather than directly to the pcie bus)
+    """
+
+    def __init__(self, busid, bus_type, aobject=None):
+        super(QPCIEWithRootPorts, self).__init__(busid, bus_type, aobject)
+        self.__root_ports = {}
+
+    def add_root_port(self, addr, port_type="pcie-root-port"):
+        if addr in self.__root_ports:
+            return self.__root_ports[addr]
+        else:
+            _addr = int(addr, 16)
+            bus_id = "%s.%s" % (self.busid, _addr)
+            bus = QPCIBus(bus_id, "PCIE", bus_id)
+            self.__root_ports["0x%x" % _addr] = bus
+            port = qdevices.QDevice(port_type,
+                                    {'id': bus_id,
+                                     'bus': self.busid,
+                                     'addr': "0x%x" % _addr},
+                                    aobject=self.aobject,
+                                    parent_bus={'busid': '_PCI_CHASSIS'},
+                                    child_bus=bus)
+            return port
+
+    def _insert(self, device, addr):
+        """
+        If root_port is available for given addr, insert it there, othervise
+        insert it directly into the pcie (as usual).
+        """
+        _addr = addr.split('-')[0]
+        if addr in self.__root_ports:
+            bus_id = "%s.%s" % (self.busid, int(_addr, 16))
+            device['bus'] = bus_id
+            device['port'] = "0x0"
+        else:
+            return super(QPCIEWithRootPorts, self)._insert(device, addr)
+        return []
+
+    def _set_device_props(self, device, addr):
+        """
+        If root_port is available for given addr, insert it there,
+        otherwise just set device props as it was inserted directly
+        without a root_port.
+        """
+        saddr = hex(addr[0])
+        if saddr in self.__root_ports:
+            self.__root_ports[saddr].insert(device)
+        else:
+            return super(QPCIEWithRootPorts, self)._set_device_props(device,
+                                                                     addr)
+
+
 class QSCSIBus(QSparseBus):
 
     """
