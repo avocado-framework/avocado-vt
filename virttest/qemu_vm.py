@@ -1176,7 +1176,7 @@ class VM(virt_vm.BaseVM):
                 cmd += ",family=%s" % family
             return cmd
 
-        def add_boot(devices, boot_order, boot_once, boot_menu, boot_strict):
+        def add_boot(devices, opts):
             if params.get('machine_type', "").startswith("arm"):
                 logging.warn("-boot on ARM is usually not supported, use "
                              "bootindex instead.")
@@ -1185,15 +1185,15 @@ class VM(virt_vm.BaseVM):
                 logging.warn("-boot on s390x only support boot strict=on")
                 return "-boot strict=on"
             cmd = " -boot"
-            patterns = ["order", "once", "menu", "strict"]
             options = []
-            for p in patterns:
+            for p in opts.keys():
                 pattern = "boot .*?(\[,?%s=(.*?)\]|\s+)" % p
                 if devices.has_option(pattern):
-                    option = locals()["boot_%s" % p]
-                    options.append("%s=%s" % (p, option))
+                    option = opts[p]
+                    if option is not None:
+                        options.append("%s=%s" % (p, option))
             if devices.has_option("boot \[a\|c\|d\|n\]"):
-                cmd += " %s" % boot_once
+                cmd += " %s" % opts["once"]
             elif options:
                 cmd += " %s" % ",".join(options)
             else:
@@ -2104,12 +2104,13 @@ class VM(virt_vm.BaseVM):
         devices.insert(StrDev('rtc', cmdline=add_rtc(devices)))
 
         if devices.has_option("boot"):
-            boot_order = params.get("boot_order", "cdn")
-            boot_once = params.get("boot_once", "c")
-            boot_menu = params.get("boot_menu", "off")
-            boot_strict = params.get("boot_strict", "off")
-            cmd = add_boot(
-                devices, boot_order, boot_once, boot_menu, boot_strict)
+            boot_opts = {}
+            boot_opts["order"] = params.get("boot_order", "cdn")
+            boot_opts["once"] = params.get("boot_once", "c")
+            boot_opts["menu"] = params.get("boot_menu", "off")
+            boot_opts["strict"] = params.get("boot_strict", "off")
+            boot_opts["reboot-timeout"] = params.get("boot_reboot_timeout")
+            cmd = add_boot(devices, boot_opts)
             devices.insert(StrDev('bootmenu', cmdline=cmd))
 
         p9_export_dir = params.get("9p_export_dir")
@@ -2183,7 +2184,7 @@ class VM(virt_vm.BaseVM):
             dev.set_param("file", ovmf_code_path)
             devices.insert(dev)
             if (not os.path.exists(ovmf_vars_path) or
-                    params.get("restore_ovmf_vars") == "yse"):
+                    params.get("restore_ovmf_vars") == "yes"):
                 cp_cmd = "cp -f %s %s" % (ovmf_vars_src_path, ovmf_vars_path)
                 process.system(cp_cmd)
             dev = qdevices.QDrive('ovmf_vars', use_device=False)
