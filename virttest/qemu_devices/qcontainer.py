@@ -763,6 +763,11 @@ class DevContainer(object):
         :param params: VM params
         :return: List of added devices (including default buses)
         """
+        if self.has_device("pcie-root-port"):
+            root_port_type = "pcie-root-port"
+        else:
+            root_port_type = "ioh3420"
+
         def machine_q35(cmd=False):
             """
             Q35 + ICH9
@@ -772,7 +777,7 @@ class DevContainer(object):
             logging.warn('Using Q35 machine which is not yet fully tested on '
                          'avocado-vt. False errors might occur.')
             devices = []
-            bus = (qbuses.QPCIBus('pcie.0', 'PCIE', 'pci.0'),
+            bus = (qbuses.QPCIEBus('pcie.0', 'PCIE', root_port_type, 'pci.0'),
                    qbuses.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
                                            first_port=[1]),
                    qbuses.QStrictCustomBus(None, [['chassis_nr'], [256]],
@@ -1754,9 +1759,9 @@ class DevContainer(object):
         :warning: x3130-upstream device creates only x3130-upstream device
                   and you are responsible for creating the downstream ports.
         """
-        driver = params.get('type', 'ioh3420')
+        driver = params.get('type', 'pcie-root-port')
         pcic_params = {"id": name}
-        if driver in ('ioh3420', 'x3130-upstream', 'x3130'):
+        if driver in ('pcie-root-port', 'ioh3420', 'x3130-upstream', 'x3130'):
             bus_type = 'PCIE'
         else:
             bus_type = 'PCI'
