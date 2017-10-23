@@ -257,7 +257,10 @@ class Monitor:
         # dependency by creating fake VM object which only contains `vm.name`,
         # which is in reality the only information required by Monitor object
         # at this time.
-        return VM(self.vm.name), self.name, self.filename, False
+        # Always ignore errors during unpickle as exceptions during "__init__"
+        # would cause the whole unpickle operation to fail, leaving us without
+        # any representation whatsoever.
+        return VM(self.vm.name), self.name, self.filename, True
 
     def _close_sock(self):
         try:

@@ -889,7 +889,10 @@ class BaseVM(object):
         """
         Verify guest dmesg
         """
-        session = self.wait_for_login()
+        if len(self.virtnet) > 0:
+            session = self.wait_for_login()
+        else:
+            session = self.wait_for_serial_login()
         level = self.params.get("guest_dmesg_level", 3)
         ignore_result = self.params.get("guest_dmesg_ignore", "no") == "yes"
         utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
