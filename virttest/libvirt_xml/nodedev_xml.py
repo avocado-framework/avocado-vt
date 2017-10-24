@@ -126,22 +126,42 @@ class PCIXML(CAPXML):
     """
 
     # Example:
-    #<capability type='pci'>
-    #  <domain>0</domain>
-    #  <bus>7</bus>
-    #  <slot>0</slot>
-    #  <function>0</function>
-    #  <product id='0x1521'>I350 Gigabit Network Connection</product>
-    #  <vendor id='0x8086'>Intel Corporation</vendor>
-    #  <capability type='virt_functions'>
-    #    <address domain='0x0000' bus='0x08' slot='0x10' function='0x0'/>
-    #    <address domain='0x0000' bus='0x08' slot='0x10' function='0x4'/>
-    #  </capability>
-    #  <numa node='0'/>
-    #</capability>
+    # <capability type='pci'>
+    #   <domain>0</domain>
+    #   <bus>7</bus>
+    #   <slot>0</slot>
+    #   <function>0</function>
+    #   <product id='0x1521'>I350 Gigabit Network Connection</product>
+    #   <vendor id='0x8086'>Intel Corporation</vendor>
+    #   <capability type='virt_functions'>
+    #     <address domain='0x0000' bus='0x08' slot='0x10' function='0x0'/>
+    #     <address domain='0x0000' bus='0x08' slot='0x10' function='0x4'/>
+    #   </capability>
+    #   <numa node='0'/>
+    # </capability>
+
+    # or the Example of iommu:
+    # <capability type="pci">
+    # <domain>0</domain>
+    # <bus>4</bus>
+    # <slot>0</slot>
+    # <function>1</function>
+    # <product id="0x1639">NetXtreme II BCM5709 Gigabit Ethernet</product>
+    # <vendor id="0x14e4">Broadcom Limited</vendor>
+    # <iommuGroup number="15">
+    #   <address bus="0x04" domain="0x0000" function="0x0" slot="0x00" />
+    #   <address bus="0x04" domain="0x0000" function="0x1" slot="0x00" />
+    # </iommuGroup>
+    # <numa node="0" />
+    # <pci-express>
+    #   <link port="0" speed="5" validity="cap" width="4" />
+    #   <link speed="5" validity="sta" width="4" />
+    # </pci-express>
+    # </capability>
 
     __slots__ = ('domain', 'bus', 'slot', 'function', 'product_id',
-                 'vendor_id', 'virt_functions', 'numa_node')
+                 'vendor_id', 'virt_functions', 'numa_node',
+                 'iommuGroup_number', 'iommuGroup_address')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementInt('domain', self, parent_xpath='/',
@@ -158,6 +178,12 @@ class PCIXML(CAPXML):
                                tag_name='vendor', attribute='id')
         accessors.XMLAttribute('numa_node', self, parent_xpath='/',
                                tag_name='numa', attribute='node')
+        accessors.XMLAttribute('iommuGroup_number', self, parent_xpath='/',
+                               tag_name='iommuGroup', attribute='number')
+        accessors.XMLElementList('iommuGroup_address', self,
+                                 parent_xpath='/iommuGroup',
+                                 marshal_from=self.marshal_from_address,
+                                 marshal_to=self.marshal_to_address)
         accessors.XMLElementList('virt_functions', self,
                                  parent_xpath='/capability',
                                  marshal_from=self.marshal_from_address,
