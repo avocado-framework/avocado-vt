@@ -1435,7 +1435,7 @@ class VM(virt_vm.BaseVM):
                 index = -1
                 logging.info("Setting debug kernel as default")
                 for i in range(len(kernel_list)):
-                    if "debug" in kernel_list[i]:
+                    if "debug" in kernel_list[i] and 'rescue' not in kernel_list[i].lower():
                         index = i
                         break
                 if index == -1:
