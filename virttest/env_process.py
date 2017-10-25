@@ -741,6 +741,10 @@ def preprocess(test, params, env):
 
     libvirtd_inst = utils_libvirtd.Libvirtd()
 
+    # If guest is configured to be backed by hugepages, setup hugepages in host
+    if params.get("hugepage") == "yes":
+        params["setup_hugepages"] = "yes"
+
     if params.get("setup_hugepages") == "yes":
         h = test_setup.HugePageConfig(params)
         suggest_mem = h.setup()
