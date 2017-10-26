@@ -558,6 +558,9 @@ class IscsiLIO(_IscsiComm):
         :param params: parameters dict for LIO backend of iSCSI
         """
         super(IscsiLIO, self).__init__(params, root_dir)
+        cmd = "targetcli clearconfig confirm=true"
+        if process.system(cmd, shell=True) != 0:
+            logging.error("targetcli configuration unable to clear")
 
     def get_target_id(self):
         """
@@ -825,6 +828,9 @@ class Iscsi(object):
         iscsi_instance = None
         err_msg = "Please install package(s): %s"
         try:
+            cmd = "targetcli clearconfig confirm=true"
+            if process.system(cmd, shell=True) != 0:
+                logging.error("targetcli configuration unable to clear")
             path.find_command("iscsiadm")
         except path.CmdNotFoundError:
             logging.error(err_msg, "iscsi-initiator-utils")
