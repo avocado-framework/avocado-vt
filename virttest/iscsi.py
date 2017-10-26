@@ -825,6 +825,9 @@ class Iscsi(object):
         iscsi_instance = None
         err_msg = "Please install package(s): %s"
         try:
+            cmd = "targetcli clearconfig confirm=true"
+            if process.system(cmd, shell=True) != 0:
+                logging.error("targetcli configuration unable to clear")
             path.find_command("iscsiadm")
         except path.CmdNotFoundError:
             logging.error(err_msg, "iscsi-initiator-utils")
