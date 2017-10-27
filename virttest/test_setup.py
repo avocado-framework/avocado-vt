@@ -875,7 +875,8 @@ class PciAssignable(object):
 
     def __init__(self, driver=None, driver_option=None, host_set_flag=None,
                  kvm_params=None, vf_filter_re=None, pf_filter_re=None,
-                 device_driver=None, nic_name_re=None, static_ip=None, net_mask=None, start_addr_PF=None):
+                 device_driver=None, nic_name_re=None, static_ip=None,
+                 net_mask=None, start_addr_PF=None, pa_type=None):
         """
         Initialize parameter 'type' which could be:
         vf: Virtual Functions
@@ -909,7 +910,7 @@ class PciAssignable(object):
         :type pf_filter_re: string
         :param static_ip: Flag to be set if the test should assign static IP
         :param start_addr_PF: Starting private IPv4 address for the PF interface
-
+        :param pa_type: pci_assignable type, pf or vf
         """
         self.devices = []
         self.driver = driver
@@ -924,6 +925,7 @@ class PciAssignable(object):
         self.static_ip = static_ip
         self.net_mask = net_mask
         self.start_addr_PF = start_addr_PF
+        self.pa_type = pa_type
 
         if nic_name_re:
             self.nic_name_re = nic_name_re
@@ -1284,20 +1286,9 @@ class PciAssignable(object):
             pci_ids = out.split()
         return pci_ids
 
-    def get_pf_mlx(self):
-        """
-        Get the PF devices for mlx5_core driver
-        """
-        # This function returns the network device associated with
-        # mellanox cx4 card
-        cmd = "lshw -c network -businfo | grep '%s' | awk '{print $2}'" % self.pf_filter_re
-        PF_devices = process.system_output(
-            cmd, shell=True, timeout=60).splitlines()
-        return (PF_devices)
-
     def get_pf_ids(self):
         """
-        Get the PF devices on x86 host
+        Get the id of PF devices
         """
         cmd = "lspci | grep -v 'Virtual Function' |awk '/%s/ {print $1}'" % self.pf_filter_re
         PF_devices = [i for i in process.system_output(
@@ -1349,7 +1340,7 @@ class PciAssignable(object):
         # Without this sleep ifconfig would fail With below error, since not all
         # probed interfaces of VF would have got properly renamed:
         # CmdError: Command 'ifconfig -a' failed (rc=1)
-        if int(self.driver_option) > 10:
+        if int(vf_no) > 10:
             time.sleep(60)
         return True
 
@@ -1365,14 +1356,12 @@ class PciAssignable(object):
         if driver and driver != "mlx5_core":
             cmd = "modprobe -r %s" % driver
         if ARCH == 'ppc64le' and driver == 'mlx5_core':
-            pf_devices = self.get_pf_mlx()
-            logging.info("Mellanox PF devices '%s'", pf_devices)
-            cmd = "rmmod mlx5_ib;modprobe -r mlx5_core;modprobe mlx5_ib"
-        elif ARCH == 'x86_64':
             pf_devices = self.get_pf_ids()
-        for PF in pf_devices:
-            if not self.set_vf(PF):
-                return False
+            logging.info("Mellanox PF devices '%s'", pf_devices)
+            for PF in pf_devices:
+                if not self.set_vf(PF):
+                    return False
+            cmd = "rmmod mlx5_ib;modprobe -r mlx5_core;modprobe mlx5_ib"
         if process.system(cmd, ignore_status=True, shell=True):
             logging.debug("Failed to remove driver: %s", driver)
             return False
@@ -1458,26 +1447,24 @@ class PciAssignable(object):
         if process.system("lsmod | grep -w %s" % self.driver, ignore_status=True,
                           shell=True):
             re_probe = True
-        # If driver is available then set VFs for ppc64le
-        else:
-            if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
-                pf_devices = self.get_pf_mlx()
-            elif ARCH == 'x86_64':
-                pf_devices = self.get_pf_ids()
+        # If driver is available and pa_type is vf then set VFs
+        elif self.pa_type == 'vf':
+            pf_devices = self.get_pf_ids()
             for PF in pf_devices:
                 if not self.set_vf(PF, self.driver_option):
                     re_probe = True
             if not self.check_vfs_count():
                 re_probe = True
-            if not re_probe:
-                self.setup = None
-                return True
+        if not re_probe:
+            self.setup = None
+            return True
 
         # Re-probe driver with proper number of VFs once more and raise
         # exception
         if re_probe:
             if not self.remove_driver() or not self.modprobe_driver():
                 return False
+            pf_devices = self.get_pf_ids()
             if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
                 set_ip = 0
                 if (self.static_ip):
@@ -1488,8 +1475,9 @@ class PciAssignable(object):
                     set_ip = 1
                 for PF in pf_devices:
                     if set_ip:
+                        ifname = utils_misc.get_interface_from_pci_id(PF)
                         ip_assign = "ifconfig %s %s netmask %s up" % (
-                            PF, ip_addr, self.net_mask)
+                            ifname, ip_addr, self.net_mask)
                         logging.info("assign IP to PF device %s : %s", PF,
                                      ip_assign)
                         if process.system(ip_assign, shell=True,
@@ -1497,16 +1485,13 @@ class PciAssignable(object):
                             return False
                         ip_addr = ip_addr + 1
                     logging.info("PF device '%s'.", PF)
-                    if not self.set_vf(PF, self.driver_option):
-                        return False
-            elif ARCH == 'x86_64':
-                pf_devices = self.get_pf_ids()
+            if self.pa_type == 'vf':
                 for PF in pf_devices:
                     if not self.set_vf(PF, self.driver_option):
                         return False
-            if not self.check_vfs_count():
-                # Even after re-probe there are no VFs created
-                return False
+                if not self.check_vfs_count():
+                    # Even after re-probe there are no VFs created
+                    return False
             dmesg = process.system_output("dmesg", timeout=60,
                                           ignore_status=True,
                                           verbose=False)
