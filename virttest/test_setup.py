@@ -1284,17 +1284,6 @@ class PciAssignable(object):
             pci_ids = out.split()
         return pci_ids
 
-    def get_pf_mlx(self):
-        """
-        Get the PF devices for mlx5_core driver
-        """
-        # This function returns the network device associated with
-        # mellanox cx4 card
-        cmd = "lshw -c network -businfo | grep '%s' | awk '{print $2}'" % self.pf_filter_re
-        PF_devices = process.system_output(
-            cmd, shell=True, timeout=60).splitlines()
-        return (PF_devices)
-
     def get_pf_ids(self):
         """
         Get the PF devices on x86 host
@@ -1365,7 +1354,7 @@ class PciAssignable(object):
         if driver and driver != "mlx5_core":
             cmd = "modprobe -r %s" % driver
         if ARCH == 'ppc64le' and driver == 'mlx5_core':
-            pf_devices = self.get_pf_mlx()
+            pf_devices = self.get_pf_ids()
             logging.info("Mellanox PF devices '%s'", pf_devices)
             cmd = "rmmod mlx5_ib;modprobe -r mlx5_core;modprobe mlx5_ib"
         elif ARCH == 'x86_64':
@@ -1460,10 +1449,7 @@ class PciAssignable(object):
             re_probe = True
         # If driver is available then set VFs for ppc64le
         else:
-            if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
-                pf_devices = self.get_pf_mlx()
-            elif ARCH == 'x86_64':
-                pf_devices = self.get_pf_ids()
+            pf_devices = self.get_pf_ids()
             for PF in pf_devices:
                 if not self.set_vf(PF, self.driver_option):
                     re_probe = True
