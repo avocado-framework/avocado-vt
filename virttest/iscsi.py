@@ -558,6 +558,10 @@ class IscsiLIO(_IscsiComm):
         :param params: parameters dict for LIO backend of iSCSI
         """
         super(IscsiLIO, self).__init__(params, root_dir)
+        # clear the targetcli configuration before using it
+        cmd = "targetcli clearconfig confirm=true"
+        if process.system(cmd, shell=True) != 0:
+            logging.error("targetcli configuration unable to clear")
 
     def get_target_id(self):
         """
