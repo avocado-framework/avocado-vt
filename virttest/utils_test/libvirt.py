@@ -2401,7 +2401,12 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
             disk_params_src.update({'source_snap_name': disk_snap_name})
             disk_params.update({'readonly': params.get("read_only", "no")})
     else:
-        # use current source file with update params
+        """
+        If disk_src_name is given, replace current source file
+        Otherwise, use current source file with update params.
+        """
+        if disk_src_name:
+            blk_source = disk_src_name
         disk_params_src = {'source_file': blk_source}
 
     # Delete disk elements
