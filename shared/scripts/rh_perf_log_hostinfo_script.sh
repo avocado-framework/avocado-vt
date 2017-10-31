@@ -20,6 +20,20 @@ call "cat /proc/meminfo  |grep HugePages_Total"
 
 call cat /sys/kernel/debug/sched_features
 
+call cat /sys/kernel/mm/ksm/run
+
+call sestatus
+
+call cat /proc/sys/kernel/watchdog
+
+call cat /proc/sys/kernel/nmi_watchdog
+
+call tuned-adm active
+
+call tc qdisc show
+
+call ifconfig
+
 bridges=`brctl show|grep -v "bridge.*name.*bridge.*id"|awk {'print $1'}`
 ports=`brctl show|grep -v "bridge.*name.*bridge.*id"|awk {'print $4'}`
 
@@ -31,6 +45,7 @@ done
 for i in $ports;do
     call ethtool -k $i
     call ethtool -i $i
+    call ethtool -c $i
 done
 
 echo "=========================== Test steps ================================="
