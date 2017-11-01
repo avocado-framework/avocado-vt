@@ -417,14 +417,16 @@ def create_subtests_cfg(t_type):
     all_shared_test_list = []
     for test in shared_test_list:
         for p in provider_info_shared:
-            provider_base_path = p['backends']['generic']['path']
-            if provider_base_path in test:
-                provider_name = p['name']
-                break
-            provider_base_path = p['backends']['multi_host_migration']['path']
-            if provider_base_path in test:
-                provider_name = p['name']
-                break
+            if 'generic' in p['backends']:
+                provider_base_path = p['backends']['generic']['path']
+                if provider_base_path in test:
+                    provider_name = p['name']
+                    break
+            if 'multi_host_migration' in p['backends']:
+                provider_base_path = p['backends']['multi_host_migration']['path']
+                if provider_base_path in test:
+                    provider_name = p['name']
+                    break
 
         basename = os.path.basename(test)
         if basename != "__init__.py":
