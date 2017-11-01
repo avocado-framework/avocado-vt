@@ -993,7 +993,7 @@ class BaseVM(object):
             neigh_attach_if = utils_net.get_neigh_attch_interface(address)
         port = self.get_port(int(self.params.get("shell_port")))
         log_filename = ("session-%s-%s-%s.log" %
-                        (self.name, time.strftime("%m-%d-%H:%M:%S"),
+                        (self.name, time.strftime("%m-%d-%H-%M-%S"),
                          utils_misc.generate_random_string(4)))
         session = remote.remote_login(client, address, port, username,
                                       password, prompt, linesep,
