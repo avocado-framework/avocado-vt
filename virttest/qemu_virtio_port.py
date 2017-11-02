@@ -415,7 +415,7 @@ class GuestWorker(object):
         Default state: No data on port or in port buffer. Read mode = blocking.
         """
         # Check if python is still alive
-        match, tmp = self._cmd("is_alive()", 10)
+        match, tmp = self._cmd("is_alive()", 10, ("^PASS: Guest is ok no thread alive",))
         if match is not 0:
             logging.error("Python died/is stuck/have remaining threads")
             logging.debug(tmp)
@@ -451,7 +451,7 @@ class GuestWorker(object):
             self.vm.verify_kernel_crash()
         # Quit worker
         if self.session and self.vm and self.vm.is_alive():
-            match, tmp = self._cmd("guest_exit()", 10)
+            match, tmp = self._cmd("guest_exit()", 10, ("^PASS: virtio_guest finished",))
             self.session.close()
             # On windows it dies with the connection
             if match is not 0 and self.os_linux:
