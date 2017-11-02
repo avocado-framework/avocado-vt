@@ -2105,19 +2105,30 @@ def get_cpu_vendor(cpu_info="", verbose=True):
     return vendor
 
 
-def get_support_machine_type(qemu_binary="/usr/libexec/qemu-kvm"):
+def get_support_machine_type(qemu_binary="/usr/libexec/qemu-kvm", remove_alias=False):
     """
-    Get the machine type the host support,return a list of machine type
+    Get all of the machine type the host support.
+
+    :param qemu_binary: qemu-kvm binary file path
+    :param remove_alias: True or Flase, whether remove alias or not
+
+    :return: A tuple (s, c, v) include three lists.
     """
     o = process.system_output("%s -M ?" % qemu_binary).splitlines()
     s = []
     c = []
+    v = []
+    split_pattern = re.compile(r'^(\S+)\s+(.*?)(?: (\((?:alias|default).*))?$')
     for item in o[1:]:
-        machine_list = re.split(r"\s+", item, 1)
-        if machine_list[0] != "none":
-            s.append(machine_list[0])
-            c.append(machine_list[1])
-    return (s, c)
+        if remove_alias and "alias" in item:
+            continue
+        if "none" in item:
+            continue
+        machine_list = split_pattern.search(item).groups()
+        s.append(machine_list[0])
+        c.append(machine_list[1])
+        v.append(machine_list[2])
+    return (s, c, v)
 
 
 def get_recognized_cpuid_flags(qemu_binary="/usr/libexec/qemu-kvm"):
