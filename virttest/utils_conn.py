@@ -493,7 +493,8 @@ class SSHConnection(ConnectionBase):
     a non-pwd connection.
     """
     __slots__ = ('ssh_rsa_pub_path', 'ssh_id_rsa_path', 'SSH_KEYGEN',
-                 'SSH_ADD', 'SSH_COPY_ID', 'SSH_AGENT', 'SHELL', 'SSH')
+                 'SSH_ADD', 'SSH_COPY_ID', 'SSH_AGENT', 'SHELL', 'SSH',
+                 'server_authorized_keys')
 
     def __init__(self, *args, **dargs):
         """
@@ -526,6 +527,13 @@ class SSHConnection(ConnectionBase):
                               toolName)
                 tool = '/bin/true'
             self.__dict_set__(key, tool)
+
+        self.server_authorized_keys = remote.RemoteFile(address=self.server_ip,
+                                                        client='scp',
+                                                        username=self.server_user,
+                                                        password=self.server_pwd,
+                                                        port='22',
+                                                        remote_path='/root/.ssh/authorized_keys')
 
     def conn_check(self):
         """
@@ -560,16 +568,11 @@ class SSHConnection(ConnectionBase):
         server_pwd = self.server_pwd
         client_ip = self.client_ip
 
-        ssh_authorized_keys_path = '/root/.ssh/authorized_keys'
-        cmd = "rm -rf %s" % ssh_authorized_keys_path
-
         server_session = remote.wait_for_login('ssh', server_ip, '22',
                                                server_user, server_pwd,
                                                r"[\#\$]\s*$")
-        # remove authentication file
-        status, output = server_session.cmd_status_output(cmd)
-        if status:
-            raise SSHRmAuthKeysError(ssh_authorized_keys_path, output)
+        # Recover authorized_keys on server
+        del self.server_authorized_keys
 
         # restart libvirtd service on server
         try:
