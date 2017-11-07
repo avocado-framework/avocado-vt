@@ -2924,14 +2924,8 @@ class VM(virt_vm.BaseVM):
             if params.get("paused_after_start_vm") != "yes":
                 # start guest
                 if self.monitor.verify_status("paused"):
-                    try:
+                    if not migration_mode:
                         self.monitor.cmd("cont")
-                    except qemu_monitor.QMPCmdError, e:
-                        if ((e.data['class'] == "MigrationExpected") and
-                                (migration_mode is not None)):
-                            logging.debug("Migration did not start yet...")
-                        else:
-                            raise e
 
             # Update mac and IP info for assigned device
             # NeedFix: Can we find another way to get guest ip?
