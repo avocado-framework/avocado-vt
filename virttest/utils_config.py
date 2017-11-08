@@ -463,3 +463,19 @@ class LibvirtGuestsConfig(LibvirtConfigCommon):
         'BYPASS_CACHE': 'boolean',
         'SYNC_TIME': 'boolean',
     }
+
+
+class LibvirtSanLockConfig(LibvirtConfigCommon):
+
+    """
+    Class for libvirt san lock config file.
+    """
+    conf_path = '/etc/libvirt/qemu-sanlock.conf'
+    __option_types__ = {
+        'auto_disk_leases': 'boolean',
+        'disk_lease_dir': 'string',
+        'host_id': 'int',
+        'require_lease_for_disks': 'boolean',
+        'user': 'string',
+        'group': 'string',
+    }
