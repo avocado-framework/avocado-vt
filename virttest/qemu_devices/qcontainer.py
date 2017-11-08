@@ -1384,12 +1384,13 @@ class DevContainer(object):
             addr_spec = None
             if scsi_hba == 'lsi53c895a':
                 addr_spec = [8, 16384]
-            elif scsi_hba == 'virtio-scsi-pci':
+            elif scsi_hba.startswith("virtio"):
                 addr_spec = [256, 16384]
-            elif scsi_hba == 'virtio-scsi-device':
-                addr_spec = [256, 16384]
-                pci_bus = {'type': 'virtio-bus'}
-            elif scsi_hba in ('spapr-vscsi', "virtio-scsi-ccw"):
+                if scsi_hba == 'virtio-scsi-device':
+                    pci_bus = {'type': 'virtio-bus'}
+                elif scsi_hba == 'virtio-scsi-ccw':
+                    pci_bus = None
+            elif scsi_hba == 'spapr-vscsi':
                 addr_spec = [8, 16384]
                 pci_bus = None
             _, bus, dev_parent = define_hbas('SCSI', scsi_hba, bus, unit, port,
