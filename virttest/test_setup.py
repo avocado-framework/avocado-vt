@@ -1305,10 +1305,9 @@ class PciAssignable(object):
         """
         Check VFs count number according to the parameter driver_options.
         """
-        # Network card 82576 has two network interfaces and each can be
-        # virtualized up to 7 virtual functions, therefore we multiply
-        # two for the value of driver_option 'max_vfs'.
-        expected_count = int((re.findall("(\d+)", self.driver_option)[0])) * 2
+        # The VF count should be multiplied with the total no.of PF's
+        # present, rather than fixed number of network interfaces.
+        expected_count = int((re.findall("(\d+)", self.driver_option)[0])) * len(self.get_pf_ids())
         return (self.get_vfs_count() == expected_count)
 
     def is_binded_to_stub(self, full_id):
