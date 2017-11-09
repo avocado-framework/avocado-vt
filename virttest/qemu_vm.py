@@ -1339,7 +1339,8 @@ class VM(virt_vm.BaseVM):
             for pcic in params.objects("pci_controllers"):
                 dev = devices.pcic_by_params(pcic, params.object_params(pcic))
                 pcics.append(dev)
-            pcics.sort(key=sort_key, reverse=False)
+            if params.get("pci_controllers_autosort", "yes") == "yes":
+                pcics.sort(key=sort_key, reverse=False)
             map(devices.insert, pcics)
         # End of command line option wrappers
 
