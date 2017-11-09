@@ -1637,7 +1637,8 @@ class VM(virt_vm.BaseVM):
             usbs = ("oldusb",)  # Old qemu, add only one controller '-usb'
         for usb_name in usbs:
             usb_params = params.object_params(usb_name)
-            for dev in devices.usbc_by_params(usb_name, usb_params):
+            parent_bus = _get_pci_bus(devices, usb_params, "usbc", True)
+            for dev in devices.usbc_by_params(usb_name, usb_params, parent_bus):
                 devices.insert(dev)
 
         for iothread in params.get("iothreads", "").split():
