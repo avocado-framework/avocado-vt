@@ -2370,6 +2370,63 @@ def get_qemu_best_cpu_model(params):
     return params.get("default_cpu_model", None)
 
 
+def get_qemu_version(params):
+    """
+    Get the qemu-kvm(-rhev) version info.
+
+    :param params: Passed to get_qemu_binary, can set to {} if not needed.
+    :return: A dict contain qemu versoins info as {'major': int, 'minor': int,
+    'update': int, 'is_rhev': bool}
+    """
+    version = {'major': None, 'minor': None, 'update': None, 'is_rhev': False}
+    regex = r'\s*[Ee]mulator [Vv]ersion\s*(\d+)\.(\d+)\.(\d+)'
+
+    qemu_binary = get_qemu_binary(params)
+    version_raw = commands.getoutput("%s -version" % qemu_binary).splitlines()
+    for line in version_raw:
+        search_result = re.search(regex, line)
+        if search_result:
+            version['major'] = int(search_result.group(1))
+            version['minor'] = int(search_result.group(2))
+            version['update'] = int(search_result.group(3))
+        if "rhev" in str(line).lower():
+            version['is_rhev'] = True
+    if None in version.values():
+        logging.error("Local install qemu version cannot be detected, "
+                      "the version info is: %s" % version_raw)
+        return None
+    return version
+
+
+def compare_qemu_version(major, minor, update, is_rhev=True, params={}):
+    """
+    Check if local install qemu versions is newer than provided version.
+
+    :param major: The major version to be compared.
+    :param minor: The minor version to be compared.
+    :param update: The update version to be compared.
+    :param is_rhev: If the qemu is a rhev version.
+    :param params: Other params.
+    :return: True means local installed version is equal or newer than the
+    version provided, otherwise False will be returned.
+    """
+    installed_version = get_qemu_version(params)
+    if installed_version is None:
+        logging.error("Cannot get local qemu version, return False directly.")
+        return False
+    if is_rhev != installed_version['is_rhev']:
+        return False
+    installed_version_value = installed_version['major'] * 1000000 + \
+        installed_version['minor'] * 1000 + \
+        installed_version['update']
+    compared_version_value = int(major) * 1000000 + \
+        int(minor) * 1000 + \
+        int(update)
+    if compared_version_value > installed_version_value:
+        return False
+    return True
+
+
 def check_if_vm_vcpu_match(vcpu_desire, vm):
     """
     This checks whether the VM vCPU quantity matches
@@ -3010,6 +3067,11 @@ def get_image_snapshot(image_file):
     """
     try:
         cmd = "qemu-img snapshot %s -l" % image_file
+        if compare_qemu_version(2, 10, 0):
+            # Currently the qemu lock is only introduced in qemu-kvm-rhev,
+            # if it's introduced in qemu-kvm, will need to update it here.
+            # The "-U" is to avoid the qemu lock.
+            cmd += " -U"
         snap_info = process.run(cmd, ignore_status=False).stdout.strip()
         snap_list = []
         if snap_info:
@@ -3063,6 +3125,11 @@ def get_image_info(image_file):
     """
     try:
         cmd = "qemu-img info %s" % image_file
+        if compare_qemu_version(2, 10, 0):
+            # Currently the qemu lock is only introduced in qemu-kvm-rhev,
+            # if it's introduced in qemu-kvm, will need to update it here.
+            # The " -U" is to avoid the qemu lock.
+            cmd += " -U"
         image_info = process.run(cmd, ignore_status=False).stdout.strip()
         image_info_dict = {}
         vsize = None
