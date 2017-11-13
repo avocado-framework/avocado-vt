@@ -399,9 +399,12 @@ class HugePageConfig(object):
             hugepage_allocated = open(self.kernel_hp_file, "r")
             available_hugepages = int(hugepage_allocated.read().strip())
             hugepage_allocated.close()
-            chunk_bottom = int(math.log(self.hugepage_size / 4, 2))
-            chunk_info = utils_memory.get_buddy_info(">=%s" % chunk_bottom,
-                                                     zones="DMA32 Normal")
+            chunk_bottom = int(math.log(self.hugepage_size / utils_memory.getpagesize(), 2))
+            if ARCH == 'ppc64le':
+                chunk_info = utils_memory.get_buddy_info(">=%s" % chunk_bottom)
+            else:
+                chunk_info = utils_memory.get_buddy_info(">=%s" % chunk_bottom,
+                                                         zones="DMA32 Normal")
             for size in chunk_info:
                 available_hugepages += int(chunk_info[size] * math.pow(2,
                                                                        int(int(size) - chunk_bottom)))

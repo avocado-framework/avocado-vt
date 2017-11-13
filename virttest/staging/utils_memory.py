@@ -274,3 +274,12 @@ def get_buddy_info(chunk_sizes, nodes="all", zones="all"):
             buddyinfo_dict[chunk_size] += int(chunk_info)
 
     return buddyinfo_dict
+
+
+def getpagesize():
+    """
+    Get system page size
+
+    :return: pagesize in kB
+    """
+    return os.sysconf('SC_PAGE_SIZE') / 1024
