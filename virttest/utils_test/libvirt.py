@@ -462,6 +462,7 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
         mount_dir = os.path.join(tmpdir, mount_dir)
     result["export_dir"] = export_dir
     result["mount_dir"] = mount_dir
+    result["selinux_status_bak"] = None
     if not ubuntu:
         result["selinux_status_bak"] = utils_selinux.get_status()
 
