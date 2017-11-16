@@ -38,6 +38,7 @@ class QemuImg(storage.QemuImg):
         q_result = process.run(self.image_cmd + ' -h', ignore_status=True,
                                shell=True, verbose=False)
         self.help_text = q_result.stdout
+        self.cap_force_share = '-U' in self.help_text
 
     @error_context.context_aware
     def create(self, params, ignore_errors=False):
@@ -389,14 +390,17 @@ class QemuImg(storage.QemuImg):
         else:
             logging.debug("Image file %s not found", self.image_filename)
 
-    def info(self):
+    def info(self, force_share=False):
         """
         Run qemu-img info command on image file and return its output.
         """
         logging.debug("Run qemu-img info comamnd on %s", self.image_filename)
         backing_chain = self.params.get("backing_chain")
+        force_share &= self.cap_force_share
         cmd = self.image_cmd
         cmd += " info"
+        if force_share:
+            cmd += " -U"
         if backing_chain == "yes":
             if "--backing_chain" in self.help_text:
                 cmd += " --backing-chain"
@@ -436,7 +440,8 @@ class QemuImg(storage.QemuImg):
 
         return supports_cmd
 
-    def compare_images(self, image1, image2, strict_mode=False, verbose=True):
+    def compare_images(self, image1, image2, strict_mode=False,
+                       verbose=True, force_share=False):
         """
         Compare 2 images using the appropriate tools for each virt backend.
 
@@ -449,12 +454,15 @@ class QemuImg(storage.QemuImg):
         :return: process.CmdResult object containing the result of the command
         """
         compare_images = self.support_cmd("compare")
+        force_share &= self.cap_force_share
         if not compare_images:
             logging.warn("sub-command compare not supported by qemu-img")
             return None
         else:
             logging.info("Comparing images %s and %s", image1, image2)
             compare_cmd = "%s compare" % self.image_cmd
+            if force_share:
+                compare_cmd += " -U"
             if strict_mode:
                 compare_cmd += " -s"
             compare_cmd += " %s %s" % (image1, image2)
@@ -472,7 +480,7 @@ class QemuImg(storage.QemuImg):
                 raise exceptions.TestError("Error in image comparison")
             return cmd_result
 
-    def check_image(self, params, root_dir):
+    def check_image(self, params, root_dir, force_share=False):
         """
         Check an image using the appropriate tools for each virt backend.
 
@@ -487,8 +495,8 @@ class QemuImg(storage.QemuImg):
         """
         image_filename = self.image_filename
         logging.debug("Checking image file %s", image_filename)
-        qemu_img_cmd = self.image_cmd
         image_is_checkable = self.image_format in ['qcow2', 'qed']
+        force_share &= self.cap_force_share
 
         if (storage.file_exists(params, image_filename) or
                 self.is_remote_image()) and image_is_checkable:
@@ -498,15 +506,18 @@ class QemuImg(storage.QemuImg):
                               "(lack of support in qemu-img)")
             else:
                 try:
-                    process.run("%s info %s" % (qemu_img_cmd, image_filename),
-                                shell=True, verbose=False)
+                    # FIXME: do we really need it?
+                    self.info(force_share)
                 except process.CmdError:
                     logging.error("Error getting info from image %s",
                                   image_filename)
 
-                cmd_result = process.run("%s check %s" %
-                                         (qemu_img_cmd, image_filename),
-                                         ignore_status=True, shell=True, verbose=False)
+                chk_cmd = "%s check" % self.image_cmd
+                if force_share:
+                    chk_cmd += " -U"
+                chk_cmd += " %s" % image_filename
+                cmd_result = process.run(chk_cmd, ignore_status=True,
+                                         shell=True, verbose=False)
                 # Error check, large chances of a non-fatal problem.
                 # There are chances that bad data was skipped though
                 if cmd_result.exit_status == 1:
