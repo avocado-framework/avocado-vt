@@ -396,7 +396,14 @@ class QemuImg(storage.QemuImg):
         logging.debug("Run qemu-img info comamnd on %s", self.image_filename)
         backing_chain = self.params.get("backing_chain")
         cmd = self.image_cmd
-        cmd += " info"
+        """
+        Since qemu-2.10 qemu-img info is required to add -U option when query
+         a locked image.
+        """
+        if "-U" in self.help_text:
+            cmd += " info -U"
+        else:
+            cmd += " info"
         if backing_chain == "yes":
             if "--backing_chain" in self.help_text:
                 cmd += " --backing-chain"
