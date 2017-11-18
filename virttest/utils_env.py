@@ -356,8 +356,7 @@ class Env(UserDict.IterableUserDict):
                                          output_func=_tcpdump_handler,
                                          output_params=(self, "tcpdump.log"))
 
-        if not utils_misc.wait_for(lambda: self._tcpdump.is_alive(),
-                                   1.0, 0.1, 0.1):
+        if not self._tcpdump.is_alive():
             logging.warn("Could not start tcpdump")
             logging.warn("Status: %s", self._tcpdump.get_status())
             msg = utils_misc.format_str_for_message(self._tcpdump.get_output())
