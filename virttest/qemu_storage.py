@@ -38,6 +38,8 @@ class QemuImg(storage.QemuImg):
         q_result = process.run(self.image_cmd + ' -h', ignore_status=True,
                                shell=True, verbose=False)
         self.help_text = q_result.stdout
+        # '-U/--force-share' was added into help output by qemu commit a8d16f9
+        self.cap_force_share = "-U" in self.help_text
 
     @error_context.context_aware
     def create(self, params, ignore_errors=False):
@@ -397,6 +399,8 @@ class QemuImg(storage.QemuImg):
         backing_chain = self.params.get("backing_chain")
         cmd = self.image_cmd
         cmd += " info"
+        if self.cap_force_share:
+            cmd += " -U"
         if backing_chain == "yes":
             if "--backing_chain" in self.help_text:
                 cmd += " --backing-chain"
@@ -487,7 +491,8 @@ class QemuImg(storage.QemuImg):
         """
         image_filename = self.image_filename
         logging.debug("Checking image file %s", image_filename)
-        qemu_img_cmd = self.image_cmd
+        qemu_img_info_cmd = self.image_cmd
+        qemu_img_check_cmd = self.image_cmd
         image_is_checkable = self.image_format in ['qcow2', 'qed']
 
         if (storage.file_exists(params, image_filename) or
@@ -497,15 +502,21 @@ class QemuImg(storage.QemuImg):
                 logging.debug("Skipping image check "
                               "(lack of support in qemu-img)")
             else:
+                qemu_img_info_cmd += " info"
+                qemu_img_check_cmd += " check"
+                if self.cap_force_share:
+                    qemu_img_info_cmd += " -U"
+                    qemu_img_check_cmd += " -U"
                 try:
-                    process.run("%s info %s" % (qemu_img_cmd, image_filename),
+                    process.run("%s %s" %
+                                (qemu_img_info_cmd, image_filename),
                                 shell=True, verbose=False)
                 except process.CmdError:
                     logging.error("Error getting info from image %s",
                                   image_filename)
 
-                cmd_result = process.run("%s check %s" %
-                                         (qemu_img_cmd, image_filename),
+                cmd_result = process.run("%s %s" %
+                                         (qemu_img_check_cmd, image_filename),
                                          ignore_status=True, shell=True, verbose=False)
                 # Error check, large chances of a non-fatal problem.
                 # There are chances that bad data was skipped though
