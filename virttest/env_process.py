@@ -283,7 +283,7 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
             logging.debug("Guest is still running, skip the image check.")
             check_image_flag = False
         else:
-            image_info_output = image.info()
+            image_info_output = image.info(force_share=True)
             image_info = {}
             if image_info_output is not None:
                 for image_info_item in image_info_output.splitlines():
@@ -304,10 +304,10 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
     if check_image_flag:
         try:
             if clone_master is None:
-                image.check_image(params, base_dir)
+                image.check_image(params, base_dir, force_share=True)
             elif clone_master == "yes":
                 if image_name in params.get("master_images_clone").split():
-                    image.check_image(params, base_dir)
+                    image.check_image(params, base_dir, force_share=True)
             # Allow test to overwrite any pre-testing  automatic backup
             # with a new backup. i.e. assume pre-existing image/backup
             # would not be usable after this test succeeds. The best
