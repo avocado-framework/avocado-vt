@@ -11,10 +11,10 @@ from virttest.libvirt_xml.devices import base, librarian
 
 class Interface(base.TypedDeviceBase):
 
-    __slots__ = ('source', 'mac_address', 'bandwidth',
-                 'model', 'link_state', 'target',
-                 'driver', 'address', 'boot_order',
-                 'filterref', 'backend', 'virtualport_type')
+    __slots__ = ('source', 'hostdev_address', 'managed', 'mac_address',
+                 'bandwidth', 'model', 'link_state', 'target', 'driver',
+                 'address', 'boot_order', 'filterref', 'backend',
+                 'virtualport_type')
 
     def __init__(self, type_name, virsh_instance=base.base.virsh):
         super(Interface, self).__init__(device_tag='interface',
@@ -25,6 +25,16 @@ class Interface(base.TypedDeviceBase):
                                  forbidden=None,
                                  parent_xpath='/',
                                  tag_name='source')
+        accessors.XMLElementNest('hostdev_address', self, parent_xpath='/source',
+                                 tag_name='address', subclass=self.Address,
+                                 subclass_dargs={'type_name': 'pci',
+                                                 'virsh_instance': virsh_instance})
+        accessors.XMLAttribute(property_name="managed",
+                               libvirtxml=self,
+                               forbidden=None,
+                               parent_xpath='/',
+                               tag_name='interface',
+                               attribute='managed')
         accessors.XMLElementDict(property_name="target",
                                  libvirtxml=self,
                                  forbidden=None,
