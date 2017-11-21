@@ -161,7 +161,8 @@ class PCIXML(CAPXML):
 
     __slots__ = ('domain', 'bus', 'slot', 'function', 'product_id',
                  'vendor_id', 'virt_functions', 'numa_node',
-                 'iommuGroup_number', 'iommuGroup_address')
+                 'iommuGroup_number', 'iommuGroup_address',
+                 'product_info')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementInt('domain', self, parent_xpath='/',
@@ -188,6 +189,8 @@ class PCIXML(CAPXML):
                                  parent_xpath='/capability',
                                  marshal_from=self.marshal_from_address,
                                  marshal_to=self.marshal_to_address)
+        accessors.XMLElementText('product_info', self, parent_xpath='/',
+                                 tag_name='product')
         super(PCIXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = (' <capability type=\'pci\'></capability>')
 
@@ -311,7 +314,7 @@ class NodedevXMLBase(base.LibvirtXMLBase):
 
     __slots__ = ('name', 'parent', 'cap_type', 'cap',
                  'sysfs_main_path', 'host', 'fc_type',
-                 'wwnn', 'wwpn', 'fabric_wwn')
+                 'wwnn', 'wwpn', 'fabric_wwn', 'max_count')
 
     __schema_name__ = "nodedev"
 
@@ -337,6 +340,8 @@ class NodedevXMLBase(base.LibvirtXMLBase):
                                  tag_name='host')
         accessors.XMLAttribute('fc_type', self, parent_xpath='/capability',
                                tag_name='capability', attribute='type')
+        accessors.XMLAttribute('max_count', self, parent_xpath='/capability',
+                               tag_name='capability', attribute='maxCount')
         accessors.XMLElementText('wwnn', self,
                                  parent_xpath='/capability/capability',
                                  tag_name='wwnn')
