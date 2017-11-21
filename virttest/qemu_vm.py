@@ -4299,7 +4299,7 @@ class VM(virt_vm.BaseVM):
                             return block.split(":")[0]
                 # file in key means both file and backing_file
                 if ('file' in key) and (value in block):
-                    return block.split(":")[0]
+                    return block.split(":", 1)[0].split(" ", 1)[0]
 
         return None
 
