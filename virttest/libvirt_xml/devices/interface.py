@@ -13,8 +13,8 @@ class Interface(base.TypedDeviceBase):
 
     __slots__ = ('source', 'hostdev_address', 'managed', 'mac_address',
                  'bandwidth', 'model', 'coalesce', 'link_state', 'target', 'driver',
-                 'address', 'boot_order', 'filterref', 'backend',
-                 'virtualport_type')
+                 'address', 'boot', 'rom', 'mtu', 'filterref', 'backend',
+                 'virtualport_type', 'alias')
 
     def __init__(self, type_name, virsh_instance=base.base.virsh):
         super(Interface, self).__init__(device_tag='interface',
@@ -57,7 +57,7 @@ class Interface(base.TypedDeviceBase):
                                parent_xpath='/',
                                tag_name='link',
                                attribute='state')
-        accessors.XMLAttribute(property_name="boot_order",
+        accessors.XMLAttribute(property_name="boot",
                                libvirtxml=self,
                                forbidden=None,
                                parent_xpath='/',
@@ -92,12 +92,24 @@ class Interface(base.TypedDeviceBase):
                                  forbidden=None,
                                  parent_xpath='/coalesce/rx',
                                  tag_name='frames')
+        accessors.XMLElementDict(property_name="rom",
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/',
+                                 tag_name='rom')
+        accessors.XMLElementDict(property_name="mtu",
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/',
+                                 tag_name='mtu')
         accessors.XMLElementNest('address', self, parent_xpath='/',
                                  tag_name='address', subclass=self.Address,
                                  subclass_dargs={'type_name': 'pci',
                                                  'virsh_instance': virsh_instance})
         accessors.XMLAttribute('virtualport_type', self, parent_xpath='/',
                                tag_name='virtualport', attribute='type')
+        accessors.XMLElementDict('alias', self, parent_xpath='/',
+                                 tag_name='alias')
     # For convenience
     Address = librarian.get('address')
 
