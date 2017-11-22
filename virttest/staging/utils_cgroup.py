@@ -333,7 +333,8 @@ class Cgroup(object):
         if isinstance(pwd, int):
             pwd = self.cgroups[pwd]
         try:
-            open(os.path.join(pwd, 'tasks'), 'w').write(str(pid))
+            with open(os.path.join(pwd, 'tasks'), 'w') as tasks:
+                tasks.write(str(pid))
         except Exception, inst:
             raise exceptions.TestError("cg.set_cgroup(): %s" % inst)
         if self.is_cgroup(pid, pwd):
@@ -557,13 +558,12 @@ class CgroupModules(object):
         """
         logging.debug("Desired cgroup modules: %s", _modules)
         mounts = []
-        proc_mounts = open('/proc/mounts', 'r')
-        line = proc_mounts.readline().split()
-        while line:
-            if line[2] == 'cgroup':
-                mounts.append(line)
+        with open('/proc/mounts', 'r') as proc_mounts:
             line = proc_mounts.readline().split()
-        proc_mounts.close()
+            while line:
+                if line[2] == 'cgroup':
+                    mounts.append(line)
+                line = proc_mounts.readline().split()
 
         for module in _modules:
             # Is it already mounted?
