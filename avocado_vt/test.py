@@ -242,7 +242,6 @@ class VirtTest(test.Test):
             raise   # This one has to be raised in setUp
         except:  # nopep8 Old-style exceptions are not inherited from Exception()
             details = sys.exc_info()[1]
-            stacktrace.log_exc_info(sys.exc_info(), 'avocado.test')
             self.__status = details
             if not hasattr(self, "cancel"):     # Old Avocado, skip here
                 if isinstance(self.__status, error.TestNAError):
@@ -404,7 +403,8 @@ class VirtTest(test.Test):
                         raise error.TestWarn("funcatexit failed with: %s" %
                                              error_message)
 
-                except Exception:
+                except:  # nopep8 Old-style exceptions are not inherited from Exception()
+                    stacktrace.log_exc_info(sys.exc_info(), 'avocado.test')
                     if t_type is not None:
                         error_message = funcatexit.run_exitfuncs(env, t_type)
                         if error_message:
@@ -421,11 +421,15 @@ class VirtTest(test.Test):
                     try:
                         params['test_passed'] = str(test_passed)
                         env_process.postprocess(self, params, env)
-                    except Exception, e:
+                    except:  # nopep8 Old-style exceptions are not inherited from Exception()
+
+                        stacktrace.log_exc_info(sys.exc_info(),
+                                                'avocado.test')
                         if test_passed:
                             raise
                         logging.error("Exception raised during "
-                                      "postprocessing: %s", e)
+                                      "postprocessing: %s",
+                                      sys.exc_info()[1])
                 finally:
                     if self.__safe_env_save(env):
                         env.destroy()   # Force-clean as it can't be stored
