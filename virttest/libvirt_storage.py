@@ -173,7 +173,7 @@ class StoragePool(object):
         """
         try:
             return self.list_pools()[name]['State']
-        except process.CmdError, KeyError:
+        except (process.CmdError, KeyError):
             return None
 
     def pool_autostart(self, name):
@@ -184,7 +184,7 @@ class StoragePool(object):
         """
         try:
             return self.list_pools()[name]['Autostart']
-        except process.CmdError, KeyError:
+        except (process.CmdError, KeyError):
             return None
 
     def pool_info(self, name):
