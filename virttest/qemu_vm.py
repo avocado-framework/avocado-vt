@@ -894,33 +894,43 @@ class VM(virt_vm.BaseVM):
 
         def add_memorys(devices, params):
             """
-            Add memory controller by params
+            Add memory controller by params.
 
             :param devices: VM devices container
             """
             options, devs = [], []
-            params.setdefault("mem", "512")
-            mem_params = params.object_params("mem")
-            mem_params.setdefault("automem", "no")
-            automem = mem_params["automem"] == "yes"
-
             normalize_data_size = utils_misc.normalize_data_size
-            mem_size_m = "%sM" % mem_params["mem"]
-            mem_size_m = float(normalize_data_size(mem_size_m))
+            mem = params.get("mem", None)
+            mem_params = params.object_params("mem")
+            # if params["mem"] is provided, use the value provided
+            if mem:
+                mem_size_m = "%sM" % mem_params["mem"]
+                mem_size_m = float(normalize_data_size(mem_size_m))
+            # if not provided, use automem
+            else:
+                usable_mem_m = utils_misc.get_usable_memory_size(align=1024)
+                logging.info("Auto set guest memory size to %s MB" %
+                             usable_mem_m)
+                mem_size_m = usable_mem_m
+
+            # vm_mem_limit(max) and vm_mem_minimum(min) take control here
             if mem_params.get("vm_mem_limit"):
                 max_mem_size_m = params.get("vm_mem_limit")
                 max_mem_size_m = float(normalize_data_size(max_mem_size_m))
                 if mem_size_m >= max_mem_size_m:
-                    logging.debug("Guest max memory is limited to %s"
-                                  % max_mem_size_m)
+                    logging.info("Guest max memory is limited to %s"
+                                 % max_mem_size_m)
                     mem_size_m = max_mem_size_m
-                    params["mem"] = str(int(max_mem_size_m))
-            if automem:
-                usable_mem_m = utils_misc.get_usable_memory_size(align=1024)
-                if mem_size_m >= usable_mem_m:
-                    logging.debug("Host no enough free memory, reset guest"
-                                  " memory size to %s MB" % usable_mem_m)
-                    params["mem"] = str(int(usable_mem_m))
+
+            if mem_params.get("vm_mem_minimum"):
+                min_mem_size_m = params.get("vm_mem_minimum")
+                min_mem_size_m = float(normalize_data_size(min_mem_size_m))
+                if mem_size_m < min_mem_size_m:
+                    logging.info("Guest min memory has to be %s"
+                                 % min_mem_size_m)
+                    mem_size_m = min_mem_size_m
+
+            params["mem"] = str(int(mem_size_m))
             options.append(params["mem"])
             if devices.has_device("pc-dimm"):
                 if mem_params.get("slots") and mem_params.get("maxmem"):
