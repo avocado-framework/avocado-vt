@@ -27,7 +27,7 @@ from . import utils_misc
 from . import utils_test
 from .utils_test import libvirt
 from .libvirt_xml.xcepts import LibvirtXMLNotFoundError
-from autotest.client import utils
+from avocado.utils import cpu as utils
 
 
 def get_cpu_xmldata(vm, options=""):
@@ -117,7 +117,7 @@ def affinity_from_xml(vm):
 
     :return: dict of affinity of VM
     """
-    host_cpu_count = utils.count_cpus()
+    host_cpu_count = utils.total_cpus_count()
     xml_affinity_list = []
     xml_affinity = {}
     try:
@@ -128,9 +128,8 @@ def affinity_from_xml(vm):
         return xml_affinity
     # Store xml_affinity_list to a dict
     for vcpu in xml_affinity_list:
-        xml_affinity[vcpu['vcpu']] = "".join(
-            libvirt.cpus_string_to_affinity_list(vcpu['cpuset'],
-                                                 host_cpu_count))
+        xml_affinity[vcpu['vcpu']] = libvirt.cpus_string_to_affinity_list(vcpu['cpuset'],
+                                                                          host_cpu_count)
     return xml_affinity
 
 
@@ -142,11 +141,11 @@ def affinity_from_vcpupin(vm):
 
     :return: dict of affinity of VM
     """
-    vcpupin_output = []
+    vcpupin_output = {}
     vcpupin_affinity = {}
-    host_cpu_count = utils.count_cpus()
-    for vcpu in virsh.vcpupin().stdout.strip().split('\n')[2:]:
-        vcpupin_output[vcpu.split(":")[0]] = vcpu.split(":")[1]
+    host_cpu_count = utils.total_cpus_count()
+    for vcpu in virsh.vcpupin(vm.name).stdout.strip().split('\n')[2:]:
+        vcpupin_output[int(vcpu.split(":")[0])] = vcpu.split(":")[1]
     for vcpu in vcpupin_output:
         vcpupin_affinity[vcpu] = libvirt.cpus_string_to_affinity_list(
             vcpupin_output[vcpu], host_cpu_count)
@@ -164,7 +163,7 @@ def affinity_from_proc(vm):
     pid = vm.get_pid()
     proc_affinity = {}
     vcpu_pids = []
-    host_cpu_count = utils.count_cpus()
+    host_cpu_count = utils.total_cpus_count()
     vcpu_pids = vm.get_vcpus_pid()
     for vcpu in range(len(vcpu_pids)):
         output = utils_test.libvirt.cpu_allowed_list_by_task(
@@ -234,7 +233,7 @@ def check_affinity(vm, expect_vcpupin):
     :return: True if affinity matches from different virsh API outputs,
              False if not
     """
-    host_cpu_count = utils.count_cpus()
+    host_cpu_count = utils.total_cpus_count()
     affinity_xml = affinity_from_xml(vm)
     affinity_vcpupin = affinity_from_vcpupin(vm)
     affinity_vcpuinfo = affinity_from_vcpuinfo(vm)
@@ -242,14 +241,14 @@ def check_affinity(vm, expect_vcpupin):
 
     for vcpu in expect_vcpupin.keys():
         expect_affinity = libvirt.cpus_string_to_affinity_list(
-            expect_vcpupin[vcpu], host_cpu_count)
+            str(expect_vcpupin[vcpu]), host_cpu_count)
         # Check for vcpuinfo affinity
         if affinity_vcpuinfo[int(vcpu)] != expect_affinity:
             logging.error("CPU affinity in virsh vcpuinfo output"
                           " is unexpected")
             result = False
         # Check for vcpupin affinity
-        if affinity_vcpupin[vcpu] != expect_affinity:
+        if affinity_vcpupin[int(vcpu)] != expect_affinity:
             logging.error("Virsh vcpupin output is unexpected")
             result = False
         # Check for affinity in Domain xml
@@ -405,7 +404,7 @@ def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False):
         final_result = False
 
     # 1.5 Check inside the guest
-    if vm.is_alive() and "live" in option:
+    if vm.is_alive() and (not vm.is_paused()) and "live" in option:
         if not utils_misc.check_if_vm_vcpu_match(exp_vcpu['guest_live'], vm):
             final_result = False
 
