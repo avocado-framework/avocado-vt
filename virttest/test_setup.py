@@ -9,7 +9,7 @@ import random
 import math
 import shutil
 import platform
-from netaddr import *
+import netaddr
 
 from avocado.utils import process
 from avocado.utils import archive
@@ -27,7 +27,6 @@ from . import openvswitch
 from . import remote
 from . import utils_libvirtd
 from . import utils_config
-from . import utils_net
 from .staging import service
 from .staging import utils_memory
 
@@ -1304,6 +1303,29 @@ class PciAssignable(object):
             pf_ids.append(pf_id)
         return pf_ids
 
+    def assign_static_ip(self):
+        """
+        Set the static IP for the PF devices for mlx5_core driver
+        """
+        # This function assigns static IP for the PF devices
+        pf_devices = self.get_pf_ids()
+        if (not self.start_addr_PF) or (not self.net_mask):
+            raise exceptions.TestSetupFail(
+                "No IP / netmask found, please populate starting IP address for PF devices in configuration file")
+        ip_addr = netaddr.IPAddress(self.start_addr_PF)
+        for PF in pf_devices:
+            ifname = utils_misc.get_interface_from_pci_id(PF)
+            ip_assign = "ifconfig %s %s netmask %s up" % (
+                ifname, ip_addr, self.net_mask)
+            logging.info("assign IP to PF device %s : %s", PF,
+                         ip_assign)
+            cmd = process.system(ip_assign, shell=True, ignore_status=True)
+            if cmd:
+                raise exceptions.TestSetupFail("Failed to assign IP : %s"
+                                               % cmd)
+            ip_addr += 1
+        return True
+
     def check_vfs_count(self):
         """
         Check VFs count number according to the parameter driver_options.
@@ -1452,6 +1474,8 @@ class PciAssignable(object):
         # If driver is available and pa_type is vf then set VFs
         elif self.pa_type == 'vf':
             pf_devices = self.get_pf_ids()
+            if (self.static_ip):
+                self.assign_static_ip()
             for PF in pf_devices:
                 if not self.set_vf(PF, self.driver_option):
                     re_probe = True
@@ -1467,26 +1491,8 @@ class PciAssignable(object):
             if not self.remove_driver() or not self.modprobe_driver():
                 return False
             pf_devices = self.get_pf_ids()
-            if ARCH == 'ppc64le' and self.driver == 'mlx5_core':
-                set_ip = 0
-                if (self.static_ip):
-                    if (not self.start_addr_PF) or (not self.net_mask):
-                        raise exceptions.TestSetupFail(
-                            "No IP / netmask found, please populate starting IP address for PF devices in configuration file")
-                    ip_addr = utils_net.IPAddress(self.start_addr_PF)
-                    set_ip = 1
-                for PF in pf_devices:
-                    if set_ip:
-                        ifname = utils_misc.get_interface_from_pci_id(PF)
-                        ip_assign = "ifconfig %s %s netmask %s up" % (
-                            ifname, ip_addr, self.net_mask)
-                        logging.info("assign IP to PF device %s : %s", PF,
-                                     ip_assign)
-                        if process.system(ip_assign, shell=True,
-                                          ignore_status=True):
-                            return False
-                        ip_addr = ip_addr + 1
-                    logging.info("PF device '%s'.", PF)
+            if (self.static_ip):
+                self.assign_static_ip()
             if self.pa_type == 'vf':
                 for PF in pf_devices:
                     if not self.set_vf(PF, self.driver_option):
