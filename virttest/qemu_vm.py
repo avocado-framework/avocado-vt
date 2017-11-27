@@ -205,6 +205,18 @@ class VM(virt_vm.BaseVM):
         except virt_vm.VMStatusError:
             return False
 
+    def is_panicked(self):
+        """
+        Return True if the qemu process is panicked
+        """
+        if self.is_dead():
+            return False
+        try:
+            self.verify_status("guest-panicked")
+            return True
+        except virt_vm.VMStatusError:
+            return False
+
     def verify_status(self, status):
         """
         Check VM status
