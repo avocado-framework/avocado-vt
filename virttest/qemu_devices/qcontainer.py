@@ -787,8 +787,8 @@ class DevContainer(object):
                                                   aobject="pci.0"))
             devices.append(qdevices.QStringDevice('mch', {'addr': 0, 'driver': 'mch'},
                                                   parent_bus={'aobject': 'pci.0'}))
-            devices.append(qdevices.QStringDevice('ICH9 LPC', {'addr': '1f.0',
-                                                               'driver': 'ICH9 LPC'},
+            devices.append(qdevices.QStringDevice('ICH9-LPC', {'addr': '1f.0',
+                                                               'driver': 'ICH9-LPC'},
                                                   parent_bus={'aobject': 'pci.0'}))
             devices.append(qdevices.QStringDevice('ICH9 SMB', {'addr': '1f.3',
                                                                'driver': 'ICH9 SMB'},
