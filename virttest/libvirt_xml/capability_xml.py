@@ -118,6 +118,20 @@ class CapabilityXML(base.LibvirtXMLBase):
                     dom_prop = {}
                     if domain.find('emulator') is not None:
                         dom_prop['emulator'] = domain.find('emulator').text
+                        dom_m_list = []
+                        for dom_machine in domain.findall('machine'):
+                            dom_machine_text = dom_machine.text
+                            if dom_machine_text not in dom_m_list:
+                                dom_m_list.append(dom_machine_text)
+                        dom_prop['machine'] = dom_m_list
+                        if domain.find('wordsize'):
+                            dom_prop['wordsize'] = domain.find('wordize').text
+                    elif domain.get('type') == 'qemu' and arch_prop['emulator']:
+                        dom_prop['emulator'] = arch_prop['emulator']
+                        dom_prop['machine'] = arch_prop['machine']
+                        dom_prop['wordsize'] = arch_prop['wordsize']
+                        dom_prop['maxcpus'] = arch_prop['maxcpus']
+                        arch_prop = guest_arch.get(arch_name, {})
                     arch_prop[domain_name] = dom_prop
                 guest_arch[arch_name] = arch_prop
             guest_capa[os_type_name] = guest_arch
