@@ -2344,7 +2344,8 @@ class VM(virt_vm.BaseVM):
         try:
             tmp_serial = self.serial_ports[0]
         except IndexError:
-            raise virt_vm.VMConfigMissingError(self.name, "serial")
+            logging.warning("No serial ports defined!")
+            return
         log_name = "serial-%s-%s.log" % (tmp_serial, self.name)
         self.serial_console_log = os.path.join(utils_misc.get_log_file_dir(),
                                                log_name)
