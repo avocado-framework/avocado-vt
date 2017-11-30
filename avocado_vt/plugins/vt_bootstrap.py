@@ -45,12 +45,12 @@ class VTBootstrap(CLICmd):
                                   ", ".join(SUPPORTED_TEST_TYPES)),
                             default='qemu')
         parser.add_argument("--vt-guest-os", action="store",
-                            default=None,
+                            default="%s.%s" % (defaults.DEFAULT_GUEST_OS,
+                                               defaults.ARCH),
                             help=("Select the guest OS to be used  "
                                   "optionally followed by guest arch. "
                                   "If -c is provided, this will be "
-                                  "ignored. Default: %s" %
-                                  defaults.DEFAULT_GUEST_OS))
+                                  "ignored. Default: %(default)s"))
         parser.add_argument("--vt-selinux-setup", action="store_true",
                             default=False,
                             help="Define default contexts of directory.")
