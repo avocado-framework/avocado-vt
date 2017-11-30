@@ -364,6 +364,55 @@ def check_xmlcount(vm, exp_vcpu, option):
     return result
 
 
+def get_cpustats(vm, cpu=None):
+    """
+    Get the cpustats output of a given domain
+    :param vm: VM domain
+    :param cpu: Host cpu index, default all cpus
+    :return: dict of cpu stats values
+    result format:
+    {0:[vcputime,emulatortime,cputime]
+    ..
+    'total':[cputime]}
+     """
+    host_cpu_online = utils.cpu_online_list()
+    cpustats = {}
+    if cpu:
+        cpustats[cpu] = []
+        option = "--start %s --count 1" % cpu
+        result = virsh.cpu_stats(vm.name, option)
+        if result.exit_status != 0:
+            logging.error("cpu stats command failed: %s", result.stderr)
+            return None
+        output = result.stdout.strip().split()
+        if re.match("CPU%s" % cpu, output[0]):
+            cpustats[cpu] = [float(output[5]),  # vcputime
+                             float(output[2]) - float(output[5]),  # emulator
+                             float(output[2])]  # cputime
+
+    else:
+        for i in range(len(host_cpu_online)):
+            cpustats[host_cpu_online[i]] = []
+            option = "--start %s --count 1" % host_cpu_online[i]
+            result = virsh.cpu_stats(vm.name, option)
+            if result.exit_status != 0:
+                logging.error("cpu stats command failed: %s", result.stderr)
+                return None
+            output = result.stdout.strip().split()
+            if re.match("CPU%s" % host_cpu_online[i], output[0]):
+                cpustats[host_cpu_online[i]] = [float(output[5]),
+                                                float(output[2]) - float(output[5]),
+                                                float(output[2])]
+    result = virsh.cpu_stats(vm.name, "--total")
+    cpustats["total"] = []
+    if result.exit_status != 0:
+        logging.error("cpu stats command failed: %s", result.stderr)
+        return None
+    output = result.stdout.strip().split()
+    cpustats["total"] = [float(output[2])]  # cputime
+    return cpustats
+
+
 def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False):
     """
     Check domain vcpu, including vcpucount, vcpuinfo, vcpupin, vcpu number and
