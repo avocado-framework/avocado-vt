@@ -18,7 +18,7 @@ KVM_TEST_LOGGING
 clearpart --all --initlabel
 part / --fstype=ext4 --grow --asprimary --size=1
 
-%packages
+%packages --ignoremissing
 gpgme
 dmidecode
 ethtool
