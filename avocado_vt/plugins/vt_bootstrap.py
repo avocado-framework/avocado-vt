@@ -46,7 +46,8 @@ class VTBootstrap(CLICmd):
                             default='qemu')
         parser.add_argument("--vt-guest-os", action="store",
                             default=None,
-                            help=("Select the guest OS to be used. "
+                            help=("Select the guest OS to be used  "
+                                  "optionally followed by guest arch. "
                                   "If -c is provided, this will be "
                                   "ignored. Default: %s" %
                                   defaults.DEFAULT_GUEST_OS))
