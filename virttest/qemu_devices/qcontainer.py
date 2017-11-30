@@ -1667,7 +1667,7 @@ class DevContainer(object):
         image_params['image_raw_device'] = 'yes'
         cd_format = image_params.get('cd_format')
         scsi_hba = image_params.get("scsi_hba")
-        if cd_format is None or cd_format is 'ide':
+        if cd_format in (None, "ide", "scsi-cd"):
             machine_type = image_params.get("machine_type")
             if machine_type == "pseries":
                 cd_format = "scsi-cd"
@@ -1680,7 +1680,8 @@ class DevContainer(object):
             elif "s390" in machine_type:
                 cd_format = "scsi-cd"
                 scsi_hba = "virtio-scsi-ccw"
-            elif not self.get_buses({'atype': 'ide'}):
+        if cd_format in (None, "ide"):
+            if not self.get_buses({'atype': 'ide'}):
                 logging.warn("cd_format IDE not available, using AHCI "
                              "instead.")
                 cd_format = 'ahci'
