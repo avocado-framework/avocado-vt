@@ -255,12 +255,14 @@ class TopologyXML(base.LibvirtXMLBase):
         self.xmltreefile.reroot("/host/topology")
         self.xmltreefile.write()
 
-    def get_cell(self):
+    def get_cell(self, withmem=False):
         """
         Return CellXML instances list
         """
         cell_list = []
         for cell_node in self.xmltreefile.findall('/cells/cell'):
+            if not cell_node.find('memory') and withmem:
+                continue
             xml_str = xml_utils.ElementTree.tostring(
                 cell_node)
             new_cell = CellXML()
