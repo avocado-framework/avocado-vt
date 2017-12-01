@@ -989,11 +989,16 @@ class Bridge(object):
         """
         Get bridge list.
         """
+        try:
+            brctl_bin = utils_path.find_command("brctl")
+        except utils_path.CmdNotFoundError:
+            raise exceptions.TestSkipError("Can't find brctl command")
+
         ebr_i = re.compile(r"^(\S+).*?(\S+)$", re.MULTILINE)
         br_i = re.compile(r"^(\S+).*?(\S+)\s+(\S+)$", re.MULTILINE)
         nbr_i = re.compile(r"^\s+(\S+)$", re.MULTILINE)
-        out_line = (
-            process.run(r"brctl show", verbose=False).stdout.splitlines())
+        out_line = (process.run(r"%s show" % brctl_bin,
+                                verbose=False).stdout.splitlines())
         result = dict()
         bridge = None
 
