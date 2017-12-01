@@ -1368,9 +1368,6 @@ class VM(virt_vm.BaseVM):
         if root_dir is None:
             root_dir = self.root_dir
 
-        have_ahci = False
-        have_virtio_scsi = False
-        virtio_scsi_pcis = []
         pci_bus = {'aobject': params.get('pci_bus', 'pci.0')}
         spice_options = {}
 
@@ -1381,11 +1378,6 @@ class VM(virt_vm.BaseVM):
         # Clone this VM using the new params
         vm = self.clone(name, params, root_dir, copy_state=True)
 
-        # global counters
-        ide_bus = 0
-        ide_unit = 0
-        vdisk = 0
-        scsi_disk = 0
         self.last_boot_index = 0
         if params.get("kernel"):
             self.last_boot_index = 1
@@ -3828,22 +3820,23 @@ class VM(virt_vm.BaseVM):
                 'qemu_binary'] = utils_misc.get_qemu_dst_binary(self.params)
         if env:
             env.register_vm("%s_clone" % clone.name, clone)
-        if (local and not (migration_exec_cmd_src and
-                           "gzip" in migration_exec_cmd_src)):
-            error_context.context("creating destination VM")
-            if stable_check:
-                # Pause the dest vm after creation
-                extra_params = clone.params.get("extra_params", "") + " -S"
-                clone.params["extra_params"] = extra_params
-
-            clone.create(migration_mode=protocol, mac_source=self,
-                         migration_fd=fd_dst,
-                         migration_exec_cmd=migration_exec_cmd_dst)
-            if fd_dst:
-                os.close(fd_dst)
-            error_context.context()
 
         try:
+            if (local and not (migration_exec_cmd_src and
+                               "gzip" in migration_exec_cmd_src)):
+                error_context.context("creating destination VM")
+                if stable_check:
+                    # Pause the dest vm after creation
+                    extra_params = clone.params.get("extra_params", "") + " -S"
+                    clone.params["extra_params"] = extra_params
+
+                clone.create(migration_mode=protocol, mac_source=self,
+                             migration_fd=fd_dst,
+                             migration_exec_cmd=migration_exec_cmd_dst)
+                if fd_dst:
+                    os.close(fd_dst)
+                error_context.context()
+
             if (self.params["display"] == "spice" and local and
                 not (protocol == "exec" and
                      (migration_exec_cmd_src and "gzip" in migration_exec_cmd_src))):
