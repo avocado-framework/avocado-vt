@@ -471,7 +471,10 @@ class QtreeDisksContainer(object):
         scsis = set()
         for scsi in _scsis:
             # Ignore IDE disks
-            if scsi[5] != 'CD-ROM':
+            # In "/proc/scsi/scsi",device info for ide/scsi almost the same,
+            # except ide.vendor="ATA" and scsi.vendor="QEMU", so use the field
+            # to distiguish scsi from ide.
+            if scsi[5] != 'CD-ROM' and scsi[4] == 'QEMU':
                 # Qemu encode LUNs with scsi's with 'flat space addressing'
                 # method if LUNs > 255, decode LUNs when LUN ID - 16384 > 255.
                 lun_id = int(scsi[3])
