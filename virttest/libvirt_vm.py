@@ -104,6 +104,53 @@ def get_uri_with_transport(uri_type='qemu', transport="", dest_ip=""):
     return ("%s%s" % (transport_uri_driver, transport_uri_dest))
 
 
+class Monitor(object):
+    """
+    This class handles qemu monitor commands from libvirt VM object
+    TODO: other methods supported from qemu_monitor have to be included
+          but still vm.monitor.command(cmd) can serve the purpose
+    """
+
+    def __init__(self, name, protocol="--hmp"):
+        """
+        Initialize the object and set a few attributes.
+
+        :param name: The name of the VM
+        :param protocol: qemu monitor protocol
+        """
+        self.name = name
+        self.protocol = protocol
+
+    def command(self, cmd, **dargs):
+        """
+        Interface to execute qemu command from libvirt VM
+
+        :param cmd: qemu monitor command to execute
+        :param dargs: standardized virsh function API keywords
+        :return: standard output from monitor command executed
+        """
+        result = virsh.qemu_monitor_command(self.name, cmd,
+                                            options=self.protocol, **dargs)
+        if result.exit_status != 0:
+            raise exceptions.TestError("Failed to execute monitor cmd %s: %s" %
+                                       cmd, result.stderr)
+        return result.stdout
+
+    def system_powerdown(self):
+        """
+        Perform powerdown of guest using qemu monitor
+        """
+        cmd = "system_powerdown"
+        return self.command(cmd, debug=True)
+
+    def get_status(self):
+        """
+        Retrieve VM status information using qemu monitor
+        """
+        cmd = "info status"
+        return self.command(cmd, debug=True)
+
+
 class VM(virt_vm.BaseVM):
 
     """
@@ -149,6 +196,7 @@ class VM(virt_vm.BaseVM):
                                                             "default"))
         self.driver_type = virsh.driver(uri=self.connect_uri)
         self.params['driver_type_' + self.name] = self.driver_type
+        self.monitor = Monitor(self.name)
         # virtnet init depends on vm_type/driver_type being set w/in params
         super(VM, self).__init__(name, params)
         logging.info("Libvirt VM '%s', driver '%s', uri '%s'",
