@@ -908,7 +908,7 @@ class VM(virt_vm.BaseVM):
                 mem_size_m = float(normalize_data_size(mem_size_m))
             # if not provided, use automem
             else:
-                usable_mem_m = utils_misc.get_usable_memory_size(align=1024)
+                usable_mem_m = utils_misc.get_usable_memory_size(align=512)
                 logging.info("Auto set guest memory size to %s MB" %
                              usable_mem_m)
                 mem_size_m = usable_mem_m

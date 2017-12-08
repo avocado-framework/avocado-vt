@@ -191,7 +191,7 @@ def get_usable_memory_size(align=None):
     usable_mem = memory.read_from_meminfo('MemFree')
     usable_mem = float(normalize_data_size("%s KB" % usable_mem))
     if align:
-        usable_mem = math.ceil(usable_mem / align) * align
+        usable_mem = math.floor(usable_mem / align) * align
     return usable_mem
 
 
