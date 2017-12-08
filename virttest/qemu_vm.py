@@ -909,6 +909,9 @@ class VM(virt_vm.BaseVM):
             # if not provided, use automem
             else:
                 usable_mem_m = utils_misc.get_usable_memory_size(align=512)
+                if not usable_mem_m:
+                    raise exceptions.TestError("Insufficient memory to"
+                                               " start a VM.")
                 logging.info("Auto set guest memory size to %s MB" %
                              usable_mem_m)
                 mem_size_m = usable_mem_m
