@@ -225,7 +225,7 @@ class _IscsiComm(object):
                              'G': (1024, 1024),
                              'T': (1024, 1048576),
                              }
-            if emulated_size.has_key(self.unit):
+            if self.unit in emulated_size:
                 block_size = emulated_size[self.unit][1]
                 size = int(self.emulated_size) * emulated_size[self.unit][0]
                 self.emulated_expect_size = block_size * size
@@ -335,9 +335,10 @@ class _IscsiComm(object):
         if self.logged_in():
             iscsi_logout(self.target)
 
-    def cleanup(self):
+    def cleanup(self, confirmed=False):
         """
         Clean up env after iscsi used.
+        :param confirmed:    switch for cleanup all iscsi config
         """
         self.logout()
         iscsi_node_del(self.target)
@@ -347,11 +348,12 @@ class _IscsiComm(object):
             restart_iscsid()
         if self.export_flag:
             self.delete_target()
-        # clear the targetcli configuration
-        if path.find_command("targetcli"):
-            cmd = "targetcli clearconfig confirm=true"
-            if process.system(cmd, shell=True) != 0:
-                logging.error("targetcli configuration unable to clear")
+        if confirmed:
+            # clear the targetcli configuration
+            if path.find_command("targetcli"):
+                cmd = "targetcli clearconfig confirm=true"
+                if process.system(cmd, shell=True) != 0:
+                    logging.error("targetcli configuration unable to clear")
 
 
 class IscsiTGT(_IscsiComm):
@@ -405,7 +407,7 @@ class IscsiTGT(_IscsiComm):
             cmd += " --user %s" % self.chap_user
             cmd += " --password %s" % self.chap_passwd
             process.system(cmd)
-        except process.CmdError, err:
+        except process.CmdError as err:
             logging.error("Fail to add account: %s", err)
 
         # Check the new add account exist
