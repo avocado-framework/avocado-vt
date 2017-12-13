@@ -268,5 +268,38 @@ class TcpdumpSniffer(Sniffer):
             return
 
 
+class TSharkSniffer(Sniffer):
+
+    """
+    TShark sniffer class.
+    """
+
+    command = "tshark"
+    options = ("-npi any 'port 68 or port 546' -T fields -E header=y "
+               "-E separator=/s -E occurrence=f -e ip.src -e ip.dst "
+               "-e bootp.type -e bootp.id -e bootp.hw.mac_addr "
+               "-e bootp.ip.your -e bootp.option.dhcp")
+
+    def _output_handler(self, line):
+        packet = line.split()
+        if not len(packet):
+            return
+
+        # BootP/DHCP (RFC 951/2131)
+        if re.match(r"\d+\.\d+\.\d+\.\d+", packet[0]):
+            chaddr = packet[4]
+            yiaddr = packet[5]
+            m_type = packet[6]
+            if m_type == "5" and yiaddr != "0.0.0.0":
+                # Update cache only if get the ACK reply
+                # and the previous request is not INFORM
+                self._cache[chaddr] = yiaddr
+            return
+
+        # DHCPv6 (RFC 3315)
+        # TODO: support DHCPv6
+        pass
+
+
 #: All the defined sniffers
-Sniffers = (TcpdumpSniffer,)
+Sniffers = (TSharkSniffer, TcpdumpSniffer)
