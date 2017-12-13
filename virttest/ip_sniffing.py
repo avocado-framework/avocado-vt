@@ -270,5 +270,47 @@ class TcpdumpSniffer(Sniffer):
             return True
 
 
+class TSharkSniffer(Sniffer):
+
+    """
+    TShark sniffer class.
+    """
+
+    command = "tshark"
+    options = ("-npi any -T fields -E separator=/s -E occurrence=f "
+               "-E header=y -e ip.src -e ip.dst -e bootp.type -e bootp.id "
+               "-e bootp.hw.mac_addr -e bootp.ip.your -e bootp.option.dhcp "
+               "-e ipv6.src -e ipv6.dst "
+               # Positional arguments must be the last arguments
+               "'port 68 or port 546'")
+
+    def _output_handler(self, line):
+        packet = line.lstrip().split()
+        if not len(packet):
+            return True
+
+        # BootP/DHCP (RFC 951/2131)
+        if re.match(r"\d+\.\d+\.\d+\.\d+", packet[0]):
+            chaddr = packet[4]
+            yiaddr = packet[5]
+            m_type = packet[6]
+            if m_type == "5" and yiaddr != "0.0.0.0":
+                # Update cache only if get the ACK reply
+                # and the previous request is not INFORM
+                self._cache[chaddr] = yiaddr
+            return True
+
+        # DHCPv6 (RFC 3315)
+        if re.match(r"[0-9a-fA-F]{1,4}:\S+", packet[0]):
+            # TODO: support DHCPv6
+            if not self.__dict__.setdefault("_ip6_warned", False):
+                logging.warn("IPv6 address sniffing is not supported yet by "
+                             "using TShark, please fallback to use other "
+                             "sniffers by uninstalling TShark when testing "
+                             "with IPv6")
+                self._ip6_warned = True
+            return True
+
+
 #: All the defined sniffers
-Sniffers = (TcpdumpSniffer,)
+Sniffers = (TSharkSniffer, TcpdumpSniffer)
