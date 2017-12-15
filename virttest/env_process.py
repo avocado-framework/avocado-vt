@@ -15,6 +15,7 @@ from avocado.utils import process as avocado_process
 from avocado.utils import crypto
 from avocado.utils import path
 from avocado.utils import distro
+from avocado.utils import cpu as cpu_utils
 from avocado.core import exceptions
 
 from . import error_context
@@ -569,14 +570,23 @@ def preprocess(test, params, env):
     """
     error_context.context("preprocessing")
 
-    # For KVM to work in Power8 systems we need to have SMT=off
-    # and it needs to be done as root, here we do a check whether
+    # For KVM to work in Power8 and Power9(compat guests)
+    # systems we need to have SMT=off and it needs to be
+    # done as root, here we do a check whether
     # we satisfy that condition, if not try to make it off
     # otherwise throw TestError with respective error message
-    cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
-    cpu_output = avocado_process.system_output(cmd, shell=True).strip().upper()
-    if "POWER8" in cpu_output:
-        test_setup.disable_smt()
+    cpu_arch = cpu_utils.get_cpu_arch()
+    power9_compat = "yes" == params.get("power9_compat", "no")
+    if "power8" in cpu_arch:
+        test_setup.switch_smt(state="off")
+    elif "power9" in cpu_arch and power9_compat:
+        cmd = "echo N > /sys/module/kvm_hv/parameters/indep_threads_mode"
+        try:
+            avocado_process.system_output(cmd, shell=True)
+        except avocado_process.CmdError:
+            raise exceptions.TestSetupFail("Unable to set indep_threads_mode"
+                                           " for power9 compat mode enablement")
+        test_setup.switch_smt(state="off")
 
     # First, let's verify if this test does require root or not. If it
     # does and the test suite is running as a regular user, we shall just
@@ -1065,6 +1075,22 @@ def postprocess(test, params, env):
 
     libvirtd_inst = utils_libvirtd.Libvirtd()
     vm_type = params.get("vm_type")
+
+    # Restore SMT changes in the powerpc host is set
+    if params.get("restore_smt", "no") == "yes":
+        cpu_arch = cpu_utils.get_cpu_arch()
+        power9_compat = "yes" == params.get("power9_compat", "no")
+        if "power8" in cpu_arch:
+            test_setup.switch_smt(state="on")
+        elif "power9" in cpu_arch and power9_compat:
+            cmd = "echo Y > /sys/module/kvm_hv/parameters/indep_threads_mode"
+            try:
+                avocado_process.system_output(cmd, shell=True)
+            except avocado_process.CmdError:
+                raise exceptions.TestSetupFail("Unable to set indep_threads"
+                                               "_mode for power9 compat mode"
+                                               " enablement")
+            test_setup.switch_smt(state="on")
 
     if params.get("setup_hugepages") == "yes":
         try:
