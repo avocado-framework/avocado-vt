@@ -1217,7 +1217,7 @@ def postprocess(test, params, env):
             err += "\nHost dmesg verification failed: %s" % details
 
     if err:
-        raise virt_vm.VMError("Failures occurred while postprocess:%s" % err)
+        raise RuntimeError("Failures occurred while postprocess:\n%s" % err)
 
 
 def postprocess_on_error(test, params, env):
