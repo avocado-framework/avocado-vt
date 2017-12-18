@@ -1155,10 +1155,8 @@ class VMXML(VMXMLBase):
         try:
             bandwidth = xmltreefile.find('devices/interface/bandwidth')
             try:
-                iftune_params['inbound'] = bandwidth.find(
-                    'inbound').get('average')
-                iftune_params['outbound'] = bandwidth.find(
-                    'outbound').get('average')
+                iftune_params['inbound'] = bandwidth.find('inbound')
+                iftune_params['outbound'] = bandwidth.find('outbound')
             except AttributeError:
                 logging.error("Can't find <inbound> or <outbound> element")
         except AttributeError:
