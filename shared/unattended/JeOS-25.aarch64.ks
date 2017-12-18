@@ -16,6 +16,7 @@ poweroff
 KVM_TEST_LOGGING
 
 clearpart --all --initlabel
+part /boot/efi --size=200 --ondisk=sda --fstype=efi
 part / --fstype=ext4 --grow --asprimary --size=1
 
 %packages --ignoremissing

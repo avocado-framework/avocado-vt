@@ -16,6 +16,7 @@ poweroff
 KVM_TEST_LOGGING
 
 clearpart --all --initlabel
+part prepboot --fstype "PPC PReP Boot" --size=10 --ondisk=sda
 part / --fstype=ext4 --grow --asprimary --size=1
 
 %packages --ignoremissing
