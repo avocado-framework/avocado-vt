@@ -59,7 +59,7 @@ test windows. First, download the iso. :doc:`The get started documentation <GetS
 can help you out with downloading if you like it, but the direct download
 link is here:
 
-http://assets-avocadoproject.rhcloud.com/static/winutils.iso
+http://avocado-project.org/data/assets/winutils.iso
 
 You need to put all its contents on a folder and create a new iso. Let's say you
 want to download the iso to ``/home/kermit/Downloads/winutils.iso``.
