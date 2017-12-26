@@ -49,35 +49,63 @@ def copytree(src, dst, overwrite=True, ignore=''):
             shutil.copy(src_file, dst_dir)
 
 
-def is_mount(src, dst):
+def is_mount(src, dst=None, fstype=None, options=None, verbose=False,
+             session=None):
     """
     Check is src or dst mounted.
 
-    :param src: source device or directory, if None will skip to check
+    :param src: source device or directory
     :param dst: mountpoint, if None will skip to check
+    :param fstype: file system type, if None will skip to check
+    :param options: mount options should be seperated by ","
+    :param session: check within the session if given
 
-    :return: if mounted mountpoint or device, else return False
+    :return: True if mounted, else return False
     """
-    if dst and os.path.ismount(dst):
-        return dst
-    if src and (src in str(open('/proc/mounts', 'r')) or
-                src in process.system_output('losetup -a')):
-        return src
+    mount_str = "%s %s %s" % (src, dst, fstype)
+    mount_str = mount_str.replace('None', '').strip()
+    mount_list_cmd = 'cat /proc/mounts'
+
+    if session:
+        mount_result = session.cmd_output_safe(mount_list_cmd)
+    else:
+        mount_result = process.system_output(mount_list_cmd, shell=True)
+    if verbose:
+        logging.debug("/proc/mounts contents:\n%s", mount_result)
+
+    for result in mount_result.splitlines():
+        if mount_str in result:
+            if options:
+                options = options.split(",")
+                options_result = result.split()[3].split(",")
+                for op in options:
+                    if op not in options_result:
+                        if verbose:
+                            logging.info("%s is not mounted with given"
+                                         " option %s", src, op)
+                        return False
+            if verbose:
+                logging.info("%s is mounted", src)
+            return True
+    if verbose:
+        logging.info("%s is not mounted", src)
     return False
 
 
-def mount(src, dst, fstype=None, options=None, verbose=False):
+def mount(src, dst, fstype=None, options=None, verbose=False, session=None):
     """
     Mount src under dst if it's really mounted, then remout with options.
 
-    :param src: source device or directory, if None will skip to check
-    :param dst: mountpoint, if None will skip to check
+    :param src: source device or directory
+    :param dst: mountpoint
     :param fstype: filesystem type need to mount
+    :param options: mount options
+    :param session: mount within the session if given
 
     :return: if mounted return True else return False
     """
     options = (options and [options] or [''])[0]
-    if is_mount(src, dst):
+    if is_mount(src, dst, fstype, options, verbose, session):
         if 'remount' not in options:
             options = 'remount,%s' % options
     cmd = ['mount']
@@ -87,24 +115,32 @@ def mount(src, dst, fstype=None, options=None, verbose=False):
         cmd.extend(['-o', options])
     cmd.extend([src, dst])
     cmd = ' '.join(cmd)
+    if session:
+        return session.cmd_status(cmd, safe=True) == 0
     return process.system(cmd, verbose=verbose) == 0
 
 
-def umount(src, dst, verbose=False):
+def umount(src, dst, fstype=None, verbose=False, session=None):
     """
     Umount src from dst, if src really mounted under dst.
 
-    :param src: source device or directory, if None will skip to check
-    :param dst: mountpoint, if None will skip to check
+    :param src: source device or directory
+    :param dst: mountpoint
+    :param fstype: fstype used to check if mounted as expected
+    :param session: umount within the session if given
 
     :return: if unmounted return True else return False
     """
-    mounted = is_mount(src, dst)
+    mounted = is_mount(src, dst, fstype, verbose=verbose, session=session)
     if mounted:
-        fuser_cmd = "fuser -km %s" % mounted
-        process.system(fuser_cmd, ignore_status=True, verbose=True)
-        umount_cmd = "umount %s" % mounted
-        return process.system(umount_cmd, ignore_status=True, verbose=True) == 0
+        fuser_cmd = "fuser -km %s" % dst
+        umount_cmd = "umount %s" % dst
+        if session:
+            session.cmd_output_safe(fuser_cmd)
+            return session.cmd_status(umount_cmd, safe=True) == 0
+        else:
+            process.system(fuser_cmd, ignore_status=True, verbose=True)
+            return process.system(umount_cmd, ignore_status=True, verbose=True) == 0
     return True
 
 
