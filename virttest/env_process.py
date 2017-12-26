@@ -717,27 +717,15 @@ def preprocess(test, params, env):
             env["cpu_model"] = utils_misc.get_qemu_best_cpu_model(params)
         params["cpu_model"] = env.get("cpu_model")
 
-    kvm_ver_cmd = params.get("kvm_ver_cmd", "")
-
-    if kvm_ver_cmd:
-        try:
-            kvm_version = avocado_process.system_output(
-                    kvm_ver_cmd, shell=True).strip()
-        except avocado_process.CmdError:
-            kvm_version = "Unknown"
+    # Get the KVM kernel module version and write it as a keyval
+    if os.path.exists("/dev/kvm"):
+        kvm_version = os.uname()[2]
     else:
-        # Get the KVM kernel module version and write it as a keyval
-        if os.path.exists("/dev/kvm"):
-            try:
-                kvm_version = open("/sys/module/kvm/version").read().strip()
-            except Exception:
-                kvm_version = os.uname()[2]
-        else:
-            warning_msg = "KVM module not loaded"
-            if params.get("enable_kvm", "yes") == "yes":
-                raise exceptions.TestSkipError(warning_msg)
-            logging.warning(warning_msg)
-            kvm_version = "Unknown"
+        warning_msg = "KVM module not loaded"
+        if params.get("enable_kvm", "yes") == "yes":
+            raise exceptions.TestSkipError(warning_msg)
+        logging.warning(warning_msg)
+        kvm_version = "Unknown"
 
     logging.debug("KVM version: %s" % kvm_version)
     test.write_test_keyval({"kvm_version": kvm_version})
