@@ -2657,14 +2657,31 @@ def get_free_mem(session, os_type):
     :return string: freespace M-bytes
     """
     if os_type != "windows":
-        cmd = "grep 'MemFree:' /proc/meminfo"
-        output = session.cmd_output(cmd)
-        free = re.findall(r"\d+\s\w", output)[0]
+        free = "%s kB" % get_mem_info(session, 'MemFree')
     else:
         output = session.cmd_output("wmic OS get FreePhysicalMemory")
         free = "%sK" % re.findall("\d+", output)[0]
     free = float(normalize_data_size(free, order_magnitude="M"))
     return int(free)
+
+
+def get_mem_info(session=None, attr='MemTotal'):
+    """
+    Get memory information attributes in host/guest
+
+    :param session: VM session object
+    :param attr: memory information attribute
+
+    :return: memory information of attribute in kB
+    """
+    cmd = "grep '%s:' /proc/meminfo" % attr
+    if session:
+        output = session.cmd_output(cmd)
+    else:
+        output = process.system_output(cmd, shell=True)
+    output = re.findall(r"\d+\s\w", output)[0]
+    output = float(normalize_data_size(output, order_magnitude="K"))
+    return int(output)
 
 
 def get_used_mem(session, os_type):
