@@ -11,6 +11,9 @@ import shutil
 import platform
 import netaddr
 
+from abc import ABCMeta
+from abc import abstractmethod
+
 from avocado.utils import process
 from avocado.utils import archive
 from avocado.utils import wait
@@ -95,6 +98,90 @@ class PolkitConfigCleanupError(PolkitConfigError):
     Thrown when polkit config cleanup is not behaving as expected.
     """
     pass
+
+
+class Setuper(object):
+
+    """
+    Virtual base abstraction of setuper.
+    """
+
+    __metaclass__ = ABCMeta
+
+    def __init__(self, test, params, env):
+        """
+        Initializes the setuper.
+
+        :param test: VirtTest instance.
+        :param params: Dictionary with the test parameters.
+        :param env: Dictionary with test environment.
+        """
+        self.test = test
+        self.params = params
+        self.env = env
+
+    @abstractmethod
+    def setup(self):
+        """Setup procedure."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def cleanup(self):
+        """Cleanup procedure."""
+        raise NotImplementedError
+
+
+class SetuperMgr(object):
+
+    """
+    Setuper Manager implementation.
+
+    The instance can help do the setup stuff before test started and
+    do the cleanup stuff after test finished. This setup-cleanup
+    combined stuff will be performed in LIFO order.
+    """
+
+    def __init__(self, test, params, env):
+        """
+        Initializes the setuper manager.
+
+        :param test: VirtTest instance.
+        :param params: Dictionary with the test parameters.
+        :param env: Dictionary with test environment.
+        """
+        self._stp_args = (test, params, env)
+        self._reg_stps = []
+        self._setupers = []
+
+    def register(self, stp_cls):
+        """
+        Register the given setuper class to the manager.
+
+        :param stp_cls: Setuper class.
+        """
+        self._reg_stps.append(stp_cls)
+
+    def do_setup(self):
+        """Do setup stuff."""
+        for stp_cls in self._reg_stps:
+            stp = stp_cls(*self._stp_args)
+            stp.setup()
+            self._setupers.append(stp)
+
+    def do_cleanup(self):
+        """
+        Do cleanup stuff.
+
+        :return: Errors occurred in cleanup procedures.
+        """
+        err = []
+        while self._setupers:
+            try:
+                self._setupers.pop().cleanup()
+            except Exception as e:
+                logging.error(e)
+                err.append(e)
+        return err
 
 
 class TransparentHugePageConfig(object):
