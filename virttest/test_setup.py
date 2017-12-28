@@ -640,12 +640,13 @@ class HugePageConfig(object):
             logging.debug("Hugepage memory successfully deallocated")
 
 
-class KSMConfig(object):
+class KSMSetuper(Setuper):
 
-    def __init__(self, params, env):
+    def __init__(self, test, params, env):
         """
         :param params: Dict like object containing parameters for the test.
         """
+        super(KSMSetuper, self).__init__(test, params, env)
         self.pages_to_scan = params.get("ksm_pages_to_scan")
         self.sleep_ms = params.get("ksm_sleep_ms")
         self.run = params.get("ksm_run", "1")
@@ -687,17 +688,17 @@ class KSMConfig(object):
         self.default_status.append(int(self.ksmtuned_process))
         self.default_status.append(self.ksm_module_loaded)
 
-    def setup(self, env):
+    def setup(self):
         if self.disable_ksmtuned:
             self.ksmctler.stop_ksmtuned()
 
-        env.data["KSM_default_config"] = self.default_status
+        self.env.data["KSM_default_config"] = self.default_status
         self.ksmctler.set_ksm_feature({"run": self.run,
                                        "pages_to_scan": self.pages_to_scan,
                                        "sleep_millisecs": self.sleep_ms})
 
-    def cleanup(self, env):
-        default_status = env.data.get("KSM_default_config")
+    def cleanup(self):
+        default_status = self.env.data.get("KSM_default_config")
 
         # Get original ksm loaded status
         default_ksm_loaded = default_status.pop()

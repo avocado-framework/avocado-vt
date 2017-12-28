@@ -607,6 +607,8 @@ def preprocess(test, params, env):
 
     global _setuper_mgr
     _setuper_mgr = test_setup.SetuperMgr(test, params, env)
+    if params.get("setup_ksm") == "yes":
+        _setuper_mgr.register(test_setup.KSMSetuper)
     _setuper_mgr.do_setup()
 
     # enable network proxies setting in urllib2
@@ -772,10 +774,6 @@ def preprocess(test, params, env):
     if params.get("setup_thp") == "yes":
         thp = test_setup.TransparentHugePageConfig(test, params)
         thp.setup()
-
-    if params.get("setup_ksm") == "yes":
-        ksm = test_setup.KSMConfig(params, env)
-        ksm.setup(env)
 
     if params.get("setup_egd") == "yes":
         egd = test_setup.EGDConfig(params, env)
@@ -1114,14 +1112,6 @@ def postprocess(test, params, env):
             thp.cleanup()
         except Exception, details:
             err += "\nTHP cleanup: %s" % str(details).replace('\\n', '\n  ')
-            logging.error(details)
-
-    if params.get("setup_ksm") == "yes":
-        try:
-            ksm = test_setup.KSMConfig(params, env)
-            ksm.cleanup(env)
-        except Exception, details:
-            err += "\nKSM cleanup: %s" % str(details).replace('\\n', '\n  ')
             logging.error(details)
 
     if params.get("setup_egd") == "yes" and params.get("kill_vm") == "yes":
