@@ -1294,7 +1294,7 @@ class MigrationTest(object):
                 if (cmd_output[0] == 0):
                     cmd_output = cmd_output[1].strip().upper()
                     if "POWER8" in cmd_output:
-                        test_setup.disable_smt(params=params)
+                        test_setup.switch_smt(state="off", params=params)
                 else:
                     raise exceptions.TestError("Failed to get cpuinfo of remote "
                                                "server", cmd_output[1])
