@@ -916,7 +916,11 @@ def postprocess(test, params, env):
         living_vms = [vm for vm in env.get_all_vms() if (vm.is_alive() and not vm.is_paused())]
         for vm in living_vms:
             guest_dmesg_log_file += ".%s" % vm.name
-            vm.verify_dmesg(dmesg_log_file=guest_dmesg_log_file)
+            try:
+                vm.verify_dmesg(dmesg_log_file=guest_dmesg_log_file)
+            except exceptions.TestFail as details:
+                err += ("\n: Guest %s dmesg verification failed: %s"
+                        % (vm.name, details))
 
     # Postprocess all VMs and images
     try:
@@ -1200,16 +1204,20 @@ def postprocess(test, params, env):
             err += "\nPB cleanup: %s" % str(details).replace('\\n', '\n  ')
             logging.error(details)
 
-    if err:
-        raise virt_vm.VMError("Failures occurred while postprocess:%s" % err)
     if params.get("verify_host_dmesg", "yes") == "yes":
         dmesg_log_file = params.get("host_dmesg_logfile", "host_dmesg.log")
         level = params.get("host_dmesg_level", 3)
         ignore_result = params.get("host_dmesg_ignore", "no") == "yes"
         dmesg_log_file = utils_misc.get_path(test.debugdir, dmesg_log_file)
-        utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
-                                ignore_result=ignore_result,
-                                level_check=level)
+        try:
+            utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
+                                    ignore_result=ignore_result,
+                                    level_check=level)
+        except exceptions.TestFail as details:
+            err += "\nHost dmesg verification failed: %s" % details
+
+    if err:
+        raise RuntimeError("Failures occurred while postprocess:\n%s" % err)
 
 
 def postprocess_on_error(test, params, env):
