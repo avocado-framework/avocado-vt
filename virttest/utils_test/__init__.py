@@ -504,7 +504,7 @@ def run_file_transfer(test, params, env):
     login_timeout = int(params.get("login_timeout", 360))
     session = vm.wait_for_login(timeout=login_timeout)
     error_context.context("Login to guest", logging.info)
-    transfer_timeout = int(params.get("transfer_timeout"))
+    transfer_timeout = int(params.get("transfer_timeout", 1000))
     clean_cmd = params.get("clean_cmd", "rm -f")
     filesize = int(params.get("filesize", 4000))
     count = int(filesize / 10) or 1
