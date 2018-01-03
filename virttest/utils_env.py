@@ -2,16 +2,12 @@ import cPickle
 import UserDict
 import os
 import logging
-import re
 import threading
 
-import aexpect
 from avocado.core import exceptions
-from avocado.utils import path as utils_path
-from avocado.utils import process
 
-import utils_misc
 import virt_vm
+import ip_sniffing
 import remote
 
 ENV_VERSION = 1
@@ -47,81 +43,6 @@ def lock_safe(function):
     return wrapper
 
 
-@lock_safe
-def _update_address_cache(env, line):
-    """
-    Update mac <-> ip releation ship dict when we got a dhcpack packet.
-    """
-    address_cache = env["address_cache"]
-    matches = re.search(r"Your.IP\s+(\S+)", line, re.I)
-    if matches:
-        ip = matches.group(1)
-        if ip != address_cache.get("last_seen_ip"):
-            address_cache["last_seen_ip"] = ip
-        return
-
-    matches = re.search(r"Client.Ethernet.Address\s+(\S+)", line, re.I)
-    if matches:
-        mac = matches.group(1).lower()
-        if mac != address_cache.get("last_seen_mac"):
-            address_cache["last_seen_mac"] = mac
-        return
-
-    if re.search(r"DHCP.Message.*:\s+ACK", line, re.I):
-        if (address_cache.get('last_seen_mac') and
-                address_cache.get('last_seen_ip')):
-            mac = address_cache['last_seen_mac']
-            ip = address_cache['last_seen_ip']
-            if address_cache.get(mac) != ip:
-                address_cache[mac] = ip
-                logging.info("Update MAC(%s)<->(%s)IP" % (mac, ip) +
-                             " pair into address_cache")
-            address_cache["last_seen_mac"] = None
-            address_cache["last_seen_ip"] = None
-        return
-
-    # ipv6 address cache:
-    mac_ipv6_reg = r"client-ID.*?([0-9a-fA-F]{12})\).*IA_ADDR (.*) pltime"
-    if re.search("dhcp6 (request|renew|confirm)", line, re.IGNORECASE):
-        matches = re.search(mac_ipv6_reg, line, re.I)
-        if matches:
-            ipinfo = matches.groups()
-            mac_address = ":".join(re.findall("..", ipinfo[0])).lower()
-            request_ip = ipinfo[1].lower()
-            logging.debug("(address cache) DHCPV6 lease OK: %s --> %s",
-                          mac_address, request_ip)
-            env["address_cache"]["%s_6" % mac_address] = request_ip
-        return
-
-    if re.search("dhcp6 (reply|advertise)", line, re.IGNORECASE):
-        ipv6_mac_reg = "IA_ADDR (.*) pltime.*client-ID.*?([0-9a-fA-F]{12})\)"
-        matches = re.search(ipv6_mac_reg, line, re.I)
-        if matches:
-            ipinfo = matches.groups()
-            mac_address = ":".join(re.findall("..", ipinfo[1])).lower()
-            allocate_ip = ipinfo[0].lower()
-            logging.debug("(address cache) DHCPV6 lease OK: %s --> %s",
-                          mac_address, allocate_ip)
-            env["address_cache"]["%s_6" % mac_address] = allocate_ip
-        return
-
-
-def _tcpdump_handler(env, filename, line):
-    """
-    Helper for handler tcpdump output.
-
-    :params address_cache: address cache path.
-    :params filename: Log file name for tcpdump message.
-    :params line: Tcpdump output message.
-    """
-    try:
-        utils_misc.log_line(filename, line)
-    except Exception, reason:
-        logging.warn("Can't log tcpdump output, '%s'", reason)
-
-    _update_address_cache(env, line)
-
-
 class Env(UserDict.IterableUserDict):
 
     """
@@ -142,8 +63,7 @@ class Env(UserDict.IterableUserDict):
         UserDict.IterableUserDict.__init__(self)
         empty = {"version": version}
         self._filename = filename
-        self._tcpdump = None
-        self._params = None
+        self._sniffer = None
         self.save_lock = threading.RLock()
         if filename:
             try:
@@ -204,7 +124,7 @@ class Env(UserDict.IterableUserDict):
         """
         Destroy all objects registered in this Env object.
         """
-        self.stop_tcpdump()
+        self.stop_ip_sniffing()
         for key in self.data:
             try:
                 if key.startswith("vm__"):
@@ -314,69 +234,44 @@ class Env(UserDict.IterableUserDict):
         """
         return self.data.get("lvmdev__%s" % name)
 
-    def _start_tcpdump(self):
+    def start_ip_sniffing(self, params):
+        """
+        Start ip sniffing.
 
-        cmd_template = "%s -npvvvi any 'port 68 or port 546'"
-        if self._params.get("remote_preprocess") == "yes":
-            client = self._params.get('remote_shell_client', 'ssh')
-            port = self._params.get('remote_shell_port', '22')
-            prompt = self._params.get('remote_shell_prompt', '#')
-            address = self._params.get('remote_node_address')
-            username = self._params.get('remote_node_user')
-            password = self._params.get('remote_node_password')
-            rsession = None
-            try:
-                rsession = remote.remote_login(client, address,
-                                               port, username,
-                                               password, prompt)
-                tcpdump_bin = rsession.cmd_output("which tcpdump")
-                rsession.close()
-            except process.CmdError:
-                rsession.close()
-                raise exceptions.TestError("Can't find tcpdump binary!")
+        :param params: Params object.
+        """
+        self.data.setdefault("address_cache", ip_sniffing.AddrCache())
+        sniffers = ip_sniffing.Sniffers
 
-            cmd = cmd_template % tcpdump_bin.strip()
-            logging.debug("Run '%s' on host '%s'", cmd, address)
-            login_cmd = ("ssh -o UserKnownHostsFile=/dev/null "
-                         "-o StrictHostKeyChecking=no "
-                         "-o PreferredAuthentications=password -p %s %s@%s" %
-                         (port, username, address))
+        if not self._sniffer:
+            remote_pp = params.get("remote_preprocess") == "yes"
+            remote_opts = None
+            session = None
+            if remote_pp:
+                client = params.get('remote_shell_client', 'ssh')
+                remote_opts = (params.get['remote_node_address'],
+                               params.get('remote_shell_port', '22'),
+                               params['remote_node_user'],
+                               params['remote_node_password'],
+                               params.get('remote_shell_prompt', '#'))
+                session = remote.remote_login(client, *remote_opts)
+            for s_cls in sniffers:
+                if s_cls.is_supported(session):
+                    self._sniffer = s_cls(self.data["address_cache"],
+                                          "ip-sniffer.log",
+                                          remote_opts)
+                    break
+            if session:
+                session.close()
 
-            self._tcpdump = aexpect.ShellSession(
-                login_cmd,
-                output_func=_update_address_cache,
-                output_params=(self,))
+        if not self._sniffer:
+            raise exceptions.TestError("Can't find any supported ip sniffer! "
+                                       "%s" % [s.command for s in sniffers])
 
-            remote.handle_prompts(self._tcpdump, username, password, prompt)
-            self._tcpdump.sendline(cmd)
+        if not self._sniffer.is_alive():
+            self._sniffer.start()
 
-        else:
-            cmd = cmd_template % utils_path.find_command("tcpdump")
-            self._tcpdump = aexpect.Tail(command=cmd,
-                                         output_func=_tcpdump_handler,
-                                         output_params=(self, "tcpdump.log"))
-
-        if not self._tcpdump.is_alive():
-            logging.warn("Could not start tcpdump")
-            logging.warn("Status: %s", self._tcpdump.get_status())
-            msg = utils_misc.format_str_for_message(self._tcpdump.get_output())
-            logging.warn("Output: %s", msg)
-
-    def start_tcpdump(self, params):
-        self._params = params
-
-        if "address_cache" not in self.data:
-            self.data["address_cache"] = {}
-
-        if self._tcpdump is None:
-            self._start_tcpdump()
-        else:
-            if not self._tcpdump.is_alive():
-                del self._tcpdump
-                self._start_tcpdump()
-
-    def stop_tcpdump(self):
-        if self._tcpdump is not None:
-            self._tcpdump.close()
-            del self._tcpdump
-            self._tcpdump = None
+    def stop_ip_sniffing(self):
+        """Stop ip sniffing."""
+        if self._sniffer:
+            self._sniffer.stop()
