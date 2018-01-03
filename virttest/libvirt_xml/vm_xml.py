@@ -1215,27 +1215,37 @@ class VMXML(VMXMLBase):
         return None
 
     @staticmethod
-    def set_cpu_mode(vm_name, mode='host-model'):
+    def set_cpu_mode(vm_name, mode='host-model', model='',
+                     fallback='', match='', check=''):
         """
-        Set cpu's mode of VM.
+        Set cpu's mode and respective attributes of VM.
 
         :param vm_name: Name of defined vm to set cpu mode.
-        :param mode: the mode of cpu:'host-model'...
+        :param mode: the mode of cpu: host-model, host-passthrough, custom
+        :param model: cpu model (power8, core2duo etc)
+        :param fallback: forbid, allow*
+        :param match: minimum, exact*, strict
+        :param check: none, partial, full
+        * - default values
         """
         vmxml = VMXML.new_from_dumpxml(vm_name)
         vmxml.check_cpu_mode(mode)
-        xmltreefile = vmxml.__dict_get__('xml')
         try:
-            cpu = xmltreefile.find('/cpu')
-            logging.debug("Current cpu mode is '%s'!", cpu.get('mode'))
-            cpu.set('mode', mode)
-        except AttributeError:
-            logging.debug("Can not find any cpu, now create one.")
-            cpu = xml_utils.ElementTree.SubElement(xmltreefile.getroot(),
-                                                   'cpu', {'mode': mode})
-        xmltreefile.write()
-        vmxml.undefine()
-        vmxml.define()
+            cpuxml = vmxml['cpu']
+        except xcepts.LibvirtXMLNotFoundError:
+            logging.debug("Can not find any cpu tag, now create one.")
+            cpuxml = VMCPUXML()
+        cpuxml['mode'] = mode
+        if model:
+            cpuxml['model'] = model
+        if fallback:
+            cpuxml['fallback'] = fallback
+        if match:
+            cpuxml['match'] = match
+        if check:
+            cpuxml['check'] = check
+        vmxml['cpu'] = cpuxml
+        vmxml.sync()
 
     def add_device(self, value):
         """
@@ -1471,7 +1481,7 @@ class VMCPUXML(base.LibvirtXMLBase):
 
     # Must copy these here or there will be descriptor problems
     __slots__ = ('model', 'vendor', 'feature_list', 'mode', 'match',
-                 'fallback', 'topology', 'numa_cell')
+                 'fallback', 'topology', 'numa_cell', 'check')
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -1490,6 +1500,12 @@ class VMCPUXML(base.LibvirtXMLBase):
                                parent_xpath='/',
                                tag_name='cpu',
                                attribute='match')
+        accessors.XMLAttribute(property_name="check",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='cpu',
+                               attribute='check')
         accessors.XMLElementText(property_name="model",
                                  libvirtxml=self,
                                  forbidden=[],
