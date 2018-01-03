@@ -594,6 +594,35 @@ class VM(virt_vm.BaseVM):
                 cmd += ",locked=yes"
             return cmd
 
+        def add_cpu_mode(virt_install_cmd, mode='', model='',
+                         match='', vendor=False):
+            """
+            To add cpu mode, model etc... params
+            :param virt_install_cmd: previous virt install cmd line
+            :param mode: cpu mode host-passthrough, host-model, custom
+            :param model: cpu model (coreduo, power8 etc.)
+            :param match: minimum, exact, strict
+            :param vendor: cpu vendor
+            :return: updated virt_install_cmd
+            """
+            cmd = ''
+            cpu_match = re.match(r".*\s--cpu\s(\S+)\s", virt_install_cmd)
+            if cpu_match:
+                cmd = " --cpu %s," % cpu_match.group(1)
+            else:
+                cmd = " --cpu "
+            if mode and has_sub_option('cpu', 'mode'):
+                cmd += 'mode="%s",' % mode
+            if model and has_sub_option('cpu', 'model'):
+                cmd += 'model="%s",' % model
+            if match and has_sub_option('cpu', 'match'):
+                cmd += 'match="%s",' % match
+            if vendor and has_sub_option('cpu', 'vendor'):
+                cmd += 'vendor="%s",' % libvirt_xml.CapabilityXML().vendor
+            virt_install_cmd += cmd.strip(',')
+
+            return virt_install_cmd
+
         def add_location(help_text, location):
             if has_option(help_text, "location"):
                 return " --location %s" % location
@@ -1002,6 +1031,13 @@ class VM(virt_vm.BaseVM):
                 logging.error("Can't pin hugepage without hugepage enabled"
                               "and Numa enabled")
 
+        cpu_mode = params.get("virt_cpu_mode", '')
+        if cpu_mode:
+            virt_install_cmd = add_cpu_mode(virt_install_cmd,
+                                            mode=cpu_mode,
+                                            model=params.get('virt_cpu_model', ''),
+                                            match=params.get('virt_cpu_match', ''),
+                                            vendor=params.get('virt_cpu_vendor', False))
         # TODO: directory location for vmlinuz/kernel for cdrom install ?
         location = None
         if params.get("medium") == 'url':
