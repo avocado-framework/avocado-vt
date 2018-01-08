@@ -1410,6 +1410,39 @@ class MigrationTest(object):
         # Set connect uri back to local uri
         vm.connect_uri = srcuri
 
+    def check_vm_state(self, vm, state='paused', uri=None):
+        """
+        checks whether state of the vm is as expected
+
+        :param vm: VM Object
+        :param state: expected state of the VM
+        :param uri: connect uri
+
+        :return: True if state of VM is as expected, False otherwise
+        """
+        if not virsh.domain_exists(vm.name, uri=uri):
+            return False
+        vm_state = virsh.domstate(vm.name, uri=uri).stdout.strip()
+        return vm_state.lower() == state.lower()
+
+    def wait_for_migration_start(self, vm, state='paused', uri=None, timeout=60):
+        """
+        checks whether migration is started or not
+
+        :param vm: VM object
+        :param state: expected VM state in destination host
+        :param uri: connect uri
+        :param timeout: time in seconds to wait for migration to start
+
+        :return: True if migration is started False otherwise
+        """
+        def check_state():
+            try:
+                return self.check_vm_state(vm, state, uri)
+            except Exception:
+                return False
+        return utils_misc.wait_for(check_state, timeout)
+
 
 def check_result(result, expected_fails=[], skip_if=[], any_error=False):
     """
