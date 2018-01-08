@@ -3422,7 +3422,6 @@ def update_mac_ip_address(vm, timeout=240):
         if not addr_map:
             logging.warn("No VM's NIC got IP address")
             return
-        logging.debug("Update address_cache: %s", addr_map)
         vm.address_cache.update(addr_map)
     except Exception, e:
         logging.warn("Error occur when update VM address cache: %s", str(e))
