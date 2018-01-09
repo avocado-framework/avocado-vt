@@ -1410,6 +1410,18 @@ def domain_exists(name, **dargs):
         return False
 
 
+def migrate_postcopy(name, **dargs):
+    """
+    Trigger postcopy migration
+
+    :param name: VM name
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "migrate-postcopy %s" % name
+    return command(cmd, **dargs)
+
+
 def migrate(name="", dest_uri="", option="", extra="", **dargs):
     """
     Migrate a guest to another host.
