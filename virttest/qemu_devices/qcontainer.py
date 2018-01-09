@@ -1572,7 +1572,7 @@ class DevContainer(object):
         """
         shared_dir = os.path.join(data_dir.get_data_dir(), "shared")
         drive_format = image_params.get("drive_format")
-        scsi_hba = image_params.get("scsi_hba")
+        scsi_hba = image_params.get("scsi_hba", "virtio-scsi-pci")
         if drive_format == "virtio":    # translate virtio to ccw/device
             machine_type = image_params.get("machine_type")
             if "s390" in machine_type:      # s390

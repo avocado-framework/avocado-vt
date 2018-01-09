@@ -2042,12 +2042,13 @@ class StraceQemu(object):
         self._compress_log()
 
 
-def disable_smt(params=None):
+def switch_smt(state="off", params=None):
     """
-    Checks whether smt is on, if so disables it in PowerPC system
+    Checks whether smt is on/off, if so disables/enable it in PowerPC system
     This function is used in env_process and in libvirt.py to check
-    & disable smt in Power8 for local and remote machine respectively.
+    & disable smt in Powerpc for local and remote machine respectively.
 
+    :param state: 'off' or 'on' default: off
     :param params: Test params dict for remote machine login details
     """
     SMT_DISABLED_STRS = ["SMT is off", "Machine is not SMT capable"]
@@ -2074,27 +2075,30 @@ def disable_smt(params=None):
                 raise exceptions.TestSetupFail("Couldn't get SMT of server: %s"
                                                % smt_output)
     smt_enabled = smt_output not in SMT_DISABLED_STRS
-    if smt_enabled:
-        cmd = "ppc64_cpu --smt=off"
+    if (state == "off" and smt_enabled) or (state == "on" and not smt_enabled):
+        cmd = "ppc64_cpu --smt=%s" % state
         if params:
             if (server_user.lower() != "root"):
-                raise exceptions.TestSkipError("Turning SMT off requires root "
+                raise exceptions.TestSkipError("Turning SMT %s requires root "
                                                "privileges(currently running "
-                                               "with user %s)" % server_user)
+                                               "with user %s)" % (state,
+                                                                  server_user))
             cmd_output = server_session.cmd_status_output(cmd)
             server_session.close()
             if (cmd_output[0] != 0):
-                raise exceptions.TestSetupFail("VM cant be started :%s"
-                                               % cmd_output[1])
+                raise exceptions.TestSetupFail("Unable to turn %s SMT :%s"
+                                               % (state, cmd_output[1]))
             else:
-                logging.debug("SMT turned off successfully in remote server")
+                logging.debug("SMT turned %s successfully in remote server",
+                              state)
         else:
             try:
                 utils_misc.verify_running_as_root()
                 process.run(cmd, verbose=True, shell=True)
-                logging.debug("SMT turned off successfully")
+                logging.debug("SMT turned %s successfully", state)
             except process.CmdError, info:
-                raise exceptions.TestSetupFail("VM can not be started :%s" % info)
+                raise exceptions.TestSetupFail("Unable to turn %s SMT :%s" %
+                                               (state, info))
 
 
 class LibvirtdDebugLog(object):

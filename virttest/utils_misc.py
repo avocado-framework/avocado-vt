@@ -45,6 +45,7 @@ from . import data_dir
 from . import error_context
 from . import cartesian_config
 from . import utils_selinux
+from . import utils_disk
 from .staging import utils_koji
 from .xml_utils import XMLTreeFile
 
@@ -1073,19 +1074,7 @@ def umount(src, mount_point, fstype, verbose=False, fstype_mtab=None):
     :param fstype_mtab: file system type in mtab could be different
     :type fstype_mtab: str
     """
-    if fstype_mtab is None:
-        fstype_mtab = fstype
-
-    if is_mounted(src, mount_point, fstype, None, verbose, fstype_mtab):
-        umount_cmd = "umount %s" % mount_point
-        try:
-            process.system(umount_cmd, verbose=verbose)
-            return True
-        except process.CmdError:
-            return False
-    else:
-        logging.debug("%s is not mounted under %s", src, mount_point)
-        return True
+    return utils_disk.umount(src, mount_point, fstype, verbose)
 
 
 def mount(src, mount_point, fstype, perm=None, verbose=False, fstype_mtab=None):
@@ -1099,22 +1088,7 @@ def mount(src, mount_point, fstype, perm=None, verbose=False, fstype_mtab=None):
     :param fstype_mtab: file system type in mtab could be different
     :type fstype_mtab: str
     """
-    if perm is None:
-        perm = "rw"
-    if fstype_mtab is None:
-        fstype_mtab = fstype
-
-    if is_mounted(src, mount_point, fstype, perm, verbose, fstype_mtab):
-        logging.debug("%s is already mounted in %s with %s",
-                      src, mount_point, perm)
-        return True
-    mount_cmd = "mount -t %s %s %s -o %s" % (fstype, src, mount_point, perm)
-    try:
-        process.system(mount_cmd, verbose=verbose)
-    except process.CmdError:
-        return False
-    return wait_for(lambda: is_mounted(src, mount_point, fstype, perm, verbose, fstype_mtab),
-                    timeout=5)
+    return utils_disk.mount(src, mount_point, fstype, perm, verbose)
 
 
 def is_mounted(src, mount_point, fstype, perm=None, verbose=False,
@@ -1137,32 +1111,7 @@ def is_mounted(src, mount_point, fstype, perm=None, verbose=False,
     :return: if the src is mounted as expect
     :rtype: Boolean
     """
-    if perm is None:
-        perm = ""
-    if fstype_mtab is None:
-        fstype_mtab = fstype
-
-    # Version 4 nfs displays 'nfs4' in mtab
-    if fstype == "nfs":
-        fstype_mtab = "nfs\d?"
-
-    mount_point = os.path.realpath(mount_point)
-    if fstype not in ['nfs', 'smbfs', 'glusterfs', 'hugetlbfs']:
-        if src:
-            src = os.path.realpath(src)
-        else:
-            # Allow no passed src(None or "")
-            src = ""
-    mount_string = "%s %s .*%s %s" % (src, mount_point, fstype_mtab, perm)
-    logging.debug("Searching '%s' in mtab...", mount_string)
-    if verbose:
-        logging.debug("/etc/mtab contents:\n%s", file("/etc/mtab").read())
-    if re.findall(mount_string.strip(), file("/etc/mtab").read()):
-        logging.debug("%s is mounted.", src)
-        return True
-    else:
-        logging.debug("%s is not mounted.", src)
-        return False
+    return utils_disk.is_mount(src, mount_point, fstype, perm, verbose)
 
 
 def install_host_kernel(job, params):
@@ -2708,14 +2657,31 @@ def get_free_mem(session, os_type):
     :return string: freespace M-bytes
     """
     if os_type != "windows":
-        cmd = "grep 'MemFree:' /proc/meminfo"
-        output = session.cmd_output(cmd)
-        free = re.findall(r"\d+\s\w", output)[0]
+        free = "%s kB" % get_mem_info(session, 'MemFree')
     else:
         output = session.cmd_output("wmic OS get FreePhysicalMemory")
         free = "%sK" % re.findall("\d+", output)[0]
     free = float(normalize_data_size(free, order_magnitude="M"))
     return int(free)
+
+
+def get_mem_info(session=None, attr='MemTotal'):
+    """
+    Get memory information attributes in host/guest
+
+    :param session: VM session object
+    :param attr: memory information attribute
+
+    :return: memory information of attribute in kB
+    """
+    cmd = "grep '%s:' /proc/meminfo" % attr
+    if session:
+        output = session.cmd_output(cmd)
+    else:
+        output = process.system_output(cmd, shell=True)
+    output = re.findall(r"\d+\s\w", output)[0]
+    output = float(normalize_data_size(output, order_magnitude="K"))
+    return int(output)
 
 
 def get_used_mem(session, os_type):
