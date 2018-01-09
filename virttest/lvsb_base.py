@@ -293,7 +293,7 @@ class SandboxCommandBase(SandboxBase):
         self._name = state.pop('name')
         super(SandboxCommandBase, self).__setstate__(state)
 
-    def __get_name__(self):
+    def _get_name(self):
         """
         Represent a unique sandbox name generated from class and identifier
         """
@@ -309,15 +309,15 @@ class SandboxCommandBase(SandboxBase):
         return self._name
 
     @staticmethod
-    def __set_name__(value):
+    def _set_name(value):
         del value  # not used
         raise SandboxException("Name is read-only")
 
     @staticmethod
-    def __del_name__():
+    def _del_name():
         raise SandboxException("Name is read-only")
 
-    name = property(__get_name__, __set_name__, __del_name__)
+    name = property(_get_name, _set_name, _del_name)
 
     @staticmethod
     def flaten_options(options):
