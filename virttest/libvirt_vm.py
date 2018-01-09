@@ -2783,10 +2783,12 @@ class VM(virt_vm.BaseVM):
                 query_cmd = "dpkg -l | grep %s" % name
                 cmd = "apt install -y %s" % name
                 update_cmd = "apt upgrade -y %s" % name
+                clean_cmd = "apt-get clean"
             else:
                 query_cmd = "rpm -q %s" % name
                 cmd = "yum install -y %s" % name
                 update_cmd = "yum update -y %s" % name
+                clean_cmd = "yum clean all"
 
             if session.cmd_status(query_cmd):
                 # Install the package if it does not exists
@@ -2794,12 +2796,17 @@ class VM(virt_vm.BaseVM):
                 # Just check status is not enough
                 # It's necessary to check if install successfully
                 if status != 0 or session.cmd_status(query_cmd) != 0:
-                    if not ignore_status:
-                        raise virt_vm.VMError("Installation of package %s "
-                                              "failed:\n%s" % (name, output))
-                    else:
-                        logging.error("Installation of package %s failed:"
-                                      "\n%s", name, output)
+                    # The local repo database probably is broken.
+                    session.cmd_status_output(clean_cmd, timeout=300)
+                    # Retry install required packages
+                    status, output = session.cmd_status_output(cmd, timeout=300)
+                    if status != 0 or session.cmd_status(query_cmd) != 0:
+                        if not ignore_status:
+                            raise virt_vm.VMError("Installation of package %s "
+                                                  "failed:\n%s" % (name, output))
+                        else:
+                            logging.error("Installation of package %s failed:"
+                                          "\n%s", name, output)
             else:
                 # Update the package
                 status, output = session.cmd_status_output(update_cmd,
