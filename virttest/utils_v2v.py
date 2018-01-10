@@ -411,6 +411,15 @@ class LinuxVMCheck(VMCheck):
         if re.search(disk, output):
             return True
         return False
+    def is_uefi_guest(self):
+        """
+        Check whether guest is uefi guest
+        """
+        cmd = "ls /boot/efi/EFI/BOOT"
+        status, output = self.run_cmd(cmd)
+        if status != 0:
+            return False
+        return True
 
     def get_grub_device(self, dev_map="/boot/grub*/device.map"):
         """
