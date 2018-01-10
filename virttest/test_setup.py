@@ -451,6 +451,63 @@ class HugePageConfig(object):
             raise ValueError("Root hugepage control sysfs directory %s did not"
                              " exist" % self.pool_path)
 
+    def get_kernel_hugepages(self, pagesize):
+        """
+        Get specific hugepages number allocated by kernel at runtime
+
+        read page number from
+        /sys/kernel/mm/hugepages/hugepages-${pagesize}kB/nr_hugepages
+
+        :param pagesize: hugepages size
+        :return: page number
+        """
+        pagedir = "%s/hugepages-%skB" % (self.pool_path, pagesize)
+        pagefile = "%s/nr_hugepages" % pagedir
+
+        if not os.path.isdir(pagedir) or not os.path.isfile(pagefile):
+            raise ValueError("Root hugepage control sysfs directory %s or"
+                             " file %s did not exist" % (pagedir, pagefile))
+        with open(pagefile, "r") as f:
+            hp = f.readline().strip()
+        return int(hp)
+
+    def set_kernel_hugepages(self, pagesize, pagenum):
+        """
+        Let kernel allocate some specific hugepages at runtime
+
+        write page number to
+        /sys/kernel/mm/hugepages/hugepages-${pagesize}kB/nr_hugepages
+
+        :param pagesize: hugepages size
+        :param pagenum: page number
+        """
+        pagedir = "%s/hugepages-%skB" % (self.pool_path, pagesize)
+        pagefile = "%s/nr_hugepages" % pagedir
+
+        if not isinstance(int(pagenum), type(0)):
+            raise ValueError("pagenum should be integer, while got "
+                             "%s" % pagenum)
+        if not os.path.isdir(pagedir) or not os.path.isfile(pagefile):
+            raise ValueError("Root hugepages control sysfs directory %s or"
+                             " file %s did not exist" % (pagedir, pagefile))
+        process.system("echo %s > %s" % (pagenum, pagefile), shell=True)
+
+    def get_freepages(self, node, pagesize):
+        """
+        Get page number of certain hugepages under given numa node.
+
+        :param node: node number, must be string or int
+        :param pagesize: page size type, must be string or int
+        :return: int,  hugepages number of given page size
+        """
+        node_page_path = "%s/node%s" % (self.sys_node_path, node)
+        node_page_path += "/hugepages/hugepages-%skB/free_hugepages" % pagesize
+        if not os.path.isfile(node_page_path):
+            raise ValueError("%s page size free_hugepages file of node %s did "
+                             "not exist" % (pagesize, node))
+        out = process.system_output("cat %s" % node_page_path)
+        return int(out)
+
     def get_node_num_huge_pages(self, node, pagesize):
         """
         Get number of pages of certain page size under given numa node.
