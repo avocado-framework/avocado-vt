@@ -2820,7 +2820,7 @@ def get_all_disks_did(session, partition=False):
 
 
 def format_windows_disk(session, did, mountpoint=None, size=None,
-                        fstype="ntfs"):
+                        fstype="ntfs", force=False):
     """
     Create a partition on disk in windows guest and format it.
 
@@ -2861,6 +2861,10 @@ def format_windows_disk(session, did, mountpoint=None, size=None,
                 set_rw_cmd = ' '.join([cmd_header, set_rw_cmd, cmd_footer])
                 logging.info("Clear readonly bit on 'Disk%s'" % did)
                 session.cmd(set_rw_cmd)
+
+            if re.search(r"Volume.*%s" % fstype, details, re.I | re.M) and not force:
+                logging.info("Disk%s has been formated, cancel format" % did)
+                continue
 
             if not size:
                 mkpart_cmd = 'echo create partition primary >> disk'
