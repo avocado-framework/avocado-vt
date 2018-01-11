@@ -98,10 +98,11 @@ clean:
 	find . -name '*.pyc' -delete
 
 link:
-	ln -sf ../../../../$(DIRNAME)/etc/avocado/conf.d/vt.conf ../$(AVOCADO_DIRNAME)/etc/avocado/conf.d/
-	ln -sf ../../../../$(DIRNAME)/etc/avocado/conf.d/vt_joblock.conf ../$(AVOCADO_DIRNAME)/etc/avocado/conf.d/
+	ln -sf ../../../../../$(DIRNAME)/etc/avocado/conf.d/vt.conf ../$(AVOCADO_DIRNAME)/avocado/etc/avocado/conf.d/
+	ln -sf ../../../../../$(DIRNAME)/etc/avocado/conf.d/vt_joblock.conf ../$(AVOCADO_DIRNAME)/avocado/etc/avocado/conf.d/
 	$(PYTHON) setup.py develop --user
 
 unlink:
 	$(PYTHON) setup.py develop --uninstall --user
-	test -L ../$(AVOCADO_DIRNAME)/etc/avocado/conf.d/vt.conf && rm -f ../$(AVOCADO_DIRNAME)/etc/avocado/conf.d/vt.conf || true
+	test -L ../$(AVOCADO_DIRNAME)/avocado/etc/avocado/conf.d/vt.conf && rm -f ../$(AVOCADO_DIRNAME)/avocado/etc/avocado/conf.d/vt.conf || true
+	test -L ../$(AVOCADO_DIRNAME)/avocado/etc/avocado/conf.d/vt_joblock.conf && rm -f ../$(AVOCADO_DIRNAME)/avocado/etc/avocado/conf.d/vt_joblock.conf || true
