@@ -4278,7 +4278,7 @@ class VM(virt_vm.BaseVM):
                     for (k, v) in traverse_nested_dict(block):
                         if k != key:
                             continue
-                        if v != value:
+                        if v != value and (value not in v):
                             matched = False
                             break
                 if matched:

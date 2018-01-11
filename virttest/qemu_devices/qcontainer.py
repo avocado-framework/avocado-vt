@@ -1207,7 +1207,8 @@ class DevContainer(object):
                                    blk_extra_params=None, scsi=None,
                                    drv_extra_params=None,
                                    num_queues=None, bus_extra_params=None,
-                                   force_fmt=None):
+                                   force_fmt=None,
+                                   encryption=None, img_cipher=None,):
         """
         Creates related devices by variables
         :note: To skip the argument use None, to disable it use False
@@ -1244,6 +1245,8 @@ class DevContainer(object):
         :param scsi_hba: Custom scsi HBA
         :param num_queues: performace option for virtio-scsi-pci
         :param bus_extra_params: options want to add to virtio-scsi-pci bus
+        :param encryption: qemu img encrypt method ($string)
+        :param img_cipher: image cipher ($string)
         """
         def define_hbas(qtype, atype, bus, unit, port, qbus, pci_bus,
                         addr_spec=None, num_queues=None,
@@ -1424,6 +1427,15 @@ class DevContainer(object):
             dev_parent = {'type': fmt}
 
         #
+        # Object
+        # -object secret for luks
+        #
+        if encryption == "luks":
+            devices.append(qdevices.QObject("secret"))
+            devices[-1].set_param("id", "sec_%s" % name)
+            devices[-1].set_param("data", img_cipher)
+
+        #
         # Drive
         # -drive fmt or -drive fmt=none -device ...
         #
@@ -1442,6 +1454,10 @@ class DevContainer(object):
         devices[-1].set_param('boot', boot, bool)
         devices[-1].set_param('snapshot', snapshot, bool)
         devices[-1].set_param('readonly', readonly, bool)
+        if imgfmt == "qcow2" and encryption == "luks":
+            devices[-1].set_param("encrypt.key-secret", "sec_%s" % name)
+        if imgfmt == "luks":
+            devices[-1].set_param("key-secret", "sec_%s" % name)
         if 'aio' in self.get_help_text():
             if aio == 'native' and snapshot == 'yes':
                 logging.warn('snapshot is on, fallback aio to threads.')
@@ -1589,6 +1605,14 @@ class DevContainer(object):
                 scsi_hba = "virtio-scsi-device"
             elif "s390" in image_params.get("machine_type"):
                 scsi_hba = "virtio-scsi-ccw"
+        # support for luks for .luks and .qcow2
+        # .qcow2 requires "encryption = luks"
+        encryption = image_params.get("encryption")
+        img_cipher = image_params.get("image_cipher")
+        img_fmt = image_params.get("image_format")
+        if img_fmt == "luks":
+            encryption = "luks"
+
         return self.images_define_by_variables(name,
                                                storage.get_image_filename(
                                                    image_params,
@@ -1629,8 +1653,7 @@ class DevContainer(object):
                                                image_params.get(
                                                    "strict_mode") == "yes",
                                                media,
-                                               image_params.get(
-                                                   "image_format"),
+                                               img_fmt,
                                                image_params.get(
                                                    "drive_pci_addr"),
                                                scsi_hba,
@@ -1645,7 +1668,9 @@ class DevContainer(object):
                                                image_params.get("num_queues"),
                                                image_params.get(
                                                    "bus_extra_params"),
-                                               image_params.get("force_drive_format"))
+                                               image_params.get("force_drive_format"),
+                                               encryption,
+                                               img_cipher,)
 
     def cdroms_define_by_params(self, name, image_params, media=None,
                                 index=None, image_boot=None,

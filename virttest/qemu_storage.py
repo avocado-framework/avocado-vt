@@ -22,6 +22,41 @@ from virttest import error_context
 from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 
 
+# TODO: create a qemu-img cmd class
+# generate secret id
+def _gen_sec_id():
+    import random
+    import string
+    sec_id = "sec" + ''.join(
+             random.choice(
+                 string.ascii_uppercase + string.ascii_lowercase
+             ) for _ in range(8))
+    return sec_id
+
+
+def _normalise_opts(opts):
+    for n, item in enumerate(opts):
+        if isinstance(item, tuple):
+            opts[n] = "%s=%s" % item
+
+
+# add new option to cmd list
+def _add_option(cmd, opt_key, opts):
+    _normalise_opts(opts)
+    cmd.extend([opt_key, ",".join(opts)])
+
+
+# extend option to cmd list
+def _extend_option(cmd, opt_key, opts):
+    _normalise_opts(opts)
+    if opt_key in cmd:
+        idx = cmd.index(opt_key) + 1
+        opts = ",".join(opts)
+        cmd[idx] = ",".join([cmd[idx], opts])
+    else:
+        cmd.extend([opt_key, ",".join(opts)])
+
+
 class QemuImg(storage.QemuImg):
 
     """
@@ -93,51 +128,58 @@ class QemuImg(storage.QemuImg):
             qemu_img_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"
                             % (self.image_filename, size, block_size))
         else:
-            qemu_img_cmd = self.image_cmd
-            qemu_img_cmd += " create"
+            cmd = [self.image_cmd, "create", "-f", self.image_format]
 
-            qemu_img_cmd += " -f %s" % self.image_format
-
-            image_cluster_size = params.get("image_cluster_size", None)
-            preallocated = params.get("preallocated", "off")
-            encrypted = params.get("encrypted", "off")
-            image_extra_params = params.get("image_extra_params", "")
-            has_backing_file = params.get('has_backing_file')
-
-            qemu_img_cmd += " -o "
             if self.image_format == "qcow2":
-                if preallocated != "off":
-                    qemu_img_cmd += "preallocation=%s," % preallocated
+                image_cluster_size = params.get("image_cluster_size", None)
+                preallocated = params.get("preallocated", "off")
+                image_extra_params = params.get("image_extra_params", "")
+                has_backing_file = params.get('has_backing_file')
+                encryption = params.get("encryption")
 
-                if encrypted != "off":
-                    qemu_img_cmd += "encryption=%s," % encrypted
+                if preallocated != "off":
+                    _extend_option(cmd, "-o", [("preallocation",
+                                                preallocated)])
 
                 if image_cluster_size:
-                    qemu_img_cmd += "cluster_size=%s," % image_cluster_size
+                    _extend_option(cmd, "-o", [("cluster_size",
+                                               image_cluster_size)])
 
                 if has_backing_file == "yes":
                     backing_param = params.object_params("backing_file")
                     backing_file = storage.get_image_filename(backing_param,
                                                               self.root_dir)
                     backing_fmt = backing_param.get("image_format")
-                    qemu_img_cmd += "backing_file=%s," % backing_file
+                    _extend_option(cmd, "-o", [("backing_file", backing_file),
+                                               ("backing_fmt", backing_fmt)])
+                if image_extra_params:
+                    _extend_option(cmd, "-o", [image_extra_params])
 
-                    qemu_img_cmd += "backing_fmt=%s," % backing_fmt
+                if encryption == "luks":
+                    cipher = params["image_cipher"]
+                    sec_id = _gen_sec_id()
+                    _add_option(cmd, "--object", ["secret",
+                                                  ("id", sec_id),
+                                                  ("data", cipher)])
+                    _extend_option(cmd, "-o", [("encrypt.format", "luks"),
+                                               ("encrypt.key-secret", sec_id)])
+                # TODO: base + luks encryption
+                # for now you can ether use luks or base, not both
+                if self.base_tag:
+                    _add_option(cmd, "-b", [self.base_image_filename])
+                    if self.base_format:
+                        _add_option(cmd, "-F", [self.base_format])
 
-            if image_extra_params:
-                qemu_img_cmd += "%s," % image_extra_params
+            if self.image_format == "luks":
+                cipher = params["image_cipher"]
+                sec_id = _gen_sec_id()
+                _add_option(cmd, "--object", ["secret",
+                                              ("id", sec_id),
+                                              ("data", cipher)])
+                _add_option(cmd, "-o", [("key-secret", sec_id)])
 
-            qemu_img_cmd = qemu_img_cmd.rstrip(" -o")
-            qemu_img_cmd = qemu_img_cmd.rstrip(",")
-
-            if self.base_tag:
-                qemu_img_cmd += " -b %s" % self.base_image_filename
-                if self.base_format:
-                    qemu_img_cmd += " -F %s" % self.base_format
-
-            qemu_img_cmd += " %s" % self.image_filename
-
-            qemu_img_cmd += " %s" % self.size
+        cmd.extend([self.image_filename, self.size])
+        qemu_img_cmd = " ".join(cmd)
 
         if (params.get("image_backend", "filesystem") == "filesystem"):
             image_dirname = os.path.dirname(self.image_filename)
@@ -157,7 +199,6 @@ class QemuImg(storage.QemuImg):
                 logging.warning("We'll try to proceed by creating the dir. "
                                 "Other errors may ensue")
                 os.makedirs(image_dirname)
-
         msg = "Create image by command: %s" % qemu_img_cmd
         error_context.context(msg, logging.info)
         cmd_result = process.run(
@@ -520,12 +561,26 @@ class QemuImg(storage.QemuImg):
                     logging.error("Error getting info from image %s",
                                   image_filename)
 
-                chk_cmd = "%s check" % self.image_cmd
+                cmd = [self.image_cmd, "check"]
+                encryption = params.get("encryption")
                 if force_share:
-                    chk_cmd += " -U"
-                chk_cmd += " %s" % image_filename
-                cmd_result = process.run(chk_cmd, ignore_status=True,
+                    cmd.append("-U")
+                if encryption == "luks":
+                    cipher = params["image_cipher"]
+                    sec_id = _gen_sec_id()
+                    _add_option(cmd, "--object", ["secret",
+                                                  ("id", sec_id),
+                                                  ("data", cipher)])
+                    _add_option(cmd, "--image-opts",
+                                [("driver", self.image_format),
+                                 ("encrypt.key-secret", sec_id),
+                                 ("file.filename", image_filename)])
+                else:
+                    cmd.append(image_filename)
+                cmd = " ".join(cmd)
+                cmd_result = process.run(cmd, ignore_status=True,
                                          shell=True, verbose=False)
+
                 # Error check, large chances of a non-fatal problem.
                 # There are chances that bad data was skipped though
                 if cmd_result.exit_status == 1:
