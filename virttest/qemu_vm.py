@@ -580,6 +580,8 @@ class VM(virt_vm.BaseVM):
             devices.insert(dev)
             if params.get('machine_type').startswith("arm64-mmio"):
                 dev = QDevice('virtio-serial-device')
+            elif params.get('machine_type').startswith("s390"):
+                dev = QDevice("virtio-serial-ccw")
             else:
                 dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
             dev.set_param("id", vioser_id)
@@ -1605,6 +1607,8 @@ class VM(virt_vm.BaseVM):
                         params.get('virtio_port_bus') is None):
                     if params.get('machine_type').startswith("arm64-mmio"):
                         dev = QDevice('virtio-serial-device')
+                    elif params.get('machine_type').startswith("s390"):
+                        dev = QDevice("virtio-serial-ccw")
                     else:
                         dev = QDevice(
                             'virtio-serial-pci', parent_bus=parent_bus)
@@ -1615,6 +1619,8 @@ class VM(virt_vm.BaseVM):
                 for i in range(no_virtio_serial_pcis, bus + 1):
                     if params.get('machine_type').startswith("arm64-mmio"):
                         dev = QDevice('virtio-serial-device')
+                    elif params.get('machine_type').startswith("s390"):
+                        dev = QDevice("virtio-serial-ccw")
                     else:
                         dev = QDevice(
                             'virtio-serial-pci', parent_bus=parent_bus)
