@@ -15,10 +15,12 @@ from avocado.core import exceptions
 from avocado.utils import data_factory
 from avocado.utils import process
 from avocado.utils import path
+from avocado.utils import distro
 
 from . import utils_selinux
 from . import utils_net
 from . import data_dir
+from . import utils_package
 from .staging import service
 
 ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
@@ -830,18 +832,30 @@ class Iscsi(object):
     @staticmethod
     def create_iSCSI(params, root_dir=data_dir.get_tmp_dir()):
         iscsi_instance = None
-        err_msg = "Please install package(s): %s"
-        try:
-            path.find_command("iscsiadm")
-        except path.CmdNotFoundError:
-            logging.error(err_msg, "iscsi-initiator-utils")
-        try:
-            path.find_command("targetcli")
+        ubuntu = distro.detect().name == 'Ubuntu'
+        # check and install iscsi initiator packages
+        if ubuntu:
+            iscsi_package = ["open-iscsi"]
+        else:
+            iscsi_package = ["iscsi-initiator-utils"]
+
+        if not utils_package.package_install(iscsi_package):
+            raise exceptions.TestError("Failed to install iscsi initiator"
+                                       " packages")
+        # Install linux iscsi target software targetcli
+        iscsi_package = ["targetcli"]
+        if not utils_package.package_install(iscsi_package):
+            logging.error("Failed to install targetcli trying with scsi-"
+                          "target-utils or tgt package")
+            # try with scsi target utils if targetcli is not available
+            if ubuntu:
+                iscsi_package = ["tgt"]
+            else:
+                iscsi_package = ["scsi-target-utils"]
+            if not utils_package.package_install(iscsi_package):
+                raise exceptions.TestError("Failed to install iscsi target and"
+                                           " initiator packages")
+            iscsi_instance = IscsiTGT(params, root_dir)
+        else:
             iscsi_instance = IscsiLIO(params, root_dir)
-        except path.CmdNotFoundError:
-            try:
-                path.find_command("tgtadm")
-                iscsi_instance = IscsiTGT(params, root_dir)
-            except path.CmdNotFoundError:
-                logging.error(err_msg, "targetcli or scsi-target-utils")
         return iscsi_instance
