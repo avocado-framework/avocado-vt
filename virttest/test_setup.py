@@ -11,6 +11,9 @@ import shutil
 import platform
 import netaddr
 
+from abc import ABCMeta
+from abc import abstractmethod
+
 from avocado.utils import process
 from avocado.utils import archive
 from avocado.utils import wait
@@ -95,6 +98,90 @@ class PolkitConfigCleanupError(PolkitConfigError):
     Thrown when polkit config cleanup is not behaving as expected.
     """
     pass
+
+
+class Setuper(object):
+
+    """
+    Virtual base abstraction of setuper.
+    """
+
+    __metaclass__ = ABCMeta
+
+    def __init__(self, test, params, env):
+        """
+        Initializes the setuper.
+
+        :param test: VirtTest instance.
+        :param params: Dictionary with the test parameters.
+        :param env: Dictionary with test environment.
+        """
+        self.test = test
+        self.params = params
+        self.env = env
+
+    @abstractmethod
+    def setup(self):
+        """Setup procedure."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def cleanup(self):
+        """Cleanup procedure."""
+        raise NotImplementedError
+
+
+class SetuperMgr(object):
+
+    """
+    Setuper Manager implementation.
+
+    The instance can help do the setup stuff before test started and
+    do the cleanup stuff after test finished. This setup-cleanup
+    combined stuff will be performed in LIFO order.
+    """
+
+    def __init__(self, test, params, env):
+        """
+        Initializes the setuper manager.
+
+        :param test: VirtTest instance.
+        :param params: Dictionary with the test parameters.
+        :param env: Dictionary with test environment.
+        """
+        self._stp_args = (test, params, env)
+        self._reg_stps = []
+        self._setupers = []
+
+    def register(self, stp_cls):
+        """
+        Register the given setuper class to the manager.
+
+        :param stp_cls: Setuper class.
+        """
+        self._reg_stps.append(stp_cls)
+
+    def do_setup(self):
+        """Do setup stuff."""
+        for stp_cls in self._reg_stps:
+            stp = stp_cls(*self._stp_args)
+            stp.setup()
+            self._setupers.append(stp)
+
+    def do_cleanup(self):
+        """
+        Do cleanup stuff.
+
+        :return: Errors occurred in cleanup procedures.
+        """
+        err = []
+        while self._setupers:
+            try:
+                self._setupers.pop().cleanup()
+            except Exception as e:
+                logging.error(e)
+                err.append(e)
+        return err
 
 
 class TransparentHugePageConfig(object):
@@ -553,12 +640,13 @@ class HugePageConfig(object):
             logging.debug("Hugepage memory successfully deallocated")
 
 
-class KSMConfig(object):
+class KSMSetuper(Setuper):
 
-    def __init__(self, params, env):
+    def __init__(self, test, params, env):
         """
         :param params: Dict like object containing parameters for the test.
         """
+        super(KSMSetuper, self).__init__(test, params, env)
         self.pages_to_scan = params.get("ksm_pages_to_scan")
         self.sleep_ms = params.get("ksm_sleep_ms")
         self.run = params.get("ksm_run", "1")
@@ -600,17 +688,17 @@ class KSMConfig(object):
         self.default_status.append(int(self.ksmtuned_process))
         self.default_status.append(self.ksm_module_loaded)
 
-    def setup(self, env):
+    def setup(self):
         if self.disable_ksmtuned:
             self.ksmctler.stop_ksmtuned()
 
-        env.data["KSM_default_config"] = self.default_status
+        self.env.data["KSM_default_config"] = self.default_status
         self.ksmctler.set_ksm_feature({"run": self.run,
                                        "pages_to_scan": self.pages_to_scan,
                                        "sleep_millisecs": self.sleep_ms})
 
-    def cleanup(self, env):
-        default_status = env.data.get("KSM_default_config")
+    def cleanup(self):
+        default_status = self.env.data.get("KSM_default_config")
 
         # Get original ksm loaded status
         default_ksm_loaded = default_status.pop()

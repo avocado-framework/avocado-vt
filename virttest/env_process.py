@@ -48,6 +48,8 @@ _screendump_thread_termination_event = None
 _vm_register_thread = None
 _vm_register_thread_termination_event = None
 
+_setuper_mgr = None
+
 kernel_modified = False
 kernel_cmdline = None
 
@@ -603,6 +605,12 @@ def preprocess(test, params, env):
             except path.CmdNotFoundError, msg:
                 raise exceptions.TestSkipError(msg.message)
 
+    global _setuper_mgr
+    _setuper_mgr = test_setup.SetuperMgr(test, params, env)
+    if params.get("setup_ksm") == "yes":
+        _setuper_mgr.register(test_setup.KSMSetuper)
+    _setuper_mgr.do_setup()
+
     # enable network proxies setting in urllib2
     if params.get("network_proxies"):
         proxies = {}
@@ -766,10 +774,6 @@ def preprocess(test, params, env):
     if params.get("setup_thp") == "yes":
         thp = test_setup.TransparentHugePageConfig(test, params)
         thp.setup()
-
-    if params.get("setup_ksm") == "yes":
-        ksm = test_setup.KSMConfig(params, env)
-        ksm.setup(env)
 
     if params.get("setup_egd") == "yes":
         egd = test_setup.EGDConfig(params, env)
@@ -1110,14 +1114,6 @@ def postprocess(test, params, env):
             err += "\nTHP cleanup: %s" % str(details).replace('\\n', '\n  ')
             logging.error(details)
 
-    if params.get("setup_ksm") == "yes":
-        try:
-            ksm = test_setup.KSMConfig(params, env)
-            ksm.cleanup(env)
-        except Exception, details:
-            err += "\nKSM cleanup: %s" % str(details).replace('\\n', '\n  ')
-            logging.error(details)
-
     if params.get("setup_egd") == "yes" and params.get("kill_vm") == "yes":
         try:
             egd = test_setup.EGDConfig(params, env)
@@ -1241,6 +1237,9 @@ def postprocess(test, params, env):
                                     level_check=level)
         except exceptions.TestFail as details:
             err += "\nHost dmesg verification failed: %s" % details
+
+    global _setuper_mgr
+    err += "\n".join(_setuper_mgr.do_cleanup())
 
     if err:
         raise RuntimeError("Failures occurred while postprocess:\n%s" % err)
