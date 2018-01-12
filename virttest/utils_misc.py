@@ -1049,7 +1049,7 @@ def safe_rmdir(path, timeout=10):
             shutil.rmtree(path)
             success = True
             break
-        except OSError, err_info:
+        except OSError as err_info:
             # We are only going to try if the error happened due to
             # directory not empty (errno 39). Otherwise, raise the
             # original exception.
@@ -1876,7 +1876,7 @@ def get_dev_major_minor(dev):
     try:
         rdev = os.stat(dev).st_rdev
         return (os.major(rdev), os.minor(rdev))
-    except IOError, details:
+    except IOError as details:
         raise exceptions.TestError("Fail to get major and minor numbers of the "
                                    "device %s:\n%s" % (dev, details))
 
@@ -2104,8 +2104,7 @@ def get_host_cpu_models():
         """
         Update the cpu flags get from host to a certain order and format
         """
-        flag_list = re.split("\s+", cpu_flags.strip())
-        flag_list.sort()
+        flag_list = sorted(re.split("\s+", cpu_flags.strip()))
         cpu_flags = " ".join(flag_list)
         return cpu_flags
 
@@ -2113,8 +2112,7 @@ def get_host_cpu_models():
         """
         Update the check pattern to a certain order and format
         """
-        pattern_list = re.split(",", flags.strip())
-        pattern_list.sort()
+        pattern_list = sorted(re.split(",", flags.strip()))
         pattern = r"(\b%s\b)" % pattern_list[0]
         for i in pattern_list[1:]:
             pattern += r".+(\b%s\b)" % i
@@ -2338,7 +2336,8 @@ def get_qemu_version(params):
     :return: A dict contain qemu versoins info as {'major': int, 'minor': int,
     'update': int, 'is_rhev': bool}
     """
-    version = {'major': None, 'minor': None, 'update': None, 'is_rhev': False}
+    version = {'major': None, 'minor': None, 'update': None, 'is_rhev': False,
+               'is_ma': False}
     regex = r'\s*[Ee]mulator [Vv]ersion\s*(\d+)\.(\d+)\.(\d+)'
 
     qemu_binary = get_qemu_binary(params)
@@ -2351,6 +2350,8 @@ def get_qemu_version(params):
             version['update'] = int(search_result.group(3))
         if "rhev" in str(line).lower():
             version['is_rhev'] = True
+        elif "ma" in str(line).lower():
+            version['is_ma'] = True
     if None in version.values():
         logging.error("Local install qemu version cannot be detected, "
                       "the version info is: %s" % version_raw)
@@ -2358,14 +2359,16 @@ def get_qemu_version(params):
     return version
 
 
-def compare_qemu_version(major, minor, update, is_rhev=True, params={}):
+def compare_qemu_version(major, minor, update, is_rhev=True, is_ma=True,
+                         params={}):
     """
     Check if local install qemu versions is newer than provided version.
 
     :param major: The major version to be compared.
     :param minor: The minor version to be compared.
     :param update: The update version to be compared.
-    :param is_rhev: If the qemu is a rhev version.
+    :param is_rhev: If the qemu may be a rhev version.
+    :param is_ma: If the qemu may be a ma version.
     :param params: Other params.
     :return: True means local installed version is equal or newer than the
     version provided, otherwise False will be returned.
@@ -2374,8 +2377,10 @@ def compare_qemu_version(major, minor, update, is_rhev=True, params={}):
     if installed_version is None:
         logging.error("Cannot get local qemu version, return False directly.")
         return False
-    if is_rhev != installed_version['is_rhev']:
-        return False
+    if is_rhev or is_ma:
+        if not ((is_rhev and installed_version['is_rhev']) or
+                (is_ma and installed_version['is_ma'])):
+            return False
     installed_version_value = installed_version['major'] * 1000000 + \
         installed_version['minor'] * 1000 + \
         installed_version['update']
@@ -3056,7 +3061,7 @@ def get_image_snapshot(image_file):
             for line in snap_info.splitlines():
                 snap_list.extend(re.findall(r"%s" % pattern, line))
         return snap_list
-    except process.CmdError, detail:
+    except process.CmdError as detail:
         raise exceptions.TestError("Fail to get snapshot of %s:\n%s" %
                                    (image_file, detail))
 
@@ -3136,7 +3141,7 @@ def get_image_info(image_file):
                     lazy_refcounts = line.split(':')[-1].strip()
                     image_info_dict['lcounts'] = lazy_refcounts
         return image_info_dict
-    except (KeyError, IndexError, process.CmdError), detail:
+    except (KeyError, IndexError, process.CmdError) as detail:
         raise exceptions.TestError("Fail to get information of %s:\n%s" %
                                    (image_file, detail))
 
@@ -3759,7 +3764,7 @@ class VFIOController(object):
             elif load_modules:
                 try:
                     linux_modules.load_module(key)
-                except process.CmdError, detail:
+                except process.CmdError as detail:
                     modules_error.append("Load module %s failed: %s"
                                          % (key, detail))
             else:
@@ -3772,7 +3777,7 @@ class VFIOController(object):
         if allow_unsafe_interrupts:
             try:
                 process.run("echo Y > %s" % lnk, shell=True)
-            except process.CmdError, detail:
+            except process.CmdError as detail:
                 raise VFIOError(str(detail))
 
     def check_iommu(self):
@@ -3802,7 +3807,7 @@ class VFIOController(object):
                         % pci_group_devices[0])
         try:
             group_id = int(os.path.basename(process.run(readlink_cmd).stdout))
-        except ValueError, detail:
+        except ValueError as detail:
             raise exceptions.TestError("Get iommu group id failed:%s" % detail)
         return group_id
 
