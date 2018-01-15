@@ -941,10 +941,8 @@ class UnattendedInstallConfig(object):
 
             url_kernel = os.path.join(self.url, self.boot_path,
                                       os.path.basename(self.kernel))
-            kernel_cmd = "wget -q %s" % url_kernel
             url_initrd = os.path.join(self.url, self.boot_path,
                                       os.path.basename(self.initrd))
-            initrd_cmd = "wget -q %s" % url_initrd
 
             if not sha1sum_kernel == self.params.get('sha1sum_vmlinuz',
                                                      None):
@@ -952,7 +950,8 @@ class UnattendedInstallConfig(object):
                     os.remove(self.kernel)
                 logging.info('Downloading %s -> %s', url_kernel,
                              self.image_path)
-                process.run(kernel_cmd, verbose=DEBUG)
+                download.get_file(url_kernel, os.path.join(self.image_path,
+                                  os.path.basename(self.kernel)))
 
             if not sha1sum_initrd == self.params.get('sha1sum_initrd',
                                                      None):
@@ -960,7 +959,8 @@ class UnattendedInstallConfig(object):
                     os.remove(self.initrd)
                 logging.info('Downloading %s -> %s', url_initrd,
                              self.image_path)
-                process.run(initrd_cmd, verbose=DEBUG)
+                download.get_file(url_initrd, os.path.join(self.image_path,
+                                  os.path.basename(self.initrd)))
 
             if 'repo=cdrom' in self.kernel_params:
                 # Red Hat
