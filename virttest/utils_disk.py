@@ -133,14 +133,18 @@ def umount(src, dst, fstype=None, verbose=False, session=None):
     """
     mounted = is_mount(src, dst, fstype, verbose=verbose, session=session)
     if mounted:
+        from . import utils_package
+        package = "psmisc"
+        # check package is available, if not try installing it
+        if not utils_package.package_install(package):
+            logging.error("%s is not available/installed for fuser", package)
         fuser_cmd = "fuser -km %s" % dst
         umount_cmd = "umount %s" % dst
         if session:
             session.cmd_output_safe(fuser_cmd)
             return session.cmd_status(umount_cmd, safe=True) == 0
-        else:
-            process.system(fuser_cmd, ignore_status=True, verbose=True)
-            return process.system(umount_cmd, ignore_status=True, verbose=True) == 0
+        process.system(fuser_cmd, ignore_status=True, verbose=True, shell=True)
+        return process.system(umount_cmd, ignore_status=True, verbose=True) == 0
     return True
 
 
