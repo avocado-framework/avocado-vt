@@ -3068,7 +3068,7 @@ def get_image_info(image_file):
     ::
 
         *******************************
-        image: /path/vm1_6.3.img
+        image: /path/vm1_6.3
         file format: raw
         virtual size: 10G (10737418240 bytes)
         disk size: 888M
