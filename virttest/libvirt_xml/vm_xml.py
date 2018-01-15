@@ -1625,7 +1625,7 @@ class VMCPUXML(base.LibvirtXMLBase):
         """
         sys_feature = []
         cpu_xml_file = open('/proc/cpuinfo', 'r')
-        for line in cpu_xml_file.readline():
+        for line in cpu_xml_file.readlines():
             if line.find('flags') != -1:
                 feature_names = line.split(':')[1].strip()
                 sys_sub_feature = feature_names.split(' ')
