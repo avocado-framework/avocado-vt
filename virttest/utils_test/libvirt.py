@@ -1210,6 +1210,55 @@ class MigrationTest(object):
         # The CmdResult returned from virsh migrate command
         self.ret = None
 
+    def ping_vm(self, vm, test, params, uri=None, ping_count=10,
+                ping_timeout=60):
+        """
+        Method used to ping the VM before and after migration
+
+        :param vm: VM object
+        :param test: test object
+        :param params: Test dict params
+        :param uri: connect uri
+        :param ping_count: count of icmp packet
+        :param ping_timeout: Timeout for the ping command
+        """
+        vm_ip = params.get("vm_ip_dict", {})
+        server_session = None
+        func = test.error
+        if uri:
+            func = test.fail
+            server_ip = params.get("server_ip")
+            src_uri = "qemu:///system"
+            vm.connect_uri = uri
+            server_pwd = params.get("server_pwd")
+            server_user = params.get("server_user")
+            server_session = remote.wait_for_login('ssh', server_ip, '22',
+                                                   server_user, server_pwd,
+                                                   r"[\#\$]\s*$")
+            logging.info("Check VM network connectivity after migrating")
+        else:
+            logging.info("Check VM network connectivity before migration")
+            if not vm.is_alive():
+                vm.start()
+            vm.wait_for_login()
+            vm_ip[vm.name] = vm.get_address()
+            params["vm_ip_dict"] = vm_ip
+        s_ping, o_ping = utils_net.ping(vm_ip[vm.name], count=ping_count,
+                                        timeout=ping_timeout,
+                                        output_func=logging.debug,
+                                        session=server_session)
+        logging.info(o_ping)
+        if uri:
+            server_session.close()
+            vm.connect_uri = src_uri
+        if s_ping != 0:
+            if uri:
+                if "offline" in params.get("migrate_options"):
+                    logging.info("Offline Migration: %s will not responded to "
+                                 "ping as expected", vm.name)
+                    return
+            func("%s did not respond after %d sec." % (vm.name, ping_timeout))
+
     def thread_func_migration(self, vm, desturi, options=None,
                               ignore_status=False, virsh_opt="",
                               extra_opts=""):
