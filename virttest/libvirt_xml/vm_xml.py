@@ -1911,7 +1911,8 @@ class VMOSXML(base.LibvirtXMLBase):
 
     Elements:
         type:         text attributes - arch, machine
-        loader:       path
+        loader:       path attributes - readonly, secure, type
+        nvram:        text attributes - template
         boots:        list attributes - dev
         bootmenu:          attributes - enable
         smbios:            attributes - mode
@@ -1930,13 +1931,24 @@ class VMOSXML(base.LibvirtXMLBase):
     __slots__ = ('type', 'arch', 'machine', 'loader', 'boots', 'bootmenu_enable',
                  'smbios_mode', 'bios_useserial', 'bios_reboot_timeout', 'init',
                  'bootloader', 'bootloader_args', 'kernel', 'initrd', 'cmdline',
-                 'dtb', 'initargs')
+                 'dtb', 'initargs', 'nvram', 'nvram_template', 'loader_readonly',
+                 'loader_secure', 'loader_type')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementText('type', self, parent_xpath='/',
                                  tag_name='type')
         accessors.XMLElementText('loader', self, parent_xpath='/',
                                  tag_name='loader')
+        accessors.XMLElementText('nvram', self, parent_xpath='/',
+                                 tag_name='nvram')
+        accessors.XMLAttribute('loader_readonly', self, parent_xpath='/',
+                               tag_name='loader', attribute='readonly')
+        accessors.XMLAttribute('loader_secure', self, parent_xpath='/',
+                               tag_name='loader', attribute='secure')
+        accessors.XMLAttribute('loader_type', self, parent_xpath='/',
+                               tag_name='loader', attribute='type')
+        accessors.XMLAttribute('nvram_template', self, parent_xpath='/',
+                               tag_name='nvram', attribute='template')
         accessors.XMLAttribute('arch', self, parent_xpath='/',
                                tag_name='type', attribute='arch')
         accessors.XMLAttribute('machine', self, parent_xpath='/',
