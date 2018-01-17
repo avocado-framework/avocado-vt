@@ -249,7 +249,7 @@ class Env(UserDict.IterableUserDict):
             session = None
             if remote_pp:
                 client = params.get('remote_shell_client', 'ssh')
-                remote_opts = (params.get['remote_node_address'],
+                remote_opts = (params['remote_node_address'],
                                params.get('remote_shell_port', '22'),
                                params['remote_node_user'],
                                params['remote_node_password'],
