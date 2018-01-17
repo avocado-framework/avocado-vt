@@ -2042,6 +2042,79 @@ class StraceQemu(object):
         self._compress_log()
 
 
+def remote_session(params):
+    """
+    create session for remote host
+
+    :param params: Test params dict for remote machine login details
+    :return: remote session object
+    """
+    server_ip = params["server_ip"]
+    server_user = params.get("server_user", "root")
+    server_pwd = params["server_pwd"]
+    return remote.wait_for_login('ssh', server_ip, '22', server_user,
+                                 server_pwd, r"[\#\$]\s*$")
+
+
+def switch_indep_threads_mode(state="Y", params=None):
+    """
+    For POWER8 compat mode guest to boot on POWER9 host, indep_threads_mode
+    to be turned off as pre-requisite. This will be used in env_process
+    for pre/post processing.
+
+    :param state: 'Y' or 'N' default: 'Y'
+    :param params: Test params dict for remote machine login details
+    """
+    indep_threads_mode = "/sys/module/kvm_hv/parameters/indep_threads_mode"
+    cmd = "cat %s" % indep_threads_mode
+    if params:
+        server_session = remote_session(params)
+        cmd_output = server_session.cmd_status_output(cmd)
+        if cmd_output[0] != 0:
+            server_session.close()
+            raise exceptions.TestSetupFail("Unable to get indep_threads_mode:"
+                                           " %s" % cmd_output[1])
+        thread_mode = cmd_output[1].strip()
+    else:
+        try:
+            thread_mode = process.system_output(cmd, shell=True)
+        except process.CmdError as info:
+            thread_mode = info.result.stderr.strip()
+            raise exceptions.TestSetupFail("Unable to get indep_threads_mode "
+                                           "for power9 compat mode enablement"
+                                           ": %s" % thread_mode)
+    if thread_mode != state:
+        cmd = "echo %s > %s" % (state, indep_threads_mode)
+        if params:
+            server_user = params.get("server_user", "root")
+            if (server_user.lower() != "root"):
+                raise exceptions.TestSkipError("Turning indep_thread_mode %s "
+                                               "requires root privileges "
+                                               "(currently running "
+                                               "with user %s)" % (state,
+                                                                  server_user))
+            cmd_output = server_session.cmd_status_output(cmd)
+            server_session.close()
+            if (cmd_output[0] != 0):
+                raise exceptions.TestSetupFail("Unable to turn "
+                                               "indep_thread_mode "
+                                               "to %s: %s" % (state,
+                                                              cmd_output[1]))
+            else:
+                logging.debug("indep_thread_mode turned %s successfully "
+                              "in remote server", state)
+        else:
+            try:
+                utils_misc.verify_running_as_root()
+                process.run(cmd, verbose=True, shell=True)
+                logging.debug("indep_thread_mode turned %s successfully",
+                              state)
+            except process.CmdError, info:
+                raise exceptions.TestSetupFail("Unable to turn "
+                                               "indep_thread_mode to "
+                                               "%s: %s" % (state, info))
+
+
 def switch_smt(state="off", params=None):
     """
     Checks whether smt is on/off, if so disables/enable it in PowerPC system
@@ -2054,12 +2127,7 @@ def switch_smt(state="off", params=None):
     SMT_DISABLED_STRS = ["SMT is off", "Machine is not SMT capable"]
     cmd = "ppc64_cpu --smt"
     if params:
-        server_ip = params["server_ip"]
-        server_user = params.get("server_user", "root")
-        server_pwd = params["server_pwd"]
-        server_session = remote.wait_for_login('ssh', server_ip, '22',
-                                               server_user, server_pwd,
-                                               r"[\#\$]\s*$")
+        server_session = remote_session(params)
         cmd_output = server_session.cmd_status_output(cmd)
         smt_output = cmd_output[1].strip()
         if (cmd_output[0] != 0) and (smt_output not in SMT_DISABLED_STRS):
@@ -2078,6 +2146,7 @@ def switch_smt(state="off", params=None):
     if (state == "off" and smt_enabled) or (state == "on" and not smt_enabled):
         cmd = "ppc64_cpu --smt=%s" % state
         if params:
+            server_user = params.get("server_user", "root")
             if (server_user.lower() != "root"):
                 raise exceptions.TestSkipError("Turning SMT %s requires root "
                                                "privileges(currently running "
