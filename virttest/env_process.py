@@ -578,17 +578,28 @@ def preprocess(test, params, env):
     # we satisfy that condition, if not try to make it off
     # otherwise throw TestError with respective error message
     cpu_arch = cpu_utils.get_cpu_arch()
+    switch_smt_remote = "yes" == params.get("switch_smt_remote", "no")
     power9_compat = "yes" == params.get("power9_compat", "no")
+    power9_compat_remote = "yes" == params.get("power9_compat_remote", "no")
     if "power8" in cpu_arch:
         test_setup.switch_smt(state="off")
     elif "power9" in cpu_arch and power9_compat:
-        cmd = "echo N > /sys/module/kvm_hv/parameters/indep_threads_mode"
-        try:
-            avocado_process.system_output(cmd, shell=True)
-        except avocado_process.CmdError:
-            raise exceptions.TestSetupFail("Unable to set indep_threads_mode"
-                                           " for power9 compat mode enablement")
+        test_setup.switch_indep_threads_mode(state="N")
         test_setup.switch_smt(state="off")
+
+    # Perform the above configuration in remote Power8 and Power9 hosts
+    if switch_smt_remote or power9_compat_remote:
+        cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
+        server_session = test_setup.remote_session(params)
+        cmd_output = server_session.cmd_status_output(cmd)
+        server_session.close()
+        if (cmd_output[0] == 0):
+            cmd_output = cmd_output[1].strip().lower()
+            if "power8" in cmd_output:
+                test_setup.switch_smt(state="off", params=params)
+            elif "power9" in cmd_output and power9_compat_remote:
+                test_setup.switch_indep_threads_mode(state="N", params=params)
+                test_setup.switch_smt(state="off", params=params)
 
     # First, let's verify if this test does require root or not. If it
     # does and the test suite is running as a regular user, we shall just
@@ -1085,17 +1096,21 @@ def postprocess(test, params, env):
     if params.get("restore_smt", "no") == "yes":
         cpu_arch = cpu_utils.get_cpu_arch()
         power9_compat = "yes" == params.get("power9_compat", "no")
-        if "power8" in cpu_arch:
+        if "power9" in cpu_arch and power9_compat:
+            test_setup.switch_indep_threads_mode(state="Y")
             test_setup.switch_smt(state="on")
-        elif "power9" in cpu_arch and power9_compat:
-            cmd = "echo Y > /sys/module/kvm_hv/parameters/indep_threads_mode"
-            try:
-                avocado_process.system_output(cmd, shell=True)
-            except avocado_process.CmdError:
-                raise exceptions.TestSetupFail("Unable to set indep_threads"
-                                               "_mode for power9 compat mode"
-                                               " enablement")
-            test_setup.switch_smt(state="on")
+
+    power9_compat_remote = params.get("power9_compat_remote", "no") == "yes"
+    if power9_compat_remote:
+        cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
+        server_session = test_setup.remote_session(params)
+        cmd_output = server_session.cmd_status_output(cmd)
+        server_session.close()
+        if (cmd_output[0] == 0):
+            cmd_output = cmd_output[1].strip().lower()
+            if "power9" in cmd_output and power9_compat_remote:
+                test_setup.switch_indep_threads_mode(state="Y", params=params)
+                test_setup.switch_smt(state="on", params=params)
 
     if params.get("setup_hugepages") == "yes":
         try:
