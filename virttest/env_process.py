@@ -48,6 +48,8 @@ _screendump_thread_termination_event = None
 _vm_register_thread = None
 _vm_register_thread_termination_event = None
 
+_setup_manager = test_setup.SetupManager()
+
 kernel_modified = False
 kernel_cmdline = None
 
@@ -602,6 +604,9 @@ def preprocess(test, params, env):
                 path.find_command(cmd)
             except path.CmdNotFoundError, msg:
                 raise exceptions.TestSkipError(msg.message)
+
+    _setup_manager.initialize(test, params, env)
+    _setup_manager.do_setup()
 
     # enable network proxies setting in urllib2
     if params.get("network_proxies"):
@@ -1241,6 +1246,8 @@ def postprocess(test, params, env):
                                     level_check=level)
         except exceptions.TestFail as details:
             err += "\nHost dmesg verification failed: %s" % details
+
+    err += "\n".join(_setup_manager.do_cleanup())
 
     if err:
         raise RuntimeError("Failures occurred while postprocess:\n%s" % err)
