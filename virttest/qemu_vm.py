@@ -114,7 +114,6 @@ class VM(virt_vm.BaseVM):
             self.process = None
             self.serial_ports = []
             self.serial_console_log = None
-            self.serial_console = None
             self.virtio_console = None
             self.redirs = {}
             self.spice_options = {}
@@ -2343,7 +2342,7 @@ class VM(virt_vm.BaseVM):
         except TypeError:
             pass
 
-    def create_serial_console(self):
+    def _create_serial_console(self):
         """
         Establish a session with the serial console.
 

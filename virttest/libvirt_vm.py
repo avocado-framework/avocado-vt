@@ -175,7 +175,6 @@ class VM(virt_vm.BaseVM):
             self.process = None
             self.serial_ports = []
             self.serial_console_log = None
-            self.serial_console = None
             self.redirs = {}
             self.vnc_port = None
             self.vnc_autoport = True
@@ -1312,7 +1311,7 @@ class VM(virt_vm.BaseVM):
         return [self.get_serial_console_filename(_) for _ in
                 self.params.objects("serials")]
 
-    def create_serial_console(self):
+    def _create_serial_console(self):
         """
         Establish a session with the serial console.
 

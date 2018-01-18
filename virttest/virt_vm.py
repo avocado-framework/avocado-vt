@@ -16,6 +16,7 @@ from . import remote
 from . import ppm_utils
 from . import data_dir
 from . import error_context
+from . import vt_console
 
 
 class VMError(Exception):
@@ -512,6 +513,7 @@ class BaseVM(object):
     def __init__(self, name, params):
         self.name = name
         self.params = params
+        self.serial_console = None
         # Create instance if not already set
         if not hasattr(self, 'instance'):
             self._generate_unique_id()
@@ -530,6 +532,8 @@ class BaseVM(object):
 
         if not hasattr(self, 'cpuinfo'):
             self.cpuinfo = CpuInfo()
+        if not hasattr(self, 'console_manager'):
+            self.console_manager = vt_console.ConsoleManager()
 
     def _generate_unique_id(self):
         """
@@ -1189,7 +1193,7 @@ class BaseVM(object):
                                filesize=filesize)
         utils_misc.close_log_file(log_filename)
 
-    def create_serial_console(self):
+    def _create_serial_console(self):
         """
         Establish a session with the serial console.
 
@@ -1197,6 +1201,11 @@ class BaseVM(object):
         Note: requires a version of netcat that supports -U
         """
         raise NotImplementedError
+
+    def create_serial_console(self):
+        """A Wrapper of _create_serial_console."""
+        self._create_serial_console()
+        self.console_manager.set_console(self.serial_console)
 
     def cleanup_serial_console(self):
         """
@@ -1219,30 +1228,26 @@ class BaseVM(object):
         password prompt or a shell prompt) -- fail.
 
         :param timeout: Time (seconds) before giving up logging into the guest.
-        :param virtio: is a console virtio console.
-        :return: ShellSession object on success and None on failure.
+        :param virtio: is a console virtio console (deprecated).
+        :return: ConsoleSession instance.
         """
-        console_type = virtio and "virtio_console" or "serial_console"
-        error_context.context("logging into '%s' via %s" %
-                              (self.name, console_type))
+        error_context.context("Logging into '%s' via serial console." %
+                              self.name)
         if not username:
             username = self.params.get("username", "")
         if not password:
             password = self.params.get("password", "")
+
         prompt = self.params.get("shell_prompt", r"[\#\$]\s*$")
         linesep = eval("'%s'" % self.params.get("shell_linesep", r"\n"))
         status_test_command = self.params.get("status_test_command", "")
-        console = getattr(self, console_type)
-        # Some times need recreate the console.
-        if not (console and os.path.exists(console.inpipe_filename)):
-            create_console = getattr(self, "create_%s" % console_type)
-            create_console()
-            console = getattr(self, console_type)
-        console.set_linesep(linesep)
-        console.set_status_test_command(status_test_command)
 
-        remote.handle_prompts(console, username, password, prompt, timeout)
-        return console
+        return self.console_manager.create_session(linesep,
+                                                   status_test_command,
+                                                   prompt,
+                                                   username,
+                                                   password,
+                                                   timeout)
 
     def wait_for_serial_login(self, timeout=LOGIN_WAIT_TIMEOUT,
                               internal_timeout=LOGIN_TIMEOUT,
@@ -1254,8 +1259,8 @@ class BaseVM(object):
         :param timeout: Time (seconds) to keep trying to log in.
         :param internal_timeout: Timeout to pass to serial_login().
         :param restart_network: Whether try to restart guest's network.
-        :params virtio: is a virtio console.
-        :return: A ShellSession object.
+        :param virtio: is a console virtio console (deprecated).
+        :return: ConsoleSession instance.
         """
         logging.debug("Attempting to log into '%s' via serial console "
                       "(timeout %ds)", self.name, timeout)
