@@ -2774,6 +2774,25 @@ def set_winutils_letter(session, cmd, label="WIN_UTILS"):
     return cmd
 
 
+def get_uptime(session=None):
+    """
+    Get the uptime of system in secs
+
+    :param session: VM session or remote session object, None for host
+
+    :return: uptime of system in float, None on error
+    """
+    cmd = "cat /proc/uptime"
+    if session:
+        uptime = session.cmd_output(cmd)
+    else:
+        try:
+            uptime = process.system_output(cmd, shell=True)
+        except process.CmdError:
+            return None
+    return float(uptime.split()[0])
+
+
 def list_linux_guest_disks(session, partition=False):
     """
     List all disks OR disks with no partition in linux guest.
