@@ -291,9 +291,13 @@ class TSharkSniffer(Sniffer):
 
         # BootP/DHCP (RFC 951/2131)
         if re.match(r"\d+\.\d+\.\d+\.\d+", packet[0]):
-            chaddr = packet[4]
-            yiaddr = packet[5]
-            m_type = packet[6]
+            try:
+                chaddr = packet[4]
+                yiaddr = packet[5]
+                m_type = packet[6]
+            except IndexError:
+                # Ignore problematical packets
+                return True
             if m_type == "5" and yiaddr != "0.0.0.0":
                 # Update cache only if get the ACK reply
                 # and the previous request is not INFORM
