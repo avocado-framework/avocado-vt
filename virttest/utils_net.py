@@ -1135,14 +1135,10 @@ def __init_openvswitch(func):
     def wrap_init(*args, **kargs):
         global __ovs
         if __ovs is None:
-            try:
-                __ovs = factory(openvswitch.OpenVSwitchSystem)()
-                __ovs.init_system()
-                if (not __ovs.check()):
-                    raise Exception("Check of OpenVSwitch failed.")
-            except Exception, e:
-                logging.debug("Host does not support OpenVSwitch: %s", e)
-
+            __ovs = factory(openvswitch.OpenVSwitchSystem)()
+            __ovs.init_system()
+            if (not __ovs.check()):
+                raise Exception("Check of OpenVSwitch failed.")
         return func(*args, **kargs)
     return wrap_init
 
@@ -3161,7 +3157,7 @@ def gen_ipv4_addr(network_num="10.0.0.0", network_prefix="24", exclude_ips=[]):
         exclude_ips.add('.'.join(network_num.split('.')[0:3]) + ".%s" %
                         str(1))
         exclude_ips.add(('.'.join(network_num.split('.')[0:3]) + ".%s" %
-                        str(255)))
+                         str(255)))
     network = netaddr.IPNetwork("%s/%s" % (network_num, network_prefix))
     for ip_address in network:
         if str(ip_address) not in exclude_ips:
