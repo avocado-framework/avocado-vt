@@ -1894,7 +1894,10 @@ def ovs_br_exists(brname, ovs=None):
     if ovs is None:
         ovs = __ovs
 
-    return brname in ovs.list_br()
+    if ovs is not None:
+        return brname in ovs.list_br()
+    else:
+        raise exceptions.TestError("Host does not support OpenVSwitch")
 
 
 @__init_openvswitch
@@ -3161,7 +3164,7 @@ def gen_ipv4_addr(network_num="10.0.0.0", network_prefix="24", exclude_ips=[]):
         exclude_ips.add('.'.join(network_num.split('.')[0:3]) + ".%s" %
                         str(1))
         exclude_ips.add(('.'.join(network_num.split('.')[0:3]) + ".%s" %
-                        str(255)))
+                         str(255)))
     network = netaddr.IPNetwork("%s/%s" % (network_num, network_prefix))
     for ip_address in network:
         if str(ip_address) not in exclude_ips:
