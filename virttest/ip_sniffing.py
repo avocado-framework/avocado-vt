@@ -117,6 +117,8 @@ class Sniffer(object):
     command = ""
     #: Sniffer's options
     options = ""
+    # Regexp to find "process terminated" line in sniffer output
+    _re_sniffer_finished = re.compile(r"\(Process terminated with status (\d+)")
 
     def __init__(self, addr_cache, log_file, remote_opts=None):
         """
@@ -166,12 +168,12 @@ class Sniffer(object):
             return
         # We can check whether the process is terminated unexpectedly
         # here since the terminated status is a line of the output
-        if re.match("\(Process terminated with status", line):
-            status = self._process.get_status()
-            if status != 0:
+        match = self._re_sniffer_finished.match(line)
+        if match:
+            if match.group(1) != "0":
                 logging.error("IP sniffer (%s) terminated unexpectedly! "
                               "please check the log to get the details "
-                              "(status: %s)", self.command, status)
+                              "(status: %s)", self.command, match.group(1))
 
     def _start_remote(self):
         address, port, username, password, prompt = self._remote_opts
