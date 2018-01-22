@@ -79,9 +79,9 @@ def pre_post_plugin_type():
         return 'avocado.plugins.job.prepost'
 
 
-setup(name='avocado-plugins-vt',
+setup(name='avocado-framework-plugin-vt',
       version=VERSION,
-      description='Avocado Virt Test Compatibility Layer plugin',
+      description='Avocado Plugin for Virtualization Testing',
       author='Avocado Developers',
       author_email='avocado-devel@redhat.com',
       url='http://github.com/avocado-framework/avocado-vt',
