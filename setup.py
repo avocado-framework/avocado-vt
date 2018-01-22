@@ -44,7 +44,9 @@ def get_dir(system_path=None, virtual_path=None):
 
 
 def get_data_files():
-    def add_files(level=[]):
+    def add_files(level=None):
+        if level is None:
+            level = []
         installed_location = ['usr', 'share', 'avocado-plugins-vt']
         installed_location += level
         level_str = '/'.join(level)
@@ -101,6 +103,7 @@ setup(name='avocado-framework-plugin-vt',
                 'virttest.utils_test.qemu'],
       package_data={"virttest": ["*.*"]},
       data_files=get_data_files(),
+      install_requires=['avocado-framework', 'autotest', 'aexpect', 'simplejson', 'netaddr', 'netifaces'],
       entry_points={
           'avocado.plugins.cli': [
               'vt-list = avocado_vt.plugins.vt_list:VTLister',
