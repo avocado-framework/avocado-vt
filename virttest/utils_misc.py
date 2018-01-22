@@ -27,6 +27,8 @@ import platform
 import traceback
 import math
 
+import xml.etree.ElementTree as ET
+
 from aexpect.utils.genio import _open_log_files
 
 from avocado.core import status
@@ -3987,3 +3989,51 @@ class SELinuxBoolean(object):
         logging.debug("To check remote boolean value: %s", boolean_curr)
         if boolean_curr != self.remote_bool_value:
             raise exceptions.TestFail(result.stderr.strip())
+
+
+def get_model_features(model_name):
+    """
+    /usr/share/libvirt/cpu_map.xml defines all CPU models.
+    One CPU model is a set of features.
+    This function is to get features of one specific model.
+
+    :params model_name: CPU model name, valid name is given in cpu_map.xml
+    :return: feature list, like ['apic', 'ss']
+
+    """
+    features = []
+    conf = "/usr/share/libvirt/cpu_map.xml"
+
+    try:
+        output = open(conf, 'r').read()
+        root = ET.fromstring(output)
+        # Find model
+        for model_n in root.findall('arch/model'):
+            if model_n.get('name') == model_name:
+                model_node = model_n
+                for feature in model_n.findall('feature'):
+                    features.append(feature.get('name'))
+                break
+        # Handle nested model
+        nested_model = model_node.find('model')
+        if nested_model is not None:
+            nested_model_name = nested_model.get('name')
+            for model_n in root.findall('arch/model'):
+                if model_n.get('name') == nested_model_name:
+                    for feature in model_n.findall('feature'):
+                        features.append(feature.get('name'))
+                    break
+    except ET.ParseError, error:
+        logging.warn("Configuration file %s has wrong xml format" % conf)
+        raise
+    except AttributeError, elem_attr:
+        logging.warn("No attribute %s in file %s" % (str(elem_attr), conf))
+        raise
+    except Exception:
+        # Other excptions like IOError when open/read configuration file,
+        # capture here
+        logging.warn("Some other exceptions, like configuration file is not "
+                     "found or not file: %s" % conf)
+        raise
+
+    return features
