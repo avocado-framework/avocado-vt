@@ -2,6 +2,7 @@
 Module simplifying manipulation of XML described at
 http://libvirt.org/formatdomaincaps.html
 """
+import logging
 
 from virttest import xml_utils
 from virttest.libvirt_xml import base, accessors, xcepts
@@ -31,6 +32,76 @@ class DomCapabilityXML(base.LibvirtXMLBase):
                                tag_name='vcpu', attribute='max')
         super(DomCapabilityXML, self).__init__(virsh_instance)
         self['xml'] = self.__dict_get__('virsh').domcapabilities().stdout.strip()
+
+    def get_additional_feature_list(self, cpumodename):
+        """
+        Get additional CPU features which explicitly specified by <feature>
+        tag in cpu part of virsh domcapabilities.
+
+        In libvirt 3.9 and above, feature list is given in
+        "/domainCapabilities/cpu/mode[@name='host-model']"
+
+        Below is one snipped CPU host-model part output of domcapabilities.
+        feature tag spcific policy for one specific feature type.
+
+        virsh domcapabilities  | xmllint -xpath "/domainCapabilities/cpu/mode[@name='host-model']" -
+        <mode name="host-model" supported="yes">
+            <model fallback="forbid">Skylake-Client</model>
+            <vendor>Intel</vendor>
+            <feature policy="require" name="ss"/>
+            <feature policy="require" name="hypervisor"/>
+            <feature policy="require" name="tsc_adjust"/>
+            <feature policy="require" name="clflushopt"/>
+            <feature policy="require" name="pdpe1gb"/>
+            <feature policy="require" name="invtsc"/>
+        </mode>
+
+        :param cpumodename: cpu mode name, using 'host-model' in this method
+        :return: list of features, feature is dict-like, feature name is set to dict key,
+                 feature policy is set to dict value.
+                 returen is like [{'ss': 'require'}, {'pdpe1gb', 'require'}]
+        """
+        feature_list = []  # [{feature1, policy}, {feature2, policy}, ...]
+        xmltreefile = self.__dict_get__('xml')
+        try:
+            for mode_node in xmltreefile.findall('/cpu/mode'):
+                # Get mode which name attribute is 'host-model'
+                if mode_node.get('name') == cpumodename:
+                    for feature in mode_node.findall('feature'):
+                        # Feature invtsc doesn't support migration, so not add it to feature list
+                        item = {}
+                        item[feature.get('name')] = feature.get('policy')
+                        if 'invtsc' not in item:
+                            feature_list.append(item)
+            return feature_list
+        except AttributeError, elem_attr:
+            logging.warn("Failed to find attribute %s" % elem_attr)
+            return []
+
+    def get_modelname(self):
+        """
+        Get modelname from the output of 'virsh domcapabilities'
+
+        Below is one snipped CPU host-model part output of domcapabilities.
+        feature tag spcific policy for one specific feature type.
+
+        virsh domcapabilities  | xmllint -xpath "/domainCapabilities/cpu/mode[@name='host-model']" -
+        <mode name="host-model" supported="yes">
+            <model fallback="forbid">Skylake-Client</model>
+            <vendor>Intel</vendor>
+            <feature policy="require" name="ss"/>
+        </mode>
+
+        :return: modelname string
+        """
+        xmltreefile = self.__dict_get__('xml')
+        try:
+            for mode_node in xmltreefile.findall('/cpu/mode'):
+                if mode_node.get('name') == 'host-model':
+                    return mode_node.find('model').text
+        except AttributeError, elem_attr:
+            logging.warn("Failed to find attribute %s" % elem_attr)
+            return ''
 
 
 class DomCapFeaturesXML(base.LibvirtXMLBase):

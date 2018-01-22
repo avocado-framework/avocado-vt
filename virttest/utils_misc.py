@@ -27,6 +27,8 @@ import platform
 import traceback
 import math
 
+import xml.etree.ElementTree as ET
+
 from aexpect.utils.genio import _open_log_files
 
 from avocado.core import status
@@ -4006,3 +4008,23 @@ class SELinuxBoolean(object):
         logging.debug("To check remote boolean value: %s", boolean_curr)
         if boolean_curr != self.remote_bool_value:
             raise exceptions.TestFail(result.stderr.strip())
+
+
+def get_model_features(modelname):
+    """
+    /usr/share/libvirt/cpu_map.xml defines all CPU models
+    one CPU model responds to a list of features
+    This funtion is to get features of one model
+    """
+    features = []
+    output = process.run("cat /usr/share/libvirt/cpu_map.xml")
+    root = ET.fromstring(output.stdout.strip())
+    try:
+        for model_node in root.findall('arch/model'):
+            if model_node.get('name') == modelname:
+                for feature in model_node.findall('feature'):
+                    features.append(feature.get('name'))
+        return features
+    except AttributeError, elem_attr:
+        logging.warn("Failed to find attribute %s" % str(elem_attr))
+        return []
