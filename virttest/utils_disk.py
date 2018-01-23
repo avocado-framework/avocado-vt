@@ -578,3 +578,10 @@ class GuestFSModiDisk(object):
                 raise exceptions.TestError(err_msg % file_name)
         finally:
             self.umount_all()
+
+    def close(self):
+        """
+        Explicitly close the guestfs handle.
+        """
+        if self.g:
+            self.g.close()
