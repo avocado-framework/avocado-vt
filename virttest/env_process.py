@@ -560,6 +560,30 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
         _call_image_func()
 
 
+def check_host_cpnt_version(required_cpnt, cpnt, get_version_func, test):
+    """"
+    Check if a component on host satisfied the test component requirements.
+    If not, cancel the test.
+
+    :param required_cpnt: A string representation of an mathematical interval.
+    :param cpnt: A raw component version string.
+    :param get_version_func: A function for getting actual version number.
+    :param test: A test object.
+    """
+    from distutils.version import LooseVersion  # pylint: disable=no-name-in-module,import-error
+    from utils_numeric import Interval
+    host_component = get_version_func(cpnt)
+    func_info = get_version_func.__name__.replace("_", " ")
+
+    if not host_component:
+        test.cancel("From host, can not%s." % func_info)
+    verison_interval = Interval(required_cpnt, LooseVersion)
+    if LooseVersion(host_component) not in verison_interval:
+        test.cancel("From host,%s %s, which is not in %s" % (func_info,
+                                                             host_component,
+                                                             required_cpnt))
+
+
 @error_context.context_aware
 def preprocess(test, params, env):
     """
@@ -571,6 +595,20 @@ def preprocess(test, params, env):
     :param env: The environment (a dict-like object).
     """
     error_context.context("preprocessing")
+
+    def _get_qemu_version(qemu_version_str):
+        regex = re.compile(r'([0-9]+\.[0-9]+\.[0-9](\-[0-9]+)?)')
+        match = regex.search(qemu_version_str)
+        if match:
+            return match.group(0)
+        return None
+
+    def _get_kernel_version(kernel_version_str):
+        regex = re.compile(r'([0-9]+\.[0-9]+\.[0-9]\-[0-9]+)')
+        match = regex.search(kernel_version_str)
+        if match:
+            return match.group(0)
+        return None
 
     # For KVM to work in Power8 and Power9(compat guests)
     # systems we need to have SMT=off and it needs to be
@@ -730,6 +768,15 @@ def preprocess(test, params, env):
     logging.debug("KVM version: %s" % kvm_version)
     test.write_test_keyval({"kvm_version": kvm_version})
 
+    # Checking required kernel, if not satisfied, cancel test
+    if params.get("required_kernel"):
+        logging.debug("Test requires kernel version: %s" %
+                      params.get("required_kernel"))
+        check_host_cpnt_version(params["required_kernel"],
+                                kvm_version,
+                                _get_kernel_version,
+                                test)
+
     # Get the KVM userspace version and write it as a keyval
     kvm_userspace_ver_cmd = params.get("kvm_userspace_ver_cmd", "")
 
@@ -752,6 +799,15 @@ def preprocess(test, params, env):
 
     logging.debug("KVM userspace version: %s" % kvm_userspace_version)
     test.write_test_keyval({"kvm_userspace_version": kvm_userspace_version})
+
+    # Checking required qemu, if not satisfied, cancel test
+    if params.get("required_qemu"):
+        logging.debug("Test requires qemu version: %s" %
+                      params.get("required_qemu"))
+        check_host_cpnt_version(params["required_qemu"],
+                                kvm_userspace_version,
+                                _get_qemu_version,
+                                test)
 
     libvirtd_inst = utils_libvirtd.Libvirtd()
 
