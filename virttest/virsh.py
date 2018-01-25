@@ -2536,7 +2536,7 @@ def memtune_get(name, key):
     memtune_output = memtune_list(name)
     memtune_value = re.findall(r"%s\s*:\s+(\S+)" % key, str(memtune_output))
     if memtune_value:
-        return int(memtune_value[0])
+        return int(memtune_value[0] if memtune_value[0] != "unlimited" else -1)
     else:
         return -1
 
