@@ -87,12 +87,11 @@ class Interface(base.TypedDeviceBase):
                                parent_xpath='/',
                                tag_name='model',
                                attribute='type')
-        accessors.XMLAttribute(property_name="coalesce",
-                               libvirtxml=self,
-                               forbidden=None,
-                               parent_xpath='/coalesce/rx',
-                               tag_name='frames',
-                               attribute='max')
+        accessors.XMLElementDict(property_name="coalesce",
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/coalesce/rx',
+                                 tag_name='frames')
         accessors.XMLElementNest('address', self, parent_xpath='/',
                                  tag_name='address', subclass=self.Address,
                                  subclass_dargs={'type_name': 'pci',
