@@ -2570,6 +2570,25 @@ class VM(virt_vm.BaseVM):
                 vcpuinfo_list.append(vcpuinfo_dict)
         return vcpuinfo_list
 
+    def domfsinfo(self):
+        """
+        Return a dict's list include domain mounted filesystem information
+        via virsh command
+        """
+        result = virsh.domfsinfo(self.name, ignore_status=False,
+                                 uri=self.connect_uri).stdout.strip()
+        lines = result.splitlines()
+        domfsinfo_list = []
+        if len(lines) > 2:
+            head = lines[0]
+            lines = lines[2:]
+            names = head.split()
+            for line in lines:
+                values = line.split()
+                domfsinfo_list.append(dict(zip(names, values)))
+
+        return domfsinfo_list
+
     def get_used_mem(self):
         """
         Get vm's current memory(kilobytes).
