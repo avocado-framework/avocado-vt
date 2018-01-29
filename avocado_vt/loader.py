@@ -94,7 +94,6 @@ class VirtTestLoader(loader.TestLoader):
         _add_if_not_exist('vt_log_level', 'debug')
         _add_if_not_exist('vt_console_level', 'debug')
         _add_if_not_exist('vt_datadir', data_dir.get_data_dir())
-        _add_if_not_exist('vt_config', None)
         _add_if_not_exist('vt_arch', None)
         _add_if_not_exist('vt_machine_type', None)
         _add_if_not_exist('vt_keep_guest_running', False)
