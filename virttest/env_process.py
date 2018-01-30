@@ -337,7 +337,11 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
     if (not restored and
             params.get("restore_image_after_testing", "no") == "yes"):
         image.backup_image(params, base_dir, "restore", True)
-    if params.get("remove_image") == "yes":
+    if params.get("remove_image", "yes") == "yes":
+        if vm_process_status == "running":
+            logging.warn("Skipped removing image '%s' since "
+                         "the VM is running!" % image_name)
+            return
         logging.info("Remove image on %s." % image.storage_type)
         if clone_master is None:
             image.remove()
