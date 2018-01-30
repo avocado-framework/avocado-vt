@@ -2368,6 +2368,9 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         if transport:
             disk_params_src.update({"transport": transport})
     elif disk_src_protocol == 'netfs':
+        # For testing multiple VMs in a test this param can used
+        # to setup/cleanup configurations
+        src_file_list = params.get("source_file_list", [])
         # Setup nfs
         res = setup_or_cleanup_nfs(True, mnt_path_name,
                                    is_mount=True,
@@ -2376,7 +2379,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         exp_path = res["export_dir"]
         mnt_path = res["mount_dir"]
         params["selinux_status_bak"] = res["selinux_status_bak"]
-        dist_img = "nfs-img"
+        dist_img = params.get("source_dist_img", "nfs-img")
 
         # Convert first disk to gluster disk path
         disk_cmd = ("qemu-img convert -f %s -O %s %s %s/%s" %
@@ -2387,6 +2390,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         src_file_path = "%s/%s" % (mnt_path, dist_img)
         disk_params_src = {'source_file': src_file_path}
         params["source_file"] = src_file_path
+        src_file_list.append(src_file_path)
+        params["source_file_list"] = src_file_list
     elif disk_src_protocol == 'rbd':
         mon_host = params.get("mon_host")
         if image_convert:
