@@ -1333,17 +1333,26 @@ class MigrationTest(object):
                                                           extra_opts))
                 migration_thread.start()
                 eclipse_time = 0
+                stime = int(time.time())
                 if func:
-                    stime = int(time.time())
-                    if func == process.run:
-                        try:
-                            func(args['func_params'], shell=args['shell'])
-                        except KeyError:
+                    # Execute command once the migration is started
+                    migrate_start_state = args.get("migrate_start_state", "paused")
+                    if self.wait_for_migration_start(vm, state=migrate_start_state, uri=desturi):
+                        logging.info("Migration started for %s", vm.name)
+                        if func == process.run:
+                            try:
+                                func(args['func_params'], shell=args['shell'])
+                            except KeyError:
+                                func(args['func_params'])
+                        elif func == virsh.migrate_postcopy:
+                            func(vm.name, uri=srcuri, debug=True)
+                        else:
                             func(args['func_params'])
                     else:
-                        func(args['func_params'])
-                    eclipse_time = int(time.time()) - stime
-                    logging.debug("start_time:%s, eclipse_time:%s", stime, eclipse_time)
+                        logging.error("Migration failed to start for %s",
+                                      vm.name)
+                eclipse_time = int(time.time()) - stime
+                logging.debug("start_time:%d, eclipse_time:%d", stime, eclipse_time)
                 if eclipse_time < thread_timeout:
                     migration_thread.join(thread_timeout - eclipse_time)
                 if migration_thread.isAlive():
