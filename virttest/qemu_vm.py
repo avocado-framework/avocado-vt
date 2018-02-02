@@ -1272,23 +1272,13 @@ class VM(virt_vm.BaseVM):
                 dev.set_param("id", devid)
             devices.insert(dev)
 
-        def add_disable_legacy(devices, dev, dev_type):
+        def add_virtio_option(option, value, devices, dev, dev_type):
             """
-            This function is used to add disable_legacy option for virtio-pci
-            """
-            options = devices.execute_qemu("-device %s,?" % dev_type)
-            if "disable-legacy" in options:
-                value = params.get("disable_legacy", "off")
-                dev.set_param("disable-legacy", value)
-
-        def add_disable_modern(devices, dev, dev_type):
-            """
-            This function is used to add disable_modern option for virtio-pci
+            This function is used to add given option for virtio pci device
             """
             options = devices.execute_qemu("-device %s,?" % dev_type)
-            if "disable-modern" in options:
-                value = params.get("disable_modern", "on")
-                dev.set_param("disable-modern", value)
+            if option in options:
+                dev.set_param(option, value)
 
         def _get_pci_bus(devices, params, dtype=None, pcie=False):
             """
@@ -2269,13 +2259,19 @@ class VM(virt_vm.BaseVM):
             # Currently virtio1.0 behaviour on latest RHEL.7.2/RHEL.7.3
             # qemu versions is default, we don't need to specify the
             # disable-legacy and disable-modern options explicitly.
-            set_disable_legacy = params.get("set_disable_legacy", "no")
-            set_disable_modern = params.get("set_disable_modern", "no")
+            disable_legacy = params.get("virtio_dev_disable_legacy", None)
+            disable_modern = params.get("virtio_dev_disable_modern", None)
+            iommu_platform = params.get("virtio_dev_iommu_platform", None)
+            ats = params.get("virtio_dev_ats", None)
             if dev_type in virtio_pci_devices:
-                if set_disable_legacy == "yes":
-                    add_disable_legacy(devices, device, dev_type)
-                if set_disable_modern == "yes":
-                    add_disable_modern(devices, device, dev_type)
+                if disable_legacy:
+                    add_virtio_option("disable-legacy", disable_legacy, devices, device, dev_type)
+                if disable_modern:
+                    add_virtio_option("disable-modern", disable_modern, devices, device, dev_type)
+                if iommu_platform:
+                    add_virtio_option("iommu_platform", iommu_platform, devices, device, dev_type)
+                if ats:
+                    add_virtio_option("ats", ats, devices, device, dev_type)
 
         return devices, spice_options
 
