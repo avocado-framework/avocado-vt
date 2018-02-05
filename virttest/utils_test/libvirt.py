@@ -1333,17 +1333,26 @@ class MigrationTest(object):
                                                           extra_opts))
                 migration_thread.start()
                 eclipse_time = 0
+                stime = int(time.time())
                 if func:
-                    stime = int(time.time())
-                    if func == process.run:
-                        try:
-                            func(args['func_params'], shell=args['shell'])
-                        except KeyError:
+                    # Execute command once the migration is started
+                    migrate_start_state = args.get("migrate_start_state", "paused")
+                    if self.wait_for_migration_start(vm, state=migrate_start_state, uri=desturi):
+                        logging.info("Migration started for %s", vm.name)
+                        if func == process.run:
+                            try:
+                                func(args['func_params'], shell=args['shell'])
+                            except KeyError:
+                                func(args['func_params'])
+                        elif func == virsh.migrate_postcopy:
+                            func(vm.name, uri=srcuri, debug=True)
+                        else:
                             func(args['func_params'])
                     else:
-                        func(args['func_params'])
-                    eclipse_time = int(time.time()) - stime
-                    logging.debug("start_time:%s, eclipse_time:%s", stime, eclipse_time)
+                        logging.error("Migration failed to start for %s",
+                                      vm.name)
+                eclipse_time = int(time.time()) - stime
+                logging.debug("start_time:%d, eclipse_time:%d", stime, eclipse_time)
                 if eclipse_time < thread_timeout:
                     migration_thread.join(thread_timeout - eclipse_time)
                 if migration_thread.isAlive():
@@ -1409,6 +1418,39 @@ class MigrationTest(object):
                 vm.destroy(gracefully=False)
         # Set connect uri back to local uri
         vm.connect_uri = srcuri
+
+    def check_vm_state(self, vm, state='paused', uri=None):
+        """
+        checks whether state of the vm is as expected
+
+        :param vm: VM Object
+        :param state: expected state of the VM
+        :param uri: connect uri
+
+        :return: True if state of VM is as expected, False otherwise
+        """
+        if not virsh.domain_exists(vm.name, uri=uri):
+            return False
+        vm_state = virsh.domstate(vm.name, uri=uri).stdout.strip()
+        return vm_state.lower() == state.lower()
+
+    def wait_for_migration_start(self, vm, state='paused', uri=None, timeout=60):
+        """
+        checks whether migration is started or not
+
+        :param vm: VM object
+        :param state: expected VM state in destination host
+        :param uri: connect uri
+        :param timeout: time in seconds to wait for migration to start
+
+        :return: True if migration is started False otherwise
+        """
+        def check_state():
+            try:
+                return self.check_vm_state(vm, state, uri)
+            except Exception:
+                return False
+        return utils_misc.wait_for(check_state, timeout)
 
 
 def check_result(result, expected_fails=[], skip_if=[], any_error=False):
