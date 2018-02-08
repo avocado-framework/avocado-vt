@@ -48,7 +48,7 @@ def guest_listing(options):
     for params in guest_name_parser.get_dicts():
         base_dir = params.get("images_base_dir", data_dir.get_data_dir())
         image_name = storage.get_image_filename(params, base_dir)
-        name = params['name']
+        name = params['name'].replace('.%s' % options.vt_machine_type, '')
         if os.path.isfile(image_name):
             out = name
         else:
@@ -66,10 +66,10 @@ def arch_listing(options):
         extra = " for guest os \"%s\"" % options.vt_guest_os
     else:
         extra = ""
-    LOG.info("Available machine_type/arch profiles%s", extra)
+    LOG.info("Available arch profiles%s", extra)
     guest_name_parser = standalone_test.get_guest_name_parser(options)
     for params in guest_name_parser.get_dicts():
-        LOG.debug(params["name"])
+        LOG.debug(params['name'].replace('.%s' % options.vt_machine_type, ''))
     LOG.debug("")
 
 
