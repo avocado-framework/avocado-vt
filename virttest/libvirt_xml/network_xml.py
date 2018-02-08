@@ -7,6 +7,7 @@ import logging
 
 from virttest import xml_utils
 from virttest.libvirt_xml import base, xcepts, accessors
+from virttest.libvirt_xml.devices import librarian
 
 
 class RangeList(list):
@@ -371,7 +372,8 @@ class NetworkXMLBase(base.LibvirtXMLBase):
                  'autostart', 'persistent', 'forward', 'mac', 'ip',
                  'bandwidth_inbound', 'bandwidth_outbound', 'portgroup',
                  'dns', 'domain_name', 'nat_port', 'forward_interface',
-                 'routes', 'virtualport_type', 'mtu')
+                 'routes', 'virtualport_type', 'vf_list', 'driver', 'pf',
+                 'mtu')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__ + (
         'defined', 'active',
@@ -391,6 +393,14 @@ class NetworkXMLBase(base.LibvirtXMLBase):
         accessors.XMLElementList('forward_interface', self, parent_xpath='/forward',
                                  marshal_from=self.marshal_from_forward_iface,
                                  marshal_to=self.marshal_to_forward_iface)
+        accessors.XMLElementList('vf_list', self,
+                                 parent_xpath='/forward',
+                                 marshal_from=self.marshal_from_address,
+                                 marshal_to=self.marshal_to_address)
+        accessors.XMLElementDict('driver', self, parent_xpath='/',
+                                 tag_name='driver')
+        accessors.XMLElementDict('pf', self, parent_xpath='/',
+                                 tag_name='pf')
         accessors.XMLElementDict('nat_port', self, parent_xpath='/forward/nat',
                                  tag_name='port')
         accessors.XMLElementDict('bridge', self, parent_xpath='/',
@@ -415,6 +425,35 @@ class NetworkXMLBase(base.LibvirtXMLBase):
         accessors.XMLAttribute('virtualport_type', self, parent_xpath='/',
                                tag_name='virtualport', attribute='type')
         super(NetworkXMLBase, self).__init__(virsh_instance=virsh_instance)
+
+    Address = librarian.get('address')
+
+    def new_vf_address(self, **dargs):
+        """
+        Return a new interface Address instance and set properties from dargs
+        """
+        new_one = self.Address("pci", virsh_instance=self.virsh)
+        for key, value in dargs.items():
+            setattr(new_one, key, value)
+        return new_one
+
+    @staticmethod
+    def marshal_from_address(item, index, libvirtxml):
+        """Convert an Address instance into tag + attributes"""
+        root = item.xmltreefile.getroot()
+        if root.tag == 'address':
+            return (root.tag, dict(root.items()))
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of address "
+                                         "instances, not a %s" % str(item))
+
+    @staticmethod
+    def marshal_to_address(self, tag, attr_dict, index, libvirtxml):
+        """Convert a tag + attributes into an Address instance"""
+        if not tag == 'address':
+            return None
+        newone = self.new_vf_address(attr_dict)
+        return newone
 
     def __check_undefined__(self, errmsg):
         if not self.defined:

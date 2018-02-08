@@ -1210,6 +1210,55 @@ class MigrationTest(object):
         # The CmdResult returned from virsh migrate command
         self.ret = None
 
+    def ping_vm(self, vm, test, params, uri=None, ping_count=10,
+                ping_timeout=60):
+        """
+        Method used to ping the VM before and after migration
+
+        :param vm: VM object
+        :param test: test object
+        :param params: Test dict params
+        :param uri: connect uri
+        :param ping_count: count of icmp packet
+        :param ping_timeout: Timeout for the ping command
+        """
+        vm_ip = params.get("vm_ip_dict", {})
+        server_session = None
+        func = test.error
+        if uri:
+            func = test.fail
+            server_ip = params.get("server_ip")
+            src_uri = "qemu:///system"
+            vm.connect_uri = uri
+            server_pwd = params.get("server_pwd")
+            server_user = params.get("server_user")
+            server_session = remote.wait_for_login('ssh', server_ip, '22',
+                                                   server_user, server_pwd,
+                                                   r"[\#\$]\s*$")
+            logging.info("Check VM network connectivity after migrating")
+        else:
+            logging.info("Check VM network connectivity before migration")
+            if not vm.is_alive():
+                vm.start()
+            vm.wait_for_login()
+            vm_ip[vm.name] = vm.get_address()
+            params["vm_ip_dict"] = vm_ip
+        s_ping, o_ping = utils_net.ping(vm_ip[vm.name], count=ping_count,
+                                        timeout=ping_timeout,
+                                        output_func=logging.debug,
+                                        session=server_session)
+        logging.info(o_ping)
+        if uri:
+            server_session.close()
+            vm.connect_uri = src_uri
+        if s_ping != 0:
+            if uri:
+                if "offline" in params.get("migrate_options"):
+                    logging.info("Offline Migration: %s will not responded to "
+                                 "ping as expected", vm.name)
+                    return
+            func("%s did not respond after %d sec." % (vm.name, ping_timeout))
+
     def thread_func_migration(self, vm, desturi, options=None,
                               ignore_status=False, virsh_opt="",
                               extra_opts=""):
@@ -1294,7 +1343,7 @@ class MigrationTest(object):
                 if (cmd_output[0] == 0):
                     cmd_output = cmd_output[1].strip().upper()
                     if "POWER8" in cmd_output:
-                        test_setup.disable_smt(params=params)
+                        test_setup.switch_smt(state="off", params=params)
                 else:
                     raise exceptions.TestError("Failed to get cpuinfo of remote "
                                                "server", cmd_output[1])
@@ -1333,17 +1382,26 @@ class MigrationTest(object):
                                                           extra_opts))
                 migration_thread.start()
                 eclipse_time = 0
+                stime = int(time.time())
                 if func:
-                    stime = int(time.time())
-                    if func == process.run:
-                        try:
-                            func(args['func_params'], shell=args['shell'])
-                        except KeyError:
+                    # Execute command once the migration is started
+                    migrate_start_state = args.get("migrate_start_state", "paused")
+                    if self.wait_for_migration_start(vm, state=migrate_start_state, uri=desturi):
+                        logging.info("Migration started for %s", vm.name)
+                        if func == process.run:
+                            try:
+                                func(args['func_params'], shell=args['shell'])
+                            except KeyError:
+                                func(args['func_params'])
+                        elif func == virsh.migrate_postcopy:
+                            func(vm.name, uri=srcuri, debug=True)
+                        else:
                             func(args['func_params'])
                     else:
-                        func(args['func_params'])
-                    eclipse_time = int(time.time()) - stime
-                    logging.debug("start_time:%s, eclipse_time:%s", stime, eclipse_time)
+                        logging.error("Migration failed to start for %s",
+                                      vm.name)
+                eclipse_time = int(time.time()) - stime
+                logging.debug("start_time:%d, eclipse_time:%d", stime, eclipse_time)
                 if eclipse_time < thread_timeout:
                     migration_thread.join(thread_timeout - eclipse_time)
                 if migration_thread.isAlive():
@@ -1409,6 +1467,39 @@ class MigrationTest(object):
                 vm.destroy(gracefully=False)
         # Set connect uri back to local uri
         vm.connect_uri = srcuri
+
+    def check_vm_state(self, vm, state='paused', uri=None):
+        """
+        checks whether state of the vm is as expected
+
+        :param vm: VM Object
+        :param state: expected state of the VM
+        :param uri: connect uri
+
+        :return: True if state of VM is as expected, False otherwise
+        """
+        if not virsh.domain_exists(vm.name, uri=uri):
+            return False
+        vm_state = virsh.domstate(vm.name, uri=uri).stdout.strip()
+        return vm_state.lower() == state.lower()
+
+    def wait_for_migration_start(self, vm, state='paused', uri=None, timeout=60):
+        """
+        checks whether migration is started or not
+
+        :param vm: VM object
+        :param state: expected VM state in destination host
+        :param uri: connect uri
+        :param timeout: time in seconds to wait for migration to start
+
+        :return: True if migration is started False otherwise
+        """
+        def check_state():
+            try:
+                return self.check_vm_state(vm, state, uri)
+            except Exception:
+                return False
+        return utils_misc.wait_for(check_state, timeout)
 
 
 def check_result(result, expected_fails=[], skip_if=[], any_error=False):
@@ -2368,6 +2459,9 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         if transport:
             disk_params_src.update({"transport": transport})
     elif disk_src_protocol == 'netfs':
+        # For testing multiple VMs in a test this param can used
+        # to setup/cleanup configurations
+        src_file_list = params.get("source_file_list", [])
         # Setup nfs
         res = setup_or_cleanup_nfs(True, mnt_path_name,
                                    is_mount=True,
@@ -2376,7 +2470,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         exp_path = res["export_dir"]
         mnt_path = res["mount_dir"]
         params["selinux_status_bak"] = res["selinux_status_bak"]
-        dist_img = "nfs-img"
+        dist_img = params.get("source_dist_img", "nfs-img")
 
         # Convert first disk to gluster disk path
         disk_cmd = ("qemu-img convert -f %s -O %s %s %s/%s" %
@@ -2387,6 +2481,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         src_file_path = "%s/%s" % (mnt_path, dist_img)
         disk_params_src = {'source_file': src_file_path}
         params["source_file"] = src_file_path
+        src_file_list.append(src_file_path)
+        params["source_file_list"] = src_file_list
     elif disk_src_protocol == 'rbd':
         mon_host = params.get("mon_host")
         if image_convert:

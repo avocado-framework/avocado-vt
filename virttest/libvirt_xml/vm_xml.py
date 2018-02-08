@@ -1155,10 +1155,8 @@ class VMXML(VMXMLBase):
         try:
             bandwidth = xmltreefile.find('devices/interface/bandwidth')
             try:
-                iftune_params['inbound'] = bandwidth.find(
-                    'inbound').get('average')
-                iftune_params['outbound'] = bandwidth.find(
-                    'outbound').get('average')
+                iftune_params['inbound'] = bandwidth.find('inbound')
+                iftune_params['outbound'] = bandwidth.find('outbound')
             except AttributeError:
                 logging.error("Can't find <inbound> or <outbound> element")
         except AttributeError:
@@ -1217,27 +1215,37 @@ class VMXML(VMXMLBase):
         return None
 
     @staticmethod
-    def set_cpu_mode(vm_name, mode='host-model'):
+    def set_cpu_mode(vm_name, mode='host-model', model='',
+                     fallback='', match='', check=''):
         """
-        Set cpu's mode of VM.
+        Set cpu's mode and respective attributes of VM.
 
         :param vm_name: Name of defined vm to set cpu mode.
-        :param mode: the mode of cpu:'host-model'...
+        :param mode: the mode of cpu: host-model, host-passthrough, custom
+        :param model: cpu model (power8, core2duo etc)
+        :param fallback: forbid, allow*
+        :param match: minimum, exact*, strict
+        :param check: none, partial, full
+        * - default values
         """
         vmxml = VMXML.new_from_dumpxml(vm_name)
         vmxml.check_cpu_mode(mode)
-        xmltreefile = vmxml.__dict_get__('xml')
         try:
-            cpu = xmltreefile.find('/cpu')
-            logging.debug("Current cpu mode is '%s'!", cpu.get('mode'))
-            cpu.set('mode', mode)
-        except AttributeError:
-            logging.debug("Can not find any cpu, now create one.")
-            cpu = xml_utils.ElementTree.SubElement(xmltreefile.getroot(),
-                                                   'cpu', {'mode': mode})
-        xmltreefile.write()
-        vmxml.undefine()
-        vmxml.define()
+            cpuxml = vmxml['cpu']
+        except xcepts.LibvirtXMLNotFoundError:
+            logging.debug("Can not find any cpu tag, now create one.")
+            cpuxml = VMCPUXML()
+        cpuxml['mode'] = mode
+        if model:
+            cpuxml['model'] = model
+        if fallback:
+            cpuxml['fallback'] = fallback
+        if match:
+            cpuxml['match'] = match
+        if check:
+            cpuxml['check'] = check
+        vmxml['cpu'] = cpuxml
+        vmxml.sync()
 
     def add_device(self, value):
         """
@@ -1464,6 +1472,42 @@ class VMXML(VMXMLBase):
             pass  # Element already doesn't exist
         self.xmltreefile.write()
 
+    def set_boot_order_by_target_dev(self, target, order):
+        """
+        Set boot order by target dev
+
+        :param target: The target dev on host
+        :param order: The boot order number
+        """
+        devices = self.get_devices()
+        for device in devices:
+            if device.device_tag == "disk":
+                if device.target.get("dev") == target:
+                    device.boot = order
+        self.set_devices(devices)
+
+    def set_os_attrs(self, **attr_dict):
+        """
+        Set attributes of VMOSXML
+
+        :param attr_dict: The key words of os attributes
+        """
+        try:
+            os_xml = getattr(self, "os")
+            if attr_dict:
+                for name, value in attr_dict.items():
+                    setattr(os_xml, name, value)
+            setattr(self, "os", os_xml)
+            self.xmltreefile.write()
+        except (AttributeError, TypeError, ValueError) as detail:
+            raise xcepts.LibvirtXMLError("Invalid os tag or attribute: %s" % detail)
+
+    def remove_all_disk(self):
+        """
+        Remove all disk devices.
+        """
+        self.remove_all_device_by_type('disk')
+
 
 class VMCPUXML(base.LibvirtXMLBase):
 
@@ -1473,7 +1517,7 @@ class VMCPUXML(base.LibvirtXMLBase):
 
     # Must copy these here or there will be descriptor problems
     __slots__ = ('model', 'vendor', 'feature_list', 'mode', 'match',
-                 'fallback', 'topology', 'numa_cell')
+                 'fallback', 'topology', 'numa_cell', 'check')
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -1492,6 +1536,12 @@ class VMCPUXML(base.LibvirtXMLBase):
                                parent_xpath='/',
                                tag_name='cpu',
                                attribute='match')
+        accessors.XMLAttribute(property_name="check",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='cpu',
+                               attribute='check')
         accessors.XMLElementText(property_name="model",
                                  libvirtxml=self,
                                  forbidden=[],
@@ -1611,7 +1661,7 @@ class VMCPUXML(base.LibvirtXMLBase):
         """
         sys_feature = []
         cpu_xml_file = open('/proc/cpuinfo', 'r')
-        for line in cpu_xml_file.readline():
+        for line in cpu_xml_file.readlines():
             if line.find('flags') != -1:
                 feature_names = line.split(':')[1].strip()
                 sys_sub_feature = feature_names.split(' ')
@@ -1838,7 +1888,7 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
                         'emulator_quota'):
                 accessors.XMLElementInt(slot, self, parent_xpath='/',
                                         tag_name=slot)
-        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+        super(VMCPUTuneXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<cputune/>'
 
     @staticmethod
@@ -1916,7 +1966,8 @@ class VMOSXML(base.LibvirtXMLBase):
     __slots__ = ('type', 'arch', 'machine', 'loader', 'boots', 'bootmenu_enable',
                  'smbios_mode', 'bios_useserial', 'bios_reboot_timeout', 'init',
                  'bootloader', 'bootloader_args', 'kernel', 'initrd', 'cmdline',
-                 'dtb', 'initargs')
+                 'dtb', 'initargs', 'loader_readonly', 'loader_type', 'nvram',
+                 'nvram_template', 'secure')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementText('type', self, parent_xpath='/',
@@ -1952,7 +2003,17 @@ class VMOSXML(base.LibvirtXMLBase):
                                  tag_name='dtb')
         accessors.XMLElementText('init', self, parent_xpath='/',
                                  tag_name='init')
-        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+        accessors.XMLAttribute('loader_readonly', self, parent_xpath='/',
+                               tag_name='loader', attribute='readonly')
+        accessors.XMLAttribute('loader_type', self, parent_xpath='/',
+                               tag_name='loader', attribute='type')
+        accessors.XMLAttribute('nvram_template', self, parent_xpath='/',
+                               tag_name='nvram', attribute='template')
+        accessors.XMLElementText('nvram', self, parent_xpath='/',
+                                 tag_name='nvram')
+        accessors.XMLAttribute('secure', self, parent_xpath='/',
+                               tag_name='loader', attribute='secure')
+        super(VMOSXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<os/>'
 
     @staticmethod
@@ -1993,7 +2054,7 @@ class VMPMXML(base.LibvirtXMLBase):
                                tag_name='suspend-to-disk', attribute='enabled')
         accessors.XMLAttribute('mem_enabled', self, parent_xpath='/',
                                tag_name='suspend-to-mem', attribute='enabled')
-        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+        super(VMPMXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<pm/>'
 
 
@@ -2013,7 +2074,7 @@ class VMFeaturesXML(base.LibvirtXMLBase):
 
     __slots__ = ('feature_list', 'hyperv_relaxed_state', 'hyperv_vapic_state',
                  'hyperv_spinlocks_state', 'hyperv_spinlocks_retries',
-                 'kvm_hidden_state', 'pvspinlock_state')
+                 'kvm_hidden_state', 'pvspinlock_state', 'smm')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLAttribute(property_name='hyperv_relaxed_state',
@@ -2046,9 +2107,14 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                                parent_xpath='/',
                                tag_name='pvspinlock',
                                attribute='state')
+        accessors.XMLAttribute(property_name='smm',
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='smm',
+                               attribute='state')
         accessors.AllForbidden(property_name="feature_list",
                                libvirtxml=self)
-        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+        super(VMFeaturesXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<features/>'
 
     def get_feature_list(self):
@@ -2111,7 +2177,7 @@ class VMVCPUSXML(base.LibvirtXMLBase):
         accessors.XMLElementList('vcpu', self, parent_xpath="/",
                                  marshal_from=self.marshal_from_vcpu,
                                  marshal_to=self.marshal_to_vcpu)
-        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+        super(VMVCPUSXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<vcpus/>'
 
     @staticmethod
@@ -2153,7 +2219,7 @@ class VMHugepagesXML(VMXML):
                                  parent_xpath="/",
                                  marshal_from=self.marshal_from_page,
                                  marshal_to=self.marshal_to_page)
-        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+        super(VMHugepagesXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<hugepages/>'
 
     # Sub-element of hugepages
@@ -2240,7 +2306,7 @@ class VMMemBackingXML(VMXML):
         for slot in ('nosharepages', 'locked'):
             accessors.XMLElementBool(slot, self, parent_xpath='/',
                                      tag_name=slot)
-        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+        super(VMMemBackingXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<memoryBacking/>'
 
 
@@ -2320,7 +2386,7 @@ class VMIothreadidsXML(VMXML):
         accessors.XMLElementList('iothread', self, parent_xpath='/',
                                  marshal_from=self.marshal_from_iothreads,
                                  marshal_to=self.marshal_to_iothreads)
-        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+        super(VMIothreadidsXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<iothreadids/>'
 
     @staticmethod

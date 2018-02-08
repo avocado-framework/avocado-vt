@@ -544,3 +544,23 @@ class PoolVolume(object):
             logging.info("Volume '%s' does not exist or '%s' has been exist."
                          % (old_name, new_name))
             return False
+
+
+def check_qemu_image_lock_support():
+    """
+    QEMU commit 244a566(qemu-2.10) introduced the image locking feature which brought
+    a new option '-U' to the qemu-img command:info, compare, check, bench, convert,
+    dd, map, snapshot, rebase. This method provides one way to determine whether
+    current qemu-img support or not.
+
+    :return: True if current qemu-img command support
+    """
+    cmd = "qemu-img"
+    try:
+        binary_path = process.system_output("which %s" % cmd)
+    except process.CmdError:
+        raise process.CmdError(cmd, binary_path,
+                               "qemu-img command is not found")
+    cmd_result = process.run(binary_path + ' -h', ignore_status=True,
+                             shell=True, verbose=False)
+    return '-U' in cmd_result.stdout

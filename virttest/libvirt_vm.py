@@ -594,6 +594,35 @@ class VM(virt_vm.BaseVM):
                 cmd += ",locked=yes"
             return cmd
 
+        def add_cpu_mode(virt_install_cmd, mode='', model='',
+                         match='', vendor=False):
+            """
+            To add cpu mode, model etc... params
+            :param virt_install_cmd: previous virt install cmd line
+            :param mode: cpu mode host-passthrough, host-model, custom
+            :param model: cpu model (coreduo, power8 etc.)
+            :param match: minimum, exact, strict
+            :param vendor: cpu vendor
+            :return: updated virt_install_cmd
+            """
+            cmd = ''
+            cpu_match = re.match(r".*\s--cpu\s(\S+)\s", virt_install_cmd)
+            if cpu_match:
+                cmd = " --cpu %s," % cpu_match.group(1)
+            else:
+                cmd = " --cpu "
+            if mode and has_sub_option('cpu', 'mode'):
+                cmd += 'mode="%s",' % mode
+            if model and has_sub_option('cpu', 'model'):
+                cmd += 'model="%s",' % model
+            if match and has_sub_option('cpu', 'match'):
+                cmd += 'match="%s",' % match
+            if vendor and has_sub_option('cpu', 'vendor'):
+                cmd += 'vendor="%s",' % libvirt_xml.CapabilityXML().vendor
+            virt_install_cmd += cmd.strip(',')
+
+            return virt_install_cmd
+
         def add_location(help_text, location):
             if has_option(help_text, "location"):
                 return " --location %s" % location
@@ -1002,6 +1031,13 @@ class VM(virt_vm.BaseVM):
                 logging.error("Can't pin hugepage without hugepage enabled"
                               "and Numa enabled")
 
+        cpu_mode = params.get("virt_cpu_mode", '')
+        if cpu_mode:
+            virt_install_cmd = add_cpu_mode(virt_install_cmd,
+                                            mode=cpu_mode,
+                                            model=params.get('virt_cpu_model', ''),
+                                            match=params.get('virt_cpu_match', ''),
+                                            vendor=params.get('virt_cpu_vendor', False))
         # TODO: directory location for vmlinuz/kernel for cdrom install ?
         location = None
         if params.get("medium") == 'url':
@@ -2747,10 +2783,12 @@ class VM(virt_vm.BaseVM):
                 query_cmd = "dpkg -l | grep %s" % name
                 cmd = "apt install -y %s" % name
                 update_cmd = "apt upgrade -y %s" % name
+                clean_cmd = "apt-get clean"
             else:
                 query_cmd = "rpm -q %s" % name
                 cmd = "yum install -y %s" % name
                 update_cmd = "yum update -y %s" % name
+                clean_cmd = "yum clean all"
 
             if session.cmd_status(query_cmd):
                 # Install the package if it does not exists
@@ -2758,12 +2796,17 @@ class VM(virt_vm.BaseVM):
                 # Just check status is not enough
                 # It's necessary to check if install successfully
                 if status != 0 or session.cmd_status(query_cmd) != 0:
-                    if not ignore_status:
-                        raise virt_vm.VMError("Installation of package %s "
-                                              "failed:\n%s" % (name, output))
-                    else:
-                        logging.error("Installation of package %s failed:"
-                                      "\n%s", name, output)
+                    # The local repo database probably is broken.
+                    session.cmd_status_output(clean_cmd, timeout=300)
+                    # Retry install required packages
+                    status, output = session.cmd_status_output(cmd, timeout=300)
+                    if status != 0 or session.cmd_status(query_cmd) != 0:
+                        if not ignore_status:
+                            raise virt_vm.VMError("Installation of package %s "
+                                                  "failed:\n%s" % (name, output))
+                        else:
+                            logging.error("Installation of package %s failed:"
+                                          "\n%s", name, output)
             else:
                 # Update the package
                 status, output = session.cmd_status_output(update_cmd,

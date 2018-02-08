@@ -412,6 +412,16 @@ class LinuxVMCheck(VMCheck):
             return True
         return False
 
+    def is_uefi_guest(self):
+        """
+        Check whether guest is uefi guest
+        """
+        cmd = "ls /boot/efi/EFI/BOOT/"
+        status, output = self.run_cmd(cmd)
+        if status != 0:
+            return False
+        return True
+
     def get_grub_device(self, dev_map="/boot/grub*/device.map"):
         """
         Check whether vd[a-z] device is in device map.
@@ -541,7 +551,8 @@ class WindowsVMCheck(VMCheck):
             for image_name in image_name_list:
                 match_image = os.path.join(data_dir.get_data_dir(), image_name)
                 if not os.path.exists(match_image):
-                    logging.error("Screenshot '%s' does not exist", match_image)
+                    logging.error(
+                        "Screenshot '%s' does not exist", match_image)
                     return
                 match_image_list.append(match_image)
             img_match_ret = self.wait_for_match(match_image_list,
@@ -691,7 +702,8 @@ def v2v_cmd(params):
 
     # Construct a final virt-v2v command
     cmd = '%s %s' % (V2V_EXEC, options)
-    cmd_result = process.run(cmd, timeout=v2v_timeout, verbose=True, ignore_status=True)
+    cmd_result = process.run(cmd, timeout=v2v_timeout,
+                             verbose=True, ignore_status=True)
     return cmd_result
 
 

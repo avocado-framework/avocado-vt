@@ -706,9 +706,7 @@ class BaseVM(object):
         devs = set([nic.netdst]) if nic.has_key('netdst') else set()
         if not utils_net.verify_ip_address_ownership(ip_addr, [mac],
                                                      devs=devs):
-            logging.debug("Clean up outdated address info, "
-                          "MAC: %s, IP: %s" % (mac, ip_addr))
-            self.address_cache.pop(mac_pattern % mac)
+            self.address_cache.drop(mac_pattern % mac)
 
             nic_params = self.params.object_params(nic.nic_name)
             pci_assignable = nic_params.get("pci_assignable") != "no"
@@ -824,14 +822,6 @@ class BaseVM(object):
             self.virtnet.generate_mac_address(nic_name)
         # mac of '' or invaid format results in not setting a mac
         if nic.has_key('ip') and nic.has_key('mac'):
-            if not self.address_cache.has_key(nic.mac):
-                logging.debug("(address cache) Adding static "
-                              "cache entry: %s ---> %s" % (nic.mac, nic.ip))
-            else:
-                logging.debug("(address cache) Updating static "
-                              "cache entry from: %s ---> %s"
-                              " to: %s ---> %s" % (nic.mac,
-                                                   self.address_cache[nic.mac], nic.mac, nic.ip))
             self.address_cache[nic.mac] = nic.ip
         return nic
 
@@ -844,7 +834,7 @@ class BaseVM(object):
         self.free_mac_address(nic_index_or_name)
         try:
             del self.virtnet[nic_index_or_name]
-            del self.address_cache[nic_mac]
+            self.address_cache.drop(nic_mac)
         except IndexError:
             pass  # continue to not exist
         except KeyError:

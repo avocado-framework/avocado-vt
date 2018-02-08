@@ -213,7 +213,7 @@ def handle_prompts(session, username, password, prompt, timeout=10,
 
 def remote_login(client, host, port, username, password, prompt, linesep="\n",
                  log_filename=None, timeout=10, interface=None,
-                 status_test_command="echo $?", verbose=False):
+                 status_test_command="echo $?", verbose=False, bind_ip=None):
     """
     Log into a remote host (guest) using SSH/Telnet/Netcat.
 
@@ -229,30 +229,36 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
     :param timeout: The maximal time duration (in seconds) to wait for
             each step of the login procedure (i.e. the "Are you sure" prompt
             or the password prompt)
-    :interface: The interface the neighbours attach to (only use when using ipv6
-                linklocal address.)
+    :interface: The interface the neighbours attach to (only use when
+                using ipv6 linklocal address.)
     :param status_test_command: Command to be used for getting the last
             exit status of commands run inside the shell (used by
             cmd_status_output() and friends).
-
+    :param bind_ip: ssh through specific interface on
+                    client(specify interface ip)
     :raise LoginError: If using ipv6 linklocal but not assign a interface that
                        the neighbour attache
     :raise LoginBadClientError: If an unknown client is requested
     :raise: Whatever handle_prompts() raises
     :return: A ShellSession object.
     """
+    verbose = verbose and "-vv" or ""
     if host and host.lower().startswith("fe80"):
         if not interface:
             raise LoginError("When using ipv6 linklocal an interface must "
                              "be assigned")
         host = "%s%%%s" % (host, interface)
-
-    verbose = verbose and "-vv" or ""
     if client == "ssh":
-        cmd = ("ssh %s -o UserKnownHostsFile=/dev/null "
-               "-o StrictHostKeyChecking=no "
-               "-o PreferredAuthentications=password -p %s %s@%s" %
-               (verbose, port, username, host))
+        if not bind_ip:
+            cmd = ("ssh %s -o UserKnownHostsFile=/dev/null "
+                   "-o StrictHostKeyChecking=no "
+                   "-o PreferredAuthentications=password -p %s %s@%s" %
+                   (verbose, port, username, host))
+        else:
+            cmd = ("ssh %s -o UserKnownHostsFile=/dev/null "
+                   "-o StrictHostKeyChecking=no "
+                   "-o PreferredAuthentications=password -p %s -b %s %s@%s" %
+                   (verbose, port, bind_ip, username, host))
     elif client == "telnet":
         cmd = "telnet -l %s %s %s" % (username, host, port)
     elif client == "nc":
@@ -362,8 +368,8 @@ def wait_for_login(client, host, port, username, password, prompt,
     :param internal_timeout: The maximum time duration (in seconds) to wait for
                              each step of the login procedure (e.g. the
                              "Are you sure" prompt or the password prompt)
-    :interface: The interface the neighbours attach to (only use when using ipv6
-                linklocal address.)
+    :interface: The interface the neighbours attach to
+                (only use when using ipv6 linklocal address.)
     :see: remote_login()
     :raise: Whatever remote_login() raises
     :return: A ShellSession object.
@@ -507,8 +513,8 @@ def scp_to_remote(host, port, username, password, local_path, remote_path,
     :param log_filename: If specified, log all output to this file
     :param timeout: The time duration (in seconds) to wait for the transfer
             to complete.
-    :interface: The interface the neighbours attach to (only use when using ipv6
-                linklocal address.)
+    :interface: The interface the neighbours attach to (only use when using
+                ipv6 linklocal address.)
     :raise: Whatever remote_scp() raises
     """
     if (limit):
@@ -544,8 +550,8 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
     :param log_filename: If specified, log all output to this file
     :param timeout: The time duration (in seconds) to wait for the transfer
             to complete.
-    :interface: The interface the neighbours attach to (only use when using ipv6
-                linklocal address.)
+    :interface: The interface the neighbours attach to (only use when
+                using ipv6 linklocal address.)
     :raise: Whatever remote_scp() raises
     """
     if (limit):
@@ -850,8 +856,8 @@ def copy_files_to(address, client, username, password, port, local_path,
     :param verbose: If True, log some stats using logging.debug (RSS only)
     :param timeout: The time duration (in seconds) to wait for the transfer to
             complete.
-    :param interface: The interface the neighbours attach to (only use when using ipv6
-                linklocal address.)
+    :param interface: The interface the neighbours attach to (only use when
+                      using ipv6 linklocal address.)
     :param filesize: size of file will be transferred
     :raise: Whatever remote_scp() raises
     """
@@ -869,8 +875,8 @@ def copy_files_to(address, client, username, password, port, local_path,
         c.upload(local_path, remote_path, timeout)
         c.close()
     else:
-        raise exceptions.TestError("No such file copy client: '%s', valid values"
-                                   "are scp and rss" % client)
+        raise exceptions.TestError("No such file copy client: '%s', valid"
+                                   "values are scp and rss" % client)
 
 
 @throughput_transfer
@@ -891,8 +897,8 @@ def copy_files_from(address, client, username, password, port, remote_path,
     :param verbose: If True, log some stats using ``logging.debug`` (RSS only)
     :param timeout: The time duration (in seconds) to wait for the transfer to
                     complete.
-    :param interface: The interface the neighbours attach to (only use when using ipv6
-                linklocal address.)
+    :param interface: The interface the neighbours attach to (only
+                      use when using ipv6 linklocal address.)
     :param filesize: size of file will be transferred
     :raise: Whatever ``remote_scp()`` raises
     """
@@ -910,8 +916,8 @@ def copy_files_from(address, client, username, password, port, remote_path,
         c.download(remote_path, local_path, timeout)
         c.close()
     else:
-        raise exceptions.TestError("No such file copy client: '%s', valid values"
-                                   "are scp and rss" % client)
+        raise exceptions.TestError("No such file copy client: '%s', valid"
+                                   "values are scp and rss" % client)
 
 
 class Remote_Package(object):
@@ -982,7 +988,8 @@ class RemoteFile(object):
         :param password: Password (if requried)
         :param remote_path: Path of file which we want to edit on remote.
         :param limit: Speed limit of file transfer.
-        :param log_filename: If specified, log all output to this file(SCP only)
+        :param log_filename: If specified, log all output to this
+                             file(SCP only)
         :param verbose: If True, log some stats using logging.debug (RSS only)
         :param timeout: The time duration (in seconds) to wait for the
                         transfer tocomplete.
@@ -1227,8 +1234,8 @@ class RemoteRunner(object):
         :param timeout: Total time duration to wait for command return.
         :param ignore_status: If ignore_status=True, do not raise an exception,
                               no matter what the exit code of the command is.
-                              Else, raise CmdError if exit code of command is not
-                              zero.
+                              Else, raise CmdError if exit code of command is
+                              not zero.
         """
         # Redirect the stdout and stderr to file, Deviding error message
         # from output, and taking off the color of output. To return the same

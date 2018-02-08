@@ -580,6 +580,8 @@ class VM(virt_vm.BaseVM):
             devices.insert(dev)
             if params.get('machine_type').startswith("arm64-mmio"):
                 dev = QDevice('virtio-serial-device')
+            elif params.get('machine_type').startswith("s390"):
+                dev = QDevice("virtio-serial-ccw")
             else:
                 dev = QDevice('virtio-serial-pci', parent_bus=pci_bus)
             dev.set_param("id", vioser_id)
@@ -881,6 +883,10 @@ class VM(virt_vm.BaseVM):
                 dev.set_param("id", dev_id)
 
             dev_type = "virtio-rng-pci"
+            machine_type = self.params.get("machine_type", "pc")
+            if "s390" in machine_type:
+                dev_type = "virtio-rng-ccw"
+                parent_bus = None
             if devices.has_device(dev_type):
                 rng_pci = QDevice(dev_type, parent_bus=parent_bus)
                 set_dev_params(rng_pci, rng_params, None, dev_type)
@@ -1381,9 +1387,6 @@ class VM(virt_vm.BaseVM):
         if root_dir is None:
             root_dir = self.root_dir
 
-        have_ahci = False
-        have_virtio_scsi = False
-        virtio_scsi_pcis = []
         pci_bus = {'aobject': params.get('pci_bus', 'pci.0')}
         spice_options = {}
 
@@ -1394,11 +1397,6 @@ class VM(virt_vm.BaseVM):
         # Clone this VM using the new params
         vm = self.clone(name, params, root_dir, copy_state=True)
 
-        # global counters
-        ide_bus = 0
-        ide_unit = 0
-        vdisk = 0
-        scsi_disk = 0
         self.last_boot_index = 0
         if params.get("kernel"):
             self.last_boot_index = 1
@@ -1609,6 +1607,8 @@ class VM(virt_vm.BaseVM):
                         params.get('virtio_port_bus') is None):
                     if params.get('machine_type').startswith("arm64-mmio"):
                         dev = QDevice('virtio-serial-device')
+                    elif params.get('machine_type').startswith("s390"):
+                        dev = QDevice("virtio-serial-ccw")
                     else:
                         dev = QDevice(
                             'virtio-serial-pci', parent_bus=parent_bus)
@@ -1619,6 +1619,8 @@ class VM(virt_vm.BaseVM):
                 for i in range(no_virtio_serial_pcis, bus + 1):
                     if params.get('machine_type').startswith("arm64-mmio"):
                         dev = QDevice('virtio-serial-device')
+                    elif params.get('machine_type').startswith("s390"):
+                        dev = QDevice("virtio-serial-ccw")
                     else:
                         dev = QDevice(
                             'virtio-serial-pci', parent_bus=parent_bus)
@@ -3842,22 +3844,23 @@ class VM(virt_vm.BaseVM):
                 'qemu_binary'] = utils_misc.get_qemu_dst_binary(self.params)
         if env:
             env.register_vm("%s_clone" % clone.name, clone)
-        if (local and not (migration_exec_cmd_src and
-                           "gzip" in migration_exec_cmd_src)):
-            error_context.context("creating destination VM")
-            if stable_check:
-                # Pause the dest vm after creation
-                extra_params = clone.params.get("extra_params", "") + " -S"
-                clone.params["extra_params"] = extra_params
-
-            clone.create(migration_mode=protocol, mac_source=self,
-                         migration_fd=fd_dst,
-                         migration_exec_cmd=migration_exec_cmd_dst)
-            if fd_dst:
-                os.close(fd_dst)
-            error_context.context()
 
         try:
+            if (local and not (migration_exec_cmd_src and
+                               "gzip" in migration_exec_cmd_src)):
+                error_context.context("creating destination VM")
+                if stable_check:
+                    # Pause the dest vm after creation
+                    extra_params = clone.params.get("extra_params", "") + " -S"
+                    clone.params["extra_params"] = extra_params
+
+                clone.create(migration_mode=protocol, mac_source=self,
+                             migration_fd=fd_dst,
+                             migration_exec_cmd=migration_exec_cmd_dst)
+                if fd_dst:
+                    os.close(fd_dst)
+                error_context.context()
+
             if (self.params["display"] == "spice" and local and
                 not (protocol == "exec" and
                      (migration_exec_cmd_src and "gzip" in migration_exec_cmd_src))):
@@ -4011,7 +4014,7 @@ class VM(virt_vm.BaseVM):
             # If we're doing remote migration and it's completed successfully,
             # self points to a dead VM object
             if not not_wait_for_migration:
-                if self.is_alive():
+                if self.is_alive() and self.is_paused():
                     self.monitor.cmd("cont")
                 clone.destroy(gracefully=False)
                 if env:
@@ -4302,7 +4305,7 @@ class VM(virt_vm.BaseVM):
                             return block.split(":")[0]
                 # file in key means both file and backing_file
                 if ('file' in key) and (value in block):
-                    return block.split(":")[0]
+                    return block.split(":", 1)[0].split(" ", 1)[0]
 
         return None
 

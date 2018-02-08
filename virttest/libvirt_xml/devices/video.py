@@ -8,12 +8,12 @@ from virttest.libvirt_xml import accessors
 from virttest.libvirt_xml.devices import base
 
 
-class Video(base.TypedDeviceBase):
+class Video(base.UntypedDeviceBase):
 
     __slots__ = ('model_type', 'model_ram', 'model_vram', 'model_heads',
                  'primary', 'acceleration', 'address')
 
-    def __init__(self, type_name, virsh_instance=base.base.virsh):
+    def __init__(self, virsh_instance=base.base.virsh):
         accessors.XMLAttribute('model_type', self,
                                parent_xpath='/',
                                tag_name='model',
@@ -41,5 +41,4 @@ class Video(base.TypedDeviceBase):
                                  parent_xpath='/',
                                  tag_name='address')
         super(Video, self).__init__(device_tag='video',
-                                    type_name=type_name,
                                     virsh_instance=virsh_instance)

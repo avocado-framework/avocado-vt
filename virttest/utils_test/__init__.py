@@ -504,7 +504,7 @@ def run_file_transfer(test, params, env):
     login_timeout = int(params.get("login_timeout", 360))
     session = vm.wait_for_login(timeout=login_timeout)
     error_context.context("Login to guest", logging.info)
-    transfer_timeout = int(params.get("transfer_timeout"))
+    transfer_timeout = int(params.get("transfer_timeout", 1000))
     clean_cmd = params.get("clean_cmd", "rm -f")
     filesize = int(params.get("filesize", 4000))
     count = int(filesize / 10) or 1
@@ -951,7 +951,7 @@ def run_autotest(vm, session, control_path, timeout,
             # Let's be a little more lenient here and see if it wasn't a
             # temporary problem
             remote_hash = "0"
-        if remote_hash == local_hash:
+        if remote_hash == local_hash and directory_exists(destination_autotest_path):
             return None
         logging.debug("Copying %s to guest (remote hash: %s, local hash:%s)",
                       basename, remote_hash, local_hash)
@@ -1178,7 +1178,7 @@ def run_autotest(vm, session, control_path, timeout,
     # Install autotest and autotest client tests to guest
     autotest_tarball = copy_if_hash_differs(vm, compressed_autotest_path,
                                             compressed_autotest_path)
-    if autotest_tarball or not directory_exists(destination_autotest_path):
+    if autotest_tarball:
         extract(vm, autotest_tarball, destination_autotest_path)
         tests_dir = "%s/tests" % destination_autotest_path
         if not directory_exists(tests_dir):

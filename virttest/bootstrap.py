@@ -208,19 +208,24 @@ def write_subtests_files(config_file_list, output_file_object, test_type=None):
         config_file.close()
 
 
-def get_directory_structure(rootdir, guest_file):
+def get_directory_structure(rootdir, guest_file, first_variant=None):
     rootdir = rootdir.rstrip(os.sep)
     start = rootdir.rfind(os.sep) + 1
     previous_indent = 0
     indent = 0
     number_variants = 0
+    first_variant_offset = 0
+    if first_variant:
+        guest_file.write("variants:\n")
+        guest_file.write("    - %s:\n" % first_variant)
+        first_variant_offset = 2
     for path, subdirs, files in os.walk(rootdir):
         folders = path[start:].split(os.sep)
         folders = folders[1:]
         indent = len(folders)
         if indent > previous_indent:
-            guest_file.write("%svariants:\n" %
-                             (4 * (indent + number_variants - 1) * " "))
+            offset = first_variant_offset + indent + number_variants - 1
+            guest_file.write("%svariants:\n" % (4 * offset * " "))
             number_variants += 1
         elif indent < previous_indent:
             number_variants = indent
@@ -234,11 +239,13 @@ def get_directory_structure(rootdir, guest_file):
         if os.path.isfile(base_cfg_path):
             base_file = open(base_cfg_path, 'r')
             for line in base_file.readlines():
-                guest_file.write("%s%s" % ((4 * (indent - 1) * " "), line))
+                offset = first_variant_offset + indent - 1
+                guest_file.write("%s%s" % ((4 * offset * " "), line))
         else:
             if base_folder:
+                offset = first_variant_offset + indent - 1
                 guest_file.write("%s- %s:\n" %
-                                 ((4 * (indent - 1) * " "), base_folder))
+                                 ((4 * offset * " "), base_folder))
         variant_printed = False
         if files:
             files.sort()
@@ -247,13 +254,15 @@ def get_directory_structure(rootdir, guest_file):
                     bf = f[:len(f) - 4]
                     if bf not in subdirs:
                         if not variant_printed:
+                            offset = first_variant_offset + indent
                             guest_file.write("%svariants:\n" %
-                                             ((4 * (indent) * " ")))
+                                             ((4 * offset * " ")))
                             variant_printed = True
                         base_file = open(os.path.join(path, f), 'r')
                         for line in base_file.readlines():
-                            guest_file.write("%s%s" %
-                                             ((4 * (indent + 1) * " "), line))
+                            offset = first_variant_offset + indent + 1
+                            guest_file.write("%s%s"
+                                             % ((4 * offset * " "), line))
         indent -= number_variants
         previous_indent = indent
 
@@ -296,7 +305,7 @@ def create_guest_os_cfg(t_type):
     guest_os_cfg_dir = os.path.join(root_dir, 'shared', 'cfg', 'guest-os')
     guest_os_cfg_path = data_dir.get_backend_cfg_path(t_type, 'guest-os.cfg')
     guest_os_cfg_file = open(guest_os_cfg_path, 'w')
-    get_directory_structure(guest_os_cfg_dir, guest_os_cfg_file)
+    get_directory_structure(guest_os_cfg_dir, guest_os_cfg_file, "Guest")
     LOG.debug("Config file %s auto generated from guest OS samples",
               guest_os_cfg_path)
 
@@ -339,13 +348,15 @@ def create_host_os_cfg(options):
         arch = _forced_or_detected(options.vt_host_distro_arch,
                                    "Host_arch_%s" % detected.arch)
         cfg.write("variants:\n")
-        cfg.write("    - @%s:\n" % name)
+        cfg.write("    - @Host:\n")
         cfg.write("        variants:\n")
-        cfg.write("            - @%s:\n" % version)
+        cfg.write("            - @%s:\n" % name)
         cfg.write("                variants:\n")
-        cfg.write("                - @%s:\n" % release)
-        cfg.write("                    variants:\n")
-        cfg.write("                    - @%s:\n" % arch)
+        cfg.write("                    - @%s:\n" % version)
+        cfg.write("                        variants:\n")
+        cfg.write("                            - @%s:\n" % release)
+        cfg.write("                                variants:\n")
+        cfg.write("                                    - @%s:\n" % arch)
 
     count = [options.vt_host_distro_name,
              options.vt_host_distro_version,

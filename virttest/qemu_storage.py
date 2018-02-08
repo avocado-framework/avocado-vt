@@ -408,7 +408,7 @@ class QemuImg(storage.QemuImg):
                 logging.warn("'--backing-chain' option is not supportted")
         if os.path.exists(self.image_filename) or self.is_remote_image():
             cmd += " %s" % self.image_filename
-            output = process.system_output(cmd, verbose=False)
+            output = process.system_output(cmd, verbose=True)
         else:
             logging.debug("Image file %s not found", self.image_filename)
             output = None

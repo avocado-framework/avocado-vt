@@ -1376,7 +1376,7 @@ def get_net_if_addrs_win(session, mac_addr):
     ip_address = get_windows_nic_attribute(session, "macaddress",
                                            mac_addr, "IPAddress",
                                            global_switch="nicconfig")
-    return {"ipv4": re.findall('(\d+.\d+.\d+.\d+)"', ip_address),
+    return {"ipv4": re.findall('(\d+\.\d+\.\d+\.\d+)"', ip_address),
             "ipv6": re.findall('(fe80.*?)"', ip_address)}
 
 
@@ -3422,7 +3422,6 @@ def update_mac_ip_address(vm, timeout=240):
         if not addr_map:
             logging.warn("No VM's NIC got IP address")
             return
-        logging.debug("Update address_cache: %s", addr_map)
         vm.address_cache.update(addr_map)
     except Exception, e:
         logging.warn("Error occur when update VM address cache: %s", str(e))

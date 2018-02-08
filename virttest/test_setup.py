@@ -11,6 +11,9 @@ import shutil
 import platform
 import netaddr
 
+from abc import ABCMeta
+from abc import abstractmethod
+
 from avocado.utils import process
 from avocado.utils import archive
 from avocado.utils import wait
@@ -95,6 +98,106 @@ class PolkitConfigCleanupError(PolkitConfigError):
     Thrown when polkit config cleanup is not behaving as expected.
     """
     pass
+
+
+class Setuper(object):
+
+    """
+    Virtual base abstraction of setuper.
+    """
+
+    __metaclass__ = ABCMeta
+
+    #: Skip the cleanup when error occurs
+    skip_cleanup_on_error = False
+
+    def __init__(self, test, params, env):
+        """
+        Initialize the setuper.
+
+        :param test: VirtTest instance.
+        :param params: Dictionary with the test parameters.
+        :param env: Dictionary with test environment.
+        """
+        self.test = test
+        self.params = params
+        self.env = env
+
+    @abstractmethod
+    def setup(self):
+        """Setup procedure."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def cleanup(self):
+        """Cleanup procedure."""
+        raise NotImplementedError
+
+
+class SetupManager(object):
+
+    """
+    Setup Manager implementation.
+
+    The instance can help do the setup stuff before test started and
+    do the cleanup stuff after test finished. This setup-cleanup
+    combined stuff will be performed in LIFO order.
+    """
+
+    def __init__(self):
+        self.__setupers = []
+        self.__setup_args = None
+
+    def initialize(self, test, params, env):
+        """
+        Initialize the setup manager.
+
+        :param test: VirtTest instance.
+        :param params: Dictionary with the test parameters.
+        :param env: Dictionary with test environment.
+        """
+        self.__setup_args = (test, params, env)
+
+    def register(self, setuper_cls):
+        """
+        Register the given setuper class to the manager.
+
+        :param setuper_cls: Setuper class.
+        """
+        if not self.__setup_args:
+            raise RuntimeError("Tried to register setuper "
+                               "without initialization")
+        if not issubclass(setuper_cls, Setuper):
+            raise ValueError("Not supported setuper class")
+        self.__setupers.append(setuper_cls(*self.__setup_args))
+
+    def do_setup(self):
+        """Do setup stuff."""
+        for index, setuper in enumerate(self.__setupers, 1):
+            try:
+                setuper.setup()
+            except Exception:
+                if setuper.skip_cleanup_on_error:
+                    index -= 1
+                # Truncate the list to prevent performing cleanup
+                # for the setuper without having performed setup
+                self.__setupers = self.__setupers[:index]
+                raise
+
+    def do_cleanup(self):
+        """
+        Do cleanup stuff.
+
+        :return: Errors occurred in cleanup procedures.
+        """
+        errors = []
+        while self.__setupers:
+            try:
+                self.__setupers.pop().cleanup()
+            except Exception as err:
+                logging.error(err)
+                errors.append(err)
+        return errors
 
 
 class TransparentHugePageConfig(object):
@@ -2042,53 +2145,132 @@ class StraceQemu(object):
         self._compress_log()
 
 
-def disable_smt(params=None):
+def remote_session(params):
     """
-    Checks whether smt is on, if so disables it in PowerPC system
-    This function is used in env_process and in libvirt.py to check
-    & disable smt in Power8 for local and remote machine respectively.
+    create session for remote host
 
     :param params: Test params dict for remote machine login details
+    :return: remote session object
     """
-    smt_output = ""
-    cmd = "ppc64_cpu --smt"
+    server_ip = params["server_ip"]
+    server_user = params.get("server_user", "root")
+    server_pwd = params["server_pwd"]
+    return remote.wait_for_login('ssh', server_ip, '22', server_user,
+                                 server_pwd, r"[\#\$]\s*$")
+
+
+def switch_indep_threads_mode(state="Y", params=None):
+    """
+    For POWER8 compat mode guest to boot on POWER9 host, indep_threads_mode
+    to be turned off as pre-requisite. This will be used in env_process
+    for pre/post processing.
+
+    :param state: 'Y' or 'N' default: 'Y'
+    :param params: Test params dict for remote machine login details
+    """
+    indep_threads_mode = "/sys/module/kvm_hv/parameters/indep_threads_mode"
+    cmd = "cat %s" % indep_threads_mode
     if params:
-        server_ip = params["server_ip"]
-        server_user = params.get("server_user", "root")
-        server_pwd = params["server_pwd"]
-        server_session = remote.wait_for_login('ssh', server_ip, '22',
-                                               server_user, server_pwd,
-                                               r"[\#\$]\s*$")
+        server_session = remote_session(params)
         cmd_output = server_session.cmd_status_output(cmd)
-        if (cmd_output[0] == 0):
-            smt_output = cmd_output[1].strip()
-        else:
+        if cmd_output[0] != 0:
             server_session.close()
-            raise exceptions.TestSetupFail("Couldn't get SMT of server: %s"
-                                           % cmd_output[1])
+            raise exceptions.TestSetupFail("Unable to get indep_threads_mode:"
+                                           " %s" % cmd_output[1])
+        thread_mode = cmd_output[1].strip()
     else:
-        smt_output = process.system_output(cmd, shell=True).strip()
-    if (smt_output != "SMT is off"):
-        cmd = "ppc64_cpu --smt=off"
+        try:
+            thread_mode = process.system_output(cmd, shell=True)
+        except process.CmdError as info:
+            thread_mode = info.result.stderr.strip()
+            raise exceptions.TestSetupFail("Unable to get indep_threads_mode "
+                                           "for power9 compat mode enablement"
+                                           ": %s" % thread_mode)
+    if thread_mode != state:
+        cmd = "echo %s > %s" % (state, indep_threads_mode)
         if params:
+            server_user = params.get("server_user", "root")
             if (server_user.lower() != "root"):
-                raise exceptions.TestSkipError("Turning SMT off requires root "
-                                               "privileges(currently running "
-                                               "with user %s)" % server_user)
+                raise exceptions.TestSkipError("Turning indep_thread_mode %s "
+                                               "requires root privileges "
+                                               "(currently running "
+                                               "with user %s)" % (state,
+                                                                  server_user))
             cmd_output = server_session.cmd_status_output(cmd)
             server_session.close()
             if (cmd_output[0] != 0):
-                raise exceptions.TestSetupFail("VM cant be started :%s"
-                                               % cmd_output[1])
+                raise exceptions.TestSetupFail("Unable to turn "
+                                               "indep_thread_mode "
+                                               "to %s: %s" % (state,
+                                                              cmd_output[1]))
             else:
-                logging.debug("SMT turned off successfully in remote server")
+                logging.debug("indep_thread_mode turned %s successfully "
+                              "in remote server", state)
         else:
             try:
                 utils_misc.verify_running_as_root()
                 process.run(cmd, verbose=True, shell=True)
-                logging.debug("SMT turned off successfully")
+                logging.debug("indep_thread_mode turned %s successfully",
+                              state)
             except process.CmdError, info:
-                raise exceptions.TestSetupFail("VM can not be started :%s" % info)
+                raise exceptions.TestSetupFail("Unable to turn "
+                                               "indep_thread_mode to "
+                                               "%s: %s" % (state, info))
+
+
+def switch_smt(state="off", params=None):
+    """
+    Checks whether smt is on/off, if so disables/enable it in PowerPC system
+    This function is used in env_process and in libvirt.py to check
+    & disable smt in Powerpc for local and remote machine respectively.
+
+    :param state: 'off' or 'on' default: off
+    :param params: Test params dict for remote machine login details
+    """
+    SMT_DISABLED_STRS = ["SMT is off", "Machine is not SMT capable"]
+    cmd = "ppc64_cpu --smt"
+    if params:
+        server_session = remote_session(params)
+        cmd_output = server_session.cmd_status_output(cmd)
+        smt_output = cmd_output[1].strip()
+        if (cmd_output[0] != 0) and (smt_output not in SMT_DISABLED_STRS):
+            server_session.close()
+            raise exceptions.TestSetupFail("Couldn't get SMT of server: %s"
+                                           % cmd_output[1])
+    else:
+        try:
+            smt_output = process.system_output(cmd, shell=True).strip()
+        except process.CmdError as info:
+            smt_output = info.result.stderr.strip()
+            if smt_output not in SMT_DISABLED_STRS:
+                raise exceptions.TestSetupFail("Couldn't get SMT of server: %s"
+                                               % smt_output)
+    smt_enabled = smt_output not in SMT_DISABLED_STRS
+    if (state == "off" and smt_enabled) or (state == "on" and not smt_enabled):
+        cmd = "ppc64_cpu --smt=%s" % state
+        if params:
+            server_user = params.get("server_user", "root")
+            if (server_user.lower() != "root"):
+                raise exceptions.TestSkipError("Turning SMT %s requires root "
+                                               "privileges(currently running "
+                                               "with user %s)" % (state,
+                                                                  server_user))
+            cmd_output = server_session.cmd_status_output(cmd)
+            server_session.close()
+            if (cmd_output[0] != 0):
+                raise exceptions.TestSetupFail("Unable to turn %s SMT :%s"
+                                               % (state, cmd_output[1]))
+            else:
+                logging.debug("SMT turned %s successfully in remote server",
+                              state)
+        else:
+            try:
+                utils_misc.verify_running_as_root()
+                process.run(cmd, verbose=True, shell=True)
+                logging.debug("SMT turned %s successfully", state)
+            except process.CmdError, info:
+                raise exceptions.TestSetupFail("Unable to turn %s SMT :%s" %
+                                               (state, info))
 
 
 class LibvirtdDebugLog(object):
