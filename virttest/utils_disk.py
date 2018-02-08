@@ -445,7 +445,16 @@ class GuestFSModiDisk(object):
     on guest disk:
     """
 
-    def __init__(self, disk):
+    def __init__(self, disk, backend='direct'):
+        """
+        :params disk: target disk image.
+        :params backend: let libguestfs creates/connects to backend daemon
+                         by starting qemu directly, or using libvirt to manage
+                         an appliance, running User-Mode Linux, or connecting
+                         to an already running daemon.
+                         'direct', 'appliance', 'libvirt', 'libvirt:null',
+                         'libvirt:URI', 'uml', 'unix:path'.
+        """
         try:
             import guestfs
         except ImportError:
@@ -463,6 +472,7 @@ class GuestFSModiDisk(object):
         self.g = guestfs.GuestFS()
         self.disk = disk
         self.g.add_drive(disk)
+        self.g.set_backend(backend)
         libvirtd = SpecificServiceManager("libvirtd")
         libvirtd_status = libvirtd.status()
         if libvirtd_status is None:
