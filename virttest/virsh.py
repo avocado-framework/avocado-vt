@@ -633,6 +633,7 @@ def command(cmd, **dargs):
     ignore_status = dargs.get('ignore_status', True)
     session_id = dargs.get('session_id', None)
     readonly = dargs.get('readonly', False)
+    quiet = dargs.get('quiet', False)
     unprivileged_user = dargs.get('unprivileged_user', None)
     timeout = dargs.get('timeout', None)
 
@@ -668,6 +669,9 @@ def command(cmd, **dargs):
         # Readonly mode
         if readonly:
             cmd = " -r " + cmd
+
+        if quiet:
+            cmd = " -q " + cmd
 
         if uri:
             # uri argument IS being used
@@ -1015,6 +1019,17 @@ def dominfo(name, **dargs):
     :return: CmdResult instance
     """
     return command("dominfo %s" % (name), **dargs)
+
+
+def domfsinfo(name, **dargs):
+    """
+    Return the info of domain mounted fssystems
+
+    :param name: VM's name or uuid.
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult instance
+    """
+    return command("domfsinfo %s" % (name), **dargs)
 
 
 def domuuid(name_or_id, **dargs):
