@@ -3084,6 +3084,18 @@ def get_image_snapshot(image_file):
                                    (image_file, detail))
 
 
+def check_qemu_image_lock_support():
+    """
+    Check qemu-img whether supporting image lock or not
+    :return: The boolean of checking result
+    """
+    cmd = "qemu-img"
+    binary_path = utils_path.find_command(cmd)
+    cmd_result = process.run(binary_path + ' -h', ignore_status=True,
+                             shell=True, verbose=False)
+    return '-U' in cmd_result.stdout
+
+
 def get_image_info(image_file):
     """
     Get image information and put it into a dict. Image information like this:
@@ -3125,9 +3137,8 @@ def get_image_info(image_file):
     """
     try:
         cmd = "qemu-img info %s" % image_file
-        if compare_qemu_version(2, 10, 0):
-            # Currently the qemu lock is only introduced in qemu-kvm-rhev,
-            # if it's introduced in qemu-kvm, will need to update it here.
+        if check_qemu_image_lock_support():
+            # Currently the qemu lock is introduced in qemu-kvm-rhev/ma,
             # The " -U" is to avoid the qemu lock.
             cmd += " -U"
         image_info = process.run(cmd, ignore_status=False).stdout.strip()
