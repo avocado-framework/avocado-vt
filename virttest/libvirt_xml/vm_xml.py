@@ -757,7 +757,12 @@ class VMXML(VMXMLBase):
             # is set true and not have all topology definition, it would fail
             # let us leave it to the user give proper values
             if (topology or add_topology) and (sockets or cores or threads):
-                vmcpu_xml = VMCPUXML()
+                # Only operate topology tag, other tags doesn't change
+                try:
+                    vmcpu_xml = vmxml['cpu']
+                except xcepts.LibvirtXMLNotFoundError:
+                    logging.debug("Can not find any cpu tag, now create one.")
+                    vmcpu_xml = VMCPUXML()
                 vmcpu_xml['topology'] = {'sockets': sockets,
                                          'cores': cores,
                                          'threads': threads}
