@@ -313,7 +313,7 @@ def get_time(session, time_command, time_filter_re, time_format):
     elif re.findall("hwclock", time_command):
         loc = locale.getlocale(locale.LC_TIME)
         # Get and parse host time
-        host_time_out = results_stdout_52lts(process.run(time_command))
+        host_time_out = results_stdout_52lts(process.run(time_command, shell=True))
         diff = host_time_out.split()[-2]
         host_time_out = " ".join(host_time_out.split()[:-2])
         try:
