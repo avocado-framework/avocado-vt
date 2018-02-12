@@ -399,3 +399,51 @@ def lv_reactivate(vg_name, lv_name, timeout=10):
                        "nuke the process that uses it first."), lv_name)
         raise exceptions.TestError(
             "The logical volume %s is still active" % lv_name)
+
+
+def gen_lvmap_mpath(session=None):
+    """
+    Return the name mapping between logical volume and device
+    mapper multipathed device.
+    :param session: When session is given, it means VM session
+                    Otherwise default value means it work for host
+    :return: None or a dict like:
+            {"lv_name": dm_name}
+    """
+    names_map = None
+    cmd = ("lvdisplay|awk '/LV Name/{n=$3} "
+           "/Block device/{d=$3; sub(\".*:\", \"dm-\", d); print n,d;}'")
+
+    if session:
+        output = session.cmd_output(cmd).strip()
+    else:
+        output = process.system_output(cmd, shell=True)
+    lines = output.splitlines()
+    if len(lines) >= 1:
+        names_map = {}
+        for line in lines:
+            values = line.split()
+            lv_name, mpath_name = values[0], values[1]
+            names_map.update({lv_name: mpath_name})
+    return names_map
+
+
+def get_vg_mapped_blk_target(vg_name, session=None):
+    """
+    Get vg mapped blk target with pvs Command
+    :param vg_name: Volume group Name
+    :param session: When session is given, it means VM session
+                    Otherwise default value means it work for host
+    :return: The mapped blk target or None
+    """
+    cmd = "pvs | grep %s" % vg_name
+    blk_target = None
+    if session:
+        output = session.cmd_output(cmd).strip()
+    else:
+        output = process.system_output(cmd, shell=True)
+    if output:
+        # PV normally present as /dev/sda1
+        pv_name = output.split()[0]
+        blk_target = re.findall(r"[a-z]+", pv_name.split("/dev/")[1])[0]
+    return blk_target
