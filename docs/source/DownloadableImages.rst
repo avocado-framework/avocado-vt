@@ -30,7 +30,7 @@ Winutils ISO
 
 The windows utils file can be currently found at:
 
-http://avocado-project.org/data/assets/winutils.iso
+https://avocado-project.org/data/assets/winutils.iso
 
 How to update `winutils.iso`
 ----------------------------
@@ -44,11 +44,11 @@ JeOS image
 
 You can find the JeOS images currently available here:
 
-http://avocado-project.org/data/assets/jeos-23-64.qcow2.xz
+https://avocado-project.org/data/assets/jeos-23-64.qcow2.xz
 
-http://avocado-project.org/data/assets/SHA1SUM_JEOS23_XZ
+https://avocado-project.org/data/assets/SHA1SUM_JEOS23_XZ
 
-You can browse through http://avocado-project.org/data/assets/jeos/ and find
+You can browse through https://avocado-project.org/data/assets/jeos/ and find
 other JeOS versions available.
 
 How to update JeOS
