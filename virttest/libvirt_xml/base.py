@@ -71,11 +71,13 @@ class LibvirtXMLBase(propcan.PropCanBase):
         for slot in slots - uncomparable:
             try:
                 dict_1[slot] = getattr(self, slot)
-            except xcepts.LibvirtXMLNotFoundError:
+            except (xcepts.LibvirtXMLNotFoundError,
+                    xcepts.LibvirtXMLAccessorError):
                 pass  # Unset virtual values won't have keys
             try:
                 dict_2[slot] = getattr(other, slot)
-            except xcepts.LibvirtXMLNotFoundError:
+            except (xcepts.LibvirtXMLNotFoundError,
+                    xcepts.LibvirtXMLAccessorError):
                 pass  # Unset virtual values won't have keys
         return dict_1 == dict_2
 
