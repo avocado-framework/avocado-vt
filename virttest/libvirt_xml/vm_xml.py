@@ -71,7 +71,7 @@ class VMXMLBase(base.LibvirtXMLBase):
             get: return text value of uuid tag
             set: set text value for (new) uuid tag (unvalidated)
             del: remove uuid tag
-        vcpu, max_mem, current_mem, iothreads: integers
+        vcpu, memory, max_mem, current_mem, iothreads: integers
             get: returns integer
             set: set integer
             del: removes tag
@@ -143,10 +143,14 @@ class VMXMLBase(base.LibvirtXMLBase):
             get: return text value of memory unit attribute
             set: set memory unit attribute
             del: remove memory unit attribute
-        current_mem_unit: string, 'unit' attribute of memory
+        current_mem_unit: string, 'unit' attribute of current_memory
             get: return text value of current_memory unit attribute
             set: set current_memory unit attribute
             del: remove current_memory unit attribute
+        memory_unit: string, 'unit' attribute of memory
+            get: return text value of memory unit attribute
+            set: set memory unit attribute
+            del: remove memory unit attribute
         memtune: VMMemTuneXML
             get: return VMMemTuneXML instance for the domain.
             set: Define memtune tag from a VMCPUTuneXML instance.
@@ -160,7 +164,7 @@ class VMXMLBase(base.LibvirtXMLBase):
                  'current_vcpu', 'vcpus', 'os', 'cpu', 'pm', 'on_poweroff',
                  'on_reboot', 'on_crash', 'features', 'mb', 'max_mem_unit',
                  'current_mem_unit', 'memtune', 'max_mem_rt', 'max_mem_rt_unit',
-                 'max_mem_rt_slots', 'iothreads', 'iothreadids')
+                 'max_mem_rt_slots', 'iothreads', 'iothreadids', 'memory')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -251,6 +255,16 @@ class VMXMLBase(base.LibvirtXMLBase):
                                libvirtxml=self,
                                parent_xpath='/',
                                tag_name='maxMemory',
+                               attribute='unit')
+        accessors.XMLElementInt(property_name="memory",
+                                libvirtxml=self,
+                                forbidden=None,
+                                parent_xpath='/',
+                                tag_name='memory')
+        accessors.XMLAttribute(property_name="memory_unit",
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='memory',
                                attribute='unit')
         accessors.XMLElementNest(property_name='os',
                                  libvirtxml=self,
