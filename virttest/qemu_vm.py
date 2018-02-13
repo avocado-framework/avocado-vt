@@ -254,7 +254,7 @@ class VM(virt_vm.BaseVM):
                                                    "image_unbootable_pattern")
             try:
                 seabios_log = self.logsessions['seabios'].get_output()
-                if re.search(pattern, seabios_log, re.S):
+                if seabios_log and re.search(pattern, seabios_log, re.S):
                     logging.error("Can't boot guest from image.")
                     # Set 'shutdown_command' to None to force autotest
                     # shuts down guest with monitor.
