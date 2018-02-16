@@ -82,8 +82,21 @@ class VirtTestLoader(loader.TestLoader):
     name = 'vt'
 
     def __init__(self, args, extra_params):
+        """
+        Following extra_params are supported:
+         * avocado_vt_extra_params: Will override the "vt_extra_params"
+           of this plugins "self.args" (extends the --vt-extra-params)
+        """
+        vt_extra_params = extra_params.pop("avocado_vt_extra_params", None)
         super(VirtTestLoader, self).__init__(args, extra_params)
         self._fill_optional_args()
+        if vt_extra_params:
+            # We don't want to override the original args
+            self.args = copy.deepcopy(self.args)
+            if self.args.vt_extra_params is not None:
+                self.args.vt_extra_params += vt_extra_params
+            else:
+                self.args.vt_extra_params = vt_extra_params
 
     def _fill_optional_args(self):
         def _add_if_not_exist(arg, value):
