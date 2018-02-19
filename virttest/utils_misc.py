@@ -3911,6 +3911,9 @@ class SELinuxBoolean(object):
         self.local_bool_value = params.get("local_boolean_value")
         self.remote_bool_value = params.get("remote_boolean_value",
                                             self.local_bool_value)
+        # initialize original value as off, if not it will override in setup
+        self.local_boolean_orig = "off"
+        self.remote_boolean_orig = "off"
         try:
             self.selinux_disabled = utils_selinux.get_status() == "disabled"
         except utils_selinux.SeCmdError, utils_selinux.SelinuxError:
