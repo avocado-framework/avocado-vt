@@ -55,7 +55,7 @@ class RemotePackageMgr(object):
         elif self.package_manager == 'apt-get':
             self.query_cmd = "dpkg -s "
             self.remove_cmd = "apt-get --purge remove -y "
-            self.install_cmd = "apt-get install -n "
+            self.install_cmd = "apt-get install -y "
         else:
             self.query_cmd = "rpm -q "
             self.remove_cmd = self.package_manager + " remove -y "
