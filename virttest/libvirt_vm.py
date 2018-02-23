@@ -30,6 +30,7 @@ from . import data_dir
 from . import xml_utils
 from . import utils_selinux
 from . import test_setup
+from . import utils_package
 
 
 def normalize_connect_uri(connect_uri):
@@ -2795,52 +2796,15 @@ class VM(virt_vm.BaseVM):
         :param name: Name of package to be installed
         """
         session = self.wait_for_login()
-        vm_distro = self.get_distro()
-        try:
-            # distro specific support for package manager
-            if vm_distro.lower() == 'ubuntu':
-                query_cmd = "dpkg -l | grep %s" % name
-                cmd = "apt install -y %s" % name
-                update_cmd = "apt upgrade -y %s" % name
-                clean_cmd = "apt-get clean"
-            else:
-                query_cmd = "rpm -q %s" % name
-                cmd = "yum install -y %s" % name
-                update_cmd = "yum update -y %s" % name
-                clean_cmd = "yum clean all"
+        if not utils_package.package_install(name, session):
+            if not ignore_status:
+                session.close()
+                raise virt_vm.VMError("Installation of package %s failed" %
+                                      name)
+            logging.error("Installation of package %s failed", name)
+        session.close()
 
-            if session.cmd_status(query_cmd):
-                # Install the package if it does not exists
-                status, output = session.cmd_status_output(cmd, timeout=300)
-                # Just check status is not enough
-                # It's necessary to check if install successfully
-                if status != 0 or session.cmd_status(query_cmd) != 0:
-                    # The local repo database probably is broken.
-                    session.cmd_status_output(clean_cmd, timeout=300)
-                    # Retry install required packages
-                    status, output = session.cmd_status_output(cmd, timeout=300)
-                    if status != 0 or session.cmd_status(query_cmd) != 0:
-                        if not ignore_status:
-                            raise virt_vm.VMError("Installation of package %s "
-                                                  "failed:\n%s" % (name, output))
-                        else:
-                            logging.error("Installation of package %s failed:"
-                                          "\n%s", name, output)
-            else:
-                # Update the package
-                status, output = session.cmd_status_output(update_cmd,
-                                                           timeout=600)
-                if status:
-                    if not ignore_status:
-                        raise virt_vm.VMError("Update of package %s failed:"
-                                              "\n%s" % (name, output))
-                    else:
-                        logging.error("Update of package %s failed:"
-                                      "\n%s", name, output)
-        finally:
-            session.close()
-
-    def remove_package(self, name):
+    def remove_package(self, name, ignore_status=False):
         """
         Remove a package from VM.
         ToDo: Support multiple package manager.
@@ -2848,20 +2812,12 @@ class VM(virt_vm.BaseVM):
         :param name: Name of package to be removed
         """
         session = self.wait_for_login()
-        vm_distro = self.get_distro()
-        try:
-            # Remove the package if it exists
-            if vm_distro.lower() == 'ubuntu':
-                cmd = "! (dpkg -l | grep %s | grep ^ii) || apt remove -y %s"\
-                      % (name, name)
-            else:
-                cmd = "! rpm -q %s || rpm -e %s" % (name, name)
-            status, output = session.cmd_status_output(cmd, timeout=300)
-            if status != 0:
-                raise virt_vm.VMError("Removal of package %s failed:\n%s" %
-                                      (name, output))
-        finally:
-            session.close()
+        if not utils_package.package_remove(name, session):
+            if not ignore_status:
+                session.close()
+                raise virt_vm.VMError("Removal of package %s failed" % name)
+            logging.error("Removal of package %s failed", name)
+        session.close()
 
     def prepare_guest_agent(self, prepare_xml=True, channel=True, start=True):
         """
