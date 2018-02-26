@@ -114,7 +114,6 @@ class VM(virt_vm.BaseVM):
             self.process = None
             self.serial_ports = []
             self.serial_console_log = None
-            self.serial_console = None
             self.virtio_console = None
             self.redirs = {}
             self.spice_options = {}
@@ -2349,7 +2348,7 @@ class VM(virt_vm.BaseVM):
         except TypeError:
             pass
 
-    def create_serial_console(self):
+    def _create_serial_console(self):
         """
         Establish a session with the serial console.
 
@@ -4065,7 +4064,7 @@ class VM(virt_vm.BaseVM):
                     session = self.wait_for_serial_login(timeout=timeout)
             reboot_cmd = self.params.get("reboot_command")
             logging.debug("Send command: %s" % reboot_cmd)
-            session.sendline(reboot_cmd)
+            session.cmd(reboot_cmd, ignore_all_errors=True)
 
         error_context.base_context("rebooting '%s'" % self.name, logging.info)
         error_context.context("before reboot")
