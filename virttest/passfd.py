@@ -99,8 +99,8 @@ def recvfd(sock, msg_buf=4096):
            is not valid.
     """
     (ret, msg) = _passfd.recvfd(__check_socket(sock), msg_buf)
-    print ret
-    print msg
+    print(ret)
+    print(msg)
 
     # -1 should raise OSError
     if ret == -2:

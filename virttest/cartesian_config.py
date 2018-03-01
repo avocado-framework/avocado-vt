@@ -2158,23 +2158,23 @@ def print_dicts_default(options, dicts):
     """Print dictionaries in the default mode"""
     for count, dic in enumerate(dicts):
         if options.fullname:
-            print "dict %4d:  %s" % (count + 1, dic["name"])
+            print("dict %4d:  %s" % (count + 1, dic["name"]))
         else:
-            print "dict %4d:  %s" % (count + 1, dic["shortname"])
+            print("dict %4d:  %s" % (count + 1, dic["shortname"]))
         if options.contents:
             keys = dic.keys()
             keys.sort()
             for key in keys:
-                print "    %s = %s" % (key, dic[key])
+                print("    %s = %s" % (key, dic[key]))
 
 
 # pylint: disable=W0613
 def print_dicts_repr(options, dicts):
     import pprint
-    print "["
+    print("[")
     for dic in dicts:
-        print "%s," % (pprint.pformat(dic))
-    print "]"
+        print("%s," % (pprint.pformat(dic)))
+    print("]")
 
 
 def print_dicts(options, dicts):

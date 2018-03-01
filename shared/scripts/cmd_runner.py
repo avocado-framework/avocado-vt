@@ -53,11 +53,11 @@ class Runner(object):
         self.kill_thread_flag = True
         s, o = commands.getstatusoutput(t_cmd)
         if s != 0:
-            print "Test failed or timeout: %s" % o
+            print("Test failed or timeout: %s" % o)
         if self.kill_thread_flag:
             s, o = self.thread_kill(m_cmd, p_file)
             if s != 0:
-                print "Monitor process is still alive, %s" % o
+                print("Monitor process is still alive, %s" % o)
             else:
                 self.kill_thread_flag = False
 
@@ -84,7 +84,7 @@ class Runner(object):
 if __name__ == '__main__':
     if len(sys.argv) < 4:
         this = os.path.basename(sys.argv[0])
-        print "Usage: %s <monitor_cmd> <test_cmd> <test_path> <timeout>" % this
+        print("Usage: %s <monitor_cmd> <test_cmd> <test_path> <timeout>" % this)
         sys.exit(1)
 
     monitor_cmd = sys.argv[1]

@@ -50,14 +50,14 @@ class MemFill(object):
                 print ("FAIL: Unable to mount tmpfs "
                        "(likely cause: you are not root)")
             else:
-                print "FAIL: Unable to mount tmpfs"
+                print("FAIL: Unable to mount tmpfs")
         else:
             self.f = tempfile.TemporaryFile(prefix='mem', dir=self.tmpdp)
             self.allocate_by = 'L'
             self.npages = ((mem * 1024 * 1024) / PAGE_SIZE)
             self.random_key = random_key
             self.static_value = static_value
-            print "PASS: Initialization (tmpfs size: %dM)" % tmpfs_size
+            print("PASS: Initialization (tmpfs size: %dM)" % tmpfs_size)
 
     def __del__(self):
         if os.path.ismount(self.tmpdp):
@@ -81,8 +81,8 @@ class MemFill(object):
                     if not (originalp[ib] == inmemp[ib]):
                         position = (self.f.tell() - PAGE_SIZE + ip *
                                     original.itemsize + ib)
-                        print ("Mem error on position %d wanted 0x%Lx and is "
-                               "0x%Lx" % (position, originalp[ib], inmemp[ib]))
+                        print("Mem error on position %d wanted 0x%Lx and is "
+                              "0x%Lx" % (position, originalp[ib], inmemp[ib]))
 
     def value_page(self, value):
         """
@@ -96,7 +96,7 @@ class MemFill(object):
             try:
                 a.append(value)
             except Exception:
-                print "FAIL: Value can be only in range (0..255)"
+                print("FAIL: Value can be only in range (0..255)")
         return a
 
     def random_page(self, seed):
@@ -125,7 +125,7 @@ class MemFill(object):
         page = self.value_page(value)
         for _ in range(self.npages):
             page.tofile(self.f)
-        print "PASS: Mem value fill"
+        print("PASS: Mem value fill")
 
     def value_check(self, value=None):
         """
@@ -152,9 +152,9 @@ class MemFill(object):
                 if e == 0:
                     break
         if failure:
-            print "FAIL: value verification"
+            print("FAIL: value verification")
         else:
-            print "PASS: value verification"
+            print("PASS: value verification")
 
     def static_random_fill(self, n_bytes_on_end=PAGE_SIZE):
         """
@@ -181,7 +181,7 @@ class MemFill(object):
         t_end = datetime.datetime.now()
         delta = t_end - t_start
         milisec = delta.microseconds / 1e3 + delta.seconds * 1e3
-        print "PASS: filling duration = %Ld ms" % milisec
+        print("PASS: filling duration = %Ld ms" % milisec)
 
     def static_random_verify(self, n_bytes_on_end=PAGE_SIZE):
         """
@@ -211,9 +211,9 @@ class MemFill(object):
                     break
             p[rand] = page[rand]
         if failure:
-            print "FAIL: Random series verification"
+            print("FAIL: Random series verification")
         else:
-            print "PASS: Random series verification"
+            print("PASS: Random series verification")
 
 
 def die():
@@ -227,7 +227,7 @@ def main():
     """
     Main (infinite) loop of allocator.
     """
-    print "PASS: Start"
+    print("PASS: Start")
     end = False
     while not end:
         sr = raw_input()

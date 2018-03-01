@@ -32,15 +32,15 @@ def get_public_key():
                        os.path.isfile(rsa_private_key_path))
 
     if has_dsa_keypair:
-        print 'DSA keypair found, using it'
+        print('DSA keypair found, using it')
         public_key_path = dsa_public_key_path
 
     elif has_rsa_keypair:
-        print 'RSA keypair found, using it'
+        print('RSA keypair found, using it')
         public_key_path = rsa_public_key_path
 
     else:
-        print 'Neither RSA nor DSA keypair found, creating DSA ssh key pair'
+        print('Neither RSA nor DSA keypair found, creating DSA ssh key pair')
         process.system('ssh-keygen -t dsa -q -N "" -f %s' %
                        dsa_private_key_path)
         public_key_path = dsa_public_key_path
