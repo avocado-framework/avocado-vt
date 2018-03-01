@@ -49,7 +49,7 @@ class Sctp_ipv6(base.TypedDeviceBase):
         """
         try:
             sctp_node = self.xmltreefile.reroot('/sctp-ipv6')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = sctp_node.getroot()
         sctp_attr = dict(node.items())

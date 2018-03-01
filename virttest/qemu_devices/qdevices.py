@@ -356,7 +356,7 @@ class QStringDevice(QBaseDevice):
         try:
             if self._cmdline:
                 return self._cmdline % self.params
-        except KeyError, details:
+        except KeyError as details:
             raise KeyError("Param %s required for cmdline is not present in %s"
                            % (details, self.str_long()))
 
@@ -369,7 +369,7 @@ class QStringDevice(QBaseDevice):
         try:
             if self._cmdline_nd:
                 return self._cmdline_nd % self.params
-        except KeyError, details:
+        except KeyError as details:
             raise KeyError("Param %s required for cmdline is not present in %s"
                            % (details, self.str_long()))
 

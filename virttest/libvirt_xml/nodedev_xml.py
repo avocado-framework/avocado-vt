@@ -374,7 +374,7 @@ class NodedevXMLBase(base.LibvirtXMLBase):
         """
         try:
             cap_root = self.xmltreefile.reroot('/capability')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         capxml = NodedevXMLBase.get_cap_by_type(self.cap_type)
         capxml.xmltreefile = cap_root

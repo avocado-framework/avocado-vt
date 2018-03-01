@@ -553,7 +553,7 @@ class SSHConnection(ConnectionBase):
         cmd = "%s %s@%s exit 0" % (ssh, server_user, server_ip)
         try:
             client_session.cmd(cmd, timeout=5)
-        except aexpect.ShellError, detail:
+        except aexpect.ShellError as detail:
             client_session.close()
             raise SSHCheckError(server_ip, detail)
         logging.debug("Check the SSH to %s OK.", server_ip)
@@ -579,7 +579,7 @@ class SSHConnection(ConnectionBase):
             libvirtd_service = utils_libvirtd.Libvirtd(session=server_session)
             libvirtd_service.restart()
             server_session.close()
-        except (remote.LoginError, aexpect.ShellError), detail:
+        except (remote.LoginError, aexpect.ShellError) as detail:
             server_session.close()
             raise ConnServerRestartError(detail)
 
@@ -645,7 +645,7 @@ class SSHConnection(ConnectionBase):
         try:
             remote.handle_prompts(client_session, server_user,
                                   server_pwd, prompt=r"[\#\$]\s*$", timeout=timeout)
-        except remote.LoginError, detail:
+        except remote.LoginError as detail:
             raise ConnCmdClientError(cmd, detail)
 
         client_session.close()
@@ -718,7 +718,7 @@ class TCPConnection(ConnectionBase):
                                             r"[\#\$]\s*$")
             libvirtd_service = utils_libvirtd.Libvirtd(session=session)
             libvirtd_service.restart()
-        except (remote.LoginError, aexpect.ShellError), detail:
+        except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
 
         logging.debug("TCP connection recover successfully.")
@@ -771,7 +771,7 @@ class TCPConnection(ConnectionBase):
                                             r"[\#\$]\s*$")
             libvirtd_service = utils_libvirtd.Libvirtd(session=session)
             libvirtd_service.restart()
-        except (remote.LoginError, aexpect.ShellError), detail:
+        except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
 
         logging.debug("TCP connection setup successfully.")
@@ -948,7 +948,7 @@ class TLSConnection(ConnectionBase):
                                             r"[\#\$]\s*$")
             libvirtd_service = utils_libvirtd.Libvirtd(session=session)
             libvirtd_service.restart()
-        except (remote.LoginError, aexpect.ShellError), detail:
+        except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
         logging.debug("TLS connection recover successfully.")
 
@@ -1102,7 +1102,7 @@ class TLSConnection(ConnectionBase):
             try:
                 remote.copy_files_to(server_ip, 'scp', server_user,
                                      server_pwd, '22', local_path, remote_path)
-            except remote.SCPError, detail:
+            except remote.SCPError as detail:
                 raise ConnSCPError('AdminHost', local_path,
                                    server_ip, remote_path, detail)
         # When qemu supports TLS, it needs not to modify below
@@ -1189,7 +1189,7 @@ class TLSConnection(ConnectionBase):
                                                     r"[\#\$]\s*$")
                     libvirtd_service = utils_libvirtd.Libvirtd(session=session)
                     libvirtd_service.restart()
-                except (remote.LoginError, aexpect.ShellError), detail:
+                except (remote.LoginError, aexpect.ShellError) as detail:
                     raise ConnServerRestartError(detail)
 
         # edit /etc/hosts on remote host in case of connecting
@@ -1242,7 +1242,7 @@ class TLSConnection(ConnectionBase):
             try:
                 remote.copy_files_to(client_ip, 'scp', client_user,
                                      client_pwd, '22', local_path, remote_path)
-            except remote.SCPError, detail:
+            except remote.SCPError as detail:
                 raise ConnSCPError('AdminHost', local_path,
                                    client_ip, remote_path, detail)
 
@@ -1479,7 +1479,7 @@ class UNIXConnection(ConnectionBase):
         try:
             libvirtd_service = utils_libvirtd.Libvirtd(session=client_session)
             libvirtd_service.restart()
-        except (remote.LoginError, aexpect.ShellError), detail:
+        except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
 
         logging.debug("UNIX connection recover successfully.")
@@ -1551,7 +1551,7 @@ class UNIXConnection(ConnectionBase):
                 libvirtd_service = utils_libvirtd.Libvirtd(
                     session=client_session)
                 libvirtd_service.restart()
-            except (remote.LoginError, aexpect.ShellError), detail:
+            except (remote.LoginError, aexpect.ShellError) as detail:
                 raise ConnServerRestartError(detail)
 
         logging.debug("UNIX connection setup successfully.")

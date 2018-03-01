@@ -245,12 +245,12 @@ def load_xml_module(path, name, type_list):
         mod_obj = imp.load_module(name, filename, pathname, description)
         # Enforce capitalized class names
         return getattr(mod_obj, name.capitalize())
-    except TypeError, detail:
+    except TypeError as detail:
         raise xcepts.LibvirtXMLError(errmsg + ': %s' % str(detail))
-    except ImportError, detail:
+    except ImportError as detail:
         raise xcepts.LibvirtXMLError("Can't find module %s in %s: %s"
                                      % (name, path, str(detail)))
-    except AttributeError, detail:
+    except AttributeError as detail:
         raise xcepts.LibvirtXMLError("Can't find class %s in %s module in "
                                      "%s: %s"
                                      % (name.capitalize(), name, pathname,

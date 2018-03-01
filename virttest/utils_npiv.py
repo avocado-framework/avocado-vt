@@ -282,7 +282,7 @@ def find_scsi_luns(scsi_host):
            {print $f}}}'" % (scsi_number, scsi_number)
     try:
         result = process.run(cmd, shell=True)
-    except Exception, e:
+    except Exception as e:
         raise exceptions.TestError("run 'multipath' failed: %s" % str(e))
     tmp_list = result.stdout.strip().splitlines()
     for lun in tmp_list:

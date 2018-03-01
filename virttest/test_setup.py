@@ -297,7 +297,7 @@ class TransparentHugePageConfig(object):
                     file_object = open(file_name, "w")
                     file_object.write(act)
                     file_object.close()
-                except IOError, error_detail:
+                except IOError as error_detail:
                     logging.info("IO Operation on path %s failed: %s",
                                  file_name, error_detail)
                 timeout = time.time() + 50
@@ -380,7 +380,7 @@ class TransparentHugePageConfig(object):
                 p_file = open(path, 'w')
                 p_file.write(str(self.original_config[path]))
                 p_file.close()
-            except IOError, error_detail:
+            except IOError as error_detail:
                 logging.info("IO operation failed on file %s: %s", path,
                              error_detail)
 
@@ -472,7 +472,7 @@ class HugePageConfig(object):
         huge_line_list = [h for h in meminfo if h.startswith("Hugepagesize")]
         try:
             return int(huge_line_list[0].split()[1])
-        except ValueError, e:
+        except ValueError as e:
             raise ValueError("Could not get huge page size setting from "
                              "/proc/meminfo: %s" % e)
 
@@ -1922,7 +1922,7 @@ class LibvirtPolkitConfig(object):
 
             # write the config file
             genio.write_file(self.polkit_rules_path, self.template)
-        except Exception, e:
+        except Exception as e:
             raise PolkitRulesSetupError("Set polkit rules file failed: %s", e)
 
     def setup(self):
@@ -2005,7 +2005,7 @@ class EGDConfig(object):
                 cmd = "%s %s" % (prog, socket)
                 p = process.SubProcess(cmd)
                 p.start()
-        except Exception, details:
+        except Exception as details:
             msg = "Unable to start egd.pl on localhost '%s'" % details
             raise EGDConfigError(msg)
         pid = self.get_pid(socket)
@@ -2022,7 +2022,7 @@ class EGDConfig(object):
             make_cmd = self.params.get("build_egd_cmd", make_cmd)
             src_root = self.__extra_tarball()
             process.system("cd %s && %s" % (src_root, make_cmd), shell=True)
-        except Exception, details:
+        except Exception as details:
             raise EGDConfigError("Install egd.pl error '%s'" % details)
         finally:
             os.chdir(pwd)
@@ -2212,7 +2212,7 @@ def switch_indep_threads_mode(state="Y", params=None):
                 process.run(cmd, verbose=True, shell=True)
                 logging.debug("indep_thread_mode turned %s successfully",
                               state)
-            except process.CmdError, info:
+            except process.CmdError as info:
                 raise exceptions.TestSetupFail("Unable to turn "
                                                "indep_thread_mode to "
                                                "%s: %s" % (state, info))
@@ -2268,7 +2268,7 @@ def switch_smt(state="off", params=None):
                 utils_misc.verify_running_as_root()
                 process.run(cmd, verbose=True, shell=True)
                 logging.debug("SMT turned %s successfully", state)
-            except process.CmdError, info:
+            except process.CmdError as info:
                 raise exceptions.TestSetupFail("Unable to turn %s SMT :%s" %
                                                (state, info))
 

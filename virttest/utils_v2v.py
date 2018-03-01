@@ -284,7 +284,7 @@ class LinuxVMCheck(VMCheck):
                 os_info = output.splitlines()[0]
             else:
                 os_info = re.search(r'PRETTY_NAME="(.+)"', output).group(1)
-        except Exception, e:
+        except Exception as e:
             logging.error("Fail to get os distribution: %s", e)
         return os_info
 
@@ -740,7 +740,7 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
                                      cluster_name,
                                      timeout=timeout)
         logging.info("The latest VM list: %s", vm.list())
-    except Exception, e:
+    except Exception as e:
         # Try to delete the vm from export domain
         vm.delete_from_export_domain(export_name)
         logging.error("Import %s failed: %s", vm.name, e)
@@ -748,7 +748,7 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
     try:
         # Start VM
         vm.start(wait_for_up=wait_for_up)
-    except Exception, e:
+    except Exception as e:
         logging.error("Start %s failed: %s", vm.name, e)
         return False
     return True

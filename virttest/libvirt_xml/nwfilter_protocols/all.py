@@ -48,7 +48,7 @@ class All(base.TypedDeviceBase):
         """
         try:
             all_node = self.xmltreefile.reroot('/all')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = all_node.getroot()
         all_attr = dict(node.items())

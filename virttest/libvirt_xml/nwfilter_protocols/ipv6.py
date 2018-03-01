@@ -48,7 +48,7 @@ class Ipv6(base.TypedDeviceBase):
         """
         try:
             ipv6_node = self.xmltreefile.reroot('/ipv6')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = ipv6_node.getroot()
         ipv6_attr = dict(node.items())

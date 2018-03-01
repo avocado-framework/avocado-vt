@@ -27,7 +27,7 @@ def run_exitfuncs(env, test_type):
             func, targs, kargs = exithandlers.pop()
             try:
                 func(*targs, **kargs)
-            except Exception, details:
+            except Exception as details:
                 error_message += "Error in %s:" % func.func_name
                 error_message += " %s\n" % details
                 traceback.print_exc()

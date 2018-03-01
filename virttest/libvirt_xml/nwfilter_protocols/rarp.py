@@ -47,7 +47,7 @@ class Rarp(base.TypedDeviceBase):
         """
         try:
             rarp_node = self.xmltreefile.reroot('/rarp')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = rarp_node.getroot()
         rarp_attr = dict(node.items())

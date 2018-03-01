@@ -293,7 +293,7 @@ class Messenger(object):
             unp = cPickle.Unpickler(rdataIO)
             unp.find_global = _map_path
             data = unp.load()
-        except Exception, e:
+        except Exception as e:
             logging.error("ERROR data:%s rdata:%s" % (data, rdata))
             try:
                 self.write_msg(remote_interface.MessengerError("Communication "

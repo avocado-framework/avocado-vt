@@ -291,7 +291,7 @@ class VM(virt_vm.BaseVM):
         try:
             virsh.undefine(self.name, options=options, uri=self.connect_uri,
                            ignore_status=False)
-        except process.CmdError, detail:
+        except process.CmdError as detail:
             logging.error("Undefined VM %s failed:\n%s", self.name, detail)
             return False
         return True
@@ -306,7 +306,7 @@ class VM(virt_vm.BaseVM):
         try:
             virsh.define(xml_file, uri=self.connect_uri,
                          ignore_status=False)
-        except process.CmdError, detail:
+        except process.CmdError as detail:
             logging.error("Defined VM from %s failed:\n%s", xml_file, detail)
             return False
         return True
@@ -346,7 +346,7 @@ class VM(virt_vm.BaseVM):
             virsh.dumpxml(self.name, extra=extra,
                           to_file=xml_file, uri=self.connect_uri)
             return xml_file
-        except Exception, detail:
+        except Exception as detail:
             if os.path.exists(xml_file):
                 os.remove(xml_file)
             logging.error("Failed to backup xml file:\n%s", detail)
@@ -913,7 +913,7 @@ class VM(virt_vm.BaseVM):
         try:
             support_machine_type = capabs.guest_capabilities[
                 hvm_or_pv][arch_name]['machine']
-        except KeyError, detail:
+        except KeyError as detail:
             if detail.args[0] == hvm_or_pv:
                 raise KeyError("No libvirt support for %s virtualization, "
                                "does system hardware + software support it?"
@@ -1352,7 +1352,7 @@ class VM(virt_vm.BaseVM):
         """
         try:
             session = self.login()
-        except (remote.LoginError, virt_vm.VMError), e:
+        except (remote.LoginError, virt_vm.VMError) as e:
             logging.debug(e)
         else:
             try:
@@ -1382,7 +1382,7 @@ class VM(virt_vm.BaseVM):
         """
         try:
             session = self.login()
-        except (remote.LoginError, virt_vm.VMError), e:
+        except (remote.LoginError, virt_vm.VMError) as e:
             logging.debug(e)
         else:
             try:
@@ -1716,7 +1716,7 @@ class VM(virt_vm.BaseVM):
         """
         try:
             session = self.login()
-        except (remote.LoginError, virt_vm.VMError), e:
+        except (remote.LoginError, virt_vm.VMError) as e:
             logging.debug(e)
         else:
             try:
@@ -1941,7 +1941,7 @@ class VM(virt_vm.BaseVM):
                 logging.info("%s", item)
             try:
                 process.run(install_command, verbose=True, shell=True)
-            except process.CmdError, details:
+            except process.CmdError as details:
                 stderr = details.result.stderr.strip()
                 # This is a common newcomer mistake, be more helpful...
                 if stderr.count('IDE CDROM must use'):
@@ -2094,7 +2094,7 @@ class VM(virt_vm.BaseVM):
                     logging.debug("Trying to shutdown VM with shell command")
                     try:
                         session = self.login()
-                    except (remote.LoginError, virt_vm.VMError), e:
+                    except (remote.LoginError, virt_vm.VMError) as e:
                         logging.debug(e)
                     else:
                         try:
@@ -2448,7 +2448,7 @@ class VM(virt_vm.BaseVM):
                 return True
             else:
                 return False
-        except process.CmdError, detail:
+        except process.CmdError as detail:
             logging.error("Resume VM %s failed:\n%s", self.name, detail)
             return False
 
@@ -2780,7 +2780,7 @@ class VM(virt_vm.BaseVM):
         session = self.wait_for_login()
         try:
             mac = session.cmd_output(cmd)
-        except Exception, detail:
+        except Exception as detail:
             session.close()
             logging.error(str(detail))
             return None

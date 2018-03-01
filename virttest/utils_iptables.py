@@ -46,7 +46,7 @@ class Iptables(object):
                 cmd_output = process.system_output(iptable_check_cmd,
                                                    shell=True)
                 exist_rules = cmd_output.strip().split('\n')
-            except process.CmdError, info:
+            except process.CmdError as info:
                 raise exceptions.TestError("iptables fails for command "
                                            "locally %s" % iptable_check_cmd)
         # check rules whether it is really needed to be added or cleaned
@@ -77,7 +77,7 @@ class Iptables(object):
                 try:
                     cmd_output = process.system_output(command, shell=True)
                     logging.debug("iptable command success %s", command)
-                except process.CmdError, info:
+                except process.CmdError as info:
                     raise exceptions.TestError("iptables fails for command "
                                                "locally %s" % command)
         # cleanup server session

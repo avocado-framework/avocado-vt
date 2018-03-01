@@ -72,7 +72,7 @@ def lgf_command(cmd, ignore_status=True, debug=False, timeout=60):
     try:
         ret = process.run(cmd, ignore_status=ignore_status,
                           verbose=debug, timeout=timeout)
-    except process.CmdError, detail:
+    except process.CmdError as detail:
         raise LibguestfsCmdError(detail)
 
     if debug:
@@ -310,7 +310,7 @@ class GuestfishRemote(object):
             try:
                 ret = process.run(guestfs_exec, ignore_status=False,
                                   verbose=True, timeout=60)
-            except process.CmdError, detail:
+            except process.CmdError as detail:
                 raise LibguestfsCmdError(detail)
             self.a_id = re.search("\d+", ret.stdout.strip()).group()
         else:
@@ -334,7 +334,7 @@ class GuestfishRemote(object):
         try:
             ret = process.run(cmd, ignore_status=ignore_status,
                               verbose=verbose, timeout=timeout)
-        except process.CmdError, detail:
+        except process.CmdError as detail:
             raise LibguestfsCmdError(detail)
 
         for line in self.ERROR_REGEX_LIST:

@@ -47,7 +47,7 @@ class Icmp(base.TypedDeviceBase):
         """
         try:
             icmp_node = self.xmltreefile.reroot('/icmp')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = icmp_node.getroot()
         icmp_attr = dict(node.items())

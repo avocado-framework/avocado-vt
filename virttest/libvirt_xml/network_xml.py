@@ -556,7 +556,7 @@ class NetworkXMLBase(base.LibvirtXMLBase):
         xmltreefile = self.__dict_get__('xml')
         try:
             ip_root = xmltreefile.reroot('/ip')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         ipxml = IPXML(virsh_instance=self.__dict_get__('virsh'))
         ipxml.xmltreefile = ip_root
@@ -581,7 +581,7 @@ class NetworkXMLBase(base.LibvirtXMLBase):
     def get_portgroup(self):
         try:
             portgroup_root = self.xmltreefile.reroot('/portgroup')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         portgroup_xml = PortgroupXML(virsh_instance=self.__dict_get__('virsh'))
         portgroup_xml.xmltreefile = portgroup_root
@@ -743,12 +743,12 @@ class NetworkXML(NetworkXMLBase):
         """It's the only way to really be sure.  Remove all libvirt state"""
         try:
             self['active'] = False  # deactivate (stop) network if active
-        except xcepts.LibvirtXMLError, detail:
+        except xcepts.LibvirtXMLError as detail:
             # inconsequential, network will be removed
             logging.warning(detail)
         try:
             self['defined'] = False  # undefine (delete) network if persistent
-        except xcepts.LibvirtXMLError, detail:
+        except xcepts.LibvirtXMLError as detail:
             # network already gone
             logging.warning(detail)
 

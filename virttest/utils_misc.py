@@ -1051,7 +1051,7 @@ def safe_rmdir(path, timeout=10):
             shutil.rmtree(path)
             success = True
             break
-        except OSError, err_info:
+        except OSError as err_info:
             # We are only going to try if the error happened due to
             # directory not empty (errno 39). Otherwise, raise the
             # original exception.
@@ -1878,7 +1878,7 @@ def get_dev_major_minor(dev):
     try:
         rdev = os.stat(dev).st_rdev
         return (os.major(rdev), os.minor(rdev))
-    except IOError, details:
+    except IOError as details:
         raise exceptions.TestError("Fail to get major and minor numbers of the "
                                    "device %s:\n%s" % (dev, details))
 
@@ -3081,7 +3081,7 @@ def get_image_snapshot(image_file):
             for line in snap_info.splitlines():
                 snap_list.extend(re.findall(r"%s" % pattern, line))
         return snap_list
-    except process.CmdError, detail:
+    except process.CmdError as detail:
         raise exceptions.TestError("Fail to get snapshot of %s:\n%s" %
                                    (image_file, detail))
 
@@ -3172,7 +3172,7 @@ def get_image_info(image_file):
                     lazy_refcounts = line.split(':')[-1].strip()
                     image_info_dict['lcounts'] = lazy_refcounts
         return image_info_dict
-    except (KeyError, IndexError, process.CmdError), detail:
+    except (KeyError, IndexError, process.CmdError) as detail:
         raise exceptions.TestError("Fail to get information of %s:\n%s" %
                                    (image_file, detail))
 
@@ -3795,7 +3795,7 @@ class VFIOController(object):
             elif load_modules:
                 try:
                     linux_modules.load_module(key)
-                except process.CmdError, detail:
+                except process.CmdError as detail:
                     modules_error.append("Load module %s failed: %s"
                                          % (key, detail))
             else:
@@ -3808,7 +3808,7 @@ class VFIOController(object):
         if allow_unsafe_interrupts:
             try:
                 process.run("echo Y > %s" % lnk, shell=True)
-            except process.CmdError, detail:
+            except process.CmdError as detail:
                 raise VFIOError(str(detail))
 
     def check_iommu(self):
@@ -3838,7 +3838,7 @@ class VFIOController(object):
                         % pci_group_devices[0])
         try:
             group_id = int(os.path.basename(process.run(readlink_cmd).stdout))
-        except ValueError, detail:
+        except ValueError as detail:
             raise exceptions.TestError("Get iommu group id failed:%s" % detail)
         return group_id
 
@@ -3918,7 +3918,7 @@ class SELinuxBoolean(object):
         self.remote_boolean_orig = "off"
         try:
             self.selinux_disabled = utils_selinux.get_status() == "disabled"
-        except utils_selinux.SeCmdError, utils_selinux.SelinuxError:
+        except (utils_selinux.SeCmdError, utils_selinux.SelinuxError):
             self.selinux_disabled = True
 
     def get_sebool_local(self):
@@ -4060,10 +4060,10 @@ def get_model_features(model_name):
                     for feature in model_n.findall('feature'):
                         features.append(feature.get('name'))
                     break
-    except ET.ParseError, error:
+    except ET.ParseError as error:
         logging.warn("Configuration file %s has wrong xml format" % conf)
         raise
-    except AttributeError, elem_attr:
+    except AttributeError as elem_attr:
         logging.warn("No attribute %s in file %s" % (str(elem_attr), conf))
         raise
     except Exception:

@@ -104,7 +104,7 @@ class VTBootstrap(CLICmd):
         try:
             bootstrap.bootstrap(options=args, interactive=True)
             sys.exit(0)
-        except process.CmdError, ce:
+        except process.CmdError as ce:
             if ce.result.interrupted:
                 logging.info('Bootstrap command interrupted by user')
                 logging.info('Command: %s', ce.command)

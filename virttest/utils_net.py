@@ -660,7 +660,7 @@ class Macvtap(Interface):
         device = self.get_device()
         try:
             return os.open(device, os.O_RDWR)
-        except OSError, e:
+        except OSError as e:
             raise TAPModuleError(device, "open", e)
 
 
@@ -710,7 +710,7 @@ class IPAddress(object):
                 self.version = 'ipv4'
                 self.packed_addr = socket.inet_pton(socket.AF_INET, ip_str)
                 self.addr = socket.inet_ntop(socket.AF_INET, self.packed_addr)
-        except socket.error, detail:
+        except socket.error as detail:
             if 'illegal IP address' in str(detail):
                 self.addr = ip_str
                 self.version = 'hostname'
@@ -796,7 +796,7 @@ def raw_ping(command, timeout, session, output_func):
             try:
                 output2 = session.read_up_to_prompt(print_func=output_func)
                 output += output2
-            except aexpect.ExpectTimeoutError, e:
+            except aexpect.ExpectTimeoutError as e:
                 output += e.output
                 # We also need to use this session to query the return value
                 session.send("\003")
@@ -944,7 +944,7 @@ def create_macvtap(ifname, mode="vepa", base_if=None, mac_addr=None):
         if mac_addr:
             o_macvtap.set_mac(mac_addr)
         return o_macvtap
-    except Exception, e:
+    except Exception as e:
         raise MacvtapCreationError(ifname, base_if, e)
 
 
@@ -1080,7 +1080,7 @@ class Bridge(object):
         """
         try:
             self._br_ioctl(arch.SIOCBRADDIF, brname, ifname)
-        except IOError, details:
+        except IOError as details:
             raise BRAddIfError(ifname, brname, details)
 
     def del_port(self, brname, ifname):
@@ -1092,7 +1092,7 @@ class Bridge(object):
         """
         try:
             self._br_ioctl(arch.SIOCBRDELIF, brname, ifname)
-        except IOError, details:
+        except IOError as details:
             raise BRDelIfError(ifname, brname, details)
 
     def add_bridge(self, brname):
@@ -1140,7 +1140,7 @@ def __init_openvswitch(func):
                 __ovs.init_system()
                 if (not __ovs.check()):
                     raise Exception("Check of OpenVSwitch failed.")
-            except Exception, e:
+            except Exception as e:
                 logging.debug("Host does not support OpenVSwitch: %s", e)
 
         return func(*args, **kargs)
@@ -1218,7 +1218,7 @@ def open_tap(devname, ifname, queues=1, vnet_hdr=True):
     for i in range(int(queues)):
         try:
             tapfds.append(str(os.open(devname, os.O_RDWR)))
-        except OSError, e:
+        except OSError as e:
             raise TAPModuleError(devname, "open", e)
 
         flags = arch.IFF_TAP | arch.IFF_NO_PI
@@ -1234,7 +1234,7 @@ def open_tap(devname, ifname, queues=1, vnet_hdr=True):
         ifr = struct.pack("16sh", ifname, flags)
         try:
             r = fcntl.ioctl(int(tapfds[i]), arch.TUNSETIFF, ifr)
-        except IOError, details:
+        except IOError as details:
             raise TAPCreationError(ifname, details)
 
     return ':'.join(tapfds)
@@ -1432,7 +1432,7 @@ def get_guest_ip_addr(session, mac_addr, os_type="linux", ip_version="ipv4",
                 return global_address[0]
             else:
                 return None
-    except Exception, err:
+    except Exception as err:
         logging.debug(session.cmd_output(info_cmd))
         raise IPAddrGetError(mac_addr, err)
 
@@ -1490,7 +1490,7 @@ def set_guest_ip_addr(session, mac, ip_addr,
         else:
             info_cmd = ""
             raise IPAddrSetError(mac, ip_addr, "Unknown os type")
-    except Exception, err:
+    except Exception as err:
         logging.debug(session.cmd_output(info_cmd))
         raise IPAddrSetError(mac, ip_addr, err)
 
@@ -1550,7 +1550,7 @@ def set_net_if_ip(if_name, ip_addr, runner=None):
     cmd = "ip addr add %s dev %s" % (ip_addr, if_name)
     try:
         runner(cmd)
-    except process.CmdError, e:
+    except process.CmdError as e:
         raise IfChangeAddrError(if_name, ip_addr, e)
 
 
@@ -1567,7 +1567,7 @@ def del_net_if_ip(if_name, ip_addr, runner=None):
     cmd = "ip addr del %s dev %s" % (ip_addr, if_name)
     try:
         runner(cmd)
-    except process.CmdError, e:
+    except process.CmdError as e:
         raise IfChangeAddrError(if_name, ip_addr, e)
 
 
@@ -2055,7 +2055,7 @@ def if_set_macaddress(ifname, mac):
     try:
         mac_dev = fcntl.ioctl(ctrl_sock, arch.SIOCGIFHWADDR, ifr)[18:24]
         mac_dev = ":".join(["%02x" % ord(m) for m in mac_dev])
-    except IOError, e:
+    except IOError as e:
         raise HwAddrGetError(ifname)
 
     if mac_dev.lower() == mac.lower():
@@ -2065,7 +2065,7 @@ def if_set_macaddress(ifname, mac):
                       "".join([chr(int(m, 16)) for m in mac.split(":")]))
     try:
         fcntl.ioctl(ctrl_sock, arch.SIOCSIFHWADDR, ifr)
-    except IOError, e:
+    except IOError as e:
         logging.info(e)
         raise HwAddrSetError(ifname, mac)
     ctrl_sock.close()
@@ -2280,7 +2280,7 @@ class IPv6Manager(propcan.PropCanBase):
                 self.check_connectivity(self.client_ifname, ipv6_addr_des)
             # flush ip6tables both local and remote host
             self.flush_ip6tables()
-        except Exception, e:
+        except Exception as e:
             self.close_session()
             raise exceptions.TestError(
                 "Failed to setup IPv6 environment!!:%s", e)
@@ -3423,7 +3423,7 @@ def update_mac_ip_address(vm, timeout=240):
             logging.warn("No VM's NIC got IP address")
             return
         vm.address_cache.update(addr_map)
-    except Exception, e:
+    except Exception as e:
         logging.warn("Error occur when update VM address cache: %s", str(e))
 
 
@@ -3579,7 +3579,7 @@ def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
         if not runner:
             try:
                 utils_path.find_command("netstat")
-            except utils_path.CmdNotFoundError, details:
+            except utils_path.CmdNotFoundError as details:
                 raise exceptions.TestSkipError(details)
             output = process.system_output(cmd, shell=True)
         else:
@@ -3633,7 +3633,7 @@ def block_specific_ip_by_time(ip_addr, block_time="1 seconds", runner=None):
         if not runner:
             try:
                 utils_path.find_command("iptables")
-            except utils_path.CmdNotFoundError, details:
+            except utils_path.CmdNotFoundError as details:
                 raise exceptions.TestSkipError(details)
             output = local_runner(cmd, shell=True)
             logging.debug("List current iptables rules:\n%s",

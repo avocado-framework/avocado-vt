@@ -186,7 +186,7 @@ class KojiClient(object):
                 download.get_file(url, dst)
                 success = True
                 break
-            except Exception, e:
+            except Exception as e:
                 last_error = str(e)
                 logging.error("Download failed: %s", last_error)
                 logging.error("Retrying after %s seconds...",

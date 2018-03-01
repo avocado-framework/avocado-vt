@@ -223,7 +223,7 @@ class FloppyDisk(Disk):
             process.run(c_cmd, verbose=DEBUG)
             f_cmd = 'mkfs.msdos -s 1 %s' % path
             process.run(f_cmd, verbose=DEBUG)
-        except process.CmdError, e:
+        except process.CmdError as e:
             logging.error("Error during floppy initialization: %s" % e)
             cleanup(self.mount)
             raise
@@ -511,7 +511,7 @@ class GuestFSModiDisk(object):
                         msg = "Mount dev '%s' partitions '%s' to '%s'"
                         logging.info(msg % (root, mp_dev[1], mp_dev[0]))
                         self.g.mount(mp_dev[1], mp_dev[0])
-                    except RuntimeError, err_msg:
+                    except RuntimeError as err_msg:
                         logging.info("%s (ignored)" % err_msg)
         else:
             raise exceptions.TestError(

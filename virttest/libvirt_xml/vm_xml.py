@@ -972,7 +972,7 @@ class VMXML(VMXMLBase):
                 target = address.get("target")
                 unit = address.get("unit")
                 address_str = "%s:%s.%s.%s" % (disk_bus, bus, target, unit)
-        except AttributeError, e:
+        except AttributeError as e:
             raise xcepts.LibvirtXMLError("Get wrong attribute: %s" % str(e))
         return address_str
 

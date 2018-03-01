@@ -54,7 +54,7 @@ if __name__ == "__main__":
             pattern = tap_replace_re % tap
             cmd_line = re.sub(pattern, "\g<1>%s " % tapfd, cmd_line)
             tapfd_list.append(tapfd)
-        except Exception, e:
+        except Exception as e:
             destroy_tap(tapfd_list)
             print "Error: %s" % e
             sys.exit(2)

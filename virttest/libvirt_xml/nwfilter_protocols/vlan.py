@@ -47,7 +47,7 @@ class Vlan(base.TypedDeviceBase):
         """
         try:
             vlan_node = self.xmltreefile.reroot('/vlan')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = vlan_node.getroot()
         vlan_attr = dict(node.items())

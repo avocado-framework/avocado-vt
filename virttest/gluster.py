@@ -135,7 +135,7 @@ def gluster_brick_create(brick_path, force=False):
     try:
         os.mkdir(brick_path)
         return True
-    except OSError, details:
+    except OSError as details:
         logging.error("Not able to create brick folder %s", details)
 
 
@@ -147,7 +147,7 @@ def gluster_brick_delete(brick_path):
         try:
             shutil.rmtree(brick_path)
             return True
-        except OSError, details:
+        except OSError as details:
             logging.error("Not able to create brick folder %s", details)
 
 
@@ -267,7 +267,7 @@ def file_exists(params, filename_path):
                                                filename_path[len(g_uri):])
             if os.path.exists(mount_filename_path):
                 ret = True
-        except Exception, e:
+        except Exception as e:
             logging.error("Failed to mount gluster volume %s to"
                           " mount dir %s: %s" % (sg_uri, tmpdir_path, e))
     finally:

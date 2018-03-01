@@ -48,7 +48,7 @@ class Arp(base.TypedDeviceBase):
         """
         try:
             arp_node = self.xmltreefile.reroot('/arp')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = arp_node.getroot()
         arp_attr = dict(node.items())

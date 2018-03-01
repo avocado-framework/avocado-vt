@@ -72,7 +72,7 @@ def download_assets():
         asset_info = all_assets_sorted[idx]
         try:
             asset.download_file(asset_info, interactive=True)
-        except urllib2.HTTPError, http_error:
+        except urllib2.HTTPError as http_error:
             logging.error("HTTP Error %s: URL %s",
                           http_error.code,
                           asset_info['url'])

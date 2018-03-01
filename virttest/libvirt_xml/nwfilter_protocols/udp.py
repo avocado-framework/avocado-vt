@@ -47,7 +47,7 @@ class Udp(base.TypedDeviceBase):
         """
         try:
             udp_node = self.xmltreefile.reroot('/udp')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = udp_node.getroot()
         udp_attr = dict(node.items())
