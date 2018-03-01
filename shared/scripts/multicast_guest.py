@@ -14,10 +14,10 @@ Script used to join machine into multicast groups.
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print """%s [mgroup_count] [prefix] [suffix]
+        print("""%s [mgroup_count] [prefix] [suffix]
         mgroup_count: count of multicast addresses
         prefix: multicast address prefix
-        suffix: multicast address suffix""" % sys.argv[0]
+        suffix: multicast address suffix""" % sys.argv[0])
         sys.exit()
 
     mgroup_count = int(sys.argv[1])
@@ -33,9 +33,9 @@ if __name__ == "__main__":
             s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         except Exception:
             s.close()
-            print "Could not join multicast: %s" % mcast
+            print("Could not join multicast: %s" % mcast)
             raise
 
-    print "join_mcast_pid:%s" % os.getpid()
+    print("join_mcast_pid:%s" % os.getpid())
     os.kill(os.getpid(), signal.SIGSTOP)
     s.close()

@@ -215,7 +215,7 @@ def get_vdagent_status(vm_session, test_timeout):
         # ShellCmdError
         return("stopped")
     except Exception:
-        print "Unexpected error:", sys.exc_info()[0]
+        print("Unexpected error:", sys.exc_info()[0])
         raise exceptions.TestFail(
             "Failed attempting to get status of spice-vdagentd")
     wait_timeout(3)

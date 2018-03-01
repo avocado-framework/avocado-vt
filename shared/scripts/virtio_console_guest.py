@@ -28,7 +28,7 @@ else:   # Windows
     try:
         import win32file
     except ImportError, failure_detail:
-        print "Import failed. Do you have ctypes and pywin32 installed?"
+        print("Import failed. Do you have ctypes and pywin32 installed?")
         raise failure_detail
 
 DEBUGPATH = "/sys/kernel/debug"
@@ -153,7 +153,7 @@ class VirtioGuest:
         s = self.Switch(in_f, out_f, self.exit_thread, cachesize, mode)
         s.start()
         self.threads.append(s)
-        print "PASS: Start switch"
+        print("PASS: Start switch")
 
     def exit_threads(self):
         """
@@ -221,7 +221,7 @@ class VirtioGuestPosix(VirtioGuest):
             out = f.read()
             f.close()
         except Exception:
-            print "FAIL: Cannot open file %s" % (name)
+            print("FAIL: Cannot open file %s" % (name))
 
         return out
 
@@ -238,9 +238,9 @@ class VirtioGuestPosix(VirtioGuest):
             os.system('mount -t debugfs none %s' % (DEBUGPATH))
         try:
             if not os.path.isdir('%s/virtio-ports' % (DEBUGPATH)):
-                print not_present_msg
+                print(not_present_msg)
         except Exception:
-            print not_present_msg
+            print(not_present_msg)
         else:
             viop_names = os.listdir('%s/virtio-ports' % (DEBUGPATH))
             if in_files is not None:
@@ -249,15 +249,15 @@ class VirtioGuestPosix(VirtioGuest):
                 dev_names = filter(
                     lambda x: rep.match(x) is not None, dev_names)
                 if len(dev_names) != len(in_files):
-                    print ("FAIL: Not all ports were successfully initialized "
+                    print(("FAIL: Not all ports were successfully initialized "
                            "in /dev, only %d from %d." % (len(dev_names),
-                                                          len(in_files)))
+                                                          len(in_files))))
                     return
 
                 if len(viop_names) != len(in_files):
-                    print ("FAIL: Not all ports were successfully initialized "
+                    print(("FAIL: Not all ports were successfully initialized "
                            "in debugfs, only %d from %d." % (len(viop_names),
-                                                             len(in_files)))
+                                                             len(in_files))))
                     return
 
             for name in viop_names:
@@ -279,29 +279,29 @@ class VirtioGuestPosix(VirtioGuest):
                         port["path"] = "/dev/%s" % name
 
                     if not os.path.exists(port['path']):
-                        print "FAIL: %s not exist" % port['path']
+                        print("FAIL: %s not exist" % port['path'])
 
                     sysfspath = SYSFSPATH + name
                     if not os.path.isdir(sysfspath):
-                        print "FAIL: %s not exist" % (sysfspath)
+                        print("FAIL: %s not exist" % (sysfspath))
 
                     info_name = sysfspath + "/name"
                     port_name = self._readfile(info_name).strip()
                     if port_name != port["name"]:
-                        print ("FAIL: Port info does not match "
+                        print(("FAIL: Port info does not match "
                                "\n%s - %s\n%s - %s" %
                                (info_name, port_name,
                                 "%s/virtio-ports/%s" % (DEBUGPATH, name),
-                                port["name"]))
+                                port["name"])))
                     dev_ppath = DEVPATH + port_name
                     if not os.path.exists(dev_ppath):
-                        print "FAIL: Symlink %s does not exist." % dev_ppath
+                        print("FAIL: Symlink %s does not exist." % dev_ppath)
                     if not os.path.realpath(dev_ppath) != "/dev/name":
-                        print "FAIL: Symlink %s is not correct." % dev_ppath
+                        print("FAIL: Symlink %s is not correct." % dev_ppath)
                 except AttributeError:
-                    print ("Bad data on file %s:\n%s. " %
-                           (open_db_file, "".join(line_list).strip()))
-                    print "FAIL: Bad data on file %s." % open_db_file
+                    print(("Bad data on file %s:\n%s. " %
+                           (open_db_file, "".join(line_list).strip())))
+                    print("FAIL: Bad data on file %s." % open_db_file)
                     return
 
                 ports[port['name']] = port
@@ -315,9 +315,9 @@ class VirtioGuestPosix(VirtioGuest):
         """
         symlink = "/dev/vport0p0"
         if os.path.exists(symlink):
-            print "PASS: Symlink %s exists." % symlink
+            print("PASS: Symlink %s exists." % symlink)
         else:
-            print "FAIL: Symlink %s does not exist." % symlink
+            print("FAIL: Symlink %s does not exist." % symlink)
 
     def init(self, in_files):
         """
@@ -329,11 +329,11 @@ class VirtioGuestPosix(VirtioGuest):
             return
         for item in in_files:
             if (item[1] != self.ports[item[0]]["is_console"]):
-                print self.ports
-                print "FAIL: Host console is not like console on guest side\n"
+                print(self.ports)
+                print("FAIL: Host console is not like console on guest side\n")
                 return
 
-        print "PASS: Init and check virtioconsole files in system."
+        print("PASS: Init and check virtioconsole files in system.")
 
     class Switch(Thread):
 
@@ -524,7 +524,7 @@ class VirtioGuestPosix(VirtioGuest):
             elif (self.method == VirtioGuest.LOOP_NONE):
                 self._none_mode()
             else:
-                print "WARNIGN: Unknown mode %s, using LOOP_NONE" % self.method
+                print("WARNIGN: Unknown mode %s, using LOOP_NONE" % self.method)
                 self._reconnect_none_mode()
 
     class Sender(Thread):
@@ -566,11 +566,11 @@ class VirtioGuestPosix(VirtioGuest):
                 try:
                     self.files[path] = os.open(path, os.O_RDWR)
                     if (self.ports[item]["is_console"] == "yes"):
-                        print os.system("stty -F %s raw -echo" % (path))
-                        print os.system("stty -F %s -a" % (path))
+                        print(os.system("stty -F %s raw -echo" % (path)))
+                        print(os.system("stty -F %s -a" % (path)))
                     f.append(self.files[path])
                 except Exception, inst:
-                    print "FAIL: Failed to open file %s" % (path)
+                    print("FAIL: Failed to open file %s" % (path))
                     raise inst
         return f
 
@@ -611,10 +611,10 @@ class VirtioGuestPosix(VirtioGuest):
 
         maskstr = self.pollmask_to_str(mask[0][1])
         if (mask[0][1] & expected) == expected:
-            print "PASS: Events: " + maskstr
+            print("PASS: Events: " + maskstr)
         else:
             emaskstr = self.pollmask_to_str(expected)
-            print "FAIL: Events: " + maskstr + "  Expected: " + emaskstr
+            print("FAIL: Events: " + maskstr + "  Expected: " + emaskstr)
 
     def lseek(self, port, pos, how):
         """
@@ -631,12 +631,12 @@ class VirtioGuestPosix(VirtioGuest):
             os.lseek(fd, pos, how)
         except Exception, inst:
             if inst.errno == 29:
-                print "PASS: the lseek failed as expected"
+                print("PASS: the lseek failed as expected")
             else:
-                print inst
-                print "FAIL: unknown error"
+                print(inst)
+                print("FAIL: unknown error")
         else:
-            print "FAIL: the lseek unexpectedly passed"
+            print("FAIL: the lseek unexpectedly passed")
 
     def blocking(self, port, mode=False):
         """
@@ -655,13 +655,13 @@ class VirtioGuestPosix(VirtioGuest):
                 fcntl.fcntl(fd, fcntl.F_SETFL, fl & ~os.O_NONBLOCK)
 
         except Exception, inst:
-            print "FAIL: Setting (non)blocking mode: " + str(inst)
+            print("FAIL: Setting (non)blocking mode: " + str(inst))
             return
 
         if mode:
-            print "PASS: set to blocking mode"
+            print("PASS: set to blocking mode")
         else:
-            print "PASS: set to nonblocking mode"
+            print("PASS: set to nonblocking mode")
 
     def __call__(self, sig, frame):
         """
@@ -682,7 +682,7 @@ class VirtioGuestPosix(VirtioGuest):
             map(p.register, self.poll_fds.keys())
 
             masks = p.poll(1)
-            print masks
+            print(masks)
             for mask in masks:
                 self.poll_fds[mask[0]][1] |= mask[1]
 
@@ -694,7 +694,7 @@ class VirtioGuestPosix(VirtioGuest):
         """
         fd = self._open([port])[0]
         state = self.poll_fds[fd][:]
-        print state
+        print(state)
         end = time.time() + 5   # wait up to 5s for new signals
         while state[0] != state[1]:
             while time.time() < end:
@@ -702,14 +702,14 @@ class VirtioGuestPosix(VirtioGuest):
                     break
                 time.sleep(0)   # schedule another thread
             else:
-                print ("FAIL: Timeout reached, Events: %s  Expected: %s"
+                print(("FAIL: Timeout reached, Events: %s  Expected: %s"
                        % (self.pollmask_to_str(state[1]),
-                          self.pollmask_to_str(state[0])))
+                          self.pollmask_to_str(state[0]))))
                 self.poll_fds[fd][1] = 0
                 return
             state = self.poll_fds[fd][:]
-            print state
-        print "PASS: Events: " + self.pollmask_to_str(state[1])
+            print(state)
+        print("PASS: Events: " + self.pollmask_to_str(state[1]))
         self.poll_fds[fd][1] = 0
 
     def set_pool_want_return(self, port, poll_value):
@@ -721,7 +721,7 @@ class VirtioGuestPosix(VirtioGuest):
         """
         fd = self._open([port])[0]
         self.poll_fds[fd] = [poll_value, 0]
-        print "PASS: Events: " + self.pollmask_to_str(poll_value)
+        print("PASS: Events: " + self.pollmask_to_str(poll_value))
 
     def catching_signal(self):
         """
@@ -761,13 +761,13 @@ class VirtioGuestPosix(VirtioGuest):
                 self.use_config.wait()
 
         except Exception, inst:
-            print "FAIL: Setting (a)sync mode: " + str(inst)
+            print("FAIL: Setting (a)sync mode: " + str(inst))
             return
 
         if mode:
-            print "PASS: Set to async mode"
+            print("PASS: Set to async mode")
         else:
-            print "PASS: Set to sync mode"
+            print("PASS: Set to sync mode")
 
     def close(self, filepath):
         """
@@ -785,9 +785,9 @@ class VirtioGuestPosix(VirtioGuest):
                 try:
                     os.close(descriptor)
                 except Exception, inst:
-                    print "FAIL: Closing the file: " + str(inst)
+                    print("FAIL: Closing the file: " + str(inst))
                     return
-        print "PASS: Close"
+        print("PASS: Close")
 
     def open(self, in_file, attempts=1):
         """
@@ -802,16 +802,16 @@ class VirtioGuestPosix(VirtioGuest):
                 name = self.ports[in_file]["path"]
                 self.files[name] = os.open(name, os.O_RDWR)
                 if (self.ports[in_file]["is_console"] == "yes"):
-                    print os.system("stty -F %s raw -echo" % (name))
+                    print(os.system("stty -F %s raw -echo" % (name)))
                 opened = True
                 break
             except Exception, exc:
-                print str(exc)
+                print(str(exc))
                 time.sleep(0.1)
         if opened:
-            print "PASS: All files opened correctly. (%d)" % i
+            print("PASS: All files opened correctly. (%d)" % i)
         else:
-            print "FAIL: Failed open file %s" % name
+            print("FAIL: Failed open file %s" % name)
 
     def loopback(self, in_files, out_files, cachesize=1024,
                  mode=0):
@@ -844,7 +844,7 @@ class VirtioGuestPosix(VirtioGuest):
         """
         self.exit_thread.set()
         for th in self.threads:
-            print "join %s" % th.getName()
+            print("join %s" % th.getName())
             th.join()
         self.exit_thread.clear()
 
@@ -852,7 +852,7 @@ class VirtioGuestPosix(VirtioGuest):
         for desc in self.files.itervalues():
             os.close(desc)
         self.files.clear()
-        print "PASS: All threads finished"
+        print("PASS: All threads finished")
 
     def die(self):
         """
@@ -869,14 +869,14 @@ class VirtioGuestPosix(VirtioGuest):
         in_f = self._open([port])
 
         self.threads.append(self.Sender(in_f[0], self.exit_thread, length))
-        print "PASS: Sender prepare"
+        print("PASS: Sender prepare")
 
     def send_loop(self):
         """
         Start sender data transfer. Requires senderprepare run first.
         """
         self.threads[0].start()
-        print "PASS: Sender start"
+        print("PASS: Sender start")
 
     def send(self, port, length=1, mode=True, is_static=False):
         """
@@ -899,7 +899,7 @@ class VirtioGuestPosix(VirtioGuest):
             try:
                 writes = os.write(in_f[0], data)
             except Exception, inst:
-                print inst
+                print(inst)
         else:
             while len(data) < 4096:
                 data += "%c" % random.randrange(255)
@@ -908,12 +908,12 @@ class VirtioGuestPosix(VirtioGuest):
                 try:
                     writes += os.write(in_f[0], data)
                 except Exception, inst:
-                    print inst
+                    print(inst)
         if writes >= length:
-            print "PASS: Send data length %d" % writes
+            print("PASS: Send data length %d" % writes)
         else:
-            print ("FAIL: Partial send: desired %d, transferred %d" %
-                   (length, writes))
+            print(("FAIL: Partial send: desired %d, transferred %d" %
+                   (length, writes)))
 
     def recv(self, port, length=1, bfr=1024, mode=True):
         """
@@ -929,18 +929,18 @@ class VirtioGuestPosix(VirtioGuest):
         try:
             recvs = os.read(in_f[0], bfr)
         except Exception, inst:
-            print inst
+            print(inst)
         if mode:
             while (len(recvs) < length):
                 try:
                     recvs += os.read(in_f[0], bfr)
                 except Exception, inst:
-                    print inst
+                    print(inst)
         if len(recvs) >= length:
-            print "PASS: Recv data length %d" % len(recvs)
+            print("PASS: Recv data length %d" % len(recvs))
         else:
-            print ("FAIL: Partial recv: desired %d, transferred %d" %
-                   (length, len(recvs)))
+            print(("FAIL: Partial recv: desired %d, transferred %d" %
+                   (length, len(recvs))))
 
     def clean_port(self, port, bfr=1024):
         in_f = self._open([port])
@@ -948,7 +948,7 @@ class VirtioGuestPosix(VirtioGuest):
         buf = ""
         if ret[0]:
             buf = os.read(in_f[0], bfr)
-        print ("PASS: Rest in socket: ") + str(buf[:10])
+        print(("PASS: Rest in socket: ") + str(buf[:10]))
 
 
 class VirtioGuestNt(VirtioGuest):
@@ -997,7 +997,7 @@ class VirtioGuestNt(VirtioGuest):
                 win32file.CloseHandle(hFile)
             except win32file.error:
                 remove.append(port['name'])
-                print "Fail to open port %s" % port['name']
+                print("Fail to open port %s" % port['name'])
         for name in remove:
             del(self.ports[name])
 
@@ -1005,7 +1005,7 @@ class VirtioGuestNt(VirtioGuest):
         # TODO: Not all devices are listed
         # TODO: Find the way to list all devices
         if remove:
-            print "FAIL: Not all ports are present, check the log."
+            print("FAIL: Not all ports are present, check the log.")
             return
         """
         reg = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE, "System")
@@ -1021,7 +1021,7 @@ class VirtioGuestNt(VirtioGuest):
             return
         """
 
-        print "PASS: Init and check virtioconsole files in system."
+        print("PASS: Init and check virtioconsole files in system.")
 
     def close(self, filepath):
         """
@@ -1039,9 +1039,9 @@ class VirtioGuestNt(VirtioGuest):
                 try:
                     win32file.CloseHandle(hFile)
                 except win32file.error, inst:
-                    print "FAIL: Closing the file: " + str(inst)
+                    print("FAIL: Closing the file: " + str(inst))
                     return
-        print "PASS: Close"
+        print("PASS: Close")
 
     def _open(self, in_files):
         """
@@ -1081,9 +1081,9 @@ class VirtioGuestNt(VirtioGuest):
                                                     win32file.FILE_ATTRIBUTE_NORMAL,
                                                     None)
         except win32file.error, exc_detail:
-            print "%s\nFAIL: Failed open file %s" % (str(exc_detail), name)
+            print("%s\nFAIL: Failed open file %s" % (str(exc_detail), name))
             return exc_detail
-        print "PASS: All files opened correctly."
+        print("PASS: All files opened correctly.")
 
     def exit_threads(self):
         """
@@ -1091,7 +1091,7 @@ class VirtioGuestNt(VirtioGuest):
         """
         self.exit_thread.set()
         for th in self.threads:
-            print "join"
+            print("join")
             th.join()
         self.exit_thread.clear()
 
@@ -1099,7 +1099,7 @@ class VirtioGuestNt(VirtioGuest):
         for desc in self.files.itervalues():
             win32file.CloseHandle(desc)
         self.files.clear()
-        print "PASS: All threads finished"
+        print("PASS: All threads finished")
 
     class Switch(Thread):
 
@@ -1135,7 +1135,7 @@ class VirtioGuestNt(VirtioGuest):
                     if ret:
                         msg = ("Error occurred while receiving data, "
                                "err=%s, read=%s" % (ret, _data))
-                        print "FAIL: " + msg
+                        print("FAIL: " + msg)
                         raise IOError(msg)
                     data += _data
                 if data != "":
@@ -1144,7 +1144,7 @@ class VirtioGuestNt(VirtioGuest):
                         if ret:
                             msg = ("Error occurred while sending data, "
                                    "err=%s, sentlen=%s" % (ret, _data))
-                            print "FAIL: " + msg
+                            print("FAIL: " + msg)
                             raise IOError(msg)
 
         def run(self):
@@ -1172,7 +1172,7 @@ class VirtioGuestNt(VirtioGuest):
             while not self.exit_thread.isSet():
                 if win32file.WriteFile(self.port, self.data)[0]:
                     msg = "Error occurred while sending data."
-                    print "FAIL: " + msg
+                    print("FAIL: " + msg)
                     raise IOError(msg)
 
     def send_loop_init(self, port, length):
@@ -1182,14 +1182,14 @@ class VirtioGuestNt(VirtioGuest):
         in_f = self._open([port])
 
         self.threads.append(self.Sender(in_f[0], self.exit_thread, length))
-        print "PASS: Sender prepare"
+        print("PASS: Sender prepare")
 
     def send_loop(self):
         """
         Start sender data transfer. Requires senderprepare run first.
         """
         self.threads[0].start()
-        print "PASS: Sender start"
+        print("PASS: Sender start")
 
     def send(self, port, length=1, mode=True, is_static=False):
         """
@@ -1217,7 +1217,7 @@ class VirtioGuestNt(VirtioGuest):
                     raise IOError(msg)
                 writes = _len
             except Exception, inst:
-                print inst
+                print(inst)
         else:
             while len(data) < 4096:
                 data += "%c" % random.randrange(255)
@@ -1232,12 +1232,12 @@ class VirtioGuestNt(VirtioGuest):
                         raise IOError(msg)
                     writes += _len
             except Exception, inst:
-                print inst
+                print(inst)
         if writes >= length:
-            print "PASS: Send data length %d" % writes
+            print("PASS: Send data length %d" % writes)
         else:
-            print ("FAIL: Partial send: desired %d, transferred %d" %
-                   (length, writes))
+            print(("FAIL: Partial send: desired %d, transferred %d" %
+                   (length, writes)))
 
     def recv(self, port, length=1, buflen=1024, mode=True):
         """
@@ -1258,7 +1258,7 @@ class VirtioGuestNt(VirtioGuest):
                 raise IOError(msg)
             recvs = _data
         except Exception, inst:
-            print inst
+            print(inst)
         if mode:
             while (len(recvs) < length):
                 try:
@@ -1269,12 +1269,12 @@ class VirtioGuestNt(VirtioGuest):
                                                                 len(recvs)))
                         raise IOError(msg)
                 except Exception, inst:
-                    print inst
+                    print(inst)
         if len(recvs) >= length:
-            print "PASS: Recv data length %d" % len(recvs)
+            print("PASS: Recv data length %d" % len(recvs))
         else:
-            print ("FAIL: Partial recv: desired %d, transferred %d" %
-                   (length, len(recvs)))
+            print(("FAIL: Partial recv: desired %d, transferred %d" %
+                   (length, len(recvs))))
 
 
 def is_alive():
@@ -1288,7 +1288,7 @@ def is_alive():
         threads = ""
         for thread in threading.enumerate():
             threads += thread.name + ", "
-        print ("FAIL: On guest run thread. Active thread:" + threads)
+        print(("FAIL: On guest run thread. Active thread:" + threads))
 
 
 def guest_exit():
@@ -1305,7 +1305,7 @@ def compile_script():
     """
     import py_compile
     py_compile.compile(__file__, "%so" % __file__)
-    print "PASS: compile"
+    print("PASS: compile")
     sys.exit(0)
 
 
@@ -1314,7 +1314,7 @@ def worker(virt):
     Worker thread (infinite) loop of virtio_guest.
     """
     global exiting
-    print "PASS: Daemon start."
+    print("PASS: Daemon start.")
     p = select.poll()
     p.register(sys.stdin.fileno())
     while not exiting:
@@ -1325,11 +1325,11 @@ def worker(virt):
                 exec out
             except Exception:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
-                print "On Guest exception from: \n" + "".join(
+                print("On Guest exception from: \n" + "".join(
                     traceback.format_exception(exc_type,
                                                exc_value,
-                                               exc_traceback))
-                print "FAIL: Guest command exception."
+                                               exc_traceback)))
+                print("FAIL: Guest command exception.")
         elif (d[0][1] & select.POLLHUP):
             time.sleep(0.5)
 
@@ -1471,7 +1471,7 @@ class Daemon:
                 signal.signal(signal.SIGIO, signal.SIG_DFL)
             if catch is not None:
                 virt.use_config.set()
-        print "PASS: guest_exit"
+        print("PASS: guest_exit")
         sys.exit(0)
 
 
@@ -1506,7 +1506,7 @@ def main():
     pid = filter(lambda x: x[0] != str(os.getpid()),
                  daemon.is_file_open(stdout))[0][0]
 
-    print "PASS: Start"
+    print("PASS: Start")
 
     while 1:
         ret = select.select([d_stderr,
@@ -1534,20 +1534,20 @@ def main_nt():
     global virt
     global exiting
     virt = VirtioGuestNt()
-    print "PASS: Start"
+    print("PASS: Start")
     sys.stdout.flush()
     while not exiting:
         try:
             exec raw_input()
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            print "On Guest exception from: \n" + "".join(
+            print("On Guest exception from: \n" + "".join(
                 traceback.format_exception(exc_type,
                                            exc_value,
-                                           exc_traceback))
-            print "FAIL: Guest command exception."
+                                           exc_traceback)))
+            print("FAIL: Guest command exception.")
         sys.stdout.flush()
-    print "PASS: guest_exit"
+    print("PASS: guest_exit")
     sys.exit(0)
 
 
