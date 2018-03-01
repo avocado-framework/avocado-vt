@@ -79,7 +79,7 @@ class DomCapabilityXML(base.LibvirtXMLBase):
                         # Feature invtsc doesn't support migration, so not add it to feature list
                         if 'invtsc' not in item:
                             feature_list.append(item)
-        except AttributeError, elem_attr:
+        except AttributeError as elem_attr:
             logging.warn("Failed to find attribute %s" % elem_attr)
             feature_list = []
         finally:
@@ -130,7 +130,7 @@ class DomCapabilityXML(base.LibvirtXMLBase):
             for mode_node in xmltreefile.findall('/cpu/mode'):
                 if mode_node.get('name') == 'host-model':
                     return mode_node.find('model').text
-        except AttributeError, elem_attr:
+        except AttributeError as elem_attr:
             logging.warn("Failed to find attribute %s" % elem_attr)
             return ''
 

@@ -126,7 +126,7 @@ class NetperfPackage(remote.Remote_Package):
         cmd = "%s && %s " % (pre_setup_cmd, setup_cmd)
         try:
             self.session.cmd(cmd, timeout=1200)
-        except aexpect.ShellError, e:
+        except aexpect.ShellError as e:
             raise NetperfPackageError("Compile failed: %s" % e)
 
     def pull_file(self, netperf_source=None):
@@ -212,7 +212,7 @@ class Netperf(object):
             output = self.session.cmd_output_safe(list_cmd, timeout=120)
             check_reg = re.compile(r"%s" % target, re.I | re.M)
             return bool(check_reg.findall(output))
-        except Exception, err:
+        except Exception as err:
             logging.debug("Check process error: %s" % str(err))
         return False
 
@@ -337,7 +337,7 @@ class NetperfClient(Netperf):
                 logging.info("Start netperf with cmd: '%s'" % netperf_cmd)
                 output = self.session.cmd_output_safe(netperf_cmd,
                                                       timeout=timeout)
-        except aexpect.ShellError, err:
+        except aexpect.ShellError as err:
             raise NetperfTestError("Run netperf error. %s" % str(err))
         self.result = output
         return self.result

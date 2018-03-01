@@ -47,7 +47,7 @@ class Tcp(base.TypedDeviceBase):
         """
         try:
             tcp_node = self.xmltreefile.reroot('/tcp')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = tcp_node.getroot()
         tcp_attr = dict(node.items())

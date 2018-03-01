@@ -47,7 +47,7 @@ class Stp(base.TypedDeviceBase):
         """
         try:
             stp_node = self.xmltreefile.reroot('/stp')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
             node = stp_node.getroot()
             stp_attr = dict(node.items())

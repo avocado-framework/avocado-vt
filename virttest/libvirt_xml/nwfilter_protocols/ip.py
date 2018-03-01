@@ -48,7 +48,7 @@ class Ip(base.TypedDeviceBase):
         """
         try:
             ip_node = self.xmltreefile.reroot('/ip')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = ip_node.getroot()
         ip_attr = dict(node.items())

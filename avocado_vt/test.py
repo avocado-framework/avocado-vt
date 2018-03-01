@@ -434,7 +434,7 @@ class VirtTest(test.Test):
                     if self.__safe_env_save(env):
                         env.destroy()   # Force-clean as it can't be stored
 
-        except Exception, e:
+        except Exception as e:
             if params.get("abort_on_error") != "yes":
                 raise
             # Abort on error

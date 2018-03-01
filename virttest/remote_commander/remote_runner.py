@@ -66,7 +66,7 @@ def daemonize(pipe_root_path="/tmp"):
                             opens.append([pid, mode])
                     except OSError:
                         continue
-            except OSError, e:
+            except OSError as e:
                 if e.errno == 2:
                     continue
                 raise
@@ -87,7 +87,7 @@ def daemonize(pipe_root_path="/tmp"):
             if pid > 0:  # If parent return False
                 os.waitpid(pid, 0)
                 return 0
-        except OSError, e:
+        except OSError as e:
             sys.stderr.write("Daemonize failed: %s\n" % (e))
             sys.exit(1)
 
@@ -101,7 +101,7 @@ def daemonize(pipe_root_path="/tmp"):
                 gc.enable()
             if pid > 0:  # If parent Exit
                 sys.exit(0)
-        except OSError, e:
+        except OSError as e:
             sys.stderr.write("Daemonize failed: %s\n" % (e))
             sys.exit(1)
 
@@ -121,7 +121,7 @@ def daemonize(pipe_root_path="/tmp"):
     for f in [stdin_path, stdout_path, stderr_path, results_path, inputs_path]:
         try:
             os.mkfifo(f)
-        except OSError, e:
+        except OSError as e:
             if e.errno == 17:
                 pass
 

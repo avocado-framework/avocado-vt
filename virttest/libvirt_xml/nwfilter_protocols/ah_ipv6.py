@@ -49,7 +49,7 @@ class Ah_ipv6(base.TypedDeviceBase):
         """
         try:
             ah_node = self.xmltreefile.reroot('/ah-ipv6')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = ah_node.getroot()
         ah_attr = dict(node.items())

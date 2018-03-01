@@ -205,7 +205,7 @@ class PoolXMLBase(base.LibvirtXMLBase):
         xmltreefile = self.__dict_get__('xml')
         try:
             source_root = xmltreefile.reroot('/source')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         sourcexml = SourceXML(virsh_instance=self.__dict_get__('virsh'))
         sourcexml.xmltreefile = source_root
@@ -350,7 +350,7 @@ class PoolXML(PoolXMLBase):
             if not poolxml.pool_define():
                 raise xcepts.LibvirtXMLError(error_msg + "%s"
                                              % poolxml.get('xml'))
-        except process.CmdError, detail:
+        except process.CmdError as detail:
             del poolxml
             # Allow exceptions thrown here since state will be undefined
             backup.pool_define()
@@ -371,7 +371,7 @@ class PoolXML(PoolXMLBase):
             xml_file = tempfile.mktemp(dir=data_dir.get_tmp_dir())
             virsh_instance.pool_dumpxml(name, to_file=xml_file)
             return xml_file
-        except Exception, detail:
+        except Exception as detail:
             if os.path.exists(xml_file):
                 os.remove(xml_file)
             logging.error("Failed to backup xml file:\n%s", detail)

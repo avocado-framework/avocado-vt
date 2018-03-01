@@ -48,7 +48,7 @@ class Sctp(base.TypedDeviceBase):
         """
         try:
             sctp_node = self.xmltreefile.reroot('/sctp')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = sctp_node.getroot()
         sctp_attr = dict(node.items())

@@ -444,7 +444,7 @@ class VirtadminPersistent(Virtadmin):
         session_id = self.__dict_get__("session_id")
         try:
             counter = self.__class__.COUNTERS[session_id]
-        except KeyError, e:
+        except KeyError as e:
             VirtadminPersistent.COUNTERS[session_id] = 1
             return
         # increase the counter of session_id.

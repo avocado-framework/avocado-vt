@@ -179,7 +179,7 @@ class QemuAgent(Monitor):
                 self._get_supported_cmds()
 
         # pylint: disable=E0712
-        except VAgentError, e:
+        except VAgentError as e:
             self._close_sock()
             if suppress_exceptions:
                 logging.warn(e)
@@ -241,7 +241,7 @@ class QemuAgent(Monitor):
         try:
             self._socket.sendall(data)
             self._log_lines(str(data))
-        except socket.error, e:
+        except socket.error as e:
             raise VAgentSocketError("Could not send data: %r" % data, e)
 
     def _get_response(self, timeout=RESPONSE_TIMEOUT):

@@ -322,7 +322,7 @@ class GuestWorker(object):
                 data = ("Incorrect pattern %s. Data in console:\n%s"
                         % (patterns[match], data))
                 match = None
-        except aexpect.ExpectError, inst:
+        except aexpect.ExpectError as inst:
             match = None
             data = "Cmd process timeout. Data in console:\n" + inst.output
 
@@ -403,7 +403,7 @@ class GuestWorker(object):
                              "|| echo -n PASS: python was already dead", 10)
                 self._execute_worker()
                 self._init_guest()
-            except Exception, inst:
+            except Exception as inst:
                 logging.error(inst)
                 raise VirtioPortFatalException("virtio-console driver is "
                                                "irreparably blocked, further tests might FAIL.")
@@ -437,7 +437,7 @@ class GuestWorker(object):
                 self._init_guest()
                 self._cleanup_ports()
 
-            except Exception, inst:
+            except Exception as inst:
                 logging.error(inst)
                 raise VirtioPortFatalException("virtio-console driver is "
                                                "irreparably blocked, further tests might FAIL.")
@@ -499,7 +499,7 @@ class ThSend(Thread):
                 self.idx += self.port.send(self.data)
             logging.debug("ThSend %s: exit(%d)", self.getName(),
                           self.idx)
-        except Exception, ints:
+        except Exception as ints:
             if not self.quiet:
                 raise ints
             logging.debug(ints)
@@ -561,7 +561,7 @@ class ThSendCheck(Thread):
                     time.sleep(0.1)
             try:
                 ret = select.select([], [self.port.sock], [], 1.0)
-            except Exception, inst:
+            except Exception as inst:
                 # self.port is not yet set while reconnecting
                 if self.migrate_event is None:
                     raise exceptions.TestFail("ThSendCheck %s: Broken pipe. If this"
@@ -592,7 +592,7 @@ class ThSendCheck(Thread):
                         idx = self.port.sock.send(buf)
                     except socket.timeout:
                         continue
-                    except Exception, inst:
+                    except Exception as inst:
                         # Broken pipe
                         if not hasattr(inst, 'errno') or inst.errno != 32:
                             continue
@@ -668,7 +668,7 @@ class ThRecv(Thread):
                     pass
             self.port.settimeout(self._port_timeout)
             logging.debug("ThRecv %s: exit(%d)", self.getName(), self.idx)
-        except Exception, ints:
+        except Exception as ints:
             if not self.quiet:
                 raise ints
             logging.debug(ints)
@@ -754,7 +754,7 @@ class ThRecvCheck(Thread):
         while not self.exitevent.isSet():
             try:
                 ret = select.select([self.port.sock], [], [], 1.0)
-            except Exception, inst:
+            except Exception as inst:
                 # self.port is not yet set while reconnecting
                 if self.port.sock is None:
                     logging.debug(_err_msg_disconnect)
@@ -769,7 +769,7 @@ class ThRecvCheck(Thread):
             if ret[0] and (not self.exitevent.isSet()):
                 try:
                     buf = self.port.sock.recv(self.blocklen)
-                except Exception, inst:
+                except Exception as inst:
                     # self.port is not yet set while reconnecting
                     if self.port.sock is None:
                         logging.debug(_err_msg_disconnect)

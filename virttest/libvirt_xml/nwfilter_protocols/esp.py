@@ -47,7 +47,7 @@ class Esp(base.TypedDeviceBase):
         """
         try:
             esp_node = self.xmltreefile.reroot('/esp')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = esp_node.getroot()
         esp_attr = dict(node.items())

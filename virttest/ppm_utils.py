@@ -367,7 +367,7 @@ def image_crop_save(image, new_image, box=None):
         box = (x/4, y/4, x*3/4, y*3/4)
     try:
         img.crop(box).save(new_image)
-    except (KeyError, SystemError), e:
+    except (KeyError, SystemError) as e:
         logging.error("Fail to crop image: %s", e)
         return False
     return True

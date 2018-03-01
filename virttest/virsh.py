@@ -443,7 +443,7 @@ class VirshPersistent(Virsh):
         session_id = self.__dict_get__("session_id")
         try:
             counter = self.__class__.COUNTERS[session_id]
-        except KeyError, e:
+        except KeyError as e:
             VirshPersistent.COUNTERS[session_id] = 1
             return
         # increase the counter of session_id.
@@ -1059,7 +1059,7 @@ def screenshot(name, filename, **dargs):
     dargs['ignore_status'] = False
     try:
         command("screenshot %s %s" % (name, filename), **dargs)
-    except process.CmdError, detail:
+    except process.CmdError as detail:
         if SCREENSHOT_ERROR_COUNT < 1:
             logging.error("Error taking VM %s screenshot. You might have to "
                           "set take_regular_screendumps=no on your "
@@ -1400,7 +1400,7 @@ def remove_domain(name, options=None, **dargs):
         try:
             dargs['ignore_status'] = False
             undefine(name, options, **dargs)
-        except process.CmdError, detail:
+        except process.CmdError as detail:
             logging.error("Undefine VM %s failed:\n%s", name, detail)
             return False
     return True
@@ -1418,7 +1418,7 @@ def domain_exists(name, **dargs):
     try:
         command("domstate %s" % name, **dargs)
         return True
-    except process.CmdError, detail:
+    except process.CmdError as detail:
         logging.warning("VM %s does not exist", name)
         if dargs.get('debug', False):
             logging.warning(str(detail))
@@ -1779,7 +1779,7 @@ def net_state_dict(only_names=False, virsh_instance=None, **dargs):
                         net_autostart(name, "--disable", **dargs)
                 # no exception raised, must be persistent
                 persistent = True
-            except process.CmdError, detail:
+            except process.CmdError as detail:
                 # Exception thrown, could be transient or real problem
                 if bool(str(detail.result).count("ransient")):
                     persistent = False
@@ -1936,7 +1936,7 @@ def pool_destroy(name, **dargs):
     try:
         command(cmd, **dargs)
         return True
-    except process.CmdError, detail:
+    except process.CmdError as detail:
         logging.error("Failed to destroy pool: %s.", detail)
         return False
 
@@ -1979,7 +1979,7 @@ def pool_create_as(name, pool_type, target, extra="", **dargs):
     try:
         command(cmd, **dargs)
         return True
-    except process.CmdError, detail:
+    except process.CmdError as detail:
         logging.error("Failed to create pool: %s.", detail)
         return False
 

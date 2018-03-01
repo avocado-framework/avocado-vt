@@ -133,7 +133,7 @@ class Exportfs(object):
         export_cmd += " %s:%s" % (self.client, self.path)
         try:
             process.system(export_cmd)
-        except process.CmdError, export_failed_err:
+        except process.CmdError as export_failed_err:
             logging.error("Can not export target: %s" % export_failed_err)
             return False
         return True
@@ -402,7 +402,7 @@ class NFSClient(object):
                 rule_list.append(rule)
                 Iptables.setup_or_cleanup_iptables_rules(rule_list)
                 iptables.restart()
-        except Exception, info:
+        except Exception as info:
             logging.error("Firewall setting to add nfs service "
                           "failed: %s", info)
 

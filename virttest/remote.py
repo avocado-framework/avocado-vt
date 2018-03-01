@@ -194,7 +194,7 @@ def handle_prompts(session, username, password, prompt, timeout=10,
             elif match == 13:  # console prompt
                 logging.debug("Got console prompt, send return to show login")
                 session.sendline()
-        except aexpect.ExpectTimeoutError, e:
+        except aexpect.ExpectTimeoutError as e:
             # sometimes, linux kernel print some message to console
             # the message maybe impact match login pattern, so send
             # a empty line to avoid unexpect login timeout
@@ -205,7 +205,7 @@ def handle_prompts(session, username, password, prompt, timeout=10,
                 continue
             else:
                 raise LoginTimeoutError(e.output)
-        except aexpect.ExpectProcessTerminatedError, e:
+        except aexpect.ExpectProcessTerminatedError as e:
             raise LoginProcessTerminatedError(e.status, e.output)
 
     return output
@@ -383,7 +383,7 @@ def wait_for_login(client, host, port, username, password, prompt,
             return remote_login(client, host, port, username, password, prompt,
                                 linesep, log_filename, internal_timeout,
                                 interface, verbose=verbose)
-        except LoginError, e:
+        except LoginError as e:
             logging.debug(e)
             verbose = True
         time.sleep(2)
@@ -453,12 +453,12 @@ def _remote_scp(
                                                  text)
             elif match == 2:  # "lost connection"
                 raise SCPError("SCP client said 'lost connection'", text)
-        except aexpect.ExpectTimeoutError, e:
+        except aexpect.ExpectTimeoutError as e:
             if authentication_done:
                 raise SCPTransferTimeoutError(e.output)
             else:
                 raise SCPAuthenticationTimeoutError(e.output)
-        except aexpect.ExpectProcessTerminatedError, e:
+        except aexpect.ExpectProcessTerminatedError as e:
             if e.status == 0:
                 logging.debug("SCP process terminated with status 0")
                 break

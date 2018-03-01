@@ -788,7 +788,7 @@ class BaseVM(object):
         def _get_address():
             try:
                 return self.get_address(nic_index, ip_version)
-            except (VMIPAddressMissingError, VMAddressVerificationError), e:
+            except (VMIPAddressMissingError, VMAddressVerificationError) as e:
                 return False
 
         ipaddr = utils_misc.wait_for(_get_address, timeout, step=interval)
@@ -979,7 +979,7 @@ class BaseVM(object):
         client = self.params.get("shell_client")
         try:
             address = self.get_address(nic_index, self.ip_version)
-        except (VMIPAddressMissingError, VMAddressVerificationError), e:
+        except (VMIPAddressMissingError, VMAddressVerificationError) as e:
             utils_net.update_mac_ip_address(self, timeout)
             address = self.get_address(nic_index, self.ip_version)
         neigh_attach_if = ""
@@ -1070,7 +1070,7 @@ class BaseVM(object):
                 out = session.cmd_output("ip route || route print", timeout=60)
                 txt += ["Guest route table:\n %s" % out]
                 logging.error("\n".join(txt))
-            except Exception, e:
+            except Exception as e:
                 logging.error("Can't get guest network status "
                               "information, reason: %s", e)
             finally:
@@ -1085,7 +1085,7 @@ class BaseVM(object):
             self.wait_for_get_address(nic_index,
                                       timeout=timeout,
                                       ip_version=self.ip_version)
-        except Exception, error:
+        except Exception as error:
             self.verify_alive()
             print_guest_network_info()
             if not (serial or restart_network):
@@ -1109,7 +1109,7 @@ class BaseVM(object):
                 if serial:
                     break
                 raise
-            except Exception, error:
+            except Exception as error:
                 pass
             not_tried = False
 

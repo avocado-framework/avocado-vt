@@ -48,7 +48,7 @@ class Tcp_ipv6(base.TypedDeviceBase):
         """
         try:
             tcp_node = self.xmltreefile.reroot('/tcp-ipv6')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = tcp_node.getroot()
         tcp_attr = dict(node.items())

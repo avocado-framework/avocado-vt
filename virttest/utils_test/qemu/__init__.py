@@ -329,7 +329,7 @@ class GuestSuspend(object):
         try:
             session = self._get_session()
             self._session_cmd_close(session, suspend_bg_program_kill_cmd)
-        except Exception, e:
+        except Exception as e:
             logging.warn("Could not stop background program: '%s'", e)
             pass
 
@@ -460,7 +460,7 @@ class MemoryBaseTest(object):
         try:
             size = utils_misc.normalize_data_size(*args)
             return int(float(size))
-        except ValueError, details:
+        except ValueError as details:
             logging.debug("Convert memory size error('%s')" % details)
         return 0
 

@@ -262,7 +262,7 @@ def get_time(session, time_command, time_filter_re, time_format):
                 host_time = time.mktime(
                     time.strptime(host_time_out, time_format))
                 host_time += float(diff)
-            except Exception, err:
+            except Exception as err:
                 logging.debug("(time_format, time_string): (%s, %s)",
                               time_format, host_time_out)
                 raise err
@@ -280,7 +280,7 @@ def get_time(session, time_command, time_filter_re, time_format):
             logging.debug("The time string from guest is:\n%s", str_time)
             raise exceptions.TestError(
                 "The time string from guest is unexpected.")
-        except Exception, err:
+        except Exception as err:
             logging.debug("(time_filter_re, time_string): (%s, %s)",
                           time_filter_re, str_time)
             raise err
@@ -291,7 +291,7 @@ def get_time(session, time_command, time_filter_re, time_format):
                 locale.setlocale(locale.LC_TIME, "C")
                 guest_time = time.mktime(time.strptime(str_time, time_format))
                 guest_time += float(diff)
-            except Exception, err:
+            except Exception as err:
                 logging.debug("(time_format, time_string): (%s, %s)",
                               time_format, str_time)
                 raise err
@@ -312,9 +312,9 @@ def get_time(session, time_command, time_filter_re, time_format):
             logging.debug("The time string from guest is:\n%s", output)
             raise exceptions.TestError(
                 "The time string from guest is unexpected.")
-        except ValueError, err:
+        except ValueError as err:
             logging.debug("Couldn't parse float time offset from %s" % reo)
-        except Exception, err:
+        except Exception as err:
             logging.debug("(time_filter_re, time_string): (%s, %s)",
                           time_filter_re, output)
             raise err
@@ -342,7 +342,7 @@ def get_memory_info(lvms):
         meminfo += "swapfree = "
         mf = int(utils_memory.read_from_meminfo("SwapFree")) / 1024
         meminfo += str(mf) + "M; "
-    except Exception, e:
+    except Exception as e:
         raise exceptions.TestFail("Could not fetch host free memory info, "
                                   "reason: %s" % e)
 
@@ -439,7 +439,7 @@ def run_image_copy(test, params, env):
         if not os.path.exists(mount_dest_dir):
             try:
                 os.makedirs(mount_dest_dir)
-            except OSError, err:
+            except OSError as err:
                 logging.warning('mkdir %s error:\n%s', mount_dest_dir, err)
 
         if not os.path.exists(mount_dest_dir):
@@ -547,12 +547,12 @@ def run_file_transfer(test, params, env):
     finally:
         try:
             os.remove(host_path)
-        except OSError, detail:
+        except OSError as detail:
             logging.warn("Could not remove temp files in host: '%s'", detail)
         logging.info('Cleaning temp file on guest')
         try:
             session.cmd("%s %s" % (clean_cmd, guest_path))
-        except aexpect.ShellError, detail:
+        except aexpect.ShellError as detail:
             logging.warn("Could not remove temp files in guest: '%s'", detail)
         finally:
             session.close()
@@ -1057,7 +1057,7 @@ def run_autotest(vm, session, control_path, timeout,
 
         try:
             output = process.system_output("cat %s" % status_path)
-        except process.CmdError, e:
+        except process.CmdError as e:
             logging.error("Error getting guest autotest status file: %s", e)
             return None
 
@@ -1068,7 +1068,7 @@ def run_autotest(vm, session, control_path, timeout,
             for result in results:
                 logging.info("\t %s", str(result))
             return results
-        except Exception, e:
+        except Exception as e:
             logging.error("Error processing guest autotest results: %s", e)
             return None
 
@@ -1615,7 +1615,7 @@ def get_driver_hardware_id(driver_path,
         txt_file.close()
         process.system("umount %s" % mount_point)
         return hwid
-    except Exception, e:
+    except Exception as e:
         logging.error("Fail to get hardware id with exception: %s" % e)
         if txt_file:
             txt_file.close()
@@ -1643,7 +1643,7 @@ class BackgroundTest(object):
         """
         try:
             func(*params, **kwargs)
-        except Exception, e:
+        except Exception as e:
             self.exception = e
 
     def start(self):
@@ -1682,7 +1682,7 @@ def ntpdate(service_ip, session=None):
             session.cmd(ntpdate_cmd)
         else:
             process.run(ntpdate_cmd)
-    except (process.CmdError, aexpect.ShellError), detail:
+    except (process.CmdError, aexpect.ShellError) as detail:
         raise exceptions.TestFail(
             "Failed to set the date and time. %s" % detail)
 
@@ -1698,7 +1698,7 @@ def get_date(session=None):
         else:
             date_info = process.run(date_cmd).stdout.strip()
         return date_info
-    except (process.CmdError, aexpect.ShellError), detail:
+    except (process.CmdError, aexpect.ShellError) as detail:
         raise exceptions.TestFail("Get date failed. %s " % detail)
 
 
@@ -1800,7 +1800,7 @@ class VMStress(object):
         try:
             session = self.vm.wait_for_login()
             return session
-        except aexpect.ShellError, detail:
+        except aexpect.ShellError as detail:
             raise StressError("Login %s failed:\n%s" % (self.vm.name, detail))
 
     @error_context.context_aware
@@ -1895,7 +1895,7 @@ class HostStress(object):
         # Run stress tool on host.
         try:
             path.find_command(self.stress_type)
-        except path.CmdNotFoundError, detail:
+        except path.CmdNotFoundError as detail:
             raise exceptions.TestSkipError("Stress tool %s is missing: %s"
                                            % (self.stress_type, str(detail)))
 
@@ -1949,7 +1949,7 @@ def load_stress(stress_type, vms, params):
             try:
                 vstress = VMStress(vm, stress_type.split('_')[0])
                 vstress.load_stress_tool()
-            except StressError, detail:
+            except StressError as detail:
                 fail_info.append("Launch stress in %s failed: %s"
                                  % (vm.name, detail))
     # Add stress for host
@@ -1957,7 +1957,7 @@ def load_stress(stress_type, vms, params):
         try:
             hstress = HostStress(params, "stress")
             hstress.load_stress_tool()
-        except StressError, detail:
+        except StressError as detail:
             fail_info.append("Launch stress on host failed: %s" % str(detail))
     # Booting vm for following test
     elif stress_type == "load_vm_booting":
@@ -2036,14 +2036,14 @@ class RemoteDiskManager(object):
 
         try:
             output = self.runner.run(cmd).stdout
-        except exceptions.CmdError, detail:
+        except exceptions.CmdError as detail:
             logging.debug(output)
             raise exceptions.TestError("Get space failed: %s." % str(detail))
 
         if disk_type == "file":
             try:
                 return int(output.splitlines()[1].split()[3].split('G')[0])
-            except IndexError, detail:
+            except IndexError as detail:
                 raise exceptions.TestError("Get %s space failed: %s." %
                                            (os.path.dirname(path), str(detail)))
         elif disk_type == "lvm":
@@ -2051,7 +2051,7 @@ class RemoteDiskManager(object):
                 try:
                     # "int('50.00')" will ValueError, so needs float()
                     return int(float(output.split()[6].split('g')[0]))
-                except (IndexError, ValueError), detail:
+                except (IndexError, ValueError) as detail:
                     raise exceptions.TestError("Get %s space failed: %s." %
                                                (vgname, str(detail)))
             else:
@@ -2116,7 +2116,7 @@ class RemoteDiskManager(object):
         try:
             self.runner.run("vgcreate %s %s" % (vgname, device))
             return True
-        except process.CmdError, detail:
+        except process.CmdError as detail:
             logging.error("Create vgroup '%s' on remote host failed:%s",
                           vgname, detail)
             return False
@@ -2243,7 +2243,7 @@ class RemoteVMManager(object):
                     matched_strs, timeout=20,
                     internal_timeout=0.5)
             except (aexpect.ExpectTimeoutError,
-                    aexpect.ExpectProcessTerminatedError), e:
+                    aexpect.ExpectProcessTerminatedError) as e:
                 raise exceptions.TestFail(
                     "Setup autologin to vm failed:%s" % e)
             logging.debug("%s:%s", index, text)
@@ -2306,7 +2306,7 @@ class RemoteVMManager(object):
         ret = None
         try:
             ret = self.runner.run(cmd, ignore_status=ignore_status)
-        except process.CmdError, detail:
+        except process.CmdError as detail:
             logging.debug("Failed to run '%s' in the VM: %s", cmd, detail)
             raise exceptions.TestFail("Failed to run '%s' in the VM: %s",
                                       cmd, detail)

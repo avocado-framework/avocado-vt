@@ -17,7 +17,7 @@ def set_labels(mutable_issue):
                 # http://jacquev6.github.io
                 # /PyGithub/github_objects/Label.html#github.Label.Label
                 labels.append(issues.get_gh_label(label).name)
-            except ValueError, detail:
+            except ValueError as detail:
                 print str(detail)
         else:
             break

@@ -79,7 +79,7 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
 
         logging.info("Finding free loop device")
         result = process.run("losetup --find", verbose=True)
-    except process.CmdError, ex:
+    except process.CmdError as ex:
         logging.error(ex)
         vg_ramdisk_cleanup(ramdisk_filename,
                            vg_ramdisk_dir, vg_name, "")
@@ -94,7 +94,7 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
         result = process.run("pvcreate " + loop_device)
         logging.info("Creating volume group %s", vg_name)
         result = process.run("vgcreate " + vg_name + " " + loop_device)
-    except process.CmdError, ex:
+    except process.CmdError as ex:
         logging.error(ex)
         vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir, vg_name,
                            loop_device)
@@ -306,7 +306,7 @@ def lv_take_snapshot(vg_name, lv_name,
            " --name " + lv_snapshot_name + " /dev/" + vg_name + "/" + lv_name)
     try:
         result = process.run(cmd)
-    except process.CmdError, ex:
+    except process.CmdError as ex:
         if ('Logical volume "%s" already exists in volume group "%s"' %
             (lv_snapshot_name, vg_name) in ex.result.stderr and
             re.search(re.escape(lv_snapshot_name + " [active]"),
@@ -349,7 +349,7 @@ def lv_revert(vg_name, lv_name, lv_snapshot_name):
                                        "active" % lv_name)
         result = result.stdout.rstrip()
 
-    except exceptions.TestError, ex:
+    except exceptions.TestError as ex:
         # detect if merge of snapshot was postponed
         # and attempt to reactivate the volume.
         if (('Snapshot could not be found' in ex and

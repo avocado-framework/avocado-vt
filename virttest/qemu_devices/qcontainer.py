@@ -488,7 +488,7 @@ class DevContainer(object):
         for device in devices:
             try:
                 added.extend(self._insert(device, strict_mode))
-            except DeviceError, details:
+            except DeviceError as details:
                 cleanup()
                 raise DeviceError("%s\nError occurred while inserting device %s"
                                   " (%s). Please check the log for details."
@@ -550,7 +550,7 @@ class DevContainer(object):
                     # The bus might require additional devices plugged first
                     try:
                         added_devices.extend(self.insert(bus_returns[-1]))
-                    except DeviceError, details:
+                    except DeviceError as details:
                         err = ("Can't insert device %s because additional "
                                "device required by bus %s failed to be "
                                "inserted with:\n%s" % (device, bus, details))
@@ -606,7 +606,7 @@ class DevContainer(object):
                                           "supported." % (device, out))
             if ver_out is True:
                 self.set_clean()
-        except DeviceError, exc:
+        except DeviceError as exc:
             raise DeviceHotplugError(device, 'According to qemu_device: %s'
                                      % exc, self, ver_out)
         return out, ver_out
@@ -644,7 +644,7 @@ class DevContainer(object):
                 raise DeviceUnplugError(device, "Device wasn't unplugged in "
                                         "qemu, but it was unplugged in device "
                                         "representation.", self)
-        except (DeviceError, KeyError), exc:
+        except (DeviceError, KeyError) as exc:
             device.unplug_unhook()
             raise DeviceUnplugError(device, exc, self)
 

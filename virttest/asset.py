@@ -169,21 +169,21 @@ class ConfigLoader:
     def __isint(self, parameter):
         try:
             int(parameter)
-        except Exception, e_stack:
+        except Exception as e_stack:
             return False
         return True
 
     def __isfloat(self, parameter):
         try:
             float(parameter)
-        except Exception, e_stack:
+        except Exception as e_stack:
             return False
         return True
 
     def __isstr(self, parameter):
         try:
             str(parameter)
-        except Exception, e_stack:
+        except Exception as e_stack:
             return False
         return True
 
@@ -490,7 +490,7 @@ def download_file(asset_info, interactive=False, force=False):
             sha1_contents = sha1_file.read()
             sha1 = sha1_contents.split(" ")[0]
             logging.info("Expected SHA1 sum: %s", sha1)
-        except Exception, e:
+        except Exception as e:
             logging.error("Failed to get SHA1 from file: %s", e)
     else:
         sha1 = None
@@ -510,7 +510,7 @@ def download_file(asset_info, interactive=False, force=False):
                 download.url_download_interactive(url, destination,
                                                   "Downloading %s" % title)
                 had_to_download = True
-            except Exception, download_failure:
+            except Exception as download_failure:
                 logging.error("Check your internet connection: %s",
                               download_failure)
         else:
@@ -538,7 +538,7 @@ def download_file(asset_info, interactive=False, force=False):
                         try:
                             download.url_download_interactive(url, destination,
                                                               title)
-                        except Exception, download_failure:
+                        except Exception as download_failure:
                             logging.error("Check your internet connection: %s",
                                           download_failure)
                         sha1_post_download = crypto.hash_file(destination,

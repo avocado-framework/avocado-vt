@@ -840,7 +840,7 @@ def bootstrap(options, interactive=False):
     guest_os = options.vt_guest_os or defaults.DEFAULT_GUEST_OS
     try:
         verify_mandatory_programs(options.vt_type, guest_os)
-    except Exception, details:
+    except Exception as details:
         LOG.debug(details)
         LOG.debug('Install the missing programs and/or headers and '
                   're-run boostrap')

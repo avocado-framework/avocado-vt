@@ -49,7 +49,7 @@ class Udplite_ipv6(base.TypedDeviceBase):
         """
         try:
             udplite_node = self.xmltreefile.reroot('/udplite-ipv6')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = udplite_node.getroot()
         udplite_attr = dict(node.items())

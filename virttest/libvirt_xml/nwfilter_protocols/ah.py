@@ -47,7 +47,7 @@ class Ah(base.TypedDeviceBase):
         """
         try:
             ah_node = self.xmltreefile.reroot('/ah')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = ah_node.getroot()
         ah_attr = dict(node.items())

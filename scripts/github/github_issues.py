@@ -124,7 +124,7 @@ class GithubCache(object):
             if callable(self.pre_fetch):
                 self.pre_fetch()
             fetched_obj = self.fetch()
-        except github.GithubException, detail:
+        except github.GithubException as detail:
             if detail.status == 404:
                 raise KeyError('Github item not-found error while calling %s '
                                'with args=%s and dargs=%s' % (self.fetch.func,

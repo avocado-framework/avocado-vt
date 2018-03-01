@@ -47,7 +47,7 @@ class Mac(base.TypedDeviceBase):
         """
         try:
             mac_node = self.xmltreefile.reroot('/mac')
-        except KeyError, detail:
+        except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = mac_node.getroot()
         mac_attr = dict(node.items())
