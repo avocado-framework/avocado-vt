@@ -1274,6 +1274,9 @@ def postprocess(test, params, env):
         try:
             image_nfs = nfs.Nfs(params)
             image_nfs.cleanup()
+<<<<<<< Updated upstream
+        except Exception as details:
+=======
             if migration_setup:
                 # Cleanup NFS client on remote host
                 nfs_client = nfs.NFSClient(params)
@@ -1281,7 +1284,8 @@ def postprocess(test, params, env):
                 # Cleanup selinux on remote host
                 seLinuxBool = utils_misc.SELinuxBoolean(params)
                 seLinuxBool.cleanup(keep_authorized_keys=True)
-        except Exception as details:
+        except Exception, details:
+>>>>>>> Stashed changes
             err += "\nnfs cleanup: %s" % str(details).replace('\\n', '\n  ')
 
     # cleanup migration presetup in post process
