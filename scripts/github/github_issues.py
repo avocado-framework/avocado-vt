@@ -442,14 +442,14 @@ class GithubIssues(GithubIssuesBase, object):
         # use search dictionary to form hash for cached results
         search_cache_key = 'issue_search'
         # Validate & transform criteria
-        if criteria.has_key('state'):
+        if 'state' in criteria:
             state = str(criteria['state'])
             if state not in ('open', 'closed'):
                 raise ValueError("'state' criteria must be 'open' or 'closed'")
             valid_criteria['state'] = state
             search_cache_key = '%s_%s' % (search_cache_key, state)
 
-        if criteria.has_key('assignee'):
+        if 'assignee' in criteria:
             assignee = str(criteria['assignee'])
             search_cache_key = '%s_%s' % (search_cache_key, assignee)
             if assignee in ('none', '*'):
@@ -458,7 +458,7 @@ class GithubIssues(GithubIssuesBase, object):
                 # returns github.NamedUser.NamedUser
                 valid_criteria['assignee'] = self.get_gh_user(assignee)
 
-        if criteria.has_key('mentioned'):
+        if 'mentioned' in criteria:
             mentioned = str(criteria['assignee'])
             search_cache_key = '%s_%s' % (search_cache_key, mentioned)
             if mentioned in ('none', '*'):
@@ -467,7 +467,7 @@ class GithubIssues(GithubIssuesBase, object):
                 # returns github.NamedUser.NamedUser
                 valid_criteria['mentioned'] = self.get_gh_user(mentioned)
 
-        if criteria.has_key('labels'):
+        if 'labels' in criteria:
             labels = criteria['labels']
             if not isinstance(labels, list):
                 raise ValueError("'lables' criteria must be a list")
@@ -476,7 +476,7 @@ class GithubIssues(GithubIssuesBase, object):
                 search_cache_key = '%s_%s' % (search_cache_key, labels)
                 valid_criteria['labels'].append(self.get_gh_label(str(name)))
 
-        if criteria.has_key('sort'):
+        if 'sort' in criteria:
             sort = str(criteria['sort'])
             if sort not in ('created', 'updated', 'comments'):
                 raise ValueError("'sort' criteria must be 'created', 'updated'"
@@ -484,14 +484,14 @@ class GithubIssues(GithubIssuesBase, object):
             valid_criteria['sort'] = sort
             search_cache_key = '%s_%s' % (search_cache_key, sort)
 
-        if criteria.has_key('direction'):
+        if 'direction' in criteria:
             direction = str(criteria['direction'])
             if direction not in ('asc', 'desc'):
                 raise ValueError("'direction' criteria must be 'asc', 'desc'")
             valid_criteria['direction'] = direction
             search_cache_key = '%s_%s' % (search_cache_key, direction)
 
-        if criteria.has_key('since'):
+        if 'since' in criteria:
             since = criteria['since']
             if not isinstance(since, datetime.datetime):
                 raise ValueError("'since' criteria must be a "

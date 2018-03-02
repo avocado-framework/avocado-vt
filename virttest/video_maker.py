@@ -297,7 +297,7 @@ class GstEncoder(object):
         image_files = glob.glob(os.path.join(input_dir, '*.jpg'))
         for f in image_files:
             i = PIL.Image.open(f)
-            if not image_sizes.has_key(i.size):
+            if i.size not in image_sizes:
                 image_sizes[i.size] = 1
             else:
                 image_sizes[i.size] += 1

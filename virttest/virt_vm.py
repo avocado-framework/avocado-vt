@@ -707,7 +707,7 @@ class BaseVM(object):
         if not ip_addr:
             raise VMIPAddressMissingError(mac, ip_version)
 
-        devs = set([nic.netdst]) if nic.has_key('netdst') else set()
+        devs = set([nic.netdst]) if 'netdst' in nic else set()
         if not utils_net.verify_ip_address_ownership(ip_addr, [mac],
                                                      devs=devs):
             self.address_cache.drop(mac_pattern % mac)
@@ -813,7 +813,7 @@ class BaseVM(object):
         :param params: Dict with additional NIC parameters to set.
         :return: Dict with new NIC's info.
         """
-        if not params.has_key('nic_name'):
+        if 'nic_name' not in params:
             params['nic_name'] = utils_misc.generate_random_id()
         nic_name = params['nic_name']
         if nic_name in self.virtnet.nic_name_list():
@@ -821,11 +821,11 @@ class BaseVM(object):
         else:
             self.virtnet.append(params)
         nic = self.virtnet[nic_name]
-        if not nic.has_key('mac'):  # generate random mac
+        if 'mac' not in nic:  # generate random mac
             logging.debug("Generating random mac address for nic")
             self.virtnet.generate_mac_address(nic_name)
         # mac of '' or invaid format results in not setting a mac
-        if nic.has_key('ip') and nic.has_key('mac'):
+        if 'ip' in nic and 'mac' in nic:
             self.address_cache[nic.mac] = nic.ip
         return nic
 
@@ -852,7 +852,7 @@ class BaseVM(object):
         :return: nic index number
         """
         for index, nic in enumerate(self.virtnet):
-            if not nic.has_key('mac'):
+            if 'mac' not in nic:
                 continue
             elif nic.mac == mac:
                 return index

@@ -131,7 +131,7 @@ class TestPropCanBase(unittest.TestCase):
         self.assertEqual(len(testcan), 0)
         self.assertFalse(testcan.it_works)
         self.assertFalse(hasattr(testcan, 'foo'))
-        self.assertFalse(testcan.has_key('foo'))
+        self.assertFalse('foo' in testcan)
         testcan['foo'] = 'bar'
         self.assertEqual(len(testcan), 1)
         self.assertEqual(testcan['foo'], 'bar')

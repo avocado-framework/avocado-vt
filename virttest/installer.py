@@ -52,7 +52,7 @@ class InstallerRegistry(dict):
         """
         if virt is None:
             virt = self.DEFAULT_VIRT_NAME
-        elif not self.has_key(virt):
+        elif virt not in self:
             self[virt] = {}
 
         self[virt][mode] = klass
@@ -69,7 +69,7 @@ class InstallerRegistry(dict):
         """
         if virt is None:
             virt = self.DEFAULT_VIRT_NAME
-        if not self.has_key(virt):
+        if virt not in self:
             # return a base installer so the test could and give it a try?
             if get_default_virt:
                 return self[self.DEFAULT_VIRT_NAME].get(mode)
@@ -83,7 +83,7 @@ class InstallerRegistry(dict):
         if virt is None:
             virt = self.DEFAULT_VIRT_NAME
 
-        if not self.has_key(virt):
+        if virt not in self:
             return []
 
         return self[virt].keys()

@@ -552,7 +552,7 @@ class GnuSourceBuildHelper(object):
         include_paths = [os.path.join(self.prefix, 'share', 'pkgconfig'),
                          os.path.join(self.prefix, 'lib', 'pkgconfig')]
 
-        if os.environ.has_key(env_var):
+        if env_var in os.environ:
             paths = os.environ[env_var].split(':')
             for include_path in include_paths:
                 if include_path not in paths:

@@ -28,7 +28,7 @@ class HTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def parse_header_byte_range(self):
         range_param = 'Range'
         range_discard = 'bytes='
-        if self.headers.has_key(range_param):
+        if range_param in self.headers:
             rg = self.headers.get(range_param)
             if rg.startswith(range_discard):
                 rg = rg[len(range_discard):]

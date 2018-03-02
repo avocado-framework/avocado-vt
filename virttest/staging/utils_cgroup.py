@@ -389,7 +389,7 @@ class Cgroup(object):
                      'G': 1073741824,
                      'T': 1099511627776
                      }
-            if human.has_key(value[-1]):
+            if value[-1] in human:
                 value = int(value[:-1]) * human[value[-1]]
         except Exception:
             logging.warn("cg.set_prop() fallback into cg.set_property.")

@@ -1501,7 +1501,7 @@ class QMPMonitor(Monitor):
         cmds = self.cmd("query-commands", debug=False)
         if cmds:
             self._supported_cmds = [n["name"] for n in cmds if
-                                    n.has_key("name")]
+                                    "name" in n]
 
         if not self._supported_cmds:
             logging.warn("Could not get supported monitor cmds list")

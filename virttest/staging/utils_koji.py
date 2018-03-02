@@ -437,7 +437,7 @@ class KojiClient(object):
         """
         Gets the base url for packages in Koji
         """
-        if self.config_options.has_key('pkgurl'):
+        if 'pkgurl' in self.config_options:
             return self.config_options['pkgurl']
         else:
             return "%s/%s" % (self.config_options['topurl'],
