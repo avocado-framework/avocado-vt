@@ -143,3 +143,46 @@ class ConsoleSession(object):
     def close(self):
         self.__verify_session_status()
         self.__closed = True
+
+# FIXME: the following methods are temporarily introduced to workaround
+#        console-session issues caused by the incorrect usages
+
+    def send(self, *args, **kwargs):
+        self.__verify_session_status()
+        return self.__manager.proxy_call(self.send.__name__,
+                                         *args, **kwargs)
+
+    def sendline(self, *args, **kwargs):
+        self.__verify_session_status()
+        return self.__manager.proxy_call(self.sendline.__name__,
+                                         *args, **kwargs)
+
+    def sendcontrol(self, *args, **kwargs):
+        self.__verify_session_status()
+        return self.__manager.proxy_call(self.sendcontrol.__name__,
+                                         *args, **kwargs)
+
+    def send_ctrl(self, *args, **kwargs):
+        self.__verify_session_status()
+        return self.__manager.proxy_call(self.send_ctrl.__name__,
+                                         *args, **kwargs)
+
+    def read_nonblocking(self, *args, **kwargs):
+        self.__verify_session_status()
+        return self.__manager.proxy_call(self.read_nonblocking.__name__,
+                                         *args, **kwargs)
+
+    def read_until_output_matches(self, *args, **kwargs):
+        self.__verify_session_status()
+        return self.__manager.proxy_call(
+            self.read_until_output_matches.__name__, *args, **kwargs)
+
+    def read_until_last_line_matches(self, *args, **kwargs):
+        self.__verify_session_status()
+        return self.__manager.proxy_call(
+            self.read_until_last_line_matches.__name__, *args, **kwargs)
+
+    def read_until_any_line_matches(self, *args, **kwargs):
+        self.__verify_session_status()
+        return self.__manager.proxy_call(
+            self.read_until_any_line_matches.__name__, *args, **kwargs)
