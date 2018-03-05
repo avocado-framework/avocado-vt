@@ -464,7 +464,7 @@ class TestSandboxes(object):
                     if option and value:
                         self.opts.append((value, option))
                     # k is 'flag'
-                    if params.has_key(key_gen) and not option:
+                    if key_gen in params and not option:
                         self.flag.append(value)
 
         logging.debug("All of options(%s) and flags(%s)", self.opts, self.flag)

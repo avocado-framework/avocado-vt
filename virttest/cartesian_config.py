@@ -2243,12 +2243,12 @@ def postfix_parse(dic):
             continue
         if key.endswith("_max"):
             tmp_key = key.split("_max")[0]
-            if (not dic.has_key(tmp_key) or
+            if (tmp_key not in dic or
                     compare_string(dic[tmp_key], dic[key]) > 0):
                 tmp_dict[tmp_key] = dic[key]
         elif key.endswith("_min"):
             tmp_key = key.split("_min")[0]
-            if (not dic.has_key(tmp_key) or
+            if (tmp_key not in dic or
                     compare_string(dic[tmp_key], dic[key]) < 0):
                 tmp_dict[tmp_key] = dic[key]
         elif key.endswith("_fixed"):

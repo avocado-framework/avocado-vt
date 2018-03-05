@@ -2376,7 +2376,7 @@ class VM(virt_vm.BaseVM):
         for index, nic in enumerate(self.virtnet):
             try:
                 mac = self.get_virsh_mac_address(index)
-                if not nic.has_key('mac'):
+                if 'mac' not in nic:
                     logging.debug("Updating nic %d with mac %s on vm %s"
                                   % (index, mac, self.name))
                     nic.mac = mac

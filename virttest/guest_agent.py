@@ -312,10 +312,10 @@ class QemuAgent(Monitor):
         if not synced:
             raise VAgentSyncError(self.vm.name)
         cmds = self.guest_info()
-        if cmds and cmds.has_key("supported_commands"):
+        if cmds and "supported_commands" in cmds:
             cmd_list = cmds["supported_commands"]
             self._supported_cmds = [n["name"] for n in cmd_list if
-                                    isinstance(n, dict) and n.has_key("name")]
+                                    isinstance(n, dict) and "name" in n]
 
         if not self._supported_cmds:
             # If initiation fails, set supported list to a None-only list.

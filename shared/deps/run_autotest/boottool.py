@@ -730,7 +730,7 @@ class Grubby(object):
         self.opts = opts
         self.log = logging.getLogger(self.__class__.__name__)
 
-        if os.environ.has_key('BOOTTOOL_DEBUG_RUN'):
+        if 'BOOTTOOL_DEBUG_RUN' in os.environ:
             self.debug_run = True
         else:
             self.debug_run = False
@@ -1972,7 +1972,7 @@ class BoottoolApp(object):
         if level > max_level:
             level = max_level
 
-        if os.environ.has_key('BOOTTOOL_DEBUG_RUN'):
+        if 'BOOTTOOL_DEBUG_RUN' in os.environ:
             logging_level = logging.DEBUG
         else:
             logging_level = log_map.get(level)

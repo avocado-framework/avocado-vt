@@ -76,10 +76,10 @@ class App(object):
             if tag is not None and pkgs is not None:
                 break
 
-            if d.has_key('koji_qemu_kvm_tag'):
+            if 'koji_qemu_kvm_tag' in d:
                 if tag is None:
                     tag = d.get('koji_qemu_kvm_tag')
-            if d.has_key('koji_qemu_kvm_pkgs'):
+            if 'koji_qemu_kvm_pkgs' in d:
                 if pkgs is None:
                     pkgs = d.get('koji_qemu_kvm_pkgs')
         return (tag, pkgs)

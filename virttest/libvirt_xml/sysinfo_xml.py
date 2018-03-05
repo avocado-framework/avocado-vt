@@ -37,7 +37,7 @@ class SysinfoXML(base.LibvirtXMLBase):
             if entry_nodes:
                 for entry in entry_nodes:
                     entry_attr = dict(entry.items())
-                    if entry_attr.has_key('name'):
+                    if 'name' in entry_attr:
                         temp_dict[entry_attr['name']] = entry.text
                 processor_dict[i] = temp_dict
 
