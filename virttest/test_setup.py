@@ -1443,6 +1443,17 @@ class PciAssignable(object):
         expected_count = int((re.findall("(\d+)", self.driver_option)[0])) * len(self.get_pf_ids())
         return (self.get_vfs_count() == expected_count)
 
+    def get_controller_type(self):
+        """
+        Get the Controller Type for SR-IOV Mellanox Adapter PFs
+        """
+        try:
+            cmd = "lspci | grep '%s'| grep -o '\s[A-Z].*:\s'" % self.pf_filter_re
+            return process.system_output(cmd, shell=True).split("\n")[-1].strip().strip(':')
+        except IndexError:
+            logging.debug("Unable to fetch the controller details")
+            return None
+
     def is_binded_to_stub(self, full_id):
         """
         Verify whether the device with full_id is already binded to driver.
