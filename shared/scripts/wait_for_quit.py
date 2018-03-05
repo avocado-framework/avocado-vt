@@ -1,5 +1,8 @@
+from six.moves import input
+
+
 while True:
-    in_put = raw_input("")
+    in_put = input("")
     if in_put in ['exit', 'quit']:
         print "Bye"
         break

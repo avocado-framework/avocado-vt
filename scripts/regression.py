@@ -11,7 +11,10 @@ import sys
 import re
 import commands
 import warnings
-import ConfigParser
+try:
+    import configparser as ConfigParser
+except ImportError:
+    import ConfigParser
 
 import MySQLdb
 

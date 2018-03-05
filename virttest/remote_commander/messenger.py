@@ -10,10 +10,13 @@ Created on Dec 6, 2013
 import os
 import logging
 import select
-import cPickle
 import time
 import cStringIO
 import base64
+try:
+    import pickle as cPickle
+except ImportError:
+    import cPickle
 
 import remote_interface
 

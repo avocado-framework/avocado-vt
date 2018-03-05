@@ -3,10 +3,13 @@ import time
 import re
 import os
 import tempfile
-import ConfigParser
 import threading
 import shutil
 import xml.dom.minidom
+try:
+    import configparser as ConfigParser
+except ImportError:
+    import ConfigParser
 
 from avocado.core import exceptions
 from avocado.utils import iso9660

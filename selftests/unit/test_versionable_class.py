@@ -1,9 +1,12 @@
 #!/usr/bin/python
 
 import unittest
-import cPickle
 import os
 import sys
+try:
+    import pickle as cPickle
+except ImportError:
+    import cPickle
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

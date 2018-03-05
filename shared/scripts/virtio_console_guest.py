@@ -20,6 +20,9 @@ import traceback
 import signal
 import time
 
+from six.moves import input
+
+
 if os.name == "posix":  # Linux
     os_linux = True
     import fcntl
@@ -1320,7 +1323,7 @@ def worker(virt):
     while not exiting:
         d = p.poll()
         if (d[0][1] == select.POLLIN):
-            out = raw_input()
+            out = input()
             try:
                 exec out
             except Exception:
@@ -1538,7 +1541,7 @@ def main_nt():
     sys.stdout.flush()
     while not exiting:
         try:
-            exec raw_input()
+            exec input()
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             print "On Guest exception from: \n" + "".join(

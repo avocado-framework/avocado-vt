@@ -1,9 +1,12 @@
 import ast
 import logging
 import os.path
-import ConfigParser
 import StringIO
 import platform
+try:
+    import configparser as ConfigParser
+except ImportError:
+    import ConfigParser
 
 
 class ConfigError(Exception):
@@ -48,7 +51,7 @@ class LibvirtConfigUnknownKeyError(ConfigError):
 class SectionlessConfig(object):
 
     """
-    This is a wrapper class for python's internal library ConfigParser except
+    This is a wrapper class for python's internal library configparser except
     allows manipulating sectionless configuration file with a dict-like way.
 
     Example config file test.conf:

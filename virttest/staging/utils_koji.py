@@ -1,12 +1,20 @@
-import HTMLParser
-import ConfigParser
 import os
 import time
 import logging
-import urllib
+try:
+    from html.parser import HTMLParser
+except ImportError:
+    from HTMLParser import HTMLParser
+try:
+    import configparser as ConfigParser
+except ImportError:
+    import ConfigParser
 
 from avocado.utils import path
 from avocado.utils import download
+
+from six.moves import urllib
+
 
 try:
     import koji
@@ -30,7 +38,7 @@ class KojiDownloadError(IOError):
                 "Last error: %s" % (self.url, self.timeout, self.last_error))
 
 
-class KojiDirIndexParser(HTMLParser.HTMLParser):
+class KojiDirIndexParser(HTMLParser):
 
     """
     Parser for HTML directory index pages, specialized to look for RPM links
@@ -40,7 +48,7 @@ class KojiDirIndexParser(HTMLParser.HTMLParser):
         """
         Initializes a new KojiDirListParser instance
         """
-        HTMLParser.HTMLParser.__init__(self)
+        HTMLParser.__init__(self)
         self.package_file_names = []
 
     def handle_starttag(self, tag, attrs):
@@ -512,7 +520,7 @@ class KojiClient(object):
                                        pkg.user,
                                        pkg.task)
         index_parser = KojiDirIndexParser()
-        index_parser.feed(urllib.urlopen(index_url).read())
+        index_parser.feed(urllib.request.urlopen(index_url).read())
 
         if pkg.subpackages:
             for p in pkg.subpackages:

@@ -23,7 +23,6 @@ for non-existant keys.
 
 import signal
 import logging
-import urlparse
 import re
 import weakref
 import time
@@ -33,6 +32,7 @@ import aexpect
 
 from avocado.utils import path
 from avocado.utils import process
+from six.moves import urllib
 
 from . import propcan
 from . import remote
@@ -982,7 +982,7 @@ def driver(**dargs):
     """
     # libvirt schme composed of driver + command
     # ref: http://libvirt.org/uri.html
-    scheme = urlparse.urlsplit(canonical_uri(**dargs))[0]
+    scheme = urllib.parse.urlsplit(canonical_uri(**dargs))[0]
     # extract just the driver, whether or not there is a '+'
     return scheme.split('+', 2)[0]
 

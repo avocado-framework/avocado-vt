@@ -1,8 +1,11 @@
-import cPickle
 import UserDict
 import os
 import logging
 import threading
+try:
+    import pickle as cPickle
+except ImportError:
+    import cPickle
 
 from avocado.core import exceptions
 

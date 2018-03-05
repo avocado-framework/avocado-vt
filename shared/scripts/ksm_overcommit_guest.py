@@ -17,6 +17,9 @@ import tempfile
 import datetime
 import math
 
+from six.moves import input
+
+
 PAGE_SIZE = 4096  # machine page size
 
 TMPFS_OVERHEAD = 0.0022  # overhead on 1MB of write data
@@ -230,7 +233,7 @@ def main():
     print "PASS: Start"
     end = False
     while not end:
-        sr = raw_input()
+        sr = input()
         exec sr
 
 
