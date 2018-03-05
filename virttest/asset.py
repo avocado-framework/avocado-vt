@@ -1,19 +1,22 @@
-import urllib2
 import logging
 import os
 import re
 import string
 import types
 import glob
-import ConfigParser
 import StringIO
 import shutil
+try:
+    import configparser as ConfigParser
+except ImportError:
+    import ConfigParser
 
 from avocado.utils import process
 from avocado.utils import genio
 from avocado.utils import crypto
 from avocado.utils import download
 from avocado.utils import git
+from six.moves import urllib
 
 from . import data_dir
 
@@ -26,7 +29,7 @@ class ConfigLoader:
 
     def __init__(self, cfg, tmpdir=data_dir.get_tmp_dir(), raise_errors=False):
         """
-        Instantiate ConfigParser and load data.
+        Instantiate configparser and load data.
 
         :param cfg: Where we'll get configuration data. It can be either:
                 * A URL containing the file
@@ -486,7 +489,7 @@ def download_file(asset_info, interactive=False, force=False):
     if sha1_url is not None:
         try:
             logging.info("Verifying expected SHA1 sum from %s", sha1_url)
-            sha1_file = urllib2.urlopen(sha1_url)
+            sha1_file = urllib.request.urlopen(sha1_url)
             sha1_contents = sha1_file.read()
             sha1 = sha1_contents.split(" ")[0]
             logging.info("Expected SHA1 sum: %s", sha1)

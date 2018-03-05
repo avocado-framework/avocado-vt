@@ -19,8 +19,11 @@ Avocado VT plugin
 import imp
 import logging
 import os
-import Queue
 import sys
+try:
+    import queue as Queue
+except ImportError:
+    import Queue
 
 from avocado.core import exceptions
 from avocado.core import test

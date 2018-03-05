@@ -1,13 +1,19 @@
 import os
 import posixpath
-import urlparse
-import urllib
 import logging
-import BaseHTTPServer
-import SimpleHTTPServer
+try:
+    from urllib.parse import unquote, urlparse
+except ImportError:
+    from urllib import unquote
+    from urlparse import urlparse
+try:
+    from http.server import HTTPServer, SimpleHTTPRequestHandler
+except ImportError:
+    from BaseHTTPServer import HTTPServer
+    from SimpleHTTPServer import SimpleHTTPRequestHandler
 
 
-class HTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class HTTPRequestHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         """
@@ -87,8 +93,8 @@ class HTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
         """
         # abandon query parameters
-        path = urlparse.urlparse(path)[2]
-        path = posixpath.normpath(urllib.unquote(path))
+        path = urlparse(path)[2]
+        path = posixpath.normpath(unquote(path))
         words = path.split('/')
         words = filter(None, words)
         path = self.server.cwd
@@ -117,7 +123,7 @@ class HTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 
 def http_server(port=8000, cwd=None, terminate_callable=None):
-    http = BaseHTTPServer.HTTPServer(('', port), HTTPRequestHandler)
+    http = HTTPServer(('', port), HTTPRequestHandler)
     http.timeout = 1
 
     if cwd is None:

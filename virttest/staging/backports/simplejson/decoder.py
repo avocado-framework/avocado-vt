@@ -6,6 +6,11 @@ import struct
 
 from scanner import make_scanner
 
+try:
+    unichr
+except NameError:
+    unichr = chr
+
 
 def _import_c_scanstring():
     try:

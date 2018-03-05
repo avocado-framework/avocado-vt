@@ -21,8 +21,6 @@ Downloads blobs defined in assets. Assets are .ini files that contain the
 import sys
 import os
 import logging
-import urllib2
-
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, 'virttest')):
@@ -33,6 +31,10 @@ from virttest import asset
 from avocado.core.output import TERM_SUPPORT
 
 from logging_config import LoggingConfig
+
+
+from six.moves import input
+from six.moves import urllib
 
 
 def download_assets():
@@ -53,8 +55,8 @@ def download_assets():
                           TERM_SUPPORT.header_str(asset_info['title']),
                           asset_info['destination']))
             logging.info(asset_msg)
-    indexes = raw_input("Type the index for the assets you want to "
-                        "download (comma separated, leave empty to abort): ")
+    indexes = input("Type the index for the assets you want to "
+                    "download (comma separated, leave empty to abort): ")
 
     index_list = []
 
@@ -72,7 +74,7 @@ def download_assets():
         asset_info = all_assets_sorted[idx]
         try:
             asset.download_file(asset_info, interactive=True)
-        except urllib2.HTTPError as http_error:
+        except urllib.error.HTTPError as http_error:
             logging.error("HTTP Error %s: URL %s",
                           http_error.code,
                           asset_info['url'])

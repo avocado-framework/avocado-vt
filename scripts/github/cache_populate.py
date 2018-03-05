@@ -6,14 +6,17 @@ import getpass
 from github import Github
 from github_issues import GithubIssues
 
-gh = Github(login_or_token=raw_input("Enter github username: "),
+from six.moves import input
+
+
+gh = Github(login_or_token=input("Enter github username: "),
             password=getpass.getpass('Enter github password: '),
             user_agent='PyGithub/Python')
 
 print "Enter location (<user>/<repo>)",
 repo_full_name = 'avocado-framework/avocado-vt'
-repo_full_name = raw_input("or blank for '%s': "
-                           % repo_full_name).strip() or repo_full_name
+repo_full_name = input("or blank for '%s': "
+                       % repo_full_name).strip() or repo_full_name
 
 print
 

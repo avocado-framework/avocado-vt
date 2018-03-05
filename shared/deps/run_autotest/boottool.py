@@ -12,11 +12,13 @@ import sys
 import optparse
 import logging
 import subprocess
-import urllib
 import tarfile
 import tempfile
 import shutil
 import struct
+
+from six.moves import urllib
+
 
 #
 # Get rid of DeprecationWarning messages on newer Python version while still
@@ -1431,7 +1433,7 @@ class Grubby(object):
                 # then try to grab it from github
                 try:
                     tarball = os.path.join(topdir, tarball_name)
-                    urllib.urlretrieve(GRUBBY_TARBALL_URI, tarball)
+                    urllib.request.urlretrieve(GRUBBY_TARBALL_URI, tarball)
                     f = open(tarball)
                 except Exception:
                     return None

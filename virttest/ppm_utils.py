@@ -10,6 +10,10 @@ import time
 import re
 import glob
 import logging
+
+from functools import reduce
+
+
 try:
     from PIL import Image
 except ImportError:

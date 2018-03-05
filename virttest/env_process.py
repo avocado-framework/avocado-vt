@@ -7,8 +7,11 @@ import threading
 import shutil
 import sys
 import copy
-import urllib2
 import multiprocessing
+try:
+    from urllib.request import ProxyHandler, build_opener, install_opener
+except ImportError:
+    from urllib2 import ProxyHandler, build_opener, install_opener
 
 import aexpect
 from avocado.utils import process as avocado_process
@@ -632,9 +635,9 @@ def preprocess(test, params, env):
         for proxy in re.split(r"[,;]\s*", params["network_proxies"]):
             proxy = dict([re.split(r"_proxy:\s*", proxy)])
             proxies.update(proxy)
-        handler = urllib2.ProxyHandler(proxies)
-        opener = urllib2.build_opener(handler)
-        urllib2.install_opener(opener)
+        handler = ProxyHandler(proxies)
+        opener = build_opener(handler)
+        install_opener(opener)
 
     vm_type = params.get('vm_type')
 

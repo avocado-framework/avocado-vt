@@ -2,7 +2,10 @@ import os
 import sys
 import logging
 import imp
-import Queue
+try:
+    import queue as Queue
+except ImportError:
+    import Queue
 
 from autotest.client import test
 from autotest.client.shared import error

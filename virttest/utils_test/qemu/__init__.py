@@ -31,6 +31,9 @@ from virttest.qemu_devices import qdevices
 from virttest.staging import utils_memory
 
 
+from functools import reduce
+
+
 def guest_active(vm):
     o = vm.monitor.info("status")
     if isinstance(o, str):

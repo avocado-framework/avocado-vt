@@ -769,7 +769,7 @@ def run_avocado(vm, params, test, testlist=[], timeout=3600,
             return True
         if "pip" in installtype:
             cmd = "python -m pip --version || python -c \"import os; import sys;"
-            cmd += " import urllib;f = urllib.urlretrieve(\'https://bootstrap.pypa.io/get-pip.py\')[0]; "
+            cmd += " from six.moves import urllib;f = urllib.urlretrieve(\'https://bootstrap.pypa.io/get-pip.py\')[0]; "
             cmd += "os.system(\'%s %s\' % (sys.executable, f))\""
             if session.cmd_status(cmd) > 0:
                 logging.error("pip installation failed")

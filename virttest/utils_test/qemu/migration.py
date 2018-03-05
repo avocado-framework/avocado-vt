@@ -4,7 +4,6 @@ High-level migration test utility functions.
 This module includes framework and some public functions.
 """
 
-import cPickle
 import errno
 import fcntl
 import logging
@@ -13,6 +12,11 @@ import socket
 import threading
 import time
 import re
+try:
+    import pickle as cPickle
+except ImportError:
+    import cPickle
+
 from avocado.core import exceptions
 from avocado.utils import crypto
 from avocado.utils import data_factory
@@ -26,6 +30,7 @@ from virttest import utils_misc
 from virttest import env_process
 from autotest.client.shared import error
 from autotest.client.shared import utils
+
 try:
     import aexpect
 except ImportError:

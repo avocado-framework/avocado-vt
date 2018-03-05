@@ -2,7 +2,10 @@ import os
 import logging
 import signal
 import threading
-import Queue
+try:
+    import queue as Queue
+except ImportError:
+    import Queue
 
 import aexpect
 

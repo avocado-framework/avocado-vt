@@ -8,8 +8,11 @@ import glob
 import shutil
 import tempfile
 import logging
-import ConfigParser
 import re
+try:
+    import configparser as ConfigParser
+except ImportError:
+    import ConfigParser
 
 from avocado.core import exceptions
 from avocado.utils import process

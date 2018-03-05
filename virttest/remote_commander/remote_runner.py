@@ -27,6 +27,9 @@ import remote_interface
 import messenger as ms
 
 
+from six.moves import input
+
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 logfile = tempfile.mktemp(suffix='.log', prefix='remote_runner', dir="/tmp")
@@ -653,7 +656,7 @@ class CommanderSlaveCmds(CommanderSlave):
         Starts interactive python.
         """
         while 1:
-            out = raw_input()
+            out = input()
             if out == "":
                 return
             try:

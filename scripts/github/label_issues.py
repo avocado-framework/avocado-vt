@@ -6,11 +6,14 @@ from github import Github
 from github_issues import GithubIssues, MutableIssue
 
 
+from six.moves import input
+
+
 def set_labels(mutable_issue):
     print "Enter replacement github labels, blank to end:"
     labels = []
     while True:
-        label = raw_input("labels[%d]: " % (len(labels) + 1))
+        label = input("labels[%d]: " % (len(labels) + 1))
         label = label.strip()
         if label:
             try:
@@ -26,14 +29,14 @@ def set_labels(mutable_issue):
         mutable_issue['labels'] = labels
 
 
-gh = Github(login_or_token=raw_input("Enter github username: "),
+gh = Github(login_or_token=input("Enter github username: "),
             password=getpass.getpass('Enter github password: '),
             user_agent='PyGithub/Python')
 
 print "Enter location (<user>/<repo>)",
 repo_full_name = 'avocado-framework/avocado-vt'
-repo_full_name = raw_input("or blank for '%s': "
-                           % repo_full_name).strip() or repo_full_name
+repo_full_name = input("or blank for '%s': "
+                       % repo_full_name).strip() or repo_full_name
 print
 
 issues = GithubIssues(gh, repo_full_name)
