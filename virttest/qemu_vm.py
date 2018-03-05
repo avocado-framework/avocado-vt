@@ -158,6 +158,7 @@ class VM(virt_vm.BaseVM):
         self.start_monotonic_time = 0.0
         self.last_boot_index = 0
         self.last_driver_index = 0
+        self.serial_free_port = []
 
     def verify_alive(self):
         """
@@ -458,7 +459,15 @@ class VM(virt_vm.BaseVM):
             serial_id = "serial_id_%s" % name
             cmd = " -chardev socket"
             cmd += _add_option("id", serial_id)
-            cmd += _add_option("path", filename)
+            if params.get('serial_sockproto', 'unix') == 'tcp':
+                cmd += _add_option("host", '0.0.0.0')
+                begin_p = 12000 + random.randint(1, 1000)
+                end_p = 33000
+                free_port = utils_misc.find_free_port(begin_p, end_p)
+                cmd += _add_option("port", str(free_port))
+                self.serial_free_port.append(free_port)
+            else:
+                cmd += _add_option("path", filename)
             cmd += _add_option("server", "NO_EQUAL_STRING")
             cmd += _add_option("nowait", "NO_EQUAL_STRING")
             if '86' in params.get('vm_arch_name', arch.ARCH):
@@ -2361,10 +2370,15 @@ class VM(virt_vm.BaseVM):
             logging.warning("No serial ports defined!")
             return
         log_name = "serial-%s-%s.log" % (tmp_serial, self.name)
+        tcp_flag = self.params.get('serial_sockproto')
+        if 'tcp' in tcp_flag:
+            nc_cmd = "nc %s %s" % ("0.0.0.0", str(self.serial_free_port[0]))
+        else:
+            nc_cmd = "nc -U %s" % self.get_serial_console_filename(tmp_serial)
         self.serial_console_log = os.path.join(utils_misc.get_log_file_dir(),
                                                log_name)
         self.serial_console = aexpect.ShellSession(
-            "nc -U %s" % self.get_serial_console_filename(tmp_serial),
+            nc_cmd,
             auto_close=False,
             output_func=utils_misc.log_line,
             output_params=(log_name,),
