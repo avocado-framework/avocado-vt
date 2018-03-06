@@ -13,6 +13,9 @@ import sys
 import os
 import glob
 
+import six
+
+
 # Globals
 CHUNKSIZE = 65536
 
@@ -244,11 +247,11 @@ class FileTransferClient(object):
             msg = self._receive_msg()
         except FileTransferError:
             # No error message -- re-raise original exception
-            raise e[0], e[1], e[2]
+            six.reraise(*e)
         if msg == RSS_ERROR:
             errmsg = self._receive_packet()
             raise FileTransferServerError(errmsg)
-        raise e[0], e[1], e[2]
+        six.reraise(*e)
 
 
 class FileUploadClient(FileTransferClient):

@@ -9,6 +9,7 @@ except ImportError:
 
 from autotest.client import test
 from autotest.client.shared import error
+import six
 
 from virttest import asset
 from virttest import bootstrap
@@ -55,7 +56,7 @@ class virt(test.test):
         except Queue.Empty:
             pass
         else:
-            raise exc[1], None, exc[2]
+            six.reraise(exc[1], None, exc[2])
 
     def run_once(self, params):
         # Convert params to a Params object

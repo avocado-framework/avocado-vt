@@ -51,6 +51,9 @@ from . import utils_disk
 from .staging import utils_koji
 from .xml_utils import XMLTreeFile
 
+import six
+
+
 ARCH = platform.machine()
 
 
@@ -113,7 +116,7 @@ class InterruptedThread(threading.Thread):
                     s = error_context.exception_context(self._e[1])
                     s = error_context.join_contexts(error_context.get_context(), s)
                     error_context.set_exception_context(self._e[1], s)
-                    raise self._e[0], self._e[1], self._e[2]
+                    six.reraise(*self._e)
             else:
                 return self._retval
         finally:
