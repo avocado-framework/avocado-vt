@@ -62,6 +62,8 @@ if 'AUTOTEST_PATH' in os.environ:
 
 from autotest.client.shared import error
 
+import six
+
 
 def cleanup_env(env_filename, env_version):
     """
@@ -206,7 +208,7 @@ class VirtTest(test.Test):
         except Queue.Empty:
             pass
         else:
-            raise exc[1], None, exc[2]
+            six.reraise(exc[1], None, exc[2])
 
     def __safe_env_save(self, env):
         """
@@ -278,7 +280,7 @@ class VirtTest(test.Test):
         # If a dependency test prior to this test has failed, let's fail
         # it right away as TestNA.
         if params.get("dependency_failed") == 'yes':
-            raise error.TestNAError("Test dependency failed")
+            raise exceptions.TestSkipError("Test dependency failed")
 
         # Report virt test version
         logging.info(version.get_pretty_version_info())
@@ -305,8 +307,8 @@ class VirtTest(test.Test):
             d = os.path.join(*d.split("/"))
             subtestdir = os.path.join(self.bindir, d, "tests")
             if not os.path.isdir(subtestdir):
-                raise error.TestError("Directory %s does not "
-                                      "exist" % subtestdir)
+                raise exceptions.TestError("Directory %s does not "
+                                           "exist" % subtestdir)
             subtest_dirs += data_dir.SubdirList(subtestdir,
                                                 test_filter)
 
@@ -360,7 +362,7 @@ class VirtTest(test.Test):
             if subtest_dir is None:
                 msg = ("Could not find test file %s.py on test"
                        "dirs %s" % (t_type, subtest_dirs))
-                raise error.TestError(msg)
+                raise exceptions.TestError(msg)
             # Load the test module
             f, p, d = imp.find_module(t_type, [subtest_dir])
             test_modules[t_type] = imp.load_module(t_type, f, p, d)
@@ -403,8 +405,8 @@ class VirtTest(test.Test):
                     test_passed = True
                     error_message = funcatexit.run_exitfuncs(env, t_type)
                     if error_message:
-                        raise error.TestWarn("funcatexit failed with: %s" %
-                                             error_message)
+                        raise exceptions.TestWarn("funcatexit failed with: %s" %
+                                                  error_message)
 
                 except:  # nopep8 Old-style exceptions are not inherited from Exception()
                     stacktrace.log_exc_info(sys.exc_info(), 'avocado.test')
@@ -452,6 +454,6 @@ class VirtTest(test.Test):
                                      m.protocol, m.filename)
                     logging.info("The command line used to start it was:\n%s",
                                  vm.make_create_command())
-                raise error.JobError("Abort requested (%s)" % e)
+                raise exceptions.JobError("Abort requested (%s)" % e)
 
         return test_passed

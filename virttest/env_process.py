@@ -20,6 +20,7 @@ from avocado.utils import path
 from avocado.utils import distro
 from avocado.utils import cpu as cpu_utils
 from avocado.core import exceptions
+import six
 
 from . import error_context
 from . import qemu_monitor
@@ -512,7 +513,7 @@ def _process_images_parallel(image_func, test, params, vm_process_status=None):
         logging.error("Image processing failed:")
         for thread in threads:
             if thread.exc_info:     # Throw the first failure
-                raise thread.exc_info[1], None, thread.exc_info[2]
+                six.reraise(thread.exc_info[1], None, thread.exc_info[2])
     del exit_event
     del threads[:]
 
