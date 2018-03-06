@@ -5,6 +5,7 @@ import os
 import tempfile
 import threading
 import shutil
+import stat
 import xml.dom.minidom
 try:
     import configparser as ConfigParser
@@ -124,7 +125,8 @@ class RemoteInstall(object):
         return os.path.join(self.path, filename)
 
     def close(self):
-        os.chmod(self.path, 0755)
+        os.chmod(self.path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP |
+                 stat.S_IROTH | stat.S_IXOTH)
         logging.debug("unattended http server %s successfully created",
                       self.get_url())
 
