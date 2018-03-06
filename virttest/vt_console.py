@@ -98,6 +98,7 @@ class ConsoleSession(object):
     For more detailed function call information,
     you may need to refer to aexpect.client.ShellSession().
     """
+
     def __init__(self, manager):
         self.__manager = manager
         self.__closed = False
@@ -165,6 +166,11 @@ class ConsoleSession(object):
     def send_ctrl(self, *args, **kwargs):
         self.__verify_session_status()
         return self.__manager.proxy_call(self.send_ctrl.__name__,
+                                         *args, **kwargs)
+
+    def set_linesep(self, *args, **kwargs):
+        self.__verify_session_status()
+        return self.__manager.proxy_call(self.set_linesep.__name__,
                                          *args, **kwargs)
 
     def read_nonblocking(self, *args, **kwargs):
