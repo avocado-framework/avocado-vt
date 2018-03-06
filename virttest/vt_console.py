@@ -43,6 +43,7 @@ class ConsoleManager(object):
 
     def __init__(self):
         self._console = None
+        self.status_test_command = None
         self._lock = threading.Lock()
 
     def __getstate__(self):
@@ -82,6 +83,8 @@ class ConsoleManager(object):
 
     def set_console(self, console):
         self._console = console
+        if self._console is not None:
+            self.status_test_command = self._console.status_test_command
 
     @lock
     def proxy_call(self, func, *args, **kwargs):
@@ -101,6 +104,7 @@ class ConsoleSession(object):
 
     def __init__(self, manager):
         self.__manager = manager
+        self.status_test_command = manager.status_test_command
         self.__closed = False
 
     def __repr__(self):
@@ -192,3 +196,8 @@ class ConsoleSession(object):
         self.__verify_session_status()
         return self.__manager.proxy_call(
             self.read_until_any_line_matches.__name__, *args, **kwargs)
+
+    def read_up_to_prompt(self, *args, **kwargs):
+        self.__verify_session_status()
+        return self.__manager.proxy_call(self.read_up_to_prompt.__name__,
+                                         *args, **kwargs)
