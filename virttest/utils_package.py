@@ -40,6 +40,7 @@ class RemotePackageMgr(object):
         self.query_cmd = None
         self.install_cmd = None
         self.remove_cmd = None
+        self.clean_cmd = None
         self.session = session
 
         # Inspect and set package manager
@@ -56,10 +57,20 @@ class RemotePackageMgr(object):
             self.query_cmd = "dpkg -s "
             self.remove_cmd = "apt-get --purge remove -y "
             self.install_cmd = "apt-get install -y "
+            self.clean_cmd = "apt-get clean"
         else:
             self.query_cmd = "rpm -q "
             self.remove_cmd = self.package_manager + " remove -y "
             self.install_cmd = self.package_manager + " install -y "
+            self.clean_cmd = self.package_manager + " clean all"
+
+    def clean(self):
+        """
+        Run clean command to refresh repo db
+
+        :return: True or False
+        """
+        return not self.session.cmd_status(self.clean_cmd)
 
     def is_installed(self, pkg_name):
         """
@@ -89,8 +100,13 @@ class RemotePackageMgr(object):
             if need:
                 cmd = self.cmd + pkg
                 if self.session.cmd_status(cmd, timeout):
-                    logging.error("Operate %s with %s failed", pkg, cmd)
-                    return False
+                    # Try to clean the repo db and re-try installation
+                    if not self.clean():
+                        logging.error("Package %s was broken", self.package_manager)
+                        return False
+                    if self.session.cmd_status(cmd, timeout):
+                        logging.error("Operate %s with %s failed", pkg, cmd)
+                        return False
         return True
 
     def install(self, timeout=300):
