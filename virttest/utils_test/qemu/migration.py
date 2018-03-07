@@ -22,6 +22,7 @@ from avocado.utils import crypto
 from avocado.utils import data_factory
 from avocado.utils import path as utils_path
 from avocado.utils import process
+from avocado.utils.data_structures import DataSize
 from virttest import data_dir
 from virttest import remote
 from virttest import storage
@@ -30,6 +31,7 @@ from virttest import utils_misc
 from virttest import env_process
 from autotest.client.shared import error
 from autotest.client.shared import utils
+
 
 try:
     import aexpect
@@ -1266,7 +1268,7 @@ class MigrationBase(object):
         self.bg_stress_test = params.get("bg_stress_test")
         self.check_running_cmd = params.get("check_running_cmd")
         self.max_speed = params.get("max_migration_speed", "1000")
-        self.max_speed = utils.convert_data_size(self.max_speed, "M")
+        self.max_speed = DataSize('%sM' % self.max_speed).b
         self.need_set_speed = params.get("need_set_speed", "yes") == "yes"
         self.WAIT_SHORT = 15
 
