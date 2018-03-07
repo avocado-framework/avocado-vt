@@ -4,8 +4,8 @@ import re
 import string
 import types
 import glob
-import StringIO
 import shutil
+from six import StringIO
 try:
     import configparser as ConfigParser
 except ImportError:
@@ -64,7 +64,7 @@ class ConfigLoader:
             # Config file is just a string, convert it to a python file like
             # object using StringIO
             else:
-                self.cfg = StringIO.StringIO(cfg)
+                self.cfg = StringIO(cfg)
                 self.parser.readfp(self.cfg)
 
     def get(self, section, option, default=None):

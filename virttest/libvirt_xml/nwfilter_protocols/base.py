@@ -2,7 +2,7 @@
 Common base classes for filter rule protocols
 """
 
-from StringIO import StringIO
+from six import StringIO
 
 from virttest import xml_utils
 from virttest.libvirt_xml import base, xcepts, accessors
