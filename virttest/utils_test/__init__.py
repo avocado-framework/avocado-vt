@@ -59,9 +59,9 @@ from ..staging import utils_memory
 # >>> utils_test.qemu.SomeClass()
 #
 # pylint: disable=unused-import
-from . import qemu
-from . import libvirt
-from . import libguestfs
+from virttest.utils_test import qemu
+from virttest.utils_test import libvirt
+from virttest.utils_test import libguestfs
 
 
 # This is so that other tests won't break when importing the names
