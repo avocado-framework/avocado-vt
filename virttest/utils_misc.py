@@ -2109,8 +2109,7 @@ def get_host_cpu_models():
         """
         Update the cpu flags get from host to a certain order and format
         """
-        flag_list = re.split("\s+", cpu_flags.strip())
-        flag_list.sort()
+        flag_list = sorted(re.split("\s+", cpu_flags.strip()))
         cpu_flags = " ".join(flag_list)
         return cpu_flags
 
@@ -2118,8 +2117,7 @@ def get_host_cpu_models():
         """
         Update the check pattern to a certain order and format
         """
-        pattern_list = re.split(",", flags.strip())
-        pattern_list.sort()
+        pattern_list = sorted(re.split(",", flags.strip()))
         pattern = r"(\b%s\b)" % pattern_list[0]
         for i in pattern_list[1:]:
             pattern += r".+(\b%s\b)" % i
@@ -2343,7 +2341,8 @@ def get_qemu_version(params):
     :return: A dict contain qemu versoins info as {'major': int, 'minor': int,
     'update': int, 'is_rhev': bool}
     """
-    version = {'major': None, 'minor': None, 'update': None, 'is_rhev': False}
+    version = {'major': None, 'minor': None, 'update': None, 'is_rhev': False,
+               'is_ma': False}
     regex = r'\s*[Ee]mulator [Vv]ersion\s*(\d+)\.(\d+)\.(\d+)'
 
     qemu_binary = get_qemu_binary(params)
@@ -2356,6 +2355,8 @@ def get_qemu_version(params):
             version['update'] = int(search_result.group(3))
         if "rhev" in str(line).lower():
             version['is_rhev'] = True
+        elif "ma" in str(line).lower():
+            version['is_ma'] = True
     if None in version.values():
         logging.error("Local install qemu version cannot be detected, "
                       "the version info is: %s" % version_raw)
@@ -2363,14 +2364,16 @@ def get_qemu_version(params):
     return version
 
 
-def compare_qemu_version(major, minor, update, is_rhev=True, params={}):
+def compare_qemu_version(major, minor, update, is_rhev=True, is_ma=True,
+                         params={}):
     """
     Check if local install qemu versions is newer than provided version.
 
     :param major: The major version to be compared.
     :param minor: The minor version to be compared.
     :param update: The update version to be compared.
-    :param is_rhev: If the qemu is a rhev version.
+    :param is_rhev: If the qemu may be a rhev version.
+    :param is_ma: If the qemu may be a ma version.
     :param params: Other params.
     :return: True means local installed version is equal or newer than the
     version provided, otherwise False will be returned.
@@ -2379,8 +2382,10 @@ def compare_qemu_version(major, minor, update, is_rhev=True, params={}):
     if installed_version is None:
         logging.error("Cannot get local qemu version, return False directly.")
         return False
-    if is_rhev != installed_version['is_rhev']:
-        return False
+    if is_rhev or is_ma:
+        if not ((is_rhev and installed_version['is_rhev']) or
+                (is_ma and installed_version['is_ma'])):
+            return False
     installed_version_value = installed_version['major'] * 1000000 + \
         installed_version['minor'] * 1000 + \
         installed_version['update']
