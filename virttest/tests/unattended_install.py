@@ -676,8 +676,7 @@ class UnattendedInstallConfig(object):
 
             start_unattended_server_thread(self.unattended_server_port,
                                            self.tmpdir)
-        else: 
-            # Does nothing
+        else:
             return
 
         # Point installation to this kickstart url
