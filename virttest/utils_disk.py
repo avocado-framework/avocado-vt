@@ -6,6 +6,7 @@ Virtualization test - Virtual disk related utility functions
 import os
 import glob
 import shutil
+import stat
 import tempfile
 import logging
 import re
@@ -201,7 +202,8 @@ class Disk(object):
             shutil.copyfile(src, dst)
 
     def close(self):
-        os.chmod(self.path, 0755)
+        os.chmod(self.path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP |
+                 stat.S_IROTH | stat.S_IXOTH)
         cleanup(self.mount)
         logging.debug("Disk %s successfully set", self.path)
 
@@ -383,7 +385,8 @@ class CdromDisk(Disk):
                  '%s' % (self.path, self.mount))
         process.run(g_cmd, verbose=DEBUG)
 
-        os.chmod(self.path, 0755)
+        os.chmod(self.path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP |
+                 stat.S_IROTH | stat.S_IXOTH)
         cleanup(self.mount)
         logging.debug("unattended install CD image %s successfully created",
                       self.path)
@@ -434,7 +437,8 @@ class CdromInstallDisk(Disk):
                  '-boot-load-size 4 -boot-info-table -f -R -J -V -T %s'
                  % (self.path, boot, self.mount))
         process.run(m_cmd)
-        os.chmod(self.path, 0755)
+        os.chmod(self.path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP |
+                 stat.S_IROTH | stat.S_IXOTH)
         cleanup(self.mount)
         cleanup(self.source_cdrom)
         logging.debug("unattended install CD image %s successfully created",
