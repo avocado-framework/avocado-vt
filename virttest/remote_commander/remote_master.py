@@ -386,7 +386,7 @@ class CommanderMaster(messenger.Messenger):
         if timeout is not None:
             time_step = timeout / 10.0
         w = wait_timeout(timeout)
-        while (w.next()):
+        while (next(w)):
             r_cmd = self.listen_messenger(time_step)
             if r_cmd is not None and r_cmd == m_cmd.basecmd:
                 return m_cmd
