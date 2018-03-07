@@ -242,7 +242,8 @@ class TransparentHugePageConfig(object):
             if f[2]:
                 for name in f[2]:
                     f_dir = os.path.join(base_dir, name)
-                    parameter = file(f_dir, 'r').read()
+                    with open(f_dir, 'r') as param_f:
+                        parameter = param_f.read()
                     logging.debug("Reading path %s: %s", f_dir,
                                   parameter.strip())
                     try:
@@ -271,7 +272,8 @@ class TransparentHugePageConfig(object):
             for path in list(self.test_config.keys()):
                 logging.info("Writing path %s: %s", path,
                              self.test_config[path])
-                file(path, 'w').write(self.test_config[path])
+                with open(path, 'w') as cfg_f:
+                    cfg_f.write(self.test_config[path])
 
     def value_listed(self, value):
         """

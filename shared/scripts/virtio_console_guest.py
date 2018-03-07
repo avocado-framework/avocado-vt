@@ -1419,13 +1419,17 @@ class Daemon:
 
         sys.stdout.flush()
         sys.stderr.flush()
-        si = file(self.stdin, 'r')
-        so = file(self.stdout, 'w')
-        se = file(self.stderr, 'w')
+        si = open(self.stdin, 'r')
+        so = open(self.stdout, 'w')
+        se = open(self.stderr, 'w')
 
         os.dup2(si.fileno(), sys.stdin.fileno())
         os.dup2(so.fileno(), sys.stdout.fileno())
         os.dup2(se.fileno(), sys.stderr.fileno())
+
+        si.close()
+        so.close()
+        se.close()
 
         sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
         sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 0)
