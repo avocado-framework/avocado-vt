@@ -21,17 +21,16 @@ import re
 import time
 import logging
 from functools import reduce
+
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
 from avocado.utils import process
+
 from virttest import error_context
 from virttest import utils_misc
 from virttest import qemu_monitor
 from virttest.qemu_devices import qdevices
 from virttest.staging import utils_memory
-
-
-from functools import reduce
 
 
 def guest_active(vm):

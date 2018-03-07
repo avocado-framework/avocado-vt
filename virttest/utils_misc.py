@@ -3895,7 +3895,7 @@ class SELinuxBoolean(object):
         self.ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.server_ip)
         if self.server_ip:
             # Setup SSH connection
-            from utils_conn import SSHConnection
+            from virttest.utils_conn import SSHConnection
             self.ssh_obj = SSHConnection(params)
             ssh_timeout = int(params.get("ssh_timeout", 10))
             self.ssh_obj.conn_setup(timeout=ssh_timeout)

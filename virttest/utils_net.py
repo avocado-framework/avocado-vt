@@ -19,13 +19,13 @@ from avocado.core import exceptions
 from avocado.utils import path as utils_path
 from avocado.utils import process
 
-import openvswitch
-import remote
-from . import data_dir
-from . import propcan
-from . import utils_misc
-from . import arch
-from .versionable_class import factory
+from virttest import openvswitch
+from virttest import remote
+from virttest import data_dir
+from virttest import propcan
+from virttest import utils_misc
+from virttest import arch
+from virttest.versionable_class import factory
 
 CTYPES_SUPPORT = True
 try:

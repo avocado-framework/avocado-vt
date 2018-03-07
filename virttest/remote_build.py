@@ -3,8 +3,8 @@ import re
 import hashlib
 import logging
 
-import remote
-from . import data_dir
+from virttest import remote
+from virttest import data_dir
 
 
 class BuildError(Exception):
