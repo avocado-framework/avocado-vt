@@ -1,1 +1,1 @@
-import unattended_install
+from virttest.tests import unattended_install
