@@ -15,7 +15,8 @@ import traceback
 from virttest import qemu_monitor
 from virttest import utils_misc
 
-from virttest.qemu_devices import qbuses
+# TODO: solve the circular import problem
+import qbuses
 from virttest.qemu_devices.utils import DeviceError
 
 try:
