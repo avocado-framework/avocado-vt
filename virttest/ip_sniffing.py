@@ -9,8 +9,8 @@ import re
 import aexpect
 from avocado.utils import path as utils_path
 
-from virttest.remote import handle_prompts
-from virttest.utils_misc import log_line
+from remote import handle_prompts
+from utils_misc import log_line
 
 
 class AddrCache(object):

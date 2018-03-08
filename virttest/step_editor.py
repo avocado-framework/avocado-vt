@@ -15,7 +15,7 @@ import logging
 import pygtk
 import gtk
 
-from virttest import ppm_utils
+import ppm_utils
 
 pygtk.require('2.0')
 
