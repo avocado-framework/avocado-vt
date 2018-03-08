@@ -5,12 +5,18 @@ information in background, redirect the outputs to log files.
 
 import threading
 import shelve
-import commands
 import re
 import os
 import sys
 import random
 import string
+import subprocess
+
+
+def getstatusoutput(cmd):
+    sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    output = sp.communicate()[0].strip()
+    return (sp.poll(), output)
 
 
 class Runner(object):
@@ -29,20 +35,20 @@ class Runner(object):
         fd = shelve.open(p_file)
         fd["pid"] = os.getpid()
         fd.close()
-        commands.getoutput("%s &> %s_monitor" % (m_cmd, r_path))
+        subprocess.call("%s &> %s_monitor" % (m_cmd, r_path), shell=True)
 
     def thread_kill(self, cmd, p_file):
         """
         Kill the process according to its parent pid and command
         """
         fd = shelve.open(p_file)
-        _, o = commands.getstatusoutput("pstree -p %s" % fd["pid"])
+        _, o = getstatusoutput("pstree -p %s" % fd["pid"])
         try:
             tmp = cmd.split()[0]
             pid = re.findall("%s.(\d+)" % tmp, o)[0]
         except IndexError:
             return (0, "")
-        s, o = commands.getstatusoutput("kill -9 %s" % pid)
+        s, o = getstatusoutput("kill -9 %s" % pid)
         fd.close()
         return (s, o)
 
@@ -51,7 +57,7 @@ class Runner(object):
         Test thread
         """
         self.kill_thread_flag = True
-        s, o = commands.getstatusoutput(t_cmd)
+        s, o = getstatusoutput(t_cmd)
         if s != 0:
             print "Test failed or timeout: %s" % o
         if self.kill_thread_flag:

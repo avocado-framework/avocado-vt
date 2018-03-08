@@ -13,7 +13,6 @@ import stat
 import signal
 import re
 import logging
-import commands
 import subprocess
 import fcntl
 import sys
@@ -348,7 +347,8 @@ def kill_process_tree(pid, sig=signal.SIGKILL):
     """
     if not safe_kill(pid, signal.SIGSTOP):
         return
-    children = commands.getoutput("ps --ppid=%d -o pid=" % pid).split()
+    children = process.system_output("ps --ppid=%d -o pid=" % pid,
+                                     shell=True, ignore_status=True).split()
     for child in children:
         kill_process_tree(int(child), sig)
     safe_kill(pid, sig)
@@ -806,10 +806,10 @@ def get_full_pci_id(pci_id):
     :param pci_id: PCI ID of a device.
     """
     cmd = "lspci -D | awk '/%s/ {print $1}'" % pci_id
-    status, full_id = commands.getstatusoutput(cmd)
-    if status != 0:
+    try:
+        return process.system_output(cmd, shell=True)
+    except process.CmdError:
         return None
-    return full_id
 
 
 def get_pci_id_using_filter(pci_filter, session=None):
@@ -877,7 +877,8 @@ def get_vendor_from_pci_id(pci_id):
     :param pci_id: PCI ID of a device.
     """
     cmd = "lspci -n | awk '/%s/ {print $3}'" % pci_id
-    return re.sub(":", " ", commands.getoutput(cmd))
+    return re.sub(":", " ", process.system_output(cmd, shell=True,
+                                                  ignore_status=True))
 
 
 def get_dev_pts_max_id():
@@ -888,8 +889,8 @@ def get_dev_pts_max_id():
     """
     cmd = "ls /dev/pts/ | grep '^[0-9]*$' | sort -n"
     try:
-        max_id = process.run(cmd, verbose=False,
-                             shell=True).stdout.strip().split("\n")[-1]
+        max_id = process.system_output(cmd, verbose=False,
+                                       shell=True).strip().split("\n")[-1]
     except IndexError:
         return None
     pts_file = "/dev/pts/%s" % max_id
@@ -1238,7 +1239,8 @@ def qemu_has_option(option, qemu_path="/usr/bin/qemu-kvm"):
     :param option: Option need check.
     :param qemu_path: Path for qemu-kvm.
     """
-    hlp = commands.getoutput("%s -help" % qemu_path)
+    hlp = process.system_output("%s -help" % qemu_path, shell=True,
+                                ignore_status=True)
     return bool(re.search(r"^-%s(\s|$)" % option, hlp, re.MULTILINE))
 
 
@@ -2347,7 +2349,8 @@ def get_qemu_version(params):
     regex = r'\s*[Ee]mulator [Vv]ersion\s*(\d+)\.(\d+)\.(\d+)'
 
     qemu_binary = get_qemu_binary(params)
-    version_raw = commands.getoutput("%s -version" % qemu_binary).splitlines()
+    version_raw = process.system_output("%s -version" % qemu_binary,
+                                        shell=True).splitlines()
     for line in version_raw:
         search_result = re.search(regex, line)
         if search_result:
@@ -3077,7 +3080,7 @@ def get_image_snapshot(image_file):
             # if it's introduced in qemu-kvm, will need to update it here.
             # The "-U" is to avoid the qemu lock.
             cmd += " -U"
-        snap_info = process.run(cmd, ignore_status=False).stdout.strip()
+        snap_info = process.system_output(cmd, ignore_status=False).strip()
         snap_list = []
         if snap_info:
             pattern = "(\d+) +\d+ +.*"
@@ -3146,7 +3149,7 @@ def get_image_info(image_file):
             # Currently the qemu lock is introduced in qemu-kvm-rhev/ma,
             # The " -U" is to avoid the qemu lock.
             cmd += " -U"
-        image_info = process.run(cmd, ignore_status=False).stdout.strip()
+        image_info = process.system_output(cmd, ignore_status=False).strip()
         image_info_dict = {}
         vsize = None
         if image_info:
@@ -3629,8 +3632,8 @@ def get_pci_devices_in_group(str_flag=""):
 
     :param str_flag: the match string to filter devices.
     """
-    d_lines = process.run("lspci -bDnn | grep \"%s\"" % str_flag,
-                          shell=True).stdout
+    d_lines = process.system_output("lspci -bDnn | grep \"%s\"" % str_flag,
+                                    shell=True)
 
     devices = {}
     for line in d_lines.splitlines():
@@ -3674,8 +3677,8 @@ def get_pci_vendor_device(pci_id):
 
     :return: a 'vendor device' list include all matched devices
     """
-    matched_pci = process.run("lspci -n -s %s" % pci_id,
-                              ignore_status=True).stdout
+    matched_pci = process.system_output("lspci -n -s %s" % pci_id,
+                                        ignore_status=True)
     pci_vd = []
     for line in matched_pci.splitlines():
         for string in line.split():
@@ -3726,8 +3729,8 @@ def check_device_driver(pci_id, driver_type):
     if not os.path.isdir(device_driver):
         logging.debug("Make sure %s has binded driver.")
         return False
-    driver = process.run("readlink %s" % device_driver,
-                         ignore_status=True).stdout.strip()
+    driver = process.system_output("readlink %s" % device_driver,
+                                   ignore_status=True).strip()
     driver = os.path.basename(driver)
     logging.debug("% is %s, expect %s", pci_id, driver, driver_type)
     return driver == driver_type
@@ -3822,7 +3825,7 @@ class VFIOController(object):
         if process.run("ls %s" % grub_file, ignore_status=True).exit_status:
             grub_file = "/etc/grub.cfg"
 
-        grub_content = process.run("cat %s" % grub_file).stdout
+        grub_content = process.system_output("cat %s" % grub_file)
         for line in grub_content.splitlines():
             if re.search("vmlinuz.*intel_iommu=on", line):
                 return
@@ -3840,7 +3843,7 @@ class VFIOController(object):
         readlink_cmd = ("readlink /sys/bus/pci/devices/%s/iommu_group"
                         % pci_group_devices[0])
         try:
-            group_id = int(os.path.basename(process.run(readlink_cmd).stdout))
+            group_id = int(os.path.basename(process.system_output(readlink_cmd)))
         except ValueError as detail:
             raise exceptions.TestError("Get iommu group id failed:%s" % detail)
         return group_id
@@ -3849,8 +3852,8 @@ class VFIOController(object):
         """
         Get all devices in one group by its id.
         """
-        output = process.run("ls /sys/kernel/iommu_groups/%s/devices/"
-                             % group_id).stdout
+        output = process.system_output("ls /sys/kernel/iommu_groups/%s/devices/"
+                                       % group_id)
         group_devices = []
         for line in output.splitlines():
             devices = line.split()

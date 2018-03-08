@@ -6,7 +6,6 @@ import logging
 import os
 import shutil
 import tempfile
-import commands
 
 import aexpect
 from avocado.utils import path
@@ -975,7 +974,8 @@ class TLSConnection(ConnectionBase):
             if os.path.exists(cert_path):
                 shutil.rmtree(cert_path)
             else:
-                status, output = commands.getstatusoutput(cmd)
+                result = process.run(cmd, shell=True, ignore_status=True)
+                status, output = (result.exit_status, result.stdout.strip())
                 if status:
                     raise ConnRmCertError(cert_path, output)
 

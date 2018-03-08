@@ -16,6 +16,7 @@
 
 import os
 import sys
+import subprocess
 
 
 class DocBuildError(Exception):
@@ -27,11 +28,14 @@ class DocBuildError(Exception):
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 root_path = os.path.abspath(os.path.join("..", ".."))
 sys.path.insert(0, root_path)
-import commands
-_sphinx_apidoc = commands.getoutput('which sphinx-apidoc').strip()
+_sp = subprocess.Popen('which sphinx-apidoc', shell=True, stdout=subprocess.PIPE)
+_sphinx_apidoc = _sp.communicate()[0].strip()
 _output_dir = os.path.join(root_path, 'docs', 'source', 'api')
 _api_dir = os.path.join(root_path, 'virttest')
-_status, _output = commands.getstatusoutput("%s -o %s %s" % (_sphinx_apidoc, _output_dir, _api_dir))
+_sp = subprocess.Popen("%s -o %s %s" % (_sphinx_apidoc, _output_dir, _api_dir),
+                       shell=True, stdout=subprocess.PIPE)
+_output = _sp.communicate()[0].strip()
+_status = _sp.poll()
 if _status:
     raise DocBuildError("API rst auto generation failed: %s" % _output)
 

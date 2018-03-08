@@ -5,7 +5,6 @@ nfs mount and the local nfs set up and mount.
 import re
 import os
 import logging
-import commands
 
 from avocado.utils import path
 from avocado.utils import process
@@ -286,11 +285,8 @@ class NFSClient(object):
                                                                 self.mount_dir)
         cmd = self.ssh_cmd + "'%s'" % find_mountpoint_cmd
         logging.debug("The command: %s", cmd)
-        status, output = commands.getstatusoutput(cmd)
-        if status:
-            logging.debug("The command result: <%s:%s>", status, output)
+        if process.system(cmd, verbose=True, ignore_status=True, shell=True):
             return False
-
         return True
 
     def setup(self):
@@ -412,14 +408,15 @@ class NFSClient(object):
         """
         check_mount_dir_cmd = self.ssh_cmd + "'ls -d %s'" % self.mount_dir
         logging.debug("To check if the %s exists", self.mount_dir)
-        output = commands.getoutput(check_mount_dir_cmd)
+        output = process.system_output(check_mount_dir_cmd, shell=True,
+                                       ignore_status=True)
         if re.findall("No such file or directory", output, re.M):
             mkdir_cmd = self.ssh_cmd + "'mkdir -p %s'" % self.mount_dir
             logging.debug("Prepare to create %s", self.mount_dir)
-            s, o = commands.getstatusoutput(mkdir_cmd)
-            if s != 0:
-                raise exceptions.TestFail("Failed to run %s: %s" %
-                                          (mkdir_cmd, o))
+            try:
+                process.system(mkdir_cmd, verbose=True, shell=True)
+            except process.CmdError:
+                raise exceptions.TestFail("Failed to run: %s" % mkdir_cmd)
             self.mkdir_mount_remote = True
 
         if self.params.get("firewall_to_permit_nfs", "yes") == "yes":
