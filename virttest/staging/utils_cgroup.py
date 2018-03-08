@@ -13,7 +13,6 @@ import subprocess
 import time
 import re
 import random
-import commands
 from tempfile import mkdtemp
 
 from avocado.core import exceptions
@@ -174,7 +173,8 @@ class Cgroup(object):
         try:
             cgexec_cmd = ("cgexec -g %s:%s %s %s" %
                           (self.module, cgroup, cmd, args))
-            status, output = commands.getstatusoutput(cgexec_cmd)
+            result = process.run(cgexec_cmd, shell=True)
+            status, output = (result.exit_status, result.stdout.strip())
             return status, output
         except process.CmdError as detail:
             raise exceptions.TestFail("Execute %s in cgroup failed!\n%s" %

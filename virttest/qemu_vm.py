@@ -9,7 +9,6 @@ import os
 import logging
 import fcntl
 import re
-import commands
 import random
 
 from functools import partial
@@ -965,40 +964,6 @@ class VM(virt_vm.BaseVM):
             devices.insert(devs)
             return devices
 
-        def add_spice_rhel5(devices, spice_params, port_range=(3100, 3199)):
-            """
-            processes spice parameters on rhel5 host.
-
-            :param spice_params - string containing spice parameters
-            :param port_range - tuple with port range, default: (3000, 3199)
-            """
-
-            if devices.has_option("spice"):
-                cmd = " -spice"
-            else:
-                return ""
-            spice_help = ""
-            if devices.has_option("spice-help"):
-                spice_help = commands.getoutput("%s -device \\?" % qemu_binary)
-            s_port = str(utils_misc.find_free_port(*port_range))
-            cmd += " port=%s" % s_port
-            for param in spice_params.split():
-                value = params.get(param)
-                if value:
-                    if bool(re.search(param, spice_help, re.M)):
-                        cmd += ",%s=%s" % (param, value)
-                    else:
-                        msg = ("parameter %s is not supported in spice. It "
-                               "only supports the following parameters:\n %s"
-                               % (param, spice_help))
-                        logging.warn(msg)
-                else:
-                    cmd += ",%s" % param
-            if devices.has_option("qxl"):
-                qxl_dev_nr = params.get("qxl_dev_nr", 1)
-                cmd += " -qxl %s" % qxl_dev_nr
-            return cmd, s_port
-
         def add_spice(spice_options, port_range=(3000, 3199),
                       tls_port_range=(3200, 3399)):
             """
@@ -1403,9 +1368,12 @@ class VM(virt_vm.BaseVM):
         qemu_binary = utils_misc.get_qemu_binary(params)
 
         self.qemu_binary = qemu_binary
-        self.qemu_version = commands.getoutput("%s -version" %
-                                               qemu_binary).split(',')[0]
-        support_cpu_model = commands.getoutput("%s -cpu \\?" % qemu_binary)
+        self.qemu_version = process.system_output("%s -version" % qemu_binary,
+                                                  ignore_status=True,
+                                                  shell=True).split(',')[0]
+        support_cpu_model = process.system_output("%s -cpu \\?" % qemu_binary,
+                                                  ignore_status=True,
+                                                  shell=True)
 
         self.last_driver_index = 0
         # init the dict index_in_use
@@ -2074,34 +2042,28 @@ class VM(virt_vm.BaseVM):
         elif params.get("display") == "nographic":
             cmd += add_nographic()
         elif params.get("display") == "spice":
-            if params.get("rhel5_spice"):
-                spice_params = params.get("spice_params")
-                ret = add_spice_rhel5(devices, spice_params)
-                tmp_cmd, spice_options["spice_port"] = ret
-                cmd += tmp_cmd
-            else:
-                spice_keys = (
-                    "spice_port", "spice_password", "spice_addr", "spice_ssl",
-                    "spice_tls_port", "spice_tls_ciphers", "spice_gen_x509",
-                    "spice_x509_dir", "spice_x509_prefix",
-                    "spice_x509_key_file", "spice_x509_cacert_file",
-                    "spice_x509_key_password", "spice_x509_secure",
-                    "spice_x509_cacert_subj", "spice_x509_server_subj",
-                    "spice_secure_channels", "spice_plaintext_channels",
-                    "spice_image_compression", "spice_jpeg_wan_compression",
-                    "spice_zlib_glz_wan_compression", "spice_streaming_video",
-                    "spice_agent_mouse", "spice_playback_compression",
-                    "spice_ipv4", "spice_ipv6", "spice_x509_cert_file",
-                    "disable_copy_paste", "spice_seamless_migration",
-                    "listening_addr"
-                )
-                for skey in spice_keys:
-                    value = params.get(skey, None)
-                    if value is not None:
-                        # parameter can be defined as empty string in Cartesian
-                        # config.  Example: spice_password =
-                        spice_options[skey] = value
-                cmd += add_spice(spice_options)
+            spice_keys = (
+                "spice_port", "spice_password", "spice_addr", "spice_ssl",
+                "spice_tls_port", "spice_tls_ciphers", "spice_gen_x509",
+                "spice_x509_dir", "spice_x509_prefix",
+                "spice_x509_key_file", "spice_x509_cacert_file",
+                "spice_x509_key_password", "spice_x509_secure",
+                "spice_x509_cacert_subj", "spice_x509_server_subj",
+                "spice_secure_channels", "spice_plaintext_channels",
+                "spice_image_compression", "spice_jpeg_wan_compression",
+                "spice_zlib_glz_wan_compression", "spice_streaming_video",
+                "spice_agent_mouse", "spice_playback_compression",
+                "spice_ipv4", "spice_ipv6", "spice_x509_cert_file",
+                "disable_copy_paste", "spice_seamless_migration",
+                "listening_addr"
+            )
+            for skey in spice_keys:
+                value = params.get(skey, None)
+                if value is not None:
+                    # parameter can be defined as empty string in Cartesian
+                    # config.  Example: spice_password =
+                    spice_options[skey] = value
+            cmd += add_spice(spice_options)
         if cmd:
             devices.insert(StrDev('display', cmdline=cmd))
 
@@ -3271,8 +3233,8 @@ class VM(virt_vm.BaseVM):
         :return: the PID of the parent shell process.
         """
         try:
-            children = commands.getoutput("ps --ppid=%d -o pid=" %
-                                          self.process.get_pid()).split()
+            cmd = "ps --ppid=%d -o pid=" % self.process.get_pid()
+            children = process.system_output(cmd, ignore_status=True).split()
             return int(children[0])
         except (TypeError, IndexError, ValueError):
             return None
@@ -3283,11 +3245,10 @@ class VM(virt_vm.BaseVM):
 
         :return: the list of qemu SPIDs
         """
-        cmd = "ls /proc/%d/task" % self.get_pid()
-        status, output = commands.getstatusoutput(cmd)
-        if status:
+        try:
+            return os.listdir("/proc/%d/task" % self.get_pid())
+        except Exception:
             return []
-        return output.split()
 
     def get_shell_pid(self):
         """

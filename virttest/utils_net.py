@@ -8,7 +8,6 @@ import random
 import math
 import time
 import shelve
-import commands
 import signal
 import netifaces
 import netaddr
@@ -997,8 +996,8 @@ class Bridge(object):
         ebr_i = re.compile(r"^(\S+).*?(\S+)$", re.MULTILINE)
         br_i = re.compile(r"^(\S+).*?(\S+)\s+(\S+)$", re.MULTILINE)
         nbr_i = re.compile(r"^\s+(\S+)$", re.MULTILINE)
-        out_line = (process.run(r"%s show" % brctl_bin,
-                                verbose=False).stdout.splitlines())
+        out_line = (process.system_output(r"%s show" % brctl_bin,
+                                          verbose=False).splitlines())
         result = dict()
         bridge = None
 
@@ -1261,7 +1260,7 @@ def find_dnsmasq_listen_address():
     :return: List of ip where dnsmasq is listening.
     """
     cmd = "ps -Af | grep dnsmasq"
-    result = process.run(cmd).stdout
+    result = process.system_output(cmd)
     return re.findall("--listen-address (.+?) ", result, re.MULTILINE)
 
 
@@ -3096,7 +3095,8 @@ def verify_ip_address_ownership(ip, macs, timeout=20.0, devs=None):
         arping_bin = utils_path.find_command("arping")
         arping_cmd = "%s -f -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
                                                   dev, ip)
-        s, o = commands.getstatusoutput(arping_cmd)
+        result = process.run(arping_cmd, shell=True)
+        s, o = (result.exit_status, result.stdout.strip())
         if s != 0:
             return False
         return bool(regex.search(o))
@@ -3119,7 +3119,7 @@ def verify_ip_address_ownership(ip, macs, timeout=20.0, devs=None):
         ip_cmd = utils_path.find_command("ip")
         ip_cmd = "%s route get %s; %s -%d route | grep default" % (
             ip_cmd, ip, ip_cmd, ip_ver)
-        output = commands.getoutput(ip_cmd)
+        output = process.system_output(ip_cmd, shell=True, ignore_status=True)
         devs = set(re.findall(r"dev\s+(\S+)", output, re.I))
     if not devs:
         logging.debug("No path to %s in route table: %s" % (ip, output))
@@ -3255,7 +3255,7 @@ def get_correspond_ip(remote_ip):
     :param remote_ip: Remote ip
     :return: Local corespond IP.
     """
-    result = process.run("ip route get %s" % (remote_ip)).stdout
+    result = process.system_output("ip route get %s" % (remote_ip))
     local_ip = re.search("src (.+)", result)
     if local_ip is not None:
         local_ip = local_ip.groups()[0]

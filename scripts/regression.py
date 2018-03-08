@@ -9,14 +9,19 @@ compute and check regression bug.
 import os
 import sys
 import re
-import commands
 import warnings
+import subprocess
 try:
     import configparser as ConfigParser
 except ImportError:
     import ConfigParser
 
 import MySQLdb
+
+
+def getoutput(cmd):
+    sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    return sp.communicate()[0].strip()
 
 
 def exec_sql(cmd, conf="../../global_config.ini"):
@@ -117,12 +122,12 @@ class Sample(object):
 
             sysinfodir = os.path.join(os.path.dirname(files[0]), "../../sysinfo/")
             sysinfodir = os.path.realpath(sysinfodir)
-            cpuinfo = commands.getoutput("cat %s/cpuinfo" % sysinfodir)
-            lscpu = commands.getoutput("cat %s/lscpu" % sysinfodir)
-            meminfo = commands.getoutput("cat %s/meminfo" % sysinfodir)
-            lspci = commands.getoutput("cat %s/lspci_-vvnn" % sysinfodir)
-            partitions = commands.getoutput("cat %s/partitions" % sysinfodir)
-            fdisk = commands.getoutput("cat %s/fdisk_-l" % sysinfodir)
+            cpuinfo = getoutput("cat %s/cpuinfo" % sysinfodir)
+            lscpu = getoutput("cat %s/lscpu" % sysinfodir)
+            meminfo = getoutput("cat %s/meminfo" % sysinfodir)
+            lspci = getoutput("cat %s/lspci_-vvnn" % sysinfodir)
+            partitions = getoutput("cat %s/partitions" % sysinfodir)
+            fdisk = getoutput("cat %s/fdisk_-l" % sysinfodir)
 
             status_path = os.path.join(os.path.dirname(files[0]), "../status")
             status_file = open(status_path, 'r')
@@ -453,13 +458,13 @@ def analyze(test, sample_type, arg1, arg2, configfile):
         result_file_pattern = config.get(test, "result_file_pattern")
         cmd = 'find %s|grep "%s.*/%s"' % (directory, test, result_file_pattern)
         print cmd
-        return commands.getoutput(cmd)
+        return getoutput(cmd)
 
     if sample_type == 'filepath':
         arg1 = get_list(arg1)
         arg2 = get_list(arg2)
 
-    commands.getoutput("rm -f %s.*html" % test)
+    getoutput("rm -f %s.*html" % test)
     s1 = Sample(sample_type, arg1)
     avg1 = s1.getAvg(avg_update=avg_update)
     sd1 = s1.getSD()
