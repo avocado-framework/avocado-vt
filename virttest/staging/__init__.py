@@ -1,6 +1,6 @@
 __all__ = ['service', 'utils_cgroup', 'utils_koji', 'utils_memory']
-import service
-import utils_cgroup
-import utils_koji
-import utils_memory
-import backports
+from virttest.staging import service
+from virttest.staging import utils_cgroup
+from virttest.staging import utils_koji
+from virttest.staging import utils_memory
+from virttest.staging import backports
