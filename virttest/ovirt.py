@@ -14,7 +14,7 @@ try:
 except ImportError:
     logging.warning("ovirtsdk module not present, please install it")
 
-from virttest import virt_vm
+import virt_vm
 
 
 _api = None

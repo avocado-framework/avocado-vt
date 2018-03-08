@@ -9,9 +9,9 @@ except ImportError:
 
 from avocado.core import exceptions
 
-from virttest import virt_vm
-from virttest import ip_sniffing
-from virttest import remote
+import virt_vm
+import ip_sniffing
+import remote
 
 ENV_VERSION = 1
 

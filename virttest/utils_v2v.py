@@ -12,14 +12,14 @@ import logging
 from avocado.utils import path
 from avocado.utils import process
 
-from virttest import ovirt
-from virttest.utils_test import libvirt
-from virttest import libvirt_vm as lvirt
-from virttest import virsh
-from virttest import ppm_utils
-from virttest import data_dir
-from virttest import remote
-from virttest import utils_misc
+import ovirt
+from .utils_test import libvirt
+from . import libvirt_vm as lvirt
+from . import virsh
+from . import ppm_utils
+from . import data_dir
+from . import remote
+from . import utils_misc
 
 try:
     V2V_EXEC = path.find_command('virt-v2v')

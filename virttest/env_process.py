@@ -22,23 +22,23 @@ from avocado.utils import cpu as cpu_utils
 from avocado.core import exceptions
 import six
 
-from virttest import error_context
-from virttest import qemu_monitor
-from virttest import ppm_utils
-from virttest import test_setup
-from virttest import virt_vm
-from virttest import utils_misc
-from virttest import storage
-from virttest import qemu_storage
-from virttest import utils_libvirtd
-from virttest import remote
-from virttest import data_dir
-from virttest import utils_net
-from virttest import utils_disk
-from virttest import nfs
-from virttest import libvirt_vm
-from virttest.utils_version import VersionInterval
-from virttest.utils_test import libvirt
+from . import error_context
+from . import qemu_monitor
+from . import ppm_utils
+from . import test_setup
+from . import virt_vm
+from . import utils_misc
+from . import storage
+from . import qemu_storage
+from . import utils_libvirtd
+from . import remote
+from . import data_dir
+from . import utils_net
+from . import utils_disk
+from . import nfs
+from . import libvirt_vm
+from utils_version import VersionInterval
+from utils_test import libvirt
 
 try:
     import PIL.Image

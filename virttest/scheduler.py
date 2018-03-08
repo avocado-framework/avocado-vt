@@ -3,8 +3,8 @@ import select
 
 import aexpect
 
-from virttest import utils_env
-from virttest import virt_vm
+import utils_env
+import virt_vm
 
 
 class scheduler:

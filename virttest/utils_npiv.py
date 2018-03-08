@@ -2,15 +2,13 @@ import os
 import re
 import logging
 from tempfile import mktemp
-
 from avocado.core import exceptions
 from avocado.utils import process
-
-from virttest import virsh
-from virttest import utils_misc
-from virttest.utils_test import libvirt
-from virttest.libvirt_xml.nodedev_xml import NodedevXML
-from virttest.libvirt_xml.devices import hostdev
+from . import virsh
+from . import utils_misc
+from .utils_test import libvirt
+from libvirt_xml.nodedev_xml import NodedevXML
+from libvirt_xml.devices import hostdev
 
 
 _FC_HOST_PATH = "/sys/class/fc_host"

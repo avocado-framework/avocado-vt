@@ -10,8 +10,8 @@ import sys
 import time
 import inspect
 
-from virttest.remote_commander import remote_interface
-from virttest.remote_commander import messenger
+import remote_interface
+import messenger
 
 
 def getsource(obj):

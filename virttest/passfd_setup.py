@@ -2,8 +2,7 @@ import os
 # pylint: disable=E0611
 import distutils.ccompiler
 import distutils.sysconfig
-
-from virttest import data_dir
+import data_dir
 
 PYTHON_HEADERS = distutils.sysconfig.get_python_inc()
 PYTHON_VERSION = distutils.sysconfig.get_python_version()
@@ -42,10 +41,10 @@ def import_passfd():
     :return: passfd module
     '''
     try:
-        from virttest import passfd
+        import passfd
     except ImportError:
         passfd_setup()
-        from virttest import passfd
+        import passfd
 
     return passfd
 

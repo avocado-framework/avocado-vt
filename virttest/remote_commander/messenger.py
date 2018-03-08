@@ -18,7 +18,7 @@ try:
 except ImportError:
     import cPickle
 
-from virttest.remote_commander import remote_interface
+import remote_interface
 
 
 class IOWrapper(object):
