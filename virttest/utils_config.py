@@ -1,8 +1,8 @@
 import ast
 import logging
 import os.path
-import StringIO
 import platform
+from six import StringIO
 try:
     import configparser as ConfigParser
 except ImportError:
@@ -96,7 +96,7 @@ class SectionlessConfig(object):
         # Prevent of converting option names to lower case
         self.parser.optionxform = str
         self.backup_content = open(path, 'r').read()
-        read_fp = StringIO.StringIO('[root]\n' + self.backup_content)
+        read_fp = StringIO('[root]\n' + self.backup_content)
         self.parser.readfp(read_fp)
 
     def __sync_file(self):
@@ -130,7 +130,7 @@ class SectionlessConfig(object):
         return self.parser.has_option('root', item)
 
     def __str__(self):
-        write_fp = StringIO.StringIO()
+        write_fp = StringIO()
         self.parser.write(write_fp)
         return write_fp.getvalue().split('\n', 1)[1]
 

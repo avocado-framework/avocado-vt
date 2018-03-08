@@ -11,8 +11,11 @@ import os
 import logging
 import select
 import time
-import cStringIO
 import base64
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from six import StringIO
 try:
     import pickle as cPickle
 except ImportError:
@@ -292,7 +295,7 @@ class Messenger(object):
             while (rdata_len < cmd_len):
                 rdata += self.stdin.read(cmd_len - rdata_len)
                 rdata_len = len(rdata)
-            rdataIO = cStringIO.StringIO(self.stdin.decode(rdata))
+            rdataIO = StringIO(self.stdin.decode(rdata))
             unp = cPickle.Unpickler(rdataIO)
             unp.find_global = _map_path
             data = unp.load()
