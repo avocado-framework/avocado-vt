@@ -471,7 +471,7 @@ def create_subtests_cfg(t_type):
             if re.match("type\s*=.*", line):
                 cartesian_parser = cartesian_config.Parser()
                 cartesian_parser.parse_string(line)
-                td = cartesian_parser.get_dicts().next()
+                td = next(cartesian_parser.get_dicts())
                 values = td['type'].split(" ")
                 for value in values:
                     if t_type not in non_dropin_tests:
@@ -506,7 +506,7 @@ def create_subtests_cfg(t_type):
             if re.match("type\s*=.*", line):
                 cartesian_parser = cartesian_config.Parser()
                 cartesian_parser.parse_string(line)
-                td = cartesian_parser.get_dicts().next()
+                td = next(cartesian_parser.get_dicts())
                 values = td['type'].split(" ")
                 for value in values:
                     if value not in non_dropin_tests:

@@ -28,18 +28,18 @@ def _next(*args):
     :type iterator: iterator
     :param default: the value to return if the iterator raises StopIteration
     :type default: object
-    :return: The object returned by iterator.next()
+    :return: The object returned by next(iterator)
     :rtype: object
     """
     if len(args) == 2:
         try:
-            return args[0].next()
+            return next(args[0])
         except StopIteration:
             return args[1]
     elif len(args) > 2:
         raise TypeError("next expected at most 2 arguments, %s" % len(args))
     else:
-        return args[0].next()
+        return next(args[0])
 
 # pylint: disable=W0622
 # noinspection PyShadowingBuiltins

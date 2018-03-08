@@ -144,7 +144,7 @@ class StoragePool(object):
             head_iter = enumerate(head.split())
             while True:
                 try:
-                    (index, column) = head_iter.next()
+                    (index, column) = next(head_iter)
                 except StopIteration:
                     break
                 if re.match("[N|n]ame", column):
