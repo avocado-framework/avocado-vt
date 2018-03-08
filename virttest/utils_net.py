@@ -1714,7 +1714,7 @@ def refresh_neigh_table(interface_name=None, neigh_address="ff02::1"):
     elif isinstance(interface_name, str):
         interfaces = interface_name.split()
     else:
-        interfaces = filter(lambda x: "-" not in x, get_net_if())
+        interfaces = list(filter(lambda x: "-" not in x, get_net_if()))
         interfaces.remove("lo")
 
     for interface in interfaces:
@@ -3293,8 +3293,8 @@ def get_linux_ipaddr(session, nic):
     addrs = re.findall(rex, out, re.M)
     addrs = map(lambda x: x[1].split('/')[0], addrs)
     addrs = map(lambda x: netaddr.IPAddress(x), addrs)
-    ipv4_addr = filter(lambda x: x.version == 4, addrs)
-    ipv6_addr = filter(lambda x: x.version == 6, addrs)
+    ipv4_addr = list(filter(lambda x: x.version == 4, addrs))
+    ipv6_addr = list(filter(lambda x: x.version == 6, addrs))
     ipv4_addr = str(ipv4_addr[0]) if ipv4_addr else None
     ipv6_addr = str(ipv6_addr[0]) if ipv6_addr else None
     return (ipv4_addr, ipv6_addr)
@@ -3319,11 +3319,11 @@ def windows_mac_ip_maps(session):
     lines = [l for l in lines if re.match(regex, l)]
     for line in lines:
         line = re.sub(r"[\{\},\"]", "", line)
-        addr_info = map(str, re.split(r"\s+", line))
+        addr_info = list(map(str, re.split(r"\s+", line)))
         mac = addr_info.pop().lower().replace("-", ":")
         addrs = filter(None, map(str2ipaddr, addr_info))
-        ipv4_addr = filter(lambda x: x.version == 4, addrs)
-        ipv6_addr = filter(lambda x: x.version == 6, addrs)
+        ipv4_addr = list(filter(lambda x: x.version == 4, addrs))
+        ipv6_addr = list(filter(lambda x: x.version == 6, addrs))
         if ipv4_addr:
             maps[mac] = str(ipv4_addr[0])
         if ipv6_addr:

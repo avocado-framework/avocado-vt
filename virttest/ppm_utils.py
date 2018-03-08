@@ -105,7 +105,7 @@ def image_read_from_ppm_file(filename):
     data = fin.read()
     fin.close()
 
-    (w, h) = map(int, l2.split())
+    (w, h) = list(map(int, l2.split()))
     return (w, h, data)
 
 
@@ -204,7 +204,7 @@ def image_verify_ppm_file(filename):
         size = os.path.getsize(filename)
         fin = open(filename, "rb")
         assert(fin.readline().strip() == "P6")
-        (width, height) = map(int, fin.readline().split())
+        (width, height) = list(map(int, fin.readline().split()))
         assert(width > 0 and height > 0)
         assert(fin.readline().strip() == "255")
         size_read = fin.tell()
@@ -392,7 +392,7 @@ def image_histogram_compare(image_a, image_b, size=(0, 0)):
     img_a_h = img_a.resize(size).convert('RGB').histogram()
     img_b_h = img_b.resize(size).convert('RGB').histogram()
     s = 0
-    for i, j in zip(img_a_h, img_b_h):
+    for i, j in list(zip(img_a_h, img_b_h)):
         if i == j:
             s += 1
         else:

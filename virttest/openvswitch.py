@@ -305,7 +305,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         """
         :param trunk: list of vlans id.
         """
-        trunk = map(lambda x: str(x), trunk)
+        trunk = list(map(lambda x: str(x), trunk))
         trunk = "[" + ",".join(trunk) + "]"
         self.ovs_vsctl(["set", "Port", port_name, "trunk=%s" % trunk])
 

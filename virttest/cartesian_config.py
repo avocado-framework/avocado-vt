@@ -1263,7 +1263,7 @@ def next_nw(gener):
 
 
 def cmd_tokens(tokens1, tokens2):
-    for x, y in zip(tokens1, tokens2):
+    for x, y in list(zip(tokens1, tokens2)):
         if x != y:
             return False
     else:
@@ -1959,7 +1959,7 @@ class Parser(object):
 
     # Make name for test. Case: two dics were merged
     def mk_name(self, n1, n2):
-        common_prefix = n1[:[x[0] == x[1] for x in zip(n1, n2)].index(0)]
+        common_prefix = n1[:[x[0] == x[1] for x in list(zip(n1, n2))].index(0)]
         cp = ".".join(common_prefix.split('.')[:-1])
         p1 = re.sub(r"^"+cp, "", n1)
         p2 = re.sub(r"^"+cp, "", n2)

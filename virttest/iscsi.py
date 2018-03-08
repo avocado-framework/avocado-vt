@@ -242,7 +242,7 @@ class _IscsiComm(object):
         """
         sessions = iscsi_get_sessions()
         login = False
-        if self.target in map(lambda x: x[1], sessions):
+        if self.target in list(map(lambda x: x[1], sessions)):
             login = True
         return login
 
@@ -397,7 +397,7 @@ class IscsiTGT(_IscsiComm):
         cmd = "tgtadm --lld iscsi --op show --mode account"
         all_accounts = process.system_output(cmd)
         if all_accounts:
-            all_accounts = map(str.strip, all_accounts.splitlines()[1:])
+            all_accounts = list(map(str.strip, all_accounts.splitlines()[1:]))
         return all_accounts
 
     def add_chap_account(self):
@@ -438,7 +438,7 @@ class IscsiTGT(_IscsiComm):
                                         re.S)[0].strip().splitlines()
         except IndexError:
             target_account = []
-        return map(str.strip, target_account)
+        return list(map(str.strip, target_account))
 
     def set_chap_auth_target(self):
         """

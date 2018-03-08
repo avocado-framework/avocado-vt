@@ -2048,11 +2048,11 @@ class EGDConfig(object):
         backend_type = self.params["%s_type" % backend]
         path = "path_%s" % backend_type
         port = "port_%s" % backend_type
-        path, port = map(self.params.get, [path, port])
+        path, port = list(map(self.params.get, [path, port]))
         sockets = port and ["localhost:%s" % port] or []
         if path:
             sockets.append(path)
-        pids = filter(None, map(self.startup, sockets))
+        pids = list(filter(None, map(self.startup, sockets)))
         self.env.data["egd_pids"] = pids
 
     def cleanup(self):

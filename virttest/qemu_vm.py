@@ -818,7 +818,7 @@ class VM(virt_vm.BaseVM):
                     if key and val:
                         options.append("%s=%%(%s)s" % (key, key))
                     else:
-                        options += filter(None, info[:2])
+                        options += list(filter(None, info[:2]))
                 options = ",".join(options)
                 cmdline = "-%s %s" % (name, options)
                 device = qdevices.QStringDevice(name, cmdline=cmdline)

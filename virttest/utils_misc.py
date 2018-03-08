@@ -2095,7 +2095,7 @@ def get_recognized_cpuid_flags(qemu_binary="/usr/libexec/qemu-kvm"):
     out = process.system_output("%s -cpu ?" % qemu_binary)
     match = re.search("Recognized CPUID flags:(.*)", out, re.M | re.S)
     try:
-        return filter(None, re.split('\s', match.group(1)))
+        return list(filter(None, re.split('\s', match.group(1))))
     except AttributeError:
         pass
     return []
@@ -2410,7 +2410,8 @@ class ForAll(list):
 
     def __getattr__(self, name):
         def wrapper(*args, **kargs):
-            return map(lambda o: o.__getattribute__(name)(*args, **kargs), self)
+            return list(
+                map(lambda o: o.__getattribute__(name)(*args, **kargs), self))
         return wrapper
 
 
@@ -2429,7 +2430,7 @@ class ForAllP(list):
                                       args=args, kwargs=kargs))
             for t in threads:
                 t.start()
-            return map(lambda t: t.join(), threads)
+            return list(map(lambda t: t.join(), threads))
         return wrapper
 
 
