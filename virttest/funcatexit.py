@@ -28,7 +28,7 @@ def run_exitfuncs(env, test_type):
             try:
                 func(*targs, **kargs)
             except Exception as details:
-                error_message += "Error in %s:" % func.func_name
+                error_message += "Error in %s:" % func.__name__
                 error_message += " %s\n" % details
                 traceback.print_exc()
 
@@ -47,7 +47,7 @@ def register(env, test_type, func, *targs, **kargs):
     param kargs: optional keyword arguments to pass to func
     """
     # Check for unpickable arguments
-    if func.func_name not in func.func_globals:
+    if func.__name__ not in func.__globals__:
         raise exceptions.TestError("Trying to register function '%s', which is not "
                                    "declared at module scope (not in globals). "
                                    "Please contact the test developer to fix it."
