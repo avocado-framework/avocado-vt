@@ -272,7 +272,11 @@ class TestPropCan(unittest.TestCase):
             __slots__ = ('foo', 'bar', 'baz')
         testcan = FooBar()
         self.assertEqual(len(testcan), 0)
-        for value in ('foobar', u'foobar', 1, 1.1, 12345L, ):
+        try:
+            tmp_long = 12345L
+        except SyntaxError:
+            tmp_long = 12345
+        for value in ('foobar', u'foobar', 1, 1.1, tmp_long, ):
             setattr(testcan, 'bar', value)
             self.assertEqual(len(testcan), 1)
             self.assertTrue(testcan == {'bar': value})
