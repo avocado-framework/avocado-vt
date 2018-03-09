@@ -20,7 +20,7 @@ def getsource(obj):
 
 def wait_timeout(timeout):
     if timeout is None:
-        while 1:
+        while True:
             yield True
     else:
         end_time = time.time() + timeout
