@@ -60,7 +60,7 @@ Make sure you have them or a real spare device to test things.
 """
 # Define the partitions you want to use.
 #
-from autotest.client import partition
+from avocado.utils import partition
 import re
 
 disks=[]

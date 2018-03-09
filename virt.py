@@ -8,8 +8,10 @@ except ImportError:
     import Queue
 
 from autotest.client import test
-from autotest.client.shared import error
+
 import six
+
+from avocado.core import exceptions
 
 from virttest import asset
 from virttest import bootstrap
@@ -65,7 +67,7 @@ class virt(test.test):
         # If a dependency test prior to this test has failed, let's fail
         # it right away as TestNA.
         if params.get("dependency_failed") == 'yes':
-            raise error.TestNAError("Test dependency failed")
+            raise exceptions.TestSkipError("Test dependency failed")
 
         # Report virt test version
         logging.info(version.get_pretty_version_info())
@@ -106,8 +108,8 @@ class virt(test.test):
                         d = os.path.join(*d.split("/"))
                         subtestdir = os.path.join(bin_dir, d, "tests")
                         if not os.path.isdir(subtestdir):
-                            raise error.TestError("Directory %s not"
-                                                  " exist." % (subtestdir))
+                            raise exceptions.TestError("Directory %s not"
+                                                       " exist." % (subtestdir))
                         subtest_dirs += data_dir.SubdirList(subtestdir,
                                                             bootstrap.test_filter)
 
@@ -153,7 +155,7 @@ class virt(test.test):
                         if subtest_dir is None:
                             msg = ("Could not find test file %s.py on tests"
                                    "dirs %s" % (t_type, subtest_dirs))
-                            raise error.TestError(msg)
+                            raise exceptions.TestError(msg)
                         # Load the test module
                         f, p, d = imp.find_module(t_type, [subtest_dir])
                         test_modules[t_type] = imp.load_module(t_type, f, p, d)
@@ -178,8 +180,8 @@ class virt(test.test):
                     test_passed = True
                     error_message = funcatexit.run_exitfuncs(env, t_type)
                     if error_message:
-                        raise error.TestWarn("funcatexit failed with: %s"
-                                             % error_message)
+                        raise exceptions.TestWarn("funcatexit failed with: %s"
+                                                  % error_message)
 
                 except Exception as e:
                     if t_type is not None:
@@ -225,4 +227,4 @@ class virt(test.test):
                     logging.info(
                         "The command line used to start '%s' was:\n%s",
                         vm.name, vm.make_create_command())
-                raise error.JobError("Abort requested (%s)" % e)
+                raise exceptions.JobError("Abort requested (%s)" % e)

@@ -23,14 +23,14 @@ from avocado.utils import data_factory
 from avocado.utils import path as utils_path
 from avocado.utils import process
 from avocado.utils.data_structures import DataSize
+
 from virttest import data_dir
 from virttest import remote
 from virttest import storage
 from virttest import utils_test
 from virttest import utils_misc
 from virttest import env_process
-from autotest.client.shared import error
-from autotest.client.shared import utils
+from virttest import error_context as error
 
 
 try:
@@ -1337,8 +1337,8 @@ class MigrationBase(object):
             logging.debug("Sending command: '%s'" % self.mig_bg_command)
             s, o = session.cmd_status_output(self.mig_bg_command)
             if s != 0:
-                raise error.TestError("Failed to run bg cmd in guest,"
-                                      " Output is '%s'." % o)
+                raise exceptions.TestError("Failed to run bg cmd in guest,"
+                                           " Output is '%s'." % o)
             time.sleep(5)
 
     def check_worker(self):
@@ -1358,8 +1358,8 @@ class MigrationBase(object):
             logging.info("Check the background command in the guest.")
             s, o = session.cmd_status_output(self.mig_bg_check_command)
             if s:
-                raise error.TestFail("Background command not found,"
-                                     " Output is '%s'." % o)
+                raise exceptions.TestFail("Background command not found,"
+                                          " Output is '%s'." % o)
             logging.info("Kill the background command in the guest.")
             session.sendline(self.mig_bg_kill_command)
             session.close()
@@ -1434,7 +1434,7 @@ class MigrationBase(object):
                 self.state = vm.monitor.get_migrate_capability(
                     self.capabilitys[i])
                 if self.state != self.capabilitys_state[i]:
-                    raise error.TestFail(
+                    raise exceptions.TestFail(
                         "The expected '%s' state: '%s',"
                         " Actual result: '%s'." % (
                             self.capabilitys[i],
@@ -1472,7 +1472,7 @@ class MigrationBase(object):
             cache_size = vm.monitor.get_migrate_cache_size()
             error.context("Get cache size: %s" % cache_size, logging.info)
             if cache_size != int(self.cache_size[index]):
-                raise error.TestFail(
+                raise exceptions.TestFail(
                     "The expected cache size: %s,"
                     " Actual result: %s." % (self.cache_size[index],
                                              cache_size))
@@ -1508,7 +1508,7 @@ class MigrationBase(object):
                 self.value = vm.monitor.get_migrate_parameter(
                     self.parameters[i])
                 if int(self.value) != int(self.parameters_value[i]):
-                    raise error.TestFail(
+                    raise exceptions.TestFail(
                         "The expected '%s' value: '%s',"
                         " Actual result: '%s'." % (
                             self.parameters[i],
@@ -1616,8 +1616,8 @@ class MigrationBase(object):
                         logging.info("The background test in guest is "
                                      "finished before kill it.")
                 elif s:
-                    raise error.TestFail("Failed to kill the background"
-                                         " test in guest.")
+                    raise exceptions.TestFail("Failed to kill the background"
+                                              " test in guest.")
             except (aexpect.ShellStatusError, aexpect.ShellTimeoutError):
                 pass
         session.close()
@@ -1633,7 +1633,7 @@ class MigrationBase(object):
         vm = self.env.get_vm(self.params["main_vm"])
         session = vm.wait_for_login(timeout=self.login_timeout)
         error.context("Do stress test before migration.", logging.info)
-        bg = utils.InterruptedThread(
+        bg = utils_misc.InterruptedThread(
             utils_test.run_virt_sub_test,
             args=(self.test, self.params, self.env,),
             kwargs={"sub_type": self.bg_stress_test})
@@ -1645,8 +1645,8 @@ class MigrationBase(object):
 
         if self.check_running_cmd:
             if not utils_misc.wait_for(check_running, timeout=360):
-                raise error.TestFail("Failed to start %s in guest." %
-                                     self.bg_stress_test)
+                raise exceptions.TestFail("Failed to start %s in guest." %
+                                          self.bg_stress_test)
 
     @error.context_aware
     def install_stressapptest(self):
@@ -1672,5 +1672,5 @@ class MigrationBase(object):
         s, o = session.cmd_status_output(stressapptest_insatll_cmd)
         session.close()
         if s:
-            raise error.TestError("Failed to install stressapptest "
-                                  "in guest: '%s'" % o)
+            raise exceptions.TestError("Failed to install stressapptest "
+                                       "in guest: '%s'" % o)
