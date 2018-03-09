@@ -192,9 +192,10 @@ WHITESPACE = re.compile(r'[ \t\n\r]*', FLAGS)
 WHITESPACE_STR = ' \t\n\r'
 
 
-def JSONObject((s, end), encoding, strict, scan_once, object_hook,
+def JSONObject(tmp_tuple, encoding, strict, scan_once, object_hook,
                object_pairs_hook, memo=None,
                _w=WHITESPACE.match, _ws=WHITESPACE_STR):
+    s, end = tmp_tuple
     # Backwards compatibility
     if memo is None:
         memo = {}
@@ -285,7 +286,8 @@ def JSONObject((s, end), encoding, strict, scan_once, object_hook,
     return pairs, end
 
 
-def JSONArray((s, end), scan_once, _w=WHITESPACE.match, _ws=WHITESPACE_STR):
+def JSONArray(tmp_tuple, scan_once, _w=WHITESPACE.match, _ws=WHITESPACE_STR):
+    s, end = tmp_tuple
     values = []
     nextchar = s[end:end + 1]
     if nextchar in _ws:
