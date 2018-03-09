@@ -905,7 +905,7 @@ class Memory(QObject):
         args = (params["size"], "B", 1024)
         params["size"] = int(float(convert_size(*args)))
         if params.get("host-nodes"):
-            host_nodes = map(int, params["host-nodes"].split())
+            host_nodes = list(map(int, params["host-nodes"].split()))
             params["host-nodes"] = host_nodes
         kwargs = {"qom-type": backend,
                   "id": params.pop("id"),

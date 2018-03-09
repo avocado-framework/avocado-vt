@@ -949,7 +949,7 @@ class MultihostMigrationFd(MultihostMigration):
                 sockets.append(self._connect_to_server(srchost, mig_port))
             try:
                 fds = {}
-                for s, vm_name in zip(sockets, vms_name):
+                for s, vm_name in list(zip(sockets, vms_name)):
                     fds["migration_fd_%s" % vm_name] = s.fileno()
                 logging.debug("File descriptors %s used for"
                               " migration." % (fds))
@@ -970,7 +970,7 @@ class MultihostMigrationFd(MultihostMigration):
                 for s in sockets:
                     conns.append(s.accept()[0])
                 fds = {}
-                for conn, vm_name in zip(conns, vms_name):
+                for conn, vm_name in list(zip(conns, vms_name)):
                     fds["migration_fd_%s" % vm_name] = conn.fileno()
                 logging.debug("File descriptors %s used for"
                               " migration." % (fds))
@@ -1096,7 +1096,7 @@ class MultihostMigrationExec(MultihostMigration):
             mig_ports = mig_ports[dsthost]
             logging.debug("Migration port %s" % (mig_ports))
             mig_cmds = {}
-            for mig_port, vm_name in zip(mig_ports, vms_name):
+            for mig_port, vm_name in list(zip(mig_ports, vms_name)):
                 mig_dst_cmd = "nc -l %s %s" % (dsthost, mig_port)
                 mig_src_cmd = "nc %s %s" % (dsthost, mig_port)
                 mig_params["migration_exec_cmd_src_%s" %

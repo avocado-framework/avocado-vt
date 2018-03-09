@@ -1629,7 +1629,7 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
             check_exit_status(result, False)
             output = re.findall(r"(\S+)\ +(\S+)\ +(\S+|\s+)[\ +\n]",
                                 str(result.stdout))
-            if filter(lambda x: x[0] == iface_name, output[1:]):
+            if list(filter(lambda x: x[0] == iface_name, output[1:])):
                 list_find = True
             logging.debug("Find '%s' in virsh iface-list output: %s",
                           iface_name, list_find)
@@ -1654,8 +1654,8 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
             check_exit_status(result, False)
             output = re.findall(r"(\S+)\ +(\S+)\ +(\S+|\s+)[\ +\n]",
                                 str(result.stdout))
-            iface_state = filter(
-                lambda x: x[0] == iface_name, output[1:])[0][1]
+            iface_state = filter(lambda x: x[0] == iface_name, output[1:])
+            iface_state = list(iface_state)[0][1]
             # active corresponds True, otherwise return False
             check_pass = iface_state == "active"
         elif checkpoint == "ping":
@@ -1778,7 +1778,8 @@ def create_disk_xml(params):
             transport = params.get("transport")
             source_attrs = {'protocol': source_protocol, 'name': source_name}
             source_host = []
-            for host_name, host_port in zip(source_host_name, source_host_port):
+            for host_name, host_port in list(
+                    zip(source_host_name, source_host_port)):
                 source_host.append({'name': host_name,
                                     'port': host_port})
             if transport:
@@ -3112,7 +3113,8 @@ def new_disk_vol_name(pool_name):
         logging.error("This is not a disk pool")
         return None
     disk = poolxml.get_source().device_path[5:]
-    part_num = len(filter(lambda s: s.startswith(disk), get_parts_list()))
+    part_num = len(list(filter(lambda s: s.startswith(disk),
+                               get_parts_list())))
     return disk + str(part_num)
 
 

@@ -58,9 +58,9 @@ def compare_matrices(matrix1, matrix2, treshold=0.05):
     same = 0
 
     new_matrix = []
-    for line1, line2 in zip(matrix1, matrix2):
+    for line1, line2 in list(zip(matrix1, matrix2)):
         new_line = []
-        for element1, element2 in zip(line1, line2):
+        for element1, element2 in list(zip(line1, line2)):
             ratio = float(element2) / float(element1)
             if ratio < (1 - treshold):
                 regressions += 1
@@ -396,7 +396,7 @@ class IOzonePlotter(object):
         record size vs. throughput.
         """
         datasource_2d = os.path.join(self.output_dir, '2d-datasource-file')
-        for index, label in zip(range(2, 15), _LABELS[2:]):
+        for index, label in list(zip(range(2, 15), _LABELS[2:])):
             commands_path = os.path.join(self.output_dir, '2d-%s.do' % label)
             commands = ""
             commands += "set title 'Iozone performance: %s'\n" % label
@@ -423,7 +423,7 @@ class IOzonePlotter(object):
         commands that will create a parametric surface with file size vs.
         record size vs. throughput.
         """
-        for index, label in zip(range(1, 14), _LABELS[2:]):
+        for index, label in list(zip(range(1, 14), _LABELS[2:])):
             commands_path = os.path.join(self.output_dir, '%s.do' % label)
             commands = ""
             commands += "set title 'Iozone performance: %s'\n" % label

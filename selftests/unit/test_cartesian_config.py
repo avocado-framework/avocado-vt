@@ -23,7 +23,7 @@ class CartesianConfigTest(unittest.TestCase):
         result = list(parser.get_dicts())
         # as the dictionary list is very large, test each item individually:
         self.assertEquals(len(result), len(reference))
-        for resdict, refdict in zip(result, reference):
+        for resdict, refdict in list(zip(result, reference)):
             # checking the dict name first should make some errors more visible
             self.assertEquals(resdict.get('name'), refdict.get('name'))
             self.assertEquals(resdict, refdict)

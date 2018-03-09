@@ -249,8 +249,8 @@ class VirtioGuestPosix(VirtioGuest):
             if in_files is not None:
                 dev_names = os.listdir('/dev')
                 rep = re.compile(r"vport[0-9]+p[0-9]+")
-                dev_names = filter(
-                    lambda x: rep.match(x) is not None, dev_names)
+                dev_names = list(
+                    filter(lambda x: rep.match(x) is not None, dev_names))
                 if len(dev_names) != len(in_files):
                     print ("FAIL: Not all ports were successfully initialized "
                            "in /dev, only %d from %d." % (len(dev_names),
@@ -1507,7 +1507,8 @@ def main():
     s_stderr = sys.stderr.fileno()
 
     pid = filter(lambda x: x[0] != str(os.getpid()),
-                 daemon.is_file_open(stdout))[0][0]
+                 daemon.is_file_open(stdout))
+    pid = list(pid)[0][0]
 
     print "PASS: Start"
 

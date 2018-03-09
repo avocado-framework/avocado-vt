@@ -96,7 +96,7 @@ class HTTPRequestHandler(SimpleHTTPRequestHandler):
         path = urlparse(path)[2]
         path = posixpath.normpath(unquote(path))
         words = path.split('/')
-        words = filter(None, words)
+        words = list(filter(None, words))
         path = self.server.cwd
         for word in words:
             _, word = os.path.splitdrive(word)

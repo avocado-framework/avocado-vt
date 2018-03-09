@@ -2160,7 +2160,8 @@ class QMPMonitor(Monitor):
         output = str(self.info("block-jobs"))
         try:
             job = filter(lambda x: x.get("device") == device,
-                         eval(output))[0]
+                         eval(output))
+            job = list(job)[0]
         except Exception:
             pass
         return job
@@ -2176,7 +2177,8 @@ class QMPMonitor(Monitor):
         backing_file = None
         block_info = self.query("block")
         try:
-            image_info = filter(lambda x: x["device"] == device, block_info)[0]
+            image_info = filter(lambda x: x["device"] == device, block_info)
+            image_info = list(image_info)[0]
             backing_file = image_info["inserted"].get("backing_file")
         except Exception:
             pass

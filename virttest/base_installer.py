@@ -564,7 +564,7 @@ class KojiInstaller(BaseInstaller):
         for scratch_pkg_text in self.koji_scratch_pkgs:
             pkg = utils_koji.KojiScratchPkgSpec(scratch_pkg_text)
             rpm_urls = koji_client.get_scratch_pkg_urls(pkg)
-            file_names = map(os.path.basename, rpm_urls)
+            file_names = list(map(os.path.basename, rpm_urls))
             for f in file_names:
                 r = utils_koji.RPMFileNameInfo(f)
                 all_rpm_names.append(r.get_nvr_info()['name'])
@@ -580,7 +580,7 @@ class KojiInstaller(BaseInstaller):
         for scratch_pkg_text in self.koji_scratch_pkgs:
             pkg = utils_koji.KojiScratchPkgSpec(scratch_pkg_text)
             rpm_urls = koji_client.get_scratch_pkg_urls(pkg)
-            file_names = map(os.path.basename, rpm_urls)
+            file_names = list(map(os.path.basename, rpm_urls))
             all_rpm_file_names += file_names
         return all_rpm_file_names
 

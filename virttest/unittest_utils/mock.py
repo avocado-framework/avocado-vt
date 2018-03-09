@@ -64,7 +64,8 @@ class equality_comparator(argument_comparator):
             # recurse on lists/tuples
             if len(actual_arg) != len(expected_arg):
                 return False
-            for actual_item, expected_item in zip(actual_arg, expected_arg):
+            for actual_item, expected_item in list(
+                    zip(actual_arg, expected_arg)):
                 if not cls._compare(actual_item, expected_item):
                     return False
         elif isinstance(expected_arg, dict):
