@@ -10,6 +10,7 @@ import shutil
 import stat
 
 from avocado.core import data_dir
+from avocado.utils import distro
 
 if hasattr(sys, 'real_prefix'):
     # unlike default execution venv prefix does not contain /usr
@@ -203,7 +204,12 @@ def get_tmp_dir(public=True):
 
     :param public: If public for all users' access
     """
-    tmp_dir = data_dir.get_tmp_dir()
+    tmp_dir = None
+    # apparmor deny /tmp/* /var/tmp/* and cause failure across tests
+    # it is better to handle here
+    if distro.detect().name == 'Ubuntu':
+        tmp_dir = "/var/lib/libvirt/images"
+    tmp_dir = data_dir.get_tmp_dir(basedir=tmp_dir)
     if public:
         tmp_dir_st = os.stat(tmp_dir)
         os.chmod(tmp_dir, tmp_dir_st.st_mode | stat.S_IXUSR |
