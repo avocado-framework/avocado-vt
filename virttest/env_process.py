@@ -137,7 +137,7 @@ def preprocess_vm(test, params, env, name):
                         'aio_native')
         remove_test = 'remove_guest.without_disk'
         if not vm.exists() and (params.get("type") != "unattended_install" and
-                                params.get("type") != "svirt_install"):
+                                params.get("type") != "svirt_virt_install"):
             error_msg = "Test VM %s does not exist." % name
             if name == params.get("main_vm"):
                 error_msg += (" Consider adding '%s' test as the first one "
