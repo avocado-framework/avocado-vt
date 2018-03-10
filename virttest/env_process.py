@@ -119,7 +119,7 @@ def preprocess_vm(test, params, env, name):
     target = params.get('target')
 
     create_vm = False
-    if not vm:
+    if not vm or not isinstance(vm, virt_vm.BaseVM.lookup_vm_class(vm_type, target)):
         create_vm = True
     elif vm_type == 'libvirt':
         connect_uri = libvirt_vm.normalize_connect_uri(connect_uri)
