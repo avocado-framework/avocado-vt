@@ -9,6 +9,8 @@ import signal
 
 import aexpect
 
+from six.moves import xrange
+
 
 class SandboxException(Exception):
 

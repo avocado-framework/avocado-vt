@@ -1025,7 +1025,7 @@ class VM(virt_vm.BaseVM):
                     # if user didn't mention hugepage_pinnned_numa use
                     # numa_nodes to back all the numa nodes.
                     guest_numa = int(params.get("numa_nodes", 2))
-                    guest_numa = ','.join(map(str, range(guest_numa)))
+                    guest_numa = ','.join(map(str, list(range(guest_numa))))
                 virt_install_cmd += pin_hugepage(help_text, hp_size, guest_numa)
             else:
                 logging.error("Can't pin hugepage without hugepage enabled"

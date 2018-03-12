@@ -10,6 +10,8 @@ import shelve
 # Requires PyGithub version >= 1.13 for access to raw_data attribute
 import github
 
+from six.moves import xrange
+
 
 # Needed to not confuse cached 'None' objects
 class Nothing(object):

@@ -10,6 +10,8 @@ or match the autotest params into qemu qdev structure.
 import qdevices
 from utils import none_or_int
 
+from six.moves import xrange
+
 
 #
 # Bus representations

@@ -8,6 +8,8 @@ import logging
 import os
 import re
 
+from six.moves import xrange
+
 from . import storage
 from . import data_dir
 from . import utils_misc

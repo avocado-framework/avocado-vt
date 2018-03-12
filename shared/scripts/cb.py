@@ -5,6 +5,8 @@ import sys
 import os
 from optparse import OptionParser
 
+from six.moves import xrange
+
 
 def return_nonrandom_str(length):
     """

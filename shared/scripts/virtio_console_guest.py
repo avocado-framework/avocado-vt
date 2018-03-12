@@ -20,6 +20,7 @@ import traceback
 import signal
 import time
 
+from six.moves import xrange
 from six.moves import input
 
 

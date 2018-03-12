@@ -32,6 +32,7 @@ import aexpect
 
 from avocado.utils import path
 from avocado.utils import process
+
 from six.moves import urllib
 
 from . import propcan
@@ -324,7 +325,7 @@ class VirshSession(aexpect.ShellSession):
                 # output, this will fail to extract network name if use set
                 # number 2 in list of output splitlines like in function
                 # virsh.net_state_dict.
-                for i in reversed(range(len(output) - 1)):
+                for i in reversed(list(range(len(output) - 1))):
                     if match_func(output[i].strip(), patterns) is not None:
                         if re.split(patterns[match], output[i])[-1]:
                             output[i] = re.split(patterns[match],

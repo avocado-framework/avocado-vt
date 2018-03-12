@@ -169,7 +169,7 @@ def cpus_parser(cpulist):
             for cpulist in cpulist_list:
                 if "-" in cpulist:
                     tmp = re.split("-", cpulist)
-                    hyphens = hyphens + range(int(tmp[0]), int(tmp[-1]) + 1)
+                    hyphens = hyphens + list(range(int(tmp[0]), int(tmp[-1]) + 1))
                 elif "^" in cpulist:
                     tmp = re.split("\^", cpulist)[-1]
                     carets.append(int(tmp))
@@ -181,7 +181,7 @@ def cpus_parser(cpulist):
                                       "integer. (%s)", cpulist)
         elif "-" in cpulist:
             tmp = re.split("-", cpulist)
-            hyphens = range(int(tmp[0]), int(tmp[-1]) + 1)
+            hyphens = list(range(int(tmp[0]), int(tmp[-1]) + 1))
         elif "^" in cpulist:
             tmp = re.split("^", cpulist)[-1]
             carets.append(int(tmp))

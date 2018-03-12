@@ -18,6 +18,8 @@ from avocado.core import exceptions
 from avocado.utils import path as utils_path
 from avocado.utils import process
 
+from six.moves import xrange
+
 import openvswitch
 import remote
 from . import data_dir

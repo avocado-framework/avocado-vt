@@ -18,6 +18,8 @@ from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils import crypto
 
+from six.moves import xrange
+
 from .qemu_devices import qdevices, qcontainer
 from . import utils_misc
 from . import virt_vm

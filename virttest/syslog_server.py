@@ -41,7 +41,7 @@ class RequestHandler(SocketServer.BaseRequestHandler):
      LOG_WARNING,
      LOG_NOTICE,
      LOG_INFO,
-     LOG_DEBUG) = range(8)
+     LOG_DEBUG) = list(range(8))
 
     (LOG_KERN,
      LOG_USER,
@@ -54,7 +54,7 @@ class RequestHandler(SocketServer.BaseRequestHandler):
      LOG_UUCP,
      LOG_CRON,
      LOG_AUTHPRIV,
-     LOG_FTP) = range(12)
+     LOG_FTP) = list(range(12))
 
     (LOG_LOCAL0,
      LOG_LOCAL1,
@@ -63,7 +63,7 @@ class RequestHandler(SocketServer.BaseRequestHandler):
      LOG_LOCAL4,
      LOG_LOCAL5,
      LOG_LOCAL6,
-     LOG_LOCAL7) = range(16, 24)
+     LOG_LOCAL7) = list(range(16, 24))
 
     PRIORITY_NAMES = {
         LOG_ALERT: "alert",
