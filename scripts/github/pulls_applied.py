@@ -76,7 +76,8 @@ for number in issues.search(criteria):
     if issue['commits'] is not None:
         author_issues[issue['author']] = issue
 
-authors = sorted(author_issues.keys())
+authors = author_issues.keys()
+authors.sort()
 for author in authors:
     issue = author_issues[author]
     print "Pull #%d: '%s'" % (issue['number'], issue['summary'])

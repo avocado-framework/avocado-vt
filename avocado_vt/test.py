@@ -286,7 +286,8 @@ class VirtTest(test.Test):
         logging.info(version.get_pretty_version_info())
         # Report the parameters we've received and write them as keyvals
         logging.debug("Test parameters:")
-        keys = sorted(params.keys())
+        keys = params.keys()
+        keys.sort()
         for key in keys:
             logging.debug("    %s = %s", key, params[key])
 
