@@ -26,6 +26,13 @@ from . import utils_misc
 from . import arch
 from .versionable_class import factory
 
+
+try:
+    unicode
+except NameError:
+    unicode = str
+
+
 CTYPES_SUPPORT = True
 try:
     import ctypes
