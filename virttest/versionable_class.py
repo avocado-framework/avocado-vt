@@ -1,5 +1,8 @@
 import sys
-import types
+try:
+    from types import ClassType
+except ImportError:
+    Classtype = type
 
 
 """
@@ -176,7 +179,7 @@ def isclass(obj):
     :param obj: Object for inspection if obj is class.
     :return: true if the object is a class.
     """
-    return isinstance(obj, (type, types.ClassType))
+    return isinstance(obj, (type, ClassType))
 
 
 class ModuleWrapper(object):
