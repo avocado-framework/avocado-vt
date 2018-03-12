@@ -3,7 +3,9 @@ __author__ = "raphtee@google.com (Travis Miller)"
 import collections
 import re
 import sys
+
 from six import StringIO
+from six import string_types as basestring
 
 
 class StubNotFoundError(Exception):
