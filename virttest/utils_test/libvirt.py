@@ -1019,7 +1019,7 @@ class PoolVolumeTest(object):
             # and the max number of partitions depends on the disk label.
             # If pre_disk_vol is None, disk pool will have no volume
             pre_disk_vol = kwargs.get('pre_disk_vol', None)
-            if isinstance(pre_disk_vol, list) and len(pre_disk_vol):
+            if type(pre_disk_vol) == list and len(pre_disk_vol):
                 for vol in pre_disk_vol:
                     mk_part(device_name, vol)
         elif pool_type == "fs":

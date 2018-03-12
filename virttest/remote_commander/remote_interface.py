@@ -202,14 +202,14 @@ class BaseCmd(CmdMessage):
     def __str__(self):
         str_args = []
         for a in self.args:  # Format str value in args to "val"
-            if isinstance(a, str):
+            if type(a) is str:
                 str_args.append("\"%s\"" % a)
             else:
                 str_args.append(a)
 
         str_kargs = {}
         for key, val in self.kargs:   # Format str value in kargs to "val"
-            if isinstance(val, str):
+            if type(val) is str:
                 str_kargs[key] = "\"%s\"" % val
             else:
                 str_kargs[key] = val

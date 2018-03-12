@@ -135,7 +135,8 @@ class IOzoneAnalyzer(object):
         performance = []
         if label is not None:
             index = _LABELS.index(label)
-            sizes = sorted(utils_misc.unique([line[index] for line in results]))
+            sizes = utils_misc.unique([line[index] for line in results])
+            sizes.sort()
             for size in sizes:
                 r_results = [line for line in results if line[index] == size]
                 performance.append(self.average_performance(r_results, size))

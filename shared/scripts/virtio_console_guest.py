@@ -1512,7 +1512,7 @@ def main():
 
     print "PASS: Start"
 
-    while True:
+    while 1:
         ret = select.select([d_stderr,
                              d_stdout,
                              s_stdin],

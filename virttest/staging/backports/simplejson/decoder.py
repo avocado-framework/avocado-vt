@@ -122,7 +122,7 @@ def py_scanstring(s, end, encoding=None, strict=True,
     chunks = []
     _append = chunks.append
     begin = end - 1
-    while True:
+    while 1:
         chunk = _m(s, end)
         if chunk is None:
             raise JSONDecodeError(

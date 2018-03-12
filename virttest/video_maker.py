@@ -185,7 +185,8 @@ class GiEncoder(object):
                 logging.debug("Number of files to encode as video is zero")
             return
 
-        index_list = sorted([int(path[-8:-4]) for path in file_list])
+        index_list = [int(path[-8:-4]) for path in file_list]
+        index_list.sort()
 
         if self.verbose:
             logging.debug('Number of files to encode as video: %s' % no_files)

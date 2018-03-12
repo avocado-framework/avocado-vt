@@ -125,7 +125,8 @@ def is_vhbas_added(old_vhbas):
     :param old_vhbas: Pre-existing vhbas
     :return: True/False based on addition
     """
-    new_vhbas = sorted(find_hbas("vhba"))
+    new_vhbas = find_hbas("vhba")
+    new_vhbas.sort()
     old_vhbas.sort()
     if len(new_vhbas) - len(old_vhbas) >= 1:
         return True
@@ -139,7 +140,8 @@ def is_vhbas_removed(old_vhbas):
     :param old_vhbas: Pre-existing vhbas
     :return: True/False based on removal
     """
-    new_vhbas = sorted(find_hbas("vhba"))
+    new_vhbas = find_hbas("vhba")
+    new_vhbas.sort()
     old_vhbas.sort()
     if len(new_vhbas) - len(old_vhbas) < 0:
         return True
@@ -313,7 +315,8 @@ def is_mpath_devs_added(old_mpath_devs):
     :param old_mpaths: Pre-existing mpaths
     :return: True/False based on addition
     """
-    new_mpath_devs = sorted(find_mpath_devs())
+    new_mpath_devs = find_mpath_devs()
+    new_mpath_devs.sort()
     old_mpath_devs.sort()
     if len(new_mpath_devs) - len(old_mpath_devs) >= 1:
         return True

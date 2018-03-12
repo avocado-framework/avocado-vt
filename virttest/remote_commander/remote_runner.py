@@ -437,7 +437,7 @@ class CmdSlave(object):
                           sys.stdin.fileno(): stdin_pipe,
                           stdout_pipe: sys.stdout.fileno(),
                           stderr_pipe: sys.stderr.fileno()}
-                while True:
+                while 1:
                     d = p.poll()
                     w_ev = [x for x in d if x[0] in w_fds]
                     m_ev = [x for x in d if x[0] in m_fds]
@@ -655,7 +655,7 @@ class CommanderSlaveCmds(CommanderSlave):
         """
         Starts interactive python.
         """
-        while True:
+        while 1:
             out = input()
             if out == "":
                 return
