@@ -135,7 +135,7 @@ class Path:
     def findall(self, element):
         nodeset = [element]
         index = 0
-        while 1:
+        while True:
             try:
                 path = self.path[index]
                 index = index + 1

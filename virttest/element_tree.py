@@ -574,7 +574,7 @@ class ElementTree(object):
             source = open(source, "rb")
         if not parser:
             parser = XMLTreeBuilder()
-        while 1:
+        while True:
             data = source.read(32768)
             if not data:
                 break
@@ -929,7 +929,7 @@ class iterparse(object):
                 parser.EndNamespaceDeclHandler = handler
 
     def next(self):
-        while 1:
+        while True:
             try:
                 item = self._events[self._index]
             except IndexError:

@@ -60,7 +60,7 @@ class Machine(object):
         :param ifname: String or int. Int could be used only for virt Machine.
         :return: IPv6 link address.
         """
-        if self.is_virtual() and type(ifname) is int:
+        if self.is_virtual() and isinstance(ifname, int):
             ifname = self.vm.virtnet[ifname].g_nic_name
         return utils_net.ipv6_from_mac_addr(self.addrs[ifname]['mac'])
 

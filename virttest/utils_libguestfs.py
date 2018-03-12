@@ -132,7 +132,7 @@ class LibguestfsBase(propcan.PropCanBase):
         """
         Accessor method for 'timeout' property, timeout should be digit
         """
-        if type(timeout) is int:
+        if isinstance(timeout, int):
             self.__dict_set__('timeout', timeout)
         else:
             try:

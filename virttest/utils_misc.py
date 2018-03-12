@@ -2111,8 +2111,7 @@ def get_host_cpu_models():
         """
         Update the cpu flags get from host to a certain order and format
         """
-        flag_list = re.split("\s+", cpu_flags.strip())
-        flag_list.sort()
+        flag_list = sorted(re.split("\s+", cpu_flags.strip()))
         cpu_flags = " ".join(flag_list)
         return cpu_flags
 
@@ -2120,8 +2119,7 @@ def get_host_cpu_models():
         """
         Update the check pattern to a certain order and format
         """
-        pattern_list = re.split(",", flags.strip())
-        pattern_list.sort()
+        pattern_list = sorted(re.split(",", flags.strip()))
         pattern = r"(\b%s\b)" % pattern_list[0]
         for i in pattern_list[1:]:
             pattern += r".+(\b%s\b)" % i
