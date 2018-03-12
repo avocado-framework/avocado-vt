@@ -7,7 +7,7 @@ or match the autotest params into qemu qdev structure.
 :copyright: 2012-2013 Red Hat Inc.
 """
 # Autotest imports
-import qdevices
+from virttest.qemu_devices import qdevices
 from utils import none_or_int
 
 
