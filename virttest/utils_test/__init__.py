@@ -39,18 +39,18 @@ from avocado.utils import path
 from six.moves import xrange
 
 # Import from the top level virttest namespace
-from .. import asset
-from .. import bootstrap
-from .. import data_dir
-from .. import error_context
-from .. import qemu_virtio_port
-from .. import remote
-from .. import scan_autotest_results
-from .. import storage
-from .. import utils_misc
-from .. import utils_net
-from .. import virt_vm
-from ..staging import utils_memory
+from virttest import asset
+from virttest import bootstrap
+from virttest import data_dir
+from virttest import error_context
+from virttest import qemu_virtio_port
+from virttest import remote
+from virttest import scan_autotest_results
+from virttest import storage
+from virttest import utils_misc
+from virttest import utils_net
+from virttest import virt_vm
+from virttest.staging import utils_memory
 
 # Get back to importing submodules
 # This is essential for accessing these submodules directly from
@@ -59,9 +59,9 @@ from ..staging import utils_memory
 # >>> utils_test.qemu.SomeClass()
 #
 # pylint: disable=unused-import
-from . import qemu
-from . import libvirt
-from . import libguestfs
+from virttest.utils_test import qemu
+from virttest.utils_test import libvirt
+from virttest.utils_test import libguestfs
 
 
 # This is so that other tests won't break when importing the names
@@ -338,9 +338,9 @@ def get_memory_info(lvms):
 
     try:
         meminfo = "Host: memfree = "
-        meminfo += str(int(utils_memory.read_from_meminfo('MemFree')) / 1024) + "M; "
+        meminfo += str(int(utils_memory.read_from_meminfo('MemFree')) // 1024) + "M; "
         meminfo += "swapfree = "
-        mf = int(utils_memory.read_from_meminfo("SwapFree")) / 1024
+        mf = int(utils_memory.read_from_meminfo("SwapFree")) // 1024
         meminfo += str(mf) + "M; "
     except Exception as e:
         raise exceptions.TestFail("Could not fetch host free memory info, "
@@ -507,7 +507,7 @@ def run_file_transfer(test, params, env):
     transfer_timeout = int(params.get("transfer_timeout", 1000))
     clean_cmd = params.get("clean_cmd", "rm -f")
     filesize = int(params.get("filesize", 4000))
-    count = int(filesize / 10) or 1
+    count = int(filesize // 10) or 1
     host_path = tempfile.mktemp(prefix="tmp-", dir=test.tmpdir)
     if params.get("os_type") != 'windows':
         tmp_dir = params.get("tmp_dir", "/var/tmp")
@@ -920,7 +920,7 @@ def run_autotest(vm, session, control_path, timeout,
     The following params is used by the migration
     :param params: Test params used in the migration test
     """
-    from autotest.client.shared.settings import settings
+    from virttest.utils_test.settings import settings
     section_values = settings.get_section_values
 
     def directory_exists(remote_path):
@@ -1143,8 +1143,7 @@ def run_autotest(vm, session, control_path, timeout,
 
     # To avoid problems, let's make the test use the current AUTODIR
     # (autotest client path) location
-    from autotest.client import common
-    from autotest.client.shared import base_packages
+    from virttest.utils_test import common
     autotest_path = os.path.dirname(common.__file__)
     autotest_local_path = os.path.join(autotest_path, 'autotest-local')
     single_dir_install = os.path.isfile(autotest_local_path)
@@ -1156,8 +1155,17 @@ def run_autotest(vm, session, control_path, timeout,
     autotest_basename = os.path.basename(autotest_path)
     autotest_parentdir = os.path.dirname(autotest_path)
 
+    def has_pbzip2():
+        '''
+        Check if parallel bzip2 is available on this system.
+
+        :return: True if pbzip2 is available, False otherwise
+        '''
+
+        return process.run("type -P pbzip2", verbose=True, shell=True).exit_status == 0
+
     # tar the contents of bindir/autotest
-    if base_packages.has_pbzip2():
+    if has_pbzip2():
         tar_cmds = "--use-compress-program=pbzip2 -cvf"
     else:
         tar_cmds = "cvjf"
@@ -1575,7 +1583,7 @@ def summary_up_result(result_file, ignore, row_head, column_mark):
                 count = 0
                 for k in result_dict[column_list[i]][j]:
                     count += utils_misc.aton(k)
-                average_list[column_list[i]][j] = "%.2f" % (count /
+                average_list[column_list[i]][j] = "%.2f" % (count //
                                                             len(result_dict[column_list[i]][j]))
 
     return average_list
@@ -2065,7 +2073,7 @@ class RemoteDiskManager(object):
         """
         free = self.get_free_space(disk_type, path, vgname)
         logging.debug("Allowed space on remote path:%sGB", free)
-        occupied_size = free - need_size / 2
+        occupied_size = free - need_size // 2
         occupied_path = os.path.join(os.path.dirname(path), "occupied")
         return self.create_image(disk_type, occupied_path, occupied_size,
                                  vgname, "occupied", False, timeout)
