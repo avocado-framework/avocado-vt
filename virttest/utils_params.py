@@ -3,6 +3,8 @@ from threading import Lock
 
 from avocado.core import exceptions
 
+from six.moves import xrange
+
 
 class ParamNotFound(exceptions.TestSkipError):
     pass

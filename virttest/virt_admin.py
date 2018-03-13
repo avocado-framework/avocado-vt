@@ -325,7 +325,7 @@ class VirtadminSession(aexpect.ShellSession):
                 # output, this will fail to extract network name if use set
                 # number 2 in list of output splitlines like in function
                 # virtadmin.net_state_dict.
-                for i in reversed(range(len(output) - 1)):
+                for i in reversed(list(range(len(output) - 1))):
                     if match_func(output[i].strip(), patterns) is not None:
                         if re.split(patterns[match], output[i])[-1]:
                             output[i] = re.split(patterns[match],

@@ -10,6 +10,8 @@ import shelve
 
 from avocado.utils import process
 
+from six.moves import xrange
+
 
 # simple magic for using scripts within a source tree
 basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

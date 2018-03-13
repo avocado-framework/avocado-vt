@@ -10,6 +10,8 @@ from aexpect.exceptions import ShellError
 from aexpect.exceptions import ExpectError
 from avocado.core import exceptions
 
+from six.moves import xrange
+
 from . import utils_misc
 from . import utils_net
 from . import remote

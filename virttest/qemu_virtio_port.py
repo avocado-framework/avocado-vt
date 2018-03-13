@@ -17,6 +17,8 @@ import aexpect
 from avocado.core import exceptions
 from avocado.utils import process
 
+from six.moves import xrange
+
 from . import data_dir
 
 SOCKET_SIZE = 2048

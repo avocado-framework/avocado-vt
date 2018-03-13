@@ -396,7 +396,7 @@ class IOzonePlotter(object):
         record size vs. throughput.
         """
         datasource_2d = os.path.join(self.output_dir, '2d-datasource-file')
-        for index, label in list(zip(range(2, 15), _LABELS[2:])):
+        for index, label in list(zip(list(range(2, 15)), _LABELS[2:])):
             commands_path = os.path.join(self.output_dir, '2d-%s.do' % label)
             commands = ""
             commands += "set title 'Iozone performance: %s'\n" % label
@@ -423,7 +423,7 @@ class IOzonePlotter(object):
         commands that will create a parametric surface with file size vs.
         record size vs. throughput.
         """
-        for index, label in list(zip(range(1, 14), _LABELS[2:])):
+        for index, label in list(zip(list(range(1, 14)), _LABELS[2:])):
             commands_path = os.path.join(self.output_dir, '%s.do' % label)
             commands = ""
             commands += "set title 'Iozone performance: %s'\n" % label

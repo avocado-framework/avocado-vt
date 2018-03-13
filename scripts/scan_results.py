@@ -12,6 +12,8 @@ import argparse
 from avocado.core import data_dir
 from dateutil import parser as dateparser
 
+from six.moves import xrange
+
 
 def colour_result(result):
     """Colour result in the test status info"""

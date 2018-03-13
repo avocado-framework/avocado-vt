@@ -6,6 +6,8 @@ import aexpect
 from avocado.utils import download
 from avocado.utils import aurl
 
+from six.moves import xrange
+
 from . import data_dir
 from . import remote
 

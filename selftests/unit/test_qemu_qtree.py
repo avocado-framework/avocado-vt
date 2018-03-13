@@ -19,6 +19,8 @@ if os.path.isdir(os.path.join(basedir, 'virttest')):
 from virttest.unittest_utils import mock
 from virttest import qemu_qtree
 
+from six.moves import xrange
+
 OFFSET_PER_LEVEL = qemu_qtree.OFFSET_PER_LEVEL
 
 

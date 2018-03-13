@@ -20,7 +20,9 @@ from avocado.utils import path
 from avocado.utils import distro
 from avocado.utils import cpu as cpu_utils
 from avocado.core import exceptions
+
 import six
+from six.moves import xrange
 
 from . import error_context
 from . import qemu_monitor

@@ -51,6 +51,7 @@ from .staging import utils_koji
 from .xml_utils import XMLTreeFile
 
 import six
+from six.moves import xrange
 
 
 ARCH = platform.machine()

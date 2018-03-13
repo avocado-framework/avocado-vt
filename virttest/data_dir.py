@@ -12,6 +12,8 @@ import stat
 from avocado.core import data_dir
 from avocado.utils import distro
 
+from six.moves import xrange
+
 if hasattr(sys, 'real_prefix'):
     # unlike default execution venv prefix does not contain /usr
     _DEFAULT_SHARED_PATH = os.path.join(sys.prefix, "shared")

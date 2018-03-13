@@ -28,6 +28,8 @@ except ImportError:
 
 from ..test import VirtTest
 
+from six.moves import xrange
+
 
 class LockCreationError(Exception):
 

@@ -17,6 +17,8 @@ import shutil
 from avocado.core import exceptions
 from avocado.utils import process
 
+from six.moves import xrange
+
 # Internal imports
 from .. import arch, storage, data_dir, virt_vm
 from . import qbuses

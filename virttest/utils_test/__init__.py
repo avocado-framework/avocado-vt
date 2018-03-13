@@ -36,6 +36,7 @@ from avocado.utils import download
 from avocado.utils import crypto
 from avocado.utils import path
 
+from six.moves import xrange
 
 # Import from the top level virttest namespace
 from .. import asset

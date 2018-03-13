@@ -21,6 +21,8 @@ from virttest.unittest_utils import mock
 from virttest.qemu_devices import qdevices, qbuses, qcontainer
 from virttest import qemu_monitor
 
+from six.moves import xrange
+
 UNITTEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                  "unittest_data")
 
