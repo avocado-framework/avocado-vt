@@ -2920,6 +2920,12 @@ class VM(virt_vm.BaseVM):
 
         :param mode: SELinux mode [Enforcing|Permissive|1|0]
         """
+        # SELinux is not supported by Ubuntu by default
+        selinux_force = self.params.get("selinux_force", "no") == "yes"
+        vm_distro = self.get_distro()
+        if vm_distro.lower() == 'ubuntu' and not selinux_force:
+            logging.warning("Ubuntu doesn't support selinux by default")
+            return
         self.install_package('selinux-policy')
         self.install_package('selinux-policy-targeted')
         self.install_package('libselinux-utils')

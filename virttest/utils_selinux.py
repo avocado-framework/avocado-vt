@@ -7,6 +7,10 @@ import re
 import os
 
 from avocado.utils import process
+from avocado.utils import distro
+
+
+ubuntu = distro.detect().name == 'Ubuntu'
 
 
 class SelinuxError(Exception):
@@ -55,15 +59,20 @@ class RestoreconError(SelinuxError):
 STATUS_LIST = ['enforcing', 'permissive', 'disabled']
 
 
-def get_status():
+def get_status(selinux_force=False):
     """
     Get the status of selinux.
 
+    :param selinux_force: True to force selinux configuration on Ubuntu
     :return: string of status in STATUS_LIST.
     :raise SeCmdError: if execute 'getenforce' failed.
     :raise SelinuxError: if 'getenforce' command exit 0,
                     but the output is not expected.
     """
+    if ubuntu and not selinux_force:
+        logging.warning("Ubuntu doesn't support selinux by default")
+        return 'disabled'
+
     cmd = 'getenforce'
     try:
         result = process.run(cmd, ignore_status=True)
@@ -83,21 +92,26 @@ def get_status():
                        % result.stdout)
 
 
-def set_status(status):
+def set_status(status, selinux_force=False):
     """
     Set status of selinux.
 
     :param status: status want to set selinux.
+    :param selinux_force: True to force selinux configuration on Ubuntu
     :raise SelinuxError: status is not supported.
     :raise SelinuxError: need to reboot host.
     :raise SeCmdError: execute setenforce failed.
     :raise SelinuxError: cmd setenforce exit normally,
                 but status of selinux is not set to expected.
     """
+    if ubuntu and not selinux_force:
+        logging.warning("Ubuntu doesn't support selinux by default")
+        return
+
     if status not in STATUS_LIST:
         raise SelinuxError("Status %s is not accepted." % status)
 
-    current_status = get_status()
+    current_status = get_status(selinux_force)
     if status == current_status:
         return
     else:
@@ -110,7 +124,7 @@ def set_status(status):
             if result.exit_status:
                 raise SeCmdError(cmd, result.stderr)
             else:
-                current_status = get_status()
+                current_status = get_status(selinux_force)
                 if not status == current_status:
                     raise SelinuxError("Status of selinux is set to %s,"
                                        "but not expected %s. "
@@ -121,36 +135,60 @@ def set_status(status):
     logging.debug("Set status of selinux to %s success.", status)
 
 
-def is_disabled():
+def is_disabled(selinux_force=False):
     """
     Return True if the selinux is disabled.
+
+    :param selinux_force: True to force selinux configuration on Ubuntu
     """
-    status = get_status()
+    if ubuntu and not selinux_force:
+        logging.warning("Ubuntu doesn't support selinux by default")
+        return True
+
+    status = get_status(selinux_force)
     if status == "disabled":
         return True
     else:
         return False
 
 
-def is_not_disabled():
+def is_not_disabled(selinux_force=False):
     """
     Return True if the selinux is not disabled.
+
+    :param selinux_force: True to force selinux configuration on Ubuntu
     """
-    return not is_disabled()
+    if ubuntu and not selinux_force:
+        logging.warning("Ubuntu doesn't support selinux by default")
+        return False
+
+    return not is_disabled(selinux_force)
 
 
-def is_enforcing():
+def is_enforcing(selinux_force=False):
     """
     Return true if the selinux is enforcing.
+
+    :param selinux_force: True to force selinux configuration on Ubuntu
     """
-    return (get_status() == "enforcing")
+    if ubuntu and not selinux_force:
+        logging.warning("Ubuntu doesn't support selinux by default")
+        return False
+
+    return (get_status(selinux_force) == "enforcing")
 
 
-def is_permissive():
+def is_permissive(selinux_force=False):
     """
     Return true if the selinux is permissive.
+
+    :param selinux_force: True to force selinux configuration on Ubuntu
     """
-    return (get_status() == "permissive")
+    if ubuntu and not selinux_force:
+        logging.warning("Ubuntu doesn't support selinux by default")
+        return False
+
+    return (get_status(selinux_force) == "permissive")
 
 
 def get_context_from_str(context):
@@ -184,12 +222,18 @@ def get_type_from_context(context):
     return re.search(type_pattern, context).group(1)
 
 
-def get_context_of_file(filename):
+def get_context_of_file(filename, selinux_force=False):
     """
     Get the context of file.
 
+    :param filename: filename for the context to be get
+    :param selinux_force: True to force selinux configuration on Ubuntu
     :raise SeCmdError: if execute 'getfattr' failed.
     """
+    if ubuntu and not selinux_force:
+        logging.warning("Ubuntu doesn't support selinux by default")
+        return
+
     # More direct than scraping 'ls' output.
     cmd = "getfattr --name security.selinux %s" % filename
     result = process.run(cmd, ignore_status=True)
@@ -200,15 +244,22 @@ def get_context_of_file(filename):
     return get_context_from_str(output)
 
 
-def set_context_of_file(filename, context):
+def set_context_of_file(filename, context, selinux_force=False):
     """
     Set context of file.
 
+    :param filename: filename for the context to be set
+    :param context: new value of the extended context attribute
+    :param selinux_force: True to force selinux configuration on Ubuntu
     :raise SeCmdError: if failed to execute chcon.
     :raise SelinuxError: if command chcon execute
                         normally, but the context of
                         file is not setted to context.
     """
+    if ubuntu and not selinux_force:
+        logging.warning("Ubuntu doesn't support selinux by default")
+        return
+
     context = context.strip()
     # setfattr used for consistency with getfattr use above
     cmd = ("setfattr --name security.selinux --value \"%s\" %s"
@@ -246,13 +297,18 @@ def _no_semanage(cmdresult):
             raise SemanageError()
 
 
-def get_defcon(local=False):
+def get_defcon(local=False, selinux_force=False):
     """
     Return list of dictionaries containing SELinux default file context types
 
     :param local: Only return locally modified default contexts
+    :param selinux_force: True to force selinux configuration on Ubuntu
     :return: list of dictionaries of default context attributes
     """
+    if ubuntu and not selinux_force:
+        logging.warning("Ubuntu doesn't support selinux by default")
+        return
+
     if local:
         result = process.run("semanage fcontext --list -C", ignore_status=True)
     else:
@@ -324,16 +380,21 @@ def find_pathregex(defcon, pathname):
         return None
 
 
-def set_defcon(context_type, pathregex, context_range=None):
+def set_defcon(context_type, pathregex, context_range=None, selinux_force=False):
     """
     Set the default context of a file/path in local SELinux policy
 
     :param context_type: The selinux context (only type is used)
     :param pathregex: Pathname regex e.g. r"/foo/bar/baz(/.*)?"
     :param context_range: MLS/MCS Security Range e.g. s0:c87,c520
+    :param selinux_force: True to force selinux configuration on Ubuntu
     :raise SelinuxError: if semanage command not found
     :raise SeCmdError: if semanage exits non-zero
     """
+    if ubuntu and not selinux_force:
+        logging.warning("Ubuntu doesn't support selinux by default")
+        return
+
     cmd = "semanage fcontext --add"
     if context_type:
         cmd += ' -t %s' % context_type
@@ -347,15 +408,20 @@ def set_defcon(context_type, pathregex, context_range=None):
         raise SeCmdError(cmd, result.stderr)
 
 
-def del_defcon(context_type, pathregex):
+def del_defcon(context_type, pathregex, selinux_force=False):
     """
     Remove the default local SELinux policy type for a file/path
 
     :param context: The selinux context (only type is used)
     :pramm pathregex: Pathname regex e.g. r"/foo/bar/baz(/.*)?"
+    :param selinux_force: True to force selinux configuration on Ubuntu
     :raise SelinuxError: if semanage command not found
     :raise SeCmdError: if semanage exits non-zero
     """
+    if ubuntu and not selinux_force:
+        logging.warning("Ubuntu doesn't support selinux by default")
+        return
+
     cmd = ("semanage fcontext --delete -t %s '%s'" % (context_type, pathregex))
     result = process.run(cmd, ignore_status=True)
     _no_semanage(result)
@@ -365,7 +431,20 @@ def del_defcon(context_type, pathregex):
 # Process pathname/dirdesc in uniform way for all defcon functions + unittests
 
 
-def _run_restorecon(pathname, dirdesc, readonly=True, force=False):
+def _run_restorecon(pathname, dirdesc, readonly=True, force=False, selinux_force=False):
+    """
+    Use restorecon to restore selinux context for file
+
+    :param pathname: Absolute path to file, directory, or symlink
+    :param dirdesc: True to descend into sub-directories
+    :param readonly: True to passive check and don't change any file labels
+    :param force: True to force reset of context to match file_context
+    :param selinux_force: True to force selinux configuration on Ubuntu
+    """
+    if ubuntu and not selinux_force:
+        logging.warning("Ubuntu doesn't support selinux by default")
+        return 0
+
     cmd = 'restorecon -v'
     if dirdesc:
         cmd += 'R'
@@ -378,7 +457,7 @@ def _run_restorecon(pathname, dirdesc, readonly=True, force=False):
     return process.run(cmd).stdout.strip()
 
 
-def verify_defcon(pathname, dirdesc=False, readonly=True, forcedesc=False):
+def verify_defcon(pathname, dirdesc=False, readonly=True, forcedesc=False, selinux_force=False):
     """
     Verify contexts of pathspec (and/or below, if dirdesc) match default
 
@@ -386,12 +465,17 @@ def verify_defcon(pathname, dirdesc=False, readonly=True, forcedesc=False):
     :param dirdesc: True to descend into sub-directories
     :param readonly: True to passive check and don't change any file labels
     :param forcedesc: True to force a replacement of the entire context
+    :param selinux_force: True to force selinux configuration on Ubuntu
     :return: True if all components match default contexts
     :note: By default DOES NOT follow symlinks
     """
+    if ubuntu and not selinux_force:
+        logging.warning("Ubuntu doesn't support selinux by default")
+        return False
     # Default context path regexes only work on canonical paths
     changes = _run_restorecon(pathname, dirdesc,
-                              readonly=readonly, force=forcedesc)
+                              readonly=readonly, force=forcedesc,
+                              selinux_force=selinux_force)
     if changes.count('restorecon reset'):
         return False
     else:
@@ -416,7 +500,7 @@ def _format_changes(changes):
     return result
 
 
-def diff_defcon(pathname, dirdesc=False):
+def diff_defcon(pathname, dirdesc=False, selinux_force=False):
     """
     Return a list of tuple(pathname, from, to) for current & default contexts
 
@@ -424,10 +508,11 @@ def diff_defcon(pathname, dirdesc=False):
     :param dirdesc: True to descend into sub-directories
     :return: List of tuple(pathname, from context, to context)
     """
-    return _format_changes(_run_restorecon(pathname, dirdesc))
+    return _format_changes(_run_restorecon(pathname, dirdesc,
+                           selinux_force=selinux_force))
 
 
-def apply_defcon(pathname, dirdesc=False):
+def apply_defcon(pathname, dirdesc=False, selinux_force=False):
     """
     Apply default contexts to pathname, possibly descending into sub-dirs also.
 
@@ -435,7 +520,8 @@ def apply_defcon(pathname, dirdesc=False):
     :param dirdesc: True to descend into sub-directories
     :return: List of changes applied tuple(pathname, from context, to context)
     """
-    return _format_changes(_run_restorecon(pathname, dirdesc, readonly=False))
+    return _format_changes(_run_restorecon(pathname, dirdesc, readonly=False,
+                                           selinux_force=selinux_force))
 
 
 def transmogrify_usr_local(pathregex):
