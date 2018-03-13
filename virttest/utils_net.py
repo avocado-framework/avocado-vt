@@ -3102,9 +3102,9 @@ def verify_ip_address_ownership(ip, macs, timeout=20.0, devs=None):
         arping_bin = utils_path.find_command("arping")
         arping_cmd = "%s -f -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
                                                   dev, ip)
-        result = process.run(arping_cmd, shell=True)
-        s, o = (result.exit_status, result.stdout.strip())
-        if s != 0:
+        try:
+            o = process.system_output(arping_cmd, shell=True)
+        except process.CmdError:
             return False
         return bool(regex.search(o))
 
