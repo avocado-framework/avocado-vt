@@ -6,6 +6,11 @@ import struct
 
 from scanner import make_scanner
 
+
+try:
+    unicode
+except NameError:
+    unicode = str
 try:
     unichr
 except NameError:
