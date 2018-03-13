@@ -50,6 +50,7 @@ from .. import storage
 from .. import utils_misc
 from .. import utils_net
 from .. import virt_vm
+from .. import utils_package
 from ..staging import utils_memory
 
 # Get back to importing submodules
@@ -68,6 +69,55 @@ from . import libguestfs
 # 'ping' and 'raw_ping' from this namespace
 ping = utils_net.ping
 raw_ping = utils_net.raw_ping
+
+
+def update_boot_option_ubuntu(args, grub_key=None, session=None, remove_args=None):
+    """
+    update default kernel option for Ubuntu host/guest
+
+    :param args: Kernel options to be added or removed
+    :param grub_key: key option to be updated in config file
+    :param session: VM/Remote session object, if None use Host
+    :param remove_args: True to remove option, False to add option
+
+    :raise exceptions.TestError: Raised if fail to update guest kernel cmdline.
+    """
+    if not grub_key:
+        grub_key = "GRUB_CMDLINE_LINUX_DEFAULT"
+    boot_cfg = utils_misc.get_bootloader_cfg(session=session)
+    cmd = "cat %s | grep %s | awk -F '=' '{print $2}'" % (boot_cfg, grub_key)
+    if session:
+        status, output = session.cmd_status_output(cmd)
+    else:
+        out = process.run(cmd, shell=True)
+        status = out.exit_status
+        output = out.stdout
+    output = output.strip()
+    if not remove_args:
+        output += " %s" % args
+    else:
+        output = output.strip(args)
+    cmd = "sed -i 's/%s=.*/%s=\"%s\"/g' %s" % (grub_key, grub_key, output,
+                                               boot_cfg)
+    if session:
+        status, output = session.cmd_status_output(cmd)
+    else:
+        out = process.run(cmd, shell=True)
+        status = out.exit_status
+        output = out.stdout
+    if status:
+        raise exceptions.TestError("Failed to update boot option %s with %s: "
+                                   "%s" % (grub_key, args, output))
+    # update grub
+    cmd = "update-grub"
+    if session:
+        status = session.cmd_status(cmd)
+    else:
+        status = process.system(cmd, shell=True)
+    if status:
+        raise exceptions.TestError("Failed to update grub to modify kernel "
+                                   "cmdline")
+    logging.debug("updated boot option: %s with %s", grub_key, args)
 
 
 @error_context.context_aware
@@ -93,31 +143,37 @@ def update_boot_option(vm, args_removed=None, args_added=None,
 
     login_timeout = int(vm.params.get("login_timeout"))
     session = vm.wait_for_login(timeout=login_timeout)
-
-    msg = "Update guest kernel option. "
-    cmd = "grubby --update-kernel=`grubby --default-kernel` "
-    if args_removed is not None:
-        msg += " remove args: %s" % args_removed
-        cmd += '--remove-args="%s" ' % args_removed
-    if args_added is not None:
-        msg += " add args: %s" % args_added
-        cmd += '--args="%s"' % args_added
-    error_context.context(msg, logging.info)
-    status, output = session.cmd_status_output(cmd)
-    if status != 0:
-        logging.error(output)
-        raise exceptions.TestError("Fail to modify guest kernel option")
+    if "ubuntu" in vm.get_distro().lower():
+        if args_added:
+            update_boot_option_ubuntu(args_added, session=session)
+        if args_removed:
+            update_boot_option_ubuntu(args_removed, session=session,
+                                      remove_args=True)
+    else:
+        if not utils_package.package_install("grubby", session=session):
+            raise exceptions.TestError("Failed to install grubby package")
+        msg = "Update guest kernel option. "
+        cmd = "grubby --update-kernel=`grubby --default-kernel` "
+        if args_removed is not None:
+            msg += " remove args: %s" % args_removed
+            cmd += '--remove-args="%s" ' % args_removed
+        if args_added is not None:
+            msg += " add args: %s" % args_added
+            cmd += '--args="%s"' % args_added
+        error_context.context(msg, logging.info)
+        status, output = session.cmd_status_output(cmd)
+        if status != 0:
+            logging.error(output)
+            raise exceptions.TestError("Fail to modify guest kernel option")
 
     if need_reboot:
         error_context.context("Rebooting guest ...", logging.info)
         session = vm.reboot(session=session, timeout=login_timeout)
     cmdline = session.cmd("cat /proc/cmdline", timeout=60)
     if args_removed and args_removed in cmdline:
-        logging.error(output)
         err = "Fail to remove guest kernel option %s" % args_removed
         raise exceptions.TestError(err)
     if args_added and args_added not in cmdline:
-        logging.error(output)
         err = "Fail to add guest kernel option %s" % args_added
         raise exceptions.TestError(err)
 
