@@ -408,9 +408,9 @@ class NFSClient(object):
         """
         check_mount_dir_cmd = self.ssh_cmd + "'ls -d %s'" % self.mount_dir
         logging.debug("To check if the %s exists", self.mount_dir)
-        output = process.system_output(check_mount_dir_cmd, shell=True,
-                                       ignore_status=True)
-        if re.findall("No such file or directory", output, re.M):
+        cmd_result = process.run(check_mount_dir_cmd, shell=True,
+                                 ignore_status=True)
+        if re.findall("No such file or directory", cmd_result.stderr, re.M):
             mkdir_cmd = self.ssh_cmd + "'mkdir -p %s'" % self.mount_dir
             logging.debug("Prepare to create %s", self.mount_dir)
             try:
