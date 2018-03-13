@@ -1,14 +1,18 @@
 language: python
 python:
     - "2.7"
-    - "2.6"
+    - "3.4"
+
+matrix:
+  allow_failures:
+    - python: "3.4"
 
 sudo: false
 
 install:
     - pip install Sphinx==1.3b1
     - pip install -r requirements-travis.txt
-    - if [ "$TRAVIS_PYTHON_VERSION" == "2.6" ]; then AVOCADO_BRANCH=36lts; else AVOCADO_BRANCH=master; fi; git clone --depth 1 --branch $AVOCADO_BRANCH https://github.com/avocado-framework/avocado.git avocado-libs    # avocado-46+ does not supports python-2.6
+    - git clone --depth 1 https://github.com/avocado-framework/avocado.git avocado-libs
     - cd avocado-libs
     - pip install -e .
     - cd ..
