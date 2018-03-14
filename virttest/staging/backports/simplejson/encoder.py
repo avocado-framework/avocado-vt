@@ -3,6 +3,8 @@
 import re
 from decimal import Decimal
 
+from six import string_types as basestring
+
 
 def _import_speedups():
     try:
