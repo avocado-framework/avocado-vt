@@ -21,7 +21,6 @@ from six.moves import xrange
 
 # Internal imports
 from .. import arch, storage, data_dir, virt_vm
-from . import qbuses
 from . import qdevices
 from .utils import (DeviceError, DeviceHotplugError, DeviceInsertError,
                     DeviceRemoveError, DeviceUnplugError, none_or_int)
@@ -743,13 +742,13 @@ class DevContainer(object):
         for i in xrange(i / 7):     # Autocreated lsi hba
             if arch.ARCH in ('ppc64', 'ppc64le'):
                 _name = 'spapr-vscsi%s' % i
-                bus = qbuses.QSCSIBus("scsi.0", 'SCSI', [8, 16384],
-                                      atype='spapr-vscsi')
+                bus = qdevices.QSCSIBus("scsi.0", 'SCSI', [8, 16384],
+                                        atype='spapr-vscsi')
                 self.insert(qdevices.QStringDevice(_name,
                                                    child_bus=bus))
             else:
                 _name = 'lsi53c895a%s' % i
-                bus = qbuses.QSCSIBus(
+                bus = qdevices.QSCSIBus(
                     "scsi.0", 'SCSI', [
                         8, 16384], atype='lsi53c895a')
                 self.insert(qdevices.QStringDevice(_name,
@@ -779,11 +778,11 @@ class DevContainer(object):
             logging.warn('Using Q35 machine which is not yet fully tested on '
                          'avocado-vt. False errors might occur.')
             devices = []
-            bus = (qbuses.QPCIEBus('pcie.0', 'PCIE', root_port_type, 'pci.0'),
-                   qbuses.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
-                                           first_port=[1]),
-                   qbuses.QStrictCustomBus(None, [['chassis_nr'], [256]],
-                                           '_PCI_CHASSIS_NR', first_port=[1]))
+            bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type, 'pci.0'),
+                   qdevices.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
+                                             first_port=[1]),
+                   qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
+                                             '_PCI_CHASSIS_NR', first_port=[1]))
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
                                                   child_bus=bus,
                                                   aobject="pci.0"))
@@ -799,13 +798,13 @@ class DevContainer(object):
                                                                 'driver': 'ich9-ahci'},
                                                   parent_bus={
                                                       'aobject': 'pci.0'},
-                                                  child_bus=qbuses.QAHCIBus('ide')))
+                                                  child_bus=qdevices.QAHCIBus('ide')))
             if self.has_option('device') and self.has_option("global"):
                 devices.append(qdevices.QStringDevice('fdc',
-                                                      child_bus=qbuses.QFloppyBus('floppy')))
+                                                      child_bus=qdevices.QFloppyBus('floppy')))
             else:
                 devices.append(qdevices.QStringDevice('fdc',
-                                                      child_bus=qbuses.QOldFloppyBus('floppy'))
+                                                      child_bus=qdevices.QOldFloppyBus('floppy'))
                                )
             return devices
 
@@ -817,11 +816,11 @@ class DevContainer(object):
             """
             devices = []
             pci_bus = "pci.0"
-            bus = (qbuses.QPCIBus(pci_bus, 'PCI', 'pci.0'),
-                   qbuses.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
-                                           first_port=[1]),
-                   qbuses.QStrictCustomBus(None, [['chassis_nr'], [256]],
-                                           '_PCI_CHASSIS_NR', first_port=[1]))
+            bus = (qdevices.QPCIBus(pci_bus, 'PCI', 'pci.0'),
+                   qdevices.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
+                                             first_port=[1]),
+                   qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
+                                             '_PCI_CHASSIS_NR', first_port=[1]))
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
                                                   child_bus=bus,
                                                   aobject="pci.0"))
@@ -838,13 +837,13 @@ class DevContainer(object):
                                                                 'driver': 'piix3-ide'},
                                                   parent_bus={
                                                       'aobject': 'pci.0'},
-                                                  child_bus=qbuses.QIDEBus('ide')))
+                                                  child_bus=qdevices.QIDEBus('ide')))
             if self.has_option('device') and self.has_option("global"):
                 devices.append(qdevices.QStringDevice('fdc',
-                                                      child_bus=qbuses.QFloppyBus('floppy')))
+                                                      child_bus=qdevices.QFloppyBus('floppy')))
             else:
                 devices.append(qdevices.QStringDevice('fdc',
-                                                      child_bus=qbuses.QOldFloppyBus('floppy'))
+                                                      child_bus=qdevices.QOldFloppyBus('floppy'))
                                )
             return devices
 
@@ -891,9 +890,9 @@ class DevContainer(object):
             # set the device's properties. This means that the qemu qtree
             # and autotest's representations are completelly different and
             # can't be used.
-            bus = qbuses.QNoAddrCustomBus('bus', [['addr'], [32]],
-                                          'virtio-mmio-bus', 'virtio-bus',
-                                          'virtio-mmio-bus')
+            bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
+                                            'virtio-mmio-bus', 'virtio-bus',
+                                            'virtio-mmio-bus')
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
                                                   child_bus=bus,
                                                   aobject="virtio-mmio-bus"))
@@ -941,18 +940,18 @@ class DevContainer(object):
             # set the device's properties. This means that the qemu qtree
             # and autotest's representations are completelly different and
             # can't be used.
-            bus = qbuses.QNoAddrCustomBus('bus', [['addr'], [32]],
-                                          'virtio-mmio-bus', 'virtio-bus',
-                                          'virtio-mmio-bus')
+            bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
+                                            'virtio-mmio-bus', 'virtio-bus',
+                                            'virtio-mmio-bus')
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
                                                   child_bus=bus,
                                                   aobject="virtio-mmio-bus"))
             # And this is the pcie bus
-            bus = (qbuses.QPCIBus('pcie.0', 'PCIE', 'pci.0'),
-                   qbuses.QStrictCustomBus(None, [['chassis'], [256]],
-                                           '_PCI_CHASSIS', first_port=[1]),
-                   qbuses.QStrictCustomBus(None, [['chassis_nr'], [256]],
-                                           '_PCI_CHASSIS_NR', first_port=[1]))
+            bus = (qdevices.QPCIBus('pcie.0', 'PCIE', 'pci.0'),
+                   qdevices.QStrictCustomBus(None, [['chassis'], [256]],
+                                             '_PCI_CHASSIS', first_port=[1]),
+                   qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
+                                             '_PCI_CHASSIS_NR', first_port=[1]))
             devices.append(qdevices.QStringDevice('pci.0', child_bus=bus,
                                                   aobject="pci.0"))
             devices.append(qdevices.QStringDevice('gpex-root',
@@ -973,9 +972,9 @@ class DevContainer(object):
             # and autotest's representations are completelly different and
             # can't be used.
             logging.warn('Support for s390x is highly experimental!')
-            bus = qbuses.QNoAddrCustomBus('bus', [['addr'], [64]],
-                                          'virtio-blk-ccw', 'virtio-bus',
-                                          'virtio-blk-ccw')
+            bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [64]],
+                                            'virtio-blk-ccw', 'virtio-bus',
+                                            'virtio-blk-ccw')
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
                                                   child_bus=bus,
                                                   aobject="virtio-blk-ccw"))
@@ -1081,7 +1080,7 @@ class DevContainer(object):
             # If choose this kind of usb controller, it has no name/id,
             # and only can be created once, so give it a special name.
             usb = qdevices.QStringDevice("oldusb", cmdline="-usb",
-                                         child_bus=qbuses.QUSBBus(2, 'usb.0', 'uhci', usb_id))
+                                         child_bus=qdevices.QUSBBus(2, 'usb.0', 'uhci', usb_id))
             return [usb]
 
         if not self.has_device(usb_type):
@@ -1089,7 +1088,7 @@ class DevContainer(object):
                                            % usb_type)
 
         usb = qdevices.QDevice(usb_type, {}, usb_id, pci_bus,
-                               qbuses.QUSBBus(max_ports, '%s.0' % usb_id, usb_type, usb_id))
+                               qdevices.QUSBBus(max_ports, '%s.0' % usb_id, usb_type, usb_id))
         new_usbs = [usb]    # each usb dev might compound of multiple devs
         # TODO: Add 'bus' property (it was not in the original version)
         usb.set_param('id', usb_id)
@@ -1250,7 +1249,7 @@ class DevContainer(object):
             """
             devices = []
             # AHCI uses multiple ports, id is different
-            if qbus == qbuses.QAHCIBus:
+            if qbus == qdevices.QAHCIBus:
                 _hba = 'ahci%s'
             else:
                 _hba = atype.replace('-', '_') + '%s.0'  # HBA id
@@ -1286,7 +1285,7 @@ class DevContainer(object):
                                                child_bus=qbus(busid=bus_name))
                     devices.append(dev)
                 bus = _hba % bus
-            if qbus == qbuses.QAHCIBus and unit is not None:
+            if qbus == qdevices.QAHCIBus and unit is not None:
                 bus += ".%d" % unit
             # If bus was not set, don't set it, unless the device is
             # a spapr-vscsi device.
@@ -1363,10 +1362,10 @@ class DevContainer(object):
                 # In case we hotplug, lsi wasn't added during the startup hook
                 if arch.ARCH in ('ppc64', 'ppc64le'):
                     _ = define_hbas('SCSI', 'spapr-vscsi', None, None, None,
-                                    qbuses.QSCSIBus, None, [8, 16384])
+                                    qdevices.QSCSIBus, None, [8, 16384])
                 else:
                     _ = define_hbas('SCSI', 'lsi53c895a', None, None, None,
-                                    qbuses.QSCSIBus, pci_bus, [8, 16384])
+                                    qdevices.QSCSIBus, pci_bus, [8, 16384])
                 devices.extend(_[0])
         elif fmt == "ide":
             if bus:
@@ -1376,7 +1375,7 @@ class DevContainer(object):
             dev_parent = {'type': 'IDE', 'atype': 'ide'}
         elif fmt == "ahci":
             devs, bus, dev_parent = define_hbas('IDE', 'ahci', bus, unit, port,
-                                                qbuses.QAHCIBus, pci_bus)
+                                                qdevices.QAHCIBus, pci_bus)
             devices.extend(devs)
         elif fmt.startswith('scsi-'):
             if not scsi_hba:
@@ -1396,7 +1395,7 @@ class DevContainer(object):
                 addr_spec = [8, 16384]
                 pci_bus = None
             _, bus, dev_parent = define_hbas('SCSI', scsi_hba, bus, unit, port,
-                                             qbuses.QSCSIBus, pci_bus,
+                                             qdevices.QSCSIBus, pci_bus,
                                              addr_spec, num_queues=num_queues,
                                              bus_extra_params=bus_extra_params)
             devices.extend(_)
@@ -1771,7 +1770,7 @@ class DevContainer(object):
             bus_type = 'PCI'
         parent_bus = [{'aobject': params.get('pci_bus', 'pci.0')}]
         if driver == 'x3130':
-            bus = qbuses.QPCISwitchBus(
+            bus = qdevices.QPCISwitchBus(
                 name, bus_type, 'xio3130-downstream', name)
             driver = 'x3130-upstream'
         else:
@@ -1785,7 +1784,7 @@ class DevContainer(object):
             else:   # addr = 0x0-0x1f
                 bus_length = 32
                 bus_first_port = 0
-            bus = qbuses.QPCIBus(
+            bus = qdevices.QPCIBus(
                 name, bus_type, name, bus_length, bus_first_port)
         for addr in params.get('reserved_slots', '').split():
             bus.reserve(addr)

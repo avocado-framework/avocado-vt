@@ -18,7 +18,7 @@ if os.path.isdir(os.path.join(basedir, 'virttest')):
     sys.path.append(basedir)
 
 from virttest.unittest_utils import mock
-from virttest.qemu_devices import qdevices, qbuses, qcontainer
+from virttest.qemu_devices import qdevices, qcontainer
 from virttest import qemu_monitor
 
 from six.moves import xrange
@@ -138,11 +138,11 @@ class Buses(unittest.TestCase):
 
     def test_q_sparse_bus(self):
         """ Sparse bus tests (general bus testing) """
-        bus = qbuses.QSparseBus('bus',
-                                (['addr1', 'addr2', 'addr3'], [2, 6, 4]),
-                                'my_bus',
-                                'bus_type',
-                                'autotest_bus')
+        bus = qdevices.QSparseBus('bus',
+                                  (['addr1', 'addr2', 'addr3'], [2, 6, 4]),
+                                  'my_bus',
+                                  'bus_type',
+                                  'autotest_bus')
 
         qdevice = qdevices.QDevice
 
@@ -348,7 +348,7 @@ Slots:
 
     def test_q_pci_bus(self):
         """ PCI bus tests """
-        bus = qbuses.QPCIBus('pci.0', 'pci', 'my_pci')
+        bus = qdevices.QPCIBus('pci.0', 'pci', 'my_pci')
         qdevice = qdevices.QDevice
 
         # Good devices
@@ -404,7 +404,7 @@ Slots:
 
     def test_q_pci_bus_strict(self):
         """ PCI bus tests in strict_mode (enforce additional options) """
-        bus = qbuses.QPCIBus('pci.0', 'pci', 'my_pci')
+        bus = qdevices.QPCIBus('pci.0', 'pci', 'my_pci')
         qdevice = qdevices.QDevice
 
         params = {}
@@ -488,7 +488,7 @@ Slots:
 
     def test_usb_bus(self):
         """ Tests the specific handlings of QUSBBus """
-        usbc1 = qbuses.QUSBBus(2, 'usb1.0', 'uhci')
+        usbc1 = qdevices.QUSBBus(2, 'usb1.0', 'uhci')
 
         # Insert device into usb controller, default port
         dev = qdevices.QDevice('usb-kbd', parent_bus={'type': 'uhci'})
@@ -698,8 +698,8 @@ fdc
         qdevice = qdevices.QDevice
 
         # Device with child bus
-        bus = qbuses.QSparseBus('bus', [['addr'], [6]], 'hba1.0', 'hba',
-                                'a_hba')
+        bus = qdevices.QSparseBus('bus', [['addr'], [6]], 'hba1.0', 'hba',
+                                  'a_hba')
         dev = qdevice('HBA', {'id': 'hba1', 'addr': 10},
                       parent_bus={'aobject': 'pci.0'}, child_bus=bus)
         out = qdev.insert(dev)
@@ -997,14 +997,14 @@ fdc
         self.assertFalse(qdev.has_qmp_cmd('RAND91'))
 
         # Add some buses
-        bus1 = qbuses.QPCIBus('pci.0', 'pci', 'a_pci0')
+        bus1 = qdevices.QPCIBus('pci.0', 'pci', 'a_pci0')
         qdev.insert(qdevices.QDevice(params={'id': 'pci0'},
                                      child_bus=bus1))
-        bus2 = qbuses.QPCIBus('pci.1', 'pci', 'a_pci1')
+        bus2 = qdevices.QPCIBus('pci.1', 'pci', 'a_pci1')
         qdev.insert(qdevices.QDevice(child_bus=bus2))
-        bus3 = qbuses.QPCIBus('pci.2', 'pci', 'a_pci2')
+        bus3 = qdevices.QPCIBus('pci.2', 'pci', 'a_pci2')
         qdev.insert(qdevices.QDevice(child_bus=bus3))
-        bus4 = qbuses.QPCIBus('pcie.0', 'pcie', 'a_pcie0')
+        bus4 = qdevices.QPCIBus('pcie.0', 'pcie', 'a_pcie0')
         qdev.insert(qdevices.QDevice(child_bus=bus4))
 
         # get_buses (all buses of this type)
@@ -1039,9 +1039,9 @@ fdc
 
         # get_children
         dev = qdevices.QDevice(parent_bus={'aobject': 'a_pci0'})
-        bus = qbuses.QPCIBus('test1', 'test', 'a_test1')
+        bus = qdevices.QPCIBus('test1', 'test', 'a_test1')
         dev.add_child_bus(bus)
-        bus = qbuses.QPCIBus('test2', 'test', 'a_test2')
+        bus = qdevices.QPCIBus('test2', 'test', 'a_test2')
         dev.add_child_bus(bus)
         qdev.insert(dev)
         qdev.insert(qdevices.QDevice(parent_bus={'aobject': 'a_test1'}))
