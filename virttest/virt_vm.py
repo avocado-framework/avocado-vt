@@ -10,6 +10,7 @@ from aexpect.exceptions import ShellError
 from aexpect.exceptions import ExpectError
 from avocado.core import exceptions
 
+import six
 from six.moves import xrange
 
 from . import utils_misc
@@ -391,7 +392,7 @@ class VMUSBControllerPortFullError(VMUSBControllerError):
     def __str__(self):
         output = ""
         try:
-            for ctl, dev_list in self.usb_dev_dict.iteritems():
+            for ctl, dev_list in six.iteritems(self.usb_dev_dict):
                 output += "%s: %s\n" % (ctl, dev_list)
         except Exception:
             pass
@@ -746,7 +747,7 @@ class BaseVM(object):
               ...}
         """
         for virtnet in self.virtnet:
-            for iface_name, iface in addrs.iteritems():
+            for iface_name, iface in six.iteritems(addrs):
                 if virtnet.mac in iface["mac"]:
                     virtnet.ip = {"ipv4": iface["ipv4"],
                                   "ipv6": iface["ipv6"]}

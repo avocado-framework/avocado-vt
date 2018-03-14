@@ -277,7 +277,7 @@ class PropCanBase(dict, PropCanInternal):
         except TypeError as detail:
             raise excpt(detail)
 
-        for item in _tmp_dict.keys():
+        for item in list(_tmp_dict.keys()):
             self[item] = _tmp_dict[item]
 
 
@@ -307,7 +307,7 @@ class PropCan(PropCanBase):
 
     def __eq__(self, other):
         # special None/False value handling
-        return dict([(key, value) for key, value in self.items()]) == other
+        return dict([(key, value) for key, value in list(self.items())]) == other
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -319,10 +319,10 @@ class PropCan(PropCanBase):
 
     def values(self):
         # special None/False value handling
-        return [self[key] for key in self.keys()]
+        return [self[key] for key in list(self.keys())]
 
     def items(self):
-        return tuple([(key, self[key]) for key in self.keys()])
+        return tuple([(key, self[key]) for key in list(self.keys())])
 
     has_key = __contains__
 

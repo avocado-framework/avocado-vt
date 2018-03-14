@@ -18,6 +18,7 @@ from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils import crypto
 
+import six
 from six.moves import xrange
 
 from .qemu_devices import qdevices, qcontainer
@@ -871,7 +872,7 @@ class VM(virt_vm.BaseVM):
                 """
                 Set QCustomDevice properties by user params dict.
                 """
-                for pro, val in dev_params.iteritems():
+                for pro, val in six.iteritems(dev_params):
                     suffix = "_%s" % backend_type
                     if pro.endswith(suffix):
                         idx = len(suffix)
@@ -1183,7 +1184,7 @@ class VM(virt_vm.BaseVM):
                 return "-boot strict=on"
             cmd = " -boot"
             options = []
-            for p in opts.keys():
+            for p in list(opts.keys()):
                 pattern = "boot .*?(\[,?%s=(.*?)\]|\s+)" % p
                 if devices.has_option(pattern):
                     option = opts[p]
@@ -1379,7 +1380,7 @@ class VM(virt_vm.BaseVM):
 
         self.last_driver_index = 0
         # init the dict index_in_use
-        for key in params.keys():
+        for key in list(params.keys()):
             if 'drive_index' in key:
                 self.index_in_use[params.get(key)] = True
 
@@ -2905,7 +2906,7 @@ class VM(virt_vm.BaseVM):
 
             self.create_serial_console()
 
-            for key, value in self.logs.items():
+            for key, value in list(self.logs.items()):
                 outfile = "%s-%s.log" % (key, name)
                 self.logsessions[key] = aexpect.Tail(
                     "nc -U %s" % value,
@@ -3054,7 +3055,7 @@ class VM(virt_vm.BaseVM):
         file_list += qemu_monitor.get_monitor_filenames(self)
         file_list += self.get_virtio_port_filenames()
         file_list += self.get_serial_console_filenames()
-        file_list += self.logs.values()
+        file_list += list(self.logs.values())
 
         for f in file_list:
             try:
@@ -3890,7 +3891,7 @@ class VM(virt_vm.BaseVM):
             if migrate_capabilities:
                 error_context.context(
                     "Set migrate capabilities.", logging.info)
-                for key, value in migrate_capabilities.items():
+                for key, value in list(migrate_capabilities.items()):
                     state = value == "on"
                     self.monitor.set_migrate_capability(state, key)
                     s = self.monitor.get_migrate_capability(key)
@@ -4082,7 +4083,7 @@ class VM(virt_vm.BaseVM):
                        "comma": "0x33",
                        "dot": "0x34",
                        "slash": "0x35"}
-        for key, value in key_mapping.items():
+        for key, value in list(key_mapping.items()):
             keystr = keystr.replace(key, value)
         self.monitor.sendkey(keystr)
         time.sleep(0.2)
@@ -4189,7 +4190,7 @@ class VM(virt_vm.BaseVM):
         if isinstance(blocks_info, str):
             for block in blocks_info.splitlines():
                 match = True
-                for key, value in p_dict.iteritems():
+                for key, value in six.iteritems(p_dict):
                     if value is True:
                         check_str = "%s=1" % key
                     elif value is False:
@@ -4204,7 +4205,7 @@ class VM(virt_vm.BaseVM):
         else:
             for block in blocks_info:
                 match = True
-                for key, value in p_dict.iteritems():
+                for key, value in six.iteritems(p_dict):
                     if isinstance(value, bool):
                         check_str = "u'%s': %s" % (key, value)
                     else:
@@ -4253,7 +4254,7 @@ class VM(virt_vm.BaseVM):
 
         block_list = self.process_info_block(blocks_info)
         for block in block_list:
-            for key, value in p_dict.iteritems():
+            for key, value in six.iteritems(p_dict):
                     # for new qemu we just deal with key = [removable,
                     # file,backing_file], for other types key, we should
                     # fixup later

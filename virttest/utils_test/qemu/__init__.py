@@ -65,7 +65,7 @@ def get_numa_status(numa_node_info, qemu_pid, debug=True):
     for node_id in node_list:
         qemu_memory_status = utils_memory.read_from_numa_maps(qemu_pid,
                                                               "N%d" % node_id)
-        memory = sum([int(_) for _ in qemu_memory_status.values()])
+        memory = sum([int(_) for _ in list(qemu_memory_status.values())])
         qemu_memory.append(memory)
         cpu = [_ for _ in cpus if _ in numa_node_info.nodes[node_id].cpus]
         qemu_cpu.append(cpu)
@@ -536,7 +536,7 @@ class MemoryBaseTest(object):
         """
         Close opening session, better to call it in the end of test.
         """
-        sessions = filter(None, self.sessions.values())
+        sessions = filter(None, list(self.sessions.values()))
         if sessions:
             sessions = filter(None, reduce(list.__add__, sessions))
             map(lambda x: x.close(), sessions)

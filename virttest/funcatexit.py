@@ -10,6 +10,8 @@ import traceback
 
 from avocado.core import exceptions
 
+import six
+
 
 def run_exitfuncs(env, test_type):
     """
@@ -58,7 +60,7 @@ def register(env, test_type, func, *targs, **kargs):
                                        "unpickable targument '%s'. Please contact "
                                        "the test developer to fix it."
                                        % (func, arg))
-    for key, arg in kargs.iteritems():
+    for key, arg in six.iteritems(kargs):
         if hasattr(arg, '__slots__') and not hasattr(arg, '__getstate__'):
             raise exceptions.TestError("Trying to register exitfunction '%s' with "
                                        "unpickable kargument '%s=%s'. Please "

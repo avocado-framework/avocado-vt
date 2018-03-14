@@ -5,9 +5,12 @@ IP sniffing facilities
 import threading
 import logging
 import re
+from collections import Iterable
 
 import aexpect
 from avocado.utils import path as utils_path
+
+import six
 
 from remote import handle_prompts
 from utils_misc import log_line
@@ -92,8 +95,8 @@ class AddrCache(object):
             _cache = cache
             with _cache._lock:
                 cache = _cache._data.copy()
-        if hasattr(cache, "iteritems"):
-            cache = cache.iteritems()
+        if isinstance(cache, Iterable):
+            cache = six.iteritems(cache)
         for hwaddr, ipaddr in cache:
             self[hwaddr] = ipaddr
 

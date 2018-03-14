@@ -96,7 +96,7 @@ class VolXML(VolXMLBase):
         Return a new volume encryption instance and set properties from dargs
         """
         new_one = self.Encryption(virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -153,7 +153,7 @@ class VolXML(VolXMLBase):
         :return: new VolXML instance
         """
         new_one = VolXML(virsh_instance=base.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 

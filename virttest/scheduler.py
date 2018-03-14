@@ -79,7 +79,7 @@ class scheduler:
             elif cmd[0] == "cleanup":
                 env_filename = os.path.join(self.bindir, self_dict["env"])
                 env = utils_env.Env(env_filename)
-                for obj in env.values():
+                for obj in list(env.values()):
                     if isinstance(obj, virt_vm.BaseVM):
                         obj.destroy()
                     elif isinstance(obj, aexpect.Spawn):

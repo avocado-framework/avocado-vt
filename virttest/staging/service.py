@@ -231,7 +231,7 @@ def sysvinit_result_parser(command):
     :param command: service sub-command(string).
     :return: depends on sub-command.
     """
-    if command in _SysVInit_parser_dict.keys():
+    if command in list(_SysVInit_parser_dict.keys()):
         return _SysVInit_parser_dict.get(command)
     else:
         return _ServiceResultParser.default_method
@@ -244,7 +244,7 @@ def systemd_result_parser(command):
     :param command: service sub-command(string).
     :return: depends on sub-command.
     """
-    if command in _Systemd_parser_dict.keys():
+    if command in list(_Systemd_parser_dict.keys()):
         return _Systemd_parser_dict.get(command)
     else:
         return _ServiceResultParser.default_method

@@ -39,7 +39,7 @@ from . import utils_misc
 
 # list of symbol names NOT to wrap as Virtadmin class methods
 # Everything else from globals() will become a method of Virtadmin class
-NOCLOSE = globals().keys() + [
+NOCLOSE = list(globals().keys()) + [
     'NOCLOSE', 'SCREENSHOT_ERROR_COUNT', 'VIRTADMIN_COMMAND_CACHE',
     'VIRTADMIN_EXEC', 'VirtadminBase', 'VirtadminClosure', 'VirtadminSession', 'Virtadmin',
     'VirtadminPersistent', 'VirtadminConnectBack', 'VIRTADMIN_COMMAND_GROUP_CACHE',
@@ -377,8 +377,8 @@ class VirtadminClosure(object):
         new_dargs = self.dict_like_weakref()
         if new_dargs is None:
             new_dargs = {}
-        for key in new_dargs.keys():
-            if key not in dargs.keys():
+        for key in list(new_dargs.keys()):
+            if key not in list(dargs.keys()):
                 dargs[key] = new_dargs[key]
         return self.reference_function(*args, **dargs)
 
@@ -401,7 +401,7 @@ class Virtadmin(VirtadminBase):
         super(Virtadmin, self).__init__(*args, **dargs)
         # Define the instance callables from the contents of this module
         # to avoid using class methods and hand-written aliases
-        for sym, ref in globals().items():
+        for sym, ref in list(globals().items()):
             if sym not in NOCLOSE and callable(ref):
                 # Adding methods, not properties, so avoid special __slots__
                 # handling.  __getattribute__ will still find these.

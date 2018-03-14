@@ -68,7 +68,7 @@ class Exportfs(object):
         :rtype: Boolean
         """
         ori_exported = self.ori_exported or nfs_exported()
-        if self.entry_tag in ori_exported.keys():
+        if self.entry_tag in list(ori_exported.keys()):
             return True
         return False
 

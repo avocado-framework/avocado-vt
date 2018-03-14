@@ -98,6 +98,6 @@ class Memory(base.UntypedDeviceBase):
         Return a new disk Address instance and set properties from dargs
         """
         new_one = self.Address(type_name=type_name, virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one

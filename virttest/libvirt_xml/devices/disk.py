@@ -132,7 +132,7 @@ class Disk(base.TypedDeviceBase):
         Return a new disk source instance and set properties from dargs
         """
         new_one = self.DiskSource(virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -141,7 +141,7 @@ class Disk(base.TypedDeviceBase):
         Return a new disk IOTune instance and set properties from dargs
         """
         new_one = self.IOTune(virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -150,7 +150,7 @@ class Disk(base.TypedDeviceBase):
         Return a new disk encryption instance and set properties from dargs
         """
         new_one = self.Encryption(virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -159,7 +159,7 @@ class Disk(base.TypedDeviceBase):
         Return a new disk Address instance and set properties from dargs
         """
         new_one = self.Address(type_name=type_name, virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -168,7 +168,7 @@ class Disk(base.TypedDeviceBase):
         Return a new disk auth instance and set properties from dargs
         """
         new_one = self.Auth(virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -221,7 +221,7 @@ class Disk(base.TypedDeviceBase):
             del libvirtxml      # not used
             root = item.xmltreefile.getroot()
             if root.tag == 'seclabel':
-                new_dict = dict(root.items())
+                new_dict = dict(list(root.items()))
                 text_dict = {}
                 # Put element text into dict under key 'text'
                 for key in ('label', 'baselabel'):

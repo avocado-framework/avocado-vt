@@ -76,7 +76,7 @@ for number in issues.search(criteria):
     if issue['commits'] is not None:
         author_issues[issue['author']] = issue
 
-authors = author_issues.keys()
+authors = list(author_issues.keys())
 authors.sort()
 for author in authors:
     issue = author_issues[author]

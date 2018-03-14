@@ -86,7 +86,7 @@ class InstallerRegistry(dict):
         if virt not in self:
             return []
 
-        return self[virt].keys()
+        return list(self[virt].keys())
 
 
 #

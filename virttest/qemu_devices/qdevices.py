@@ -15,6 +15,9 @@ from virttest import utils_misc
 from utils import DeviceError
 from utils import none_or_int
 
+import six
+
+
 try:
     # pylint: disable=E0611
     from collections import OrderedDict
@@ -32,7 +35,7 @@ def _convert_args(arg_dict):
     :return: A string in humanmonitor's 'key=value' format, or a empty
              '' when the dict is empty.
     """
-    return ",".join("%s=%s" % (key, val) for key, val in arg_dict.iteritems())
+    return ",".join("%s=%s" % (key, val) for key, val in six.iteritems(arg_dict))
 
 
 def _build_cmd(cmd, args=None, q_id=None):
@@ -85,7 +88,7 @@ class QBaseDevice(object):
         self.dynamic_params = []
         self.params = OrderedDict()    # various device params (id, name, ...)
         if params:
-            for key, value in params.iteritems():
+            for key, value in six.iteritems(params):
                 self.set_param(key, value)
 
     def add_child_bus(self, bus):
@@ -211,7 +214,7 @@ class QBaseDevice(object):
   child_bus = %s
   params:""" % (self.type, self.aid, self.aobject, self.parent_bus,
                 self.child_bus)
-        for key, value in self.params.iteritems():
+        for key, value in six.iteritems(self.params):
             out += "\n    %s = %s" % (key, value)
         return out + '\n'
 
@@ -402,7 +405,7 @@ class QCustomDevice(QBaseDevice):
         else:
             out = "-%s " % self.type
             params = self.params
-        for key, value in params.iteritems():
+        for key, value in six.iteritems(params):
             if value != "NO_EQUAL_STRING":
                 out += "%s=%s," % (key, value)
             else:
@@ -424,7 +427,7 @@ class QCustomDevice(QBaseDevice):
         else:
             out = "-%s " % self.type
             params = self.params
-        for key, value in params.iteritems():
+        for key, value in six.iteritems(params):
             if value != "NO_EQUAL_STRING":
                 if key in self.dynamic_params:
                     out += "%s=DYN," % (key,)

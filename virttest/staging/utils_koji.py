@@ -235,7 +235,7 @@ class KojiClient(object):
         :return: only the options used for session setup
         """
         session_options = {}
-        for name, value in self.config_options.items():
+        for name, value in list(self.config_options.items()):
             if name in ('user', 'password', 'debug_xmlrpc', 'debug'):
                 session_options[name] = value
         return session_options
@@ -258,7 +258,7 @@ class KojiClient(object):
                          'not fatal but indicates an unexpected situation',
                          self.command)
 
-        if self.command not in self.CONFIG_MAP.keys():
+        if self.command not in list(self.CONFIG_MAP.keys()):
             logging.error('Koji command "%s" does not have a configuration '
                           'file associated to it', self.command)
             koji_command_ok = False

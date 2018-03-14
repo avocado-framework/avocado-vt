@@ -20,6 +20,7 @@ import traceback
 import signal
 import time
 
+import six
 from six.moves import xrange
 from six.moves import input
 
@@ -453,11 +454,11 @@ class VirtioGuestPosix(VirtioGuest):
                             sys.stdout.write("Missing device, readerr %s\n"
                                              % inst)
                             _desc = desc
-                            for item in virt.files.iteritems():
+                            for item in six.iteritems(virt.files):
                                 if item[1] == desc:
                                     path = item[0]
                                     break
-                            for item in virt.ports.iteritems():
+                            for item in six.iteritems(virt.ports):
                                 if item[1]['path'] == path:
                                     name = item[0]
                                     break
@@ -498,11 +499,11 @@ class VirtioGuestPosix(VirtioGuest):
                                     sys.stdout.write("Missing device, writeerr"
                                                      " %s\n" % inst)
                                     _desc = desc
-                                    for item in virt.files.iteritems():
+                                    for item in six.iteritems(virt.files):
                                         if item[1] == desc:
                                             path = item[0]
                                             break
-                                    for item in virt.ports.iteritems():
+                                    for item in six.iteritems(virt.ports):
                                         if item[1]['path'] == path:
                                             name = item[0]
                                             break
@@ -683,7 +684,7 @@ class VirtioGuestPosix(VirtioGuest):
         """
         if self.poll_fds:
             p = select.poll()
-            map(p.register, self.poll_fds.keys())
+            map(p.register, list(self.poll_fds.keys()))
 
             masks = p.poll(1)
             print masks
@@ -782,7 +783,7 @@ class VirtioGuestPosix(VirtioGuest):
         descriptor = None
         path = self.ports[filepath]["path"]
         if path is not None:
-            if path in self.files.keys():
+            if path in list(self.files.keys()):
                 descriptor = self.files[path]
                 del self.files[path]
             if descriptor is not None:
@@ -853,7 +854,7 @@ class VirtioGuestPosix(VirtioGuest):
         self.exit_thread.clear()
 
         del self.threads[:]
-        for desc in self.files.itervalues():
+        for desc in six.itervalues(self.files):
             os.close(desc)
         self.files.clear()
         print "PASS: All threads finished"
@@ -991,7 +992,7 @@ class VirtioGuestNt(VirtioGuest):
 
         # Check if all ports really exists
         remove = []
-        for item in self.ports.iteritems():
+        for item in six.iteritems(self.ports):
             port = item[1]
             try:
                 hFile = win32file.CreateFile(port['path'], 0, 0, None,
@@ -1036,7 +1037,7 @@ class VirtioGuestNt(VirtioGuest):
         hFile = None
         path = self.ports[filepath]["path"]
         if path is not None:
-            if path in self.files.keys():
+            if path in list(self.files.keys()):
                 hFile = self.files[path]
                 del self.files[path]
             if hFile is not None:
@@ -1100,7 +1101,7 @@ class VirtioGuestNt(VirtioGuest):
         self.exit_thread.clear()
 
         del self.threads[:]
-        for desc in self.files.itervalues():
+        for desc in six.itervalues(self.files):
             win32file.CloseHandle(desc)
         self.files.clear()
         print "PASS: All threads finished"

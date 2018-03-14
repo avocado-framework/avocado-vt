@@ -17,6 +17,7 @@ import shutil
 from avocado.core import exceptions
 from avocado.utils import process
 
+import six
 from six.moves import xrange
 
 # Internal imports
@@ -147,7 +148,7 @@ class DevContainer(object):
         """
         out = []
         for device in self.__devices:
-            for key, value in filt.iteritems():
+            for key, value in six.iteritems(filt):
                 if not hasattr(device, key):
                     break
                 if getattr(device, key) != value:
@@ -164,7 +165,7 @@ class DevContainer(object):
         """
         out = []
         for device in self.__devices:
-            for key, value in filt.iteritems():
+            for key, value in six.iteritems(filt):
                 if key not in device.params:
                     break
                 if device.params[key] != value:
@@ -268,7 +269,7 @@ class DevContainer(object):
 
         # state, buses and devices are handled earlier
         qdev2 = qdev2.__dict__
-        for key, value in self.__dict__.iteritems():
+        for key, value in six.iteritems(self.__dict__):
             if key in ("_DevContainer__devices", "_DevContainer__buses",
                        "_DevContainer__state",
                        "allow_hotplugged_vm"):

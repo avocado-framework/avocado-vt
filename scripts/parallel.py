@@ -1,6 +1,7 @@
 import os
 import sys
 
+import six
 from six.moves import xrange
 
 
@@ -36,9 +37,9 @@ class ParallelExecute(object):
                 functions[fn] = set()
 
         dependents = {}
-        for fn, deps in functions.iteritems():
+        for fn, deps in six.iteritems(functions):
             dependents[fn] = []
-        for fn, deps in functions.iteritems():
+        for fn, deps in six.iteritems(functions):
             for dep in deps:
                 dependents[dep].append(fn)
 
@@ -58,7 +59,7 @@ class ParallelExecute(object):
             sys.exit(0)
 
     def run_until_completion(self):
-        for fn, deps in self.functions.iteritems():
+        for fn, deps in six.iteritems(self.functions):
             if len(deps) == 0:
                 self.ready_to_run.append(fn)
 

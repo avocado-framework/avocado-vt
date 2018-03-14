@@ -748,7 +748,7 @@ def preprocess(test, params, env):
 
     # Destroy and remove VMs that are no longer needed in the environment
     requested_vms = params.objects("vms")
-    for key in env.keys():
+    for key in list(env.keys()):
         vm = env[key]
         if not isinstance(vm, virt_vm.BaseVM):
             continue
@@ -1375,9 +1375,9 @@ def _take_screendumps(test, params, env):
 
     while True:
         for vm in env.get_all_vms():
-            if vm.instance not in counter.keys():
+            if vm.instance not in list(counter.keys()):
                 counter[vm.instance] = 0
-            if vm.instance not in inactivity.keys():
+            if vm.instance not in list(inactivity.keys()):
                 inactivity[vm.instance] = time.time()
             if not vm.is_alive():
                 continue
@@ -1496,7 +1496,7 @@ def store_vm_register(vm, log_filename, append=False):
 def _store_vm_register(test, params, env):
     def report_result(status, results):
         msg = "%s." % status
-        for vm_instance in results.keys():
+        for vm_instance in list(results.keys()):
             if results[vm_instance] > 0:
                 msg += " Used to failed to get register info from guest"
                 msg += " %s for %s times." % (vm_instance,

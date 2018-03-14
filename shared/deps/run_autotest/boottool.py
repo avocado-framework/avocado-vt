@@ -17,6 +17,7 @@ import tempfile
 import shutil
 import struct
 
+import six
 from six.moves import urllib
 
 
@@ -411,7 +412,7 @@ class EliloConf(object):
         '''
         output = ''
 
-        for key, val in self.global_options_to_add.items():
+        for key, val in list(self.global_options_to_add.items()):
             output += self.keyval_to_line((key, val))
 
         eliloconf = open(self.path, 'r')
@@ -1236,7 +1237,7 @@ class Grubby(object):
                 with the title for the found entry, otherwise returns None
         """
         entries = self.get_entries()
-        for entry in entries.itervalues():
+        for entry in six.itervalues(entries):
             if entry.get('kernel') == path:
                 return entry['title']
         return None
@@ -2095,9 +2096,9 @@ class BoottoolApp(object):
         else:
             entries = {info_index: self.grubby.get_entry(info_index)}
 
-        for index, entry in entries.items():
+        for index, entry in list(entries.items()):
             print
-            for key, val in entry.items():
+            for key, val in list(entry.items()):
                 # remove quotes
                 if isinstance(val, str):
                     if val.startswith('"') and val.endswith('"'):

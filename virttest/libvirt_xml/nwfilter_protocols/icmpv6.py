@@ -36,7 +36,7 @@ class Icmpv6(base.TypedDeviceBase):
         :return: new Attr instance
         """
         new_one = self.Attr(virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -48,7 +48,7 @@ class Icmpv6(base.TypedDeviceBase):
         """
         icmpv6_node = self.xmltreefile.reroot('/icmpv6')
         node = icmpv6_node.getroot()
-        icmpv6_attr = dict(node.items())
+        icmpv6_attr = dict(list(node.items()))
 
         return icmpv6_attr
 

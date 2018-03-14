@@ -36,7 +36,7 @@ class Udplite_ipv6(base.TypedDeviceBase):
         :return: new Attr instance
         """
         new_one = self.Attr(virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -52,7 +52,7 @@ class Udplite_ipv6(base.TypedDeviceBase):
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = udplite_node.getroot()
-        udplite_attr = dict(node.items())
+        udplite_attr = dict(list(node.items()))
 
         return udplite_attr
 

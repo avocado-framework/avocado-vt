@@ -304,7 +304,7 @@ class GstEncoder(object):
 
         most_common_size_counter = 0
         most_common_size = None
-        for image_size, image_counter in image_sizes.items():
+        for image_size, image_counter in list(image_sizes.items()):
             if image_counter > most_common_size_counter:
                 most_common_size_counter = image_counter
                 most_common_size = image_size

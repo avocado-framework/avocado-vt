@@ -64,7 +64,7 @@ class UntypedDeviceBase(base.LibvirtXMLBase):
         Create a new device XML instance from a dict-like object
         """
         instance = cls(virsh_instance=virsh_instance)
-        for key, value in properties.items():
+        for key, value in list(properties.items()):
             setattr(instance, key, value)
         return instance
 
@@ -76,7 +76,7 @@ class UntypedDeviceBase(base.LibvirtXMLBase):
         dict_list = []
         elements = self.xmltreefile.findall(tag_filter)
         for element in elements:
-            dict_list.append(dict(element.items()))
+            dict_list.append(dict(list(element.items())))
         return dict_list
 
     def _set_list(self, tag_name, value):

@@ -111,7 +111,7 @@ class NwfilterXMLRules(base.LibvirtXMLBase):
         """
         protocol_tag = dargs.get("name")
         new_one = librarian.get(protocol_tag)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -326,13 +326,13 @@ class NwfilterXML(NwfilterXMLBase):
             if rule_nodes[i].getchildren():
                 protocol_node = rule_nodes[i].getchildren()[0]
                 protocol = protocol_node.tag
-                pro_dict = dict(protocol_node.items())
-                rule_dict = dict(rule_nodes[i].items())
+                pro_dict = dict(list(protocol_node.items()))
+                rule_dict = dict(list(rule_nodes[i].items()))
                 rule_dict.update(pro_dict)
                 rule_dict['protocol'] = protocol
                 rule_dict_attr[i] = rule_dict
             else:
-                rule_dict = dict(rule_nodes[i].items())
+                rule_dict = dict(list(rule_nodes[i].items()))
                 rule_dict_attr[i] = rule_dict
 
         return rule_dict_attr

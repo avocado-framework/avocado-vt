@@ -71,7 +71,7 @@ def primary_disk_virtio(vm):
     :param vm: Libvirt VM object.
     """
     vmdisks = vm.get_disk_devices()
-    if "vda" in vmdisks.keys():
+    if "vda" in list(vmdisks.keys()):
         return True
     return False
 
@@ -614,7 +614,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         status, partitions = self.get_partitions_info()
         if status is False:
             return None
-        for partition in partitions.values():
+        for partition in list(partitions.values()):
             if str(partition.get("num")) == str(part_num):
                 return partition.get("size")
 
@@ -707,7 +707,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         if status is False:
             return (False, partitions)
         part_num = -1
-        for partition in partitions.values():
+        for partition in list(partitions.values()):
             cur_num = partition.get("num")
             if cur_num > part_num:
                 part_num = cur_num
@@ -737,7 +737,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         if status is False:
             return (False, partitions)
         part_num = -1
-        for partition in partitions.values():
+        for partition in list(partitions.values()):
             cur_num = partition.get("num")
             if cur_num > part_num:
                 part_num = cur_num
@@ -751,7 +751,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         status, partitions = self.get_partitions_info(device)
         if status is False:
             return (False, partitions)
-        for partition in partitions.values():
+        for partition in list(partitions.values()):
             num = partition.get("num")
             ba_result = self.part_get_bootable(device, num)
             if ba_result.stdout.strip() == "true":
@@ -762,7 +762,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         status, partitions = self.get_partitions_info(device)
         if status is False:
             return (False, partitions)
-        for partition in partitions.values():
+        for partition in list(partitions.values()):
             num = partition.get("num")
             mbr_id_result = self.part_get_mbr_id(device, num)
             if mbr_id_result.exit_status == 0:

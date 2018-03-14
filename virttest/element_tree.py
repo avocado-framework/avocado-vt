@@ -374,7 +374,7 @@ class _ElementInterface(object):
     # @defreturn list of strings
 
     def keys(self):
-        return self.attrib.keys()
+        return list(self.attrib.keys())
 
     #
     # Gets element attributes, as a sequence.  The attributes are
@@ -384,7 +384,7 @@ class _ElementInterface(object):
     # @defreturn list of (string, string) tuples
 
     def items(self):
-        return self.attrib.items()
+        return list(self.attrib.items())
 
     #
     # Creates a tree iterator.  The iterator loops over this element
@@ -665,7 +665,7 @@ class ElementTree(object):
         elif tag is ProcessingInstruction:
             file.write("<?%s?>" % _escape_cdata(node.text, encoding))
         else:
-            items = node.items()
+            items = list(node.items())
             xmlns_items = []  # new namespaces in this scope
             try:
                 if isinstance(tag, QName) or tag[:1] == "{":
@@ -1185,7 +1185,7 @@ class XMLTreeBuilder(object):
         fixname = self._fixname
         tag = fixname(tag)
         attrib = {}
-        for key, value in attrib_in.items():
+        for key, value in list(attrib_in.items()):
             attrib[fixname(key)] = self._fixtext(value)
         return self._target.start(tag, attrib)
 

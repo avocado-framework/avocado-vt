@@ -29,7 +29,7 @@ def make_sandboxes(params, env, extra_ns=None):
     # inside test module or elsewhere.
     if extra_ns is not None:
         namespace.update(extra_ns)  # copy in additional symbols
-    names = namespace.keys()
+    names = list(namespace.keys())
     # Test may require more than one sandbox agregator class
     pobs = params.objects('lvsb_testsandboxes')  # manditory parameter
     # filter out non-TestSandboxes subclasses

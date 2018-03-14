@@ -169,7 +169,7 @@ class TestPropCanBase(unittest.TestCase):
             __slots__ = ('foo', 'bar')
         testcan = FooBar(foo='bar', bar='foo')
         testdict = {}
-        for key, value in testcan.items():
+        for key, value in list(testcan.items()):
             testdict[key] = value
         self.assertEqual(testcan, testdict)
 

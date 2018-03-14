@@ -35,7 +35,7 @@ class Params(UserDict.IterableUserDict):
         """
         lst = self.get(key, "").split()
         # remove duplicate elements
-        objs = {}.fromkeys(lst).keys()
+        objs = list({}.fromkeys(lst).keys())
         # sort list to keep origin order
         objs.sort(key=lst.index)
         del lst
@@ -58,7 +58,7 @@ class Params(UserDict.IterableUserDict):
         self.lock.acquire()
         new_dict = self.copy()
         self.lock.release()
-        for key in new_dict.keys():
+        for key in list(new_dict.keys()):
             if key.endswith(suffix):
                 new_key = key.split(suffix)[0]
                 new_dict[new_key] = new_dict[key]

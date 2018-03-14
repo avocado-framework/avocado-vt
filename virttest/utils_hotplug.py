@@ -239,7 +239,7 @@ def check_affinity(vm, expect_vcpupin):
     affinity_vcpuinfo = affinity_from_vcpuinfo(vm)
     result = True
 
-    for vcpu in expect_vcpupin.keys():
+    for vcpu in list(expect_vcpupin.keys()):
         expect_affinity = libvirt.cpus_string_to_affinity_list(
             str(expect_vcpupin[vcpu]), host_cpu_count)
         # Check for vcpuinfo affinity

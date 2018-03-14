@@ -1045,7 +1045,7 @@ class Bridge(object):
         return result
 
     def list_br(self):
-        return self.get_structure().keys()
+        return list(self.get_structure().keys())
 
     def list_iface(self):
         """
@@ -2519,8 +2519,8 @@ class VMNet(list):
         self.params = params.object_params(self.vm_name)
         self.vm_type = self.params.get('vm_type', 'default')
         self.driver_type = self.params.get('driver_type', 'default')
-        for key, value in VMNetStyle(self.vm_type,
-                                     self.driver_type).items():
+        for key, value in list(VMNetStyle(self.vm_type,
+                                          self.driver_type).items()):
             setattr(self, key, value)
 
     def process_mac(self, value):
@@ -2712,7 +2712,7 @@ class ParamsNet(VMNet):
         default_params['vlan'] = str(nic_name_list.index(nic_name))
         if nic_params.get('enable_misx_vectors') == 'yes':
             default_params['vectors'] = 2 * 1 + 2
-        for key, val in default_params.items():
+        for key, val in list(default_params.items()):
             nic_params.setdefault(key, val)
 
         return nic_params
@@ -2878,7 +2878,7 @@ class DbNet(VMNet):
     def mac_index(self):
         """Generator of mac addresses found in database"""
         try:
-            for db_key in self.db.keys():
+            for db_key in list(self.db.keys()):
                 for nic in self.db_entry(db_key):
                     mac = nic.get('mac')
                     if mac:
@@ -2937,12 +2937,12 @@ class VirtNet(DbNet, ParamsNet):
         for attrname in ['params', 'vm_name', 'db_key', 'db_filename',
                          'vm_type', 'driver_type', 'db_lockfile']:
             state[attrname] = getattr(self, attrname)
-        for style_attr in VMNetStyle(self.vm_type, self.driver_type).keys():
+        for style_attr in list(VMNetStyle(self.vm_type, self.driver_type).keys()):
             state[style_attr] = getattr(self, style_attr)
         return state
 
     def __setstate__(self, state):
-        for key in state.keys():
+        for key in list(state.keys()):
             if key == 'container_items':
                 continue  # handle outside loop
             setattr(self, key, state.pop(key))

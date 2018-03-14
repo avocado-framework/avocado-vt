@@ -267,7 +267,7 @@ class TransparentHugePageConfig(object):
         """
         if self.test_config:
             logging.info("Applying custom THP test configuration")
-            for path in self.test_config.keys():
+            for path in list(self.test_config.keys()):
                 logging.info("Writing path %s: %s", path,
                              self.test_config[path])
                 file(path, 'w').write(self.test_config[path])
@@ -1629,7 +1629,7 @@ class PciAssignable(object):
             "Clean up host env after PCI assign test", logging.info)
         if ARCH != 'ppc64le':
             if self.kvm_params is not None:
-                for kvm_param, value in self.kvm_params.items():
+                for kvm_param, value in list(self.kvm_params.items()):
                     if open(kvm_param, "r").read().strip() != value:
                         cmd = "echo %s > %s" % (value, kvm_param)
                         logging.info("Write '%s' to '%s'", value, kvm_param)

@@ -19,6 +19,8 @@ from .qemu_monitor import Monitor, MonitorError
 from . import error_context
 from avocado.utils import process
 
+import six
+
 
 class VAgentError(MonitorError):
     pass
@@ -375,7 +377,7 @@ class QemuAgent(Monitor):
                     _log_output(str(l), indent)
 
         def _dump_dict(di, indent=0):
-            for k, v in di.iteritems():
+            for k, v in six.iteritems(di):
                 o = "%s%s: " % (" " * indent, k)
                 if isinstance(v, dict):
                     _log_output(o, indent)

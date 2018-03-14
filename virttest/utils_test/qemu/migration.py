@@ -976,7 +976,7 @@ class MultihostMigrationFd(MultihostMigration):
                               " migration." % (fds))
 
                 # Prohibits descriptor inheritance.
-                for fd in fds.values():
+                for fd in list(fds.values()):
                     flags = fcntl.fcntl(fd, fcntl.F_GETFD)
                     flags |= fcntl.FD_CLOEXEC
                     fcntl.fcntl(fd, fcntl.F_SETFD, flags)
@@ -1111,7 +1111,7 @@ class MultihostMigrationExec(MultihostMigration):
                     fnam = ("mig_" + data_factory.generate_random_string(6) +
                             "." + vm_name)
                     fpath = os.path.join(self.test.tmpdir, fnam)
-                    if (fnam not in mig_fnam.values() and
+                    if (fnam not in list(mig_fnam.values()) and
                             not os.path.exists(fnam)):
                         mig_fnam[vm_name] = fpath
                         break

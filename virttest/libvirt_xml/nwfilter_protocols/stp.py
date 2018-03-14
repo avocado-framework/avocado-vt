@@ -35,7 +35,7 @@ class Stp(base.TypedDeviceBase):
         :return: new Attr instance
         """
         new_one = self.Attr(virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -50,7 +50,7 @@ class Stp(base.TypedDeviceBase):
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
             node = stp_node.getroot()
-            stp_attr = dict(node.items())
+            stp_attr = dict(list(node.items()))
 
         return stp_attr
 

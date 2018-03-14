@@ -216,7 +216,7 @@ class BaseCmd(CmdMessage):
 
         return ("base_cmd: %s(%s)" % (".".join(self.func),
                                       ", ".join(str_args) +
-                                      ",".join(str_kargs.items())))
+                                      ",".join(list(str_kargs.items()))))
 
     def is_async(self):
         """

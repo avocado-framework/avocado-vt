@@ -297,7 +297,7 @@ def unique(llist):
     except TypeError:
         return None
     else:
-        return u.keys()
+        return list(u.keys())
 
 
 def find_command(cmd):
@@ -741,7 +741,7 @@ def run_tests(parser, job):
             continue
         dependencies_satisfied = True
         for dep in param_dict.get("dep"):
-            for test_name in status_dict.keys():
+            for test_name in list(status_dict.keys()):
                 if dep not in test_name:
                     continue
                 # So the only really non-fatal state is WARN,
@@ -1724,7 +1724,7 @@ class NumaNode(object):
         self.extra_cpus = []
         if i < 0:
             host_numa_info = NumaInfo(all_nodes_path, online_nodes_path)
-            available_nodes = host_numa_info.nodes.keys()
+            available_nodes = list(host_numa_info.nodes.keys())
             self.cpus = self.get_node_cpus(available_nodes[-1]).split()
             if len(available_nodes) > 1:
                 self.extra_cpus = self.get_node_cpus(
@@ -2360,7 +2360,7 @@ def get_qemu_version(params):
             version['update'] = int(search_result.group(3))
         if "rhev" in str(line).lower():
             version['is_rhev'] = True
-    if None in version.values():
+    if None in list(version.values()):
         logging.error("Local install qemu version cannot be detected, "
                       "the version info is: %s" % version_raw)
         return None
@@ -3409,11 +3409,11 @@ class KSMController(object):
         writable_features = []
         if self.interface == "sysfs":
             # Get writable parameters
-            for key, value in self.ksm_params.items():
+            for key, value in list(self.ksm_params.items()):
                 if stat.S_IMODE(os.stat(value).st_mode) & stat.S_IWRITE:
                     writable_features.append(key)
         else:
-            for key in self.ksm_params.keys():
+            for key in list(self.ksm_params.keys()):
                 writable_features.append(key)
         return writable_features
 
@@ -3423,27 +3423,27 @@ class KSMController(object):
 
         :param feature_args: a dict include features and their's value.
         """
-        for key in feature_args.keys():
+        for key in list(feature_args.keys()):
             if key not in self.get_writable_features():
                 logging.error("Do not support setting of '%s'.", key)
                 raise KSMError
         if self.interface == "sysfs":
             # Get writable parameters
-            for key, value in feature_args.items():
+            for key, value in list(feature_args.items()):
                 process.system("echo %s > %s" % (value, self.ksm_params[key]),
                                shell=True)
         else:
-            if "run" in feature_args.keys() and feature_args["run"] == 0:
+            if "run" in list(feature_args.keys()) and feature_args["run"] == 0:
                 process.system("ksmctl stop")
             else:
                 # For ksmctl both pages_to_scan and sleep_ms should have value
                 # So start it anyway if run is 1
                 # Default is original value if feature is not in change list.
-                if "pages_to_scan" not in feature_args.keys():
+                if "pages_to_scan" not in list(feature_args.keys()):
                     pts = self.get_ksm_feature("pages_to_scan")
                 else:
                     pts = feature_args["pages_to_scan"]
-                if "sleep_millisecs" not in feature_args.keys():
+                if "sleep_millisecs" not in list(feature_args.keys()):
                     ms = self.get_ksm_feature("sleep_millisecs")
                 else:
                     ms = feature_args["sleep_millisecs"]
@@ -3453,7 +3453,7 @@ class KSMController(object):
         """
         Get ksm feature's value.
         """
-        if feature in self.ksm_params.keys():
+        if feature in list(self.ksm_params.keys()):
             feature = self.ksm_params[feature]
 
         if self.interface == "sysfs":
@@ -3665,7 +3665,7 @@ def get_pci_group_by_id(pci_id, device_type=""):
         # Informal pci_id, no matched list
         return []
     devices = get_pci_devices_in_group(device_type)
-    for device_key, device_value in devices.items():
+    for device_key, device_value in list(devices.items()):
         for value in device_value:
             if value.count(pci_id):
                 return devices[device_key]
@@ -3797,7 +3797,7 @@ class VFIOController(object):
                              'vfio_iommu_type1': []}
         # Used for checking modules
         modules_error = []
-        for key, value in self.vfio_linux_modules.items():
+        for key, value in list(self.vfio_linux_modules.items()):
             if check_module(key, value):
                 continue
             elif load_modules:

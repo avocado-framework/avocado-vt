@@ -2146,7 +2146,7 @@ class VM(virt_vm.BaseVM):
         This method undefines vm and removes the all storages related with this
         vm, no matter storages are managed by libvirt or not.
         """
-        blklist = self.get_disk_devices().values()
+        blklist = list(self.get_disk_devices().values())
         self.remove()
         for blk in blklist:
             path = blk['source']
@@ -2670,7 +2670,7 @@ class VM(virt_vm.BaseVM):
 
     def get_device_size(self, device_target):
         domblkdict = self.get_blk_devices()
-        if device_target not in domblkdict.keys():
+        if device_target not in list(domblkdict.keys()):
             return None
         path = domblkdict[device_target]["source"]
         size = self.get_device_details(device_target)["Capacity"]

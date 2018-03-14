@@ -192,7 +192,7 @@ class Builder(object):
         local_hashes = get_local_hashes(self.source)
 
         to_transfer = []
-        for rel_path in local_hashes.keys():
+        for rel_path in list(local_hashes.keys()):
             rhash = remote_hashes.get(rel_path)
             if rhash is None or not rhash == local_hashes[rel_path]:
                 to_transfer.append(rel_path)
