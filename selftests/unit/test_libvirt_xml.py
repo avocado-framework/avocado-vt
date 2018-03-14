@@ -6,6 +6,8 @@ import shutil
 import logging
 import sys
 
+import six
+
 from avocado.utils import process
 
 
@@ -767,12 +769,12 @@ class testLibrarian(LibvirtXMLTestBase):
 
 class testStubXML(LibvirtXMLTestBase):
 
+    @six.add_metaclass(devices_base.StubDeviceMeta)
     class UntypedFoobar(devices_base.UntypedDeviceBase):
-        __metaclass__ = devices_base.StubDeviceMeta
         _device_tag = 'foobar'
 
+    @six.add_metaclass(devices_base.StubDeviceMeta)
     class TypedFoobar(devices_base.TypedDeviceBase):
-        __metaclass__ = devices_base.StubDeviceMeta
         _device_tag = 'foo'
         _def_type_name = 'bar'
 

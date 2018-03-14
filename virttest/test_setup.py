@@ -14,6 +14,8 @@ import netaddr
 from abc import ABCMeta
 from abc import abstractmethod
 
+import six
+
 from avocado.utils import process
 from avocado.utils import archive
 from avocado.utils import wait
@@ -100,13 +102,12 @@ class PolkitConfigCleanupError(PolkitConfigError):
     pass
 
 
+@six.add_metaclass(ABCMeta)
 class Setuper(object):
 
     """
     Virtual base abstraction of setuper.
     """
-
-    __metaclass__ = ABCMeta
 
     #: Skip the cleanup when error occurs
     skip_cleanup_on_error = False
