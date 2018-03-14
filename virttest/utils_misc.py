@@ -1241,7 +1241,7 @@ def qemu_has_option(option, qemu_path="/usr/bin/qemu-kvm"):
     :param qemu_path: Path for qemu-kvm.
     """
     hlp = process.system_output("%s -help" % qemu_path, shell=True,
-                                ignore_status=True)
+                                ignore_status=True, verbose=False)
     return bool(re.search(r"^-%s(\s|$)" % option, hlp, re.MULTILINE))
 
 
