@@ -1327,7 +1327,7 @@ def worker(virt):
         if (d[0][1] == select.POLLIN):
             out = input()
             try:
-                exec(out)
+                exec out
             except Exception:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 print "On Guest exception from: \n" + "".join(
@@ -1544,7 +1544,7 @@ def main_nt():
     sys.stdout.flush()
     while not exiting:
         try:
-            exec(input())
+            exec input()
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             print "On Guest exception from: \n" + "".join(
