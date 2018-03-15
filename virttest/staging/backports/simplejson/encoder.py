@@ -7,6 +7,12 @@ import six
 from six import string_types as basestring
 
 
+try:
+    long
+except NameError:
+    long = int
+
+
 def _import_speedups():
     try:
         from simplejson import _speedups
