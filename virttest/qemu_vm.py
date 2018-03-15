@@ -1371,9 +1371,11 @@ class VM(virt_vm.BaseVM):
 
         self.qemu_binary = qemu_binary
         self.qemu_version = process.system_output("%s -version" % qemu_binary,
+                                                  verbose=False,
                                                   ignore_status=True,
                                                   shell=True).split(',')[0]
         support_cpu_model = process.system_output("%s -cpu \\?" % qemu_binary,
+                                                  verbose=False,
                                                   ignore_status=True,
                                                   shell=True)
 
@@ -3236,7 +3238,8 @@ class VM(virt_vm.BaseVM):
         """
         try:
             cmd = "ps --ppid=%d -o pid=" % self.process.get_pid()
-            children = process.system_output(cmd, ignore_status=True).split()
+            children = process.system_output(cmd, verbose=False,
+                                             ignore_status=True).split()
             return int(children[0])
         except (TypeError, IndexError, ValueError):
             return None
