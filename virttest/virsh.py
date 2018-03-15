@@ -2917,7 +2917,7 @@ def snapshot_info(name, snapshot, **dargs):
         raise process.CmdError(cmd, sc_output, "Failed to get snapshot info")
 
     for val in values:
-        data = re.search("(?<=%s:) *\w*" % val, sc_output.stdout)
+        data = re.search("(?<=%s:) *\w.*" % val, sc_output.stdout)
         if data is None:
             continue
         ret[val] = data.group(0).strip()
