@@ -399,7 +399,7 @@ class NetworkXMLBase(base.LibvirtXMLBase):
                                  marshal_to=self.marshal_to_address)
         accessors.XMLElementDict('driver', self, parent_xpath='/',
                                  tag_name='driver')
-        accessors.XMLElementDict('pf', self, parent_xpath='/',
+        accessors.XMLElementDict('pf', self, parent_xpath='/forward',
                                  tag_name='pf')
         accessors.XMLElementDict('nat_port', self, parent_xpath='/forward/nat',
                                  tag_name='port')
