@@ -2,7 +2,6 @@ import logging
 import os
 import re
 import string
-import types
 import glob
 import shutil
 from six import StringIO
@@ -16,7 +15,9 @@ from avocado.utils import genio
 from avocado.utils import crypto
 from avocado.utils import download
 from avocado.utils import git
+
 from six.moves import urllib
+from six import string_types
 
 from . import data_dir
 
@@ -47,7 +48,7 @@ class ConfigLoader:
         if hasattr(cfg, 'read'):
             self.cfg = cfg
             self.parser.readfp(self.cfg)
-        elif isinstance(cfg, types.StringTypes):
+        elif isinstance(cfg, string_types):
             # Config file is a URL. Download it to a temp dir
             if cfg.startswith('http') or cfg.startswith('ftp'):
                 self.cfg = os.path.join(tmpdir, os.path.basename(cfg))
