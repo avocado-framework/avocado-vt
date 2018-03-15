@@ -124,7 +124,7 @@ def namedtuple(typename, field_names, verbose=False, rename=False):
         _itemgetter=_itemgetter, __name__='namedtuple_%s' % typename,
         _property=property, _tuple=tuple)
     try:
-        exec template in namespace
+        exec(template, namespace)
     except SyntaxError as e:
         raise SyntaxError(e.message + ':\n' + template)
     result = namespace[typename]
