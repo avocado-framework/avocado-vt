@@ -62,6 +62,8 @@ class AddrCache(object):
     def __delitem__(self, hwaddr):
         hwaddr = self._format_hwaddr(hwaddr)
         with self._lock:
+            if hwaddr not in self._data:
+                return
             del self._data[hwaddr]
         logging.debug("Dropped the address cache of HWADDR (%s)", hwaddr)
 
