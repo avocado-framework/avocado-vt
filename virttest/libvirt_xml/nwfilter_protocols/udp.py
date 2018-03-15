@@ -35,7 +35,7 @@ class Udp(base.TypedDeviceBase):
         :return: new Attr instance
         """
         new_one = self.Attr(virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -50,7 +50,7 @@ class Udp(base.TypedDeviceBase):
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = udp_node.getroot()
-        udp_attr = dict(node.items())
+        udp_attr = dict(list(node.items()))
 
         return udp_attr
 

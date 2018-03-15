@@ -165,7 +165,7 @@ class iscsi_test(unittest.TestCase):
         u_name = {'node.session.auth.authmethod': 'CHAP'}
         u_name['node.session.auth.username'] = iscsi_obj.chap_user
         u_name['node.session.auth.password'] = iscsi_obj.chap_passwd
-        for name in u_name.keys():
+        for name in list(u_name.keys()):
             u_cmd = "iscsiadm --mode node --targetname %s " % iscsi_obj.target
             u_cmd += "--op update --name %s --value %s" % (name, u_name[name])
             process.system.expect_call(u_cmd)

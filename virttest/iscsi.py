@@ -322,7 +322,7 @@ class _IscsiComm(object):
         name_dict = {'node.session.auth.authmethod': 'CHAP'}
         name_dict['node.session.auth.username'] = self.chap_user
         name_dict['node.session.auth.password'] = self.chap_passwd
-        for name in name_dict.keys():
+        for name in list(name_dict.keys()):
             cmd = "iscsiadm --mode node --targetname %s " % self.target
             cmd += "--op update --name %s --value %s" % (name, name_dict[name])
             try:

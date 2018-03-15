@@ -223,7 +223,7 @@ class PCIXML(CAPXML):
         """Convert an Address instance into tag + attributes"""
         root = item.xmltreefile.getroot()
         if root.tag == 'address':
-            return (root.tag, dict(root.items()))
+            return (root.tag, dict(list(root.items())))
         else:
             raise xcepts.LibvirtXMLError("Expected a list of address "
                                          "instances, not a %s" % str(item))

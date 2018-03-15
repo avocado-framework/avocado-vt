@@ -153,7 +153,7 @@ class TestVirtIface(unittest.TestCase):
         for propertea in self.VirtIface.__all_slots__[0:half_prop_end]:
             props[propertea] = utils_misc.generate_random_string(16)
         virtiface = self.VirtIface(props)
-        self.loop_assert(virtiface, props.keys(), what_func)
+        self.loop_assert(virtiface, list(props.keys()), what_func)
 
     def test_full_set(self):
         def what_func(propertea):
@@ -162,7 +162,7 @@ class TestVirtIface(unittest.TestCase):
         for propertea in self.VirtIface.__all_slots__:
             props[propertea] = utils_misc.generate_random_string(16)
         virtiface = self.VirtIface(props)
-        self.loop_assert(virtiface, props.keys(), what_func)
+        self.loop_assert(virtiface, list(props.keys()), what_func)
 
     def test_apendex_set(self):
         """
@@ -184,7 +184,7 @@ class TestVirtIface(unittest.TestCase):
         apendex_set.update(more_props)
         virtiface = self.VirtIface(apendex_set)
         # str(props) guarantees apendex set wasn't incorporated
-        self.loop_assert(virtiface, props.keys(), what_func)
+        self.loop_assert(virtiface, list(props.keys()), what_func)
 
     def test_mac_completer(self):
         for test_mac in ['9a', '01:02:03:04:05:06', '00', '1:2:3:4:5:6',
@@ -267,7 +267,7 @@ class TestVmNet(unittest.TestCase):
         self.assertEqual(vmnet[0].nic_name, test_data[0]['nic_name'])
         self.assertEqual(vmnet['nic1'].__class__, utils_net.VirtIface)
         self.assertEqual(False, hasattr(vmnet['nic1'], 'mac'))
-        self.assertEqual(False, 'mac' in vmnet['nic1'].keys())
+        self.assertEqual(False, 'mac' in list(vmnet['nic1'].keys()))
         self.assertEqual(vmnet.nic_name_list(), ['nic1', 'nic2', 'nic3'])
         self.assertEqual(vmnet.nic_name_index('nic2'), 1)
         self.assertRaises(TypeError, vmnet.nic_name_index, 0)
@@ -416,7 +416,7 @@ class TestVmNetSubclasses(unittest.TestCase):
                                                 fakevm2.instance,
                                                 self.db_filename)
             # Verify nic order doesn't matter
-            fvm3p = utils_params.Params(fvm1p.items())  # work on copy
+            fvm3p = utils_params.Params(list(fvm1p.items()))  # work on copy
             nic_list = fvm1p.object_params(fakevm1.name).get(
                 "nics", fvm1p.get('nics', "")).split()
             random.shuffle(nic_list)
@@ -530,7 +530,7 @@ class TestVmNetSubclasses(unittest.TestCase):
         # Verify on-disk data matches dummy data just written
         self.zero_counter()
         db = shelve.open(self.db_filename)
-        db_keys = db.keys()
+        db_keys = list(db.keys())
         self.assertEqual(len(db_keys), self.db_item_count)
         for key in db_keys:
             db_value = eval(db[key], {}, {})

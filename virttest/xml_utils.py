@@ -275,7 +275,7 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         """Return the XPath string formed from first-match tag names"""
         parent_map = self.get_parent_map()
         root = self.getroot()
-        assert root in parent_map.values()
+        assert root in list(parent_map.values())
         if element == root:
             return '.'
         # List of strings reversed at end

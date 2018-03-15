@@ -332,7 +332,7 @@ class AccessorsTest(LibvirtXMLTestBase):
                    '</integer>')
 
         name_radix = {'auto': 0, 'bin': 2, 'oct': 8, 'dec': 10, 'hex': 16}
-        for name, radix in name_radix.items():
+        for name, radix in list(name_radix.items()):
             accessors.XMLElementInt(name + '_test', lvx,
                                     parent_xpath='/',
                                     tag_name=name,
@@ -392,7 +392,7 @@ class AccessorsTest(LibvirtXMLTestBase):
         self.assertEqual(foobar.test, test_dict)
         element = foobar.xmltreefile.find('foo/bar/baz')
         self.assertTrue(element is not None)
-        element_dict = dict(element.items())
+        element_dict = dict(list(element.items()))
         self.assertEqual(test_dict, element_dict)
 
     def test_XMLElementNest(self):
@@ -708,11 +708,11 @@ class TestVMXML(LibvirtXMLTestBase):
 
         seclabel = vmxml.get_seclabel()[0]
 
-        for key, value in seclabel_dict.items():
+        for key, value in list(seclabel_dict.items()):
             self.assertEqual(seclabel[key], value)
 
         # test attribute-like access also
-        for key, value in vmxml.seclabel[0].items():
+        for key, value in list(vmxml.seclabel[0].items()):
             self.assertEqual(seclabel_dict[key], value)
 
 

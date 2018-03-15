@@ -103,14 +103,14 @@ class Hostdev(base.TypedDeviceBase):
 
         def new_untyped_address(self, **dargs):
             new_one = self.UntypedAddress(virsh_instance=self.virsh)
-            for key, value in dargs.items():
+            for key, value in list(dargs.items()):
                 if value:
                     setattr(new_one, key, value)
             return new_one
 
         def new_auth(self, **dargs):
             new_one = self.Auth(virsh_instance=self.virsh)
-            for key, value in dargs.items():
+            for key, value in list(dargs.items()):
                 if value:
                     setattr(new_one, key, value)
             return new_one

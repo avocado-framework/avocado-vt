@@ -2162,7 +2162,7 @@ def print_dicts_default(options, dicts):
         else:
             print "dict %4d:  %s" % (count + 1, dic["shortname"])
         if options.contents:
-            keys = dic.keys()
+            keys = list(dic.keys())
             keys.sort()
             for key in keys:
                 print "    %s = %s" % (key, dic[key])

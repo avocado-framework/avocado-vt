@@ -446,7 +446,7 @@ class VMXMLBase(base.LibvirtXMLBase):
                                          "exist")
         seclabels = []
         for i in range(len(seclabel_node)):
-            seclabel = dict(seclabel_node[i].items())
+            seclabel = dict(list(seclabel_node[i].items()))
             for child_name in __children_list__:
                 child_node = seclabel_node[i].find(child_name)
                 if child_node is not None:
@@ -485,7 +485,7 @@ class VMXMLBase(base.LibvirtXMLBase):
                 self.xmltreefile.getroot(),
                 "seclabel")
 
-            for key, value in seclabel_dict_list[i].items():
+            for key, value in list(seclabel_dict_list[i].items()):
                 if key in __children_list__:
                     child_node = seclabel_node.find(key)
                     if child_node is None:
@@ -676,7 +676,7 @@ class VMXML(VMXMLBase):
         vmxml.vm_name = new_name
         for channel in vmxml.get_agent_channels():
             for child in channel._children:
-                if 'path' in child.attrib.keys():
+                if 'path' in list(child.attrib.keys()):
                     child.attrib['path'] = child.attrib['path'].replace(str_old, str_new)
         if uuid is None:
             # UUID will be regenerated automatically
@@ -816,7 +816,7 @@ class VMXML(VMXMLBase):
         vmxml = VMXML.new_from_dumpxml(vm_name, option,
                                        virsh_instance=virsh_instance)
         disks = vmxml.get_disk_all()
-        return disks.values()
+        return list(disks.values())
 
     @staticmethod
     def get_disk_blk(vm_name, virsh_instance=base.virsh):
@@ -827,7 +827,7 @@ class VMXML(VMXMLBase):
         """
         vmxml = VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
         disks = vmxml.get_disk_all()
-        return disks.keys()
+        return list(disks.keys())
 
     @staticmethod
     def get_disk_count(vm_name, virsh_instance=base.virsh):
@@ -1138,7 +1138,7 @@ class VMXML(VMXMLBase):
         vmxml = VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
         ifaces = vmxml.get_iface_all()
         if ifaces:
-            return ifaces.keys()
+            return list(ifaces.keys())
         return None
 
     @staticmethod
@@ -1225,7 +1225,7 @@ class VMXML(VMXMLBase):
         vmxml = VMXML.new_from_dumpxml(vm_name)
         nets = vmxml.get_net_all()
         if nets is not None:
-            return nets.keys()
+            return list(nets.keys())
         return None
 
     @staticmethod
@@ -1509,7 +1509,7 @@ class VMXML(VMXMLBase):
         try:
             os_xml = getattr(self, "os")
             if attr_dict:
-                for name, value in attr_dict.items():
+                for name, value in list(attr_dict.items()):
                     setattr(os_xml, name, value)
             setattr(self, "os", os_xml)
             self.xmltreefile.write()
@@ -1843,7 +1843,7 @@ class VMClockXML(VMXML):
             self.name = timer_name
 
         def update(self, attr_dict):
-            for attr, value in attr_dict.items():
+            for attr, value in list(attr_dict.items()):
                 setattr(self, attr, value)
 
     @staticmethod
@@ -1853,7 +1853,7 @@ class VMClockXML(VMXML):
         del libvirtxml
         timer = item.xmltreefile.find("clock/timer")
         try:
-            return (timer.tag, dict(timer.items()))
+            return (timer.tag, dict(list(timer.items())))
         except AttributeError:  # Didn't find timer
             raise xcepts.LibvirtXMLError("Expected a list of timer "
                                          "instances, not a %s" % str(item))
@@ -2269,7 +2269,7 @@ class VMHugepagesXML(VMXML):
                 virsh_instance=virsh_instance)
 
         def update(self, attr_dict):
-            for attr, value in attr_dict.items():
+            for attr, value in list(attr_dict.items()):
                 setattr(self, attr, value)
 
     @staticmethod
@@ -2279,7 +2279,7 @@ class VMHugepagesXML(VMXML):
         del libvirtxml
         page = item.xmltreefile.find("/hugepages/page")
         try:
-            return (page.tag, dict(page.items()))
+            return (page.tag, dict(list(page.items())))
         except AttributeError:  # Didn't find page
             raise xcepts.LibvirtXMLError("Expected a list of page "
                                          "instances, not a %s" % str(item))

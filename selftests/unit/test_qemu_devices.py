@@ -21,7 +21,9 @@ from virttest.unittest_utils import mock
 from virttest.qemu_devices import qdevices, qcontainer
 from virttest import qemu_monitor
 
+import six
 from six.moves import xrange
+
 
 UNITTEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                  "unittest_data")
@@ -51,7 +53,7 @@ class ParamsDict(dict):
 
     def object_params(self, obj):
         ret = self.copy()
-        for (param, value) in self.iteritems():
+        for (param, value) in six.iteritems(self):
             if param.endswith('_%s' % obj):
                 ret[param[:-len('_%s' % obj)]] = value
         return ret

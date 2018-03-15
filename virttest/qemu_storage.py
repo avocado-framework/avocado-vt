@@ -12,6 +12,8 @@ import re
 from avocado.core import exceptions
 from avocado.utils import process
 
+import six
+
 from . import utils_misc
 from . import virt_vm
 from . import storage
@@ -605,7 +607,7 @@ class QemuImg(storage.QemuImg):
                 command
         """
         cmd_list = [self.image_cmd, 'amend']
-        options = ["%s=%s" % (key[6:], val) for key, val in params.iteritems()
+        options = ["%s=%s" % (key[6:], val) for key, val in six.iteritems(params)
                    if key.startswith('amend_')]
         if cache_mode:
             cmd_list.append("-t %s" % cache_mode)

@@ -64,7 +64,7 @@ class UntypedDeviceBase(base.LibvirtXMLBase):
         Create a new filter rule XML instance from a dict-like object
         """
         instance = cls(virsh_instance=virsh_instance)
-        for key, value in properties.items():
+        for key, value in list(properties.items()):
             setattr(instance, key, value)
         return instance
 

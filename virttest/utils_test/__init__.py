@@ -1091,7 +1091,7 @@ def run_autotest(vm, session, control_path, timeout,
         lines = control_file.readlines()
         control_file.close()
 
-        for pattern, repl in pattern2repl_dict.items():
+        for pattern, repl in list(pattern2repl_dict.items()):
             for index in range(len(lines)):
                 line = lines[index]
                 lines[index] = re.sub(pattern, repl, line)
@@ -1113,7 +1113,7 @@ def run_autotest(vm, session, control_path, timeout,
                         job_type = ""
                     # Assemble job function
                     jobline = "job.run_test(%s" % job_type
-                    for key, value in job_args.items():
+                    for key, value in list(job_args.items()):
                         jobline += ", %s='%s'" % (key, value)
                     jobline += ")\n"
                     newlines.append(jobline)

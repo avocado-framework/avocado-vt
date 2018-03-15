@@ -99,7 +99,7 @@ def key_event_to_qemu_string(event):
 
     if ord('a') <= keyval <= ord('z') or ord('0') <= keyval <= ord('9'):
         sr = keyname
-    elif keyname in keymap.keys():
+    elif keyname in list(keymap.keys()):
         sr = keymap[keyname]
     else:
         return ""

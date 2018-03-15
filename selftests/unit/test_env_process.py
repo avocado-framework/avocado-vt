@@ -24,6 +24,6 @@ class QEMUVersion(unittest.TestCase):
             ' Copyright (c) 2003-2008 Fabrice Bellard': (
                 '0.12.1', 'qemu-kvm-0.12.1.2-2.503.el6_9.3')
         }
-        for version, expected in versions_expected.items():
+        for version, expected in list(versions_expected.items()):
             match = re.match(QEMU_VERSION_RE, version)
             self.assertEqual(match.groups(), expected)

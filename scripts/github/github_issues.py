@@ -255,7 +255,7 @@ class GithubIssuesBase(list):
         return True
 
     def __iter__(self):
-        for key in self.keys():
+        for key in list(self.keys()):
             yield self[key]
 
     def __setitem__(self, key, value):
@@ -287,7 +287,7 @@ class GithubIssuesBase(list):
 
     def items(self):
         # Iterator comprehension
-        return (self[key] for key in self.keys())
+        return (self[key] for key in list(self.keys()))
 
     def keys(self):
         # Iterators are simply better
@@ -295,7 +295,7 @@ class GithubIssuesBase(list):
 
     def values(self):
         # Iterator comprehension
-        return (value for (key, value) in self.items())
+        return (value for (key, value) in list(self.items()))
 
 
 class GithubIssues(GithubIssuesBase, object):
@@ -349,7 +349,7 @@ class GithubIssues(GithubIssuesBase, object):
         # Can't modify list while iterating
         keys_to_del = []
         now = datetime.datetime.utcnow()
-        for key, value in self.shelf.items():
+        for key, value in list(self.shelf.items()):
             # no need to be precise
             if value['expires'] <= now:
                 keys_to_del.append(key)
@@ -554,7 +554,7 @@ class GithubIssues(GithubIssuesBase, object):
         """
         Translate a github issue object into dictionary w/ fixed keys
         """
-        mkeys = self.marshal_map.keys()
+        mkeys = list(self.marshal_map.keys())
         return dict([(key, self.marshal_map[key](gh_issue)) for key in mkeys])
 
     @staticmethod
@@ -697,7 +697,7 @@ class MutableIssue(dict):
         return self.get_issue_cache_key(self._issue_number)
 
     def _setdelitem(self, opr, key, value):
-        if key not in self._github_issues.marshal_map.keys():
+        if key not in list(self._github_issues.marshal_map.keys()):
             raise MutateError(key, self._issue_number)
         methodname = '%s_%s' % (opr, key)
         if callable(getattr(self, methodname)):

@@ -123,8 +123,8 @@ class TestVirshClosure(ModuleLoad):
         args, dargs = vcinst()
         self.assertEqual(len(args), 0)
         self.assertEqual(len(dargs), 1)
-        self.assertEqual(dargs.keys(), ['foo'])
-        self.assertEqual(dargs.values(), ['bar'])
+        self.assertEqual(list(dargs.keys()), ['foo'])
+        self.assertEqual(list(dargs.values()), ['bar'])
 
     def test_args_and_dargs(self):
         # save some typing
@@ -135,8 +135,8 @@ class TestVirshClosure(ModuleLoad):
         self.assertEqual(len(args), 1)
         self.assertEqual(args[0], 'foo')
         self.assertEqual(len(dargs), 1)
-        self.assertEqual(dargs.keys(), ['foo'])
-        self.assertEqual(dargs.values(), ['bar'])
+        self.assertEqual(list(dargs.keys()), ['foo'])
+        self.assertEqual(list(dargs.values()), ['bar'])
 
     def test_args_dargs_subclass(self):
         # save some typing
@@ -147,8 +147,8 @@ class TestVirshClosure(ModuleLoad):
         self.assertEqual(len(args), 1)
         self.assertEqual(args[0], 'foo')
         self.assertEqual(len(dargs), 1)
-        self.assertEqual(dargs.keys(), ['foo'])
-        self.assertEqual(dargs.values(), ['bar'])
+        self.assertEqual(list(dargs.keys()), ['foo'])
+        self.assertEqual(list(dargs.values()), ['bar'])
 
     def test_update_args_dargs_subclass(self):
         # save some typing
@@ -159,8 +159,8 @@ class TestVirshClosure(ModuleLoad):
         self.assertEqual(len(args), 1)
         self.assertEqual(args[0], 'foo')
         self.assertEqual(len(dargs), 1)
-        self.assertEqual(dargs.keys(), ['foo'])
-        self.assertEqual(dargs.values(), ['bar'])
+        self.assertEqual(list(dargs.keys()), ['foo'])
+        self.assertEqual(list(dargs.values()), ['bar'])
         # Update dictionary
         tcinst['sna'] = 'fu'
         # Is everything really the same?

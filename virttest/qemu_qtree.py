@@ -15,6 +15,9 @@ from . import data_dir
 from . import utils_misc
 from . import arch
 
+import six
+
+
 OFFSET_PER_LEVEL = 2
 
 _RE_BLANKS = re.compile(r'^([ ]*)')
@@ -53,7 +56,7 @@ class QtreeNode(object):
             out += "\n[parent]\n %s" % self.parent.str_short()
         if self.qtree:
             out += "\n[info qtree]"
-        for tmp in self.qtree.iteritems():
+        for tmp in six.iteritems(self.qtree):
             out += "\n %s = %s" % (tmp[0], tmp[1])
         if self.children:
             out += "\n[children]"
@@ -61,7 +64,7 @@ class QtreeNode(object):
             out += "\n %s" % tmp.str_short()
         if self.params:
             out += "\n[params]"
-        for tmp in self.params.iteritems():
+        for tmp in six.iteritems(self.params):
             out += "\n %s = %s" % (tmp[0], [tmp[1]])
         return out
 
@@ -185,7 +188,7 @@ class QtreeDisk(QtreeDev):
         out = super(QtreeDisk, self).__str__()
         if self.block:
             out += "\n[info block]"
-        for tmp in self.block.iteritems():
+        for tmp in six.iteritems(self.block):
             out += "\n%s = %s" % (tmp[0], tmp[1])
         return out
 
@@ -408,7 +411,7 @@ class QtreeDisksContainer(object):
                 self.errors.append(error_msg)
                 missing += 1
                 continue
-            for prop, value in info[name].iteritems():
+            for prop, value in six.iteritems(info[name]):
                 disk.set_block_prop(prop, value)
         for disk in self.disks:
             if disk.get_block() == {}:
@@ -540,7 +543,7 @@ class QtreeDisksContainer(object):
                 data_dir.get_data_dir(),
                 params.object_params(name).get('cdrom', ''))
             image_name = os.path.realpath(image_name)
-            for (qname, disk) in disks.iteritems():
+            for (qname, disk) in six.iteritems(disks):
                 if disk[0].get('image_name') == image_name:
                     break
             else:
@@ -556,7 +559,7 @@ class QtreeDisksContainer(object):
             image_name = os.path.realpath(
                 storage.get_image_filename(image_params,
                                            base_dir))
-            for (qname, disk) in disks.iteritems():
+            for (qname, disk) in six.iteritems(disks):
                 if disk[0].get('image_name') == image_name:
                     current = disk[0]
                     current_node = disk[1]
@@ -569,7 +572,7 @@ class QtreeDisksContainer(object):
                 self.errors.append(error_msg)
                 err += 1
                 continue
-            for prop in current.iterkeys():
+            for prop in six.iterkeys(current):
                 handled = False
                 if prop == "drive_format":
                     out = check_drive_format(current_node, image_params)

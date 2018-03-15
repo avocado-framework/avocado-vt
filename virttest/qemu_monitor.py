@@ -17,6 +17,9 @@ from . import utils_misc
 from . import cartesian_config
 from . import data_dir
 
+import six
+
+
 try:
     import json
 except ImportError:
@@ -567,9 +570,9 @@ class Monitor:
             if 'inserted' not in item:
                 blocks[name]['not-inserted'] = True
             else:
-                for key, value in item.pop('inserted', {}).iteritems():
+                for key, value in six.iteritems(item.pop('inserted', {})):
                     blocks[name][key] = value
-            for key, value in item.iteritems():
+            for key, value in six.iteritems(item):
                 blocks[name][key] = value
         return blocks
 
@@ -1561,7 +1564,7 @@ class QMPMonitor(Monitor):
                     _log_output(str(l), indent)
 
         def _dump_dict(di, indent=0):
-            for k, v in di.iteritems():
+            for k, v in six.iteritems(di):
                 o = "%s%s: " % (" " * indent, k)
                 if isinstance(v, dict):
                     _log_output(o, indent)

@@ -19,7 +19,9 @@ if os.path.isdir(os.path.join(basedir, 'virttest')):
 from virttest.unittest_utils import mock
 from virttest import qemu_qtree
 
+import six
 from six.moves import xrange
+
 
 OFFSET_PER_LEVEL = qemu_qtree.OFFSET_PER_LEVEL
 
@@ -35,7 +37,7 @@ class ParamsDict(dict):
 
     def object_params(self, obj):
         ret = self.copy()
-        for (param, value) in self.iteritems():
+        for (param, value) in six.iteritems(self):
             if param.endswith('_%s' % obj):
                 ret[param[:-len('_%s' % obj)]] = value
         return ret

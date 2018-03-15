@@ -36,7 +36,7 @@ class Sctp(base.TypedDeviceBase):
         :return: new Attr instance
         """
         new_one = self.Attr(virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -51,7 +51,7 @@ class Sctp(base.TypedDeviceBase):
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = sctp_node.getroot()
-        sctp_attr = dict(node.items())
+        sctp_attr = dict(list(node.items()))
 
         return sctp_attr
 

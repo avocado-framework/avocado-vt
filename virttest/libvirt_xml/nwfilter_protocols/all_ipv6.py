@@ -36,7 +36,7 @@ class All_ipv6(base.TypedDeviceBase):
         :return: new Attr instance
         """
         new_one = self.Attr(virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -51,7 +51,7 @@ class All_ipv6(base.TypedDeviceBase):
         except KeyError as detail:
             raise xcepts.LibvirtXMLError(detail)
         node = all_node.getroot()
-        all_attr = dict(node.items())
+        all_attr = dict(list(node.items()))
 
         return all_attr
 

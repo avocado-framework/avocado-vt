@@ -72,7 +72,7 @@ class CartesianCfgLint(unittest.TestCase):
                                  "%s.%s" % (major, minor))
                 self.assertEqual(config_dict['image_name'],
                                  'images/rhel%s%s' % (major, minor))
-                for arch, alt in arch_map.items():
+                for arch, alt in list(arch_map.items()):
                     arch_cfg = "%s.%s/%s.cfg" % (major, minor, arch)
                     arch_cfg_path = os.path.join(RHELDIR, arch_cfg)
                     if not os.path.exists(arch_cfg_path):

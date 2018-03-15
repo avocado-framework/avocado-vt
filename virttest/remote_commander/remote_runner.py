@@ -548,11 +548,11 @@ class CommanderSlave(ms.Messenger):
         try:
             while (not self._exit):
                 stdios = [self.stdin, self.o_stdout, self.o_stderr]
-                r_pipes = [cmd.r_pipe for cmd in self.cmds.values()
+                r_pipes = [cmd.r_pipe for cmd in list(self.cmds.values())
                            if cmd.r_pipe is not None]
-                stdouts = [cmd.stdout_pipe for cmd in self.cmds.values()
+                stdouts = [cmd.stdout_pipe for cmd in list(self.cmds.values())
                            if cmd.stdout_pipe is not None]
-                stderrs = [cmd.stderr_pipe for cmd in self.cmds.values()
+                stderrs = [cmd.stderr_pipe for cmd in list(self.cmds.values())
                            if cmd.stderr_pipe is not None]
 
                 r, _, _ = select.select(
@@ -588,7 +588,7 @@ class CommanderSlave(ms.Messenger):
                     self.write_msg(remote_interface.StdErr(msg))
 
                 # test all commands for io
-                for cmd in self.cmds.values():
+                for cmd in list(self.cmds.values()):
                     if cmd.stdout_pipe in r:  # command stdout
                         data = os.read(cmd.stdout_pipe, 16384)
                         if data != "":  # pipe is not closed on another side.
@@ -614,7 +614,7 @@ class CommanderSlave(ms.Messenger):
             self.write_msg(remote_interface.CommanderError(err_msg))
 
     def _close_cmds_stdios(self, exclude_cmd):
-        for cmd in self.cmds.values():
+        for cmd in list(self.cmds.values()):
             if cmd is not exclude_cmd:
                 cmd.close_pipes()
 

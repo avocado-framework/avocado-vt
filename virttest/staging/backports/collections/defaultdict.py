@@ -1,3 +1,6 @@
+import six
+
+
 '''
 Backport of the defaultdict module, obtained from:
 http://code.activestate.com/recipes/523034-emulate-collectionsdefaultdict/
@@ -19,7 +22,7 @@ class defaultdict(dict):
     :license: PSF
 
     Changes:
-    * replaced self.items() with self.iteritems() to fix Pickle bug as
+    * replaced self.items() with six.iteritems(self) to fix Pickle bug as
     recommended by Aaron Lav
     * reformated with autopep8
     """
@@ -48,7 +51,7 @@ class defaultdict(dict):
             args = tuple()
         else:
             args = self.default_factory,
-        return type(self), args, None, None, self.iteritems()
+        return type(self), args, None, None, six.iteritems(self)
 
     def copy(self):
         return self.__copy__()
@@ -60,7 +63,7 @@ class defaultdict(dict):
     def __deepcopy__(self, memo):
         import copy
         return type(self)(self.default_factory,
-                          copy.deepcopy(self.iteritems()))
+                          copy.deepcopy(six.iteritems(self)))
 
     def __repr__(self):
         return 'defaultdict(%s, %s)' % (self.default_factory,

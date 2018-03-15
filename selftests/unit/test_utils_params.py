@@ -70,7 +70,7 @@ class TestParams(unittest.TestCase):
         self.assertEquals(self.params.objects("images"), ['image1', 'stg'])
 
     def testObjectsParams(self):
-        for key in CORRECT_RESULT_MAPPING.keys():
+        for key in list(CORRECT_RESULT_MAPPING.keys()):
             self.assertEquals(self.params.object_params(key),
                               CORRECT_RESULT_MAPPING[key])
 

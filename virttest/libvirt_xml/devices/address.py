@@ -32,14 +32,14 @@ class Address(base.TypedDeviceBase):
                                          "Address class")
         # Stick property values in as attributes
         xtfroot = instance.xmltreefile.getroot()
-        for key, value in attributes.items():
+        for key, value in list(attributes.items()):
             xtfroot.set(key, value)
         return instance
 
     @classmethod
     def new_from_element(cls, element, virsh_instance=base.base.virsh):
         # element uses type attribute, class uses type_name
-        edict = dict(element.items())
+        edict = dict(list(element.items()))
         try:
             edict['type_name'] = edict.pop('type')
         except (KeyError, AttributeError):

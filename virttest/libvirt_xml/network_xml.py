@@ -218,7 +218,7 @@ class DNSXML(base.LibvirtXMLBase):
         Return a new disk IOTune instance and set properties from dargs
         """
         new_one = DNSXML.HostXML(virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -433,7 +433,7 @@ class NetworkXMLBase(base.LibvirtXMLBase):
         Return a new interface Address instance and set properties from dargs
         """
         new_one = self.Address("pci", virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -442,7 +442,7 @@ class NetworkXMLBase(base.LibvirtXMLBase):
         """Convert an Address instance into tag + attributes"""
         root = item.xmltreefile.getroot()
         if root.tag == 'address':
-            return (root.tag, dict(root.items()))
+            return (root.tag, dict(list(root.items())))
         else:
             raise xcepts.LibvirtXMLError("Expected a list of address "
                                          "instances, not a %s" % str(item))
@@ -606,7 +606,7 @@ class NetworkXMLBase(base.LibvirtXMLBase):
         Return a new dns instance and set properties from dargs
         """
         new_one = DNSXML(virsh_instance=self.virsh)
-        for key, value in dargs.items():
+        for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
 
@@ -678,7 +678,7 @@ class NetworkXML(NetworkXMLBase):
         # Values should all share virsh property
         new_netxml = NetworkXML(virsh_instance=virsh_instance)
         params = {'only_names': True, 'virsh_instance': virsh_instance}
-        networks = new_netxml.virsh.net_state_dict(**params).keys()
+        networks = list(new_netxml.virsh.net_state_dict(**params).keys())
         for net_name in networks:
             new_copy = new_netxml.copy()
             new_copy.xml = virsh_instance.net_dumpxml(net_name).stdout.strip()

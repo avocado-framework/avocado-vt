@@ -578,7 +578,7 @@ class XMLElementDict(AccessorGeneratorBase):
         def __call__(self):
             element = self.element_by_parent(self.parent_xpath,
                                              self.tag_name, create=False)
-            return dict(element.items())
+            return dict(list(element.items()))
 
     class Setter(AccessorBase):
 
@@ -592,7 +592,7 @@ class XMLElementDict(AccessorGeneratorBase):
             type_check(self.property_name + ' value', value, dict)
             element = self.element_by_parent(self.parent_xpath,
                                              self.tag_name, create=True)
-            for attr_key, attr_value in value.items():
+            for attr_key, attr_value in list(value.items()):
                 element.set(str(attr_key), str(attr_value))
             self.xmltreefile().write()
 
@@ -753,10 +753,10 @@ class XMLElementList(AccessorGeneratorBase):
                 try:
                     # To support an optional text parameter, compatible
                     # with no text parameter.
-                    item = self.marshal_to(child.tag, dict(child.items()),
+                    item = self.marshal_to(child.tag, dict(list(child.items())),
                                            index, self.libvirtxml, child.text)
                 except TypeError:
-                    item = self.marshal_to(child.tag, dict(child.items()),
+                    item = self.marshal_to(child.tag, dict(list(child.items())),
                                            index, self.libvirtxml)
                 if item is not None:
                     result.append(item)
@@ -807,7 +807,7 @@ class XMLElementList(AccessorGeneratorBase):
                 # Handle element text values in element_tuple[1].
                 text = None
                 new_dict = element_tuple[1].copy()
-                if 'text' in element_tuple[1].keys():
+                if 'text' in list(element_tuple[1].keys()):
                     del new_dict['text']
 
                 # To support text in element, marshal_from may return an
@@ -822,10 +822,10 @@ class XMLElementList(AccessorGeneratorBase):
 
                 # To support child element contains text, create sub element
                 # with text under new created parent element.
-                if 'text' in element_tuple[1].keys():
+                if 'text' in list(element_tuple[1].keys()):
                     text_dict = element_tuple[1]['text']
                     attr_dict = {}
-                    for text_key, text_val in text_dict.items():
+                    for text_key, text_val in list(text_dict.items()):
                         xml_utils.ElementTree.SubElement(
                             parent_element,
                             text_key,
@@ -855,10 +855,10 @@ class XMLElementList(AccessorGeneratorBase):
                 try:
                     # To support an optional text parameter, compatible
                     # with no text parameter.
-                    item = self.marshal_to(child.tag, dict(child.items()),
+                    item = self.marshal_to(child.tag, dict(list(child.items())),
                                            index, self.libvirtxml, child.text)
                 except TypeError:
-                    item = self.marshal_to(child.tag, dict(child.items()),
+                    item = self.marshal_to(child.tag, dict(list(child.items())),
                                            index, self.libvirtxml)
                 # Always use absolute index (even if item was None)
                 index += 1

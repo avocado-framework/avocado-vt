@@ -118,7 +118,7 @@ class Env(UserDict.IterableUserDict):
         Return a list of all VM objects in this Env object.
         """
         vm_list = []
-        for key in self.data.keys():
+        for key in list(self.data.keys()):
             if key and key.startswith("vm__"):
                 vm_list.append(self.data[key])
         return vm_list

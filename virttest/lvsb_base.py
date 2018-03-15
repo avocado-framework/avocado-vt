@@ -456,9 +456,9 @@ class TestSandboxes(object):
         # The list to save options
         self.opts = []
         self.flag = []
-        for k in self.lvsb_option_mapper.keys():
+        for k in list(self.lvsb_option_mapper.keys()):
             # k may be 'optarg' or 'flag'
-            for key, value in self.lvsb_option_mapper[k].items():
+            for key, value in list(self.lvsb_option_mapper[k].items()):
                 base_name = 'lvsb_%s_options' % key
                 for key_gen, option in params.object_counts('lvsb_opts_count',
                                                             base_name):

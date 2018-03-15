@@ -33,6 +33,8 @@ from avocado.utils import stacktrace
 from avocado.utils import linux_modules
 from avocado.utils import distro
 
+import six
+
 from .. import virsh
 from .. import xml_utils
 from .. import iscsi
@@ -2059,7 +2061,7 @@ def create_nwfilter_xml(params):
     # process filterref_name
     filterrefs_list = []
     filterrefs_key = []
-    for i in params.keys():
+    for i in list(params.keys()):
         if 'filterref_name_' in i:
             filterrefs_key.append(i)
     filterrefs_key.sort()
@@ -2093,7 +2095,7 @@ def create_nwfilter_xml(params):
                 rule_dict_tmp = {}
 
         # process protocol parameter
-        for i in rule_dict.keys():
+        for i in list(rule_dict.keys()):
             if 'protocol' not in rule_dict[i]:
                 # Set protocol as string 'None' as parse from cfg is
                 # string 'None'
@@ -2131,13 +2133,13 @@ def create_nwfilter_xml(params):
         rulexml = rule.backup_rule()
         for i in index_total:
             filterxml.del_rule()
-        for i in range(len(rule_dict.keys())):
+        for i in range(len(list(rule_dict.keys()))):
             rulexml.rule_action = rule_dict[i].get('rule_action')
             rulexml.rule_direction = rule_dict[i].get('rule_direction')
             rulexml.rule_priority = rule_dict[i].get('rule_priority')
             rulexml.rule_statematch = rule_dict[i].get('rule_statematch')
             for j in RULE_ATTR:
-                if j in rule_dict[i].keys():
+                if j in list(rule_dict[i].keys()):
                     rule_dict[i].pop(j)
 
             # set protocol attribute
@@ -2401,7 +2403,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                          image_size=image_size)
             # Get volume name
             vols = get_vol_list(pool_name)
-            vol_name = vols.keys()[0]
+            vol_name = list(vols.keys())[0]
             emulated_path = vols[vol_name]
         else:
             # Setup iscsi target
@@ -2565,7 +2567,7 @@ def device_exists(vm, target_dev):
     """
     Check if given target device exists on vm.
     """
-    targets = vm.get_blk_devices().keys()
+    targets = list(vm.get_blk_devices().keys())
     if target_dev in targets:
         return True
     return False
@@ -2687,13 +2689,13 @@ def set_controller_multifunction(vm_name, controller_type='scsi'):
             new_controller.address = new_controller.new_controller_address(
                 attrs=address_attrs)
             # Expand controller to all functions with multifunction
-            if key not in expanded_controllers.keys():
+            if key not in list(expanded_controllers.keys()):
                 expanded_controllers[key] = new_controller
                 index += 1
 
-    logging.debug("Expanded controllers: %s", expanded_controllers.values())
+    logging.debug("Expanded controllers: %s", list(expanded_controllers.values()))
     vmxml.del_controller(controller_type)
-    vmxml.set_controller(expanded_controllers.values())
+    vmxml.set_controller(list(expanded_controllers.values()))
     vmxml.sync()
 
 
@@ -2880,7 +2882,7 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
                       patterns_auth_name_xen, patterns_auth_pwd,
                       patterns_virsh_cmd]
         if patterns_extra_dict:
-            match_list = match_list + patterns_extra_dict.keys()
+            match_list = match_list + list(patterns_extra_dict.keys())
         patterns_list_len = len(match_list)
 
         while True:
@@ -2905,7 +2907,7 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
             if (patterns_list_len > 5):
                 extra_len = len(patterns_extra_dict)
                 index_in_extra_dict = match + extra_len
-                key = patterns_extra_dict.keys()[index_in_extra_dict]
+                key = list(patterns_extra_dict.keys())[index_in_extra_dict]
                 value = patterns_extra_dict.get(key, "")
                 logging.info("Matched '%s', details:<%s>", key, text)
                 session.sendline(value)
@@ -2929,13 +2931,13 @@ def get_all_vol_paths():
     """
     vol_path = []
     sp = libvirt_storage.StoragePool()
-    for pool_name in sp.list_pools().keys():
+    for pool_name in list(sp.list_pools().keys()):
         if sp.list_pools()[pool_name]['State'] != "active":
             logging.warning(
                 "Inactive pool '%s' cannot be processed" % pool_name)
             continue
         pv = libvirt_storage.PoolVolume(pool_name)
-        for path in pv.list_volumes().values():
+        for path in list(pv.list_volumes().values()):
             vol_path.append(path)
     return set(vol_path)
 
@@ -3164,7 +3166,7 @@ def get_vol_list(pool_name, vol_check=True, timeout=5):
         raise exceptions.TestError("No volume in pool %s" % pool_name)
 
     # Check volume
-    for vol_path in vols.itervalues():
+    for vol_path in six.itervalues(vols):
         if not utils_misc.wait_for(lambda: os.path.exists(vol_path), timeout,
                                    text='Waiting for %s show up' % vol_path):
             raise exceptions.TestError("Volume path %s not exist" % vol_path)

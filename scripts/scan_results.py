@@ -12,6 +12,7 @@ import argparse
 from avocado.core import data_dir
 from dateutil import parser as dateparser
 
+import six
 from six.moves import xrange
 
 
@@ -32,7 +33,7 @@ def summarise_records(records):
         records_summary[rows[1]] = records_summary.get(rows[1], 0) + 1
         records_summary[rows[4]] = records_summary.get(rows[4], 0) + 1
     res = ", ".join("%s=%r" % (
-        key, val) for (key, val) in records_summary.iteritems())
+        key, val) for (key, val) in six.iteritems(records_summary))
     print "\033[96mSummary: \n" + res + "\033[00m"
 
 

@@ -193,7 +193,7 @@ class TestNumaNode(unittest.TestCase):
         self.assertEqual(self.numa_node.pin_cpu("1237"), "7")
         self.assertEqual(self.numa_node.dict["7"], ["1237"])
 
-        self.assertTrue("free" not in self.numa_node.dict.values())
+        self.assertTrue("free" not in list(self.numa_node.dict.values()))
 
     def test_free_cpu(self):
         self.assertEqual(self.numa_node.pin_cpu("1230"), "0")
