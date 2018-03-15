@@ -1207,10 +1207,10 @@ class QSparseBus(object):
         :raise KeyError: In case no match was found
         """
         if isinstance(item, QBaseDevice):
-            if item in self.bus.itervalues():
+            if item in six.itervalues(self.bus):
                 return item
         else:
-            for device in self.bus.itervalues():
+            for device in six.itervalues(self.bus):
                 if device.get_aid() == item:
                     return device
         raise KeyError("Device %s is not in %s" % (item, self))
@@ -1242,7 +1242,7 @@ class QSparseBus(object):
         :return: True - yes, False - no
         """
         if isinstance(item, QBaseDevice):
-            if item in self.bus.itervalues():
+            if item in six.itervalues(self.bus):
                 return True
         else:
             for device in self:
@@ -1252,7 +1252,7 @@ class QSparseBus(object):
 
     def __iter__(self):
         """ Iterate over all defined devices. """
-        return self.bus.itervalues()
+        return six.itervalues(self.bus)
 
     def str_short(self):
         """ short string representation """
@@ -1283,7 +1283,7 @@ class QSparseBus(object):
     def _str_devices_long(self):
         """ long string representation of devices in the good bus """
         out = ""
-        for addr, dev in self.bus.iteritems():
+        for addr, dev in six.iteritems(self.bus):
             out += '%s< %4s >%s\n  ' % ('-' * 15, addr,
                                         '-' * 15)
             if isinstance(dev, str):
@@ -1482,9 +1482,9 @@ class QSparseBus(object):
         :param device: QBaseDevice device
         :return: True when removed, False when the device wasn't found
         """
-        if device in self.bus.itervalues():
+        if device in six.itervalues(self.bus):
             remove = None
-            for key, item in self.bus.iteritems():
+            for key, item in six.iteritems(self.bus):
                 if item is device:
                     remove = key
                     break
@@ -1519,7 +1519,7 @@ class QSparseBus(object):
                 return False
             elif self.type == bus_spec['type']:
                 return True
-        for key, value in bus_spec.iteritems():
+        for key, value in six.iteritems(bus_spec):
             if isinstance(value, (tuple, list)):
                 for val in value:
                     if self.__dict__.get(key, None) == val:
@@ -1830,7 +1830,7 @@ class QPCIEBus(QPCIBus):
             root_port = self._add_root_port(addr, root_port_type, multifunction)
         bus = root_port.child_bus[0]
         params = {'slot': _addr, 'chassis': _addr, 'addr': "0x%x" % _addr}
-        for key, value in params.iteritems():
+        for key, value in six.iteritems(params):
             root_port.set_param(key, value)
         self.__root_ports[_addr] = bus
         return root_port
