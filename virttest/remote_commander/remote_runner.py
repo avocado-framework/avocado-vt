@@ -660,7 +660,7 @@ class CommanderSlaveCmds(CommanderSlave):
             if out == "":
                 return
             try:
-                exec(out)
+                exec out
             except Exception:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 print "On Guest exception from: \n" + "".join(
