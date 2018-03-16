@@ -13,13 +13,13 @@ from avocado.core import exceptions
 import six
 from six.moves import xrange
 
-from . import utils_misc
-from . import utils_net
-from . import remote
-from . import ppm_utils
-from . import data_dir
-from . import error_context
-from . import vt_console
+from virttest import utils_misc
+from virttest import utils_net
+from virttest import remote
+from virttest import ppm_utils
+from virttest import data_dir
+from virttest import error_context
+from virttest import vt_console
 
 
 class VMError(Exception):
@@ -559,17 +559,17 @@ class BaseVM(object):
     @staticmethod
     def lookup_vm_class(vm_type, target):
         if vm_type == 'qemu':
-            import qemu_vm
+            from virttest import qemu_vm
             return qemu_vm.VM
         if vm_type == 'libvirt':
-            import libvirt_vm
+            from virttest import libvirt_vm
             return libvirt_vm.VM
         if vm_type == 'v2v':
             if target == 'libvirt' or target is None:
-                import libvirt_vm
+                from virttest import libvirt_vm
                 return libvirt_vm.VM
             if target == 'ovirt':
-                import ovirt
+                from virttest import ovirt
                 return ovirt.VMManager
 
     #
@@ -1029,7 +1029,7 @@ class BaseVM(object):
         port = self.get_port(int(self.params.get("shell_port")))
         log_filename = None
 
-        import remote_commander as rc
+        from virttest import remote_commander as rc
         path = os.path.dirname(rc.__file__)
 
         f_path = " ".join((os.path.join(path, _) for _ in
