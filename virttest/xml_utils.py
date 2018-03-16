@@ -53,7 +53,7 @@ EXSFX = '_exception_retained'
 ENCODING = "UTF-8"
 
 
-class TempXMLFile(file):
+class TempXMLFile(object):
 
     """
     Temporary XML file auto-removed on instance del / module exit.
@@ -68,9 +68,11 @@ class TempXMLFile(file):
         param: mode: second parameter to file()/open()
         param: buffer: third parameter to file()/open()
         """
-        fd, path = tempfile.mkstemp(suffix=suffix, prefix=prefix)
-        os.close(fd)
-        super(TempXMLFile, self).__init__(path, mode, buffsz)
+        self.fd, self.path = tempfile.mkstemp(suffix=suffix, prefix=prefix)
+        os.close(self.fd)
+        self.open_file = open(self.path, mode, buffsz)
+        self.name = self.open_file.name
+        super(TempXMLFile, self).__init__()
 
     def _info(self):
         """
@@ -86,7 +88,88 @@ class TempXMLFile(file):
             os.unlink(self.name)
             self.close()
         except (OSError, IOError):
-            pass  # don't care if delete fails
+            logging.info("unlink file fail")
+
+    def close(self):
+        """
+        Close file
+        """
+        try:
+            self.open_file.close()
+        except IOError:
+            logging.info("close file fail")
+
+    def seek(self, offset, whence=0):
+        """
+        Seek offset of one opened file
+        """
+        try:
+            self.open_file.seek(offset, whence)
+        except IOError:
+            logging.info("seek file fail")
+
+    def flush(self):
+        """
+        Flush buffer.
+        """
+        try:
+            self.open_file.flush()
+        except IOError:
+            logging.info("flush file fail")
+
+    def truncate(self, size):
+        """
+        Truncate the file to at most size bytes.
+        """
+        try:
+            self.open_file.truncate(size)
+        except IOError:
+            logging.info("truncate file fail")
+
+    def write(self, content):
+        """
+        Write content to the file.
+        """
+        try:
+            self.open_file.write(content)
+        except IOError:
+            logging.info("write file fail")
+
+    def read(self, size=None):
+        """
+        Read file content at most size bytes, returned as a string.
+        """
+        try:
+            if size is not None:
+                return self.open_file.read(size)
+            else:
+                return self.open_file.read()
+        except IOError:
+            logging.info("read file fail")
+
+    def readline(self, size=None):
+        """
+        Read next line file content from the file, as a string.
+        """
+        try:
+            if size is not None:
+                return self.open_file.readline(size)
+            else:
+                return self.open_file.readline()
+        except IOError:
+            logging.info("readline file fail")
+
+    def readlines(self, size=None):
+        """
+        Read list of strings, each a line from the file.
+        """
+        try:
+            if size is not None:
+                return self.open_file.readlines(size)
+            else:
+                return self.open_file.readlines()
+        except IOError:
+            logging.info("readlines file fail")
 
     def __exit__(self, exc_type, exc_value, traceback):
         """
@@ -146,10 +229,9 @@ class XMLBackup(TempXMLFile):
         super(XMLBackup, self).flush()
         super(XMLBackup, self).seek(0)
         super(XMLBackup, self).truncate(0)
-        source_file = file(self.sourcefilename, "rb")
-        shutil.copyfileobj(source_file,
-                           super(XMLBackup, self))
-        source_file.close()
+        with open(self.sourcefilename, "rb") as source_file:
+            shutil.copyfileobj(source_file,
+                               super(XMLBackup, self))
         super(XMLBackup, self).flush()
 
     def restore(self):
@@ -158,11 +240,10 @@ class XMLBackup(TempXMLFile):
         """
         super(XMLBackup, self).flush()
         super(XMLBackup, self).seek(0)
-        source_file = file(self.sourcefilename, "wb")
-        source_file.truncate(0)
-        shutil.copyfileobj(super(XMLBackup, self),
-                           source_file)
-        source_file.close()
+        with open(self.sourcefilename, "wb") as source_file:
+            source_file.truncate(0)
+            shutil.copyfileobj(super(XMLBackup, self),
+                               source_file)
 
 
 class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
@@ -187,7 +268,7 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         # to hold the original content.
         try:
             # Test if xml is a valid filename
-            self.sourcebackupfile = file(xml, "rb")
+            self.sourcebackupfile = open(xml, "rb")
             self.sourcebackupfile.close()
             # XMLBackup init will take care of creating a copy
         except (IOError, OSError):
