@@ -2506,3 +2506,26 @@ class QMPMonitor(Monitor):
         if speed:
             args["speed"] = speed
         return self.cmd(cmd, args)
+
+    def press_release_key(self, key, down=True):
+        """
+        Press & hold or release a certain key for the VM via QMP monitor.
+
+        :param key: a single key string
+        :param down: a boolean value indicated whether the key should be
+            pressed down or released. If down is True, the key will be kept
+            pressing down until an call to this function with down=False
+            is made, or when the VM is rebooted or destoryed.
+        :return: the result of the command 'input-send-event'
+        """
+        cmd = "input-send-event"
+        self.verify_supported_cmd(cmd)
+        args = {"events": [{
+            "type": "key",
+            "data": {
+                "down": down,
+                "key": {
+                    "type": "qcode",
+                    "data": key
+                }}}]}
+        return self.cmd(cmd, args)
