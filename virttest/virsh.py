@@ -2922,7 +2922,7 @@ def snapshot_info(name, snapshot, **dargs):
             continue
         ret[val] = data.group(0).strip()
 
-    if ret["Parent"] == "-":
+    if ret["Parent"] == "":
         ret["Parent"] = None
 
     return ret
