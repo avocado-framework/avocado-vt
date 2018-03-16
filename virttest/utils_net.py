@@ -3059,7 +3059,8 @@ def parse_arp():
     :return: dict mapping MAC to IP
     """
     ret = {}
-    arp_cache = file('/proc/net/arp').readlines()
+    with open('/proc/net/arp') as arp_f:
+        arp_cache = arp_f.readlines()
 
     for line in arp_cache:
         mac = line.split()[3]

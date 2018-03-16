@@ -3532,7 +3532,8 @@ def verify_dmesg(dmesg_log_file=None, ignore_result=False, level_check=3,
         err = "Found failures in %s dmesg log" % environ
         d_log = "dmesg log:\n%s" % output
         if dmesg_log_file:
-            file(dmesg_log_file, "w+").write(d_log)
+            with open(dmesg_log_file, "w+") as log_f:
+                log_f.write(d_log)
             err += " Please check %s dmesg log %s." % (environ, dmesg_log_file)
         else:
             err += " Please check %s dmesg log in debug log." % environ

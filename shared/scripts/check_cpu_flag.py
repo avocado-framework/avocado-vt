@@ -7,7 +7,8 @@ class check_error(Exception):
 
 
 def check_cpu_flag():
-    cpuinfo = file('/proc/cpuinfo').read()
+    with open('/proc/cpuinfo') as info_f:
+        cpuinfo = info_f.read()
     flags = os.environ['KVM_TEST_required_cpu_flags']
     for i in flags.split():
         if i not in cpuinfo:

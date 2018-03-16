@@ -63,23 +63,22 @@ class xml_test_data(unittest.TestCase):
     def canonicalize_test_xml(self):
         et = ElementTree.parse(self.XMLFILE)
         et.write(self.XMLFILE, encoding="UTF-8")
-        f = file(self.XMLFILE)
-        self.XMLSTR = f.read()
-        f.close()
+        with open(self.XMLFILE) as f:
+            self.XMLSTR = f.read()
 
     def is_same_contents(self, filename, other=None):
         """Compare filename contents with XMLSTR, or contents of other"""
         try:
-            f = file(filename, "rb")
-            s = f.read()
+            with open(filename, "rb") as f:
+                s = f.read()
         except (IOError, OSError):
             logging.warning("File %s does not exist" % filename)
             return False
         if other is None:
             return s == self.XMLSTR
         else:
-            other_f = file(other, "rb")
-            other_s = other_f.read()
+            with open(other, "rb") as other_f:
+                other_s = other_f.read()
             return s == other_s
 
 
@@ -132,9 +131,8 @@ class test_XMLBackup(xml_test_data):
 
     def test_rebackup_file(self):
         xmlbackup = self.class_to_test(self.XMLFILE)
-        oops = file(xmlbackup.name, "wb")
-        oops.write("foobar")
-        oops.close()
+        with open(xmlbackup.name, "wb") as oops:
+            oops.write("foobar")
         self.assertFalse(self.is_same_contents(xmlbackup.name))
         xmlbackup.backup()
         self.assertTrue(self.is_same_contents(xmlbackup.name))

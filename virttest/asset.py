@@ -112,11 +112,8 @@ class ConfigLoader:
         """
         if not self.cfg:
             return
-        fileobj = file(self.cfg, 'w')
-        try:
+        with open(self.cfg, 'w') as fileobj:
             self.parser.write(fileobj)
-        finally:
-            fileobj.close()
 
     def check(self, section):
         """
