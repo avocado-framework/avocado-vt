@@ -119,6 +119,11 @@ import re
 from . import element_path as ElementPath
 
 
+try:
+    REPLACE = string.replace
+except AttributeError:
+    REPLACE = str.replace
+
 # TODO: add support for custom namespace resolvers/default namespaces
 # TODO: add improved support for incremental parsing
 
@@ -802,7 +807,7 @@ def _encode_entity(text, pattern=_escape):
 # (or "utf-16")
 
 
-def _escape_cdata(text, encoding=None, replace=string.replace):
+def _escape_cdata(text, encoding=None, replace=REPLACE):
     # escape character data
     try:
         if encoding:
@@ -818,7 +823,7 @@ def _escape_cdata(text, encoding=None, replace=string.replace):
         _raise_serialization_error(text)
 
 
-def _escape_attrib(text, encoding=None, replace=string.replace):
+def _escape_attrib(text, encoding=None, replace=REPLACE):
     # escape attribute value
     try:
         if encoding:
