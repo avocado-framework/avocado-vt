@@ -837,10 +837,10 @@ fdc
         out = len(qdev)
         assert out == 6, "Number of devices of this VM is not 5 (%s)" % out
 
-        dev1, dev2 = qdev.images_define_by_variables('disk', '/tmp/a',
-                                                     {'aobject': 'pci.0'},
-                                                     fmt="virtio")
-
+        devs = qdev.images_define_by_variables('disk', '/tmp/a',
+                                               {'aobject': 'pci.0'},
+                                               fmt="virtio")
+        dev1, dev2 = devs[0], devs[1]
         out = dev1.hotplug_hmp()
         exp = "drive_add auto id=drive_disk,if=none,file=/tmp/a"
         assert out == exp, ("Hotplug command of drive is incorrect:\n%s\n%s"
