@@ -140,4 +140,4 @@ def get_pretty_version_info():
 
 
 if __name__ == "__main__":
-    print get_pretty_version_info()
+    print(get_pretty_version_info())

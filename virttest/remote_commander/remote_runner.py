@@ -663,11 +663,11 @@ class CommanderSlaveCmds(CommanderSlave):
                 exec(out)
             except Exception:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
-                print "On Guest exception from: \n" + "".join(
+                print("On Guest exception from: \n" + "".join(
                     traceback.format_exception(exc_type,
                                                exc_value,
-                                               exc_traceback))
-                print "FAIL: Guest command exception."
+                                               exc_traceback)))
+                print("FAIL: Guest command exception.")
 
     def send_msg(self, msg, cmd_id):
         """

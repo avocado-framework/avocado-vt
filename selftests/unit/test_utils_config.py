@@ -335,7 +335,7 @@ class LibvirtConfigCommonTest(unittest.TestCase):
                 self.assertTrue('Unknown type' in str(e))
             # Get unknown type
             try:
-                print config.test
+                print(config.test)
             except Exception as e:
                 self.assertEqual(
                     utils_config.LibvirtConfigUnknownKeyTypeError, e.__class__)

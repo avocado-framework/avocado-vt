@@ -34,7 +34,7 @@ def summarise_records(records):
         records_summary[rows[4]] = records_summary.get(rows[4], 0) + 1
     res = ", ".join("%s=%r" % (
         key, val) for (key, val) in six.iteritems(records_summary))
-    print "\033[96mSummary: \n" + res + "\033[00m"
+    print("\033[96mSummary: \n" + res + "\033[00m")
 
 
 def get_total_seconds(td):
@@ -84,17 +84,17 @@ def print_data(records, skip_timestamp=False):
     if not records:
         return
     if not skip_timestamp:
-        print "%-40s %-15s %-15s %-15s %-10s %-10s" % (
+        print("%-40s %-15s %-15s %-15s %-10s %-10s" % (
             "CaseName", "Status", "StartTime",
-            "EndTime", "Result", "TimeElapsed")
+            "EndTime", "Result", "TimeElapsed"))
     else:
-        print "%-40s %-15s %-10s" % ("CaseName", "Status", "Result")
+        print("%-40s %-15s %-10s" % ("CaseName", "Status", "Result"))
     for row in records:
         if not skip_timestamp:
-            print "%s %s %s %s %s %s" % (
-                row[0], row[1], row[2], row[3], colour_result(row[4]), row[5])
+            print("%s %s %s %s %s %s" % (
+                row[0], row[1], row[2], row[3], colour_result(row[4]), row[5]))
         else:
-            print "%s %s %s" % (row[0], row[1], colour_result(row[4]))
+            print("%s %s %s" % (row[0], row[1], colour_result(row[4])))
     summarise_records(records)
 
 
@@ -124,8 +124,8 @@ if __name__ == "__main__":
     arguments = parser.parse_args()
     db_file = os.path.join(arguments.results_dir, '.journal.sqlite')
     if not os.path.isfile(db_file):
-        print "`.journal.sqlite` DB not found in results directory, "
-        print "Please start avocado with option '--journal'."
+        print("`.journal.sqlite` DB not found in results directory, ")
+        print("Please start avocado with option '--journal'.")
         parser.print_help()
         sys.exit(1)
     data = fetch_data(db_file)
