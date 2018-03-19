@@ -65,7 +65,7 @@ class App(object):
 
         # Check for a control file if not in prebuild mode.
         if (len(self.args) < 1) and not self.options.config:
-            print "Missing Package Specification!"
+            print("Missing Package Specification!")
             self.usage()
 
     def get_koji_qemu_kvm_tag_pkgs(self, config_file):
@@ -86,23 +86,23 @@ class App(object):
 
     def check_koji_pkg_spec(self, koji_pkg_spec):
         if not koji_pkg_spec.is_valid():
-            print 'ERROR:', koji_pkg_spec.describe_invalid()
+            print('ERROR:', koji_pkg_spec.describe_invalid())
             sys.exit(-1)
 
     def print_koji_pkg_spec_info(self, koji_pkg_spec):
         info = self.koji_client.get_pkg_info(koji_pkg_spec)
         if not info:
-            print 'ERROR: could not find info about "%s"' % koji_pkg_spec.to_text()
+            print('ERROR: could not find info about "%s"' % koji_pkg_spec.to_text())
             return
 
         name = info.get('name', 'unknown')
         pkgs = self.koji_client.get_pkg_rpm_file_names(koji_pkg_spec,
                                                        arch=self.options.arch)
-        print 'Package name: %s' % name
-        print 'Package files:'
+        print('Package name: %s' % name)
+        print('Package files:')
         for p in pkgs:
-            print '\t* %s' % p
-        print
+            print('\t* %s' % p)
+        print()
 
     def main(self):
         self.parse_cmdline()

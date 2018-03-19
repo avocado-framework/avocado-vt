@@ -59,7 +59,7 @@ def print_result(result, name_width):
     """
     if result:
         format = "%%-%ds    %%-10s %%-8s %%s" % name_width
-        print format % result
+        print(format % result)
 
 
 def main(resfiles):
@@ -73,7 +73,7 @@ def main(resfiles):
             if e.errno == 21:  # Directory
                 continue
             else:
-                print "Bad result file: %s, errno = %d" % (resfile, e.errno)
+                print("Bad result file: %s, errno = %d" % (resfile, e.errno))
                 continue
         results = parse_results(text)
         result_lists.append((resfile, results))
@@ -84,7 +84,7 @@ def main(resfiles):
 
     for resfile, results in result_lists:
         if len(results):
-            print "        (Result file: %s)" % resfile
+            print("        (Result file: %s)" % resfile)
         for r in results:
             print_result(r, name_width)
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         if sys.argv[1] == "-h" or sys.argv[1] == "--help":
-            print "Usage: %s [result files]" % sys.argv[0]
+            print("Usage: %s [result files]" % sys.argv[0])
             sys.exit(0)
         resfiles = sys.argv[1:]
     main(resfiles)

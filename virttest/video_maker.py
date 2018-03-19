@@ -451,6 +451,6 @@ def video_maker(input_dir, output_file):
 if __name__ == '__main__':
     import sys
     if len(sys.argv) < 3:
-        print 'Usage: %s <input_dir> <output_file>' % sys.argv[0]
+        print('Usage: %s <input_dir> <output_file>' % sys.argv[0])
     else:
         video_maker(sys.argv[1], sys.argv[2])

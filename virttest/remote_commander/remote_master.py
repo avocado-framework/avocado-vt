@@ -261,7 +261,7 @@ class CommanderMaster(messenger.Messenger):
         """
         if isinstance(cmd, remote_interface.StdStream):
             if (self.debug):
-                print cmd.msg
+                print(cmd.msg)
             if cmd.isCmdMsg():
                 if isinstance(cmd, remote_interface.StdOut):
                     self.cmds[cmd.cmd_id].stdout += cmd.msg
@@ -296,7 +296,7 @@ class CommanderMaster(messenger.Messenger):
         """
         if isinstance(cmd, remote_interface.BaseCmd):
             if (self.debug):
-                print cmd.func, cmd.results, cmd._finished
+                print(cmd.func, cmd.results, cmd._finished)
 
             if isinstance(cmd.results, Exception):
                 raise cmd.results
@@ -356,7 +356,7 @@ class CommanderMaster(messenger.Messenger):
             r_cmd = self.listen_messenger(time_step)
             if isinstance(r_cmd, remote_interface.BaseCmd):
                 if (self.debug):
-                    print m_cmd._stdout
+                    print(m_cmd._stdout)
                 if r_cmd is not None and r_cmd == m_cmd.basecmd:
                     # If command which we waiting for.
                     if r_cmd.is_finished():

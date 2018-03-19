@@ -66,23 +66,23 @@ def main(argv):
 
         # Make our data available to other applicatons
         clipboard.store()
-        print 'The text has been placed into the clipboard.'
+        print('The text has been placed into the clipboard.')
     elif options.setfilename:
         # Read the clipboard image data.
 
         # Is there an image
-        print "Is there an image: " + str(clipboard.wait_is_image_available())
+        print("Is there an image: " + str(clipboard.wait_is_image_available()))
 
         image = clipboard.wait_for_image()
         if image is None:
-            print 'No image stored'
+            print('No image stored')
         else:
             location_to_save = options.setfilename
             image.save(location_to_save, 'png')
-            print 'Cb Image stored and saved to: ' + options.setfilename
+            print('Cb Image stored and saved to: ' + options.setfilename)
     elif options.setcbimage:
         ssetcb = options.setcbimage
-        print ssetcb
+        print(ssetcb)
 
         # Set the clipboard text data
         assert os.path.exists(ssetcb), "file does not exist"
@@ -91,12 +91,12 @@ def main(argv):
 
         # Make our data available to other applications
         clipboard.store()
-        print 'The image has been placed into the clipboard.'
+        print('The image has been placed into the clipboard.')
     elif options.clear:
         # Get and clear the clipboard
         clipboard.set_text("")
         clipboard.store()
-        print 'The clipboard has been cleared.'
+        print('The clipboard has been cleared.')
     elif options.setcb_file:
         # Read a file and put the contents into the clipboard
         file_contents = open(options.setcb_file, 'r')
@@ -105,13 +105,13 @@ def main(argv):
         clipboard.store()
     elif options.pastecb_filename:
         # Get the text from the clipboard and write to a file
-        print 'Getting the text from the clipboard'
+        print('Getting the text from the clipboard')
         clipboard_text = clipboard.wait_for_text()
-        print ('Starting to write the clipboard text to the file' +
-               options.pastecb_filename)
+        print('Starting to write the clipboard text to the file' +
+              options.pastecb_filename)
         file_contents = open(options.pastecb_filename, 'w')
         file_contents.write(clipboard_text)
-        print 'Writing of the clipboard text is complete'
+        print('Writing of the clipboard text is complete')
         file_contents.close()
     elif options.setcb_lrgstr_file:
         # Create a non-random string of the size specified and write it to
@@ -123,14 +123,14 @@ def main(argv):
         file_contents = open("/tmp/StringLengthTest.txt", 'r')
         clipboard.set_text(file_contents.read())
         file_contents.close()
-        print ("Non random string put into file: /tmp/StringLengthTest. " +
-               " The string has also been placed in the clipboard. " +
-               "String of size " + options.setcb_lrgstr_file)
+        print("Non random string put into file: /tmp/StringLengthTest. " +
+              " The string has also been placed in the clipboard. " +
+              "String of size " + options.setcb_lrgstr_file)
         clipboard.store()
     else:
         # Read the clipboard text data.
         text = clipboard.wait_for_text()
-        print 'clipboard=' + str(text)
+        print('clipboard=' + str(text))
 
 
 if __name__ == "__main__":

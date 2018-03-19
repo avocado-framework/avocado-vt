@@ -56,7 +56,7 @@ if __name__ == "__main__":
             tapfd_list.append(tapfd)
         except Exception as e:
             destroy_tap(tapfd_list)
-            print "Error: %s" % e
+            print("Error: %s" % e)
             sys.exit(2)
 
     try:
