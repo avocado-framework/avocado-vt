@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import getpass
 import datetime
-from __future__ import print_function
 
 from github import Github
 from github_issues import GithubIssues
