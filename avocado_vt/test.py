@@ -92,7 +92,7 @@ class VirtTest(test.Test):
         :param vt_params: avocado-vt/cartesian_config params stored as
                           `self.params`.
         """
-        self.__params = None
+        self.__params_vt = None
         self.__avocado_params = None
         self.bindir = data_dir.get_root_dir()
         self.virtdir = os.path.join(self.bindir, 'shared')
@@ -116,7 +116,7 @@ class VirtTest(test.Test):
             # 36LTS set's `self.params` instead of having it as a property
             # which stores the avocado params in `self.__params`
             self.__avocado_params = self.__params
-        self.__params = utils_params.Params(vt_params)
+        self.__params_vt = utils_params.Params(vt_params)
         self.debugdir = self.logdir
         self.resultsdir = self.logdir
         self.timeout = vt_params.get("test_timeout", self.timeout)
@@ -132,8 +132,8 @@ class VirtTest(test.Test):
         once the Avocado-vt params are set it reports those instead. This
         is necessary to complete the `avocado.Test.__init__` phase
         """
-        if self.__params is not None:
-            return self.__params
+        if self.__params_vt is not None:
+            return self.__params_vt
         else:
             # The `self.__params` is set after the `avocado.test.__init__`,
             # but in newer Avocado `self.params` is used during `__init__`
@@ -145,7 +145,7 @@ class VirtTest(test.Test):
         """
         For compatibility with 36lts we need to support setter on params
         """
-        self.__params = value
+        self.__params_vt = value
 
     @property
     def avocado_params(self):
@@ -177,11 +177,14 @@ class VirtTest(test.Test):
 
     def get_state(self):
         """
-        Avocado-vt replaces Test.params with avocado-vt params. This function
-        reports the original params on `get_state` call.
+        Pre Avocado-60.0 used to override self.__params attribute and
+        requires special handling while reporting the state.
+
+        TODO: Remove when 52LTS is deprecated.
         """
         state = super(VirtTest, self).get_state()
-        state["params"] = self.avocado_params
+        if state["params"] == self.__params_vt:
+            state["params"] = self.avocado_params
         return state
 
     def _start_logging(self):
