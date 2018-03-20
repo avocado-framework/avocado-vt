@@ -298,7 +298,7 @@ def image_average_hash(image, img_wd=8, img_ht=8):
             return 0
         else:
             return 1
-    return reduce(lambda x, (y, z): x | (z << y),
+    return reduce(lambda x, y_z: x | (y_z[1] << y_z[0]),
                   enumerate(map(_hta, image.getdata())), 0)
 
 
