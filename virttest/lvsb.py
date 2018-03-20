@@ -8,7 +8,7 @@ import datetime
 import time
 import logging
 
-import lvsb_base
+from virttest import lvsb_base
 
 
 # This utility function lets test-modules quickly create a list of all

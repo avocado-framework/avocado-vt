@@ -12,8 +12,8 @@ from avocado.utils import path as utils_path
 
 import six
 
-from remote import handle_prompts
-from utils_misc import log_line
+from virttest.remote import handle_prompts
+from virttest.utils_misc import log_line
 
 
 class AddrCache(object):

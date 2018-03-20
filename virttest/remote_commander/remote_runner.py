@@ -23,8 +23,8 @@ import shutil
 import signal
 import tempfile
 
-import remote_interface
-import messenger as ms
+from virttest.remote_commander import remote_interface
+from virttest.remote_commander import messenger as ms
 
 
 from six.moves import input
