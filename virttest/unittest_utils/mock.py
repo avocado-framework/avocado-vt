@@ -1,13 +1,14 @@
-__author__ = "raphtee@google.com (Travis Miller)"
-
+from __future__ import print_function
 import collections
 import re
 import sys
-from __future__ import print_function
 
 import six
 from six import StringIO
 from six import string_types as basestring
+
+
+__author__ = "raphtee@google.com (Travis Miller)"
 
 
 class StubNotFoundError(Exception):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-import getpass
 from __future__ import print_function
+import getpass
 
 from github import Github
 from github_issues import GithubIssues
