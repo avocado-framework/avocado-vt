@@ -12,8 +12,8 @@ import traceback
 
 from virttest import qemu_monitor
 from virttest import utils_misc
-from utils import DeviceError
-from utils import none_or_int
+from virttest.qemu_devices.utils import DeviceError
+from virttest.qemu_devices.utils import none_or_int
 
 import six
 
