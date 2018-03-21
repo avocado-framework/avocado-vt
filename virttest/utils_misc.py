@@ -25,6 +25,12 @@ import threading
 import platform
 import traceback
 import math
+import select
+
+try:
+    from io import BytesIO
+except ImportError:
+    from BytesIO import BytesIO
 
 import xml.etree.ElementTree as ET
 
@@ -41,14 +47,16 @@ from avocado.utils import download
 from avocado.utils import linux_modules
 from avocado.utils import memory
 from avocado.utils.astring import string_safe_encode
+from avocado.utils.process import CmdResult
 
-from . import data_dir
-from . import error_context
-from . import cartesian_config
-from . import utils_selinux
-from . import utils_disk
-from .staging import utils_koji
-from .xml_utils import XMLTreeFile
+from virttest import data_dir
+from virttest import error_context
+from virttest import cartesian_config
+from virttest import utils_selinux
+from virttest import utils_disk
+from virttest import logging_manager
+from virttest.staging import utils_koji
+from virttest.xml_utils import XMLTreeFile
 
 import six
 from six.moves import xrange
@@ -4085,3 +4093,272 @@ def get_model_features(model_name):
         raise
 
     return features
+
+
+class _NullStream(object):
+
+    def write(self, data):
+        pass
+
+    def flush(self):
+        pass
+
+
+TEE_TO_LOGS = object()
+_the_null_stream = _NullStream()
+
+DEFAULT_STDOUT_LEVEL = logging.DEBUG
+DEFAULT_STDERR_LEVEL = logging.ERROR
+
+# prefixes for logging stdout/stderr of commands
+STDOUT_PREFIX = '[stdout] '
+STDERR_PREFIX = '[stderr] '
+
+
+def get_stream_tee_file(stream, level, prefix=''):
+    if stream is None:
+        return _the_null_stream
+    if stream is TEE_TO_LOGS:
+        return logging_manager.LoggingFile(level=level, prefix=prefix)
+    return stream
+
+
+class BgJob(object):
+
+    def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True,
+                 stdin=None, stderr_level=DEFAULT_STDERR_LEVEL,
+                 close_fds=False):
+        self.command = command
+        self.stdout_tee = get_stream_tee_file(stdout_tee, DEFAULT_STDOUT_LEVEL,
+                                              prefix=STDOUT_PREFIX)
+        self.stderr_tee = get_stream_tee_file(stderr_tee, stderr_level,
+                                              prefix=STDERR_PREFIX)
+        self.result = CmdResult(command)
+
+        # Allow for easy stdin input by string, we'll let subprocess create
+        # a pipe for stdin input and we'll write to it in the wait loop
+        if isinstance(stdin, basestring):
+            self.string_stdin = stdin
+            stdin = subprocess.PIPE
+        else:
+            self.string_stdin = None
+
+        if verbose:
+            logging.debug("Running '%s'" % command)
+        # Ok, bash is nice and everything, but we might face occasions where
+        # it is not available. Just do the right thing and point to /bin/sh.
+        shell = '/bin/bash'
+        if not os.path.isfile(shell):
+            shell = '/bin/sh'
+        self.sp = subprocess.Popen(command, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE,
+                                   preexec_fn=self._reset_sigpipe,
+                                   close_fds=close_fds,
+                                   shell=True,
+                                   executable=shell,
+                                   stdin=stdin)
+
+    def output_prepare(self, stdout_file=None, stderr_file=None):
+        self.stdout_file = stdout_file
+        self.stderr_file = stderr_file
+
+    def process_output(self, stdout=True, final_read=False):
+        """output_prepare must be called prior to calling this"""
+        if stdout:
+            pipe, buf, tee = self.sp.stdout, self.stdout_file, self.stdout_tee
+        else:
+            pipe, buf, tee = self.sp.stderr, self.stderr_file, self.stderr_tee
+
+        if final_read:
+            # Read in all the data we can from pipe and then stop
+            data = []
+            while select.select([pipe], [], [], 0)[0]:
+                data.append(os.read(pipe.fileno(), 1024))
+                if len(data[-1]) == 0:
+                    break
+            data = "".join(data)
+        else:
+            # Perform a single read
+            data = os.read(pipe.fileno(), 1024)
+        buf.write(data)
+        tee.write(data)
+
+    def cleanup(self):
+        self.stdout_tee.flush()
+        self.stderr_tee.flush()
+        self.sp.stdout.close()
+        self.sp.stderr.close()
+        self.result.stdout = self.stdout_file.getvalue()
+        self.result.stderr = self.stderr_file.getvalue()
+
+    def _reset_sigpipe(self):
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+
+class AsyncJob(BgJob):
+
+    def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True,
+                 stdin=None, stderr_level=DEFAULT_STDERR_LEVEL, kill_func=None,
+                 close_fds=False):
+        super(AsyncJob, self).__init__(command, stdout_tee=stdout_tee,
+                                       stderr_tee=stderr_tee, verbose=verbose, stdin=stdin,
+                                       stderr_level=stderr_level, close_fds=close_fds)
+
+        # Start time for CmdResult
+        self.start_time = time.time()
+
+        if kill_func is None:
+            self.kill_func = self._kill_self_process
+        else:
+            self.kill_func = kill_func
+
+        if self.string_stdin:
+            self.stdin_lock = threading.Lock()
+            string_stdin = self.string_stdin
+            # Replace with None so that _wait_for_commands will not try to re-write it
+            self.string_stdin = None
+            self.stdin_thread = threading.Thread(target=AsyncJob._stdin_string_drainer, name=("%s-stdin" % command),
+                                                 args=(string_stdin, self.sp.stdin))
+            self.stdin_thread.daemon = True
+            self.stdin_thread.start()
+
+        self.stdout_lock = threading.Lock()
+        self.stdout_file = BytesIO()
+        self.stdout_thread = threading.Thread(target=AsyncJob._fd_drainer, name=("%s-stdout" % command),
+                                              args=(self.sp.stdout, [self.stdout_file, self.stdout_tee],
+                                                    self.stdout_lock))
+        self.stdout_thread.daemon = True
+
+        self.stderr_lock = threading.Lock()
+        self.stderr_file = BytesIO()
+        self.stderr_thread = threading.Thread(target=AsyncJob._fd_drainer, name=("%s-stderr" % command),
+                                              args=(self.sp.stderr, [self.stderr_file, self.stderr_tee],
+                                                    self.stderr_lock))
+        self.stderr_thread.daemon = True
+
+        self.stdout_thread.start()
+        self.stderr_thread.start()
+
+    @staticmethod
+    def _stdin_string_drainer(input_string, stdin_pipe):
+        """
+        input is a string and output is PIPE
+        """
+        try:
+            while True:
+                # We can write PIPE_BUF bytes without blocking after a poll or
+                # select we aren't doing either but let's write small chunks
+                # anyway. POSIX requires PIPE_BUF is >= 512
+                # 512 should be replaced with select.PIPE_BUF in Python 2.7+
+                tmp = input_string[:512]
+                if tmp == '':
+                    break
+                stdin_pipe.write(tmp)
+                input_string = input_string[512:]
+        finally:
+            # Close reading PIPE so that the reader doesn't block
+            stdin_pipe.close()
+
+    @staticmethod
+    def _fd_drainer(input_pipe, outputs, lock):
+        """
+        input is a pipe and output is file-like. if lock is non-None, then
+        we assume output isn't thread-safe
+        """
+        # If we don't have a lock object, then call a noop function like bool
+        acquire = getattr(lock, 'acquire', bool)
+        release = getattr(lock, 'release', bool)
+        writable_objs = [obj for obj in outputs if hasattr(obj, 'write')]
+        fileno = input_pipe.fileno()
+        while True:
+            # 1024 because that's what we did before
+            tmp = os.read(fileno, 1024)
+            if tmp == '':
+                break
+            acquire()
+            try:
+                for f in writable_objs:
+                    f.write(tmp)
+            finally:
+                release()
+        # Don't close writeable_objs, the callee will close
+
+    def output_prepare(self, stdout_file=None, stderr_file=None):
+        raise NotImplementedError("This object automatically prepares its own "
+                                  "output")
+
+    def process_output(self, stdout=True, final_read=False):
+        raise NotImplementedError("This object has background threads "
+                                  "automatically polling the process. Use the "
+                                  "locked accessors")
+
+    def get_stdout(self):
+        self.stdout_lock.acquire()
+        tmp = self.stdout_file.getvalue()
+        self.stdout_lock.release()
+        return tmp
+
+    def get_stderr(self):
+        self.stderr_lock.acquire()
+        tmp = self.stderr_file.getvalue()
+        self.stderr_lock.release()
+        return tmp
+
+    def cleanup(self):
+        raise NotImplementedError("This must be waited for to get a result")
+
+    def _kill_self_process(self):
+        try:
+            os.kill(self.sp.pid, signal.SIGTERM)
+        except OSError:
+            pass  # don't care if the process is already gone
+
+    def wait_for(self, timeout=None):
+        """
+        Wait for the process to finish. When timeout is provided, process is
+        safely destroyed after timeout.
+        :param timeout: Acceptable timeout
+        :return: results of this command
+        """
+        if timeout is None:
+            self.sp.wait()
+
+        if timeout > 0:
+            start_time = time.time()
+            while time.time() - start_time < timeout:
+                self.result.exit_status = self.sp.poll()
+                if self.result.exit_status is not None:
+                    break
+        else:
+            timeout = 1     # Increase the timeout to check if it really died
+        # first need to kill the threads and process, then no more locking
+        # issues for superclass's cleanup function
+        self.kill_func()
+        # Verify it was really killed with provided kill function
+        stop_time = time.time() + timeout
+        while time.time() < stop_time:
+            self.result.exit_status = self.sp.poll()
+            if self.result.exit_status is not None:
+                break
+        else:   # Process is immune against self.kill_func() use -9
+            try:
+                os.kill(self.sp.pid, signal.SIGKILL)
+            except OSError:
+                pass  # don't care if the process is already gone
+        # We need to fill in parts of the result that aren't done automatically
+        try:
+            _, self.result.exit_status = os.waitpid(self.sp.pid, 0)
+        except OSError:
+            self.result.exit_status = self.sp.poll()
+        self.result.duration = time.time() - self.start_time
+        assert self.result.exit_status is not None
+
+        # Make sure we've got stdout and stderr
+        self.stdout_thread.join(1)
+        self.stderr_thread.join(1)
+        assert not self.stdout_thread.isAlive()
+        assert not self.stderr_thread.isAlive()
+
+        super(AsyncJob, self).cleanup()
+
+        return self.result
