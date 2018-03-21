@@ -3103,8 +3103,15 @@ def verify_ip_address_ownership(ip, macs, timeout=20.0, devs=None):
         mac_regex = "|".join("(%s)" % mac for mac in macs)
         regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex), re.I)
         arping_bin = utils_path.find_command("arping")
-        arping_cmd = "%s -f -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
-                                                  dev, ip)
+        cmd = "%s --help" % arping_bin
+        if "-C count" in process.system_output(cmd, shell=True, ignore_status=True,
+                                               verbose=False):
+            regex = re.compile(r"\b%s\b.*\b(%s)" % (mac_regex, ip), re.I)
+            arping_cmd = "%s -C1 -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
+                                                       dev, ip)
+        else:
+            arping_cmd = "%s -f -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
+                                                      dev, ip)
         try:
             o = process.system_output(arping_cmd, shell=True, verbose=False)
         except process.CmdError:
