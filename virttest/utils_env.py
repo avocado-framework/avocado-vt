@@ -1,7 +1,10 @@
-import UserDict
 import os
 import logging
 import threading
+try:
+    from collections import UserDict as IterableUserDict
+except ImportError:
+    from UserDict import IterableUserDict
 try:
     import pickle as cPickle
 except ImportError:
@@ -46,7 +49,7 @@ def lock_safe(function):
     return wrapper
 
 
-class Env(UserDict.IterableUserDict):
+class Env(IterableUserDict):
 
     """
     A dict-like object containing global objects used by tests.
@@ -63,7 +66,7 @@ class Env(UserDict.IterableUserDict):
         :param filename: Path to an env file.
         :param version: Required env version (int).
         """
-        UserDict.IterableUserDict.__init__(self)
+        IterableUserDict.__init__(self)
         empty = {"version": version}
         self._filename = filename
         self._sniffer = None

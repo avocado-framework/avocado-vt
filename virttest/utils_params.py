@@ -1,5 +1,8 @@
-import UserDict
 from threading import Lock
+try:
+    from collections import UserDict as IterableUserDict
+except ImportError:
+    from UserDict import IterableUserDict
 
 from avocado.core import exceptions
 
@@ -10,7 +13,7 @@ class ParamNotFound(exceptions.TestSkipError):
     pass
 
 
-class Params(UserDict.IterableUserDict):
+class Params(IterableUserDict):
 
     """
     A dict-like object passed to every test.
@@ -20,7 +23,7 @@ class Params(UserDict.IterableUserDict):
     def __getitem__(self, key):
         """ overrides the error messages of missing params[$key] """
         try:
-            return UserDict.IterableUserDict.__getitem__(self, key)
+            return IterableUserDict.__getitem__(self, key)
         except KeyError:
             raise ParamNotFound("Mandatory parameter '%s' is missing. "
                                 "Check your cfg files for typos/mistakes" %
