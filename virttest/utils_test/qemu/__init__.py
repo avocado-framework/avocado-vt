@@ -679,6 +679,8 @@ class MemoryHotplugTest(MemoryBaseTest):
             vm = self.env.get_vm(self.params["main_vm"])
         vm.verify_alive()
         threshold = float(self.params.get("threshold", 0.10))
+        if "ppc" in self.params.get("vm_arch_name"):
+            threshold = float(self.params.get("threshold", 0.15))
         timeout = float(self.params.get("wait_resume_timeout", 60))
         # Notes:
         #    some sub test will pause VM, here need to wait VM resume
