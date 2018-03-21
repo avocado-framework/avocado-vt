@@ -886,7 +886,7 @@ class BaseVM(object):
         """
         Verify guest dmesg
         """
-        if len(self.virtnet) > 0:
+        if len(self.virtnet) > 0 and self.virtnet[0].nettype != "macvtap":
             session = self.wait_for_login()
         else:
             session = self.wait_for_serial_login()
