@@ -83,7 +83,7 @@ def get_status(selinux_force=False):
         raise SeCmdError(cmd, result.stderr)
 
     for status in STATUS_LIST:
-        if result.stdout_text.lower().count(status):
+        if result.stdout_text().lower().count(status):
             return status
         else:
             continue
