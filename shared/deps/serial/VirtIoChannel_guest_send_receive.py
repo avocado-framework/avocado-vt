@@ -92,7 +92,7 @@ class VirtIoChannel:
             txt = self.receive(ack_msg_len)
             ack_str = struct.unpack(self.ack_format, txt)[0]
             if ack_str != self.ack_msg:
-                raise "Guest did not ACK the file size message."
+                raise ShakeHandError("Guest didn't ACK the file size message.")
             return size
         elif action == "receive":
             txt = self.receive(hi_msg_len)
