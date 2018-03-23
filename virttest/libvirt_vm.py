@@ -4,6 +4,7 @@ Utility classes and functions to handle Virtual Machine creation using libvirt.
 :copyright: 2011 Red Hat Inc.
 """
 
+from __future__ import division
 import time
 import string
 import os
@@ -517,9 +518,9 @@ class VM(virt_vm.BaseVM):
                 numa_nodes = vcpus
                 params['numa_nodes'] = vcpus
             if vcpus > 1:
-                cpus = vcpus / numa_nodes
+                cpus = vcpus // numa_nodes
                 cpus_balance = vcpus % numa_nodes
-                memory = max_mem / numa_nodes
+                memory = max_mem // numa_nodes
                 memory_balance = max_mem % numa_nodes
             else:
                 cpus = vcpus
@@ -1606,7 +1607,7 @@ class VM(virt_vm.BaseVM):
         session = self.wait_for_login()
         try:
             # Get memory size.
-            swap_size = self.get_used_mem() / 1024
+            swap_size = self.get_used_mem() // 1024
 
             # Create, change permission, and make a swap file.
             cmd = ("dd if=/dev/zero of={1} bs=1M count={0} && "

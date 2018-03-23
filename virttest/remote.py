@@ -1,6 +1,7 @@
 """
 Functions and classes used for logging into guests and transferring files.
 """
+from __future__ import division
 import logging
 import time
 import re

@@ -16,6 +16,7 @@ More specifically:
 :copyright: 2008-2013 Red Hat Inc.
 """
 
+from __future__ import division
 import glob
 import imp
 import locale
@@ -396,9 +397,9 @@ def get_memory_info(lvms):
 
     try:
         meminfo = "Host: memfree = "
-        meminfo += str(int(utils_memory.read_from_meminfo('MemFree')) / 1024) + "M; "
+        meminfo += str(int(utils_memory.read_from_meminfo('MemFree')) // 1024) + "M; "
         meminfo += "swapfree = "
-        mf = int(utils_memory.read_from_meminfo("SwapFree")) / 1024
+        mf = int(utils_memory.read_from_meminfo("SwapFree")) // 1024
         meminfo += str(mf) + "M; "
     except Exception as e:
         raise exceptions.TestFail("Could not fetch host free memory info, "
@@ -2132,7 +2133,7 @@ class RemoteDiskManager(object):
         """
         free = self.get_free_space(disk_type, path, vgname)
         logging.debug("Allowed space on remote path:%sGB", free)
-        occupied_size = free - need_size / 2
+        occupied_size = int(free - need_size / 2)
         occupied_path = os.path.join(os.path.dirname(path), "occupied")
         return self.create_image(disk_type, occupied_path, occupied_size,
                                  vgname, "occupied", False, timeout)

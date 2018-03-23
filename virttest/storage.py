@@ -5,6 +5,7 @@ This exports:
   - two functions for get image/blkdebug filename
   - class for image operates and basic parameters
 """
+from __future__ import division
 import logging
 import os
 import shutil

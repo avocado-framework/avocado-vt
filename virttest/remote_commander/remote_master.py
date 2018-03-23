@@ -6,6 +6,8 @@ Created on Dec 6, 2013
 :author: jzupka, astepano
 :contact: Andrei Stepanov <astepano@redhat.com>
 '''
+
+from __future__ import division
 import sys
 import time
 import inspect

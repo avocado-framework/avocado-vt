@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+from __future__ import print_function, division
 import getpass
 import datetime
 
@@ -51,7 +51,7 @@ print()
 for number in issues.search(criteria):
     if issues[number]['commits'] and issues[number]['commits'] > 0:
         age = datetime.datetime.now() - issues[number]['modified']
-        hours = age.seconds / (60 * 60)
+        hours = age.seconds // (60 * 60)
         days = age.days
         url = issues[number]['url']
         summary = issues[number]['summary']
