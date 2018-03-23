@@ -2920,6 +2920,70 @@ def format_windows_disk(session, did, mountpoint=None, size=None,
     return False
 
 
+def rescan_windows_disk(session):
+    """
+    Rescan disk in windows guest.
+
+    """
+    rescan_cmd = "echo rescan > cmd"
+    rescan_cmd += " && echo exit >> cmd"
+    rescan_cmd += " && diskpart /s cmd"
+    logging.debug("Rescan disk")
+    session.cmd(rescan_cmd)
+
+
+def extend_shrink_windows_disk(session, did, disk_letter, operation=""):
+    """
+    Extend/Shrink a volume to desired_size in windows guest.
+    Default extend/shrink to max usage size.
+
+    :param session: session object to guest.
+    :param did: disk index which show in 'diskpart list disk'.
+    :param desired_size: extend/shrink desired size for the disk.
+    :return maximum: return the maximum number of reclaimble for
+    the disk(only for shrink action).
+    """
+    list_disk_cmd = "echo list disk > cmd && "
+    list_disk_cmd += "echo exit >> disk && diskpart /s cmd"
+    disks = session.cmd_output(list_disk_cmd, timeout=120)
+
+    for disk in disks.splitlines():
+        if re.search(r"DISK %s" % did, disk, re.I | re.M):
+            cmd_header = 'echo list disk > cmd &&'
+            cmd_header += ' echo select disk %s >> cmd &&' % did
+            cmd_footer = ' echo exit >> cmd && diskpart /s cmd'
+            cmd_footer += ' && del /f cmd'
+            detail_cmd = ' echo detail disk >> cmd &&'
+            detail_cmd = ' '.join([cmd_header, detail_cmd, cmd_footer])
+            logging.debug("Detail for 'Disk%s'" % did)
+            details = session.cmd_output(detail_cmd)
+            volume_id = re.findall("Volume (\d)\s+%s" % disk_letter, details, re.M)[0]
+            cmd_header += ' echo select volume %s >> cmd && ' % volume_id
+            extend_cmd = ' echo extend >> cmd &&'
+            extend_cmd = ' '.join([cmd_header, extend_cmd, cmd_footer])
+
+            if operation == "extend":
+                logging.debug("extending the 'Disk%s'" % did)
+                session.cmd(extend_cmd)
+            elif operation == "shrink":
+                shrink_query_cmd = ' echo shrink querymax >> cmd &&'
+                shrink_query_cmd = ' '.join([cmd_header, shrink_query_cmd, cmd_footer])
+                logging.debug("quering maximum number of reclaimble for the 'Disk%s'" % did)
+                query_output = session.cmd_output(shrink_query_cmd)
+                logging.info(query_output)
+                maximum_num = re.findall("(\d+) MB", query_output)[0]
+                if int(maximum_num) > 1024:
+                    desired_size = (int(maximum_num)-1024)
+                    shrink_cmd = ' echo shrink desired=%s >> cmd &&' % desired_size
+                    shrink_cmd = ' '.join([cmd_header, shrink_cmd, cmd_footer])
+                    logging.debug("shrinking the 'Disk%s' %s MB" % (did, desired_size))
+                    session.cmd(shrink_cmd)
+                    return desired_size
+                else:
+                    logging.error("the disk maximun number is too small,"
+                                  " it's not suggest to shrink.")
+
+
 def format_linux_disk(session, did, all_disks_did, partition=False,
                       mountpoint=None, size=None, fstype="ext3"):
     """
