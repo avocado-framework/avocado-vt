@@ -193,7 +193,7 @@ class SandboxBase(object):
         """Actualize instance from state"""
         for key in ('identifier', 'params', 'options'):
             setattr(self, key, state[key])
-        if state.haskey('session_id'):
+        if 'session_id' in state:
             self._session = SandboxSession()
             self._session.open_session(state['session_id'])
 
