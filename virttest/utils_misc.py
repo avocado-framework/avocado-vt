@@ -4,6 +4,7 @@ Virtualization test utility functions.
 :copyright: 2008-2009 Red Hat Inc.
 """
 
+from __future__ import division
 import time
 import string
 import random

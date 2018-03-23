@@ -1,3 +1,4 @@
+from __future__ import division
 import logging
 import time
 import glob
@@ -424,7 +425,7 @@ class VMScreenInactiveError(VMError):
 
     def __str__(self):
         msg = ("%s screen is inactive for %d s (%d min)" %
-               (self.vm.name, self.inactive_time, self.inactive_time / 60))
+               (self.vm.name, self.inactive_time, self.inactive_time // 60))
         return msg
 
 

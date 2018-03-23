@@ -7,6 +7,7 @@ Auxiliary script used to send data between ports on guests.
 :author: Jiri Zupka (jzupka@redhat.com)
 :author: Lukas Doktor (ldoktor@redhat.com)
 """
+from __future__ import division
 import threading
 from threading import Thread
 import os
@@ -547,7 +548,7 @@ class VirtioGuestPosix(VirtioGuest):
             self.port = port
             self.exit_thread = event
             self.data = array.array('L')
-            for _ in range(max(length / self.data.itemsize, 1)):
+            for _ in range(max(length // self.data.itemsize, 1)):
                 self.data.append(random.randrange(sys.maxint))
 
         def run(self):
@@ -1170,7 +1171,7 @@ class VirtioGuestNt(VirtioGuest):
             self.port = port
             self.exit_thread = event
             self.data = array.array('L')
-            for _ in range(max(length / self.data.itemsize, 1)):
+            for _ in range(max(length // self.data.itemsize, 1)):
                 self.data.append(random.randrange(sys.maxint))
 
         def run(self):

@@ -16,6 +16,7 @@ More specifically:
 :copyright: 2014 Red Hat Inc.
 """
 
+from __future__ import division
 import re
 import os
 import ast
@@ -2727,7 +2728,7 @@ def attach_disks(vm, path, vgname, params):
         prefix_list = []
         while count > 0:
             # Out of range for current prefix_list
-            if (index / 26) > 0:
+            if (index // 26) > 0:
                 # Update prefix_list to expand disks, such as [] -> ['a'],
                 # ['z'] -> ['a', 'a'], ['z', 'z'] -> ['a', 'a', 'a']
                 prefix_index = len(prefix_list)

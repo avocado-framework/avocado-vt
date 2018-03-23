@@ -6,6 +6,7 @@ compute and check regression bug.
 :copyright: Red Hat 2011-2012
 :author: Amos Kong <akong@redhat.com>
 """
+from __future__ import division
 import os
 import sys
 import re

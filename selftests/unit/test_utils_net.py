@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import division
 import unittest
 import time
 import logging
@@ -148,7 +149,7 @@ class TestVirtIface(unittest.TestCase):
     def test_half_set(self):
         def what_func(propertea):
             return props[propertea]
-        half_prop_end = (len(self.VirtIface.__all_slots__) / 2) + 1
+        half_prop_end = (len(self.VirtIface.__all_slots__) // 2) + 1
         props = {}
         for propertea in self.VirtIface.__all_slots__[0:half_prop_end]:
             props[propertea] = utils_misc.generate_random_string(16)

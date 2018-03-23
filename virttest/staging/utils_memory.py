@@ -1,3 +1,4 @@
+from __future__ import division
 import re
 import glob
 import math
@@ -62,7 +63,7 @@ def numa_nodes():
 
 def node_size():
     nodes = max(len(numa_nodes()), 1)
-    return ((memtotal() * 1024) / nodes)
+    return ((memtotal() * 1024) // nodes)
 
 
 def get_huge_page_size():
@@ -282,4 +283,4 @@ def getpagesize():
 
     :return: pagesize in kB
     """
-    return os.sysconf('SC_PAGE_SIZE') / 1024
+    return os.sysconf('SC_PAGE_SIZE') // 1024

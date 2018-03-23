@@ -4,6 +4,7 @@ Utility functions to deal with ppm (qemu screendump format) files.
 :copyright: Red Hat 2008-2009
 """
 
+from __future__ import division
 import os
 import struct
 import time
@@ -242,7 +243,7 @@ def image_comparison(width, height, data1, data2):
         # Compute average of the two values
         value = int((value1 + value2) / 2)
         # Scale value to the upper half of the range [0, 255]
-        value = 128 + value / 2
+        value = 128 + value // 2
         # Compare pixels
         if pixel1_str == pixel2_str:
             # Equal -- give the pixel a greenish hue

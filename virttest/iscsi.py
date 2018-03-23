@@ -7,6 +7,7 @@ target name. And it can support the real iscsi access and emulated
 iscsi in localhost then access it.
 """
 
+from __future__ import division
 import re
 import os
 import logging
@@ -464,7 +465,7 @@ class IscsiTGT(_IscsiComm):
         if not os.path.isfile(self.emulated_image):
             process.system(self.create_cmd)
         else:
-            emulated_image_size = os.path.getsize(self.emulated_image) / 1024
+            emulated_image_size = os.path.getsize(self.emulated_image) // 1024
             if emulated_image_size != self.emulated_expect_size:
                 # No need to remvoe, rebuild is fine
                 process.system(self.create_cmd)
@@ -673,7 +674,7 @@ class IscsiLIO(_IscsiComm):
         if not os.path.isfile(self.emulated_image):
             process.system(self.create_cmd)
         else:
-            emulated_image_size = os.path.getsize(self.emulated_image) / 1024
+            emulated_image_size = os.path.getsize(self.emulated_image) // 1024
             if emulated_image_size != self.emulated_expect_size:
                 # No need to remvoe, rebuild is fine
                 process.system(self.create_cmd)

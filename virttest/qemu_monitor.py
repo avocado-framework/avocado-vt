@@ -4,6 +4,7 @@ Interfaces to the QEMU monitor.
 :copyright: 2008-2010 Red Hat Inc.
 """
 
+from __future__ import division
 import socket
 import time
 import threading
@@ -1233,7 +1234,7 @@ class HumanMonitor(Monitor):
                      qmp monitor will use bytes as unit for the block size
         :return: Command output
         """
-        size = int(size) / 1024 / 1024
+        size = int(size) // 1024 // 1024
         cmd = "block_resize device=%s,size=%s" % (device, size)
         return self.send_args_cmd(cmd)
 

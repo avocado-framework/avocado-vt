@@ -3,6 +3,7 @@ Interfaces and helpers for the virtio_serial ports.
 
 :copyright: 2012 Red Hat Inc.
 """
+from __future__ import division
 from threading import Thread
 from collections import deque
 import logging
@@ -902,7 +903,7 @@ class ThRecvCheck(Thread):
                                               "lowered as there is not enough "
                                               "data after 1s. Using sendidx="
                                               "%s.", self.getName(), sendidx)
-                            for _ in xrange(sendidx / self.blocklen):
+                            for _ in xrange(sendidx // self.blocklen):
                                 if self.exitevent.isSet():
                                     break
                                 buf += self.port.sock.recv(self.blocklen)

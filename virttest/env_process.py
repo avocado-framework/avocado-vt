@@ -1,3 +1,4 @@
+from __future__ import division
 import os
 import time
 import re
@@ -494,7 +495,7 @@ def _process_images_parallel(image_func, test, params, vm_process_status=None):
                               or None for no vm exist.
     """
     images = params.objects("images")
-    no_threads = min(len(images) / 5,
+    no_threads = min(len(images) // 5,
                      2 * multiprocessing.cpu_count())
     exit_event = threading.Event()
     threads = []
@@ -1414,7 +1415,7 @@ def _take_screendumps(test, params, env):
                 if time_inactive > inactivity_treshold:
                     msg = (
                         "%s screen is inactive for more than %d s (%d min)" %
-                        (vm.name, time_inactive, time_inactive / 60))
+                        (vm.name, time_inactive, time_inactive // 60))
                     if inactivity_watcher == "error":
                         try:
                             raise virt_vm.VMScreenInactiveError(vm,
