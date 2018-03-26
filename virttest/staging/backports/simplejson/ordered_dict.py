@@ -3,7 +3,10 @@
 http://code.activestate.com/recipes/576693/
 
 """
-from UserDict import DictMixin
+try:
+    from collections import MutableMapping as DictMixin
+except ImportError:
+    from UserDict import DictMixin
 
 # Modified from original to support Python 2.4, see
 # http://code.google.com/p/simplejson/issues/detail?id=53
