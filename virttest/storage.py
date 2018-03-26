@@ -164,6 +164,9 @@ def get_image_filename_filesytem(params, root_dir):
         This function used for sort to suit for this test, first sort by len
         then by value.
         """
+        def cmp(x, y):
+            return (x > y) - (x < y)
+
         first_contains_digit = re.findall(r'[vhs]d[a-z]*[\d]+', first)
         second_contains_digit = re.findall(r'[vhs]d[a-z]*[\d]+', second)
 
