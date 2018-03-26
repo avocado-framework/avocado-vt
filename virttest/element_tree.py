@@ -523,6 +523,8 @@ class QName(object):
         return hash(self.text)
 
     def __cmp__(self, other):
+        def cmp(x, y):
+            return (x > y) - (x < y)
         if isinstance(other, QName):
             return cmp(self.text, other.text)
         return cmp(self.text, other)

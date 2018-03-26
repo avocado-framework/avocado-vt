@@ -1477,6 +1477,8 @@ def compare_uuid(uuid1, uuid2):
     :return: negative if x<y, zero if x==y, positive if x>y
     :rtype: integer
     """
+    def cmp(x, y):
+        return (x > y) - (x < y)
     return cmp(uuid1.replace('-', '').lower(), uuid2.replace('-', '').lower())
 
 
