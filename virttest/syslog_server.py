@@ -1,6 +1,10 @@
 import re
 import logging
-import SocketServer
+
+try:
+    import SocketServer as socketserver
+except ImportError:
+    import socketserver
 
 
 SYSLOG_PORT = 514
@@ -26,7 +30,7 @@ def get_default_format():
     return DEFAULT_FORMAT
 
 
-class RequestHandler(SocketServer.BaseRequestHandler):
+class RequestHandler(socketserver.BaseRequestHandler):
 
     '''
     A request handler that relays all received messages as DEBUG
@@ -147,16 +151,16 @@ class RequestHandlerUdp(RequestHandler):
         self.log(data)
 
 
-class SysLogServerUdp(SocketServer.UDPServer):
+class SysLogServerUdp(socketserver.UDPServer):
 
     def __init__(self, address):
-        SocketServer.UDPServer.__init__(self, address, RequestHandlerUdp)
+        socketserver.UDPServer.__init__(self, address, RequestHandlerUdp)
 
 
-class SysLogServerTcp(SocketServer.TCPServer):
+class SysLogServerTcp(socketserver.TCPServer):
 
     def __init__(self, address):
-        SocketServer.TCPServer.__init__(self, address, RequestHandlerTcp)
+        socketserver.TCPServer.__init__(self, address, RequestHandlerTcp)
 
 
 def syslog_server(address='', port=SYSLOG_PORT,
