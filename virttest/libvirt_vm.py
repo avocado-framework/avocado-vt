@@ -2245,7 +2245,7 @@ class VM(virt_vm.BaseVM):
         """
         output = virsh.qemu_monitor_command(self.name, "info cpus", "--hmp",
                                             uri=self.connect_uri)
-        vcpu_pids = re.findall(r'thread_id=(\d+)', output.stdout)
+        vcpu_pids = re.findall(r'thread[_,-]id=(\d+)', output.stdout)
         return vcpu_pids
 
     def get_shell_pid(self):
