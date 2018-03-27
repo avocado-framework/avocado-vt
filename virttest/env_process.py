@@ -274,21 +274,20 @@ def preprocess_vm(test, params, env, name):
                          "Error is %s" % err)
 
 
-def postprocess_image(test, params, image_name, vm_process_status=None):
+def check_image(test, params, image_name, vm_process_status=None):
     """
-    Postprocess a single QEMU image according to the instructions in params.
+    Check a single QEMU image according to the instructions in params.
 
     :param test: An Autotest test object.
     :param params: A dict containing image postprocessing parameters.
     :param vm_process_status: (optional) vm process status like running, dead
                               or None for no vm exist.
     """
-    restored = False
     clone_master = params.get("clone_master", None)
     base_dir = data_dir.get_data_dir()
     image = qemu_storage.QemuImg(params, base_dir, image_name)
-
     check_image_flag = params.get("check_image") == "yes"
+
     if vm_process_status == "running" and check_image_flag:
         if params.get("skip_image_check_during_running") == "yes":
             logging.debug("Guest is still running, skip the image check.")
@@ -319,36 +318,64 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
             elif clone_master == "yes":
                 if image_name in params.get("master_images_clone").split():
                     image.check_image(params, base_dir, force_share=True)
-            # Allow test to overwrite any pre-testing  automatic backup
-            # with a new backup. i.e. assume pre-existing image/backup
-            # would not be usable after this test succeeds. The best
-            # example for this is when 'unattended_install' is run.
-            if params.get("backup_image", "no") == "yes":
-                image.backup_image(params, base_dir, "backup", True)
-                restored = True
-            elif params.get("restore_image", "no") == "yes":
-                image.backup_image(params, base_dir, "restore", True)
-                restored = True
         except Exception as e:
-            if params.get("restore_image_on_check_error", "no") == "yes":
-                image.backup_image(params, base_dir, "restore", True)
-            if params.get("remove_image_on_check_error", "no") == "yes":
-                cl_images = params.get("master_images_clone", "")
-                if image_name in cl_images.split():
-                    image.remove()
+            # FIXME: remove it from params, maybe as an img object attr
+            params["img_check_failed"] = "yes"
             if (params.get("skip_cluster_leak_warn") == "yes" and
                     "Leaked clusters" in e.message):
                 logging.warn(e.message)
             else:
                 raise e
+
+
+def postprocess_image(test, params, image_name, vm_process_status=None):
+    """
+    Postprocess a single QEMU image according to the instructions in params.
+
+    The main operation is to remove images if instructions are given.
+
+    :param test: An Autotest test object.
+    :param params: A dict containing image postprocessing parameters.
+    :param vm_process_status: (optional) vm process status like running, dead
+                              or None for no vm exist.
+    """
+    if vm_process_status == "running":
+        logging.warn("Skipped processing image '%s' since "
+                     "the VM is running!" % image_name)
+        return
+
+    restored, removed = (False, False)
+    clone_master = params.get("clone_master", None)
+    base_dir = data_dir.get_data_dir()
+    image = qemu_storage.QemuImg(params, base_dir, image_name)
+    if params.get("img_check_failed") == "yes":
+        if params.get("restore_image_on_check_error", "no") == "yes":
+            image.backup_image(params, base_dir, "restore", True)
+            restored = True
+    else:
+        # Allow test to overwrite any pre-testing  automatic backup
+        # with a new backup. i.e. assume pre-existing image/backup
+        # would not be usable after this test succeeds. The best
+        # example for this is when 'unattended_install' is run.
+        if params.get("backup_image", "no") == "yes":
+            image.backup_image(params, base_dir, "backup", True)
+
+    if (not restored and params.get("restore_image", "no") == "yes"):
+        image.backup_image(params, base_dir, "restore", True)
+        restored = True
+
     if (not restored and
             params.get("restore_image_after_testing", "no") == "yes"):
         image.backup_image(params, base_dir, "restore", True)
-    if params.get("remove_image", "yes") == "yes":
-        if vm_process_status == "running":
-            logging.warn("Skipped removing image '%s' since "
-                         "the VM is running!" % image_name)
-            return
+
+    if params.get("img_check_failed") == "yes":
+        if params.get("remove_image_on_check_error", "no") == "yes":
+            cl_images = params.get("master_images_clone", "")
+            if image_name in cl_images.split():
+                image.remove()
+                removed = True
+
+    if (not removed and params.get("remove_image", "yes") == "yes"):
         logging.info("Remove image on %s." % image.storage_type)
         if clone_master is None:
             image.remove()
@@ -563,13 +590,47 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
         else:
             process_images(image_func, test, params)
 
+    def _call_check_image_func():
+        if params.get("skip_image_processing") == "yes":
+            return
+
+        if params.objects("vms"):
+            for vm_name in params.objects("vms"):
+                vm_params = params.object_params(vm_name)
+                vm = env.get_vm(vm_name)
+                unpause_vm = False
+                if vm is None or vm.is_dead():
+                    vm_process_status = 'dead'
+                else:
+                    vm_process_status = 'running'
+                if vm is not None and vm.is_alive() and not vm.is_paused():
+                    vm.pause()
+                    unpause_vm = True
+                    vm_params['skip_cluster_leak_warn'] = "yes"
+                try:
+                    images = params.objects("images")
+                    _process_images_serial(
+                        check_image, test, images, vm_params,
+                        vm_process_status=vm_process_status)
+                finally:
+                    if unpause_vm:
+                        vm.resume()
+        else:
+            images = params.objects("images")
+            _process_images_serial(check_image, test, images, params)
+
+    # preprocess
     if not vm_first:
         _call_image_func()
 
     _call_vm_func()
 
+    # postprocess
     if vm_first:
-        _call_image_func()
+        try:
+            _call_check_image_func()
+        finally:
+            _call_image_func()
 
 
 @error_context.context_aware
