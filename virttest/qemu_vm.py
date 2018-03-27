@@ -1337,6 +1337,10 @@ class VM(virt_vm.BaseVM):
             for pcic in params.objects("pci_controllers"):
                 dev = devices.pcic_by_params(pcic, params.object_params(pcic))
                 pcics.append(dev)
+                # To avoid SeaBIOS out of IO issues always disable
+                # "io-reserve" on "pcie-root-port"
+                if params.object_params(pcic).get("type") == "pcie-root-port":
+                    pcics[-1].set_param("io-reserve", "0")
             if params.get("pci_controllers_autosort", "yes") == "yes":
                 pcics.sort(key=sort_key, reverse=False)
             map(devices.insert, pcics)
