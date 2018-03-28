@@ -258,7 +258,7 @@ class TcpdumpSniffer(Sniffer):
             self._context["mac"] = matches.group(1)
             return True
 
-        if re.search(r"DHCP.Message.*:\s+ACK", line, re.I):
+        if re.search(r"(?:DHCP.Message.*:\s+ACK|pxelinux.0)", line, re.I):
             mac = self._context.get("mac")
             ip = self._context.get("ip")
             if mac and ip:
