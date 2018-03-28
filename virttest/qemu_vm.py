@@ -2884,6 +2884,19 @@ class VM(virt_vm.BaseVM):
                 # Add this monitor to the list
                 self.monitors.append(monitor)
 
+            # Create consoles in advance, since they should be
+            # ready before sending 'cont'
+            self.create_serial_console()
+
+            for key, value in self.logs.items():
+                outfile = "%s-%s.log" % (key, name)
+                self.logsessions[key] = aexpect.Tail(
+                    "nc -U %s" % value,
+                    auto_close=False,
+                    output_func=utils_misc.log_line,
+                    output_params=(outfile,))
+                self.logsessions[key].set_log_file(outfile)
+
             # Create virtio_ports (virtio_serialports and virtio_consoles)
             i = 0
             self.virtio_ports = []
@@ -2934,17 +2947,6 @@ class VM(virt_vm.BaseVM):
             vhost_thread_pattern = params.get("vhost_thread_pattern",
                                               r"\w+\s+(\d+)\s.*\[vhost-%s\]")
             self.vhost_threads = self.get_vhost_threads(vhost_thread_pattern)
-
-            self.create_serial_console()
-
-            for key, value in list(self.logs.items()):
-                outfile = "%s-%s.log" % (key, name)
-                self.logsessions[key] = aexpect.Tail(
-                    "nc -U %s" % value,
-                    auto_close=False,
-                    output_func=utils_misc.log_line,
-                    output_params=(outfile,))
-                self.logsessions[key].set_log_file(outfile)
 
             if params.get("paused_after_start_vm") != "yes":
                 # start guest
