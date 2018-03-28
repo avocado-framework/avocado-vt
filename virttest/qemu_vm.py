@@ -4315,6 +4315,20 @@ class VM(virt_vm.BaseVM):
                     return block['locked']
         return False
 
+    def get_block_virtual_size(self, dev_dict={}):
+        """
+        Get block virtual-size of specified block device
+        from monitor's info block command.
+
+        :param dev_dict: define device dict from block info.
+        :return: Matched block virual size.
+        """
+        blocks_info = self.monitor.info("block")
+        for dict in blocks_info:
+            if dev_dict['device'] in dict['device']:
+                size = dict['inserted']['image']['virtual-size']
+        return size
+
     def live_snapshot(self, base_file, snapshot_file,
                       snapshot_format="qcow2"):
         """
