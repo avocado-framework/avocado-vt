@@ -23,11 +23,18 @@ class Params(IterableUserDict):
     def __getitem__(self, key):
         """ overrides the error messages of missing params[$key] """
         try:
-            return IterableUserDict.__getitem__(self, key)
+            return super(Params, self).__getitem__(key)
         except KeyError:
             raise ParamNotFound("Mandatory parameter '%s' is missing. "
                                 "Check your cfg files for typos/mistakes" %
                                 key)
+
+    def get(self, key, default=None):
+        """ overrides the behavior to catch ParamNotFound error"""
+        try:
+            return self[key]
+        except ParamNotFound:
+            return default
 
     def objects(self, key):
         """
