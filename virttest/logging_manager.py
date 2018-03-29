@@ -13,7 +13,7 @@ def do_not_report_as_logging_caller(func):
     """Decorator to annotate functions we will tell logging not to log."""
     # These are not the droids you are looking for.
     # You may go about your business.
-    _caller_code_to_skip_in_logging_stack.add(func.func_code)
+    _caller_code_to_skip_in_logging_stack.add(func.__code__)
     return func
 
 
