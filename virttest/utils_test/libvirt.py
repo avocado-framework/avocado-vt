@@ -3046,11 +3046,11 @@ def update_vm_disk_source(vm_name, disk_source_path,
         return False
 
 
-def hotplug_domain_vcpu(domain, count, by_virsh=True, hotplug=True):
+def hotplug_domain_vcpu(vm, count, by_virsh=True, hotplug=True):
     """
     Hot-plug/Hot-unplug vcpu for domian
 
-    :param domain:   Domain name, id, uuid
+    :param vm:   VM object
     :param count:    to setvcpus it's the current vcpus number,
                      but to qemu-monitor-command,
                      we need to designate a specific CPU ID.
@@ -3060,29 +3060,60 @@ def hotplug_domain_vcpu(domain, count, by_virsh=True, hotplug=True):
     :param hotplug:  True means hot-plug, False means hot-unplug
     """
     if by_virsh:
-        result = virsh.setvcpus(domain, count, "--live", debug=True)
+        result = virsh.setvcpus(vm.name, count, "--live", debug=True)
     else:
-        if hotplug:
-            cpu_opt = "cpu-add"
+        cmds = []
+        cmd_type = "--hmp"
+        result = None
+        if "ppc" in platform.machine():
+            vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
+            topology = vmxml.get_cpu_topology()
+            vcpu_count = vm.get_cpu_count()
+
+            if topology:
+                threads = int(topology["threads"])
+            else:
+                threads = 1
+            # test if count multiple of threads
+            err_str = "Expected vcpu counts to be multiples of %d" % threads
+            if hotplug:
+                err_str += ",Invalid vcpu counts for hotplug"
+            else:
+                err_str += ",Invalid vcpu counts for hotunplug"
+            if (count % threads) != 0:
+                raise exceptions.TestError(err_str)
+            if hotplug:
+                for item in range(0, int(count), threads):
+                    if item < vcpu_count:
+                        continue
+                    cmds.append("device_add host-spapr-cpu-core,id=core%d,core-id=%d" % (item, item))
+            else:
+                for item in range(int(count), vcpu_count, threads):
+                    cmds.append("device_del core%d" % item)
         else:
-            cpu_opt = "cpu-del"
-            # Note: cpu-del is supported currently, it will return error.
-            # as follow,
-            # {
-            #    "id": "libvirt-23",
-            #    "error": {
-            #        "class": "CommandNotFound",
-            #        "desc": "The command cpu-del has not been found"
-            #    }
-            # }
-            # so, the caller should check the result.
-        # hot-plug/hot-plug the CPU has maximal ID
-        params = (cpu_opt, (count - 1))
-        cmd = '{\"execute\":\"%s\",\"arguments\":{\"id\":%d}}' % params
-        result = virsh.qemu_monitor_command(domain,
-                                            cmd,
-                                            "--pretty",
-                                            debug=True)
+            cmd_type = "--pretty"
+            if hotplug:
+                cpu_opt = "cpu-add"
+            else:
+                cpu_opt = "cpu-del"
+                # Note: cpu-del is supported currently, it will return error.
+                # as follow,
+                # {
+                #    "id": "libvirt-23",
+                #    "error": {
+                #        "class": "CommandNotFound",
+                #        "desc": "The command cpu-del has not been found"
+                #    }
+                # }
+                # so, the caller should check the result.
+            # hot-plug/hot-plug the CPU has maximal ID
+            params = (cpu_opt, (count - 1))
+            cmds.append('{\"execute\":\"%s\",\"arguments\":{\"id\":%d}}' % params)
+        # Execute cmds to hot(un)plug
+        for cmd in cmds:
+            result = virsh.qemu_monitor_command(vm.name, cmd, cmd_type,
+                                                debug=True)
+            check_exit_status(result)
     return result
 
 
