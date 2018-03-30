@@ -39,7 +39,7 @@ class QemuImg(storage.QemuImg):
         self.image_cmd = utils_misc.get_qemu_img_binary(params)
         q_result = process.run(self.image_cmd + ' -h', ignore_status=True,
                                shell=True, verbose=False)
-        self.help_text = q_result.stdout
+        self.help_text = q_result.stdout_text
         self.cap_force_share = '-U' in self.help_text
 
     @error_context.context_aware

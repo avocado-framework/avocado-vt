@@ -594,7 +594,7 @@ def generate_random_string(length, ignore_str=string.punctuation,
     """
     r = random.SystemRandom()
     sr = ""
-    chars = string.letters + string.digits + string.punctuation
+    chars = string.ascii_letters + string.digits + string.punctuation
     if not ignore_str:
         ignore_str = ""
     for i in ignore_str:
