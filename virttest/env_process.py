@@ -793,13 +793,13 @@ def preprocess(test, params, env):
     if kvm_userspace_ver_cmd:
         try:
             kvm_userspace_version = avocado_process.system_output(
-                kvm_userspace_ver_cmd, shell=True).strip()
+                kvm_userspace_ver_cmd, shell=True).decode().strip()
         except avocado_process.CmdError:
             kvm_userspace_version = "Unknown"
     else:
         qemu_path = utils_misc.get_qemu_binary(params)
         version_output = avocado_process.system_output("%s -version" % qemu_path,
-                                                       verbose=False)
+                                                       verbose=False).decode()
         version_line = version_output.split('\n')[0]
         matches = re.match(QEMU_VERSION_RE, version_line)
         if matches:
