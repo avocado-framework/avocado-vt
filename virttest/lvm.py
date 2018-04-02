@@ -50,7 +50,7 @@ def cmd_output(cmd, res="[\w/]+"):
     if result.exit_status != 0:
         logging.warn(result)
         return None
-    output = result.stdout
+    output = result.stdout_text
     for line in output.splitlines():
         val = re.findall(res, line)
         if val:

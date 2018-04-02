@@ -11,7 +11,7 @@ from avocado.utils import process
 # Returns total memory in kb
 def read_from_meminfo(key):
     cmd_result = process.run('grep %s /proc/meminfo' % key, verbose=False)
-    meminfo = cmd_result.stdout
+    meminfo = cmd_result.stdout_text
     return int(re.search(r'\d+', meminfo).group(0))
 
 
@@ -182,7 +182,7 @@ def read_from_numastat(pid, key):
     Get the process numastat from numastat output.
     """
     cmd = "numastat %s" % pid
-    numa_mem = process.run(cmd).stdout.strip()
+    numa_mem = process.run(cmd).stdout_text.strip()
     mem_line = re.findall(r"^%s.*" % key, numa_mem, re.M)[0]
     return re.findall(r"(\d+.\d+)", mem_line)
 

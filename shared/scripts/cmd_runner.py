@@ -14,7 +14,8 @@ import subprocess
 
 
 def getstatusoutput(cmd):
-    sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
+                          universal_newlines=True)
     output = sp.communicate()[0].strip()
     return (sp.poll(), output)
 

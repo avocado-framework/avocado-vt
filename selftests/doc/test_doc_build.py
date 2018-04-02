@@ -32,8 +32,8 @@ class DocBuildTest(unittest.TestCase):
         doc_dir = os.path.join(basedir, 'docs')
         process.run('make -C %s clean' % doc_dir)
         result = process.run('make -C %s html' % doc_dir)
-        stdout = result.stdout.splitlines()
-        stderr = result.stderr.splitlines()
+        stdout = result.stdout_text.splitlines()
+        stderr = result.stderr_text.splitlines()
         output_lines = stdout + stderr
         for line in output_lines:
             ignore_msg = False

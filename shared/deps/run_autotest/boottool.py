@@ -527,6 +527,7 @@ class DebianBuildDeps(object):
                                       stdin=subprocess.PIPE,
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE,
+                                      universal_newlines=True,
                                       close_fds=True).stdout.read()
             if not output == 'install ok installed':
                 result = False
@@ -571,6 +572,7 @@ class RPMBuildDeps(object):
                                       stdin=subprocess.PIPE,
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE,
+                                      universal_newlines=True,
                                       close_fds=True).stdout.read()
             if not output.startswith(p):
                 result = False
@@ -791,6 +793,7 @@ class Grubby(object):
             result = subprocess.Popen(arguments, shell=False,
                                       stdin=subprocess.PIPE,
                                       stdout=subprocess.PIPE,
+                                      universal_newlines=True,
                                       close_fds=True).stdout.read()
         except Exception:
             pass
@@ -817,6 +820,7 @@ class Grubby(object):
                                       stdin=subprocess.PIPE,
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE,
+                                      universal_newlines=True,
                                       close_fds=True).stdout.read()
         except Exception:
             pass
@@ -1465,7 +1469,8 @@ class Grubby(object):
         self.grubby_install_patch_makefile()
         result = subprocess.Popen(['make'],
                                   stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE)
+                                  stderr=subprocess.PIPE,
+                                  universal_newlines=True)
         if result.wait() != 0:
             self.log.debug('Failed to build grubby during "make" step')
             log_lines(result.stderr.read().splitlines())
@@ -1475,7 +1480,8 @@ class Grubby(object):
         os.environ['DESTDIR'] = install_root
         result = subprocess.Popen(['make', 'install'],
                                   stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE)
+                                  stderr=subprocess.PIPE,
+                                  universal_newlines=True)
         if result.wait() != 0:
             self.log.debug('Failed to build grubby during "make install" step')
             log_lines(result.stderr.read().splitlines())
@@ -1601,7 +1607,8 @@ class Grubby(object):
             p = subprocess.Popen([grub_binary, '--batch'],
                                  stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+                                 stderr=subprocess.PIPE,
+                                 universal_newlines=True)
             out, err = p.communicate(grub_instructions_text)
 
             complete_out = ''

@@ -171,7 +171,7 @@ class OpenVSwitchControl(object):
             result = process.run("%s --version" %
                                  path.find_command("ovs-vswitchd"))
             pattern = "ovs-vswitchd \(Open vSwitch\) (\d+\.\d+\.\d+).*"
-            version = re.search(pattern, result.stdout).group(1)
+            version = re.search(pattern, result.stdout_text).group(1)
         except process.CmdError:
             logging.debug("OpenVSwitch is not available in system.")
         return version
@@ -264,7 +264,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
                            ignore_status=ignore_status, verbose=False)
 
     def status(self):
-        return self.ovs_vsctl(["show"]).stdout
+        return self.ovs_vsctl(["show"]).stdout_text
 
     def add_br(self, br_name):
         self.ovs_vsctl(["add-br", br_name])
@@ -290,7 +290,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         return True
 
     def list_br(self):
-        return self.ovs_vsctl(["list-br"]).stdout.splitlines()
+        return self.ovs_vsctl(["list-br"]).stdout_text.splitlines()
 
     def add_port(self, br_name, port_name):
         self.ovs_vsctl(["add-port", br_name, port_name])
@@ -313,7 +313,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         self.ovs_vsctl(["set", "Port", port_name, "vlan-mode=%s" % vlan_mode])
 
     def list_ports(self, br_name):
-        return self.ovs_vsctl(["list-ports", br_name]).stdout.splitlines()
+        return self.ovs_vsctl(["list-ports", br_name]).stdout_text.splitlines()
 
     def port_to_br(self, port_name):
         """
@@ -324,7 +324,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         """
         bridge = None
         try:
-            bridge = self.ovs_vsctl(["port-to-br", port_name]).stdout.strip()
+            bridge = self.ovs_vsctl(["port-to-br", port_name]).stdout_text.strip()
         except process.CmdError as e:
             if e.result.exit_status == 1:
                 pass

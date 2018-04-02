@@ -647,7 +647,8 @@ class CommanderSlaveCmds(CommanderSlave):
                                    shell=True,
                                    stdin=sys.stdin,
                                    stdout=sys.stdout,
-                                   stderr=sys.stderr)
+                                   stderr=sys.stderr,
+                                   universal_newlines=True)
 
         return process.wait()
 

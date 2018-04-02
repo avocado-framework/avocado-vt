@@ -582,7 +582,7 @@ class VMXML(VMXMLBase):
         # TODO: Look up hypervisor_type on incoming XML
         vmxml = VMXML(virsh_instance=virsh_instance)
         vmxml['xml'] = virsh_instance.dumpxml(vm_name,
-                                              extra=options).stdout.strip()
+                                              extra=options).stdout_text.strip()
         return vmxml
 
     @staticmethod
@@ -622,7 +622,7 @@ class VMXML(VMXMLBase):
         result = virsh_instance.define(self.xml)
         if result.exit_status:
             logging.debug("Define %s failed.\n"
-                          "Detail: %s.", self.vm_name, result.stderr)
+                          "Detail: %s.", self.vm_name, result.stderr_text)
             return False
         return True
 

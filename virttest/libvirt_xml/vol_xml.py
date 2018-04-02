@@ -120,7 +120,7 @@ class VolXML(VolXMLBase):
         """
         volxml = VolXML(virsh_instance=virsh_instance)
         volxml['xml'] = virsh_instance.vol_dumpxml(vol_name, pool_name)\
-                                      .stdout.strip()
+                                      .stdout_text.strip()
         return volxml
 
     @staticmethod

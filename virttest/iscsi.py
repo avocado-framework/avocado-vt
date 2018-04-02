@@ -149,8 +149,8 @@ def iscsi_logout(target_name=None):
     except process.CmdError as detail:
         # iscsiadm will fail when no matching sessions found
         # This failure makes no sense when target name is not specified
-        if not target_name and 'No matching sessions' in detail.result.stderr:
-            logging.info("%s: %s", detail, detail.result.stderr)
+        if not target_name and 'No matching sessions' in detail.result.stderr_text:
+            logging.info("%s: %s", detail, detail.result.stderr_text)
         else:
             raise
 

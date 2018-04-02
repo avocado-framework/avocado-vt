@@ -472,7 +472,7 @@ class QemuImg(storage.QemuImg):
                                      shell=True)
 
             if verbose:
-                logging.debug("Output from command: %s" % cmd_result.stdout)
+                logging.debug("Output from command: %s" % cmd_result.stdout_text)
 
             if cmd_result.exit_status == 0:
                 logging.info("Compared images are equal")
@@ -523,9 +523,9 @@ class QemuImg(storage.QemuImg):
                 # Error check, large chances of a non-fatal problem.
                 # There are chances that bad data was skipped though
                 if cmd_result.exit_status == 1:
-                    for e_line in cmd_result.stdout.splitlines():
+                    for e_line in cmd_result.stdout_text.splitlines():
                         logging.error("[stdout] %s", e_line)
-                    for e_line in cmd_result.stderr.splitlines():
+                    for e_line in cmd_result.stderr_text.splitlines():
                         logging.error("[stderr] %s", e_line)
                     chk = params.get("backup_image_on_check_error", "no")
                     if chk == "yes":
@@ -536,9 +536,9 @@ class QemuImg(storage.QemuImg):
                 # Exit status 2 is data corruption for sure,
                 # so fail the test
                 elif cmd_result.exit_status == 2:
-                    for e_line in cmd_result.stdout.splitlines():
+                    for e_line in cmd_result.stdout_text.splitlines():
                         logging.error("[stdout] %s", e_line)
-                    for e_line in cmd_result.stderr.splitlines():
+                    for e_line in cmd_result.stderr_text.splitlines():
                         logging.error("[stderr] %s", e_line)
                     chk = params.get("backup_image_on_check_error", "no")
                     if chk == "yes":

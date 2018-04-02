@@ -1274,7 +1274,7 @@ def find_dnsmasq_listen_address():
 
 
 def local_runner(cmd, timeout=None, shell=False):
-    return process.run(cmd, verbose=False, timeout=timeout, shell=shell).stdout
+    return process.run(cmd, verbose=False, timeout=timeout, shell=shell).stdout_text
 
 
 def local_runner_status(cmd, timeout=None, shell=False):
@@ -2206,7 +2206,7 @@ class IPv6Manager(propcan.PropCanBase):
         if result.exit_status:
             raise exceptions.TestSkipError("The '%s' destination is "
                                            "unreachable: %s", server_ipv6,
-                                           result.stderr)
+                                           result.stderr_text)
         else:
             logging.info("The '%s' destination is connectivity!", server_ipv6)
 
@@ -2228,7 +2228,7 @@ class IPv6Manager(propcan.PropCanBase):
         result = process.run(flush_cmd, ignore_status=True)
         if result.exit_status:
             raise exceptions.TestFail("%s on local host:%s" %
-                                      (test_fail_err, result.stderr))
+                                      (test_fail_err, result.stderr_text))
         else:
             logging.info("%s on the local host", flush_cmd_pass)
 

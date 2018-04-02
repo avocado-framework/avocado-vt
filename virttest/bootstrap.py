@@ -285,7 +285,7 @@ def sync_download_dir(interactive):
                 diff_cmd, ignore_status=True, verbose=False)
             if diff_result.exit_status != 0:
                 LOG.debug("%s result:\n %s",
-                          diff_result.command, diff_result.stdout)
+                          diff_result.command, diff_result.stdout_text)
                 answer = genio.ask('Download file "%s" differs from "%s". '
                                    'Overwrite?' % (dst_file, src_file),
                                    auto=not interactive)
@@ -600,7 +600,7 @@ def create_config_files(test_dir, shared_dir, interactive, t_type, step=None,
                 diff_cmd, ignore_status=True, verbose=False)
             if diff_result.exit_status != 0:
                 LOG.info("%s result:\n %s",
-                         diff_result.command, diff_result.stdout)
+                         diff_result.command, diff_result.stdout_text)
                 answer = genio.ask("Config file  %s differs from %s."
                                    "Overwrite?" % (dst_file, src_file),
                                    auto=force_update or not interactive)

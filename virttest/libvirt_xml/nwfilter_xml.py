@@ -310,7 +310,7 @@ class NwfilterXML(NwfilterXMLBase):
         filter_xml = NwfilterXML(virsh_instance=virsh_instance)
         filter_xml['xml'] = virsh_instance.nwfilter_dumpxml(uuid,
                                                             options=options
-                                                            ).stdout.strip()
+                                                            ).stdout_text.strip()
 
         return filter_xml
 
