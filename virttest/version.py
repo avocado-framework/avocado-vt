@@ -118,7 +118,7 @@ def get_version(abbrev=4):
             cmd_result = process.run("rpm -q avocado-plugins-vt "
                                      "--queryformat '%{VERSION}'",
                                      shell=True, verbose=False)
-            return '%s (RPM install)' % cmd_result.stdout
+            return '%s (RPM install)' % cmd_result.stdout_text
         except process.CmdError:
             return 'unknown'
 

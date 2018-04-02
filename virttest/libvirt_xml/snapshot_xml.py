@@ -82,7 +82,7 @@ class SnapshotXML(SnapshotXMLBase):
         """
         snapshot_xml = SnapshotXML(virsh_instance=virsh_instance)
         snapshot_xml['xml'] = virsh_instance.snapshot_dumpxml(
-            name, snap_name).stdout.strip()
+            name, snap_name).stdout_text.strip()
 
         return snapshot_xml
 

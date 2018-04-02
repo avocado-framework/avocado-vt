@@ -31,7 +31,7 @@ class DomCapabilityXML(base.LibvirtXMLBase):
         accessors.XMLAttribute('max', self, parent_xpath='/',
                                tag_name='vcpu', attribute='max')
         super(DomCapabilityXML, self).__init__(virsh_instance)
-        self['xml'] = self.__dict_get__('virsh').domcapabilities().stdout.strip()
+        self['xml'] = self.__dict_get__('virsh').domcapabilities().stdout_text.strip()
 
     def get_additional_feature_list(self, cpu_mode_name):
         """

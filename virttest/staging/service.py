@@ -96,7 +96,7 @@ def sysvinit_status_parser(cmdResult=None):
     """
     # If service is stopped, exit_status is also not zero.
     # So, we can't use exit_status to check result.
-    result = cmdResult.stdout.lower()
+    result = cmdResult.stdout_text.lower()
     if re.search(r"unrecognized", result):
         return None
     dead_flags = [r"stopped", r"not running", r"dead"]
@@ -117,7 +117,7 @@ def systemd_status_parser(cmdResult=None):
     """
     # If service is stopped, exit_status is also not zero.
     # So, we can't use exit_status to check result.
-    result = cmdResult.stdout
+    result = cmdResult.stdout_text
     # check for systemctl status XXX.service.
     if not re.search(r"Loaded: loaded", result):
         return None
@@ -147,7 +147,7 @@ def sysvinit_list_parser(cmdResult=None):
     _status_on_target = {}
     # Dict to store the status for service based on xinetd.
     _service2statusOnXinet_dict = {}
-    lines = cmdResult.stdout.strip().splitlines()
+    lines = cmdResult.stdout_text.strip().splitlines()
     for line in lines:
         sublines = line.strip().split()
         if len(sublines) == 8:
@@ -192,7 +192,7 @@ def systemd_list_parser(cmdResult=None):
         raise process.CmdError(cmdResult.command, cmdResult)
     # store service name and status.
     _service2status_dict = {}
-    lines = cmdResult.stdout.strip().splitlines()
+    lines = cmdResult.stdout_text.strip().splitlines()
     for line in lines:
         sublines = line.strip().split()
         if (not len(sublines) == 2) or (not sublines[0].endswith("service")):

@@ -446,8 +446,8 @@ class NodedevXML(NodedevXMLBase):
         if dumpxml_result.exit_status:
             raise xcepts.LibvirtXMLError("Nodedev_dumpxml %s failed.\n"
                                          "Error: %s."
-                                         % (dev_name, dumpxml_result.stderr))
-        nodedevxml.xml = dumpxml_result.stdout
+                                         % (dev_name, dumpxml_result.stderr_text))
+        nodedevxml.xml = dumpxml_result.stdout_text
 
         return nodedevxml
 

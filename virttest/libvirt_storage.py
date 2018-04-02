@@ -131,7 +131,7 @@ class StoragePool(object):
         # Allow it raise exception if command has executed failed.
         result = self.virsh_instance.pool_list("--all", ignore_status=False)
         pools = {}
-        lines = result.stdout.strip().splitlines()
+        lines = result.stdout_text.strip().splitlines()
         if len(lines) > 2:
             head = lines[0]
             lines = lines[2:]
@@ -201,7 +201,7 @@ class StoragePool(object):
         except process.CmdError:
             return info
 
-        for line in result.stdout.splitlines():
+        for line in result.stdout_text.splitlines():
             params = line.split(':')
             if len(params) == 2:
                 name = params[0].strip()
@@ -438,7 +438,7 @@ class PoolVolume(object):
             logging.error('List volume failed: %s', detail)
             return volumes
 
-        lines = result.stdout.strip().splitlines()
+        lines = result.stdout_text.strip().splitlines()
         if len(lines) > 2:
             head = lines[0]
             lines = lines[2:]
@@ -472,7 +472,7 @@ class PoolVolume(object):
             logging.error("Get volume information failed: %s", detail)
             return info
 
-        for line in result.stdout.strip().splitlines():
+        for line in result.stdout_text.strip().splitlines():
             attr = line.split(':')[0]
             value = line.split("%s:" % attr)[-1].strip()
             info[attr] = value
@@ -563,4 +563,4 @@ def check_qemu_image_lock_support():
                                "qemu-img command is not found")
     cmd_result = process.run(binary_path + ' -h', ignore_status=True,
                              shell=True, verbose=False)
-    return '-U' in cmd_result.stdout
+    return '-U' in cmd_result.stdout_text

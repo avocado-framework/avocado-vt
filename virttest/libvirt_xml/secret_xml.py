@@ -96,7 +96,7 @@ class SecretXML(SecretXMLBase):
         :return: New initialized SecretXML instance
         """
         secret_xml = SecretXML(virsh_instance=virsh_instance)
-        secret_xml['xml'] = virsh_instance.secret_dumpxml(uuid).stdout.strip()
+        secret_xml['xml'] = virsh_instance.secret_dumpxml(uuid).stdout_text.strip()
 
         return secret_xml
 

@@ -174,7 +174,7 @@ class Cgroup(object):
             cgexec_cmd = ("cgexec -g %s:%s %s %s" %
                           (self.module, cgroup, cmd, args))
             result = process.run(cgexec_cmd, shell=True)
-            status, output = (result.exit_status, result.stdout.strip())
+            status, output = (result.exit_status, result.stdout_text.strip())
             return status, output
         except process.CmdError as detail:
             raise exceptions.TestFail("Execute %s in cgroup failed!\n%s" %
@@ -204,8 +204,8 @@ class Cgroup(object):
         lscgroup_cmd = "lscgroup %s:/" % self.module
         result = process.run(lscgroup_cmd, ignore_status=True)
         if result.exit_status:
-            raise exceptions.TestFail(result.stderr.strip())
-        cgroup_list = result.stdout.strip().splitlines()
+            raise exceptions.TestFail(result.stderr_text.strip())
+        cgroup_list = result.stdout_text.strip().splitlines()
         # Remove root cgroup
         cgroup_list = cgroup_list[1:]
         self.root = get_cgroup_mountpoint(self.module)
@@ -297,7 +297,8 @@ class Cgroup(object):
         cmd = self._client + ' ' + cmd
         process = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, close_fds=True)
+                                   stderr=subprocess.PIPE, close_fds=True,
+                                   universal_newlines=True)
         return process
 
     def is_cgroup(self, pid, pwd):
@@ -661,7 +662,7 @@ def get_all_controllers():
     """
     try:
         result = process.run("lssubsys", ignore_status=False)
-        controllers_str = result.stdout.strip()
+        controllers_str = result.stdout_text.strip()
         controller_list = []
         for controller in controllers_str.splitlines():
             controller_sub_list = controller.split(",")

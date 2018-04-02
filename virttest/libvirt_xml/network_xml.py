@@ -681,7 +681,7 @@ class NetworkXML(NetworkXMLBase):
         networks = list(new_netxml.virsh.net_state_dict(**params).keys())
         for net_name in networks:
             new_copy = new_netxml.copy()
-            new_copy.xml = virsh_instance.net_dumpxml(net_name).stdout.strip()
+            new_copy.xml = virsh_instance.net_dumpxml(net_name).stdout_text.strip()
             result[net_name] = new_copy
         return result
 
@@ -696,7 +696,7 @@ class NetworkXML(NetworkXMLBase):
         """
         netxml = NetworkXML(virsh_instance=virsh_instance)
         netxml['xml'] = virsh_instance.net_dumpxml(network_name,
-                                                   extra).stdout.strip()
+                                                   extra).stdout_text.strip()
         return netxml
 
     @staticmethod
@@ -768,7 +768,7 @@ class NetworkXML(NetworkXMLBase):
         if cmd_result.exit_status:
             raise xcepts.LibvirtXMLError("Failed to undefine network %s.\n"
                                          "Detail: %s" %
-                                         (self.name, cmd_result.stderr))
+                                         (self.name, cmd_result.stderr_text))
 
     def define(self):
         """
@@ -778,7 +778,7 @@ class NetworkXML(NetworkXMLBase):
         if cmd_result.exit_status:
             raise xcepts.LibvirtXMLError("Failed to define network %s.\n"
                                          "Detail: %s" %
-                                         (self.name, cmd_result.stderr))
+                                         (self.name, cmd_result.stderr_text))
 
     def start(self):
         """
@@ -788,7 +788,7 @@ class NetworkXML(NetworkXMLBase):
         if cmd_result.exit_status:
             raise xcepts.LibvirtXMLError("Failed to start network %s.\n"
                                          "Detail: %s" %
-                                         (self.name, cmd_result.stderr))
+                                         (self.name, cmd_result.stderr_text))
 
     def sync(self, state=None):
         """

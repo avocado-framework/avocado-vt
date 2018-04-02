@@ -20,4 +20,4 @@ def run(test, params, env):
     :param env: Dictionary with test environment.
     """
     result = process.run("hostname")
-    logging.info("Output of 'hostname' cmd is '%s'", result.stdout)
+    logging.info("Output of 'hostname' cmd is '%s'", result.stdout_text)

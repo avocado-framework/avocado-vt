@@ -71,7 +71,7 @@ def hotplug_supported(vm_name, mtype):
         json_result = virsh.qemu_monitor_command(vm_name, cmd, "--pretty",
                                                  debug=False)
         try:
-            result = json.loads(json_result.stdout)
+            result = json.loads(json_result.stdout_text)
         except Exception:
             # Failure to parse json output and default support to False
             # TODO: Handle for failure cases
@@ -101,7 +101,7 @@ def affinity_from_vcpuinfo(vm):
 
     :return: affinity list of VM
     """
-    output = virsh.vcpuinfo(vm.name).stdout.rstrip()
+    output = virsh.vcpuinfo(vm.name).stdout_text.rstrip()
     affinity = re.findall('CPU Affinity: +[-y]+', output)
     total_affinity = [list(vcpu_affinity.split()[-1].strip())
                       for vcpu_affinity in affinity]
@@ -144,7 +144,7 @@ def affinity_from_vcpupin(vm):
     vcpupin_output = {}
     vcpupin_affinity = {}
     host_cpu_count = utils.total_cpus_count()
-    for vcpu in virsh.vcpupin(vm.name).stdout.strip().split('\n')[2:]:
+    for vcpu in virsh.vcpupin(vm.name).stdout_text.strip().split('\n')[2:]:
         vcpupin_output[int(vcpu.split(":")[0])] = vcpu.split(":")[1]
     for vcpu in vcpupin_output:
         vcpupin_affinity[vcpu] = libvirt.cpus_string_to_affinity_list(
@@ -190,25 +190,25 @@ def get_vcpucount_details(vm, options):
 
     result = virsh.vcpucount(vm.name, options, ignore_status=True,
                              debug=True)
-    if result.stderr:
+    if result.stderr_text:
         logging.debug("vcpu count command failed")
         return (result, vcpucount_details)
 
     if options:
         if 'guest' in options:
-            vcpucount_details['guest_live'] = int(result.stdout.strip())
+            vcpucount_details['guest_live'] = int(result.stdout_text.strip())
         elif 'config' in options:
             if 'maximum' in options:
-                vcpucount_details['max_config'] = int(result.stdout.strip())
+                vcpucount_details['max_config'] = int(result.stdout_text.strip())
             else:
-                vcpucount_details['cur_config'] = int(result.stdout.strip())
+                vcpucount_details['cur_config'] = int(result.stdout_text.strip())
         elif 'live' in options:
             if 'maximum' in options:
-                vcpucount_details['max_live'] = int(result.stdout.strip())
+                vcpucount_details['max_live'] = int(result.stdout_text.strip())
             else:
-                vcpucount_details['cur_live'] = int(result.stdout.strip())
+                vcpucount_details['cur_live'] = int(result.stdout_text.strip())
     else:
-        output = result.stdout.strip().split('\n')
+        output = result.stdout_text.strip().split('\n')
         for item in output:
             if ('maximum' in item) and ('config' in item):
                 vcpucount_details['max_config'] = int(item.split()[2].strip())
@@ -278,7 +278,7 @@ def check_vcpucount(vm, exp_vcpu, option="", guest_agent=False):
     if option == "--guest" and vm.is_alive() and guest_agent:
         vcpucount_option = "--guest"
     (vcresult, vcpucount_result) = get_vcpucount_details(vm, vcpucount_option)
-    if vcresult.stderr:
+    if vcresult.stderr_text:
         result = False
     if vcpucount_option == "--guest" and guest_agent:
         if vcpucount_result['guest_live'] != exp_vcpu['guest_live']:
@@ -382,9 +382,9 @@ def get_cpustats(vm, cpu=None):
         option = "--start %s --count 1" % cpu
         result = virsh.cpu_stats(vm.name, option)
         if result.exit_status != 0:
-            logging.error("cpu stats command failed: %s", result.stderr)
+            logging.error("cpu stats command failed: %s", result.stderr_text)
             return None
-        output = result.stdout.strip().split()
+        output = result.stdout_text.strip().split()
         if re.match("CPU%s" % cpu, output[0]):
             cpustats[cpu] = [float(output[5]),  # vcputime
                              float(output[2]) - float(output[5]),  # emulator
@@ -396,9 +396,9 @@ def get_cpustats(vm, cpu=None):
             option = "--start %s --count 1" % host_cpu_online[i]
             result = virsh.cpu_stats(vm.name, option)
             if result.exit_status != 0:
-                logging.error("cpu stats command failed: %s", result.stderr)
+                logging.error("cpu stats command failed: %s", result.stderr_text)
                 return None
-            output = result.stdout.strip().split()
+            output = result.stdout_text.strip().split()
             if re.match("CPU%s" % host_cpu_online[i], output[0]):
                 cpustats[host_cpu_online[i]] = [float(output[5]),
                                                 float(output[2]) - float(output[5]),
@@ -406,9 +406,9 @@ def get_cpustats(vm, cpu=None):
     result = virsh.cpu_stats(vm.name, "--total")
     cpustats["total"] = []
     if result.exit_status != 0:
-        logging.error("cpu stats command failed: %s", result.stderr)
+        logging.error("cpu stats command failed: %s", result.stderr_text)
         return None
-    output = result.stdout.strip().split()
+    output = result.stdout_text.strip().split()
     cpustats["total"] = [float(output[2])]  # cputime
     return cpustats
 

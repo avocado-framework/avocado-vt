@@ -304,7 +304,7 @@ class PoolXML(PoolXMLBase):
         result = self.virsh.pool_define(self.xml)
         if result.exit_status:
             logging.error("Define %s failed.\n"
-                          "Detail: %s.", self.name, result.stderr)
+                          "Detail: %s.", self.name, result.stderr_text)
             return False
         return True
 

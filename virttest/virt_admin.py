@@ -692,8 +692,8 @@ def command(cmd, **dargs):
     # Always log debug info, if persistent session or not
     if debug:
         logging.debug("status: %s", ret.exit_status)
-        logging.debug("stdout: %s", ret.stdout.strip())
-        logging.debug("stderr: %s", ret.stderr.strip())
+        logging.debug("stdout: %s", ret.stdout_text.strip())
+        logging.debug("stderr: %s", ret.stderr_text.strip())
 
     # Return CmdResult instance when ignore_status is True
     return ret

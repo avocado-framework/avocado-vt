@@ -836,7 +836,7 @@ def get_pci_id_using_filter(pci_filter, session=None):
     else:
         cmd_output = process.run(cmd, shell=True)
         status = cmd_output.exit_status
-        output = cmd_output.stdout
+        output = cmd_output.stdout_text
     if status != 0 or not output:
         return []
     return str(output).strip().split()
@@ -860,7 +860,7 @@ def get_interface_from_pci_id(pci_id, session=None, nic_regex=""):
     else:
         cmd_output = process.run(cmd, shell=True)
         status = cmd_output.exit_status
-        output = cmd_output.stdout
+        output = cmd_output.stdout_text
     if status:
         return None
     ethnames = re.findall(nic_regex, output.strip())
@@ -871,7 +871,7 @@ def get_interface_from_pci_id(pci_id, session=None, nic_regex=""):
         else:
             cmd_output = process.run(cmd, shell=True)
             status = cmd_output.exit_status
-            output = cmd_output.stdout
+            output = cmd_output.stdout_text
         if status:
             continue
         if pci_id in output.strip():
@@ -1501,7 +1501,7 @@ def get_node_cpus(i=0):
     :rtype: builtin.list
     """
     cmd = process.run("numactl --hardware")
-    return re.findall("node %s cpus: (.*)" % i, cmd.stdout)[0].split()
+    return re.findall("node %s cpus: (.*)" % i, cmd.stdout_text)[0].split()
 
 
 def cpu_str_to_list(origin_str):
@@ -1649,7 +1649,7 @@ class NumaInfo(object):
         """
         cmd = process.run("numactl --hardware")
         try:
-            node_distances = cmd.stdout.split("node distances:")[-1].strip()
+            node_distances = cmd.stdout_text.split("node distances:")[-1].strip()
             node_distance = re.findall("%s:.*" % node_id, node_distances)[0]
             node_distance = node_distance.split(":")[-1]
         except Exception:
@@ -1760,7 +1760,7 @@ class NumaNode(object):
         :param i: Index of the CPU inside the node.
         """
         cmd = process.run("numactl --hardware")
-        cpus = re.findall("node %s cpus: (.*)" % i, cmd.stdout)
+        cpus = re.findall("node %s cpus: (.*)" % i, cmd.stdout_text)
         if cpus:
             cpus = cpus[0]
         else:
@@ -1843,7 +1843,7 @@ class NumaNode(object):
         Flush pin dict, remove the record of exited process.
         """
         cmd = process.run("ps -eLf | awk '{print $4}'", shell=True)
-        all_pids = cmd.stdout
+        all_pids = cmd.stdout_text
         for i in self.cpus:
             for j in self.dict[i]:
                 if str(j) not in all_pids:
@@ -2225,7 +2225,7 @@ def get_qemu_cpu_models(qemu_binary):
     """
     cmd = qemu_binary + " -cpu '?'"
     result = process.run(cmd, verbose=False)
-    return extract_qemu_cpu_models(result.stdout)
+    return extract_qemu_cpu_models(result.stdout_text)
 
 
 def _get_backend_dir(params):
@@ -3113,7 +3113,7 @@ def check_qemu_image_lock_support():
     binary_path = utils_path.find_command(cmd)
     cmd_result = process.run(binary_path + ' -h', ignore_status=True,
                              shell=True, verbose=False)
-    return '-U' in cmd_result.stdout
+    return '-U' in cmd_result.stdout_text
 
 
 def get_image_info(image_file):
@@ -3537,7 +3537,7 @@ def verify_dmesg(dmesg_log_file=None, ignore_result=False, level_check=3,
         out = process.run(cmd, timeout=30, ignore_status=True,
                           verbose=False, shell=True)
         status = out.exit_status
-        output = out.stdout
+        output = out.stdout_text
     if status == 0:
         err = "Found failures in %s dmesg log" % environ
         d_log = "dmesg log:\n%s" % output
@@ -3918,7 +3918,7 @@ class SELinuxBoolean(object):
             cmd = "%s'getenforce'" % self.ssh_cmd
             try:
                 result = process.run(cmd, shell=True)
-                self.rem_selinux_disabled = (result.stdout.strip().lower() ==
+                self.rem_selinux_disabled = (result.stdout_text.strip().lower() ==
                                              "disabled")
             except process.CmdError:
                 self.rem_selinux_disabled = True
@@ -3948,7 +3948,7 @@ class SELinuxBoolean(object):
             self.local_bool_var)
         logging.debug("The command: %s", get_sebool_cmd)
         result = process.run(get_sebool_cmd, shell=True)
-        return result.stdout.strip()
+        return result.stdout_text.strip()
 
     def get_sebool_remote(self):
         """
@@ -3959,7 +3959,7 @@ class SELinuxBoolean(object):
                (get_sebool_cmd + "'| awk -F'-->' '{print $2}''"))
         logging.debug("The command: %s", cmd)
         result = process.run(cmd, shell=True)
-        return result.stdout.strip()
+        return result.stdout_text.strip()
 
     def setup(self):
         """
@@ -3988,7 +3988,7 @@ class SELinuxBoolean(object):
             result = process.run("setsebool %s %s" % (self.local_bool_var,
                                                       self.local_boolean_orig))
             if result.exit_status:
-                raise exceptions.TestError(result.stderr.strip())
+                raise exceptions.TestError(result.stderr_text.strip())
 
         # Recover remote SELinux boolean value
         if self.cleanup_remote and not self.rem_selinux_disabled:
@@ -3996,7 +3996,7 @@ class SELinuxBoolean(object):
                    (self.remote_bool_var, self.remote_boolean_orig))
             result = process.run(cmd)
             if result.exit_status:
-                raise exceptions.TestError(result.stderr.strip())
+                raise exceptions.TestError(result.stderr_text.strip())
 
         # Recover SSH connection
         if self.ssh_obj.auto_recover and not keep_authorized_keys:
@@ -4016,12 +4016,12 @@ class SELinuxBoolean(object):
         result = process.run("setsebool %s %s" % (self.local_bool_var,
                                                   self.local_bool_value))
         if result.exit_status:
-            raise exceptions.TestSkipError(result.stderr.strip())
+            raise exceptions.TestSkipError(result.stderr_text.strip())
 
         boolean_curr = self.get_sebool_local()
         logging.debug("To check local boolean value: %s", boolean_curr)
         if boolean_curr != self.local_bool_value:
-            raise exceptions.TestFail(result.stderr.strip())
+            raise exceptions.TestFail(result.stderr_text.strip())
 
     def setup_remote(self):
         """
@@ -4039,12 +4039,12 @@ class SELinuxBoolean(object):
 
         result = process.run(set_boolean_cmd)
         if result.exit_status:
-            raise exceptions.TestSkipError(result.stderr.strip())
+            raise exceptions.TestSkipError(result.stderr_text.strip())
 
         boolean_curr = self.get_sebool_remote()
         logging.debug("To check remote boolean value: %s", boolean_curr)
         if boolean_curr != self.remote_bool_value:
-            raise exceptions.TestFail(result.stderr.strip())
+            raise exceptions.TestFail(result.stderr_text.strip())
 
 
 def get_model_features(model_name):
@@ -4156,7 +4156,8 @@ class BgJob(object):
                                    close_fds=close_fds,
                                    shell=True,
                                    executable=shell,
-                                   stdin=stdin)
+                                   stdin=stdin,
+                                   universal_newlines=True)
 
     def output_prepare(self, stdout_file=None, stderr_file=None):
         self.stdout_file = stdout_file

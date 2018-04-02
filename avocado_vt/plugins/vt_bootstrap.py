@@ -111,12 +111,12 @@ class VTBootstrap(CLICmd):
             else:
                 logging.error('Bootstrap command failed')
                 logging.error('Command: %s', ce.command)
-                if ce.result.stderr:
+                if ce.result.stderr_text:
                     logging.error('stderr output:')
-                    logging.error(ce.result.stderr)
-                if ce.result.stdout:
+                    logging.error(ce.result.stderr_text)
+                if ce.result.stdout_text:
                     logging.error('stdout output:')
-                    logging.error(ce.result.stdout)
+                    logging.error(ce.result.stdout_text)
             sys.exit(1)
         except KeyboardInterrupt:
             logging.info('Bootstrap interrupted by user')

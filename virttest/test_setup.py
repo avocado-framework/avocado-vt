@@ -2185,7 +2185,7 @@ def switch_indep_threads_mode(state="Y", params=None):
         try:
             thread_mode = process.system_output(cmd, shell=True)
         except process.CmdError as info:
-            thread_mode = info.result.stderr.strip()
+            thread_mode = info.result.stderr_text.strip()
             raise exceptions.TestSetupFail("Unable to get indep_threads_mode "
                                            "for power9 compat mode enablement"
                                            ": %s" % thread_mode)
@@ -2244,7 +2244,7 @@ def switch_smt(state="off", params=None):
         try:
             smt_output = process.system_output(cmd, shell=True).strip()
         except process.CmdError as info:
-            smt_output = info.result.stderr.strip()
+            smt_output = info.result.stderr_text.strip()
             if smt_output not in SMT_DISABLED_STRS:
                 raise exceptions.TestSetupFail("Couldn't get SMT of server: %s"
                                                % smt_output)
