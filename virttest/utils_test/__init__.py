@@ -1514,7 +1514,7 @@ def service_setup(vm, session, directory):
         src = os.path.join(directory, rh_perf_envsetup_script)
         vm.copy_files_to(src, "/tmp/rh_perf_envsetup.sh")
         logging.info("setup perf environment for host")
-        process.system_output("bash %s host %s" % (src, rebooted), shell=True)
+        process.getoutput("bash %s host %s" % (src, rebooted))
         logging.info("setup perf environment for guest")
         session.cmd("bash /tmp/rh_perf_envsetup.sh guest %s" % rebooted)
 
