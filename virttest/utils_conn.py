@@ -974,8 +974,7 @@ class TLSConnection(ConnectionBase):
             if os.path.exists(cert_path):
                 shutil.rmtree(cert_path)
             else:
-                result = process.run(cmd, shell=True, ignore_status=True)
-                status, output = (result.exit_status, result.stdout_text.strip())
+                status, output = process.getstatusoutput(cmd)
                 if status:
                     raise ConnRmCertError(cert_path, output)
 

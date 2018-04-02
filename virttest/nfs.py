@@ -285,7 +285,9 @@ class NFSClient(object):
                                                                 self.mount_dir)
         cmd = self.ssh_cmd + "'%s'" % find_mountpoint_cmd
         logging.debug("The command: %s", cmd)
-        if process.system(cmd, verbose=True, ignore_status=True, shell=True):
+        status, output = process.getstatusoutput(cmd)
+        if status:
+            logging.debug("The command result: <%s:%s>", status, output)
             return False
         return True
 
@@ -408,15 +410,14 @@ class NFSClient(object):
         """
         check_mount_dir_cmd = self.ssh_cmd + "'ls -d %s'" % self.mount_dir
         logging.debug("To check if the %s exists", self.mount_dir)
-        cmd_result = process.run(check_mount_dir_cmd, shell=True,
-                                 ignore_status=True)
-        if re.findall("No such file or directory", cmd_result.stderr_text, re.M):
+        output = process.getoutput(check_mount_dir_cmd)
+        if re.findall("No such file or directory", output, re.M):
             mkdir_cmd = self.ssh_cmd + "'mkdir -p %s'" % self.mount_dir
             logging.debug("Prepare to create %s", self.mount_dir)
-            try:
-                process.system(mkdir_cmd, verbose=True, shell=True)
-            except process.CmdError:
-                raise exceptions.TestFail("Failed to run: %s" % mkdir_cmd)
+            s, o = process.getstatusoutput(mkdir_cmd)
+            if s != 0:
+                raise exceptions.TestFail("Failed to run %s: %s" %
+                                          (mkdir_cmd, o))
             self.mkdir_mount_remote = True
 
         if self.params.get("firewall_to_permit_nfs", "yes") == "yes":

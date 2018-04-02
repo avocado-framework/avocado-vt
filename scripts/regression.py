@@ -10,7 +10,6 @@ import os
 import sys
 import re
 import warnings
-import subprocess
 try:
     import configparser as ConfigParser
 except ImportError:
@@ -20,8 +19,13 @@ import MySQLdb
 
 
 def getoutput(cmd):
-    sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    return sp.communicate()[0].strip()
+    """Return output of executing cmd in a shell."""
+    pipe = os.popen('{ ' + cmd + '; } 2>&1', 'r')
+    text = pipe.read()
+    pipe.close()
+    if text[-1:] == '\n':
+        text = text[:-1]
+    return text
 
 
 def exec_sql(cmd, conf="../../global_config.ini"):

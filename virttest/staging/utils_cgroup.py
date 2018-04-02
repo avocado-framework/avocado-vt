@@ -173,8 +173,7 @@ class Cgroup(object):
         try:
             cgexec_cmd = ("cgexec -g %s:%s %s %s" %
                           (self.module, cgroup, cmd, args))
-            result = process.run(cgexec_cmd, shell=True)
-            status, output = (result.exit_status, result.stdout_text.strip())
+            status, output = process.getstatusoutput(cgexec_cmd)
             return status, output
         except process.CmdError as detail:
             raise exceptions.TestFail("Execute %s in cgroup failed!\n%s" %

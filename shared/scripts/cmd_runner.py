@@ -10,14 +10,18 @@ import os
 import sys
 import random
 import string
-import subprocess
 
 
 def getstatusoutput(cmd):
-    sp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
-                          universal_newlines=True)
-    output = sp.communicate()[0].strip()
-    return (sp.poll(), output)
+    """Return (status, output) of executing cmd in a shell."""
+    pipe = os.popen('{ ' + cmd + '; } 2>&1', 'r')
+    text = pipe.read()
+    sts = pipe.close()
+    if sts is None:
+        sts = 0
+    if text[-1:] == '\n':
+        text = text[:-1]
+    return sts, text
 
 
 class Runner(object):
@@ -36,7 +40,7 @@ class Runner(object):
         fd = shelve.open(p_file)
         fd["pid"] = os.getpid()
         fd.close()
-        subprocess.call("%s &> %s_monitor" % (m_cmd, r_path), shell=True)
+        getstatusoutput("%s &> %s_monitor" % (m_cmd, r_path))
 
     def thread_kill(self, cmd, p_file):
         """

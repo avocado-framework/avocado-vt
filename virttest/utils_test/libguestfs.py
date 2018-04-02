@@ -104,8 +104,7 @@ def attach_additional_disk(vm, disksize, targetdev):
     logging.info("Attaching disk...")
     disk_path = os.path.join(data_dir.get_tmp_dir(), targetdev)
     cmd = "qemu-img create %s %s" % (disk_path, disksize)
-    result = process.run(cmd, shell=True, ignore_status=True)
-    status, output = (result.exit_status, result.stdout_text.strip())
+    status, output = process.getstatusoutput(cmd)
     if status:
         return (False, output)
 

@@ -16,7 +16,18 @@
 
 import os
 import sys
-import subprocess
+
+
+def getstatusoutput(cmd):
+    """Return (status, output) of executing cmd in a shell."""
+    pipe = os.popen('{ ' + cmd + '; } 2>&1', 'r')
+    text = pipe.read()
+    sts = pipe.close()
+    if sts is None:
+        sts = 0
+    if text[-1:] == '\n':
+        text = text[:-1]
+    return sts, text
 
 
 class DocBuildError(Exception):
@@ -28,14 +39,10 @@ class DocBuildError(Exception):
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 root_path = os.path.abspath(os.path.join("..", ".."))
 sys.path.insert(0, root_path)
-_sp = subprocess.Popen('which sphinx-apidoc', shell=True, stdout=subprocess.PIPE)
-_sphinx_apidoc = _sp.communicate()[0].strip()
+_sphinx_apidoc = getstatusoutput('which sphinx-apidoc')[1].strip()
 _output_dir = os.path.join(root_path, 'docs', 'source', 'api')
 _api_dir = os.path.join(root_path, 'virttest')
-_sp = subprocess.Popen("%s -o %s %s" % (_sphinx_apidoc, _output_dir, _api_dir),
-                       shell=True, stdout=subprocess.PIPE)
-_output = _sp.communicate()[0].strip()
-_status = _sp.poll()
+_status, _output = getstatusoutput("%s -o %s %s" % (_sphinx_apidoc, _output_dir, _api_dir))
 if _status:
     raise DocBuildError("API rst auto generation failed: %s" % _output)
 
