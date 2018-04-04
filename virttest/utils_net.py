@@ -2674,6 +2674,7 @@ class ParamsNet(VMNet):
         result_list = []
         nic_name_list = self.params.objects('nics')
         for nic_name in nic_name_list:
+            nic_name = str(nic_name)
             # nic name is only in params scope
             nic_dict = {'nic_name': nic_name}
             nic_params = self.params.object_params(nic_name)
