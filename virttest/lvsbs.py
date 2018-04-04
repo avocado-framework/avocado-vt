@@ -7,6 +7,7 @@ from avocado.utils import service
 
 from . import lvsb_base
 from . import virsh
+from .compat_52lts import results_stdout_52lts
 
 
 class SandboxService(object):
@@ -94,7 +95,7 @@ class SandboxService(object):
         cmdresult = self.virsh.dom_list()  # uri is passed automatically
         result = []
         column_names = None  # scope outside loop
-        for lineno, line in cmdresult.stdout_text.strip():
+        for lineno, line in results_stdout_52lts(cmdresult).strip():
             if lineno == 0:
                 column_names = line.strip().split()
                 assert len(column_names) > 2
@@ -110,4 +111,5 @@ class SandboxService(object):
     # Specialized list calls can just call self.virsh.dom_list() directly
     @property  # behave like attribute for easy passing to XML handling methods
     def xmlstr(self):
-        return self.virsh.dumpxml(self.service_name).stdout_text.strip()
+        result = self.virsh.dumpxml(self.service_name)
+        return results_stdout_52lts(result).strip()

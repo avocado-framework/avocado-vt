@@ -33,6 +33,7 @@ from avocado.utils import process
 
 from . import utils_misc
 from . import data_dir
+from .compat_52lts import results_stdout_52lts
 
 UNIT = "B"
 COMMON_OPTS = "--noheading --nosuffix --unit=%s" % UNIT
@@ -50,7 +51,7 @@ def cmd_output(cmd, res="[\w/]+"):
     if result.exit_status != 0:
         logging.warn(result)
         return None
-    output = result.stdout_text
+    output = results_stdout_52lts(result)
     for line in output.splitlines():
         val = re.findall(res, line)
         if val:

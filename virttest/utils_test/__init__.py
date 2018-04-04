@@ -51,6 +51,7 @@ from .. import utils_misc
 from .. import utils_net
 from .. import virt_vm
 from ..staging import utils_memory
+from ..compat_52lts import results_stdout_52lts
 
 # Get back to importing submodules
 # This is essential for accessing these submodules directly from
@@ -253,7 +254,7 @@ def get_time(session, time_command, time_filter_re, time_format):
     elif re.findall("hwclock", time_command):
         loc = locale.getlocale(locale.LC_TIME)
         # Get and parse host time
-        host_time_out = process.run(time_command).stdout_text
+        host_time_out = results_stdout_52lts(process.run(time_command))
         diff = host_time_out.split()[-2]
         host_time_out = " ".join(host_time_out.split()[:-2])
         try:
@@ -1696,7 +1697,7 @@ def get_date(session=None):
         if session:
             date_info = session.cmd_output(date_cmd).strip()
         else:
-            date_info = process.run(date_cmd).stdout_text.strip()
+            date_info = results_stdout_52lts(process.run(date_cmd)).strip()
         return date_info
     except (process.CmdError, aexpect.ShellError) as detail:
         raise exceptions.TestFail("Get date failed. %s " % detail)
@@ -2035,7 +2036,7 @@ class RemoteDiskManager(object):
             raise exceptions.TestError("Unsupported Disk Type %s" % disk_type)
 
         try:
-            output = self.runner.run(cmd).stdout_text
+            output = results_stdout_52lts(self.runner.run(cmd))
         except exceptions.CmdError as detail:
             logging.debug(output)
             raise exceptions.TestError("Get space failed: %s." % str(detail))
@@ -2076,17 +2077,17 @@ class RemoteDiskManager(object):
         """
         if is_login:
             discovery_cmd = "iscsiadm -m discovery -t sendtargets -p %s" % host
-            output = self.runner.run(discovery_cmd, ignore_status=True).stdout_text
+            output = results_stdout_52lts(self.runner.run(discovery_cmd, ignore_status=True))
             if target_name not in output:
                 raise exceptions.TestError("Discovery %s on %s failed."
                                            % (target_name, host))
             cmd = "iscsiadm --mode node --login --targetname %s" % target_name
-            output = self.runner.run(cmd).stdout_text
+            output = results_stdout_52lts(self.runner.run(cmd))
             if "successful" not in output:
                 raise exceptions.TestError("Login to %s failed." % target_name)
             else:
                 cmd = "iscsiadm -m session -P 3"
-                output = self.runner.run(cmd).stdout_text
+                output = results_stdout_52lts(self.runner.run(cmd))
                 pattern = r"Target:\s+%s.*?disk\s(\w+)\s+\S+\srunning" % target_name
                 device_name = re.findall(pattern, output, re.S)
                 try:
@@ -2099,7 +2100,7 @@ class RemoteDiskManager(object):
                 cmd = "iscsiadm --mode node --logout -T %s" % target_name
             else:
                 cmd = "iscsiadm --mode node --logout all"
-            output = self.runner.run(cmd, ignore_status=True).stdout_text
+            output = results_stdout_52lts(self.runner.run(cmd, ignore_status=True))
             if "successful" not in output:
                 logging.error("Logout to %s failed.", target_name)
 
@@ -2197,8 +2198,8 @@ def check_dest_vm_network(vm, vm_ip, remote_host, username, password,
         ping_failed = False
         break
     if ping_failed:
-        raise exceptions.TestFail("Failed to ping %s: %s" % (vm.name,
-                                                             result.stdout_text))
+        raise exceptions.TestFail("Failed to ping %s: %s"
+                                  % (vm.name, results_stdout_52lts(result)))
 
 
 class RemoteVMManager(object):
@@ -2278,12 +2279,12 @@ class RemoteVMManager(object):
                 continue
             else:
                 vm_net_connectivity = True
-                logging.info(result.stdout_text)
+                logging.info(results_stdout_52lts(result))
                 break
 
         if not vm_net_connectivity:
-            raise exceptions.TestFail("Failed to ping %s: %s" % (vm_ip,
-                                                                 result.stdout_text))
+            raise exceptions.TestFail("Failed to ping %s: %s"
+                                      % (vm_ip, results_stdout_52lts(result)))
 
     def run_command(self, vm_ip, command, vm_user="root", runner=None,
                     ignore_status=False):

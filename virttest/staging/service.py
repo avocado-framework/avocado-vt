@@ -22,6 +22,8 @@ import logging
 from tempfile import mktemp
 
 from avocado.utils import process
+from virttest.compat_52lts import results_stdout_52lts
+
 
 _COMMAND_TABLE_DOC = """
 
@@ -96,7 +98,7 @@ def sysvinit_status_parser(cmdResult=None):
     """
     # If service is stopped, exit_status is also not zero.
     # So, we can't use exit_status to check result.
-    result = cmdResult.stdout_text.lower()
+    result = results_stdout_52lts(cmdResult).lower()
     if re.search(r"unrecognized", result):
         return None
     dead_flags = [r"stopped", r"not running", r"dead"]
@@ -117,7 +119,7 @@ def systemd_status_parser(cmdResult=None):
     """
     # If service is stopped, exit_status is also not zero.
     # So, we can't use exit_status to check result.
-    result = cmdResult.stdout_text
+    result = results_stdout_52lts(cmdResult)
     # check for systemctl status XXX.service.
     if not re.search(r"Loaded: loaded", result):
         return None
@@ -147,7 +149,7 @@ def sysvinit_list_parser(cmdResult=None):
     _status_on_target = {}
     # Dict to store the status for service based on xinetd.
     _service2statusOnXinet_dict = {}
-    lines = cmdResult.stdout_text.strip().splitlines()
+    lines = results_stdout_52lts(cmdResult).strip().splitlines()
     for line in lines:
         sublines = line.strip().split()
         if len(sublines) == 8:
@@ -192,7 +194,7 @@ def systemd_list_parser(cmdResult=None):
         raise process.CmdError(cmdResult.command, cmdResult)
     # store service name and status.
     _service2status_dict = {}
-    lines = cmdResult.stdout_text.strip().splitlines()
+    lines = results_stdout_52lts(cmdResult).strip().splitlines()
     for line in lines:
         sublines = line.strip().split()
         if (not len(sublines) == 2) or (not sublines[0].endswith("service")):
@@ -731,7 +733,7 @@ class Factory(object):
             :return: executable name for PID 1, aka init
             :rtype:  str
             """
-            output = self.run("ps -o comm 1").stdout_text
+            output = results_stdout_52lts(self.run("ps -o comm 1"))
             return output.splitlines()[-1].strip()
 
         def get_generic_service_manager_type(self):

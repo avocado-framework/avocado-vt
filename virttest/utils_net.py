@@ -26,6 +26,7 @@ from virttest import data_dir
 from virttest import propcan
 from virttest import utils_misc
 from virttest import arch
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 from virttest.versionable_class import factory
 
 
@@ -1274,7 +1275,7 @@ def find_dnsmasq_listen_address():
 
 
 def local_runner(cmd, timeout=None, shell=False):
-    return process.run(cmd, verbose=False, timeout=timeout, shell=shell).stdout_text
+    return results_stdout_52lts(process.run(cmd, verbose=False, timeout=timeout, shell=shell))
 
 
 def local_runner_status(cmd, timeout=None, shell=False):
@@ -2206,7 +2207,7 @@ class IPv6Manager(propcan.PropCanBase):
         if result.exit_status:
             raise exceptions.TestSkipError("The '%s' destination is "
                                            "unreachable: %s", server_ipv6,
-                                           result.stderr_text)
+                                           results_stderr_52lts(result))
         else:
             logging.info("The '%s' destination is connectivity!", server_ipv6)
 
@@ -2228,7 +2229,8 @@ class IPv6Manager(propcan.PropCanBase):
         result = process.run(flush_cmd, ignore_status=True)
         if result.exit_status:
             raise exceptions.TestFail("%s on local host:%s" %
-                                      (test_fail_err, result.stderr_text))
+                                      (test_fail_err,
+                                       results_stderr_52lts(result)))
         else:
             logging.info("%s on the local host", flush_cmd_pass)
 

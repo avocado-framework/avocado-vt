@@ -8,6 +8,7 @@ import logging
 from virttest import xml_utils
 from virttest.libvirt_xml import base, xcepts, accessors
 from virttest.libvirt_xml.devices import librarian
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 class RangeList(list):
@@ -681,7 +682,8 @@ class NetworkXML(NetworkXMLBase):
         networks = list(new_netxml.virsh.net_state_dict(**params).keys())
         for net_name in networks:
             new_copy = new_netxml.copy()
-            new_copy.xml = virsh_instance.net_dumpxml(net_name).stdout_text.strip()
+            dump_result = virsh_instance.net_dumpxml(net_name)
+            new_copy.xml = results_stdout_52lts(dump_result).strip()
             result[net_name] = new_copy
         return result
 
@@ -695,8 +697,8 @@ class NetworkXML(NetworkXMLBase):
         :return: New initialized NetworkXML instance
         """
         netxml = NetworkXML(virsh_instance=virsh_instance)
-        netxml['xml'] = virsh_instance.net_dumpxml(network_name,
-                                                   extra).stdout_text.strip()
+        dump_result = virsh_instance.net_dumpxml(network_name, extra)
+        netxml['xml'] = results_stdout_52lts(dump_result).strip()
         return netxml
 
     @staticmethod
@@ -768,7 +770,8 @@ class NetworkXML(NetworkXMLBase):
         if cmd_result.exit_status:
             raise xcepts.LibvirtXMLError("Failed to undefine network %s.\n"
                                          "Detail: %s" %
-                                         (self.name, cmd_result.stderr_text))
+                                         (self.name,
+                                          results_stderr_52lts(cmd_result)))
 
     def define(self):
         """
@@ -778,7 +781,8 @@ class NetworkXML(NetworkXMLBase):
         if cmd_result.exit_status:
             raise xcepts.LibvirtXMLError("Failed to define network %s.\n"
                                          "Detail: %s" %
-                                         (self.name, cmd_result.stderr_text))
+                                         (self.name,
+                                          results_stderr_52lts(cmd_result)))
 
     def start(self):
         """
@@ -788,7 +792,8 @@ class NetworkXML(NetworkXMLBase):
         if cmd_result.exit_status:
             raise xcepts.LibvirtXMLError("Failed to start network %s.\n"
                                          "Detail: %s" %
-                                         (self.name, cmd_result.stderr_text))
+                                         (self.name,
+                                          results_stderr_52lts(cmd_result)))
 
     def sync(self, state=None):
         """

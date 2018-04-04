@@ -6,6 +6,7 @@ http://libvirt.org/formatnode.html
 import os
 
 from virttest.libvirt_xml import base, xcepts, accessors
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 class CAPXML(base.LibvirtXMLBase):
@@ -444,10 +445,10 @@ class NodedevXML(NodedevXMLBase):
         nodedevxml = NodedevXML(virsh_instance=virsh_instance)
         dumpxml_result = virsh_instance.nodedev_dumpxml(dev_name)
         if dumpxml_result.exit_status:
+            stderr = results_stderr_52lts(dumpxml_result)
             raise xcepts.LibvirtXMLError("Nodedev_dumpxml %s failed.\n"
-                                         "Error: %s."
-                                         % (dev_name, dumpxml_result.stderr_text))
-        nodedevxml.xml = dumpxml_result.stdout_text
+                                         "Error: %s." % (dev_name, stderr))
+        nodedevxml.xml = results_stdout_52lts(dumpxml_result)
 
         return nodedevxml
 

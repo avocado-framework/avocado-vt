@@ -12,6 +12,7 @@ from avocado.utils import path
 from avocado.utils import process
 
 from . import propcan
+from .compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 class LibguestfsCmdError(Exception):
@@ -77,8 +78,8 @@ def lgf_command(cmd, ignore_status=True, debug=False, timeout=60):
 
     if debug:
         logging.debug("status: %s", ret.exit_status)
-        logging.debug("stdout: %s", ret.stdout_text.strip())
-        logging.debug("stderr: %s", ret.stderr_text.strip())
+        logging.debug("stdout: %s", results_stdout_52lts(ret).strip())
+        logging.debug("stderr: %s", results_stderr_52lts(ret).strip())
 
     # Return CmdResult instance when ignore_status is True
     return ret
@@ -312,7 +313,7 @@ class GuestfishRemote(object):
                                   verbose=True, timeout=60)
             except process.CmdError as detail:
                 raise LibguestfsCmdError(detail)
-            self.a_id = re.search("\d+", ret.stdout_text.strip()).group()
+            self.a_id = re.search(b"\d+", ret.stdout.strip()).group()
         else:
             self.a_id = a_id
 
@@ -338,15 +339,15 @@ class GuestfishRemote(object):
             raise LibguestfsCmdError(detail)
 
         for line in self.ERROR_REGEX_LIST:
-            if re.search(line, ret.stdout_text.strip()):
+            if re.search(line, results_stdout_52lts(ret).strip()):
                 e_msg = ('Error pattern %s found on output of %s: %s' %
-                         (line, cmd, ret.stdout_text.strip()))
+                         (line, cmd, results_stdout_52lts(ret).strip()))
                 raise LibguestfsCmdError(e_msg)
 
         logging.debug("command: %s", cmd)
-        logging.debug("stdout: %s", ret.stdout_text.strip())
+        logging.debug("stdout: %s", results_stdout_52lts(ret).strip())
 
-        return 0, ret.stdout_text.strip()
+        return 0, results_stdout_52lts(ret).strip()
 
     def cmd(self, cmd, ignore_status=False):
         """Mimic process.run()"""
@@ -4332,7 +4333,7 @@ def virt_sysprep_operations():
     """Get virt-sysprep support operation"""
     sys_list_cmd = "virt-sysprep --list-operations"
     result = lgf_command(sys_list_cmd, ignore_status=False)
-    oper_info = result.stdout_text.strip()
+    oper_info = results_stdout_52lts(result).strip()
     oper_dict = {}
     for oper_item in oper_info.splitlines():
         oper = oper_item.split("*")[0].strip()
@@ -4351,7 +4352,7 @@ def virt_cmd_contain_opt(virt_cmd, opt):
     result = lgf_command(virt_help_cmd, ignore_status=False)
     # "--add" will not equal to "--addxxx"
     opt = " " + opt.strip() + " "
-    return (result.stdout_text.count(opt) != 0)
+    return (results_stdout_52lts(result).count(opt) != 0)
 
 
 def virt_ls_cmd(disk_or_domain, file_dir_path, is_disk=False, options=None,

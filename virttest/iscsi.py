@@ -22,6 +22,8 @@ from . import utils_net
 from . import data_dir
 from . import utils_package
 from .staging import service
+from .compat_52lts import results_stderr_52lts
+
 
 ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
 
@@ -149,8 +151,9 @@ def iscsi_logout(target_name=None):
     except process.CmdError as detail:
         # iscsiadm will fail when no matching sessions found
         # This failure makes no sense when target name is not specified
-        if not target_name and 'No matching sessions' in detail.result.stderr_text:
-            logging.info("%s: %s", detail, detail.result.stderr_text)
+        stderr = results_stderr_52lts(detail.result)
+        if not target_name and 'No matching sessions' in stderr:
+            logging.info("%s: %s", detail, stderr)
         else:
             raise
 

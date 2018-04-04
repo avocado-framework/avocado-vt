@@ -31,6 +31,7 @@ from . import xml_utils
 from . import utils_selinux
 from . import test_setup
 from . import utils_package
+from .compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 def normalize_connect_uri(connect_uri):
@@ -133,9 +134,9 @@ class Monitor(object):
         result = virsh.qemu_monitor_command(self.name, cmd,
                                             options=self.protocol, **dargs)
         if result.exit_status != 0:
-            raise exceptions.TestError("Failed to execute monitor cmd %s: %s" %
-                                       cmd, result.stderr_text)
-        return result.stdout_text
+            raise exceptions.TestError("Failed to execute monitor cmd %s: %s"
+                                       % cmd, results_stderr_52lts(result))
+        return results_stderr_52lts(result)
 
     def system_powerdown(self):
         """
@@ -259,8 +260,8 @@ class VM(virt_vm.BaseVM):
         Return True if VM is persistent.
         """
         try:
-            dominfo = (virsh.dominfo(self.name,
-                                     uri=self.connect_uri).stdout_text.strip())
+            result = virsh.dominfo(self.name, uri=self.connect_uri)
+            dominfo = results_stdout_52lts(result).strip()
             return bool(re.search(r"^Persistent:\s+[Yy]es", dominfo,
                                   re.MULTILINE))
         except process.CmdError:
@@ -271,8 +272,8 @@ class VM(virt_vm.BaseVM):
         Return True if VM is autostart.
         """
         try:
-            dominfo = (virsh.dominfo(self.name,
-                                     uri=self.connect_uri).stdout_text.strip())
+            result = virsh.dominfo(self.name, uri=self.connect_uri)
+            dominfo = results_stdout_52lts(result).strip()
             return bool(re.search(r"^Autostart:\s+enable", dominfo,
                                   re.MULTILINE))
         except process.CmdError:
@@ -315,19 +316,22 @@ class VM(virt_vm.BaseVM):
         """
         Return domain state.
         """
-        return virsh.domstate(self.name, uri=self.connect_uri).stdout_text.strip()
+        result = virsh.domstate(self.name, uri=self.connect_uri)
+        return results_stdout_52lts(result).strip()
 
     def get_id(self):
         """
         Return VM's ID.
         """
-        return virsh.domid(self.name, uri=self.connect_uri).stdout_text.strip()
+        result = virsh.domid(self.name, uri=self.connect_uri)
+        return results_stdout_52lts(result).strip()
 
     def get_xml(self):
         """
         Return VM's xml file.
         """
-        return virsh.dumpxml(self.name, uri=self.connect_uri).stdout_text.strip()
+        result = virsh.dumpxml(self.name, uri=self.connect_uri)
+        return results_stdout_52lts(result).strip()
 
     def backup_xml(self, active=False):
         """
@@ -1942,7 +1946,7 @@ class VM(virt_vm.BaseVM):
             try:
                 process.run(install_command, verbose=True, shell=True)
             except process.CmdError as details:
-                stderr = details.result.stderr_text.strip()
+                stderr = results_stderr_52lts(details.result).strip()
                 # This is a common newcomer mistake, be more helpful...
                 if stderr.count('IDE CDROM must use'):
                     testname = params.get('name', "")
@@ -1974,8 +1978,8 @@ class VM(virt_vm.BaseVM):
             utils_misc.wait_for(func=self.is_alive, timeout=60,
                                 text=("waiting for domain %s to start" %
                                       self.name))
-            self.uuid = virsh.domuuid(self.name,
-                                      uri=self.connect_uri).stdout_text.strip()
+            result = virsh.domuuid(self.name, uri=self.connect_uri)
+            self.uuid = results_stdout_52lts(result).strip()
             # Create isa serial ports.
             self.create_serial_console()
         finally:
@@ -2032,7 +2036,8 @@ class VM(virt_vm.BaseVM):
                                    debug=debug)
         if result.exit_status:
             logging.error("Failed to attach disk %s to VM."
-                          "Detail: %s." % (source, result.stderr_text))
+                          "Detail: %s."
+                          % (source, results_stderr_52lts(result)))
             return None
         return target
 
@@ -2157,7 +2162,8 @@ class VM(virt_vm.BaseVM):
         """
         Return VM's UUID.
         """
-        uuid = virsh.domuuid(self.name, uri=self.connect_uri).stdout_text.strip()
+        result = virsh.domuuid(self.name, uri=self.connect_uri)
+        uuid = results_stdout_52lts(result).strip()
         # only overwrite it if it's not set
         if self.uuid is None:
             self.uuid = uuid
@@ -2178,7 +2184,7 @@ class VM(virt_vm.BaseVM):
         if cmd_result.exit_status:
             raise exceptions.TestFail("dumpxml %s failed.\n"
                                       "Detail: %s.\n" % (self.name, cmd_result))
-        thexml = cmd_result.stdout_text.strip()
+        thexml = results_stdout_52lts(cmd_result).strip()
         xtf = xml_utils.XMLTreeFile(thexml)
         interfaces = xtf.find('devices').findall('interface')
         # Range check
@@ -2245,7 +2251,8 @@ class VM(virt_vm.BaseVM):
         """
         output = virsh.qemu_monitor_command(self.name, "info cpus", "--hmp",
                                             uri=self.connect_uri)
-        vcpu_pids = re.findall(r'thread_id=(\d+)', output.stdout_text)
+        vcpu_pids = re.findall(r'thread_id=(\d+)',
+                               results_stdout_52lts(output))
         return vcpu_pids
 
     def get_shell_pid(self):
@@ -2351,8 +2358,8 @@ class VM(virt_vm.BaseVM):
         """
         Starts this VM.
         """
-        self.uuid = virsh.domuuid(self.name,
-                                  uri=self.connect_uri).stdout_text.strip()
+        uid_result = virsh.domuuid(self.name, uri=self.connect_uri)
+        self.uuid = results_stdout_52lts(uid_result).strip()
 
         logging.debug("Starting vm '%s'", self.name)
         result = virsh.start(self.name, uri=self.connect_uri)
@@ -2364,13 +2371,14 @@ class VM(virt_vm.BaseVM):
             if has_started is None:
                 raise virt_vm.VMStartError(self.name, "libvirt domain not "
                                                       "active after start")
-            self.uuid = virsh.domuuid(self.name,
-                                      uri=self.connect_uri).stdout_text.strip()
+            uid_result = virsh.domuuid(self.name, uri=self.connect_uri)
+            self.uuid = results_stdout_52lts(uid_result).strip()
             # Establish a session with the serial console
             if autoconsole:
                 self.create_serial_console()
         else:
-            raise virt_vm.VMStartError(self.name, result.stderr_text.strip())
+            raise virt_vm.VMStartError(self.name,
+                                       results_stderr_52lts(result).strip())
 
         # Pull in mac addresses from libvirt guest definition
         for index, nic in enumerate(self.virtnet):
@@ -2463,7 +2471,8 @@ class VM(virt_vm.BaseVM):
         result = virsh.save(self.name, path, uri=self.connect_uri)
         if result.exit_status:
             raise virt_vm.VMError("Save VM to %s failed.\n"
-                                  "Detail: %s." % (path, result.stderr_text))
+                                  "Detail: %s."
+                                  % (path, results_stderr_52lts(result)))
         if self.is_alive():
             raise virt_vm.VMStatusError("VM not shut off after save")
         self.cleanup_serial_console()
@@ -2479,7 +2488,8 @@ class VM(virt_vm.BaseVM):
         result = virsh.restore(path, uri=self.connect_uri)
         if result.exit_status:
             raise virt_vm.VMError("Restore VM from %s failed.\n"
-                                  "Detail: %s." % (path, result.stderr_text))
+                                  "Detail: %s."
+                                  % (path, results_stderr_52lts(result)))
         if self.is_dead():
             raise virt_vm.VMStatusError(
                 "VM should not be %s after restore." % self.state())
@@ -2496,7 +2506,8 @@ class VM(virt_vm.BaseVM):
         result = virsh.managedsave(self.name, uri=self.connect_uri)
         if result.exit_status:
             raise virt_vm.VMError("Managed save VM failed.\n"
-                                  "Detail: %s." % result.stderr_text)
+                                  "Detail: %s."
+                                  % results_stderr_52lts(result))
         if self.is_alive():
             raise virt_vm.VMStatusError("VM not shut off after managed save")
         self.cleanup_serial_console()
@@ -2513,7 +2524,8 @@ class VM(virt_vm.BaseVM):
                                     duration=duration, uri=self.connect_uri)
         if result.exit_status:
             raise virt_vm.VMError("PM suspending VM failed.\n"
-                                  "Detail: %s." % result.stderr_text)
+                                  "Detail: %s."
+                                  % results_stderr_52lts(result))
         self.cleanup_serial_console()
 
     def pmwakeup(self):
@@ -2527,7 +2539,8 @@ class VM(virt_vm.BaseVM):
         result = virsh.dompmwakeup(self.name, uri=self.connect_uri)
         if result.exit_status:
             raise virt_vm.VMError("PM waking up VM failed.\n"
-                                  "Detail: %s." % result.stderr_text)
+                                  "Detail: %s."
+                                  % results_stderr_52lts(result))
         self.create_serial_console()
 
     def vcpupin(self, vcpu, cpu_list, options=""):
@@ -2544,7 +2557,8 @@ class VM(virt_vm.BaseVM):
         """
         Return a dict include vm's information.
         """
-        output = virsh.dominfo(self.name, uri=self.connect_uri).stdout_text.strip()
+        result = virsh.dominfo(self.name, uri=self.connect_uri)
+        output = results_stdout_52lts(result).strip()
         # Key: word before ':' | value: content after ':' (stripped)
         dominfo_dict = {}
         for line in output.splitlines():
@@ -2557,8 +2571,8 @@ class VM(virt_vm.BaseVM):
         """
         Return a dict's list include vm's vcpu information.
         """
-        output = virsh.vcpuinfo(self.name,
-                                uri=self.connect_uri).stdout_text.strip()
+        result = virsh.vcpuinfo(self.name, uri=self.connect_uri)
+        output = results_stdout_52lts(result).strip()
         # Key: word before ':' | value: content after ':' (stripped)
         vcpuinfo_list = []
         vcpuinfo_dict = {}
@@ -2576,8 +2590,8 @@ class VM(virt_vm.BaseVM):
         via virsh command
         """
         result = virsh.domfsinfo(self.name, ignore_status=False,
-                                 uri=self.connect_uri).stdout_text.strip()
-        lines = result.splitlines()
+                                 uri=self.connect_uri)
+        lines = results_stdout_52lts(result).strip().splitlines()
         domfsinfo_list = []
         if len(lines) > 2:
             head = lines[0]
@@ -2609,7 +2623,7 @@ class VM(virt_vm.BaseVM):
         options = "--details"
         result = virsh.domblklist(self.name, options, ignore_status=True,
                                   uri=self.connect_uri)
-        blklist = result.stdout_text.strip().splitlines()
+        blklist = results_stdout_52lts(result).strip().splitlines()
         if result.exit_status != 0:
             logging.info("Get vm devices failed.")
         else:
@@ -2643,7 +2657,7 @@ class VM(virt_vm.BaseVM):
         options = "--details"
         result = virsh.domblklist(self.name, options, ignore_status=True,
                                   uri=self.connect_uri)
-        blklist = result.stdout_text.strip().splitlines()
+        blklist = results_stdout_52lts(result).strip().splitlines()
         if result.exit_status != 0:
             logging.info("Get vm devices failed.")
         else:
@@ -2659,7 +2673,7 @@ class VM(virt_vm.BaseVM):
         device_details = {}
         result = virsh.domblkinfo(self.name, device_target,
                                   uri=self.connect_uri)
-        details = result.stdout_text.strip().splitlines()
+        details = results_stdout_52lts(result).strip().splitlines()
         if result.exit_status != 0:
             logging.info("Get vm device details failed.")
         else:
@@ -2709,7 +2723,7 @@ class VM(virt_vm.BaseVM):
     def get_job_type(self):
         jobresult = virsh.domjobinfo(self.name, uri=self.connect_uri)
         if not jobresult.exit_status:
-            for line in jobresult.stdout_text.splitlines():
+            for line in results_stdout_52lts(jobresult).splitlines():
                 key = line.split(':')[0]
                 value = line.split(':')[-1]
                 if key.count("type"):

@@ -5,6 +5,7 @@ http://libvirt.org/formatstorage.html#StorageVol
 
 from virttest.libvirt_xml import base, accessors
 from virttest.libvirt_xml.xcepts import LibvirtXMLNotFoundError
+from virttest.compat_52lts import results_stdout_52lts
 
 
 class VolXMLBase(base.LibvirtXMLBase):
@@ -119,8 +120,8 @@ class VolXML(VolXMLBase):
         :return: New initialized VolXML instance
         """
         volxml = VolXML(virsh_instance=virsh_instance)
-        volxml['xml'] = virsh_instance.vol_dumpxml(vol_name, pool_name)\
-                                      .stdout_text.strip()
+        result = virsh_instance.vol_dumpxml(vol_name, pool_name)
+        volxml['xml'] = results_stdout_52lts(result).strip()
         return volxml
 
     @staticmethod

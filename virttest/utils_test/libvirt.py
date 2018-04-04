@@ -50,6 +50,7 @@ from .. import test_setup
 from ..utils_iptables import Iptables
 from ..staging import lv_utils
 from ..utils_libvirtd import service_libvirtd_control
+from ..compat_52lts import results_stdout_52lts, results_stderr_52lts
 from ..libvirt_xml import vm_xml
 from ..libvirt_xml import network_xml
 from ..libvirt_xml import xcepts
@@ -256,7 +257,7 @@ def cpu_allowed_list_by_task(pid, tid):
     result = process.run(cmd, ignore_status=True, shell=True)
     if result.exit_status:
         return None
-    return result.stdout_text.strip()
+    return results_stdout_52lts(result).strip()
 
 
 def clean_up_snapshots(vm_name, snapshot_list=[], domxml=None):
@@ -274,8 +275,8 @@ def clean_up_snapshots(vm_name, snapshot_list=[], domxml=None):
         # Get snapshot disk path
         for snap_name in snapshot_list:
             # Delete useless disk snapshot file if exists
-            snap_xml = virsh.snapshot_dumpxml(vm_name,
-                                              snap_name).stdout_text.strip()
+            result = virsh.snapshot_dumpxml(vm_name, snap_name)
+            snap_xml = results_stdout_52lts(result).strip()
             xtf_xml = xml_utils.XMLTreeFile(snap_xml)
             disks_path = xtf_xml.findall('disks/disk/source')
             for disk in disks_path:
@@ -334,11 +335,12 @@ def get_all_cells():
     """
     fc_result = virsh.freecell(options="--all", ignore_status=True)
     if fc_result.exit_status:
-        if fc_result.stderr_text.count("NUMA not supported"):
-            raise exceptions.TestSkipError(fc_result.stderr_text.strip())
+        stderr = results_stderr_52lts(fc_result).strip()
+        if fc_result.stderr.count(b"NUMA not supported"):
+            raise exceptions.TestSkipError(stderr)
         else:
-            raise exceptions.TestFail(fc_result.stderr_text.strip())
-    output = fc_result.stdout_text.strip()
+            raise exceptions.TestFail(stderr)
+    output = results_stdout_52lts(fc_result).strip()
     cell_list = output.splitlines()
     # remove "------------" line
     del cell_list[-2]
@@ -367,8 +369,8 @@ def check_blockjob(vm_name, target, check_point="none", value="0"):
     try:
         cmd_result = virsh.blockjob(
             vm_name, target, "--info", debug=True, ignore_status=True)
-        output = cmd_result.stdout_text.strip()
-        err = cmd_result.stderr_text.strip()
+        output = results_stdout_52lts(cmd_result).strip()
+        err = results_stderr_52lts(cmd_result).strip()
         status = cmd_result.exit_status
     except Exception as e:
         logging.error("Error occurred: %s", e)
@@ -860,7 +862,7 @@ def get_parts_list(session=None):
     if session:
         _, parts_out = session.cmd_status_output(parts_cmd)
     else:
-        parts_out = process.run(parts_cmd).stdout_text
+        parts_out = results_stdout_52lts(process.run(parts_cmd))
     parts = []
     if parts_out:
         for line in parts_out.rsplit("\n"):
@@ -1482,7 +1484,8 @@ class MigrationTest(object):
         """
         if not virsh.domain_exists(vm.name, uri=uri):
             return False
-        vm_state = virsh.domstate(vm.name, uri=uri).stdout_text.strip()
+        result = virsh.domstate(vm.name, uri=uri)
+        vm_state = results_stdout_52lts(result).strip()
         return vm_state.lower() == state.lower()
 
     def wait_for_migration_start(self, vm, state='paused', uri=None, timeout=60):
@@ -1518,12 +1521,13 @@ def check_result(result, expected_fails=[], skip_if=[], any_error=False):
                       will override expected_fails
     """
     logging.debug("Command result:\n%s" % result)
+    stderr = results_stderr_52lts(result)
     if skip_if:
         for patt in skip_if:
-            if re.search(patt, result.stderr_text):
+            if re.search(patt, stderr):
                 raise exceptions.TestSkipError("Test skipped: found '%s' in test "
                                                "result:\n%s" %
-                                               (patt, result.stderr_text))
+                                               (patt, stderr))
     if any_error:
         if result.exit_status:
             return
@@ -1533,7 +1537,7 @@ def check_result(result, expected_fails=[], skip_if=[], any_error=False):
 
     if result.exit_status:
         if expected_fails:
-            if not any(re.search(patt, result.stderr_text)
+            if not any(re.search(patt, stderr)
                        for patt in expected_fails):
                 raise exceptions.TestFail("Expect should fail with one of %s, "
                                           "but failed with:\n%s" %
@@ -1557,9 +1561,10 @@ def check_exit_status(result, expect_error=False):
     """
     if not expect_error:
         if result.exit_status != 0:
-            raise exceptions.TestFail(result.stderr_text)
+            raise exceptions.TestFail(results_stderr_52lts(result))
         else:
-            logging.debug("Command output:\n%s", result.stdout_text.strip())
+            logging.debug("Command output:\n%s",
+                          results_stdout_52lts(result).strip())
     elif expect_error and result.exit_status == 0:
         raise exceptions.TestFail("Run '%s' expect fail, but run "
                                   "successfully." % result.command)
@@ -1572,7 +1577,7 @@ def get_interface_details(vm_name):
     :return: list of all interfaces details
     """
     # Parse the domif-list command output
-    domiflist_out = virsh.domiflist(vm_name).stdout_text
+    domiflist_out = results_stdout_52lts(virsh.domiflist(vm_name))
     # Regular expression for the below output
     #   vnet0    bridge    virbr0   virtio  52:54:00:b2:b3:b4
     rg = re.compile(r"^(\w+|-)\s+(\w+)\s+(\w+)\s+(\S+)\s+"
@@ -1630,7 +1635,7 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
             result = virsh.iface_list(extra, ignore_status=True)
             check_exit_status(result, False)
             output = re.findall(r"(\S+)\ +(\S+)\ +(\S+|\s+)[\ +\n]",
-                                str(result.stdout_text))
+                                results_stdout_52lts(result))
             if list(filter(lambda x: x[0] == iface_name, output[1:])):
                 list_find = True
             logging.debug("Find '%s' in virsh iface-list output: %s",
@@ -1655,7 +1660,7 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
             result = virsh.iface_list(extra, ignore_status=True)
             check_exit_status(result, False)
             output = re.findall(r"(\S+)\ +(\S+)\ +(\S+|\s+)[\ +\n]",
-                                str(result.stdout_text))
+                                results_stdout_52lts(result))
             iface_state = filter(lambda x: x[0] == iface_name, output[1:])
             iface_state = list(iface_state)[0][1]
             # active corresponds True, otherwise return False
@@ -2640,9 +2645,9 @@ def create_scsi_disk(scsi_option, scsi_size="2048"):
         linux_modules.load_module("scsi_debug dev_size_mb=%s %s" %
                                   (scsi_size, scsi_option))
         # Get the scsi device name
-        scsi_disk = process.run("lsscsi|grep scsi_debug|"
-                                "awk '{print $6}'",
-                                shell=True).stdout_text.strip()
+        result = process.run("lsscsi|grep scsi_debug|awk '{print $6}'",
+                             shell=True)
+        scsi_disk = results_stdout_52lts(result).strip()
         logging.info("scsi disk: %s" % scsi_disk)
         return scsi_disk
     except Exception as e:
@@ -3199,9 +3204,9 @@ def get_iothreadsinfo(vm_name, options=None):
     ret = virsh.iothreadinfo(vm_name, options,
                              debug=True, ignore_status=True)
     if ret.exit_status:
-        logging.warning(ret.stderr_text.strip())
+        logging.warning(results_stderr_52lts(ret).strip())
         return info_dict
-    info_list = re.findall(r"(\d+) +(\S+)", ret.stdout_text, re.M)
+    info_list = re.findall(r"(\d+) +(\S+)", results_stdout_52lts(ret), re.M)
     for info in info_list:
         info_dict[info[0]] = info[1]
 
@@ -3276,7 +3281,7 @@ def create_secret(params):
     check_exit_status(ret)
     try:
         sec_uuid = re.findall(r".+\S+(\ +\S+)\ +.+\S+",
-                              ret.stdout_text)[0].lstrip()
+                              results_stdout_52lts(ret))[0].lstrip()
     except IndexError:
         raise exceptions.TestError("Fail to get newly created secret uuid")
 

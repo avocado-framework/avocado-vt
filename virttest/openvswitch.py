@@ -7,6 +7,7 @@ from avocado.utils import path
 from avocado.utils import process
 from avocado.utils import linux_modules
 
+from .compat_52lts import results_stdout_52lts
 from .versionable_class import VersionableClass, Manager, factory
 from . import utils_misc
 
@@ -171,7 +172,8 @@ class OpenVSwitchControl(object):
             result = process.run("%s --version" %
                                  path.find_command("ovs-vswitchd"))
             pattern = "ovs-vswitchd \(Open vSwitch\) (\d+\.\d+\.\d+).*"
-            version = re.search(pattern, result.stdout_text).group(1)
+            version = re.search(pattern,
+                                results_stdout_52lts(result)).group(1)
         except process.CmdError:
             logging.debug("OpenVSwitch is not available in system.")
         return version
@@ -264,7 +266,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
                            ignore_status=ignore_status, verbose=False)
 
     def status(self):
-        return self.ovs_vsctl(["show"]).stdout_text
+        return results_stdout_52lts(self.ovs_vsctl(["show"]))
 
     def add_br(self, br_name):
         self.ovs_vsctl(["add-br", br_name])
@@ -290,7 +292,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         return True
 
     def list_br(self):
-        return self.ovs_vsctl(["list-br"]).stdout_text.splitlines()
+        return results_stdout_52lts(self.ovs_vsctl(["list-br"])).splitlines()
 
     def add_port(self, br_name, port_name):
         self.ovs_vsctl(["add-port", br_name, port_name])
@@ -313,7 +315,8 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         self.ovs_vsctl(["set", "Port", port_name, "vlan-mode=%s" % vlan_mode])
 
     def list_ports(self, br_name):
-        return self.ovs_vsctl(["list-ports", br_name]).stdout_text.splitlines()
+        result = self.ovs_vsctl(["list-ports", br_name])
+        return results_stdout_52lts(result).splitlines()
 
     def port_to_br(self, port_name):
         """
@@ -324,7 +327,8 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         """
         bridge = None
         try:
-            bridge = self.ovs_vsctl(["port-to-br", port_name]).stdout_text.strip()
+            result = self.ovs_vsctl(["port-to-br", port_name])
+            bridge = results_stdout_52lts(result).strip()
         except process.CmdError as e:
             if e.result.exit_status == 1:
                 pass
