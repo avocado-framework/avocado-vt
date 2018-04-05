@@ -3761,7 +3761,8 @@ def get_bootloader_cfg(session=None):
         '/boot/grub2/grub.cfg',
         '/etc/grub.conf',
         '/etc/grub2.cfg',
-        '/boot/etc/yaboot.conf'
+        '/boot/etc/yaboot.conf',
+        '/etc/default/grub'
     ]
     cfg_path = ''
     for path in bootloader_cfg:
