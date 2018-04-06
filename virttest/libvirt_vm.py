@@ -1982,6 +1982,20 @@ class VM(virt_vm.BaseVM):
             fcntl.lockf(lockfile, fcntl.LOCK_UN)
             lockfile.close()
 
+    def uptime(self, connect_uri=None):
+        """
+        Get uptime of the vm instance.
+
+        :param connect_uri: Libvirt connect uri of vm
+        :return: uptime of the vm on success, None on failure
+        """
+        if connect_uri:
+            self.connect_uri = connect_uri
+            session = self.wait_for_serial_login()
+        else:
+            session = self.wait_for_login()
+        return utils_misc.get_uptime(session)
+
     def migrate(self, dest_uri="", option="--live --timeout 60", extra="",
                 ignore_status=False, debug=False, virsh_opt=""):
         """
