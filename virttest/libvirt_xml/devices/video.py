@@ -11,6 +11,7 @@ from virttest.libvirt_xml.devices import base
 class Video(base.UntypedDeviceBase):
 
     __slots__ = ('model_type', 'model_ram', 'model_vram', 'model_heads',
+                 'model_vgamem', 'model_vram64',
                  'primary', 'acceleration', 'address')
 
     def __init__(self, virsh_instance=base.base.virsh):
@@ -26,6 +27,14 @@ class Video(base.UntypedDeviceBase):
                                parent_xpath='/',
                                tag_name='model',
                                attribute='vram')
+        accessors.XMLAttribute('model_vgamem', self,
+                               parent_xpath='/',
+                               tag_name='model',
+                               attribute='vgamem')
+        accessors.XMLAttribute('model_vram64', self,
+                               parent_xpath='/',
+                               tag_name='model',
+                               attribute='vram64')
         accessors.XMLAttribute('model_heads', self,
                                parent_xpath='/',
                                tag_name='model',
