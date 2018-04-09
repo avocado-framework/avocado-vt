@@ -1851,6 +1851,9 @@ def create_disk_xml(params):
         diskxml.readonly = "yes" == params.get("readonly", "no")
         diskxml.share = "yes" == params.get("shareable", "no")
         diskxml.target = {'dev': target_dev, 'bus': target_bus}
+        alias = params.get('alias')
+        if alias:
+            diskxml.alias = {'name': alias}
         diskxml.xmltreefile.write()
     except Exception as detail:
         logging.error("Fail to create disk XML:\n%s", detail)

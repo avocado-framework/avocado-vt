@@ -35,6 +35,8 @@ class Disk(base.TypedDeviceBase):
             event_idx, copy_on_read, discard
         target:
             dict, keys: dev, bus, tray
+        alias:
+            dict, keys: name
         blockio:
             dict, keys: logical_block_size, physical_block_size
         geometry:
@@ -61,7 +63,7 @@ class Disk(base.TypedDeviceBase):
             libvirt_xml.devices.Disk.Encryption instance.
     """
 
-    __slots__ = ('device', 'rawio', 'sgio', 'snapshot', 'driver', 'target',
+    __slots__ = ('device', 'rawio', 'sgio', 'snapshot', 'driver', 'target', 'alias',
                  'address', 'boot', 'readonly', 'transient', 'share',
                  'mirror', 'ready', 'iotune', 'source', 'blockio', 'geometry',
                  'wwn', 'serial', 'vendor', 'product', 'encryption', 'auth')
@@ -87,6 +89,8 @@ class Disk(base.TypedDeviceBase):
                                  tag_name='driver')
         accessors.XMLElementDict('target', self, parent_xpath='/',
                                  tag_name='target')
+        accessors.XMLElementDict('alias', self, parent_xpath='/',
+                                 tag_name='alias')
         accessors.XMLElementDict('blockio', self, parent_xpath='/',
                                  tag_name='blockio')
         accessors.XMLElementDict('geometry', self, parent_xpath='/',
