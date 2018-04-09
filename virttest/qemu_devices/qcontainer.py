@@ -25,6 +25,7 @@ from .. import arch, storage, data_dir, virt_vm
 from . import qdevices
 from .utils import (DeviceError, DeviceHotplugError, DeviceInsertError,
                     DeviceRemoveError, DeviceUnplugError, none_or_int)
+from ..compat_52lts import results_stdout_52lts
 
 #
 # Device container (device representation of VM)
@@ -433,14 +434,14 @@ class DevContainer(object):
                                  ignore_status=True,
                                  shell=True,
                                  verbose=False)
-            if result.exit_status and "machine specified" in result.stdout_text:
+            if result.exit_status and b"machine specified" in result.stdout:
                 # TODO: Arm requires machine to be specified, let's try again
                 # with dummy "virt" machine
                 result = process.run("%s -machine virt %s 2>&1"
                                      % (self.__qemu_binary, options),
                                      ignore_status=True, shell=True,
                                      verbose=False)
-            self.__execute_qemu_out = str(result.stdout_text)
+            self.__execute_qemu_out = results_stdout_52lts(result)
         self.__execute_qemu_last = options
         return self.__execute_qemu_out
 

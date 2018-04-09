@@ -14,6 +14,7 @@ from avocado.core import exceptions
 from . import utils_misc
 from .utils_iptables import Iptables
 from .utils_conn import SSHConnection
+from .compat_52lts import results_stdout_52lts, results_stderr_52lts
 from .staging import service
 
 
@@ -253,9 +254,10 @@ class NFSClient(object):
         # To Avoid host key verification failure
         ret = process.run("ssh-keygen -R %s" % self.nfs_client_ip,
                           ignore_status=True)
-        if ret.exit_status and "No such file or directory" not in ret.stderr_text:
+        stderr = results_stderr_52lts(ret)
+        if ret.exit_status and "No such file or directory" not in stderr:
             raise exceptions.TestFail("Failed to update host key: %s" %
-                                      ret.stderr_text)
+                                      stderr)
         # Setup SSH connection
         self.ssh_obj = SSHConnection(params)
         ssh_timeout = int(params.get("ssh_timeout", 10))
@@ -351,14 +353,14 @@ class NFSClient(object):
             try:
                 ret = process.run(firewall_cmd, shell=True)
                 if not ret.exit_status:
-                    firewall_services = ret.stdout_text.split(':')[1].strip().split(' ')
+                    firewall_services = results_stdout_52lts(ret).split(':')[1].strip().split(' ')
                     if 'nfs' not in firewall_services:
                         service_cmd = "firewall-cmd --permanent --zone=public "
                         service_cmd += "--add-service=nfs"
                         ret = process.run(service_cmd, shell=True)
                         if ret.exit_status:
                             logging.error("nfs service not added in firewall: "
-                                          "%s", ret.stdout_text)
+                                          "%s", results_stdout_52lts(ret))
                         else:
                             logging.debug("nfs service added to firewall "
                                           "sucessfully")

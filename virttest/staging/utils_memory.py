@@ -6,12 +6,13 @@ import os
 
 from avocado.core import exceptions
 from avocado.utils import process
+from virttest.compat_52lts import results_stdout_52lts
 
 
 # Returns total memory in kb
 def read_from_meminfo(key):
     cmd_result = process.run('grep %s /proc/meminfo' % key, verbose=False)
-    meminfo = cmd_result.stdout_text
+    meminfo = results_stdout_52lts(cmd_result)
     return int(re.search(r'\d+', meminfo).group(0))
 
 
@@ -182,7 +183,7 @@ def read_from_numastat(pid, key):
     Get the process numastat from numastat output.
     """
     cmd = "numastat %s" % pid
-    numa_mem = process.run(cmd).stdout_text.strip()
+    numa_mem = results_stdout_52lts(process.run(cmd)).strip()
     mem_line = re.findall(r"^%s.*" % key, numa_mem, re.M)[0]
     return re.findall(r"(\d+.\d+)", mem_line)
 

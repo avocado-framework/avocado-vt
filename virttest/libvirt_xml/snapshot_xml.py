@@ -7,6 +7,7 @@ from virttest import xml_utils
 from virttest.libvirt_xml import base, accessors
 from virttest.libvirt_xml.devices.disk import Disk
 from virttest.libvirt_xml import xcepts
+from virttest.compat_52lts import results_stdout_52lts
 
 
 class SnapshotXMLBase(base.LibvirtXMLBase):
@@ -81,8 +82,8 @@ class SnapshotXML(SnapshotXMLBase):
         :return: New initialized SnapshotXML instance
         """
         snapshot_xml = SnapshotXML(virsh_instance=virsh_instance)
-        snapshot_xml['xml'] = virsh_instance.snapshot_dumpxml(
-            name, snap_name).stdout_text.strip()
+        result = virsh_instance.snapshot_dumpxml(name, snap_name)
+        snapshot_xml['xml'] = results_stdout_52lts(result).strip()
 
         return snapshot_xml
 

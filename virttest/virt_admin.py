@@ -35,6 +35,7 @@ from avocado.utils import process
 from . import propcan
 from . import remote
 from . import utils_misc
+from .compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 # list of symbol names NOT to wrap as Virtadmin class methods
@@ -692,8 +693,8 @@ def command(cmd, **dargs):
     # Always log debug info, if persistent session or not
     if debug:
         logging.debug("status: %s", ret.exit_status)
-        logging.debug("stdout: %s", ret.stdout_text.strip())
-        logging.debug("stderr: %s", ret.stderr_text.strip())
+        logging.debug("stdout: %s", results_stdout_52lts(ret).strip())
+        logging.debug("stderr: %s", results_stderr_52lts(ret).strip())
 
     # Return CmdResult instance when ignore_status is True
     return ret

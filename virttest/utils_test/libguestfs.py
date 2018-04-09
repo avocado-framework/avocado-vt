@@ -10,6 +10,7 @@ from .. import utils_net, xml_utils
 from .. import utils_libguestfs as lgf
 from .. import qemu_storage
 from ..libvirt_xml import vm_xml, xcepts
+from ..compat_52lts import results_stdout_52lts
 
 
 class VTError(Exception):
@@ -386,7 +387,7 @@ class VirtTools(object):
         if result.exit_status:
             raise exceptions.TestSkipError("Cannot get primary disk"
                                            " filesystem information!")
-        fs_info = result.stdout_text.strip().splitlines()
+        fs_info = results_stdout_52lts(result).strip().splitlines()
         if len(fs_info) <= 1:
             raise exceptions.TestSkipError("No disk filesystem information!")
         try:
@@ -472,7 +473,7 @@ class VirtTools(object):
             return sys_info
         # Analyse output to get information
         try:
-            xmltreefile = xml_utils.XMLTreeFile(result.stdout_text)
+            xmltreefile = xml_utils.XMLTreeFile(results_stdout_52lts(result))
             os_root = xmltreefile.find("operatingsystem")
             if os_root is None:
                 raise VTXMLParseError("operatingsystem", os_root)
@@ -535,7 +536,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         Get root filesystem w/ guestfish
         """
         getroot_result = self.inspect_os()
-        roots_list = getroot_result.stdout_text.splitlines()
+        roots_list = results_stdout_52lts(getroot_result).splitlines()
         if getroot_result.exit_status or not len(roots_list):
             logging.error("Get root failed:%s", getroot_result)
             return (False, getroot_result)
@@ -555,7 +556,8 @@ class GuestfishTools(lgf.GuestfishPersistent):
         release_type = {'rhel': "Red Hat Enterprise Linux",
                         'fedora': "Fedora"}
         for key in release_type:
-            if re.search(release_type[key], release_result.stdout_text):
+            if re.search(release_type[key],
+                         results_stdout_52lts(release_result)):
                 return (True, key)
 
     def write_file(self, path, content):
@@ -578,7 +580,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         if list_result.exit_status:
             logging.error("List partition info failed:%s", list_result)
             return (False, list_result)
-        list_lines = list_result.stdout_text.splitlines()
+        list_lines = results_stdout_52lts(list_result.stdout).splitlines()
         # This dict is a struct like this: {key:{a dict}, key:{a dict}}
         partitions = {}
         # This dict is a struct of normal dict, for temp value of a partition
@@ -753,7 +755,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         for partition in list(partitions.values()):
             num = partition.get("num")
             ba_result = self.part_get_bootable(device, num)
-            if ba_result.stdout_text.strip() == "true":
+            if ba_result.stdout.strip() == b"true":
                 return (True, "%s%s" % (device, num))
         return (False, partitions)
 
@@ -765,14 +767,14 @@ class GuestfishTools(lgf.GuestfishPersistent):
             num = partition.get("num")
             mbr_id_result = self.part_get_mbr_id(device, num)
             if mbr_id_result.exit_status == 0:
-                return (True, mbr_id_result.stdout_text.strip())
+                return (True, results_stdout_52lts(mbr_id_result).strip())
         return (False, partitions)
 
     def get_part_type(self, device="/dev/sda"):
         part_type_result = self.part_get_parttype(device)
         if part_type_result.exit_status:
             return (False, part_type_result)
-        return (True, part_type_result.stdout_text.strip())
+        return (True, results_stdout_52lts(part_type_result).strip())
 
     def get_md5(self, path):
         """
@@ -783,7 +785,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         if md5_result.exit_status:
             logging.error("Check %s's md5 failed:%s", path, md5_result)
             return (False, md5_result)
-        return (True, md5_result.stdout_text.strip())
+        return (True, results_stdout_52lts(md5_result).strip())
 
     def reset_interface(self, iface_mac):
         """
@@ -808,7 +810,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         mac_regex = (r"\w.:\w.:\w.:\w.:\w.:\w.")
         edit_expr = "s/%s/%s/g" % (mac_regex, iface_mac)
         file_ret = self.is_file(devices_file)
-        if file_ret.stdout_text.strip() == "true":
+        if file_ret.stdout.strip() == b"true":
             self.close_session()
             try:
                 result = lgf.virt_edit_cmd(vm_ref, devices_file,
@@ -828,7 +830,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         # Fix interface file
         for ifcfg_file in ifcfg_files:
             file_ret = self.is_file(ifcfg_file)
-            if file_ret.stdout_text.strip() == "false":
+            if file_ret.stdout.strip() == b"false":
                 continue
             self.close_session()
             self.params['ifcfg_file'] = ifcfg_file
@@ -855,7 +857,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         if ifcfg_file:
             self.is_ready()
             is_need = self.is_file(ifcfg_file)
-            if is_need.stdout_text.strip() == "false":
+            if is_need.stdout.strip() == b"false":
                 cp_result = self.cp(bak_file, ifcfg_file)
                 if cp_result.exit_status:
                     logging.warn("Recover ifcfg file failed:%s", cp_result)

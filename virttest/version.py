@@ -17,6 +17,7 @@ import os
 from avocado.utils import process
 
 from . import data_dir
+from .compat_52lts import results_stdout_52lts
 
 _ROOT_PATH = data_dir.get_root_dir()
 RELEASE_VERSION_PATH = os.path.join(_ROOT_PATH, 'RELEASE-VERSION')
@@ -118,7 +119,7 @@ def get_version(abbrev=4):
             cmd_result = process.run("rpm -q avocado-plugins-vt "
                                      "--queryformat '%{VERSION}'",
                                      shell=True, verbose=False)
-            return '%s (RPM install)' % cmd_result.stdout_text
+            return '%s (RPM install)' % results_stdout_52lts(cmd_result)
         except process.CmdError:
             return 'unknown'
 

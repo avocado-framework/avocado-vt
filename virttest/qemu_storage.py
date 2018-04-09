@@ -19,6 +19,7 @@ from . import virt_vm
 from . import storage
 from . import data_dir
 from . import error_context
+from .compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 class QemuImg(storage.QemuImg):
@@ -39,7 +40,7 @@ class QemuImg(storage.QemuImg):
         self.image_cmd = utils_misc.get_qemu_img_binary(params)
         q_result = process.run(self.image_cmd + ' -h', ignore_status=True,
                                shell=True, verbose=False)
-        self.help_text = q_result.stdout_text
+        self.help_text = results_stdout_52lts(q_result)
         self.cap_force_share = '-U' in self.help_text
 
     @error_context.context_aware
@@ -472,7 +473,8 @@ class QemuImg(storage.QemuImg):
                                      shell=True)
 
             if verbose:
-                logging.debug("Output from command: %s" % cmd_result.stdout_text)
+                logging.debug("Output from command: %s",
+                              results_stdout_52lts(cmd_result))
 
             if cmd_result.exit_status == 0:
                 logging.info("Compared images are equal")
@@ -523,9 +525,11 @@ class QemuImg(storage.QemuImg):
                 # Error check, large chances of a non-fatal problem.
                 # There are chances that bad data was skipped though
                 if cmd_result.exit_status == 1:
-                    for e_line in cmd_result.stdout_text.splitlines():
+                    stdout = results_stdout_52lts(cmd_result)
+                    for e_line in stdout.splitlines():
                         logging.error("[stdout] %s", e_line)
-                    for e_line in cmd_result.stderr_text.splitlines():
+                    stderr = results_stderr_52lts(cmd_result)
+                    for e_line in stderr.splitlines():
                         logging.error("[stderr] %s", e_line)
                     chk = params.get("backup_image_on_check_error", "no")
                     if chk == "yes":
@@ -536,9 +540,11 @@ class QemuImg(storage.QemuImg):
                 # Exit status 2 is data corruption for sure,
                 # so fail the test
                 elif cmd_result.exit_status == 2:
-                    for e_line in cmd_result.stdout_text.splitlines():
+                    stdout = results_stdout_52lts(cmd_result)
+                    for e_line in stdout.splitlines():
                         logging.error("[stdout] %s", e_line)
-                    for e_line in cmd_result.stderr_text.splitlines():
+                    stderr = results_stderr_52lts(cmd_result)
+                    for e_line in stderr.splitlines():
                         logging.error("[stderr] %s", e_line)
                     chk = params.get("backup_image_on_check_error", "no")
                     if chk == "yes":

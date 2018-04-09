@@ -38,6 +38,7 @@ from six.moves import urllib
 from . import propcan
 from . import remote
 from . import utils_misc
+from .compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 # list of symbol names NOT to wrap as Virsh class methods
@@ -695,8 +696,8 @@ def command(cmd, **dargs):
     # Always log debug info, if persistent session or not
     if debug:
         logging.debug("status: %s", ret.exit_status)
-        logging.debug("stdout: %s", ret.stdout_text.strip())
-        logging.debug("stderr: %s", ret.stderr_text.strip())
+        logging.debug("stdout: %s", results_stdout_52lts(ret).strip())
+        logging.debug("stderr: %s", results_stderr_52lts(ret).strip())
 
     # Return CmdResult instance when ignore_status is True
     return ret
@@ -895,7 +896,8 @@ def canonical_uri(option='', **dargs):
     :param dargs: standardized virsh function API keywords
     :return: standard output from command
     """
-    return command("uri %s" % option, **dargs).stdout_text.strip()
+    result = command("uri %s" % option, **dargs)
+    return results_stdout_52lts(result).strip()
 
 
 def hostname(option='', **dargs):
@@ -906,7 +908,8 @@ def hostname(option='', **dargs):
     :param dargs: standardized virsh function API keywords
     :return: standard output from command
     """
-    return command("hostname %s" % option, **dargs).stdout_text.strip()
+    result = command("hostname %s" % option, **dargs)
+    return results_stdout_52lts(result).strip()
 
 
 def version(option='', **dargs):
@@ -1108,8 +1111,8 @@ def dumpxml(name, extra="", to_file="", **dargs):
     cmd = "dumpxml %s %s" % (name, extra)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'w')
-        result_file.write(result.stdout_text.strip())
+        result_file = open(to_file, 'wb')
+        result_file.write(result.stdout.strip())
         result_file.close()
     return result
 
@@ -1241,7 +1244,7 @@ def is_dead(name, **dargs):
     """
     dargs['ignore_status'] = False
     try:
-        state = domstate(name, **dargs).stdout_text.strip()
+        state = results_stdout_52lts(domstate(name, **dargs)).strip()
     except process.CmdError:
         return True
     if state not in ('running', 'idle', 'paused', 'in shutdown', 'shut off',
@@ -1678,8 +1681,8 @@ def net_dumpxml(name, extra="", to_file="", **dargs):
     cmd = "net-dumpxml %s %s" % (name, extra)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'w')
-        result_file.write(result.stdout_text.strip())
+        result_file = open(to_file, 'wb')
+        result_file.write(result.stdout.strip())
         result_file.close()
     return result
 
@@ -1736,7 +1739,7 @@ def net_state_dict(only_names=False, virsh_instance=None, **dargs):
     else:
         net_list_result = net_list("--all", **dargs)
     # If command failed, exception would be raised here
-    netlist = net_list_result.stdout_text.strip().splitlines()
+    netlist = results_stdout_52lts(net_list_result).strip().splitlines()
     # First two lines contain table header followed by entries
     # for each network on the host, such as:
     #
@@ -2059,7 +2062,7 @@ def pool_state_dict(only_names=False, **dargs):
     dargs['ignore_status'] = False  # force problem detection
     pool_list_result = pool_list("--all", **dargs)
     # If command failed, exception would be raised here
-    poollist = pool_list_result.stdout_text.strip().splitlines()
+    poollist = results_stdout_52lts(pool_list_result).strip().splitlines()
     # First two lines contain table header followed by entries
     # for each pool on the host, such as:
     #
@@ -2234,13 +2237,13 @@ def pool_dumpxml(name, extra="", to_file="", **dargs):
     cmd = "pool-dumpxml %s %s" % (name, extra)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'w')
-        result_file.write(result.stdout_text.strip())
+        result_file = open(to_file, 'wb')
+        result_file.write(result.stdout.strip())
         result_file.close()
     if result.exit_status:
         raise process.CmdError(cmd, result,
                                "Virsh dumpxml returned non-zero exit status")
-    return result.stdout_text.strip()
+    return results_stdout_52lts(result).strip()
 
 
 def pool_define(xml_path, **dargs):
@@ -2411,8 +2414,8 @@ def vol_dumpxml(volume_name, pool_name, to_file=None, options="", **dargs):
            (volume_name, pool_name, options))
     result = command(cmd, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'w')
-        result_file.write(result.stdout_text.strip())
+        result_file = open(to_file, 'wb')
+        result_file.write(result.stdout.strip())
         result_file.close()
     return result
 
@@ -2492,11 +2495,11 @@ def capabilities(option='', to_file=None, **dargs):
     """
     cmd_result = command('capabilities %s' % option, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'w')
-        result_file.write(cmd_result.stdout_text.strip())
+        result_file = open(to_file, 'wb')
+        result_file.write(cmd_result.stdout.strip())
         result_file.close()
 
-    return cmd_result.stdout_text.strip()
+    return results_stdout_52lts(cmd_result).strip()
 
 
 def nodecpustats(option='', **dargs):
@@ -2588,7 +2591,8 @@ def help_command_only(options='', cache=False, **dargs):
     if not VIRSH_COMMAND_CACHE or cache is False:
         VIRSH_COMMAND_CACHE = []
         regx_command_word = re.compile(r"\s+([a-z0-9-]+)\s+")
-        for line in help(options, **dargs).stdout_text.strip().splitlines():
+        result = help(options, **dargs)
+        for line in results_stdout_52lts(result).strip().splitlines():
             # Get rid of 'keyword' line
             if line.find("keyword") != -1:
                 continue
@@ -2615,7 +2619,8 @@ def help_command_group(options='', cache=False, **dargs):
     if not VIRSH_COMMAND_GROUP_CACHE or cache is False:
         VIRSH_COMMAND_GROUP_CACHE = []
         regx_group_word = re.compile(r"[\']([a-zA-Z0-9]+)[\']")
-        for line in help(options, **dargs).stdout_text.strip().splitlines():
+        result = help(options, **dargs)
+        for line in results_stdout_52lts(result).strip().splitlines():
             # 'keyword' only exists in group line.
             if line.find("keyword") != -1:
                 mojb_group_word = regx_group_word.search(line)
@@ -2649,7 +2654,8 @@ def has_command_help_match(virsh_cmd, regex, **dargs):
     :param dargs: standardized virsh function API keywords
     :return: re match object
     """
-    command_help_output = help(virsh_cmd, **dargs).stdout_text.strip()
+    result = help(virsh_cmd, **dargs)
+    command_help_output = results_stdout_52lts(result).strip()
     return re.search(regex, command_help_output)
 
 
@@ -2864,7 +2870,7 @@ def snapshot_list(name, options=None, **dargs):
             cmd, sc_output, "Failed to get list of snapshots")
 
     data = re.findall("\S* *\d*-\d*-\d* \d*:\d*:\d* [+-]\d* \w*",
-                      sc_output.stdout_text)
+                      results_stdout_52lts(sc_output))
     for rec in data:
         if not rec:
             continue
@@ -2889,8 +2895,8 @@ def snapshot_dumpxml(name, snapshot, options=None, to_file=None, **dargs):
         cmd += " %s" % options
     result = command(cmd, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'w')
-        result_file.write(result.stdout_text.strip())
+        result_file = open(to_file, 'wb')
+        result_file.write(result.stdout.strip())
         result_file.close()
 
     return result
@@ -2917,7 +2923,8 @@ def snapshot_info(name, snapshot, **dargs):
         raise process.CmdError(cmd, sc_output, "Failed to get snapshot info")
 
     for val in values:
-        data = re.search("(?<=%s:) *(\w.*|\w*)" % val, sc_output.stdout_text)
+        data = re.search("(?<=%s:) *(\w.*|\w*)" % val,
+                         results_stdout_52lts(sc_output))
         if data is None:
             continue
         ret[val] = data.group(0).strip()
@@ -3149,8 +3156,8 @@ def nodedev_dumpxml(name, options="", to_file=None, **dargs):
     cmd = ('nodedev-dumpxml %s %s' % (name, options))
     result = command(cmd, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'w')
-        result_file.write(result.stdout_text.strip())
+        result_file = open(to_file, 'wb')
+        result_file.write(result.stdout.strip())
         result_file.close()
 
     return result
@@ -3437,13 +3444,13 @@ def iface_dumpxml(iface, extra="", to_file="", **dargs):
     cmd = "iface-dumpxml %s %s" % (iface, extra)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'w')
-        result_file.write(result.stdout_text.strip())
+        result_file = open(to_file, 'wb')
+        result_file.write(result.stdout.strip())
         result_file.close()
     if result.exit_status:
         raise process.CmdError(cmd, result,
                                "Dumpxml returned non-zero exit status")
-    return result.stdout_text.strip()
+    return results_stdout_52lts(result).strip()
 
 
 def iface_name(mac, **dargs):
@@ -3611,8 +3618,8 @@ def secret_dumpxml(uuid, to_file="", options=None, **dargs):
         cmd += " %s" % options
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'w')
-        result_file.write(result.stdout_text.strip())
+        result_file = open(to_file, 'wb')
+        result_file.write(result.stdout.strip())
         result_file.close()
     if result.exit_status:
         raise process.CmdError(cmd, result,
@@ -3780,8 +3787,8 @@ def nwfilter_dumpxml(name, options="", to_file=None, **dargs):
     cmd = ('nwfilter-dumpxml %s %s' % (name, options))
     result = command(cmd, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'w')
-        result_file.write(result.stdout_text.strip())
+        result_file = open(to_file, 'wb')
+        result_file.write(result.stdout.strip())
         result_file.close()
 
     return result
@@ -3997,8 +4004,8 @@ def save_image_dumpxml(state_file, options="", to_file="", **dargs):
     cmd = "save-image-dumpxml %s %s" % (state_file, options)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'w')
-        result_file.write(result.stdout_text.strip())
+        result_file = open(to_file, 'wb')
+        result_file.write(result.stdout.strip())
         result_file.close()
     return result
 
