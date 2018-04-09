@@ -1120,12 +1120,34 @@ class VMXML(VMXMLBase):
         except KeyError:
             interface = None
         if interface is not None:  # matched mac exists.
-            iface_type = interface.get('type')
-            source = interface.find('source').get(iface_type)
             features = {}
+            iface_type = interface.get('type')
+            if iface_type == "direct":
+                features['source'] = interface.find('source').attrib
+            else:
+                features['source'] = interface.find('source').get(iface_type)
             features['type'] = iface_type
             features['mac'] = mac
-            features['source'] = source
+            if interface.find('target') is not None:
+                features['target'] = interface.find('target').attrib
+            features['model'] = interface.find('model').get('type')
+            if interface.find('bandwidth') is not None:
+                features['outbound'] = interface.find('bandwidth/outbound').attrib
+                features['inbound'] = interface.find('bandwidth/inbound').attrib
+            if interface.find('backend') is not None:
+                features['backend'] = interface.find('backend').attrib
+            if interface.find('rom') is not None:
+                features['rom'] = interface.find('rom').attrib
+            if interface.find('boot') is not None:
+                features['boot'] = interface.find('boot').get('order')
+            if interface.find('link') is not None:
+                features['link'] = interface.find('link').get('state')
+            if interface.find('driver') is not None:
+                features['driver'] = interface.find('driver').attrib
+                features['driver_host'] = interface.find('driver/host').attrib
+                features['driver_guest'] = interface.find('driver/guest').attrib
+            if interface.find('alias') is not None:
+                features['alias'] = interface.find('alias').attrib
             return features
         else:
             return None

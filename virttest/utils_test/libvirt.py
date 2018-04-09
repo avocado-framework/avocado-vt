@@ -3284,3 +3284,104 @@ def create_secret(params):
         raise exceptions.TestError("Fail to get newly created secret uuid")
 
     return sec_uuid
+
+
+def modify_vm_iface(vm_name, oper, iface_dict, index=0):
+    """
+    Modify interface xml and do operations
+
+    :param vm_name: name of vm
+    :param oper: Operation need to do, current we have 2 choice
+                 1. "update_iface": modify iface according to dict and updated in vm
+                 2. "get_xml": modify iface according to dict and return xml
+    :param iface_dict: The dict restore need updated items like iface_driver,
+                       driver_host, driver_guest and so on
+    :param index: interface index in xml
+    """
+    vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
+    xml_devices = vmxml.devices
+    iface_index = xml_devices.index(
+        xml_devices.by_device_tag("interface")[index])
+    iface = xml_devices[iface_index]
+
+    iface_driver = iface_dict.get('driver')
+    driver_host = iface_dict.get('driver_host')
+    driver_guest = iface_dict.get('driver_guest')
+    iface_model = iface_dict.get('model')
+    iface_rom = iface_dict.get('rom')
+    iface_inbound = iface_dict.get('inbound')
+    iface_outbound = iface_dict.get('outbound')
+    iface_link = iface_dict.get('link')
+    iface_source = iface_dict.get('source')
+    iface_target = iface_dict.get('target')
+    iface_addr = iface_dict.get('addr')
+    iface_filter = iface_dict.get('filter')
+    boot_order = iface_dict.get('boot')
+    iface_backend = iface_dict.get('backend')
+    iface_mac = iface_dict.get('mac')
+    iface_type = iface_dict.get('type')
+    iface_mtu = iface_dict.get('mtu')
+    iface_alias = iface_dict.get('alias')
+    if iface_type:
+        iface.type_name = iface_type
+    if iface_driver:
+        iface.driver = iface.new_driver(
+            driver_attr=eval(iface_driver),
+            driver_host=eval(driver_host) if driver_host else {},
+            driver_guest=eval(driver_guest) if driver_guest else {})
+    if iface_model:
+        iface.model = iface_model
+    if iface_rom:
+        iface.rom = eval(iface_rom)
+    if iface_inbound:
+        iface.bandwidth = iface.new_bandwidth(
+            inbound=eval(iface_inbound),
+            outbound=eval(iface_outbound) if iface_outbound else {})
+    if iface_link:
+        iface.link_state = iface_link
+    if iface_source:
+        iface.source = eval(iface_source)
+    if iface_target:
+        iface.target = eval(iface_target)
+    if iface_addr:
+        iface.address = iface.new_iface_address(
+            **{"attrs": eval(iface_addr)})
+    if iface_filter:
+        iface.filterref = iface.new_filterref(name=iface_filter)
+    if boot_order:
+        iface.boot = boot_order
+    if iface_backend:
+        iface.backend = eval(iface_backend)
+    if iface_mac:
+        iface.mac_address = iface_mac
+    if iface_mtu:
+        iface.mtu = eval(iface_mtu)
+    if iface_alias:
+        iface.alias = eval(iface_alias)
+    if oper == "update_iface":
+        vmxml.devices = xml_devices
+        vmxml.xmltreefile.write()
+        vmxml.sync()
+    elif oper == "get_xml":
+        logging.info("iface xml is %s", iface)
+        return iface.xml
+
+
+def change_boot_order(vm_name, device_tag, boot_order, index=0):
+    """
+    Change the order for disk/interface device
+
+    :param vm_name: name of vm
+    :param device_tag: the device tag in xml
+    :param boot_order: the boot order need to be changed to
+    :param index: which device to change
+    """
+    vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
+    vmxml.remove_all_boots()
+    xml_devices = vmxml.devices
+    device_index = xml_devices.index(xml_devices.by_device_tag(device_tag)[index])
+    device = xml_devices[device_index]
+    device.boot = boot_order
+    vmxml.devices = xml_devices
+    vmxml.xmltreefile.write()
+    vmxml.sync()
