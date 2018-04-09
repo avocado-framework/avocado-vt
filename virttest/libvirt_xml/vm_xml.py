@@ -718,7 +718,7 @@ class VMXML(VMXMLBase):
 
     @staticmethod
     def set_vm_vcpus(vm_name, vcpus, current=None, sockets=None, cores=None,
-                     threads=None, add_topology=False,
+                     threads=None, add_topology=False, topology_correction=False,
                      virsh_instance=base.virsh):
         """
         Convenience method for updating 'vcpu', 'current' and
@@ -731,6 +731,7 @@ class VMXML(VMXMLBase):
         :param cores: number of cores, default None
         :param threads: number of threads, default None
         :param add_topology: True to add new topology definition if not present
+        :param topology_correction: Correct topology if wrong already
         :parma virsh_instance: virsh instance
         """
         vmxml = VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
@@ -755,9 +756,6 @@ class VMXML(VMXMLBase):
                     cores = topology['cores']
                 if not threads:
                     threads = topology['threads']
-            # One case is left to fail when topology is false and add_topology
-            # is set true and not have all topology definition, it would fail
-            # let us leave it to the user give proper values
             if (topology or add_topology) and (sockets or cores or threads):
                 # Only operate topology tag, other tags doesn't change
                 try:
@@ -765,6 +763,11 @@ class VMXML(VMXMLBase):
                 except xcepts.LibvirtXMLNotFoundError:
                     logging.debug("Can not find any cpu tag, now create one.")
                     vmcpu_xml = VMCPUXML()
+
+                if topology_correction and ((int(sockets) * int(cores) * int(threads)) != vcpus):
+                    cores = vcpus
+                    sockets = 1
+                    threads = 1
                 vmcpu_xml['topology'] = {'sockets': sockets,
                                          'cores': cores,
                                          'threads': threads}
