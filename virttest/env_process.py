@@ -133,6 +133,9 @@ def preprocess_vm(test, params, env, name):
         pass
     if create_vm:
         vm = env.create_vm(vm_type, target, name, params, test.bindir)
+        if params.get("create_vm_libvirt") == "yes" and vm_type == 'libvirt':
+            params["medium"] = "import"
+            vm.create(params=params)
 
     old_vm = copy.copy(vm)
 

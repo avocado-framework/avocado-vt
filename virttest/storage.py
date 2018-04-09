@@ -447,7 +447,7 @@ class QemuImg(object):
                     logging.info("Clone master image for vms.")
                     process.run(params.get("image_clone_command") %
                                 (m_image_fn, image_fn))
-
+            params["image_name_%s" % vm_name] = vm_image_name
             params["image_name_%s_%s" % (image_name, vm_name)] = vm_image_name
 
     @staticmethod
