@@ -1754,6 +1754,7 @@ class VM(virt_vm.BaseVM):
             self.serial_console.close()
             self.serial_console = None
             self.serial_console_log = None
+            self.console_manager.set_console(None)
         if hasattr(self, "migration_file"):
             try:
                 os.unlink(self.migration_file)
