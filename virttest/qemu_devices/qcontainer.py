@@ -1141,7 +1141,7 @@ class DevContainer(object):
                                       params.get('masterbus'),
                                       params.get('firstport'),
                                       params.get('freq'),
-                                      params.get('max_ports', 6),
+                                      int(params.get('max_ports', 6)),
                                       params.get('pci_addr'))
 
     # USB Device related methods
