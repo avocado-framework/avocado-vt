@@ -16,6 +16,9 @@
 This module contains helpers that allows running Avocado-vt with Avocado
 master as well as with 52.x LTS release.
 """
+import sys
+
+from six import string_types
 
 
 def results_stdout_52lts(result):
@@ -40,3 +43,17 @@ def results_stderr_52lts(result):
         return result.stderr_text
     else:   # 52lts stores string
         return result.stderr
+
+
+def decode_to_text(stream, encoding=sys.getdefaultencoding()):
+    """
+    Decode decoding string
+    :param stream: string stream
+    :param encoding: encode_type
+    :return: encoding text
+    """
+    if hasattr(stream, 'decode'):
+        return stream.decode(encoding)
+    if isinstance(stream, string_types):
+        return stream
+    raise TypeError("Unable to decode stream into a string-like type")
