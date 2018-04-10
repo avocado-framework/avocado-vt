@@ -461,7 +461,13 @@
   <partitioning config:type="list">
     <drive>
       <initialize config:type="boolean">true</initialize>
-      <partitions config:type="list"/>
+      <partitions config:type="list">
+        <partition>
+          <mount>/</mount>
+          <filesystem  config:type="symbol">xfs</filesystem>
+          <size>auto</size>
+        </partition>
+     </partitions>
       <pesize/>
       <type config:type="symbol">CT_DISK</type>
       <use>all</use>
