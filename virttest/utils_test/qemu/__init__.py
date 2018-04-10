@@ -268,11 +268,12 @@ class GuestSuspend(object):
     SUSPEND_TYPE_MEM = "mem"
     SUSPEND_TYPE_DISK = "disk"
 
-    def __init__(self, params, vm):
+    def __init__(self, test, params, vm):
         if not params or not vm:
             raise exceptions.TestError("Missing 'params' or 'vm' parameters")
 
         self._open_session_list = []
+        self.test = test
         self.vm = vm
         self.params = params
         self.login_timeout = float(self.params.get("login_timeout", 360))
