@@ -2302,6 +2302,21 @@ class QMPMonitor(Monitor):
         cmd = "block_resize device=%s,size=%s" % (device, size)
         return self.send_args_cmd(cmd)
 
+    def get_block_virtual_size(self, dev_dict):
+        """
+        Get block virtual-size of specified block device
+        from monitor's info block command.
+
+        :param dev_dict: define device dict from block info.
+        :return: Matched block virual size.
+        """
+        blocks_info = self.info("block")
+        for dict_block in blocks_info:
+            if dev_dict['device'] in dict_block['device']:
+                size = dict_block['inserted']['image']['virtual-size']
+        if size:
+            return size
+
     def eject_cdrom(self, device, force=False):
         """
         Eject media of cdrom and open cdrom door;
