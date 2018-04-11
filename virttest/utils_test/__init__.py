@@ -39,20 +39,20 @@ from avocado.utils import path
 from six.moves import xrange
 
 # Import from the top level virttest namespace
-from .. import asset
-from .. import bootstrap
-from .. import data_dir
-from .. import error_context
-from .. import qemu_virtio_port
-from .. import remote
-from .. import scan_autotest_results
-from .. import storage
-from .. import utils_misc
-from .. import utils_net
-from .. import virt_vm
-from .. import utils_package
-from ..staging import utils_memory
-from ..compat_52lts import results_stdout_52lts
+from virttest import asset
+from virttest import bootstrap
+from virttest import data_dir
+from virttest import error_context
+from virttest import qemu_virtio_port
+from virttest import remote
+from virttest import scan_autotest_results
+from virttest import storage
+from virttest import utils_misc
+from virttest import utils_net
+from virttest import virt_vm
+from virttest import utils_package
+from virttest.staging import utils_memory
+from virttest.compat_52lts import results_stdout_52lts
 
 # Get back to importing submodules
 # This is essential for accessing these submodules directly from
@@ -61,9 +61,9 @@ from ..compat_52lts import results_stdout_52lts
 # >>> utils_test.qemu.SomeClass()
 #
 # pylint: disable=unused-import
-from . import qemu
-from . import libvirt
-from . import libguestfs
+from virttest.utils_test import qemu
+from virttest.utils_test import libvirt
+from virttest.utils_test import libguestfs
 
 
 # This is so that other tests won't break when importing the names
@@ -826,7 +826,8 @@ def run_avocado(vm, params, test, testlist=[], timeout=3600,
             return True
         if "pip" in installtype:
             cmd = "python -m pip --version || python -c \"import os; import sys;"
-            cmd += " from six.moves import urllib;f = urllib.urlretrieve(\'https://bootstrap.pypa.io/get-pip.py\')[0]; "
+            cmd += " from six.moves import urllib;" \
+                   "f = urllib.request.urlretrieve(\'https://bootstrap.pypa.io/get-pip.py\')[0]; "
             cmd += "os.system(\'%s %s\' % (sys.executable, f))\""
             if session.cmd_status(cmd) > 0:
                 logging.error("pip installation failed")

@@ -35,10 +35,10 @@ from avocado.utils import process
 
 from six.moves import urllib
 
-from . import propcan
-from . import remote
-from . import utils_misc
-from .compat_52lts import results_stdout_52lts, results_stderr_52lts
+from virttest import propcan
+from virttest import remote
+from virttest import utils_misc
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 # list of symbol names NOT to wrap as Virsh class methods

@@ -12,6 +12,8 @@ except ImportError:
     from BaseHTTPServer import HTTPServer
     from SimpleHTTPServer import SimpleHTTPRequestHandler
 
+from virttest.compat_52lts import decode_to_text
+
 
 class HTTPRequestHandler(SimpleHTTPRequestHandler):
 
@@ -93,7 +95,7 @@ class HTTPRequestHandler(SimpleHTTPRequestHandler):
 
         """
         # abandon query parameters
-        path = urlparse(path)[2]
+        path = urlparse(decode_to_text(path))[2]
         path = posixpath.normpath(unquote(path))
         words = path.split('/')
         words = list(filter(None, words))
