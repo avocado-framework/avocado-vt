@@ -32,6 +32,11 @@ try:
 except ImportError:
     from BytesIO import BytesIO
 
+try:
+    basestring
+except NameError:
+    basestring = (str, bytes)
+
 import xml.etree.ElementTree as ET
 
 from aexpect.utils.genio import _open_log_files
@@ -4365,3 +4370,172 @@ class AsyncJob(BgJob):
         super(AsyncJob, self).cleanup()
 
         return self.result
+
+
+def get_stderr_level(stderr_is_expected):
+    if stderr_is_expected:
+        return DEFAULT_STDOUT_LEVEL
+    return DEFAULT_STDERR_LEVEL
+
+
+def join_bg_jobs(bg_jobs, timeout=None):
+    """Joins the bg_jobs with the current thread.
+
+    Returns the same list of bg_jobs objects that was passed in.
+    """
+    ret, timeout_error = 0, False
+    for bg_job in bg_jobs:
+        bg_job.output_prepare(BytesIO(), BytesIO())
+
+    try:
+        # We are holding ends to stdin, stdout pipes
+        # hence we need to be sure to close those fds no mater what
+        start_time = time.time()
+        timeout_error = _wait_for_commands(bg_jobs, start_time, timeout)
+
+        for bg_job in bg_jobs:
+            # Process stdout and stderr
+            bg_job.process_output(stdout=True, final_read=True)
+            bg_job.process_output(stdout=False, final_read=True)
+    finally:
+        # close our ends of the pipes to the sp no matter what
+        for bg_job in bg_jobs:
+            bg_job.cleanup()
+
+    if timeout_error:
+        # TODO: This needs to be fixed to better represent what happens when
+        # running in parallel. However this is backwards compatible, so it will
+        # do for the time being.
+        raise process.CmdError(bg_jobs[0].command, bg_jobs[0].result,
+                               "Command(s) did not complete within %d seconds"
+                               % timeout)
+
+    return bg_jobs
+
+
+def run_parallel(commands, timeout=None, ignore_status=False,
+                 stdout_tee=None, stderr_tee=None):
+    """
+    Behaves the same as run() with the following exceptions:
+
+    - commands is a list of commands to run in parallel.
+    - ignore_status toggles whether or not an exception should be raised
+      on any error.
+
+    :return: a list of CmdResult objects
+    """
+    bg_jobs = []
+    for command in commands:
+        bg_jobs.append(BgJob(command, stdout_tee, stderr_tee,
+                             stderr_level=get_stderr_level(ignore_status)))
+
+    # Updates objects in bg_jobs list with their process information
+    join_bg_jobs(bg_jobs, timeout)
+
+    for bg_job in bg_jobs:
+        if not ignore_status and bg_job.result.exit_status:
+            raise process.CmdError(command, bg_job.result,
+                                   "Command returned non-zero exit status")
+
+    return [bg_job.result for bg_job in bg_jobs]
+
+
+def nuke_subprocess(subproc):
+    # check if the subprocess is still alive, first
+    if subproc.poll() is not None:
+        return subproc.poll()
+
+    # the process has not terminated within timeout,
+    # kill it via an escalating series of signals.
+    signal_queue = [signal.SIGTERM, signal.SIGKILL]
+    for sig in signal_queue:
+        signal_pid(subproc.pid, sig)
+        if subproc.poll() is not None:
+            return subproc.poll()
+
+
+def _wait_for_commands(bg_jobs, start_time, timeout):
+    # This returns True if it must return due to a timeout, otherwise False.
+
+    # To check for processes which terminate without producing any output
+    # a 1 second timeout is used in select.
+    SELECT_TIMEOUT = 1
+
+    read_list = []
+    write_list = []
+    reverse_dict = {}
+
+    for bg_job in bg_jobs:
+        read_list.append(bg_job.sp.stdout)
+        read_list.append(bg_job.sp.stderr)
+        reverse_dict[bg_job.sp.stdout] = (bg_job, True)
+        reverse_dict[bg_job.sp.stderr] = (bg_job, False)
+        if bg_job.string_stdin is not None:
+            write_list.append(bg_job.sp.stdin)
+            reverse_dict[bg_job.sp.stdin] = bg_job
+
+    if timeout:
+        stop_time = start_time + timeout
+        time_left = stop_time - time.time()
+    else:
+        time_left = None  # so that select never times out
+
+    while not timeout or time_left > 0:
+        # select will return when we may write to stdin or when there is
+        # stdout/stderr output we can read (including when it is
+        # EOF, that is the process has terminated).
+        read_ready, write_ready, _ = select.select(read_list, write_list, [],
+                                                   SELECT_TIMEOUT)
+
+        # os.read() has to be used instead of
+        # subproc.stdout.read() which will otherwise block
+        for file_obj in read_ready:
+            bg_job, is_stdout = reverse_dict[file_obj]
+            bg_job.process_output(is_stdout)
+
+        for file_obj in write_ready:
+            # we can write PIPE_BUF bytes without blocking
+            # POSIX requires PIPE_BUF is >= 512
+            bg_job = reverse_dict[file_obj]
+            file_obj.write(bg_job.string_stdin[:512])
+            bg_job.string_stdin = bg_job.string_stdin[512:]
+            # no more input data, close stdin, remove it from the select set
+            if not bg_job.string_stdin:
+                file_obj.close()
+                write_list.remove(file_obj)
+                del reverse_dict[file_obj]
+
+        all_jobs_finished = True
+        for bg_job in bg_jobs:
+            if bg_job.result.exit_status is not None:
+                continue
+
+            bg_job.result.exit_status = bg_job.sp.poll()
+            if bg_job.result.exit_status is not None:
+                # process exited, remove its stdout/stdin from the select set
+                bg_job.result.duration = time.time() - start_time
+                read_list.remove(bg_job.sp.stdout)
+                read_list.remove(bg_job.sp.stderr)
+                del reverse_dict[bg_job.sp.stdout]
+                del reverse_dict[bg_job.sp.stderr]
+            else:
+                all_jobs_finished = False
+
+        if all_jobs_finished:
+            return False
+
+        if timeout:
+            time_left = stop_time - time.time()
+
+    # Kill all processes which did not complete prior to timeout
+    for bg_job in bg_jobs:
+        if bg_job.result.exit_status is not None:
+            continue
+
+        logging.warn('run process timeout (%s) fired on: %s', timeout,
+                     bg_job.command)
+        nuke_subprocess(bg_job.sp)
+        bg_job.result.exit_status = bg_job.sp.poll()
+        bg_job.result.duration = time.time() - start_time
+
+    return True
