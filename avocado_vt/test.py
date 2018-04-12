@@ -20,6 +20,7 @@ import imp
 import logging
 import os
 import sys
+import pickle
 try:
     import queue as Queue
 except ImportError:
@@ -223,10 +224,12 @@ class VirtTest(test.Test):
         try:
             env.save()
         except Exception as details:
-            if hasattr(stacktrace, "str_unpickable_object"):
+            try:
+                pickle.dumps(env.data)
+            except Exception:
                 self.log.warn("Unable to save environment: %s",
                               stacktrace.str_unpickable_object(env.data))
-            else:    # TODO: Remove when 36.0 LTS is not supported
+            else:
                 self.log.warn("Unable to save environment: %s (%s)", details,
                               env.data)
             return True
