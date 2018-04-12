@@ -22,7 +22,7 @@ import logging
 from tempfile import mktemp
 
 from avocado.utils import process
-from virttest.compat_52lts import results_stdout_52lts
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 _COMMAND_TABLE_DOC = """
@@ -473,6 +473,8 @@ class _SpecificServiceManager(object):
             logging.debug("Setting ignore_status to True.")
             kwargs["ignore_status"] = True
             result = run_func(" ".join(command(service_name)), **kwargs)
+            result.stdout = results_stdout_52lts(result)
+            result.stderr = results_stderr_52lts(result)
             return parse_func(result)
         return run
 

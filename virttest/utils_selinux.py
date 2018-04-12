@@ -404,6 +404,8 @@ def set_defcon(context_type, pathregex, context_range=None, selinux_force=False)
     if pathregex:
         cmd += ' "%s"' % pathregex
     result = process.run(cmd, ignore_status=True)
+    result.stdout = result.stdout_text
+    result.stderr = result.stderr_text
     _no_semanage(result)
     if result.exit_status != 0:
         raise SeCmdError(cmd, results_stderr_52lts(result))
@@ -425,6 +427,8 @@ def del_defcon(context_type, pathregex, selinux_force=False):
 
     cmd = ("semanage fcontext --delete -t %s '%s'" % (context_type, pathregex))
     result = process.run(cmd, ignore_status=True)
+    result.stdout = results_stdout_52lts(result)
+    result.stderr = results_stderr_52lts(result)
     _no_semanage(result)
     if result.exit_status != 0:
         raise SeCmdError(cmd, results_stderr_52lts(result))

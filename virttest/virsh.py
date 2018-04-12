@@ -233,6 +233,8 @@ class VirshSession(aexpect.ShellSession):
                                    "Virsh Command returned non-zero exit status")
         if debug:
             logging.debug(result)
+        result.stdout = results_stdout_52lts(result)
+        result.stderr = results_stderr_52lts(result)
         return result
 
     def read_until_output_matches(self, patterns, filter_func=lambda x: x,
@@ -692,12 +694,14 @@ def command(cmd, **dargs):
                           shell=True)
         # Mark return as not coming from persistent virsh session
         ret.from_session_id = None
+        ret.stdout = results_stdout_52lts(ret)
+        ret.stderr = results_stderr_52lts(ret)
 
     # Always log debug info, if persistent session or not
     if debug:
         logging.debug("status: %s", ret.exit_status)
-        logging.debug("stdout: %s", results_stdout_52lts(ret).strip())
-        logging.debug("stderr: %s", results_stderr_52lts(ret).strip())
+        logging.debug("stdout: %s", ret.stdout.strip())
+        logging.debug("stderr: %s", ret.stderr.strip())
 
     # Return CmdResult instance when ignore_status is True
     return ret

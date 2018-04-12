@@ -11,6 +11,7 @@ import logging
 
 from avocado.utils import path
 from avocado.utils import process
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 from virttest import ovirt
 from virttest.utils_test import libvirt
@@ -704,6 +705,8 @@ def v2v_cmd(params):
     cmd = '%s %s' % (V2V_EXEC, options)
     cmd_result = process.run(cmd, timeout=v2v_timeout,
                              verbose=True, ignore_status=True)
+    cmd_result.stdout = results_stdout_52lts(cmd_result)
+    cmd_result.stderr = results_stderr_52lts(cmd_result)
     return cmd_result
 
 

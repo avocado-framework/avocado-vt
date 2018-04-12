@@ -165,7 +165,8 @@ class QemuImg(storage.QemuImg):
         if cmd_result.exit_status != 0 and not ignore_errors:
             raise exceptions.TestError("Failed to create image %s" %
                                        self.image_filename)
-
+        cmd_result.stdout = results_stdout_52lts(cmd_result)
+        cmd_result.stderr = results_stderr_52lts(cmd_result)
         return self.image_filename, cmd_result
 
     def convert(self, params, root_dir, cache_mode=None):
@@ -482,6 +483,9 @@ class QemuImg(storage.QemuImg):
                 raise exceptions.TestFail("Compared images differ")
             else:
                 raise exceptions.TestError("Error in image comparison")
+
+            cmd_result.stdout = results_stdout_52lts(cmd_result)
+            cmd_result.stderr = results_stderr_52lts(cmd_result)
             return cmd_result
 
     def check_image(self, params, root_dir, force_share=False):
@@ -623,6 +627,8 @@ class QemuImg(storage.QemuImg):
         cmd_list.append("-f %s %s" % (self.image_format, self.image_filename))
         logging.info("Amend image %s" % self.image_filename)
         cmd_result = process.run(" ".join(cmd_list), ignore_status=False)
+        cmd_result.stdout = results_stdout_52lts(cmd_result)
+        cmd_result.stderr = results_stderr_52lts(cmd_result)
         return cmd_result
 
 
