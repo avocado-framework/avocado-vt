@@ -1353,6 +1353,13 @@ class HumanMonitor(Monitor):
         value = parameter_info[parameter_info.index("parameter")+1]
         return value
 
+    def migrate_start_postcopy(self):
+        """
+        Switch into postcopy migrate mode
+        """
+
+        return self.cmd("migrate_start_postcopy")
+
     def system_powerdown(self):
         """
         Requests that a guest perform a powerdown operation.
@@ -2459,6 +2466,12 @@ class QMPMonitor(Monitor):
             return parameter_info[parameter]
         else:
             return False
+
+    def migrate_start_postcopy(self):
+        """
+        Switch into postcopy migrate mode
+        """
+        return self.cmd("migrate-start-postcopy")
 
     def system_powerdown(self):
         """
