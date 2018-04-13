@@ -3913,6 +3913,13 @@ class VM(virt_vm.BaseVM):
                         msg = ("Migrate capability '%s' should be '%s', "
                                "but actual result is '%s'" % (key, state, s))
                         raise exceptions.TestError(msg)
+                    clone.monitor.set_migrate_capability(state, key)
+                    s = clone.monitor.get_migrate_capability(key)
+                    if s != state:
+                        msg = ("Migrate capability '%s' should be '%s', "
+                               "but actual result is '%s' on destination guest"
+                               % (key, state, s))
+                        raise exceptions.TestError(msg)
 
             logging.info("Migrating to %s", uri)
             self.monitor.migrate(uri)
