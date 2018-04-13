@@ -1363,6 +1363,27 @@ class HumanMonitor(Monitor):
 
         return self.cmd("migrate_start_postcopy")
 
+    def get_migrate_progress(self):
+        """
+        Return the transfered / remaining ram ratio
+
+        :return: percentage remaining for RAM transfer
+        """
+        status = self.info("migrate", debug=False)
+        rem = re.search(r"remaining ram: (\d+) kbytes", status)
+        total = re.search(r"total ram: (\d+) kbytes", status)
+        if rem and total:
+            ret = 100 - 100 * int(rem.group(1)) / int(total.group(1))
+            logging.debug("Migration progress: %s%%", ret)
+            return ret
+        if "Migration status: completed" in status:
+            logging.debug("Migration progress: 100%")
+            return 100
+        elif "Migration status: setup" in status:
+            logging.debug("Migration progress: 0%")
+            return 0
+        raise MonitorError("Unable to parse migration progress:\n%s" % status)
+
     def system_powerdown(self):
         """
         Requests that a guest perform a powerdown operation.
@@ -2469,6 +2490,31 @@ class QMPMonitor(Monitor):
             return parameter_info[parameter]
         else:
             return False
+
+    def get_migrate_progress(self):
+        """
+        Return the transfered / remaining ram ratio
+
+        :return: percentage remaining for RAM transfer
+        """
+        migration_info = self.query("migrate")
+        status = migration_info["status"]
+        if "ram" in migration_info:
+            ram_stats = migration_info["ram"]
+            rem = ram_stats["remaining"]
+            total = ram_stats["total"]
+            ret = 100.0 - 100.0 * rem / total
+            logging.debug("Migration progress: %s%%", ret)
+            return ret
+        else:
+            if status == "completed":
+                logging.debug("Migration progress: 100%")
+                return 100
+            elif status == "setup":
+                logging.debug("Migration progress: 0%")
+                return 0
+            else:
+                raise MonitorError("Unable to parse migration progress:\n%s" % status)
 
     def migrate_start_postcopy(self):
         """
