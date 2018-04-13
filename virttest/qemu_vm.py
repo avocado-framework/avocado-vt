@@ -3716,9 +3716,9 @@ class VM(virt_vm.BaseVM):
                 ret = len(re.findall("true", str(s.get("migrated")), re.I)) > 0
         o = self.monitor.info("migrate")
         if isinstance(o, str):
-            return ret and ("status: active" not in o)
+            return ret and not re.search(r"status: *[\w-]*active", o)
         else:
-            return ret and (o.get("status") != "active")
+            return ret and not ("active" in o.get("status"))
 
     def mig_succeeded(self):
         o = self.monitor.info("migrate")
