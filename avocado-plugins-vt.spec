@@ -16,6 +16,12 @@ BuildRequires: python2-devel, python-setuptools
 BuildArch: noarch
 Requires: python-avocado >= 51.0
 Requires: python, autotest-framework, xz, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, python-aexpect, git, python-netaddr, python-netifaces, python-simplejson
+Requires: attr
+%if 0%{?rhel}
+Requires: policycoreutils-python
+%else
+Requires: policycoreutils-python-utils
+%endif
 
 Requires: python-imaging
 %if 0%{?el6}
