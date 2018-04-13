@@ -25,6 +25,7 @@ import threading
 import time
 import sys
 import aexpect
+import platform
 
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
@@ -3390,3 +3391,25 @@ def change_boot_order(vm_name, device_tag, boot_order, index=0):
     vmxml.devices = xml_devices
     vmxml.xmltreefile.write()
     vmxml.sync()
+
+
+def check_machine_type_arch(machine_type):
+    """
+    Determine if one case for special machine
+    type can be run on host
+
+    :param machine_type: the machine type the case is designed for
+    :raise exceptions.TestSkipError: Skip if the host arch does
+                                     not match the machine type
+    """
+    if not machine_type:
+        return
+    arch_machine_map = {'x86_64': ['pc', 'q35'],
+                        'ppc64le': ['pseries'],
+                        's390x': ['ccw']}
+    arch = platform.machine()
+    if machine_type not in arch_machine_map[arch]:
+        raise exceptions.TestSkipError("This machine type '%s' is not "
+                                       "supported on the host with "
+                                       "arch '%s'" % (machine_type,
+                                                      arch))
