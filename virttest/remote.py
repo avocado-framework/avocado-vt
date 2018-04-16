@@ -12,11 +12,12 @@ import aexpect
 from avocado.core import exceptions
 from avocado.utils import process
 
-from . import data_dir
-from . import utils_misc
-from . import rss_client
-from .remote_commander import remote_master
-from .remote_commander import messenger
+from virttest import data_dir
+from virttest import utils_misc
+from virttest import rss_client
+from virttest.remote_commander import remote_master
+from virttest.remote_commander import messenger
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 class LoginError(Exception):
@@ -1249,6 +1250,8 @@ class RemoteRunner(object):
                                          (self.stderr_pipe, self.stderr_pipe))
         cmd_result = process.CmdResult(command=command, exit_status=status,
                                        stdout=output, stderr=errput)
+        cmd_result.stdout = results_stdout_52lts(cmd_result)
+        cmd_result.stderr = results_stderr_52lts(cmd_result)
         if status and (not ignore_status):
             raise process.CmdError(command, cmd_result)
         return cmd_result

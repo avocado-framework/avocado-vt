@@ -228,13 +228,14 @@ class VirshSession(aexpect.ShellSession):
         exit_status, stdout = self.cmd_status_output(cmd, timeout=timeout)
         stderr = ''  # no way to retrieve this separately
         result = process.CmdResult(cmd, stdout, stderr, exit_status)
+
+        result.stdout = results_stdout_52lts(result)
+        result.stderr = results_stderr_52lts(result)
         if not ignore_status and exit_status:
             raise process.CmdError(cmd, result,
                                    "Virsh Command returned non-zero exit status")
         if debug:
             logging.debug(result)
-        result.stdout = results_stdout_52lts(result)
-        result.stderr = results_stderr_52lts(result)
         return result
 
     def read_until_output_matches(self, patterns, filter_func=lambda x: x,
