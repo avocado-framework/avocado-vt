@@ -1453,7 +1453,7 @@ class BaseVM(object):
                 cancel_delay=None, offline=False, stable_check=False,
                 clean=True, save_path=data_dir.get_tmp_dir(),
                 dest_host="localhost",
-                remote_port=None):
+                remote_port=None, mig_inner_funcs=None):
         """
         Migrate the VM.
 
@@ -1474,6 +1474,8 @@ class BaseVM(object):
         :param save_path: The path for state files.
         :param dest_host: Destination host (defaults to 'localhost').
         :param remote_port: Port to use for remote migration.
+        :param mig_inner_funcs: Functions to be executed just after the
+                migration is started.
         """
         raise NotImplementedError
 
