@@ -48,6 +48,7 @@ from .. import utils_net
 from .. import gluster
 from .. import remote
 from .. import test_setup
+from .. import data_dir
 from ..utils_iptables import Iptables
 from ..staging import lv_utils
 from ..utils_libvirtd import service_libvirtd_control
@@ -912,7 +913,7 @@ class PoolVolumeTest(object):
     """Test class for storage pool or volume"""
 
     def __init__(self, test, params):
-        self.tmpdir = test.tmpdir
+        self.tmpdir = data_dir.get_tmp_dir()
         self.params = params
         self.selinux_bak = ""
 
