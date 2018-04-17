@@ -882,13 +882,20 @@ class BaseVM(object):
             if match:
                 raise VMDeadKernelCrashError(match.group(0))
 
-    def verify_dmesg(self, dmesg_log_file=None):
+    def verify_dmesg(self, dmesg_log_file=None, connect_uri=None):
         """
         Verify guest dmesg
+
+        :param dmesg_log_file: The file used to save guest dmesg. If None, will save
+                               guest dmesg to logging.debug.
+        :param connect_uri: Libvirt connect uri of vm
         """
-        if len(self.virtnet) > 0 and self.virtnet[0].nettype != "macvtap":
+        if(len(self.virtnet) > 0 and self.virtnet[0].nettype != "macvtap" and
+           not connect_uri):
             session = self.wait_for_login()
         else:
+            if connect_uri and self.params.get("vm_type", "qemu") == "libvirt":
+                self.connect_uri = connect_uri
             session = self.wait_for_serial_login()
         level = self.params.get("guest_dmesg_level", 3)
         ignore_result = self.params.get("guest_dmesg_ignore", "no") == "yes"
