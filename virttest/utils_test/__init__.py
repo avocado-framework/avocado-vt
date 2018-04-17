@@ -51,6 +51,7 @@ from virttest import utils_misc
 from virttest import utils_net
 from virttest import virt_vm
 from virttest import utils_package
+from virttest import data_dir
 from virttest.staging import utils_memory
 from virttest.compat_52lts import results_stdout_52lts
 
@@ -565,7 +566,7 @@ def run_file_transfer(test, params, env):
     clean_cmd = params.get("clean_cmd", "rm -f")
     filesize = int(params.get("filesize", 4000))
     count = int(filesize / 10) or 1
-    host_path = tempfile.mktemp(prefix="tmp-", dir=test.tmpdir)
+    host_path = tempfile.mktemp(prefix="tmp-", dir=data_dir.get_tmp_dir())
     if params.get("os_type") != 'windows':
         tmp_dir = params.get("tmp_dir", "/var/tmp")
         guest_path = tempfile.mktemp(prefix="transferred-", dir=tmp_dir)
@@ -715,7 +716,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
         vm.copy_files_to(link, guest_path, timeout=60)
     host_device = get_virtio_port_host_file(vm, port_name)
 
-    dir_name = test.tmpdir
+    dir_name = data_dir.get_tmp_dir()
     transfer_timeout = int(params.get("transfer_timeout", 720))
     tmp_dir = params.get("tmp_dir", data_dir.get_tmp_dir())
     filesize = int(params.get("filesize", 10))
