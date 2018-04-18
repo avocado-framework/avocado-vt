@@ -11,21 +11,23 @@ to heavily stress a machine's memory.
 '''
 
 import os
+from autotest.client import utils
 
-from avocado.utils import cpu as cpu_utils
-from avocado.utils import disk as disk_utils
+try:
+    from virttest.staging import utils_memory
+except ImportError:
+    from autotest.client.shared import utils_memory
 
-from virttest.staging import utils_memory
 
 # Assemble the parameters specially to stress memory
 
 # We will use 2 workers of each type for each CPU detected
-threads = 2 * cpu_utils.online_cpus_count()
+threads = 2 * utils.count_cpus()
 
 mem = utils_memory.read_from_meminfo('MemTotal') / 1024 / 512
 memory_per_thread = 256 * 1024
 
-free_disk = disk_utils.freespace(os.getcwd())
+free_disk = utils.freespace(os.getcwd())
 file_size_per_thread = 1024 ** 2
 if (0.9 * free_disk) < file_size_per_thread * threads:
     file_size_per_thread = (0.9 * free_disk) / threads
