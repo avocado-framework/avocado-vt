@@ -11,11 +11,12 @@ from avocado.utils import process
 from avocado.utils import distro
 from avocado.core import exceptions
 
-from . import utils_misc
-from .utils_iptables import Iptables
-from .utils_conn import SSHConnection
-from .compat_52lts import results_stdout_52lts, results_stderr_52lts
-from .staging import service
+from virttest import utils_misc
+from virttest.utils_iptables import Iptables
+from virttest.utils_conn import SSHConnection
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
+from virttest.compat_52lts import decode_to_text
+from virttest.staging import service
 
 
 def nfs_exported():
@@ -25,7 +26,7 @@ def nfs_exported():
     :return: a list of nfs that is already exported in system
     :rtype: a lit of nfs file system exported
     """
-    exportfs = process.system_output("exportfs -v")
+    exportfs = decode_to_text(process.system_output("exportfs -v"))
     if not exportfs:
         return {}
 
@@ -384,8 +385,8 @@ class NFSClient(object):
                 nfs_ports.append("LOCKD_TCPPORT=%s" % tcp_port)
                 nfs_ports.append("LOCKD_UDPPORT=%s" % udp_port)
                 nfs_ports.append("MOUNTD_PORT=%s" % mountd_port)
-                cmd_output = process.system_output("cat %s" % nfs_sysconfig,
-                                                   shell=True)
+                cmd_output = decode_to_text(process.system_output(
+                    "cat %s" % nfs_sysconfig, shell=True))
                 exist_ports = cmd_output.strip().split('\n')
                 # check if the ports are already configured, if not then add it
                 for each_port in nfs_ports:

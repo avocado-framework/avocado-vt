@@ -14,7 +14,7 @@ except ImportError:
     from urllib2 import ProxyHandler, build_opener, install_opener
 
 import aexpect
-from avocado.utils import process as avocado_process
+from avocado.utils import process as a_process
 from avocado.utils import crypto
 from avocado.utils import path
 from avocado.utils import distro
@@ -41,6 +41,7 @@ from virttest import nfs
 from virttest import libvirt_vm
 from virttest.utils_version import VersionInterval
 from virttest.utils_test import libvirt
+from virttest.compat_52lts import decode_to_text
 
 try:
     import PIL.Image
@@ -407,10 +408,10 @@ def process_command(test, params, env, command, command_timeout,
         os.putenv("KVM_TEST_%s" % k, str(params[k]))
     # Execute commands
     try:
-        avocado_process.system(
+        a_process.system(
             "cd %s; %s" %
             (test.bindir, command), shell=True)
-    except avocado_process.CmdError as e:
+    except a_process.CmdError as e:
         if command_noncritical:
             logging.warn(e)
         else:
@@ -792,14 +793,14 @@ def preprocess(test, params, env):
 
     if kvm_userspace_ver_cmd:
         try:
-            kvm_userspace_version = avocado_process.system_output(
-                kvm_userspace_ver_cmd, shell=True).decode().strip()
-        except avocado_process.CmdError:
+            kvm_userspace_version = decode_to_text(a_process.system_output(
+                kvm_userspace_ver_cmd, shell=True)).strip()
+        except a_process.CmdError:
             kvm_userspace_version = "Unknown"
     else:
         qemu_path = utils_misc.get_qemu_binary(params)
-        version_output = avocado_process.system_output("%s -version" % qemu_path,
-                                                       verbose=False).decode()
+        version_output = decode_to_text(a_process.system_output(
+            "%s -version" % qemu_path, verbose=False))
         version_line = version_output.split('\n')[0]
         matches = re.match(QEMU_VERSION_RE, version_line)
         if matches:

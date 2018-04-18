@@ -12,9 +12,9 @@ import logging
 
 from avocado.utils import process
 
-from . import storage
-from . import virsh
-from .compat_52lts import results_stdout_52lts
+from virttest import storage
+from virttest import virsh
+from virttest.compat_52lts import results_stdout_52lts, decode_to_text
 
 
 class QemuImg(storage.QemuImg):
@@ -558,7 +558,7 @@ def check_qemu_image_lock_support():
     """
     cmd = "qemu-img"
     try:
-        binary_path = process.system_output("which %s" % cmd)
+        binary_path = decode_to_text(process.system_output("which %s" % cmd))
     except process.CmdError:
         raise process.CmdError(cmd, binary_path,
                                "qemu-img command is not found")

@@ -14,12 +14,12 @@ from avocado.utils import process
 
 import six
 
-from . import utils_misc
-from . import virt_vm
-from . import storage
-from . import data_dir
-from . import error_context
-from .compat_52lts import results_stdout_52lts, results_stderr_52lts
+from virttest import utils_misc
+from virttest import virt_vm
+from virttest import storage
+from virttest import data_dir
+from virttest import error_context
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 
 
 class QemuImg(storage.QemuImg):
@@ -331,7 +331,7 @@ class QemuImg(storage.QemuImg):
                                        " parameters")
         cmd += " %s" % self.image_filename
 
-        process.system_output(cmd)
+        decode_to_text(process.system_output(cmd))
 
         return self.snapshot_tag
 
@@ -356,7 +356,7 @@ class QemuImg(storage.QemuImg):
         else:
             cmd += " %s" % self.image_filename
 
-        process.system_output(cmd)
+        decode_to_text(process.system_output(cmd))
 
     def snapshot_list(self):
         """
@@ -365,7 +365,7 @@ class QemuImg(storage.QemuImg):
         cmd = self.image_cmd
         cmd += " snapshot -l %s" % self.image_filename
 
-        return process.system_output(cmd)
+        return decode_to_text(process.system_output(cmd))
 
     def snapshot_apply(self):
         """
@@ -382,7 +382,7 @@ class QemuImg(storage.QemuImg):
             raise exceptions.TestError("Can not find the snapshot image"
                                        " parameters")
 
-        process.system_output(cmd)
+        decode_to_text(process.system_output(cmd))
 
     def remove(self):
         """
@@ -412,7 +412,7 @@ class QemuImg(storage.QemuImg):
                 logging.warn("'--backing-chain' option is not supportted")
         if os.path.exists(self.image_filename) or self.is_remote_image():
             cmd += " %s" % self.image_filename
-            output = process.system_output(cmd, verbose=True)
+            output = decode_to_text(process.system_output(cmd, verbose=True))
         else:
             logging.debug("Image file %s not found", self.image_filename)
             output = None

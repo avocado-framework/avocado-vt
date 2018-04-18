@@ -21,18 +21,19 @@ from avocado.utils import crypto
 import six
 from six.moves import xrange
 
-from .qemu_devices import qdevices, qcontainer
-from . import utils_misc
-from . import virt_vm
-from . import test_setup
-from . import qemu_monitor
-from . import qemu_virtio_port
-from . import remote
-from . import data_dir
-from . import utils_net
-from . import arch
-from . import storage
-from . import error_context
+from virttest import utils_misc
+from virttest import virt_vm
+from virttest import test_setup
+from virttest import qemu_monitor
+from virttest import qemu_virtio_port
+from virttest import remote
+from virttest import data_dir
+from virttest import utils_net
+from virttest import arch
+from virttest import storage
+from virttest import error_context
+from virttest.compat_52lts import decode_to_text
+from virttest.qemu_devices import qdevices, qcontainer
 
 
 class QemuSegFaultError(virt_vm.VMError):
@@ -839,9 +840,9 @@ class VM(virt_vm.BaseVM):
             else:
                 dev = qdevices.QCustomDevice('pcidevice', parent_bus=pci_bus)
             help_cmd = "%s -device %s,\? 2>&1" % (qemu_binary, device_driver)
-            pcidevice_help = process.system_output(help_cmd,
-                                                   shell=True,
-                                                   verbose=False)
+            pcidevice_help = decode_to_text(process.system_output(help_cmd,
+                                                                  shell=True,
+                                                                  verbose=False))
             dev.set_param('host', host)
             dev.set_param('id', 'id_%s' % host.replace(":", "."))
             fail_param = []
@@ -1167,7 +1168,7 @@ class VM(virt_vm.BaseVM):
             # it's harmless for other guest, so add it here.
             if cpu_model in ['Penryn', 'Nehalem']:
                 recognize_flags = utils_misc.get_recognized_cpuid_flags(
-                     qemu_binary)
+                    qemu_binary)
                 if not ('erms' in flags or 'erms' in recognize_flags):
                     cmd += ',+erms'
             if family:
@@ -1371,14 +1372,14 @@ class VM(virt_vm.BaseVM):
         qemu_binary = utils_misc.get_qemu_binary(params)
 
         self.qemu_binary = qemu_binary
-        self.qemu_version = process.system_output("%s -version" % qemu_binary,
-                                                  verbose=False,
-                                                  ignore_status=True,
-                                                  shell=True).split(',')[0]
-        support_cpu_model = process.system_output("%s -cpu \\?" % qemu_binary,
-                                                  verbose=False,
-                                                  ignore_status=True,
-                                                  shell=True)
+        self.qemu_version = decode_to_text(process.system_output("%s -version" % qemu_binary,
+                                                                 verbose=False,
+                                                                 ignore_status=True,
+                                                                 shell=True)).split(',')[0]
+        support_cpu_model = decode_to_text(process.system_output("%s -cpu \\?" % qemu_binary,
+                                                                 verbose=False,
+                                                                 ignore_status=True,
+                                                                 shell=True))
 
         self.last_driver_index = 0
         # init the dict index_in_use
@@ -2444,8 +2445,8 @@ class VM(virt_vm.BaseVM):
                 continue
 
             help_cmd = '%s -device %s,\? 2>&1' % (self.qemu_binary, vga_type)
-            help_info = process.system_output(help_cmd, shell=True,
-                                              verbose=False)
+            help_info = decode_to_text(process.system_output(help_cmd, shell=True,
+                                                             verbose=False))
             for pro in re.findall(r'%s.(\w+)=' % vga_type, help_info):
                 key = [vga_type.lower(), pro]
                 if migrate:
@@ -3239,8 +3240,8 @@ class VM(virt_vm.BaseVM):
         """
         try:
             cmd = "ps --ppid=%d -o pid=" % self.process.get_pid()
-            children = process.system_output(cmd, verbose=False,
-                                             ignore_status=True).split()
+            children = decode_to_text(process.system_output(cmd, verbose=False,
+                                                            ignore_status=True)).split()
             return int(children[0])
         except (TypeError, IndexError, ValueError):
             return None
@@ -3292,8 +3293,8 @@ class VM(virt_vm.BaseVM):
         """
         return [int(_) for _ in re.findall(vhost_thread_pattern %
                                            self.get_pid(),
-                                           process.system_output("ps aux",
-                                                                 verbose=False))]
+                                           decode_to_text(process.system_output("ps aux",
+                                                                                verbose=False)))]
 
     def get_shared_meminfo(self):
         """
@@ -4011,7 +4012,7 @@ class VM(virt_vm.BaseVM):
                                 r".*[Mm]achine restart.*", r".*Linux version.*"]
                     try:
                         if session.read_until_any_line_matches(
-                             patterns, timeout=timeout):
+                                patterns, timeout=timeout):
                             return True
                     except Exception:
                         return False

@@ -31,6 +31,7 @@ from virttest import utils_test
 from virttest import utils_misc
 from virttest import env_process
 from virttest import error_context as error
+from virttest.compat_52lts import decode_to_text
 
 
 try:
@@ -61,7 +62,7 @@ def get_nic_vendor(params, cmd):
     expected_nic_vendor = params.get("expected_nic_vendor",
                                      "IB InfiniBand")
     pattern = "(?<=Link layer: ).*"
-    output = process.system_output(cmd)
+    output = decode_to_text(process.system_output(cmd))
     try:
         nic_vendor = re.findall(pattern, output)[0]
     except IndexError:

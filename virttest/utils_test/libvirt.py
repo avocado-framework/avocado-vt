@@ -36,37 +36,36 @@ from avocado.utils import distro
 
 import six
 
-from .. import virsh
-from .. import xml_utils
-from .. import iscsi
-from .. import nfs
-from .. import data_dir
-from .. import utils_misc
-from .. import utils_selinux
-from .. import libvirt_storage
-from .. import utils_net
-from .. import gluster
-from .. import remote
-from .. import test_setup
-from .. import data_dir
-from ..utils_iptables import Iptables
-from ..staging import lv_utils
-from ..utils_libvirtd import service_libvirtd_control
-from ..compat_52lts import results_stdout_52lts, results_stderr_52lts
-from ..libvirt_xml import vm_xml
-from ..libvirt_xml import network_xml
-from ..libvirt_xml import xcepts
-from ..libvirt_xml import NetworkXML
-from ..libvirt_xml import IPXML
-from ..libvirt_xml import pool_xml
-from ..libvirt_xml import nwfilter_xml
-from ..libvirt_xml import vol_xml
-from ..libvirt_xml import secret_xml
-from ..libvirt_xml.devices import disk
-from ..libvirt_xml.devices import hostdev
-from ..libvirt_xml.devices import controller
-from ..libvirt_xml.devices import seclabel
-from ..libvirt_xml.devices import channel
+from virttest import virsh
+from virttest import xml_utils
+from virttest import iscsi
+from virttest import nfs
+from virttest import utils_misc
+from virttest import utils_selinux
+from virttest import libvirt_storage
+from virttest import utils_net
+from virttest import gluster
+from virttest import remote
+from virttest import test_setup
+from virttest import data_dir
+from virttest.utils_iptables import Iptables
+from virttest.staging import lv_utils
+from virttest.utils_libvirtd import service_libvirtd_control
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
+from virttest.libvirt_xml import vm_xml
+from virttest.libvirt_xml import network_xml
+from virttest.libvirt_xml import xcepts
+from virttest.libvirt_xml import NetworkXML
+from virttest.libvirt_xml import IPXML
+from virttest.libvirt_xml import pool_xml
+from virttest.libvirt_xml import nwfilter_xml
+from virttest.libvirt_xml import vol_xml
+from virttest.libvirt_xml import secret_xml
+from virttest.libvirt_xml.devices import disk
+from virttest.libvirt_xml.devices import hostdev
+from virttest.libvirt_xml.devices import controller
+from virttest.libvirt_xml.devices import seclabel
+from virttest.libvirt_xml.devices import channel
 
 ping = utils_net.ping
 
@@ -806,7 +805,7 @@ def mk_part(disk, size="100M", fs_type='ext4', session=None):
         run_cmd = session.get_command_output
 
     print_cmd = "parted -s %s print" % disk
-    output = run_cmd(print_cmd)
+    output = decode_to_text(run_cmd(print_cmd))
     current_label = re.search(r'Partition Table: (\w+)', output).group(1)
     if current_label not in support_lable:
         logging.error('Not support create partition on %s disk', current_label)
@@ -829,13 +828,13 @@ def mk_part(disk, size="100M", fs_type='ext4', session=None):
     if current_label == 'msdos':
         if len(current_parts) == 3:
             extended_cmd = " mkpart extended %s %s" % (part_start, disk_size)
-            run_cmd(mkpart_cmd + extended_cmd)
+            decode_to_text(run_cmd(mkpart_cmd + extended_cmd))
         if len(current_parts) > 2:
             part_type = 'logical'
 
     mkpart_cmd += ' mkpart %s %s %s %s' % (part_type, fs_type, part_start,
                                            part_end)
-    run_cmd(mkpart_cmd)
+    decode_to_text(run_cmd(mkpart_cmd))
 
 
 def mkfs(partition, fs_type, options="", session=None):
@@ -948,7 +947,7 @@ class PoolVolumeTest(object):
                     shutil.rmtree(nfs_path)
             if pool_type == "logical":
                 cmd = "pvs |grep vg_logical|awk '{print $1}'"
-                pv = process.system_output(cmd, shell=True)
+                pv = decode_to_text(process.system_output(cmd, shell=True))
                 # Cleanup logical volume anyway
                 process.run("vgremove -f vg_logical", ignore_status=True)
                 process.run("pvremove %s" % pv, ignore_status=True)
@@ -1025,7 +1024,7 @@ class PoolVolumeTest(object):
             # and the max number of partitions depends on the disk label.
             # If pre_disk_vol is None, disk pool will have no volume
             pre_disk_vol = kwargs.get('pre_disk_vol', None)
-            if type(pre_disk_vol) == list and len(pre_disk_vol):
+            if isinstance(pre_disk_vol, list) and len(pre_disk_vol):
                 for vol in pre_disk_vol:
                     mk_part(device_name, vol)
         elif pool_type == "fs":
@@ -1112,7 +1111,7 @@ class PoolVolumeTest(object):
                     image_size=image_size)
                 cmd = ("iscsiadm -m session -P 3 |grep -B3 %s| grep Host|awk "
                        "'{print $3}'" % logical_device.split('/')[2])
-                scsi_host = process.system_output(cmd, shell=True).strip()
+                scsi_host = decode_to_text(process.system_output(cmd, shell=True)).strip()
                 scsi_pool_xml = pool_xml.PoolXML()
                 scsi_pool_xml.name = pool_name
                 scsi_pool_xml.pool_type = "scsi"
@@ -2903,15 +2902,15 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
                 logging.info("Matched 'yes/no', details: <%s>", text)
                 session.sendline("yes")
                 continue
-            elif match == -patterns_list_len+1 or match == -patterns_list_len+2:
+            elif match == -patterns_list_len + 1 or match == -patterns_list_len + 2:
                 logging.info("Matched 'username', details: <%s>", text)
                 session.sendline(auth_user)
                 continue
-            elif match == -patterns_list_len+3:
+            elif match == -patterns_list_len + 3:
                 logging.info("Matched 'password', details: <%s>", text)
                 session.sendline(auth_pwd)
                 continue
-            elif match == -patterns_list_len+4:
+            elif match == -patterns_list_len + 4:
                 logging.info("Expected output of virsh command: <%s>", text)
                 break
             if (patterns_list_len > 5):

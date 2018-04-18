@@ -19,19 +19,19 @@ from avocado.utils import process
 from avocado.utils import crypto
 from avocado.core import exceptions
 
-from . import error_context
-from . import utils_misc
-from . import virt_vm
-from . import storage
-from . import remote
-from . import virsh
-from . import libvirt_xml
-from . import data_dir
-from . import xml_utils
-from . import utils_selinux
-from . import test_setup
-from . import utils_package
-from .compat_52lts import results_stdout_52lts, results_stderr_52lts
+from virttest import error_context
+from virttest import utils_misc
+from virttest import virt_vm
+from virttest import storage
+from virttest import remote
+from virttest import virsh
+from virttest import libvirt_xml
+from virttest import data_dir
+from virttest import xml_utils
+from virttest import utils_selinux
+from virttest import test_setup
+from virttest import utils_package
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 
 
 def normalize_connect_uri(connect_uri):
@@ -429,9 +429,9 @@ class VM(virt_vm.BaseVM):
             return bool(re.search(r"%s" % os_variant, os_text, re.MULTILINE))
 
         def has_sub_option(option, sub_option):
-            option_help_text = process.system_output("%s --%s help" %
-                                                     (virt_install_binary, option),
-                                                     verbose=False)
+            option_help_text = decode_to_text(process.system_output("%s --%s help" %
+                                                                    (virt_install_binary, option),
+                                                                    verbose=False))
             return bool(re.search(r"%s" % sub_option, option_help_text, re.MULTILINE))
 
         # Wrappers for all supported libvirt command line parameters.
@@ -898,15 +898,15 @@ class VM(virt_vm.BaseVM):
             params.get("virt_install_binary",
                        "virt-install"))
 
-        help_text = process.system_output("%s --help" % virt_install_binary,
-                                          verbose=False)
+        help_text = decode_to_text(process.system_output("%s --help" % virt_install_binary,
+                                                         verbose=False))
 
         try:
-            os_text = process.system_output("osinfo-query os --fields short-id", verbose=False)
+            os_text = decode_to_text(process.system_output("osinfo-query os --fields short-id", verbose=False))
         except process.CmdError:
-            os_text = process.system_output("%s --os-variant list" %
-                                            virt_install_binary,
-                                            verbose=False)
+            os_text = decode_to_text(process.system_output("%s --os-variant list" %
+                                                           virt_install_binary,
+                                                           verbose=False))
 
         # Find all supported machine types, so we can rule out an unsupported
         # machine type option passed in the configuration.

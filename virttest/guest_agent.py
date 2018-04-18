@@ -15,9 +15,12 @@ except ImportError:
     logging.warning("Could not import json module. "
                     "virt agent functionality disabled.")
 
-from .qemu_monitor import Monitor, MonitorError
-from . import error_context
 from avocado.utils import process
+
+from virttest import error_context
+from virttest.compat_52lts import decode_to_text
+from virttest.qemu_monitor import Monitor, MonitorError
+
 
 import six
 
@@ -536,7 +539,7 @@ class QemuAgent(Monitor):
 
         if crypted:
             openssl_cmd = "openssl passwd -crypt %s" % password
-            password = process.system_output(openssl_cmd).strip('\n')
+            password = decode_to_text(process.system_output(openssl_cmd)).strip('\n')
 
         args = {"crypted": crypted, "username": username,
                 "password": base64.b64encode(password)}

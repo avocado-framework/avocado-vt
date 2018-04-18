@@ -10,7 +10,8 @@ import logging
 from avocado.core import exceptions
 from avocado.utils import process
 
-from . import base_installer
+from virttest import base_installer
+from virttest.compat_52lts import decode_to_text
 
 __all__ = ['GitRepoInstaller', 'LocalSourceDirInstaller',
            'LocalSourceTarInstaller', 'RemoteSourceTarInstaller']
@@ -27,7 +28,7 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
     # We'll look for one of these binaries when linking the QEMU binary
     # to the test directory
     #
-    qemu_system = 'qemu-system-' + process.system_output('uname -i')
+    qemu_system = 'qemu-system-' + decode_to_text(process.system_output('uname -i'))
     ACCEPTABLE_QEMU_BIN_NAMES = ['qemu-kvm', qemu_system]
 
     #

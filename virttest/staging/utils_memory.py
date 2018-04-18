@@ -6,7 +6,7 @@ import os
 
 from avocado.core import exceptions
 from avocado.utils import process
-from virttest.compat_52lts import results_stdout_52lts
+from virttest.compat_52lts import results_stdout_52lts, decode_to_text
 
 
 # Returns total memory in kb
@@ -100,7 +100,7 @@ def get_transparent_hugepage():
         thp_path = RH_THP_PATH
     else:
         raise exceptions.TestFail("transparent hugepage Not supported")
-    out = process.system_output('cat %s/enabled' % thp_path)
+    out = decode_to_text(process.system_output('cat %s/enabled' % thp_path))
     if out[0] == "[always]":
         return 'always'
     elif out[1] == "[madvise]":

@@ -9,9 +9,10 @@ from avocado.core import exceptions
 from avocado.utils import path
 from avocado.utils import process
 
-from . import propcan
-from . import remote
-from . import virsh
+from virttest import propcan
+from virttest import remote
+from virttest import virsh
+from virttest.compat_52lts import decode_to_text
 
 
 class SASL(propcan.PropCanBase):
@@ -112,7 +113,7 @@ class SASL(propcan.PropCanBase):
                 self.session = self.get_session()
                 return self.session.cmd_output(cmd)
             else:
-                return process.system_output(cmd)
+                return decode_to_text(process.system_output(cmd))
         except process.CmdError:
             logging.error("Failed to set a user's sasl password %s", cmd)
 

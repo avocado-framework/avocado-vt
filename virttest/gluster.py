@@ -14,10 +14,11 @@ import socket
 
 from avocado.utils import process
 
-from . import data_dir
-from . import utils_misc
-from . import utils_net
-from . import error_context
+from virttest import data_dir
+from virttest import utils_misc
+from virttest import utils_net
+from virttest import error_context
+from virttest.compat_52lts import decode_to_text
 
 
 class GlusterError(Exception):
@@ -40,12 +41,12 @@ def glusterd_start():
     Check for glusterd status and start it
     """
     cmd = "service glusterd status"
-    output = process.system_output(cmd, ignore_status=True)
+    output = decode_to_text(process.system_output(cmd, ignore_status=True))
     # The blank before 'active' makes a distinction with 'inactive'
     if ' active' not in output or 'running' not in output:
         cmd = "service glusterd start"
         error_context.context("Starting gluster dameon failed")
-        output = process.system_output(cmd)
+        output = decode_to_text(process.system_output(cmd))
 
 
 @error_context.context_aware
@@ -56,7 +57,7 @@ def is_gluster_vol_started(vol_name):
     cmd = "gluster volume info %s" % vol_name
     error_context.context(
         "Gluster volume info failed for volume: %s" % vol_name)
-    vol_info = process.system_output(cmd)
+    vol_info = decode_to_text(process.system_output(cmd))
     volume_status = re.findall(r'Status: (\S+)', vol_info)
     if 'Started' in volume_status:
         return True
@@ -120,7 +121,7 @@ def is_gluster_vol_avail(vol_name):
     """
     cmd = "gluster volume info"
     error_context.context("Gluster volume info failed")
-    output = process.system_output(cmd)
+    output = decode_to_text(process.system_output(cmd))
     volume_name = re.findall(r'Volume Name: (%s)\n' % vol_name, output)
     if volume_name:
         return gluster_vol_start(vol_name)
@@ -310,7 +311,7 @@ def gluster_allow_insecure(vol_name):
     process.system(cmd)
 
     cmd = "gluster volume info"
-    output = process.system_output(cmd)
+    output = decode_to_text(process.system_output(cmd))
     match = re.findall(r'server.allow-insecure: on', output)
 
     if not match:
@@ -325,7 +326,7 @@ def add_rpc_insecure(filepath):
     """
 
     cmd = "cat %s" % filepath
-    content = process.system_output(cmd)
+    content = decode_to_text(process.system_output(cmd))
     match = re.findall(r'rpc-auth-allow-insecure on', content)
     logging.info("match is %s", match)
     if not match:
@@ -348,6 +349,6 @@ def gluster_nfs_disable(vol_name):
     process.system(cmd)
 
     cmd = "gluster volume info %s" % vol_name
-    output = process.system_output(cmd)
+    output = decode_to_text(process.system_output(cmd))
 
     return 'nfs.disable: on' in output

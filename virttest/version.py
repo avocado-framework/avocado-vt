@@ -16,8 +16,8 @@ import os
 
 from avocado.utils import process
 
-from . import data_dir
-from .compat_52lts import results_stdout_52lts
+from virttest import data_dir
+from virttest.compat_52lts import results_stdout_52lts, decode_to_text
 
 _ROOT_PATH = data_dir.get_root_dir()
 RELEASE_VERSION_PATH = os.path.join(_ROOT_PATH, 'RELEASE-VERSION')
@@ -42,8 +42,8 @@ def _execute_git_command(command):
     os.chdir(_ROOT_PATH)
     try:
         try:
-            return process.system_output(command,
-                                         shell=True, verbose=False).strip()
+            return decode_to_text(process.system_output(command,
+                                                        shell=True, verbose=False)).strip()
         finally:
             os.chdir(cwd)
     except process.CmdError:

@@ -5,7 +5,8 @@ import aexpect
 from avocado.utils import process
 from avocado.utils import path
 
-from . import remote
+from virttest import remote
+from virttest.compat_52lts import decode_to_text
 
 
 def get_public_key():
@@ -230,14 +231,14 @@ def setup_remote_known_hosts_file(client_ip, server_ip,
         return None
 
     cmd = "%s %s" % (abs_path, client_ip)
-    host_key = process.system_output(cmd, verbose=False)
+    host_key = decode_to_text(process.system_output(cmd, verbose=False))
     remote_known_hosts_file = remote.RemoteFile(
-            address=server_ip,
-            client='scp',
-            username=server_user,
-            password=server_pwd,
-            port='22',
-            remote_path='~/.ssh/known_hosts')
+        address=server_ip,
+        client='scp',
+        username=server_user,
+        password=server_pwd,
+        port='22',
+        remote_path='~/.ssh/known_hosts')
     pattern2repl = {r".*%s[, ].*" % client_ip: host_key}
     remote_known_hosts_file.sub_else_add(pattern2repl)
     return remote_known_hosts_file

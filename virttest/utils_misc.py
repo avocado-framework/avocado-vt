@@ -57,7 +57,7 @@ from virttest import utils_disk
 from virttest import logging_manager
 from virttest.staging import utils_koji
 from virttest.xml_utils import XMLTreeFile
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 
 import six
 from six.moves import xrange
@@ -357,8 +357,8 @@ def kill_process_tree(pid, sig=signal.SIGKILL):
     """
     if not safe_kill(pid, signal.SIGSTOP):
         return
-    children = process.system_output("ps --ppid=%d -o pid=" % pid,
-                                     shell=True, ignore_status=True).split()
+    children = decode_to_text(process.system_output("ps --ppid=%d -o pid=" % pid,
+                                                    shell=True, ignore_status=True)).split()
     for child in children:
         kill_process_tree(int(child), sig)
     safe_kill(pid, sig)
@@ -400,8 +400,8 @@ def process_or_children_is_defunct(ppid):
     for pid in pids:
         if pid:
             cmd = "ps --no-headers -o cmd %d" % int(pid)
-            proc_name = process.system_output(cmd, ignore_status=True,
-                                              verbose=False)
+            proc_name = decode_to_text(process.system_output(cmd, ignore_status=True,
+                                                             verbose=False))
             if '<defunct>' in proc_name:
                 defunct = True
                 break
@@ -817,7 +817,7 @@ def get_full_pci_id(pci_id):
     """
     cmd = "lspci -D | awk '/%s/ {print $1}'" % pci_id
     try:
-        return process.system_output(cmd, shell=True)
+        return decode_to_text(process.system_output(cmd, shell=True))
     except process.CmdError:
         return None
 
@@ -887,8 +887,8 @@ def get_vendor_from_pci_id(pci_id):
     :param pci_id: PCI ID of a device.
     """
     cmd = "lspci -n | awk '/%s/ {print $3}'" % pci_id
-    return re.sub(":", " ", process.system_output(cmd, shell=True,
-                                                  ignore_status=True))
+    return re.sub(":", " ", decode_to_text(process.system_output(cmd, shell=True,
+                                                                 ignore_status=True)))
 
 
 def get_dev_pts_max_id():
@@ -899,8 +899,8 @@ def get_dev_pts_max_id():
     """
     cmd = "ls /dev/pts/ | grep '^[0-9]*$' | sort -n"
     try:
-        max_id = process.system_output(cmd, verbose=False,
-                                       shell=True).strip().split("\n")[-1]
+        max_id = decode_to_text(process.system_output(cmd, verbose=False,
+                                                      shell=True)).strip().split("\n")[-1]
     except IndexError:
         return None
     pts_file = "/dev/pts/%s" % max_id
@@ -1215,7 +1215,7 @@ def install_host_kernel(job, params):
     else:
         logging.info('Chose %s, using the current kernel for the host',
                      install_type)
-        k_version = process.system_output('uname -r', ignore_status=True)
+        k_version = decode_to_text(process.system_output('uname -r', ignore_status=True))
         write_keyval(job.resultdir,
                      {'software_version_kernel': k_version})
 
@@ -1249,8 +1249,8 @@ def qemu_has_option(option, qemu_path="/usr/bin/qemu-kvm"):
     :param option: Option need check.
     :param qemu_path: Path for qemu-kvm.
     """
-    hlp = process.system_output("%s -help" % qemu_path, shell=True,
-                                ignore_status=True, verbose=False)
+    hlp = decode_to_text(process.system_output("%s -help" % qemu_path, shell=True,
+                                               ignore_status=True, verbose=False))
     return bool(re.search(r"^-%s(\s|$)" % option, hlp, re.MULTILINE))
 
 
@@ -1455,7 +1455,7 @@ def get_thread_cpu(thread):
     :rtype: builtin.list
     """
     cmd = "ps -o cpuid,lwp -eL | grep -w %s$" % thread
-    cpu_thread = process.system_output(cmd, shell=True)
+    cpu_thread = decode_to_text(process.system_output(cmd, shell=True))
     if not cpu_thread:
         return []
     return list(set([_.strip().split()[0] for _ in cpu_thread.splitlines()]))
@@ -1471,7 +1471,7 @@ def get_pid_cpu(pid):
     :rtype: builtin.list
     """
     cmd = "ps -o cpuid -L -p %s" % pid
-    cpu_pid = process.system_output(cmd)
+    cpu_pid = decode_to_text(process.system_output(cmd))
     if not cpu_pid:
         return []
     return list(set([_.strip() for _ in cpu_pid.splitlines()]))
@@ -1546,7 +1546,7 @@ def get_cpu_info(session=None):
     cpu_info = {}
     cmd = "lscpu"
     if session is None:
-        output = process.system_output(cmd, ignore_status=True).splitlines()
+        output = decode_to_text(process.system_output(cmd, ignore_status=True)).splitlines()
     else:
         try:
             output = session.cmd_output(cmd).splitlines()
@@ -2047,7 +2047,7 @@ def get_cpu_processors(verbose=True):
     Returns a list of the processors
     """
     cmd = "grep processor /proc/cpuinfo"
-    output = process.system_output(cmd, verbose=verbose, ignore_status=True)
+    output = decode_to_text(process.system_output(cmd, verbose=verbose, ignore_status=True))
     processor_list = re.findall('processor\s+: (\d+)', output)
     if verbose:
         logging.debug("CPU processor: %s", processor_list)
@@ -2082,7 +2082,7 @@ def get_support_machine_type(qemu_binary="/usr/libexec/qemu-kvm", remove_alias=F
 
     :return: A tuple (s, c, v) include three lists.
     """
-    o = process.system_output("%s -M ?" % qemu_binary).splitlines()
+    o = decode_to_text(process.system_output("%s -M ?" % qemu_binary)).splitlines()
     s = []
     c = []
     v = []
@@ -2106,7 +2106,7 @@ def get_recognized_cpuid_flags(qemu_binary="/usr/libexec/qemu-kvm"):
     :param qemu_binary: qemu-kvm binary file path
     :return: flags list
     """
-    out = process.system_output("%s -cpu ?" % qemu_binary)
+    out = decode_to_text(process.system_output("%s -cpu ?" % qemu_binary))
     match = re.search("Recognized CPUID flags:(.*)", out, re.M | re.S)
     try:
         return list(filter(None, re.split('\s', match.group(1))))
@@ -2123,8 +2123,7 @@ def get_host_cpu_models():
         """
         Update the cpu flags get from host to a certain order and format
         """
-        flag_list = re.split("\s+", cpu_flags.strip())
-        flag_list.sort()
+        flag_list = sorted(re.split("\s+", cpu_flags.strip()))
         cpu_flags = " ".join(flag_list)
         return cpu_flags
 
@@ -2132,8 +2131,7 @@ def get_host_cpu_models():
         """
         Update the check pattern to a certain order and format
         """
-        pattern_list = re.split(",", flags.strip())
-        pattern_list.sort()
+        pattern_list = sorted(re.split(",", flags.strip()))
         pattern = r"(\b%s\b)" % pattern_list[0]
         for i in pattern_list[1:]:
             pattern += r".+(\b%s\b)" % i
@@ -2361,8 +2359,8 @@ def get_qemu_version(params):
     regex = r'\s*[Ee]mulator [Vv]ersion\s*(\d+)\.(\d+)\.(\d+)'
 
     qemu_binary = get_qemu_binary(params)
-    version_raw = process.system_output("%s -version" % qemu_binary,
-                                        shell=True).splitlines()
+    version_raw = decode_to_text(process.system_output("%s -version" % qemu_binary,
+                                                       shell=True)).splitlines()
     for line in version_raw:
         search_result = re.search(regex, line)
         if search_result:
@@ -2699,7 +2697,7 @@ def get_mem_info(session=None, attr='MemTotal'):
     if session:
         output = session.cmd_output(cmd)
     else:
-        output = process.system_output(cmd, shell=True)
+        output = decode_to_text(process.system_output(cmd, shell=True))
     output = re.findall(r"\d+\s\w", output)[0]
     output = float(normalize_data_size(output, order_magnitude="K"))
     return int(output)
@@ -2808,7 +2806,7 @@ def get_uptime(session=None):
         uptime = session.cmd_output(cmd)
     else:
         try:
-            uptime = process.system_output(cmd, shell=True)
+            uptime = decode_to_text(process.system_output(cmd, shell=True))
         except process.CmdError:
             return None
     return float(uptime.split()[0])
@@ -3093,7 +3091,7 @@ def get_image_snapshot(image_file):
             # if it's introduced in qemu-kvm, will need to update it here.
             # The "-U" is to avoid the qemu lock.
             cmd += " -U"
-        snap_info = process.system_output(cmd, ignore_status=False).strip()
+        snap_info = decode_to_text(process.system_output(cmd, ignore_status=False)).strip()
         snap_list = []
         if snap_info:
             pattern = "(\d+) +\d+ +.*"
@@ -3162,7 +3160,7 @@ def get_image_info(image_file):
             # Currently the qemu lock is introduced in qemu-kvm-rhev/ma,
             # The " -U" is to avoid the qemu lock.
             cmd += " -U"
-        image_info = process.system_output(cmd, ignore_status=False).strip()
+        image_info = decode_to_text(process.system_output(cmd, ignore_status=False)).strip()
         image_info_dict = {}
         vsize = None
         if image_info:
@@ -3350,8 +3348,8 @@ class KSMController(object):
         except utils_path.CmdNotFoundError:
             raise KSMTunedNotSupportedError
 
-        process_id = process.system_output("ps -C ksmtuned -o pid=",
-                                           ignore_status=True)
+        process_id = decode_to_text(process.system_output("ps -C ksmtuned -o pid=",
+                                                          ignore_status=True))
         if process_id:
             return int(re.findall("\d+", process_id)[0])
         return 0
@@ -3404,9 +3402,9 @@ class KSMController(object):
         Verify whether ksm is running.
         """
         if self.interface == "sysfs":
-            running = process.system_output("cat %s" % self.ksm_params["run"])
+            running = decode_to_text(process.system_output("cat %s" % self.ksm_params["run"]))
         else:
-            output = process.system_output("ksmctl info")
+            output = decode_to_text(process.system_output("ksmctl info"))
             try:
                 running = re.findall("\d+", output)[0]
             except IndexError:
@@ -3468,9 +3466,9 @@ class KSMController(object):
             feature = self.ksm_params[feature]
 
         if self.interface == "sysfs":
-            return process.system_output("cat %s" % feature).strip()
+            return decode_to_text(process.system_output("cat %s" % feature)).strip()
         else:
-            output = process.system_output("ksmctl info")
+            output = decode_to_text(process.system_output("ksmctl info"))
             _KSM_PARAMS = ["run", "pages_to_scan", "sleep_millisecs"]
             ksminfos = re.findall("\d+", output)
             if len(ksminfos) != 3:
@@ -3646,8 +3644,8 @@ def get_pci_devices_in_group(str_flag=""):
 
     :param str_flag: the match string to filter devices.
     """
-    d_lines = process.system_output("lspci -bDnn | grep \"%s\"" % str_flag,
-                                    shell=True)
+    d_lines = decode_to_text(process.system_output("lspci -bDnn | grep \"%s\"" % str_flag,
+                                                   shell=True))
 
     devices = {}
     for line in d_lines.splitlines():
@@ -3691,8 +3689,8 @@ def get_pci_vendor_device(pci_id):
 
     :return: a 'vendor device' list include all matched devices
     """
-    matched_pci = process.system_output("lspci -n -s %s" % pci_id,
-                                        ignore_status=True)
+    matched_pci = decode_to_text(process.system_output("lspci -n -s %s" % pci_id,
+                                                       ignore_status=True))
     pci_vd = []
     for line in matched_pci.splitlines():
         for string in line.split():
@@ -3743,8 +3741,8 @@ def check_device_driver(pci_id, driver_type):
     if not os.path.isdir(device_driver):
         logging.debug("Make sure %s has binded driver.")
         return False
-    driver = process.system_output("readlink %s" % device_driver,
-                                   ignore_status=True).strip()
+    driver = decode_to_text(process.system_output("readlink %s" % device_driver,
+                                                  ignore_status=True)).strip()
     driver = os.path.basename(driver)
     logging.debug("% is %s, expect %s", pci_id, driver, driver_type)
     return driver == driver_type
@@ -3840,7 +3838,7 @@ class VFIOController(object):
         if process.run("ls %s" % grub_file, ignore_status=True).exit_status:
             grub_file = "/etc/grub.cfg"
 
-        grub_content = process.system_output("cat %s" % grub_file)
+        grub_content = decode_to_text(process.system_output("cat %s" % grub_file))
         for line in grub_content.splitlines():
             if re.search("vmlinuz.*intel_iommu=on", line):
                 return
@@ -3858,7 +3856,7 @@ class VFIOController(object):
         readlink_cmd = ("readlink /sys/bus/pci/devices/%s/iommu_group"
                         % pci_group_devices[0])
         try:
-            group_id = int(os.path.basename(process.system_output(readlink_cmd)))
+            group_id = int(os.path.basename(decode_to_text(process.system_output(readlink_cmd))))
         except ValueError as detail:
             raise exceptions.TestError("Get iommu group id failed:%s" % detail)
         return group_id
@@ -3867,8 +3865,8 @@ class VFIOController(object):
         """
         Get all devices in one group by its id.
         """
-        output = process.system_output("ls /sys/kernel/iommu_groups/%s/devices/"
-                                       % group_id)
+        output = decode_to_text(process.system_output("ls /sys/kernel/iommu_groups/%s/devices/"
+                                                      % group_id))
         group_devices = []
         for line in output.splitlines():
             devices = line.split()

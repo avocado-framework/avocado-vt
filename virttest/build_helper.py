@@ -10,7 +10,8 @@ from avocado.utils import git
 from avocado.utils import path
 from avocado.utils import process
 
-from . import data_dir
+from virttest import data_dir
+from virttest.compat_52lts import decode_to_text
 
 
 def _force_copy(src, dest):
@@ -587,8 +588,8 @@ class GnuSourceBuildHelper(object):
 
         :return: list of options accepted by configure script
         """
-        help_raw = process.system_output('%s --help' % self.get_configure_path(),
-                                         ignore_status=True)
+        help_raw = decode_to_text(process.system_output(
+            '%s --help' % self.get_configure_path(), ignore_status=True))
         help_output = help_raw.split("\n")
         option_list = []
         for line in help_output:

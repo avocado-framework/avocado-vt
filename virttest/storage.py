@@ -12,12 +12,13 @@ import re
 
 from avocado.utils import process
 
-from . import iscsi
-from . import utils_misc
-from . import virt_vm
-from . import gluster
-from . import lvm
-from . import ceph
+from virttest import iscsi
+from virttest import utils_misc
+from virttest import virt_vm
+from virttest import gluster
+from virttest import lvm
+from virttest import ceph
+from virttest.compat_52lts import decode_to_text
 
 
 def preprocess_images(bindir, params, env):
@@ -189,8 +190,8 @@ def get_image_filename_filesytem(params, root_dir):
     if indirect_image_select:
         re_name = image_name
         indirect_image_select = int(indirect_image_select)
-        matching_images = process.system_output("ls -1d %s" % re_name,
-                                                shell=True)
+        matching_images = decode_to_text(process.system_output("ls -1d %s" % re_name,
+                                                               shell=True))
         matching_images = sorted(matching_images.split('\n'), cmp=sort_cmp)
         if matching_images[-1] == '':
             matching_images = matching_images[:-1]
