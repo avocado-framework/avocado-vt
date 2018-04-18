@@ -2088,7 +2088,7 @@ class VMFeaturesXML(base.LibvirtXMLBase):
 
     __slots__ = ('feature_list', 'hyperv_relaxed_state', 'hyperv_vapic_state',
                  'hyperv_spinlocks_state', 'hyperv_spinlocks_retries',
-                 'kvm_hidden_state', 'pvspinlock_state', 'smm')
+                 'kvm_hidden_state', 'pvspinlock_state', 'smm', 'hpt_resizing')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLAttribute(property_name='hyperv_relaxed_state',
@@ -2126,6 +2126,11 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                                parent_xpath='/',
                                tag_name='smm',
                                attribute='state')
+        accessors.XMLAttribute(property_name='hpt_resizing',
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='hpt',
+                               attribute='resizing')
         accessors.AllForbidden(property_name="feature_list",
                                libvirtxml=self)
         super(VMFeaturesXML, self).__init__(virsh_instance=virsh_instance)
