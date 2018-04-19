@@ -959,7 +959,7 @@ def run_avocado(vm, params, test, testlist=[], timeout=3600,
 
 def run_autotest(vm, session, control_path, timeout,
                  outputdir, params, copy_only=False, control_args=None,
-                 ignore_session_terminated=False):
+                 ignore_session_terminated=False, boottool_update=False):
     """
     Run an autotest control file inside a guest (linux only utility).
 
@@ -975,6 +975,10 @@ def run_autotest(vm, session, control_path, timeout,
     :param control_args: The arguments for control file.
     :param ignore_session_terminated: If set up this parameter to True we will
             ignore the session terminated during test.
+    :param boottool_update: whether to copy Avocado-VT's own version of boottool.py
+                            over the version provided by Autotest itself.  This
+                            is a workaround only necessary when running specific
+                            RPM based versions (tested on 0.14.3) of Autotest.
 
     The following params is used by the migration
     :param params: Test params used in the migration test
@@ -1318,13 +1322,17 @@ def run_autotest(vm, session, control_path, timeout,
         utils_koji_file = os.path.join(module_dir, 'staging', 'utils_koji.py')
         vm.copy_files_to(utils_koji_file, kernel_install_dest)
 
-    # Copy a non crippled boottool and make it executable
-    boottool_path = os.path.join(data_dir.get_root_dir(),
-                                 "shared", "deps", "run_autotest",
-                                 "boottool.py")
-    boottool_dest = '/usr/local/autotest/tools/boottool.py'
-    vm.copy_files_to(boottool_path, boottool_dest)
-    session.cmd("chmod +x %s" % boottool_dest)
+    if boottool_update:
+        # Copy Avocado-VT's own version of boottool into Autotest's
+        # directory.  Warning: the latest version requires aditional
+        # Python modules, such as "six", which may not be present in
+        # the guest system
+        boottool_path = os.path.join(data_dir.get_root_dir(),
+                                     "shared", "deps", "run_autotest",
+                                     "boottool.py")
+        boottool_dest = '/usr/local/autotest/tools/boottool.py'
+        vm.copy_files_to(boottool_path, boottool_dest)
+        session.cmd("chmod +x %s" % boottool_dest)
 
     # Clean the environment.
     session.cmd("cd %s" % destination_autotest_path)
