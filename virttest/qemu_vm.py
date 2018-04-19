@@ -99,6 +99,7 @@ class VM(virt_vm.BaseVM):
 
     # By default we inherit all timeouts from the base VM class except...
     CLOSE_SESSION_TIMEOUT = 30
+    MIGRATE_TIMEOUT = 2000
 
     def __init__(self, name, params, root_dir, address_cache, state=None):
         """
