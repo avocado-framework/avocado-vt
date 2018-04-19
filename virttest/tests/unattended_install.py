@@ -18,22 +18,22 @@ from avocado.utils import process
 from avocado.utils import crypto
 from avocado.utils import download
 
-from .. import virt_vm
-from .. import asset
-from .. import utils_misc
-from .. import utils_disk
-from .. import qemu_monitor
-from .. import remote
-from .. import syslog_server
-from .. import http_server
-from .. import data_dir
-from .. import utils_net
-from .. import utils_test
-from .. import utils_misc
-from .. import funcatexit
-from .. import storage
-from .. import error_context
-from .. import qemu_storage
+from virttest import virt_vm
+from virttest import asset
+from virttest import utils_disk
+from virttest import qemu_monitor
+from virttest import remote
+from virttest import syslog_server
+from virttest import http_server
+from virttest import data_dir
+from virttest import utils_net
+from virttest import utils_test
+from virttest import utils_misc
+from virttest import funcatexit
+from virttest import storage
+from virttest import error_context
+from virttest import qemu_storage
+from virttest.compat_52lts import decode_to_text
 
 
 # Whether to print all shell commands called
@@ -927,18 +927,18 @@ class UnattendedInstallConfig(object):
             kernel_basename = os.path.basename(self.kernel)
             initrd_basename = os.path.basename(self.initrd)
             sha1sum_kernel_cmd = 'sha1sum %s' % kernel_basename
-            sha1sum_kernel_output = process.system_output(sha1sum_kernel_cmd,
-                                                          ignore_status=True,
-                                                          verbose=DEBUG)
+            sha1sum_kernel_output = decode_to_text(process.system_output(sha1sum_kernel_cmd,
+                                                                         ignore_status=True,
+                                                                         verbose=DEBUG))
             try:
                 sha1sum_kernel = sha1sum_kernel_output.split()[0]
             except IndexError:
                 sha1sum_kernel = ''
 
             sha1sum_initrd_cmd = 'sha1sum %s' % initrd_basename
-            sha1sum_initrd_output = process.system_output(sha1sum_initrd_cmd,
-                                                          ignore_status=True,
-                                                          verbose=DEBUG)
+            sha1sum_initrd_output = decode_to_text(process.system_output(sha1sum_initrd_cmd,
+                                                                         ignore_status=True,
+                                                                         verbose=DEBUG))
             try:
                 sha1sum_initrd = sha1sum_initrd_output.split()[0]
             except IndexError:
@@ -956,7 +956,7 @@ class UnattendedInstallConfig(object):
                 logging.info('Downloading %s -> %s', url_kernel,
                              self.image_path)
                 download.get_file(url_kernel, os.path.join(self.image_path,
-                                  os.path.basename(self.kernel)))
+                                                           os.path.basename(self.kernel)))
 
             if not sha1sum_initrd == self.params.get('sha1sum_initrd',
                                                      None):
@@ -965,7 +965,7 @@ class UnattendedInstallConfig(object):
                 logging.info('Downloading %s -> %s', url_initrd,
                              self.image_path)
                 download.get_file(url_initrd, os.path.join(self.image_path,
-                                  os.path.basename(self.initrd)))
+                                                           os.path.basename(self.initrd)))
 
             if 'repo=cdrom' in self.kernel_params:
                 # Red Hat

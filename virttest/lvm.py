@@ -31,9 +31,9 @@ from avocado.core import exceptions
 from avocado.utils import path
 from avocado.utils import process
 
-from . import utils_misc
-from . import data_dir
-from .compat_52lts import results_stdout_52lts
+from virttest import utils_misc
+from virttest import data_dir
+from virttest.compat_52lts import results_stdout_52lts, decode_to_text
 
 UNIT = "B"
 COMMON_OPTS = "--noheading --nosuffix --unit=%s" % UNIT
@@ -435,7 +435,7 @@ class LVM(object):
         """
         lvs = []
         cmd = "lvm lvs -o lv_name,lv_size,vg_name %s" % COMMON_OPTS
-        output = process.system_output(cmd)
+        output = decode_to_text(process.system_output(cmd))
         for line in output.splitlines():
             lv_name, lv_size, vg_name = line.split()
             vg = self.get_vol(vg_name, "vgs")
@@ -452,7 +452,7 @@ class LVM(object):
         """
         vgs = []
         cmd = "lvm vgs -opv_name,vg_name,vg_size %s" % COMMON_OPTS
-        output = process.system_output(cmd)
+        output = decode_to_text(process.system_output(cmd))
         for line in output.splitlines():
             pv_name, vg_name, vg_size = line.split()
             pv = self.get_vol(pv_name, "pvs")
@@ -469,7 +469,7 @@ class LVM(object):
         """
         pvs = []
         cmd = "lvm pvs -opv_name,pv_size %s" % COMMON_OPTS
-        output = process.system_output(cmd)
+        output = decode_to_text(process.system_output(cmd))
         for line in output.splitlines():
             pv_name, pv_size = line.split()
             pv = PhysicalVolume(pv_name, pv_size)
@@ -652,7 +652,7 @@ class EmulatedLVM(LVM):
         :return: loop back device name;
         """
         cmd = "losetup %s --show --find %s" % (extra_args, img_file)
-        pv_name = process.system_output(cmd)
+        pv_name = decode_to_text(process.system_output(cmd))
         self.params["pv_name"] = pv_name.strip()
         return pv_name
 
@@ -663,7 +663,7 @@ class EmulatedLVM(LVM):
         pvs = []
         emulate_image_file = self.get_emulate_image_name()
         cmd = "losetup -j %s" % emulate_image_file
-        output = process.system_output(cmd)
+        output = decode_to_text(process.system_output(cmd))
         try:
             pv_name = re.findall("(/dev/loop\d+)", output, re.M | re.I)[-1]
             pv = self.get_vol(pv_name, "pvs")
@@ -705,7 +705,7 @@ class EmulatedLVM(LVM):
         if self.params.get("remove_emulated_image", "no") == "yes":
             emulate_image_file = self.get_emulate_image_name()
             cmd = "losetup -j %s" % emulate_image_file
-            output = process.system_output(cmd)
+            output = decode_to_text(process.system_output(cmd))
             devices = re.findall("(/dev/loop\d+)", output, re.M | re.I)
             for dev in devices:
                 cmd = "losetup -d %s" % dev

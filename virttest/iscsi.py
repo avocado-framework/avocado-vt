@@ -17,12 +17,12 @@ from avocado.utils import process
 from avocado.utils import path
 from avocado.utils import distro
 
-from . import utils_selinux
-from . import utils_net
-from . import data_dir
-from . import utils_package
-from .staging import service
-from .compat_52lts import results_stderr_52lts
+from virttest import utils_selinux
+from virttest import utils_net
+from virttest import data_dir
+from virttest import utils_package
+from virttest.staging import service
+from virttest.compat_52lts import results_stderr_52lts, decode_to_text
 
 
 ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
@@ -65,7 +65,7 @@ def iscsi_get_sessions():
     """
     cmd = "iscsiadm --mode session"
 
-    output = process.system_output(cmd, ignore_status=True)
+    output = decode_to_text(process.system_output(cmd, ignore_status=True))
     sessions = []
     if "No active sessions" not in output:
         for session in output.splitlines():
@@ -81,7 +81,7 @@ def iscsi_get_nodes():
     """
     cmd = "iscsiadm --mode node"
 
-    output = process.system_output(cmd, ignore_status=True)
+    output = decode_to_text(process.system_output(cmd, ignore_status=True))
     pattern = r"(\d+\.\d+\.\d+\.\d+|\[.+\]):\d+,\d+\s+([\w\.\-:\d]+)"
     nodes = []
     if "No records found" not in output:
@@ -98,7 +98,7 @@ def iscsi_login(target_name, portal):
     """
     cmd = "iscsiadm --mode node --login --targetname %s" % target_name
     cmd += " --portal %s" % portal
-    output = process.system_output(cmd)
+    output = decode_to_text(process.system_output(cmd))
 
     target_login = ""
     if "successful" in output:
@@ -147,7 +147,7 @@ def iscsi_logout(target_name=None):
 
     output = ''
     try:
-        output = process.system_output(cmd)
+        output = decode_to_text(process.system_output(cmd))
     except process.CmdError as detail:
         # iscsiadm will fail when no matching sessions found
         # This failure makes no sense when target name is not specified
@@ -171,7 +171,7 @@ def iscsi_discover(portal_ip):
     :param portal_ip: Ip for iscsi server
     """
     cmd = "iscsiadm -m discovery -t sendtargets -p %s" % portal_ip
-    output = process.system_output(cmd, ignore_status=True)
+    output = decode_to_text(process.system_output(cmd, ignore_status=True))
 
     session = ""
     if "Invalid" in output:
@@ -304,7 +304,7 @@ class _IscsiComm(object):
         pattern = r"%s.*?disk\s(\w+)\s+\S+\srunning" % self.target
         device_name = []
         if self.logged_in():
-            output = process.system_output(cmd)
+            output = decode_to_text(process.system_output(cmd))
             targets = output.split('Target: ')[1:]
             for target in targets:
                 if self.target in target:
@@ -380,7 +380,7 @@ class IscsiTGT(_IscsiComm):
         Get target id from image name. Only works for emulated iscsi device
         """
         cmd = "tgtadm --lld iscsi --mode target --op show"
-        target_info = process.system_output(cmd)
+        target_info = decode_to_text(process.system_output(cmd))
         target_id = ""
         for line in re.split("\n", target_info):
             if re.findall("Target\s+(\d+)", line):
@@ -398,7 +398,7 @@ class IscsiTGT(_IscsiComm):
         Get all CHAP authentication accounts
         """
         cmd = "tgtadm --lld iscsi --op show --mode account"
-        all_accounts = process.system_output(cmd)
+        all_accounts = decode_to_text(process.system_output(cmd))
         if all_accounts:
             all_accounts = list(map(str.strip, all_accounts.splitlines()[1:]))
         return all_accounts
@@ -433,7 +433,7 @@ class IscsiTGT(_IscsiComm):
         Get the target account information
         """
         cmd = "tgtadm --lld iscsi --mode target --op show"
-        target_info = process.system_output(cmd)
+        target_info = decode_to_text(process.system_output(cmd))
         pattern = r"Target\s+\d:\s+%s" % self.target
         pattern += ".*Account information:\s(.*)ACL information"
         try:
@@ -473,10 +473,10 @@ class IscsiTGT(_IscsiComm):
                 process.system(self.create_cmd)
         cmd = "tgtadm --lld iscsi --mode target --op show"
         try:
-            output = process.system_output(cmd)
+            output = decode_to_text(process.system_output(cmd))
         except process.CmdError:
             restart_tgtd()
-            output = process.system_output(cmd)
+            output = decode_to_text(process.system_output(cmd))
         if not re.findall("%s$" % self.target, output, re.M):
             logging.debug("Need to export target in host")
 
@@ -486,7 +486,7 @@ class IscsiTGT(_IscsiComm):
                 selinux_mode = utils_selinux.get_status()
                 utils_selinux.set_status("permissive")
 
-            output = process.system_output(cmd)
+            output = decode_to_text(process.system_output(cmd))
             used_id = re.findall("Target\s+(\d+)", output)
             emulated_id = 1
             while str(emulated_id) in used_id:
@@ -505,10 +505,10 @@ class IscsiTGT(_IscsiComm):
 
         cmd = "tgtadm --lld iscsi --mode target --op show"
         try:
-            output = process.system_output(cmd)
+            output = decode_to_text(process.system_output(cmd))
         except process.CmdError:   # In case service stopped
             restart_tgtd()
-            output = process.system_output(cmd)
+            output = decode_to_text(process.system_output(cmd))
 
         # Create a LUN with emulated image
         if re.findall(self.emulated_image, output, re.M):
@@ -547,7 +547,7 @@ class IscsiTGT(_IscsiComm):
         Delete target from host.
         """
         cmd = "tgtadm --lld iscsi --mode target --op show"
-        output = process.system_output(cmd)
+        output = decode_to_text(process.system_output(cmd))
         if re.findall("%s$" % self.target, output, re.M):
             if self.emulated_id:
                 cmd = "tgtadm --lld iscsi --mode target --op delete "
@@ -576,7 +576,7 @@ class IscsiLIO(_IscsiComm):
         Get target id from image name.
         """
         cmd = "targetcli ls /iscsi 1"
-        target_info = process.system_output(cmd)
+        target_info = decode_to_text(process.system_output(cmd))
         target = None
         for line in re.split("\n", target_info)[1:]:
             if re.findall("o-\s\S+\s[\.]+\s\[TPGs:\s\d\]$", line):
@@ -590,7 +590,7 @@ class IscsiLIO(_IscsiComm):
                 continue
 
             cmd = "targetcli ls /iscsi/%s/tpg1/luns" % target
-            luns_info = process.system_output(cmd)
+            luns_info = decode_to_text(process.system_output(cmd))
             for lun_line in re.split("\n", luns_info):
                 if re.findall("o-\slun\d+", lun_line):
                     if self.emulated_image in lun_line:
@@ -617,7 +617,7 @@ class IscsiLIO(_IscsiComm):
         # Create user and allow access
         acls_cmd = ("targetcli /iscsi/%s/tpg1/acls/ create %s:client"
                     % (self.target, self.target.split(":")[0]))
-        output = process.system_output(acls_cmd)
+        output = decode_to_text(process.system_output(acls_cmd))
         if "Created Node ACL" not in output:
             raise exceptions.TestFail("Failed to create ACL. (%s)" % output)
 
@@ -625,13 +625,13 @@ class IscsiLIO(_IscsiComm):
                     % (self.target, self.target.split(":")[0]))
         # Set userid
         userid_cmd = "%s set auth userid=%s" % (comm_cmd, self.chap_user)
-        output = process.system_output(userid_cmd)
+        output = decode_to_text(process.system_output(userid_cmd))
         if self.chap_user not in output:
             raise exceptions.TestFail("Failed to set user. (%s)" % output)
 
         # Set password
         passwd_cmd = "%s set auth password=%s" % (comm_cmd, self.chap_passwd)
-        output = process.system_output(passwd_cmd)
+        output = decode_to_text(process.system_output(passwd_cmd))
         if self.chap_passwd not in output:
             raise exceptions.TestFail("Failed to set password. (%s)" % output)
 
@@ -653,13 +653,13 @@ class IscsiLIO(_IscsiComm):
 
         # Set userid
         userid_cmd = "%s set auth userid=%s" % (auth_cmd, self.chap_user)
-        output = process.system_output(userid_cmd)
+        output = decode_to_text(process.system_output(userid_cmd))
         if self.chap_user not in output:
             raise exceptions.TestFail("Failed to set user. (%s)" % output)
 
         # Set password
         passwd_cmd = "%s set auth password=%s" % (auth_cmd, self.chap_passwd)
-        output = process.system_output(passwd_cmd)
+        output = decode_to_text(process.system_output(passwd_cmd))
         if self.chap_passwd not in output:
             raise exceptions.TestFail("Failed to set password. (%s)" % output)
 
@@ -683,7 +683,7 @@ class IscsiLIO(_IscsiComm):
 
         # confirm if the target exists and create iSCSI target
         cmd = "targetcli ls /iscsi 1"
-        output = process.system_output(cmd)
+        output = decode_to_text(process.system_output(cmd))
         if not re.findall("%s$" % self.target, output, re.M):
             logging.debug("Need to export target in host")
 
@@ -708,27 +708,27 @@ class IscsiLIO(_IscsiComm):
             # Create a fileio backstore
             device_cmd = ("targetcli /backstores/fileio/ create %s %s" %
                           (self.device, self.emulated_image))
-            output = process.system_output(device_cmd)
+            output = decode_to_text(process.system_output(device_cmd))
             if "Created fileio" not in output:
                 raise exceptions.TestFail("Failed to create fileio %s. (%s)" %
                                           (self.device, output))
 
             # Create an IQN with a target named target_name
             target_cmd = "targetcli /iscsi/ create %s" % self.target
-            output = process.system_output(target_cmd)
+            output = decode_to_text(process.system_output(target_cmd))
             if "Created target" not in output:
                 raise exceptions.TestFail("Failed to create target %s. (%s)" %
                                           (self.target, output))
 
             check_portal = "targetcli /iscsi/%s/tpg1/portals ls" % self.target
-            portal_info = process.system_output(check_portal)
+            portal_info = decode_to_text(process.system_output(check_portal))
             if "0.0.0.0:3260" not in portal_info:
                 # Create portal
                 # 0.0.0.0 means binding to INADDR_ANY
                 # and using default IP port 3260
                 portal_cmd = ("targetcli /iscsi/%s/tpg1/portals/ create %s"
                               % (self.target, "0.0.0.0"))
-                output = process.system_output(portal_cmd)
+                output = decode_to_text(process.system_output(portal_cmd))
                 if "Created network portal" not in output:
                     raise exceptions.TestFail("Failed to create portal. (%s)" %
                                               output)
@@ -738,14 +738,14 @@ class IscsiLIO(_IscsiComm):
                 # create ipv6 portal if needed.
                 portal_cmd = ("targetcli /iscsi/%s/tpg1/portals/ create %s"
                               % (self.target, self.portal_ip))
-                output = process.system_output(portal_cmd)
+                output = decode_to_text(process.system_output(portal_cmd))
                 if "Created network portal" not in output:
                     raise exceptions.TestFail("Failed to create portal. (%s)" %
                                               output)
             # Create lun
             lun_cmd = "targetcli /iscsi/%s/tpg1/luns/ " % self.target
             dev_cmd = "create /backstores/fileio/%s" % self.device
-            output = process.system_output(lun_cmd + dev_cmd)
+            output = decode_to_text(process.system_output(lun_cmd + dev_cmd))
             luns = re.findall(r"Created LUN (\d+).", output)
             if not luns:
                 raise exceptions.TestFail("Failed to create lun. (%s)" %
@@ -753,8 +753,8 @@ class IscsiLIO(_IscsiComm):
             self.luns = luns[0]
 
             # Set firewall if it's enabled
-            output = process.system_output("firewall-cmd --state",
-                                           ignore_status=True)
+            output = decode_to_text(process.system_output("firewall-cmd --state",
+                                                          ignore_status=True))
             if re.findall("^running", output, re.M):
                 # firewall is running
                 process.system("firewall-cmd --permanent --add-port=3260/tcp")
@@ -786,7 +786,7 @@ class IscsiLIO(_IscsiComm):
                          "demo_mode_write_protect=0",
                          "generate_node_acls=1",
                          "cache_dynamic_acls=1"))
-            output = process.system_output(auth_cmd + attr_cmd)
+            output = decode_to_text(process.system_output(auth_cmd + attr_cmd))
             logging.info("Define access rights: %s" % output)
             # Discovery the target
             self.portal_visible()
@@ -804,7 +804,7 @@ class IscsiLIO(_IscsiComm):
         # Delete block
         if self.device is not None:
             cmd = "targetcli /backstores/fileio ls"
-            output = process.system_output(cmd)
+            output = decode_to_text(process.system_output(cmd))
             if re.findall("%s" % self.device, output, re.M):
                 dev_del = ("targetcli /backstores/fileio/ delete %s"
                            % self.device)
@@ -812,7 +812,7 @@ class IscsiLIO(_IscsiComm):
 
         # Delete IQN
         cmd = "targetcli ls /iscsi 1"
-        output = process.system_output(cmd)
+        output = decode_to_text(process.system_output(cmd))
         if re.findall("%s" % self.target, output, re.M):
             del_cmd = "targetcli /iscsi delete %s" % self.target
             process.system(del_cmd)

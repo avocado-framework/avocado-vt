@@ -19,7 +19,8 @@ from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils.service import SpecificServiceManager
 
-from . import error_context
+from virttest import error_context
+from virttest.compat_52lts import decode_to_text
 
 
 # Whether to print all shell commands called
@@ -73,7 +74,7 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False,
     if session:
         mount_result = session.cmd_output_safe(mount_list_cmd)
     else:
-        mount_result = process.system_output(mount_list_cmd, shell=True)
+        mount_result = decode_to_text(process.system_output(mount_list_cmd, shell=True))
     if verbose:
         logging.debug("/proc/mounts contents:\n%s", mount_result)
 

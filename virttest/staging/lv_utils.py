@@ -47,8 +47,8 @@ import time
 from avocado.core import exceptions
 from avocado.utils import process
 
-from .. import error_context
-from ..compat_52lts import results_stdout_52lts, results_stderr_52lts
+from virttest import error_context
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 
 
 @error_context.context_aware
@@ -418,7 +418,7 @@ def gen_lvmap_mpath(session=None):
     if session:
         output = session.cmd_output(cmd).strip()
     else:
-        output = process.system_output(cmd, shell=True)
+        output = decode_to_text(process.system_output(cmd, shell=True))
     lines = output.splitlines()
     if len(lines) >= 1:
         names_map = {}
@@ -442,7 +442,7 @@ def get_vg_mapped_blk_target(vg_name, session=None):
     if session:
         output = session.cmd_output(cmd).strip()
     else:
-        output = process.system_output(cmd, shell=True)
+        output = decode_to_text(process.system_output(cmd, shell=True))
     if output:
         # PV normally present as /dev/sda1
         pv_name = output.split()[0]

@@ -3,8 +3,9 @@ import re
 import aexpect
 from avocado.utils import process
 
-from . import utils_misc
-from . import error_context
+from virttest import utils_misc
+from virttest import error_context
+from virttest.compat_52lts import decode_to_text
 
 
 class QemuIOParamError(Exception):
@@ -183,7 +184,7 @@ class QemuIOSystem(QemuIO):
 
         error_context.context(
             "Running command: %s" % qemu_io_cmd, self.log_func)
-        output = process.system_output(qemu_io_cmd, timeout=timeout)
+        output = decode_to_text(process.system_output(qemu_io_cmd, timeout=timeout))
 
         # Record command line in log file
         if self.output_func:

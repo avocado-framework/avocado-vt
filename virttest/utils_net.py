@@ -26,7 +26,7 @@ from virttest import data_dir
 from virttest import propcan
 from virttest import utils_misc
 from virttest import arch
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 from virttest.versionable_class import factory
 
 
@@ -1006,8 +1006,8 @@ class Bridge(object):
         ebr_i = re.compile(r"^(\S+).*?(\S+)$", re.MULTILINE)
         br_i = re.compile(r"^(\S+).*?(\S+)\s+(\S+)$", re.MULTILINE)
         nbr_i = re.compile(r"^\s+(\S+)$", re.MULTILINE)
-        out_line = (process.system_output(r"%s show" % brctl_bin,
-                                          verbose=False).splitlines())
+        out_line = decode_to_text(process.system_output(r"%s show" % brctl_bin,
+                                                        verbose=False)).splitlines()
         result = dict()
         bridge = None
 
@@ -1270,7 +1270,7 @@ def find_dnsmasq_listen_address():
     :return: List of ip where dnsmasq is listening.
     """
     cmd = "ps -Af | grep dnsmasq"
-    result = process.system_output(cmd)
+    result = decode_to_text(process.system_output(cmd))
     return re.findall("--listen-address (.+?) ", result, re.MULTILINE)
 
 
@@ -1663,7 +1663,7 @@ def create_network_script(iface_name, mac_addr, boot_proto, net_mask,
     else:
         distro = platform.platform().lower()
         if "ubuntu" in distro:
-            if iface_name in process.system_output(cmd).strip():
+            if iface_name in decode_to_text(process.system_output(cmd)).strip():
                 logging.error("network script file for %s already exists in "
                               "host %s", iface_name, script_file)
                 return
@@ -1740,7 +1740,7 @@ def get_neighbours_info(neigh_address="", interface_name=None):
     cmd = "ip -6 neigh show nud reachable"
     if neigh_address:
         cmd += " %s" % neigh_address
-    output = process.system_output(cmd)
+    output = decode_to_text(process.system_output(cmd))
     if not output:
         raise VMIPV6NeighNotFoundError(neigh_address)
     all_neigh = {}
@@ -3107,8 +3107,8 @@ def verify_ip_address_ownership(ip, macs, timeout=20.0, devs=None):
         regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex), re.I)
         arping_bin = utils_path.find_command("arping")
         cmd = "%s --help" % arping_bin
-        if "-C count" in process.system_output(cmd, shell=True, ignore_status=True,
-                                               verbose=False):
+        if "-C count" in decode_to_text(process.system_output(cmd, shell=True, ignore_status=True,
+                                                              verbose=False)):
             regex = re.compile(r"\b%s\b.*\b(%s)" % (mac_regex, ip), re.I)
             arping_cmd = "%s -C1 -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
                                                        dev, ip)
@@ -3116,7 +3116,7 @@ def verify_ip_address_ownership(ip, macs, timeout=20.0, devs=None):
             arping_cmd = "%s -f -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
                                                       dev, ip)
         try:
-            o = process.system_output(arping_cmd, shell=True, verbose=False)
+            o = decode_to_text(process.system_output(arping_cmd, shell=True, verbose=False))
         except process.CmdError:
             return False
         return bool(regex.search(o))
@@ -3181,7 +3181,7 @@ def gen_ipv4_addr(network_num="10.0.0.0", network_prefix="24", exclude_ips=[]):
         exclude_ips.add('.'.join(network_num.split('.')[0:3]) + ".%s" %
                         str(1))
         exclude_ips.add(('.'.join(network_num.split('.')[0:3]) + ".%s" %
-                        str(255)))
+                         str(255)))
     network = netaddr.IPNetwork("%s/%s" % (network_num, network_prefix))
     for ip_address in network:
         if str(ip_address) not in exclude_ips:
@@ -3275,7 +3275,7 @@ def get_correspond_ip(remote_ip):
     :param remote_ip: Remote ip
     :return: Local corespond IP.
     """
-    result = process.system_output("ip route get %s" % (remote_ip))
+    result = decode_to_text(process.system_output("ip route get %s" % (remote_ip)))
     local_ip = re.search("src (.+)", result)
     if local_ip is not None:
         local_ip = local_ip.groups()[0]
@@ -3578,7 +3578,7 @@ def get_host_default_gateway(iface_name=False):
     else:
         cmd = "ip route | awk '/default/ { print $3 }'"
     try:
-        output = process.system_output(cmd, shell=True).rstrip()
+        output = decode_to_text(process.system_output(cmd, shell=True).rstrip())
     except process.CmdError:
         logging.error("Failed to get the host's default GateWay")
         return None
@@ -3601,7 +3601,7 @@ def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
                 utils_path.find_command("netstat")
             except utils_path.CmdNotFoundError as details:
                 raise exceptions.TestSkipError(details)
-            output = process.system_output(cmd, shell=True)
+            output = decode_to_text(process.system_output(cmd, shell=True))
         else:
             if not runner(find_netstat_cmd):
                 raise exceptions.TestSkipError("Missing netstat command on "

@@ -53,7 +53,7 @@ from virttest import virt_vm
 from virttest import utils_package
 from virttest import data_dir
 from virttest.staging import utils_memory
-from virttest.compat_52lts import results_stdout_52lts
+from virttest.compat_52lts import results_stdout_52lts, decode_to_text
 
 # Get back to importing submodules
 # This is essential for accessing these submodules directly from
@@ -641,7 +641,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
                     return port.hostfile
 
     def run_host_cmd(host_cmd, timeout=720):
-        return process.system_output(host_cmd, timeout=timeout)
+        return decode_to_text(process.system_output(host_cmd, timeout=timeout))
 
     def transfer_data(session, host_cmd, guest_cmd, n_time, timeout,
                       md5_check, action):
@@ -1115,7 +1115,7 @@ def run_autotest(vm, session, control_path, timeout,
         status_path = " ".join(status_paths)
 
         try:
-            output = process.system_output("cat %s" % status_path)
+            output = decode_to_text(process.system_output("cat %s" % status_path))
         except process.CmdError as e:
             logging.error("Error getting guest autotest status file: %s", e)
             return None
