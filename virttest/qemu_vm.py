@@ -4136,7 +4136,7 @@ class VM(virt_vm.BaseVM):
         self.create(name=self.name, params=self.params, root_dir=self.root_dir,
                     timeout=self.MIGRATE_TIMEOUT, migration_mode="exec",
                     migration_exec_cmd="cat " + path, mac_source=self)
-        self.verify_status('running')  # Throws exception if not
+        self.resume()
 
     def savevm(self, tag_name):
         """
