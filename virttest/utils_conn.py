@@ -381,13 +381,13 @@ class ConnectionBase(propcan.PropCanBase):
             client_session = remote.wait_for_login(transport, host, port,
                                                    username, password, prompt)
         except remote.LoginTimeoutError:
-            raise ConnLoginError("Got a timeout error when login to client.")
+            raise ConnLoginError(host, "Got a timeout error when login to client.")
         except remote.LoginAuthenticationError:
-            raise ConnLoginError("Authentication failed to login to client.")
+            raise ConnLoginError(host, "Authentication failed to login to client.")
         except remote.LoginProcessTerminatedError:
-            raise ConnLoginError("Host terminates during login to client.")
+            raise ConnLoginError(host, "Host terminates during login to client.")
         except remote.LoginError:
-            raise ConnLoginError("Some error occurs login to client failed.")
+            raise ConnLoginError(host, "Some error occurs login to client failed.")
 
         return client_session
 
@@ -437,13 +437,13 @@ class ConnectionBase(propcan.PropCanBase):
             server_session = remote.wait_for_login(transport, host, port,
                                                    username, password, prompt)
         except remote.LoginTimeoutError:
-            raise ConnLoginError("Got a timeout error when login to server.")
+            raise ConnLoginError(host, "Got a timeout error when login to server.")
         except remote.LoginAuthenticationError:
-            raise ConnLoginError("Authentication failed to login to server.")
+            raise ConnLoginError(host, "Authentication failed to login to server.")
         except remote.LoginProcessTerminatedError:
-            raise ConnLoginError("Host terminates during login to server.")
+            raise ConnLoginError(host, "Host terminates during login to server.")
         except remote.LoginError:
-            raise ConnLoginError("Some error occurs login to client server.")
+            raise ConnLoginError(host, "Some error occurs login to client server.")
 
         return server_session
 
