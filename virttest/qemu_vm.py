@@ -1379,7 +1379,7 @@ class VM(virt_vm.BaseVM):
         support_cpu_model = decode_to_text(process.system_output("%s -cpu \\?" % qemu_binary,
                                                                  verbose=False,
                                                                  ignore_status=True,
-                                                                 shell=True))
+                                                                 shell=True), encoding='utf-8')
 
         self.last_driver_index = 0
         # init the dict index_in_use
