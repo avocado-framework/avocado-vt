@@ -16,7 +16,7 @@
 This module contains helpers that allows running Avocado-vt with Avocado
 master as well as with 52.x LTS release.
 """
-import sys
+import locale
 
 from six import string_types
 
@@ -45,7 +45,7 @@ def results_stderr_52lts(result):
         return result.stderr
 
 
-def decode_to_text(stream, encoding=sys.getdefaultencoding()):
+def decode_to_text(stream, encoding=locale.getpreferredencoding()):
     """
     Decode decoding string
     :param stream: string stream
