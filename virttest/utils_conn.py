@@ -11,9 +11,10 @@ import aexpect
 from avocado.utils import path
 from avocado.utils import process
 
-from . import propcan, remote, utils_libvirtd
-from . import data_dir
-from .compat_52lts import results_stderr_52lts
+from virttest import propcan, remote, utils_libvirtd
+from virttest import data_dir
+from virttest import utils_package
+from virttest.compat_52lts import results_stderr_52lts
 
 
 class ConnectionError(Exception):
@@ -659,9 +660,9 @@ class TCPConnection(ConnectionBase):
 
     Some specific variables for TCPConnection class.
     """
-    __slots__ = ('tcp_port', 'remote_syslibvirtd',
+    __slots__ = ('tcp_port', 'remote_syslibvirtd', 'sasl_type',
                  'remote_libvirtdconf', 'sasl_allowed_users',
-                 'auth_tcp', 'listen_addr')
+                 'auth_tcp', 'listen_addr', 'remote_saslconf')
 
     def __init__(self, *args, **dargs):
         """
@@ -676,6 +677,7 @@ class TCPConnection(ConnectionBase):
         init_dict = dict(*args, **dargs)
         init_dict['tcp_port'] = init_dict.get('tcp_port', '16509')
         init_dict['auth_tcp'] = init_dict.get('auth_tcp', 'none')
+        init_dict['sasl_type'] = init_dict.get('sasl_type', 'gssapi')
         init_dict['listen_addr'] = init_dict.get('listen_addr')
         init_dict['sasl_allowed_users'] = init_dict.get('sasl_allowed_users')
         super(TCPConnection, self).__init__(init_dict)
@@ -696,6 +698,14 @@ class TCPConnection(ConnectionBase):
             port='22',
             remote_path='/etc/libvirt/libvirtd.conf')
 
+        self.remote_saslconf = remote.RemoteFile(
+            address=self.server_ip,
+            client='scp',
+            username=self.server_user,
+            password=self.server_pwd,
+            port='22',
+            remote_path='/etc/sasl2/libvirt.conf')
+
     def conn_recover(self):
         """
         Clean up for TCP connection.
@@ -711,6 +721,7 @@ class TCPConnection(ConnectionBase):
         # delete the RemoteFile object to recover remote file.
         del self.remote_syslibvirtd
         del self.remote_libvirtdconf
+        del self.remote_saslconf
         # restart libvirtd service on server
         try:
             session = remote.wait_for_login('ssh', server_ip, '22',
@@ -743,32 +754,44 @@ class TCPConnection(ConnectionBase):
         listen_addr = self.listen_addr
 
         # edit the /etc/sysconfig/libvirtd to add --listen args in libvirtd
-        pattern2repl = {r".*LIBVIRTD_ARGS\s*=\s*\"\s*--listen\s*\".*":
-                        "LIBVIRTD_ARGS=\"--listen\""}
-        self.remote_syslibvirtd.sub_else_add(pattern2repl)
+        pattern_to_repl = {r".*LIBVIRTD_ARGS\s*=\s*\"\s*--listen\s*\".*":
+                           "LIBVIRTD_ARGS=\"--listen\""}
+        self.remote_syslibvirtd.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf
         # listen_tcp=1, tcp_port=$tcp_port, auth_tcp="none"
         # listen_tcp=1, tcp_port=$tcp_port, auth_tcp=$auth_tcp
-        pattern2repl = {r".*listen_tls\s*=.*": 'listen_tls=0',
-                        r".*listen_tcp\s*=.*": 'listen_tcp=1',
-                        r".*tcp_port\s*=.*": 'tcp_port="%s"' % (tcp_port),
-                        r".*auth_tcp\s*=.*": 'auth_tcp="%s"' % (auth_tcp)}
+        pattern_to_repl = {r".*listen_tls\s*=.*": 'listen_tls=0',
+                           r".*listen_tcp\s*=.*": 'listen_tcp=1',
+                           r".*tcp_port\s*=.*": 'tcp_port="%s"' % (tcp_port),
+                           r".*auth_tcp\s*=.*": 'auth_tcp="%s"' % (auth_tcp)}
         # a whitelist of allowed SASL usernames, it's a list.
         # If the list is an empty, no client can connect
         if sasl_allowed_users:
-            pattern2repl[r".*sasl_allowed_username_list\s*=.*"] = \
+            pattern_to_repl[r".*sasl_allowed_username_list\s*=.*"] = \
                 'sasl_allowed_username_list=%s' % (sasl_allowed_users)
         if listen_addr:
-            pattern2repl[r".*listen_addr\s*=.*"] = \
+            pattern_to_repl[r".*listen_addr\s*=.*"] = \
                 "listen_addr='%s'" % (listen_addr)
-        self.remote_libvirtdconf.sub_else_add(pattern2repl)
+        self.remote_libvirtdconf.sub_else_add(pattern_to_repl)
+
+        # edit the /etc/sasl2/libvirt.conf to change sasl method
+        if self.sasl_type == 'gssapi':
+            keytab = "keytab: /etc/libvirt/krb5.tab"
+        else:
+            keytab = ""
+        pattern_to_repl = {r".*mech_list\s*:\s*.*":
+                           "mech_list: %s" % self.sasl_type,
+                           r".*keytab\s*:\s*.*": keytab}
+        self.remote_saslconf.sub_else_add(pattern_to_repl)
 
         # restart libvirtd service on server
         try:
             session = remote.wait_for_login('ssh', server_ip, '22',
                                             server_user, server_pwd,
                                             r"[\#\$]\s*$")
+            remote_runner = remote.RemoteRunner(session=session)
+            remote_runner.run('iptables -F', ignore_status=True)
             libvirtd_service = utils_libvirtd.Libvirtd(session=session)
             libvirtd_service.restart()
         except (remote.LoginError, aexpect.ShellError) as detail:
@@ -804,11 +827,11 @@ class TLSConnection(ConnectionBase):
     __slots__ = ('server_cn', 'client_cn', 'ca_cn', 'CERTTOOL', 'pki_CA_dir',
                  'libvirt_pki_dir', 'libvirt_pki_private_dir', 'client_hosts',
                  'server_libvirtdconf', 'server_syslibvirtd', 'auth_tls',
-                 'tls_port', 'listen_addr', 'tls_allowed_dn_list',
+                 'tls_port', 'listen_addr', 'tls_allowed_dn_list', 'sasl_type',
                  'custom_pki_path', 'tls_verify_cert', 'tls_sanity_cert',
                  'ca_cakey_path', 'scp_new_cacert', 'restart_libvirtd',
                  'client_libvirtdconf', 'client_syslibvirtd', 'server_hosts',
-                 'credential_dict', 'qemu_tls')
+                 'credential_dict', 'qemu_tls', 'server_saslconf')
 
     def __init__(self, *args, **dargs):
         """
@@ -832,6 +855,7 @@ class TLSConnection(ConnectionBase):
         init_dict['tls_sanity_cert'] = init_dict.get('tls_sanity_cert', 'yes')
         init_dict['tls_allowed_dn_list'] = init_dict.get('tls_allowed_dn_list')
         init_dict['scp_new_cacert'] = init_dict.get('scp_new_cacert', 'yes')
+        init_dict['sasl_type'] = init_dict.get('sasl_type', 'gssapi')
         init_dict['restart_libvirtd'] = init_dict.get(
             'restart_libvirtd', 'yes')
 
@@ -901,6 +925,14 @@ class TLSConnection(ConnectionBase):
             port='22',
             remote_path='/etc/libvirt/libvirtd.conf')
 
+        self.server_saslconf = remote.RemoteFile(
+            address=self.server_ip,
+            client='scp',
+            username=self.server_user,
+            password=self.server_pwd,
+            port='22',
+            remote_path='/etc/sasl2/libvirt.conf')
+
         self.client_syslibvirtd = remote.RemoteFile(
             address=self.client_ip,
             client='scp',
@@ -938,6 +970,7 @@ class TLSConnection(ConnectionBase):
         del self.server_syslibvirtd
         del self.server_libvirtdconf
         del self.server_hosts
+        del self.server_saslconf
         del self.client_syslibvirtd
         del self.client_libvirtdconf
 
@@ -1086,6 +1119,8 @@ class TLSConnection(ConnectionBase):
             server_session = self.client_session
         else:
             server_session = self.server_session
+        if self.sasl_type == 'digest-md5':
+            utils_package.package_install('cyrus-sasl-md5', session=server_session)
         cmd = "mkdir -p %s" % self.libvirt_pki_private_dir
         status, output = server_session.cmd_status_output(cmd)
         if status:
@@ -1119,37 +1154,37 @@ class TLSConnection(ConnectionBase):
             operate_syslibvirtd = self.server_syslibvirtd
 
         # edit the /etc/sysconfig/libvirtd to add --listen args in libvirtd
-        pattern2repl = {r".*LIBVIRTD_ARGS\s*=\s*\"\s*--listen\s*\".*":
-                        "LIBVIRTD_ARGS=\"--listen\""}
-        operate_syslibvirtd.sub_else_add(pattern2repl)
+        pattern_to_repl = {r".*LIBVIRTD_ARGS\s*=\s*\"\s*--listen\s*\".*":
+                           "LIBVIRTD_ARGS=\"--listen\""}
+        operate_syslibvirtd.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add listen_tls=1
-        pattern2repl = {r".*listen_tls\s*=\s*.*": "listen_tls=1"}
-        operate_libvirtdconf.sub_else_add(pattern2repl)
+        pattern_to_repl = {r".*listen_tls\s*=\s*.*": "listen_tls=1"}
+        operate_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add
         # listen_addr=$listen_addr
         if listen_addr:
-            pattern2repl[r".*listen_addr\s*=.*"] = \
+            pattern_to_repl[r".*listen_addr\s*=.*"] = \
                 "listen_addr='%s'" % (listen_addr)
-            operate_libvirtdconf.sub_else_add(pattern2repl)
+            operate_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add auth_tls=$auth_tls
         if auth_tls != 'none':
-            pattern2repl = {r".*auth_tls\s*=\s*.*": 'auth_tls="%s"' % auth_tls}
-            operate_libvirtdconf.sub_else_add(pattern2repl)
+            pattern_to_repl = {r".*auth_tls\s*=\s*.*": 'auth_tls="%s"' % auth_tls}
+            operate_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add tls_port=$tls_port
         if tls_port != '16514':
-            pattern2repl = {r".*tls_port\s*=\s*.*": 'tls_port="%s"' % tls_port}
-            operate_libvirtdconf.sub_else_add(pattern2repl)
+            pattern_to_repl = {r".*tls_port\s*=\s*.*": 'tls_port="%s"' % tls_port}
+            operate_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add
         # tls_allowed_dn_list=$tls_allowed_dn_list
         if isinstance(tls_allowed_dn_list, list):
-            pattern2repl = {r".*tls_allowed_dn_list\s*=\s*.*":
-                            'tls_allowed_dn_list=%s' % tls_allowed_dn_list}
-            operate_libvirtdconf.sub_else_add(pattern2repl)
+            pattern_to_repl = {r".*tls_allowed_dn_list\s*=\s*.*":
+                               'tls_allowed_dn_list=%s' % tls_allowed_dn_list}
+            operate_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to override
         # the default server certification file path
@@ -1157,25 +1192,35 @@ class TLSConnection(ConnectionBase):
             cert_path_dict = {'ca_file': cacert_path,
                               'key_file': serverkey_path,
                               'cert_file': servercert_path}
-            pattern2repl = {}
+            pattern_to_repl = {}
             for cert_name in cert_path_dict:
                 cert_file = os.path.basename(cert_path_dict[cert_name])
                 abs_cert_file = os.path.join(pki_path, cert_file)
-                pattern2repl[r".*%s\s*=.*" % (cert_name)] = \
+                pattern_to_repl[r".*%s\s*=.*" % (cert_name)] = \
                     '%s="%s"' % (cert_name, abs_cert_file)
-            operate_libvirtdconf.sub_else_add(pattern2repl)
+            operate_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to disable client verification
         if tls_verify_cert == "no":
-            pattern2repl = {r".*tls_no_verify_certificate\s*=\s*.*":
-                            'tls_no_verify_certificate=1'}
-            operate_libvirtdconf.sub_else_add(pattern2repl)
+            pattern_to_repl = {r".*tls_no_verify_certificate\s*=\s*.*":
+                               'tls_no_verify_certificate=1'}
+            operate_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to disable server sanity checks
         if tls_sanity_cert == "no":
-            pattern2repl = {r".*tls_no_sanity_certificate\s*=\s*.*":
-                            'tls_no_sanity_certificate=1'}
-            operate_libvirtdconf.sub_else_add(pattern2repl)
+            pattern_to_repl = {r".*tls_no_sanity_certificate\s*=\s*.*":
+                               'tls_no_sanity_certificate=1'}
+            operate_libvirtdconf.sub_else_add(pattern_to_repl)
+
+        # edit the /etc/sasl2/libvirt.conf to change sasl method
+        if self.sasl_type == 'gssapi':
+            keytab = "keytab: /etc/libvirt/krb5.tab"
+        else:
+            keytab = ""
+        pattern_to_repl = {r".*mech_list\s*:\s*.*":
+                           "mech_list: %s" % self.sasl_type,
+                           r".*keytab\s*:\s*.*": keytab}
+        self.server_saslconf.sub_else_add(pattern_to_repl)
 
         # restart libvirtd service on server
         if restart_libvirtd == "yes":
@@ -1187,6 +1232,8 @@ class TLSConnection(ConnectionBase):
                     session = remote.wait_for_login('ssh', server_ip, '22',
                                                     server_user, server_pwd,
                                                     r"[\#\$]\s*$")
+                    remote_runner = remote.RemoteRunner(session=session)
+                    remote_runner.run('iptables -F', ignore_status=True)
                     libvirtd_service = utils_libvirtd.Libvirtd(session=session)
                     libvirtd_service.restart()
                 except (remote.LoginError, aexpect.ShellError) as detail:
@@ -1195,9 +1242,9 @@ class TLSConnection(ConnectionBase):
         # edit /etc/hosts on remote host in case of connecting
         # from remote host to local host
         if not on_local:
-            pattern2repl = {r".*%s.*" % self.client_cn:
-                            "%s %s" % (self.client_ip, self.client_cn)}
-            self.server_hosts.sub_else_add(pattern2repl)
+            pattern_to_repl = {r".*%s.*" % self.client_cn:
+                               "%s %s" % (self.client_ip, self.client_cn)}
+            self.server_hosts.sub_else_add(pattern_to_repl)
 
     def client_setup(self):
         """
@@ -1226,6 +1273,8 @@ class TLSConnection(ConnectionBase):
 
         # scp cacert.pem, clientcert.pem and clientkey.pem to client.
         client_session = self.client_session
+        if self.sasl_type == 'digest-md5':
+            utils_package.package_install('cyrus-sasl-md5', session=client_session)
         cmd = "mkdir -p %s" % self.libvirt_pki_private_dir
         status, output = client_session.cmd_status_output(cmd)
         if status:
@@ -1247,9 +1296,9 @@ class TLSConnection(ConnectionBase):
                                    client_ip, remote_path, detail)
 
         # edit /etc/hosts on client
-        pattern2repl = {r".*%s.*" % self.server_cn:
-                        "%s %s" % (self.server_ip, self.server_cn)}
-        self.client_hosts.sub_else_add(pattern2repl)
+        pattern_to_repl = {r".*%s.*" % self.server_cn:
+                           "%s %s" % (self.server_ip, self.server_cn)}
+        self.client_hosts.sub_else_add(pattern_to_repl)
 
 
 def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool",
@@ -1420,7 +1469,9 @@ class UNIXConnection(ConnectionBase):
                  'unix_sock_group', 'unix_sock_ro_perms',
                  'unix_sock_rw_perms', 'access_drivers',
                  'client_ip', 'client_user', 'client_pwd',
-                 'client_libvirtdconf', 'restart_libvirtd')
+                 'client_libvirtdconf', 'restart_libvirtd',
+                 'client_saslconf', 'client_hosts', 'sasl_type',
+                 'sasl_allowed_username_list')
 
     def __init__(self, *args, **dargs):
         """
@@ -1443,6 +1494,7 @@ class UNIXConnection(ConnectionBase):
         init_dict = dict(*args, **dargs)
         init_dict['auth_unix_ro'] = init_dict.get('auth_unix_ro', 'none')
         init_dict['auth_unix_rw'] = init_dict.get('auth_unix_rw', 'none')
+        init_dict['sasl_type'] = init_dict.get('sasl_type', 'gssapi')
         init_dict['unix_sock_dir'] = init_dict.get(
             'unix_sock_dir', '/var/run/libvirt')
         init_dict['unix_sock_group'] = init_dict.get(
@@ -1455,6 +1507,8 @@ class UNIXConnection(ConnectionBase):
             'unix_sock_rw_perms', '0770')
         init_dict['restart_libvirtd'] = init_dict.get(
             'restart_libvirtd', 'yes')
+        init_dict['sasl_allowed_username_list'] = init_dict.get(
+            'sasl_allowed_username_list', '["root/admin" ]')
 
         super(UNIXConnection, self).__init__(init_dict)
 
@@ -1466,6 +1520,22 @@ class UNIXConnection(ConnectionBase):
             port='22',
             remote_path='/etc/libvirt/libvirtd.conf')
 
+        self.client_saslconf = remote.RemoteFile(
+            address=self.client_ip,
+            client='scp',
+            username=self.client_user,
+            password=self.client_pwd,
+            port='22',
+            remote_path='/etc/sasl2/libvirt.conf')
+
+        self.client_hosts = remote.RemoteFile(
+            address=self.client_ip,
+            client='scp',
+            username=self.client_user,
+            password=self.client_pwd,
+            port='22',
+            remote_path='/etc/hosts')
+
     def conn_recover(self):
         """
         Do the clean up work.
@@ -1474,6 +1544,8 @@ class UNIXConnection(ConnectionBase):
         (2).Restart libvirtd on server.
         """
         del self.client_libvirtdconf
+        del self.client_saslconf
+        del self.client_hosts
         # restart libvirtd service on server
         client_session = self.client_session
         try:
@@ -1502,48 +1574,84 @@ class UNIXConnection(ConnectionBase):
         access_drivers = self.access_drivers
         restart_libvirtd = self.restart_libvirtd
         client_session = self.client_session
+        sasl_allowed_username_list = self.sasl_allowed_username_list
 
         # edit the /etc/libvirt/libvirtd.conf to add auth_unix_ro arg
         if auth_unix_ro:
-            pattern2repl = {r".*auth_unix_ro\s*=.*":
-                            'auth_unix_ro="%s"' % auth_unix_ro}
-            self.client_libvirtdconf.sub_else_add(pattern2repl)
+            pattern_to_repl = {r".*auth_unix_ro\s*=.*":
+                               'auth_unix_ro="%s"' % auth_unix_ro}
+            self.client_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add auth_unix_rw arg
         if auth_unix_rw:
-            pattern2repl = {r".*auth_unix_rw\s*=.*":
-                            'auth_unix_rw="%s"' % auth_unix_rw}
-            self.client_libvirtdconf.sub_else_add(pattern2repl)
+            pattern_to_repl = {r".*auth_unix_rw\s*=.*":
+                               'auth_unix_rw="%s"' % auth_unix_rw}
+            self.client_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add unix_sock_group arg
         if unix_sock_group != 'libvirt':
-            pattern2repl = {r".*unix_sock_group\s*=.*":
-                            'unix_sock_group="%s"' % unix_sock_group}
-            self.client_libvirtdconf.sub_else_add(pattern2repl)
+            pattern_to_repl = {r".*unix_sock_group\s*=.*":
+                               'unix_sock_group="%s"' % unix_sock_group}
+            self.client_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add unix_sock_dir arg
         if unix_sock_dir != '/var/run/libvirt':
-            pattern2repl = {r".*unix_sock_dir\s*=.*":
-                            'unix_sock_dir="%s"' % unix_sock_dir}
-            self.client_libvirtdconf.sub_else_add(pattern2repl)
+            pattern_to_repl = {r".*unix_sock_dir\s*=.*":
+                               'unix_sock_dir="%s"' % unix_sock_dir}
+            self.client_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add access_drivers arg
         if access_drivers != ["polkit"]:
-            pattern2repl = {r".*access_drivers\s*=.*":
-                            'access_drivers="%s"' % access_drivers}
-            self.client_libvirtdconf.sub_else_add(pattern2repl)
+            pattern_to_repl = {r".*access_drivers\s*=.*":
+                               'access_drivers="%s"' % access_drivers}
+            self.client_libvirtdconf.sub_else_add(pattern_to_repl)
+
+        if auth_unix_rw == 'sasl':
+            pattern_to_repl = {r".*access_drivers\s*=.*":
+                               '#access_drivers="%s"' % access_drivers}
+            self.client_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add unix_sock_ro_perms arg
         if unix_sock_ro_perms:
-            pattern2repl = {r".*unix_sock_ro_perms\s*=.*":
-                            'unix_sock_ro_perms="%s"' % unix_sock_ro_perms}
-            self.client_libvirtdconf.sub_else_add(pattern2repl)
+            pattern_to_repl = {r".*unix_sock_ro_perms\s*=.*":
+                               'unix_sock_ro_perms="%s"' % unix_sock_ro_perms}
+            self.client_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add unix_sock_rw_perms arg
         if unix_sock_rw_perms:
-            pattern2repl = {r".*unix_sock_rw_perms\s*=.*":
-                            'unix_sock_rw_perms="%s"' % unix_sock_rw_perms}
-            self.client_libvirtdconf.sub_else_add(pattern2repl)
+            pattern_to_repl = {r".*unix_sock_rw_perms\s*=.*":
+                               'unix_sock_rw_perms="%s"' % unix_sock_rw_perms}
+            self.client_libvirtdconf.sub_else_add(pattern_to_repl)
+
+        if self.sasl_type == 'digest-md5':
+            utils_package.package_install('cyrus-sasl-md5', session=client_session)
+
+        # edit the /etc/sasl2/libvirt.conf to change sasl method and
+        # edit the /etc/hosts to add the host
+        if self.sasl_type == 'gssapi' and auth_unix_rw == 'sasl':
+            keytab = "keytab: /etc/libvirt/krb5.tab"
+            sasldb = ""
+            remote_runner = remote.RemoteRunner(session=client_session)
+            hostname = remote_runner.run('hostname', ignore_status=True).stdout.strip()
+            pattern_to_repl = {r".*127.0.0.1\s*.*":
+                               "127.0.0.1    %s localhost localhost.localdomain "
+                               "localhost4 localhost4.localdomain6" % hostname,
+                               r".*::1\s*.*":
+                               "::1    %s localhost localhost.localdomain "
+                               "localhost6 localhost6.localdomain6" % hostname
+                               }
+            self.client_hosts.sub_else_add(pattern_to_repl)
+            pattern_to_repl = {r".*sasl_allowed_username_list\s*=.*":
+                               'sasl_allowed_username_list=%s' % sasl_allowed_username_list}
+            self.client_libvirtdconf.sub_else_add(pattern_to_repl)
+        else:
+            keytab = ""
+            sasldb = "sasldb_path: /etc/libvirt/passwd.db"
+        pattern_to_repl = {r".*mech_list\s*:\s*.*":
+                           "mech_list: %s" % self.sasl_type,
+                           r".*keytab\s*:\s*.*": keytab,
+                           r".*sasldb_path\s*:\s*.*": sasldb}
+        self.client_saslconf.sub_else_add(pattern_to_repl)
 
         # restart libvirtd service on server
         if restart_libvirtd == "yes":
