@@ -92,7 +92,7 @@ def get_md5(filename, size=None):
 
 
 def shake_hand(connect, size=0, action="receive"):
-    hi_str = struct.pack("2s", "HI")
+    hi_str = struct.pack("2s", b"HI")
     hi_str_len = len(hi_str)
     if action == "send":
         connect.send(hi_str)
@@ -116,7 +116,7 @@ def shake_hand(connect, size=0, action="receive"):
         size = connect.recv(8)
         if size:
             size = struct.unpack("q", size)[0]
-            txt = struct.pack("3s", "ACK")
+            txt = struct.pack("3s", b"ACK")
             connect.send(txt)
         return size
 

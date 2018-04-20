@@ -48,7 +48,7 @@ class VirtIoChannel:
 
     def __init__(self, device_name):
         self.ack_format = "3s"
-        self.ack_msg = "ACK"
+        self.ack_msg = b"ACK"
         self.hi_format = "2s"
         self.hi_msg = "HI"
         if self.is_windows:
