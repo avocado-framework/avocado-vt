@@ -45,15 +45,18 @@ def results_stderr_52lts(result):
         return result.stderr
 
 
-def decode_to_text(stream, encoding=locale.getpreferredencoding()):
+def decode_to_text(stream, encoding=locale.getpreferredencoding(),
+                   errors='strict'):
     """
     Decode decoding string
     :param stream: string stream
     :param encoding: encode_type
+    :param errors: error handling to use while decoding (strict,replace,
+                   ignore,...)
     :return: encoding text
     """
     if hasattr(stream, 'decode'):
-        return stream.decode(encoding)
+        return stream.decode(encoding, errors)
     if isinstance(stream, string_types):
         return stream
     raise TypeError("Unable to decode stream into a string-like type")
