@@ -61,8 +61,6 @@ if 'AUTOTEST_PATH' in os.environ:
     SETUP_MODULES.setup(base_path=CLIENT_DIR,
                         root_module_name="autotest.client")
 
-from autotest.client.shared import error
-
 import six
 
 
@@ -254,9 +252,6 @@ class VirtTest(test.Test):
         except:  # nopep8 Old-style exceptions are not inherited from Exception()
             details = sys.exc_info()[1]
             self.__status = details
-            if not hasattr(self, "cancel"):     # Old Avocado, skip here
-                if isinstance(self.__status, error.TestNAError):
-                    raise exceptions.TestSkipError(self.__status)
         finally:
             if env_lang:
                 os.environ['LANG'] = env_lang
@@ -271,14 +266,7 @@ class VirtTest(test.Test):
         reports the correct results
         """
         if self.__status != "PASS":
-            if isinstance(self.__status, error.TestNAError):
-                self.cancel(str(self.__status))
-            elif isinstance(self.__status, error.TestWarn):
-                self.log.warn(str(self.__status))
-            elif isinstance(self.__status, error.TestFail):
-                self.fail(str(self.__status))
-            else:
-                raise self.__status  # pylint: disable=E0702
+            raise self.__status  # pylint: disable=E0702
 
     def _runTest(self):
         params = self.params
