@@ -2922,7 +2922,7 @@ class VM(virt_vm.BaseVM):
                 # start guest
                 if self.monitor.verify_status("paused"):
                     if not migration_mode:
-                        self.monitor.cmd("cont")
+                        self.resume()
 
             # Update mac and IP info for assigned device
             # NeedFix: Can we find another way to get guest ip?
@@ -3982,7 +3982,7 @@ class VM(virt_vm.BaseVM):
             # self points to a dead VM object
             if not not_wait_for_migration:
                 if self.is_alive() and self.is_paused():
-                    self.monitor.cmd("cont")
+                    self.resume()
                 clone.destroy(gracefully=False)
                 if env:
                     env.unregister_vm("%s_clone" % self.name)
