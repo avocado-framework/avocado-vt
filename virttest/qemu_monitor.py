@@ -601,6 +601,23 @@ class Monitor:
         finally:
             self._log_lock.release()
 
+    def wait_for_migrate_progress(self, target):
+        """
+        Wait for migration progress to hit a target %
+        Note: We exit if we've gone onto another pass rather than wait
+        for a target we might never hit.
+        """
+        old_progress = 0
+        while True:
+            progress = self.get_migrate_progress()
+            if (progress < old_progress or
+                    progress >= target):
+                break
+            # progress < old_progress indicates we must be on
+            # another pass (we could also check the sync count)
+            old_progress = progress
+            time.sleep(0.1)
+
 
 class HumanMonitor(Monitor):
 
