@@ -116,6 +116,7 @@ import string
 import sys
 import re
 
+from six import PY3
 from . import element_path as ElementPath
 
 
@@ -756,7 +757,10 @@ def dump(elem):
 
 def _encode(s, encoding):
     try:
-        return s.encode(encoding)
+        if PY3:
+            return s.encode(encoding).decode(encoding)
+        else:
+            return s.encode(encoding)
     except AttributeError:
         return s  # 1.5.2: assume the string uses the right encoding
 
