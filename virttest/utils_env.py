@@ -74,7 +74,7 @@ class Env(IterableUserDict):
         if filename:
             try:
                 if os.path.isfile(filename):
-                    f = open(filename, "r")
+                    f = open(filename, "rb")
                     env = cPickle.load(f)
                     f.close()
                     if env.get("version", 0) >= version:
@@ -110,7 +110,7 @@ class Env(IterableUserDict):
             raise EnvSaveError("No filename specified for this env file")
         self.save_lock.acquire()
         try:
-            f = open(filename, "w")
+            f = open(filename, "wb")
             cPickle.dump(self.data, f)
             f.close()
         finally:
