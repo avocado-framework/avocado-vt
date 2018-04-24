@@ -110,7 +110,7 @@ class Builder(object):
                 Calculate hex-encoded hash of a file
                 :param file_name: File to hash
                 """
-                f = open(file_name, mode='rb')
+                f = open(file_name, mode='r')
                 h = hashlib.sha1()
                 while True:
                     buf = f.read(4096)

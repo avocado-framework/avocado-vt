@@ -59,7 +59,7 @@ class TempXMLFile(object):
     Temporary XML file auto-removed on instance del / module exit.
     """
 
-    def __init__(self, suffix=TMPSFX, prefix=TMPPFX, mode="wb+", buffsz=1):
+    def __init__(self, suffix=TMPSFX, prefix=TMPPFX, mode="w+", buffsz=1):
         """
         Initialize temporary XML file removed on instance destruction.
 
@@ -229,7 +229,7 @@ class XMLBackup(TempXMLFile):
         super(XMLBackup, self).flush()
         super(XMLBackup, self).seek(0)
         super(XMLBackup, self).truncate(0)
-        with open(self.sourcefilename, "rb") as source_file:
+        with open(self.sourcefilename, "r") as source_file:
             shutil.copyfileobj(source_file,
                                super(XMLBackup, self))
         super(XMLBackup, self).flush()
@@ -240,7 +240,7 @@ class XMLBackup(TempXMLFile):
         """
         super(XMLBackup, self).flush()
         super(XMLBackup, self).seek(0)
-        with open(self.sourcefilename, "wb") as source_file:
+        with open(self.sourcefilename, "w") as source_file:
             source_file.truncate(0)
             shutil.copyfileobj(super(XMLBackup, self),
                                source_file)
@@ -268,7 +268,7 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         # to hold the original content.
         try:
             # Test if xml is a valid filename
-            self.sourcebackupfile = open(xml, "rb")
+            self.sourcebackupfile = open(xml, "r")
             self.sourcebackupfile.close()
             # XMLBackup init will take care of creating a copy
         except (IOError, OSError):

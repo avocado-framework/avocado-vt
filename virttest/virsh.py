@@ -1116,7 +1116,7 @@ def dumpxml(name, extra="", to_file="", **dargs):
     cmd = "dumpxml %s %s" % (name, extra)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'wb')
+        result_file = open(to_file, 'w')
         result_file.write(result.stdout.strip())
         result_file.close()
     return result
@@ -1686,7 +1686,7 @@ def net_dumpxml(name, extra="", to_file="", **dargs):
     cmd = "net-dumpxml %s %s" % (name, extra)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'wb')
+        result_file = open(to_file, 'w')
         result_file.write(result.stdout.strip())
         result_file.close()
     return result
@@ -2242,7 +2242,7 @@ def pool_dumpxml(name, extra="", to_file="", **dargs):
     cmd = "pool-dumpxml %s %s" % (name, extra)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'wb')
+        result_file = open(to_file, 'w')
         result_file.write(result.stdout.strip())
         result_file.close()
     if result.exit_status:
@@ -2419,7 +2419,7 @@ def vol_dumpxml(volume_name, pool_name, to_file=None, options="", **dargs):
            (volume_name, pool_name, options))
     result = command(cmd, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'wb')
+        result_file = open(to_file, 'w')
         result_file.write(result.stdout.strip())
         result_file.close()
     return result
@@ -2500,7 +2500,7 @@ def capabilities(option='', to_file=None, **dargs):
     """
     cmd_result = command('capabilities %s' % option, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'wb')
+        result_file = open(to_file, 'w')
         result_file.write(cmd_result.stdout.strip())
         result_file.close()
 
@@ -2900,7 +2900,7 @@ def snapshot_dumpxml(name, snapshot, options=None, to_file=None, **dargs):
         cmd += " %s" % options
     result = command(cmd, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'wb')
+        result_file = open(to_file, 'w')
         result_file.write(result.stdout.strip())
         result_file.close()
 
@@ -3161,7 +3161,7 @@ def nodedev_dumpxml(name, options="", to_file=None, **dargs):
     cmd = ('nodedev-dumpxml %s %s' % (name, options))
     result = command(cmd, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'wb')
+        result_file = open(to_file, 'w')
         result_file.write(result.stdout.strip())
         result_file.close()
 
@@ -3449,7 +3449,7 @@ def iface_dumpxml(iface, extra="", to_file="", **dargs):
     cmd = "iface-dumpxml %s %s" % (iface, extra)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'wb')
+        result_file = open(to_file, 'w')
         result_file.write(result.stdout.strip())
         result_file.close()
     if result.exit_status:
@@ -3623,7 +3623,7 @@ def secret_dumpxml(uuid, to_file="", options=None, **dargs):
         cmd += " %s" % options
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'wb')
+        result_file = open(to_file, 'w')
         result_file.write(result.stdout.strip())
         result_file.close()
     if result.exit_status:
@@ -3792,7 +3792,7 @@ def nwfilter_dumpxml(name, options="", to_file=None, **dargs):
     cmd = ('nwfilter-dumpxml %s %s' % (name, options))
     result = command(cmd, **dargs)
     if to_file is not None:
-        result_file = open(to_file, 'wb')
+        result_file = open(to_file, 'w')
         result_file.write(result.stdout.strip())
         result_file.close()
 
@@ -4009,7 +4009,7 @@ def save_image_dumpxml(state_file, options="", to_file="", **dargs):
     cmd = "save-image-dumpxml %s %s" % (state_file, options)
     result = command(cmd, **dargs)
     if to_file:
-        result_file = open(to_file, 'wb')
+        result_file = open(to_file, 'w')
         result_file.write(result.stdout.strip())
         result_file.close()
     return result

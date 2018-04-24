@@ -578,7 +578,7 @@ class ElementTree(object):
 
     def parse(self, source, parser=None):
         if not hasattr(source, "read"):
-            source = open(source, "rb")
+            source = open(source, "r")
         if not parser:
             parser = XMLTreeBuilder()
         while 1:
@@ -657,7 +657,7 @@ class ElementTree(object):
     def write(self, file, encoding="us-ascii"):
         assert self._root is not None
         if not hasattr(file, "write"):
-            file = open(file, "wb")
+            file = open(file, "w")
         if not encoding:
             encoding = "us-ascii"
         elif encoding != "utf-8" and encoding != "us-ascii":
@@ -891,7 +891,7 @@ class iterparse(object):
 
     def __init__(self, source, events=None):
         if not hasattr(source, "read"):
-            source = open(source, "rb")
+            source = open(source, "r")
         self._file = source
         self._events = []
         self._index = 0
