@@ -99,7 +99,7 @@ def image_read_from_ppm_file(filename):
     :return: A 3 element tuple containing the width, height and data of the
             image.
     """
-    fin = open(filename, "rb")
+    fin = open(filename, "r")
     fin.readline()
     l2 = fin.readline()
     fin.readline()
@@ -118,7 +118,7 @@ def image_write_to_ppm_file(filename, width, height, data):
     :param width: PPM file width (pixels)
     :param height: PPM file height (pixels)
     """
-    fout = open(filename, "wb")
+    fout = open(filename, "w")
     fout.write("P6\n")
     fout.write("%d %d\n" % (width, height))
     fout.write("255\n")
@@ -203,7 +203,7 @@ def image_verify_ppm_file(filename):
     """
     try:
         size = os.path.getsize(filename)
-        fin = open(filename, "rb")
+        fin = open(filename, "r")
         assert(fin.readline().strip() == "P6")
         (width, height) = list(map(int, fin.readline().split()))
         assert(width > 0 and height > 0)
