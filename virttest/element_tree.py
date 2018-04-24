@@ -117,7 +117,7 @@ import sys
 import re
 
 from . import element_path as ElementPath
-
+from six import PY3
 
 try:
     REPLACE = string.replace
@@ -756,7 +756,10 @@ def dump(elem):
 
 def _encode(s, encoding):
     try:
-        return s.encode(encoding)
+        if PY3:
+            return s.encode(encoding).decode(encoding)
+        else:
+            return s.encode(encoding)
     except AttributeError:
         return s  # 1.5.2: assume the string uses the right encoding
 
@@ -1085,6 +1088,8 @@ class TreeBuilder(object):
     #    containing ASCII text, or a Unicode string.
 
     def data(self, data):
+        if PY3 and hasattr(data, 'decode'):
+            data = data.decode()
         self._data.append(data)
 
     #
