@@ -171,8 +171,8 @@ class QtreeDev(QtreeNode):
         guess = {True: QtreeDisk, False: QtreeDev}
         is_disk = ('drive' in self.qtree)
         # HOOK when usb-storage-containter is detected as disk
-        is_disk = (is_disk and (self.qtree['type'] != 'usb-storage'))
-        is_disk = (is_disk and (self.qtree['type'] != 'spapr-nvram'))
+        non_disk_type = ('usb-storage', 'spapr-nvram', 'cfi.pflash01')
+        is_disk = (is_disk and (self.qtree['type'] not in non_disk_type))
         return guess[is_disk]
 
 
