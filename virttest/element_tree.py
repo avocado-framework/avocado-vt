@@ -1164,7 +1164,7 @@ class XMLTreeBuilder(object):
         except AttributeError:
             pass
         encoding = None
-        if not parser.returns_unicode:
+        if hasattr(parser, "returns_unicode") and not parser.returns_unicode:
             encoding = "utf-8"
         # target.xml(encoding, None)
         self._doctype = None
