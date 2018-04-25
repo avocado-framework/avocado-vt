@@ -1095,7 +1095,8 @@ class BaseVM(object):
             self.wait_for_get_address(nic_index,
                                       timeout=timeout,
                                       ip_version=self.ip_version)
-        except Exception as error:
+        except Exception as err:
+            error = err
             self.verify_alive()
             print_guest_network_info()
             if not (serial or restart_network):
@@ -1119,8 +1120,8 @@ class BaseVM(object):
                 if serial:
                     break
                 raise
-            except Exception as error:
-                pass
+            except Exception as err:
+                error = err
             not_tried = False
 
         print_guest_network_info()
