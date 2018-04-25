@@ -921,9 +921,10 @@ def run_avocado(vm, params, test, testlist=[], timeout=3600,
         # result info tarball to host result dir
         results_tarball = os.path.join(test_path, "results.tgz")
         compress_cmd = "cd %s && " % result_path
-        compress_cmd += "tar cjvf %s ./*" % results_tarball
+        compress_cmd += "tar cjvf %s" % results_tarball
         compress_cmd += " --exclude=*core*"
         compress_cmd += " --exclude=*crash*"
+        compress_cmd += " ./*"
         session.cmd(compress_cmd, timeout=600)
         vm.copy_files_from(results_tarball, guest_results_dir)
         # cleanup results dir from guest
@@ -1085,9 +1086,10 @@ def run_autotest(vm, session, control_path, timeout,
         results_dir = "%s/results/default" % base_results_dir
         results_tarball = os.path.join(data_dir.get_tmp_dir(), "results.tgz")
         compress_cmd = "cd %s && " % results_dir
-        compress_cmd += "tar cjvf %s ./*" % results_tarball
+        compress_cmd += "tar cjvf %s" % results_tarball
         compress_cmd += " --exclude=*core*"
         compress_cmd += " --exclude=*crash*"
+        compress_cmd += " ./*"
         session.cmd(compress_cmd, timeout=600)
         vm.copy_files_from(results_tarball, guest_results_dir)
         # cleanup autotest subprocess which not terminated, change PWD to
@@ -1224,9 +1226,9 @@ def run_autotest(vm, session, control_path, timeout,
         tar_cmds = "--use-compress-program=pbzip2 -cvf"
     else:
         tar_cmds = "cvjf"
-    cmd = ("cd %s; tar %s %s %s/*" %
+    cmd = ("cd %s; tar %s %s" %
            (autotest_parentdir, tar_cmds,
-            compressed_autotest_path, autotest_basename))
+            compressed_autotest_path))
     cmd += " --exclude=%s/results*" % autotest_basename
     cmd += " --exclude=%s/tmp" % autotest_basename
     cmd += " --exclude=%s/control*" % autotest_basename
@@ -1236,6 +1238,7 @@ def run_autotest(vm, session, control_path, timeout,
     virt_dir = os.path.join(autotest_basename, 'tests', 'virt')
     if os.path.isdir(virt_dir):
         cmd += " --exclude=%s" % virt_dir
+    cmd += " %s/*" % autotest_basename
     process.run(cmd, shell=True)
 
     # Install autotest and autotest client tests to guest
