@@ -31,6 +31,7 @@ from virttest import versionable_class
 from virttest import openvswitch
 from virttest import remote
 from virttest import utils_libvirtd
+from virttest import utils_net
 from virttest import utils_config
 from virttest.staging import service
 from virttest.staging import utils_memory
@@ -1464,6 +1465,44 @@ class PciAssignable(object):
         base_dir = "/sys/bus/pci/"
         stub_path = os.path.join(base_dir, "drivers/%s" % self.device_driver)
         return os.path.exists(os.path.join(stub_path, full_id))
+
+    def generate_ib_port_id(self):
+        """
+        Generate portid for the VF's of SR-IOV Infiniband Adapter
+        """
+        portid = "%s:%s" % (utils_net.generate_mac_address_simple(),
+                            utils_net.generate_mac_address_simple()[:5])
+        return portid
+
+    def set_linkvf_ib(self):
+        """
+        Set the link for the VF's in IB interface
+        """
+        pids = {}
+        try:
+            cmd = "ls -R /sys/class/infiniband/*/device/sriov/*"
+            dev = decode_to_text(process.system_output(cmd, shell=True))
+        except process.CmdError as detail:
+            logging.error("No VF's found for set-up, command-failed as: %s",
+                          str(detail))
+            return False
+        for line in dev.split('\n\n'):
+            key = line.split(':')[0]
+            value = {}
+            for attr in line.split(':')[1].split():
+                if attr == 'policy':
+                    value[attr] = 'Follow'
+                if attr in ('node', 'port'):
+                    value[attr] = self.generate_ib_port_id()
+            pids[key] = value
+        for key in pids.keys():
+            logging.info("The key %s corresponds to %s", key, pids[key])
+            for subkey in pids[key].keys():
+                status = process.system("echo %s > %s" % (pids[key][subkey],
+                                        os.path.join(key, subkey)), shell=True)
+                if status != 0:
+                    return False
+        return True
 
     def set_vf(self, pci_pf, vf_no="0"):
         """
