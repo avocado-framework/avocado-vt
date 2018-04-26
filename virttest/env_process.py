@@ -732,6 +732,15 @@ def preprocess(test, params, env):
             brcfg = test_setup.PrivateBridgeConfig(params_pb)
         brcfg.setup()
 
+    if migration_setup:
+        # Configure NFS client on remote host
+        params["server_ip"] = params["server_ip"] if params.get("server_ip") else params.get("remote_ip")
+        params["server_user"] = params["server_user"] if params.get("server_user") else params.get("remote_user", "root")
+        params["server_pwd"] = params["server_pwd"] if params.get("server_pwd") else params.get("remote_pwd")
+        params["client_ip"] = params["client_ip"] if params.get("client_ip") else params.get("local_ip")
+        params["client_user"] = params["client_user"] if params.get("client_user") else params.get("local_user", "root")
+        params["client_pwd"] = params["client_pwd"] if params.get("client_pwd") else params.get("local_pwd")
+
     base_dir = data_dir.get_data_dir()
     if params.get("storage_type") == "iscsi":
         iscsidev = qemu_storage.Iscsidev(params, base_dir, "iscsi")
@@ -751,14 +760,8 @@ def preprocess(test, params, env):
         image_nfs.setup()
         if migration_setup:
             # Configure NFS client on remote host
-            params["server_ip"] = params.get("remote_ip")
-            params["server_user"] = params.get("remote_user", "root")
-            params["server_pwd"] = params.get("remote_pwd")
-            params["client_ip"] = params.get("local_ip")
-            params["client_user"] = params.get("local_user", "root")
-            params["client_pwd"] = params.get("local_pwd")
-            params["nfs_client_ip"] = params.get("remote_ip")
-            params["nfs_server_ip"] = params.get("local_ip")
+            params["nfs_client_ip"] = params["nfs_client_ip"] if params.get("nfs_client_ip") else params.get("remote_ip")
+            params["nfs_server_ip"] = params["nfs_server_ip"] if params.get("nfs_server_ip") else params.get("local_ip")
             nfs_client = nfs.NFSClient(params)
             nfs_client.setup()
         distro_details = distro.detect()
