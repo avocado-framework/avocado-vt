@@ -341,7 +341,7 @@ class RemoteTarHelper(LocalTarHelper):
         it using the functionality present in the parent class.
         """
         name = os.path.basename(self.source)
-        base_dest = os.path.dirname(self.destination_dir)
+        base_dest = os.path.dirname(self.destination)
         dest = os.path.join(base_dest, name)
         download.get_file(self.source, dest)
         self.source = dest
