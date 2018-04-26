@@ -747,18 +747,18 @@ def preprocess(test, params, env):
     if params.get("storage_type") == "nfs":
         selinux_local = params.get('set_sebool_local', 'yes') == "yes"
         selinux_remote = params.get('set_sebool_remote', 'no') == "yes"
+        params["server_ip"] = params.get("remote_ip")
+        params["server_user"] = params.get("remote_user", "root")
+        params["server_pwd"] = params.get("remote_pwd")
+        params["client_ip"] = params.get("local_ip")
+        params["client_user"] = params.get("local_user", "root")
+        params["client_pwd"] = params.get("local_pwd")
+        params["nfs_client_ip"] = params.get("remote_ip")
+        params["nfs_server_ip"] = params.get("local_ip")
         image_nfs = nfs.Nfs(params)
         image_nfs.setup()
         if migration_setup:
             # Configure NFS client on remote host
-            params["server_ip"] = params.get("remote_ip")
-            params["server_user"] = params.get("remote_user", "root")
-            params["server_pwd"] = params.get("remote_pwd")
-            params["client_ip"] = params.get("local_ip")
-            params["client_user"] = params.get("local_user", "root")
-            params["client_pwd"] = params.get("local_pwd")
-            params["nfs_client_ip"] = params.get("remote_ip")
-            params["nfs_server_ip"] = params.get("local_ip")
             nfs_client = nfs.NFSClient(params)
             nfs_client.setup()
         distro_details = distro.detect()
