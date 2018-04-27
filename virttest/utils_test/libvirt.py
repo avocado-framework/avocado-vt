@@ -1860,6 +1860,12 @@ def create_disk_xml(params):
         alias = params.get('alias')
         if alias:
             diskxml.alias = {'name': alias}
+        sgio = params.get('sgio')
+        if sgio:
+            diskxml.sgio = sgio
+        rawio = params.get('rawio')
+        if rawio:
+            diskxml.rawio = rawio
         diskxml.xmltreefile.write()
     except Exception as detail:
         logging.error("Fail to create disk XML:\n%s", detail)
