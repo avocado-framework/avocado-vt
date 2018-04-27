@@ -12,6 +12,7 @@ from .. import data_dir
 from .. import libvirt_storage
 from ..libvirt_xml import base, xcepts, accessors
 from ..compat_52lts import results_stderr_52lts
+from virttest import element_tree as ET
 
 
 class SourceXML(base.LibvirtXMLBase):
@@ -227,6 +228,16 @@ class PoolXMLBase(base.LibvirtXMLBase):
         self.del_source()
         root = xmltreefile.getroot()
         root.append(value.xmltreefile.getroot())
+        xmltreefile.write()
+
+    def add_source(self, tag, attr, text=None):
+        xmltreefile = self.__dict_get__('xml')
+        try:
+            node = xmltreefile.find('/source')
+        except KeyError as detail:
+            raise xcepts.LibvirtXMLError(detail)
+        if node is not None:
+            ET.SubElement(node, tag, attr, text)
         xmltreefile.write()
 
 
