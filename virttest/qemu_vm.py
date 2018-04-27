@@ -4212,17 +4212,30 @@ class VM(virt_vm.BaseVM):
                 if match:
                     return block.split(":")[0]
         else:
-            for block in blocks_info:
-                match = True
-                for key, value in six.iteritems(p_dict):
-                    if isinstance(value, bool):
-                        check_str = "u'%s': %s" % (key, value)
+            # handles QMP output
+            def traverse_nested_dict(d):
+                iters = [six.iteritems(d)]
+                while iters:
+                    item = iters.pop()
+                    try:
+                        k, v = item.next()
+                    except StopIteration:
+                        continue
+                    iters.append(item)
+                    if isinstance(v, dict):
+                        iters.append(six.iteritems(v))
                     else:
-                        check_str = "u'%s': u'%s'" % (key, value)
-                    if check_str not in str(block):
-                        match = False
-                        break
-                if match:
+                        yield k, v
+            for block in blocks_info:
+                matched = True
+                for key, value in six.iteritems(p_dict):
+                    for (k, v) in traverse_nested_dict(block):
+                        if k != key:
+                            continue
+                        if v != value:
+                            matched = False
+                            break
+                if matched:
                     return block['device']
         return None
 
