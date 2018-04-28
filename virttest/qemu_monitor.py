@@ -11,20 +11,17 @@ import logging
 import select
 import re
 import os
-
-from . import passfd_setup
-from . import utils_misc
-from . import cartesian_config
-from . import data_dir
-
 import six
-
-
 try:
     import json
 except ImportError:
     logging.warning("Could not import json module. "
                     "QMP monitor functionality disabled.")
+
+from . import passfd_setup
+from . import utils_misc
+from . import cartesian_config
+from . import data_dir
 
 
 class MonitorError(Exception):
@@ -290,7 +287,12 @@ class Monitor:
             raise MonitorSocketError("Verifying data on monitor socket", e)
 
     def _recvall(self):
-        s = ""
+        """
+        Receive btyes from socket.recv().
+
+        return s type: bytes
+        """
+        s = b""
         while self._data_available():
             try:
                 data = self._socket.recv(1024)
@@ -652,7 +654,7 @@ class HumanMonitor(Monitor):
 
     # Private methods
     def _read_up_to_qemu_prompt(self, timeout=PROMPT_TIMEOUT):
-        s = ""
+        s = b""
         end_time = time.time() + timeout
         while self._data_available(end_time - time.time()):
             data = self._recvall()
@@ -660,7 +662,7 @@ class HumanMonitor(Monitor):
                 break
             s += data
             try:
-                lines = s.splitlines()
+                lines = s.decode().splitlines()
                 # Sometimes the qemu monitor lacks a line break before the
                 # qemu prompt, so we have to be less exigent:
                 if lines[-1].split()[-1].endswith("(qemu)"):
@@ -679,7 +681,7 @@ class HumanMonitor(Monitor):
         """
         Send a command without waiting for output.
 
-        :param cmd: Command to send
+        :param cmd: Command to send, type: bytes
         :raise MonitorLockError: Raised if the lock cannot be acquired
         :raise MonitorSocketError: Raised if a socket error occurs
         """
@@ -688,8 +690,8 @@ class HumanMonitor(Monitor):
                                    "monitor command '%s'" % cmd)
         try:
             try:
-                self._socket.sendall(cmd + "\n")
-                self._log_lines(cmd)
+                self._socket.sendall(cmd + b"\n")
+                self._log_lines(cmd.decode(errors="replace"))
             except socket.error as e:
                 raise MonitorSocketError("Could not send monitor command %r" %
                                          cmd, e)
@@ -1430,7 +1432,7 @@ class QMPMonitor(Monitor):
 
     def _read_objects(self, timeout=READ_OBJECTS_TIMEOUT):
         """
-        Read lines from the monitor and try to decode them.
+        Read bytes lines from the monitor and try to "decode" them.
         Stop when all available lines have been successfully decoded, or when
         timeout expires.  If any decoded objects are asynchronous events, store
         them in self._events.  Return all decoded objects.
@@ -1440,7 +1442,7 @@ class QMPMonitor(Monitor):
         """
         if not self._data_available():
             return []
-        s = ""
+        s = b""
         end_time = time.time() + timeout
         while self._data_available(end_time - time.time()):
             s += self._recvall()
@@ -1469,14 +1471,14 @@ class QMPMonitor(Monitor):
 
     def _send(self, data):
         """
-        Send raw data without waiting for response.
+        Send raw bytes data without waiting for response.
 
-        :param data: Data to send
+        :param data: Data to send type: bytes
         :raise MonitorSocketError: Raised if a socket error occurs
         """
         try:
             self._socket.sendall(data)
-            self._log_lines(str(data))
+            self._log_lines(data.decode(errors="replace"))
         except socket.error as e:
             raise MonitorSocketError("Could not send data: %r" % data, e)
 
@@ -1595,7 +1597,7 @@ class QMPMonitor(Monitor):
         Note: an id is automatically assigned to the command and the response
         is checked for the presence of the same id.
 
-        :param cmd: Command to send
+        :param cmd: Command to send, type: string
         :param args: A dict containing command arguments, or None
         :param timeout: Time duration to wait for response
         :param debug: Whether to print the commands being sent and responses
@@ -1628,10 +1630,10 @@ class QMPMonitor(Monitor):
                     self._passfd = passfd_setup.import_passfd()
                 # If command includes a file descriptor, use passfd module
                 self._passfd.sendfd(
-                    self._socket, fd, json.dumps(cmdobj) + "\n")
+                    self._socket, fd, json.dumps(cmdobj) + b"\n")
                 self._log_lines(str(cmdobj))
             else:
-                self._send(json.dumps(cmdobj) + "\n")
+                self._send(json.dumps(cmdobj).encode() + b"\n")
             # Read response
             r = self._get_response(q_id, timeout)
             if r is None:
@@ -1656,7 +1658,7 @@ class QMPMonitor(Monitor):
         Unlike cmd(), return the raw response dict without performing any
         checks on it.
 
-        :param data: The data to send
+        :param data: The data to send type: string
         :param timeout: Time duration to wait for response
         :return: The response received
         :raise MonitorLockError: Raised if the lock cannot be acquired
@@ -1669,7 +1671,7 @@ class QMPMonitor(Monitor):
 
         try:
             self._read_objects()
-            self._send(data)
+            self._send(data.encode())
             r = self._get_response(None, timeout)
             if r is None:
                 raise MonitorProtocolError("Received no response to data: %r" %
