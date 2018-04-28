@@ -798,7 +798,7 @@ def _encode_entity(text, pattern=_escape):
             if text is None:
                 text = "&#%d;" % ord(char)
             append(text)
-        return "".join(out)
+        return string.join(out, "")
     try:
         return _encode(pattern.sub(escape_entities, text), "ascii")
     except TypeError:
@@ -1029,7 +1029,7 @@ def tostring(element, encoding=None):
     file = dummy()
     file.write = data.append
     ElementTree(element).write(file, encoding)
-    return "".join(data)
+    return string.join(data, "")
 
 #
 # Generic element structure builder.  This builder converts a sequence
@@ -1069,7 +1069,7 @@ class TreeBuilder(object):
     def _flush(self):
         if self._data:
             if self._last is not None:
-                text = "".join(self._data)
+                text = string.join(self._data, "")
                 if self._tail:
                     assert self._last.tail is None, "internal error (tail)"
                     self._last.tail = text
