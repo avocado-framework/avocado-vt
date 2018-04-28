@@ -12,6 +12,8 @@ import logging
 import select
 import time
 import base64
+import importlib
+
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -21,7 +23,10 @@ try:
 except ImportError:
     import cPickle
 
-from virttest.remote_commander import remote_interface
+if __package__ is None:  # import when remote_runner.py script run directly
+    remote_interface = importlib.import_module('remote_interface')
+else:
+    from virttest.remote_commander import remote_interface
 
 
 class IOWrapper(object):
@@ -297,7 +302,10 @@ class Messenger(object):
                 rdata_len = len(rdata)
             rdataIO = StringIO(self.stdin.decode(rdata))
             unp = cPickle.Unpickler(rdataIO)
-            unp.find_global = _map_path
+            if cPickle.__name__ == 'pickle':
+                unp.find_class = _map_path
+            else:
+                unp.find_global = _map_path
             data = unp.load()
         except Exception as e:
             logging.error("ERROR data:%s rdata:%s" % (data, rdata))

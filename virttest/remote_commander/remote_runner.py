@@ -10,6 +10,7 @@ Created on Dec 6, 2013
 import os
 import sys
 import imp
+import importlib
 import select
 import time
 import stat
@@ -23,8 +24,12 @@ import shutil
 import signal
 import tempfile
 
-from virttest.remote_commander import remote_interface
-from virttest.remote_commander import messenger as ms
+if __name__ == '__main__':
+    remote_interface = importlib.import_module('remote_interface')
+    ms = importlib.import_module('messenger')
+else:
+    from virttest.remote_commander import remote_interface
+    from virttest.remote_commander import messenger as ms
 
 
 from six.moves import input
