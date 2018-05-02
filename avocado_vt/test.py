@@ -107,6 +107,7 @@ class VirtTest(test.Test):
         self.builddir = os.path.join(self.workdir, 'backends',
                                      vt_params.get("vm_type", ""))
         self.tmpdir = os.path.dirname(self.workdir)
+        os.chmod(self.tmpdir, os.stat(data_dir.get_tmp_dir()).st_mode)
         # Move self.params to self.avocado_params and initialize virttest
         # (cartesian_config) params
         try:
