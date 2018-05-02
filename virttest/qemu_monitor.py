@@ -2160,14 +2160,12 @@ class QMPMonitor(Monitor):
 
         :return: dict about job info, return empty dict if no active job
         """
-        job = dict()
-        output = str(self.info("block-jobs"))
+        output = self.info("block-jobs")
         try:
-            job = filter(lambda x: x.get("device") == device,
-                         eval(output))
+            job = filter(lambda x: x.get("device") == device, output)
             job = list(job)[0]
         except Exception:
-            pass
+            job = dict()
         return job
 
     def get_backingfile(self, device):
