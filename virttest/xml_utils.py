@@ -126,6 +126,15 @@ class TempXMLFile(object):
         except IOError:
             logging.info("truncate file fail")
 
+    def tell(self):
+        """
+        returns the current position of the file read/write pointer within file.
+        """
+        try:
+            return self.open_file.tell()
+        except IOError:
+            logging.info("tell file fail")
+
     def write(self, content):
         """
         Write content to the file.
