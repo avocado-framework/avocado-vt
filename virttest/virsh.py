@@ -27,6 +27,7 @@ import re
 import weakref
 import time
 import select
+import locale
 import base64
 import aexpect
 
@@ -3660,7 +3661,9 @@ def secret_set_value(uuid, password, options=None, encode=False, **dargs):
     cmd = "secret-set-value --secret %s" % uuid
     if password:
         if encode:
-            cmd += " --base64 %s" % base64.b64encode(password)
+            encoding = locale.getpreferredencoding()
+            cmd += (" --base64 %s"
+                    % base64.b64encode(password.encode(encoding)).decode(encoding))
         else:
             cmd += " --base64 %s" % password
     if options:
