@@ -2677,7 +2677,12 @@ class VM(virt_vm.BaseVM):
             logging.info("Get vm devices failed.")
         else:
             blklist = blklist[2:]
-            linesplit = blklist[0].split(None, 4)
+            for line in blklist:
+                if 'disk' not in line:
+                    continue
+                else:
+                    linesplit = line.split(None, 4)
+                    break
             disk = {'type': linesplit[0],
                     'device': linesplit[1],
                     'target': linesplit[2],
