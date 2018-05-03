@@ -4538,3 +4538,23 @@ def _wait_for_commands(bg_jobs, start_time, timeout):
         bg_job.result.duration = time.time() - start_time
 
     return True
+
+
+def get_pid(name, session=None):
+    """
+    Get pid by process name
+
+    :param name: Name of the process to retrieve its pid
+    :param session: ShellSession object of VM or remote host
+    :return: Pid of the process or None in case of exceptions
+    """
+    cmd = "ps -ef | grep '%s' | grep -v grep" % name
+    if session:
+        status, output = session.cmd_status_output(cmd)
+    else:
+        ret = process.run(cmd, shell=True, ignore_status=True)
+        status, output = ret.exit_status, results_stdout_52lts(ret).strip()
+    if status:
+        return None
+    else:
+        return int(output.split()[1])
