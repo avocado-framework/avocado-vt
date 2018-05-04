@@ -3984,7 +3984,10 @@ class VM(virt_vm.BaseVM):
             # self points to a dead VM object
             if not not_wait_for_migration:
                 if self.is_alive() and self.is_paused():
-                    self.resume()
+                    # For short period of time the status can be "inmigrate"
+                    # for example when using external program
+                    # (qemu commit fe823b6f87b2ebedd692ca480ceb9693439d816e)
+                    self.resume(60)
                 clone.destroy(gracefully=False)
                 if env:
                     env.unregister_vm("%s_clone" % self.name)
@@ -4165,12 +4168,15 @@ class VM(virt_vm.BaseVM):
         self.monitor.cmd("stop")
         self.verify_status("paused")
 
-    def resume(self):
+    def resume(self, timeout=None):
         """
         Resume the VM operation in case it's stopped.
         """
         self.monitor.cmd("cont")
-        self.verify_status("running")
+        if timeout:
+            self.wait_for_status('running', timeout, 0.1)
+        else:
+            self.verify_status("running")
 
     def set_link(self, netdev_name, up):
         """
