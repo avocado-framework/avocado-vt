@@ -205,8 +205,8 @@ class VirtTestOptionsProcess(object):
                     self.cartesian_parser.assign(
                         "smp", int(self.options.vt_smp))
                 except ValueError:
-                    raise ValueError("Invalid %s '%s'. Valid value: (1, 2)" %
-                                     self.options.vt_smp)
+                    raise ValueError("Invalid %s '%s'. Valid value: (1, 2, "
+                                     "or integer)" % self.options.vt_smp)
         else:
             logging.info("Config provided, ignoring %s", smp_setting)
 
