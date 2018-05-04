@@ -950,9 +950,9 @@ class VM(virt_vm.BaseVM):
                 min_mem_size_m = params.get("vm_mem_minimum")
                 min_mem_size_m = float(normalize_data_size(min_mem_size_m))
                 if mem_size_m < min_mem_size_m:
-                    logging.info("Guest min memory has to be %s"
-                                 % min_mem_size_m)
-                    mem_size_m = min_mem_size_m
+                    raise exceptions.TestCancel("Guest min memory has to be %s"
+                                                ", got %s" % (min_mem_size_m,
+                                                              mem_size_m))
 
             params["mem"] = str(int(mem_size_m))
             options.append(params["mem"])
@@ -2721,7 +2721,7 @@ class VM(virt_vm.BaseVM):
                 logging.debug(self.devices.str_short())
                 logging.debug(self.devices.str_bus_short())
                 qemu_command = self.devices.cmdline()
-            except exceptions.TestSkipError:
+            except (exceptions.TestSkipError, exceptions.TestCancel):
                 # TestSkipErrors should be kept as-is so we generate SKIP
                 # results instead of bogus FAIL results
                 raise
