@@ -40,6 +40,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define MODULE_NAME	"_passfd"
+
 int _sendfd(int sock, int fd, size_t len, const void *msg);
 int _recvfd(int sock, size_t *len, void *buf);
 
@@ -106,11 +108,38 @@ static PyMethodDef methods[] = {
     {NULL, NULL, 0, NULL}
 };
 
-PyMODINIT_FUNC init_passfd(void) {
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT,
+    MODULE_NAME,
+    NULL,
+    -1,
+    methods,
+};
+
+#define INITERROR return NULL
+
+PyMODINIT_FUNC
+PyInit__passfd(void)
+#else
+#define INITERROR return
+
+PyMODINIT_FUNC
+init_passfd(void)
+#endif
+{
     PyObject *m;
-    m = Py_InitModule("_passfd", methods);
+#if PY_MAJOR_VERSION >= 3
+    m = PyModule_Create(&moduledef);
+#else
+    m = Py_InitModule(MODULE_NAME, methods);
+#endif
     if (m == NULL)
-        return;
+        INITERROR;
+
+#if PY_MAJOR_VERSION >= 3
+    return m;
+#endif
 }
 
 /* Size of the cmsg including one file descriptor */
