@@ -3438,7 +3438,6 @@ def update_mac_ip_address(vm, timeout=240):
     try:
         session = vm.wait_for_serial_login(timeout=timeout)
         addr_map = get_guest_address_map(session)
-        session.close()
         if not addr_map:
             logging.warn("No VM's NIC got IP address")
             return
