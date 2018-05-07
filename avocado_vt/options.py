@@ -86,7 +86,7 @@ class VirtTestOptionsProcess(object):
         self.options.vt_vhost = settings.get_value(
             'vt.qemu', 'vhost', default='off')
         self.options.vt_monitor = settings.get_value(
-            'vt.qemu', 'monitor', default='human')
+            'vt.qemu', 'monitor', default=None)
         self.options.vt_smp = settings.get_value(
             'vt.qemu', 'smp', default='2')
         self.options.vt_image_type = settings.get_value(
@@ -183,9 +183,12 @@ class VirtTestOptionsProcess(object):
 
     def _process_monitor(self):
         if not self.options.vt_config:
-            if self.options.vt_monitor == 'qmp':
-                self.cartesian_parser.assign("monitors", "qmp1")
-                self.cartesian_parser.assign("monitor_type_qmp1", "qmp")
+            if not self.options.vt_monitor:
+                pass
+            elif self.options.vt_monitor == 'qmp':
+                self.cartesian_parser.assign("monitor_type", "qmp")
+            elif self.options.vt_monitor == 'human':
+                self.cartesian_parser.assign("monitor_type", "human")
         else:
             logging.info("Config provided, ignoring monitor setting")
 
@@ -202,8 +205,8 @@ class VirtTestOptionsProcess(object):
                     self.cartesian_parser.assign(
                         "smp", int(self.options.vt_smp))
                 except ValueError:
-                    raise ValueError("Invalid %s '%s'. Valid value: (1, 2)" %
-                                     self.options.vt_smp)
+                    raise ValueError("Invalid %s '%s'. Valid value: (1, 2, "
+                                     "or integer)" % self.options.vt_smp)
         else:
             logging.info("Config provided, ignoring %s", smp_setting)
 
