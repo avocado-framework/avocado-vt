@@ -250,7 +250,8 @@ def image_comparison(width, height, data1, data2):
         else:
             # Not equal -- give the pixel a reddish hue
             newpixel = [value, 0, 0]
-        newdata += struct.pack("BBB", newpixel[0], newpixel[1], newpixel[2])
+        newdata += struct.pack("BBB", newpixel[0],
+                               newpixel[1], newpixel[2])
         i += 3
     return (width, height, newdata)
 

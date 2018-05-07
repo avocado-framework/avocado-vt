@@ -395,13 +395,13 @@ class Interface(object):
         '''
 
         # Get existing device flags
-        ifreq = struct.pack('16sh', self.name, 0)
+        ifreq = struct.pack('16sh', self.name.encode(), 0)
         flags = struct.unpack('16sh',
                               fcntl.ioctl(sockfd, arch.SIOCGIFFLAGS, ifreq))[1]
 
         # Set new flags
         flags = flags | arch.IFF_UP
-        ifreq = struct.pack('16sh', self.name, flags)
+        ifreq = struct.pack('16sh', self.name.encode(), flags)
         fcntl.ioctl(sockfd, arch.SIOCSIFFLAGS, ifreq)
 
     @warp_init_del
@@ -411,13 +411,13 @@ class Interface(object):
         '''
 
         # Get existing device flags
-        ifreq = struct.pack('16sh', self.name, 0)
+        ifreq = struct.pack('16sh', self.name.encode(), 0)
         flags = struct.unpack('16sh',
                               fcntl.ioctl(sockfd, arch.SIOCGIFFLAGS, ifreq))[1]
 
         # Set new flags
         flags = flags & ~arch.IFF_UP
-        ifreq = struct.pack('16sh', self.name, flags)
+        ifreq = struct.pack('16sh', self.name.encode(), flags)
         fcntl.ioctl(sockfd, arch.SIOCSIFFLAGS, ifreq)
 
     @warp_init_del
@@ -426,7 +426,7 @@ class Interface(object):
         Return True if the interface is up, False otherwise.
         '''
         # Get existing device flags
-        ifreq = struct.pack('16sh', self.name, 0)
+        ifreq = struct.pack('16sh', self.name.encode(), 0)
         flags = struct.unpack('16sh',
                               fcntl.ioctl(sockfd, arch.SIOCGIFFLAGS, ifreq))[1]
 
@@ -441,7 +441,8 @@ class Interface(object):
         '''
         Obtain the device's mac address.
         '''
-        ifreq = struct.pack('16sH14s', self.name, socket.AF_UNIX, '\x00' * 14)
+        ifreq = struct.pack('16sH14s', self.name.encode(),
+                            socket.AF_UNIX, b'\x00' * 14)
         res = fcntl.ioctl(sockfd, arch.SIOCGIFHWADDR, ifreq)
         address = struct.unpack('16sH14s', res)[2]
         mac = struct.unpack('6B8x', address)
@@ -455,7 +456,8 @@ class Interface(object):
         succeed.
         '''
         macbytes = [int(i, 16) for i in newmac.split(':')]
-        ifreq = struct.pack('16sH6B8x', self.name, socket.AF_UNIX, *macbytes)
+        ifreq = struct.pack('16sH6B8x', self.name.encode(),
+                            socket.AF_UNIX, *macbytes)
         fcntl.ioctl(sockfd, arch.SIOCSIFHWADDR, ifreq)
 
     @warp_init_del
@@ -463,7 +465,8 @@ class Interface(object):
         """
         Get ip address of this interface
         """
-        ifreq = struct.pack('16sH14s', self.name, socket.AF_INET, '\x00' * 14)
+        ifreq = struct.pack('16sH14s', self.name.encode(),
+                            socket.AF_INET, b'\x00' * 14)
         try:
             res = fcntl.ioctl(sockfd, arch.SIOCGIFADDR, ifreq)
         except IOError:
@@ -478,8 +481,8 @@ class Interface(object):
         Set the ip address of the interface
         """
         ipbytes = socket.inet_aton(newip)
-        ifreq = struct.pack('16sH2s4s8s', self.name,
-                            socket.AF_INET, '\x00' * 2, ipbytes, '\x00' * 8)
+        ifreq = struct.pack('16sH2s4s8s', self.name.encode(),
+                            socket.AF_INET, b'\x00' * 2, ipbytes, b'\x00' * 8)
         fcntl.ioctl(sockfd, arch.SIOCSIFADDR, ifreq)
 
     @warp_init_del
@@ -490,7 +493,8 @@ class Interface(object):
         if not CTYPES_SUPPORT:
             raise exceptions.TestSkipError("Getting the netmask requires "
                                            "python > 2.4")
-        ifreq = struct.pack('16sH14s', self.name, socket.AF_INET, '\x00' * 14)
+        ifreq = struct.pack('16sH14s', self.name.encode(),
+                            socket.AF_INET, b'\x00' * 14)
         try:
             res = fcntl.ioctl(sockfd, arch.SIOCGIFNETMASK, ifreq)
         except IOError:
@@ -509,8 +513,8 @@ class Interface(object):
                                            "python > 2.4")
         netmask = ctypes.c_uint32(~((2 ** (32 - netmask)) - 1)).value
         nmbytes = socket.htonl(netmask)
-        ifreq = struct.pack('16sH2si8s', self.name,
-                            socket.AF_INET, '\x00' * 2, nmbytes, '\x00' * 8)
+        ifreq = struct.pack('16sH2si8s', self.name.encode(),
+                            socket.AF_INET, b'\x00' * 2, nmbytes, b'\x00' * 8)
         fcntl.ioctl(sockfd, arch.SIOCSIFNETMASK, ifreq)
 
     @warp_init_del
@@ -518,7 +522,7 @@ class Interface(object):
         '''
         Convert an interface name to an index value.
         '''
-        ifreq = struct.pack('16si', self.name, 0)
+        ifreq = struct.pack('16si', self.name.encode(), 0)
         res = fcntl.ioctl(sockfd, arch.SIOCGIFINDEX, ifreq)
         return struct.unpack("16si", res)[1]
 
@@ -603,7 +607,8 @@ class Interface(object):
         sock.send(self.__netlink_pack(msgtype=arch.RTM_DELLINK,
                                       flags=arch.NLM_F_REQUEST | arch.NLM_F_ACK,
                                       seq=1, pid=0,
-                                      data=struct.pack('BxHiII', arch.AF_PACKET,
+                                      data=struct.pack('BxHiII',
+                                                       arch.AF_PACKET,
                                                        0, interface_index, 0, 0)))
 
         # receive data from socket
@@ -1076,7 +1081,7 @@ class Bridge(object):
         index = if_nametoindex(ifname)
         if index == 0:
             raise TAPNotExistError(ifname)
-        ifr = struct.pack("16si", brname, index)
+        ifr = struct.pack("16si", brname.encode(), index)
         _ = fcntl.ioctl(ctrl_sock, io_cmd, ifr)
         ctrl_sock.close()
 
@@ -1164,7 +1169,7 @@ def if_nametoindex(ifname):
     :param ifname: interface name
     """
     ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-    ifr = struct.pack("16si", ifname, 0)
+    ifr = struct.pack("16si", ifname.encode(), 0)
     r = fcntl.ioctl(ctrl_sock, arch.SIOCGIFINDEX, ifr)
     index = struct.unpack("16si", r)[1]
     ctrl_sock.close()
@@ -1240,7 +1245,7 @@ def open_tap(devname, ifname, queues=1, vnet_hdr=True):
         if vnet_hdr and vnet_hdr_probe(int(tapfds[i])):
             flags |= arch.IFF_VNET_HDR
 
-        ifr = struct.pack("16sh", ifname, flags)
+        ifr = struct.pack("16sh", ifname.encode(), flags)
         try:
             r = fcntl.ioctl(int(tapfds[i]), arch.TUNSETIFF, ifr)
         except IOError as details:
@@ -2028,7 +2033,7 @@ def bring_up_ifname(ifname):
     :param ifname: Name of the interface
     """
     ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-    ifr = struct.pack("16sh", ifname, arch.IFF_UP)
+    ifr = struct.pack("16sh", ifname.encode(), arch.IFF_UP)
     try:
         fcntl.ioctl(ctrl_sock, arch.SIOCSIFFLAGS, ifr)
     except IOError:
@@ -2043,7 +2048,7 @@ def bring_down_ifname(ifname):
     :param ifname: Name of the interface
     """
     ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-    ifr = struct.pack("16sh", ifname, 0)
+    ifr = struct.pack("16sh", ifname.encode(), 0)
     try:
         fcntl.ioctl(ctrl_sock, arch.SIOCSIFFLAGS, ifr)
     except IOError:
@@ -2060,7 +2065,7 @@ def if_set_macaddress(ifname, mac):
     """
     ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
 
-    ifr = struct.pack("256s", ifname)
+    ifr = struct.pack("256s", ifname.encode())
     try:
         mac_dev = fcntl.ioctl(ctrl_sock, arch.SIOCGIFHWADDR, ifr)[18:24]
         mac_dev = ":".join(["%02x" % ord(m) for m in mac_dev])
@@ -2070,8 +2075,8 @@ def if_set_macaddress(ifname, mac):
     if mac_dev.lower() == mac.lower():
         return
 
-    ifr = struct.pack("16sH14s", ifname, 1,
-                      "".join([chr(int(m, 16)) for m in mac.split(":")]))
+    ifr = struct.pack("16sH14s", ifname.encode(), 1,
+                      b"".join([chr(int(m, 16)) for m in mac.split(":")]))
     try:
         fcntl.ioctl(ctrl_sock, arch.SIOCSIFHWADDR, ifr)
     except IOError as e:
