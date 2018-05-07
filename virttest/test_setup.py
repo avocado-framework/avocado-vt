@@ -440,6 +440,21 @@ class HugePageConfig(object):
             target_hugepages = int(target_hugepages)
 
         self.target_hugepages = target_hugepages
+        self.target_nodes = params.get("target_nodes")
+        if self.target_nodes:
+            self.target_node_num = {}
+            self.node_list = self.target_nodes.split()
+            self.node_len = len(self.node_list)
+            for node in self.node_list:
+                num = params.object_params("node%s" % node).get("target_num")
+                # let us distribute the hugepages if target_num_node is not set
+                if not num:
+                    num = self.target_hugepages / self.node_len
+                    if node == self.node_list[0]:
+                        # if target_hugepages is not divisible by node_len
+                        # add remainder it to first node
+                        num += self.target_hugepages % self.node_len
+                self.target_node_num[node] = num
 
     @error_context.context_aware
     def check_hugepage_support(self):
@@ -646,7 +661,11 @@ class HugePageConfig(object):
                       self.hugepage_size)
         logging.debug("Number of large memory pages needed for this test: %s",
                       self.target_hugepages)
-        self.set_hugepages()
+        if self.target_nodes:
+            for node, num in six.iteritems(self.target_node_num):
+                self.set_node_num_huge_pages(num, node, self.hugepage_size)
+        else:
+            self.set_hugepages()
         self.mount_hugepage_fs()
 
         return self.suggest_mem
