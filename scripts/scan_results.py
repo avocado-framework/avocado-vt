@@ -4,6 +4,7 @@ Script to fetch test status info from sqlit data base. Before use this
 script, avocado We must be lanuch with '--journal' option.
 """
 
+from __future__ import division
 import os
 import sys
 import sqlite3
@@ -41,7 +42,7 @@ def get_total_seconds(td):
     """ Alias for get total_seconds in python2.6 """
     if hasattr(td, 'total_seconds'):
         return td.total_seconds()
-    return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 1e6) / 1e6
+    return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 1e6) // 1e6
 
 
 def fetch_data(db_file=".journal.sqlite"):

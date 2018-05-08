@@ -6,6 +6,7 @@ Client for file transfer services offered by RSS (Remote Shell Server).
 :copyright: 2008-2010 Red Hat Inc.
 """
 
+from __future__ import division
 import socket
 import struct
 import time

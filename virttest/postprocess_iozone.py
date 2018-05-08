@@ -9,6 +9,7 @@ is not present, functionality degrates gracefully.
 :copyright: Red Hat 2010
 """
 
+from __future__ import division
 import os
 import sys
 import optparse

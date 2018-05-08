@@ -4,6 +4,7 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 :copyright: 2008-2009, 2014 Red Hat Inc.
 """
 
+from __future__ import division
 import time
 import os
 import logging

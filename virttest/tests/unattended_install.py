@@ -1,3 +1,4 @@
+from __future__ import division
 import logging
 import time
 import re
@@ -1241,7 +1242,7 @@ def run(test, params, env):
         mig_protocol = params.get("migration_protocol", "tcp")
 
     logging.info("Waiting for installation to finish. Timeout set to %d s "
-                 "(%d min)", install_timeout, install_timeout / 60)
+                 "(%d min)", install_timeout, install_timeout // 60)
     error_context.context("waiting for installation to finish")
 
     start_time = time.time()
@@ -1361,7 +1362,7 @@ def run(test, params, env):
 
     time_elapsed = time.time() - start_time
     logging.info("Guest reported successful installation after %d s (%d min)",
-                 time_elapsed, time_elapsed / 60)
+                 time_elapsed, time_elapsed // 60)
 
     if params.get("shutdown_cleanly", "yes") == "yes":
         shutdown_cleanly_timeout = int(params.get("shutdown_cleanly_timeout",

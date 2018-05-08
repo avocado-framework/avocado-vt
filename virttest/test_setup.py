@@ -1,6 +1,7 @@
 """
 Library to perform pre/post test setup for virt test.
 """
+from __future__ import division
 import os
 import logging
 import time
@@ -491,7 +492,7 @@ class HugePageConfig(object):
         # memory of all VMs plus qemu overhead of 128MB per guest
         # (this value can be overridden in your cartesian config)
         vmsm = self.vms * (self.mem + self.qemu_overhead)
-        target_hugepages = int(vmsm * 1024 / self.hugepage_size)
+        target_hugepages = int(vmsm * 1024 // self.hugepage_size)
 
         # FIXME Now the buddyinfo can not get chunk info which is bigger
         # than 4M. So this will only fit for 2M size hugepages. Can not work
@@ -524,7 +525,7 @@ class HugePageConfig(object):
                              " biggest number the system can support.")
                 target_hugepages = available_hugepages
                 available_mem = available_hugepages * self.hugepage_size
-                self.suggest_mem = int(available_mem / self.vms / 1024 -
+                self.suggest_mem = int(available_mem // self.vms // 1024 -
                                        self.qemu_overhead)
                 if self.suggest_mem < self.lowest_mem_per_vm:
                     raise MemoryError("This host doesn't have enough free "
