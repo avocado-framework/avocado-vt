@@ -413,6 +413,8 @@ def postprocess_vm(test, params, env, name):
         if kill_vm_timeout:
             utils_misc.wait_for(vm.is_dead, kill_vm_timeout, 0, 1)
         vm.destroy(gracefully=params.get("kill_vm_gracefully") == "yes")
+        if params.get("kill_vm_libvirt") == "yes" and params.get("vm_type") == "libvirt":
+            vm.undefine()
 
     if params.get("enable_strace") == "yes":
         strace = test_setup.StraceQemu(test, params, env)
