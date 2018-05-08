@@ -93,29 +93,29 @@ class BaseInstaller(object):
         in the pickle protocol. And, in case this pickle thing needs more
         explanation, take a loot at the Env class inside build_helper.
 
-        Besides that, we also ensure that srcdir exists, by creating it if
+        Besides that, we also ensure that workdir exists, by creating it if
         necessary.
 
         For reference:
            * bindir = tests/<test>
-           * srcdir = tests/<test>/src
+           * workdir = tests/<test>/src
            * resultsdir = results/<job>/<testname.tag>/results
 
         So, for KVM tests, it'd evaluate to:
            * bindir = tests/kvm/
-           * srcdir = tests/kvm/src
+           * workdir = tests/kvm/src
            * resultsdir = results/<job>/kvm.<other_variant_names>.build/results
         """
         self.test_bindir = test.bindir
-        self.test_srcdir = test.srcdir
+        self.test_workdir = test.workdir
         self.test_builddir = test.builddir
         self.test_resultsdir = test.resultsdir
 
         #
-        # test_builddir is guaranteed to exist, but test_srcdir is not
+        # test_builddir is guaranteed to exist, but test_workdir is not
         #
-        if not os.path.isdir(test.srcdir):
-            os.makedirs(test.srcdir)
+        if not os.path.isdir(test.workdir):
+            os.makedirs(test.workdir)
 
     def _set_param_load_module(self):
         """
@@ -414,7 +414,7 @@ class BaseInstaller(object):
 
         self.reload_modules_if_needed()
         if self.save_results:
-            utils_misc.archive_as_tarball(self.test_srcdir,
+            utils_misc.archive_as_tarball(self.test_workdir,
                                           self.test_resultsdir)
 
     def uninstall(self):
@@ -484,7 +484,7 @@ class YumInstaller(BaseInstaller):
 
     def _install_phase_install(self):
         if self.yum_pkgs:
-            os.chdir(self.test_srcdir)
+            os.chdir(self.test_workdir)
             process.system("yum --nogpgcheck -y install %s" %
                            " ".join(self.yum_pkgs))
         if self.install_debug_info:
@@ -593,13 +593,13 @@ class KojiInstaller(BaseInstaller):
         for pkg_text in self.koji_pkgs:
             pkg = utils_koji.KojiPkgSpec(pkg_text)
             if pkg.is_valid():
-                koji_client.get_pkgs(pkg, dst_dir=self.test_srcdir)
+                koji_client.get_pkgs(pkg, dst_dir=self.test_workdir)
             else:
                 logging.error('Package specification (%s) is invalid: %s' %
                               (pkg, pkg.describe_invalid()))
         for pkg_text in self.koji_scratch_pkgs:
             pkg = utils_koji.KojiScratchPkgSpec(pkg_text)
-            koji_client.get_scratch_pkgs(pkg, dst_dir=self.test_srcdir)
+            koji_client.get_scratch_pkgs(pkg, dst_dir=self.test_workdir)
 
     def _install_phase_install(self):
         if self.koji_yumrepo_baseurl is not None:
@@ -609,7 +609,7 @@ class KojiInstaller(BaseInstaller):
                           self.param_key_prefix, self.koji_yumrepo_baseurl)
             repo.save()
 
-        os.chdir(self.test_srcdir)
+        os.chdir(self.test_workdir)
         rpm_file_names = " ".join(self._get_rpm_file_names())
         process.system("yum --nogpgcheck -y install %s" % rpm_file_names)
 
@@ -655,7 +655,7 @@ class BaseLocalSourceInstaller(BaseInstaller):
         """
         Sets the source code destination directory path
         """
-        self.source_destination = os.path.join(self.test_srcdir,
+        self.source_destination = os.path.join(self.test_workdir,
                                                self.name)
 
     def _set_build_helper(self):
