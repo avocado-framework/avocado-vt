@@ -1339,6 +1339,10 @@ class VM(virt_vm.BaseVM):
             for pcic in params.objects("pci_controllers"):
                 dev = devices.pcic_by_params(pcic, params.object_params(pcic))
                 pcics.append(dev)
+            pcie_extra_root_port = params.get('pcie_extra_root_port', 0)
+            for num in range(int(pcie_extra_root_port)):
+                pcics.append(devices.pcic_by_params("pcie_root_port_%s" % num,
+                                                    {"type": "pcie-root-port"}))
             if params.get("pci_controllers_autosort", "yes") == "yes":
                 pcics.sort(key=sort_key, reverse=False)
             map(devices.insert, pcics)
