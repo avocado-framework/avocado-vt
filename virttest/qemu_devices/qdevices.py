@@ -1889,6 +1889,17 @@ class QPCIEBus(QPCIBus):
         else:
             self.__root_ports[addr[0]].insert(device)
 
+    def get_free_root_port(self):
+        """
+        Get a free slot from any pcie root port
+        :return: The free root port busid
+        """
+        for root_port in self.__root_ports.values():
+            if len(root_port.bus) < root_port.addr_lengths[0]:
+                return root_port.busid
+
+        return None
+
 
 class QPCISwitchBus(QPCIBus):
 
