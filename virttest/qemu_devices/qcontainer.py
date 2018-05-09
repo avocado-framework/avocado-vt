@@ -1785,6 +1785,9 @@ class DevContainer(object):
             elif driver == 'i82801b11-bridge':  # addr 0x1-0x13
                 bus_length = 20
                 bus_first_port = 1
+            elif driver in ('pcie-root-port', 'ioh3420'):
+                bus_length = 1  # multifunction off by default
+                bus_first_port = 0
             else:   # addr = 0x0-0x1f
                 bus_length = 32
                 bus_first_port = 0
