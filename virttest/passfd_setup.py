@@ -8,6 +8,8 @@ from virttest import data_dir
 PYTHON_HEADERS = distutils.sysconfig.get_python_inc()
 PYTHON_VERSION = distutils.sysconfig.get_python_version()
 PYTHON_LIB = "python%s" % PYTHON_VERSION
+if float(PYTHON_VERSION) >= 3:
+    PYTHON_LIB += "m"
 
 OUTPUT_DIR = os.path.dirname(__file__)
 
