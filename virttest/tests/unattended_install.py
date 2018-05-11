@@ -1174,26 +1174,8 @@ def run(test, params, env):
     # libvirt import of guest from NFS shared path, then copy image
     # from image_path to nfs mount dir
     if(params.get("virt_test_type", "qemu") == "libvirt" and
-       params.get("setup_local_nfs", "no") == "yes"):
-        nfs_mount_path = params.get("nfs_mount_dir")
-        if nfs_mount_path:
-            # check for image availability in NFS shared path
-            if(not os.path.isfile(dst) or
-               utils_misc.get_image_info(dst)['lcounts'].lower() == "true"):
-                source = os.path.join(vt_data_dir,
-                                      os.path.join("images", image_name))
-                logging.debug("Checking for image available in image data "
-                              "path - %s", source)
-                # check for image availability in images data directory
-                if(os.path.isfile(source) and not
-                   utils_misc.get_image_info(source)['lcounts'].lower() == "true"):
-                    logging.debug("Copying guest image from %s to %s", source,
-                                  dst)
-                    shutil.copy(source, dst)
-                else:
-                    raise exceptions.TestSetupFail("Guest image is unavailable"
-                                                   "/corrupted in %s and %s" %
-                                                   (source, dst))
+       params.get("storage_type") == "nfs"):
+        storage.copy_nfs_image(params, image_name, vt_data_dir)
 
     if mount_point and src:
         funcatexit.register(env, params.get("type"), copy_file_from_nfs, src,

@@ -11,6 +11,7 @@ import os
 import shutil
 import re
 
+from avocado.core import exceptions
 from avocado.utils import process
 
 from virttest import iscsi
@@ -19,6 +20,7 @@ from virttest import virt_vm
 from virttest import gluster
 from virttest import lvm
 from virttest import ceph
+from virttest import data_dir
 from virttest.compat_52lts import decode_to_text
 
 
@@ -225,6 +227,40 @@ def get_image_filename_filesytem(params, root_dir):
 
     image_filename = utils_misc.get_path(root_dir, image_filename)
     return image_filename
+
+
+def copy_nfs_image(params, image_name, root_dir):
+    """
+    copy image from image_path to nfs mount dir if image is not available
+    or corrupted.
+
+    :param params: Test dict params
+    :param image_name: Master image name.
+    :param root_dir: Base directory for relative filenames.
+    :raise: TestSetupFail if image is unavailable/corrupted
+    """
+    image_format = params.get("image_format", "qcow2")
+    if params.get("setup_local_nfs", "no") == "yes":
+        # check for image availability in NFS shared path
+        base_dir = params.get("images_base_dir", data_dir.get_data_dir())
+        dst = get_image_filename(params, base_dir)
+        if(not os.path.isfile(dst) or
+           utils_misc.get_image_info(dst)['lcounts'].lower() == "true"):
+            source = os.path.join(root_dir, "images", image_name)
+            if image_format not in source:
+                source = "%s.%s" % (source, image_format)
+            logging.debug("Checking for image available in image data "
+                          "path - %s", source)
+            # check for image availability in images data directory
+            if(os.path.isfile(source) and not
+               utils_misc.get_image_info(source)['lcounts'].lower() == "true"):
+                logging.debug("Copying guest image from %s to %s", source,
+                              dst)
+                shutil.copy(source, dst)
+            else:
+                raise exceptions.TestSetupFail("Guest image is unavailable"
+                                               "/corrupted in %s and %s" %
+                                               (source, dst))
 
 
 class OptionMissing(Exception):
