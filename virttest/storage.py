@@ -478,6 +478,10 @@ class QemuImg(object):
                 m_image_fn = get_image_filename(params, root_dir)
                 image_fn = get_image_filename(image_params, root_dir)
 
+                # If image is not available/corrupted in nfs share location
+                # ensure it is copied before cloning
+                if params.get("storage_type") == "nfs":
+                    copy_nfs_image(params, image_name, root_dir)
                 force_clone = params.get("force_image_clone", "no")
                 if not os.path.exists(image_fn) or force_clone == "yes":
                     logging.info("Clone master image for vms.")
