@@ -434,7 +434,7 @@ class VirtTest(test.Test):
                                       "postprocessing: %s",
                                       sys.exc_info()[1])
                 finally:
-                    if self.__safe_env_save(env):
+                    if self.__safe_env_save(env) or params.get("env_cleanup", "no") == "yes":
                         env.destroy()   # Force-clean as it can't be stored
 
         except Exception as e:
