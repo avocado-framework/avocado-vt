@@ -170,7 +170,7 @@ class FileTransferClient(object):
         except socket.error as e:
             raise FileTransferSocketError("Error receiving data from server",
                                           e)
-        return "".join(strs)
+        return b"".join(strs)
 
     def _report_stats(self, sr):
         if self._log_func:
@@ -191,6 +191,7 @@ class FileTransferClient(object):
         self._report_stats("Sent")
 
     def _receive_packet(self, timeout=60):
+        """return bytes"""
         size = struct.unpack("=I", self._receive(4))[0]
         sr = self._receive(size, timeout)
         self.transferred += len(sr) + 4
@@ -250,7 +251,7 @@ class FileTransferClient(object):
             # No error message -- re-raise original exception
             six.reraise(*e)
         if msg == RSS_ERROR:
-            errmsg = self._receive_packet()
+            errmsg = self._receive_packet().decode()
             raise FileTransferServerError(errmsg)
         six.reraise(*e)
 
@@ -283,11 +284,11 @@ class FileUploadClient(FileTransferClient):
     def _upload_file(self, path, end_time):
         if os.path.isfile(path):
             self._send_msg(RSS_CREATE_FILE)
-            self._send_packet(os.path.basename(path))
+            self._send_packet(os.path.basename(path).encode())
             self._send_file_chunks(path, end_time - time.time())
         elif os.path.isdir(path):
             self._send_msg(RSS_CREATE_DIR)
-            self._send_packet(os.path.basename(path))
+            self._send_packet(os.path.basename(path).encode())
             for filename in os.listdir(path):
                 self._upload_file(os.path.join(path, filename), end_time)
             self._send_msg(RSS_LEAVE_DIR)
@@ -331,7 +332,7 @@ class FileUploadClient(FileTransferClient):
         try:
             try:
                 self._send_msg(RSS_SET_PATH)
-                self._send_packet(dst_path)
+                self._send_packet(dst_path.encode())
                 matches = glob.glob(src_pattern)
                 for filename in matches:
                     self._upload_file(os.path.abspath(filename), end_time)
@@ -352,7 +353,7 @@ class FileUploadClient(FileTransferClient):
                 if msg == RSS_OK:
                     return
                 elif msg == RSS_ERROR:
-                    errmsg = self._receive_packet()
+                    errmsg = self._receive_packet().decode()
                     raise FileTransferServerError(errmsg)
                 else:
                     # Neither RSS_OK nor RSS_ERROR found
@@ -431,14 +432,14 @@ class FileDownloadClient(FileTransferClient):
         try:
             try:
                 self._send_msg(RSS_SET_PATH)
-                self._send_packet(src_pattern)
+                self._send_packet(src_pattern.encode())
             except FileTransferError:
                 self._handle_transfer_error()
             while True:
                 msg = self._receive_msg()
                 if msg == RSS_CREATE_FILE:
                     # Receive filename and file contents
-                    filename = self._receive_packet()
+                    filename = self._receive_packet().decode()
                     if os.path.isdir(dst_path):
                         dst_path = os.path.join(dst_path, filename)
                     self._receive_file_chunks(dst_path, end_time - time.time())
@@ -446,7 +447,7 @@ class FileDownloadClient(FileTransferClient):
                     file_count += 1
                 elif msg == RSS_CREATE_DIR:
                     # Receive dirname and create the directory
-                    dirname = self._receive_packet()
+                    dirname = self._receive_packet().decode()
                     if os.path.isdir(dst_path):
                         dst_path = os.path.join(dst_path, dirname)
                     if not os.path.isdir(dst_path):
@@ -466,7 +467,7 @@ class FileDownloadClient(FileTransferClient):
                     break
                 elif msg == RSS_ERROR:
                     # Receive error message and abort
-                    errmsg = self._receive_packet()
+                    errmsg = self._receive_packet().decode()
                     raise FileTransferServerError(errmsg)
                 else:
                     # Unexpected msg
