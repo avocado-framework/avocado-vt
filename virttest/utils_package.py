@@ -6,6 +6,7 @@ import aexpect
 
 from avocado.core import exceptions
 from avocado.utils import software_manager
+from six import string_types
 
 from . import utils_misc
 
@@ -29,7 +30,7 @@ class RemotePackageMgr(object):
         if not isinstance(session, (aexpect.ShellSession, aexpect.Expect)):
             raise exceptions.TestError("Parameters exception on session")
         if not isinstance(pkg, list):
-            if not isinstance(pkg, str):
+            if not isinstance(pkg, string_types):
                 raise exceptions.TestError("pkg %s must be list or str" % pkg)
             else:
                 self.pkg_list = [pkg, ]
@@ -141,7 +142,7 @@ class LocalPackageMgr(software_manager.SoftwareManager):
         :param pkg: package name or list
         """
         if not isinstance(pkg, list):
-            if not isinstance(pkg, str):
+            if not isinstance(pkg, string_types):
                 raise exceptions.TestError("pkg %s must be list or str" % pkg)
             else:
                 self.pkg_list = [pkg, ]
