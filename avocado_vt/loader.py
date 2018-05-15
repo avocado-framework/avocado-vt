@@ -187,7 +187,7 @@ class VirtTestLoader(loader.TestLoader):
     def discover(self, url, which_tests=loader.DEFAULT):
         try:
             cartesian_parser = self._get_parser()
-        except Exception, details:
+        except Exception as details:
             return self._report_bad_discovery(url, details, which_tests)
         if url is not None:
             try:
