@@ -961,9 +961,8 @@ class VM(virt_vm.BaseVM):
                 if mem_params.get("slots") and mem_params.get("maxmem"):
                     options.append("slots=%s" % mem_params["slots"])
                     options.append("maxmem=%s" % mem_params["maxmem"])
-                for name in mem_params.objects("mem_devs"):
-                    memdev_params = mem_params.object_params(name)
-                    dev = devices.memory_define_by_params(memdev_params, name)
+                for name in params.objects("mem_devs"):
+                    dev = devices.memory_define_by_params(params, name)
                     devs.extend(dev)
             cmdline = "-m %s" % ",".join(map(str, options))
             devs.insert(0, StrDev("mem", cmdline=cmdline))

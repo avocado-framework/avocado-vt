@@ -1826,6 +1826,7 @@ class DevContainer(object):
         Create memory modules by params, include memory object and
         pc-dimm devices.
         """
+        params = params.object_params(name)
         devices = []
         if not self.has_device("pc-dimm"):
             logging.warn("'PC-DIMM' does not support by your qemu")
