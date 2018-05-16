@@ -171,6 +171,9 @@ class UnattendedInstallConfig(object):
         # Will setup the virtio attributes
         v_attributes = ['virtio_floppy', 'virtio_scsi_path',
                         'virtio_storage_path', 'virtio_network_path',
+                        'virtio_balloon_path', 'virtio_viorng_path',
+                        'virtio_vioser_path', 'virtio_pvpanic_path',
+                        'virtio_vioinput_path',
                         'virtio_oemsetup_id',
                         'virtio_network_installer_path',
                         'virtio_balloon_installer_path',
@@ -510,11 +513,15 @@ class UnattendedInstallConfig(object):
         if self.install_virtio == 'yes':
             paths = doc.getElementsByTagName("Path")
             values = [self.virtio_scsi_path,
-                      self.virtio_storage_path, self.virtio_network_path]
+                      self.virtio_storage_path, self.virtio_network_path,
+                      self.virtio_balloon_path, self.virtio_viorng_path,
+                      self.virtio_vioser_path, self.virtio_pvpanic_path,
+                      self.virtio_vioinput_path]
             for path, value in list(zip(paths, values)):
-                path_text = path.childNodes[0]
-                assert path_text.nodeType == doc.TEXT_NODE
-                path_text.data = value
+                if value:
+                    path_text = path.childNodes[0]
+                    assert path_text.nodeType == doc.TEXT_NODE
+                    path_text.data = value
         else:
             settings = doc.getElementsByTagName("settings")
             for s in settings:
