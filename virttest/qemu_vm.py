@@ -4218,7 +4218,7 @@ class VM(virt_vm.BaseVM):
                 while iters:
                     item = iters.pop()
                     try:
-                        k, v = item.next()
+                        k, v = next(item)
                     except StopIteration:
                         continue
                     iters.append(item)
