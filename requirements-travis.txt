@@ -1,6 +1,6 @@
 Sphinx==1.3b1
 inspektor==0.4.5
-autotest==0.16.2
+autotest>=0.16.2; python_version < '3.0'
 aexpect==1.4.0
 simplejson==3.8.0
 netaddr>=0.7.18
