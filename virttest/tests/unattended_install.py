@@ -396,8 +396,18 @@ class UnattendedInstallConfig(object):
                                                     self.nfs_dir)
         else:
             raise ValueError("Unexpected installation medium %s" % self.url)
-
         contents = re.sub(dummy_medium_re, content, contents)
+
+        dummy_repos_re = r'\bKVM_TEST_REPOS\b'
+        if re.search(dummy_repos_re, contents):
+            repo_list = self.params.get("kickstart_extra_repos", "").split()
+            lines = ["# Extra repositories"]
+            for index, repo_url in enumerate(repo_list, 1):
+                line = ("repo --name=extra_repo%d --baseurl=%s --install "
+                        "--noverifyssl" % (index, repo_url))
+                lines.append(line)
+            content = "\n".join(lines)
+            contents = re.sub(dummy_repos_re, content, contents)
 
         dummy_logging_re = r'\bKVM_TEST_LOGGING\b'
         if re.search(dummy_logging_re, contents):
