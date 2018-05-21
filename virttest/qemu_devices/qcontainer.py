@@ -646,14 +646,21 @@ class DevContainer(object):
         # Remove all devices, which are removed together with this dev
         out = device.unplug(monitor)
 
-        ver_out = device.verify_unplug(out, monitor)
-
-        if ver_out is False:
+        # The unplug action sometimes delays for a while per host performance,
+        # it will be accepted if the unplug been accomplished within 30s
+        from virttest import utils_misc
+        if not utils_misc.wait_for(
+                lambda: device.verify_unplug(out, monitor) is True, timeout=30):
             self.set_clean()
-            return out, ver_out
+            return out, device.verify_unplug(out, monitor)
+
+        ver_out = device.verify_unplug(out, monitor)
 
         try:
             device.unplug_hook()
+            drive = device.get_param("drive")
+            if drive:
+                self.remove(drive)
             self.remove(device, True)
             if ver_out is True:
                 self.set_clean()
