@@ -29,6 +29,7 @@ from .utils_test import libvirt
 from .libvirt_xml.xcepts import LibvirtXMLNotFoundError
 from .compat_52lts import results_stdout_52lts, results_stderr_52lts
 from avocado.utils import cpu as utils
+from avocado.utils import software_manager
 
 
 def get_cpu_xmldata(vm, options=""):
@@ -464,3 +465,21 @@ def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False):
             final_result = False
 
     return final_result
+
+
+def is_qemu_kvm_ma():
+    """
+    Check if qemu-kvm-ma is installed in host
+    """
+    sm = software_manager.SoftwareManager()
+    return sm.check_installed("qemu-kvm-ma")
+
+
+def vcpuhotunplug_unsupport_str():
+    """
+    Check if qemu-kvm-ma is installed and return unsupport err string
+    """
+    if is_qemu_kvm_ma():
+        return "not currently supported"
+    else:
+        return ""
