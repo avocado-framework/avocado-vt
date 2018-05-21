@@ -580,7 +580,7 @@ class DevContainer(object):
         added_devices.append(device)
         return added_devices
 
-    def simple_hotplug(self, device, monitor):
+    def simple_hotplug(self, device, monitor, bus=None):
         """
         Function hotplug device to devices representation. If verification is
         supported by hodplugged device and result of verification is True
@@ -591,10 +591,23 @@ class DevContainer(object):
         :type device: string, qdevices.QDevice.
         :param monitor: Monitor from vm.
         :type monitor: qemu_monitor.Monitor
+        :param bus: The bus to be plugged into
+        :type bus: qdevice.QSparseBus
         :return: tuple(monitor.cmd(), verify_hotplug output)
         """
         self.set_dirty()
 
+        if isinstance(device, qdevices.QDevice):
+            if bus is None:
+                bus = self.get_buses({'aobject': 'pci.0'})[0]
+                if not isinstance(device.parent_bus, (list, tuple)):
+                    device.parent_bus = [device.parent_bus]
+                for parent_bus in device.parent_bus:
+                    for _bus in self.get_buses(parent_bus):
+                        if _bus.bus_item == 'bus':
+                            bus = _bus
+                            break
+            bus.prepare_hotplug(device)
         out = device.hotplug(monitor)
         ver_out = device.verify_hotplug(out, monitor)
 
@@ -602,7 +615,6 @@ class DevContainer(object):
             self.set_clean()
             return out, ver_out
 
-        qdev_out = None
         try:
             qdev_out = self.insert(device)
             if not isinstance(qdev_out, list) or len(qdev_out) != 1:

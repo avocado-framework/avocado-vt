@@ -1476,6 +1476,15 @@ class QSparseBus(object):
         self.bus[addr] = device
         return []
 
+    def prepare_hotplug(self, device):
+        """
+        Prepares a device to be hot-plugged into this bus;
+        You need to call "insert" afterwards. Concurrent calls
+        of "prepare_hotplug" and "insert" are not supported
+        :param device: QDevice object
+        """
+        device.set_param("bus", self.busid)
+
     def remove(self, device):
         """
         Remove device from this bus
@@ -1899,6 +1908,20 @@ class QPCIEBus(QPCIBus):
                 return root_port.busid
 
         return None
+
+    def prepare_hotplug(self, device):
+        """
+        Prepares a device to be hot-plugged into this bus;
+        You need to call "insert" afterwards. Concurrent calls
+        of "prepare_hotplug" and "insert" are not supported
+        :param device: The QDevice object
+        """
+        root_port = self.get_free_root_port()
+        device.set_param("bus", root_port)
+        if not isinstance(device.parent_bus, (tuple, list)):
+            device.parent_bus = [device.parent_bus]
+        device.parent_bus = tuple(bus for bus in device.parent_bus
+                                  if not self.match_bus(bus)) + ({"busid": root_port},)
 
 
 class QPCISwitchBus(QPCIBus):
