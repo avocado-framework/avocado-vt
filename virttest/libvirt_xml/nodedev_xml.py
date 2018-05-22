@@ -91,17 +91,56 @@ class SystemXML(CAPXML):
 
 
 class NetXML(CAPXML):
-
     """
     class for capability whose type is net.
     """
-    __slots__ = ('interface', 'address')
+    # Example:
+    #<capability type='net'>
+    #<interface>eno1</interface>
+    #<address>44:37:e6:95:03:e4</address>
+    #<link speed='100' state='up'/>
+    #<feature name='rx'/>
+    #<feature name='tx'/>
+    #<capability type='80203'/>
+    #</capability>
+    #</device>
+
+    __slots__ = ('interface', 'address', 'link_speed', 'link_state')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementText('interface', self, parent_xpath='/',
                                  tag_name='interface')
         accessors.XMLElementText('address', self, parent_xpath='/',
                                  tag_name='address')
+        accessors.XMLAttribute('link_speed', self, parent_xpath='/',
+                               tag_name='link', attribute='speed')
+        accessors.XMLAttribute('link_state', self, parent_xpath='/',
+                               tag_name='link', attribute='state')
+        super(NetXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = (' <capability type=\'net\'></capability>')
+
+    __key2filename_dict__ = {'address': 'address',
+                             'link_state': 'operstate',
+                             'link_speed': 'speed'}
+
+    @staticmethod
+    def get_key2filename_dict():
+        """
+        return the dict key2filename.
+        """
+        return NetXML.__key2filename_dict__
+
+    def get_key2value_dict(self):
+        """
+        return the dict key2value
+        """
+        key2value_dict = {}
+        for key in NetXML.__key2filename_dict__:
+            try:
+                key2value_dict[key] = self[key]
+            except xcepts.LibvirtXMLNotFoundError:
+                key2value_dict[key] = "-1"
+        return key2value_dict
 
 
 class StorageXML(CAPXML):
@@ -315,7 +354,7 @@ class NodedevXMLBase(base.LibvirtXMLBase):
 
     __slots__ = ('name', 'parent', 'cap_type', 'cap',
                  'sysfs_main_path', 'host', 'fc_type',
-                 'wwnn', 'wwpn', 'fabric_wwn', 'max_count')
+                 'wwnn', 'wwpn', 'fabric_wwn', 'max_count', 'path')
 
     __schema_name__ = "nodedev"
 
@@ -352,6 +391,8 @@ class NodedevXMLBase(base.LibvirtXMLBase):
         accessors.XMLElementText('fabric_wwn', self,
                                  parent_xpath='/capability/capability',
                                  tag_name='fabric_wwn')
+        accessors.XMLElementText('path', self, parent_xpath='/',
+                                 tag_name='path')
         super(NodedevXMLBase, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<device></device>'
 
@@ -415,10 +456,13 @@ class NodedevXMLBase(base.LibvirtXMLBase):
         """
         Get the abs path of the capability info.
         """
-        sysfs_main_path = self.__sysfs_dir__
-        sysfs_sub_path = self.get_sysfs_sub_path()
-
-        sysfs_path = os.path.join(sysfs_main_path, sysfs_sub_path)
+        cap_type = self.cap_type
+        if cap_type == 'pci':
+            sysfs_main_path = self.__sysfs_dir__
+            sysfs_sub_path = self.get_sysfs_sub_path()
+            sysfs_path = os.path.join(sysfs_main_path, sysfs_sub_path)
+        else:
+            sysfs_path = self.path
         return sysfs_path
 
 
