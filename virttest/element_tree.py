@@ -112,7 +112,6 @@ __all__ = [
 # structure, and convert it from and to XML.
 #
 
-import string
 import sys
 import re
 
@@ -120,10 +119,7 @@ from six import PY3
 from . import element_path as ElementPath
 
 
-try:
-    REPLACE = string.replace
-except AttributeError:
-    REPLACE = str.replace
+REPLACE = str.replace
 
 # TODO: add support for custom namespace resolvers/default namespaces
 # TODO: add improved support for incremental parsing
@@ -852,7 +848,7 @@ def fixtag(tag, namespaces):
     # tag and namespace declaration, if any
     if isinstance(tag, QName):
         tag = tag.text
-    namespace_uri, tag = string.split(tag[1:], "}", 1)
+    namespace_uri, tag = str.split(tag[1:], "}", 1)
     prefix = namespaces.get(namespace_uri)
     if prefix is None:
         prefix = _namespace_map.get(namespace_uri)
@@ -1235,7 +1231,7 @@ class XMLTreeBuilder(object):
             if prefix == ">":
                 self._doctype = None
                 return
-            text = string.strip(text)
+            text = str.strip(text)
             if not text:
                 return
             self._doctype.append(text)
