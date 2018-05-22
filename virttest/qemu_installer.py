@@ -29,7 +29,7 @@ class QEMUBaseInstaller(base_installer.BaseInstaller):
     # to the test directory
     #
     qemu_system = 'qemu-system-' + decode_to_text(process.system_output('uname -i'))
-    ACCEPTABLE_QEMU_BIN_NAMES = ['qemu-kvm', qemu_system]
+    ACCEPTABLE_QEMU_BIN_NAMES = ['qemu-kvm', 'qemu-system-ppc64', qemu_system]
 
     #
     # The default names for the binaries
