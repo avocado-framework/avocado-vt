@@ -1,7 +1,6 @@
 import logging
 import os
 import re
-import string
 import glob
 import shutil
 from six import StringIO
@@ -126,7 +125,7 @@ class ConfigLoader:
         options = self.parser.items(section)
         for i in range(options.__len__()):
             param = options[i][0]
-            aux = string.split(param, '.')
+            aux = str.split(param, '.')
 
             if aux.__len__ < 2:
                 return False, "Invalid parameter syntax at %s" % (param)
