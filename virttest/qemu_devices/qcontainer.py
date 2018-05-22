@@ -893,17 +893,22 @@ class DevContainer(object):
             devices = []
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd))
             # EFI pflash
-            aavmf_code = ("-drive file=/usr/share/AAVMF/AAVMF_CODE.fd,"
-                          "if=pflash,format=raw,unit=0,readonly=on")
+            aavmf = params.get("aavmf")
+            if not aavmf:
+                aavmf = "/usr/share/AAVMF/AAVMF_CODE.fd"
+            aavmf_code = ("-drive file=%s,if=pflash,format=raw,unit=0,readonly=on" % aavmf)
             devices.append(qdevices.QStringDevice('AAVMF_CODE',
                                                   cmdline=aavmf_code))
+            aavmf_vars_template = params.get("aavmf_vars_template")
+            if not aavmf_vars_template:
+                aavmf_vars_template = "/usr/share/AAVMF/AAVMF_VARS.fd"
             aavmf_vars = get_aavmf_vars(params)
             if not os.path.exists(aavmf_vars):
                 logging.warn("AAVMF variables file '%s' doesn't exist, "
                              "recreating it from the template (this should "
                              "only happen when you install the machine as "
                              "there is no default boot in EFI!)", aavmf_vars)
-                shutil.copy2('/usr/share/AAVMF/AAVMF_VARS.fd', aavmf_vars)
+                shutil.copy2(aavmf_vars_template, aavmf_vars)
             aavmf_vars = ("-drive file=%s,if=pflash,format=raw,unit=1"
                           % aavmf_vars)
             devices.append(qdevices.QStringDevice('AAVMF_VARS',
@@ -943,17 +948,22 @@ class DevContainer(object):
             devices = []
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd))
             # EFI pflash
-            aavmf_code = ("-drive file=/usr/share/AAVMF/AAVMF_CODE.fd,"
-                          "if=pflash,format=raw,unit=0,readonly=on")
+            aavmf = params.get("aavmf")
+            if not aavmf:
+                aavmf = "/usr/share/AAVMF/AAVMF_CODE.fd"
+            aavmf_code = ("-drive file=%s,if=pflash,format=raw,unit=0,readonly=on" % aavmf)
             devices.append(qdevices.QStringDevice('AAVMF_CODE',
                                                   cmdline=aavmf_code))
+            aavmf_vars_template = params.get("aavmf_vars_template")
+            if not aavmf_vars_template:
+                aavmf_vars_template = "/usr/share/AAVMF/AAVMF_VARS.fd"
             aavmf_vars = get_aavmf_vars(params)
             if not os.path.exists(aavmf_vars):
                 logging.warn("AAVMF variables file '%s' doesn't exist, "
                              "recreating it from the template (this should "
                              "only happen when you install the machine as "
                              "there is no default boot in EFI!)", aavmf_vars)
-                shutil.copy2('/usr/share/AAVMF/AAVMF_VARS.fd', aavmf_vars)
+                shutil.copy2(aavmf_vars_template, aavmf_vars)
             aavmf_vars = ("-drive file=%s,if=pflash,format=raw,unit=1"
                           % aavmf_vars)
             devices.append(qdevices.QStringDevice('AAVMF_VARS',
