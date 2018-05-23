@@ -712,13 +712,14 @@ def preprocess(test, params, env):
 
     vm_type = params.get('vm_type')
 
-    if vm_type == 'libvirt' and params.get("enable_libvirtd_debug_log", False):
-        log_level = params.get("libvirtd_debug_level", 1)
-        log_file = params.get("libvirtd_debug_file", "")
-        libvirtd_debug_log = test_setup.LibvirtdDebugLog(test,
-                                                         log_level,
-                                                         log_file)
-        libvirtd_debug_log.enable()
+    if vm_type == 'libvirt':
+        if params.get("enable_libvirtd_debug_log", "yes") == "yes":
+            log_level = params.get("libvirtd_debug_level", 1)
+            log_file = params.get("libvirtd_debug_file", "")
+            libvirtd_debug_log = test_setup.LibvirtdDebugLog(test,
+                                                             log_level,
+                                                             log_file)
+            libvirtd_debug_log.enable()
 
     setup_pb = False
     ovs_pb = False
@@ -1286,7 +1287,7 @@ def postprocess(test, params, env):
                 err += "\nPolkit cleanup: %s" % str(details
                                                     ).replace('\\n', '\n  ')
                 logging.error("Unexpected error: %s" % details)
-        if params.get("enable_libvirtd_debug_log", False):
+        if params.get("enable_libvirtd_debug_log", "yes") == "yes":
             libvirtd_debug_log = test_setup.LibvirtdDebugLog(test)
             libvirtd_debug_log.disable()
 
