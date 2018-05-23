@@ -876,11 +876,11 @@ class VM(virt_vm.BaseVM):
                 if has_sub_option("boot", "initrd") and initrd_path:
                     result += "initrd=%s," % initrd_path
                 if has_sub_option("boot", "kernel_args") and kernel_args:
-                    result += "kernel_args=%s," % kernel_args
+                    result += "kernel_args=\"%s\"," % kernel_args
             else:
                 result = ""
                 logging.warning("boot option is not supported")
-            return result.strip(',')
+            return result.rstrip(',')
 
         # End of command line option wrappers
 
