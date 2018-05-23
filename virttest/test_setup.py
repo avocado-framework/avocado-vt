@@ -2357,6 +2357,8 @@ class LibvirtdDebugLog(object):
         if not self.log_file or not os.path.isdir(os.path.dirname(self.log_file)):
             self.log_file = utils_misc.get_path(self.test.debugdir,
                                                 "libvirtd.log")
+        # param used during libvirtd cleanup
+        self.test.params["libvirtd_debug_file"] = self.log_file
         logging.debug("libvirtd debug log stored in: %s", self.log_file)
         self.libvirtd_conf["log_level"] = self.log_level
         self.libvirtd_conf["log_outputs"] = '"%s:file:%s"' % (self.log_level,
