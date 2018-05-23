@@ -496,9 +496,9 @@ class VM(virt_vm.BaseVM):
             dynamic = False
             chardev = qdevices.CharDevice(params=params)
             if not qid:
-                devid = utils_misc.generate_random_id()
+                qid = utils_misc.generate_random_id()
                 dynamic = True
-            chardev.set_param("id", devid, dynamic=dynamic)
+            chardev.set_param("id", qid, dynamic=dynamic)
 
             return chardev
 
