@@ -83,7 +83,7 @@ class RemotePackageMgr(object):
         cmd = self.query_cmd + pkg_name
         return not self.session.cmd_status(cmd)
 
-    def operate(self, timeout, default_status):
+    def operate(self, timeout, default_status, internal_timeout=2):
         """
         Run command and return status
 
@@ -100,7 +100,7 @@ class RemotePackageMgr(object):
                 need = True
             if need:
                 cmd = self.cmd + pkg
-                if self.session.cmd_status(cmd, timeout):
+                if self.session.cmd_status(cmd, timeout, internal_timeout):
                     # Try to clean the repo db and re-try installation
                     if not self.clean():
                         logging.error("Package %s was broken", self.package_manager)
