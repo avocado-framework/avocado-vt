@@ -234,7 +234,8 @@ def get_image_filename_filesytem(params, root_dir):
     image_format = params.get("image_format", "qcow2")
     if params.get("image_raw_device") == "yes":
         return image_name
-    if image_format:
+    storage_type = params.get("storage_type")
+    if image_format and storage_type != "san":
         image_filename = "%s.%s" % (image_name, image_format)
     else:
         image_filename = image_name
