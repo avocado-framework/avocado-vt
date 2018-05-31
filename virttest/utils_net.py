@@ -1417,9 +1417,6 @@ def get_guest_ip_addr(session, mac_addr, os_type="linux", ip_version="ipv4",
     :param linklocal: Wether ip address is local or remote
     :return: ip addresses of network interface.
     """
-    if ip_version == "ipv6" and linklocal:
-        return ipv6_from_mac_addr(mac_addr)
-
     info_cmd = ""
     try:
         if os_type == "linux":
@@ -1432,20 +1429,24 @@ def get_guest_ip_addr(session, mac_addr, os_type="linux", ip_version="ipv4",
             nic_address = get_net_if_addrs_win(session, mac_addr)
         else:
             info_cmd = ""
-            raise IPAddrGetError(mac_addr, "Unknown os type")
+            raise ValueError("Unknown os type")
 
         if ip_version == "ipv4":
-            if nic_address["ipv4"]:
-                return nic_address["ipv4"][-1]
-            else:
-                return None
+            linklocal_prefix = "169.254"
+        elif ip_version == "ipv6":
+            linklocal_prefix = "fe80"
         else:
-            global_address = [x for x in nic_address["ipv6"]
-                              if not x.lower().startswith("fe80")]
-            if global_address:
-                return global_address[0]
+            raise ValueError("Unknown ip version type")
+
+        try:
+            if linklocal:
+                return [x for x in nic_address[ip_version]
+                        if x.lower().startswith(linklocal_prefix)][0]
             else:
-                return None
+                return [x for x in nic_address[ip_version]
+                        if not x.lower().startswith(linklocal_prefix)][0]
+        except IndexError:
+            return None
     except Exception as err:
         logging.debug(session.cmd_output(info_cmd))
         raise IPAddrGetError(mac_addr, err)
@@ -1710,6 +1711,10 @@ def create_network_script(iface_name, mac_addr, boot_proto, net_mask,
 
 def ipv6_from_mac_addr(mac_addr):
     """
+    Note:
+    Only support systems which choose EUI-64
+     - Linux support
+     - Windows not. Windows generate ipv6 by using a random value.
     :return: Ipv6 address for communication in link range.
     """
     mp = mac_addr.split(":")
@@ -3193,27 +3198,41 @@ def gen_ipv4_addr(network_num="10.0.0.0", network_prefix="24", exclude_ips=[]):
             yield str(ip_address)
 
 
-def get_ip_address_by_interface(ifname, ip_ver="ipv4"):
+def get_ip_address_by_interface(ifname, ip_ver="ipv4", linklocal=False):
     """
     returns ip address by interface
     :param ifname: interface name
     :param ip_ver: Host IP version, ipv4 or ipv6.
+    :param linklocal: Whether ip address is local or remote
     :raise NetError: When failed to fetch IP address (ioctl raised IOError.).
     """
     if ip_ver == "ipv6":
         ver = netifaces.AF_INET6
+        linklocal_prefix = "fe80"
     else:
         ver = netifaces.AF_INET
+        linklocal_prefix = "169.254"
     addr = netifaces.ifaddresses(ifname).get(ver)
+
     if addr is not None:
-        return [a['addr'] for a in addr if not a['addr'].startswith('fe80')][0]
+        try:
+            if linklocal:
+                return [a['addr'] for a in addr
+                        if a['addr'].lower().startswith(linklocal_prefix)][0]
+            else:
+                return [a['addr'] for a in addr
+                        if not a['addr'].lower().startswith(linklocal_prefix)][0]
+        except IndexError:
+            logging.warning("No IP address configured for "
+                            "the network interface %s !", ifname)
+            return None
     else:
         logging.warning("No IP address configured for the network interface"
                         "%s !", ifname)
         return None
 
 
-def get_host_ip_address(params, ip_ver="ipv4"):
+def get_host_ip_address(params, ip_ver="ipv4", linklocal=False):
     """
     Returns ip address of host specified in host_ip_addr parameter if provided.
     Otherwise ip address on interface specified in netdst parameter is returned.
@@ -3221,6 +3240,7 @@ def get_host_ip_address(params, ip_ver="ipv4"):
     default interface of the system is used.
     :param params
     :param ip_ver: Host IP version, ipv4 or ipv6.
+    :param linklocal: Whether ip address is local or remote
     """
     host_ip = params.get('host_ip_addr', None)
     if host_ip:
@@ -3231,7 +3251,7 @@ def get_host_ip_address(params, ip_ver="ipv4"):
         net_dev = get_host_default_gateway(iface_name=True)
     logging.warning("No IP address of host was provided, using IP address"
                     " on %s interface", net_dev)
-    return get_ip_address_by_interface(net_dev, ip_ver)
+    return get_ip_address_by_interface(net_dev, ip_ver, linklocal)
 
 
 def get_all_ips():
