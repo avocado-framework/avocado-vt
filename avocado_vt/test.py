@@ -96,6 +96,11 @@ class VirtTest(test.Test):
         self.__avocado_params = None
         self.bindir = data_dir.get_root_dir()
         self.virtdir = os.path.join(self.bindir, 'shared')
+        # self.__params_vt must be initialized after super
+        params_vt = utils_params.Params(vt_params)
+        # for timeout use Avocado-vt timeout as default but allow
+        # overriding from Avocado params (varianter)
+        self.timeout = params_vt.get("test_timeout", self.timeout)
 
         self.iteration = 0
         self.resultsdir = None
@@ -116,10 +121,9 @@ class VirtTest(test.Test):
             # 36LTS set's `self.params` instead of having it as a property
             # which stores the avocado params in `self.__params`
             self.__avocado_params = self.__params
-        self.__params_vt = utils_params.Params(vt_params)
+        self.__params_vt = params_vt
         self.debugdir = self.logdir
         self.resultsdir = self.logdir
-        self.timeout = vt_params.get("test_timeout", self.timeout)
         utils_misc.set_log_file_dir(self.logdir)
         self.__status = None
 
