@@ -714,7 +714,7 @@ def preprocess(test, params, env):
 
     if vm_type == 'libvirt':
         if params.get("enable_libvirtd_debug_log", "yes") == "yes":
-            log_level = params.get("libvirtd_debug_level", 1)
+            log_level = params.get("libvirtd_debug_level", "1")
             log_file = params.get("libvirtd_debug_file", "")
             libvirtd_debug_log = test_setup.LibvirtdDebugLog(test,
                                                              log_level,
