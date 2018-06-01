@@ -209,7 +209,7 @@ class QemuAgent(Monitor):
         """
         if not self._data_available():
             return []
-        s = ""
+        s = b""
         end_time = time.time() + timeout
         while self._data_available(end_time - time.time()):
             s += self._recvall()
@@ -228,10 +228,10 @@ class QemuAgent(Monitor):
         objs = []
         for line in s.splitlines():
             try:
-                if line[0] == '\xff':
+                if line[0] == b'\xff':
                     line = line[1:]
                 objs += [json.loads(line)]
-                self._log_lines(line)
+                self._log_lines(line.decode(errors="replace"))
             except Exception:
                 pass
         return objs
@@ -441,7 +441,7 @@ class QemuAgent(Monitor):
 
     def cmd_raw(self, data, timeout=CMD_TIMEOUT, success_resp=True):
         """
-        Send a raw string to the guest agent and return the response.
+        Send a raw bytes to the guest agent and return the response.
         Unlike cmd(), return the raw response dict without performing
         any checks on it.
 
@@ -458,7 +458,7 @@ class QemuAgent(Monitor):
 
         try:
             self._read_objects()
-            self._send(data)
+            self._send(data.encode())
             # Return directly for some cmd without any response.
             if not success_resp:
                 return {}
