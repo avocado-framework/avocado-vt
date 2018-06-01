@@ -2356,7 +2356,7 @@ class LibvirtdDebugLog(object):
     and log file path("libvirtd_debug_file") can be controlled.
     """
 
-    def __init__(self, test, log_level=1, log_file=""):
+    def __init__(self, test, log_level="1", log_file=""):
         """
         initialize variables
 
