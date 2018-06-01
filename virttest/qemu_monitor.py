@@ -74,6 +74,10 @@ class MonitorNotSupportedCmdError(MonitorNotSupportedError):
                 (self.cmd, self.monitor))
 
 
+class MonitorNotSupportedMigCapError(MonitorNotSupportedError):
+    pass
+
+
 class QMPCmdError(MonitorError):
 
     def __init__(self, cmd, qmp_args, data):
@@ -596,6 +600,23 @@ class Monitor:
                 self.open_log_files.pop(log)
         finally:
             self._log_lock.release()
+
+    def wait_for_migrate_progress(self, target):
+        """
+        Wait for migration progress to hit a target %
+        Note: We exit if we've gone onto another pass rather than wait
+        for a target we might never hit.
+        """
+        old_progress = 0
+        while True:
+            progress = self.get_migrate_progress()
+            if (progress < old_progress or
+                    progress >= target):
+                break
+            # progress < old_progress indicates we must be on
+            # another pass (we could also check the sync count)
+            old_progress = progress
+            time.sleep(0.1)
 
 
 class HumanMonitor(Monitor):
@@ -1278,6 +1299,7 @@ class HumanMonitor(Monitor):
 
         :param state: Bool value of capability.
         :param capability: capability which need to set.
+        :raise MonitorNotSupportedMigCapError: if the capability is unknown
         """
         cmd = "migrate_set_capability"
         self.verify_supported_cmd(cmd)
@@ -1285,18 +1307,28 @@ class HumanMonitor(Monitor):
         if state:
             value = "on"
         cmd += " %s %s" % (capability, value)
-        return self.cmd(cmd)
+        result = self.cmd(cmd)
+        if result != "":
+            raise MonitorNotSupportedMigCapError("Failed to set capability"
+                                                 "%s: %s" %
+                                                 (capability, result))
+        return result
 
     def get_migrate_capability(self, capability):
         """
         Get the state of migrate-capability.
 
         :param capability: capability which need to get.
+        :raise MonitorNotSupportedMigCapError: if the capability is unknown
         :return: the state of migrate-capability.
         """
         capability_info = self.query("migrate_capabilities")
         pattern = r"%s:\s+(on|off)" % capability
-        value = re.search(pattern, capability_info, re.M).group(1)
+        match = re.search(pattern, capability_info, re.M)
+        if match is None:
+            raise MonitorNotSupportedMigCapError("Unknown capability %s" %
+                                                 capability)
+        value = match.group(1)
         return value == "on"
 
     def set_migrate_cache_size(self, value):
@@ -1340,6 +1372,34 @@ class HumanMonitor(Monitor):
         parameter_info = parameter_info.split(" ")
         value = parameter_info[parameter_info.index("parameter")+1]
         return value
+
+    def migrate_start_postcopy(self):
+        """
+        Switch into postcopy migrate mode
+        """
+
+        return self.cmd("migrate_start_postcopy")
+
+    def get_migrate_progress(self):
+        """
+        Return the transfered / remaining ram ratio
+
+        :return: percentage remaining for RAM transfer
+        """
+        status = self.info("migrate", debug=False)
+        rem = re.search(r"remaining ram: (\d+) kbytes", status)
+        total = re.search(r"total ram: (\d+) kbytes", status)
+        if rem and total:
+            ret = 100 - 100 * int(rem.group(1)) / int(total.group(1))
+            logging.debug("Migration progress: %s%%", ret)
+            return ret
+        if "Migration status: completed" in status:
+            logging.debug("Migration progress: 100%")
+            return 100
+        elif "Migration status: setup" in status:
+            logging.debug("Migration progress: 0%")
+            return 0
+        raise MonitorError("Unable to parse migration progress:\n%s" % status)
 
     def system_powerdown(self):
         """
@@ -2373,11 +2433,24 @@ class QMPMonitor(Monitor):
 
         :param state: Bool value of capability.
         :param capability: capability which need to set.
+        :raise MonitorNotSupportedMigCapError: if the capability is unsettable
         """
         cmd = "migrate-set-capabilities"
         self.verify_supported_cmd(cmd)
         args = {"capabilities": [{"state": state, "capability": capability}]}
-        return self.cmd(cmd, args)
+        # If the capability doesn't exist or can't be used in this situation
+        # we'll get a GenericError with text explaining, but it's not always
+        # clear if it's another reason for the error
+        try:
+            return self.cmd(cmd, args)
+        except QMPCmdError as e:
+            if e.data['class'] in ['GenericError']:
+                logging.debug(
+                    "Error in set_migrate_capability for %s: %s" % (capability, e))
+                raise MonitorNotSupportedMigCapError("set capability failed for %s (%s)" %
+                                                     (capability, e))
+            else:
+                raise e
 
     def get_migrate_capability(self, capability):
         """
@@ -2385,12 +2458,14 @@ class QMPMonitor(Monitor):
 
         :param capability: capability which need to get.
         :return: the state of migrate-capability.
+        :raise MonitorNotSupportedMigCapError: if the capability is unknown
         """
         capability_infos = self.query("migrate-capabilities")
         for item in capability_infos:
             if item["capability"] == capability:
                 return item["state"]
-        return False
+        raise MonitorNotSupportedMigCapError("Unknown capability %s" %
+                                             capability)
 
     def set_migrate_cache_size(self, value):
         """
@@ -2432,6 +2507,37 @@ class QMPMonitor(Monitor):
             return parameter_info[parameter]
         else:
             return False
+
+    def get_migrate_progress(self):
+        """
+        Return the transfered / remaining ram ratio
+
+        :return: percentage remaining for RAM transfer
+        """
+        migration_info = self.query("migrate")
+        status = migration_info["status"]
+        if "ram" in migration_info:
+            ram_stats = migration_info["ram"]
+            rem = ram_stats["remaining"]
+            total = ram_stats["total"]
+            ret = 100.0 - 100.0 * rem / total
+            logging.debug("Migration progress: %s%%", ret)
+            return ret
+        else:
+            if status == "completed":
+                logging.debug("Migration progress: 100%")
+                return 100
+            elif status == "setup":
+                logging.debug("Migration progress: 0%")
+                return 0
+            else:
+                raise MonitorError("Unable to parse migration progress:\n%s" % status)
+
+    def migrate_start_postcopy(self):
+        """
+        Switch into postcopy migrate mode
+        """
+        return self.cmd("migrate-start-postcopy")
 
     def system_powerdown(self):
         """
