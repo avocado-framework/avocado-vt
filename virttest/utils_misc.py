@@ -3050,6 +3050,88 @@ def get_windows_drive_letters(session):
     return drive_letters
 
 
+class IozoneTest(object):
+    """
+    Run iozone test on guest
+    """
+    def __init__(self, session, params):
+        """
+        run setup of iozone test
+        """
+        self.params = params
+        self.session = session
+        self.timeout = float(params.get("disk_op_timeout", 240))
+        self.iozone_version = params.get("iozone_version", "iozone3_458")
+        self.dst_dir = params.get("iozone_dst", "/home")
+        if self.params.get("os_type") == "linux":
+            iozone_status = self.check_linux_iozone()
+            if not iozone_status:
+                self.setup_linux_iozone()
+
+    def setup_linux_iozone(self):
+        """
+        Download iozone and complie it
+        """
+        logging.info("Download iozone tarball")
+        iozone_url = self.params.get("iozone_url", "http://www.iozone.org/src/stable/iozone3_458.tar")
+        download_cmd = "wget %s -P %s" % (iozone_url, self.dst_dir)
+        self.session.cmd(download_cmd, timeout=self.timeout)
+        logging.info("Decompress iozone tarball")
+        decompress_cmd = "cd %s && tar -xvf %s.tar" % (self.dst_dir, self.iozone_version)
+        self.session.cmd(decompress_cmd)
+        logging.info("Make iozone test tool")
+        install_cmd = "cd %s/%s/src/current && make linux" % (self.dst_dir, self.iozone_version)
+        self.session.cmd(install_cmd)
+        logging.info("clearn iozone tarball")
+        clean_iozone_tar_cmd = "rm -rf %s/%s.tar*" % (self.dst_dir, self.iozone_version)
+        self.session.cmd(clean_iozone_tar_cmd)
+
+    def check_linux_iozone(self):
+        """
+        check if iozone exist in linux guest
+        """
+        check_cmd = "cd %s/%s/src/current && ./iozone" % (self.dst_dir, self.iozone_version)
+        output = self.session.cmd_output(check_cmd)
+        if "iozone -h" in output:
+            return True
+        else:
+            return False
+
+    def run_iozone_in_guest(self, disk_index, mountpoint):
+        """
+        Do iozone test in guest
+        """
+        iozone_test_cmd_default = "./iozone -azR -r 64k -n 125M -g 512M -i 0 -i 1 %s"
+        iozone_test_cmd = self.params.get("iozone_test_cmd", iozone_test_cmd_default)
+        if self.params.get("os_type") == "windows":
+            format_windows_disk(self.session, disk_index, mountpoint)
+            test_cmd = iozone_test_cmd % (mountpoint, mountpoint)
+            test_cmd = set_winutils_letter(self.session, test_cmd)
+        elif self.params.get("os_type") == "linux":
+            test_cmd = iozone_test_cmd % mountpoint
+
+        status, output = self.session.cmd_status_output(test_cmd,
+                                                        timeout=self.timeout)
+        return status, output
+
+    def iozone_clean(self):
+        """
+        Clean old iozone packet after test in linux guest
+        """
+        if self.params.get("os_type") == "linux":
+            iozone_check = True
+            while iozone_check:
+                output = self.session.cmd_output("ps aux | grep iozone | grep -v grep")
+                if "iozone" not in output:
+                    iozone_check = False
+                    break
+                time.sleep(5)
+            iozone_clean_cmd = "cd %s && rm -rf iozone*" % self.dst_dir
+            status, output = self.session.cmd_status_output(iozone_clean_cmd, timeout=self.timeout)
+            if status:
+                logging.warn("Failed to cleanup iozone, output: %r" % output)
+
+
 def valued_option_dict(options, split_pattern, start_count=0, dict_split=None):
     """
     Divide the valued options into key and value
