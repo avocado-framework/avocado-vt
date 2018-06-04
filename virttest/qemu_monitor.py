@@ -350,6 +350,7 @@ class Monitor:
                 for line in log_str.splitlines():
                     self.open_log_files[log].write(
                         "%s: %s\n" % (timestr, line))
+                self.open_log_files[log].flush()
             except Exception as err:
                 txt = "Fail to record log to %s.\n" % log
                 txt += "Log content: %s\n" % log_str
