@@ -9,6 +9,8 @@ import glob
 import shutil
 import stat
 
+from pkg_resources import resource_filename
+
 from avocado.core import data_dir
 from avocado.utils import distro
 
@@ -26,7 +28,7 @@ if (os.path.isdir(_DEFAULT_SHARED_PATH) and
         len(os.listdir(_DEFAULT_SHARED_PATH)) > 0):
     _ROOT_PATH = os.path.dirname(_DEFAULT_SHARED_PATH)
 else:
-    _ROOT_PATH = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
+    _ROOT_PATH = resource_filename('avocado_vt', '')
 
 ROOT_DIR = os.path.abspath(_ROOT_PATH)
 BASE_BACKEND_DIR = os.path.join(ROOT_DIR, 'backends')
