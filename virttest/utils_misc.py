@@ -2112,7 +2112,8 @@ def get_recognized_cpuid_flags(qemu_binary="/usr/libexec/qemu-kvm"):
     :param qemu_binary: qemu-kvm binary file path
     :return: flags list
     """
-    out = decode_to_text(process.system_output("%s -cpu ?" % qemu_binary))
+    out = decode_to_text(process.system_output("%s -cpu ?" % qemu_binary),
+                         errors='replace')
     match = re.search("Recognized CPUID flags:(.*)", out, re.M | re.S)
     try:
         return list(filter(None, re.split('\s', match.group(1))))
