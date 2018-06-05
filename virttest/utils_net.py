@@ -1299,7 +1299,9 @@ def get_net_if(runner=None, state=None):
     if state is None:
         state = ".*"
     cmd = "ip link"
-    result = runner(cmd)
+    # As the runner converts stdout to unicode on Python2,
+    # it has to be converted to string for struct.pack().
+    result = str(runner(cmd))
     return re.findall(r"^\d+: (\S+?)[@:].*state %s.*$" % (state),
                       result,
                       re.MULTILINE)
