@@ -2526,7 +2526,6 @@ class VM(virt_vm.BaseVM):
         name = self.name
         params = self.params
         root_dir = self.root_dir
-        pass_fds = []
 
         # Verify the md5sum of the ISO images
         for cdrom in params.objects("cdroms"):
@@ -2660,9 +2659,6 @@ class VM(virt_vm.BaseVM):
 
                     if nic.nettype in ['bridge', 'network', 'macvtap']:
                         self._nic_tap_add_helper(nic)
-                        if bool(nic.tapfds):
-                            for fd in nic.tapfds.split(':'):
-                                pass_fds.append(int(fd))
 
                     if ((nic_params.get("vhost") in ['on',
                                                      'force',
@@ -2673,8 +2669,6 @@ class VM(virt_vm.BaseVM):
                             vhostfds.append(str(os.open("/dev/vhost-net",
                                                         os.O_RDWR)))
                         nic.vhostfds = ':'.join(vhostfds)
-                        for fd in vhostfds:
-                            pass_fds.append(int(fd))
                     elif nic.nettype == 'user':
                         logging.info("Assuming dependencies met for "
                                      "user mode nic %s, and ready to go"
@@ -2796,8 +2790,7 @@ class VM(virt_vm.BaseVM):
                                                 None,
                                                 logging.info,
                                                 "[qemu output] ",
-                                                auto_close=False,
-                                                pass_fds=pass_fds)
+                                                auto_close=False)
 
             logging.info("Created qemu process with parent PID %d",
                          self.process.get_pid())
