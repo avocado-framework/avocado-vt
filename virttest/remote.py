@@ -103,6 +103,20 @@ class SCPTransferFailedError(SCPError):
                 (self.status, self.output))
 
 
+def quote_path(path):
+    """
+    Produce shell escaped version of string item or of list items, which are
+    then joined by space.
+
+    :param path: List or string
+    :return: Shell escaped version
+    """
+    if isinstance(path, list):
+        return ' '.join(map(pipes.quote, path))
+    else:
+        return pipes.quote(path)
+
+
 def handle_prompts(session, username, password, prompt, timeout=10,
                    debug=False):
     """
@@ -533,7 +547,8 @@ def scp_to_remote(host, port, username, password, local_path, remote_path,
                "-o StrictHostKeyChecking=no "
                "-o PreferredAuthentications=password -r %s "
                "-P %s %s %s@\[%s\]:%s" %
-               (limit, port, pipes.quote(local_path), username, host, pipes.quote(remote_path)))
+               (limit, port, quote_path(local_path), username, host,
+                pipes.quote(remote_path)))
     password_list = []
     password_list.append(password)
     return remote_scp(command, password_list, log_filename, timeout)
@@ -569,7 +584,8 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
                "-o StrictHostKeyChecking=no "
                "-o PreferredAuthentications=password -r %s "
                "-P %s %s@\[%s\]:%s %s" %
-               (limit, port, username, host, pipes.quote(remote_path), pipes.quote(local_path)))
+               (limit, port, username, host, quote_path(remote_path),
+                pipes.quote(local_path)))
     password_list = []
     password_list.append(password)
     remote_scp(command, password_list, log_filename, timeout)
@@ -612,7 +628,8 @@ def scp_between_remotes(src, dst, port, s_passwd, d_passwd, s_name, d_name,
                "-o StrictHostKeyChecking=no "
                "-o PreferredAuthentications=password -r %s -P %s"
                " %s@\[%s\]:%s %s@\[%s\]:%s" %
-               (limit, port, s_name, src, pipes.quote(s_path), d_name, dst, pipes.quote(d_path)))
+               (limit, port, s_name, src, quote_path(s_path), d_name, dst,
+                pipes.quote(d_path)))
     password_list = []
     password_list.append(s_passwd)
     password_list.append(d_passwd)
