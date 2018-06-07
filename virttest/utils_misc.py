@@ -4184,7 +4184,7 @@ class BgJob(object):
                 data.append(os.read(pipe.fileno(), 1024))
                 if len(data[-1]) == 0:
                     break
-            data = "".join(data)
+            data = b"".join(data)
         else:
             # Perform a single read
             data = os.read(pipe.fileno(), 1024)
