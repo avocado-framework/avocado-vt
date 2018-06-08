@@ -28,6 +28,7 @@ import tempfile
 import threading
 import time
 import subprocess
+import shutil
 
 import aexpect
 from avocado.core import exceptions
@@ -1823,21 +1824,37 @@ class StressError(Exception):
         return self.msg
 
 
-class VMStress(object):
+def session_handler(func):
+    """
+    decorator method to handle session for Stress
+    """
+    def manage_session(self):
+        try:
+            if self.vm or self.remote_host:
+                self.session = self.get_session()
+            return func(self)
+        finally:
+            if self.vm or self.remote_host:
+                self.session.close()
+    return manage_session
+
+
+class Stress(object):
 
     """
-    Run Stress tool in vms, such as stress, iozone and etc.
+    Base class to run Stress tool in vms, host and remote host
+    Stress tool can be stress, stress-ng, iozone and etc.
     """
 
-    def __init__(self, vm, stress_type, download_url="", make_cmds="",
+    def __init__(self, stress_type, params, download_url="", make_cmds="",
                  stress_cmds="", stress_args="", work_path="",
                  uninstall_cmds="", download_type="tarball"):
         """
         Set parameters for stress type, for the arguments have default value "",
         they can be either passed here, or defined in vm.params
 
-        :param vm: the vm to be loading stress
         :param stress_type: the name of the stress tool
+        :param params: Test dict params
         :param download_url: from where download the stress tool
         :param make_cmds: make command of the stress tool
         :param uninstall_cmds: uninstall command of the stress tool
@@ -1849,8 +1866,11 @@ class VMStress(object):
         :param download_type: currently support "git" or "tarball"
         """
 
-        self.vm = vm
-        self.params = vm.params
+        self.vm = None
+        self.session = None
+        self.remote_host = None
+        self.copy_files_to = remote.copy_files_to
+        self.params = params
         self.timeout = 60
         self.stress_type = stress_type
         stress_cmds = stress_cmds or stress_type
@@ -1868,49 +1888,45 @@ class VMStress(object):
         self.check_cmd = "pidof -s %s" % stress_type
         self.stop_cmd = "pkill -9 %s" % stress_type
         self.dst_path = self.params.get('stress_dst_path', '/home')
+        self.cmd_status_output = process.getstatusoutput
+        self.cmd_output_safe = process.getoutput
+        self.cmd_status = self.sendline = process.system
+        self.cmd_launch = os.system
 
-    def get_session(self):
-        try:
-            session = self.vm.wait_for_login()
-            return session
-        except aexpect.ShellError as detail:
-            raise StressError("Login %s failed:\n%s" % (self.vm.name, detail))
-
-    @error_context.context_aware
+    @session_handler
     def load_stress_tool(self):
         """
         load stress tool in guest
         """
         self.install()
-        session = self.get_session()
-        session.cmd_output_safe('cd %s' % os.path.join(self.dst_path,
-                                                       self.base_name, self.work_path))
+        self.cmd_output_safe('cd %s' % os.path.join(self.dst_path,
+                                                    self.base_name, self.work_path))
         launch_cmds = 'nohup %s %s &' % (self.stress_cmds, self.stress_args)
-        error_context.context("Launch stress with command: %s" % launch_cmds)
+        logging.info("Launch stress with command: %s", launch_cmds)
         try:
-            session.cmd_output_safe(launch_cmds)
+            self.cmd_launch(launch_cmds)
             # The background process sometimes does not return to
             # terminate, if timeout, send a blank line afterward
         except aexpect.ShellTimeoutError:
-            session.cmd_output_safe('')
-        session.close()
-        if not self.app_running():
+            self.cmd_launch('')
+        # wait for stress to start and then check, if not raise TestError
+        if not utils_misc.wait_for(self.app_running, first=2.0,
+                                   text="wait for stress app to start",
+                                   step=1.0, timeout=60):
             raise exceptions.TestError("Stress app does not running as expected")
 
-    @error_context.context_aware
+    @session_handler
     def unload_stress(self):
         """
         stop stress tool manually
         """
         def _unload_stress():
-            session = self.get_session()
-            session.sendline(self.stop_cmd)
-            session.close()
+            self.sendline(self.stop_cmd)
             if not self.app_running():
                 return True
             return False
 
-        error_context.context("stop stress app in guest", logging.info)
+        logging.info("stop stress app in guest/host/remote host")
         utils_misc.wait_for(_unload_stress, first=2.0,
                             text="wait stress app quit", step=1.0, timeout=60)
 
@@ -1918,10 +1934,11 @@ class VMStress(object):
         """
         check whether app really run in background
         """
-        session = self.get_session()
-        status = session.cmd_status(self.check_cmd, timeout=60)
-        session.close()
-        return status == 0
+        if self.session:
+            return self.cmd_status(self.check_cmd, timeout=60) == 0
+        else:
+            return self.cmd_status(self.check_cmd, timeout=60,
+                                   ignore_status=True) == 0
 
     def _git_download(self, url, destination):
         """
@@ -1947,154 +1964,153 @@ class VMStress(object):
         self.base_name = tarball.members[0].name.split("/")[0]
         tarball.close()
 
-    @error_context.context_aware
     def download_stress(self):
         """
         Download stress tool
         """
         url = self.download_url
         tmp_path = data_dir.get_tmp_dir()
-        error_context.context('Download stress tool from %s' % url,
-                              logging.info)
+        logging.info('Download stress tool from %s', url)
         download_method = getattr(self, "_%s_download" % self.download_type)
         download_method(url, tmp_path)
-        error_context.context('Copy stress tool to guest', logging.info)
-        self.vm.wait_for_login()
-        self.vm.copy_files_to(os.path.join(tmp_path, self.base_name), self.dst_path)
+        source = os.path.join(tmp_path, self.base_name)
+        if self.remote_host:
+            logging.info('Copy stress tool to remote host')
+            args = (self.remote_host.__getitem__('server_ip'), 'scp',
+                    self.remote_host.__getitem__('server_user'),
+                    self.remote_host.__getitem__('server_pwd'), '22',
+                    source, self.dst_path)
+            self.copy_files_to(*args)
+        else:
+            if self.session:
+                logging.info('Copy stress tool to work dir of guest')
+                self.copy_files_to(source, self.dst_path)
+            else:
+                self.dst_path = os.path.abspath(os.path.join(source, os.pardir))
 
-    @error_context.context_aware
     def install(self):
         """
         To download, abstract, build and install the stress tool
         """
         self.download_stress()
         install_path = os.path.join(self.dst_path, self.base_name, self.work_path)
-        session = self.get_session()
-        session.cmd_output_safe('cd %s' % install_path)
-        error_context.context('make and install the %s' %
-                              self.stress_type, logging.info)
-        status, output = session.cmd_status_output(self.make_cmds)
-        session.close()
+        self.make_cmds = "cd %s;%s" % (install_path, self.make_cmds)
+        logging.info('make and install the %s', self.stress_type)
+        status, output = self.cmd_status_output(self.make_cmds)
         if status != 0:
             raise exceptions.TestError(
                 "Installation failed with output:\n %s" % output)
 
-    @error_context.context_aware
+    @session_handler
     def clean(self):
         """
         Uninstall stress application, and clean the source files
         """
-        session = self.get_session()
         install_path = os.path.join(self.dst_path, self.base_name)
-        if session.cmd_status('cd %s' % install_path) != 0:
-            error_context.context("No source files found in path %s" % path)
-            session.close()
+        if self.cmd_status('cd %s' % install_path) != 0:
+            logging.error("No source files found in path %s", path)
             return
 
-        error_context.context('Uninstall %s' % self.stress_type, logging.info)
-        status, output = session.cmd_status_output(self.uninstall_cmds)
+        logging.info('Uninstall %s', self.stress_type)
+        status, output = self.cmd_status_output(self.uninstall_cmds)
         if status != 0:
-            error_context.context('Uninstall stress failed with '
-                                  'error: %s' % output, logging.error)
-        error_context.context('Remove the source files', logging.info)
+            logging.error('Uninstall stress failed with error: %s', output)
+        logging.info('Remove the source files')
         rm_cmd = 'cd && rm -rf %s' % install_path
-        session.cmd_output_safe(rm_cmd)
-        session.close()
+        self.cmd_output_safe(rm_cmd)
 
 
-class HostStress(object):
+class VMStress(Stress):
+    """
+    Run Stress tool on VMs, such as stress, unixbench, iozone and etc.
+    """
+    def __init__(self, vm, stress_type, params, download_url="", make_cmds="",
+                 stress_cmds="", stress_args="", work_path="",
+                 uninstall_cmds="", download_type="tarball"):
+        """
+        Set parameters for stress type, for the arguments have default value "",
+        they can be either passed here, or defined in vm.params
+
+        :param vm: the vm to be loading stress
+        :param stress_type: the name of the stress tool
+        :param params: Test dict params
+        :param download_url: from where download the stress tool
+        :param make_cmds: make command of the stress tool
+        :param uninstall_cmds: uninstall command of the stress tool
+        :param work_path: the relative work path of the stress tool,
+        e.g. for iozone: "src/current"
+        :param stress_cmds: the command to launch stress,
+        use stress_type instead if not defined
+        :param stress_args: the arguments of the stress tool
+        :param download_type: currently support "git" or "tarball"
+        """
+        super(VMStress, self).__init__(stress_type, params, download_url=download_url,
+                                       make_cmds=make_cmds, stress_cmds=stress_cmds,
+                                       stress_args=stress_args, work_path=work_path,
+                                       uninstall_cmds=uninstall_cmds,
+                                       download_type=download_type)
+        self.vm = vm
+        self.copy_files_to = self.vm.copy_files_to
+        self.session = self.get_session()
+        self.cmd_status_output = self.session.cmd_status_output
+        self.cmd_status = self.session.cmd_status
+        self.sendline = self.session.sendline
+        self.cmd_output_safe = self.cmd_launch = self.session.cmd_output_safe
+
+    def get_session(self):
+        """
+        Method to get the session of the vm instance
+        """
+        try:
+            session = self.vm.wait_for_login()
+            return session
+        except aexpect.ShellError as detail:
+            raise StressError("Login %s failed:\n%s" % (self.vm.name, detail))
+
+
+class HostStress(Stress):
 
     """
     Run Stress tool on host, such as stress, unixbench, iozone and etc.
     """
 
-    def __init__(self, params, stress_type):
-        """
-        Set parameters for stress type
-        """
+    def __init__(self, stress_type, params, download_url="", make_cmds="",
+                 stress_cmds="", stress_args="", work_path="",
+                 uninstall_cmds="", download_type="tarball", remote_server=False):
+        super(HostStress, self).__init__(stress_type, params, download_url=download_url,
+                                         make_cmds=make_cmds, stress_cmds=stress_cmds,
+                                         stress_args=stress_args, work_path=work_path,
+                                         uninstall_cmds=uninstall_cmds,
+                                         download_type=download_type)
+        remote_ip = params.get("remote_ip", None)
+        remote_pwd = params.get("remote_pwd", None)
+        remote_user = params.get("remote_user", "root")
+        self.copy_files_to = shutil.copytree
+        if remote_server and remote_ip and remote_pwd:
+            self.remote_host = {'server_ip': remote_ip, 'server_pwd': remote_pwd}
+            self.remote_host['server_user'] = remote_user
+            self.copy_files_to = remote.copy_files_to
+            self.session = self.get_session()
+            self.cmd_status_output = self.session.cmd_status_output
+            self.cmd_status = self.session.cmd_status
+            self.sendline = self.session.sendline
+            self.cmd_output_safe = self.cmd_launch = self.session.cmd_output_safe
 
-        def _parameters_filter(stress_type):
-            """Set parameters according stress_type"""
-            _control_files = {'unixbench': "unixbench5.control",
-                              'stress': "stress.control"}
-            _check_cmds = {'unixbench': "pidof -s ./Run",
-                           'stress': "pidof -s stress"}
-            _stop_cmds = {'unixbench': "killall ./Run",
-                          'stress': "killall stress"}
-            try:
-                control_file = _control_files[stress_type]
-                self.control_path = os.path.join(data_dir.get_root_dir(),
-                                                 "shared/control",
-                                                 control_file)
-                self.check_cmd = _check_cmds[stress_type]
-                self.stop_cmd = _stop_cmds[stress_type]
-            except KeyError:
-                self.control_path = ""
-                self.check_cmd = ""
-                self.stop_cmd = ""
-
-        self.params = {}
-        if params:
-            self.params = params
-        self.timeout = 60
-        self.stress_type = stress_type
-        self.host_stress_process = None
-        if stress_type not in ["stress", "unixbench"]:
-            raise StressError("Stress %s is not supported now." % stress_type)
-
-        _parameters_filter(stress_type)
-        self.stress_args = self.params.get("stress_args", "")
-
-    @error_context.context_aware
-    def load_stress_tool(self):
+    def get_session(self):
         """
-        load stress tool on host.
+        Method to get the session of the remote host
         """
-        # Run stress tool on host.
+        from virttest import test_setup
         try:
-            path.find_command(self.stress_type)
-        except path.CmdNotFoundError as detail:
-            raise exceptions.TestSkipError("Stress tool %s is missing: %s"
-                                           % (self.stress_type, str(detail)))
-
-        args = [self.stress_type, '--args=%s' % self.stress_args,
-                '--verbose']
-        logging.info("Start sub-process by args: %s", args)
-        self.host_stress_process = subprocess.Popen(args, universal_newlines=True,
-                                                    stdout=subprocess.PIPE,
-                                                    stderr=subprocess.PIPE)
-        running = utils_misc.wait_for(self.app_running, first=0.5, timeout=60)
-        if not running:
-            raise StressError("Stress tool %s isn't running"
-                              % self.stress_type)
-
-    @error_context.context_aware
-    def unload_stress(self):
-        """
-        stop stress tool manually
-        """
-        def _unload_stress():
-            if self.host_stress_process is not None:
-                utils_misc.kill_process_tree(self.host_stress_process.pid)
-            if not self.app_running():
-                return True
-            return False
-
-        error_context.context("stop stress app on host", logging.info)
-        utils_misc.wait_for(_unload_stress, first=2.0,
-                            text="wait stress app quit", step=1.0, timeout=60)
-
-    def app_running(self):
-        """
-        check whether app really run in background
-        """
-        result = process.run(self.check_cmd, timeout=60, ignore_status=True)
-        return result.exit_status == 0
+            session = test_setup.remote_session(self.remote_host)
+            return session
+        except aexpect.ShellError as detail:
+            raise StressError("Login on remote host failed:\n%s" % detail)
 
 
 def load_stress(stress_type, params, vms=None, download_url="", make_cmds="",
                 stress_cmds="", stress_args="", work_path="",
-                uninstall_cmds="", download_type="tarball"):
+                uninstall_cmds="", download_type="tarball", remote_server=False):
     """
     Load stress for tests.
 
@@ -2116,17 +2132,20 @@ def load_stress(stress_type, params, vms=None, download_url="", make_cmds="",
     if stress_type in ['stress_in_vms', 'iozone_in_vms']:
         for vm in vms:
             try:
-                vstress = VMStress(vm, stress_type.split('_')[0], download_url,
+                vstress = VMStress(vm, stress_type.split('_')[0], params, download_url,
                                    make_cmds, stress_cmds, stress_args, work_path,
-                                   uninstall_cmds, download_type="tarball")
+                                   uninstall_cmds, download_type=download_type)
                 vstress.load_stress_tool()
             except StressError as detail:
                 fail_info.append("Launch stress in %s failed: %s"
                                  % (vm.name, detail))
     # Add stress for host
-    elif stress_type == "stress_on_host":
+    elif stress_type == "stress_on_host" or stress_type == "stress_on_remote_host":
         try:
-            hstress = HostStress(params, "stress")
+            hstress = HostStress(stress_type.split('_')[0], params, download_url,
+                                 make_cmds, stress_cmds, stress_args, work_path,
+                                 uninstall_cmds, download_type=download_type,
+                                 remote_server=remote_server)
             hstress.load_stress_tool()
         except StressError as detail:
             fail_info.append("Launch stress on host failed: %s" % str(detail))
@@ -2169,15 +2188,16 @@ def load_stress(stress_type, params, vms=None, download_url="", make_cmds="",
     return fail_info
 
 
-def unload_stress(stress_type, vms=None):
+def unload_stress(stress_type, params, vms=None, remote_server=False):
     """
     Unload stress loaded by load_stress(...).
     """
     if stress_type == "stress_in_vms":
         for vm in vms:
-            VMStress(vm, "stress").unload_stress()
-    elif stress_type == "stress_on_host":
-        HostStress(None, "stress").unload_stress()
+            VMStress(vm, "stress", params).unload_stress()
+    else:
+        HostStress("stress", params,
+                   remote_server=remote_server).unload_stress()
 
 
 class RemoteDiskManager(object):
