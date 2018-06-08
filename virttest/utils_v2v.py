@@ -11,6 +11,7 @@ import logging
 
 from avocado.utils import path
 from avocado.utils import process
+from virttest.compat_52lts import decode_to_text
 from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 from virttest import ovirt
@@ -773,7 +774,7 @@ def check_log(params, log):
             expected = 'expected' if expect else 'not expected'
             logging.info('Searching for %s log: %s' % (expected, pattern))
             compiled_pattern = re.compile(line)
-            search = re.search(compiled_pattern, log)
+            search = re.search(compiled_pattern, decode_to_text(log))
             if search:
                 logging.info('Found log: %s', search.group(0))
                 if not expect:
