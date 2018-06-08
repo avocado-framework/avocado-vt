@@ -2458,6 +2458,10 @@ class VM(virt_vm.BaseVM):
                 self.devices.insert(qdev)
 
     @property
+    def qmp_monitors(self):
+        return [m for m in self.monitors if m.protocol == 'qmp']
+
+    @property
     def spice_port(self):
         logging.warning("'VM.spice_port' will be removed by the end of "
                         "the year 2017, please use 'self.spice_options."
