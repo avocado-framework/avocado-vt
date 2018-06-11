@@ -1011,8 +1011,8 @@ class CharDevice(QCustomDevice):
                            "spiceport", "spicevmc"]:
             common_opts.append("mux")
 
-        elif backend in ["file", "pipe", "serial",
-                         "tty", "parallel", "parport"]:
+        if backend in ["file", "pipe", "serial",
+                       "tty", "parallel", "parport"]:
             special_opts.append("path")
 
         elif backend in ["spicevmc", "spiceport"]:
