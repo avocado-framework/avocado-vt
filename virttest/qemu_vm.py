@@ -1255,9 +1255,16 @@ class VM(virt_vm.BaseVM):
                 numa_cmd += ",nodeid=%s" % nodeid
             return numa_cmd
 
-        def add_balloon(devices, devid=None, bus=None, use_old_format=None):
+        def add_balloon(devices, devid=None, bus=None,
+                        use_old_format=None, options={}):
             """
             This function is used to add balloon device
+
+            :param devices: device container object
+            :param devid: device id
+            :param bus: the bus balloon device use
+            :param use_old_format: use old format or not
+            :param options: optional keyword arguments
             """
             if not devices.has_option("device") or use_old_format is True:
                 devices.insert(StrDev('balloon', cmdline=" -balloon virtio"))
@@ -1271,6 +1278,8 @@ class VM(virt_vm.BaseVM):
             dev = QDevice(model, parent_bus=bus)
             if devid:
                 dev.set_param("id", devid)
+            for key, value in options.items():
+                dev.set_param(key, value)
             devices.insert(dev)
 
         def add_virtio_option(option, value, devices, dev, dev_type):
@@ -2237,8 +2246,13 @@ class VM(virt_vm.BaseVM):
             if balloon_params.get("balloon_dev_add_bus") == "yes":
                 balloon_bus = _get_pci_bus(
                     devices, balloon_params, 'balloon', True)
+            options = {}
+            deflate_on_oom = balloon_params.get("balloon_opt_deflate_on_oom")
+            options["deflate-on-oom"] = deflate_on_oom
+            guest_polling = balloon_params.get("balloon_opt_guest_polling")
+            options["guest-stats-polling-interval"] = guest_polling
             add_balloon(devices, devid=balloon_devid, bus=balloon_bus,
-                        use_old_format=use_ofmt)
+                        use_old_format=use_ofmt, options=options)
 
         # Add qemu options
         if params.get("msg_timestamp"):
