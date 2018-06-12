@@ -1878,7 +1878,7 @@ class Stress(object):
         self.stress_args = self.params.get("%s_args" % stress_type, stress_args)
         self.download_url = self.params.get('download_url_%s' % stress_type,
                                             download_url)
-        self.download_type = download_type
+        self.download_type = self.params.get('download_type_%s' % stress_type, download_type)
         self.base_name = self.download_url.split("/")[-1]
         self.make_cmds = self.params.get('make_cmds_%s' % stress_type, make_cmds)
         self.make_cmds = self.make_cmds or './configure && make install'
