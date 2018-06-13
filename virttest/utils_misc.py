@@ -62,6 +62,7 @@ from virttest import utils_selinux
 from virttest import utils_disk
 from virttest import logging_manager
 from virttest.staging import utils_koji
+from virttest.staging import service
 from virttest.xml_utils import XMLTreeFile
 from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 
@@ -4559,3 +4560,18 @@ def get_pid(name, session=None):
         return None
     else:
         return int(output.split()[1])
+
+
+def start_rsyslogd():
+    """
+    Start rsyslogd service
+    """
+    try:
+        utils_path.find_command("rsyslogd")
+    except utils_path.CmdNotFoundError:
+        exceptions.TestError("No rsyslogd command found.")
+    rsyslogd = service.Factory.create_service('rsyslog')
+    if not rsyslogd.status():
+        logging.info("Need to start rsyslog service")
+        return rsyslogd.start()
+    return True
