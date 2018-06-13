@@ -10,7 +10,8 @@ from virttest.libvirt_xml.devices.character import CharacterBase
 
 class Console(CharacterBase):
 
-    __slots__ = ('protocol_type', 'target_port', 'target_type', 'sources')
+    __slots__ = ('protocol_type', 'target_port', 'target_type', 'sources',
+                 'alias')
 
     def __init__(self, type_name='pty', virsh_instance=base.virsh):
         accessors.XMLAttribute('protocol_type', self, parent_xpath='/',
@@ -22,6 +23,8 @@ class Console(CharacterBase):
         accessors.XMLElementList('sources', self, parent_xpath='/',
                                  marshal_from=self.marshal_from_sources,
                                  marshal_to=self.marshal_to_sources)
+        accessors.XMLElementDict('alias', self, parent_xpath='/',
+                                 tag_name='alias')
         super(
             Console, self).__init__(device_tag='console', type_name=type_name,
                                     virsh_instance=virsh_instance)
