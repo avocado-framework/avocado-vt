@@ -694,6 +694,7 @@ def preprocess(test, params, env):
                 raise exceptions.TestSkipError(msg.message)
 
     _setup_manager.initialize(test, params, env)
+    _setup_manager.register(test_setup.UlimitConfig)
     _setup_manager.do_setup()
 
     # enable network proxies setting in urllib2
