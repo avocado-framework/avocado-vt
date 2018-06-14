@@ -1039,10 +1039,8 @@ class BaseVM(object):
 
         from virttest import remote_commander as rc
         path = os.path.dirname(rc.__file__)
-
-        f_path = " ".join((os.path.join(path, _) for _ in
-                           ("remote_runner.py", "remote_interface.py",
-                            "messenger.py")))
+        f_path = [os.path.join(path, _) for _ in
+                  ("remote_runner.py", "remote_interface.py", "messenger.py")]
         self.copy_files_to(f_path, commander_path)
 
         # start remote commander
