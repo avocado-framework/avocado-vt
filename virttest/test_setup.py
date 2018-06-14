@@ -1,6 +1,4 @@
-"""
-Library to perform pre/post test setup for virt test.
-"""
+"""Library to perform pre/post test setup for virt test."""
 from __future__ import division
 import os
 import logging
@@ -11,11 +9,11 @@ import math
 import shutil
 import platform
 import netaddr
+import six
+import resource
 
 from abc import ABCMeta
 from abc import abstractmethod
-
-import six
 
 from avocado.utils import process
 from avocado.utils import archive
@@ -2391,3 +2389,53 @@ class LibvirtdDebugLog(object):
         """ Disable libvirtd debug log """
         os.rename(self.backupfile, self.libvirtd_conf.conf_path)
         self.libvirtd.restart()
+
+
+class UlimitConfig(Setuper):
+    """
+    Enable to config ulimit.
+
+    Supported options:
+
+    vt_ulimit_core: The maximum size (in bytes) of a core file
+                    that the current process can create.
+    vt_ulimit_nofile: The maximum number of open file descriptors
+                      for the current process.
+    """
+
+    ulimit_options = {"core": resource.RLIMIT_CORE,
+                      "nofile": resource.RLIMIT_NOFILE}
+
+    def _set(self):
+        self.ulimit = {}
+        for key in self.ulimit_options:
+            set_value = self.params.get("vt_ulimit_%s" % key)
+            if not set_value:
+                continue
+            # get default ulimit values in tuple (soft, hard)
+            self.ulimit[key] = resource.getrlimit(self.ulimit_options[key])
+
+            logging.info("Setting ulimit %s to %s." % (key, set_value))
+            if set_value == "ulimited":
+                set_value = resource.RLIM_INFINITY
+            elif set_value.isdigit():
+                set_value = int(set_value)
+            else:
+                self.test.error("%s is not supported for "
+                                "setting ulimit %s" % (set_value, key))
+            try:
+                resource.setrlimit(self.ulimit_options[key],
+                                   (set_value, set_value))
+            except ValueError as error:
+                self.test.error(str(error))
+
+    def _restore(self):
+        for key in self.ulimit:
+            logging.info("Setting ulimit %s back to its default." % key)
+            resource.setrlimit(self.ulimit_options[key], self.ulimit[key])
+
+    def setup(self):
+        self._set()
+
+    def cleanup(self):
+        self._restore()
