@@ -198,8 +198,8 @@ class SetupManager(object):
             try:
                 self.__setupers.pop().cleanup()
             except Exception as err:
-                logging.error(err)
-                errors.append(err)
+                logging.error(str(err))
+                errors.append(str(err))
         return errors
 
 
