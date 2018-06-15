@@ -537,14 +537,10 @@ def _process_images_parallel(image_func, test, params, vm_process_status=None):
         threads.append(_CreateImages(image_func, test, imgs, params,
                                      exit_event, vm_process_status))
         threads[-1].start()
-    finished = False
-    while not finished:
-        finished = True
-        for thread in threads:
-            if thread.is_alive():
-                finished = False
-                time.sleep(0.5)
-                break
+
+    for thread in threads:
+        thread.join()
+
     if exit_event.is_set():     # Failure in some thread
         logging.error("Image processing failed:")
         for thread in threads:
