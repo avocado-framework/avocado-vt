@@ -1605,6 +1605,9 @@ class NumaInfo(object):
         self.all_nodes = self.get_all_nodes(all_nodes_path)
         self.online_nodes = self.get_online_nodes(online_nodes_path)
         self.online_nodes_withmem = self.get_online_nodes_withmem()
+        self.online_nodes_withcpu = self.get_online_nodes_withcpu()
+        self.online_nodes_withcpumem = list(set(self.online_nodes_withcpu) &
+                                            set(self.online_nodes_withmem))
         self.nodes = {}
         self.distances = {}
         for node_id in self.online_nodes:
@@ -1720,6 +1723,23 @@ class NumaInfo(object):
             online_nodes_mem_file.close()
         else:
             logging.warning("sys numa node with memory file not"
+                            "present, fallback to online nodes")
+            return self.online_nodes
+        return cpu_str_to_list(nodes_info)
+
+    def get_online_nodes_withcpu(self):
+        """
+        Get online node with cpu
+        """
+
+        online_nodes_cpu = get_path(self.numa_sys_path,
+                                    "has_cpu")
+        if os.path.isfile(online_nodes_cpu):
+            online_nodes_cpu_file = open(online_nodes_cpu, "r")
+            nodes_info = online_nodes_cpu_file.read()
+            online_nodes_cpu_file.close()
+        else:
+            logging.warning("sys numa node with cpu file not"
                             "present, fallback to online nodes")
             return self.online_nodes
         return cpu_str_to_list(nodes_info)

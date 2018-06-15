@@ -994,7 +994,7 @@ class VM(virt_vm.BaseVM):
             if params.get("numa_pin", "no") == "yes":
                 # Get online host numa nodes
                 host_numa_node = utils_misc.NumaInfo()
-                host_numa_node_list = host_numa_node.online_nodes
+                host_numa_node_list = host_numa_node.online_nodes_withcpumem
                 # check if memory is available in host numa node
                 for each_numa in host_numa_node_list:
                     if hugepage:
