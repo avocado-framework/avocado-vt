@@ -398,7 +398,8 @@ def get_memory_info(lvms):
 
     try:
         meminfo = "Host: memfree = "
-        meminfo += str(int(utils_memory.read_from_meminfo('MemFree')) // 1024) + "M; "
+        meminfo += str(int(utils_memory.read_from_meminfo('MemFree'))
+                       // 1024) + "M; "
         meminfo += "swapfree = "
         mf = int(utils_memory.read_from_meminfo("SwapFree")) // 1024
         meminfo += str(mf) + "M; "
@@ -842,7 +843,8 @@ def run_avocado(vm, params, test, testlist=[], timeout=3600,
             for plugin in plugins[installtype]:
                 cmd = "pip install %s" % plugin
                 if session.cmd_status(cmd) > 0:
-                    logging.error("Avocado plugin %s pip installation failed", plugin)
+                    logging.error("Avocado plugin %s pip "
+                                  "installation failed", plugin)
                     return False
         elif "package" in installtype:
             raise NotImplementedError
@@ -857,7 +859,8 @@ def run_avocado(vm, params, test, testlist=[], timeout=3600,
                 cmd = "[ -d optional_plugins/%s ] && cd optional_plugins/" % plugin
                 cmd += "%s && python setup.py install && cd .." % plugin
                 if session.cmd_status(cmd) > 0:
-                    logging.error("Avocado plugin %s git installation failed", plugin)
+                    logging.error("Avocado plugin %s git "
+                                  "installation failed", plugin)
                     return False
         return True
 
@@ -895,7 +898,8 @@ def run_avocado(vm, params, test, testlist=[], timeout=3600,
                 mux = test[1]
             except KeyError:
                 pass
-            cmd = "avocado run %s --job-results-dir %s --job-timeout %d" % (testcase, result_path, timeout)
+            cmd = "avocado run %s --job-results-dir %s --job-timeout %d" % (
+                testcase, result_path, timeout)
             if mux:
                 cmd += " -m %s" % mux
             if add_args:
@@ -917,9 +921,11 @@ def run_avocado(vm, params, test, testlist=[], timeout=3600,
         cmd = "[ -n \"$(ls %s)\" ]" % result_path
         if session.cmd_status(cmd) > 0:
             raise exceptions.TestError("No results folder found")
-        guest_results_dir = utils_misc.get_path(test.debugdir, "guest_avocado_results")
+        guest_results_dir = utils_misc.get_path(test.debugdir,
+                                                "guest_avocado_results")
         os.makedirs(guest_results_dir)
-        logging.debug("Guest avocado test results placed under %s", guest_results_dir)
+        logging.debug("Guest avocado test results placed "
+                      "under %s", guest_results_dir)
         # result info tarball to host result dir
         results_tarball = os.path.join(test_path, "results.tgz")
         compress_cmd = "cd %s && " % result_path
@@ -943,13 +949,16 @@ def run_avocado(vm, params, test, testlist=[], timeout=3600,
     try:
         session = vm.wait_for_login()
     except Exception:
-        raise exceptions.TestError("Unable to get VM session, skipped to run avocado test")
+        raise exceptions.TestError("Unable to get VM session, "
+                                   "skipped to run avocado test")
 
     test_path = params.get("vm_test_path", "/var/tmp/avocado/")
     result_path = os.path.join(test_path, "results")
     if not install_avocado(installtype):
-        exceptions.TestError("avocado installation failed, consult previous errors")
-    test_status = runtest(session, testrepo, testlist, timeout, result_path, test_path)
+        exceptions.TestError("avocado installation failed, "
+                             "consult previous errors")
+    test_status = runtest(session, testrepo, testlist,
+                          timeout, result_path, test_path)
     get_results(test_path, result_path, session)
     # Cleanup
     session.cmd("rm -rf %s" % test_path)
@@ -1123,7 +1132,8 @@ def run_autotest(vm, session, control_path, timeout,
         status_path = " ".join(status_paths)
 
         try:
-            output = decode_to_text(process.system_output("cat %s" % status_path))
+            output = decode_to_text(process.system_output("cat %s" % status_path
+                                                          ))
         except process.CmdError as e:
             logging.error("Error getting guest autotest status file: %s", e)
             return None
@@ -1828,6 +1838,7 @@ def session_handler(func):
     """
     decorator method to handle session for Stress
     """
+
     def manage_session(self):
         try:
             if self.vm or self.remote_host:
@@ -1874,17 +1885,23 @@ class Stress(object):
         self.timeout = 60
         self.stress_type = stress_type
         stress_cmds = stress_cmds or stress_type
-        self.stress_cmds = self.params.get('stress_cmds_%s' % stress_type, stress_cmds)
-        self.stress_args = self.params.get("%s_args" % stress_type, stress_args)
+        self.stress_cmds = self.params.get('stress_cmds_%s' % stress_type,
+                                           stress_cmds)
+        self.stress_args = self.params.get("%s_args" % stress_type,
+                                           stress_args)
         self.download_url = self.params.get('download_url_%s' % stress_type,
                                             download_url)
-        self.download_type = self.params.get('download_type_%s' % stress_type, download_type)
+        self.download_type = self.params.get('download_type_%s' % stress_type,
+                                             download_type)
         self.base_name = self.download_url.split("/")[-1]
-        self.make_cmds = self.params.get('make_cmds_%s' % stress_type, make_cmds)
+        self.make_cmds = self.params.get('make_cmds_%s' % stress_type,
+                                         make_cmds)
         self.make_cmds = self.make_cmds or './configure && make install'
-        self.uninstall_cmds = self.params.get('uninstall_cmds_%s' % stress_type, uninstall_cmds)
+        self.uninstall_cmds = self.params.get('uninstall_cmds_%s' % stress_type,
+                                              uninstall_cmds)
         self.uninstall_cmds = self.uninstall_cmds or './configure && make uninstall'
-        self.work_path = self.params.get('%s_work_path' % stress_type, work_path)
+        self.work_path = self.params.get('%s_work_path' % stress_type,
+                                         work_path)
         self.check_cmd = "pidof -s %s" % stress_type
         self.stop_cmd = "pkill -9 %s" % stress_type
         self.dst_path = self.params.get('stress_dst_path', '/home')
@@ -1913,7 +1930,8 @@ class Stress(object):
         if not utils_misc.wait_for(self.app_running, first=2.0,
                                    text="wait for stress app to start",
                                    step=1.0, timeout=60):
-            raise exceptions.TestError("Stress app does not running as expected")
+            raise exceptions.TestError("Stress app does not "
+                                       "running as expected")
 
     @session_handler
     def unload_stress(self):
@@ -1993,7 +2011,8 @@ class Stress(object):
         To download, abstract, build and install the stress tool
         """
         self.download_stress()
-        install_path = os.path.join(self.dst_path, self.base_name, self.work_path)
+        install_path = os.path.join(self.dst_path, self.base_name,
+                                    self.work_path)
         self.make_cmds = "cd %s;%s" % (install_path, self.make_cmds)
         logging.info('make and install the %s', self.stress_type)
         status, output = self.cmd_status_output(self.make_cmds)
@@ -2017,6 +2036,10 @@ class Stress(object):
             logging.error('Uninstall stress failed with error: %s', output)
         logging.info('Remove the source files')
         rm_cmd = 'cd && rm -rf %s' % install_path
+        if self.stress_type == "uperf":
+            rm_cmd += " && rm -rf %s" % os.path.join(
+                self.dst_path, os.path.basename(self.params.get
+                                                ("client_profile_uperf")))
         self.cmd_output_safe(rm_cmd)
 
 
@@ -2024,6 +2047,7 @@ class VMStress(Stress):
     """
     Run Stress tool on VMs, such as stress, unixbench, iozone and etc.
     """
+
     def __init__(self, vm, stress_type, params, download_url="", make_cmds="",
                  stress_cmds="", stress_args="", work_path="",
                  uninstall_cmds="", download_type="tarball"):
@@ -2087,7 +2111,8 @@ class HostStress(Stress):
         remote_user = params.get("remote_user", "root")
         self.copy_files_to = shutil.copytree
         if remote_server and remote_ip and remote_pwd:
-            self.remote_host = {'server_ip': remote_ip, 'server_pwd': remote_pwd}
+            self.remote_host = {'server_ip': remote_ip,
+                                'server_pwd': remote_pwd}
             self.remote_host['server_user'] = remote_user
             self.copy_files_to = remote.copy_files_to
             self.session = self.get_session()
@@ -2200,6 +2225,31 @@ def unload_stress(stress_type, params, vms=None, remote_server=False):
                    remote_server=remote_server).unload_stress()
 
 
+def prepare_profile(test, fpath, pat, repl):
+    """
+    This is to prepare client profile to be run on client.
+    :param test: kvm test object
+    :param fpath: profile to be run
+    :param pat: pattern to be replaced
+    :param repl: replacement strings includes server_ip, duration, threads etc.
+    :return: no explicit return. But profile on fpath would be edited and ready to be run on client guest
+    :raise: TestError: raised if unable to edit the given profile
+    """
+    try:
+        with open(fpath, 'r+') as profile_content:
+            tempstr = profile_content.read()
+            profile_content.truncate(0)
+            pat_repl = zip(pat, repl)
+            logging.debug("In prepare profile: pattren : %s", pat)
+            logging.debug("In prepare profile: replace with : %s", repl)
+            for pattern, replace in pat_repl:
+                tempstr = tempstr.replace(pattern, replace)
+            profile_content.write(tempstr)
+        logging.debug("Profile xml to be run : %s ", tempstr)
+    except Exception:
+        test.error("Failed to update file : %s", fpath)
+
+
 class RemoteDiskManager(object):
 
     """Control images on remote host"""
@@ -2267,7 +2317,8 @@ class RemoteDiskManager(object):
         """
         if is_login:
             discovery_cmd = "iscsiadm -m discovery -t sendtargets -p %s" % host
-            output = results_stdout_52lts(self.runner.run(discovery_cmd, ignore_status=True))
+            output = results_stdout_52lts(self.runner.run
+                                          (discovery_cmd, ignore_status=True))
             if target_name not in output:
                 raise exceptions.TestError("Discovery %s on %s failed."
                                            % (target_name, host))
@@ -2290,7 +2341,8 @@ class RemoteDiskManager(object):
                 cmd = "iscsiadm --mode node --logout -T %s" % target_name
             else:
                 cmd = "iscsiadm --mode node --logout all"
-            output = results_stdout_52lts(self.runner.run(cmd, ignore_status=True))
+            output = results_stdout_52lts(self.runner.run
+                                          (cmd, ignore_status=True))
             if "successful" not in output:
                 logging.error("Logout to %s failed.", target_name)
 
