@@ -644,36 +644,45 @@ def preprocess(test, params, env):
     """
     error_context.context("preprocessing")
 
-    # For KVM to work in Power8 and Power9(compat guests)
+    # For KVM to work in Power8 and Power9(compat guests)(<DD2.2)
     # systems we need to have SMT=off and it needs to be
     # done as root, here we do a check whether
     # we satisfy that condition, if not try to make it off
     # otherwise throw TestError with respective error message
     cpu_arch = cpu_utils.get_cpu_arch()
-    switch_smt_remote = "yes" == params.get("switch_smt_remote", "no")
-    power9_compat = "yes" == params.get("power9_compat", "no")
-    power9_compat_remote = "yes" == params.get("power9_compat_remote", "no")
     migration_setup = params.get("migration_setup", "no") == "yes"
-    if "power8" in cpu_arch:
-        test_setup.switch_smt(state="off")
-    elif "power9" in cpu_arch and power9_compat:
-        test_setup.switch_indep_threads_mode(state="N")
-        test_setup.switch_smt(state="off")
+    if "power" in cpu_arch:
+        pvr_cmd = "grep revision /proc/cpuinfo | awk '{print $3}' | head -n 1"
+        pvr = float(a_process.system_output(pvr_cmd, shell=True).strip())
+        power9_compat = "yes" == params.get("power9_compat", "no")
 
-    # Perform the above configuration in remote Power8 and Power9 hosts
-    if switch_smt_remote or power9_compat_remote:
-        cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
-        server_session = test_setup.remote_session(params)
-        cmd_output = server_session.cmd_status_output(cmd)
-        server_session.close()
-        if (cmd_output[0] == 0):
-            cmd_output = cmd_output[1].strip().lower()
-            if "power8" in cmd_output:
+        if "power8" in cpu_arch:
+            test_setup.switch_smt(state="off")
+        elif "power9" in cpu_arch and power9_compat and pvr < 2.2:
+            test_setup.switch_indep_threads_mode(state="N")
+            test_setup.switch_smt(state="off")
+
+        # Perform the above configuration in remote Power8 and Power9 hosts
+        if migration_setup:
+            power9_compat_remote = "yes" == params.get("power9_compat_remote", "no")
+            cpu_cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
+            server_session = test_setup.remote_session(params)
+            cmd_output = server_session.cmd_status_output(cpu_cmd)
+            if (cmd_output[0] == 0):
+                remote_cpu = cmd_output[1].strip().lower()
+            cmd_output = server_session.cmd_status_output(pvr_cmd)
+            if (cmd_output[0] == 0):
+                remote_pvr = float(cmd_output[1].strip())
+            server_session.close()
+            if "power8" in remote_cpu:
                 test_setup.switch_smt(state="off", params=params)
-            elif "power9" in cmd_output and power9_compat_remote:
+            elif "power9" in remote_cpu and power9_compat_remote and remote_pvr < 2.2:
                 test_setup.switch_indep_threads_mode(state="N", params=params)
                 test_setup.switch_smt(state="off", params=params)
-
+            if pvr != remote_pvr:
+                logging.warning("Source and destinations system PVR "
+                                "does not match\n PVR:\nSource: %s"
+                                "\nDestination: %s", pvr, remote_pvr)
     # First, let's verify if this test does require root or not. If it
     # does and the test suite is running as a regular user, we shall just
     # throw a TestSkipError exception, which will skip the test.
@@ -1199,23 +1208,29 @@ def postprocess(test, params, env):
     libvirtd_inst = utils_libvirtd.Libvirtd()
     vm_type = params.get("vm_type")
 
-    # Restore SMT changes in the powerpc host is set
-    if params.get("restore_smt", "no") == "yes":
-        cpu_arch = cpu_utils.get_cpu_arch()
-        power9_compat = "yes" == params.get("power9_compat", "no")
-        if "power9" in cpu_arch and power9_compat:
-            test_setup.switch_indep_threads_mode(state="Y")
-            test_setup.switch_smt(state="on")
+    cpu_arch = cpu_utils.get_cpu_arch()
+    if "power" in cpu_arch:
+        pvr_cmd = "grep revision /proc/cpuinfo | awk '{print $3}' | head -n 1"
+        pvr = float(a_process.system_output(pvr_cmd, shell=True).strip())
+        # Restore SMT changes in the powerpc host is set
+        if params.get("restore_smt", "no") == "yes":
+            power9_compat = "yes" == params.get("power9_compat", "no")
+            if "power9" in cpu_arch and power9_compat and pvr < 2.2:
+                test_setup.switch_indep_threads_mode(state="Y")
+                test_setup.switch_smt(state="on")
 
-    power9_compat_remote = params.get("power9_compat_remote", "no") == "yes"
-    if power9_compat_remote:
-        cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
-        server_session = test_setup.remote_session(params)
-        cmd_output = server_session.cmd_status_output(cmd)
-        server_session.close()
-        if (cmd_output[0] == 0):
-            cmd_output = cmd_output[1].strip().lower()
-            if "power9" in cmd_output and power9_compat_remote:
+        if migration_setup:
+            power9_compat_remote = params.get("power9_compat_remote", "no") == "yes"
+            cpu_cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
+            server_session = test_setup.remote_session(params)
+            cmd_output = server_session.cmd_status_output(cpu_cmd)
+            if (cmd_output[0] == 0):
+                remote_cpu = cmd_output[1].strip().lower()
+            cmd_output = server_session.cmd_status_output(pvr_cmd)
+            if (cmd_output[0] == 0):
+                remote_pvr = float(cmd_output[1].strip())
+            server_session.close()
+            if ("power9" in remote_cpu) and power9_compat_remote and remote_pvr < 2.2:
                 test_setup.switch_indep_threads_mode(state="Y", params=params)
                 test_setup.switch_smt(state="on", params=params)
 
