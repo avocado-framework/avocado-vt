@@ -546,6 +546,23 @@ def create_subtests_cfg(t_type):
               subtests_cfg)
 
 
+def sync_shared_config(t_type):
+    """
+    Copy shared config from t_type/cfg/shared to backend/t_type/cfg/shared.
+
+    :param t_type: test provider, type: string
+    """
+    shared_path = os.path.join('cfg', 'shared')
+    dst_dir = os.path.join(data_dir.get_backend_dir(t_type), shared_path)
+    tp_subdir = asset.get_test_provider_subdirs(t_type)[0]
+    src_dir = os.path.join(tp_subdir, shared_path)
+    if not os.path.isdir(src_dir):
+        LOG.debug("Shared config %s does not exist, skip sync" % src_dir)
+        return
+    LOG.debug("Shared config %s auto generated from %s" % (dst_dir, src_dir))
+    dir_util.copy_tree(src_dir, dst_dir)
+
+
 def create_config_files(test_dir, shared_dir, interactive, t_type, step=None,
                         force_update=False):
     def is_file_tracked(fl):
@@ -933,6 +950,8 @@ def bootstrap(options, interactive=False):
                                    force_update=options.vt_update_config)
         create_subtests_cfg(options.vt_type)
         create_guest_os_cfg(options.vt_type)
+    if options.vt_type == 'qemu':
+        sync_shared_config(options.vt_type)
     create_host_os_cfg(options)
 
     if not (options.vt_no_downloads or options.vt_skip_verify_download_assets):
