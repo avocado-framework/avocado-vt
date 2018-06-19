@@ -55,7 +55,7 @@ class DevContainer(object):
                                                      "stdio -vnc none" % qemu_binary,
                                                      timeout=10, ignore_status=True,
                                                      shell=True, verbose=False))
-            _ = re.findall(r'^([^\| \[\n]+\|?\w+)', _, re.M)
+            _ = re.findall(r'^([^()\|\[\sA-Z]+\|?\w+)', _, re.M)
             hmp_cmds = []
             for cmd in _:
                 if '|' not in cmd:
