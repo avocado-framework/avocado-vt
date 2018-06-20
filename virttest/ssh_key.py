@@ -12,7 +12,7 @@ from virttest.compat_52lts import decode_to_text
 def get_public_key():
     """
     Return a valid string ssh public key for the user executing autoserv or
-    autotest. If there's no DSA or RSA public key, create a DSA keypair with
+    autotest. If there's no DSA or RSA public key, create a RSA keypair with
     ssh-keygen and return it.
 
     :returns: a ssh public key
@@ -32,19 +32,19 @@ def get_public_key():
     has_rsa_keypair = (os.path.isfile(rsa_public_key_path) and
                        os.path.isfile(rsa_private_key_path))
 
-    if has_dsa_keypair:
-        print('DSA keypair found, using it')
-        public_key_path = dsa_public_key_path
-
-    elif has_rsa_keypair:
-        print('RSA keypair found, using it')
+    if has_rsa_keypair:
+        logging.info('RSA keypair found, using it')
         public_key_path = rsa_public_key_path
 
-    else:
-        print('Neither RSA nor DSA keypair found, creating DSA ssh key pair')
-        process.system('ssh-keygen -t dsa -q -N "" -f %s' %
-                       dsa_private_key_path)
+    elif has_dsa_keypair:
+        logging.info('DSA keypair found, using it')
         public_key_path = dsa_public_key_path
+
+    else:
+        logging.info('Neither RSA nor DSA keypair found, creating RSA ssh key pair')
+        process.system('ssh-keygen -t rsa -q -N "" -f %s' %
+                       rsa_private_key_path)
+        public_key_path = rsa_public_key_path
 
     public_key = open(public_key_path, 'r')
     public_key_str = public_key.read()
@@ -53,10 +53,10 @@ def get_public_key():
     return public_key_str
 
 
-def get_remote_public_key(session, public_key="dsa"):
+def get_remote_public_key(session, public_key="rsa"):
     """
     Return a valid string ssh public key for the user executing autoserv or
-    autotest. If there's no DSA or RSA public key, create a DSA keypair with
+    autotest. If there's no DSA or RSA public key, create a RSA keypair with
     ssh-keygen and return it.
 
     :param session: A ShellSession for remote host
@@ -92,11 +92,11 @@ def get_remote_public_key(session, public_key="dsa"):
     else:
         logging.info('Neither RSA nor DSA keypair found, '
                      'creating %s ssh key pair' % public_key)
-        key_path = dsa_private_key_path
-        public_key_path = dsa_public_key_path
-        if public_key == "rsa":
-            key_path = rsa_private_key_path
-            public_key_path = rsa_public_key_path
+        key_path = rsa_private_key_path
+        public_key_path = rsa_public_key_path
+        if public_key == "dsa":
+            key_path = dsa_private_key_path
+            public_key_path = dsa_public_key_path
         session.cmd('ssh-keygen -t %s -q -N "" -f %s' %
                     (public_key, key_path))
 
@@ -144,7 +144,7 @@ def setup_ssh_key(hostname, user, password, port=22):
 
 def setup_remote_ssh_key(hostname1, user1, password1,
                          hostname2=None, user2=None, password2=None,
-                         port=22, config_options=None, public_key="dsa"):
+                         port=22, config_options=None, public_key="rsa"):
     """
     Setup up remote to remote login in another server by using public key
     If hostname2 is not supplied, setup to local.
