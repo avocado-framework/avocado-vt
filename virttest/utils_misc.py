@@ -1400,6 +1400,7 @@ def create_x509_dir(path, cacert_subj, server_subj, passphrase,
          '%sca-cert.pem -subj "%s"' %
          (ssl_cmd, days, path, passphrase, path, cacert_subj)),
         ('%s genrsa -out %s %d' % (ssl_cmd, path + server_key, bits)),
+        ('chmod o+r %s' % path + server_key),
         ('%s req -new -key %s -out %s/server-key.csr -subj "%s"' %
          (ssl_cmd, path + server_key, path, server_subj)),
         ('%s x509 -req -passin pass:%s -days %d -in %sserver-key.csr -CA '
