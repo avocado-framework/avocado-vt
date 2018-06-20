@@ -17,7 +17,7 @@ import sys
 import glob
 
 # pylint: disable=E0611
-from setuptools import setup
+from setuptools import setup, find_packages
 
 VERSION = open('VERSION', 'r').read().strip()
 
@@ -85,20 +85,7 @@ setup(name='avocado-plugins-vt',
       author='Avocado Developers',
       author_email='avocado-devel@redhat.com',
       url='http://github.com/avocado-framework/avocado-vt',
-      packages=['avocado_vt',
-                'avocado_vt.plugins',
-                'virttest',
-                'virttest.libvirt_xml',
-                'virttest.libvirt_xml.devices',
-                'virttest.libvirt_xml.nwfilter_protocols',
-                'virttest.qemu_devices',
-                'virttest.remote_commander',
-                'virttest.staging',
-                'virttest.staging.backports',
-                'virttest.tests',
-                'virttest.unittest_utils',
-                'virttest.utils_test',
-                'virttest.utils_test.qemu'],
+      packages=find_packages(exclude=('selftests*',)),
       package_data={"virttest": ["*.*"]},
       data_files=get_data_files(),
       entry_points={
