@@ -23,7 +23,7 @@ class VMStressEvents():
         self.iterations = int(params.get("stress_itrs", 1))
         self.event_sleep_time = int(params.get("event_sleep_time", 10))
         self.current_vcpu = params.get("smp", 32)
-        self.max_vcpu = params.get("virsh_maxcpus", 32)
+        self.max_vcpu = params.get("vcpu_maxcpus", 32)
         self.ignore_status = params.get("ignore_status", "no") == "yes"
         self.vms = env.get_all_vms()
         self.events = params.get("stress_events", "reboot").split(',')
