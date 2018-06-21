@@ -2367,13 +2367,24 @@ class LibvirtdDebugLog(object):
         self.test = test
         self.libvirtd = utils_libvirtd.Libvirtd()
         self.libvirtd_conf = utils_config.LibvirtdConfig()
-        self.backupfile = "%s.bkup.debuglog" % self.libvirtd_conf.conf_path
+        self.backupfile = "%s.backup" % self.libvirtd_conf.conf_path
 
     def enable(self):
         """ Enable libvirtd debug log """
         if not self.log_file or not os.path.isdir(os.path.dirname(self.log_file)):
             self.log_file = utils_misc.get_path(self.test.debugdir,
                                                 "libvirtd.log")
+        if os.path.isfile(self.backupfile):
+            os.remove(self.backupfile)
+
+        # backup libvirtd conf before restarting libvirtd
+        try:
+            with open(self.backupfile, "w") as fd:
+                fd.write(self.libvirtd_conf.backup_content)
+                fd.close()
+        except IOError as info:
+            self.test.error(info)
+
         # param used during libvirtd cleanup
         self.test.params["libvirtd_debug_file"] = self.log_file
         logging.debug("libvirtd debug log stored in: %s", self.log_file)
@@ -2381,9 +2392,6 @@ class LibvirtdDebugLog(object):
         self.libvirtd_conf["log_outputs"] = '"%s:file:%s"' % (self.log_level,
                                                               self.log_file)
         self.libvirtd.restart()
-        fd = open(self.backupfile, "w")
-        fd.write(self.libvirtd_conf.backup_content)
-        fd.close()
 
     def disable(self):
         """ Disable libvirtd debug log """
