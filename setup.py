@@ -85,7 +85,7 @@ setup(name='avocado-plugins-vt',
       author='Avocado Developers',
       author_email='avocado-devel@redhat.com',
       url='http://github.com/avocado-framework/avocado-vt',
-      packages=find_packages(exclude=('selftests*',)),
+      packages=find_packages(exclude=('selftests*',))
       package_data={"virttest": ["*.*"]},
       data_files=get_data_files(),
       entry_points={
