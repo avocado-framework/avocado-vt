@@ -1901,7 +1901,7 @@ class Stress(object):
         self.install()
         self.cmd_output_safe('cd %s' % os.path.join(self.dst_path,
                                                     self.base_name, self.work_path))
-        launch_cmds = 'nohup %s %s &' % (self.stress_cmds, self.stress_args)
+        launch_cmds = 'nohup %s %s > /dev/null &' % (self.stress_cmds, self.stress_args)
         logging.info("Launch stress with command: %s", launch_cmds)
         try:
             self.cmd_launch(launch_cmds)
