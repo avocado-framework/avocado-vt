@@ -18,6 +18,7 @@ More specifically:
 
 import os
 import re
+import six
 import time
 import logging
 from functools import reduce
@@ -36,7 +37,7 @@ from virttest.compat_52lts import decode_to_text
 
 def guest_active(vm):
     o = vm.monitor.info("status")
-    if isinstance(o, str):
+    if isinstance(o, six.string_types):
         return "status: running" in o
     else:
         if "status" in o:

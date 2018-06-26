@@ -1522,7 +1522,7 @@ def cpu_str_to_list(origin_str):
     :return: A list of the cpu ids
     :rtype: builtin.list
     """
-    if isinstance(origin_str, str):
+    if isinstance(origin_str, six.string_types):
         origin_str = "".join([_ for _ in origin_str if _ in string.printable])
         cpu_list = []
         for cpu in origin_str.strip().split(","):

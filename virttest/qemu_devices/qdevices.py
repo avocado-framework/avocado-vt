@@ -1286,7 +1286,7 @@ class QSparseBus(object):
         for addr, dev in six.iteritems(self.bus):
             out += '%s< %4s >%s\n  ' % ('-' * 15, addr,
                                         '-' * 15)
-            if isinstance(dev, str):
+            if isinstance(dev, six.string_types):
                 out += '"%s"\n  ' % dev
             else:
                 out += dev.str_long().replace('\n', '\n  ')
@@ -1429,7 +1429,7 @@ class QSparseBus(object):
         :param addr: Desired address
         :type addr: internal [addr1, addr2, ..] or stor format "addr1-addr2-.."
         """
-        if not isinstance(addr, str):
+        if not isinstance(addr, six.string_types):
             addr = self._addr2stor(addr)
         self.bus[addr] = "reserved"
 
@@ -1696,7 +1696,7 @@ class QDenseBus(QSparseBus):
             if hasattr(dev, 'str_long'):
                 out += dev.str_long().replace('\n', '\n  ')
                 out = out[:-3]
-            elif isinstance(dev, str):
+            elif isinstance(dev, six.string_types):
                 out += '"%s"' % dev
             else:
                 out += "%s" % dev
@@ -1750,7 +1750,7 @@ class QPCIBus(QSparseBus):
             return [addr, 0]
         elif not addr:    # not defined
             return [None, 0]
-        elif isinstance(addr, str):     # addr or addr.func
+        elif isinstance(addr, six.string_types):     # addr or addr.func
             addr = [int(_, 16) for _ in addr.split('.', 1)]
             if len(addr) < 2:   # only addr
                 addr.append(0)
@@ -1760,7 +1760,7 @@ class QPCIBus(QSparseBus):
         """ Convert addr to the format used by qtree """
         device.set_param(self.bus_item, self.busid)
         orig_addr = device.get_param('addr')
-        if addr[1] or (isinstance(orig_addr, str) and
+        if addr[1] or (isinstance(orig_addr, six.string_types) and
                        orig_addr.find('.') != -1):
             device.set_param('addr', '0x%x.%x' % (addr[0], addr[1]))
         else:
@@ -2008,7 +2008,7 @@ class QBusUnitBus(QDenseBus):
     def _check_bus(self, device):
         """ This bus is compound of m-buses + n-units, check correct busid """
         bus = device.get_param('bus')
-        if isinstance(bus, str):
+        if isinstance(bus, six.string_types):
             bus = bus.rsplit('.', 1)
             if len(bus) == 2 and bus[0] != self.busid:  # aaa.3
                 return False
@@ -2021,7 +2021,7 @@ class QBusUnitBus(QDenseBus):
         bus = None
         unit = None
         busid = device.get_param('bus')
-        if isinstance(busid, str):
+        if isinstance(busid, six.string_types):
             if busid.isdigit():
                 bus = int(busid)
             else:
@@ -2072,7 +2072,7 @@ class QFloppyBus(QDenseBus):
     def _dev2addr(self, device):
         """ Read None, number or drive$CHAR and convert to int() """
         addr = device.get_param('property')
-        if isinstance(addr, str):
+        if isinstance(addr, six.string_types):
             if addr.startswith('drive') and len(addr) > 5:
                 addr = ord(addr[5])
             elif addr.isdigit():

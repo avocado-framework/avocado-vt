@@ -18,6 +18,7 @@ from avocado.core import exceptions
 from avocado.utils import path as utils_path
 from avocado.utils import process
 
+import six
 from six.moves import xrange
 
 from virttest import openvswitch
@@ -1727,7 +1728,7 @@ def refresh_neigh_table(interface_name=None, neigh_address="ff02::1"):
     """
     if isinstance(interface_name, list):
         interfaces = interface_name
-    elif isinstance(interface_name, str):
+    elif isinstance(interface_name, six.string_types):
         interfaces = interface_name.split()
     else:
         interfaces = list(filter(lambda x: "-" not in x, get_net_if()))
@@ -1883,7 +1884,7 @@ def change_iface_bridge(ifname, new_bridge, ovs=None):
     if br_manager_new is None:
         raise BRNotExistError(new_bridge, "")
 
-    if isinstance(ifname, str):
+    if isinstance(ifname, six.string_types):
         (br_manager_old, br_old) = find_current_bridge(ifname, ovs)
         if br_manager_old is not None:
             br_manager_old.del_port(br_old, ifname)
@@ -1958,7 +1959,7 @@ def add_to_bridge(ifname, brname, ovs=None):
         ovs = __ovs
 
     _ifname = None
-    if isinstance(ifname, str):
+    if isinstance(ifname, six.string_types):
         _ifname = ifname
     elif issubclass(type(ifname), VirtIface):
         _ifname = ifname.ifname
@@ -1988,7 +1989,7 @@ def del_from_bridge(ifname, brname, ovs=None):
         ovs = __ovs
 
     _ifname = None
-    if isinstance(ifname, str):
+    if isinstance(ifname, six.string_types):
         _ifname = ifname
     elif issubclass(type(ifname), VirtIface):
         _ifname = ifname.ifname
@@ -2357,7 +2358,7 @@ class VirtIface(propcan.PropCan, object):
         Corner-case prevention where nic_name is not a sane string value
         """
         try:
-            return isinstance(nic_name, str) and len(nic_name) > 1
+            return isinstance(nic_name, six.string_types) and len(nic_name) > 1
         except (TypeError, KeyError, AttributeError):
             return False
 
@@ -2496,7 +2497,7 @@ class VMNet(list):
         VMNet.__init__(self, self.container_class, state)
 
     def __getitem__(self, index_or_name):
-        if isinstance(index_or_name, str):
+        if isinstance(index_or_name, six.string_types):
             index_or_name = self.nic_name_index(index_or_name)
         return super(VMNet, self).__getitem__(index_or_name)
 
@@ -2504,7 +2505,7 @@ class VMNet(list):
         if not isinstance(value, dict):
             raise VMNetError
         if self.container_class.name_is_valid(value['nic_name']):
-            if isinstance(index_or_name, str):
+            if isinstance(index_or_name, six.string_types):
                 index_or_name = self.nic_name_index(index_or_name)
             self.process_mac(value)
             super(VMNet, self).__setitem__(index_or_name,
@@ -2513,7 +2514,7 @@ class VMNet(list):
             raise VMNetError
 
     def __delitem__(self, index_or_name):
-        if isinstance(index_or_name, str):
+        if isinstance(index_or_name, six.string_types):
             index_or_name = self.nic_name_index(index_or_name)
         super(VMNet, self).__delitem__(index_or_name)
 
@@ -2573,7 +2574,7 @@ class VMNet(list):
         """
         Return the index number for name, or raise KeyError
         """
-        if not isinstance(name, str):
+        if not isinstance(name, six.string_types):
             raise TypeError("nic_name_index()'s nic_name must be a string")
         nic_name_list = self.nic_name_list()
         try:
