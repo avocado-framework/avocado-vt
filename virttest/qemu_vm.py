@@ -391,7 +391,7 @@ class VM(virt_vm.BaseVM):
                     return fmt % (option, "off")
             elif value and isinstance(value, bool):
                 return fmt % (option, "on")
-            elif value and isinstance(value, str):
+            elif value and isinstance(value, six.string_types):
                 # "EMPTY_STRING" and "NULL_STRING" is used for testing illegal
                 # foramt of option.
                 # "EMPTY_STRING": set option as a empty string "".
@@ -3724,26 +3724,26 @@ class VM(virt_vm.BaseVM):
         if (self.params["display"] == "spice" and
                 self.get_spice_var("spice_seamless_migration") == "on"):
             s = self.monitor.info("spice")
-            if isinstance(s, str):
+            if isinstance(s, six.string_types):
                 ret = len(re.findall("migrated: true", s, re.I)) > 0
             else:
                 ret = len(re.findall("true", str(s.get("migrated")), re.I)) > 0
         o = self.monitor.info("migrate")
-        if isinstance(o, str):
+        if isinstance(o, six.string_types):
             return ret and not re.search(r"status: *[\w-]*active", o)
         else:
             return ret and not ("active" in o.get("status"))
 
     def mig_succeeded(self):
         o = self.monitor.info("migrate")
-        if isinstance(o, str):
+        if isinstance(o, six.string_types):
             return "status: completed" in o
         else:
             return o.get("status") == "completed"
 
     def mig_failed(self):
         o = self.monitor.info("migrate")
-        if isinstance(o, str):
+        if isinstance(o, six.string_types):
             return "status: failed" in o
         else:
             return o.get("status") == "failed"
@@ -3755,7 +3755,7 @@ class VM(virt_vm.BaseVM):
         elif self.mig_failed():
             raise virt_vm.VMMigrateFailedError("Migration failed")
         o = self.monitor.info("migrate")
-        if isinstance(o, str):
+        if isinstance(o, six.string_types):
             return ("Migration status: cancelled" in o or
                     "Migration status: canceled" in o)
         else:
@@ -4242,7 +4242,7 @@ class VM(virt_vm.BaseVM):
 
         :return: Matched block device name, None when not find any device.
         """
-        if isinstance(blocks_info, str):
+        if isinstance(blocks_info, six.string_types):
             for block in blocks_info.splitlines():
                 match = True
                 for key, value in six.iteritems(p_dict):
@@ -4359,7 +4359,7 @@ class VM(virt_vm.BaseVM):
         assert value in str(blocks_info), \
             "Device %s not listed in monitor's output" % value
 
-        if isinstance(blocks_info, str):
+        if isinstance(blocks_info, six.string_types):
             lock_str = "locked=1"
             lock_str_new = "locked"
             no_lock_str = "not locked"

@@ -48,7 +48,7 @@ def encode_basestring(s):
     """Return a JSON representation of a Python string
 
     """
-    if isinstance(s, str) and HAS_UTF8.search(s) is not None:
+    if isinstance(s, six.string_types) and HAS_UTF8.search(s) is not None:
         s = s.decode('utf-8')
 
     def replace(match):
@@ -60,7 +60,7 @@ def py_encode_basestring_ascii(s):
     """Return an ASCII-only JSON representation of a Python string
 
     """
-    if isinstance(s, str) and HAS_UTF8.search(s) is not None:
+    if isinstance(s, six.string_types) and HAS_UTF8.search(s) is not None:
         s = s.decode('utf-8')
 
     def replace(match):
@@ -218,7 +218,7 @@ class JSONEncoder(object):
         """
         # This is for extremely simple cases and benchmarks.
         if isinstance(o, basestring):
-            if isinstance(o, str):
+            if isinstance(o, six.string_types):
                 _encoding = self.encoding
                 if (_encoding is not None and
                         not (_encoding == 'utf-8')):
@@ -259,7 +259,7 @@ class JSONEncoder(object):
         if self.encoding != 'utf-8':
             # pylint: disable=E0102
             def _encoder(o, _orig_encoder=_encoder, _encoding=self.encoding):
-                if isinstance(o, str):
+                if isinstance(o, six.string_types):
                     o = o.decode(_encoding)
                 return _orig_encoder(o)
 

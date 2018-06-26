@@ -3,6 +3,7 @@ Module simplifying manipulation of XML described at
 http://libvirt.org/formatdomaincaps.html
 """
 import logging
+import six
 
 from virttest import xml_utils
 from virttest.libvirt_xml import base, accessors, xcepts
@@ -219,7 +220,7 @@ class EnumXML(base.LibvirtXMLBase):
         """Convert a EnumXML instance into a tag + attributes"""
         del index           # not used
         del libvirtxml      # not used
-        if isinstance(item, str):
+        if isinstance(item, six.string_types):
             return ("value", {}, item)
         else:
             raise xcepts.LibvirtXMLError("Expected a str attributes,"

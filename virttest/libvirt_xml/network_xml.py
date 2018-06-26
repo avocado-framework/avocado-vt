@@ -4,6 +4,7 @@ http://libvirt.org/formatnetwork.html
 """
 
 import logging
+import six
 
 from virttest import xml_utils
 from virttest.libvirt_xml import base, xcepts, accessors
@@ -197,7 +198,7 @@ class DNSXML(base.LibvirtXMLBase):
             """Convert a HostnameXML instance into a tag + attributes"""
             del index           # not used
             del libvirtxml      # not used
-            if isinstance(item, str):
+            if isinstance(item, six.string_types):
                 return ("hostname", {}, item)
             else:
                 raise xcepts.LibvirtXMLError("Expected a str attributes,"

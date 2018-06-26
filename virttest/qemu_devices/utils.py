@@ -4,6 +4,8 @@ Shared classes and functions (exceptions, ...)
 :copyright: 2013 Red Hat Inc.
 """
 
+import six
+
 
 #
 # Exceptions
@@ -67,7 +69,7 @@ def none_or_int(value):
         return value
     elif not value:   # "", None, False
         return None
-    elif isinstance(value, str) and value.isdigit():
+    elif isinstance(value, six.string_types) and value.isdigit():
         return int(value)
     else:
         raise TypeError("This parameter has to be int or none")

@@ -13,6 +13,7 @@ import subprocess
 import time
 import re
 import random
+import six
 from tempfile import mkdtemp
 
 from avocado.core import exceptions
@@ -69,7 +70,7 @@ class Cgroup(object):
         :param cgroup: cgroup name
         :return: cgroup's full path
         """
-        if not isinstance(cgroup, str):
+        if not isinstance(cgroup, six.string_types):
             raise exceptions.TestError("cgroup type isn't string!")
         return os.path.join(self.root, cgroup) + '/'
 

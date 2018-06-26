@@ -12,6 +12,7 @@ import socket
 import threading
 import time
 import re
+import six
 try:
     import pickle as cPickle
 except ImportError:
@@ -42,7 +43,7 @@ except ImportError:
 
 def guest_active(vm):
     o = vm.monitor.info("status")
-    if isinstance(o, str):
+    if isinstance(o, six.string_types):
         return "status: running" in o
     else:
         if "status" in o:
@@ -96,7 +97,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
             raise exceptions.TestFail("Source VM died during migration")
         try:
             o = vm.monitor.info("migrate")
-            if isinstance(o, str):
+            if isinstance(o, six.string_types):
                 return "status: active" not in o
             else:
                 return o.get("status") != "active"
@@ -105,21 +106,21 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
 
     def mig_succeeded():
         o = vm.monitor.info("migrate")
-        if isinstance(o, str):
+        if isinstance(o, six.string_types):
             return "status: completed" in o
         else:
             return o.get("status") == "completed"
 
     def mig_failed():
         o = vm.monitor.info("migrate")
-        if isinstance(o, str):
+        if isinstance(o, six.string_types):
             return "status: failed" in o
         else:
             return o.get("status") == "failed"
 
     def mig_cancelled():
         o = vm.monitor.info("migrate")
-        if isinstance(o, str):
+        if isinstance(o, six.string_types):
             return ("Migration status: cancelled" in o or
                     "Migration status: canceled" in o)
         else:
@@ -1584,7 +1585,7 @@ class MigrationBase(object):
         if self.is_src:
             vm = self.env.get_vm(self.params["main_vm"])
             o = vm.monitor.info("migrate")
-            if isinstance(o, str):
+            if isinstance(o, six.string_types):
                 return ("Migration status: cancelled" in o or
                         "Migration status: canceled" in o)
             else:
