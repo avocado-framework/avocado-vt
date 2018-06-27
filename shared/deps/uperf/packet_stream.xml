@@ -1,0 +1,13 @@
+<profile name="packet_stream">
+ <group nthreads="n_threads">
+  <transaction iterations="1">
+   <flowop type="connect" options="remotehost=serverip protocol=proto_req"/>
+  </transaction>
+  <transaction duration="duration_secs">
+   <flowop type="write" options="count=16 size=16384"/>
+  </transaction>
+  <transaction iterations="1">
+   <flowop type="disconnect"/>
+  </transaction>
+ </group>
+</profile>
