@@ -1179,7 +1179,8 @@ class VM(virt_vm.BaseVM):
 
         def add_boot(devices, opts):
             machine_type = params.get('machine_type', "")
-            if machine_type.startswith("arm"):
+            if (machine_type.startswith("arm") or
+                    machine_type.startswith('riscv')):
                 logging.warn("-boot on %s is usually not supported, use "
                              "bootindex instead.", machine_type)
                 return ""

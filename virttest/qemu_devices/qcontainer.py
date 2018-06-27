@@ -1013,6 +1013,30 @@ class DevContainer(object):
                                                   aobject="virtio-blk-ccw"))
             return devices
 
+        def machine_riscv64_mmio(cmd=False):
+            """
+            riscv doesn't support PCI bus, only MMIO transports.
+            :param cmd: If set uses "-M $cmd" to force this machine type
+            :return: List of added devices (including default buses)
+            """
+            logging.warn("Support for riscv64 is highly experimental. See "
+                         "https://avocado-vt.readthedocs.io"
+                         "/en/latest/Experimental.html#riscv64 for "
+                         "setup information.")
+            devices = []
+            # Add virtio-bus
+            # TODO: Currently this uses QNoAddrCustomBus and does not
+            # set the device's properties. This means that the qemu qtree
+            # and autotest's representations are completelly different and
+            # can't be used.
+            bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
+                                            'virtio-mmio-bus', 'virtio-bus',
+                                            'virtio-mmio-bus')
+            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
+                                                  child_bus=bus,
+                                                  aobject="virtio-mmio-bus"))
+            return devices
+
         def machine_other(cmd=False):
             """
             isapc or unknown machine type. This type doesn't add any default
@@ -1053,6 +1077,8 @@ class DevContainer(object):
                     devices = machine_arm64_mmio(cmd)
                 elif machine_type.startswith("s390"):
                     devices = machine_s390_virtio(cmd)
+                elif avocado_machine == 'riscv64-mmio':
+                    devices = machine_riscv64_mmio(cmd)
                 elif 'isapc' not in machine_type:   # i440FX
                     devices = machine_i440FX(cmd)
                 else:   # isapc (or other)

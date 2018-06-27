@@ -36,6 +36,7 @@ Contents:
    RunQemuUnittests
    ParallelJobs
    contributing/index
+   Experimental
 
 =============
 API Reference
