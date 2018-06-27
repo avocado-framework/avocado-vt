@@ -17,6 +17,8 @@ all:
 	@echo "Development related targets:"
 	@echo "check:  Runs tree static check, unittests and functional tests"
 	@echo "clean:  Get rid of scratch and byte files"
+	@echo "link:  Enables egg links and links needed resources"
+	@echo "unlink:  Disables egg links and unlinks needed resources"
 	@echo
 	@echo "Platform independent distribution/installtion related targets:"
 	@echo "source:   Create source package"
