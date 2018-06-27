@@ -1178,11 +1178,12 @@ class VM(virt_vm.BaseVM):
             return cmd
 
         def add_boot(devices, opts):
-            if params.get('machine_type', "").startswith("arm"):
-                logging.warn("-boot on ARM is usually not supported, use "
-                             "bootindex instead.")
+            machine_type = params.get('machine_type', "")
+            if machine_type.startswith("arm"):
+                logging.warn("-boot on %s is usually not supported, use "
+                             "bootindex instead.", machine_type)
                 return ""
-            if params.get('machine_type', "").startswith("s390"):
+            if machine_type.startswith("s390"):
                 logging.warn("-boot on s390x only support boot strict=on")
                 return "-boot strict=on"
             cmd = " -boot"
