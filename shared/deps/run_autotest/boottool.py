@@ -1021,7 +1021,7 @@ class Grubby(object):
         '''
         if isinstance(data, int):
             return True
-        elif isinstance(data, str) and data.isdigit():
+        elif isinstance(data, six.string_types) and data.isdigit():
             return True
         return False
 
@@ -1031,10 +1031,10 @@ class Grubby(object):
         '''
         if self._is_number(data):
             return data
-        elif isinstance(data, str) and data.startswith('/'):
+        elif isinstance(data, six.string_types) and data.startswith('/'):
             # assume it's the kernel filename
             return data
-        elif isinstance(data, str):
+        elif isinstance(data, six.string_types):
             return self._kernel_for_title(data)
         else:
             raise ValueError("Bad value for 'kernel' parameter. Expecting "
@@ -2025,7 +2025,7 @@ class BoottoolApp(object):
             result = action_method()
             if result is None:
                 result = 0
-            elif isinstance(result, str):
+            elif isinstance(result, six.string_types):
                 print(result)
                 result = 0
             sys.exit(result)
@@ -2107,7 +2107,7 @@ class BoottoolApp(object):
             print()
             for key, val in list(entry.items()):
                 # remove quotes
-                if isinstance(val, str):
+                if isinstance(val, six.string_types):
                     if val.startswith('"') and val.endswith('"'):
                         val = val[1:-1]
 

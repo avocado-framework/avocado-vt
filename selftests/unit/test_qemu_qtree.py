@@ -199,10 +199,10 @@ class QtreeContainerTest(unittest.TestCase):
                              (i, reference_nodes[i], type(reference_nodes))))
 
         tree = qtree.get_qtree()
-        self.assertTrue(isinstance(tree.str_qtree(), str),
+        self.assertTrue(isinstance(tree.str_qtree(), six.string_types),
                         "qtree.str_qtree() returns nonstring output.")
 
-        self.assertTrue(isinstance(str(tree), str),
+        self.assertTrue(isinstance(str(tree), six.string_types),
                         "str(qtree) returns nonstring output.")
 
     def test_bad_qtree(self):
@@ -250,7 +250,7 @@ class QtreeDiskContainerTest(unittest.TestCase):
                          (0, 0, 1, 0))
         # Check the full disk output (including params)
         for disk in disks.disks:
-            self.assertTrue(isinstance(str(disk), str),
+            self.assertTrue(isinstance(str(disk), six.string_types),
                             "str(disk) returns nonstring output.")
 
     def test_check_params_bad(self):

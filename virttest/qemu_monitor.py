@@ -474,7 +474,7 @@ class Monitor:
         :return: Dict of disk parameters
         """
         info = self.info('block', debug)
-        if isinstance(info, str):
+        if isinstance(info, six.string_types):
             try:
                 return self._parse_info_block_old(info)
             except ValueError:
