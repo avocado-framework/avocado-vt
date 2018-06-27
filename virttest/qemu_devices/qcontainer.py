@@ -1031,10 +1031,11 @@ class DevContainer(object):
         machine_type = params.get('machine_type')
         machine_type_extra_params = params.get('machine_type_extra_params')
         if machine_type:
-            if machine_type.startswith('arm64'):
-                arm_machine, machine_type = machine_type.split(':', 1)
+            split_machine_type = machine_type.split(':', 1)
+            if len(split_machine_type) == 1:
+                avocado_machine = ''
             else:
-                arm_machine = False
+                avocado_machine, machine_type = split_machine_type
             m_types = []
             for _ in self.__machine_types.splitlines()[1:]:
                 m_types.append(_.split()[0])
@@ -1048,9 +1049,9 @@ class DevContainer(object):
                     cmd = ""
                 if 'q35' in machine_type:   # Q35 + ICH9
                     devices = machine_q35(cmd)
-                elif arm_machine == 'arm64-pci':
+                elif avocado_machine == 'arm64-pci':
                     devices = machine_arm64_pci(cmd)
-                elif arm_machine == 'arm64-mmio':
+                elif avocado_machine == 'arm64-mmio':
                     devices = machine_arm64_mmio(cmd)
                 elif machine_type.startswith("s390"):
                     devices = machine_s390_virtio(cmd)
