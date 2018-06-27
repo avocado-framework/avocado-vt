@@ -903,7 +903,6 @@ class DevContainer(object):
                                       "AAVMF variables file.")
             logging.warn('Support for aarch64 is highly experimental!')
             devices = []
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd))
             # EFI pflash
             aavmf_code = ("-drive file=/usr/share/AAVMF/AAVMF_CODE.fd,"
                           "if=pflash,format=raw,unit=0,readonly=on")
@@ -953,7 +952,6 @@ class DevContainer(object):
                                       "AAVMF variables file.")
             logging.warn('Support for aarch64 is highly experimental!')
             devices = []
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd))
             # EFI pflash
             aavmf_code = ("-drive file=/usr/share/AAVMF/AAVMF_CODE.fd,"
                           "if=pflash,format=raw,unit=0,readonly=on")
