@@ -2039,9 +2039,9 @@ class QSCSIBus(QSparseBus):
 
 class QBusUnitBus(QDenseBus):
 
-    """ Implementation of bus-unit bus (ahci, ide) """
+    """ Implementation of bus-unit/nr bus (ahci, ide, virtio-serial) """
 
-    def __init__(self, busid, bus_type, lengths, aobject=None, atype=None):
+    def __init__(self, busid, bus_type, lengths, aobject=None, atype=None, unit_spec='unit'):
         """
         :param busid: id of the bus (mybus.0)
         :type busid: str
@@ -2056,8 +2056,9 @@ class QBusUnitBus(QDenseBus):
         """
         if len(lengths) != 2:
             raise ValueError("len(lenghts) have to be 2 (%s)" % self)
-        super(QBusUnitBus, self).__init__('bus', [['bus', 'unit'], lengths],
+        super(QBusUnitBus, self).__init__('bus', [['bus', unit_spec], lengths],
                                           busid, bus_type, aobject, atype)
+        self.unit_spec = unit_spec
 
     def _update_device_props(self, device, addr):
         """ Always set the properties """
@@ -2066,7 +2067,7 @@ class QBusUnitBus(QDenseBus):
     def _set_device_props(self, device, addr):
         """This bus is compound of m-buses + n-units, set properties """
         device.set_param('bus', "%s.%s" % (self.busid, addr[0]))
-        device.set_param('unit', addr[1])
+        device.set_param(self.unit_spec, addr[1])
 
     def _check_bus(self, device):
         """ This bus is compound of m-buses + n-units, check correct busid """
@@ -2093,9 +2094,26 @@ class QBusUnitBus(QDenseBus):
                     bus = int(busid[1])
         if isinstance(busid, int):
             bus = busid
-        if device.get_param('unit'):
-            unit = int(device.get_param('unit'))
+        if device.get_param(self.unit_spec):
+            unit = int(device.get_param(self.unit_spec))
         return [bus, unit]
+
+
+class QSerialBus(QBusUnitBus):
+
+    """ Serial bus representation """
+
+    def __init__(self, busid, bus_type, aobject=None, max_ports=32):
+        """
+        :param busid: bus id
+        :param bus_type: bus type(virtio-serial-device, virtio-serial-pci)
+        :param aobject: autotest object
+        :param max_ports: max ports, default 32
+        """
+
+        super(QSerialBus, self).__init__(busid, 'SERIAL', [1, max_ports],
+                                         aobject, bus_type, unit_spec='nr')
+        self.first_port = (0, 1)
 
 
 class QAHCIBus(QBusUnitBus):
