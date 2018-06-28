@@ -1902,8 +1902,9 @@ class Stress(object):
         self.uninstall_cmds = self.uninstall_cmds or './configure && make uninstall'
         self.work_path = self.params.get('%s_work_path' % stress_type,
                                          work_path)
-        self.check_cmd = "pidof -s %s" % stress_type
-        self.stop_cmd = "pkill -9 %s" % stress_type
+        check_cmd = self.stress_cmds.split(" ")[0]
+        self.check_cmd = "pidof -s %s" % check_cmd
+        self.stop_cmd = "pkill -9 %s" % check_cmd
         self.dst_path = self.params.get('stress_dst_path', '/home')
         self.cmd_status_output = process.getstatusoutput
         self.cmd_output_safe = process.getoutput
