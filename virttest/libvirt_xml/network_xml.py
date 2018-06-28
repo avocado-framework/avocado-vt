@@ -732,11 +732,11 @@ class NetworkXML(NetworkXMLBase):
         if self.defined:
             return self.virsh.net_state_dict(virsh_instance=self.virsh)[self.name]
 
-    def create(self):
+    def create(self, **dargs):
         """
         Adds non-persistant / transient network to libvirt with net-create
         """
-        cmd_result = self.virsh.net_create(self.xml)
+        cmd_result = self.virsh.net_create(self.xml, **dargs)
         if cmd_result.exit_status:
             raise xcepts.LibvirtXMLError("Failed to create transient network %s.\n"
                                          "Detail: %s" %
