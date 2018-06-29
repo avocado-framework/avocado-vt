@@ -580,7 +580,7 @@ class DevContainer(object):
         added_devices.append(device)
         return added_devices
 
-    def simple_hotplug(self, device, monitor):
+    def simple_hotplug(self, device, monitor, bus=None):
         """
         Function hotplug device to devices representation. If verification is
         supported by hodplugged device and result of verification is True
@@ -591,10 +591,23 @@ class DevContainer(object):
         :type device: string, qdevices.QDevice.
         :param monitor: Monitor from vm.
         :type monitor: qemu_monitor.Monitor
+        :param bus: The bus to be plugged into
+        :type bus: qdevice.QSparseBus
         :return: tuple(monitor.cmd(), verify_hotplug output)
         """
         self.set_dirty()
 
+        if isinstance(device, qdevices.QDevice):
+            if bus is None:
+                bus = self.get_buses({'aobject': 'pci.0'})[0]
+                if not isinstance(device.parent_bus, (list, tuple)):
+                    device.parent_bus = [device.parent_bus]
+                for parent_bus in device.parent_bus:
+                    for _bus in self.get_buses(parent_bus):
+                        if _bus.bus_item == 'bus':
+                            bus = _bus
+                            break
+            bus.prepare_hotplug(device)
         out = device.hotplug(monitor)
         ver_out = device.verify_hotplug(out, monitor)
 
@@ -602,7 +615,6 @@ class DevContainer(object):
             self.set_clean()
             return out, ver_out
 
-        qdev_out = None
         try:
             qdev_out = self.insert(device)
             if not isinstance(qdev_out, list) or len(qdev_out) != 1:
@@ -634,14 +646,21 @@ class DevContainer(object):
         # Remove all devices, which are removed together with this dev
         out = device.unplug(monitor)
 
-        ver_out = device.verify_unplug(out, monitor)
-
-        if ver_out is False:
+        # The unplug action sometimes delays for a while per host performance,
+        # it will be accepted if the unplug been accomplished within 30s
+        from virttest import utils_misc
+        if not utils_misc.wait_for(
+                lambda: device.verify_unplug(out, monitor) is True, timeout=30):
             self.set_clean()
-            return out, ver_out
+            return out, device.verify_unplug(out, monitor)
+
+        ver_out = device.verify_unplug(out, monitor)
 
         try:
             device.unplug_hook()
+            drive = device.get_param("drive")
+            if drive:
+                self.remove(drive)
             self.remove(device, True)
             if ver_out is True:
                 self.set_clean()
@@ -1785,6 +1804,9 @@ class DevContainer(object):
             elif driver == 'i82801b11-bridge':  # addr 0x1-0x13
                 bus_length = 20
                 bus_first_port = 1
+            elif driver in ('pcie-root-port', 'ioh3420'):
+                bus_length = 1  # multifunction off by default
+                bus_first_port = 0
             else:   # addr = 0x0-0x1f
                 bus_length = 32
                 bus_first_port = 0
