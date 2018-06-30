@@ -2317,38 +2317,36 @@ def get_qemu_dst_binary(params):
     return qemu_dst_binary
 
 
+def get_binary(binary_name, params):
+    """
+    Get the path to the binary currently in use.
+    """
+    key_in_params = "%s_binary" % binary_name.replace('-', '_')
+    binary_path = get_path(_get_backend_dir(params),
+                           params.get(key_in_params, binary_name))
+    if not os.path.isfile(binary_path):
+        logging.debug('Could not find params %s in %s, searching the '
+                      'host PATH for one to use',
+                      binary_name,
+                      binary_path)
+        binary_path = utils_path.find_command(binary_name)
+        logging.debug('Found %s', binary_path)
+
+    return binary_path
+
+
 def get_qemu_img_binary(params):
     """
     Get the path to the qemu-img binary currently in use.
     """
-    qemu_img_binary_path = get_path(_get_backend_dir(params),
-                                    params.get("qemu_img_binary", "qemu-img"))
-    if not os.path.isfile(qemu_img_binary_path):
-        logging.debug('Could not find params qemu-img in %s, searching the '
-                      'host PATH for one to use', qemu_img_binary_path)
-        qemu_img_binary = utils_path.find_command('qemu-img')
-        logging.debug('Found %s', qemu_img_binary)
-    else:
-        qemu_img_binary = qemu_img_binary_path
-
-    return qemu_img_binary
+    return get_binary('qemu-img', params)
 
 
 def get_qemu_io_binary(params):
     """
     Get the path to the qemu-io binary currently in use.
     """
-    qemu_io_binary_path = get_path(_get_backend_dir(params),
-                                   params.get("qemu_io_binary", "qemu-io"))
-    if not os.path.isfile(qemu_io_binary_path):
-        logging.debug('Could not find params qemu-io in %s, searching the '
-                      'host PATH for one to use', qemu_io_binary_path)
-        qemu_io_binary = utils_path.find_command('qemu-io')
-        logging.debug('Found %s', qemu_io_binary)
-    else:
-        qemu_io_binary = qemu_io_binary_path
-
-    return qemu_io_binary
+    return get_binary('qemu-io', params)
 
 
 def get_qemu_best_cpu_model(params):
