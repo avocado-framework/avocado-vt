@@ -597,7 +597,8 @@ class DevContainer(object):
         """
         self.set_dirty()
 
-        if isinstance(device, qdevices.QDevice):
+        if isinstance(device, qdevices.QDevice) and \
+                "bus" in self.execute_qemu("-device %s,?" % device["driver"]):
             if bus is None:
                 bus = self.get_buses({'aobject': 'pci.0'})[0]
                 if not isinstance(device.parent_bus, (list, tuple)):
