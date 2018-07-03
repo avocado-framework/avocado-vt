@@ -21,12 +21,14 @@ class VMStressEvents():
         """
         self.host_cpu_list = cpu.cpu_online_list()
         self.iterations = int(params.get("stress_itrs", 1))
+        self.host_iterations = int(params.get("host_event_itrs", 10))
         self.event_sleep_time = int(params.get("event_sleep_time", 10))
         self.current_vcpu = params.get("smp", 32)
         self.max_vcpu = params.get("vcpu_maxcpus", 32)
         self.ignore_status = params.get("ignore_status", "no") == "yes"
         self.vms = env.get_all_vms()
         self.events = params.get("stress_events", "reboot").split(',')
+        self.host_events = params.get("host_stress_events", "").split(',')
         self.threads = []
         self.iface_num = params.get("iface_num", '1')
         self.iface_type = params.get("iface_type", "network")
@@ -51,6 +53,8 @@ class VMStressEvents():
             for event in self.events:
                 self.threads.append(threading.Thread(
                     target=self.vm_stress_events, args=(event, vm)))
+        for event in self.host_events:
+            self.threads.append(threading.Thread(target=self.host_stress_event, args=(event,)))
         for thread in self.threads:
             thread.start()
 
@@ -61,6 +65,7 @@ class VMStressEvents():
     def vm_stress_events(self, event, vm):
         """
         Stress events
+
         :param event: event name
         :param vm: vm object
         """
@@ -156,5 +161,30 @@ class VMStressEvents():
                         if not self.ignore_status:
                             libvirt.check_exit_status(ret)
                         libvirt.delete_local_disk(self.disk_type, disk_name)
+            else:
+                raise NotImplementedError
+
+    def host_stress_event(self, event):
+        """
+        Host Stress events
+
+        :param event: event name
+        """
+        for itr in range(self.host_iterations):
+            if "cpu_freq_governor" in event:
+                cpu.set_cpufreq_governor()
+                logging.debug("Current governor: %s", cpu.get_cpufreq_governor())
+                time.sleep(self.event_sleep_time)
+            elif "cpu_idle" in event:
+                idlestate = cpu.get_cpuidle_state()
+                cpu.set_cpuidle_state()
+                time.sleep(self.event_sleep_time)
+                cpu.set_cpuidle_state(setstate=idlestate)
+                time.sleep(self.event_sleep_time)
+            elif "cpuoffline" in event:
+                processor = self.host_cpu_list[random.randint(0, cpu.online_cpus_count()-1)]
+                cpu.offline(processor)
+                time.sleep(self.event_sleep_time)
+                cpu.online(processor)
             else:
                 raise NotImplementedError
