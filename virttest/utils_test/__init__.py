@@ -2226,13 +2226,12 @@ def unload_stress(stress_type, params, vms=None, remote_server=False):
                    remote_server=remote_server).unload_stress()
 
 
-def prepare_profile(test, fpath, pat, repl):
+def prepare_profile(test, fpath, pat_repl):
     """
     This is to prepare client profile to be run on client.
     :param test: kvm test object
     :param fpath: profile to be run
-    :param pat: pattern to be replaced
-    :param repl: replacement strings includes server_ip, duration, threads etc.
+    :param pat_repl: dict containing pattern and replacement : includes server_ip, duration, threads etc.
     :return: no explicit return. But profile on fpath would be edited and ready to be run on client guest
     :raise: TestError: raised if unable to edit the given profile
     """
@@ -2240,10 +2239,8 @@ def prepare_profile(test, fpath, pat, repl):
         with open(fpath, 'r+') as profile_content:
             tempstr = profile_content.read()
             profile_content.truncate(0)
-            pat_repl = zip(pat, repl)
-            logging.debug("In prepare profile: pattren : %s", pat)
-            logging.debug("In prepare profile: replace with : %s", repl)
-            for pattern, replace in pat_repl:
+            logging.debug("In prepare profile: pattern and replacement : %s", pat_repl)
+            for pattern, replace in pat_repl.items():
                 tempstr = tempstr.replace(pattern, replace)
             profile_content.write(tempstr)
         logging.debug("Profile xml to be run : %s ", tempstr)
