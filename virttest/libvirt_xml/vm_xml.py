@@ -607,7 +607,7 @@ class VMXML(VMXMLBase):
         """
         return librarian.get(type_name)
 
-    def undefine(self, options=None, virsh_instance=base.virsh):
+    def undefine(self, options=None, virsh_instance=base.virsh, debug=False):
         """Undefine this VM with libvirt retaining XML in instance"""
         # add --nvram in undefine for aarch64
         if "aarch" in platform.machine():
@@ -616,11 +616,11 @@ class VMXML(VMXMLBase):
             if "--nvram" not in options:
                 options += " --nvram"
 
-        return virsh_instance.remove_domain(self.vm_name, options)
+        return virsh_instance.remove_domain(self.vm_name, options, debug=debug)
 
-    def define(self, virsh_instance=base.virsh):
+    def define(self, virsh_instance=base.virsh, debug=False):
         """Define VM with virsh from this instance"""
-        result = virsh_instance.define(self.xml)
+        result = virsh_instance.define(self.xml, debug=debug)
         if result.exit_status:
             logging.debug("Define %s failed.\n"
                           "Detail: %s.", self.vm_name,
@@ -628,7 +628,7 @@ class VMXML(VMXMLBase):
             return False
         return True
 
-    def sync(self, options=None, virsh_instance=base.virsh):
+    def sync(self, options=None, virsh_instance=base.virsh, debug=False):
         """Rebuild VM with the config file."""
         # If target vm no longer exist, this will raise an exception.
         try:
@@ -637,10 +637,11 @@ class VMXML(VMXMLBase):
             logging.debug("Failed to backup %s.", self.vm_name)
             backup = None
 
-        if not self.undefine(options, virsh_instance=virsh_instance):
+        if not self.undefine(options, virsh_instance=virsh_instance,
+                             debug=debug):
             raise xcepts.LibvirtXMLError("Failed to undefine %s."
                                          % self.vm_name)
-        if not self.define(virsh_instance=virsh_instance):
+        if not self.define(virsh_instance=virsh_instance, debug=debug):
             if backup:
                 backup.define(virsh_instance=virsh_instance)
             raise xcepts.LibvirtXMLError("Failed to define %s from xml:\n%s"
