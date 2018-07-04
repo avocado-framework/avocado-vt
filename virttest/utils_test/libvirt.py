@@ -3531,3 +3531,22 @@ def customize_libvirt_config(params,
                                   status_error='no')
 
     return obj_conf
+
+
+def check_qemu_cmd_line(content, err_ignore=False):
+    """
+    Check the specified content in the qemu command line
+    :param content: the desired string to search
+    :param err_ignore: True to return False when fail
+                       False to raise exception when fail
+    :return: True if exist, False otherwise
+    """
+    cmd = 'pgrep -a qemu'
+    qemu_line = results_stdout_52lts(process.run(cmd, shell=True))
+    if not re.search(r'%s' % content, qemu_line):
+        if err_ignore:
+            return False
+        else:
+            raise exceptions.TestFail("Expected '%s' was not found in "
+                                      "qemu command line" % content)
+    return True
