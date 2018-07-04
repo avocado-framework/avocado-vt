@@ -1157,6 +1157,40 @@ def string_in_serial_log(serial_log_file_path, string):
         return False
 
 
+def attempt_to_log_useful_files(test, vm):
+    """
+    Uses "vm.serial_console" to look in the system for useful log files
+    """
+    base_dst_dir = os.path.join(test.outputdir, vm.name)
+    console = vm.serial_console
+    for path_glob in ["/*.log", "/tmp/*.log", "/var/tmp/*.log"]:
+        try:
+            paths = console.cmd("ls -1 %s" % path_glob)
+        except Exception:
+            continue
+        for path in paths.splitlines():
+            if not path:
+                continue
+            if path.startswith(os.path.sep):
+                rel_path = path[1:]
+            else:
+                rel_path = path
+            dst = os.path.join(base_dst_dir, rel_path)
+            dst_dir = os.path.dirname(dst)
+            if not os.path.exists(dst_dir):
+                os.makedirs(dst_dir)
+            with open(dst, 'wb') as fd_dst:
+                try:
+                    fd_dst.write(console.cmd("cat %s" % path))
+                    logging.info('Attached "%s" log file from guest at "%s"',
+                                 path, base_dst_dir)
+                except Exception as details:
+                    logging.warning("Unknown exception while attempt_to_log_"
+                                    "useful_files(): %s", details)
+                    fd_dst.write("Unknown exception while getting content: %s"
+                                 % details)
+
+
 @error_context.context_aware
 def run(test, params, env):
     """
@@ -1328,6 +1362,7 @@ def run(test, params, env):
         try:
             test.verify_background_errors()
         except Exception as e:
+            attempt_to_log_useful_files(test, vm)
             copy_images()
             raise e
 
@@ -1348,6 +1383,7 @@ def run(test, params, env):
                         serial_read_fails)
             else:
                 if install_error_str_found:
+                    attempt_to_log_useful_files(test, vm)
                     raise exceptions.TestFail(install_error_exception_str)
                 if rh_upgrade_error_str_found:
                     raise exceptions.TestFail("rh system upgrade failed, please "
@@ -1370,6 +1406,7 @@ def run(test, params, env):
             time.sleep(1)
     else:
         logging.warn("Timeout elapsed while waiting for install to finish ")
+        attempt_to_log_useful_files(test, vm)
         copy_images()
         raise exceptions.TestFail("Timeout elapsed while waiting for install to "
                                   "finish")
