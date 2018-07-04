@@ -580,6 +580,16 @@ class DevContainer(object):
         added_devices.append(device)
         return added_devices
 
+    def is_pci_device(self, device):
+        """
+        check if the device is plugged into pci bus
+        :param device: device name
+        :return: True if is pci device, otherwise False
+        """
+        return bool(re.search(
+            r'name "%s", bus PCI|bus PCI, .*alias "%s"' % (device, device),
+            self.__device_help))
+
     def simple_hotplug(self, device, monitor, bus=None):
         """
         Function hotplug device to devices representation. If verification is
@@ -599,7 +609,8 @@ class DevContainer(object):
 
         if isinstance(device, qdevices.QDevice):
             if bus is None:
-                bus = self.get_buses({'aobject': 'pci.0'})[0]
+                if self.is_pci_device(device['driver']):
+                    bus = self.get_buses({'aobject': 'pci.0'})[0]
                 if not isinstance(device.parent_bus, (list, tuple)):
                     device.parent_bus = [device.parent_bus]
                 for parent_bus in device.parent_bus:
@@ -607,7 +618,8 @@ class DevContainer(object):
                         if _bus.bus_item == 'bus':
                             bus = _bus
                             break
-            bus.prepare_hotplug(device)
+                if bus:
+                    bus.prepare_hotplug(device)
         out = device.hotplug(monitor)
         ver_out = device.verify_hotplug(out, monitor)
 
