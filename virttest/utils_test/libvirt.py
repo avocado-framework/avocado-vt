@@ -1684,11 +1684,14 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
     return check_pass
 
 
-def create_hostdev_xml(pci_id, boot_order=0):
+def create_hostdev_xml(pci_id, boot_order=0, xmlfile=True):
     """
     Create a hostdev configuration file.
 
     :param pci_id: such as "0000:03:04.0"
+    :param boot_order: boot order of hostdev device
+    :param xmlfile: Return the file path of xmlfile if True
+    :return: xml of hostdev device by default
     """
     # Create attributes dict for device's address element
     device_domain = pci_id.split(':')[0]
@@ -1708,8 +1711,10 @@ def create_hostdev_xml(pci_id, boot_order=0):
         hostdev_xml.boot_order = boot_order
     attrs = {'domain': device_domain, 'slot': device_slot,
              'bus': device_bus, 'function': device_function}
-    hostdev_xml.source_address = hostdev_xml.new_source_address(**attrs)
+    hostdev_xml.source = hostdev_xml.new_source(**attrs)
     logging.debug("Hostdev XML:\n%s", str(hostdev_xml))
+    if not xmlfile:
+        return hostdev_xml
     return hostdev_xml.xml
 
 
