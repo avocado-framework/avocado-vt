@@ -44,6 +44,7 @@ from aexpect.utils.genio import _open_log_files
 
 from avocado.core import status
 from avocado.core import exceptions
+from avocado.utils import distro
 from avocado.utils import git
 from avocado.utils import path as utils_path
 from avocado.utils import process
@@ -4594,3 +4595,25 @@ def start_rsyslogd():
         logging.info("Need to start rsyslog service")
         return rsyslogd.start()
     return True
+
+
+def get_distro(session=None):
+    """
+    Get distribution name of the Host/Guest/Remote Host
+
+    :param session: ShellSession object of VM or remote host
+    :return: distribution name of type str
+    """
+    if not session:
+        return distro.detect().name
+    else:
+        distro_name = ""
+        cmd = "cat /etc/os-release | grep '^ID='"
+        try:
+            status, output = session.cmd_status_output(cmd, timeout=300)
+            if status:
+                logging.debug("Unable to get the distro name: %s" % output)
+            else:
+                distro_name = output.split('=')[1].strip()
+        finally:
+            return distro_name
