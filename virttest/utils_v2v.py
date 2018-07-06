@@ -11,7 +11,8 @@ import logging
 
 from avocado.utils import path
 from avocado.utils import process
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
+from avocado.core import exceptions
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 
 from virttest import ovirt
 from virttest.utils_test import libvirt
@@ -799,3 +800,22 @@ def check_log(params, log):
         else:
             ret = 'Missing error message to compare'
     return ret
+
+
+def check_exit_status(result, expect_error=False, error_flag='strict'):
+    """
+    Check the exit status of virt-v2v/libguestfs commands
+
+    :param result: Virsh command result object
+    :param expect_error: Boolean value, expect command success or fail
+    :param error_flag: same as errors argument in str.decode
+    """
+    if not expect_error:
+        if result.exit_status != 0:
+            raise exceptions.TestFail(decode_to_text(result.stderr, errors=error_flag))
+        else:
+            logging.debug("Command output:\n%s",
+                          decode_to_text(result.stdout, errors=error_flag).strip())
+    elif expect_error and result.exit_status == 0:
+        raise exceptions.TestFail("Run '%s' expect fail, but run "
+                                  "successfully." % result.command)
