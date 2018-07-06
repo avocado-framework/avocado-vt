@@ -517,7 +517,8 @@ def remote_scp(command, password_list, log_filename=None, transfer_timeout=600,
 
 
 def scp_to_remote(host, port, username, password, local_path, remote_path,
-                  limit="", log_filename=None, timeout=600, interface=None):
+                  limit="", log_filename=None, timeout=600, interface=None,
+                  directory=True):
     """
     Copy files to a remote host (guest) through scp.
 
@@ -529,9 +530,10 @@ def scp_to_remote(host, port, username, password, local_path, remote_path,
     :param limit: Speed limit of file transfer.
     :param log_filename: If specified, log all output to this file
     :param timeout: The time duration (in seconds) to wait for the transfer
-            to complete.
-    :interface: The interface the neighbours attach to (only use when using
-                ipv6 linklocal address.)
+                    to complete.
+    :param interface: The interface the neighbours attach to (only use when using
+                      ipv6 linklocal address).
+    :param directory: True to copy recursively if the directory to scp
     :raise: Whatever remote_scp() raises
     """
     if (limit):
@@ -543,19 +545,23 @@ def scp_to_remote(host, port, username, password, local_path, remote_path,
                            "the interface the neighbour attache")
         host = "%s%%%s" % (host, interface)
 
-    command = ("scp -v -o UserKnownHostsFile=/dev/null "
-               "-o StrictHostKeyChecking=no "
-               "-o PreferredAuthentications=password -r %s "
-               "-P %s %s %s@\[%s\]:%s" %
-               (limit, port, quote_path(local_path), username, host,
-                pipes.quote(remote_path)))
+    command = "scp"
+    if directory:
+        command = "%s -r" % command
+    command += (" -v -o UserKnownHostsFile=/dev/null "
+                "-o StrictHostKeyChecking=no "
+                "-o PreferredAuthentications=password %s "
+                "-P %s %s %s@\[%s\]:%s" %
+                (limit, port, quote_path(local_path), username, host,
+                 pipes.quote(remote_path)))
     password_list = []
     password_list.append(password)
     return remote_scp(command, password_list, log_filename, timeout)
 
 
 def scp_from_remote(host, port, username, password, remote_path, local_path,
-                    limit="", log_filename=None, timeout=600, interface=None):
+                    limit="", log_filename=None, timeout=600, interface=None,
+                    directory=True):
     """
     Copy files from a remote host (guest).
 
@@ -567,9 +573,10 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
     :param limit: Speed limit of file transfer.
     :param log_filename: If specified, log all output to this file
     :param timeout: The time duration (in seconds) to wait for the transfer
-            to complete.
-    :interface: The interface the neighbours attach to (only use when
-                using ipv6 linklocal address.)
+                    to complete.
+    :param interface: The interface the neighbours attach to (only use when
+                      using ipv6 linklocal address).
+    :param directory: True to copy recursively if the directory to scp
     :raise: Whatever remote_scp() raises
     """
     if (limit):
@@ -580,12 +587,15 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
                            "the interface the neighbour attache")
         host = "%s%%%s" % (host, interface)
 
-    command = ("scp -v -o UserKnownHostsFile=/dev/null "
-               "-o StrictHostKeyChecking=no "
-               "-o PreferredAuthentications=password -r %s "
-               "-P %s %s@\[%s\]:%s %s" %
-               (limit, port, username, host, quote_path(remote_path),
-                pipes.quote(local_path)))
+    command = "scp"
+    if directory:
+        command = "%s -r" % command
+    command += (" -v -o UserKnownHostsFile=/dev/null "
+                "-o StrictHostKeyChecking=no "
+                "-o PreferredAuthentications=password %s "
+                "-P %s %s@\[%s\]:%s %s" %
+                (limit, port, username, host, quote_path(remote_path),
+                 pipes.quote(local_path)))
     password_list = []
     password_list.append(password)
     remote_scp(command, password_list, log_filename, timeout)
@@ -593,7 +603,8 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
 
 def scp_between_remotes(src, dst, port, s_passwd, d_passwd, s_name, d_name,
                         s_path, d_path, limit="", log_filename=None,
-                        timeout=600, src_inter=None, dst_inter=None):
+                        timeout=600, src_inter=None, dst_inter=None,
+                        directory=True):
     """
     Copy files from a remote host (guest) to another remote host (guest).
 
@@ -601,13 +612,14 @@ def scp_between_remotes(src, dst, port, s_passwd, d_passwd, s_name, d_name,
     :param s_name/d_name: Username (if required)
     :param s_passwd/d_passwd: Password (if required)
     :param s_path/d_path: Path on the remote machine where we are copying
-                         from/to
+                          from/to
     :param limit: Speed limit of file transfer.
     :param log_filename: If specified, log all output to this file
     :param timeout: The time duration (in seconds) to wait for the transfer
-            to complete.
-    :src_inter: The interface on local that the src neighbour attache
-    :dst_inter: The interface on the src that the dst neighbour attache
+                    to complete.
+    :param src_inter: The interface on local that the src neighbour attache
+    :param dst_inter: The interface on the src that the dst neighbour attache
+    :param directory: True to copy recursively if the directory to scp
 
     :return: True on success and False on failure.
     """
@@ -624,12 +636,15 @@ def scp_between_remotes(src, dst, port, s_passwd, d_passwd, s_name, d_name,
                            "the interface the neighbour attache")
         dst = "%s%%%s" % (dst, dst_inter)
 
-    command = ("scp -v -o UserKnownHostsFile=/dev/null "
-               "-o StrictHostKeyChecking=no "
-               "-o PreferredAuthentications=password -r %s -P %s"
-               " %s@\[%s\]:%s %s@\[%s\]:%s" %
-               (limit, port, s_name, src, quote_path(s_path), d_name, dst,
-                pipes.quote(d_path)))
+    command = "scp"
+    if directory:
+        command = "%s -r" % command
+    command += (" -v -o UserKnownHostsFile=/dev/null "
+                "-o StrictHostKeyChecking=no "
+                "-o PreferredAuthentications=password %s -P %s"
+                " %s@\[%s\]:%s %s@\[%s\]:%s" %
+                (limit, port, s_name, src, quote_path(s_path), d_name, dst,
+                 pipes.quote(d_path)))
     password_list = []
     password_list.append(s_passwd)
     password_list.append(d_passwd)
@@ -861,7 +876,8 @@ def throughput_transfer(func):
 @throughput_transfer
 def copy_files_to(address, client, username, password, port, local_path,
                   remote_path, limit="", log_filename=None,
-                  verbose=False, timeout=600, interface=None, filesize=None):
+                  verbose=False, timeout=600, interface=None, filesize=None,
+                  directory=False):
     """
     Copy files to a remote host (guest) using the selected client.
 
@@ -879,12 +895,13 @@ def copy_files_to(address, client, username, password, port, local_path,
     :param interface: The interface the neighbours attach to (only use when
                       using ipv6 linklocal address.)
     :param filesize: size of file will be transferred
+    :param directory: True to copy recursively if the directory to scp
     :raise: Whatever remote_scp() raises
     """
     if client == "scp":
         scp_to_remote(address, port, username, password, local_path,
                       remote_path, limit, log_filename, timeout,
-                      interface=interface)
+                      interface=interface, directory=directory)
     elif client == "rss":
         log_func = None
         if verbose:
@@ -902,7 +919,8 @@ def copy_files_to(address, client, username, password, port, local_path,
 @throughput_transfer
 def copy_files_from(address, client, username, password, port, remote_path,
                     local_path, limit="", log_filename=None,
-                    verbose=False, timeout=600, interface=None, filesize=None):
+                    verbose=False, timeout=600, interface=None, filesize=None,
+                    directory=False):
     """
     Copy files from a remote host (guest) using the selected client.
 
@@ -920,12 +938,13 @@ def copy_files_from(address, client, username, password, port, remote_path,
     :param interface: The interface the neighbours attach to (only
                       use when using ipv6 linklocal address.)
     :param filesize: size of file will be transferred
+    :param directory: True to copy recursively if the directory to scp
     :raise: Whatever ``remote_scp()`` raises
     """
     if client == "scp":
         scp_from_remote(address, port, username, password, remote_path,
                         local_path, limit, log_filename, timeout,
-                        interface=interface)
+                        interface=interface, directory=directory)
     elif client == "rss":
         log_func = None
         if verbose:
