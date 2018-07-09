@@ -1074,6 +1074,13 @@ def postprocess(test, params, env):
                 err += ("\n: Guest %s dmesg verification failed: %s"
                         % (vm.name, details))
 
+    # collect sosreport of guests during postprocess if enabled
+    if params.get("enable_guest_sosreport", "no") == "yes":
+        living_vms = [vm for vm in env.get_all_vms() if (vm.is_alive() and not vm.is_paused())]
+        for vm in living_vms:
+            sosreport_path = vm.sosreport()
+            logging.info("Sosreport for guest: %s", sosreport_path)
+
     # Postprocess all VMs and images
     try:
         process(test, params, env, postprocess_image, postprocess_vm,
@@ -1202,6 +1209,20 @@ def postprocess(test, params, env):
     # Kill all aexpect tail threads
     aexpect.kill_tail_threads()
 
+    # collect sosreport of host/remote host during postprocess if enabled
+    if params.get("enable_host_sosreport", "no") == "yes":
+        sosreport_path = utils_misc.get_sosreport(sosreport_name="host")
+        logging.info("Sosreport for host: %s", sosreport_path)
+    if params.get("enable_remote_host_sosreport", "no") == "yes":
+        remote_params = {'server_ip': params['remote_ip'], 'server_pwd': params['remote_pwd']}
+        remote_params['server_user'] = params['remote_user']
+        session = test_setup.remote_session(remote_params)
+        sosreport_path = utils_misc.get_sosreport(session=session,
+                                                  remote_ip=params['remote_ip'],
+                                                  remote_pwd=params['remote_pwd'],
+                                                  remote_user=params['remote_user'],
+                                                  sosreport_name="host_remote")
+        logging.info("Sosreport for remote host: %s", sosreport_path)
     living_vms = [vm for vm in env.get_all_vms() if vm.is_alive()]
     # Close all monitor socket connections of living vm.
     for vm in living_vms:
