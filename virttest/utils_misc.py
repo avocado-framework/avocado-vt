@@ -4617,3 +4617,74 @@ def get_distro(session=None):
                 distro_name = output.split('=')[1].strip()
         finally:
             return distro_name
+
+
+def get_sosreport(path=None, session=None, remote_ip=None, remote_pwd=None,
+                  remote_user="root", sosreport_name="", sosreport_pkg="sos",
+                  timeout=1800, ignore_status=True):
+    """
+    Get sosreport in host/guest
+
+    :param path: local host path for sosreport to be saved, defaults to logdir
+    :param session: ShellSession object of VM or remote host
+    :param remote_ip: remote host/guest ip address
+    :param remote_pwd: remote host/guest password
+    :param remote user: remote host/guest username
+    :param sosreport_name: name to distinguish the sosreport of host/guest/remote
+    :param sosreport_pkg: package name sos or sosreport depends on rhel or ubuntu
+    :param timeout: duration to wait for sosreport to be taken are return prompt
+    :param ignore_status: False, raise an exception True, to ignore
+
+    :return: sosreport log path on success, None on fail
+    """
+    from avocado.core import data_dir
+    from virttest import remote
+    from virttest import utils_package
+
+    if "ubuntu" in get_distro(session=session).lower():
+        sosreport_pkg = "sosreport"
+
+    if not utils_package.package_install(sosreport_pkg, session=session):
+        logging.error("Failed to install sos package")
+        return None
+    cmd = "sosreport --batch --all-logs"
+    func = process.getstatusoutput
+    host_path = path
+    if not path:
+        report_name = sosreport_name
+        if not report_name:
+            cmd = "hostname"
+            if session:
+                report_name = session.cmd_output(cmd)
+            else:
+                report_name = process.getoutput(cmd)
+        path = host_path = get_path(get_log_file_dir(),
+                                    "sosreport-%s" % report_name)
+    if session:
+        func = session.cmd_status_output
+        path = "/tmp/sosreport"
+        session.cmd("mkdir -p %s" % path)
+    else:
+        if os.path.isdir(path):
+            os.remove(path)
+        os.makedirs(path)
+    cmd += " --tmp-dir %s" % path
+    try:
+        status, output = func(cmd, timeout=timeout)
+        if status != 0:
+            logging.error(output)
+            return None
+        if session:
+            logging.info("copying sosreport from remote host/guest path: %s "
+                         "to host path: %s", path, host_path)
+            remote.copy_files_from(remote_ip, 'scp', remote_user, remote_pwd, "22",
+                                   path, host_path, directory=True)
+    except Exception as info:
+        if ignore_status:
+            logging.error(info)
+        else:
+            raise exceptions.TestError(info)
+    finally:
+        if session:
+            session.close()
+        return host_path
