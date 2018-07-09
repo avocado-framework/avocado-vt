@@ -627,18 +627,10 @@ class BaseVM(object):
         """
         Get distribution name of the vm instance.
         """
-        distro = ""
         session = self.wait_for_login()
-        cmd = "cat /etc/os-release | grep '^ID='"
-        try:
-            status, output = session.cmd_status_output(cmd, timeout=300)
-            if status:
-                logging.debug("Unable to get the distro name: %s" % output)
-            else:
-                distro = output.split('=')[1].strip()
-        finally:
-            session.close()
-            return distro
+        distro_name = utils_misc.get_distro(session=session)
+        session.close()
+        return distro_name
 
     def get_mac_address(self, nic_index=0):
         """
