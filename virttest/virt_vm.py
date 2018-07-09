@@ -632,6 +632,48 @@ class BaseVM(object):
         session.close()
         return distro_name
 
+    def sosreport(self, path=None, uri=None):
+        """
+        Get sosreport of the vm instance
+
+        :param path: local host path where guest sosreport to be saved
+        :param uri: Connect uri for libvirt
+
+        :return: host path where guest sosrepost saved, default to logdir
+                 None if vm is not linux or sosreport fails.
+        """
+        log_path = None
+        connect_uri = None
+        if not self.params["os_type"] == "linux":
+            logging.warn("sosreport not applicable for %s",
+                         self.params["os_type"])
+            return None
+        try:
+            pkg = "sos"
+            if "ubuntu" in self.get_distro().lower():
+                pkg = "sosreport"
+            if uri:
+                connect_uri = self.connect_uri
+                self.connect_uri = uri
+                session = self.wait_for_serial_login()
+            else:
+                session = self.wait_for_login()
+            guest_ip = self.get_address()
+            guest_user = self.params["username"]
+            guest_pwd = self.params["password"]
+            log_path = utils_misc.get_sosreport(session=session,
+                                                remote_ip=guest_ip,
+                                                remote_pwd=guest_pwd,
+                                                remote_user=guest_user,
+                                                sosreport_name=self.name,
+                                                sosreport_pkg=pkg)
+        finally:
+            if uri:
+                self.connect_uri = connect_uri
+            if session:
+                session.close()
+            return log_path
+
     def get_mac_address(self, nic_index=0):
         """
         Return the MAC address of a NIC.
