@@ -2003,21 +2003,21 @@ class VM(virt_vm.BaseVM):
         return utils_misc.get_uptime(session)
 
     def migrate(self, dest_uri="", option="--live --timeout 60", extra="",
-                ignore_status=False, debug=False, virsh_opt=""):
+                **dargs):
         """
         Migrate a VM to a remote host.
 
         :param dest_uri: Destination libvirt URI
         :param option: Migration options before <domain> <desturi>
         :param extra: Migration options after <domain> <desturi>
+        :param dargs: Standardized virsh function API keywords
         :return: True if command succeeded
         """
         logging.info("Migrating VM %s from %s to %s" %
                      (self.name, self.connect_uri, dest_uri))
         result = virsh.migrate(self.name, dest_uri, option,
                                extra, uri=self.connect_uri,
-                               ignore_status=ignore_status,
-                               debug=debug, virsh_opt=virsh_opt)
+                               **dargs)
         # Close down serial_console logging process
         self.cleanup_serial_console()
         # On successful migration, point to guests new hypervisor.
