@@ -1882,7 +1882,9 @@ class QPCIEBus(QPCIBus):
         root_port = self.add_root_port(_addr, self.__root_port_type)
         if root_port is not None:
             added_devices.append(root_port)
-            device['bus'] = root_port.child_bus[0].busid
+            root_port_bus_id = root_port.child_bus[0].busid
+            device['bus'] = root_port_bus_id
+            self.reset_device_parent_bus(device, root_port_bus_id)
         return added_devices
 
     def _set_device_props(self, device, addr):
@@ -1918,6 +1920,14 @@ class QPCIEBus(QPCIBus):
         """
         root_port = self.get_free_root_port()
         device.set_param("bus", root_port)
+        self.reset_device_parent_bus(device, root_port)
+
+    def reset_device_parent_bus(self, device, root_port):
+        """
+        Reset device parent bus from self to a root port.
+        :param device: the device Object
+        :param root_port: a free root port for the device
+        """
         if not isinstance(device.parent_bus, (tuple, list)):
             device.parent_bus = [device.parent_bus]
         device.parent_bus = tuple(bus for bus in device.parent_bus
