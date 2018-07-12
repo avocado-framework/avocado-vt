@@ -49,9 +49,10 @@ prelink
 %end
 
 %post
-# FIXME: Remove the /dev/ttysclp0 workaround when s390x console bug is resolved
+# Output to all consoles defined in /proc/consoles, use "major:minor" as
+# device names are unreliable on some platforms
 # https://bugzilla.redhat.com/show_bug.cgi?id=1351968
-function ECHO { for TTY in `[ -e /dev/ttysclp0 ] && echo ttysclp0; cat /proc/consoles | cut -f1 -d' '`; do echo "$*" > /dev/$TTY; done }
+function ECHO { for TTY in `cat /proc/consoles | awk '{print $NF}'`; do source "/sys/dev/char/$TTY/uevent" && echo "$*" > /dev/$DEVNAME; done }
 ECHO "OS install is completed"
 ECHO "remove rhgb quiet by grubby"
 grubby --remove-args="rhgb quiet" --update-kernel=$(grubby --default-kernel)
