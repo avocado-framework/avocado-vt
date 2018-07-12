@@ -1106,8 +1106,29 @@ class VM(virt_vm.BaseVM):
                 qxl_str += " -device qxl,id=video%d,addr=0x%x" % (index, addr)
             return qxl_str
 
-        def add_vga(vga):
-            return " -vga %s" % vga
+        def add_vga(devices, vga):
+            """Add primary vga device."""
+            fallback = params.get("vga_use_legacy_expression") == "yes"
+            parent_bus = {'aobject': 'pci.0'}
+            vga_dev_map = {
+                "std": "VGA",
+                "cirrus": "cirrus-vga",
+                "vmware": "vmware-svga",
+                "qxl": "qxl-vga",
+                "virtio": "virtio-vga"
+            }
+            vga_dev = vga_dev_map.get(vga, None)
+            if vga_dev is None:
+                fallback = True
+                parent_bus = None
+            # fallback if qemu not has such a device
+            elif not devices.has_device(vga_dev):
+                fallback = True
+            if fallback:
+                name = "VGA-%s" % vga
+                cmdline = " -vga %s" % vga
+                return StrDev(name, cmdline=cmdline, parent_bus=parent_bus)
+            return QDevice(vga_dev, parent_bus=parent_bus)
 
         def add_kernel(filename):
             return " -kernel '%s'" % filename
@@ -1467,23 +1488,13 @@ class VM(virt_vm.BaseVM):
 
         vga = params.get("vga")
         if vga:
-            if vga != 'none':
-                devices.insert(StrDev('VGA-%s' % vga,
-                                      cmdline=add_vga(vga),
-                                      parent_bus={'aobject': 'pci.0'}))
-                if vga == 'qxl':
-                    qxl_dev_nr = int(params.get("qxl_dev_nr", 1))
-                    if qxl_dev_nr > 1:
-                        addr = int(params.get("qxl_base_addr", 29))
-                        cmdline = add_qxl(qxl_dev_nr, addr)
-                        devices.insert(StrDev('qxl', cmdline=cmdline))
-            else:
-                devices.insert(StrDev('VGA-none', cmdline=add_vga(vga)))
-
-        elif params.get('defaults', 'no') != 'no':  # by default add cirrus
-            devices.insert(StrDev('VGA-cirrus',
-                                  cmdline=add_vga(vga),
-                                  parent_bus={'aobject': 'pci.0'}))
+            devices.insert(add_vga(devices, vga))
+            if vga == 'qxl':
+                qxl_dev_nr = int(params.get("qxl_dev_nr", 1))
+                if qxl_dev_nr > 1:
+                    addr = int(params.get("qxl_base_addr", 29))
+                    cmdline = add_qxl(qxl_dev_nr, addr)
+                    devices.insert(StrDev('qxl', cmdline=cmdline))
 
         # When old scsi fmt is used, new device with lowest pci_addr is created
         devices.hook_fill_scsi_hbas(params)
