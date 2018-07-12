@@ -877,7 +877,7 @@ def throughput_transfer(func):
 def copy_files_to(address, client, username, password, port, local_path,
                   remote_path, limit="", log_filename=None,
                   verbose=False, timeout=600, interface=None, filesize=None,
-                  directory=False):
+                  directory=True):
     """
     Copy files to a remote host (guest) using the selected client.
 
@@ -920,7 +920,7 @@ def copy_files_to(address, client, username, password, port, local_path,
 def copy_files_from(address, client, username, password, port, remote_path,
                     local_path, limit="", log_filename=None,
                     verbose=False, timeout=600, interface=None, filesize=None,
-                    directory=False):
+                    directory=True):
     """
     Copy files from a remote host (guest) using the selected client.
 
