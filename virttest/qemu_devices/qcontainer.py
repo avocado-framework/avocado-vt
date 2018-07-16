@@ -903,7 +903,6 @@ class DevContainer(object):
                                       "AAVMF variables file.")
             logging.warn('Support for aarch64 is highly experimental!')
             devices = []
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd))
             # EFI pflash
             aavmf_code = ("-drive file=/usr/share/AAVMF/AAVMF_CODE.fd,"
                           "if=pflash,format=raw,unit=0,readonly=on")
@@ -953,7 +952,6 @@ class DevContainer(object):
                                       "AAVMF variables file.")
             logging.warn('Support for aarch64 is highly experimental!')
             devices = []
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd))
             # EFI pflash
             aavmf_code = ("-drive file=/usr/share/AAVMF/AAVMF_CODE.fd,"
                           "if=pflash,format=raw,unit=0,readonly=on")
@@ -1015,6 +1013,30 @@ class DevContainer(object):
                                                   aobject="virtio-blk-ccw"))
             return devices
 
+        def machine_riscv64_mmio(cmd=False):
+            """
+            riscv doesn't support PCI bus, only MMIO transports.
+            :param cmd: If set uses "-M $cmd" to force this machine type
+            :return: List of added devices (including default buses)
+            """
+            logging.warn("Support for riscv64 is highly experimental. See "
+                         "https://avocado-vt.readthedocs.io"
+                         "/en/latest/Experimental.html#riscv64 for "
+                         "setup information.")
+            devices = []
+            # Add virtio-bus
+            # TODO: Currently this uses QNoAddrCustomBus and does not
+            # set the device's properties. This means that the qemu qtree
+            # and autotest's representations are completelly different and
+            # can't be used.
+            bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
+                                            'virtio-mmio-bus', 'virtio-bus',
+                                            'virtio-mmio-bus')
+            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
+                                                  child_bus=bus,
+                                                  aobject="virtio-mmio-bus"))
+            return devices
+
         def machine_other(cmd=False):
             """
             isapc or unknown machine type. This type doesn't add any default
@@ -1031,10 +1053,11 @@ class DevContainer(object):
         machine_type = params.get('machine_type')
         machine_type_extra_params = params.get('machine_type_extra_params')
         if machine_type:
-            if machine_type.startswith('arm64'):
-                arm_machine, machine_type = machine_type.split(':', 1)
+            split_machine_type = machine_type.split(':', 1)
+            if len(split_machine_type) == 1:
+                avocado_machine = ''
             else:
-                arm_machine = False
+                avocado_machine, machine_type = split_machine_type
             m_types = []
             for _ in self.__machine_types.splitlines()[1:]:
                 m_types.append(_.split()[0])
@@ -1048,12 +1071,14 @@ class DevContainer(object):
                     cmd = ""
                 if 'q35' in machine_type:   # Q35 + ICH9
                     devices = machine_q35(cmd)
-                elif arm_machine == 'arm64-pci':
+                elif avocado_machine == 'arm64-pci':
                     devices = machine_arm64_pci(cmd)
-                elif arm_machine == 'arm64-mmio':
+                elif avocado_machine == 'arm64-mmio':
                     devices = machine_arm64_mmio(cmd)
                 elif machine_type.startswith("s390"):
                     devices = machine_s390_virtio(cmd)
+                elif avocado_machine == 'riscv64-mmio':
+                    devices = machine_riscv64_mmio(cmd)
                 elif 'isapc' not in machine_type:   # i440FX
                     devices = machine_i440FX(cmd)
                 else:   # isapc (or other)

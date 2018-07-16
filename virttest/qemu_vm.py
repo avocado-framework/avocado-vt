@@ -582,7 +582,7 @@ class VM(virt_vm.BaseVM):
             dev.set_param("server", 'NO_EQUAL_STRING')
             dev.set_param("nowait", 'NO_EQUAL_STRING')
             devices.insert(dev)
-            if params.get('machine_type').startswith("arm64-mmio"):
+            if '-mmio:' in params.get('machine_type'):
                 dev = QDevice('virtio-serial-device')
             elif params.get('machine_type').startswith("s390"):
                 dev = QDevice("virtio-serial-ccw")
@@ -619,7 +619,7 @@ class VM(virt_vm.BaseVM):
                     machine_type = self.params.get("machine_type")
                     if "s390" in machine_type:
                         model = "virtio-net-ccw"
-                    elif "mmio" in machine_type:
+                    elif '-mmio:' in machine_type:
                         model = "virtio-net-device"
                     else:
                         model = "virtio-net-pci"
@@ -1178,11 +1178,13 @@ class VM(virt_vm.BaseVM):
             return cmd
 
         def add_boot(devices, opts):
-            if params.get('machine_type', "").startswith("arm"):
-                logging.warn("-boot on ARM is usually not supported, use "
-                             "bootindex instead.")
+            machine_type = params.get('machine_type', "")
+            if (machine_type.startswith("arm") or
+                    machine_type.startswith('riscv')):
+                logging.warn("-boot on %s is usually not supported, use "
+                             "bootindex instead.", machine_type)
                 return ""
-            if params.get('machine_type', "").startswith("s390"):
+            if machine_type.startswith("s390"):
                 logging.warn("-boot on s390x only support boot strict=on")
                 return "-boot strict=on"
             cmd = " -boot"
@@ -1584,7 +1586,7 @@ class VM(virt_vm.BaseVM):
                 # when the port is a virtio console.
                 if (port_params.get('virtio_port_type') == 'console' and
                         params.get('virtio_port_bus') is None):
-                    if params.get('machine_type').startswith("arm64-mmio"):
+                    if '-mmio:' in params.get('machine_type'):
                         dev = QDevice('virtio-serial-device')
                     elif params.get('machine_type').startswith("s390"):
                         dev = QDevice("virtio-serial-ccw")
@@ -1596,7 +1598,7 @@ class VM(virt_vm.BaseVM):
                     devices.insert(dev)
                     no_virtio_serial_pcis += 1
                 for i in range(no_virtio_serial_pcis, bus + 1):
-                    if params.get('machine_type').startswith("arm64-mmio"):
+                    if '-mmio:' in params.get('machine_type'):
                         dev = QDevice('virtio-serial-device')
                     elif params.get('machine_type').startswith("s390"):
                         dev = QDevice("virtio-serial-ccw")
