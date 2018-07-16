@@ -3550,3 +3550,18 @@ def check_qemu_cmd_line(content, err_ignore=False):
             raise exceptions.TestFail("Expected '%s' was not found in "
                                       "qemu command line" % content)
     return True
+
+
+def readonly_failure_check(cmd_result, msg="forbidden.* read only"):
+    """
+    Check if the cmd output show the readonly failure
+
+    :param cmd_result: output for virsh cmd
+    """
+    if not cmd_result.exit_status:
+        raise exceptions.TestFail("Cmd succeed with readonly mode!")
+    else:
+        if not re.search(msg, cmd_result.stderr.strip()):
+            raise exceptions.TestFail("Fail to get expect err msg: %s" % msg)
+        else:
+            logging.info("Get expect err msg: %s", msg)
