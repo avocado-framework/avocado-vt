@@ -1,12 +1,12 @@
 %global modulename avocado-vt
 %if ! 0%{?commit:1}
- %define commit 2d2b89108da1b83a62b83c7e0c8533419e37bc6a
+ %define commit 92d7d9417a3d16833aaf7d74b7b1b772e1c6e0dc
 %endif
 %global shortcommit %(c=%{commit}; echo ${c:0:8})
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 62.0
+Version: 63.0
 Release: 0%{?dist}
 License: GPLv2
 Group: Development/Tools
@@ -59,6 +59,9 @@ Xunit output, among others.
 
 
 %changelog
+* Tue Jul 17 2018 Cleber Rosa <cleber@redhat.com> - 63.0-0
+- New release
+
 * Tue Jun 12 2018 Cleber Rosa <cleber@redhat.com> - 62.0-0
 - New release
 
