@@ -214,7 +214,7 @@ class UnattendedInstallConfig(object):
             self.unattended_file = unattended_file
 
         if params.get('use_ovmf_autounattend'):
-            self.unattended_file = re.sub("\.", "_ovmf.",
+            self.unattended_file = re.sub("autounattend.", "autounattend_ovmf.",
                                           self.unattended_file)
 
         if getattr(self, 'finish_program'):
