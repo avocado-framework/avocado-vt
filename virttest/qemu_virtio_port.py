@@ -45,7 +45,7 @@ class _VirtioPort(object):
     Define structure to keep information about used port.
     """
 
-    def __init__(self, qemu_id, name, hostfile):
+    def __init__(self, qemu_id, name, hostfile, port_type="unix_socket"):
         """
         :param name: Name of port for guest side.
         :param hostfile: Path to port on host side.
@@ -56,6 +56,7 @@ class _VirtioPort(object):
         self.is_console = None  # "yes", "no"
         self.sock = None
         self.port_was_opened = None
+        self.port_type = port_type
 
     def __str__(self):
         """
@@ -98,8 +99,15 @@ class _VirtioPort(object):
         attempt = 11
         while attempt > 0:
             try:
-                self.sock = socket.socket(socket.AF_UNIX,
-                                          socket.SOCK_STREAM)
+                if self.port_type == 'unix_socket':
+                    sock_flag = socket.AF_UNIX
+                elif self.port_type in ('tcp_socket', 'udp'):
+                    sock_flag = socket.AF_INET
+                if self.port_type == 'udp':
+                    sock_type = socket.SOCK_DGRAM
+                elif self.port_type in ('tcp_socket', 'unix_socket'):
+                    sock_type = socket.SOCK_STREAM
+                self.sock = socket.socket(sock_flag, sock_type)
                 self.sock.settimeout(1)
                 self.sock.connect(self.hostfile)
                 self.sock.setsockopt(1, socket.SO_SNDBUF, SOCKET_SIZE)
@@ -150,12 +158,12 @@ class VirtioSerial(_VirtioPort):
 
     """ Class for handling virtio-serialport """
 
-    def __init__(self, qemu_id, name, hostfile):
+    def __init__(self, qemu_id, name, hostfile, port_type="unix_socket"):
         """
         :param name: Name of port for guest side.
         :param hostfile: Path to port on host side.
         """
-        super(VirtioSerial, self).__init__(qemu_id, name, hostfile)
+        super(VirtioSerial, self).__init__(qemu_id, name, hostfile, port_type)
         self.is_console = "no"
 
 
@@ -163,12 +171,12 @@ class VirtioConsole(_VirtioPort):
 
     """ Class for handling virtio-console """
 
-    def __init__(self, qemu_id, name, hostfile):
+    def __init__(self, qemu_id, name, hostfile, port_type="unix_socket"):
         """
         :param name: Name of port for guest side.
         :param hostfile: Path to port on host side.
         """
-        super(VirtioConsole, self).__init__(qemu_id, name, hostfile)
+        super(VirtioConsole, self).__init__(qemu_id, name, hostfile, port_type)
         self.is_console = "yes"
 
 
