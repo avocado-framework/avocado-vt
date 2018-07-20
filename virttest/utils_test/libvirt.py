@@ -3550,3 +3550,27 @@ def check_qemu_cmd_line(content, err_ignore=False):
             raise exceptions.TestFail("Expected '%s' was not found in "
                                       "qemu command line" % content)
     return True
+
+
+def get_disk_alias(vm, source_file=None):
+    """
+    Get alias name of disk with given source file
+
+    :param vm: VM object
+    :param source_file: domain disk source file
+    :return: None if not find, else return alias name
+    """
+    if vm.is_alive():
+        ori_vmxml = vm_xml.VMXML.new_from_dumpxml(vm.name)
+        disks = ori_vmxml.devices.by_device_tag('disk')
+        for disk in disks:
+            find_source = disk.xmltreefile.find('source')
+            try:
+                if ((find_source and disk.source.attrs['file'] == source_file) or
+                        (not find_source and not source_file)):
+                    logging.info("Get alias name %s", disk.alias['name'])
+                    return disk.alias['name']
+            except KeyError as e:
+                logging.info("Ignore error of source attr getting for file: %s" % e)
+                pass
+    return None
