@@ -1,4 +1,5 @@
 PYTHON=$(shell which python)
+PYTHON_DEVELOP_ARGS=$(shell if ($(PYTHON) setup.py develop --help 2>/dev/null | grep -q '\-\-user'); then echo "--user"; else echo ""; fi)
 DESTDIR=/
 BUILDIR=$(CURDIR)/debian/avocado-vt
 PROJECT=avocado
@@ -101,10 +102,10 @@ link:
 		[ -d "../$(AVOCADO_DIRNAME)/avocado/etc/avocado/conf.d" ] && ln -srf $(CURDIR)/$$CONF ../$(AVOCADO_DIRNAME)/avocado/$$CONF || true;\
 		[ -d "../$(AVOCADO_DIRNAME)/etc/avocado/conf.d" ] && ln -srf $(CURDIR)/$$CONF ../$(AVOCADO_DIRNAME)/$$CONF || true;\
 	done
-	$(PYTHON) setup.py develop --user
+	$(PYTHON) setup.py develop  $(PYTHON_DEVELOP_ARGS)
 
 unlink:
-	$(PYTHON) setup.py develop --uninstall --user
+	$(PYTHON) setup.py develop --uninstall $(PYTHON_DEVELOP_ARGS)
 	for CONF in etc/avocado/conf.d/*; do\
 		[ -L ../$(AVOCADO_DIRNAME)/avocado/$$CONF ] && rm -f ../$(AVOCADO_DIRNAME)/avocado/$$CONF || true;\
 		[ -L ../$(AVOCADO_DIRNAME)/$$CONF ] && rm -f ../$(AVOCADO_DIRNAME)/$$CONF || true;\
