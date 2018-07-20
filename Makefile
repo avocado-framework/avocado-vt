@@ -4,7 +4,6 @@ BUILDIR=$(CURDIR)/debian/avocado-vt
 PROJECT=avocado
 VERSION=$(shell cat $(CURDIR)/VERSION)
 AVOCADO_DIRNAME?=avocado
-DIRNAME=$(shell echo $${PWD\#\#*/})
 
 RELEASE_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%H' -n 1 $(VERSION))
 RELEASE_SHORT_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%h' -n 1 $(VERSION))
@@ -99,8 +98,8 @@ clean:
 
 link:
 	for CONF in etc/avocado/conf.d/*; do\
-		[ -d "../$(AVOCADO_DIRNAME)/avocado/etc/avocado/conf.d" ] && ln -sf ../../../../../$(DIRNAME)/$$CONF ../$(AVOCADO_DIRNAME)/avocado/$$CONF || true;\
-		[ -d "../$(AVOCADO_DIRNAME)/etc/avocado/conf.d" ] && ln -sf ../../../../$(DIRNAME)/$$CONF ../$(AVOCADO_DIRNAME)/$$CONF || true;\
+		[ -d "../$(AVOCADO_DIRNAME)/avocado/etc/avocado/conf.d" ] && ln -srf $(CURDIR)/$$CONF ../$(AVOCADO_DIRNAME)/avocado/$$CONF || true;\
+		[ -d "../$(AVOCADO_DIRNAME)/etc/avocado/conf.d" ] && ln -srf $(CURDIR)/$$CONF ../$(AVOCADO_DIRNAME)/$$CONF || true;\
 	done
 	$(PYTHON) setup.py develop --user
 
