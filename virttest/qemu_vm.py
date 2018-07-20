@@ -3782,7 +3782,8 @@ class VM(virt_vm.BaseVM):
                 remote_port=None, not_wait_for_migration=False,
                 fd_src=None, fd_dst=None, migration_exec_cmd_src=None,
                 migration_exec_cmd_dst=None, env=None,
-                migrate_capabilities=None, mig_inner_funcs=None):
+                migrate_capabilities=None, mig_inner_funcs=None,
+                migrate_parameters=(None, None)):
         """
         Migrate the VM.
 
@@ -3819,6 +3820,10 @@ class VM(virt_vm.BaseVM):
         :param migrate_capabilities: The capabilities for migration to need set.
         :param mig_inner_funcs: Functions to be executed just after the migration is
                 started
+        :param migrate_parameters: tuple of migration parameters need to be set.
+                e.g. for source migrate parameters dict {'x-multifd-channels': 8}
+                and  for target migrate parameters dict {'x-multifd-channels': 8}
+                migrate_parameters = (source migrate parameters, target migrate parameters).
         """
         if protocol not in self.MIGRATION_PROTOS:
             raise virt_vm.VMMigrateProtoUnknownError(protocol)
@@ -3941,6 +3946,33 @@ class VM(virt_vm.BaseVM):
                         msg = ("Migrate capability '%s' should be '%s', "
                                "but actual result is '%s' on destination guest"
                                % (key, state, s))
+                        raise exceptions.TestError(msg)
+
+            # source qemu migration parameters dict
+            if migrate_parameters[0]:
+                logging.info("Set source migrate parameters before migration: "
+                             "%s", str(migrate_parameters[0]))
+                for parameter, value in migrate_parameters[0].items():
+                    self.monitor.set_migrate_parameter(parameter, value)
+                    s = self.monitor.get_migrate_parameter(parameter)
+                    if s != value:
+                        msg = ("Migrate parameter '%s' should be '%s', "
+                               "but actual result is '%s' on source guest"
+                               % (parameter, value, s))
+                        raise exceptions.TestError(msg)
+
+            # target qemu migration parameters dict
+            if migrate_parameters[1]:
+                logging.info("Set target migrate parameters before migration: "
+                             "%s", str(migrate_parameters[1]))
+                # target qemu migration parameters configuration
+                for parameter, value in migrate_parameters[1].items():
+                    clone.monitor.set_migrate_parameter(parameter, value)
+                    s = clone.monitor.get_migrate_parameter(parameter)
+                    if s != value:
+                        msg = ("Migrate parameter '%s' should be '%s', "
+                               "but actual result is '%s' on destination guest"
+                               % (parameter, value, s))
                         raise exceptions.TestError(msg)
 
             logging.info("Migrating to %s", uri)
