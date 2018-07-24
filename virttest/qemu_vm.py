@@ -1139,6 +1139,7 @@ class VM(virt_vm.BaseVM):
         def add_vga(devices, vga):
             """Add primary vga device."""
             fallback = params.get("vga_use_legacy_expression") == "yes"
+            machine_type = params.get("machine_type", '')
             parent_bus = {'aobject': 'pci.0'}
             vga_dev_map = {
                 "std": "VGA",
@@ -1148,6 +1149,12 @@ class VM(virt_vm.BaseVM):
                 "virtio": "virtio-vga"
             }
             vga_dev = vga_dev_map.get(vga, None)
+            if machine_type == 's390-ccw-virtio':
+                if vga == 'virtio':
+                    vga_dev = 'virtio-gpu-ccw'
+                    parent_bus = None
+                else:
+                    vga_dev = None
             if vga_dev is None:
                 fallback = True
                 parent_bus = None
