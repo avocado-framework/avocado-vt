@@ -1,10 +1,10 @@
 PYTHON=$(shell which python)
+PYTHON_DEVELOP_ARGS=$(shell if ($(PYTHON) setup.py develop --help 2>/dev/null | grep -q '\-\-user'); then echo "--user"; else echo ""; fi)
 DESTDIR=/
 BUILDIR=$(CURDIR)/debian/avocado-vt
 PROJECT=avocado
 VERSION=$(shell cat $(CURDIR)/VERSION)
 AVOCADO_DIRNAME?=avocado
-DIRNAME=$(shell echo $${PWD\#\#*/})
 
 RELEASE_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%H' -n 1 $(VERSION))
 RELEASE_SHORT_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%h' -n 1 $(VERSION))
@@ -17,6 +17,8 @@ all:
 	@echo "Development related targets:"
 	@echo "check:  Runs tree static check, unittests and functional tests"
 	@echo "clean:  Get rid of scratch and byte files"
+	@echo "link:  Enables egg links and links needed resources"
+	@echo "unlink:  Disables egg links and unlinks needed resources"
 	@echo
 	@echo "Platform independent distribution/installtion related targets:"
 	@echo "source:   Create source package"
@@ -99,13 +101,13 @@ clean:
 
 link:
 	for CONF in etc/avocado/conf.d/*; do\
-		[ -d "../$(AVOCADO_DIRNAME)/avocado/etc/avocado/conf.d" ] && ln -sf ../../../../../$(DIRNAME)/$$CONF ../$(AVOCADO_DIRNAME)/avocado/$$CONF || true;\
-		[ -d "../$(AVOCADO_DIRNAME)/etc/avocado/conf.d" ] && ln -sf ../../../../$(DIRNAME)/$$CONF ../$(AVOCADO_DIRNAME)/$$CONF || true;\
+		[ -d "../$(AVOCADO_DIRNAME)/avocado/etc/avocado/conf.d" ] && ln -srf $(CURDIR)/$$CONF ../$(AVOCADO_DIRNAME)/avocado/$$CONF || true;\
+		[ -d "../$(AVOCADO_DIRNAME)/etc/avocado/conf.d" ] && ln -srf $(CURDIR)/$$CONF ../$(AVOCADO_DIRNAME)/$$CONF || true;\
 	done
-	$(PYTHON) setup.py develop --user
+	$(PYTHON) setup.py develop  $(PYTHON_DEVELOP_ARGS)
 
 unlink:
-	$(PYTHON) setup.py develop --uninstall --user
+	$(PYTHON) setup.py develop --uninstall $(PYTHON_DEVELOP_ARGS)
 	for CONF in etc/avocado/conf.d/*; do\
 		[ -L ../$(AVOCADO_DIRNAME)/avocado/$$CONF ] && rm -f ../$(AVOCADO_DIRNAME)/avocado/$$CONF || true;\
 		[ -L ../$(AVOCADO_DIRNAME)/$$CONF ] && rm -f ../$(AVOCADO_DIRNAME)/$$CONF || true;\
