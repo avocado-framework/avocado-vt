@@ -22,7 +22,7 @@ class RemotePackageMgr(object):
     The remote package manage class
     """
 
-    def __init__(self, session, pkg):
+    def __init__(self, session, pkg, group_install=False, group_remove=False):
         """
         :param session: session object
         :param pkg: package name or list
@@ -36,6 +36,11 @@ class RemotePackageMgr(object):
                 self.pkg_list = [pkg, ]
         else:
             self.pkg_list = pkg
+
+        # append @ for performing group install/remove
+        if group_install or group_remove:
+            self.pkg_list = ["@%s" % package for package in self.pkg_list]
+
         self.package_manager = None
         self.cmd = None
         self.query_cmd = None
@@ -137,7 +142,7 @@ class LocalPackageMgr(software_manager.SoftwareManager):
     Local package manage class
     """
 
-    def __init__(self, pkg):
+    def __init__(self, pkg, group_install=False, group_remove=False):
         """
         :param pkg: package name or list
         """
@@ -148,6 +153,11 @@ class LocalPackageMgr(software_manager.SoftwareManager):
                 self.pkg_list = [pkg, ]
         else:
             self.pkg_list = pkg
+
+        # append @ for performing group install/remove
+        if group_install or group_remove:
+            self.pkg_list = ["@%s" % package for package in self.pkg_list]
+
         super(LocalPackageMgr, self).__init__()
         self.func = None
 
@@ -189,7 +199,7 @@ class LocalPackageMgr(software_manager.SoftwareManager):
         return self.operate(True)
 
 
-def package_manager(session, pkg):
+def package_manager(session, pkg, group_install=False, group_remove=False):
     """
     Package manager function
 
@@ -198,13 +208,15 @@ def package_manager(session, pkg):
     :return: package manager class object
     """
     if session:
-        mgr = RemotePackageMgr(session, pkg)
+        mgr = RemotePackageMgr(session, pkg, group_install=group_install,
+                               group_remove=group_remove)
     else:
-        mgr = LocalPackageMgr(pkg)
+        mgr = LocalPackageMgr(pkg, group_install=group_install,
+                              group_remove=group_remove)
     return mgr
 
 
-def package_install(pkg, session=None, timeout=300):
+def package_install(pkg, session=None, timeout=300, group_install=False):
     """
     Try to install packages on system with package manager.
 
@@ -213,11 +225,11 @@ def package_install(pkg, session=None, timeout=300):
     :param timeout: timeout for install with session
     :return: True if all packages installed, False if any error
     """
-    mgr = package_manager(session, pkg)
+    mgr = package_manager(session, pkg, group_install=group_install)
     return utils_misc.wait_for(mgr.install, timeout)
 
 
-def package_remove(pkg, session=None, timeout=300):
+def package_remove(pkg, session=None, timeout=300, group_remove=False):
     """
     Try to remove packages on system with package manager.
 
@@ -226,5 +238,5 @@ def package_remove(pkg, session=None, timeout=300):
     :param timeout: timeout for remove with session
     :return: True if all packages removed, False if any error
     """
-    mgr = package_manager(session, pkg)
+    mgr = package_manager(session, pkg, group_remove=group_remove)
     return utils_misc.wait_for(mgr.remove, timeout)
