@@ -1155,6 +1155,12 @@ class VM(virt_vm.BaseVM):
                     parent_bus = None
                 else:
                     vga_dev = None
+            elif '-mmio:' in machine_type:
+                if vga == 'virtio':
+                    vga_dev = 'virtio-gpu-device'
+                    parent_bus = None
+                else:
+                    vga_dev = None
             if vga_dev is None:
                 fallback = True
                 parent_bus = None
