@@ -281,12 +281,12 @@ class StoragePool(object):
         logging.info("Set pool '%s' autostart.", name)
         return True
 
-    def build_pool(self, name):
+    def build_pool(self, name, options="", **dargs):
         """
         Build pool.
         """
         try:
-            self.virsh_instance.pool_build(name, ignore_status=False)
+            self.virsh_instance.pool_build(name, options, **dargs)
         except process.CmdError:
             logging.error("Build pool '%s' failed.", name)
             return False
