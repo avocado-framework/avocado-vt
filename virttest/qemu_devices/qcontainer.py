@@ -1508,7 +1508,11 @@ class DevContainer(object):
                 # cache.direct=on or cache=none, It will be error out.
                 # Please refer to qemu commit d657c0c.
                 cache = cache not in ['none', 'directsync'] and 'none' or cache
-            devices[-1].set_param('cache', cache)
+        # Forbid to specify the cache mode for empty drives.
+        # More info from qemu commit 91a097e74.
+        if not filename:
+            cache = None
+        devices[-1].set_param('cache', cache)
         devices[-1].set_param('media', media)
         devices[-1].set_param('format', imgfmt)
         if blkdebug is not None:
