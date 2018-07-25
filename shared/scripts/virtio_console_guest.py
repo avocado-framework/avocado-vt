@@ -685,7 +685,8 @@ class VirtioGuestPosix(VirtioGuest):
         """
         if self.poll_fds:
             p = select.poll()
-            map(p.register, list(self.poll_fds.keys()))
+            for fd_name in self.poll_fds.keys():
+                p.register(fd_name)
 
             masks = p.poll(1)
             print(masks)

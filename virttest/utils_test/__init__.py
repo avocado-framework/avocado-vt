@@ -1285,7 +1285,8 @@ def run_autotest(vm, session, control_path, timeout,
         # to ensure client tests can work.
         import ConfigParser
         config = ConfigParser.ConfigParser()
-        map(config.add_section, ['CLIENT', 'COMMON'])
+        for section in ['CLIENT', 'COMMON']:
+            config.add_section(section)
         config.set('COMMON', 'crash_handling_enabled', 'True')
     config.set('CLIENT', 'output_dir', destination_autotest_path)
     config.set('COMMON', 'autotest_top_path', destination_autotest_path)

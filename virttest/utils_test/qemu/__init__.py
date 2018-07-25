@@ -549,10 +549,10 @@ class MemoryBaseTest(object):
         """
         Close opening session, better to call it in the end of test.
         """
-        sessions = filter(None, list(self.sessions.values()))
+        sessions = list(filter(None, list(self.sessions.values())))
         if sessions:
-            sessions = filter(None, reduce(list.__add__, sessions))
-            map(lambda x: x.close(), sessions)
+            sessions = list(filter(None, reduce(list.__add__, sessions)))
+            list(map(lambda x: x.close(), sessions))
         self.sessions.clear()
 
 
