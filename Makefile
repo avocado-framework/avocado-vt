@@ -87,8 +87,8 @@ rpm-release: srpm-release
 	mock --old-chroot --resultdir BUILD/RPM -D "commit $(RELEASE_COMMIT)" --rebuild BUILD/SRPM/avocado-plugins-vt-$(VERSION)-*.src.rpm
 
 requirements:
-	- pip install "pip>=6.0.1"
-	- pip install -r requirements.txt
+	- $(PYTHON) -m pip install "pip>=6.0.1"
+	- $(PYTHON) -m pip install -r requirements.txt
 
 check:
 	inspekt checkall --disable-lint W,R,C,E1002,E1101,E1103,E1120,F0401,I0011,E1003 --no-license-check
