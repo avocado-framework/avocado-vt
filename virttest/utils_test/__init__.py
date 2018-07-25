@@ -2069,7 +2069,13 @@ class VMStress(Stress):
         :param stress_args: the arguments of the stress tool
         :param download_type: currently support "git" or "tarball"
         """
-        super(VMStress, self).__init__(stress_type, params, download_url=download_url,
+        # This enables VM specific stress params like stress_cmds_virt-tests-vm1, etc.,
+        # to run different stress type on different VM
+        self.stress_type = params.get("stress_type_%s" % vm.name, stress_type)
+        self.params = params.object_params(vm.name)
+
+        super(VMStress, self).__init__(self.stress_type, self.params,
+                                       download_url=download_url,
                                        make_cmds=make_cmds, stress_cmds=stress_cmds,
                                        stress_args=stress_args, work_path=work_path,
                                        uninstall_cmds=uninstall_cmds,
