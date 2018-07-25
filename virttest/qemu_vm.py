@@ -1368,7 +1368,7 @@ class VM(virt_vm.BaseVM):
                                                     {"type": "pcie-root-port"}))
             if params.get("pci_controllers_autosort", "yes") == "yes":
                 pcics.sort(key=sort_key, reverse=False)
-            map(devices.insert, pcics)
+            devices.insert(pcics)
         # End of command line option wrappers
 
         # If nothing changed and devices exists, return immediately
