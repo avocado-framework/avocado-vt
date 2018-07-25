@@ -910,8 +910,8 @@ class VMXML(VMXMLBase):
         disks = vmxml.get_disk_source(vm_name, virsh_instance=virsh_instance)
 
         found = False
-        try:
-            for disk in disks:
+        for disk in disks:
+            try:
                 disk_dev = ""
                 if disk_type == "file":
                     disk_dev = disk.find('source').get('file')
@@ -919,9 +919,9 @@ class VMXML(VMXMLBase):
                     disk_dev = disk.find('source').get('dev')
                 if disk_src == disk_dev:
                     found = True
-        except AttributeError:
-            logging.debug("No '%s' type disk." % disk_type)
-
+            except AttributeError as detail:
+                logging.debug(str(detail))
+                continue
         return found
 
     @staticmethod
