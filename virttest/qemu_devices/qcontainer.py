@@ -93,31 +93,38 @@ class DevContainer(object):
                 return cmds
 
         self.__state = -1    # -1 synchronized, 0 synchronized after hotplug
-        self.__qemu_help = decode_to_text(process.system_output("%s -help" % qemu_binary,
-                                                                timeout=10, ignore_status=True,
-                                                                shell=True, verbose=False))
+        self.__qemu_binary = qemu_binary
+        self.__execute_qemu_last = None
+        self.__execute_qemu_out = ""
+        # Check whether we need to add machine_type
+        cmd = "%s -device \? 2>&1" % qemu_binary
+        result = process.run(cmd, timeout=10,
+                             ignore_status=True,
+                             shell=True,
+                             verbose=False)
+        # Some architectures (arm) require machine type to be always set
+        if result.exit_status and b"machine specified" in result.stdout:
+            self.__workaround_machine_type = True
+            basic_qemu_cmd = "%s -machine virt" % qemu_binary
+        else:
+            self.__workaround_machine_type = False
+            basic_qemu_cmd = qemu_binary
+        self.__qemu_help = self.execute_qemu("-help", 10)
         # escape the '?' otherwise it will fail if we have a single-char
         # filename in cwd
-        self.__device_help = decode_to_text(process.system_output("%s -device \? 2>&1" %
-                                                                  qemu_binary, timeout=10,
-                                                                  ignore_status=True,
-                                                                  shell=True,
-                                                                  verbose=False))
+        self.__device_help = self.execute_qemu("-device \? 2>&1", 10)
         self.__machine_types = decode_to_text(process.system_output("%s -M \?" % qemu_binary,
                                                                     timeout=10,
                                                                     ignore_status=True,
                                                                     shell=True,
                                                                     verbose=False))
-        self.__hmp_cmds = get_hmp_cmds(qemu_binary)
-        self.__qmp_cmds = get_qmp_cmds(qemu_binary,
+        self.__hmp_cmds = get_hmp_cmds(basic_qemu_cmd)
+        self.__qmp_cmds = get_qmp_cmds(basic_qemu_cmd,
                                        workaround_qemu_qmp_crash == 'always')
         self.vmname = vmname
         self.strict_mode = strict_mode == 'yes'
         self.__devices = []
         self.__buses = []
-        self.__qemu_binary = qemu_binary
-        self.__execute_qemu_last = None
-        self.__execute_qemu_out = ""
         self.allow_hotplugged_vm = allow_hotplugged_vm == 'yes'
 
     def __getitem__(self, item):
@@ -431,20 +438,17 @@ class DevContainer(object):
         :rtype: string
         """
         if self.__execute_qemu_last != options:
-            cmd = "%s %s 2>&1" % (self.__qemu_binary, options)
+            if self.__workaround_machine_type:
+                cmd = "%s -machine virt %s 2>&1" % (self.__qemu_binary,
+                                                    options)
+            else:
+                cmd = "%s %s 2>&1" % (self.__qemu_binary, options)
             result = process.run(cmd, timeout=timeout,
                                  ignore_status=True,
                                  shell=True,
                                  verbose=False)
-            if result.exit_status and b"machine specified" in result.stdout:
-                # TODO: Arm requires machine to be specified, let's try again
-                # with dummy "virt" machine
-                result = process.run("%s -machine virt %s 2>&1"
-                                     % (self.__qemu_binary, options),
-                                     ignore_status=True, shell=True,
-                                     verbose=False)
             self.__execute_qemu_out = results_stdout_52lts(result)
-        self.__execute_qemu_last = options
+            self.__execute_qemu_last = options
         return self.__execute_qemu_out
 
     def get_buses(self, bus_spec, type_test=False):
