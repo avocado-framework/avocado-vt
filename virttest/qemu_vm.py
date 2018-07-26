@@ -1149,7 +1149,11 @@ class VM(virt_vm.BaseVM):
                 "virtio": "virtio-vga"
             }
             vga_dev = vga_dev_map.get(vga, None)
-            if machine_type == 's390-ccw-virtio':
+            if machine_type.startswith('arm64-pci:'):
+                if vga == 'virtio' and not devices.has_device(vga_dev):
+                    # Arm doesn't usually supports 'virtio-vga'
+                    vga_dev = 'virtio-gpu-pci'
+            elif machine_type == 's390-ccw-virtio':
                 if vga == 'virtio':
                     vga_dev = 'virtio-gpu-ccw'
                     parent_bus = None
