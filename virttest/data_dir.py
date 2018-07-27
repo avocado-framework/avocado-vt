@@ -3,6 +3,7 @@
 Library used to provide the appropriate data dir for virt test.
 """
 import inspect
+import logging
 import os
 import sys
 import glob
@@ -11,6 +12,7 @@ import stat
 
 from avocado.core import data_dir
 from avocado.utils import distro
+from avocado.utils import path as utils_path
 
 from six.moves import xrange
 
@@ -211,6 +213,10 @@ def get_tmp_dir(public=True):
     # it is better to handle here
     if distro.detect().name == 'Ubuntu':
         tmp_dir = "/var/lib/libvirt/images"
+        if not utils_path.usable_rw_dir(tmp_dir):
+            logging.warning("Unable to write in '/var/lib/libvirt/images' "
+                            "on Ubuntu, apparmor might complain...")
+            tmp_dir = None
     tmp_dir = data_dir.get_tmp_dir(basedir=tmp_dir)
     if public:
         tmp_dir_st = os.stat(tmp_dir)
