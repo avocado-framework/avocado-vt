@@ -8,7 +8,8 @@ from avocado.core import exceptions
 from avocado.utils import software_manager
 from six import string_types
 
-from . import utils_misc
+from virttest import utils_misc
+from virttest import vt_console
 
 PACKAGE_MANAGERS = ['apt-get',
                     'yum',
@@ -27,7 +28,10 @@ class RemotePackageMgr(object):
         :param session: session object
         :param pkg: package name or list
         """
-        if not isinstance(session, (aexpect.ShellSession, aexpect.Expect)):
+        if not isinstance(session,
+                          (aexpect.ShellSession,
+                           aexpect.Expect,
+                           vt_console.ConsoleSession)):
             raise exceptions.TestError("Parameters exception on session")
         if not isinstance(pkg, list):
             if not isinstance(pkg, string_types):
@@ -103,7 +107,8 @@ class RemotePackageMgr(object):
                 if self.session.cmd_status(cmd, timeout, internal_timeout):
                     # Try to clean the repo db and re-try installation
                     if not self.clean():
-                        logging.error("Package %s was broken", self.package_manager)
+                        logging.error("Package %s was broken",
+                                      self.package_manager)
                         return False
                     if self.session.cmd_status(cmd, timeout):
                         logging.error("Operate %s with %s failed", pkg, cmd)
