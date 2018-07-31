@@ -662,7 +662,8 @@ class DevContainer(object):
         # it will be accepted if the unplug been accomplished within 30s
         from virttest import utils_misc
         if not utils_misc.wait_for(
-                lambda: device.verify_unplug(out, monitor) is True, timeout=30):
+                lambda: device.verify_unplug(out, monitor) is True,
+                first=1, step=5, timeout=30):
             self.set_clean()
             return out, device.verify_unplug(out, monitor)
 
