@@ -3564,7 +3564,7 @@ def get_disk_alias(vm, source_file=None):
         ori_vmxml = vm_xml.VMXML.new_from_dumpxml(vm.name)
         disks = ori_vmxml.devices.by_device_tag('disk')
         for disk in disks:
-            find_source = disk.xmltreefile.find('source')
+            find_source = disk.xmltreefile.find('source') is not None
             try:
                 if ((find_source and disk.source.attrs['file'] == source_file) or
                         (not find_source and not source_file)):
