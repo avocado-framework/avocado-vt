@@ -542,7 +542,7 @@ class QemuAgent(Monitor):
             password = decode_to_text(process.system_output(openssl_cmd)).strip('\n')
 
         args = {"crypted": crypted, "username": username,
-                "password": base64.b64encode(password)}
+                "password": base64.b64encode(password.encode()).decode()}
         return self.cmd(cmd=cmd, args=args)
 
     @error_context.context_aware
