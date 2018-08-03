@@ -45,19 +45,22 @@ def verify_timezone_linux(session):
 
 
 @error_context.context_aware
-def sync_timezone_linux(session):
+def sync_timezone_linux(vm):
     """
     Sync linux guest's timezone
 
-    :param session: VM session
+    :param vm: Virtual machine object
     """
+    session = vm.wait_for_login()
     error_context.context("Sync guest's timezone", logging.info)
     set_timezone_cmd = "timedatectl set-timezone %s"
     if not verify_timezone_linux(session):
         host_timezone_city = get_host_timezone()['timezone_city']
         session.cmd(set_timezone_cmd % host_timezone_city)
         if not verify_timezone_linux(session):
+            session.close()
             raise exceptions.TestError("Fail to sync guest's timezone.")
+    session.close()
 
 
 @error_context.context_aware
@@ -123,7 +126,7 @@ def sync_timezone_win(vm):
     """
     Verify and sync windows guest's timezone
 
-    :param vm: Virtual machine for vm
+    :param vm: Virtual machine object
     """
     session = vm.wait_for_login()
     set_timezone_cmd = 'tzutil /s "%s"'
