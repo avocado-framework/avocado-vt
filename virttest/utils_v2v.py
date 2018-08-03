@@ -98,11 +98,13 @@ class Target(object):
         """
         opts_func = getattr(self, "_get_%s_options" % self.target)
         self.params = params
+        self.output_method = self.params.get('output_method', 'rhev')
         self.input_mode = self.params.get('input_mode')
         self.vm_name = self.params.get('main_vm')
         self.bridge = self.params.get('bridge')
         self.network = self.params.get('network')
         self.storage = self.params.get('storage')
+        self.storage_name = self.params.get('storage_name')
         self.format = self.params.get('output_format', 'raw')
         self.input_file = self.params.get('input_file')
         self.new_name = self.params.get('new_name')
@@ -123,7 +125,8 @@ class Target(object):
 
         if self.input_mode is not None:
             options = " -i %s %s" % (self.input_mode, options)
-            if self.input_mode in ['ova', 'disk', 'libvirtxml'] and self.input_file:
+            if self.input_mode in ['ova', 'disk',
+                                   'libvirtxml'] and self.input_file:
                 options = options.replace(self.vm_name, self.input_file)
         return options
 
@@ -151,9 +154,11 @@ class Target(object):
         """
         Return command options.
         """
-        options = " -ic %s -o rhev -os %s -of %s" % (self.uri,
-                                                     self.storage,
-                                                     self.format)
+        options = " -ic %s -o %s -os %s -of %s" % (
+                    self.uri,
+                    self.output_method.replace('_', '-'),
+                    self.storage if self.output_method != "rhv_upload" else self.storage_name,
+                    self.format)
         options = options + self.net_vm_opts
 
         return options
@@ -168,6 +173,7 @@ class Target(object):
         options = options + self.net_vm_opts
 
         return options
+
     # add new target in here.
 
 
@@ -377,8 +383,12 @@ class LinuxVMCheck(VMCheck):
         cmd = 'xset -q'
         if self.run_cmd(cmd)[0] == 127:
             return
-        utils_misc.wait_for(lambda: not bool(self.run_cmd(cmd, debug=False)[0]),
-                            timeout)
+        utils_misc.wait_for(
+            lambda: not bool(
+                self.run_cmd(
+                    cmd,
+                    debug=False)[0]),
+            timeout)
 
     def get_vm_xorg(self):
         """
@@ -498,8 +508,8 @@ class WindowsVMCheck(VMCheck):
             remote_pwd = self.params.get("remote_pwd")
             remote.scp_from_remote(remote_ip, '22', remote_user,
                                    remote_pwd, vm_sshot, sshot_file)
-            r_runner = remote.RemoteRunner(host=remote_ip, username=remote_user,
-                                           password=remote_pwd)
+            r_runner = remote.RemoteRunner(
+                host=remote_ip, username=remote_user, password=remote_pwd)
             r_runner.run("rm -f %s" % vm_sshot)
         return sshot_file
 
@@ -690,6 +700,7 @@ def v2v_cmd(params):
     esx_ip = params.get('esx_ip')
     opts_extra = params.get('v2v_opts')
     v2v_timeout = params.get('v2v_timeout', 2400)
+    rhv_upload_opts = params.get('rhv_upload_opts')
 
     uri_obj = Uri(hypervisor)
     # Return actual 'uri' according to 'hostname' and 'hypervisor'
@@ -699,6 +710,8 @@ def v2v_cmd(params):
     # Return virt-v2v command line options based on 'target' and 'hypervisor'
     options = target_obj.get_cmd_options(params)
 
+    if rhv_upload_opts:
+        options = options + ' ' + rhv_upload_opts
     if opts_extra:
         options = options + ' ' + opts_extra
 
@@ -720,6 +733,7 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
     export_name = params.get('export_name')
     storage_name = params.get('storage_name')
     cluster_name = params.get('cluster_name')
+    output_method = params.get('output_method')
     # Check oVirt status
     dc = ovirt.DataCenterManager(params)
     logging.info("Current data centers list: %s", dc.list())
@@ -731,24 +745,28 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
     logging.info("Current storage domain list: %s", sdm.list())
     vm = ovirt.VMManager(vm_name, params, address_cache=address_cache)
     logging.info("Current VM list: %s", vm.list())
-    if vm_name in vm.list():
+    if vm_name in vm.list() and output_method != 'rhv_upload':
         logging.error("%s already exist", vm_name)
         return False
     wait_for_up = True
     if os_type == 'windows':
         wait_for_up = False
-    try:
-        # Import VM
-        vm.import_from_export_domain(export_name,
-                                     storage_name,
-                                     cluster_name,
-                                     timeout=timeout)
-        logging.info("The latest VM list: %s", vm.list())
-    except Exception as e:
-        # Try to delete the vm from export domain
-        vm.delete_from_export_domain(export_name)
-        logging.error("Import %s failed: %s", vm.name, e)
-        return False
+
+    # If output_method is None or "" or is not 'rhv_upload', treat it as
+    # old way.
+    if output_method != 'rhv_upload':
+        try:
+            # Import VM
+            vm.import_from_export_domain(export_name,
+                                         storage_name,
+                                         cluster_name,
+                                         timeout=timeout)
+            logging.info("The latest VM list: %s", vm.list())
+        except Exception as e:
+            # Try to delete the vm from export domain
+            vm.delete_from_export_domain(export_name)
+            logging.error("Import %s failed: %s", vm.name, e)
+            return False
     try:
         # Start VM
         vm.start(wait_for_up=wait_for_up)
@@ -812,10 +830,16 @@ def check_exit_status(result, expect_error=False, error_flag='strict'):
     """
     if not expect_error:
         if result.exit_status != 0:
-            raise exceptions.TestFail(decode_to_text(result.stderr, errors=error_flag))
+            raise exceptions.TestFail(
+                decode_to_text(
+                    result.stderr,
+                    errors=error_flag))
         else:
-            logging.debug("Command output:\n%s",
-                          decode_to_text(result.stdout, errors=error_flag).strip())
+            logging.debug(
+                "Command output:\n%s",
+                decode_to_text(
+                    result.stdout,
+                    errors=error_flag).strip())
     elif expect_error and result.exit_status == 0:
         raise exceptions.TestFail("Run '%s' expect fail, but run "
                                   "successfully." % result.command)
