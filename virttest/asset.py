@@ -115,12 +115,17 @@ class ConfigLoader:
         with open(self.cfg, 'w') as fileobj:
             self.parser.write(fileobj)
 
+    def has_section(self, section):
+
+        if not self.parser.has_section(section):
+            raise ValueError('No section %s. Please check your '
+                             'config file "%s".' % (section, self.cfg))
+
     def check(self, section):
         """
         Check if the config file has valid values
         """
-        if not self.parser.has_section(section):
-            return False, "Section not found: %s" % (section)
+        self.has_section(section)
 
         options = self.parser.items(section)
         for i in range(options.__len__()):
@@ -401,10 +406,13 @@ def get_asset_info(asset, ini_dir=None, section=None):
     asset_info = {}
     ini_dir = ini_dir or data_dir.get_download_dir()
     asset_path = os.path.join(ini_dir, '%s.ini' % asset)
-    assert os.path.exists(asset_path), "Missing asset file %s" % asset_path
-    asset_cfg = ConfigLoader(asset_path)
+    if not os.path.exists(asset_path):
+        logging.warning("Missing asset file %s" % asset_path)
+        return asset_info
 
+    asset_cfg = ConfigLoader(asset_path)
     section = section or asset
+    asset_cfg.has_section(section)
     asset_info['url'] = asset_cfg.get(section, 'url')
     asset_info['sha1_url'] = asset_cfg.get(section, 'sha1_url')
     asset_info['title'] = asset_cfg.get(section, 'title')
@@ -609,5 +617,6 @@ def download_asset(asset, interactive=True, restore_image=False):
     """
     asset_info = get_asset_info(asset)
 
-    download_file(asset_info=asset_info, interactive=interactive,
-                  force=restore_image)
+    if asset_info != {}:
+        download_file(asset_info=asset_info, interactive=interactive,
+                      force=restore_image)
