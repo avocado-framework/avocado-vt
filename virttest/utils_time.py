@@ -212,3 +212,28 @@ def update_clksrc(vm, clksrc=None):
     if clksrc and clksrc != 'kvm-clock':
         boot_option_added = "clocksource=%s" % clksrc
         utils_test.update_boot_option(vm, args_added=boot_option_added)
+
+
+def is_ntp_enabled(session):
+    """
+    Get current NTP state for guest/host
+    """
+    cmd = 'timedatectl |grep "NTP enabled"'
+    return 'yes' in execute(cmd, session=session).split(":")[1].strip()
+
+
+def ntp_switch(session, off=True):
+    """
+    Turn off/on ntp for guest/host
+    """
+    cmd = "timedatectl set-ntp"
+    if off:
+        cmd += " 0"
+    else:
+        cmd += " 1"
+    output = execute(cmd, session=session)
+    ntp_enabled = is_ntp_enabled(session)
+    if off and ntp_enabled:
+        raise exceptions.TestError("Fail to switchoff ntp: %s", output)
+    if not off and not ntp_enabled:
+        raise exceptions.TestError("Fail to switchon ntp: %s", output)
