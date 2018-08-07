@@ -247,6 +247,7 @@ class VMCheck(object):
         if self.target == "ovirt":
             self.vm.delete()
             self.vm.delete_from_export_domain(self.export_name)
+            ovirt.disconnect()
 
     def storage_cleanup(self):
         """
