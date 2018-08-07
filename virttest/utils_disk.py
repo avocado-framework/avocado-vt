@@ -7,6 +7,8 @@ import os
 import glob
 import shutil
 import stat
+import random
+import string
 import tempfile
 import logging
 import re
@@ -20,8 +22,14 @@ from avocado.utils import process
 from avocado.utils.service import SpecificServiceManager
 
 from virttest import error_context
+from virttest import utils_numeric
 from virttest.compat_52lts import decode_to_text
 
+PARTITION_TABLE_TYPE_MBR = "msdos"
+PARTITION_TABLE_TYPE_GPT = "gpt"
+PARTITION_TYPE_PRIMARY = "primary"
+PARTITION_TYPE_EXTENDED = "extended"
+PARTITION_TYPE_LOGICAL = "logical"
 
 # Whether to print all shell commands called
 DEBUG = False
@@ -180,6 +188,608 @@ def clean_old_image(image):
     if os.path.exists(image):
         umount(image, None)
         os.remove(image)
+
+
+def get_linux_disks(session, partition=False):
+    """
+    List all disks or disks with no partition.
+
+    :param session: session object to guest
+    :param partition: if true, list all disks; otherwise,
+                      list only disks with no partition.
+    :return: the disks dict.
+             e.g. {kname: [kname, size, type, serial, wwn]}
+    """
+    list_disk_cmd = "lsblk -o KNAME,SIZE,TYPE,SERIAL,WWN"
+    get_disk_name_cmd = "lsblk -no pkname /dev/%s"
+    output = session.cmd_output(list_disk_cmd)
+    devs = output.splitlines()
+    disks_dict = {}
+    part_dict = {}
+    for dev in devs:
+        dev = dev.split()
+        if "disk" in dev:
+            disks_dict[dev[0]] = dev
+        if "part" in dev:
+            part_dict[dev[0]] = dev
+    if partition:
+        disks_dict = dict(disks_dict, **part_dict)
+    else:
+        for part in part_dict.keys():
+            output = session.cmd_output(get_disk_name_cmd % part)
+            disk = output.splitlines()[0].strip()
+            if disk in disks_dict.keys():
+                disks_dict.pop(disk)
+    return disks_dict
+
+
+def get_windows_disks_index(session, image_size):
+    """
+    Get all disks index which show in 'diskpart list disk'.
+    except for system disk.
+    in diskpart: if disk size < 8GB: it displays as MB
+                 else: it displays as GB
+
+    :param session: session object to guest.
+    :param image_size: image size. e.g. 40M
+    :return: a list with all disks index except for system disk.
+    """
+    disk = "disk_" + ''.join(random.sample(string.ascii_letters + string.digits, 4))
+    disk_indexs = []
+    list_disk_cmd = "echo list disk > " + disk
+    list_disk_cmd += " && echo exit >> " + disk
+    list_disk_cmd += " && diskpart /s " + disk
+    list_disk_cmd += " && del /f " + disk
+    disks = session.cmd_output(list_disk_cmd)
+    size_type = image_size[-1] + "B"
+    if size_type == "MB":
+        disk_size = image_size[:-1] + " MB"
+    elif size_type == "GB" and int(image_size[:-1]) < 8:
+        disk_size = str(int(image_size[:-1]) * 1024) + " MB"
+    else:
+        disk_size = image_size[:-1] + " GB"
+    regex_str = 'Disk (\d+).*?%s.*?%s' % (disk_size, disk_size)
+    for disk in disks.splitlines():
+        if disk.startswith("  Disk"):
+            o = re.findall(regex_str, disk, re.I | re.M)
+            if o:
+                disk_indexs.append(o[0])
+    return disk_indexs
+
+
+def _wrap_windows_cmd(cmd):
+    """
+    add header and footer for cmd in order to run it in diskpart tool.
+
+    :param cmd: cmd to be wrapped.
+    :return: wrapped cmd
+    """
+    disk = "disk_" + ''.join(random.sample(string.ascii_letters + string.digits, 4))
+    cmd_header = "echo list disk > " + disk
+    cmd_header += " && echo select disk %s >> " + disk
+    cmd_footer = " echo exit >> " + disk
+    cmd_footer += " && diskpart /s " + disk
+    cmd_footer += " && del /f " + disk
+    cmd_list = []
+    for i in cmd.split(";"):
+        i += " >> " + disk
+        cmd_list.append(i)
+    cmd = " && ".join(cmd_list)
+    return " && ".join([cmd_header, cmd, cmd_footer])
+
+
+def update_windows_disk_attributes(session, dids, timeout=120):
+    """
+    Clear readonly for all disks and online them in windows guest.
+    It is a workaround update attributes for all disks in one time.
+    If configures disk(update attribute -> format) one by one,
+    it will hit error.
+
+    :param session: session object to guest.
+    :param dids: a list with all disks index which
+                 show in 'diskpart list disk'.
+                 call function: get_windows_disks_index()
+    :param timeout: time for cmd execution
+    :return: True or False
+    """
+    detail_cmd = ' echo detail disk'
+    detail_cmd = _wrap_windows_cmd(detail_cmd)
+    set_rw_cmd = ' echo attributes disk clear readonly'
+    set_rw_cmd = _wrap_windows_cmd(set_rw_cmd)
+    online_cmd = ' echo online disk'
+    online_cmd = _wrap_windows_cmd(online_cmd)
+    for did in dids:
+        logging.info("Detail for 'Disk%s'" % did)
+        details = session.cmd_output(detail_cmd % did)
+        if re.search("Read.*Yes", details, re.I | re.M):
+            logging.info("Clear readonly bit on 'Disk%s'" % did)
+            status, output = session.cmd_status_output(set_rw_cmd % did,
+                                                       timeout=timeout)
+            if status != 0:
+                logging.error("Can not clear readonly bit: %s" % output)
+                return False
+        pattern = "DISK %s.*Offline" % did
+        if re.search(pattern, details, re.I | re.M):
+            logging.info("Online 'Disk%s'" % did)
+            status, output = session.cmd_status_output(online_cmd % did,
+                                                       timeout=timeout)
+            if status != 0:
+                logging.error("Can not online disk: %s" % output)
+                return False
+    return True
+
+
+def create_partition_table_linux(session, did, labeltype):
+    """
+    Create partition table on disk in linux guest.
+
+    :param session: session object to guest.
+    :param did: disk kname. e.g. sdb
+    :param labeltype: label type for the disk.
+    """
+    mklabel_cmd = 'parted -s "/dev/%s" mklabel %s' % (did, labeltype)
+    session.cmd(mklabel_cmd)
+
+
+def create_partition_table_windows(session, did, labeltype):
+    """
+    Create partition table on disk in windows guest.
+    mbr is default value, do nothing.
+
+    :param session: session object to guest.
+    :param did: disk index which show in 'diskpart list disk'.
+    :param labeltype: label type for the disk.
+    """
+    if labeltype == PARTITION_TABLE_TYPE_GPT:
+        mklabel_cmd = ' echo convert gpt'
+        mklabel_cmd = _wrap_windows_cmd(mklabel_cmd)
+        session.cmd(mklabel_cmd % did)
+
+
+def create_partition_table(session, did, labeltype, ostype):
+    """
+    Create partition table on disk in linux or windows guest.
+
+    :param session: session object to guest.
+    :param did: disk kname or disk index
+    :param labeltype: label type for the disk.
+    :param ostype: linux or windows.
+    """
+    if ostype == "windows":
+        create_partition_table_windows(session, did, labeltype)
+    else:
+        create_partition_table_linux(session, did, labeltype)
+
+
+def create_partition_linux(session, did, size, start,
+                           part_type=PARTITION_TYPE_PRIMARY, timeout=360):
+    """
+    Create single partition on disk in linux guest.
+
+    :param session: session object to guest.
+    :param did: disk kname. e.g. sdb
+    :param size: partition size. e.g. 200M
+    :param start: partition beginning at start. e.g. 0M
+    :param part_type: partition type, primary extended logical
+    :param timeout: Timeout for cmd execution in seconds.
+    """
+    size = utils_numeric.normalize_data_size(size, order_magnitude="M") + "M"
+    start = utils_numeric.normalize_data_size(start, order_magnitude="M") + "M"
+    end = str(float(start[:-1]) + float(size[:-1])) + size[-1]
+    partprobe_cmd = "partprobe /dev/%s" % did
+    mkpart_cmd = 'parted -s "%s" mkpart %s %s %s'
+    mkpart_cmd %= ("/dev/%s" % did, part_type, start, end)
+    session.cmd(mkpart_cmd)
+    session.cmd(partprobe_cmd, timeout=timeout)
+
+
+def create_partition_windows(session, did, size, start,
+                             part_type=PARTITION_TYPE_PRIMARY, timeout=360):
+    """
+    Create single partition on disk in windows guest.
+
+    :param session: session object to guest.
+    :param did: disk index
+    :param size: partition size. e.g. size 200M
+    :param start: partition beginning at start. e.g. 0M
+    :param part_type: partition type, primary extended logical
+    :param timeout: Timeout for cmd execution in seconds.
+    """
+    size = utils_numeric.normalize_data_size(size, order_magnitude="M")
+    start = utils_numeric.normalize_data_size(start, order_magnitude="M")
+    size = int(float(size) - float(start))
+    mkpart_cmd = " echo create partition %s size=%s"
+    mkpart_cmd = _wrap_windows_cmd(mkpart_cmd)
+    session.cmd(mkpart_cmd % (did, part_type, size), timeout=timeout)
+
+
+def create_partition(session, did, size, start, ostype,
+                     part_type=PARTITION_TYPE_PRIMARY, timeout=360):
+    """
+    Create single partition on disk in windows or linux guest.
+
+    :param session: session object to guest.
+    :param did: disk kname or disk index
+    :param size: partition size. e.g. size 2G
+    :param start: partition beginning at start. e.g. 0G
+    :param ostype: linux or windows.
+    :param part_type: partition type, primary extended logical
+    :param timeout: Timeout for cmd execution in seconds.
+    """
+    if ostype == "windows":
+        create_partition_windows(session, did, size, start, part_type, timeout)
+    else:
+        create_partition_linux(session, did, size, start, part_type, timeout)
+
+
+def delete_partition_linux(session, partition_name, timeout=360):
+    """
+    remove single partition for one disk.
+
+    :param session: session object to guest.
+    :param partition_name: partition name. e.g. sdb1
+    :param timeout: Timeout for cmd execution in seconds.
+    """
+    get_kname_cmd = "lsblk -no pkname /dev/%s"
+    kname = session.cmd_output(get_kname_cmd % partition_name)
+    list_disk_cmd = "lsblk -o KNAME,MOUNTPOINT"
+    output = session.cmd_output(list_disk_cmd)
+    output = output.splitlines()
+    rm_cmd = 'parted -s "/dev/%s" rm %s'
+    for line in output:
+        partition = re.findall(partition_name, line, re.I | re.M)
+        if partition:
+            if "/" in line.split()[-1]:
+                if not umount("/dev/%s" % partition_name, line.split()[-1], session=session):
+                    err_msg = "Failed to umount partition '%s'"
+                    raise exceptions.TestError(err_msg % partition_name)
+            break
+    session.cmd(rm_cmd % (kname, partition[0]))
+    session.cmd("partprobe /dev/%s" % kname, timeout=timeout)
+
+
+def delete_partition_windows(session, partition_name, timeout=360):
+    """
+    remove single partition for one disk.
+
+    :param session: session object to guest.
+    :param partition_name: partition name. e.g. D
+    :param timeout: Timeout for cmd execution in seconds.
+    """
+    disk = "disk_" + ''.join(random.sample(string.ascii_letters + string.digits, 4))
+    delete_cmd = "echo select volume %s > " + disk
+    delete_cmd += " && echo delete volume >> " + disk
+    delete_cmd += " && echo exit >> " + disk
+    delete_cmd += " && diskpart /s " + disk
+    delete_cmd += " && del /f " + disk
+    session.cmd(delete_cmd % partition_name, timeout=timeout)
+
+
+def delete_partition(session, partition_name, ostype, timeout=360):
+    """
+    remove single partition for one disk in linux or windows guest.
+
+    :param session: session object to guest.
+    :param partition_name: partition name.
+    :param ostype: linux or windows.
+    :param timeout: Timeout for cmd execution in seconds.
+    """
+    if ostype == "windows":
+        delete_partition_windows(session, partition_name, timeout)
+    else:
+        delete_partition_linux(session, partition_name, timeout)
+
+
+def clean_partition_linux(session, did, timeout=360):
+    """
+    clean partition for linux guest.
+
+    :param session: session object to guest.
+    :param did: disk ID in guest.
+                for linux: disk kname. e.g. 'sdb', 'nvme0n1'
+    :param timeout: Timeout for cmd execution in seconds.
+    """
+    list_disk_cmd = "lsblk -o KNAME,MOUNTPOINT"
+    output = session.cmd_output(list_disk_cmd)
+    output = output.splitlines()
+    regex_str = did + "\w*(\d+)"
+    rm_cmd = 'parted -s "/dev/%s" rm %s'
+    for line in output:
+        partition = re.findall(regex_str, line, re.I | re.M)
+        if partition:
+            if "/" in line.split()[-1]:
+                if not umount("/dev/%s" % line.split()[0], line.split()[-1], session=session):
+                    err_msg = "Failed to umount partition '%s'"
+                    raise exceptions.TestError(err_msg % line.split()[0])
+    list_partition_number = "parted -s /dev/%s print|awk '/^ / {print $1}'"
+    partition_numbers = session.cmd_output(list_partition_number % did)
+    ignore_err_msg = "unrecognised disk label"
+    if ignore_err_msg in partition_numbers:
+        logging.info("no partition to clean on %s" % did)
+    else:
+        partition_numbers = partition_numbers.splitlines()
+        for number in partition_numbers:
+            logging.info("remove partition %s on %s" % (number, did))
+            session.cmd(rm_cmd % (did, number))
+        session.cmd("partprobe /dev/%s" % did, timeout=timeout)
+
+
+def clean_partition_windows(session, did, timeout=360):
+    """
+    clean partition for windows guest.
+
+    :param session: session object to guest.
+    :param did: disk ID in guest.
+                for windows: disk index which
+                             show in 'diskpart list disk'.
+                             e.g. 1, 2
+    :param timeout: Timeout for cmd execution in seconds.
+    """
+    clean_cmd = " echo clean "
+    clean_cmd = _wrap_windows_cmd(clean_cmd)
+    session.cmd(clean_cmd % did, timeout=timeout)
+
+
+def clean_partition(session, did, ostype, timeout=360):
+    """
+    clean partition for disk in linux or windows guest.
+
+    :param session: session object to guest.
+    :param did: disk ID in guest.
+                for linux: disk kname. e.g. 'sdb', 'sdc'
+                for windows: disks index which
+                             show in 'diskpart list disk'.
+                             e.g. 1, 2
+    :param ostype: guest os type 'windows' or 'linux'.
+    :param timeout: Timeout for cmd execution in seconds.
+    """
+    if ostype == "windows":
+        clean_partition_windows(session, did, timeout)
+    else:
+        clean_partition_linux(session, did, timeout)
+
+
+def create_filesyetem_linux(session, partition_name, fstype, timeout=360):
+    """
+    create file system in linux guest.
+
+    :param session: session object to guest.
+    :param partition_name: partition name that to be formatted. e.g. sdb1
+    :param fstype: filesystem type for the disk.
+    :param timeout: Timeout for cmd execution in seconds.
+    """
+    if fstype == "xfs":
+        mkfs_cmd = "mkfs.%s -f" % fstype
+    else:
+        mkfs_cmd = "mkfs.%s -F" % fstype
+    format_cmd = "yes|%s '/dev/%s'" % (mkfs_cmd, partition_name)
+    session.cmd(format_cmd, timeout=timeout)
+
+
+def create_filesystem_windows(session, partition_name, fstype, timeout=360):
+    """
+    create file system in windows guest.
+
+    :param session: session object to guest.
+    :param partition_name: partition name that to be formatted. e.g. D
+    :param fstype: file system type for the disk.
+    :param timeout: Timeout for cmd execution in seconds.
+    """
+    disk = "disk_" + ''.join(random.sample(string.ascii_letters + string.digits, 4))
+    format_cmd = "echo select volume %s > " + disk
+    format_cmd += " && echo format fs=%s quick >> " + disk
+    format_cmd += " && echo exit >> " + disk
+    format_cmd += " && diskpart /s " + disk
+    format_cmd += " && del /f " + disk
+    session.cmd(format_cmd % (partition_name, fstype), timeout=timeout)
+
+
+def create_filesystem(session, partition_name, fstype, ostype, timeout=360):
+    """
+    create file system in windows or linux guest.
+
+    :param session: session object to guest.
+    :param partition_name: partition name that to be formatted.
+    :param fstype: file system type for the disk.
+    :param ostype: guest os type 'windows' or 'linux'.
+    :param timeout: Timeout for cmd execution in seconds.
+    """
+    if ostype == "windows":
+        create_filesystem_windows(session, partition_name, fstype, timeout)
+    else:
+        create_filesyetem_linux(session, partition_name, fstype, timeout)
+
+
+def set_drive_letter(session, did, partition_no=1):
+    """
+    set drive letter for partition in windows guest.
+
+    :param session: session object to guest.
+    :param did: disk index
+    :param partition_no: partition number
+    :return drive_letter: drive letter has been set
+    """
+    drive_letter = ""
+    list_partition_cmd = ' echo list partition '
+    list_partition_cmd = _wrap_windows_cmd(list_partition_cmd)
+    details = session.cmd_output(list_partition_cmd % did)
+    for line in details.splitlines():
+        if re.search("Reserved", line, re.I | re.M):
+            partition_no += int(line.split()[1])
+    assign_letter_cmd = ' echo select partition %s ; echo assign '
+    assign_letter_cmd = _wrap_windows_cmd(assign_letter_cmd)
+    session.cmd(assign_letter_cmd % (did, partition_no))
+    detail_cmd = ' echo detail disk '
+    detail_cmd = _wrap_windows_cmd(detail_cmd)
+    details = session.cmd_output(detail_cmd % did)
+    for line in details.splitlines():
+        pattern = "\s+Volume\s+\d+"
+        if re.search(pattern, line, re.I | re.M):
+            drive_letter = line.split()[2]
+            break
+    if len(drive_letter) == 1 and drive_letter.isalpha():
+        return drive_letter
+    else:
+        return None
+
+
+def drop_drive_letter(session, drive_letter):
+    """
+    remove drive letter for partition in windows guest.
+
+    :param session: session object to guest.
+    :param drive_letter: drive letter to be removed
+    """
+    disk = "disk_" + ''.join(random.sample(string.ascii_letters + string.digits, 4))
+    remove_cmd = "echo select volume %s > " + disk
+    remove_cmd += " && echo remove >> " + disk
+    remove_cmd += " && echo exit >> " + disk
+    remove_cmd += " && diskpart /s " + disk
+    remove_cmd += " && del /f " + disk
+    session.cmd(remove_cmd % drive_letter)
+
+
+def configure_empty_windows_disk(session, did, size, start="0M",
+                                 n_partitions=1, fstype="ntfs",
+                                 labeltype=PARTITION_TABLE_TYPE_MBR,
+                                 timeout=360):
+    """
+    Create partition on disks in windows guest, format and mount it.
+    Only handle an empty disk and will create equal size partitions onto the disk.
+
+    :param session: session object to guest.
+    :param did: disk index which show in 'diskpart list disk'.
+    :param size: partition size. e.g. 500M
+    :param start: partition beginning at start. e.g. 0M
+    :param n_partitions: the number of partitions on disk
+    :param fstype: filesystem type for the disk.
+    :param labeltype: label type for the disk.
+    :param timeout: Timeout for cmd execution in seconds.
+    :return a list: mount point list for all partitions.
+    """
+    mountpoint = []
+    create_partition_table_windows(session, did, labeltype)
+    start = utils_numeric.normalize_data_size(start, order_magnitude="M") + "M"
+    partition_size = float(size[:-1]) / n_partitions
+    extended_size = float(size[:-1]) - partition_size
+    reserved_size = 5
+    if labeltype == PARTITION_TABLE_TYPE_MBR and n_partitions > 1:
+        part_type = PARTITION_TYPE_EXTENDED
+    else:
+        part_type = PARTITION_TYPE_PRIMARY
+    for i in range(n_partitions):
+        if i == 0:
+            create_partition_windows(
+                session, did, str(partition_size) + size[-1],
+                str(float(start[:-1]) + reserved_size) + start[-1], timeout=timeout)
+        else:
+            if part_type == PARTITION_TYPE_EXTENDED:
+                create_partition_windows(
+                    session, did, str(extended_size) + size[-1], start, part_type, timeout)
+                part_type = PARTITION_TYPE_LOGICAL
+                create_partition_windows(
+                    session, did, str(partition_size) + size[-1], start, part_type, timeout)
+            else:
+                create_partition_windows(
+                    session, did, str(partition_size) + size[-1], start, part_type, timeout)
+        drive_letter = set_drive_letter(session, did, partition_no=i + 1)
+        if not drive_letter:
+            return []
+        mountpoint.append(drive_letter)
+        create_filesystem_windows(session, mountpoint[i], fstype, timeout)
+    return mountpoint
+
+
+def configure_empty_linux_disk(session, did, size, start="0M", n_partitions=1,
+                               fstype="ext4", labeltype=PARTITION_TABLE_TYPE_MBR,
+                               timeout=360):
+    """
+    Create partition on disk in linux guest, format and mount it.
+    Only handle an empty disk and will create equal size partitions onto the disk.
+    Note: Make sure '/mnt/' is not mount point before run this function,
+          in order to avoid unknown exceptions.
+
+    :param session: session object to guest.
+    :param did: disk kname. e.g. sdb
+    :param size: partition size. e.g. 2G
+    :param start: partition beginning at start. e.g. 0G
+    :param n_partitions: the number of partitions on disk
+    :param fstype: filesystem type for the disk.
+    :param labeltype: label type for the disk.
+    :param timeout: Timeout for cmd execution in seconds.
+    :return a list: mount point list for all partitions.
+    """
+    mountpoint = []
+    create_partition_table_linux(session, did, labeltype)
+    size = utils_numeric.normalize_data_size(size, order_magnitude="M") + "M"
+    start = float(utils_numeric.normalize_data_size(start, order_magnitude="M"))
+    partition_size = float(size[:-1]) / n_partitions
+    extended_size = float(size[:-1]) - partition_size
+    if labeltype == PARTITION_TABLE_TYPE_MBR and n_partitions > 1:
+        part_type = PARTITION_TYPE_EXTENDED
+    else:
+        part_type = PARTITION_TYPE_PRIMARY
+    for i in range(n_partitions):
+        pre_partition = get_linux_disks(session, partition=True).keys()
+        if i == 0:
+            create_partition_linux(session, did, str(partition_size) + size[-1],
+                                   str(start) + size[-1], timeout=timeout)
+        else:
+            if part_type == PARTITION_TYPE_EXTENDED:
+                create_partition_linux(session, did, str(extended_size) + size[-1],
+                                       str(start) + size[-1], part_type, timeout)
+                pre_partition = get_linux_disks(session, partition=True).keys()
+                part_type = PARTITION_TYPE_LOGICAL
+                create_partition_linux(session, did, str(partition_size) + size[-1],
+                                       str(start) + size[-1], part_type, timeout)
+            else:
+                create_partition_linux(session, did, str(partition_size) + size[-1],
+                                       str(start) + size[-1], part_type, timeout)
+        start += partition_size
+        post_partition = get_linux_disks(session, partition=True).keys()
+        new_partition = list(set(post_partition) - set(pre_partition))[0]
+        create_filesyetem_linux(session, new_partition, fstype, timeout)
+        mount_dst = "/mnt/" + new_partition
+        session.cmd("rm -rf %s; mkdir %s" % (mount_dst, mount_dst))
+        if not mount("/dev/%s" % new_partition, mount_dst, fstype=fstype, session=session):
+            err_msg = "Failed to mount partition '%s'"
+            raise exceptions.TestError(err_msg % new_partition)
+        mountpoint.append(mount_dst)
+    return mountpoint
+
+
+def configure_empty_disk(session, did, size, ostype, start="0M", n_partitions=1,
+                         fstype=None, labeltype=PARTITION_TABLE_TYPE_MBR,
+                         timeout=360):
+    """
+    Create partition on disk in guest, format and mount it.
+    Only handle an empty disk and will create equal size partitions onto the disk.
+
+    :param session: session object to guest.
+    :param did: disk ID list in guest.
+                for linux: disk kname, serial or wwn.
+                           e.g. 'sdb'
+                for windows: disk index which show in 'diskpart list disk'
+                             call function: get_windows_disks_index()
+    :param size: partition size. e.g. size 2G
+    :param ostype: guest os type 'windows' or 'linux'.
+    :param start: partition beginning at start. e.g. 0G
+    :param n_partitions: the number of partitions on disk for guest
+    :param fstype: filesystem type for the disk; when it's the default None,
+                   it will use the default one for corresponding ostype guest
+    :param labeltype: label type for the disk.
+    :param timeout: Timeout for cmd execution in seconds.
+    :return a list: mount point list for all partitions.
+    """
+    default_fstype = "ntfs" if (ostype == "windows") else "ext4"
+    fstype = fstype or default_fstype
+    if ostype == "windows":
+        return configure_empty_windows_disk(session, did, size, start,
+                                            n_partitions, fstype,
+                                            labeltype, timeout)
+    return configure_empty_linux_disk(session, did, size, start,
+                                      n_partitions, fstype,
+                                      labeltype, timeout)
 
 
 class Disk(object):
