@@ -403,6 +403,7 @@ class VirtTest(test.Test):
                                "once": True})
 
         test_passed = False
+        case_status = ""
         t_type = None
 
         try:
@@ -427,11 +428,13 @@ class VirtTest(test.Test):
                     test_passed = True
                     error_message = funcatexit.run_exitfuncs(env, t_type)
                     if error_message:
-                        raise exceptions.TestWarn("funcatexit failed with: %s" %
-                                                  error_message)
+                        raise exceptions.TestWarn("funcatexit failed with: %s"
+                                                  % error_message)
 
-                except:  # nopep8 Old-style exceptions are not inherited from Exception()
+                except Exception as e:
                     stacktrace.log_exc_info(sys.exc_info(), 'avocado.test')
+                    case_status = e.status
+
                     if t_type is not None:
                         error_message = funcatexit.run_exitfuncs(env, t_type)
                         if error_message:
@@ -447,6 +450,7 @@ class VirtTest(test.Test):
                 try:
                     try:
                         params['test_passed'] = str(test_passed)
+                        params['case_status'] = str(case_status)
                         env_process.postprocess(self, params, env)
                     except:  # nopep8 Old-style exceptions are not inherited from Exception()
 

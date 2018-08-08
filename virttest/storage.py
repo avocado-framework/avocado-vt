@@ -376,9 +376,7 @@ class QemuImg(object):
                 logging.info("No source file %s, skipping copy...", src)
 
         def get_backup_set(filename, backup_dir, action, good):
-            """
-            Get all sources and destinations required for each backup.
-            """
+            """Get all sources and destinations required for each backup."""
             if not os.path.isdir(backup_dir):
                 os.makedirs(backup_dir)
             basename = os.path.basename(filename)
@@ -391,19 +389,17 @@ class QemuImg(object):
                 elif action == 'restore':
                     bkp_set = [[dst, src]]
             else:
-                # We have to make 2 backups, one of the bad image, another one
-                # of the good image
+                # There are problems of our image,
+                # for backup: we kept the image for further debug,
+                # for restore: we replace the bad image with the good one.
                 src_bad = filename
-                src_good = os.path.join(backup_dir, "%s.backup" % basename)
-                hsh = utils_misc.generate_random_string(4)
-                dst_bad = (os.path.join(backup_dir, "%s.bad.%s" %
-                                        (basename, hsh)))
-                dst_good = (os.path.join(backup_dir, "%s.good.%s" %
-                                         (basename, hsh)))
+                good_bkp = os.path.join(backup_dir, "%s.backup" % basename)
+                dst_bad = (os.path.join(backup_dir, "%s.%s" %
+                                        (basename, params["image_suffix"])))
                 if action == 'backup':
-                    bkp_set = [[src_bad, dst_bad], [src_good, dst_good]]
+                    bkp_set = [[src_bad, dst_bad]]
                 elif action == 'restore':
-                    bkp_set = [[src_good, src_bad]]
+                    bkp_set = [[good_bkp, src_bad]]
 
             if not bkp_set:
                 logging.error("No backup sets for action: %s, state: %s",

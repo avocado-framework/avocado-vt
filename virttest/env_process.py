@@ -316,6 +316,17 @@ def check_image(test, params, image_name, vm_process_status=None):
                               " Skip the image check.")
                 check_image_flag = False
 
+    if (vm_process_status == "dead" and
+            params["case_status"] in ("ERROR", "FAIL")):
+        params["image_suffix"] = ("%s.%s.%s" %
+                                  (test.logdir.split("/")[4].split("-")[-1],
+                                   test.logdir.split("/")[6].split("-")[0],
+                                   params["case_status"])
+                                  )
+        image_params = params.object_params(image_name)
+        if image_params.get("backup_image_on_error", "no") == "yes":
+            image.backup_image(params, base_dir, "backup", False)
+
     if check_image_flag:
         try:
             if clone_master is None:
@@ -324,8 +335,14 @@ def check_image(test, params, image_name, vm_process_status=None):
                 if image_name in params.get("master_images_clone").split():
                     image.check_image(params, base_dir, force_share=True)
         except Exception as e:
-            # FIXME: remove it from params, maybe as an img object attr
-            params["img_check_failed"] = "yes"
+            if params.get("restore_image_on_check_error", "no") == "yes":
+                # We consider the original image is broken,
+                # since there is a check error.
+                image.backup_image(params, base_dir, "restore", False)
+            if params.get("remove_image_on_check_error", "no") == "yes":
+                cl_images = params.get("master_images_clone", "")
+                if image_name in cl_images.split():
+                    image.remove()
             if (params.get("skip_cluster_leak_warn") == "yes" and
                     "Leaked clusters" in e.message):
                 logging.warn(e.message)
