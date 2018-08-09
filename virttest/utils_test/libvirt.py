@@ -3368,6 +3368,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
     iface_type = iface_dict.get('type')
     iface_mtu = iface_dict.get('mtu')
     iface_alias = iface_dict.get('alias')
+    iface_virtualport_type = iface_dict.get('virtualport_type')
     if iface_type:
         iface.type_name = iface_type
     if iface_driver:
@@ -3404,6 +3405,8 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
         iface.mtu = eval(iface_mtu)
     if iface_alias:
         iface.alias = eval(iface_alias)
+    if iface_virtualport_type:
+        iface.virtualport_type = iface_virtualport_type
     if oper == "update_iface":
         vmxml.devices = xml_devices
         vmxml.xmltreefile.write()
