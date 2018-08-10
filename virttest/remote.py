@@ -410,7 +410,7 @@ def wait_for_login(client, host, port, username, password, prompt,
 
 
 def _remote_scp(
-        session, password_list, transfer_timeout=600, login_timeout=20):
+        session, password_list, transfer_timeout=600, login_timeout=300):
     """
     Transfer files using SCP, given a command line.
 
@@ -484,7 +484,7 @@ def _remote_scp(
 
 
 def remote_scp(command, password_list, log_filename=None, transfer_timeout=600,
-               login_timeout=20):
+               login_timeout=300):
     """
     Transfer files using SCP, given a command line.
 
