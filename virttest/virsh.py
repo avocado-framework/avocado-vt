@@ -308,7 +308,7 @@ class VirshSession(aexpect.ShellSession):
                 #       'quit' to quit
                 #
                 # virsh #  Id    Name                           State
-                #----------------------------------------------------
+                # ----------------------------------------------------
                 #
                 # virsh #
                 # the session help info is included, and the exact output
@@ -3853,6 +3853,65 @@ def nwfilter_edit(name, options="", **dargs):
     :return: CmdResult object
     """
     cmd = "nwfilter-edit %s %s" % (name, options)
+    return command(cmd, **dargs)
+
+
+def nwfilter_binding_create(name, options="", **dargs):
+    """
+    Associate a network port with a network filter.
+    The network filter backend will immediately
+    attempt to instantiate the filter rules on the
+    port.
+
+    :param name: binding xml file name
+    :param options: extra options to nwfilter-binding- cmd.
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "nwfilter-binding-create %s %s" % (name, options)
+    return command(cmd, **dargs)
+
+
+def nwfilter_binding_list(options="", **dargs):
+    """
+    List all of the network ports which have filters
+    associated with them
+
+    :param options: extra options for nwfilter_binding_list
+    :param dargs: standardized virsh function API keywords
+    """
+    cmd = "nwfilter-binding-list %s" % options
+    return command(cmd, **dargs)
+
+
+def nwfilter_binding_dumpxml(portdev_name, options="", to_file="", **dargs):
+    """
+    output the network filter binding XML for network device
+    called port name
+
+    :param portdev_name: port device name for nwfilter_binding_dumpxml
+    :param options: extra options for nwfilter_binding_dumpxml
+    :param dargs: standardized virsh function API keywords
+    """
+    cmd = "nwfilter-binding-dumpxml %s %s" % (portdev_name, options)
+    result = command(cmd, **dargs)
+    if to_file:
+        result_file = open(to_file, 'w')
+        result_file.write(result.stdout.strip())
+        result_file.close()
+    return result
+
+
+def nwfilter_binding_delete(portdev_name, option="", **dargs):
+    """
+    Disassociate a network port from a network filter.
+    The network filter backend will immediately
+    tear down the filter rules that exist on the port
+
+    :param portdev_name: port device name for nwfilter_binding_delete
+    :param option: extra option for nwfilter_binding_delete
+    """
+    cmd = "nwfilter-binding-delete %s %s" % (portdev_name, option)
     return command(cmd, **dargs)
 
 
