@@ -78,7 +78,7 @@ class Interface(base.TypedDeviceBase):
         accessors.XMLElementNest("filterref", self,
                                  parent_xpath='/',
                                  tag_name='filterref',
-                                 subclass=self.Filterref,
+                                 subclass=Filterref,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
         accessors.XMLAttribute(property_name="model",
@@ -144,7 +144,7 @@ class Interface(base.TypedDeviceBase):
         """
         Return a new interafce filterref instance from dargs
         """
-        new_one = self.Filterref(virsh_instance=self.virsh)
+        new_one = Filterref(virsh_instance=self.virsh)
         for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
@@ -197,52 +197,52 @@ class Interface(base.TypedDeviceBase):
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<driver/>'
 
-    class Filterref(base.base.LibvirtXMLBase):
 
-        """
-        Interface filterref xml class.
+class Filterref(base.base.LibvirtXMLBase):
+    """
+    Interface filterref xml class.
 
-        Properties:
+    Properties:
 
-        name:
-            string. filter name
-        parameters:
-            list. parameters element dict list
-        """
-        __slots__ = ("name", "parameters")
+    name:
+    string. filter name
+    parameters:
+    list. parameters element dict list
+    """
+    __slots__ = ("name", "parameters")
 
-        def __init__(self, virsh_instance=base.base.virsh):
-            accessors.XMLAttribute(property_name="name",
-                                   libvirtxml=self,
-                                   forbidden=None,
-                                   parent_xpath='/',
-                                   tag_name='filterref',
-                                   attribute='filter')
-            accessors.XMLElementList(property_name='parameters',
-                                     libvirtxml=self,
-                                     parent_xpath='/',
-                                     marshal_from=self.marshal_from_parameter,
-                                     marshal_to=self.marshal_to_parameter)
-            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-            self.xml = '<filterref/>'
+    def __init__(self, virsh_instance=base.base.virsh):
+        accessors.XMLAttribute(property_name="name",
+                               libvirtxml=self,
+                               forbidden=None,
+                               parent_xpath='/',
+                               tag_name='filterref',
+                               attribute='filter')
+        accessors.XMLElementList(property_name='parameters',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 marshal_from=self.marshal_from_parameter,
+                                 marshal_to=self.marshal_to_parameter)
+        super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<filterref/>'
 
-        @staticmethod
-        def marshal_from_parameter(item, index, libvirtxml):
-            """Convert a dictionary into a tag + attributes"""
-            del index           # not used
-            del libvirtxml      # not used
-            if not isinstance(item, dict):
-                raise xcepts.LibvirtXMLError("Expected a dictionary of parameter "
-                                             "attributes, not a %s"
-                                             % str(item))
+    @staticmethod
+    def marshal_from_parameter(item, index, libvirtxml):
+        """Convert a dictionary into a tag + attributes"""
+        del index           # not used
+        del libvirtxml      # not used
+        if not isinstance(item, dict):
+            raise xcepts.LibvirtXMLError("Expected a dictionary of parameter "
+                                         "attributes, not a %s"
+                                         % str(item))
             # return copy of dict, not reference
-            return ('parameter', dict(item))
+        return ('parameter', dict(item))
 
-        @staticmethod
-        def marshal_to_parameter(tag, attr_dict, index, libvirtxml):
-            """Convert a tag + attributes into a dictionary"""
-            del index                    # not used
-            del libvirtxml               # not used
-            if tag != 'parameter':
-                return None              # skip this one
-            return dict(attr_dict)       # return copy of dict, not reference
+    @staticmethod
+    def marshal_to_parameter(tag, attr_dict, index, libvirtxml):
+        """Convert a tag + attributes into a dictionary"""
+        del index                    # not used
+        del libvirtxml               # not used
+        if tag != 'parameter':
+            return None              # skip this one
+        return dict(attr_dict)       # return copy of dict, not reference@
