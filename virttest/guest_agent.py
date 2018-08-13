@@ -678,7 +678,7 @@ class QemuAgent(Monitor):
         """
         Freeze File system on guest.
 
-        :param check_status: Force this function to check the fsreeze status
+        :param check_status: Force this function to check the fsfreeze status
                              before/after sending cmd.
         :return: Frozen FS number if cmd succeed, -1 if guest agent doesn't
                  support fsfreeze cmd.
@@ -697,7 +697,7 @@ class QemuAgent(Monitor):
                 except VAgentFreezeStatusError:
                     # When the status is incorrect, reset fsfreeze status to
                     # 'thawed'.
-                    self.cmd(cmd="guest-fsreeze-thaw")
+                    self.cmd(cmd="guest-fsfreeze-thaw")
                     raise
             return ret
         return -1
@@ -707,7 +707,7 @@ class QemuAgent(Monitor):
         """
         Thaw File system on guest.
 
-        :param check_status: Force this function to check the fsreeze status
+        :param check_status: Force this function to check the fsfreeze status
                              before/after sending cmd.
         :return: Thaw FS number if cmd succeed, -1 if guest agent doesn't
                  support fsfreeze cmd.
