@@ -2170,22 +2170,29 @@ def get_host_cpu_models():
     if ARCH in ('ppc64', 'ppc64le'):
         return []     # remove -cpu and leave it on qemu to decide
 
-    cpu_types = {"AuthenticAMD": ["Opteron_G5", "Opteron_G4", "Opteron_G3",
-                                  "Opteron_G2", "Opteron_G1"],
-                 "GenuineIntel": ["Broadwell", "Broadwell-noTSX",
-                                  "Haswell", "Haswell-noTSX", "SandyBridge",
-                                  "Westmere", "Nehalem",
+    cpu_types = {"AuthenticAMD": ["EPYC", "Opteron_G5", "Opteron_G4",
+                                  "Opteron_G3", "Opteron_G2", "Opteron_G1"],
+                 "GenuineIntel": ["KnightsMill",
+                                  "Skylake-Server", "Skylake-Client",
+                                  "Broadwell", "Broadwell-noTSX",
+                                  "Haswell", "Haswell-noTSX", "IvyBridge",
+                                  "SandyBridge", "Westmere", "Nehalem",
                                   "Penryn", "Conroe"]}
-    cpu_type_re = {"Opteron_G5": "f16c,fma4,xop,tbm",
+    cpu_type_re = {"EPYC": "avx2,adx,bmi2,sha_ni",
+                   "Opteron_G5": "f16c,fma4,xop,tbm",
                    "Opteron_G4": ("fma4,xop,avx,xsave,aes,sse4.2|sse4_2,"
                                   "sse4.1|sse4_1,cx16,ssse3,sse4a"),
                    "Opteron_G3": "cx16,sse4a",
                    "Opteron_G2": "cx16",
                    "Opteron_G1": "",
+                   "KnightsMill": "avx512_4vnniw,avx512pf,avx512er",
+                   "Skylake-Server": "mpx,avx512f,clwb,xgetbv1,pcid",
+                   "Skylake-Client": "mpx,xgetbv1,pcid",
                    "Broadwell": "adx,rdseed,3dnowprefetch,hle",
                    "Broadwell-noTSX": "adx,rdseed,3dnowprefetch",
                    "Haswell": "fma,avx2,movbe,hle",
                    "Haswell-noTSX": "fma,avx2,movbe",
+                   "IvyBridge": "f16c,fsgsbase,erms",
                    "SandyBridge": ("avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,"
                                    "cx16,ssse3"),
                    "Westmere": "aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
