@@ -2176,9 +2176,9 @@ def get_host_cpu_models():
                                   "Haswell", "Haswell-noTSX", "SandyBridge",
                                   "Westmere", "Nehalem",
                                   "Penryn", "Conroe"]}
-    cpu_type_re = {"Opteron_G5": "f16c,fma,tbm",
-                   "Opteron_G4":
-                   "avx,xsave,aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3,sse4a",
+    cpu_type_re = {"Opteron_G5": "f16c,fma4,xop,tbm",
+                   "Opteron_G4": ("fma4,xop,avx,xsave,aes,sse4.2|sse4_2,"
+                                  "sse4.1|sse4_1,cx16,ssse3,sse4a"),
                    "Opteron_G3": "cx16,sse4a",
                    "Opteron_G2": "cx16",
                    "Opteron_G1": "",
@@ -2186,8 +2186,8 @@ def get_host_cpu_models():
                    "Broadwell-noTSX": "adx,rdseed,3dnowprefetch",
                    "Haswell": "fma,avx2,movbe,hle",
                    "Haswell-noTSX": "fma,avx2,movbe",
-                   "SandyBridge":
-                   "avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,cx16,ssse3",
+                   "SandyBridge": ("avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,"
+                                   "cx16,ssse3"),
                    "Westmere": "aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
                    "Nehalem": "sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
                    "Penryn": "sse4.1|sse4_1,cx16,ssse3",
