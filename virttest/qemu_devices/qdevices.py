@@ -9,6 +9,7 @@ interact with qemu qdev structure.
 import logging
 import re
 import traceback
+from collections import OrderedDict
 
 from virttest import qemu_monitor
 from virttest import utils_misc
@@ -16,14 +17,6 @@ from virttest.qemu_devices.utils import DeviceError
 from virttest.qemu_devices.utils import none_or_int
 
 import six
-
-
-try:
-    # pylint: disable=E0611
-    from collections import OrderedDict
-except ImportError:
-    from virttest.staging.backports.collections import OrderedDict
-
 from six.moves import xrange
 
 
