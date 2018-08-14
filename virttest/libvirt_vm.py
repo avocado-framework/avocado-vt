@@ -1294,6 +1294,13 @@ class VM(virt_vm.BaseVM):
                                              sec_label=sec_label,
                                              sec_relabel=sec_relabel)
 
+        # Additional qemu commandline options to virt-install directly
+        # helps to test new feature from qemu
+        virtinstall_qemu_cmdline = params.get("virtinstall_qemu_cmdline", "")
+        if virtinstall_qemu_cmdline:
+            if has_option(help_text, "qemu-commandline"):
+                virt_install_cmd += " --qemu-commandline=%s" % virtinstall_qemu_cmdline
+
         virtinstall_extra_args = params.get("virtinstall_extra_args", "")
         if virtinstall_extra_args:
             virt_install_cmd += " %s" % virtinstall_extra_args
