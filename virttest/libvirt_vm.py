@@ -459,7 +459,8 @@ class VM(virt_vm.BaseVM):
                 logging.warning("Unknown virt type hvm_or_pv, using default.")
                 return ""
 
-        def add_mem(help_text, mem, maxmem=None, hugepage=False):
+        def add_mem(help_text, mem, maxmem=None, hugepage=False,
+                    hotplugmaxmem=None, hotplugmemslots=1):
             if has_option(help_text, "memory"):
                 cmd = " --memory=%s" % mem
                 if maxmem:
@@ -474,6 +475,17 @@ class VM(virt_vm.BaseVM):
                                         "virt-install")
                     else:
                         cmd += ",hugepages=yes"
+                if hotplugmaxmem:
+                    if not has_sub_option('memory', 'hotplugmemorymax'):
+                        logging.warning("hotplugmemorymax option not supported"
+                                        "by virt-install")
+                    else:
+                        cmd += ",hotplugmemorymax=%s" % hotplugmaxmem
+                    if not has_sub_option('memory', 'hotplugmemoryslots'):
+                        logging.warning("hotplugmemoryslots option not "
+                                        "supported by virt-install")
+                    else:
+                        cmd += ",hotplugmemoryslots=%d" % hotplugmemslots
                 return cmd
             else:
                 return " --ram=%s" % mem
@@ -962,8 +974,11 @@ class VM(virt_vm.BaseVM):
 
         # hugepage setup in host will be taken care in env_process
         hugepage = params.get("hugepage", "no") == "yes"
+        hotplugmaxmem = params.get("hotplugmaxmem", None)
+        hotplugmemslots = int(params.get("hotplugmemslots", 1))
         if mem:
-            virt_install_cmd += add_mem(help_text, mem, maxmemory, hugepage)
+            virt_install_cmd += add_mem(help_text, mem, maxmemory, hugepage,
+                                        hotplugmaxmem, hotplugmemslots)
 
         # TODO: should we do the check before we call ? negative case ?
         check_cpu = params.get("use_check_cpu")
