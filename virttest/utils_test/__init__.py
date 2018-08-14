@@ -37,6 +37,7 @@ from avocado.utils import aurl
 from avocado.utils import download
 from avocado.utils import crypto
 from avocado.utils import path
+from avocado.utils import archive
 
 from six.moves import xrange
 
@@ -1860,7 +1861,8 @@ class Stress(object):
 
     def __init__(self, stress_type, params, download_url="", make_cmds="",
                  stress_cmds="", stress_args="", work_path="",
-                 uninstall_cmds="", download_type="tarball"):
+                 uninstall_cmds="", download_type="file",
+                 downloaded_file_path=None):
         """
         Set parameters for stress type, for the arguments have default value "",
         they can be either passed here, or defined in vm.params
@@ -1875,7 +1877,9 @@ class Stress(object):
         :param stress_cmds: the command to launch stress,
         use stress_type instead if not defined
         :param stress_args: the arguments of the stress tool
-        :param download_type: currently support "git" or "tarball"
+        :param download_type: currently support "git" or "file" download
+        :param downloaded_file_path: Already downloaded / available stress
+                                     tool path.
         """
 
         self.vm = None
@@ -1903,6 +1907,9 @@ class Stress(object):
         self.uninstall_cmds = self.uninstall_cmds or './configure && make uninstall'
         self.work_path = self.params.get('%s_work_path' % stress_type,
                                          work_path)
+        self.downloaded_file_path = self.params.get("%s_downloaded_file_path" %
+                                                    self.stress_type,
+                                                    downloaded_file_path)
         check_cmd = self.stress_cmds.split(" ")[0]
         self.check_cmd = "pidof -s %s" % check_cmd
         self.stop_cmd = "pkill -9 %s" % check_cmd
@@ -1970,19 +1977,20 @@ class Stress(object):
         destination = os.path.join(destination, self.base_name)
         git.get_repo(url, destination_dir=destination)
 
-    def _tarball_download(self, url, destination):
+    def _file_download(self, url, destination):
         """
-        tarball download and uncompress
-        :param url: dowload url
+        download and uncompress tar / XZ file
+        :param url: download url
         :param destination: download destination
         """
-        import tarfile
-        tarball_path = os.path.join(destination, self.base_name)
-        download.get_file(url, tarball_path)
-        tarball = tarfile.open(tarball_path)
-        tarball.extractall(destination)
-        self.base_name = tarball.members[0].name.split("/")[0]
-        tarball.close()
+        file_path = os.path.join(destination, self.base_name)
+        download.get_file(url, file_path)
+        file_type = process.getoutput("file %s" % file_path)
+        if "directory" not in file_type:
+            self.base_name = archive.uncompress(file_path, destination)
+            # First member of the archive can be the extracted folder or
+            # a file in extracted folder
+            self.base_name = self.base_name.split(os.sep)[0]
 
     def download_stress(self):
         """
@@ -1991,8 +1999,21 @@ class Stress(object):
         url = self.download_url
         tmp_path = data_dir.get_tmp_dir()
         logging.info('Download stress tool from %s', url)
-        download_method = getattr(self, "_%s_download" % self.download_type)
-        download_method(url, tmp_path)
+        # If it is git/wget based download proceed, else fall back if user already
+        # have downloaded tool path, else raise
+        try:
+            download_method = getattr(self, "_%s_download" % self.download_type)
+            download_method(url, tmp_path)
+        except AttributeError:
+            if not self.downloaded_file_path:
+                raise exceptions.TestError("Tool is not downloaded or download"
+                                           " link for Tool is not provided")
+            file_type = process.getoutput("file %s" % self.downloaded_file_path)
+            if "directory" not in file_type:
+                self.base_name = archive.uncompress(self.downloaded_file_path,
+                                                    tmp_path)
+            else:
+                self.base_name = self.downloaded_file_path
         source = os.path.join(tmp_path, self.base_name)
         if self.remote_host:
             logging.info('Copy stress tool to remote host')
@@ -2016,8 +2037,8 @@ class Stress(object):
         install_path = os.path.join(self.dst_path, self.base_name,
                                     self.work_path)
         self.make_cmds = "cd %s;%s" % (install_path, self.make_cmds)
-        logging.info('make and install the %s', self.stress_type)
-        status, output = self.cmd_status_output(self.make_cmds)
+        logging.info('make and install %s', self.stress_type)
+        status, output = self.cmd_status_output(self.make_cmds, timeout=600)
         if status != 0:
             raise exceptions.TestError(
                 "Installation failed with output:\n %s" % output)
@@ -2052,7 +2073,7 @@ class VMStress(Stress):
 
     def __init__(self, vm, stress_type, params, download_url="", make_cmds="",
                  stress_cmds="", stress_args="", work_path="",
-                 uninstall_cmds="", download_type="tarball"):
+                 uninstall_cmds="", download_type="file", downloaded_file_path=None):
         """
         Set parameters for stress type, for the arguments have default value "",
         they can be either passed here, or defined in vm.params
@@ -2062,19 +2083,22 @@ class VMStress(Stress):
         :param params: Test dict params
         :param download_url: from where download the stress tool
         :param make_cmds: make command of the stress tool
-        :param uninstall_cmds: uninstall command of the stress tool
-        :param work_path: the relative work path of the stress tool,
-        e.g. for iozone: "src/current"
         :param stress_cmds: the command to launch stress,
         use stress_type instead if not defined
         :param stress_args: the arguments of the stress tool
-        :param download_type: currently support "git" or "tarball"
+        :param work_path: the relative work path of the stress tool,
+        e.g. for iozone: "src/current"
+        :param uninstall_cmds: uninstall command of the stress tool
+        :param download_type: currently support "git" or "file" download
+        :param downloaded_file_path: Already downloaded / available stress
+                                     tool path.
         """
         super(VMStress, self).__init__(stress_type, params, download_url=download_url,
                                        make_cmds=make_cmds, stress_cmds=stress_cmds,
                                        stress_args=stress_args, work_path=work_path,
                                        uninstall_cmds=uninstall_cmds,
-                                       download_type=download_type)
+                                       download_type=download_type,
+                                       downloaded_file_path=downloaded_file_path)
         self.vm = vm
         self.copy_files_to = self.vm.copy_files_to
         self.session = self.get_session()
@@ -2102,12 +2126,34 @@ class HostStress(Stress):
 
     def __init__(self, stress_type, params, download_url="", make_cmds="",
                  stress_cmds="", stress_args="", work_path="",
-                 uninstall_cmds="", download_type="tarball", remote_server=False):
+                 uninstall_cmds="", download_type="file", downloaded_file_path=None,
+                 remote_server=False):
+        """
+        Set parameters for stress type, for the arguments have default value "",
+        they can be either passed here, or defined in params
+
+        :param stress_type: the name of the stress tool
+        :param params: Test dict params
+        :param download_url: from where download the stress tool
+        :param make_cmds: make command of the stress tool
+        :param stress_cmds: the command to launch stress,
+        use stress_type instead if not defined
+        :param stress_args: the arguments of the stress tool
+        :param work_path: the relative work path of the stress tool,
+        e.g. for iozone: "src/current"
+        :param uninstall_cmds: uninstall command of the stress tool
+        :param download_type: currently support "git" or "file" download
+        :param downloaded_file_path: Already downloaded / available stress
+                                     tool path.
+        :param remote_server: Boolean value, True to run stress on remote host
+                              False to run stress on local host.
+        """
         super(HostStress, self).__init__(stress_type, params, download_url=download_url,
                                          make_cmds=make_cmds, stress_cmds=stress_cmds,
                                          stress_args=stress_args, work_path=work_path,
                                          uninstall_cmds=uninstall_cmds,
-                                         download_type=download_type)
+                                         download_type=download_type,
+                                         downloaded_file_path=downloaded_file_path)
         remote_ip = params.get("remote_ip", None)
         remote_pwd = params.get("remote_pwd", None)
         remote_user = params.get("remote_user", "root")
@@ -2137,7 +2183,7 @@ class HostStress(Stress):
 
 def load_stress(stress_type, params, vms=None, download_url="", make_cmds="",
                 stress_cmds="", stress_args="", work_path="",
-                uninstall_cmds="", download_type="tarball", remote_server=False):
+                uninstall_cmds="", download_type="file", remote_server=False):
     """
     Load stress for tests.
 
@@ -2152,7 +2198,7 @@ def load_stress(stress_type, params, vms=None, download_url="", make_cmds="",
     :param stress_cmds: the command to launch stress,
     use stress_type instead if not defined
     :param stress_args: the arguments of the stress tool
-    :param download_type: currently support "git" or "tarball"
+    :param download_type: currently support "git" or "file" download
     """
     fail_info = []
     # Add stress/iozone tool in vms
