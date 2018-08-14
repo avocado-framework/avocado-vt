@@ -763,9 +763,40 @@ class VM(virt_vm.BaseVM):
 
             return cmd, cmd_nd
 
-        def add_floppy(filename, index):
-            cmd_list = [" -fda '%s'", " -fdb '%s'"]
-            return cmd_list[index] % filename
+        def add_floppy(devices, params):
+            # We may want to add {floppy_otps} parameter for -fda, -fdb
+            # {fat:floppy:}/path/. However vvfat is not usually recommended.
+            devs = []
+            for floppy_name in params.objects('floppies'):
+                image_params = params.object_params(floppy_name)
+                # TODO: Unify image, cdrom, floppy params
+                image_params['drive_format'] = 'floppy'
+                image_params[
+                    'image_readonly'] = image_params.get("floppy_readonly",
+                                                         "no")
+                # Use the absolute patch with floppies (pure *.vfd)
+                image_params['image_raw_device'] = 'yes'
+                image_params['image_name'] = utils_misc.get_path(
+                    data_dir.get_data_dir(),
+                    image_params["floppy_name"])
+                image_params['image_format'] = None
+                devs += devices.images_define_by_params(floppy_name,
+                                                        image_params,
+                                                        media='')
+            # q35 machine has the different cmdline for floppy devices,
+            # and not like other types of storage, all the drives would
+            # attach to the same one floppy device, so have to do some
+            # workaround here
+            if 'q35' in params['machine_type']:
+                devs = [dev for dev in devs
+                        if isinstance(dev, qdevices.QDrive)]
+                if devs:
+                    floppy = QDevice('isa-fdc')
+                    for index, drive in enumerate(devs):
+                        drive_key = 'drive%s' % chr(index + 65)
+                        floppy.set_param(drive_key, drive['id'])
+                    devs.append(floppy)
+            devices.insert(devs)
 
         def add_tftp(devices, filename):
             # If the new syntax is supported, don't add -tftp
@@ -2001,25 +2032,7 @@ class VM(virt_vm.BaseVM):
                 for _ in devs:
                     devices.insert(_)
 
-        # We may want to add {floppy_otps} parameter for -fda, -fdb
-        # {fat:floppy:}/path/. However vvfat is not usually recommended.
-        for floppy_name in params.objects('floppies'):
-            image_params = params.object_params(floppy_name)
-            # TODO: Unify image, cdrom, floppy params
-            image_params['drive_format'] = 'floppy'
-            image_params[
-                'image_readonly'] = image_params.get("floppy_readonly",
-                                                     "no")
-            # Use the absolute patch with floppies (pure *.vfd)
-            image_params['image_raw_device'] = 'yes'
-            image_params['image_name'] = utils_misc.get_path(
-                data_dir.get_data_dir(),
-                image_params["floppy_name"])
-            image_params['image_format'] = None
-            devs = devices.images_define_by_params(floppy_name, image_params,
-                                                   media='')
-            for _ in devs:
-                devices.insert(_)
+        add_floppy(devices, params)
 
         # Add usb devices
         for usb_dev in params.objects("usb_devices"):
