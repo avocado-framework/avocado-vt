@@ -182,9 +182,8 @@ def preprocess_vm(test, params, env, name):
                                     basedir=test.bindir):
                     vm.devices = None
                     start_vm = True
+                    old_vm.destroy(gracefully=gracefully_kill)
                     update_virtnet = True
-                    if old_vm.is_alive():
-                        old_vm.destroy(gracefully=gracefully_kill)
 
     if start_vm:
         if vm_type == "libvirt" and params.get("type") != "unattended_install":
@@ -416,8 +415,7 @@ def postprocess_vm(test, params, env, name):
         kill_vm_timeout = float(params.get("kill_vm_timeout", 0))
         if kill_vm_timeout:
             utils_misc.wait_for(vm.is_dead, kill_vm_timeout, 0, 1)
-        if vm.is_alive():
-            vm.destroy(gracefully=params.get("kill_vm_gracefully") == "yes")
+        vm.destroy(gracefully=params.get("kill_vm_gracefully") == "yes")
         if params.get("kill_vm_libvirt") == "yes" and params.get("vm_type") == "libvirt":
             vm.undefine()
 
