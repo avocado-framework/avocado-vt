@@ -182,9 +182,8 @@ def preprocess_vm(test, params, env, name):
                                     basedir=test.bindir):
                     vm.devices = None
                     start_vm = True
+                    old_vm.destroy(gracefully=gracefully_kill)
                     update_virtnet = True
-                    if old_vm.is_alive():
-                        old_vm.destroy(gracefully=gracefully_kill)
 
     if start_vm:
         if vm_type == "libvirt" and params.get("type") != "unattended_install":
