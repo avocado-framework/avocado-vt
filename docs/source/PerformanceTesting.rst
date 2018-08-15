@@ -14,10 +14,10 @@ network
 block
 -----
 
-- `iozone (linux) <https://github.com/autotest/autotest/tree/master/client/tests/iozone/>`_
-- `iozone (windows) <https://github.com/autotest/autotest/tree/master/client/virt/tests/iozone_windows.py>`_ (iozone has its own result analysis module)
+- `iozone (linux) <https://github.com/autotest/virt-test/virttest/iozone>`_
+- iozone (windows) (iozone has its own result analysis module)
 - iometer (windows) (not push upstream)
-- `ffsb (linux) <https://github.com/autotest/autotest/tree/master/client/tests/ffsb/>`_
+- `ffsb (linux) <https://github.com/autotest/virt-test/virttest/ffsb>`_
 - `qemu_iotests (host) <https://github.com/autotest/autotest-client-tests/tree/master/qemu_iotests>`_
 - `fio (linux) <https://github.com/autotest/autotest-client-tests/tree/master/fio>`_
 
@@ -159,8 +159,6 @@ Unpaired T-test is used to compare two samples, user can check p-value to know i
 Regression results
 ==================
 
-* `netperf.exhost_guest.html <https://i-kvm.rhcloud.com/static/pub/netperf.exhost_guest.html>`_
-* `fio.html <http://i-kvm.rhcloud.com/static/pub/fio.html>`_
 * Every Avg line represents the average value based on *$n* repetitions of the same test, and the following SD line represents the Standard Deviation between the *$n* repetitions.
 * The Standard deviation is displayed as a percentage of the average.
 * The significance of the differences between the two averages is calculated using unpaired T-test that takes into account the SD of the averages.

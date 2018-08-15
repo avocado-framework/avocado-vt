@@ -22,13 +22,12 @@ is set to 'qcow2'.
 Defined On
 ----------
 
--  `client/tests/kvm/base.cfg.sample <https://github.com/autotest/autotest/blob/master/client/tests/kvm/base.cfg.sample>`_
--  `client/tests/kvm/subtests.cfg.sample <https://github.com/autotest/autotest/blob/master/client/tests/kvm/subtests.cfg.sample>`_
+-  `shared/cfg/guest-hw.cfg <https://github.com/avocado-framework/avocado-vt/blob/master/shared/cfg/guest-hw.cfg>`_
 
 Used By
 -------
 
--  `client/virt/virt\_env\_process.py <https://github.com/autotest/autotest/blob/master/client/virt/virt_env_process.py>`_
+-  `virttest/env\_process.py <https://github.com/avocado-framework/avocado-vt/blob/master/virttest/env_process.py>`_
 
 Referenced By
 -------------

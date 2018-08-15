@@ -6,7 +6,7 @@ GlusterFS is an open source, distributed file system capable of scaling to sever
 
 More details of GlusterFS can be found under
 
-http://www.gluster.org/about/
+https://www.gluster.org/
 
 GlusterFS is added as a new block backend for qemu and to make use of this feature we require the following components.
 
