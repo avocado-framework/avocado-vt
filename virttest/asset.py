@@ -617,6 +617,6 @@ def download_asset(asset, interactive=True, restore_image=False):
     """
     asset_info = get_asset_info(asset)
 
-    if asset_info != {}:
+    if asset_info:
         download_file(asset_info=asset_info, interactive=interactive,
                       force=restore_image)
