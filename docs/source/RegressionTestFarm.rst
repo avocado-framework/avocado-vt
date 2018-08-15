@@ -203,7 +203,7 @@ Cobbler is an installation server, that control DHCP and/or PXE boot for your
 x86_64 bare metal virtualization hosts. You can learn how to set it up in the
 following resource:
 
-https://github.com/cobbler/cobbler/wiki/Start%20Here
+https://github.com/cobbler/cobbler/wiki
 
 You will set it up for simple installations, and you probably just need to
 import a Fedora 18 DVD into it, so it can be used to install your hosts.

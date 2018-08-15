@@ -48,7 +48,7 @@ Microsoft. It is *not* a freely redistributable binary, so you must download
 it from the website, here's the direct link for download (keep in mind it might
 change):
 
-http://download.microsoft.com/download/f/1/e/f1e1ac7f-e632-48ea-83ac-56b016318735/NT%20Testing%20TCP%20Tool.msi
+https://gallery.technet.microsoft.com/NTttcp-Version-528-Now-f8b12769
 
 The knowledge base article associated with it is:
 
@@ -75,7 +75,7 @@ contents:
 
 ::
 
-    $ wget http://people.redhat.com/mrodrigu/kvm/winutils.iso
+    $ wget https://avocado-project.org/data/assets/winutils.iso
     $ mkdir original
     $ sudo mount -o loop winutils.iso original
     $ mkdir winutils
@@ -97,7 +97,7 @@ Download the installer and copy autoit script to the new structure, unmount the 
 ::
 
     $ cd winutils/NTttcp
-    $ wget http://download.microsoft.com/download/f/1/e/f1e1ac7f-e632-48ea-83ac-56b016318735/NT%20Testing%20TCP%20Tool.msi -O "winutils/NTttcp/NT Testing TCP Tool.msi"
+    $ wget https://gallery.technet.microsoft.com/NTttcp-Version-528-Now-f8b12769/file/159655/1/NTttcp-v5.33.zip -O "winutils/NTttcp/NTttcp-v5.33.zip"
     $ cp /usr/local/autotest/client/virt/scripts/ntttcp.au3 ./
     $ sudo umount original
 

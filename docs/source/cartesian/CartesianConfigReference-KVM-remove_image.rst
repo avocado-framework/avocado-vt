@@ -24,12 +24,12 @@ image (**image1**), use:
 Defined On
 ----------
 
--  `client/tests/kvm/tests\_base.cfg.sample <https://github.com/autotest/autotest/blob/master/client/tests/kvm/tests_base.cfg.sample>`_
+-  `shared/cfg/base.cfg <https://github.com/avocado-framework/avocado-vt/blob/master/shared/cfg/base.cfg>`_
 
 Used By
 -------
 
--  `client/virt/virt\_env\_process.py <https://github.com/autotest/autotest/blob/master/client/virt/virt_env_process.py>`_
+-  `virttest/env\_process.py <https://github.com/avocado-framework/avocado-vt/blob/master/virttest/env_process.py>`_
 
 Referenced By
 -------------
