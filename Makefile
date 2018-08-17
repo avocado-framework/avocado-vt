@@ -57,14 +57,12 @@ develop:
 	$(PYTHON) setup.py develop $(PYTHON_DEVELOP_ARGS)
 
 link: develop
-	for CONF in etc/avocado/conf.d/*; do\
-		[ -d "../$(AVOCADO_DIRNAME)/avocado/etc/avocado/conf.d" ] && ln -srf $(CURDIR)/$$CONF ../$(AVOCADO_DIRNAME)/avocado/$$CONF || true;\
-		[ -d "../$(AVOCADO_DIRNAME)/etc/avocado/conf.d" ] && ln -srf $(CURDIR)/$$CONF ../$(AVOCADO_DIRNAME)/$$CONF || true;\
-	done
 
 unlink:
 	$(PYTHON) setup.py develop --uninstall $(PYTHON_DEVELOP_ARGS)
-	for CONF in etc/avocado/conf.d/*; do\
+	# For compatibility reasons remove old symlinks
+	for NAME in $$(ls -1 avocado_vt/conf.d); do\
+		CONF="etc/avocado/conf.d/$$NAME";\
 		[ -L ../$(AVOCADO_DIRNAME)/avocado/$$CONF ] && rm -f ../$(AVOCADO_DIRNAME)/avocado/$$CONF || true;\
 		[ -L ../$(AVOCADO_DIRNAME)/$$CONF ] && rm -f ../$(AVOCADO_DIRNAME)/$$CONF || true;\
 	done

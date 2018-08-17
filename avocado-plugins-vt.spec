@@ -38,7 +38,7 @@
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 70.0
-Release: 1%{?gitrel}%{?dist}
+Release: 2%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -130,13 +130,15 @@ Xunit output, among others.
 %{__python2} setup.py install --root %{buildroot} --skip-build
 %if %{with_python3}
 %{__python3} setup.py install --root %{buildroot} --skip-build
+%{__mkdir} -p %{buildroot}/etc/avocado/conf.d
+%{__mv} %{buildroot}%{python2_sitelib}/avocado_vt/conf.d/* %{buildroot}/etc/avocado/conf.d
 %endif
 
 %files -n python2-%{name}
 %defattr(-,root,root,-)
-%dir /etc/avocado
-%dir /etc/avocado/conf.d
-%config(noreplace)/etc/avocado/conf.d/vt.conf
+%dir %{_sysconfdir}/avocado
+%dir %{_sysconfdir}/avocado/conf.d
+%config(noreplace)%{_sysconfdir}/avocado/conf.d/*.conf
 %doc README.rst LICENSE
 %{python2_sitelib}/avocado_vt*
 %{python2_sitelib}/avocado_framework_plugins_vt*
@@ -150,7 +152,7 @@ Xunit output, among others.
 %defattr(-,root,root,-)
 %dir /etc/avocado
 %dir /etc/avocado/conf.d
-%config(noreplace)/etc/avocado/conf.d/vt.conf
+%config(noreplace)%{_sysconfdir}/avocado/conf.d/*.conf
 %doc README.rst LICENSE
 %{python3_sitelib}/avocado_vt*
 %{python3_sitelib}/avocado_framework_plugins_vt*
@@ -162,6 +164,9 @@ Xunit output, among others.
 
 
 %changelog
+* Wed Aug 14 2019 Lukas Doktor <ldoktor@redhat.com> - 70.0-2
+- Change the way config files are packaged
+
 * Wed Aug 14 2019 Lukas Doktor <ldoktor@redhat.com> - 70.0-1
 - Rename package to "avocado_framework_plugins_vt"
 
