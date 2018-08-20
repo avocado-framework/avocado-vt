@@ -29,6 +29,7 @@ import threading
 import time
 import subprocess
 import shutil
+import ast
 
 import aexpect
 from avocado.core import exceptions
@@ -1862,7 +1863,7 @@ class Stress(object):
     def __init__(self, stress_type, params, download_url="", make_cmds="",
                  stress_cmds="", stress_args="", work_path="",
                  uninstall_cmds="", download_type="file",
-                 downloaded_file_path=None):
+                 downloaded_file_path=None, dependency_packages=""):
         """
         Set parameters for stress type, for the arguments have default value "",
         they can be either passed here, or defined in vm.params
@@ -1880,6 +1881,13 @@ class Stress(object):
         :param download_type: currently support "git" or "file" download
         :param downloaded_file_path: Already downloaded / available stress
                                      tool path.
+        :param dependency_packages: prior to install stress tool, its list of
+                                    dependency packages that are to be installed.
+        e.g. for stress-ng in Ubuntu needs 'build-essential' and 'git' packages
+        and in RHEL '@Development Tools' group packages as dependencies, so
+        these packages can be installed prior to stress-ng installation by
+        providing dependency_packages=['build-essential', 'git'] for Ubuntu and
+        dependency_packages='@Development Tools' for RHEL.
         """
 
         self.vm = None
@@ -1908,6 +1916,11 @@ class Stress(object):
         self.uninstall_cmds = self.uninstall_cmds or './configure && make uninstall'
         self.work_path = self.params.get('%s_work_path' % stress_type,
                                          work_path)
+        self.dependency_packages = str(self.params.get('%s_dependency_packages_list' %
+                                                       stress_type, dependency_packages))
+        # dependency packages can be a list as well
+        if self.dependency_packages:
+            self.dependency_packages = ast.literal_eval(self.dependency_packages)
         self.downloaded_file_path = self.params.get("%s_downloaded_file_path" %
                                                     self.stress_type,
                                                     downloaded_file_path)
@@ -2035,11 +2048,19 @@ class Stress(object):
         To download, abstract, build and install the stress tool
         """
         self.download_stress()
+        # Install the dependencies before the tool gets installed
+        if self.dependency_packages:
+            if not utils_package.package_install(self.dependency_packages,
+                                                 session=self.session):
+                raise exceptions.TestError("Installing dependency packages for"
+                                           " %s failed" % self.stress_type)
         install_path = os.path.join(self.dst_path, self.base_name,
                                     self.work_path)
         self.make_cmds = "cd %s;%s" % (install_path, self.make_cmds)
-        logging.info('make and install %s', self.stress_type)
-        status, output = self.cmd_status_output(self.make_cmds, timeout=self.stress_shell_timeout)
+        logging.info('installing the %s with %s', self.stress_type,
+                     self.make_cmds)
+        status, output = self.cmd_status_output(self.make_cmds,
+                                                timeout=self.stress_shell_timeout)
         if status != 0:
             raise exceptions.TestError(
                 "Installation failed with output:\n %s" % output)
@@ -2074,7 +2095,8 @@ class VMStress(Stress):
 
     def __init__(self, vm, stress_type, params, download_url="", make_cmds="",
                  stress_cmds="", stress_args="", work_path="",
-                 uninstall_cmds="", download_type="file", downloaded_file_path=None):
+                 uninstall_cmds="", download_type="file", downloaded_file_path=None,
+                 dependency_packages=""):
         """
         Set parameters for stress type, for the arguments have default value "",
         they can be either passed here, or defined in vm.params
@@ -2093,6 +2115,13 @@ class VMStress(Stress):
         :param download_type: currently support "git" or "file" download
         :param downloaded_file_path: Already downloaded / available stress
                                      tool path.
+        :param dependency_packages: prior to install stress tool, its list of
+                                    dependency packages that are to be installed.
+        e.g. for stress-ng in Ubuntu needs 'build-essential' and 'git' packages
+        and in RHEL '@Development Tools' group packages as dependencies, so
+        these packages can be installed prior to stress-ng installation by
+        providing dependency_packages=['build-essential', 'git'] for Ubuntu and
+        dependency_packages='@Development Tools' for RHEL.
         """
         # This enables VM specific stress params like stress_cmds_virt-tests-vm1, etc.,
         # to run different stress type on different VM
@@ -2105,7 +2134,8 @@ class VMStress(Stress):
                                        stress_args=stress_args, work_path=work_path,
                                        uninstall_cmds=uninstall_cmds,
                                        download_type=download_type,
-                                       downloaded_file_path=downloaded_file_path)
+                                       downloaded_file_path=downloaded_file_path,
+                                       dependency_packages=dependency_packages)
         self.vm = vm
         self.copy_files_to = self.vm.copy_files_to
         self.session = self.get_session()
@@ -2134,7 +2164,7 @@ class HostStress(Stress):
     def __init__(self, stress_type, params, download_url="", make_cmds="",
                  stress_cmds="", stress_args="", work_path="",
                  uninstall_cmds="", download_type="file", downloaded_file_path=None,
-                 remote_server=False):
+                 remote_server=False, dependency_packages=""):
         """
         Set parameters for stress type, for the arguments have default value "",
         they can be either passed here, or defined in params
@@ -2154,13 +2184,21 @@ class HostStress(Stress):
                                      tool path.
         :param remote_server: Boolean value, True to run stress on remote host
                               False to run stress on local host.
+        :param dependency_packages: prior to install stress tool, its list of
+                                    dependency packages that are to be installed.
+        e.g. for stress-ng in Ubuntu needs 'build-essential' and 'git' packages
+        and in RHEL '@Development Tools' group packages as dependencies, so
+        these packages can be installed prior to stress-ng installation by
+        providing dependency_packages=['build-essential', 'git'] for Ubuntu and
+        dependency_packages='@Development Tools' for RHEL.
         """
         super(HostStress, self).__init__(stress_type, params, download_url=download_url,
                                          make_cmds=make_cmds, stress_cmds=stress_cmds,
                                          stress_args=stress_args, work_path=work_path,
                                          uninstall_cmds=uninstall_cmds,
                                          download_type=download_type,
-                                         downloaded_file_path=downloaded_file_path)
+                                         downloaded_file_path=downloaded_file_path,
+                                         dependency_packages=dependency_packages)
         remote_ip = params.get("remote_ip", None)
         remote_pwd = params.get("remote_pwd", None)
         remote_user = params.get("remote_user", "root")
