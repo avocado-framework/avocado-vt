@@ -209,6 +209,7 @@ class VMCheck(object):
         self.delete_vm = 'yes' == params.get('vm_cleanup', 'yes')
         self.virsh_session_id = params.get("virsh_session_id")
         self.windows_root = params.get("windows_root", "C:\WINDOWS")
+        self.output_method = params.get("output_method")
         # Need create session after create the instance
         self.session = None
 
@@ -246,7 +247,11 @@ class VMCheck(object):
 
         if self.target == "ovirt":
             self.vm.delete()
-            self.vm.delete_from_export_domain(self.export_name)
+            # When vm is deleted, the disk will also be removed from
+            # data domain, so it's not necessary to delete disk from
+            # export domain for rhv_upload.
+            if self.output_method != "rhv_upload":
+                self.vm.delete_from_export_domain(self.export_name)
             ovirt.disconnect()
 
     def storage_cleanup(self):
