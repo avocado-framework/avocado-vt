@@ -110,9 +110,8 @@ class Env(IterableUserDict):
             raise EnvSaveError("No filename specified for this env file")
         self.save_lock.acquire()
         try:
-            f = open(filename, "wb")
-            cPickle.dump(self.data, f)
-            f.close()
+            with open(filename, "wb") as f:
+                cPickle.dump(self.data, f, protocol=0)
         finally:
             self.save_lock.release()
 
