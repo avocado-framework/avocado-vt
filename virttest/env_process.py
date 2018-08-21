@@ -37,11 +37,10 @@ from virttest import utils_libvirtd
 from virttest import remote
 from virttest import data_dir
 from virttest import utils_net
-from virttest import utils_disk
 from virttest import nfs
 from virttest import libvirt_vm
+from virttest import utils_test
 from virttest.utils_version import VersionInterval
-from virttest.utils_test import libvirt
 from virttest.compat_52lts import decode_to_text
 
 try:
@@ -59,9 +58,6 @@ _vm_register_thread = None
 _vm_register_thread_termination_event = None
 
 _setup_manager = test_setup.SetupManager()
-
-kernel_modified = False
-kernel_cmdline = None
 
 
 #: QEMU version regex.  Attempts to extract the simple and extended version
@@ -812,7 +808,7 @@ def preprocess(test, params, env):
     # will be taken care in remote machine for migration to succeed
     if migration_setup:
         dest_uri = libvirt_vm.complete_uri(params["server_ip"])
-        migrate_setup = libvirt.MigrationTest()
+        migrate_setup = utils_test.libvirt.MigrationTest()
         migrate_setup.migrate_pre_setup(dest_uri, params)
 
     # Destroy and remove VMs that are no longer needed in the environment
@@ -956,62 +952,6 @@ def preprocess(test, params, env):
         else:
             kernel_extra_params_remove += " pci=nomsi"
 
-    if kernel_extra_params_add or kernel_extra_params_remove:
-        global kernel_cmdline, kernel_modified
-        image_filename = storage.get_image_filename(params,
-                                                    data_dir.get_data_dir())
-        grub_file = params.get("grub_file", "/boot/grub2/grub.cfg")
-        kernel_cfg_pos_reg = params.get("kernel_cfg_pos_reg",
-                                        r".*vmlinuz-\d+.*")
-
-        disk_obj = utils_disk.GuestFSModiDisk(image_filename)
-        kernel_config_ori = disk_obj.read_file(grub_file)
-        kernel_config = re.findall(kernel_cfg_pos_reg, kernel_config_ori)
-        if not kernel_config:
-            raise exceptions.TestError("Cannot find the kernel config, reg "
-                                       "is %s" % kernel_cfg_pos_reg)
-        kernel_config = kernel_config[0]
-        kernel_cmdline = kernel_config
-
-        kernel_need_modify = False
-        kernel_config_set = kernel_config
-        debug_msg = "Guest cmdline extra_params setting:"
-        if kernel_extra_params_add:
-            debug_msg += " added '%s'" % kernel_extra_params_add
-            kernel_extra_params = kernel_extra_params_add.split()
-            for kernel_extra_param in kernel_extra_params:
-                param_tag = kernel_extra_param.split("=")[0]
-                params_kernel = params.object_params(param_tag)
-                rm_s = params_kernel.get("ker_remove_similar", "no") == "yes"
-                kernel_config_set = utils_misc.add_ker_cmd(kernel_config_set,
-                                                           kernel_extra_param,
-                                                           rm_s)
-        if kernel_extra_params_remove:
-            debug_msg += " removed '%s'" % kernel_extra_params_remove
-            kernel_extra_params = kernel_extra_params_remove.split()
-            for kernel_extra_param in kernel_extra_params:
-                kernel_config_set = utils_misc.rm_ker_cmd(kernel_config_set,
-                                                          kernel_extra_param)
-
-        if kernel_config_set.strip() != kernel_cmdline.strip():
-            kernel_need_modify = True
-
-        if kernel_need_modify:
-            for vm in env.get_all_vms():
-                if vm:
-                    vm.destroy()
-                    env.unregister_vm(vm.name)
-            disk_obj.replace_image_file_content(grub_file, kernel_config,
-                                                kernel_config_set)
-            kernel_modified = True
-        del disk_obj
-        params["check_kernel_cmd_line_from_serial"] = "yes"
-        if kernel_extra_params_add:
-            params['kernel_options_exist'] = kernel_extra_params_add
-        if kernel_extra_params_remove:
-            params['kernel_options_not_exist'] = kernel_extra_params_remove
-        logging.debug(debug_msg)
-
     # Clone master image from vms.
     base_dir = data_dir.get_data_dir()
     if params.get("master_images_clone"):
@@ -1029,6 +969,15 @@ def preprocess(test, params, env):
     # Preprocess all VMs and images
     if params.get("not_preprocess", "no") == "no":
         process(test, params, env, preprocess_image, preprocess_vm)
+
+    # change the kernel params if configured
+    if kernel_extra_params_add or kernel_extra_params_remove:
+        for vm in env.get_all_vms():
+            if vm:
+                if not vm.is_alive():
+                    vm.start()
+                utils_test.update_boot_option(vm, args_added=kernel_extra_params_add,
+                                              args_removed=kernel_extra_params_remove)
 
     # Start the screendump thread
     if params.get("take_regular_screendumps") == "yes":
@@ -1082,6 +1031,17 @@ def postprocess(test, params, env):
         for vm in living_vms:
             sosreport_path = vm.sosreport()
             logging.info("Sosreport for guest: %s", sosreport_path)
+
+    # recover the changes done to kernel params in postprocess
+    kernel_extra_params_add = params.get("kernel_extra_params_add", "")
+    kernel_extra_params_remove = params.get("kernel_extra_params_remove", "")
+    if kernel_extra_params_add or kernel_extra_params_remove:
+        for vm in env.get_all_vms():
+            if vm:
+                if not vm.is_alive():
+                    vm.start()
+                utils_test.update_boot_option(vm, args_added=kernel_extra_params_remove,
+                                              args_removed=kernel_extra_params_add)
 
     # Postprocess all VMs and images
     try:
@@ -1312,31 +1272,6 @@ def postprocess(test, params, env):
             libvirtd_debug_log = test_setup.LibvirtdDebugLog(test)
             libvirtd_debug_log.disable()
 
-    global kernel_cmdline, kernel_modified
-    if kernel_modified and params.get("restore_kernel_cmd", "yes") == "yes":
-        image_filename = storage.get_image_filename(params,
-                                                    data_dir.get_data_dir())
-        grub_file = params.get("grub_file", "/boot/grub2/grub.cfg")
-        kernel_cfg_pos_reg = params.get("kernel_cfg_pos_reg",
-                                        r".*vmlinuz-\d+.*")
-
-        for vm in env.get_all_vms():
-            if vm:
-                vm.destroy()
-
-        disk_obj = utils_disk.GuestFSModiDisk(image_filename)
-        kernel_config_cur = disk_obj.read_file(grub_file)
-        kernel_config = re.findall(kernel_cfg_pos_reg, kernel_config_cur)
-        if not kernel_config:
-            raise exceptions.TestError("Cannot find the kernel config, "
-                                       "reg is %s" % kernel_cfg_pos_reg)
-        kernel_config = kernel_config[0]
-        disk_obj.replace_image_file_content(grub_file, kernel_config,
-                                            kernel_cmdline)
-        kernel_modified = False
-        del disk_obj
-        logging.debug("Restore the guest cmd line after test.")
-
     # Execute any post_commands
     if params.get("post_command"):
         try:
@@ -1383,7 +1318,7 @@ def postprocess(test, params, env):
     # cleanup migration presetup in post process
     if migration_setup:
         dest_uri = libvirt_vm.complete_uri(params["server_ip"])
-        migrate_setup = libvirt.MigrationTest()
+        migrate_setup = utils_test.libvirt.MigrationTest()
         migrate_setup.migrate_pre_setup(dest_uri, params, cleanup=True)
 
     setup_pb = False
