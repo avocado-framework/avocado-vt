@@ -1206,17 +1206,17 @@ def domxml_from_native(info_format, native_file, options=None, **dargs):
     return command(cmd, **dargs)
 
 
-def domxml_to_native(info_format, xml_file, options, **dargs):
+def domxml_to_native(info_format, name, options, **dargs):
     """
-    Convert domain XML config to a native guest configuration format.
+    Convert existing domain or its XML config to a native guest configuration format.
 
-    :param info_format:The command's options. For exmple:qemu-argv.
-    :param xml_file:XML config file.
-    :param options:extra param.
+    :param info_format:The command's options. For example: `qemu-argv`.
+    :param name: XML file or domain name/UUID.
+    :param options: --xml or --domain
     :param dargs: standardized virsh function API keywords
     :return: result from command
     """
-    cmd = "domxml-to-native %s %s %s" % (info_format, xml_file, options)
+    cmd = "domxml-to-native %s %s %s" % (info_format, options, name)
     return command(cmd, **dargs)
 
 
