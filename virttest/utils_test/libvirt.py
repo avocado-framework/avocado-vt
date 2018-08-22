@@ -1524,20 +1524,23 @@ def check_result(result, expected_fails=[], skip_if=[], any_error=False):
     :param any_error: Whether expect on any error message. Setting to True will
                       will override expected_fails
     """
-    logging.debug("Command result:\n%s" % result)
+    logging.info('Checking command result')
+    stdout = results_stdout_52lts(result)
     stderr = results_stderr_52lts(result)
+    output = '\n'.join([stdout, stderr])
+    logging.debug("Command result:\n%s" % output)
     if skip_if:
         for patt in skip_if:
             if re.search(patt, stderr):
                 raise exceptions.TestSkipError("Test skipped: found '%s' in test "
                                                "result:\n%s" %
-                                               (patt, stderr))
+                                               (patt, output))
     if any_error:
         if result.exit_status:
             return
         else:
             raise exceptions.TestFail(
-                "Expect should fail but got:\n%s" % result)
+                "Expect should fail but got:\n%s" % output)
 
     if result.exit_status:
         if expected_fails:
@@ -1545,15 +1548,15 @@ def check_result(result, expected_fails=[], skip_if=[], any_error=False):
                        for patt in expected_fails):
                 raise exceptions.TestFail("Expect should fail with one of %s, "
                                           "but failed with:\n%s" %
-                                          (expected_fails, result))
+                                          (expected_fails, output))
         else:
             raise exceptions.TestFail(
-                "Expect should succeed, but got:\n%s" % result)
+                "Expect should succeed, but got:\n%s" % output)
     else:
         if expected_fails:
             raise exceptions.TestFail("Expect should fail with one of %s, "
                                       "but succeeded:\n%s" %
-                                      (expected_fails, result))
+                                      (expected_fails, output))
 
 
 def check_exit_status(result, expect_error=False):
