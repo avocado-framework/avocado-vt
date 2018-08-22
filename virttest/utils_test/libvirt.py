@@ -45,16 +45,17 @@ from virttest import utils_misc
 from virttest import utils_selinux
 from virttest import libvirt_storage
 from virttest import utils_net
+from virttest import utils_libvirtd
 from virttest import gluster
 from virttest import remote
 from virttest import test_setup
 from virttest import data_dir
-from virttest import utils_libvirtd
 from virttest import utils_config
 from virttest.utils_iptables import Iptables
 from virttest.staging import lv_utils
 from virttest.utils_libvirtd import service_libvirtd_control
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
+from virttest.compat_52lts import decode_to_text
 from virttest.libvirt_xml import vm_xml
 from virttest.libvirt_xml import network_xml
 from virttest.libvirt_xml import xcepts
@@ -3577,3 +3578,40 @@ def get_disk_alias(vm, source_file=None):
                 logging.info("Ignore error of source attr getting for file: %s" % e)
                 pass
     return None
+
+
+def check_cmd_expected(check_cmd, matched, is_expected=True):
+    """
+    check the cmd result that process run
+
+    Params check_cmd: the command need to run
+    Params matched: str, expected or not expected match pattern
+    Params is_expected: bool type, check if expected to match
+    """
+    out = decode_to_text(process.system_output(check_cmd,
+                                               ignore_status=False,
+                                               shell=True))
+
+    # if we need to match "nothing"
+    if not matched:
+        if out:
+            raise exceptions.TestError("the command result is: \n %s \n"
+                                       "but expected no result" % out)
+        else:
+            logging.info("command has no result")
+            return
+
+    # if we need to match or expected not match
+    if is_expected:
+        if not re.search(matched, out):
+            raise exceptions.TestError(" '%s' not found in output: %s " %
+                                       (matched, out))
+        else:
+            logging.info("'%s' is matched in command result" % matched)
+
+    if not is_expected:
+        if re.search(matched, out):
+            raise exceptions.TestError(" '%s' is not expected but found in %s" %
+                                       (matched, out))
+        else:
+            logging.info("'%s' is not matched in command result" % matched)
