@@ -554,20 +554,29 @@ class VMXMLBase(base.LibvirtXMLBase):
 
         :return: None if deleting all controllers
         """
-        all_controllers = self.xmltreefile.findall("devices/controller")
-        del_controllers = []
-        for controller in all_controllers:
-            if controller.get("type") != controller_type:
-                continue
-            del_controllers.append(controller)
-
         # no seclabel tag found in xml.
+        del_controllers = self.get_controllers(controller_type=controller_type)
         if del_controllers == []:
             logging.debug("Controller %s for this domain does not "
                           "exist" % controller_type)
 
         for controller in del_controllers:
             self.xmltreefile.remove(controller)
+
+    def get_controllers(self, controller_type=None):
+        """
+        Get controllers according controller type
+
+        :param controller_type: type of controllers need to get
+        :return: controller list
+        """
+        all_controllers = self.xmltreefile.findall("devices/controller")
+        type_controllers = []
+        for controller in all_controllers:
+            if controller.get("type") != controller_type:
+                continue
+            type_controllers.append(controller)
+        return type_controllers
 
 
 class VMXML(VMXMLBase):
