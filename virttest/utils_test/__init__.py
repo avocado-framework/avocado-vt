@@ -2071,7 +2071,7 @@ class VMStress(Stress):
     Run Stress tool on VMs, such as stress, unixbench, iozone and etc.
     """
 
-    def __init__(self, vm, stress_type, params, download_url="", make_cmds="",
+    def __init__(self, vm, params, stress_type="stress", download_url="", make_cmds="",
                  stress_cmds="", stress_args="", work_path="",
                  uninstall_cmds="", download_type="file", downloaded_file_path=None):
         """
@@ -2095,8 +2095,8 @@ class VMStress(Stress):
         """
         # This enables VM specific stress params like stress_cmds_virt-tests-vm1, etc.,
         # to run different stress type on different VM
-        self.stress_type = params.get("stress_type_%s" % vm.name, stress_type)
         self.params = params.object_params(vm.name)
+        self.stress_type = self.params.get("stress_type", stress_type)
 
         super(VMStress, self).__init__(self.stress_type, self.params,
                                        download_url=download_url,
