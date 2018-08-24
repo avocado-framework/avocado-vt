@@ -623,7 +623,9 @@ class MemoryHotplugTest(MemoryBaseTest):
                 dev_type = "pc-dimm"
             step = "Hotplug %s '%s' to VM" % (dev_type, dev.get_qid())
             error_context.context(step, logging.info)
-            vm.devices.simple_hotplug(dev, vm.monitor)
+            _, ver_out = vm.devices.simple_hotplug(dev, vm.monitor)
+            if ver_out is False:
+                raise exceptions.TestFail("Verify hotplug memory failed")
             self.update_vm_after_hotplug(vm, dev)
         return devices
 
@@ -655,7 +657,9 @@ class MemoryHotplugTest(MemoryBaseTest):
             logging.warn("'%s' is not used by any dimm" % qid_mem)
         step = "Unplug pc-dimm '%s'" % qid_dimm
         error_context.context(step, logging.info)
-        vm.devices.simple_unplug(dimm, vm.monitor)
+        _, ver_out = vm.devices.simple_unplug(dimm, vm.monitor)
+        if ver_out is False:
+            raise exceptions.TestFail("Verify unplug memory failed")
         devices.append(dimm)
         self.update_vm_after_unplug(vm, dimm)
         error_context.context(step, logging.info)

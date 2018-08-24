@@ -1878,7 +1878,7 @@ class DevContainer(object):
         Create pc-dimm device from params.
         """
         params = params.object_params("dimm")
-        dimm_type = 'nvdimm' if params.get('share') else 'pc-dimm'
+        dimm_type = "nvdimm" if params.get("nv_backend") else "pc-dimm"
         attrs = qdevices.Dimm.__attributes__[:]
         params = params.copy_from_keys(attrs)
         dev = qdevices.Dimm(params=params, dimm_type=dimm_type)

@@ -889,12 +889,12 @@ class Memory(QObject):
     """
     QOM memory object, support for pinning memory on host NUMA nodes.
     The existing options 'prealloc', 'mem-path', 'host-nodes', 'size',
-    'share', and 'backend' are subsumed by the QOM objects 'memory-backend-ram',
-    and 'memory-backend-file'.
+    'share', 'merge', 'dump', 'discard-data' and 'backend' are subsumed
+    by the QOM objects 'memory-backend-ram', and 'memory-backend-file'.
     """
 
-    __attributes__ = ["size", "prealloc", "mem-path",
-                      "backend", "policy", "host-nodes", "share"]
+    __attributes__ = ["size", "prealloc", "mem-path", "backend", "policy",
+                      "host-nodes", "share", "merge", "dump", "discard-data"]
 
     def __init__(self, backend, params=None):
         super(Memory, self).__init__(backend, params)
@@ -910,23 +910,57 @@ class Memory(QObject):
         if params.get("host-nodes"):
             host_nodes = list(map(int, params["host-nodes"].split()))
             params["host-nodes"] = host_nodes
+        for k in params:
+            params[k] = True if params[k] == "yes" else params[k]
+            params[k] = False if params[k] == "no" else params[k]
         kwargs = {"qom-type": backend,
                   "id": params.pop("id"),
                   "props": dict(params)}
         return "object-add", kwargs
 
     def verify_unplug(self, out, monitor):
-        out = monitor.info("memory-devices", debug=False)
-        memdev = "/object/%s" % self.get_qid()
-        if memdev not in out:
-            return True
-        return False
+        """
+        :param out: Output of the unplug command
+        :param monitor: Monitor used for unplug
+        :return: True when successful, False when unsuccessful
+        """
+        out = monitor.info("memdev", debug=False)
+        memdev = self.get_qid()
+        for dev in out:
+            if dev["id"] == memdev:
+                return False
+        return True
 
     def verify_hotplug(self, out, monitor):
-        out = monitor.info("memory-devices", debug=False)
-        memdev = "/object/%s" % self.get_qid()
-        if memdev in out:
-            return True
+        """
+        :param out: Output of the hotplug command
+        :param monitor: Monitor used for hotplug
+        :return: True when successful, False when unsuccessful
+        """
+        out = monitor.info("memdev", debug=False)
+        memdev = self.get_qid()
+        params = self.params.copy()
+        for dev in out:
+            if dev["id"] == memdev:
+                if not params.get("host-nodes") and len(dev["host-nodes"]):
+                    return False
+                if params.get("host-nodes"):
+                    host_nodes = list(map(int, params["host-nodes"].split()))
+                    if dev["host-nodes"].sort() != host_nodes.sort():
+                        return False
+                args = (params["size"], "B", 1024)
+                size = int(float(utils_misc.normalize_data_size(*args)))
+                if dev["size"] != size:
+                    return False
+                dev.pop("size")
+                dev.pop("host-nodes")
+                for k in dev:
+                    if params.get(k):
+                        params[k] = True if params[k] == "yes" else params[k]
+                        params[k] = False if params[k] == "no" else params[k]
+                        if dev[k] != params[k]:
+                            return False
+                return True
         return False
 
 
@@ -949,8 +983,8 @@ class Dimm(QDevice):
         out = monitor.info("memory-devices", debug=False)
         if "unknown command" in out:       # Old qemu don't have info qtree
             return out
-        dev_id_name = 'id "%s"' % self.get_qid()
-        if dev_id_name in out:
+        dev_id_name = self.get_qid()
+        if dev_id_name in str(out):
             return True
         return False
 
@@ -958,8 +992,8 @@ class Dimm(QDevice):
         out = monitor.info("memory-devices", debug=False)
         if "unknown command" in out:       # Old qemu don't have info qtree
             return out
-        dev_id_name = 'id "%s"' % self.get_qid()
-        if dev_id_name not in out:
+        dev_id_name = self.get_qid()
+        if dev_id_name not in str(out):
             return True
         return False
 
