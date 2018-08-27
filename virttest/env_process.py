@@ -666,7 +666,10 @@ def preprocess(test, params, env):
         if migration_setup:
             power9_compat_remote = "yes" == params.get("power9_compat_remote", "no")
             cpu_cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
-            server_session = test_setup.remote_session(params)
+            remote_host = {'server_ip': params.get("remote_ip"),
+                           'server_pwd': params.get("remote_pwd"),
+                           'server_user': params.get("remote_user", "root")}
+            server_session = test_setup.remote_session(remote_host)
             cmd_output = server_session.cmd_status_output(cpu_cmd)
             if (cmd_output[0] == 0):
                 remote_cpu = cmd_output[1].strip().lower()
