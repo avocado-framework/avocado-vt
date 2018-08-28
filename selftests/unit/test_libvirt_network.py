@@ -5,6 +5,7 @@ Unit tests for Manipulator classes in libvirt_xml module.
 import unittest
 import os
 import sys
+import itertools
 
 from avocado.utils.process import CmdResult
 
@@ -16,7 +17,6 @@ if os.path.isdir(os.path.join(basedir, 'virttest')):
 
 from test_virsh import FakeVirshFactory
 from virttest.libvirt_xml.network_xml import NetworkXML
-from virttest.staging.backports import itertools
 
 # The output of virsh.net_list with only default net
 _DEFAULT_NET = (' Name                 State      Autostart     Persistent\n'
