@@ -21,11 +21,11 @@ echo "Run test on a private LAN, as there are multpile nics, so set arp_filter t
 sysctl net.ipv4.conf.default.arp_filter=1
 sysctl net.ipv4.conf.all.arp_filter=1
 echo "Disable netfilter on bridges"
-sysctl net.bridge.bridge-nf-call-ip6tables=0
-sysctl net.bridge.bridge-nf-call-iptables=0
-sysctl net.bridge.bridge-nf-call-arptables=0
+ip link set switch type bridge nf_call_iptables 0
+ip link set switch type bridge nf_call_ip6tables 0
+ip link set switch type bridge nf_call_arptables 0
 echo "Set bridge forward delay to 0"
-sysctl brctl setfd switch 0
+ip link set switch type bridge forward_delay 0
 
 ####
 echo "Stop the running serivices"
