@@ -1638,6 +1638,20 @@ def detach_disk(name, target, extra="", **dargs):
     return command(cmd, **dargs)
 
 
+def detach_device_alias(name, alias, extra="", **dargs):
+    """
+    Detach a device with alias
+
+    :param name: name of guest
+    :param alias: alias of device
+    :param extra: additional arguments to command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "detach-device-alias --domain %s --alias %s %s" % (name, alias, extra)
+    return command(cmd, **dargs)
+
+
 def attach_interface(name, option="", **dargs):
     """
     Attach a NIC to VM.
