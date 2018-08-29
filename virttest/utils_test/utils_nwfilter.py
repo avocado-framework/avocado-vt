@@ -1,10 +1,79 @@
 """
+Virtualization test - network filter related utility functions
 Module simplifying manipulation of XML described at
 http://libvirt.org/formatnwfilter.html
 """
 
+import logging
+
 from virttest.libvirt_xml import base, accessors
 from virttest.libvirt_xml.devices.interface import Filterref
+from virttest import libvirt_xml
+
+# network filter xml set up code BEGIN
+
+
+def set_nwfilter_iface(New_iface,
+                       type_name="network",
+                       source={'network': "default"},
+                       filterref_dict={}):
+    """
+    set iface to bind network or bind filter
+
+    Params New_iface: instance of Interface,
+    Params type_name: the type name which bind to interface
+    Params source: source of new_iface, set as default
+    Params filterref_dict: dict of network filter, which is not
+    blank will bind to new_iface
+
+    return:  new network interface
+    """
+    # set iface type name as network and binding source type
+    New_iface.type_name = type_name
+    New_iface.source = source
+    # if filterref_dict is not blank , bind it to iface
+    if filterref_dict:
+        filterref = New_iface.new_filterref(**filterref_dict)
+        New_iface.filterref = filterref
+    # print the new iface xml
+    logging.debug("new iface xml is: \n %s \n" % New_iface)
+    return New_iface
+
+
+def set_filterref_dict(filter_name, params, param_name, param_value):
+    """
+    set up the filter rule dict
+
+    Params filter_name: string, network filter rule name.
+    Params params: list of dict, the cfg file key and value.
+    Params param_name: string, key of cfg file, param name of filter xml
+    Params param_value: string, key of cfg file, param_value of filter xml
+
+    return: filterref_dict: dict, can use to set up binding in interafce xml
+    """
+    filter_params_list = []
+    params_key = [i for i in params.keys()
+                  if param_name in i]
+    params_value = [i for i in params.keys()
+                    if param_value in i]
+    params_key.sort()
+    params_value.sort()
+    for i in range(len(params_key)):
+        params_dict = {}
+        params_dict['name'] = params[params_key[i]]
+        params_dict['value'] = params[params_value[i]]
+        filter_params_list.append(params_dict)
+    filterref_dict = {}
+    filterref_dict['name'] = filter_name
+    filterref_dict['parameters'] = filter_params_list
+    return filterref_dict
+
+
+# filter set up code
+# END
+
+# BEGIN
+# Nwfilter binding file xml code
 
 
 class NwfilterBinding(base.LibvirtXMLBase):
@@ -98,3 +167,30 @@ class NwfilterBinding(base.LibvirtXMLBase):
                                      tag_name='uuid')
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = u'<owner></owner>'
+
+
+def create_filterbinding_xml(vm_name,
+                             mac_address='',
+                             portdev='',
+                             filterref_dict={}):
+    """
+    create nwfilter binding xml
+
+    Params vm_name: string, name of vm
+    Params mac_address: string, mac address of vm
+    Params portdev: string, port dev of vm binding
+    Params filterref_dict: dict, network filter  dict
+
+    return: return xml instance, can binding filter to network interface
+    """
+    vmxml = libvirt_xml.VMXML.new_from_inactive_dumpxml(vm_name)
+    binding = NwfilterBinding()
+    binding.owner = binding.new_owner(vm_name, vmxml.uuid)
+    binding.mac_address = mac_address
+    binding.portdev = portdev
+    binding.filterref = binding.new_filterref(**filterref_dict)
+    logging.debug("filter binding xml is: %s" % binding)
+    return binding
+
+# Nwfilter binding code
+# END
