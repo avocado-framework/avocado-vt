@@ -2571,6 +2571,8 @@ class VM(virt_vm.BaseVM):
         params = self.params
         root_dir = self.root_dir
         pass_fds = []
+        if migration_fd:
+            pass_fds.append(int(migration_fd))
 
         # Verify the md5sum of the ISO images
         for cdrom in params.objects("cdroms"):
