@@ -1887,7 +1887,8 @@ class Stress(object):
         self.remote_host = None
         self.copy_files_to = remote.copy_files_to
         self.params = params
-        self.timeout = 60
+        self.stress_shell_timeout = int(self.params.get('stress_shell_timeout', 600))
+        self.stress_wait_for_timeout = int(self.params.get('stress_wait_for_timeout', 60))
         self.stress_type = stress_type
         stress_cmds = stress_cmds or stress_type
         self.stress_cmds = self.params.get('stress_cmds_%s' % stress_type,
@@ -1936,9 +1937,9 @@ class Stress(object):
         except aexpect.ShellTimeoutError:
             self.cmd_launch('')
         # wait for stress to start and then check, if not raise TestError
-        if not utils_misc.wait_for(self.app_running, first=2.0,
+        if not utils_misc.wait_for(self.app_running, self.stress_wait_for_timeout, first=2.0,
                                    text="wait for stress app to start",
-                                   step=1.0, timeout=60):
+                                   step=1.0):
             raise exceptions.TestError("Stress app does not "
                                        "running as expected")
 
@@ -1954,17 +1955,17 @@ class Stress(object):
             return False
 
         logging.info("stop stress app in guest/host/remote host")
-        utils_misc.wait_for(_unload_stress, first=2.0,
-                            text="wait stress app quit", step=1.0, timeout=60)
+        utils_misc.wait_for(_unload_stress, self.stress_wait_for_timeout, first=2.0,
+                            text="wait stress app quit", step=1.0)
 
     def app_running(self):
         """
         check whether app really run in background
         """
         if self.session:
-            return self.cmd_status(self.check_cmd, timeout=60) == 0
+            return self.cmd_status(self.check_cmd, timeout=self.stress_shell_timeout) == 0
         else:
-            return self.cmd_status(self.check_cmd, timeout=60,
+            return self.cmd_status(self.check_cmd, timeout=self.stress_shell_timeout,
                                    ignore_status=True) == 0
 
     def _git_download(self, url, destination):
@@ -2038,7 +2039,7 @@ class Stress(object):
                                     self.work_path)
         self.make_cmds = "cd %s;%s" % (install_path, self.make_cmds)
         logging.info('make and install %s', self.stress_type)
-        status, output = self.cmd_status_output(self.make_cmds, timeout=600)
+        status, output = self.cmd_status_output(self.make_cmds, timeout=self.stress_shell_timeout)
         if status != 0:
             raise exceptions.TestError(
                 "Installation failed with output:\n %s" % output)
