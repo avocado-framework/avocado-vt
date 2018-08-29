@@ -958,7 +958,7 @@ def reboot(name, options="", **dargs):
     Run a reboot command in the target domain.
 
     :param name: Name of domain.
-    :param options: options: options to pass to reboot command
+    :param options: options to pass to reboot command
     :return: CmdResult object
     """
     return command("reboot --domain %s %s" % (name, options), **dargs)
@@ -969,7 +969,7 @@ def managedsave(name, options="", **dargs):
     Managed save of a domain state.
 
     :param name: Name of domain to save
-    :param options: options: options to pass to list command
+    :param options: options to pass to list command
     :return: CmdResult object
     """
     return command("managedsave --domain %s %s" % (name, options), **dargs)
@@ -983,6 +983,40 @@ def managedsave_remove(name, **dargs):
     :return: CmdResult object
     """
     return command("managedsave-remove --domain %s" % name, **dargs)
+
+
+def managedsave_dumpxml(name, options="", **dargs):
+    """
+    Dump XML of domain information for a managed save state file.
+
+    :param name: Name of domain to dump
+    :param options: options to pass to list command
+    :return: CmdResult object
+    """
+    return command("managedsave-dumpxml --domain %s %s" % (name, options), **dargs)
+
+
+def managedsave_edit(name, options="", **dargs):
+    """
+    Edit the domain XML associated with the managed save state file.
+
+    :param name: Name of domain to edit
+    :param options: options to pass to list command
+    :return: CmdResult object
+    """
+    return command("managedsave-edit --domain %s %s" % (name, options), **dargs)
+
+
+def managedsave_define(name, xml_path, options="", **dargs):
+    """
+    Replace the domain XML associated with a managed save state file.
+
+    :param name: Name of domain to define
+    :param xml_path: Path of xml file to be defined
+    :param options: options to pass to list command
+    :return: CmdResult object
+    """
+    return command("managedsave-define --domain %s %s %s" % (name, xml_path, options), **dargs)
 
 
 def driver(**dargs):
