@@ -192,11 +192,11 @@ class GuestWorker(object):
             cmd_guest_size = ("du -b %s | cut -f1"
                               % guest_script_path)
             cmd_already_compiled_chck = "ls %so" % guest_script_path
-            cmd_compile = ("python -OO %s -c "
+            cmd_compile = ("`command -v python python3 | head -1` -OO %s -c "
                            "&& echo -n 'PASS: Compile virtio_guest finished' "
                            "|| echo -n 'FAIL: Compile virtio_guest failed'"
                            % guest_script_path)
-            self.__cmd_execute_worker = ("python %so"
+            self.__cmd_execute_worker = ("`command -v python python3 | head -1` %so"
                                          "&& echo -n 'PASS: virtio_guest finished' "
                                          "|| echo -n 'FAIL: virtio_guest failed'"
                                          % guest_script_path)
@@ -402,7 +402,7 @@ class GuestWorker(object):
                 self.session.close()
                 self.session = self.vm.wait_for_login()
                 if self.os_linux:   # On windows it dies with the connection
-                    self.cmd("killall -9 python "
+                    self.cmd("killall -9 `command -v python python3 | head -1` "
                              "&& echo -n PASS: python killed"
                              "|| echo -n PASS: python was already dead", 10)
                 self._execute_worker()
@@ -433,7 +433,7 @@ class GuestWorker(object):
                 # On windows it dies with the connection
                 if match is not 0 and self.os_linux:
                     logging.debug(tmp)
-                    self.cmd("killall -9 python "
+                    self.cmd("killall -9 `command -v python python3 | head -1` "
                              "&& echo -n PASS: python killed"
                              "|| echo -n PASS: python was already dead", 10)
 
@@ -462,7 +462,7 @@ class GuestWorker(object):
                 logging.warn('guest_worker stuck during cleanup:\n%s\n,'
                              ' killing python...', tmp)
                 self.session = self.vm.wait_for_login()
-                self.cmd("killall -9 python "
+                self.cmd("killall -9 `command -v python python3 | head -1` "
                          "&& echo -n PASS: python killed"
                          "|| echo -n PASS: python was already dead", 10)
                 self.session.close()
