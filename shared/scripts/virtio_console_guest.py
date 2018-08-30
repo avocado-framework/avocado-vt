@@ -897,19 +897,19 @@ class VirtioGuestPosix(VirtioGuest):
         """
         in_f = self._open([port])
 
-        data = ""
+        data = b""
         writes = 0
 
         if not is_static:
             while len(data) < length:
-                data += "%c" % random.randrange(255)
+                data += b"%c" % random.randrange(255)
             try:
                 writes = os.write(in_f[0], data)
             except Exception as inst:
                 print(inst)
         else:
             while len(data) < 4096:
-                data += "%c" % random.randrange(255)
+                data += b"%c" % random.randrange(255)
         if mode:
             while (writes < length):
                 try:
