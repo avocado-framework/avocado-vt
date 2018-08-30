@@ -8,18 +8,19 @@ This exports:
 import logging
 import os
 import re
+import six
 
 from avocado.core import exceptions
 from avocado.utils import process
-
-import six
 
 from virttest import utils_misc
 from virttest import virt_vm
 from virttest import storage
 from virttest import data_dir
 from virttest import error_context
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
+from virttest.compat_52lts import (results_stdout_52lts,
+                                   results_stderr_52lts,
+                                   decode_to_text)
 
 
 class QemuImg(storage.QemuImg):
@@ -105,10 +106,11 @@ class QemuImg(storage.QemuImg):
             has_backing_file = params.get('has_backing_file')
 
             qemu_img_cmd += " -o "
-            if self.image_format == "qcow2":
-                if preallocated != "off":
-                    qemu_img_cmd += "preallocation=%s," % preallocated
+            # preallocation works for qcow2, raw, luks
+            if preallocated != "off":
+                qemu_img_cmd += "preallocation=%s," % preallocated
 
+            if self.image_format == "qcow2":
                 if encrypted != "off":
                     qemu_img_cmd += "encryption=%s," % encrypted
 
@@ -576,7 +578,7 @@ class QemuImg(storage.QemuImg):
 
     def amend(self, params, cache_mode=None, ignore_status=False):
         """
-        Amend the image format specific options for the image
+        Amend the image format specific options for the image.
 
         :param params: dictionary containing the test parameters
         :param cache_mode: the cache mode used to write the output disk image,
@@ -630,6 +632,24 @@ class QemuImg(storage.QemuImg):
         cmd_result.stdout = results_stdout_52lts(cmd_result)
         cmd_result.stderr = results_stderr_52lts(cmd_result)
         return cmd_result
+
+    def map(self, output="human", ignore_status=False):
+        """
+        Qemu image map wrapper.
+
+        :param output: string of output format(`human`, `json`)
+        :param ignore_status: whether to raise an exception when command
+                              returns =! 0 (False), or not (True)
+        """
+        cmd_list = [self.image_cmd, "map", ("--output=%s" % output)]
+        if os.path.exists(self.image_filename):
+            cmd_list.append(self.image_filename)
+            cmd_result = process.system_output(
+                " ".join(cmd_list), ignore_status=ignore_status).decode()
+            return cmd_result
+        else:
+            raise exceptions.TestError("Image file %s not found" %
+                                       self.image_filename)
 
 
 class Iscsidev(storage.Iscsidev):
