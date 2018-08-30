@@ -818,15 +818,15 @@ class PrivateBridgeConfig(object):
         return rules
 
     def _add_bridge(self):
-        process.system("brctl addbr %s" % self.brname)
+        addbr_cmd = ("ip link add name %s type bridge stp_state 1"
+                     " forward_delay 400" % self.brname)
+        process.system(addbr_cmd)
         ip_fwd_path = "/proc/sys/net/%s/ip_forward" % self.ip_version
-        ip_fwd = open(ip_fwd_path, "w")
-        ip_fwd.write("1\n")
-        process.system("brctl stp %s on" % self.brname)
-        process.system("brctl setfd %s 4" % self.brname)
+        with open(ip_fwd_path, "w") as ip_fwd:
+            ip_fwd.write("1\n")
         if self.physical_nic:
-            process.system("brctl addif %s %s" % (self.brname,
-                                                  self.physical_nic))
+            process.system("ip link set %s master %s"
+                           % (self.physical_nic, self.brname))
 
     def _bring_bridge_up(self):
         process.system("ifconfig %s %s.1 up" % (self.brname, self.subnet))
@@ -861,25 +861,24 @@ class PrivateBridgeConfig(object):
                       self.dhcp_server_pid)
 
     def _verify_bridge(self):
-        brctl_output = decode_to_text(process.system_output("brctl show"))
-        if self.brname not in brctl_output:
+        if not self._br_exist():
             raise PrivateBridgeError(self.brname)
 
-    def _get_bridge_info(self):
-        return decode_to_text(process.system_output("brctl show"))
-
     def _br_exist(self):
-        return self.brname in self._get_bridge_info()
+        result = process.run("ip link show %s type bridge" % self.brname,
+                             ignore_status=True)
+        if result.exit_status > 0:
+            return False
+        output = decode_to_text(result.stdout).strip()
+        if not output:
+            return False
+        return True
 
     def _br_in_use(self):
-        output = self._get_bridge_info()
-        for line in output.split("\n"):
-            if line.startswith(self.brname):
-                # len == 4 means there is a TAP using the bridge
-                # so don't try to clean it up
-                if len(line.split()) < 4:
-                    return False
-        return True
+        # Return `True` when there is any TAP using the bridge
+        output = process.system_output("ip link show master %s" % self.brname)
+        output = decode_to_text(output).strip()
+        return bool(output)
 
     def setup(self):
         if self._br_exist() and self.force_create:
@@ -950,10 +949,11 @@ class PrivateBridgeConfig(object):
             self._iptables_del(rule)
 
     def _remove_bridge(self):
-        process.system("brctl delbr %s" % self.brname, ignore_status=True)
+        process.system("ip link delete %s type bridge" % self.brname,
+                       ignore_status=True)
 
     def cleanup(self):
-        if not self._br_in_use():
+        if self._br_exist() and not self._br_in_use():
             logging.debug(
                 "Cleaning up KVM test private bridge %s", self.brname)
             self._stop_dhcp_server()

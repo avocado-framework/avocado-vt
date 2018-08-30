@@ -1004,51 +1004,22 @@ class Bridge(object):
         """
         Get bridge list.
         """
-        try:
-            brctl_bin = utils_path.find_command("brctl")
-        except utils_path.CmdNotFoundError:
-            raise exceptions.TestSkipError("Can't find brctl command")
-
-        ebr_i = re.compile(r"^(\S+).*?(\S+)$", re.MULTILINE)
-        br_i = re.compile(r"^(\S+).*?(\S+)\s+(\S+)$", re.MULTILINE)
-        nbr_i = re.compile(r"^\s+(\S+)$", re.MULTILINE)
-        out_line = decode_to_text(process.system_output(r"%s show" % brctl_bin,
-                                                        verbose=False)).splitlines()
+        sysfs_path = "/sys/class/net"
         result = dict()
-        bridge = None
-
-        for line in out_line[1:]:
-            iface_var = None
-            stp_var = None
-            if len(line.split()) == 3:
-                # virbr0 8000.fe54005e05e0 [no|yes][\s+]
-                (tmpbr, stp_var) = ebr_i.findall(line.strip())[0]
-                bridge = tmpbr
-                br_attrs = dict()
-                if stp_var:
-                    br_attrs["stp"] = stp_var
-                br_attrs["iface"] = []
-                result[bridge] = br_attrs
-            else:
-                br_line = br_i.findall(line)
-                if br_line:
-                    # virbr0 8000.fe54005e05e0 yes vnet0
-                    (tmpbr, stp_var, iface_var) = br_line[0]
-                    bridge = tmpbr
-                    br_attrs = dict()
-                    if stp_var:
-                        br_attrs["stp"] = stp_var
-                    br_attrs["iface"] = []
-                    result[bridge] = br_attrs
-                else:
-                    #   virbr0 8000.fe54005e05e0 yes vnet0
-                    # >                              vnet1
-                    if_line = nbr_i.findall(line)
-                    if if_line:
-                        iface_var = if_line[0]
-            # add interface to bridge
-            if iface_var and iface_var not in ['yes', 'no']:
-                br_attrs["iface"].append(iface_var)
+        for br_iface in os.listdir(sysfs_path):
+            br_iface_path = os.path.join(sysfs_path, br_iface)
+            if "bridge" not in os.listdir(br_iface_path):
+                continue
+            result[br_iface] = dict()
+            # Get stp_state
+            stp_state_path = os.path.join(br_iface_path, "bridge", "stp_state")
+            with open(stp_state_path, "r") as stp_state_file:
+                stp_state = int(stp_state_file.read().strip())
+            # Assign with 'yes' or 'no' to keep ABI compatibility
+            result[br_iface]["stp"] = "yes" if stp_state else "no"
+            # Get ports
+            brif_path = os.path.join(br_iface_path, "brif")
+            result[br_iface]["iface"] = os.listdir(brif_path)
         return result
 
     def list_br(self):
