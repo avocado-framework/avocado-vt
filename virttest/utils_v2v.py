@@ -849,3 +849,19 @@ def check_exit_status(result, expect_error=False, error_flag='strict'):
     elif expect_error and result.exit_status == 0:
         raise exceptions.TestFail("Run '%s' expect fail, but run "
                                   "successfully." % result.command)
+
+
+def cleanup_constant_files(params):
+    """
+    Cleanup some constant files which generated for v2v commands.
+    For example, rhv_upload_passwd_file, local_ca_file_path,
+    vpx_passwd_file, etc.
+
+    :param params: A dict containing all cfg params
+    """
+    # Please Add new constant files into below list.
+    tmpfiles = [params.get("rhv_upload_passwd_file"),
+                params.get("local_ca_file_path"),
+                params.get("vpx_passwd_file")]
+
+    map(os.remove, [x for x in tmpfiles if x and os.path.isfile(x)])
