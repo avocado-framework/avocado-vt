@@ -14,6 +14,7 @@
 #
 # Copyright: IBM (c) 2017
 # Author: Satheesh Rajendran <sathnaga@linux.vnet.ibm.com>
+#         Hariharan T S <harihare@in.ibm.com>
 
 
 import re
@@ -21,13 +22,14 @@ import json
 import logging
 import platform
 
-from . import virsh
-from . import libvirt_xml
-from . import utils_misc
-from . import utils_test
-from .utils_test import libvirt
-from .libvirt_xml.xcepts import LibvirtXMLNotFoundError
-from .compat_52lts import results_stdout_52lts, results_stderr_52lts
+from virttest import virsh
+from virttest import libvirt_xml
+from virttest import utils_misc
+from virttest import utils_test
+from virttest.utils_test import libvirt
+from virttest.libvirt_xml.devices import memory
+from virttest.libvirt_xml.xcepts import LibvirtXMLNotFoundError
+from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 from avocado.utils import cpu as utils
 from avocado.utils import software_manager
 
@@ -483,3 +485,41 @@ def vcpuhotunplug_unsupport_str():
         return "not currently supported"
     else:
         return ""
+
+
+def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
+                   pg_unit="KiB", tg_node=0, node_mask=0, mem_model="dimm"):
+    """
+    Create memory device xml.
+    Parameters:
+    :param tg_size: Target hotplug memory size
+    :param pg_size: Source page size in case of hugepages backed.
+    :param mem_addr: Memory address to be mapped in guest.
+    :param tg_sizeunit: Target size unit, Default=KiB.
+    :param pg_unit: Source page size unit, Default=KiB.
+    :param tg_node: Target node to hotplug.
+    :param node_mask: Source node for hotplug.
+    :param mem_model: Memory Model, Default="dimm".
+    :return: Returns a copy of Memory Hotplug xml instance.
+    """
+    mem_xml = memory.Memory()
+    mem_xml.mem_model = mem_model
+
+    if tg_size:
+        tg_xml = memory.Memory.Target()
+        tg_xml.size = int(tg_size)
+        tg_xml.size_unit = tg_sizeunit
+        tg_xml.node = int(tg_node)
+        mem_xml.target = tg_xml
+    if pg_size:
+        src_xml = memory.Memory.Source()
+        src_xml.pagesize = int(pg_size)
+        src_xml.pagesize_unit = pg_unit
+        src_xml.nodemask = node_mask
+        mem_xml.source = src_xml
+    if mem_addr:
+        mem_xml.address = mem_xml.new_mem_address(
+            **{"attrs": mem_addr})
+
+    logging.debug("Memory device xml: %s", mem_xml)
+    return mem_xml.copy()
