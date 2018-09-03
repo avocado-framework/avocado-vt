@@ -593,11 +593,11 @@ class DevContainer(object):
     def simple_hotplug(self, device, monitor, bus=None):
         """
         Function hotplug device to devices representation. If verification is
-        supported by hodplugged device and result of verification is True
+        supported by hotplugged device and result of verification is True
         then it calls set_clean. Otherwise it don't call set_clean because
-        devices representatio don't know if device is added correctly.
+        devices representation don't know if device is added correctly.
 
-        :param device: Device which should be unplugged.
+        :param device: Device which should be hotplugged.
         :type device: string, qdevices.QDevice.
         :param monitor: Monitor from vm.
         :type monitor: qemu_monitor.Monitor
@@ -618,8 +618,8 @@ class DevContainer(object):
                         if _bus.bus_item == 'bus':
                             bus = _bus
                             break
-                if bus:
-                    bus.prepare_hotplug(device)
+            if bus is not None:
+                bus.prepare_hotplug(device)
         out = device.hotplug(monitor)
         ver_out = device.verify_hotplug(out, monitor)
 
