@@ -259,27 +259,28 @@ class VirtTest(test.Test):
             self.__status = details
         finally:
             # Clean libvirtd debug logs if the test is not fail or error
-            if(self.params.get("vm_type") == 'libvirt' and
-               self.params.get("enable_libvirtd_debug_log", "yes") == "yes"):
-                libvirtd_log = self.params["libvirtd_debug_file"]
-                if("TestFail" not in str(sys.exc_info()[0]) and
-                   "TestError" not in str(sys.exc_info()[0])):
-                    if libvirtd_log and os.path.isfile(libvirtd_log):
-                        logging.info("cleaning libvirtd logs...")
-                        os.remove(libvirtd_log)
-                else:
-                    # tar the libvirtd log and archive
-                    logging.info("archiving libvirtd debug logs")
-                    from virttest import utils_package
-                    if utils_package.package_install("tar"):
-                        archive = os.path.join(libvirtd_log.strip(os.path.basename(libvirtd_log)),
-                                               "libvirtd.tar.gz")
-                        cmd = "tar -zcf %s -P %s" % (archive, libvirtd_log)
-                        if process.system(cmd) == 0:
+            if self.params.get("libvirtd_log_cleanup", "no") == "yes":
+                if(self.params.get("vm_type") == 'libvirt' and
+                   self.params.get("enable_libvirtd_debug_log", "yes") == "yes"):
+                    libvirtd_log = self.params["libvirtd_debug_file"]
+                    if("TestFail" not in str(sys.exc_info()[0]) and
+                       "TestError" not in str(sys.exc_info()[0])):
+                        if libvirtd_log and os.path.isfile(libvirtd_log):
+                            logging.info("cleaning libvirtd logs...")
                             os.remove(libvirtd_log)
                     else:
-                        logging.error("Unable to find tar to compress libvirtd "
-                                      "logs")
+                        # tar the libvirtd log and archive
+                        logging.info("archiving libvirtd debug logs")
+                        from virttest import utils_package
+                        if utils_package.package_install("tar"):
+                            archive = os.path.join(libvirtd_log.strip(os.path.basename(libvirtd_log)),
+                                                   "libvirtd.tar.gz")
+                            cmd = "tar -zcf %s -P %s" % (archive, libvirtd_log)
+                            if process.system(cmd) == 0:
+                                os.remove(libvirtd_log)
+                        else:
+                            logging.error("Unable to find tar to compress libvirtd "
+                                          "logs")
 
             if env_lang:
                 os.environ['LANG'] = env_lang
