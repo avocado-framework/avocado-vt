@@ -79,12 +79,6 @@ class VirtioGuest:
         """
         raise NotImplementedError
 
-    def check_zero_sym(self):
-        """
-        Check if port the first port symlinks were created.
-        """
-        raise NotImplementedError
-
     def poll(self, port, expected, timeout=500):
         """
         Checks the port POLL status and verify with expected results.
@@ -314,16 +308,6 @@ class VirtioGuestPosix(VirtioGuest):
                 f.close()
 
         return ports
-
-    def check_zero_sym(self):
-        """
-        Check if port /dev/vport0p0 was created.
-        """
-        symlink = "/dev/vport0p0"
-        if os.path.exists(symlink):
-            print("PASS: Symlink %s exists." % symlink)
-        else:
-            print("FAIL: Symlink %s does not exist." % symlink)
 
     def init(self, in_files):
         """
