@@ -4695,3 +4695,42 @@ def get_sosreport(path=None, session=None, remote_ip=None, remote_pwd=None,
         if session:
             session.close()
         return host_path
+
+
+def backup_file(file_path, params):
+    """
+    Backup a file to be restored
+    :param file_path: file to be backed up
+    :param params: params of a test
+    :return: None
+    """
+
+    if not params.get('backup_files'):
+        params['backup_files'] = {}
+    file_name = file_path.replace('/', '_')
+    bk_path = os.path.join(data_dir.get_tmp_dir(), file_name)
+    try:
+        shutil.copy2(file_path, bk_path)
+        params['backup_files'][file_path] = bk_path
+    except Exception as exc:
+        logging.error('Failed to backup %s', file_path)
+        logging.error(exc)
+
+
+def restore_files(params):
+    """
+    Restore all backup files
+    :param params: params of a test
+    :return: None
+    """
+    if not params.get('backup_files'):
+        logging.info('No backup files to be restored.')
+        return
+    for source_file in params['backup_files']:
+        try:
+            bk_path = params['backup_files'][source_file]
+            logging.info('Restore %s from %s', source_file, bk_path)
+            shutil.copy2(bk_path, source_file)
+        except Exception as exc:
+            logging.error('Failed to restore %s', source_file)
+            logging.error(exc)
