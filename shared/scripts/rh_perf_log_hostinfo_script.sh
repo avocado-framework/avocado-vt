@@ -34,13 +34,13 @@ call tc qdisc show
 
 call ifconfig
 
-bridges=`brctl show|grep -v "bridge.*name.*bridge.*id"|awk {'print $1'}`
-ports=`brctl show|grep -v "bridge.*name.*bridge.*id"|awk {'print $4'}`
+bridges=`ip link show type bridge | awk -F':' '/^[0-9]+:\s*\w+\:/{ print $2 }'`
+ports=`ip link show type bridge_slave | awk -F':' '/^[0-9]+:\s*\w+\:/{ print $2 }'`
 
 for i in $bridges;do
     call echo "ethtool -k $i"
     call ethtool -k $i
-    call brctl showstp $i
+    call ip -d link sh $i
 done
 for i in $ports;do
     call ethtool -k $i
