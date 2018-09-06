@@ -75,6 +75,7 @@ from virttest.libvirt_xml.devices import redirdev
 from virttest.libvirt_xml.devices import seclabel
 from virttest.libvirt_xml.devices import channel
 from virttest.libvirt_xml.devices import interface
+from virttest.libvirt_xml.devices import panic
 
 ping = utils_net.ping
 
@@ -2472,6 +2473,43 @@ def create_channel_xml(params, alias=False, address=False):
     channelxml = channel.Channel.new_from_dict(channel_params)
     logging.debug("Channel XML:\n%s", channelxml)
     return channelxml
+
+
+def update_on_crash(vm_name, on_crash):
+    """
+    Update on_crash state of vm
+
+    :param vm_name: name of vm
+    :param on_crash: on crash state, destroy, restart ...
+    """
+    vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
+    vmxml.on_crash = on_crash
+    vmxml.sync()
+
+
+def add_panic_device(vm_name, model='isa', addr_type='isa', addr_iobase='0x505'):
+    """
+    Create panic device xml
+
+    :param vm_name: name of vm
+    :param model: panic model
+    :param addr_type: address type
+    :param addr_iobase: address iobase
+    :return: If dev exist, return False, else return True
+    """
+    vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
+    panic_dev = vmxml.xmltreefile.find('devices/panic')
+    if panic_dev:
+        logging.info("Panic device already exists")
+        return False
+    else:
+        panic_dev = panic.Panic()
+        panic_dev.model = model
+        panic_dev.addr_type = addr_type
+        panic_dev.addr_iobase = addr_iobase
+        vmxml.add_device(panic_dev)
+        vmxml.sync()
+        return True
 
 
 def set_domain_state(vm, vm_state):
