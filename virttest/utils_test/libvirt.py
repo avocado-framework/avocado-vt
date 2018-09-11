@@ -3383,6 +3383,8 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
     iface_mtu = iface_dict.get('mtu')
     iface_alias = iface_dict.get('alias')
     iface_virtualport_type = iface_dict.get('virtualport_type')
+    del_addr = iface_dict.get('del_addr')
+    del_rom = iface_dict.get('del_rom')
     if iface_type:
         iface.type_name = iface_type
     if iface_driver:
@@ -3392,6 +3394,8 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
             driver_guest=eval(driver_guest) if driver_guest else {})
     if iface_model:
         iface.model = iface_model
+    if del_rom:
+        iface.del_rom()
     if iface_rom:
         iface.rom = eval(iface_rom)
     if iface_inbound:
@@ -3407,6 +3411,8 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
     if iface_addr:
         iface.address = iface.new_iface_address(
             **{"attrs": eval(iface_addr)})
+    if del_addr:
+        iface.del_address()
     if iface_filter:
         iface.filterref = iface.new_filterref(name=iface_filter)
     if boot_order:
