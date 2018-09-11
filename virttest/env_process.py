@@ -1011,15 +1011,21 @@ def preprocess(test, params, env):
             test.cancel("Failed to map hostname and ipaddress of target host")
         session.close()
 
-    # Destroy and remove VMs that are no longer needed in the environment
+    # Destroy and remove VMs that are no longer needed in the environment or
+    # leave them untouched if they have to be disregarded only for this test
     requested_vms = params.objects("vms")
+    keep_unrequested_vms = params.get_boolean("keep_env_vms", "no")
     for key in list(env.keys()):
         vm = env[key]
         if not isinstance(vm, virt_vm.BaseVM):
             continue
         if vm.name not in requested_vms:
-            vm.destroy()
-            del env[key]
+            if keep_unrequested_vms:
+                logging.debug("The vm %s is registered in the env and disregarded "
+                              "in the current test", vm.name)
+            else:
+                vm.destroy()
+                del env[key]
 
     if (params.get("auto_cpu_model") == "yes" and
             vm_type == "qemu"):
