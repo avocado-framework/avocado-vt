@@ -330,7 +330,8 @@ class VirtTest(test.Test):
 
         other_subtests_dirs = params.get("other_tests_dirs", "")
         for d in other_subtests_dirs.split():
-            d = os.path.join(*d.split("/"))
+            # If d starts with a "/" an absolute path will be assumed
+            # else the relative path will be searched in the bin_dir
             subtestdir = os.path.join(self.bindir, d, "tests")
             if not os.path.isdir(subtestdir):
                 raise exceptions.TestError("Directory %s does not "
