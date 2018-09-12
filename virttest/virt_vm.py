@@ -1395,19 +1395,22 @@ class BaseVM(object):
         cmd = self.params.get("mem_chk_cur_cmd")
         return self.get_memory_size(cmd)
 
-    def get_totalmem_sys(self):
+    def get_totalmem_sys(self, online='yes'):
         """
         To get the total guest memory(ram) as detected by system
         MemTotal in /proc/meminfo would display
         total usable memory(i.e. physical ram minus
         a few reserved bits and the kernel binary code)
-
+        :param online: if 'yes', count the total online memory size
         :return: system memory in Kb as float
         """
         session = self.wait_for_login()
         try:
             cmd = "count=0;cd /sys/devices/system/memory/;for i in `ls`;"
-            cmd += "do [ -f $i/online ] && a=$(<$i/online) && "
+            if online == 'yes':
+                cmd += "do [ -f $i/online ] && a=$(<$i/online) && "
+            else:
+                cmd += "do [ -f $i/online ] && a=1 && "
             cmd += "count=$(( $count + $a ));a=0;done;echo $count"
             no_memblocks = int(session.cmd_output(cmd, timeout=360))
             cmd = "cat /sys/devices/system/memory/block_size_bytes"
