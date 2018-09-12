@@ -1259,22 +1259,19 @@ def local_runner_status(cmd, timeout=None, shell=False):
     return process.run(cmd, verbose=False, timeout=timeout, shell=shell).exit_status
 
 
-def get_net_if(runner=None, state=None):
+def get_net_if(runner=local_runner, state=".*", qdisc=".*", optional=".*"):
     """
     :param runner: command runner.
-    :param div_phy_virt: if set true, will return a tuple division real
-                         physical interface and virtual interface
+    :param state: interface state get from ip link
+    :param qdisc: interface qdisc get from ip link
+    :param optional: optional match for interface find
     :return: List of network interfaces.
     """
-    if runner is None:
-        runner = local_runner
-    if state is None:
-        state = ".*"
     cmd = "ip link"
     # As the runner converts stdout to unicode on Python2,
     # it has to be converted to string for struct.pack().
     result = str(runner(cmd))
-    return re.findall(r"^\d+: (\S+?)[@:].*state %s.*$" % (state),
+    return re.findall(r"^\d+: (\S+?)[@:].*%s.*%s.*state %s.*$" % (optional, qdisc, state),
                       result,
                       re.MULTILINE)
 
@@ -1380,7 +1377,7 @@ def get_net_if_and_addrs(runner=None):
 
 
 def get_guest_ip_addr(session, mac_addr, os_type="linux", ip_version="ipv4",
-                      linklocal=False):
+                      linklocal=False, timeout=1):
     """
     Get guest ip addresses by serial session
 
@@ -1389,41 +1386,46 @@ def get_guest_ip_addr(session, mac_addr, os_type="linux", ip_version="ipv4",
     :param os_type: guest os type, windows or linux
     :param ip_version: guest ip version, ipv4 or ipv6
     :param linklocal: Wether ip address is local or remote
+    :param timeout: Timeout for get ip addr
     :return: ip addresses of network interface.
     """
     info_cmd = ""
-    try:
-        if os_type == "linux":
-            nic_ifname = get_linux_ifname(session, mac_addr)
-            info_cmd = "ifconfig -a; ethtool -S %s" % nic_ifname
-            nic_address = get_net_if_addrs(nic_ifname,
-                                           session.cmd_output)
-        elif os_type == "windows":
-            info_cmd = "ipconfig /all"
-            nic_address = get_net_if_addrs_win(session, mac_addr)
-        else:
-            info_cmd = ""
-            raise ValueError("Unknown os type")
 
-        if ip_version == "ipv4":
-            linklocal_prefix = "169.254"
-        elif ip_version == "ipv6":
-            linklocal_prefix = "fe80"
-        else:
-            raise ValueError("Unknown ip version type")
-
+    timeout = time.time() + timeout
+    while time.time() < timeout:
         try:
-            if linklocal:
-                return [x for x in nic_address[ip_version]
-                        if x.lower().startswith(linklocal_prefix)][0]
+            if os_type == "linux":
+                nic_ifname = get_linux_ifname(session, mac_addr)
+                info_cmd = "ifconfig -a; ethtool -S %s" % nic_ifname
+                nic_address = get_net_if_addrs(nic_ifname,
+                                               session.cmd_output)
+            elif os_type == "windows":
+                info_cmd = "ipconfig /all"
+                nic_address = get_net_if_addrs_win(session, mac_addr)
             else:
-                return [x for x in nic_address[ip_version]
-                        if not x.lower().startswith(linklocal_prefix)][0]
-        except IndexError:
-            return None
-    except Exception as err:
-        logging.debug(session.cmd_output(info_cmd))
-        raise IPAddrGetError(mac_addr, err)
+                raise ValueError("Unknown os type")
+
+            if ip_version == "ipv4":
+                linklocal_prefix = "169.254"
+            elif ip_version == "ipv6":
+                linklocal_prefix = "fe80"
+            else:
+                raise ValueError("Unknown ip version type")
+
+            try:
+                if linklocal:
+                    return [x for x in nic_address[ip_version]
+                            if x.lower().startswith(linklocal_prefix)][0]
+                else:
+                    return [x for x in nic_address[ip_version]
+                            if not x.lower().startswith(linklocal_prefix)][0]
+            except IndexError:
+                time.sleep(1)
+        except Exception as err:
+            logging.debug(session.cmd_output(info_cmd))
+            raise IPAddrGetError(mac_addr, err)
+
+    return None
 
 
 def convert_netmask(mask):

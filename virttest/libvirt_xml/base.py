@@ -170,16 +170,19 @@ class LibvirtXMLBase(propcan.PropCanBase):
             pass  # no XML was loaded yet
         return the_copy
 
-    def get_section_string(self, xpath):
+    def get_section_string(self, xpath, index=0):
         """
         Returns the content of section in xml.
+
+        :param xpath: xpath of xml for the section
+        :param index: index of section
         """
         section = self.xmltreefile.find(xpath)
         if section is None:
             raise xcepts.LibvirtXMLNotFoundError(
                 "Path %s is not found." % xpath)
 
-        return self.xmltreefile.get_element_string(xpath)
+        return self.xmltreefile.get_element_string(xpath, index=index)
 
     def get_validates(self):
         """
