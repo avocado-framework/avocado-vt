@@ -278,10 +278,14 @@ def get_buddy_info(chunk_sizes, nodes="all", zones="all"):
     return buddyinfo_dict
 
 
-def getpagesize():
+def getpagesize(session=None):
     """
     Get system page size
 
+    :param session: ShellSession Object of VM/remote host
     :return: pagesize in kB
     """
-    return os.sysconf('SC_PAGE_SIZE') // 1024
+    func = process.getoutput
+    if session:
+        func = session.cmd_output
+    return int(func('getconf PAGE_SIZE') // 1024)
