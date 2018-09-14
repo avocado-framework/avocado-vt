@@ -566,7 +566,7 @@ class Container(unittest.TestCase):
     def tearDown(self):
         self.god.unstub_all()
 
-    def create_qdev(self, vm_name='vm1', strict_mode="no",
+    def create_qdev(self, vm_name='vm1', machine_type='pc', strict_mode="no",
                     allow_hotplugged_vm="yes"):
         """ :return: Initialized qcontainer.DevContainer object """
         qemu_cmd = '/usr/bin/qemu_kvm'
@@ -576,8 +576,9 @@ class Container(unittest.TestCase):
                                                      shell=True,
                                                      verbose=False
                                                      ).and_return(QEMU_HELP)
-        qcontainer.process.system_output.expect_call("%s -device \? 2>&1"
-                                                     % qemu_cmd, timeout=10,
+        qcontainer.process.system_output.expect_call("%s -machine %s -device \? 2>&1"
+                                                     % (qemu_cmd, machine_type),
+                                                     timeout=10,
                                                      ignore_status=True,
                                                      shell=True,
                                                      verbose=False
@@ -616,7 +617,7 @@ class Container(unittest.TestCase):
                                                      verbose=False
                                                      ).and_return(QEMU_QMP)
 
-        qdev = qcontainer.DevContainer(qemu_cmd, vm_name, strict_mode, 'no',
+        qdev = qcontainer.DevContainer(qemu_cmd, vm_name, machine_type, strict_mode, 'no',
                                        allow_hotplugged_vm)
 
         self.god.check_playback()
@@ -825,7 +826,7 @@ fdc
 
     def test_qdev_hotplug(self):
         """ Test the hotplug/unplug functionality """
-        qdev = self.create_qdev('vm1', False, True)
+        qdev = self.create_qdev('vm1', 'pc', False, True)
         devs = qdev.machine_by_params(ParamsDict({'machine_type': 'pc'}))
         for dev in devs:
             qdev.insert(dev)
