@@ -457,7 +457,8 @@ class VM(virt_vm.BaseVM):
         def add_serial(devices, name, filename):
             if (not devices.has_option("chardev") or
                     not any(devices.has_device(dev)
-                            for dev in ("isa-serial", "sclpconsole", "spapr-vty"))):
+                            for dev in ("isa-serial", "sclpconsole", "spapr-vty")) or
+                    'aarch64' in params.get('vm_arch_name', arch.ARCH)):
                 return " -serial unix:'%s',server,nowait" % filename
 
             serial_id = "serial_id_%s" % name
