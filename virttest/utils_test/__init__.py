@@ -55,6 +55,7 @@ from virttest import utils_misc
 from virttest import utils_net
 from virttest import virt_vm
 from virttest import utils_package
+from virttest.utils_iptables import Iptables
 from virttest import data_dir
 from virttest.staging import utils_memory
 from virttest.compat_52lts import results_stdout_52lts, decode_to_text
@@ -206,7 +207,8 @@ def update_boot_option(vm, args_removed="", args_added="",
                 status, output = session.cmd_status_output(cmd)
                 if status != 0:
                     logging.error(output)
-                    raise exceptions.TestError("Fail to modify guest kernel option")
+                    raise exceptions.TestError(
+                        "Fail to modify guest kernel option")
 
         # reboot is required only if we really add/remove any args
         if need_reboot and (req_args or req_remove_args):
@@ -358,7 +360,8 @@ def get_time(session, time_command, time_filter_re, time_format):
     elif re.findall("hwclock", time_command):
         loc = locale.getlocale(locale.LC_TIME)
         # Get and parse host time
-        host_time_out = results_stdout_52lts(process.run(time_command, shell=True))
+        host_time_out = results_stdout_52lts(
+            process.run(time_command, shell=True))
         diff = host_time_out.split()[-2]
         host_time_out = " ".join(host_time_out.split()[:-2])
         try:
@@ -952,7 +955,8 @@ def run_avocado(vm, params, test, testlist=[], timeout=3600,
 
         logging.debug("Downloading Test")
         cmd = "cd %s;[ -d %s ] || git clone %s" % (test_path,
-                                                   testrepo.split("/")[-1].split('.')[0],
+                                                   testrepo.split(
+                                                       "/")[-1].split('.')[0],
                                                    testrepo)
         status, output = session.cmd_status_output(cmd, timeout=100)
         if status > 0:
@@ -1963,8 +1967,10 @@ class Stress(object):
         self.remote_host = None
         self.copy_files_to = remote.copy_files_to
         self.params = params
-        self.stress_shell_timeout = int(self.params.get('stress_shell_timeout', 600))
-        self.stress_wait_for_timeout = int(self.params.get('stress_wait_for_timeout', 60))
+        self.stress_shell_timeout = int(
+            self.params.get('stress_shell_timeout', 600))
+        self.stress_wait_for_timeout = int(
+            self.params.get('stress_wait_for_timeout', 60))
         self.stress_type = stress_type
         stress_cmds = stress_cmds or stress_type
         self.stress_cmds = self.params.get('stress_cmds_%s' % stress_type,
@@ -1972,7 +1978,8 @@ class Stress(object):
         self.stress_args = self.params.get("%s_args" % stress_type,
                                            stress_args)
         self.stress_package = self.params.get("stress_package")
-        self.stress_install_from_repo = self.params.get("stress_install_from_repo") == "yes"
+        self.stress_install_from_repo = self.params.get(
+            "stress_install_from_repo") == "yes"
         self.download_url = self.params.get('download_url_%s' % stress_type,
                                             download_url)
         self.download_type = self.params.get('download_type_%s' % stress_type,
@@ -1990,7 +1997,8 @@ class Stress(object):
                                                        stress_type, dependency_packages))
         # dependency packages can be a list as well
         if self.dependency_packages:
-            self.dependency_packages = ast.literal_eval(self.dependency_packages)
+            self.dependency_packages = ast.literal_eval(
+                self.dependency_packages)
         self.downloaded_file_path = self.params.get("%s_downloaded_file_path" %
                                                     self.stress_type,
                                                     downloaded_file_path)
@@ -2011,7 +2019,8 @@ class Stress(object):
         self.install()
         self.cmd_output_safe('cd %s' % os.path.join(self.dst_path,
                                                     self.base_name, self.work_path))
-        launch_cmds = 'nohup %s %s > /dev/null &' % (self.stress_cmds, self.stress_args)
+        launch_cmds = 'nohup %s %s > /dev/null &' % (
+            self.stress_cmds, self.stress_args)
         logging.info("Launch stress with command: %s", launch_cmds)
         try:
             self.cmd_launch(launch_cmds)
@@ -2086,13 +2095,15 @@ class Stress(object):
         # If it is git/wget based download proceed, else fall back if user already
         # have downloaded tool path, else raise
         try:
-            download_method = getattr(self, "_%s_download" % self.download_type)
+            download_method = getattr(
+                self, "_%s_download" % self.download_type)
             download_method(url, tmp_path)
         except AttributeError:
             if not self.downloaded_file_path:
                 raise exceptions.TestError("Tool is not downloaded or download"
                                            " link for Tool is not provided")
-            file_type = process.getoutput("file %s" % self.downloaded_file_path)
+            file_type = process.getoutput(
+                "file %s" % self.downloaded_file_path)
             if "directory" not in file_type:
                 self.base_name = archive.uncompress(self.downloaded_file_path,
                                                     tmp_path)
@@ -2111,7 +2122,8 @@ class Stress(object):
                 logging.info('Copy stress tool to work dir of guest')
                 self.copy_files_to(source, self.dst_path)
             else:
-                self.dst_path = os.path.abspath(os.path.join(source, os.pardir))
+                self.dst_path = os.path.abspath(
+                    os.path.join(source, os.pardir))
 
     def install(self):
         """
@@ -2410,26 +2422,192 @@ def unload_stress(stress_type, params, vms=None, remote_server=False):
                    remote_server=remote_server).unload_stress()
 
 
-def prepare_profile(test, fpath, pat_repl):
+class ServerClientStress(object):
     """
-    This is to prepare client profile to be run on client.
-    :param test: kvm test object
-    :param fpath: profile to be run
-    :param pat_repl: dict containing pattern and replacement : includes server_ip, duration, threads etc.
-    :return: no explicit return. But profile on fpath would be edited and ready to be run on client guest
-    :raise: TestError: raised if unable to edit the given profile
+    configure and run stress tools which needs server client setup
     """
-    try:
-        with open(fpath, 'r+') as profile_content:
-            tempstr = profile_content.read()
-            profile_content.truncate(0)
-            logging.debug("In prepare profile: pattern and replacement : %s", pat_repl)
-            for pattern, replace in pat_repl.items():
-                tempstr = tempstr.replace(pattern, replace)
-            profile_content.write(tempstr)
-        logging.debug("Profile xml to be run : %s ", tempstr)
-    except Exception:
-        test.error("Failed to update file : %s", fpath)
+
+    def __init__(self, params, env):
+        """
+        Set parameters for server client stress setup.
+        """
+
+        self.vms = env.get_all_vms()
+        self.stress_duration = int(params.get("stress_duration", "20"))
+        self.iptables_rule = params.get("iptables_rule", "")
+        self.stress_type = params.get("stress_type", "uperf")
+        self.need_profile = int(params.get("need_profile", False))
+        self.server_cmd = params.get("%s_server_cmd" % self.stress_type)
+        self.client_cmd = params.get("%s_client_cmd" % self.stress_type)
+        self.custom_pair = params.get("server_clients", "").split()
+        self.server_vms = []
+        self.client_vms = []
+        self.stress_vm = {}
+
+        if self.need_profile:
+            self.profile = params.get("client_profile_%s" % self.stress_type)
+            if not self.profile.endswith(".xml"):
+                raise exceptions.TestError(
+                    "%s profile not valid", self.stress_type)
+            self.profile = os.path.join(data_dir.get_root_dir(), self.profile)
+            self.profile_pattern = params.get("profile_pattern").split()
+        if not self.custom_pair:
+            self.client_vms = self.vms[0::2]
+            self.server_vms = self.vms[1::2]
+        else:
+            for pair in self.custom_pair:
+                for index, vm in enumerate(self.vms):
+                    if vm.name == pair.split("_")[0]:
+                        self.server_vms.append(vm)
+                    if vm.name == pair.split("_")[1]:
+                        self.client_vms.append(vm)
+        if (len(set(self.server_vms)) + len(set(self.client_vms))) != len(self.vms):
+            raise exceptions.TestError(
+                "Number of server client vms does not match total_vms")
+        elif len(self.server_vms) != len(self.client_vms):
+            raise exceptions.TestError(
+                "This test requires server and client vms in 1:1 ratio")
+        else:
+            self.pair_vms = zip(self.server_vms, self.client_vms)
+
+    def prepare_profile(self, fpath, pat_repl):
+        """
+        This is to prepare client profile to be run on client.
+
+        :param fpath: profile to be run
+        :param pat_repl: dict containing pattern and replacement : includes server_ip, duration, threads etc.
+        :return: no explicit return. But profile on fpath would be edited and ready to be run on client guest
+        :raise: TestError: raised if unable to edit the given profile
+        """
+        try:
+            with open(fpath, 'r+') as profile_content:
+                tempstr = profile_content.read()
+                profile_content.truncate(0)
+                logging.debug(
+                    "In prepare profile: pattern and replacement : %s", pat_repl)
+                for pattern, replace in pat_repl.items():
+                    tempstr = tempstr.replace(pattern, replace)
+                profile_content.write(tempstr)
+            logging.debug("Profile xml to be run : %s ", tempstr)
+        except Exception:
+            raise exceptions.TestError("Failed to update file : %s", fpath)
+
+    def load_stress(self, params):
+        """
+        This function can be called to load server client stress tools into
+        vms/baremetal hosts.
+
+        :param params: test params for stress tools
+        :return: Based on result of test would return True or False
+        :raise: TestError: raised if unable load stress tool or given input is incorrect
+        """
+
+        error = False
+        for server_vm, client_vm in self.pair_vms:
+            try:
+                params['stress_cmds_%s' % self.stress_type] = self.server_cmd
+                self.stress_vm[server_vm.name] = VMStress(
+                    server_vm, self.stress_type, params)
+                # wait so that guests get ip address, else get_address will
+                # fail
+                client_vm.wait_for_login().close()
+                server_vm.wait_for_login().close()
+                server_vm.params = params.object_params(server_vm.name)
+                client_vm.params = params.object_params(client_vm.name)
+                for vm in [server_vm, client_vm]:
+                    self.iptables_rule = vm.params.get("iptables_rule", "")
+                    if self.iptables_rule:
+                        params['server_pwd'] = vm.params.get("password")
+                        params['server_ip'] = vm.get_address()
+                        Iptables.setup_or_cleanup_iptables_rules(
+                            [self.iptables_rule], params=params, cleanup=False)
+                if not self.stress_vm[server_vm.name].app_running():
+                    self.stress_vm[server_vm.name].load_stress_tool()
+                if self.need_profile:
+                    profile_backup = self.profile + '.backup'
+                    shutil.copy(self.profile, profile_backup)
+                    self.pat_repl.update(
+                        {"serverip": str(server_vm.get_address())})
+                    self.prepare_profile(self.profile, self.pat_repl)
+                    client_vm.copy_files_to(self.profile, "/home", timeout=60)
+                    shutil.copy(profile_backup, self.profile)
+                    os.remove(profile_backup)
+                else:
+                    self.client_cmd = self.client_cmd.format(
+                        str(server_vm.get_address()))
+                params['stress_cmds_%s' % self.stress_type] = self.client_cmd
+                self.stress_vm[client_vm.name] = VMStress(
+                    client_vm, self.stress_type, params)
+                self.stress_vm[client_vm.name].load_stress_tool()
+            except exceptions.TestError as err_msg:
+                error = True
+                logging.error(err_msg)
+        return error
+
+    def verify_unload_stress(self, params):
+        """
+        This function will:
+        1. verify if the VMs are reachable after the stress tests
+        2. unloads stress in multiVMs
+        """
+        error = False
+        for vm in self.vms:
+            try:
+                s_ping, o_ping = utils_net.ping(
+                    vm.get_address(), count=10, timeout=20)
+                if s_ping != 0:
+                    error = True
+                    logging.error(
+                        "%s seem to have gone out of network", vm.name)
+                else:
+                    vm_params = params.object_params(vm.name)
+                    self.iptables_rule = vm_params.get("iptables_rule", "")
+                    self.stress_vm[vm.name].unload_stress()
+                    if self.iptables_rule:
+                        params['server_pwd'] = vm_params.get("password")
+                        params['server_ip'] = vm.get_address()
+                        logging.debug("server_ip: %s", vm.get_address())
+                        Iptables.setup_or_cleanup_iptables_rules(
+                            [self.iptables_rule], params=params, cleanup=True)
+                    self.stress_vm[vm.name].clean()
+                    vm.verify_dmesg()
+            except exceptions.TestError as err_msg:
+                error = True
+                logging.error(err_msg)
+
+        return error
+
+
+class UperfStressload(ServerClientStress):
+    """
+    configure Uperf type stress workload to run on multiVMs
+    """
+
+    def __init__(self, params, env):
+        super(UperfStressload, self).__init__(params, env)
+        protocol = params.get("%s_protocol" % self.stress_type, "tcp")
+        nthreads = params.get("nthreads", "32")
+        self.client_cmd = self.client_cmd % os.path.basename(self.profile)
+        self.profile_values = [nthreads, str(self.stress_duration), protocol]
+        if len(self.profile_pattern) != len(self.profile_values):
+            raise exceptions.TestError(
+                "Profile patterns not matching values passed: fix the cfg file with right pattern")
+        self.profile_pattern.append('serverip')
+        self.pat_repl = dict(zip(self.profile_pattern, self.profile_values))
+
+
+class NetperfStressload(ServerClientStress):
+    """
+    configure Netperf type stress workload to run on multiVMs
+    """
+
+    def __init__(self, params, env):
+        super(NetperfStressload, self).__init__(params, env)
+        ports = params.get("ports", "16604")
+        test_protocol = params.get("test_protocols", "TCP_STREAM")
+        self.server_cmd = self.server_cmd.format(ports)
+        self.client_cmd = self.client_cmd.format(
+            "{0}", ports, self.stress_duration, test_protocol)
 
 
 class RemoteDiskManager(object):
