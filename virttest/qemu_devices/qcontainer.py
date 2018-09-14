@@ -42,11 +42,12 @@ class DevContainer(object):
     """
     # General methods
 
-    def __init__(self, qemu_binary, vmname, strict_mode="no",
+    def __init__(self, qemu_binary, vmname, machine_type, strict_mode="no",
                  workaround_qemu_qmp_crash="no", allow_hotplugged_vm="yes"):
         """
         :param qemu_binary: qemu binary
-        :param vm: related VM
+        :param vmname: related VM
+        :param machine_type: VM machine type
         :param strict_mode: Use strict mode (set optional params)
         """
         def get_hmp_cmds(qemu_binary):
@@ -98,8 +99,9 @@ class DevContainer(object):
                                                                 shell=True, verbose=False))
         # escape the '?' otherwise it will fail if we have a single-char
         # filename in cwd
-        self.__device_help = decode_to_text(process.system_output("%s -device \? 2>&1" %
-                                                                  qemu_binary, timeout=10,
+        self.__device_help = decode_to_text(process.system_output("%s -machine %s -device \? 2>&1" %
+                                                                  (qemu_binary, machine_type),
+                                                                  timeout=10,
                                                                   ignore_status=True,
                                                                   shell=True,
                                                                   verbose=False))
