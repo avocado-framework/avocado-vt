@@ -23,23 +23,6 @@ class Params(IterableUserDict):
 
     lock = Lock()
 
-    def __getitem__(self, key):
-        """overrides the error messages of missing params[$key]"""
-        try:
-            return IterableUserDict.__getitem__(self, key)
-        except KeyError:
-            raise ParamNotFound(
-                "Mandatory parameter '%s' is missing. "
-                "Check your cfg files for typos/mistakes" % key
-            )
-
-    def get(self, key, default=None):
-        """overrides the behavior to catch ParamNotFound error"""
-        try:
-            return self[key]
-        except ParamNotFound:
-            return default
-
     def setdefault(self, key, failobj=None):
         if key not in self:
             self[key] = failobj
