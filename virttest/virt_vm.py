@@ -632,6 +632,27 @@ class BaseVM(object):
         session.close()
         return distro_name
 
+    def uptime(self, connect_uri=None):
+        """
+        Get uptime of the vm instance.
+
+        :param connect_uri: Libvirt connect uri of vm
+        :return: uptime of the vm on success, None on failure
+        """
+        uptime = None
+        session = None
+        try:
+            if connect_uri:
+                self.connect_uri = connect_uri
+                session = self.wait_for_serial_login()
+            else:
+                session = self.wait_for_login()
+            uptime = utils_misc.get_uptime(session)
+        finally:
+            if session:
+                session.close()
+            return uptime
+
     def sosreport(self, path=None, uri=None):
         """
         Get sosreport of the vm instance
