@@ -514,8 +514,10 @@ class QemuAgent(Monitor):
         if mode in [self.SHUTDOWN_MODE_POWERDOWN, self.SHUTDOWN_MODE_REBOOT,
                     self.SHUTDOWN_MODE_HALT]:
             args = {"mode": mode}
-        self.cmd(cmd=cmd, args=args, success_resp=False)
-        return True
+        try:
+            self.cmd(cmd=cmd, args=args)
+        except VAgentProtocolError:
+            pass
 
     @error_context.context_aware
     def sync(self, sync_mode="guest-sync"):
