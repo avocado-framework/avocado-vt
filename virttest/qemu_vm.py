@@ -552,9 +552,6 @@ class VM(virt_vm.BaseVM):
             return virtio_port
 
         def add_log_seabios(devices):
-            if not devices.has_device("isa-debugcon"):
-                return ""
-
             default_id = "seabioslog_id_%s" % self.instance
             filename = os.path.join(data_dir.get_tmp_dir(),
                                     "seabios-%s" % self.instance)
@@ -1675,8 +1672,9 @@ class VM(virt_vm.BaseVM):
             parent_bus = _get_pci_bus(devices, rng_params, "vio_rng", True)
             add_virtio_rng(devices, rng_params, parent_bus)
 
-        # Add logging
-        devices.insert(StrDev('isa-log', cmdline=add_log_seabios(devices)))
+        if (devices.has_device("isa-debugcon") and
+                params.get("enable_debug_console", "yes") == "yes"):
+            devices.insert(StrDev('isa-log', cmdline=add_log_seabios(devices)))
         if params.get("anaconda_log", "no") == "yes":
             parent_bus = _get_pci_bus(devices, params, None, True)
             add_log_anaconda(devices, parent_bus)
