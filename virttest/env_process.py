@@ -1472,11 +1472,13 @@ def _take_screendumps(test, params, env):
                 inactivity[vm.instance] = time.time()
                 try:
                     try:
+                        timestamp = os.stat(temp_filename).st_ctime
                         image = PIL.Image.open(temp_filename)
+                        image = ppm_utils.add_timestamp(image, timestamp)
                         image.save(screendump_filename, format="JPEG",
                                    quality=quality)
                         cache[image_hash] = screendump_filename
-                    except IOError as error_detail:
+                    except (IOError, OSError) as error_detail:
                         logging.warning("VM '%s' failed to produce a "
                                         "screendump: %s", vm.name, error_detail)
                         # Decrement the counter as we in fact failed to

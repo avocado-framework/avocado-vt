@@ -17,12 +17,17 @@ from functools import reduce
 
 try:
     from PIL import Image
+    from PIL import ImageOps
+    from PIL import ImageDraw
+    from PIL import ImageFont
 except ImportError:
     Image = None
-    logging.warning('No python imaging library installed. Windows guest '
-                    'BSOD detection disabled. In order to enable it, '
-                    'please install python-imaging or the equivalent for your '
-                    'distro.')
+    logging.warning('No python imaging library installed. Screendump '
+                    'and Windows guest BSOD detection are disabled. '
+                    'In order to enable it, please install python-imaging or '
+                    'the equivalent for your distro.')
+
+
 try:
     import hashlib
 except ImportError:
@@ -399,3 +404,27 @@ def image_histogram_compare(image_a, image_b, size=(0, 0)):
         else:
             s += 1 - float(abs(i - j))/max(i, j)
     return s / len(img_a_h)
+
+
+def add_timestamp(image, timestamp, margin=2):
+    """
+    Return an image object with timestamp bar added at the bottom.
+
+    param image: pillow image object
+    param timestamp: timestamp in seconds since the Epoch
+    param margin: timestamp margin, default is 2
+    """
+    width, height = image.size
+    font = ImageFont.load_default()
+    watermark = time.strftime('%c', time.localtime(timestamp))
+    # bar height = text height + top margin + bottom margin
+    bar_height = font.getsize(watermark)[1] + 2 * margin
+
+    # place bar at the bottom
+    new_image = ImageOps.expand(image, border=(0, 0, 0, bar_height),
+                                fill='lightgrey')
+    draw = ImageDraw.Draw(new_image)
+    # place timestamp at the left side of the bar
+    x, y = margin, height + margin
+    draw.text((x, y), watermark, font=font, fill='black')
+    return new_image
