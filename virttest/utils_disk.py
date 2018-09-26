@@ -16,6 +16,7 @@ try:
     import configparser as ConfigParser
 except ImportError:
     import ConfigParser
+from functools import cmp_to_key
 
 from avocado.core import exceptions
 from avocado.utils import process
@@ -1123,7 +1124,7 @@ class GuestFSModiDisk(object):
         if roots:
             for root in roots:
                 mps = self.g.inspect_get_mountpoints(root)
-                mps.sort(compare)
+                mps.sort(key=cmp_to_key(compare))
                 for mp_dev in mps:
                     try:
                         msg = "Mount dev '%s' partitions '%s' to '%s'"
