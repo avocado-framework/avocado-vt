@@ -2912,29 +2912,21 @@ class VM(virt_vm.BaseVM):
                 self.monitors.append(monitor)
 
             # Create virtio_ports (virtio_serialports and virtio_consoles)
-            i = 0
-            self.virtio_ports = []
-            for port in params.objects("virtio_ports"):
-                port_params = params.object_params(port)
-                if port_params.get('virtio_port_chardev') == "spicevmc":
-                    filename = 'dev%s' % port
-                else:
-                    filename = self.get_virtio_port_filename(port)
-                port_name = port_params.get('virtio_port_name_prefix', None)
-                if port_name:   # If port_name_prefix was used
-                    port_name = port_name + str(i)
-                else:           # Implicit name - port
-                    port_name = port
-                if port_params.get('virtio_port_type') in ("console",
-                                                           "virtio_console"):
-                    self.virtio_ports.append(
-                        qemu_virtio_port.VirtioConsole(port, port_name,
-                                                       filename))
-                else:
-                    self.virtio_ports.append(
-                        qemu_virtio_port.VirtioSerial(port, port_name,
-                                                      filename))
-                i += 1
+            try:
+                for name in params.get('virtio_ports').split():
+                    device = self.devices.get_by_params({'name': '%s' % name})[0]
+                    id = device.params.get('id')
+                    # Get the file path of the device's chardev backend object
+                    chardev = self.devices.get_by_qid(device.params.get('chardev'))[0]
+                    path = chardev.params.get('path')
+                    if device.params.get('driver') == 'virtconsole':
+                        portobj = qemu_virtio_port.VirtioConsole(id, name, path)
+                    elif device.params.get('driver') == 'virtserialport':
+                        portobj = qemu_virtio_port.VirtioSerial(id, name, path)
+                    self.virtio_ports.append(portobj)
+            except IndexError:
+                raise virt_vm.VMDeviceError('Failed to find all virtio port devices'
+                                            ' or their chardev backends.')
             self.create_virtio_console()
 
             # Get the output so far, to see if we have any problems with
