@@ -2919,10 +2919,13 @@ class VM(virt_vm.BaseVM):
                     # Get the file path of the device's chardev backend object
                     chardev = self.devices.get_by_qid(device.params.get('chardev'))[0]
                     path = chardev.params.get('path')
+                    chardev_id = chardev.params.get('id')
                     if device.params.get('driver') == 'virtconsole':
-                        portobj = qemu_virtio_port.VirtioConsole(id, name, path)
+                        portobj = qemu_virtio_port.VirtioConsole(id, name, path,
+                                                                 chardev_id)
                     elif device.params.get('driver') == 'virtserialport':
-                        portobj = qemu_virtio_port.VirtioSerial(id, name, path)
+                        portobj = qemu_virtio_port.VirtioSerial(id, name, path,
+                                                                chardev_id)
                     self.virtio_ports.append(portobj)
             except IndexError:
                 raise virt_vm.VMDeviceError('Failed to find all virtio port devices'
