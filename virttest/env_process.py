@@ -799,10 +799,11 @@ def preprocess(test, params, env):
                 params[name_tag] = os.path.join(image_nfs.mount_dir,
                                                 image_name_only)
 
-    # Start ip sniffing if it isn't already running
+    # Start ip sniffing if it isn't already running and allowed in params.
     # The fact it has to be started here is so that the test params
     # have to be honored.
-    env.start_ip_sniffing(params)
+    if not (params.get("run_tcpdump") == "no"):
+        env.start_ip_sniffing(params)
 
     # Add migrate_vms to vms
     migrate_vms = params.objects("migrate_vms")
@@ -1173,7 +1174,8 @@ def postprocess(test, params, env):
             vm.destroy()
 
     # Terminate the ip sniffer thread
-    env.stop_ip_sniffing()
+    if not (params.get("run_tcpdump") == "no"):
+        env.stop_ip_sniffing()
 
     # Kill all aexpect tail threads
     aexpect.kill_tail_threads()

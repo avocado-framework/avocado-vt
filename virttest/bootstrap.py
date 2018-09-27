@@ -23,7 +23,7 @@ from .compat_52lts import results_stdout_52lts
 
 LOG = logging.getLogger("avocado.app")
 
-basic_program_requirements = ['xz', 'tcpdump', 'nc', 'ip', 'arping']
+basic_program_requirements = ['xz', 'nc', 'ip', 'arping']
 
 recommended_programs = {'qemu': [('qemu-kvm', 'kvm'), ('qemu-img',),
                                  ('qemu-io',)],
@@ -35,7 +35,8 @@ recommended_programs = {'qemu': [('qemu-kvm', 'kvm'), ('qemu-img',),
                         'openvswitch': [],
                         'lvsb': [('semanage',), ('getfattr',), ('restorecon',), ('virt-sandbox')],
                         'v2v': [],
-                        'libguestfs': [('perl',)]}
+                        'libguestfs': [('perl',)],
+                        'tcpdump': [('tcpdump',)]}
 
 mandatory_programs = {'qemu': basic_program_requirements + ['gcc'],
                       'spice': basic_program_requirements + ['gcc'],

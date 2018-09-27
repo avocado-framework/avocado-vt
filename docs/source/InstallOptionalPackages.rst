@@ -19,7 +19,7 @@ Install the following packages:
 
     $ yum groupinstall "Development Tools"
 
-#. Install tcpdump, necessary to determine guest IPs automatically
+#. Install tcpdump, useful to determine guest IPs automatically
 
 ::
 
@@ -197,7 +197,7 @@ Install the following packages:
     $ apt-get install xz-utils
 
 
-#. Install tcpdump, necessary to determine guest IPs automatically
+#. Install tcpdump, useful to determine guest IPs automatically
 
 ::
 
