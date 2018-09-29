@@ -406,7 +406,7 @@ class QemuImg(storage.QemuImg):
         if force_share:
             cmd += " -U"
         if backing_chain == "yes":
-            if "--backing_chain" in self.help_text:
+            if "--backing-chain" in self.help_text:
                 cmd += " --backing-chain"
             else:
                 logging.warn("'--backing-chain' option is not supportted")
