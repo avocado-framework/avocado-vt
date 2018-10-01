@@ -288,4 +288,4 @@ def getpagesize(session=None):
     func = process.getoutput
     if session:
         func = session.cmd_output
-    return int(func('getconf PAGE_SIZE') // 1024)
+    return int(func('getconf PAGE_SIZE')) // 1024
