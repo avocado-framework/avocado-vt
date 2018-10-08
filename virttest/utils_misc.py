@@ -4573,11 +4573,11 @@ def get_pid(name, session=None):
     """
     Get pid by process name
 
-    :param name: Name of the process to retrieve its pid
+    :param name: Name of the process/string in process cmdline to retrieve its pid
     :param session: ShellSession object of VM or remote host
     :return: Pid of the process or None in case of exceptions
     """
-    cmd = "ps -ef | grep '%s' | grep -v grep" % name
+    cmd = "pgrep -f '%s'" % name
     if session:
         status, output = session.cmd_status_output(cmd)
     else:
@@ -4586,7 +4586,7 @@ def get_pid(name, session=None):
     if status:
         return None
     else:
-        return int(output.split()[1])
+        return int(output.split()[0])
 
 
 def start_rsyslogd():
