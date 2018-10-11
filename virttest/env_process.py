@@ -834,7 +834,8 @@ def preprocess(test, params, env):
             env["cpu_model"] = utils_misc.get_qemu_best_cpu_model(params)
         params["cpu_model"] = env.get("cpu_model")
 
-    # Get the KVM kernel module version and write it as a keyval
+    version_info = {}
+    # Get the KVM kernel module version
     if os.path.exists("/dev/kvm"):
         kvm_version = os.uname()[2]
     else:
@@ -845,7 +846,7 @@ def preprocess(test, params, env):
         kvm_version = "Unknown"
 
     logging.debug("KVM version: %s" % kvm_version)
-    test.write_test_keyval({"kvm_version": kvm_version})
+    version_info["kvm_version"] = kvm_version
 
     # Checking required kernel, if not satisfied, cancel test
     if params.get("required_kernel"):
@@ -859,7 +860,7 @@ def preprocess(test, params, env):
             test.cancel("Got host kernel version:%s, which is not in %s" %
                         (host_kernel, required_kernel))
 
-    # Get the KVM userspace version and write it as a keyval
+    # Get the KVM userspace version
     kvm_userspace_ver_cmd = params.get("kvm_userspace_ver_cmd", "")
 
     if kvm_userspace_ver_cmd:
@@ -879,8 +880,8 @@ def preprocess(test, params, env):
         else:
             kvm_userspace_version = "Unknown"
 
-    logging.debug("KVM userspace version: %s" % kvm_userspace_version)
-    test.write_test_keyval({"kvm_userspace_version": kvm_userspace_version})
+    logging.debug("KVM userspace version(qemu): %s" % kvm_userspace_version)
+    version_info["qemu_version"] = kvm_userspace_version
 
     # Checking required qemu, if not satisfied, cancel test
     if params.get("required_qemu"):
@@ -894,6 +895,20 @@ def preprocess(test, params, env):
         if host_qemu not in VersionInterval(required_qemu):
             test.cancel("Got host qemu version:%s, which is not in %s" %
                         (host_qemu, required_qemu))
+
+    # Get the Libvirt version
+    if vm_type == "libvirt":
+        libvirt_ver_cmd = params.get("libvirt_ver_cmd", "libvirtd -V|awk -F' ' '{print $3}'")
+        try:
+            libvirt_version = decode_to_text(a_process.system_output(
+                libvirt_ver_cmd, shell=True)).strip()
+        except a_process.CmdError:
+            libvirt_version = "Unknown"
+        version_info["libvirt_version"] = libvirt_version
+        logging.debug("KVM userspace version(libvirt): %s" % libvirt_version)
+
+    # Write it as a keyval
+    test.write_test_keyval(version_info)
 
     libvirtd_inst = utils_libvirtd.Libvirtd()
 
