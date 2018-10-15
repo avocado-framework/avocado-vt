@@ -3604,3 +3604,18 @@ def get_disk_alias(vm, source_file=None):
                 logging.info("Ignore error of source attr getting for file: %s" % e)
                 pass
     return None
+
+
+def check_domuuid_compliant_with_rfc4122(dom_uuid_value):
+    """
+    Check the domain uuid format comply with RFC4122.
+    xxxxxxxx-xxxx-Axxx-Bxxx-xxxxxxxxxxxx
+    A should be RFC version number, since the compliant RFC version is 4122,
+    so it should be number 4.
+    B should be one of "8, 9, a or b".
+
+    :param dom_uuid_value: value of domain uuid
+    :return: True or False indicate whether it is compliant with RFC 4122.
+    """
+    dom_uuid_segments = dom_uuid_value.split('-')
+    return dom_uuid_segments[2].startswith('4') and dom_uuid_segments[3][0] in '89ab'
