@@ -1108,7 +1108,7 @@ def run_autotest(vm, session, control_path, timeout,
         # cleanup autotest subprocess which not terminated, change PWD to
         # avoid current connection kill by fuser command;
         clean_cmd = "cd /tmp && fuser -k %s" % results_dir
-        session.sendline(clean_cmd)
+        session.cmd(clean_cmd, ignore_all_errors=True)
         session.cmd("rm -f %s" % results_tarball, timeout=240)
         results_tarball = os.path.basename(results_tarball)
         results_tarball = os.path.join(guest_results_dir, results_tarball)
