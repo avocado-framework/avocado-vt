@@ -8,18 +8,19 @@ This exports:
 import logging
 import os
 import re
+import six
 
 from avocado.core import exceptions
 from avocado.utils import process
-
-import six
 
 from virttest import utils_misc
 from virttest import virt_vm
 from virttest import storage
 from virttest import data_dir
 from virttest import error_context
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
+from virttest.compat_52lts import (results_stdout_52lts,
+                                   results_stderr_52lts,
+                                   decode_to_text)
 
 
 class QemuImg(storage.QemuImg):
@@ -629,6 +630,23 @@ class QemuImg(storage.QemuImg):
         cmd_result = process.run(" ".join(cmd_list), ignore_status=False)
         cmd_result.stdout = results_stdout_52lts(cmd_result)
         cmd_result.stderr = results_stderr_52lts(cmd_result)
+        return cmd_result
+
+    def resize(self, size, shrink=False, ignore_status=False):
+        """
+        Qemu image resize wrapper.
+
+        :param size: string of size representations.(eg. +1G, -1k, 1T)
+        :param shrink: boolean
+        :param ignore_status: whether to raise an exception when command
+                              returns =! 0 (False), or not (True)
+        """
+        cmd_list = [self.image_cmd, "resize"]
+        if shrink:
+            cmd_list.append("--shrink")
+        cmd_list.extend([self.image_filename, size])
+        cmd_result = process.system_output(
+            " ".join(cmd_list), ignore_status=ignore_status).decode()
         return cmd_result
 
 
