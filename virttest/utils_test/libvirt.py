@@ -2823,6 +2823,7 @@ def attach_disks(vm, path, vgname, params):
         disk_params['type_name'] = disk_type
         disk_params['target_dev'] = target_dev
         disk_params['target_bus'] = disk_target
+        disk_params['driver_cache'] = params.get("driver_cache", "")
         disk_params['device_type'] = params.get("device_type", "disk")
         device_name = "%s_%s" % (target_dev, vm.name)
         disk_path = os.path.join(os.path.dirname(path), device_name)
