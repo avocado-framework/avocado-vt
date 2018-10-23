@@ -2367,7 +2367,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     logging.debug("original xml is: %s", vmxml.xmltreefile)
     disk_device = params.get("disk_device", "disk")
     disk_snapshot_attr = params.get("disk_snapshot_attr")
-    disk_type = params.get("disk_type")
+    disk_type = params.get("disk_type", "file")
     disk_target = params.get("disk_target", 'vda')
     disk_target_bus = params.get("disk_target_bus", "virtio")
     disk_src_protocol = params.get("disk_source_protocol")
