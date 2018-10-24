@@ -39,6 +39,7 @@ from virttest import data_dir
 from virttest import utils_net
 from virttest import nfs
 from virttest import libvirt_vm
+from virttest import virsh
 from virttest import utils_test
 from virttest.utils_version import VersionInterval
 from virttest.compat_52lts import decode_to_text
@@ -814,9 +815,20 @@ def preprocess(test, params, env):
     # migration and if arch is ppc with power8 then switch off smt
     # will be taken care in remote machine for migration to succeed
     if migration_setup:
-        dest_uri = libvirt_vm.complete_uri(params["server_ip"])
+        dest_uri = libvirt_vm.complete_uri(params["remote_ip"])
         migrate_setup = utils_test.libvirt.MigrationTest()
         migrate_setup.migrate_pre_setup(dest_uri, params)
+        # Map hostname and IP address of the hosts to avoid virsh
+        # to error out of resolving
+        hostname_ip = {str(virsh.hostname()): params['local_ip']}
+        hostname_ip[str(virsh.hostname(uri=dest_uri))] = params['remote_ip']
+        if not utils_net.map_hostname_ipaddress(hostname_ip):
+            test.cancel("Failed to map hostname and ipaddress of source host")
+        session = test_setup.remote_session(params)
+        if not utils_net.map_hostname_ipaddress(hostname_ip, session=session):
+            session.close()
+            test.cancel("Failed to map hostname and ipaddress of target host")
+        session.close()
 
     # Destroy and remove VMs that are no longer needed in the environment
     requested_vms = params.objects("vms")
