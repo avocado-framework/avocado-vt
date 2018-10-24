@@ -395,11 +395,13 @@ class QemuImg(storage.QemuImg):
         else:
             logging.debug("Image file %s not found", self.image_filename)
 
-    def info(self, force_share=False):
+    def info(self, force_share=False, output="human"):
         """
         Run qemu-img info command on image file and return its output.
+
+        :param output: string of output format(`human`, `json`)
         """
-        logging.debug("Run qemu-img info comamnd on %s", self.image_filename)
+        logging.debug("Run qemu-img info command on %s", self.image_filename)
         backing_chain = self.params.get("backing_chain")
         force_share &= self.cap_force_share
         cmd = self.image_cmd
@@ -410,9 +412,9 @@ class QemuImg(storage.QemuImg):
             if "--backing-chain" in self.help_text:
                 cmd += " --backing-chain"
             else:
-                logging.warn("'--backing-chain' option is not supportted")
+                logging.warn("'--backing-chain' option is not supported")
         if os.path.exists(self.image_filename) or self.is_remote_image():
-            cmd += " %s" % self.image_filename
+            cmd += " %s --output=%s" % (self.image_filename, output)
             output = decode_to_text(process.system_output(cmd, verbose=True))
         else:
             logging.debug("Image file %s not found", self.image_filename)
@@ -632,21 +634,20 @@ class QemuImg(storage.QemuImg):
         cmd_result.stderr = results_stderr_52lts(cmd_result)
         return cmd_result
 
-    def resize(self, size, shrink=False, ignore_status=False):
+    def resize(self, size, shrink=False):
         """
         Qemu image resize wrapper.
 
         :param size: string of size representations.(eg. +1G, -1k, 1T)
         :param shrink: boolean
-        :param ignore_status: whether to raise an exception when command
-                              returns =! 0 (False), or not (True)
+        :return: process.CmdResult object containing the result of the
+                 command
         """
         cmd_list = [self.image_cmd, "resize"]
         if shrink:
             cmd_list.append("--shrink")
         cmd_list.extend([self.image_filename, size])
-        cmd_result = process.system_output(
-            " ".join(cmd_list), ignore_status=ignore_status).decode()
+        cmd_result = process.run(" ".join(cmd_list), ignore_status=True)
         return cmd_result
 
 
