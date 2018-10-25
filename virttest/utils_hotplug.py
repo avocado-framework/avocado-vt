@@ -98,12 +98,13 @@ def hotplug_supported(vm_name, mtype):
     return supported
 
 
-def affinity_from_vcpuinfo(vm):
+def affinity_from_vcpuinfo(vm, vcpu=None):
     """
     Returns list of the vcpu's affinity from
     virsh vcpuinfo output
 
     :param vm: VM object
+    :param vcpu: vcpu number to get affinity
 
     :return: affinity list of VM
     """
@@ -111,17 +112,21 @@ def affinity_from_vcpuinfo(vm):
     affinity = re.findall('CPU Affinity: +[-y]+', output)
     total_affinity = [list(vcpu_affinity.split()[-1].strip())
                       for vcpu_affinity in affinity]
-    return total_affinity
+    if vcpu or vcpu == 0:
+        return total_affinity[int(vcpu)]
+    else:
+        return total_affinity
 
 
-def affinity_from_xml(vm):
+def affinity_from_xml(vm, vcpu=None):
     """
-    Returns dict of the vcpu's affinity from
-    guest xml
+    Returns dict of the all vcpu's affinity/list of
+    single vcpu affinity from guest xml
 
     :param vm: VM object
+    :param vcpu: vcpu number to get affinity
 
-    :return: dict of affinity of VM
+    :return: dict/list of affinity of vcpu(s/)
     """
     host_cpu_count = utils.total_cpus_count()
     xml_affinity_list = []
@@ -133,53 +138,74 @@ def affinity_from_xml(vm):
         logging.debug("No <cputune> element find in domain xml")
         return xml_affinity
     # Store xml_affinity_list to a dict
-    for vcpu in xml_affinity_list:
-        xml_affinity[vcpu['vcpu']] = libvirt.cpus_string_to_affinity_list(vcpu['cpuset'],
+    for item in xml_affinity_list:
+        if (vcpu or vcpu == 0) and item['vcpu'] != vcpu:
+            continue
+        xml_affinity[item['vcpu']] = libvirt.cpus_string_to_affinity_list(item['cpuset'],
                                                                           host_cpu_count)
-    return xml_affinity
+    if vcpu or vcpu == 0:
+        return xml_affinity[vcpu]
+    else:
+        return xml_affinity
 
 
-def affinity_from_vcpupin(vm):
+def affinity_from_vcpupin(vm, vcpu=None):
     """
-    Returns dict of vcpu's affinity from virsh vcpupin output
+    Returns dict of all vcpu's affinity list or
+    list of vcpu affinity from virsh vcpupin output
 
     :param vm: VM object
+    :param vcpu: vcpu number to get affinity
 
-    :return: dict of affinity of VM
+    :return: dict/list of affinity of vcpu(s/)
     """
     vcpupin_output = {}
     vcpupin_affinity = {}
     host_cpu_count = utils.total_cpus_count()
     result = virsh.vcpupin(vm.name)
-    for vcpu in results_stdout_52lts(result).strip().split('\n')[2:]:
-        vcpupin_output[int(vcpu.split(":")[0])] = vcpu.split(":")[1]
-    for vcpu in vcpupin_output:
-        vcpupin_affinity[vcpu] = libvirt.cpus_string_to_affinity_list(
-            vcpupin_output[vcpu], host_cpu_count)
-    return vcpupin_affinity
+    for item in results_stdout_52lts(result).strip().split('\n')[2:-1]:
+        splitkey = ':' if ":" in item else ' '
+        item = item.strip()
+        if (vcpu or vcpu == 0) and item.split(splitkey)[0] != vcpu:
+            continue
+        vcpupin_output[int(item.split(splitkey)[0])] = item.split(splitkey)[-1]
+    for item in vcpupin_output:
+        vcpupin_affinity[item] = libvirt.cpus_string_to_affinity_list(
+            vcpupin_output[item], host_cpu_count)
+    logging.debug("vcpupin-debug-affinity %s", vcpupin_affinity)
+    if vcpu or vcpu == 0:
+        return vcpupin_affinity[vcpu]
+    else:
+        return vcpupin_affinity
 
 
-def affinity_from_proc(vm):
+def affinity_from_proc(vm, vcpu=None):
     """
     Return dict of affinity from proc
 
     :param vm: VM object
+    :param vcpu: vcpu number to get affinity
 
-    :return: dict of affinity of VM
+    :return: dict/list of affinity of vcpu(s/)
     """
     pid = vm.get_pid()
     proc_affinity = {}
     vcpu_pids = []
     host_cpu_count = utils.total_cpus_count()
     vcpu_pids = vm.get_vcpus_pid()
-    for vcpu in range(len(vcpu_pids)):
+    for item in range(len(vcpu_pids)):
+        if (vcpu or vcpu == 0) and vcpu != item:
+            continue
         output = utils_test.libvirt.cpu_allowed_list_by_task(
-            pid, vcpu_pids[vcpu])
+            pid, vcpu_pids[item])
         output_affinity = utils_test.libvirt.cpus_string_to_affinity_list(
             output,
             int(host_cpu_count))
-        proc_affinity[vcpu] = output_affinity
-    return proc_affinity
+        proc_affinity[item] = output_affinity
+    if vcpu or vcpu == 0:
+        return proc_affinity[vcpu]
+    else:
+        return proc_affinity
 
 
 def get_vcpucount_details(vm, options):
