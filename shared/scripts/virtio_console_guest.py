@@ -353,12 +353,11 @@ class VirtioGuestPosix(VirtioGuest):
             """
             Read and write to device in blocking mode
             """
-            data = ""
             while not self.exit_thread.isSet():
-                data = ""
+                data = b""
                 for desc in self.in_files:
                     data += os.read(desc, self.cachesize)
-                if data != "":
+                if data != b"":
                     for desc in self.out_files:
                         os.write(desc, data)
 
@@ -377,14 +376,14 @@ class VirtioGuestPosix(VirtioGuest):
                 po.register(fd, select.POLLOUT)
 
             while not self.exit_thread.isSet():
-                data = ""
+                data = b""
                 t_out = self.out_files
 
                 readyf = pi.poll(1.0)
                 for i in readyf:
                     data += os.read(i[0], self.cachesize)
 
-                if data != "":
+                if data != b"":
                     while ((len(t_out) != len(readyf)) and not
                            self.exit_thread.isSet()):
                         readyf = po.poll(1.0)
@@ -397,11 +396,11 @@ class VirtioGuestPosix(VirtioGuest):
             """
             while not self.exit_thread.isSet():
                 ret = select.select(self.in_files, [], [], 1.0)
-                data = ""
+                data = b""
                 if ret[0] != []:
                     for desc in ret[0]:
                         data += os.read(desc, self.cachesize)
-                if data != "":
+                if data != b"":
                     ret = select.select([], self.out_files, [], 1.0)
                     while ((len(self.out_files) != len(ret[1])) and not
                            self.exit_thread.isSet()):
@@ -417,9 +416,8 @@ class VirtioGuestPosix(VirtioGuest):
             """
             # TODO: Remove port unplugging after failure from guest_worker
             #       when bz796048 is resolved.
-            data = ""
             while not self.exit_thread.isSet():
-                data = ""
+                data = b""
                 for i in xrange(len(self.in_files)):
                     if self.exit_thread.isSet():
                         break
@@ -457,7 +455,7 @@ class VirtioGuestPosix(VirtioGuest):
                                 except OSError:
                                     pass
                             self.in_files[self.in_files.index(_desc)] = desc
-                if data != "":
+                if data != b"":
                     for i in xrange(len(self.out_files)):
                         if self.exit_thread.isSet():
                             break
@@ -533,7 +531,7 @@ class VirtioGuestPosix(VirtioGuest):
             self.exit_thread = event
             self.data = array.array('L')
             for _ in range(max(length // self.data.itemsize, 1)):
-                self.data.append(random.randrange(sys.maxint))
+                self.data.append(random.randrange(sys.maxsize))
 
         def run(self):
             while not self.exit_thread.isSet():
@@ -916,7 +914,7 @@ class VirtioGuestPosix(VirtioGuest):
         """
         in_f = self._open([port])
 
-        recvs = ""
+        recvs = b""
         try:
             recvs = os.read(in_f[0], bfr)
         except Exception as inst:
@@ -936,7 +934,7 @@ class VirtioGuestPosix(VirtioGuest):
     def clean_port(self, port, bfr=1024):
         in_f = self._open([port])
         ret = select.select([in_f[0]], [], [], 1.0)
-        buf = ""
+        buf = b""
         if ret[0]:
             buf = os.read(in_f[0], bfr)
         print("PASS: Rest in socket: " + str(buf[:10]))
