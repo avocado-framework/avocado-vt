@@ -160,10 +160,10 @@ def update_boot_option(vm, args_removed=None, args_added=None,
             raise exceptions.TestError("Failed to install grubby package")
         msg = "Update guest kernel option. "
         cmd = "grubby --update-kernel=`grubby --default-kernel` "
-        if args_removed is not None:
+        if bool(args_removed):
             msg += " remove args: %s" % args_removed
             cmd += '--remove-args="%s" ' % args_removed
-        if args_added is not None:
+        if bool(args_added):
             msg += " add args: %s" % args_added
             cmd += '--args="%s"' % args_added
         error_context.context(msg, logging.info)
