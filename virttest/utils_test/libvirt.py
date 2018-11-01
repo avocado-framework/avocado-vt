@@ -2321,6 +2321,48 @@ def set_guest_agent(vm):
             raise exceptions.TestFail("Fail to run qemu-ga in guest")
 
 
+def update_disk_driver(vm_name, disk_name, disk_type, disk_cache):
+    """
+    Update disk driver
+    """
+    vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
+    devices = vmxml.devices
+    disk_index = devices.index(devices.by_device_tag('disk')[0])
+    disks = devices[disk_index]
+    disk_driver = disks.get_driver()
+    if disk_name:
+        disk_driver["name"] = disk_name
+    if disk_type:
+        disk_driver["type"] = disk_type
+    if disk_cache:
+        disk_driver["cache"] = disk_cache
+    disks.set_driver(disk_driver)
+    # SYNC VM XML change
+    vmxml.devices = devices
+    logging.debug("The VM XML with disk driver change:\n%s", vmxml.xmltreefile)
+    vmxml.sync()
+
+
+def update_disk_driver_with_iothread(vm_name, iothread):
+    """ Update disk driver with iothread."""
+    vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
+    # Delete cputune/iothreadids section, it may have conflicts
+    # with domain iothreads.
+    del vmxml.cputune
+    del vmxml.iothreadids
+    devices = vmxml.devices
+    disk_index = devices.index(devices.by_device_tag('disk')[0])
+    disks = devices[disk_index]
+    disk_driver = disks.get_driver()
+    disk_driver["iothread"] = iothread
+    disks.set_driver(disk_driver)
+    devices[disk_index] = disks
+    vmxml.devices = devices
+    vmxml.iothreads = int(iothread)
+    # SYNC VM XML change.
+    vmxml.sync()
+
+
 def set_vm_disk(vm, params, tmp_dir=None, test=None):
     """
     Replace vm first disk with given type in domain xml, including file type
