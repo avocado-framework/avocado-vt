@@ -10,6 +10,7 @@ import logging
 import os
 import shutil
 import re
+import functools
 
 from avocado.core import exceptions
 from avocado.utils import process
@@ -195,7 +196,8 @@ def get_image_filename_filesytem(params, root_dir):
         indirect_image_select = int(indirect_image_select)
         matching_images = decode_to_text(process.system_output("ls -1d %s" % re_name,
                                                                shell=True))
-        matching_images = sorted(matching_images.split('\n'), cmp=sort_cmp)
+        matching_images = sorted(matching_images.split('\n'),
+                                 key=functools.cmp_to_key(sort_cmp))
         if matching_images[-1] == '':
             matching_images = matching_images[:-1]
         try:
