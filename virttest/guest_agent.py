@@ -732,3 +732,95 @@ class QemuAgent(Monitor):
                     raise
             return ret
         return -1
+
+    def _guest_file_operation(self, operation, **kwargs):
+        """
+        Basic guest file command function.
+
+        :param operation: open,write,read,flush,seek or flush.
+        :param kwargs: optional keyword arguments including but not limited
+               to below.
+        :return: The command's output.
+        """
+        cmd = "guest-file-%s" % operation
+        self.check_has_command(cmd)
+
+        # update kwargs
+        for key in list(kwargs.keys()):
+            if kwargs[key] is None:
+                kwargs.pop(key)
+            if "_" in key:
+                key_new = key.replace("_", "-")
+                args = {key_new: kwargs[key]}
+                kwargs.pop(key)
+                kwargs.update(args)
+
+        return self.cmd(cmd=cmd, args=kwargs)
+
+    def guest_file_open(self, path, mode=None):
+        """
+        Open a guest file.
+
+        :param path: full path to the file in the guest to open.
+        :param mode: optional open mode, "r" is the default value.
+        :return: file handle.
+        """
+        return self._guest_file_operation("open", path=path, mode=mode)
+
+    def guest_file_close(self, handle):
+        """
+        Close an opened guest file.
+
+        :param handle: file handle returned by guest-file-open.
+        :return: no-error return.
+        """
+        return self._guest_file_operation("close", handle=handle)
+
+    def guest_file_write(self, handle, content, count=None):
+        """
+        Write to guest file.
+
+        :param handle: file handle returned by guest-file-open.
+        :param content: content to write.
+        :param count: optional bytes to write (actual bytes, after
+               base64-decode),default is all content in buf-b64 buffer
+               after base64 decoding
+        :return: a dict with count and eof.
+        """
+        con_encode = base64.b64encode(content.encode()).decode()
+        return self._guest_file_operation("write", handle=handle,
+                                          buf_b64=con_encode, count=count)
+
+    def guest_file_read(self, handle, count=None):
+        """
+        Read guest file.
+
+        :param handle: file handle returned by guest-file-open.
+        :param count: optional,maximum number of bytes to read before
+                      base64-encoding is applied(default is 4KB)
+        :return: a dict with base64-encoded string content,count and eof.
+        """
+        return self._guest_file_operation("read", handle=handle, count=count)
+
+    def guest_file_flush(self, handle):
+        """
+        Flush the write content to disk.
+
+        :param handle: file handle returned by guest-file-open.
+        :return: no-error return.
+        """
+        return self._guest_file_operation("flush", handle=handle)
+
+    def guest_file_seek(self, handle, offset, whence):
+        """
+        Seek the position of guest file.
+
+        :param handle: filehandle returned by guest-file-open.
+        :param offset: offset of whence.
+        :param whence: 0,file beginning;
+                       1,file current position;
+                       2,file end
+        :return: a dict with position and eof.
+        """
+        return self._guest_file_operation("seek", handle=handle, offset=offset,
+                                          whence=whence)
