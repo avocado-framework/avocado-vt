@@ -4,7 +4,7 @@ http://libvirt.org/formatnwfilter.html
 """
 
 from virttest.libvirt_xml import base, accessors
-from virttest.libvirt_xml.devices.interface import Filterref
+from virttest.libvirt_xml.devices.filterref import Filterref
 
 
 class NwfilterBinding(base.LibvirtXMLBase):
