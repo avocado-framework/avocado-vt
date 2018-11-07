@@ -2348,9 +2348,13 @@ class VMMemBackingXML(VMXML):
         hugepages
         nosharepages
         locked
+        source
+        access
+        discard
     """
 
-    __slots__ = ('hugepages', 'nosharepages', 'locked')
+    __slots__ = ('hugepages', 'nosharepages', 'locked', 'source', 'access',
+                 'discard', 'source_type', 'access_mode')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementNest(property_name='hugepages',
@@ -2360,9 +2364,23 @@ class VMMemBackingXML(VMXML):
                                  subclass=VMHugepagesXML,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
-        for slot in ('nosharepages', 'locked'):
+        for slot in ('nosharepages', 'locked', 'discard'):
             accessors.XMLElementBool(slot, self, parent_xpath='/',
                                      tag_name=slot)
+        accessors.XMLElementText('source', self, parent_xpath='/',
+                                 tag_name='source')
+        accessors.XMLAttribute(property_name="source_type",
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='source',
+                               attribute='type')
+        accessors.XMLElementText('access', self, parent_xpath='/',
+                                 tag_name='access')
+        accessors.XMLAttribute(property_name="access_mode",
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='access',
+                               attribute='mode')
         super(VMMemBackingXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<memoryBacking/>'
 
