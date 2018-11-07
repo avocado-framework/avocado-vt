@@ -169,7 +169,7 @@ class VMXMLBase(base.LibvirtXMLBase):
                  'current_vcpu', 'vcpus', 'os', 'cpu', 'pm', 'on_poweroff',
                  'on_reboot', 'on_crash', 'features', 'mb', 'max_mem_unit',
                  'current_mem_unit', 'memtune', 'max_mem_rt', 'max_mem_rt_unit',
-                 'max_mem_rt_slots', 'iothreads', 'iothreadids', 'memory')
+                 'max_mem_rt_slots', 'iothreads', 'iothreadids', 'memory', 'perf')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -293,6 +293,13 @@ class VMXMLBase(base.LibvirtXMLBase):
                                  parent_xpath='numatune',
                                  marshal_from=self.marshal_from_memnode,
                                  marshal_to=self.marshal_to_memnode)
+        accessors.XMLElementNest(property_name="perf",
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='perf',
+                                 subclass=VMPerfXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
         accessors.XMLElementNest(property_name='cputune',
                                  libvirtxml=self,
                                  parent_xpath='/',
@@ -2463,6 +2470,86 @@ class VMMemTuneXML(base.LibvirtXMLBase):
                                attribute='unit')
         super(VMMemTuneXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<memtune/>'
+
+
+class VMPerfXML(VMXML):
+
+    """
+    perf tag XML class
+
+    Properties:
+        event :
+            dict, keys: name, enabled
+    """
+
+    __slots__ = ('events',)
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLElementList('events', self, forbidden=[],
+                                 parent_xpath='/',
+                                 marshal_from=self.marshal_from_event,
+                                 marshal_to=self.marshal_to_event)
+
+        super(VMPerfXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<perf/>'
+
+    # Sub-element of perf
+    class EventXML(VMXML):
+
+        """Event element of perf"""
+
+        __slots__ = ('name', 'enabled')
+
+        def __init__(self, virsh_instance=base.virsh):
+            """
+            Create new EventXML instance
+            """
+            accessors.XMLAttribute(property_name="name",
+                                   libvirtxml=self,
+                                   forbidden=[],
+                                   parent_xpath='/perf',
+                                   tag_name='event',
+                                   attribute='name')
+            accessors.XMLAttribute(property_name="enabled",
+                                   libvirtxml=self,
+                                   forbidden=[],
+                                   parent_xpath='/perf',
+                                   tag_name='event',
+                                   attribute='enabled')
+            super(VMPerfXML.EventXML, self).__init__(
+                virsh_instance=virsh_instance)
+
+        def update(self, attr_dict):
+            for attr, value in list(attr_dict.items()):
+                setattr(self, attr, value)
+
+    @staticmethod
+    def marshal_from_event(item, index, libvirtxml):
+        """
+        Convert a EventXML instance to tag and attributes
+        """
+        del index
+        del libvirtxml
+
+        event = item.xmltreefile.find("/perf/event")
+        try:
+            return (event.tag, dict(list(event.items())))
+        except AttributeError:  # Didn't find event
+            raise xcepts.LibvirtXMLError("Expected a list of event "
+                                         "instances, not a %s" % str(item))
+
+    @staticmethod
+    def marshal_to_event(tag, attr_dict, index, libvirtxml):
+        """
+        Convert a tag and attributes to a EventXML instance
+        """
+        del index
+        if tag == 'event':
+            newone = VMPerfXML.EventXML(virsh_instance=libvirtxml.virsh)
+            newone.update(attr_dict)
+            return newone
+        else:
+            return None
 
 
 class VMIothreadidsXML(VMXML):
