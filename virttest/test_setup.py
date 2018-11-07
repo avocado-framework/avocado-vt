@@ -447,12 +447,12 @@ class HugePageConfig(object):
                 num = params.object_params("node%s" % node).get("target_num")
                 # let us distribute the hugepages if target_num_node is not set
                 if not num:
-                    num = self.target_hugepages / self.node_len
+                    num = self.target_hugepages // self.node_len
                     if node == self.node_list[0]:
                         # if target_hugepages is not divisible by node_len
                         # add remainder it to first node
                         num += self.target_hugepages % self.node_len
-                self.target_node_num[node] = num
+                self.target_node_num[node] = int(num)
 
     @error_context.context_aware
     def check_hugepage_support(self):
@@ -604,6 +604,9 @@ class HugePageConfig(object):
             raise ValueError("%s page size nr_hugepages file of node %s did "
                              "not exist" % (pagesize, node))
         process.system("echo %s > %s" % (num, node_page_path), shell=True)
+        if num != self.get_node_num_huge_pages(node, pagesize):
+            raise ValueError("Cannot set %s hugepages on node %s, please check"
+                             " if the node has enough memory" % (num, node))
 
     @error_context.context_aware
     def set_hugepages(self):
