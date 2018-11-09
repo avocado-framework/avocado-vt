@@ -267,6 +267,12 @@ class Monitor:
         # any representation whatsoever.
         return VM(self.vm.name), self.name, self.filename, True
 
+    def __reduce__(self):
+        """
+        Backward-compatible way to use __getinitargs__ on py3
+        """
+        return self.__class__, (self.__getinitargs__())
+
     def _close_sock(self):
         try:
             self._socket.shutdown(socket.SHUT_RDWR)
