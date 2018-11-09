@@ -1067,9 +1067,8 @@ def postprocess(test, params, env):
 
     # Encode an HTML 5 compatible video from the screenshots produced
     dir_rex = "(screendump\S*_[0-9]+_iter%s)" % test.iteration
-    screendump_dir = re.findall(dir_rex, str(os.listdir(test.debugdir)))
-    if screendump_dir:
-        screendump_dir = os.path.join(test.debugdir, screendump_dir[0])
+    for screendump_dir in re.findall(dir_rex, str(os.listdir(test.debugdir))):
+        screendump_dir = os.path.join(test.debugdir, screendump_dir)
         if (params.get("encode_video_files", "yes") == "yes" and
                 glob.glob("%s/*" % screendump_dir)):
             try:
