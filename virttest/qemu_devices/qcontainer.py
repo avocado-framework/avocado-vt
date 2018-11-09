@@ -1904,3 +1904,51 @@ class DevContainer(object):
                 dimm.set_param("memdev", mem.get_qid())
                 devices.append(dimm)
         return devices
+
+    def input_define_by_params(self, params, name, bus=None):
+        """
+        Create input device by params.
+
+        :param params: VM params.
+        :param name: Object name of input device.
+        :param bus: Parent bus.
+        """
+        params = params.object_params(name)
+        dev_map = {"mouse": {"virtio": "virtio-mouse"},
+                   "keyboard": {"virtio": "virtio-keyboard"},
+                   "tablet": {"virtio": "virtio-tablet"}}
+        dev_type = params["input_dev_type"]
+        bus_type = params["input_dev_bus_type"]
+        driver = dev_map.get(dev_type)
+        if not driver:
+            raise ValueError("unsupported input device type")
+        driver = driver.get(bus_type)
+        if not driver:
+            raise ValueError("unsupported input device bus")
+
+        machine_type = params.get("machine_type", "")
+        qbus_type = "PCI"
+        if machine_type.startswith("q35") or machine_type.startswith("arm64"):
+            qbus_type = "PCIE"
+
+        if bus_type == "virtio":
+            if "-mmio:" in machine_type:
+                driver += "-device"
+                qbus_type = "virtio-bus"
+            elif machine_type.startswith("s390"):
+                driver += "-ccw"
+                qbus_type = "virtio-bus"
+            else:
+                driver += "-pci"
+
+        if bus is None:
+            bus = {"type": qbus_type}
+        devices = []
+        if self.has_device(driver):
+            dev = qdevices.QDevice(driver, parent_bus=bus)
+            dev.set_param("id", "input_%s" % name)
+            devices.append(dev)
+        else:
+            logging.warn("'%s' is not supported by your qemu", driver)
+
+        return devices

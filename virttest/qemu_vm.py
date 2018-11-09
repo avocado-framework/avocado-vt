@@ -2266,6 +2266,10 @@ class VM(virt_vm.BaseVM):
             if cmd:
                 devices.insert(StrDev('ROM', cmdline=cmd))
 
+        for input_device in params.objects("inputs"):
+            devs = devices.input_define_by_params(params, input_device)
+            devices.insert(devs)
+
         for balloon_device in params.objects("balloon"):
             balloon_params = params.object_params(balloon_device)
             balloon_devid = balloon_params.get("balloon_dev_devid")
