@@ -650,6 +650,19 @@ class QemuImg(storage.QemuImg):
         cmd_result = process.run(" ".join(cmd_list), ignore_status=True)
         return cmd_result
 
+    def map(self, output="human"):
+        """
+        Qemu image map wrapper.
+
+        :param output: string, the map command output format(`human`, `json`)
+        :return: process.CmdResult object containing the result of the
+                 command
+        """
+        cmd_list = [self.image_cmd, "map",
+                    ("--output=%s" % output), self.image_filename]
+        cmd_result = process.run(" ".join(cmd_list), ignore_status=True)
+        return cmd_result
+
 
 class Iscsidev(storage.Iscsidev):
 
