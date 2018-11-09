@@ -2116,12 +2116,13 @@ class VMFeaturesXML(base.LibvirtXMLBase):
         hyperv_spinlocks:  attributes - state, retries
         kvm_hidden:        attribute - state
         pvspinlock:        attribute - state
+        smm:               attribute - state
     """
 
     __slots__ = ('feature_list', 'hyperv_relaxed_state', 'hyperv_vapic_state',
                  'hyperv_spinlocks_state', 'hyperv_spinlocks_retries',
                  'kvm_hidden_state', 'pvspinlock_state', 'smm', 'hpt_resizing',
-                 'htm')
+                 'htm', 'smm_tseg_unit', 'smm_tseg')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLAttribute(property_name='hyperv_relaxed_state',
@@ -2159,6 +2160,13 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                                parent_xpath='/',
                                tag_name='smm',
                                attribute='state')
+        accessors.XMLAttribute(property_name='smm_tseg_unit',
+                               libvirtxml=self,
+                               parent_xpath='/smm',
+                               tag_name='tseg',
+                               attribute='unit')
+        accessors.XMLElementText('smm_tseg', self, parent_xpath='/smm',
+                                 tag_name='tseg')
         accessors.XMLAttribute(property_name='hpt_resizing',
                                libvirtxml=self,
                                parent_xpath='/',
