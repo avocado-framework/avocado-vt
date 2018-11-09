@@ -3619,3 +3619,24 @@ def check_domuuid_compliant_with_rfc4122(dom_uuid_value):
     """
     dom_uuid_segments = dom_uuid_value.split('-')
     return dom_uuid_segments[2].startswith('4') and dom_uuid_segments[3][0] in '89ab'
+
+
+def check_dumpxml(vm, content, err_ignore=False):
+    """
+    Check the specified content in the VM dumpxml
+
+    :param vm: VM object
+    :param content: the desired string to search
+    :param err_ignore: True to return False when fail
+                       False to raise exception when fail
+    :return: True if exist, False otherwise
+    """
+    v_xml = vm_xml.VMXML.new_from_dumpxml(vm.name)
+    with open(v_xml.xml) as xml_f:
+        if content not in xml_f.read():
+            if err_ignore:
+                return False
+            else:
+                raise exceptions.TestFail("Expected '%s' was not found in "
+                                          "%s's xml" % (content, vm.name))
+    return True
