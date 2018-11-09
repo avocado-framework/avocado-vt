@@ -33,6 +33,7 @@ from virttest import utils_net
 from virttest import arch
 from virttest import storage
 from virttest import error_context
+from virttest import data_plane
 from virttest.compat_52lts import decode_to_text
 from virttest.qemu_devices import qdevices, qcontainer
 
@@ -1399,6 +1400,44 @@ class VM(virt_vm.BaseVM):
             if params.get("pci_controllers_autosort", "yes") == "yes":
                 pcics.sort(key=sort_key, reverse=False)
             devices.insert(pcics)
+
+        def select_iothread_manager(devices, params):
+            """Dispatch iothread manager."""
+            iothreads = params.get("iothreads")
+            iothread_scheme = params.get("iothread_scheme")
+            if iothreads is not None:
+                msg = "iothreads: %s, use 'PredefinedManager'." % iothreads
+                iothreads = [qdevices.IOThread(id=iothread_id)
+                             for iothread_id in iothreads.split()]
+                manager = data_plane.PredefinedManager(iothreads)
+            elif iothread_scheme is not None:
+                if iothread_scheme.startswith("roundrobin"):
+                    msg = "iothread_scheme: %s , use 'RoundRobinManager'"
+                    match = re.match(r"roundrobin_(\d+)?", iothread_scheme)
+                    count = match.group(1) if match else 1
+                    manager = data_plane.RoundRobinManager(count=int(count))
+                elif iothread_scheme == "optimal":
+                    msg = "iothread_scheme: %s, use 'OptimalManager'"
+                    manager = data_plane.OptimalManager(self.cpuinfo.cores)
+                elif iothread_scheme == "oto":
+                    msg = ("iothread_scheme: %s, one device mapping to one "
+                           "iothread object, use'OTOManager'")
+                    manager = data_plane.OTOManager()
+                elif iothread_scheme == "rhv":
+                    msg = ("iothread_scheme: %s, one iothread for all devices,"
+                           " use 'RoundRobinManager'")
+                    manager = data_plane.RoundRobinManager()
+                else:
+                    msg = ("unrecognized iothread_scheme: %s, fall back to "
+                           "use 'PredefinedManager'")
+                    manager = data_plane.PredefinedManager([])
+                msg %= iothread_scheme
+            else:
+                msg = ("no iothread config, fall back to use "
+                       "'PredefinedManager'")
+                manager = data_plane.PredefinedManager([])
+            logging.debug(msg)
+            return manager
         # End of command line option wrappers
 
         # If nothing changed and devices exists, return immediately
@@ -1531,6 +1570,110 @@ class VM(virt_vm.BaseVM):
 
         # Additional PCI RC/switch/bridges
         add_pci_controllers(devices, params)
+
+        # Add Memory devices
+        add_memorys(devices, params)
+        smp = int(params.get("smp", 0))
+        mem = int(params.get("mem", 0))
+        vcpu_maxcpus = int(params.get("vcpu_maxcpus", 0))
+        vcpu_sockets = int(params.get("vcpu_sockets", 0))
+        vcpu_cores = int(params.get("vcpu_cores", 0))
+        vcpu_threads = int(params.get("vcpu_threads", 0))
+
+        # Some versions of windows don't support more than 2 sockets of cpu,
+        # here is a workaround to make all windows use only 2 sockets.
+        if (vcpu_sockets and vcpu_sockets > 2 and
+                params.get("os_type") == 'windows'):
+            vcpu_sockets = 2
+
+        amd_vendor_string = params.get("amd_vendor_string")
+        if not amd_vendor_string:
+            amd_vendor_string = "AuthenticAMD"
+        if amd_vendor_string == utils_misc.get_cpu_vendor():
+            # AMD cpu do not support multi threads.
+            if params.get("test_negative_thread", "no") != "yes":
+                vcpu_threads = 1
+                txt = "Set vcpu_threads to 1 for AMD cpu."
+                logging.warn(txt)
+
+        if smp == 0 or vcpu_sockets == 0:
+            vcpu_cores = vcpu_cores or 1
+            vcpu_threads = vcpu_threads or 1
+            if smp and vcpu_sockets == 0:
+                vcpu_sockets = int(smp / (vcpu_cores * vcpu_threads)) or 1
+            else:
+                vcpu_sockets = vcpu_sockets or 1
+            if smp == 0:
+                smp = vcpu_cores * vcpu_threads * vcpu_sockets
+        else:
+            if vcpu_cores == 0:
+                vcpu_threads = vcpu_threads or 1
+                vcpu_cores = int(smp / (vcpu_sockets * vcpu_threads)) or 1
+            else:
+                vcpu_threads = int(smp / (vcpu_cores * vcpu_sockets)) or 1
+
+        self.cpuinfo.smp = smp
+        self.cpuinfo.maxcpus = vcpu_maxcpus or smp
+        self.cpuinfo.cores = vcpu_cores
+        self.cpuinfo.threads = vcpu_threads
+        self.cpuinfo.sockets = vcpu_sockets
+        devices.insert(StrDev('smp', cmdline=add_smp(devices)))
+
+        numa_total_cpus = 0
+        numa_total_mem = 0
+        for numa_node in params.objects("guest_numa_nodes"):
+            numa_params = params.object_params(numa_node)
+            numa_mem = numa_params.get("numa_mem")
+            numa_cpus = numa_params.get("numa_cpus")
+            numa_nodeid = numa_params.get("numa_nodeid")
+            numa_memdev = numa_params.get("numa_memdev")
+            if numa_mem is not None:
+                numa_total_mem += int(numa_mem)
+            if numa_cpus is not None:
+                numa_total_cpus += len(utils_misc.cpu_str_to_list(numa_cpus))
+            cmdline = add_numa_node(devices, numa_memdev,
+                                    numa_mem, numa_cpus, numa_nodeid)
+            devices.insert(StrDev('numa', cmdline=cmdline))
+
+        if params.get("numa_consistency_check_cpu_mem", "no") == "yes":
+            if (numa_total_cpus > int(smp) or numa_total_mem > int(mem) or
+                    len(params.objects("guest_numa_nodes")) > int(smp)):
+                logging.debug("-numa need %s vcpu and %s memory. It is not "
+                              "matched the -smp and -mem. The vcpu number "
+                              "from -smp is %s, and memory size from -mem is"
+                              " %s" % (numa_total_cpus, numa_total_mem, smp,
+                                       mem))
+                raise virt_vm.VMDeviceError("The numa node cfg can not fit"
+                                            " smp and memory cfg.")
+
+        cpu_model = params.get("cpu_model")
+        use_default_cpu_model = True
+        if cpu_model:
+            use_default_cpu_model = False
+            for model in re.split(",", cpu_model):
+                model = model.strip()
+                if model not in support_cpu_model:
+                    continue
+                cpu_model = model
+                break
+            else:
+                cpu_model = model
+                logging.error("Non existing CPU model %s will be passed "
+                              "to qemu (wrong config or negative test)", model)
+
+        if use_default_cpu_model:
+            cpu_model = params.get("default_cpu_model")
+
+        if cpu_model:
+            family = params.get("cpu_family", "")
+            flags = params.get("cpu_model_flags", "")
+            vendor = params.get("cpu_model_vendor", "")
+            self.cpuinfo.model = cpu_model
+            self.cpuinfo.vendor = vendor
+            self.cpuinfo.flags = flags
+            self.cpuinfo.family = family
+            cmd = add_cpu_flags(devices, cpu_model, flags, vendor, family)
+            devices.insert(StrDev('cpu', cmdline=cmd))
 
         # -soundhw addresses are always the lowest after scsi
         soundhw = params.get("soundcards")
@@ -1691,13 +1834,8 @@ class VM(virt_vm.BaseVM):
             for dev in devices.usbc_by_params(usb_name, usb_params, parent_bus):
                 devices.insert(dev)
 
-        for iothread in params.get("iothreads", "").split():
-            cmd = "-object iothread,"
-            iothread_id = params.get("%s_id" % iothread.strip())
-            if not iothread_id:
-                iothread_id = iothread.strip()
-            cmd += "id=%s" % iothread_id
-            devices.insert(StrDev("IOthread_%s" % iothread_id, cmdline=cmd))
+        # set iothread allocation scheme
+        devices.set_iothread_manager(select_iothread_manager(devices, params))
 
         # Add images (harddrives)
         for image_name in params.objects("images"):
@@ -1878,110 +2016,6 @@ class VM(virt_vm.BaseVM):
                               device_driver=device_driver,
                               pci_bus=pci_bus)
                 iov += 1
-
-        # Add Memory devices
-        add_memorys(devices, params)
-        smp = int(params.get("smp", 0))
-        mem = int(params.get("mem", 0))
-        vcpu_maxcpus = int(params.get("vcpu_maxcpus", 0))
-        vcpu_sockets = int(params.get("vcpu_sockets", 0))
-        vcpu_cores = int(params.get("vcpu_cores", 0))
-        vcpu_threads = int(params.get("vcpu_threads", 0))
-
-        # Some versions of windows don't support more than 2 sockets of cpu,
-        # here is a workaround to make all windows use only 2 sockets.
-        if (vcpu_sockets and vcpu_sockets > 2 and
-                params.get("os_type") == 'windows'):
-            vcpu_sockets = 2
-
-        amd_vendor_string = params.get("amd_vendor_string")
-        if not amd_vendor_string:
-            amd_vendor_string = "AuthenticAMD"
-        if amd_vendor_string == utils_misc.get_cpu_vendor():
-            # AMD cpu do not support multi threads.
-            if params.get("test_negative_thread", "no") != "yes":
-                vcpu_threads = 1
-                txt = "Set vcpu_threads to 1 for AMD cpu."
-                logging.warn(txt)
-
-        if smp == 0 or vcpu_sockets == 0:
-            vcpu_cores = vcpu_cores or 1
-            vcpu_threads = vcpu_threads or 1
-            if smp and vcpu_sockets == 0:
-                vcpu_sockets = int(smp / (vcpu_cores * vcpu_threads)) or 1
-            else:
-                vcpu_sockets = vcpu_sockets or 1
-            if smp == 0:
-                smp = vcpu_cores * vcpu_threads * vcpu_sockets
-        else:
-            if vcpu_cores == 0:
-                vcpu_threads = vcpu_threads or 1
-                vcpu_cores = int(smp / (vcpu_sockets * vcpu_threads)) or 1
-            else:
-                vcpu_threads = int(smp / (vcpu_cores * vcpu_sockets)) or 1
-
-        self.cpuinfo.smp = smp
-        self.cpuinfo.maxcpus = vcpu_maxcpus or smp
-        self.cpuinfo.cores = vcpu_cores
-        self.cpuinfo.threads = vcpu_threads
-        self.cpuinfo.sockets = vcpu_sockets
-        devices.insert(StrDev('smp', cmdline=add_smp(devices)))
-
-        numa_total_cpus = 0
-        numa_total_mem = 0
-        for numa_node in params.objects("guest_numa_nodes"):
-            numa_params = params.object_params(numa_node)
-            numa_mem = numa_params.get("numa_mem")
-            numa_cpus = numa_params.get("numa_cpus")
-            numa_nodeid = numa_params.get("numa_nodeid")
-            numa_memdev = numa_params.get("numa_memdev")
-            if numa_mem is not None:
-                numa_total_mem += int(numa_mem)
-            if numa_cpus is not None:
-                numa_total_cpus += len(utils_misc.cpu_str_to_list(numa_cpus))
-            cmdline = add_numa_node(devices, numa_memdev,
-                                    numa_mem, numa_cpus, numa_nodeid)
-            devices.insert(StrDev('numa', cmdline=cmdline))
-
-        if params.get("numa_consistency_check_cpu_mem", "no") == "yes":
-            if (numa_total_cpus > int(smp) or numa_total_mem > int(mem) or
-                    len(params.objects("guest_numa_nodes")) > int(smp)):
-                logging.debug("-numa need %s vcpu and %s memory. It is not "
-                              "matched the -smp and -mem. The vcpu number "
-                              "from -smp is %s, and memory size from -mem is"
-                              " %s" % (numa_total_cpus, numa_total_mem, smp,
-                                       mem))
-                raise virt_vm.VMDeviceError("The numa node cfg can not fit"
-                                            " smp and memory cfg.")
-
-        cpu_model = params.get("cpu_model")
-        use_default_cpu_model = True
-        if cpu_model:
-            use_default_cpu_model = False
-            for model in re.split(",", cpu_model):
-                model = model.strip()
-                if model not in support_cpu_model:
-                    continue
-                cpu_model = model
-                break
-            else:
-                cpu_model = model
-                logging.error("Non existing CPU model %s will be passed "
-                              "to qemu (wrong config or negative test)", model)
-
-        if use_default_cpu_model:
-            cpu_model = params.get("default_cpu_model")
-
-        if cpu_model:
-            family = params.get("cpu_family", "")
-            flags = params.get("cpu_model_flags", "")
-            vendor = params.get("cpu_model_vendor", "")
-            self.cpuinfo.model = cpu_model
-            self.cpuinfo.vendor = vendor
-            self.cpuinfo.flags = flags
-            self.cpuinfo.family = family
-            cmd = add_cpu_flags(devices, cpu_model, flags, vendor, family)
-            devices.insert(StrDev('cpu', cmdline=cmd))
 
         # Add cdroms
         for cdrom in params.objects("cdroms"):

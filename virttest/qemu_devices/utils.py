@@ -73,3 +73,8 @@ def none_or_int(value):
         return int(value)
     else:
         raise TypeError("This parameter has to be int or none")
+
+
+def parse_extra_params(extra_params):
+    """Transform param into dictionary."""
+    return dict(_.split("=", 1) for _ in extra_params.split(",") if _)

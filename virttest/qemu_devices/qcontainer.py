@@ -23,10 +23,12 @@ from six.moves import xrange
 
 # Internal imports
 from virttest import arch, storage, data_dir, virt_vm
+from virttest.data_plane import get_iothread_supported_devices
 from virttest.qemu_devices import qdevices
 from virttest.qemu_devices.utils import (DeviceError, DeviceHotplugError,
                                          DeviceInsertError, DeviceRemoveError,
-                                         DeviceUnplugError, none_or_int)
+                                         DeviceUnplugError, none_or_int,
+                                         parse_extra_params)
 from virttest.compat_52lts import results_stdout_52lts, decode_to_text
 
 #
@@ -119,6 +121,23 @@ class DevContainer(object):
         self.__execute_qemu_last = None
         self.__execute_qemu_out = ""
         self.allow_hotplugged_vm = allow_hotplugged_vm == 'yes'
+        self.iothread_manager = None
+
+    def set_iothread_manager(self, manager):
+        """Set iothread manager."""
+        self.iothread_manager = manager
+        for iothread in manager:
+            self.insert(iothread)
+
+    @property
+    def iothread_supported_devices(self):
+        """List of iothread-supported devices."""
+        name = "__iotread_supported_devices"
+        if not hasattr(self, name):
+            setattr(self, name,
+                    get_iothread_supported_devices(self.__qemu_binary))
+        return getattr(self, name)
+
 
     def __getitem__(self, item):
         """
@@ -447,7 +466,7 @@ class DevContainer(object):
         self.__execute_qemu_last = options
         return self.__execute_qemu_out
 
-    def get_buses(self, bus_spec, type_test=False):
+    def get_buses(self, bus_spec, type_test=False, excluded=None):
         """
         :param bus_spec: Bus specification (dictionary)
         :type bus_spec: dict
@@ -457,19 +476,25 @@ class DevContainer(object):
         :rtype: List of QSparseBus
         """
         buses = []
+        excluded = excluded or []
         for bus in self.__buses:
             if bus.match_bus(bus_spec, type_test):
-                buses.append(bus)
+                dev = bus.get_device()
+                for prop in excluded:
+                    if dev.get_param(prop) is not None:
+                        break
+                else:
+                    buses.append(bus)
         return buses
 
-    def get_first_free_bus(self, bus_spec, addr):
+    def get_first_free_bus(self, bus_spec, addr, excluded=None):
         """
         :param bus_spec: Bus specification (dictionary)
         :param addr: Desired address
         :return: First matching bus with free desired address (the latest
                  added matching bus)
         """
-        buses = self.get_buses(bus_spec)
+        buses = self.get_buses(bus_spec, excluded=excluded)
         for bus in buses:
             _ = bus.get_free_slot(addr)
             if _ is not None and _ is not False:
@@ -657,6 +682,11 @@ class DevContainer(object):
         self.set_dirty()
         # Remove all devices, which are removed together with this dev
         out = device.unplug(monitor)
+
+        # update iothread pool
+        iothread = device.get_param("iothread")
+        if iothread is not None:
+            self.iothread_manager.update_iothread_in_unplug(device, iothread)
 
         # The unplug action sometimes delays for a while per host performance,
         # it will be accepted if the unplug been accomplished within 30s
@@ -1260,7 +1290,7 @@ class DevContainer(object):
                                    physical_block_size=None, logical_block_size=None,
                                    readonly=None, scsiid=None, lun=None, aio=None,
                                    strict_mode=None, media=None, imgfmt=None,
-                                   pci_addr=None, scsi_hba=None, x_data_plane=None,
+                                   pci_addr=None, scsi_hba=None, iothread=None,
                                    blk_extra_params=None, scsi=None,
                                    drv_extra_params=None,
                                    num_queues=None, bus_extra_params=None,
@@ -1303,7 +1333,7 @@ class DevContainer(object):
         :param bus_extra_params: options want to add to virtio-scsi-pci bus
         """
         def define_hbas(qtype, atype, bus, unit, port, qbus, pci_bus,
-                        addr_spec=None, num_queues=None,
+                        addr_spec=None, num_queues=None, iothread=None,
                         bus_extra_params=None):
             """
             Helper for creating HBAs of certain type.
@@ -1315,9 +1345,17 @@ class DevContainer(object):
             else:
                 _hba = atype.replace('-', '_') + '%s.0'  # HBA id
             _bus = bus
+            bus_extra_params = bus_extra_params or {}
             if bus is None:
-                bus = self.get_first_free_bus({'type': qtype, 'atype': atype},
-                                              [unit, port])
+                excluded = []
+                pattern = {'type': qtype, 'atype': atype}
+                if iothread is None:
+                    excluded.append("iothread")
+                elif iothread in bus_extra_params.values():
+                    iothread = bus_extra_params.pop("iothread")
+                    pattern["iothread"] = iothread
+                bus = self.get_first_free_bus(pattern, [unit, port],
+                                              excluded=excluded)
                 if bus is None:
                     bus = self.idx_of_next_named_bus(_hba)
                 else:
@@ -1329,10 +1367,8 @@ class DevContainer(object):
                     bus_params = {'id': _bus_name, 'driver': atype}
                     if num_queues is not None and int(num_queues) > 1:
                         bus_params['num_queues'] = num_queues
-                    if bus_extra_params:
-                        for extra_param in bus_extra_params.split(","):
-                            key, value = extra_param.split('=')
-                            bus_params[key] = value
+                    for key, value in bus_extra_params.items():
+                        bus_params[key] = value
                     if addr_spec:
                         dev = qdevices.QDevice(params=bus_params,
                                                parent_bus=pci_bus,
@@ -1345,6 +1381,11 @@ class DevContainer(object):
                                                parent_bus=pci_bus,
                                                child_bus=qbus(busid=bus_name))
                     devices.append(dev)
+                    if iothread:
+                        is_new, iothread_obj = self.iothread_manager.sync(
+                            dev, iothread)
+                        if is_new:
+                            devices.insert(-1, iothread_obj)
                 bus = _hba % bus
             if qbus == qdevices.QAHCIBus and unit is not None:
                 bus += ".%d" % unit
@@ -1406,6 +1447,16 @@ class DevContainer(object):
                          "(disk %s)", name)
             bus = none_or_int(pci_addr)
 
+        bus_extra_params = parse_extra_params(bus_extra_params or "")
+        drv_extra_params = parse_extra_params(drv_extra_params or "")
+        blk_extra_params = parse_extra_params(blk_extra_params or "")
+
+        iothread = (iothread or
+                    bus_extra_params.get("iothread") or
+                    blk_extra_params.get("iothread"))
+        iothread = self.iothread_manager.get_iothread(iothread)
+        if fmt in ["scsi-cd"]:
+            iothread = None
         #
         # HBA
         # fmt: ide, scsi, virtio, scsi-hd, ahci, usb1,2,3 + hba
@@ -1455,9 +1506,12 @@ class DevContainer(object):
             elif scsi_hba == 'spapr-vscsi':
                 addr_spec = [8, 16384]
                 pci_bus = None
+            if scsi_hba not in self.iothread_supported_devices:
+                iothread = None
             _, bus, dev_parent = define_hbas('SCSI', scsi_hba, bus, unit, port,
                                              qdevices.QSCSIBus, pci_bus,
                                              addr_spec, num_queues=num_queues,
+                                             iothread=iothread,
                                              bus_extra_params=bus_extra_params)
             devices.extend(_)
         elif fmt in ('usb1', 'usb2', 'usb3'):
@@ -1522,9 +1576,7 @@ class DevContainer(object):
         else:
             devices[-1].set_param('file', filename)
         if drv_extra_params:
-            drv_extra_params = (_.split('=', 1) for _ in
-                                drv_extra_params.split(',') if _)
-            for key, value in drv_extra_params:
+            for key, value in drv_extra_params.items():
                 devices[-1].set_param(key, value)
         if not use_device:
             if fmt and fmt.startswith('scsi-'):
@@ -1607,17 +1659,17 @@ class DevContainer(object):
         devices[-1].set_param('min_io_size', min_io_size)
         devices[-1].set_param('opt_io_size', opt_io_size)
         devices[-1].set_param('bootindex', bootindex)
-        if x_data_plane in ["yes", "no", "on", "off"]:
-            devices[-1].set_param('x-data-plane', x_data_plane, bool)
-        else:
-            devices[-1].set_param('iothread', x_data_plane)
+        if (iothread and devices[-1].get_param('driver') in
+                self.iothread_supported_devices):
+            is_new, iothread_obj = self.iothread_manager.sync(devices[-1],
+                                                              iothread)
+            if is_new:
+                devices.insert(-1, iothread_obj)
         if 'serial' in options:
             devices[-1].set_param('serial', serial)
             devices[-2].set_param('serial', None)   # remove serial from drive
         if blk_extra_params:
-            blk_extra_params = (_.split('=', 1) for _ in
-                                blk_extra_params.split(',') if _)
-            for key, value in blk_extra_params:
+            for key, value in blk_extra_params.items():
                 devices[-1].set_param(key, value)
 
         return devices
@@ -1696,7 +1748,7 @@ class DevContainer(object):
                                                    "drive_pci_addr"),
                                                scsi_hba,
                                                image_params.get(
-                                                   "x-data-plane"),
+                                                   "iothread"),
                                                image_params.get(
                                                    "blk_extra_params"),
                                                image_params.get(
@@ -1804,7 +1856,7 @@ class DevContainer(object):
                                                    "drive_pci_addr"),
                                                scsi_hba,
                                                image_params.get(
-                                                   "x-data-plane"),
+                                                   "iothread"),
                                                image_params.get(
                                                    "blk_extra_params"),
                                                image_params.get(
