@@ -1369,7 +1369,7 @@ def get_module_params(sys_path, module_name):
 
 
 def create_x509_dir(path, cacert_subj, server_subj, passphrase,
-                    secure=False, bits=1024, days=1095):
+                    secure=False, bits=3072, days=1095):
     """
     Creates directory with freshly generated:
     ca-cart.pem, ca-key.pem, server-cert.pem, server-key.pem,
