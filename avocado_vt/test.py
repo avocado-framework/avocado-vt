@@ -215,7 +215,7 @@ class VirtTest(test.Test):
         except Queue.Empty:
             pass
         else:
-            six.reraise(exc[1], None, exc[2])
+            six.reraise(*exc)
 
     def __safe_env_save(self, env):
         """
