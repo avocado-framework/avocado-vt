@@ -17,7 +17,8 @@ def get_host_timezone():
     timezone_cmd = 'timedatectl | grep "Time zone"'
     timezone_pattern = '^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$'
     error_context.context("Get host's timezone", logging.info)
-    host_timezone = decode_to_text(process.system_output(timezone_cmd, timeout=240, shell=True))
+    host_timezone = decode_to_text(
+        process.system_output(timezone_cmd, timeout=240, shell=True))
     try:
         host_timezone_set = re.match(timezone_pattern, host_timezone).groups()
         return {"timezone_city": host_timezone_set[0],
@@ -36,7 +37,7 @@ def verify_timezone_linux(session):
     error_context.context("Verify guest's timezone", logging.info)
     timezone_cmd = 'timedatectl | grep "Time zone"'
     timezone_pattern = '^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$'
-    guest_timezone = session.cmd_output(timezone_cmd, timeout=240)
+    guest_timezone = session.cmd_output_safe(timezone_cmd, timeout=240)
     try:
         guest_timezone_set = re.match(timezone_pattern, guest_timezone).groups()
         return (guest_timezone_set[0] == get_host_timezone()['timezone_city'])
@@ -51,7 +52,7 @@ def sync_timezone_linux(vm):
 
     :param vm: Virtual machine object
     """
-    session = vm.wait_for_login()
+    session = vm.wait_for_login(serial=True)
     error_context.context("Sync guest's timezone", logging.info)
     set_timezone_cmd = "timedatectl set-timezone %s"
     if not verify_timezone_linux(session):
@@ -75,7 +76,7 @@ def verify_timezone_win(session):
         timezone_list_cmd = "tzutil /l"
         timezone_set = []
         timezone_sets = []
-        timezone_list = session.cmd_output(timezone_list_cmd)
+        timezone_list = session.cmd_output_safe(timezone_list_cmd)
 
         for line in timezone_list.splitlines():
             # Empty line
@@ -115,7 +116,7 @@ def verify_timezone_win(session):
     error_context.context("Verify guest's timezone", logging.info)
     timezone_cmd = 'tzutil /g'
     host_timezone_code = get_host_timezone()['timezone_code']
-    timezone_name = session.cmd_output(timezone_cmd).strip('\n')
+    timezone_name = session.cmd_output_safe(timezone_cmd).split('\n')
     if get_timezone_code(timezone_name) != host_timezone_code:
         return False, get_timezone_name(host_timezone_code)
     return True, ""
@@ -128,7 +129,7 @@ def sync_timezone_win(vm):
 
     :param vm: Virtual machine object
     """
-    session = vm.wait_for_login()
+    session = vm.wait_for_login(serial=True)
     set_timezone_cmd = 'tzutil /s "%s"'
     (ver_result, output) = verify_timezone_win(session)
 
@@ -141,7 +142,7 @@ def sync_timezone_win(vm):
         error_context.context("Boot guest...", logging.info)
         vm.create(params=vm_params)
         vm.verify_alive()
-        session = vm.wait_for_login()
+        session = vm.wait_for_login(serial=True)
         (ver_result, output) = verify_timezone_win(session)
         if ver_result is not True:
             session.close()
@@ -161,10 +162,10 @@ def execute(cmd, timeout=360, session=None):
     :return: Command output string
     """
     if session:
-        ret = session.cmd_output(cmd, timeout=timeout)
+        ret = session.cmd_output_safe(cmd, timeout=timeout)
     else:
         ret = process.getoutput(cmd)
-    target = session and "guest" or "host"
+    target = 'guest' if session else 'host'
     logging.debug("(%s) Execute command('%s')" % (target, cmd))
     return ret
 
@@ -206,8 +207,9 @@ def update_clksrc(vm, clksrc=None):
         cpu_model_flags = params.get["cpu_model_flags"]
         params["cpu_model_flags"] = cpu_model_flags + ",-kvmclock"
 
-    error_context.context("Update guest kernel cli to '%s'" % (clksrc or
-                          "kvm-clock"), logging.info)
+    error_context.context("Update guest kernel cli to '%s'" %
+                          (clksrc or "kvm-clock"),
+                          logging.info)
     utils_test.update_boot_option(vm, args_removed="clocksource=*")
     if clksrc and clksrc != 'kvm-clock':
         boot_option_added = "clocksource=%s" % clksrc
