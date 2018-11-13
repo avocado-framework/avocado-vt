@@ -823,6 +823,7 @@ class TLSConnection(ConnectionBase):
     restart_libvirtd: default is to restart libvirtd
     credential_dict: A dict for required file names in libvirt or qemu style
     qemu_tls: True for qemu native TLS support
+    qemu_chardev_tls: True for config chardev tls in qemu conf
     """
     __slots__ = ('server_cn', 'client_cn', 'ca_cn', 'CERTTOOL', 'pki_CA_dir',
                  'libvirt_pki_dir', 'libvirt_pki_private_dir', 'client_hosts',
@@ -831,7 +832,8 @@ class TLSConnection(ConnectionBase):
                  'custom_pki_path', 'tls_verify_cert', 'tls_sanity_cert',
                  'ca_cakey_path', 'scp_new_cacert', 'restart_libvirtd',
                  'client_libvirtdconf', 'client_syslibvirtd', 'server_hosts',
-                 'credential_dict', 'qemu_tls', 'server_saslconf')
+                 'credential_dict', 'qemu_tls', 'qemu_chardev_tls',
+                 'server_saslconf', 'server_qemuconf', 'client_qemuconf')
 
     def __init__(self, *args, **dargs):
         """
@@ -870,8 +872,9 @@ class TLSConnection(ConnectionBase):
         self.CERTTOOL = CERTTOOL
 
         self.qemu_tls = "yes" == init_dict.get('qemu_tls', 'no')
+        self.qemu_chardev_tls = "yes" == init_dict.get('qemu_chardev_tls', 'no')
         delimeter = ''
-        if self.qemu_tls:
+        if self.qemu_tls or self.qemu_chardev_tls:
             delimeter = '-'
 
         self.credential_dict = {'cacert': 'ca%scert.pem' % delimeter,
@@ -896,18 +899,36 @@ class TLSConnection(ConnectionBase):
             for dir_name in dir_dict:
                 setattr(self, dir_dict[dir_name], self.custom_pki_path)
 
-        self.client_hosts = remote.RemoteFile(address=self.client_ip,
-                                              client='scp',
-                                              username=self.client_user,
-                                              password=self.client_pwd,
-                                              port='22',
-                                              remote_path='/etc/hosts')
-        self.server_hosts = remote.RemoteFile(address=self.server_ip,
-                                              client='scp',
-                                              username=self.server_user,
-                                              password=self.server_pwd,
-                                              port='22',
-                                              remote_path='/etc/hosts')
+        self.server_qemuconf = remote.RemoteFile(
+            address=self.server_ip,
+            client='scp',
+            username=self.server_user,
+            password=self.server_pwd,
+            port='22',
+            remote_path='/etc/libvirt/qemu.conf')
+
+        self.client_qemuconf = remote.RemoteFile(
+            address=self.client_ip,
+            client='scp',
+            username=self.client_user,
+            password=self.client_pwd,
+            port='22',
+            remote_path='/etc/libvirt/qemu.conf')
+
+        self.client_hosts = remote.RemoteFile(
+            address=self.client_ip,
+            client='scp',
+            username=self.client_user,
+            password=self.client_pwd,
+            port='22',
+            remote_path='/etc/hosts')
+        self.server_hosts = remote.RemoteFile(
+            address=self.server_ip,
+            client='scp',
+            username=self.server_user,
+            password=self.server_pwd,
+            port='22',
+            remote_path='/etc/hosts')
 
         self.server_syslibvirtd = remote.RemoteFile(
             address=self.server_ip,
@@ -969,10 +990,12 @@ class TLSConnection(ConnectionBase):
         del self.client_hosts
         del self.server_syslibvirtd
         del self.server_libvirtdconf
+        del self.server_qemuconf
         del self.server_hosts
         del self.server_saslconf
         del self.client_syslibvirtd
         del self.client_libvirtdconf
+        del self.client_qemuconf
 
         # restart libvirtd service on server
         try:
@@ -1141,7 +1164,7 @@ class TLSConnection(ConnectionBase):
                 raise ConnSCPError('AdminHost', local_path,
                                    server_ip, remote_path, detail)
         # When qemu supports TLS, it needs not to modify below
-        # configuration files, so simply return.
+        # configuration files, so simply return
         if self.qemu_tls:
             return
 
@@ -1149,9 +1172,22 @@ class TLSConnection(ConnectionBase):
         if on_local:
             operate_libvirtdconf = self.client_libvirtdconf
             operate_syslibvirtd = self.client_syslibvirtd
+            operate_qemuconf = self.server_qemuconf
         else:
             operate_libvirtdconf = self.server_libvirtdconf
             operate_syslibvirtd = self.server_syslibvirtd
+            operate_qemuconf = self.client_qemuconf
+
+        # Change qemu conf file to support tls for chardev
+        if self.qemu_chardev_tls:
+            pattern2repl = {r".*chardev_tls\s*=\s*.*":
+                            "chardev_tls = 1"}
+            operate_qemuconf.sub_else_add(pattern2repl)
+            pattern2repl = {r".*chardev_tls_x509_cert_dir\s*="
+                            "\s*\"\/etc\/pki\/libvirt-chardev\s*\".*":
+                            "chardev_tls_x509_cert_dir="
+                            "\"/etc/pki/libvirt-chardev\""}
+            operate_qemuconf.sub_else_add(pattern2repl)
 
         # edit the /etc/sysconfig/libvirtd to add --listen args in libvirtd
         pattern_to_repl = {r".*LIBVIRTD_ARGS\s*=\s*\"\s*--listen\s*\".*":
