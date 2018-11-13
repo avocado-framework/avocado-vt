@@ -663,6 +663,28 @@ class QemuImg(storage.QemuImg):
         cmd_result = process.run(" ".join(cmd_list), ignore_status=True)
         return cmd_result
 
+    def measure(self, target_fmt, size=None, output="human"):
+        """
+        Qemu image measure wrapper.
+
+        :param target_fmt: string, the target image format
+        :param size: string, the benchmark size of a target_fmt, if `None` it
+                     will measure the image object itself with target_fmt
+        :param output: string, the measure command output format
+                       (`human`, `json`)
+        :return: process.CmdResult object containing the result of the
+                 command
+        """
+        cmd_list = [self.image_cmd, "measure", ("--output=%s" % output),
+                    ("-O %s" % target_fmt)]
+        if size:
+            cmd_list.append(("--size %s" % size))
+        else:
+            cmd_list.extend([("-f %s" % self.image_format),
+                             self.image_filename])
+        cmd_result = process.run(" ".join(cmd_list), ignore_status=True)
+        return cmd_result
+
 
 class Iscsidev(storage.Iscsidev):
 
