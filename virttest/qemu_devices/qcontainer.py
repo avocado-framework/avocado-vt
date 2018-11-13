@@ -910,11 +910,15 @@ class DevContainer(object):
             devices.append(qdevices.QStringDevice('AAVMF_CODE',
                                                   cmdline=aavmf_code))
             aavmf_vars = get_aavmf_vars(params)
-            if not os.path.exists(aavmf_vars):
-                logging.warn("AAVMF variables file '%s' doesn't exist, "
-                             "recreating it from the template (this should "
-                             "only happen when you install the machine as "
-                             "there is no default boot in EFI!)", aavmf_vars)
+            force_create = params.get("force_create_image_image1",
+                                      params.get("force_create_image"))
+            if (force_create == "yes" or not os.path.exists(aavmf_vars)):
+                if force_create != "yes":
+                    logging.warn("AAVMF variables file '%s' doesn't exist, "
+                                 "recreating it from the template (this should"
+                                 " only happen when you install the machine as"
+                                 " there is no default boot in EFI!)",
+                                 aavmf_vars)
                 shutil.copy2('/usr/share/AAVMF/AAVMF_VARS.fd', aavmf_vars)
             aavmf_vars = ("-drive file=%s,if=pflash,format=raw,unit=1"
                           % aavmf_vars)
@@ -959,11 +963,15 @@ class DevContainer(object):
             devices.append(qdevices.QStringDevice('AAVMF_CODE',
                                                   cmdline=aavmf_code))
             aavmf_vars = get_aavmf_vars(params)
-            if not os.path.exists(aavmf_vars):
-                logging.warn("AAVMF variables file '%s' doesn't exist, "
-                             "recreating it from the template (this should "
-                             "only happen when you install the machine as "
-                             "there is no default boot in EFI!)", aavmf_vars)
+            force_create = params.get("force_create_image_image1",
+                                      params.get("force_create_image"))
+            if (force_create == "yes" or not os.path.exists(aavmf_vars)):
+                if force_create != "yes":
+                    logging.warn("AAVMF variables file '%s' doesn't exist, "
+                                 "recreating it from the template (this should"
+                                 " only happen when you install the machine as"
+                                 " there is no default boot in EFI!)",
+                                 aavmf_vars)
                 shutil.copy2('/usr/share/AAVMF/AAVMF_VARS.fd', aavmf_vars)
             aavmf_vars = ("-drive file=%s,if=pflash,format=raw,unit=1"
                           % aavmf_vars)
