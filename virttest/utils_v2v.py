@@ -705,7 +705,7 @@ def v2v_cmd(params):
     vpx_dc = params.get('vpx_dc')
     esx_ip = params.get('esx_ip')
     opts_extra = params.get('v2v_opts')
-    v2v_timeout = params.get('v2v_timeout', 2400)
+    v2v_timeout = params.get('v2v_timeout', 5400)
     rhv_upload_opts = params.get('rhv_upload_opts')
 
     uri_obj = Uri(hypervisor)
