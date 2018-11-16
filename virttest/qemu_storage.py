@@ -106,10 +106,11 @@ class QemuImg(storage.QemuImg):
             has_backing_file = params.get('has_backing_file')
 
             qemu_img_cmd += " -o "
-            if self.image_format == "qcow2":
-                if preallocated != "off":
-                    qemu_img_cmd += "preallocation=%s," % preallocated
+            # preallocation works for qcow2, raw, luks
+            if preallocated != "off":
+                qemu_img_cmd += "preallocation=%s," % preallocated
 
+            if self.image_format == "qcow2":
                 if encrypted != "off":
                     qemu_img_cmd += "encryption=%s," % encrypted
 
@@ -170,9 +171,9 @@ class QemuImg(storage.QemuImg):
         cmd_result.stderr = results_stderr_52lts(cmd_result)
         return self.image_filename, cmd_result
 
-    def convert(self, params, root_dir, cache_mode=None):
+    def convert(self, params, root_dir, cache_mode=None, convert_tag=None):
         """
-        Convert image
+        Convert image.
 
         :param params: dictionary containing the test parameters
         :param root_dir: dir for save the convert image
@@ -180,6 +181,8 @@ class QemuImg(storage.QemuImg):
                            Valid options are: ``none``, ``writeback``
                            (default), ``writethrough``, ``directsync`` and
                            ``unsafe``.
+        :param convert_tag: The tag for the target image that about to
+                            be produced.
 
         :note: params should contain:
 
@@ -194,7 +197,10 @@ class QemuImg(storage.QemuImg):
             encrypted
                 there are two value "off" and "on", default value is "off"
         """
-        convert_image_tag = params["image_convert"]
+        if convert_tag is not None:
+            convert_image_tag = convert_tag
+        else:
+            convert_image_tag = params["image_convert"]
         convert_image = params["convert_name_%s" % convert_image_tag]
         convert_compressed = params.get("convert_compressed")
         convert_encrypted = params.get("convert_encrypted", "off")
