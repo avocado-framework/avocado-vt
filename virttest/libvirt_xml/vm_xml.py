@@ -1995,7 +1995,7 @@ class VMOSXML(base.LibvirtXMLBase):
         type:         text attributes - arch, machine
         loader:       path
         boots:        list attributes - dev
-        bootmenu:          attributes - enable
+        bootmenu:          attributes - enable, timeout
         smbios:            attributes - mode
         bios:              attributes - useserial, rebootTimeout
         init:         text
@@ -2013,7 +2013,7 @@ class VMOSXML(base.LibvirtXMLBase):
                  'smbios_mode', 'bios_useserial', 'bios_reboot_timeout', 'init',
                  'bootloader', 'bootloader_args', 'kernel', 'initrd', 'cmdline',
                  'dtb', 'initargs', 'loader_readonly', 'loader_type', 'nvram',
-                 'nvram_template', 'secure')
+                 'nvram_template', 'secure', 'bootmenu_timeout')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementText('type', self, parent_xpath='/',
@@ -2029,6 +2029,8 @@ class VMOSXML(base.LibvirtXMLBase):
                                  marshal_to=self.marshal_to_boots)
         accessors.XMLAttribute('bootmenu_enable', self, parent_xpath='/',
                                tag_name='bootmenu', attribute='enable')
+        accessors.XMLAttribute('bootmenu_timeout', self, parent_xpath='/',
+                               tag_name='bootmenu', attribute='timeout')
         accessors.XMLAttribute('smbios_mode', self, parent_xpath='/',
                                tag_name='smbios', attribute='mode')
         accessors.XMLAttribute('bios_useserial', self, parent_xpath='/',
