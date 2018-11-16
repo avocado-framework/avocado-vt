@@ -644,6 +644,11 @@ def preprocess(test, params, env):
     """
     error_context.context("preprocessing")
 
+    # Check host for any errors to start with and just report and
+    # clear it off, so that we do not get the false test failures.
+    if params.get("verify_host_dmesg", "yes") == "yes":
+        utils_misc.verify_dmesg(ignore_result=True)
+
     # For KVM to work in Power8 and Power9(compat guests)(<DD2.2)
     # systems we need to have SMT=off and it needs to be
     # done as root, here we do a check whether
