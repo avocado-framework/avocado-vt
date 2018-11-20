@@ -40,6 +40,7 @@ from virttest import utils_net
 from virttest import nfs
 from virttest import libvirt_vm
 from virttest import utils_test
+from virttest import utils_iptables
 from virttest.utils_version import VersionInterval
 from virttest.compat_52lts import decode_to_text
 
@@ -798,6 +799,12 @@ def preprocess(test, params, env):
                 image_name_only = os.path.basename(params[name_tag])
                 params[name_tag] = os.path.join(image_nfs.mount_dir,
                                                 image_name_only)
+
+    # firewall blocks dhcp from guest through virbr0
+    if params.get('firewalld_service', "yes") == "yes":
+        firewall_cmd = utils_iptables.Firewall_cmd()
+        if not firewall_cmd.add_service('dhcp', permanent=True):
+            logging.error('Failed to add dhcp service to be permitted')
 
     # Start ip sniffing if it isn't already running
     # The fact it has to be started here is so that the test params
