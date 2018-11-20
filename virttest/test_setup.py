@@ -604,7 +604,7 @@ class HugePageConfig(object):
             raise ValueError("%s page size nr_hugepages file of node %s did "
                              "not exist" % (pagesize, node))
         process.system("echo %s > %s" % (num, node_page_path), shell=True)
-        if num != self.get_node_num_huge_pages(node, pagesize):
+        if int(num) != self.get_node_num_huge_pages(node, pagesize):
             raise ValueError("Cannot set %s hugepages on node %s, please check"
                              " if the node has enough memory" % (num, node))
 
