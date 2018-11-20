@@ -164,8 +164,8 @@ class QemuImg(storage.QemuImg):
         cmd_result = process.run(
             qemu_img_cmd, shell=True, verbose=False, ignore_status=True)
         if cmd_result.exit_status != 0 and not ignore_errors:
-            raise exceptions.TestError("Failed to create image %s" %
-                                       self.image_filename)
+            raise exceptions.TestError("Failed to create image %s\n%s" %
+                                       (self.image_filename, cmd_result))
         cmd_result.stdout = results_stdout_52lts(cmd_result)
         cmd_result.stderr = results_stderr_52lts(cmd_result)
         return self.image_filename, cmd_result
