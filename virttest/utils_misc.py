@@ -1604,6 +1604,7 @@ class NumaInfo(object):
         :param all_nodes_path: Alternative path to
                 /sys/devices/system/node/online. Useful for unittesting.
         """
+        from virttest import utils_package
         self.numa_sys_path = "/sys/devices/system/node"
         self.all_nodes = self.get_all_nodes(all_nodes_path)
         self.online_nodes = self.get_online_nodes(online_nodes_path)
@@ -1613,6 +1614,11 @@ class NumaInfo(object):
                                             set(self.online_nodes_withmem))
         self.nodes = {}
         self.distances = {}
+
+        # ensure numactl package is available
+        if not utils_package.package_install('numactl'):
+            logging.error("Numactl package is not installed")
+
         for node_id in self.online_nodes:
             self.nodes[node_id] = NumaNode(node_id + 1)
             self.distances[node_id] = self.get_node_distance(node_id)
