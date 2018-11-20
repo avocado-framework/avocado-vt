@@ -3668,3 +3668,34 @@ def block_specific_ip_by_time(ip_addr, block_time="1 seconds", runner=None):
                           runner(list_rules))
     except process.CmdError:
         logging.error("Failed to run command '%s'", cmd)
+
+
+def map_hostname_ipaddress(hostname_ip_dict, session=None):
+    """
+    Method to map ipaddress and hostname for resolving appropriately
+    in /etc/hosts file.
+
+    :param hostname_ip_dict: dict of Hostname and ipaddress to be mapped
+    :param session: configure the /etc/hosts for remote host
+
+    :return: True on successful mapping, False on failure
+    """
+    hosts_file = "/etc/hosts"
+    check_cmd = "cat %s" % hosts_file
+    func = process.getstatusoutput
+    if session:
+        func = session.cmd_status_output
+    for hostname, ipaddress in hostname_ip_dict.iteritems():
+        status, output = func(check_cmd)
+        if status != 0:
+            logging.error(output)
+            return False
+        pattern = "%s(\s+)%s$" % (ipaddress, hostname)
+        if not re.search(pattern, output):
+            cmd = "echo '%s %s' >> %s" % (ipaddress, hostname, hosts_file)
+            status, output = func(cmd)
+            if status != 0:
+                logging.error(output)
+                return False
+    logging.info("All the hostnames and IPs are mapped in %s", hosts_file)
+    return True
