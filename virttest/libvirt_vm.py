@@ -32,7 +32,6 @@ from virttest import xml_utils
 from virttest import utils_selinux
 from virttest import test_setup
 from virttest import utils_package
-from virttest.utils_test import libvirt
 from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 
 
@@ -927,8 +926,20 @@ class VM(virt_vm.BaseVM):
         hvm_or_pv = params.get("hvm_or_pv", "hvm")
         # default to 'uname -m' output
         arch_name = params.get("vm_arch_name", platform.machine())
-        support_machine_type = libvirt.get_machine_types(arch_name, hvm_or_pv,
-                                                         ignore_status=False)
+        capabs = libvirt_xml.CapabilityXML()
+        try:
+            support_machine_type = capabs.guest_capabilities[
+                hvm_or_pv][arch_name]['machine']
+        except KeyError as detail:
+            if detail.args[0] == hvm_or_pv:
+                raise KeyError("No libvirt support for %s virtualization, "
+                               "does system hardware + software support it?"
+                               % hvm_or_pv)
+            elif detail.args[0] == arch_name:
+                raise KeyError("No libvirt support for %s virtualization of "
+                               "%s, does system hardware + software support "
+                               "it?" % (hvm_or_pv, arch_name))
+            raise
         logging.debug("Machine types supported for %s/%s: %s",
                       hvm_or_pv, arch_name, support_machine_type)
 
