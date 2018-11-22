@@ -1373,9 +1373,12 @@ class VM(virt_vm.BaseVM):
 
             :return: return QPCIBus object.
             """
+            machine_type = params.get("machine_type", "")
+            if "mmio" in machine_type:
+                return None
             if dtype and "%s_pci_bus" % dtype in params:
                 return {"aobject": params["%s_pci_bus" % dtype]}
-            if params.get("machine_type") == "q35" and not pcie:
+            if machine_type == "q35" and not pcie:
                 pcic = "pci-bridge"
                 devices = [
                     d for d in devices if isinstance(
