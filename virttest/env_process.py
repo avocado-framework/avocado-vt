@@ -39,6 +39,7 @@ from virttest import data_dir
 from virttest import utils_net
 from virttest import nfs
 from virttest import libvirt_vm
+from virttest import virsh
 from virttest import utils_test
 from virttest.utils_version import VersionInterval
 from virttest.compat_52lts import decode_to_text
@@ -666,7 +667,10 @@ def preprocess(test, params, env):
         if migration_setup:
             power9_compat_remote = "yes" == params.get("power9_compat_remote", "no")
             cpu_cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
-            server_session = test_setup.remote_session(params)
+            remote_host = {'server_ip': params.get("remote_ip"),
+                           'server_pwd': params.get("remote_pwd"),
+                           'server_user': params.get("remote_user", "root")}
+            server_session = test_setup.remote_session(remote_host)
             cmd_output = server_session.cmd_status_output(cpu_cmd)
             if (cmd_output[0] == 0):
                 remote_cpu = cmd_output[1].strip().lower()
@@ -814,9 +818,20 @@ def preprocess(test, params, env):
     # migration and if arch is ppc with power8 then switch off smt
     # will be taken care in remote machine for migration to succeed
     if migration_setup:
-        dest_uri = libvirt_vm.complete_uri(params["server_ip"])
+        dest_uri = libvirt_vm.complete_uri(params["remote_ip"])
         migrate_setup = utils_test.libvirt.MigrationTest()
         migrate_setup.migrate_pre_setup(dest_uri, params)
+        # Map hostname and IP address of the hosts to avoid virsh
+        # to error out of resolving
+        hostname_ip = {str(virsh.hostname()): params['local_ip']}
+        hostname_ip[str(virsh.hostname(uri=dest_uri))] = params['remote_ip']
+        if not utils_net.map_hostname_ipaddress(hostname_ip):
+            test.cancel("Failed to map hostname and ipaddress of source host")
+        session = test_setup.remote_session(params)
+        if not utils_net.map_hostname_ipaddress(hostname_ip, session=session):
+            session.close()
+            test.cancel("Failed to map hostname and ipaddress of target host")
+        session.close()
 
     # Destroy and remove VMs that are no longer needed in the environment
     requested_vms = params.objects("vms")
@@ -834,7 +849,8 @@ def preprocess(test, params, env):
             env["cpu_model"] = utils_misc.get_qemu_best_cpu_model(params)
         params["cpu_model"] = env.get("cpu_model")
 
-    # Get the KVM kernel module version and write it as a keyval
+    version_info = {}
+    # Get the KVM kernel module version
     if os.path.exists("/dev/kvm"):
         kvm_version = os.uname()[2]
     else:
@@ -845,7 +861,7 @@ def preprocess(test, params, env):
         kvm_version = "Unknown"
 
     logging.debug("KVM version: %s" % kvm_version)
-    test.write_test_keyval({"kvm_version": kvm_version})
+    version_info["kvm_version"] = kvm_version
 
     # Checking required kernel, if not satisfied, cancel test
     if params.get("required_kernel"):
@@ -859,7 +875,7 @@ def preprocess(test, params, env):
             test.cancel("Got host kernel version:%s, which is not in %s" %
                         (host_kernel, required_kernel))
 
-    # Get the KVM userspace version and write it as a keyval
+    # Get the KVM userspace version
     kvm_userspace_ver_cmd = params.get("kvm_userspace_ver_cmd", "")
 
     if kvm_userspace_ver_cmd:
@@ -879,8 +895,8 @@ def preprocess(test, params, env):
         else:
             kvm_userspace_version = "Unknown"
 
-    logging.debug("KVM userspace version: %s" % kvm_userspace_version)
-    test.write_test_keyval({"kvm_userspace_version": kvm_userspace_version})
+    logging.debug("KVM userspace version(qemu): %s" % kvm_userspace_version)
+    version_info["qemu_version"] = kvm_userspace_version
 
     # Checking required qemu, if not satisfied, cancel test
     if params.get("required_qemu"):
@@ -894,6 +910,20 @@ def preprocess(test, params, env):
         if host_qemu not in VersionInterval(required_qemu):
             test.cancel("Got host qemu version:%s, which is not in %s" %
                         (host_qemu, required_qemu))
+
+    # Get the Libvirt version
+    if vm_type == "libvirt":
+        libvirt_ver_cmd = params.get("libvirt_ver_cmd", "libvirtd -V|awk -F' ' '{print $3}'")
+        try:
+            libvirt_version = decode_to_text(a_process.system_output(
+                libvirt_ver_cmd, shell=True)).strip()
+        except a_process.CmdError:
+            libvirt_version = "Unknown"
+        version_info["libvirt_version"] = libvirt_version
+        logging.debug("KVM userspace version(libvirt): %s" % libvirt_version)
+
+    # Write it as a keyval
+    test.write_test_keyval(version_info)
 
     libvirtd_inst = utils_libvirtd.Libvirtd()
 
@@ -1463,28 +1493,24 @@ def _take_screendumps(test, params, env):
                             test.background_errors.put(sys.exc_info())
                     elif inactivity_watcher == 'log':
                         logging.debug(msg)
-                try:
-                    os.link(cache[image_hash], screendump_filename)
-                except OSError:
-                    pass
             else:
                 inactivity[vm.instance] = time.time()
+            cache[image_hash] = screendump_filename
+            try:
                 try:
-                    try:
-                        timestamp = os.stat(temp_filename).st_ctime
-                        image = PIL.Image.open(temp_filename)
-                        image = ppm_utils.add_timestamp(image, timestamp)
-                        image.save(screendump_filename, format="JPEG",
-                                   quality=quality)
-                        cache[image_hash] = screendump_filename
-                    except (IOError, OSError) as error_detail:
-                        logging.warning("VM '%s' failed to produce a "
-                                        "screendump: %s", vm.name, error_detail)
-                        # Decrement the counter as we in fact failed to
-                        # produce a converted screendump
-                        counter[vm.instance] -= 1
-                except NameError:
-                    pass
+                    timestamp = os.stat(temp_filename).st_ctime
+                    image = PIL.Image.open(temp_filename)
+                    image = ppm_utils.add_timestamp(image, timestamp)
+                    image.save(screendump_filename, format="JPEG",
+                               quality=quality)
+                except (IOError, OSError) as error_detail:
+                    logging.warning("VM '%s' failed to produce a "
+                                    "screendump: %s", vm.name, error_detail)
+                    # Decrement the counter as we in fact failed to
+                    # produce a converted screendump
+                    counter[vm.instance] -= 1
+            except NameError:
+                pass
             os.unlink(temp_filename)
 
         if _screendump_thread_termination_event is not None:

@@ -461,9 +461,12 @@ def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False):
     if not check_xmlcount(vm, exp_vcpu, option):
         final_result = False
 
-    # 1.5 Check inside the guest
     if vm.is_alive() and (not vm.is_paused()) and "live" in option:
+        # 1.5 Check inside the guest
         if not utils_misc.check_if_vm_vcpu_match(exp_vcpu['guest_live'], vm):
+            final_result = False
+        # 1.6 Check guest numa
+        if not guest_numa_check(vm, exp_vcpu):
             final_result = False
 
     return final_result
@@ -523,3 +526,68 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
 
     logging.debug("Memory device xml: %s", mem_xml)
     return mem_xml.copy()
+
+
+def guest_numa_check(vm, exp_vcpu):
+    """
+    To check numa node values
+
+    :param vm: VM object
+    :param exp_vcpu: dict of expected vcpus
+    :return: True if check succeed, False otherwise
+    """
+    logging.debug("Check guest numa")
+    session = vm.wait_for_login()
+    vm_cpu_info = utils_misc.get_cpu_info(session)
+    session.close()
+    vmxml = libvirt_xml.VMXML.new_from_dumpxml(vm.name)
+    try:
+        node_num_xml = len(vmxml.cpu.numa_cell)
+    except (TypeError, LibvirtXMLNotFoundError):
+        # handle if no numa cell in guest xml, bydefault node 0
+        node_num_xml = 1
+    node_num_guest = int(vm_cpu_info["NUMA node(s)"])
+    exp_num_nodes = node_num_xml
+    status = True
+    for node in range(node_num_xml):
+        try:
+            node_cpu_xml = vmxml.cpu.numa_cell[node]['cpus']
+            node_cpu_xml = libvirt.cpus_parser(node_cpu_xml)
+        except (TypeError, LibvirtXMLNotFoundError):
+            try:
+                node_cpu_xml = vmxml.current_vcpu
+            except LibvirtXMLNotFoundError:
+                node_cpu_xml = vmxml.vcpu
+            node_cpu_xml = range(int(node_cpu_xml))
+        try:
+            node_mem_xml = vmxml.cpu.numa_cell[node]['memory']
+        except (TypeError, LibvirtXMLNotFoundError):
+            node_mem_xml = vmxml.memory
+        node_mem_guest = int(vm.get_totalmem_sys(node=node))
+        node_cpu_xml_copy = node_cpu_xml[:]
+        for cpu in node_cpu_xml_copy:
+            if int(cpu) >= int(exp_vcpu["guest_live"]):
+                node_cpu_xml.remove(cpu)
+        if (not node_cpu_xml) and node_mem_guest == 0:
+            exp_num_nodes -= 1
+        try:
+            node_cpu_guest = vm_cpu_info["NUMA node%s CPU(s)" % node]
+            node_cpu_guest = libvirt.cpus_parser(node_cpu_guest)
+        except KeyError:
+            node_cpu_guest = []
+        # Check cpu
+        if node_cpu_xml != node_cpu_guest:
+            status = False
+            logging.error("Mismatch in cpus in node %s: xml %s guest %s", node,
+                          node_cpu_xml, node_cpu_guest)
+        # Check memory
+        if int(node_mem_xml) != node_mem_guest:
+            status = False
+            logging.error("Mismatch in memory in node %s: xml %s guest %s", node,
+                          node_mem_xml, node_mem_guest)
+    # Check no. of nodes
+    if exp_num_nodes != node_num_guest:
+        status = False
+        logging.error("Mismatch in numa nodes expected nodes: %s guest: %s", exp_num_nodes,
+                      node_num_guest)
+    return status

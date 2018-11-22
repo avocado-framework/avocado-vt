@@ -10,6 +10,7 @@ from avocado.core import exceptions
 
 from . import base_installer
 from . import qemu_installer
+from . import libvirt_installer
 
 __all__ = ['InstallerRegistry', 'INSTALLER_REGISTRY', 'make_installer',
            'run_installers']
@@ -132,6 +133,10 @@ INSTALLER_REGISTRY.register('local_tar',
 INSTALLER_REGISTRY.register('remote_tar',
                             qemu_installer.RemoteSourceTarInstaller,
                             'qemu')
+
+INSTALLER_REGISTRY.register('git_repo',
+                            libvirt_installer.GitRepoInstaller,
+                            'libvirt')
 
 
 def installer_name_split(fullname, virt=None):

@@ -688,6 +688,15 @@ class GnuSourceBuildHelper(object):
 
     install = make_install
 
+    def make_rpm(self):
+        """
+        Run "make rpm"
+        """
+        os.chdir(self.build_dir)
+        process.system("make rpm")
+
+    package = make_rpm
+
     def execute(self):
         """
         Runs appropriate steps for *building* this source code tree

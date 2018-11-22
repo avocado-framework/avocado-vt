@@ -455,10 +455,17 @@ class VM(virt_vm.BaseVM):
             return cmd
 
         def add_serial(devices, name, filename):
+            # Arm lists "isa-serial" as supported but can't use it,
+            # fallback to "-serial"
+            legacy_cmd = " -serial unix:'%s',server,nowait" % filename
             if (not devices.has_option("chardev") or
-                    not any(devices.has_device(dev)
-                            for dev in ("isa-serial", "sclpconsole", "spapr-vty"))):
-                return " -serial unix:'%s',server,nowait" % filename
+                    'arm' in params.get("machine_type", "")):
+                return legacy_cmd
+            for serial_dev in ("sclpconsole", "spapr-vty", "isa-serial"):
+                if devices.has_device(serial_dev):
+                    break
+            else:
+                return legacy_cmd
 
             serial_id = "serial_id_%s" % name
             cmd = " -chardev socket"
@@ -466,18 +473,12 @@ class VM(virt_vm.BaseVM):
             cmd += _add_option("path", filename)
             cmd += _add_option("server", "NO_EQUAL_STRING")
             cmd += _add_option("nowait", "NO_EQUAL_STRING")
-            if '86' in params.get('vm_arch_name', arch.ARCH):
-                cmd += " -device isa-serial"
-            elif 'ppc' in params.get('vm_arch_name', arch.ARCH):
-                cmd += " -device spapr-vty"
+            cmd += " -device %s" % serial_dev
+            if serial_dev == 'spapr-vty':
                 # Workaround for console issue, details:
                 # http://lists.gnu.org/archive/html/qemu-ppc/2013-10/msg00129.html
                 reg = 0x30000000 + 0x1000 * self.serial_ports.index(name)
                 cmd += _add_option("reg", hex(reg))
-            elif 's390x' in params.get('vm_arch_name', arch.ARCH):
-                # Only for s390x console:
-                # This is only console option supported now.
-                cmd += " -device sclpconsole"
             cmd += _add_option("chardev", serial_id)
             return cmd
 
@@ -1139,6 +1140,7 @@ class VM(virt_vm.BaseVM):
         def add_vga(devices, vga):
             """Add primary vga device."""
             fallback = params.get("vga_use_legacy_expression") == "yes"
+            machine_type = params.get("machine_type", '')
             parent_bus = {'aobject': 'pci.0'}
             vga_dev_map = {
                 "std": "VGA",
@@ -1148,6 +1150,22 @@ class VM(virt_vm.BaseVM):
                 "virtio": "virtio-vga"
             }
             vga_dev = vga_dev_map.get(vga, None)
+            if machine_type.startswith('arm64-pci:'):
+                if vga == 'virtio' and not devices.has_device(vga_dev):
+                    # Arm doesn't usually supports 'virtio-vga'
+                    vga_dev = 'virtio-gpu-pci'
+            elif machine_type == 's390-ccw-virtio':
+                if vga == 'virtio':
+                    vga_dev = 'virtio-gpu-ccw'
+                    parent_bus = None
+                else:
+                    vga_dev = None
+            elif '-mmio:' in machine_type:
+                if vga == 'virtio':
+                    vga_dev = 'virtio-gpu-device'
+                    parent_bus = None
+                else:
+                    vga_dev = None
             if vga_dev is None:
                 fallback = True
                 parent_bus = None
@@ -1355,9 +1373,12 @@ class VM(virt_vm.BaseVM):
 
             :return: return QPCIBus object.
             """
+            machine_type = params.get("machine_type", "")
+            if "mmio" in machine_type:
+                return None
             if dtype and "%s_pci_bus" % dtype in params:
                 return {"aobject": params["%s_pci_bus" % dtype]}
-            if params.get("machine_type") == "q35" and not pcie:
+            if machine_type == "q35" and not pcie:
                 pcic = "pci-bridge"
                 devices = [
                     d for d in devices if isinstance(
