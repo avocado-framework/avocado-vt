@@ -1493,28 +1493,24 @@ def _take_screendumps(test, params, env):
                             test.background_errors.put(sys.exc_info())
                     elif inactivity_watcher == 'log':
                         logging.debug(msg)
-                try:
-                    os.link(cache[image_hash], screendump_filename)
-                except OSError:
-                    pass
             else:
                 inactivity[vm.instance] = time.time()
+            cache[image_hash] = screendump_filename
+            try:
                 try:
-                    try:
-                        timestamp = os.stat(temp_filename).st_ctime
-                        image = PIL.Image.open(temp_filename)
-                        image = ppm_utils.add_timestamp(image, timestamp)
-                        image.save(screendump_filename, format="JPEG",
-                                   quality=quality)
-                        cache[image_hash] = screendump_filename
-                    except (IOError, OSError) as error_detail:
-                        logging.warning("VM '%s' failed to produce a "
-                                        "screendump: %s", vm.name, error_detail)
-                        # Decrement the counter as we in fact failed to
-                        # produce a converted screendump
-                        counter[vm.instance] -= 1
-                except NameError:
-                    pass
+                    timestamp = os.stat(temp_filename).st_ctime
+                    image = PIL.Image.open(temp_filename)
+                    image = ppm_utils.add_timestamp(image, timestamp)
+                    image.save(screendump_filename, format="JPEG",
+                               quality=quality)
+                except (IOError, OSError) as error_detail:
+                    logging.warning("VM '%s' failed to produce a "
+                                    "screendump: %s", vm.name, error_detail)
+                    # Decrement the counter as we in fact failed to
+                    # produce a converted screendump
+                    counter[vm.instance] -= 1
+            except NameError:
+                pass
             os.unlink(temp_filename)
 
         if _screendump_thread_termination_event is not None:
