@@ -3685,7 +3685,7 @@ def map_hostname_ipaddress(hostname_ip_dict, session=None):
     func = process.getstatusoutput
     if session:
         func = session.cmd_status_output
-    for hostname, ipaddress in hostname_ip_dict.iteritems():
+    for hostname, ipaddress in six.iteritems(hostname_ip_dict):
         status, output = func(check_cmd)
         if status != 0:
             logging.error(output)
