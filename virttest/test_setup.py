@@ -2228,9 +2228,9 @@ def remote_session(params):
     :param params: Test params dict for remote machine login details
     :return: remote session object
     """
-    server_ip = params.get(params.get("server_ip"), params['remote_ip'])
-    server_user = params.get(params.get("server_user"), params['remote_user'])
-    server_pwd = params.get(params.get("server_pwd"), params['remote_pwd'])
+    server_ip = params.get("server_ip", params["remote_ip"])
+    server_user = params.get("server_user", params["remote_user"])
+    server_pwd = params.get("server_pwd", params["remote_pwd"])
     return remote.wait_for_login('ssh', server_ip, '22', server_user,
                                  server_pwd, r"[\#\$]\s*$")
 
