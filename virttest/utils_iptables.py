@@ -217,9 +217,9 @@ class Firewall_cmd(object):
         self.status, self.output = self.func(self.cmd)
         if self.status != 0:
             logging.error("Failed to execute %s: %s", self.cmd, self.output)
-        # most of the firewall-cmd requires firewalld restart
-        if dargs.get("firewalld_restart", True):
-            self.firewalld_obj.restart()
+        # Reload the configuration to make effect at once
+        if dargs.get("firewalld_reload", True):
+            self.reload()
 
     def lists(self, key='all', **dargs):
         """
@@ -231,7 +231,7 @@ class Firewall_cmd(object):
         :return: output of the --list-*
         """
         cmd = "--list-%s" % key
-        dargs['firewalld_restart'] = False
+        dargs['firewalld_reload'] = False
         self.command(cmd, **dargs)
         return self.output
 
@@ -245,7 +245,7 @@ class Firewall_cmd(object):
         :return: output of the --get-*
         """
         cmd = "--get-%s" % key
-        dargs['firewalld_restart'] = False
+        dargs['firewalld_reload'] = False
         self.command(cmd, **dargs)
         return self.output
 
@@ -301,4 +301,17 @@ class Firewall_cmd(object):
         """
         cmd = "--remove-port=%s/%s" % (port, protocol)
         self.command(cmd, **dargs)
+        return self.status == 0
+
+    def reload(self, complete=False):
+        """
+        Method to reload/complete reload
+
+        :return: True on success, False on failure.
+        """
+        cmd = "firewall-cmd --reload"
+        if complete:
+            cmd = "firewall-cmd --complete-reload"
+        self.status, self.output = self.func(cmd)
+
         return self.status == 0
