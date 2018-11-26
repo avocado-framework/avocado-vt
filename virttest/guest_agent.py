@@ -211,7 +211,8 @@ class QemuAgent(Monitor):
             return []
         s = b""
         end_time = time.time() + timeout
-        while self._data_available(end_time - time.time()):
+        while self._data_available(end_time - time.time()) \
+                and (end_time - time.time()) >= 0:
             s += self._recvall()
             # Make sure all lines are decodable
             for line in s.splitlines():
@@ -258,7 +259,8 @@ class QemuAgent(Monitor):
         :return: The response dict
         """
         end_time = time.time() + timeout
-        while self._data_available(end_time - time.time()):
+        while self._data_available(end_time - time.time()) \
+                and (end_time - time.time()) >= 0:
             for obj in self._read_objects():
                 if isinstance(obj, dict):
                     if "return" in obj or "error" in obj:
