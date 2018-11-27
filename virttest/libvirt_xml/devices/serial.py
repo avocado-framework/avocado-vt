@@ -11,7 +11,7 @@ from virttest.libvirt_xml.devices.character import CharacterBase
 class Serial(CharacterBase):
 
     __slots__ = ('protocol_type', 'target_port', 'target_type',
-                 'target_model', 'sources', 'alias')
+                 'target_model', 'sources', 'address')
 
     def __init__(self, type_name='pty', virsh_instance=base.virsh):
         # Additional attribute for protocol type (raw, telnet, telnets, tls)
@@ -23,11 +23,11 @@ class Serial(CharacterBase):
                                tag_name='target', attribute='type')
         accessors.XMLAttribute('target_model', self, parent_xpath='/target',
                                tag_name='model', attribute='name')
-        accessors.XMLElementDict('alias', self, parent_xpath='/',
-                                 tag_name='alias')
         accessors.XMLElementList('sources', self, parent_xpath='/',
                                  marshal_from=self.marshal_from_sources,
                                  marshal_to=self.marshal_to_sources)
+        accessors.XMLElementDict('address', self, parent_xpath='/',
+                                 tag_name='address')
         super(Serial, self).__init__(device_tag='serial', type_name=type_name,
                                      virsh_instance=virsh_instance)
 
