@@ -558,7 +558,7 @@ def guest_numa_check(vm, exp_vcpu):
                 node_cpu_xml = vmxml.current_vcpu
             except LibvirtXMLNotFoundError:
                 node_cpu_xml = vmxml.vcpu
-            node_cpu_xml = range(int(node_cpu_xml))
+            node_cpu_xml = list(range(int(node_cpu_xml)))
         try:
             node_mem_xml = vmxml.cpu.numa_cell[node]['memory']
         except (TypeError, LibvirtXMLNotFoundError):
