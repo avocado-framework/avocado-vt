@@ -1889,7 +1889,10 @@ def ovs_br_exists(brname, ovs=None):
     if ovs is None:
         ovs = __ovs
 
-    return brname in ovs.list_br()
+    if ovs is not None:
+        return brname in ovs.list_br()
+    else:
+        raise exceptions.TestError("Host does not support OpenVSwitch")
 
 
 @__init_openvswitch
