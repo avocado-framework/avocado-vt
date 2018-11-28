@@ -61,7 +61,7 @@ class IPXML(base.LibvirtXMLBase):
                  'family', 'prefix', 'tftp_root', 'dhcp_bootp')
 
     def __init__(self, address='192.168.122.1', netmask='255.255.255.0',
-                 virsh_instance=base.virsh):
+                 ipv6=False, virsh_instance=base.virsh):
         """
         Create new IPXML instance based on address/mask
         """
@@ -90,7 +90,10 @@ class IPXML(base.LibvirtXMLBase):
                                  marshal_from=self.marshal_from_host,
                                  marshal_to=self.marshal_to_host)
         super(IPXML, self).__init__(virsh_instance=virsh_instance)
-        self.xml = u"<ip address='%s' netmask='%s'></ip>" % (address, netmask)
+        if ipv6:
+            self.xml = u"<ip address='%s'></ip>" % address
+        else:
+            self.xml = u"<ip address='%s' netmask='%s'></ip>" % (address, netmask)
 
     @staticmethod
     def marshal_from_host(item, index, libvirtxml):
