@@ -325,8 +325,8 @@ def check_image(test, params, image_name, vm_process_status=None):
             # FIXME: remove it from params, maybe as an img object attr
             params["img_check_failed"] = "yes"
             if (params.get("skip_cluster_leak_warn") == "yes" and
-                    "Leaked clusters" in e.message):
-                logging.warn(e.message)
+                    "Leaked clusters" in six.text_type(e)):
+                logging.warn(six.text_type(e))
             else:
                 raise e
 
