@@ -18,15 +18,14 @@ def align_value(value, factor=1024):
 
 def format_size_human_readable(value, binary=False, precision='%.2f'):
     """
-    Format a number of bytesize to a human readable filesize. By default,
-    decimal suffixes and base:10**3 will be used.
+    Format a number of bytesize to a human readable filesize.
 
+    By default,decimal suffixes and base:10**3 will be used.
     :param binary: use binary suffixes (KiB, MiB) and use 2*10 as base
     :param precision: format string to specify precision for float
     """
-
     suffixes = {
-        'decimal': ('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'),
+        'decimal': ('B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'),
         'binary': ('B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')
     }
     suffix = suffixes['binary'] if binary else suffixes['decimal']
@@ -42,22 +41,29 @@ def format_size_human_readable(value, binary=False, precision='%.2f'):
     return format_str % (value, s)
 
 
-def normalize_data_size(value_str, order_magnitude="M", factor="1024"):
+def normalize_data_size(value_str, order_magnitude="M", factor=1024):
     """
-    Normalize a data size in one order of magnitude to another (MB to GB,
-    for example).
+    Normalize a data size in one order of magnitude to another.
 
     :param value_str: a string include the data default unit is 'B'
     :param order_magnitude: the magnitude order of result
-    :param factor: the factor between two relative order of magnitude.
+    :param factor: int, the factor between two relative order of magnitude.
                    Normally could be 1024 or 1000
+    :return normalized data size string
     """
-    def __get_unit_index(M):
+    def _get_unit_index(m):
         try:
-            return ['B', 'K', 'M', 'G', 'T'].index(M.upper())
+            return ['B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'].index(
+                m.upper())
         except ValueError:
             pass
         return 0
+
+    def _trim_tailling_zeros(num_str):
+        # remove tailing zeros, convert float number str to int str
+        if '.' in num_str:
+            num_str = num_str.rstrip('0').rstrip('.')
+        return num_str
 
     regex = r"(\d+\.?\d*)\s*(\w?)"
     match = re.search(regex, value_str)
@@ -68,10 +74,12 @@ def normalize_data_size(value_str, order_magnitude="M", factor="1024"):
             unit = 'B'
     except TypeError:
         raise ValueError("Invalid data size format 'value_str=%s'" % value_str)
-    from_index = __get_unit_index(unit)
-    to_index = __get_unit_index(order_magnitude)
-    scale = int(factor) ** (to_index - from_index)
-    d_context = getcontext()
-    d_context.prec = 20
-    data_size = Decimal(value) / Decimal(scale)
-    return str(data_size)
+
+    getcontext().prec = 20
+    from_index = _get_unit_index(unit)
+    to_index = _get_unit_index(order_magnitude)
+    if from_index - to_index >= 0:
+        d = Decimal(value) * Decimal(factor ** (from_index - to_index))
+    else:
+        d = Decimal(value) / Decimal(factor ** (to_index - from_index))
+    return _trim_tailling_zeros('{:f}'.format(d))

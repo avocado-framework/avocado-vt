@@ -1416,24 +1416,35 @@ class BaseVM(object):
         cmd = self.params.get("mem_chk_cur_cmd")
         return self.get_memory_size(cmd)
 
-    def get_totalmem_sys(self, online='yes'):
+    def get_totalmem_sys(self, online='yes', node=''):
         """
         To get the total guest memory(ram) as detected by system
         MemTotal in /proc/meminfo would display
         total usable memory(i.e. physical ram minus
         a few reserved bits and the kernel binary code)
         :param online: if 'yes', count the total online memory size
+        :param node: if given will count mem on that numa node
         :return: system memory in Kb as float
         """
         session = self.wait_for_login()
         try:
-            cmd = "count=0;cd /sys/devices/system/memory/;for i in `ls`;"
+            if node != '':
+                cmd = "count=0;[ -d /sys/devices/system/node/node%s/ ] && " % node
+                cmd += "cd /sys/devices/system/node/node%s/;" % node
+                cmd += "for i in `ls -d memory*`;"
+            else:
+                cmd = "count=0;cd /sys/devices/system/memory/;for i in `ls`;"
             if online == 'yes':
                 cmd += "do [ -f $i/online ] && a=$(<$i/online) && "
             else:
                 cmd += "do [ -f $i/online ] && a=1 && "
             cmd += "count=$(( $count + $a ));a=0;done;echo $count"
-            no_memblocks = int(session.cmd_output(cmd, timeout=360))
+            output = session.cmd_status_output(cmd, timeout=360)
+            # Handle memory less numa nodes
+            if "ls: cannot access 'memory*':" in output[1]:
+                no_memblocks = 0
+            else:
+                no_memblocks = int(output[1])
             cmd = "cat /sys/devices/system/memory/block_size_bytes"
             block_size = int(session.cmd_output(cmd), 16)
             return (no_memblocks * block_size)/1024.0

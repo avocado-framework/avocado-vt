@@ -93,31 +93,38 @@ class DevContainer(object):
                 return cmds
 
         self.__state = -1    # -1 synchronized, 0 synchronized after hotplug
-        self.__qemu_help = decode_to_text(process.system_output("%s -help" % qemu_binary,
-                                                                timeout=10, ignore_status=True,
-                                                                shell=True, verbose=False))
+        self.__qemu_binary = qemu_binary
+        self.__execute_qemu_last = None
+        self.__execute_qemu_out = ""
+        # Check whether we need to add machine_type
+        cmd = "%s -device \? 2>&1" % qemu_binary
+        result = process.run(cmd, timeout=10,
+                             ignore_status=True,
+                             shell=True,
+                             verbose=False)
+        # Some architectures (arm) require machine type to be always set
+        if result.exit_status and b"machine specified" in result.stdout:
+            self.__workaround_machine_type = True
+            basic_qemu_cmd = "%s -machine virt" % qemu_binary
+        else:
+            self.__workaround_machine_type = False
+            basic_qemu_cmd = qemu_binary
+        self.__qemu_help = self.execute_qemu("-help", 10)
         # escape the '?' otherwise it will fail if we have a single-char
         # filename in cwd
-        self.__device_help = decode_to_text(process.system_output("%s -device \? 2>&1" %
-                                                                  qemu_binary, timeout=10,
-                                                                  ignore_status=True,
-                                                                  shell=True,
-                                                                  verbose=False))
+        self.__device_help = self.execute_qemu("-device \? 2>&1", 10)
         self.__machine_types = decode_to_text(process.system_output("%s -M \?" % qemu_binary,
                                                                     timeout=10,
                                                                     ignore_status=True,
                                                                     shell=True,
                                                                     verbose=False))
-        self.__hmp_cmds = get_hmp_cmds(qemu_binary)
-        self.__qmp_cmds = get_qmp_cmds(qemu_binary,
+        self.__hmp_cmds = get_hmp_cmds(basic_qemu_cmd)
+        self.__qmp_cmds = get_qmp_cmds(basic_qemu_cmd,
                                        workaround_qemu_qmp_crash == 'always')
         self.vmname = vmname
         self.strict_mode = strict_mode == 'yes'
         self.__devices = []
         self.__buses = []
-        self.__qemu_binary = qemu_binary
-        self.__execute_qemu_last = None
-        self.__execute_qemu_out = ""
         self.allow_hotplugged_vm = allow_hotplugged_vm == 'yes'
 
     def __getitem__(self, item):
@@ -431,20 +438,17 @@ class DevContainer(object):
         :rtype: string
         """
         if self.__execute_qemu_last != options:
-            cmd = "%s %s 2>&1" % (self.__qemu_binary, options)
+            if self.__workaround_machine_type:
+                cmd = "%s -machine virt %s 2>&1" % (self.__qemu_binary,
+                                                    options)
+            else:
+                cmd = "%s %s 2>&1" % (self.__qemu_binary, options)
             result = process.run(cmd, timeout=timeout,
                                  ignore_status=True,
                                  shell=True,
                                  verbose=False)
-            if result.exit_status and b"machine specified" in result.stdout:
-                # TODO: Arm requires machine to be specified, let's try again
-                # with dummy "virt" machine
-                result = process.run("%s -machine virt %s 2>&1"
-                                     % (self.__qemu_binary, options),
-                                     ignore_status=True, shell=True,
-                                     verbose=False)
             self.__execute_qemu_out = results_stdout_52lts(result)
-        self.__execute_qemu_last = options
+            self.__execute_qemu_last = options
         return self.__execute_qemu_out
 
     def get_buses(self, bus_spec, type_test=False):
@@ -910,11 +914,15 @@ class DevContainer(object):
             devices.append(qdevices.QStringDevice('AAVMF_CODE',
                                                   cmdline=aavmf_code))
             aavmf_vars = get_aavmf_vars(params)
-            if not os.path.exists(aavmf_vars):
-                logging.warn("AAVMF variables file '%s' doesn't exist, "
-                             "recreating it from the template (this should "
-                             "only happen when you install the machine as "
-                             "there is no default boot in EFI!)", aavmf_vars)
+            force_create = params.get("force_create_image_image1",
+                                      params.get("force_create_image"))
+            if (force_create == "yes" or not os.path.exists(aavmf_vars)):
+                if force_create != "yes":
+                    logging.warn("AAVMF variables file '%s' doesn't exist, "
+                                 "recreating it from the template (this should"
+                                 " only happen when you install the machine as"
+                                 " there is no default boot in EFI!)",
+                                 aavmf_vars)
                 shutil.copy2('/usr/share/AAVMF/AAVMF_VARS.fd', aavmf_vars)
             aavmf_vars = ("-drive file=%s,if=pflash,format=raw,unit=1"
                           % aavmf_vars)
@@ -959,11 +967,15 @@ class DevContainer(object):
             devices.append(qdevices.QStringDevice('AAVMF_CODE',
                                                   cmdline=aavmf_code))
             aavmf_vars = get_aavmf_vars(params)
-            if not os.path.exists(aavmf_vars):
-                logging.warn("AAVMF variables file '%s' doesn't exist, "
-                             "recreating it from the template (this should "
-                             "only happen when you install the machine as "
-                             "there is no default boot in EFI!)", aavmf_vars)
+            force_create = params.get("force_create_image_image1",
+                                      params.get("force_create_image"))
+            if (force_create == "yes" or not os.path.exists(aavmf_vars)):
+                if force_create != "yes":
+                    logging.warn("AAVMF variables file '%s' doesn't exist, "
+                                 "recreating it from the template (this should"
+                                 " only happen when you install the machine as"
+                                 " there is no default boot in EFI!)",
+                                 aavmf_vars)
                 shutil.copy2('/usr/share/AAVMF/AAVMF_VARS.fd', aavmf_vars)
             aavmf_vars = ("-drive file=%s,if=pflash,format=raw,unit=1"
                           % aavmf_vars)
@@ -1903,4 +1915,52 @@ class DevContainer(object):
                 dimm = self.dimm_device_define_by_params(params, name)
                 dimm.set_param("memdev", mem.get_qid())
                 devices.append(dimm)
+        return devices
+
+    def input_define_by_params(self, params, name, bus=None):
+        """
+        Create input device by params.
+
+        :param params: VM params.
+        :param name: Object name of input device.
+        :param bus: Parent bus.
+        """
+        params = params.object_params(name)
+        dev_map = {"mouse": {"virtio": "virtio-mouse"},
+                   "keyboard": {"virtio": "virtio-keyboard"},
+                   "tablet": {"virtio": "virtio-tablet"}}
+        dev_type = params["input_dev_type"]
+        bus_type = params["input_dev_bus_type"]
+        driver = dev_map.get(dev_type)
+        if not driver:
+            raise ValueError("unsupported input device type")
+        driver = driver.get(bus_type)
+        if not driver:
+            raise ValueError("unsupported input device bus")
+
+        machine_type = params.get("machine_type", "")
+        qbus_type = "PCI"
+        if machine_type.startswith("q35") or machine_type.startswith("arm64"):
+            qbus_type = "PCIE"
+
+        if bus_type == "virtio":
+            if "-mmio:" in machine_type:
+                driver += "-device"
+                qbus_type = "virtio-bus"
+            elif machine_type.startswith("s390"):
+                driver += "-ccw"
+                qbus_type = "virtio-bus"
+            else:
+                driver += "-pci"
+
+        if bus is None:
+            bus = {"type": qbus_type}
+        devices = []
+        if self.has_device(driver):
+            dev = qdevices.QDevice(driver, parent_bus=bus)
+            dev.set_param("id", "input_%s" % name)
+            devices.append(dev)
+        else:
+            logging.warn("'%s' is not supported by your qemu", driver)
+
         return devices

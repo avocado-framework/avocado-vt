@@ -427,6 +427,7 @@ class LibvirtQemuConfig(LibvirtConfigCommon):
         'migration_address': 'string',
         'migration_port_min': 'int',
         'migration_port_max': 'int',
+        'namespaces': 'list',
     }
 
 

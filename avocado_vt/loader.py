@@ -100,7 +100,7 @@ class VirtTestLoader(loader.TestLoader):
         if vt_extra_params:
             # We don't want to override the original args
             self.args = copy.deepcopy(self.args)
-            if self.args.vt_extra_params is not None:
+            if getattr(self.args, 'vt_extra_params', None) is not None:
                 self.args.vt_extra_params += vt_extra_params
             else:
                 self.args.vt_extra_params = vt_extra_params

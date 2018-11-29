@@ -1995,7 +1995,7 @@ class VMOSXML(base.LibvirtXMLBase):
         type:         text attributes - arch, machine
         loader:       path
         boots:        list attributes - dev
-        bootmenu:          attributes - enable
+        bootmenu:          attributes - enable, timeout
         smbios:            attributes - mode
         bios:              attributes - useserial, rebootTimeout
         init:         text
@@ -2013,7 +2013,7 @@ class VMOSXML(base.LibvirtXMLBase):
                  'smbios_mode', 'bios_useserial', 'bios_reboot_timeout', 'init',
                  'bootloader', 'bootloader_args', 'kernel', 'initrd', 'cmdline',
                  'dtb', 'initargs', 'loader_readonly', 'loader_type', 'nvram',
-                 'nvram_template', 'secure')
+                 'nvram_template', 'secure', 'bootmenu_timeout')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementText('type', self, parent_xpath='/',
@@ -2029,6 +2029,8 @@ class VMOSXML(base.LibvirtXMLBase):
                                  marshal_to=self.marshal_to_boots)
         accessors.XMLAttribute('bootmenu_enable', self, parent_xpath='/',
                                tag_name='bootmenu', attribute='enable')
+        accessors.XMLAttribute('bootmenu_timeout', self, parent_xpath='/',
+                               tag_name='bootmenu', attribute='timeout')
         accessors.XMLAttribute('smbios_mode', self, parent_xpath='/',
                                tag_name='smbios', attribute='mode')
         accessors.XMLAttribute('bios_useserial', self, parent_xpath='/',
@@ -2116,12 +2118,13 @@ class VMFeaturesXML(base.LibvirtXMLBase):
         hyperv_spinlocks:  attributes - state, retries
         kvm_hidden:        attribute - state
         pvspinlock:        attribute - state
+        smm:               attribute - state
     """
 
     __slots__ = ('feature_list', 'hyperv_relaxed_state', 'hyperv_vapic_state',
                  'hyperv_spinlocks_state', 'hyperv_spinlocks_retries',
                  'kvm_hidden_state', 'pvspinlock_state', 'smm', 'hpt_resizing',
-                 'htm')
+                 'htm', 'smm_tseg_unit', 'smm_tseg')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLAttribute(property_name='hyperv_relaxed_state',
@@ -2159,6 +2162,13 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                                parent_xpath='/',
                                tag_name='smm',
                                attribute='state')
+        accessors.XMLAttribute(property_name='smm_tseg_unit',
+                               libvirtxml=self,
+                               parent_xpath='/smm',
+                               tag_name='tseg',
+                               attribute='unit')
+        accessors.XMLElementText('smm_tseg', self, parent_xpath='/smm',
+                                 tag_name='tseg')
         accessors.XMLAttribute(property_name='hpt_resizing',
                                libvirtxml=self,
                                parent_xpath='/',
@@ -2348,9 +2358,13 @@ class VMMemBackingXML(VMXML):
         hugepages
         nosharepages
         locked
+        source
+        access
+        discard
     """
 
-    __slots__ = ('hugepages', 'nosharepages', 'locked')
+    __slots__ = ('hugepages', 'nosharepages', 'locked', 'source', 'access',
+                 'discard', 'source_type', 'access_mode')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementNest(property_name='hugepages',
@@ -2360,9 +2374,23 @@ class VMMemBackingXML(VMXML):
                                  subclass=VMHugepagesXML,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
-        for slot in ('nosharepages', 'locked'):
+        for slot in ('nosharepages', 'locked', 'discard'):
             accessors.XMLElementBool(slot, self, parent_xpath='/',
                                      tag_name=slot)
+        accessors.XMLElementText('source', self, parent_xpath='/',
+                                 tag_name='source')
+        accessors.XMLAttribute(property_name="source_type",
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='source',
+                               attribute='type')
+        accessors.XMLElementText('access', self, parent_xpath='/',
+                                 tag_name='access')
+        accessors.XMLAttribute(property_name="access_mode",
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='access',
+                               attribute='mode')
         super(VMMemBackingXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<memoryBacking/>'
 

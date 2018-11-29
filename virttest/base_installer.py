@@ -74,6 +74,7 @@ class BaseInstaller(object):
         self.mode = mode
         self.name = name
         self.params = params
+        self.test = test
         self.param_key_prefix = '%s_%s' % (self.mode,
                                            self.name)
 
@@ -84,7 +85,7 @@ class BaseInstaller(object):
         if test and params:
             self.set_install_params(test, params)
 
-    def _set_test_dirs(self, test):
+    def _set_test_dirs(self, test, params=None):
         """
         Save common test directories paths as class attributes
 
@@ -107,8 +108,12 @@ class BaseInstaller(object):
            * resultsdir = results/<job>/kvm.<other_variant_names>.build/results
         """
         self.test_bindir = test.bindir
-        self.test_workdir = test.workdir
-        self.test_builddir = test.builddir
+        if params.get("preserve_srcdir") == "yes":
+            self.test_workdir = os.path.join(test.bindir, "build")
+            self.test_builddir = os.path.join(test.bindir, "bin")
+        else:
+            self.test_workdir = test.workdir
+            self.test_builddir = test.builddir
         self.test_resultsdir = test.resultsdir
 
         #
@@ -184,7 +189,7 @@ class BaseInstaller(object):
         """
         logging.info("calling set install params")
         if test is not None:
-            self._set_test_dirs(test)
+            self._set_test_dirs(test, params)
 
         if params is not None:
             self.params = params
@@ -324,6 +329,21 @@ class BaseInstaller(object):
         """
         pass
 
+    def _install_phase_package(self):
+        """
+        """
+        pass
+
+    def _install_phase_package_verify(self):
+        '''
+        Optional install phase for checking that software is packaged.
+
+        This should verify that the packages are actually created. Ideas for
+        using this include:
+            * checking /root/rpmbuild/RPMS'
+        '''
+        pass
+
     def write_version_keyval(self, test):
         try:
             version = self.get_version()
@@ -380,7 +400,7 @@ class BaseInstaller(object):
             self.reload_modules()
 
     def install(self, cleanup=True, download=True, prepare=True,
-                build=True, install=True, init=True):
+                build=True, install=True, package=False, init=True):
         """
         Performs the installation of the virtualization software
 
@@ -403,6 +423,10 @@ class BaseInstaller(object):
         if build:
             self._install_phase_build()
             self._install_phase_build_verify()
+
+        if package:
+            self._install_phase_package()
+            self._install_phase_package_verify()
 
         if install:
             self._install_phase_install()
@@ -481,6 +505,10 @@ class YumInstaller(BaseInstaller):
     def _install_phase_cleanup(self):
         packages_to_remove = " ".join(self.yum_pkgs)
         process.system("yum remove -y %s" % packages_to_remove)
+
+    def _install_phase_package(self):
+        if self.build_helper is not None:
+            self.build_helper.package()
 
     def _install_phase_install(self):
         if self.yum_pkgs:

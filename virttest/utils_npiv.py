@@ -341,3 +341,38 @@ def restart_multipathd(mpath_dev="", expect_exist=False):
         if expect_exist:
             return True
     return False
+
+
+def prepare_multipath_conf(conf_path="/etc/multipath.conf", conf_content="",
+                           replace_existing=False, restart_multipath=True):
+    """
+    Prepare multipath conf file.
+
+    :param conf_path: Path to the conf file.
+    :param conf_content: Content of the conf file.
+    :param replace_existing: True means to replace exsiting conf file.
+    :param restart_multipathd: True means to restart multipathd.
+    :return: The content of original conf, can be used to recover env.
+    """
+    default_conf_content = ("defaults {\n\tuser_friendly_names yes"
+                            "\n\tfind_multipaths yes\n}")
+    old_conf_content = ""
+    new_conf_content = conf_content if conf_content else default_conf_content
+    if os.path.exists(conf_path):
+        with open(conf_path, 'r+') as conf_file:
+            old_conf_content = conf_file.read()
+            logging.info("Old multipath conf is: %s" % old_conf_content)
+            if replace_existing:
+                conf_file.seek(0)
+                conf_file.truncate()
+                conf_file.write(new_conf_content)
+                logging.info("Replace multipath conf to: %s" % new_conf_content)
+            else:
+                logging.info("Multipath conf exsits, skip preparation.")
+    else:
+        with open(conf_path, 'w') as conf_file:
+            conf_file.write(new_conf_content)
+            logging.info("Create multipath conf: %s" % new_conf_content)
+    if restart_multipath:
+        restart_multipathd()
+    return old_conf_content

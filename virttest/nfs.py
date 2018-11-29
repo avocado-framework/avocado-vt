@@ -162,7 +162,7 @@ class Nfs(object):
             self.nfs_setup = True
             path.find_command("service")
             path.find_command("exportfs")
-            if distro_details.name == 'Ubuntu':
+            if distro_details.name in ('Ubuntu', 'rhel'):
                 self.nfs_service = service.Factory.create_service("nfs-server")
             else:
                 self.nfs_service = service.Factory.create_service("nfs")

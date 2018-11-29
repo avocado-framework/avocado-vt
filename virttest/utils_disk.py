@@ -309,8 +309,7 @@ def update_windows_disk_attributes(session, dids, timeout=120):
             if status != 0:
                 logging.error("Can not clear readonly bit: %s" % output)
                 return False
-        pattern = "DISK %s.*Offline" % did
-        if re.search(pattern, details, re.I | re.M):
+        if re.search("Status.*Offline", details, re.I | re.M):
             logging.info("Online 'Disk%s'" % did)
             status, output = session.cmd_status_output(online_cmd % did,
                                                        timeout=timeout)

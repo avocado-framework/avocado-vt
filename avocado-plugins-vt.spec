@@ -1,12 +1,12 @@
 %global modulename avocado-vt
 %if ! 0%{?commit:1}
- %define commit 37c480127b0c8c02813bd16e7ff9cd054bda072c
+ %define commit 4a1c333e4306188099000561a2ee95f248033ebe
 %endif
 %global shortcommit %(c=%{commit}; echo ${c:0:8})
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 65.0
+Version: 66.0
 Release: 0%{?dist}
 License: GPLv2
 Group: Development/Tools
@@ -39,10 +39,10 @@ Xunit output, among others.
 %setup -q -n %{modulename}-%{commit}
 
 %build
-%{__python} setup.py build
+%{__python2} setup.py build
 
 %install
-%{__python} setup.py install --root %{buildroot} --skip-build
+%{__python2} setup.py install --root %{buildroot} --skip-build
 
 %files
 %defattr(-,root,root,-)
@@ -50,15 +50,21 @@ Xunit output, among others.
 %dir /etc/avocado/conf.d
 %config(noreplace)/etc/avocado/conf.d/vt.conf
 %doc README.rst LICENSE
-%{python_sitelib}/avocado_vt*
-%{python_sitelib}/avocado_plugins_vt*
-%{python_sitelib}/virttest*
+%{python2_sitelib}/avocado_vt*
+%{python2_sitelib}/avocado_plugins_vt*
+%{python2_sitelib}/virttest*
 %{_datadir}/avocado-plugins-vt/backends/*
 %{_datadir}/avocado-plugins-vt/shared/*
 %{_datadir}/avocado-plugins-vt/test-providers.d/*
 
 
 %changelog
+* Tue Nov 20 2018 Cleber Rosa <cleber@redhat.com> - 66.0-0
+- New release
+
+* Mon Nov 19 2018 Cleber Rosa <cleber@redhat.com> - 65.0-1
+- Updated macros to Python 2
+
 * Tue Oct  2 2018 Cleber Rosa <cleber@redhat.com> - 65.0-0
 - New release
 

@@ -1081,7 +1081,8 @@ class VM(virt_vm.BaseVM):
                                           params.get("cdrom_unattended"))
                 virt_install_cmd += add_cdrom(help_text, cdrom_path)
             else:
-                location = data_dir.get_data_dir()
+                location = os.path.join(data_dir.get_data_dir(),
+                                        params.get("cdrom_cd1"))
                 kernel_dir = os.path.dirname(params.get("kernel"))
                 kernel_parent_dir = os.path.dirname(kernel_dir)
                 pxeboot_link = os.path.join(kernel_parent_dir, "pxeboot")

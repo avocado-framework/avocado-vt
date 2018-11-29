@@ -4,18 +4,28 @@ memory device support class(es)
 """
 
 from virttest.libvirt_xml import accessors
-from virttest.libvirt_xml.devices import base, librarian
+from virttest.libvirt_xml.devices import base
+from virttest.libvirt_xml.devices import librarian
 
 
 class Memory(base.UntypedDeviceBase):
 
-    __slots__ = ('mem_model', 'target', 'source', 'address')
+    __slots__ = ('mem_model', 'target', 'source', 'address', 'mem_discard',
+                 'mem_access')
 
     def __init__(self, virsh_instance=base.base.virsh):
         accessors.XMLAttribute('mem_model', self,
                                parent_xpath='/',
                                tag_name='memory',
                                attribute='model')
+        accessors.XMLAttribute('mem_discard', self,
+                               parent_xpath='/',
+                               tag_name='memory',
+                               attribute='discard')
+        accessors.XMLAttribute('mem_access', self,
+                               parent_xpath='/',
+                               tag_name='memory',
+                               attribute='access')
         accessors.XMLElementNest('target', self, parent_xpath='/',
                                  tag_name='target', subclass=self.Target,
                                  subclass_dargs={
@@ -28,7 +38,8 @@ class Memory(base.UntypedDeviceBase):
                                  tag_name='address', subclass=self.Address,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
-        super(Memory, self).__init__(device_tag='memory', virsh_instance=virsh_instance)
+        super(Memory, self).__init__(device_tag='memory',
+                                     virsh_instance=virsh_instance)
         self.xml = '<memory/>'
 
     Address = librarian.get('address')

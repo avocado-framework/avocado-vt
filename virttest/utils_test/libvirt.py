@@ -51,6 +51,8 @@ from virttest import test_setup
 from virttest import data_dir
 from virttest import utils_libvirtd
 from virttest import utils_config
+from virttest import utils_iptables
+
 from virttest.utils_iptables import Iptables
 from virttest.staging import lv_utils
 from virttest.utils_libvirtd import service_libvirtd_control
@@ -1320,30 +1322,59 @@ class MigrationTest(object):
         :param cleanup: if True revert back to default setting, used to cleanup
         :param ports: ports used for allowing migration
         """
-        iptable_rule = ["INPUT -p tcp -m tcp --dport %s -j ACCEPT" % ports]
+        use_firewall_cmd = True
+        try:
+            utils_path.find_command("firewall-cmd")
+        except utils_path.CmdNotFoundError:
+            logging.debug("Using iptables for replacement")
+            use_firewall_cmd = False
+
+        if use_firewall_cmd:
+            port_to_add = ports
+            if ":" in ports:
+                port_to_add = "%s-%s" % (ports.split(":")[0], ports.split(":")[1])
+        else:
+            rule = ["INPUT -p tcp -m tcp --dport %s -j ACCEPT" % ports]
+
         try:
             dest_ip = re.search(r'//.*/', desturi,
                                 re.I).group(0).strip('/').strip()
             source_ip = params.get("migrate_source_host", "").strip()
             # check whether migrate back to source machine or not
             if ((desturi == "qemu:///system") or (dest_ip == source_ip)):
-                # open migration ports in local machine using iptables
-                Iptables.setup_or_cleanup_iptables_rules(iptable_rule,
-                                                         cleanup=cleanup)
+                if use_firewall_cmd:
+                    firewall_cmd = utils_iptables.Firewall_cmd()
+                    if cleanup:
+                        firewall_cmd.remove_port(port_to_add, 'tcp', permanent=True)
+                    else:
+                        firewall_cmd.add_port(port_to_add, 'tcp', permanent=True)
+                    # open migration ports in local machine using firewall_cmd
+                else:
+                    # open migration ports in local machine using iptables
+                    Iptables.setup_or_cleanup_iptables_rules(rule,
+                                                             cleanup=cleanup)
                 # SMT for Power8 machine is turned off for local machine during
                 # test setup
             else:
-                # open migration ports in remote machine using iptables
-                Iptables.setup_or_cleanup_iptables_rules(iptable_rule,
-                                                         params=params,
-                                                         cleanup=cleanup)
-                cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
                 server_ip = params.get("server_ip")
                 server_user = params.get("server_user", "root")
                 server_pwd = params.get("server_pwd")
                 server_session = remote.wait_for_login('ssh', server_ip, '22',
                                                        server_user, server_pwd,
                                                        r"[\#\$]\s*$")
+                if use_firewall_cmd:
+                    firewall_cmd = utils_iptables.Firewall_cmd(server_session)
+                    # open migration ports in remote machine using firewall_cmd
+                    if cleanup:
+                        firewall_cmd.remove_port(port_to_add, 'tcp', permanent=True)
+                    else:
+                        firewall_cmd.add_port(port_to_add, 'tcp', permanent=True)
+                else:
+                    # open migration ports in remote machine using iptables
+                    Iptables.setup_or_cleanup_iptables_rules(rule,
+                                                             params=params,
+                                                             cleanup=cleanup)
+                cmd = "grep cpu /proc/cpuinfo | awk '{print $3}' | head -n 1"
                 # Check if remote machine is Power8, if so check for smt state
                 # and turn off if it is on.
                 cmd_output = server_session.cmd_status_output(cmd)
@@ -3646,3 +3677,39 @@ def get_disk_alias(vm, source_file=None):
                 logging.info("Ignore error of source attr getting for file: %s" % e)
                 pass
     return None
+
+
+def check_domuuid_compliant_with_rfc4122(dom_uuid_value):
+    """
+    Check the domain uuid format comply with RFC4122.
+    xxxxxxxx-xxxx-Axxx-Bxxx-xxxxxxxxxxxx
+    A should be RFC version number, since the compliant RFC version is 4122,
+    so it should be number 4.
+    B should be one of "8, 9, a or b".
+
+    :param dom_uuid_value: value of domain uuid
+    :return: True or False indicate whether it is compliant with RFC 4122.
+    """
+    dom_uuid_segments = dom_uuid_value.split('-')
+    return dom_uuid_segments[2].startswith('4') and dom_uuid_segments[3][0] in '89ab'
+
+
+def check_dumpxml(vm, content, err_ignore=False):
+    """
+    Check the specified content in the VM dumpxml
+
+    :param vm: VM object
+    :param content: the desired string to search
+    :param err_ignore: True to return False when fail
+                       False to raise exception when fail
+    :return: True if exist, False otherwise
+    """
+    v_xml = vm_xml.VMXML.new_from_dumpxml(vm.name)
+    with open(v_xml.xml) as xml_f:
+        if content not in xml_f.read():
+            if err_ignore:
+                return False
+            else:
+                raise exceptions.TestFail("Expected '%s' was not found in "
+                                          "%s's xml" % (content, vm.name))
+    return True
