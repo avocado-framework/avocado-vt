@@ -805,10 +805,16 @@ def preprocess(test, params, env):
                                                 image_name_only)
 
     # firewall blocks dhcp from guest through virbr0
-    if params.get('firewalld_service', "yes") == "yes":
+    firewalld_service = params.get("firewalld_service", "default")
+    if firewalld_service == "yes":
+        # Turn on the firewalld service
         firewall_cmd = utils_iptables.Firewall_cmd()
-        if not firewall_cmd.add_service('dhcp', permanent=True):
-            logging.error('Failed to add dhcp service to be permitted')
+        if params.get('firewalld_dhcp_workaround', "no") == "yes":
+            # workaround for Ubuntu 1810 to allow host-guest dhcp handshake
+            if not firewall_cmd.add_service('dhcp', permanent=True):
+                logging.error('Failed to add dhcp service to be permitted')
+    elif firewalld_service == "no":
+        utils_iptables.Firewalld().stop()
 
     # Start ip sniffing if it isn't already running
     # The fact it has to be started here is so that the test params
