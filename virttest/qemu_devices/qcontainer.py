@@ -674,10 +674,27 @@ class DevContainer(object):
         ver_out = device.verify_unplug(out, monitor)
 
         try:
-            device.unplug_hook()
-            drive = device.get_param("drive")
-            if drive:
-                self.remove(drive)
+            # workaround: judge if use use blockdev_add and blockdev_del
+            # by call function has_option.
+            if self.has_option('blockdev'):
+                drive = device.get_param("drive")
+                backing_file = device.get_param("file")
+                if drive:
+                    for dev in self:
+                        # hot uplug the first layer driver node.
+                        if drive == dev.get_param("node-name"):
+                            self.simple_unplug(dev, monitor)
+                elif backing_file:
+                    for dev in self:
+                        # hot uplug the second layer driver node.
+                        if backing_file == dev.get_param("node-name"):
+                            self.simple_unplug(dev, monitor)
+
+            else:
+                device.unplug_hook()
+                drive = device.get_param("drive")
+                if drive:
+                    self.remove(drive)
             self.remove(device, True)
             if ver_out is True:
                 self.set_clean()
@@ -1276,7 +1293,7 @@ class DevContainer(object):
                                    blk_extra_params=None, scsi=None,
                                    drv_extra_params=None,
                                    num_queues=None, bus_extra_params=None,
-                                   force_fmt=None):
+                                   force_fmt=None, image_params=None):
         """
         Creates related devices by variables
         :note: To skip the argument use None, to disable it use False
@@ -1496,48 +1513,74 @@ class DevContainer(object):
         # Drive
         # -drive fmt or -drive fmt=none -device ...
         #
-        if self.has_hmp_cmd('__com.redhat_drive_add') and use_device:
-            devices.append(qdevices.QRHDrive(name))
-        elif self.has_hmp_cmd('drive_add') and use_device:
-            devices.append(qdevices.QHPDrive(name))
-        elif self.has_option("device"):
-            devices.append(qdevices.QDrive(name, use_device))
-        else:       # very old qemu without 'addr' support
-            devices.append(qdevices.QOldDrive(name, use_device))
-        devices[-1].set_param('if', 'none')
-        devices[-1].set_param('rerror', rerror)
-        devices[-1].set_param('werror', werror)
-        devices[-1].set_param('serial', serial)
-        devices[-1].set_param('boot', boot, bool)
-        devices[-1].set_param('snapshot', snapshot, bool)
-        devices[-1].set_param('readonly', readonly, bool)
-        if 'aio' in self.get_help_text():
-            if aio == 'native' and snapshot == 'yes':
-                logging.warn('snapshot is on, fallback aio to threads.')
-                aio = 'threads'
-            devices[-1].set_param('aio', aio)
-            if aio == 'native':
-                # Since qemu 2.6, aio=native has no effect without
-                # cache.direct=on or cache=none, It will be error out.
-                # Please refer to qemu commit d657c0c.
-                cache = cache not in ['none', 'directsync'] and 'none' or cache
-        # Forbid to specify the cache mode for empty drives.
-        # More info from qemu commit 91a097e74.
-        if not filename:
-            cache = None
-        devices[-1].set_param('cache', cache)
-        devices[-1].set_param('media', media)
-        devices[-1].set_param('format', imgfmt)
-        if blkdebug is not None:
-            devices[-1].set_param('file', 'blkdebug:%s:%s' % (blkdebug,
-                                                              filename))
+        # workaround: judge if use blockdev by call function has_option.
+        if self.has_option('blockdev'):
+            if media == 'cdrom':
+                # Force to set option "read-only" to 'on' with '-blockdev'
+                # to avoid hitting "Read-only file system" error.
+                image_params['blkdev_file_read_only'] = 'on'
+                image_params['blkdev_raw_read_only'] = 'on'
+                blkdev_driver = 'raw'
+            elif media == 'disk' or media is None:
+                blkdev_driver = image_params.get('image_format')
+            elif media == '':    # for floppy device
+                blkdev_driver = image_params.get('image_format', 'raw')
+
+            if self.has_qmp_cmd('blockdev-add') and use_device:
+                devices.append(qdevices.QHPBlockdev(name, 'file'))
+                file_node = devices[-1].set_drive_file_options(image_params)
+                devices.append(qdevices.QHPBlockdev(name, blkdev_driver))
+                devices[-1].set_blockdev_options(image_params, file_node)
+
+            elif self.has_option('blockdev'):
+                devices.append(qdevices.QBlockdev(name, 'file', use_device))
+                file_node = devices[-1].set_drive_file_options(image_params)
+                devices.append(qdevices.QBlockdev(name, blkdev_driver, use_device))
+                devices[-1].set_blockdev_options(image_params, file_node)
+
         else:
-            devices[-1].set_param('file', filename)
-        if drv_extra_params:
-            drv_extra_params = (_.split('=', 1) for _ in
-                                drv_extra_params.split(',') if _)
-            for key, value in drv_extra_params:
-                devices[-1].set_param(key, value)
+            if self.has_hmp_cmd('__com.redhat_drive_add') and use_device:
+                devices.append(qdevices.QRHDrive(name))
+            elif self.has_hmp_cmd('drive_add') and use_device:
+                devices.append(qdevices.QHPDrive(name))
+            elif self.has_option("device"):
+                devices.append(qdevices.QDrive(name, use_device))
+            else:       # very old qemu without 'addr' support
+                devices.append(qdevices.QOldDrive(name, use_device))
+            devices[-1].set_param('if', 'none')
+            devices[-1].set_param('rerror', rerror)
+            devices[-1].set_param('werror', werror)
+            devices[-1].set_param('serial', serial)
+            devices[-1].set_param('boot', boot, bool)
+            devices[-1].set_param('snapshot', snapshot, bool)
+            devices[-1].set_param('readonly', readonly, bool)
+            if 'aio' in self.get_help_text():
+                if aio == 'native' and snapshot == 'yes':
+                    logging.warn('snapshot is on, fallback aio to threads.')
+                    aio = 'threads'
+                devices[-1].set_param('aio', aio)
+                if aio == 'native':
+                    # Since qemu 2.6, aio=native has no effect without
+                    # cache.direct=on or cache=none, It will be error out.
+                    # Please refer to qemu commit d657c0c.
+                    cache = cache not in ['none', 'directsync'] and 'none' or cache
+            # Forbid to specify the cache mode for empty drives.
+            # More info from qemu commit 91a097e74.
+            if not filename:
+                cache = None
+            devices[-1].set_param('cache', cache)
+            devices[-1].set_param('media', media)
+            devices[-1].set_param('format', imgfmt)
+            if blkdebug is not None:
+                devices[-1].set_param('file', 'blkdebug:%s:%s' % (blkdebug,
+                                                                  filename))
+            else:
+                devices[-1].set_param('file', filename)
+            if drv_extra_params:
+                drv_extra_params = (_.split('=', 1) for _ in
+                                    drv_extra_params.split(',') if _)
+                for key, value in drv_extra_params:
+                    devices[-1].set_param(key, value)
         if not use_device:
             if fmt and fmt.startswith('scsi-'):
                 if scsi_hba == 'lsi53c895a' or scsi_hba == 'spapr-vscsi':
@@ -1718,7 +1761,8 @@ class DevContainer(object):
                                                image_params.get("num_queues"),
                                                image_params.get(
                                                    "bus_extra_params"),
-                                               image_params.get("force_drive_format"))
+                                               image_params.get("force_drive_format"),
+                                               image_params)
 
     def cdroms_define_by_params(self, name, image_params, media=None,
                                 index=None, image_boot=None,
@@ -1826,7 +1870,8 @@ class DevContainer(object):
                                                None,
                                                image_params.get(
                                                    "bus_extra_params"),
-                                               image_params.get("force_drive_format"))
+                                               image_params.get("force_drive_format"),
+                                               image_params)
 
     def pcic_by_params(self, name, params):
         """

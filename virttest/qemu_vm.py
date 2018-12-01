@@ -4370,7 +4370,12 @@ class VM(virt_vm.BaseVM):
                             matched = False
                             break
                 if matched:
-                    return block['device']
+                    # The 'device' is empty from query block with blockdev.
+                    # So the 'device' is replaced by 'node-name'.
+                    if not block['device']:
+                        return block['inserted']['node-name']
+                    else:
+                        return block['device']
         return None
 
     def process_info_block(self, blocks_info):
