@@ -805,7 +805,7 @@ def preprocess(test, params, env):
                                                 image_name_only)
 
     # firewall blocks dhcp from guest through virbr0
-    if params.get('firewalld_service', "yes") == "yes":
+    if params.get('firewalld_dhcp_workaround', "no") == "yes":
         firewall_cmd = utils_iptables.Firewall_cmd()
         if not firewall_cmd.add_service('dhcp', permanent=True):
             logging.error('Failed to add dhcp service to be permitted')
