@@ -220,6 +220,7 @@ class Monitor:
         except socket.error as details:
             raise MonitorConnectError("Could not connect to monitor socket: %s"
                                       % details)
+        self._server_closed = False
 
     def __del__(self):
         # Automatically close the connection when the instance is garbage
@@ -291,6 +292,8 @@ class Monitor:
         return False
 
     def _data_available(self, timeout=DATA_AVAILABLE_TIMEOUT):
+        if self._server_closed:
+            return False
         timeout = max(0, timeout)
         try:
             return bool(select.select([self._socket], [], [], timeout)[0])
@@ -311,6 +314,7 @@ class Monitor:
                 raise MonitorSocketError("Could not receive data from monitor",
                                          e)
             if not data:
+                self._server_closed = True
                 break
             s += data
         return s
