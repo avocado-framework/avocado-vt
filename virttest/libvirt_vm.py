@@ -2834,13 +2834,18 @@ class VM(virt_vm.BaseVM):
         :param name: Name of package to be installed
         """
         session = self.wait_for_login()
-        if not utils_package.package_install(name, session):
-            if not ignore_status:
-                session.close()
+        try:
+            if not utils_package.package_install(name, session):
                 raise virt_vm.VMError("Installation of package %s failed" %
                                       name)
-            logging.error("Installation of package %s failed", name)
-        session.close()
+        except Exception as exception_detail:
+            if ignore_status:
+                logging.error("When install: %s\nError happened: %s\n",
+                              name, exception_detail)
+            else:
+                raise exception_detail
+        finally:
+            session.close()
 
     def remove_package(self, name, ignore_status=False):
         """
