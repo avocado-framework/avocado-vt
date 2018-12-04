@@ -2998,6 +2998,10 @@ class VM(virt_vm.BaseVM):
                     output_params=(outfile,))
                 self.logsessions[key].set_log_file(outfile)
 
+            # Wait for IO channels setting up completely,
+            # such as serial console.
+            time.sleep(1)
+
             if params.get("paused_after_start_vm") != "yes":
                 # start guest
                 if self.monitor.verify_status("paused"):
