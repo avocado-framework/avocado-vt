@@ -809,17 +809,21 @@ def preprocess(test, params, env):
         firewalld = utils_iptables.Firewalld()
         if firewalld.status():
             firewalld.stop()
+            if firewalld.status():
+                test.log.warning('Failed to stop firewalld')
     else:
         if firewalld_service == 'enable':
             firewalld = utils_iptables.Firewalld()
             if not firewalld.status():
                 firewalld.start()
+                if not firewalld.status():
+                    test.log.warning('Failed to start firewalld')
         # Workaround know issue where firewall blocks dhcp from guest
         # through virbr0
         if params.get('firewalld_dhcp_workaround', "no") == "yes":
             firewall_cmd = utils_iptables.Firewall_cmd()
             if not firewall_cmd.add_service('dhcp', permanent=True):
-                logging.error('Failed to add dhcp service to be permitted')
+                test.log.warning('Failed to add dhcp service to be permitted')
 
     # Start ip sniffing if it isn't already running
     # The fact it has to be started here is so that the test params
