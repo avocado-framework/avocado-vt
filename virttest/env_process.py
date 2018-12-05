@@ -804,11 +804,22 @@ def preprocess(test, params, env):
                 params[name_tag] = os.path.join(image_nfs.mount_dir,
                                                 image_name_only)
 
-    # firewall blocks dhcp from guest through virbr0
-    if params.get('firewalld_dhcp_workaround', "no") == "yes":
-        firewall_cmd = utils_iptables.Firewall_cmd()
-        if not firewall_cmd.add_service('dhcp', permanent=True):
-            logging.error('Failed to add dhcp service to be permitted')
+    firewalld_service = params.get('firewalld_service')
+    if firewalld_service == 'disable':
+        firewalld = utils_iptables.Firewalld()
+        if firewalld.status():
+            firewalld.stop()
+    else:
+        if firewalld_service == 'enable':
+            firewalld = utils_iptables.Firewalld()
+            if not firewalld.status():
+                firewalld.start()
+        # Workaround know issue where firewall blocks dhcp from guest
+        # through virbr0
+        if params.get('firewalld_dhcp_workaround', "no") == "yes":
+            firewall_cmd = utils_iptables.Firewall_cmd()
+            if not firewall_cmd.add_service('dhcp', permanent=True):
+                logging.error('Failed to add dhcp service to be permitted')
 
     # Start ip sniffing if it isn't already running
     # The fact it has to be started here is so that the test params
