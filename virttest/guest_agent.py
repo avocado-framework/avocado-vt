@@ -228,7 +228,7 @@ class QemuAgent(Monitor):
         objs = []
         for line in s.splitlines():
             try:
-                if line[0] == b'\xff':
+                if line[0:1] == b'\xff':
                     line = line[1:]
                 objs += [json.loads(line)]
                 self._log_lines(line.decode(errors="replace"))
