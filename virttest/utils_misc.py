@@ -54,7 +54,13 @@ from avocado.utils import download
 from avocado.utils import linux_modules
 from avocado.utils import memory
 from avocado.utils.astring import string_safe_encode
+# Symlink avocado implementation of process functions
 from avocado.utils.process import CmdResult
+from avocado.utils.process import pid_exists  # pylint: disable=W0611
+from avocado.utils.process import safe_kill   # pylint: disable=W0611
+from avocado.utils.process import kill_process_tree as _kill_process_tree
+from avocado.utils.process import kill_process_by_pattern  # pylint: disable=W0611
+from avocado.utils.process import process_in_ptree_is_defunct as process_or_children_is_defunct  # pylint: disable=W0611
 
 from virttest import data_dir
 from virttest import error_context
@@ -329,60 +335,33 @@ def find_command(cmd):
     return utils_path.find_command(cmd)
 
 
-def pid_exists(pid):
-    """
-    Return True if a given PID exists.
-
-    :param pid: Process ID number.
-    """
-    try:
-        os.kill(pid, 0)
-        return True
-    except Exception:
-        return False
-
-
-def safe_kill(pid, signal):
-    """
-    Attempt to send a signal to a given process that may or may not exist.
-
-    :param signal: Signal number.
-    """
-    try:
-        os.kill(pid, signal)
-        return True
-    except Exception:
-        return False
-
-
-def kill_process_tree(pid, sig=signal.SIGKILL):
+def kill_process_tree(pid, sig=signal.SIGKILL, send_sigcont=True, timeout=0):
     """Signal a process and all of its children.
 
     If the process does not exist -- return.
 
     :param pid: The pid of the process to signal.
     :param sig: The signal to send to the processes.
+    :param send_sigcont: Send SIGCONT to allow destroying stopped processes
+    :param timeout: How long to wait for the pid(s) to die
+                    (negative=infinity, 0=don't wait,
+                    positive=number_of_seconds)
     """
-    if not safe_kill(pid, signal.SIGSTOP):
-        return
-    children = decode_to_text(process.system_output("ps --ppid=%d -o pid=" % pid,
-                                                    shell=True, ignore_status=True)).split()
-    for child in children:
-        kill_process_tree(int(child), sig)
-    safe_kill(pid, sig)
-    safe_kill(pid, signal.SIGCONT)
-
-
-def kill_process_by_pattern(pattern):
-    """Send SIGTERM signal to a process with matched pattern.
-    :param pattern: normally only matched against the process name
-    """
-    cmd = "pkill -f %s" % pattern
-    result = process.run(cmd, ignore_status=True)
-    if result.exit_status:
-        logging.error("Failed to run '%s': %s", cmd, result)
-    else:
-        logging.info("Succeed to run '%s'.", cmd)
+    try:
+        return _kill_process_tree(pid, sig, send_sigcont, timeout)
+    except TypeError:
+        logging.warning("Trying to kill_process_tree with timeout but running"
+                        " old Avocado without it's support. Sleeping for 10s "
+                        "instead.")
+        # Depending on the Avocado version this can either return None or
+        # list of killed pids.
+        ret = _kill_process_tree(pid, sig, send_sigcont)    # pylint: disable=E1128
+        if timeout != 0:
+            # Use fixed 10s wait when no support for timeout in Avocado
+            time.sleep(10)
+            if pid_exists(pid):
+                raise RuntimeError("Failed to kill_process_tree(%s)" % pid)
+        return ret
 
 
 def get_open_fds(pid):
@@ -392,28 +371,6 @@ def get_open_fds(pid):
 def get_virt_test_open_fds():
     return get_open_fds(os.getpid())
 
-
-def process_or_children_is_defunct(ppid):
-    """Verify if any processes from PPID is defunct.
-
-    Attempt to verify if parent process and any children from PPID is defunct
-    (zombie) or not.
-    :param ppid: The parent PID of the process to verify.
-    """
-    defunct = False
-    try:
-        pids = process.get_children_pids(ppid)
-    except process.CmdError:  # Process doesn't exist
-        return True
-    for pid in pids:
-        if pid:
-            cmd = "ps --no-headers -o cmd %d" % int(pid)
-            proc_name = decode_to_text(process.system_output(cmd, ignore_status=True,
-                                                             verbose=False))
-            if '<defunct>' in proc_name:
-                defunct = True
-                break
-    return defunct
 
 # The following are utility functions related to ports.
 

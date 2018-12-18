@@ -3226,17 +3226,13 @@ class VM(virt_vm.BaseVM):
             pid = self.process.get_pid()
             logging.debug("Ending VM %s process (killing PID %s)",
                           self.name, pid)
-            utils_misc.kill_process_tree(pid, 9)
-
-            # Wait for the VM to be really dead
-            if utils_misc.wait_for(self.is_dead, 5, 0.5, 0.5):
+            try:
+                utils_misc.kill_process_tree(pid, 9, timeout=60)
                 logging.debug("VM %s down (process killed)", self.name)
-                return
-
-            # If all else fails, we've got a zombie...
-            logging.error("VM %s (PID %s) is a zombie!", self.name,
-                          self.process.get_pid())
-
+            except RuntimeError:
+                # If all else fails, we've got a zombie...
+                logging.error("VM %s (PID %s) is a zombie!", self.name,
+                              self.process.get_pid())
         finally:
             self._cleanup(free_mac_addresses)
 
