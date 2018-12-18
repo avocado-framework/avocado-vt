@@ -21,6 +21,7 @@ from avocado.utils import path
 from avocado.utils import distro
 from avocado.utils import cpu as cpu_utils
 from avocado.core import exceptions
+from avocado.utils import archive
 
 import six
 from six.moves import xrange
@@ -43,6 +44,7 @@ from virttest import libvirt_vm
 from virttest import virsh
 from virttest import utils_test
 from virttest import utils_iptables
+from virttest import utils_package
 from virttest.utils_version import VersionInterval
 from virttest.compat_52lts import decode_to_text
 from virttest.staging import service
@@ -748,6 +750,21 @@ def preprocess(test, params, env):
     """
     error_context.context("preprocessing")
 
+    # Check if code coverage for qemu is enabled and
+    # if coverage reset is enabled too, reset coverage report
+    gcov_qemu = params.get("gcov_qemu", "no") == "yes"
+    gcov_qemu_reset = params.get("gcov_qemu_reset", "no") == "yes"
+    if gcov_qemu and gcov_qemu_reset:
+        qemu_builddir = os.path.join(test.bindir, "build", "qemu")
+        qemu_bin = os.path.join(test.bindir, "bin", "qemu")
+        if os.path.isdir(qemu_builddir) and os.path.isfile(qemu_bin):
+            os.chdir(qemu_builddir)
+            # Looks like libvirt process does not have permissions to write to
+            # coverage files, hence give write for all files in qemu source
+            reset_cmd = 'make clean-coverage;%s -version;' % qemu_bin
+            reset_cmd += 'find %s -name "*.gcda" -exec chmod a=rwx {} \;' % qemu_builddir
+            a_process.system(reset_cmd, shell=True)
+
     # Check host for any errors to start with and just report and
     # clear it off, so that we do not get the false test failures.
     if params.get("verify_host_dmesg", "yes") == "yes":
@@ -1280,6 +1297,25 @@ def postprocess(test, params, env):
             sosreport_path = vm.sosreport()
             logging.info("Sosreport for guest: %s", sosreport_path)
 
+    # Collect code coverage report for qemu if enabled
+    if params.get("gcov_qemu", "no") == "yes":
+        qemu_builddir = os.path.join(test.bindir, "build", "qemu")
+        if os.path.isdir(qemu_builddir) and utils_package.package_install("gcovr"):
+            gcov_qemu_dir = utils_misc.get_path(test.debugdir, "gcov_qemu")
+            os.makedirs(gcov_qemu_dir)
+            os.chdir(qemu_builddir)
+            collect_cmd_opts = params.get("gcov_qemu_collect_cmd_opts", "--html")
+            collect_cmd = "gcovr -j %s -o %s -s %s ." % (cpu_utils.online_cpus_count(),
+                                                         os.path.join(gcov_qemu_dir, "gcov.html"),
+                                                         collect_cmd_opts)
+            a_process.system(collect_cmd, shell=True)
+            if params.get("gcov_qemu_compress", "no") == "yes":
+                os.chdir(test.debugdir)
+                archive.compress("gcov_qemu.tar.gz", gcov_qemu_dir)
+                shutil.rmtree(gcov_qemu_dir, ignore_errors=True)
+        else:
+            logging.warning("Check either qemu build directory availablilty"
+                            " or install gcovr package for qemu coverage report")
     # Postprocess all VMs and images
     try:
         process(test, params, env, postprocess_image, postprocess_vm,
