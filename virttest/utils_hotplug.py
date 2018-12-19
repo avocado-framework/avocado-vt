@@ -21,6 +21,7 @@ import re
 import json
 import logging
 import platform
+import time
 
 from virttest import virsh
 from virttest import libvirt_xml
@@ -32,6 +33,7 @@ from virttest.libvirt_xml.xcepts import LibvirtXMLNotFoundError
 from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 from avocado.utils import cpu as utils
 from avocado.utils import software_manager
+from avocado.utils import process
 
 
 def get_cpu_xmldata(vm, options=""):
@@ -591,3 +593,25 @@ def guest_numa_check(vm, exp_vcpu):
         logging.error("Mismatch in numa nodes expected nodes: %s guest: %s", exp_num_nodes,
                       node_num_guest)
     return status
+
+
+def get_load_per(session=None, iterations=2, interval=10.0):
+    """
+    Get the percentage of load in Guest/Host
+    :param session: Guest Sesssion
+    :param iterations: iterations
+    :param interval: interval between load calculation
+    :return: load of system in percentage
+    """
+    idle_secs = []
+    idle_per = []
+    cmd = "cat /proc/uptime"
+    for itr in range(iterations):
+        if session:
+            idle_secs.append(float(session.cmd_output(cmd).strip().split()[1]))
+        else:
+            idle_secs.append(float(process.system_output(cmd).split()[1]))
+        time.sleep(interval)
+    for itr in range(iterations - 1):
+        idle_per.append((idle_secs[itr + 1] - idle_secs[itr]) / interval)
+    return int((1 - (sum(idle_per) / len(idle_per))) * 100)
