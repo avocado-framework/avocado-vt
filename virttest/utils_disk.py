@@ -951,22 +951,26 @@ class CdromDisk(Disk):
 
     def _copy_virtio_drivers(self, virtio_floppy, cdrom_virtio):
         """
-        Copy the virtio drivers from floppy and cdrom to install cdrom.
+        Copy the virtio drivers from floppy or cdrom to install cdrom.
 
-        1) Mount the floppy and cdrom containing the virtio drivers
-        2) Copy its contents to the root of the install cdrom
+        1) If cdrom is available, mount the cdrom containing the virtio drivers
+           and copy its contents to the root of the install cdrom
+        2) If floppy is availabe while cdrom is not, mount the floppy and copy
+           its contents to the root of the install cdrom
         """
-        pwd = os.getcwd()
-        mnt_pnt = tempfile.mkdtemp(prefix='cdrom_virtio_', dir=self.tmpdir)
-        mount(cdrom_virtio, mnt_pnt, options='loop,ro', verbose=DEBUG)
-        try:
-            copytree(mnt_pnt, self.mount, ignore='*.vfd')
+        if cdrom_virtio:
+            pwd = os.getcwd()
+            mnt_pnt = tempfile.mkdtemp(prefix='cdrom_virtio_', dir=self.tmpdir)
+            mount(cdrom_virtio, mnt_pnt, options='loop,ro', verbose=DEBUG)
+            try:
+                copytree(mnt_pnt, self.mount, ignore='*.vfd')
+            finally:
+                os.chdir(pwd)
+                umount(None, mnt_pnt, verbose=DEBUG)
+                os.rmdir(mnt_pnt)
+        elif virtio_floppy:
             cmd = 'mcopy -s -o -n -i %s ::/* %s' % (virtio_floppy, self.mount)
             process.run(cmd, verbose=DEBUG)
-        finally:
-            os.chdir(pwd)
-            umount(None, mnt_pnt, verbose=DEBUG)
-            os.rmdir(mnt_pnt)
 
     def setup_virtio_win2008(self, virtio_floppy, cdrom_virtio):
         """
@@ -978,14 +982,14 @@ class CdromDisk(Disk):
         drivers from a CDROM, so the floppy driver copy is optional.
         Process:
 
-        1) Copy the virtio drivers on the virtio floppy to the install cdrom,
-           if there is one available
+        1) Copy the virtio drivers on the virtio floppy/cdrom to the install
+           cdrom if there is one available
         """
-        if os.path.isfile(virtio_floppy):
+        if os.path.isfile(cdrom_virtio) or os.path.isfile(virtio_floppy):
             self._copy_virtio_drivers(virtio_floppy, cdrom_virtio)
         else:
             logging.debug(
-                "No virtio floppy present, not needed for this OS anyway")
+                "No virtio floppy/cdrom present, not needed for this OS anyway")
 
     @error_context.context_aware
     def close(self):
