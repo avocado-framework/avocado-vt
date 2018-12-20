@@ -14,7 +14,9 @@ def get_host_timezone():
     """
     Get host's timezone
     """
-    timezone_cmd = 'timedatectl | grep "Time zone"'
+    # command `grep --color` may have alias name `grep` in some systems,
+    # so get explicit command 'grep' with path
+    timezone_cmd = 'timedatectl | /usr/bin/grep "Time zone"'
     timezone_pattern = '^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$'
     error_context.context("Get host's timezone", logging.info)
     host_timezone = decode_to_text(
@@ -35,7 +37,7 @@ def verify_timezone_linux(session):
     :param session: VM session
     """
     error_context.context("Verify guest's timezone", logging.info)
-    timezone_cmd = 'timedatectl | grep "Time zone"'
+    timezone_cmd = 'timedatectl | /usr/bin/grep "Time zone"'
     timezone_pattern = '^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$'
     guest_timezone = session.cmd_output_safe(timezone_cmd, timeout=240)
     try:
@@ -220,7 +222,7 @@ def is_ntp_enabled(session):
     """
     Get current NTP state for guest/host
     """
-    cmd = 'timedatectl |grep "NTP enabled"'
+    cmd = 'timedatectl | /usr/bin/grep "NTP enabled"'
     return 'yes' in execute(cmd, session=session).split(":")[1].strip()
 
 
