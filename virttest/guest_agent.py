@@ -127,6 +127,7 @@ class QemuAgent(Monitor):
     CMD_TIMEOUT = 20
     RESPONSE_TIMEOUT = 20
     PROMPT_TIMEOUT = 20
+    FSFREEZE_TIMEOUT = 90
 
     SERIAL_TYPE_VIRTIO = "virtio"
     SERIAL_TYPE_ISA = "isa"
@@ -676,7 +677,7 @@ class QemuAgent(Monitor):
             raise VAgentFreezeStatusError(self.vm.name, status, expected)
 
     @error_context.context_aware
-    def fsfreeze(self, check_status=True):
+    def fsfreeze(self, check_status=True, timeout=FSFREEZE_TIMEOUT):
         """
         Freeze File system on guest.
 
@@ -691,7 +692,7 @@ class QemuAgent(Monitor):
 
         cmd = "guest-fsfreeze-freeze"
         if self.check_has_command(cmd):
-            ret = self.cmd(cmd=cmd)
+            ret = self.cmd(cmd=cmd, timeout=timeout)
             if check_status:
                 try:
                     self.verify_fsfreeze_status(self.FSFREEZE_STATUS_FROZEN)
