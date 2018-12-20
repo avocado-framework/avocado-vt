@@ -158,7 +158,7 @@ class OpenVSwitchControl(object):
             int_ver = ''.join(a)
         except Exception:
             raise ValueError("Wrong version format '%s'" % version)
-        return int_ver
+        return int(int_ver)
 
     @classmethod
     def get_version(cls):
@@ -356,10 +356,6 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
         :param ovs_pidfile: Path of OVS ovs-vswitchd pid.
         :param install_prefix: Path where is openvswitch installed.
         """
-        sup = super(man[self.__class__, OpenVSwitchSystem], self)
-        sup.__init__(self, db_path, db_socket, db_pidfile, ovs_pidfile,
-                     dbschema, install_prefix)
-
         self.cleanup = False
         self.pid_files_path = None
 
@@ -459,9 +455,6 @@ class OpenVSwitch(OpenVSwitchSystem):
         :param ovs_pidfile: Path of OVS ovs-vswitchd pid.
         :param install_prefix: Path where is openvswitch installed.
         """
-        super(man[self, OpenVSwitch], self).__init__(db_path, db_socket,
-                                                     db_pidfile, ovs_pidfile,
-                                                     dbschema, install_prefix)
         self.tmpdir = "/%s/openvswitch" % (tmpdir)
         try:
             os.mkdir(self.tmpdir)

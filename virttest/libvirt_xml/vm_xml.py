@@ -72,6 +72,10 @@ class VMXMLBase(base.LibvirtXMLBase):
             get: return text value of uuid tag
             set: set text value for (new) uuid tag (unvalidated)
             del: remove uuid tag
+        title: string, a short description of vm
+            get: return text value of title tag
+            set: set text value for title tag
+            del: remove title tag
         vcpu, memory, max_mem, current_mem, iothreads: integers
             get: returns integer
             set: set integer
@@ -159,7 +163,7 @@ class VMXMLBase(base.LibvirtXMLBase):
     """
 
     # Additional names of attributes and dictionary-keys instances may contain
-    __slots__ = ('hypervisor_type', 'vm_name', 'uuid', 'vcpu', 'max_mem',
+    __slots__ = ('hypervisor_type', 'vm_name', 'uuid', 'title', 'vcpu', 'max_mem',
                  'current_mem', 'dumpcore', 'numa_memory', 'numa_memnode',
                  'devices', 'seclabel', 'cputune', 'placement', 'cpuset',
                  'current_vcpu', 'vcpus', 'os', 'cpu', 'pm', 'on_poweroff',
@@ -188,6 +192,11 @@ class VMXMLBase(base.LibvirtXMLBase):
                                  forbidden=None,
                                  parent_xpath='/',
                                  tag_name='uuid')
+        accessors.XMLElementText(property_name="title",
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/',
+                                 tag_name='title')
         accessors.XMLElementInt(property_name="iothreads",
                                 libvirtxml=self,
                                 forbidden=None,

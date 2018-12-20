@@ -646,6 +646,11 @@ def preprocess(test, params, env):
     """
     error_context.context("preprocessing")
 
+    # Check host for any errors to start with and just report and
+    # clear it off, so that we do not get the false test failures.
+    if params.get("verify_host_dmesg", "yes") == "yes":
+        utils_misc.verify_dmesg(ignore_result=True)
+
     # For KVM to work in Power8 and Power9(compat guests)(<DD2.2)
     # systems we need to have SMT=off and it needs to be
     # done as root, here we do a check whether
@@ -804,11 +809,26 @@ def preprocess(test, params, env):
                 params[name_tag] = os.path.join(image_nfs.mount_dir,
                                                 image_name_only)
 
-    # firewall blocks dhcp from guest through virbr0
-    if params.get('firewalld_service', "yes") == "yes":
-        firewall_cmd = utils_iptables.Firewall_cmd()
-        if not firewall_cmd.add_service('dhcp', permanent=True):
-            logging.error('Failed to add dhcp service to be permitted')
+    firewalld_service = params.get('firewalld_service')
+    if firewalld_service == 'disable':
+        firewalld = utils_iptables.Firewalld()
+        if firewalld.status():
+            firewalld.stop()
+            if firewalld.status():
+                test.log.warning('Failed to stop firewalld')
+    else:
+        if firewalld_service == 'enable':
+            firewalld = utils_iptables.Firewalld()
+            if not firewalld.status():
+                firewalld.start()
+                if not firewalld.status():
+                    test.log.warning('Failed to start firewalld')
+        # Workaround know issue where firewall blocks dhcp from guest
+        # through virbr0
+        if params.get('firewalld_dhcp_workaround', "no") == "yes":
+            firewall_cmd = utils_iptables.Firewall_cmd()
+            if not firewall_cmd.add_service('dhcp', permanent=True):
+                test.log.warning('Failed to add dhcp service to be permitted')
 
     # Start ip sniffing if it isn't already running
     # The fact it has to be started here is so that the test params

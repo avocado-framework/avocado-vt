@@ -96,6 +96,18 @@ def file_remove(params, filename_path):
         rbd_image_name = "%s.%s" % (image_name.split("/")[-1], image_format)
         return ceph.rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name)
 
+    if params.get("gluster_brick"):
+        # TODO: Add implementation for gluster_brick
+        return
+
+    if params.get('storage_type') in ('iscsi', 'lvm'):
+        # TODO: Add implementation for iscsi/lvm
+        return
+
+    if os.path.exists(filename_path):
+        os.unlink(filename_path)
+        return
+
 
 def get_image_blkdebug_filename(params, root_dir):
     """

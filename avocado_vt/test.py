@@ -21,6 +21,7 @@ import logging
 import os
 import sys
 import pickle
+import pipes
 try:
     import queue as Queue
 except ImportError:
@@ -275,7 +276,9 @@ class VirtTest(test.Test):
                         if utils_package.package_install("tar"):
                             archive = os.path.join(libvirtd_log.strip(os.path.basename(libvirtd_log)),
                                                    "libvirtd.tar.gz")
-                            cmd = "tar -zcf %s -P %s" % (archive, libvirtd_log)
+                            cmd = ("tar -zcf %s -P %s"
+                                   % (pipes.quote(archive),
+                                      pipes.quote(libvirtd_log)))
                             if process.system(cmd) == 0:
                                 os.remove(libvirtd_log)
                         else:
