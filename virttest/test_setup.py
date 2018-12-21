@@ -429,7 +429,10 @@ class HugePageConfig(object):
         self.hugepage_force_allocate = params.get("hugepage_force_allocate",
                                                   "no")
         self.suggest_mem = None
-        self.lowest_mem_per_vm = int(params.get("lowest_mem", "256"))
+        normalize_data_size = utils_misc.normalize_data_size
+        vm_mem_minimum = params.get("vm_mem_minimum", "512M")
+        self.lowest_mem_per_vm = float(normalize_data_size(vm_mem_minimum))
+        utils_memory.drop_caches()
 
         target_hugepages = params.get("target_hugepages")
         if target_hugepages is None:
