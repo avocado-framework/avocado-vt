@@ -2826,7 +2826,7 @@ class VM(virt_vm.BaseVM):
         session.close()
         return mac.strip()
 
-    def install_package(self, name, ignore_status=False):
+    def install_package(self, name, ignore_status=False, timeout=300):
         """
         Install a package on VM.
         ToDo: Support multiple package manager.
@@ -2835,7 +2835,7 @@ class VM(virt_vm.BaseVM):
         """
         session = self.wait_for_login()
         try:
-            if not utils_package.package_install(name, session):
+            if not utils_package.package_install(name, session, timeout=timeout):
                 raise virt_vm.VMError("Installation of package %s failed" %
                                       name)
         except Exception as exception_detail:
@@ -2886,7 +2886,7 @@ class VM(virt_vm.BaseVM):
         if not self.is_alive():
             self.start()
 
-        self.install_package('pm-utils', ignore_status=True)
+        self.install_package('pm-utils', ignore_status=True, timeout=15)
         self.install_package('qemu-guest-agent')
 
         session = self.wait_for_login()
