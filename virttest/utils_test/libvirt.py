@@ -1635,7 +1635,7 @@ def get_interface_details(vm_name):
     iface_cmd = {}
     ifaces_cmd = []
     for line in domiflist_out.split('\n'):
-        match_obj = rg.search(line)
+        match_obj = rg.search(line.strip())
         # Due to the extra space in the list
         if match_obj is not None:
             iface_cmd['interface'] = match_obj.group(1)
