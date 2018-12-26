@@ -44,3 +44,17 @@ def os_arch(session):
     :return: Windows OS architecture.
     """
     return _osinfo(session, props=["OSArchitecture"])
+
+
+def file_exists(session, filename):
+    """
+    Check if a file exists.
+
+    :param session: Session object.
+    :param filename: File name with full path.
+    :return: bool value: True if file exists.
+    """
+    check_cmd = "dir /a /b %s" % filename
+    if not session.cmd_status(check_cmd):
+        return True
+    return False
