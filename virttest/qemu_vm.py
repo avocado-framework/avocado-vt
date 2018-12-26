@@ -35,6 +35,7 @@ from virttest import storage
 from virttest import error_context
 from virttest.compat_52lts import decode_to_text
 from virttest.qemu_devices import qdevices, qcontainer
+from virttest.qemu_devices.utils import DeviceError
 
 
 class QemuSegFaultError(virt_vm.VMError):
@@ -1413,10 +1414,6 @@ class VM(virt_vm.BaseVM):
             for pcic in params.objects("pci_controllers"):
                 dev = devices.pcic_by_params(pcic, params.object_params(pcic))
                 pcics.append(dev)
-            pcie_extra_root_port = params.get('pcie_extra_root_port', 0)
-            for num in range(int(pcie_extra_root_port)):
-                pcics.append(devices.pcic_by_params("pcie_root_port_%s" % num,
-                                                    {"type": "pcie-root-port"}))
             if params.get("pci_controllers_autosort", "yes") == "yes":
                 pcics.sort(key=sort_key, reverse=False)
             devices.insert(pcics)
@@ -2341,6 +2338,21 @@ class VM(virt_vm.BaseVM):
                     add_virtio_option("iommu_platform", iommu_platform, devices, device, dev_type)
                 if ats:
                     add_virtio_option("ats", ats, devices, device, dev_type)
+
+        # Add extra root_port at the end of the command line only if there is
+        # free slot on pci.0, discarding them otherwise
+        pcie_extra_root_port = int(params.get('pcie_extra_root_port', 0))
+        for num in range(pcie_extra_root_port):
+            try:
+                dev = devices.pcic_by_params(
+                    "pcie_extra_root_port_%s"
+                    % num, {"type": "pcie-root-port"})
+                devices.insert(dev)
+            except DeviceError:
+                logging.warning("No sufficient free slot for extra"
+                                " root port, discarding %d of them"
+                                % (pcie_extra_root_port - num))
+                break
 
         return devices, spice_options
 
