@@ -1386,7 +1386,8 @@ def postprocess(test, params, env):
 
     # cleanup migration presetup in post process
     if migration_setup:
-        dest_uri = libvirt_vm.complete_uri(params["server_ip"])
+        dest_uri = libvirt_vm.complete_uri(params.get("server_ip",
+                                                      params.get("remote_ip")))
         migrate_setup = utils_test.libvirt.MigrationTest()
         migrate_setup.migrate_pre_setup(dest_uri, params, cleanup=True)
 
