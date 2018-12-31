@@ -1270,6 +1270,7 @@ def run(test, params, env):
                               src, dst, mount_point, image_name)
 
     send_key_timeout = int(params.get("send_key_timeout", 60))
+    kickstart_reboot_bug = params.get("kickstart_reboot_bug", "no") == "yes"
     while (time.time() - start_time) < install_timeout:
         try:
             vm.verify_alive()
@@ -1292,6 +1293,17 @@ def run(test, params, env):
                         raise exceptions.TestFail(install_error_exception_str)
                     if post_finish_str_found:
                         break
+                # Bug `reboot` param from the kickstart is not actually restarts
+                # the VM instead it shutsoff this is temporary workaround
+                # for the test to proceed
+                if "reboot" in open(unattended_install_config.unattended_file).read():
+                    if kickstart_reboot_bug and not vm.is_alive():
+                        try:
+                            vm.start()
+                            break
+                        except:
+                            logging.warn("Failed to start unattended install image "
+                                         "workaround reboot kickstart parameter bug")
 
                 # Print out the original exception before copying images.
                 logging.error(e)
