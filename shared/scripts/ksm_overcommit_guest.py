@@ -112,7 +112,7 @@ class MemFill(object):
         random.seed(seed)
         a = array.array(self.allocate_by)
         for _ in range(PAGE_SIZE // a.itemsize):
-            a.append(random.randrange(0, sys.maxint))
+            a.append(random.randrange(0, sys.maxsize))
         return a
 
     def value_fill(self, value=None):
