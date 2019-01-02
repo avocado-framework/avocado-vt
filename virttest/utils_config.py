@@ -448,6 +448,7 @@ class LibvirtdSysConfig(LibvirtConfigCommon):
         'QEMU_AUDIO_DRV': 'string',
         'SDL_AUDIODRIVER': 'string',
         'LIBVIRTD_NOFILES_LIMIT': 'int',
+        'DAEMON_COREFILE_LIMIT': 'string',
     }
 
 
