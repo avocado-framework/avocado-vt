@@ -653,12 +653,12 @@ class UnattendedInstallConfig(object):
 
     def setup_unattended_http_server(self):
         '''
-        Setup a builtin http server for serving the kickstart file
+        Setup a builtin http server for serving the kickstart/preseed file
 
-        Does nothing if unattended file is not a kickstart file
+        Does nothing if unattended file is not a kickstart/preseed file
         '''
-        if self.unattended_file.endswith('.ks'):
-            # Red Hat kickstart install
+        if self.unattended_file.endswith('.ks') or self.unattended_file.endswith('.preseed'):
+            # Red Hat kickstart install or Ubuntu preseed install
             dest_fname = 'ks.cfg'
 
             answer_path = os.path.join(self.tmpdir, dest_fname)
