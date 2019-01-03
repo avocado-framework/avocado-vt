@@ -386,10 +386,10 @@ class GDB(aexpect.Expect):
 
         :param signal_name: Signal name as a string or integer
         """
-        if type(signal_name) is str:
+        if isinstance(signal_name, str):
             signal_name = getattr(signal, signal_name)
 
-        if type(signal_name) == int:
+        if isinstance(signal_name, int):
             os.kill(self.pid, signal_name)
         else:
             raise ValueError("Signal should be a string or an integer.")
