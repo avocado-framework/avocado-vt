@@ -1971,6 +1971,8 @@ class Stress(object):
                                            stress_cmds)
         self.stress_args = self.params.get("%s_args" % stress_type,
                                            stress_args)
+        self.stress_package = self.params.get("stress_package")
+        self.stress_install_from_repo = self.params.get("stress_install_from_repo") == "yes"
         self.download_url = self.params.get('download_url_%s' % stress_type,
                                             download_url)
         self.download_type = self.params.get('download_type_%s' % stress_type,
@@ -2115,13 +2117,25 @@ class Stress(object):
         """
         To download, abstract, build and install the stress tool
         """
-        self.download_stress()
         # Install the dependencies before the tool gets installed
         if self.dependency_packages:
             if not utils_package.package_install(self.dependency_packages,
                                                  session=self.session):
                 raise exceptions.TestError("Installing dependency packages for"
                                            " %s failed" % self.stress_type)
+        if self.stress_install_from_repo and self.stress_package:
+            # Install the stress package from existing repos
+            # If succeed, no need to download stress src any more
+            if not utils_package.package_install(self.stress_package,
+                                                 session=self.session):
+                self.stress_install_from_repo = False
+                logging.debug("Fail to install stress tool via repo and "
+                              "will download source to make and install it")
+            else:
+                logging.debug("Successful to install stress tool via repo")
+                return
+
+        self.download_stress()
         install_path = os.path.join(self.dst_path, self.base_name,
                                     self.work_path)
         self.make_cmds = "cd %s;%s" % (install_path, self.make_cmds)
@@ -2138,6 +2152,16 @@ class Stress(object):
         """
         Uninstall stress application, and clean the source files
         """
+        if self.stress_install_from_repo and self.stress_package:
+            # Uninstall the stress package from existing repos
+            # If succeed, no need to uninstall and remove source any more
+            if not utils_package.package_remove(self.stress_package,
+                                                session=self.session):
+                logging.debug("Fail to remove stress tool via repo and "
+                              "will continue to uninstall and remove source")
+            else:
+                logging.debug("Successful to remove stress tool via repo")
+                return
         install_path = os.path.join(self.dst_path, self.base_name)
         if self.cmd_status('cd %s' % install_path) != 0:
             logging.error("No source files found in path %s", path)
