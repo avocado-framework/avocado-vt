@@ -541,9 +541,10 @@ class QemuImg(storage.QemuImg):
                     chk = params.get("backup_image_on_check_error", "no")
                     if chk == "yes":
                         self.backup_image(params, root_dir, "backup", False)
-                    raise exceptions.TestWarn("qemu-img check exceptions. Some bad "
-                                              "data in the image may have gone"
-                                              " unnoticed (%s)" % image_filename)
+                    raise exceptions.TestWarn(
+                        "qemu-img check not completed because of internal "
+                        "errors. Some bad data in the image may have gone "
+                        "unnoticed (%s)" % image_filename)
                 # Exit status 2 is data corruption for sure,
                 # so fail the test
                 elif cmd_result.exit_status == 2:
