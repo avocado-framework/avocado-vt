@@ -734,22 +734,20 @@ class QemuAgent(Monitor):
             return ret
         return -1
 
-    def _guest_file_operation(self, operation, **kwargs):
+    def _cmd_args_update(self, cmd, **kwargs):
         """
-        Basic guest file command function.
+        Update qga commands' args.
 
-        :param operation: open,write,read,flush,seek or flush.
-        :param kwargs: optional keyword arguments including but not limited
-               to below.
+        :param cmd: command to send.
+        :param kwargs: optional keyword arguments.
         :return: The command's output.
         """
-        cmd = "guest-file-%s" % operation
         self.check_has_command(cmd)
-
         # update kwargs
         for key in list(kwargs.keys()):
             if kwargs[key] is None:
                 kwargs.pop(key)
+                continue
             if "_" in key:
                 key_new = key.replace("_", "-")
                 args = {key_new: kwargs[key]}
@@ -766,7 +764,8 @@ class QemuAgent(Monitor):
         :param mode: optional open mode, "r" is the default value.
         :return: file handle.
         """
-        return self._guest_file_operation("open", path=path, mode=mode)
+        cmd = "guest-file-open"
+        return self._cmd_args_update(cmd, path=path, mode=mode)
 
     def guest_file_close(self, handle):
         """
@@ -775,7 +774,8 @@ class QemuAgent(Monitor):
         :param handle: file handle returned by guest-file-open.
         :return: no-error return.
         """
-        return self._guest_file_operation("close", handle=handle)
+        cmd = "guest-file-close"
+        return self._cmd_args_update(cmd, handle=handle)
 
     def guest_file_write(self, handle, content, count=None):
         """
@@ -788,9 +788,10 @@ class QemuAgent(Monitor):
                after base64 decoding
         :return: a dict with count and eof.
         """
+        cmd = "guest-file-write"
         con_encode = base64.b64encode(content.encode()).decode()
-        return self._guest_file_operation("write", handle=handle,
-                                          buf_b64=con_encode, count=count)
+        return self._cmd_args_update(cmd, handle=handle,
+                                     buf_b64=con_encode, count=count)
 
     def guest_file_read(self, handle, count=None):
         """
@@ -801,7 +802,8 @@ class QemuAgent(Monitor):
                       base64-encoding is applied(default is 4KB)
         :return: a dict with base64-encoded string content,count and eof.
         """
-        return self._guest_file_operation("read", handle=handle, count=count)
+        cmd = "guest-file-read"
+        return self._cmd_args_update(cmd, handle=handle, count=count)
 
     def guest_file_flush(self, handle):
         """
@@ -810,7 +812,8 @@ class QemuAgent(Monitor):
         :param handle: file handle returned by guest-file-open.
         :return: no-error return.
         """
-        return self._guest_file_operation("flush", handle=handle)
+        cmd = "guest-file-flush"
+        return self._cmd_args_update(cmd, handle=handle)
 
     def guest_file_seek(self, handle, offset, whence):
         """
@@ -823,5 +826,36 @@ class QemuAgent(Monitor):
                        2,file end
         :return: a dict with position and eof.
         """
-        return self._guest_file_operation("seek", handle=handle, offset=offset,
-                                          whence=whence)
+        cmd = "guest-file-seek"
+        return self._cmd_args_update(cmd, handle=handle, offset=offset,
+                                     whence=whence)
+
+    def guest_exec(self, path, arg=None, env=None, input_data=None,
+                   capture_output=None):
+        """
+        Execute a command in the guest.
+
+        :param path: path or executable name to execute
+        :param arg: argument list to pass to executable
+        :param env: environment variables to pass to executable
+        :param input_data: data to be passed to process stdin (base64 encoded)
+        :param capture_output: bool flag to enable capture of stdout/stderr of
+                               running process,defaults to false.
+        :return: PID on success
+        """
+        cmd = "guest-exec"
+        return self._cmd_args_update(cmd, path=path, arg=arg, env=env,
+                                     input_data=input_data,
+                                     capture_output=capture_output)
+
+    def guest_exec_status(self, pid):
+        """
+        Check status of process associated with PID retrieved via guest-exec.
+        Read the process and associated metadata if it has exited.
+
+        :param pid: pid returned from guest-exec
+        :return: GuestExecStatus on success,
+                 such as exited,exitcode,out-data,error-data and so on
+        """
+        cmd = "guest-exec-status"
+        return self._cmd_args_update(cmd, pid=pid)
