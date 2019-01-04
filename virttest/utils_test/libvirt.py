@@ -1356,9 +1356,9 @@ class MigrationTest(object):
                 # SMT for Power8 machine is turned off for local machine during
                 # test setup
             else:
-                server_ip = params.get("server_ip")
-                server_user = params.get("server_user", "root")
-                server_pwd = params.get("server_pwd")
+                server_ip = params.get("server_ip", params.get("remote_ip"))
+                server_user = params.get("server_user", params.get("remote_user"))
+                server_pwd = params.get("server_pwd", params.get("remote_pwd"))
                 server_session = remote.wait_for_login('ssh', server_ip, '22',
                                                        server_user, server_pwd,
                                                        r"[\#\$]\s*$")
