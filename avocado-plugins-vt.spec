@@ -73,23 +73,23 @@ Avocado Virt Test is a plugin that lets you execute virt-tests
 with all the avocado convenience features, such as HTML report,
 Xunit output, among others.
 
-%package -n python2-%{srcname}
+%package -n python2-%{name}
 Summary: %{summary}
 Requires: python2, python2-devel, python2-avocado >= 51.0, python2-aexpect
 Requires: python2-netaddr, python2-netifaces, python2-simplejson
 %{?python_provide:%python_provide python2-%{srcname}}
-%description -n python2-%{srcname}
+%description -n python2-%{name}
 Avocado Virt Test is a plugin that lets you execute virt-tests
 with all the avocado convenience features, such as HTML report,
 Xunit output, among others.
 
 %if %{with_python3}
-%package -n python3-%{srcname}
+%package -n python3-%{name}
 Summary: %{summary}
 Requires: python3, python3-devel, python3-avocado >= 51.0, python3-aexpect
 Requires: python3-netaddr, python3-netifaces, python3-simplejson
 %{?python_provide:%python_provide python3-%{srcname}}
-%description -n python3-%{srcname}
+%description -n python3-%{name}
 Avocado Virt Test is a plugin that lets you execute virt-tests
 with all the avocado convenience features, such as HTML report,
 Xunit output, among others.
@@ -114,7 +114,7 @@ Xunit output, among others.
 %{__python3} setup.py install --root %{buildroot} --skip-build
 %endif
 
-%files -n python2-%{srcname}
+%files -n python2-%{name}
 %defattr(-,root,root,-)
 %dir /etc/avocado
 %dir /etc/avocado/conf.d
@@ -128,7 +128,7 @@ Xunit output, among others.
 %{_datadir}/avocado-plugins-vt/test-providers.d/*
 
 %if %{with_python3}
-%files -n python3-%{srcname}
+%files -n python3-%{name}
 %defattr(-,root,root,-)
 %dir /etc/avocado
 %dir /etc/avocado/conf.d
