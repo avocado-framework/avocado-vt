@@ -20,6 +20,17 @@
     %global gittar          %{srcname}-%{shortcommit}.tar.gz
 %endif
 
+%if 0%{?rhel}
+    %global with_python3 0
+%else
+    %global with_python3 1
+%endif
+
+# The Python dependencies are already tracked by the python2
+# or python3 "Requires".  This filters out the python binaries
+# from the RPM automatic requires/provides scanner.
+%global __requires_exclude ^/usr/bin/python[23]$
+
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 67.0
@@ -34,10 +45,12 @@ Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}.tar.g
 # old way of retrieving snapshot sources
 #Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}/%{srcname}-%{version}-%{shortcommit}.tar.gz
 %endif
-BuildRequires: python2-devel, python-setuptools
+BuildRequires: python2-devel, python2-setuptools
+%if %{with_python3}
+BuildRequires: python3-devel, python3-setuptools
+%endif
 BuildArch: noarch
-Requires: python-avocado >= 51.0
-Requires: python, autotest-framework, xz, tcpdump, iproute, iputils, gcc, glibc-headers, python-devel, nc, python-aexpect, git, python-netaddr, python-netifaces, python-simplejson
+Requires: autotest-framework, xz, tcpdump, iproute, iputils, gcc, glibc-headers, nc, git
 Requires: attr
 %if 0%{?rhel}
 Requires: policycoreutils-python
@@ -45,7 +58,10 @@ Requires: policycoreutils-python
 Requires: policycoreutils-python-utils
 %endif
 
-Requires: python-imaging
+Requires: python2-imaging
+%if %{with_python3}
+Requires: python3-imaging
+%endif
 %if 0%{?el6}
 Requires: gstreamer-python, gstreamer-plugins-good
 %else
@@ -57,6 +73,28 @@ Avocado Virt Test is a plugin that lets you execute virt-tests
 with all the avocado convenience features, such as HTML report,
 Xunit output, among others.
 
+%package -n python2-%{srcname}
+Summary: %{summary}
+Requires: python2, python2-devel, python2-avocado >= 51.0, python2-aexpect
+Requires: python2-netaddr, python2-netifaces, python2-simplejson
+%{?python_provide:%python_provide python2-%{srcname}}
+%description -n python2-%{srcname}
+Avocado Virt Test is a plugin that lets you execute virt-tests
+with all the avocado convenience features, such as HTML report,
+Xunit output, among others.
+
+%if %{with_python3}
+%package -n python3-%{srcname}
+Summary: %{summary}
+Requires: python3, python3-devel, python3-avocado >= 51.0, python3-aexpect
+Requires: python3-netaddr, python3-netifaces, python3-simplejson
+%{?python_provide:%python_provide python3-%{srcname}}
+%description -n python3-%{srcname}
+Avocado Virt Test is a plugin that lets you execute virt-tests
+with all the avocado convenience features, such as HTML report,
+Xunit output, among others.
+%endif
+
 %prep
 %if 0%{?rel_build}
 %setup -q -n %{srcname}-%{version}
@@ -66,11 +104,17 @@ Xunit output, among others.
 
 %build
 %{__python2} setup.py build
+%if %{with_python3}
+%{__python3} setup.py build
+%endif
 
 %install
 %{__python2} setup.py install --root %{buildroot} --skip-build
+%if %{with_python3}
+%{__python3} setup.py install --root %{buildroot} --skip-build
+%endif
 
-%files
+%files -n python2-%{srcname}
 %defattr(-,root,root,-)
 %dir /etc/avocado
 %dir /etc/avocado/conf.d
@@ -82,6 +126,21 @@ Xunit output, among others.
 %{_datadir}/avocado-plugins-vt/backends/*
 %{_datadir}/avocado-plugins-vt/shared/*
 %{_datadir}/avocado-plugins-vt/test-providers.d/*
+
+%if %{with_python3}
+%files -n python3-%{srcname}
+%defattr(-,root,root,-)
+%dir /etc/avocado
+%dir /etc/avocado/conf.d
+%config(noreplace)/etc/avocado/conf.d/vt.conf
+%doc README.rst LICENSE
+%{python3_sitelib}/avocado_vt*
+%{python3_sitelib}/avocado_plugins_vt*
+%{python3_sitelib}/virttest*
+%{_datadir}/avocado-plugins-vt/backends/*
+%{_datadir}/avocado-plugins-vt/shared/*
+%{_datadir}/avocado-plugins-vt/test-providers.d/*
+%endif
 
 
 %changelog
