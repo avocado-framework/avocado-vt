@@ -1,17 +1,39 @@
-%global modulename avocado-vt
-%if ! 0%{?commit:1}
- %define commit 8b85d88132209ff138200ec69ad01e48ffbf37fd
+%global srcname avocado-vt
+
+# Conditional for release vs. snapshot builds. Set to 1 for release build.
+%if ! 0%{?rel_build:1}
+    %global rel_build 1
 %endif
-%global shortcommit %(c=%{commit}; echo ${c:0:8})
+
+# Settings used for build from snapshots.
+%if 0%{?rel_build}
+    %global gittar          %{srcname}-%{version}.tar.gz
+%else
+    %if ! 0%{?commit:1}
+        %global commit      8b85d88132209ff138200ec69ad01e48ffbf37fd
+    %endif
+    %if ! 0%{?commit_date:1}
+        %global commit_date 20181212
+    %endif
+    %global shortcommit     %(c=%{commit};echo ${c:0:8})
+    %global gitrel          .%{commit_date}git%{shortcommit}
+    %global gittar          %{srcname}-%{shortcommit}.tar.gz
+%endif
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 67.0
-Release: 0%{?dist}
+Release: 0%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
-Source0: https://github.com/avocado-framework/%{modulename}/archive/%{commit}/%{modulename}-%{version}-%{shortcommit}.tar.gz
+%if 0%{?rel_build}
+Source0: https://github.com/avocado-framework/%{srcname}/archive/%{version}.tar.gz#/%{gittar}
+%else
+Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}.tar.gz#/%{gittar}
+# old way of retrieving snapshot sources
+#Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}/%{srcname}-%{version}-%{shortcommit}.tar.gz
+%endif
 BuildRequires: python2-devel, python-setuptools
 BuildArch: noarch
 Requires: python-avocado >= 51.0
@@ -36,7 +58,11 @@ with all the avocado convenience features, such as HTML report,
 Xunit output, among others.
 
 %prep
-%setup -q -n %{modulename}-%{commit}
+%if 0%{?rel_build}
+%setup -q -n %{srcname}-%{version}
+%else
+%setup -q -n %{srcname}-%{commit}
+%endif
 
 %build
 %{__python2} setup.py build
