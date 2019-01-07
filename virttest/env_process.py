@@ -1084,6 +1084,8 @@ def postprocess(test, params, env):
         for vm in living_vms:
             guest_dmesg_log_file += ".%s" % vm.name
             try:
+                if params.get("guest_dmesg_dump_console") == "yes":
+                    guest_dmesg_log_file = None
                 vm.verify_dmesg(dmesg_log_file=guest_dmesg_log_file)
             except exceptions.TestFail as details:
                 err += ("\n: Guest %s dmesg verification failed: %s"
