@@ -421,6 +421,19 @@ def get_memory_info(lvms):
     return meminfo
 
 
+def find_python(session, try_binaries=('python3', 'python2', 'python')):
+    """
+    Look for the python interpreter installed in the guest.
+
+    :param session: A shell session.
+    :param try_binaries: A list of python binaries to look for.
+    :return: The python binary found, otherwise None.
+    """
+    for python in try_binaries:
+        if session.cmd_status("which %s" % python) == 0:
+            return python
+
+
 @error_context.context_aware
 def get_image_version(qemu_image):
     """
@@ -831,35 +844,47 @@ def run_avocado(vm, params, test, testlist=[], timeout=3600,
         if (session.cmd_status("which avocado") == 0) and not reinstall:
             return True
         if "pip" in installtype:
-            cmd = "python -m pip --version || python -c \"import os; import sys;"
-            cmd += " from six.moves import urllib;" \
-                   "f = urllib.request.urlretrieve(\'https://bootstrap.pypa.io/get-pip.py\')[0]; "
-            cmd += "os.system(\'%s %s\' % (sys.executable, f))\""
-            if session.cmd_status(cmd) > 0:
-                logging.error("pip installation failed")
+            python = find_python(session)
+            if not python:
+                logging.error("Unable to find python.")
                 return False
-            cmd = "pip install avocado-framework"
+
+            cmd = "%s -m pip --version" % python
             if session.cmd_status(cmd) > 0:
-                logging.error("Avocado pip installation failed")
+                logging.debug("pip is not found. Attempt to install it.")
+                cmd = "%s -c \"import os; import sys;" % python
+                cmd += " from six.moves import urllib;" \
+                       "f = urllib.request.urlretrieve(\'https://bootstrap.pypa.io/get-pip.py\')[0]; "
+                cmd += "os.system(\'%s %s\' % (sys.executable, f))\""
+                status, output = session.cmd_status_output(cmd)
+                if status > 0:
+                    logging.error("pip installation failed:\n%s" % output)
+                    return False
+            pip_install_cmd = "%s -m pip install" % python
+            cmd = "%s avocado-framework" % pip_install_cmd
+            status, output = session.cmd_status_output(cmd)
+            if status > 0:
+                logging.error("Avocado pip installation failed:\n%s", output)
                 return False
             for plugin in plugins[installtype]:
-                cmd = "pip install %s" % plugin
-                if session.cmd_status(cmd) > 0:
+                cmd = "%s %s" % (pip_install_cmd, plugin)
+                status, output = session.cmd_status_output(cmd)
+                if status > 0:
                     logging.error("Avocado plugin %s pip "
-                                  "installation failed", plugin)
+                                  "installation failed:\n%s", plugin, output)
                     return False
         elif "package" in installtype:
             raise NotImplementedError
         elif "git" in installtype:
             test_path = params.get("vm_test_path", "/var/tmp/avocado/")
             cmd = "git clone https://github.com/avocado-framework/avocado.git;"
-            cmd += "cd avocado;python setup.py install"
+            cmd += "cd avocado;%s setup.py install" % python
             if session.cmd_status(cmd) > 0:
                 logging.error("Avocado git installation failed")
                 return False
             for plugin in plugins[installtype]:
                 cmd = "[ -d optional_plugins/%s ] && cd optional_plugins/" % plugin
-                cmd += "%s && python setup.py install && cd .." % plugin
+                cmd += "%s && %s setup.py install && cd .." % (plugin, python)
                 if session.cmd_status(cmd) > 0:
                     logging.error("Avocado plugin %s git "
                                   "installation failed", plugin)
