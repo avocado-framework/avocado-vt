@@ -122,7 +122,7 @@ class NetperfPackage(remote.Remote_Package):
         pre_setup_cmd = "cd %s " % self.netperf_base_dir
         pre_setup_cmd += " && %s %s" % (self.decomp_cmd, self.netperf_file)
         pre_setup_cmd += " && cd %s " % self.netperf_dir
-        setup_cmd = "./configure %s > /dev/null " % compile_option
+        setup_cmd = "./configure --build=$(arch) %s > /dev/null " % compile_option
         setup_cmd += " && make > /dev/null"
         self.env_cleanup(clean_all=False)
         cmd = "%s && %s " % (pre_setup_cmd, setup_cmd)
