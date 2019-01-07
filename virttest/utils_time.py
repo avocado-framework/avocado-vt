@@ -14,10 +14,13 @@ def get_host_timezone():
     """
     Get host's timezone
     """
-    timezone_cmd = 'timedatectl | grep "Time zone"'
+    # command `grep --color` may have alias name `grep` in some systems,
+    # so get explicit command 'grep' with path
+    timezone_cmd = 'timedatectl | /usr/bin/grep "Time zone"'
     timezone_pattern = '^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$'
     error_context.context("Get host's timezone", logging.info)
-    host_timezone = decode_to_text(process.system_output(timezone_cmd, timeout=240, shell=True))
+    host_timezone = decode_to_text(
+        process.system_output(timezone_cmd, timeout=240, shell=True))
     try:
         host_timezone_set = re.match(timezone_pattern, host_timezone).groups()
         return {"timezone_city": host_timezone_set[0],
@@ -34,12 +37,12 @@ def verify_timezone_linux(session):
     :param session: VM session
     """
     error_context.context("Verify guest's timezone", logging.info)
-    timezone_cmd = 'timedatectl | grep "Time zone"'
+    timezone_cmd = 'timedatectl | /usr/bin/grep "Time zone"'
     timezone_pattern = '^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$'
-    guest_timezone = session.cmd_output(timezone_cmd, timeout=240)
+    guest_timezone = session.cmd_output_safe(timezone_cmd, timeout=240)
     try:
         guest_timezone_set = re.match(timezone_pattern, guest_timezone).groups()
-        return (guest_timezone_set[0] == get_host_timezone()['timezone_city'])
+        return guest_timezone_set[0] == get_host_timezone()['timezone_city']
     except (AttributeError, IndexError):
         raise exceptions.TestError("Fail to get guest's timezone.")
 
@@ -51,7 +54,7 @@ def sync_timezone_linux(vm):
 
     :param vm: Virtual machine object
     """
-    session = vm.wait_for_login()
+    session = vm.wait_for_login(serial=True)
     error_context.context("Sync guest's timezone", logging.info)
     set_timezone_cmd = "timedatectl set-timezone %s"
     if not verify_timezone_linux(session):
@@ -73,31 +76,21 @@ def verify_timezone_win(session):
     """
     def get_timezone_list():
         timezone_list_cmd = "tzutil /l"
-        timezone_set = []
-        timezone_sets = []
-        timezone_list = session.cmd_output(timezone_list_cmd)
+        timezone_list = session.cmd_output_safe(timezone_list_cmd)
 
-        for line in timezone_list.splitlines():
-            # Empty line
-            if not line:
+        match_pattern = "(?:\(UTC([+|-]\d{2}:\d{2})?)(?:.*\n)(\w+.*(?:\s\w+)*)"
+        timezone_sets = []
+        for para in re.split("(?:\r?\n){2,}", timezone_list.strip()):
+            result = re.match(match_pattern, para, re.M | re.A)
+            if not result:
                 continue
-            _code = re.search(r'(?:\(UTC([+|-]\d{2}:\d{2})?)', line)
-            if _code and _code.group(1):
-                _code_ = re.sub(r'(\d{2}):(\d{2})', r'\1\2',
-                                _code.group(1))
-                timezone_set.append(_code_)
-                continue
+            code, name = result.groups()
             # When UTC standard time, add timezone code '+0000'
-            elif _code:
-                timezone_set.append("+0000")
-                continue
-            _name = re.search(r'(\S+(?:\s\S+)*)', line)
-            if _name:
-                timezone_set.append(_name.group(0))
+            if not code:
+                code = "+0000"
             else:
-                logging.warn("Can not get timezone name correctly.")
-            timezone_sets.append(timezone_set)
-            timezone_set = []
+                code = re.sub(r'(\d{2}):(\d{2})', r'\1\2', code)
+            timezone_sets.append((code, name))
         return timezone_sets
 
     def get_timezone_code(timezone_name):
@@ -115,7 +108,8 @@ def verify_timezone_win(session):
     error_context.context("Verify guest's timezone", logging.info)
     timezone_cmd = 'tzutil /g'
     host_timezone_code = get_host_timezone()['timezone_code']
-    timezone_name = session.cmd_output(timezone_cmd).strip('\n')
+    # Workaround to handle two line prompts in serial session
+    timezone_name = session.cmd_output_safe(timezone_cmd).split('\n')[0]
     if get_timezone_code(timezone_name) != host_timezone_code:
         return False, get_timezone_name(host_timezone_code)
     return True, ""
@@ -128,7 +122,7 @@ def sync_timezone_win(vm):
 
     :param vm: Virtual machine object
     """
-    session = vm.wait_for_login()
+    session = vm.wait_for_login(serial=True)
     set_timezone_cmd = 'tzutil /s "%s"'
     (ver_result, output) = verify_timezone_win(session)
 
@@ -141,7 +135,7 @@ def sync_timezone_win(vm):
         error_context.context("Boot guest...", logging.info)
         vm.create(params=vm_params)
         vm.verify_alive()
-        session = vm.wait_for_login()
+        session = vm.wait_for_login(serial=True)
         (ver_result, output) = verify_timezone_win(session)
         if ver_result is not True:
             session.close()
@@ -161,10 +155,10 @@ def execute(cmd, timeout=360, session=None):
     :return: Command output string
     """
     if session:
-        ret = session.cmd_output(cmd, timeout=timeout)
+        ret = session.cmd_output_safe(cmd, timeout=timeout)
     else:
         ret = process.getoutput(cmd)
-    target = session and "guest" or "host"
+    target = 'guest' if session else 'host'
     logging.debug("(%s) Execute command('%s')" % (target, cmd))
     return ret
 
@@ -206,8 +200,9 @@ def update_clksrc(vm, clksrc=None):
         cpu_model_flags = params.get["cpu_model_flags"]
         params["cpu_model_flags"] = cpu_model_flags + ",-kvmclock"
 
-    error_context.context("Update guest kernel cli to '%s'" % (clksrc or
-                          "kvm-clock"), logging.info)
+    error_context.context("Update guest kernel cli to '%s'" %
+                          (clksrc or "kvm-clock"),
+                          logging.info)
     utils_test.update_boot_option(vm, args_removed="clocksource=*")
     if clksrc and clksrc != 'kvm-clock':
         boot_option_added = "clocksource=%s" % clksrc
@@ -218,7 +213,7 @@ def is_ntp_enabled(session):
     """
     Get current NTP state for guest/host
     """
-    cmd = 'timedatectl |grep "NTP enabled"'
+    cmd = 'timedatectl | /usr/bin/grep "NTP enabled"'
     return 'yes' in execute(cmd, session=session).split(":")[1].strip()
 
 
