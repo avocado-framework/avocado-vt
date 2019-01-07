@@ -168,6 +168,10 @@ class UnattendedInstallConfig(object):
         for a in self.attributes:
             setattr(self, a, params.get(a, ''))
 
+        # Make finish.bat work well with positional arguments
+        if not self.process_check.strip():  # pylint: disable=E0203
+            self.process_check = '""'       # pylint: disable=E0203
+
         # Will setup the virtio attributes
         v_attributes = ['virtio_floppy', 'virtio_scsi_path',
                         'virtio_storage_path', 'virtio_network_path',
