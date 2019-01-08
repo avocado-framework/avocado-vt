@@ -1425,7 +1425,19 @@ class MigrationTest(object):
                 if func:
                     # Execute command once the migration is started
                     migrate_start_state = args.get("migrate_start_state", "paused")
-                    if self.wait_for_migration_start(vm, state=migrate_start_state, uri=desturi):
+
+                    # Wait for migration to start
+                    migrate_options = ""
+                    if options:
+                        migrate_options = str(options)
+                    if extra_opts:
+                        migrate_options += " %s" % extra_opts
+
+                    migration_started = self.wait_for_migration_start(vm, state=migrate_start_state,
+                                                                      uri=desturi,
+                                                                      migrate_options=migrate_options.strip())
+
+                    if migration_started:
                         logging.info("Migration started for %s", vm.name)
                         if func == process.run:
                             try:
@@ -1507,23 +1519,24 @@ class MigrationTest(object):
         # Set connect uri back to local uri
         vm.connect_uri = srcuri
 
-    def check_vm_state(self, vm, state='paused', uri=None):
+    def check_vm_state(self, vm_name, state='paused', uri=None):
         """
         checks whether state of the vm is as expected
 
-        :param vm: VM Object
+        :param vm_name: VM name
         :param state: expected state of the VM
         :param uri: connect uri
 
         :return: True if state of VM is as expected, False otherwise
         """
-        if not virsh.domain_exists(vm.name, uri=uri):
+        if not virsh.domain_exists(vm_name, uri=uri):
             return False
-        result = virsh.domstate(vm.name, uri=uri)
+        result = virsh.domstate(vm_name, uri=uri)
         vm_state = results_stdout_52lts(result).strip()
         return vm_state.lower() == state.lower()
 
-    def wait_for_migration_start(self, vm, state='paused', uri=None, timeout=60):
+    def wait_for_migration_start(self, vm, state='paused', uri=None,
+                                 migrate_options='', timeout=60):
         """
         checks whether migration is started or not
 
@@ -1531,14 +1544,25 @@ class MigrationTest(object):
         :param state: expected VM state in destination host
         :param uri: connect uri
         :param timeout: time in seconds to wait for migration to start
+        :param migrate_options: virsh migrate options
 
         :return: True if migration is started False otherwise
         """
         def check_state():
             try:
-                return self.check_vm_state(vm, state, uri)
+                return self.check_vm_state(dest_vm_name, state, uri)
             except Exception:
                 return False
+
+        # Set dest_vm_name to be used in wait_for_migration_start() in case
+        # --dname is specified in virsh options
+        dest_vm_name = ""
+        if migrate_options.count("--dname"):
+            migrate_options_list = migrate_options.split()
+            dest_vm_name = migrate_options_list[migrate_options_list.index("--dname") + 1]
+        else:
+            dest_vm_name = vm.name
+
         return utils_misc.wait_for(check_state, timeout)
 
 
