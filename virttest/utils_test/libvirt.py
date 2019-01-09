@@ -1240,6 +1240,7 @@ class MigrationTest(object):
             server_ip = params.get("server_ip")
             src_uri = "qemu:///system"
             vm.connect_uri = uri
+            vm_ip[vm.name] = vm.get_address()
             server_pwd = params.get("server_pwd")
             server_user = params.get("server_user")
             server_session = remote.wait_for_login('ssh', server_ip, '22',
