@@ -37,6 +37,7 @@ class Memory(base.UntypedDeviceBase):
         accessors.XMLElementNest('address', self, parent_xpath='/',
                                  tag_name='address', subclass=self.Address,
                                  subclass_dargs={
+                                     'type_name': 'dimm',
                                      'virsh_instance': virsh_instance})
         super(Memory, self).__init__(device_tag='memory',
                                      virsh_instance=virsh_instance)
