@@ -126,8 +126,36 @@ def update_boot_option_ubuntu(args, grub_key=None, session=None, remove_args=Non
     logging.debug("updated boot option: %s with %s", grub_key, args)
 
 
-@error_context.context_aware
-def update_boot_option(vm, args_removed=None, args_added=None,
+def check_kernel_cmdline(session, remove_args="", args=""):
+    """
+    Method to check whether args are already exists or not in /proc/cmdline
+
+    :param session: Shell session Object
+    :param remove_args: arguments to be checked whether it doesn't exists
+                        or to remove.
+    :param args: arguments to be checked whether already exists or to add
+    :return: required arguments to be added/removed of type str
+    """
+    req_args = ""
+    req_remove_args = ""
+    proc_cmdline = "cat /proc/cmdline"
+    try:
+        check_output = str(session.cmd(proc_cmdline, timeout=60)).split()
+        # check whether the kernel options are already available and
+        # whether really needed to be added/removed respectively
+        for each_arg in args.split():
+            if each_arg not in check_output:
+                req_args += "%s " % each_arg
+        for each_arg in remove_args.split():
+            if each_arg in check_output:
+                req_remove_args += "%s " % each_arg
+    except Exception as info:
+        raise exceptions.TestError("Failed to get kernel commandline using %s:"
+                                   " %s" % (proc_cmdline, info))
+    return req_args.strip(), req_remove_args.strip()
+
+
+def update_boot_option(vm, args_removed="", args_added="",
                        need_reboot=True):
     """
     Update guest default kernel option.
@@ -139,49 +167,64 @@ def update_boot_option(vm, args_removed=None, args_added=None,
     :raise exceptions.TestError: Raised if fail to update guest kernel cmdline.
 
     """
+    session = None
     if vm.params.get("os_type") == 'windows':
         # this function is only for linux, if we need to change
         # windows guest's boot option, we can use a function like:
         # update_win_bootloader(args_removed, args_added, reboot)
         # (this function is not implement.)
         # here we just:
+        msg = "update_boot_option() is supported only for Linux guest"
+        logging.warning(msg)
         return
-
     login_timeout = int(vm.params.get("login_timeout"))
     session = vm.wait_for_login(timeout=login_timeout)
-    if "ubuntu" in vm.get_distro().lower():
-        if args_added:
-            update_boot_option_ubuntu(args_added, session=session)
-        if args_removed:
-            update_boot_option_ubuntu(args_removed, session=session,
-                                      remove_args=True)
-    else:
-        if not utils_package.package_install("grubby", session=session):
-            raise exceptions.TestError("Failed to install grubby package")
-        msg = "Update guest kernel option. "
-        cmd = "grubby --update-kernel=`grubby --default-kernel` "
-        if bool(args_removed):
-            msg += " remove args: %s" % args_removed
-            cmd += '--remove-args="%s" ' % args_removed
-        if bool(args_added):
-            msg += " add args: %s" % args_added
-            cmd += '--args="%s"' % args_added
-        error_context.context(msg, logging.info)
-        status, output = session.cmd_status_output(cmd)
-        if status != 0:
-            logging.error(output)
-            raise exceptions.TestError("Fail to modify guest kernel option")
+    try:
+        # check for args that are really required to be added/removed
+        req_args, req_remove_args = check_kernel_cmdline(session,
+                                                         remove_args=args_removed,
+                                                         args=args_added)
+        if "ubuntu" in vm.get_distro().lower():
+            if req_args:
+                update_boot_option_ubuntu(req_args, session=session)
+            if req_remove_args:
+                update_boot_option_ubuntu(req_remove_args, session=session,
+                                          remove_args=True)
+        else:
+            if not utils_package.package_install("grubby", session=session):
+                raise exceptions.TestError("Failed to install grubby package")
+            msg = "Update guest kernel option. "
+            cmd = "grubby --update-kernel=`grubby --default-kernel` "
+            if req_remove_args:
+                msg += " remove args: %s" % req_remove_args
+                cmd += '--remove-args="%s" ' % req_remove_args
+            if req_args:
+                msg += " add args: %s" % req_args
+                cmd += '--args="%s"' % req_args
+            if req_remove_args or req_args:
+                logging.info(msg)
+                status, output = session.cmd_status_output(cmd)
+                if status != 0:
+                    logging.error(output)
+                    raise exceptions.TestError("Fail to modify guest kernel option")
 
-    if need_reboot:
-        error_context.context("Rebooting guest ...", logging.info)
-        session = vm.reboot(session=session, timeout=login_timeout)
-    cmdline = session.cmd("cat /proc/cmdline", timeout=60)
-    if args_removed and args_removed in cmdline:
-        err = "Fail to remove guest kernel option %s" % args_removed
-        raise exceptions.TestError(err)
-    if args_added and args_added not in cmdline:
-        err = "Fail to add guest kernel option %s" % args_added
-        raise exceptions.TestError(err)
+        # reboot is required only if we really add/remove any args
+        if need_reboot and (req_args or req_remove_args):
+            logging.info("Rebooting guest ...")
+            session = vm.reboot(session=session, timeout=login_timeout)
+            # check nothing is required to be added/removed by now
+            req_args, req_remove_args = check_kernel_cmdline(session,
+                                                             remove_args=args_removed,
+                                                             args=args_added)
+            if req_remove_args:
+                err = "Fail to remove guest kernel option %s" % args_removed
+                raise exceptions.TestError(err)
+            if req_args:
+                err = "Fail to add guest kernel option %s" % args_added
+                raise exceptions.TestError(err)
+    finally:
+        if session:
+            session.close()
 
 
 def stop_windows_service(session, service, timeout=120):
