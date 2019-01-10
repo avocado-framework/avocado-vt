@@ -39,6 +39,15 @@ That's basically a collection of files useful for windows testing. If you want
 to update that file, you'll have to pick that iso file, extract it to a directory,
 make changes, remaster the iso and upload back to the main location.
 
+
+Windows virtio drivers ISO
+==========================
+
+In Avocado we mainly use fedora/RHEL based windows virtio drivers ISO that
+can be obtained from:
+
+https://docs.fedoraproject.org/en-US/quick-docs/creating-windows-virtual-machines-using-virtio-drivers/index.html
+
 JeOS image
 ==========
 
