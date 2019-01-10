@@ -12,7 +12,8 @@ DEVICE_TYPES = ['disk', 'filesystem', 'controller', 'lease',
                 'hostdev', 'redirdev', 'smartcard', 'interface', 'input',
                 'hub', 'graphics', 'video', 'parallel', 'serial', 'console',
                 'channel', 'sound', 'watchdog', 'memballoon', 'rng', 'vsock',
-                'seclabel', 'address', 'emulator', 'panic', 'memory', 'filterref']
+                'seclabel', 'address', 'emulator', 'panic', 'memory', 'filterref',
+                'iommu']
 
 
 def get(name):
