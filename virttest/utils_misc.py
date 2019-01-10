@@ -2246,12 +2246,19 @@ def get_qemu_binary(params):
     if not os.path.isfile(qemu_binary_path):
         logging.debug('Could not find params qemu in %s, searching the '
                       'host PATH for one to use', qemu_binary_path)
-        try:
-            qemu_binary = utils_path.find_command('qemu-kvm')
-            logging.debug('Found %s', qemu_binary)
-        except utils_path.CmdNotFoundError:
-            qemu_binary = utils_path.find_command('kvm')
-            logging.debug('Found %s', qemu_binary)
+        QEMU_BIN_NAMES = ['qemu-kvm', 'qemu-system-%s' % (ARCH),
+                          'qemu-system-ppc64', 'qemu-system-x86',
+                          'qemu_system', 'kvm']
+        for qemu_bin in QEMU_BIN_NAMES:
+            try:
+                qemu_binary = utils_path.find_command(qemu_bin)
+                logging.debug('Found %s', qemu_binary)
+                break
+            except utils_path.CmdNotFoundError:
+                continue
+        else:
+            raise exceptions.TestError("qemu binary names %s not found in "
+                                       "system" % ' '.join(QEMU_BIN_NAMES))
     else:
         library_path = os.path.join(
             _get_backend_dir(params), 'install_root', 'lib')
