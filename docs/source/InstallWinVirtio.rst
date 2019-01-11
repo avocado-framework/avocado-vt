@@ -95,10 +95,10 @@ SHA1 sum of it matches.
 #. Execute the ``get_started.py`` script (see the `get started documentation <../GetStartedGuide>`.
    It will create the directories where we expect the cd files to be
    available. You don't need to download the Fedora 14 DVD, but you do
-   need to download the winutils.iso cd (on the example below, I have
-   skipped the download because I do have the file, so I can copy it to
-   the expected location, which is in this case
-   ``/tmp/kvm_autotest_root/isos/windows``). Please, do read the
+   need to download the winutils.iso. Our configuration is based on
+   RHEL/Fedora based version that can be obtained from `here <https://docs.fedoraproject.org/en-US/quick-docs/creating-windows-virtual-machines-using-virtio-drivers/index.html>` and
+   need to be placed in ``/tmp/kvm_autotest_root/isos/windows``).
+   Please, do read the
    documentation mentioned on the script to avoid missing packages
    installed and other misconfiguration.
 #. Create a windows dir under ``/tmp/kvm_autotest_root/isos``
