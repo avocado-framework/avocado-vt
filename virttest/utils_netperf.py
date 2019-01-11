@@ -124,7 +124,7 @@ class NetperfPackage(remote.Remote_Package):
         pre_setup_cmd += " && cd %s " % self.netperf_dir
         # Create dict to make other OS architectures easy to extend
         build_type = {"aarch64": "aarch64-unknown-linux-gnu"}
-        build_arch = self.session.cmd_output("arch", timeout=60)
+        build_arch = self.session.cmd_output("arch", timeout=60).strip()
         np_build = build_type.get(build_arch, build_arch)
         setup_cmd = "./configure --build=%s %s > /dev/null" % (np_build,
                                                                compile_option)
