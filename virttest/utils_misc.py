@@ -61,6 +61,10 @@ from avocado.utils.process import safe_kill   # pylint: disable=W0611
 from avocado.utils.process import kill_process_tree as _kill_process_tree
 from avocado.utils.process import kill_process_by_pattern  # pylint: disable=W0611
 from avocado.utils.process import process_in_ptree_is_defunct as process_or_children_is_defunct  # pylint: disable=W0611
+# Symlink avocado implementation of port-related functions
+from avocado.utils.network import is_port_free     # pylint: disable=W0611
+from avocado.utils.network import find_free_port   # pylint: disable=W0611
+from avocado.utils.network import find_free_ports  # pylint: disable=W0611
 
 from virttest import data_dir
 from virttest import error_context
@@ -370,64 +374,6 @@ def get_open_fds(pid):
 
 def get_virt_test_open_fds():
     return get_open_fds(os.getpid())
-
-
-# The following are utility functions related to ports.
-
-
-def is_port_free(port, address):
-    """
-    Return True if the given port is available for use.
-
-    :param port: Port number
-    """
-    try:
-        s = socket.socket()
-        # s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        if address == "localhost":
-            s.bind(("localhost", port))
-            free = True
-        else:
-            s.connect((address, port))
-            free = False
-    except socket.error:
-        if address == "localhost":
-            free = False
-        else:
-            free = True
-    s.close()
-    return free
-
-
-def find_free_port(start_port, end_port, address="localhost"):
-    """
-    Return a host free port in the range [start_port, end_port].
-
-    :param start_port: First port that will be checked.
-    :param end_port: Port immediately after the last one that will be checked.
-    """
-    for i in range(start_port, end_port):
-        if is_port_free(i, address):
-            return i
-    return None
-
-
-def find_free_ports(start_port, end_port, count, address="localhost"):
-    """
-    Return count of host free ports in the range [start_port, end_port].
-
-    :param count: Initial number of ports known to be free in the range.
-    :param start_port: First port that will be checked.
-    :param end_port: Port immediately after the last one that will be checked.
-    """
-    ports = []
-    i = start_port
-    while i < end_port and count > 0:
-        if is_port_free(i, address):
-            ports.append(i)
-            count -= 1
-        i += 1
-    return ports
 
 
 # An easy way to log lines to files when the logging system can't be used
