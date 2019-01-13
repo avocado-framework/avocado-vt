@@ -32,6 +32,8 @@ PARTITION_TYPE_PRIMARY = "primary"
 PARTITION_TYPE_EXTENDED = "extended"
 PARTITION_TYPE_LOGICAL = "logical"
 
+SIZE_AVAILABLE = "available"
+
 # Whether to print all shell commands called
 DEBUG = False
 
@@ -361,58 +363,138 @@ def create_partition_table(session, did, labeltype, ostype):
         create_partition_table_linux(session, did, labeltype)
 
 
-def create_partition_linux(session, did, size, start,
-                           part_type=PARTITION_TYPE_PRIMARY, timeout=360):
+def get_disk_sector_size(session, os_type, did):
+    """
+    Get the disk sector size.
+
+    :param session: session object to guest.
+    :param os_type: linux or windows.
+    :param did: disk kname or disk index.
+    :return: the sector size.
+    :rtype: int
+    """
+    args = {'linux': ('parted -s "/dev/%s" print' % did,
+                      r'Sector size \(logical\/physical\):\s+(\S+)B\/(\S+)B'),
+            'windows': ('wmic diskdrive get Index,BytesPerSector',
+                        r'(\d+)\s+%s' % did)}
+    return int(re.search(
+        args[os_type][1], session.cmd(args[os_type][0]), re.I | re.M).group(1))
+
+
+def get_disk_free_space(session, os_type, did):
+    """
+    Get the info of the disk free space.
+
+    :param session: session object to guest.
+    :param os_type: linux or windows.
+    :param did: disk kname or disk index.
+    :return: the free space info.
+    :rtype: dict
+    """
+    free_spaces = []
+    if os_type == "linux":
+        p = r'(?P<start>\d+)s\s+(?P<end>\d+)s\s+(?P<size>\d+)s\s+Free\s+Space'
+        spaces = session.cmd('parted -s "/dev/%s" unit s print free' % did)
+        for m in re.finditer(p, spaces, re.I | re.M):
+            free_spaces.append(m.groupdict())
+    else:
+        end = [1024]
+        random_str = random.sample(string.ascii_letters + string.digits, 4)
+        script = '_'.join(("disk", ''.join(random_str)))
+        cmd = "echo %s > {0} && diskpart /s {0} && del /f {0}".format(script)
+        p = r'Disk\s+%s\s+[A-Z]+\s+(?P<size>\d+\s+[A-Z]+)\s+(?P<free>\d+\s+[A-Z]+)'
+        size = re.search(p % did, session.cmd(cmd % 'list disk'),
+                         re.I | re.M).groupdict()['free']
+        info = session.cmd(_wrap_windows_cmd(' echo list partition ') % did)
+        if 'no partitions on this disk to show' in info:
+            free_spaces.append({'size': size, 'offset': '1024 KB'})
+        else:
+            p = r'Partition\s+\d+\s+\w+\s+(?P<size>\d+\s+\S+)\s+(?P<offset>\d+\s+\S+)'
+            for m in re.finditer(p, info, re.I | re.M):
+                pt = m.groupdict()
+                size_val = int(utils_numeric.normalize_data_size(pt['size'], 'K'))
+                off_val = int(utils_numeric.normalize_data_size(pt['offset'], 'K'))
+                end_val = off_val + size_val
+                if end[-1] < off_val:
+                    size_val, off_val = (off_val - end_val), end_val
+                    free_spaces.append({'size': str(size_val) + ' KB',
+                                        'offset': str(off_val) + ' KB'})
+                    end.append(end_val)
+            total_end_val = int(utils_numeric.normalize_data_size(size, 'K'))
+            if end_val < total_end_val:
+                size_val, off_val = (total_end_val - end_val), end_val
+                free_spaces.append({'size': str(size_val) + ' KB',
+                                    'offset': str(off_val) + ' KB'})
+    return free_spaces
+
+
+def create_partition_linux(session, did, size, start=None,
+                           part_type=PARTITION_TYPE_PRIMARY,
+                           timeout=360):
     """
     Create single partition on disk in linux guest.
+    NOTE: Not support the decimal unit.
 
     :param session: session object to guest.
     :param did: disk kname. e.g. sdb
-    :param size: partition size. e.g. 200M
+    :param size: partition size. e.g. 200M or SIZE_AVAILABLE
     :param start: partition beginning at start. e.g. 0M
     :param part_type: partition type, primary extended logical
     :param timeout: Timeout for cmd execution in seconds.
     """
-    size = utils_numeric.normalize_data_size(size, order_magnitude="M") + "M"
-    start = utils_numeric.normalize_data_size(start, order_magnitude="M") + "M"
-    end = str(float(start[:-1]) + float(size[:-1])) + size[-1]
-    partprobe_cmd = "partprobe /dev/%s" % did
-    mkpart_cmd = 'parted -s "%s" mkpart %s %s %s'
-    mkpart_cmd %= ("/dev/%s" % did, part_type, start, end)
-    session.cmd(mkpart_cmd)
-    session.cmd(partprobe_cmd, timeout=timeout)
+    if start is not None or size != SIZE_AVAILABLE:
+        sector_size = get_disk_sector_size(session, 'linux', did)
+    if start is None or size == SIZE_AVAILABLE:
+        free = get_disk_free_space(session, 'linux', did)[0]
+
+    if start is None:
+        start = int(free['start'])
+    else:
+        start = int(float(
+            utils_numeric.normalize_data_size(start, 'B')) // sector_size)
+    if size == SIZE_AVAILABLE:
+        end = int(free['end'])
+    else:
+        size = int(float(
+            utils_numeric.normalize_data_size(size, 'B')) // sector_size)
+        end = size + start - 1
+
+    session.cmd(
+        'parted -s /dev/%s unit s mkpart %s %s %s' % (did, part_type, start, end))
+    session.cmd("partprobe /dev/%s" % did, timeout=timeout)
 
 
-def create_partition_windows(session, did, size, start,
-                             part_type=PARTITION_TYPE_PRIMARY, timeout=360):
+def create_partition_windows(session, did, size, start=None,
+                             part_type=PARTITION_TYPE_PRIMARY,
+                             timeout=360):
     """
     Create single partition on disk in windows guest.
 
     :param session: session object to guest.
     :param did: disk index
-    :param size: partition size. e.g. size 200M
+    :param size: partition size. e.g. size 200M or SIZE_AVAILABLE
     :param start: partition beginning at start. e.g. 0M
     :param part_type: partition type, primary extended logical
     :param timeout: Timeout for cmd execution in seconds.
     """
-    size = utils_numeric.normalize_data_size(size, order_magnitude="M")
-    start = utils_numeric.normalize_data_size(start, order_magnitude="M")
-    size = int(float(size) - float(start))
-    mkpart_cmd = " echo create partition %s size=%s"
-    mkpart_cmd = _wrap_windows_cmd(mkpart_cmd)
-    session.cmd(mkpart_cmd % (did, part_type, size), timeout=timeout)
+    cmd = " echo create partition %s " % part_type
+    if size != SIZE_AVAILABLE:
+        cmd += " size=%s " % int(float(utils_numeric.normalize_data_size(size)))
+    if start is not None:
+        cmd += " offset=%s " % int(float(utils_numeric.normalize_data_size(start, "K")))
+    session.cmd(_wrap_windows_cmd(cmd) % did, timeout=timeout)
 
 
-def create_partition(session, did, size, start, ostype,
+def create_partition(session, ostype, did, size, start=None,
                      part_type=PARTITION_TYPE_PRIMARY, timeout=360):
     """
     Create single partition on disk in windows or linux guest.
 
     :param session: session object to guest.
-    :param did: disk kname or disk index
-    :param size: partition size. e.g. size 2G
-    :param start: partition beginning at start. e.g. 0G
     :param ostype: linux or windows.
+    :param did: disk kname or disk index
+    :param size: partition size. e.g. size 2G or SIZE_AVAILABLE
+    :param start: partition beginning at start. e.g. 0G
     :param part_type: partition type, primary extended logical
     :param timeout: Timeout for cmd execution in seconds.
     """
@@ -501,13 +583,16 @@ def clean_partition_linux(session, did, timeout=360):
                 if not umount("/dev/%s" % line.split()[0], line.split()[-1], session=session):
                     err_msg = "Failed to umount partition '%s'"
                     raise exceptions.TestError(err_msg % line.split()[0])
-    list_partition_number = "parted -s /dev/%s print|awk '/^ / {print $1}'"
-    partition_numbers = session.cmd_output(list_partition_number % did)
+    pattern = r'(?P<number>\d+)\s+(\S+\s+){3}(?P<type>\w+)\s+\S+'
+    info = session.cmd('parted -s "/dev/%s" print' % did)
+    partition_numbers = []
+    for m in re.finditer(pattern, info, re.I | re.M):
+        if m['type'] != PARTITION_TYPE_LOGICAL:
+            partition_numbers.append(m['number'])
     ignore_err_msg = "unrecognised disk label"
-    if ignore_err_msg in partition_numbers:
+    if ignore_err_msg in info:
         logging.info("no partition to clean on %s" % did)
     else:
-        partition_numbers = partition_numbers.splitlines()
         for number in partition_numbers:
             logging.info("remove partition %s on %s" % (number, did))
             session.cmd(rm_cmd % (did, number))
@@ -649,9 +734,8 @@ def drop_drive_letter(session, drive_letter):
     session.cmd(remove_cmd % drive_letter)
 
 
-def configure_empty_windows_disk(session, did, size, start="0M",
-                                 n_partitions=1, fstype="ntfs",
-                                 labeltype=PARTITION_TABLE_TYPE_MBR,
+def configure_empty_windows_disk(session, did, size, start=None, n_partitions=1,
+                                 fstype="ntfs", labeltype=PARTITION_TABLE_TYPE_MBR,
                                  timeout=360):
     """
     Create partition on disks in windows guest, format and mount it.
@@ -659,7 +743,7 @@ def configure_empty_windows_disk(session, did, size, start="0M",
 
     :param session: session object to guest.
     :param did: disk index which show in 'diskpart list disk'.
-    :param size: partition size. e.g. 500M
+    :param size: the total size of partitions. e.g. 2G or SIZE_AVAILABLE
     :param start: partition beginning at start. e.g. 0M
     :param n_partitions: the number of partitions on disk
     :param fstype: filesystem type for the disk.
@@ -668,30 +752,44 @@ def configure_empty_windows_disk(session, did, size, start="0M",
     :return a list: mount point list for all partitions.
     """
     mountpoint = []
+    if not update_windows_disk_attributes(session, did):
+        raise exceptions.TestError("Failed to update Disk %s attributes." % did)
     create_partition_table_windows(session, did, labeltype)
-    start = utils_numeric.normalize_data_size(start, order_magnitude="M") + "M"
-    partition_size = float(size[:-1]) / n_partitions
-    extended_size = float(size[:-1]) - partition_size
-    reserved_size = 5
+    match = re.search(
+        r"(\d+\.?\d*)\s*(\w?)", get_disk_free_space(
+            session, 'windows', did)[0]['size'] if size == SIZE_AVAILABLE else size)
+    size_value = float(match.group(1))
+    size_unit = match.group(2)
+    partition_size_value = size_value / n_partitions
+    partition_size = str(partition_size_value) + size_unit
+    extended_size_value = size_value - partition_size_value
+    extended_size = str(extended_size_value) + size_unit
+    if size == SIZE_AVAILABLE:
+        if n_partitions == 1:
+            partition_size = SIZE_AVAILABLE
+        else:
+            extended_size = SIZE_AVAILABLE
     if labeltype == PARTITION_TABLE_TYPE_MBR and n_partitions > 1:
         part_type = PARTITION_TYPE_EXTENDED
     else:
         part_type = PARTITION_TYPE_PRIMARY
     for i in range(n_partitions):
+        if i == n_partitions - 1 and size == SIZE_AVAILABLE:
+            partition_size = SIZE_AVAILABLE
         if i == 0:
             create_partition_windows(
-                session, did, str(partition_size) + size[-1],
-                str(float(start[:-1]) + reserved_size) + start[-1], timeout=timeout)
+                session, did, partition_size, start, timeout=timeout)
+            start = None
         else:
             if part_type == PARTITION_TYPE_EXTENDED:
                 create_partition_windows(
-                    session, did, str(extended_size) + size[-1], start, part_type, timeout)
+                    session, did, extended_size, start, part_type, timeout)
                 part_type = PARTITION_TYPE_LOGICAL
                 create_partition_windows(
-                    session, did, str(partition_size) + size[-1], start, part_type, timeout)
+                    session, did, partition_size, start, part_type, timeout)
             else:
                 create_partition_windows(
-                    session, did, str(partition_size) + size[-1], start, part_type, timeout)
+                    session, did, partition_size, start, part_type, timeout)
         drive_letter = set_drive_letter(session, did, partition_no=i + 1)
         if not drive_letter:
             return []
@@ -700,9 +798,9 @@ def configure_empty_windows_disk(session, did, size, start="0M",
     return mountpoint
 
 
-def configure_empty_linux_disk(session, did, size, start="0M", n_partitions=1,
+def configure_empty_linux_disk(session, did, size, start=None, n_partitions=1,
                                fstype="ext4", labeltype=PARTITION_TABLE_TYPE_MBR,
-                               timeout=360):
+                               timeout=360, do_mount=True):
     """
     Create partition on disk in linux guest, format and mount it.
     Only handle an empty disk and will create equal size partitions onto the disk.
@@ -711,54 +809,82 @@ def configure_empty_linux_disk(session, did, size, start="0M", n_partitions=1,
 
     :param session: session object to guest.
     :param did: disk kname. e.g. sdb
-    :param size: partition size. e.g. 2G
+    :param size: the total size of partitions. e.g. 2G or SIZE_AVAILABLE
     :param start: partition beginning at start. e.g. 0G
     :param n_partitions: the number of partitions on disk
     :param fstype: filesystem type for the disk.
     :param labeltype: label type for the disk.
     :param timeout: Timeout for cmd execution in seconds.
+    :param do_mount: bool. Mount the partitions if is True, otherwise don't.
     :return a list: mount point list for all partitions.
     """
     mountpoint = []
     create_partition_table_linux(session, did, labeltype)
-    size = utils_numeric.normalize_data_size(size, order_magnitude="M") + "M"
-    start = float(utils_numeric.normalize_data_size(start, order_magnitude="M"))
-    partition_size = float(size[:-1]) / n_partitions
-    extended_size = float(size[:-1]) - partition_size
+
+    sector_size = get_disk_sector_size(session, 'linux', did)
+    if start is None or size == SIZE_AVAILABLE:
+        free = get_disk_free_space(session, 'linux', did)[0]
+
+    unit = 'B'
+    if start is None:
+        start_value = int(free['start']) * sector_size
+    else:
+        start_value = int(float(utils_numeric.normalize_data_size(start, unit)))
+    if size == SIZE_AVAILABLE:
+        size_value = int(free['size']) * sector_size - start_value
+    else:
+        size_value = int(float(utils_numeric.normalize_data_size(size, unit)))
+
+    start_sectors = start_value // sector_size
+    size_sectors = size_value // sector_size
+    partition_sectors = size_sectors // n_partitions
+    partition_size = str(partition_sectors * sector_size) + unit
+    start = str(start_sectors * sector_size) + unit
     if labeltype == PARTITION_TABLE_TYPE_MBR and n_partitions > 1:
         part_type = PARTITION_TYPE_EXTENDED
+        partition_sectors = (size_sectors - n_partitions) // n_partitions
+        partition_size = str(partition_sectors * sector_size) + unit
+        extended_sectors = size_sectors - partition_sectors
+        extended_size = str(extended_sectors * sector_size) + unit
     else:
         part_type = PARTITION_TYPE_PRIMARY
     for i in range(n_partitions):
         pre_partition = get_linux_disks(session, partition=True).keys()
         if i == 0:
-            create_partition_linux(session, did, str(partition_size) + size[-1],
-                                   str(start) + size[-1], timeout=timeout)
+            create_partition_linux(session, did, partition_size,
+                                   start, timeout=timeout)
         else:
             if part_type == PARTITION_TYPE_EXTENDED:
-                create_partition_linux(session, did, str(extended_size) + size[-1],
-                                       str(start) + size[-1], part_type, timeout)
+                create_partition_linux(
+                    session, did, extended_size, start, part_type, timeout)
                 pre_partition = get_linux_disks(session, partition=True).keys()
                 part_type = PARTITION_TYPE_LOGICAL
-                create_partition_linux(session, did, str(partition_size) + size[-1],
-                                       str(start) + size[-1], part_type, timeout)
+                start_sectors = start_sectors + 1
+                start = str(start_sectors * sector_size) + unit
+                create_partition_linux(
+                    session, did, partition_size, start, part_type, timeout)
             else:
-                create_partition_linux(session, did, str(partition_size) + size[-1],
-                                       str(start) + size[-1], part_type, timeout)
-        start += partition_size
+                create_partition_linux(
+                    session, did, partition_size, start, part_type, timeout)
+        start_sectors = start_sectors + partition_sectors
+        if part_type == PARTITION_TYPE_LOGICAL:
+            start_sectors = start_sectors + 1
+        start = str(start_sectors * sector_size) + unit
         post_partition = get_linux_disks(session, partition=True).keys()
         new_partition = list(set(post_partition) - set(pre_partition))[0]
-        create_filesyetem_linux(session, new_partition, fstype, timeout)
-        mount_dst = "/mnt/" + new_partition
-        session.cmd("rm -rf %s; mkdir %s" % (mount_dst, mount_dst))
-        if not mount("/dev/%s" % new_partition, mount_dst, fstype=fstype, session=session):
-            err_msg = "Failed to mount partition '%s'"
-            raise exceptions.TestError(err_msg % new_partition)
-        mountpoint.append(mount_dst)
+        if do_mount:
+            create_filesyetem_linux(session, new_partition, fstype, timeout)
+            mount_dst = "/mnt/" + new_partition
+            session.cmd("rm -rf %s; mkdir %s" % (mount_dst, mount_dst))
+            if not mount("/dev/%s" % new_partition, mount_dst,
+                         fstype=fstype, session=session):
+                err_msg = "Failed to mount partition '%s'"
+                raise exceptions.TestError(err_msg % new_partition)
+            mountpoint.append(mount_dst)
     return mountpoint
 
 
-def configure_empty_disk(session, did, size, ostype, start="0M", n_partitions=1,
+def configure_empty_disk(session, ostype, did, size, start=None, n_partitions=1,
                          fstype=None, labeltype=PARTITION_TABLE_TYPE_MBR,
                          timeout=360):
     """
@@ -766,13 +892,13 @@ def configure_empty_disk(session, did, size, ostype, start="0M", n_partitions=1,
     Only handle an empty disk and will create equal size partitions onto the disk.
 
     :param session: session object to guest.
+    :param ostype: guest os type 'windows' or 'linux'.
     :param did: disk ID list in guest.
                 for linux: disk kname, serial or wwn.
                            e.g. 'sdb'
                 for windows: disk index which show in 'diskpart list disk'
                              call function: get_windows_disks_index()
-    :param size: partition size. e.g. size 2G
-    :param ostype: guest os type 'windows' or 'linux'.
+    :param size: the total size of partitions. e.g. 2G or SIZE_AVAILABLE
     :param start: partition beginning at start. e.g. 0G
     :param n_partitions: the number of partitions on disk for guest
     :param fstype: filesystem type for the disk; when it's the default None,
@@ -784,12 +910,10 @@ def configure_empty_disk(session, did, size, ostype, start="0M", n_partitions=1,
     default_fstype = "ntfs" if (ostype == "windows") else "ext4"
     fstype = fstype or default_fstype
     if ostype == "windows":
-        return configure_empty_windows_disk(session, did, size, start,
-                                            n_partitions, fstype,
-                                            labeltype, timeout)
-    return configure_empty_linux_disk(session, did, size, start,
-                                      n_partitions, fstype,
-                                      labeltype, timeout)
+        return configure_empty_windows_disk(
+            session, did, size, start, n_partitions, fstype, labeltype, timeout)
+    return configure_empty_linux_disk(
+        session, did, size, start, n_partitions, fstype, labeltype, timeout)
 
 
 class Disk(object):
