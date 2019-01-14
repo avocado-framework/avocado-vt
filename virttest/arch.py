@@ -38,6 +38,8 @@ if ARCH in ('ppc64', 'ppc64le'):
     NLMSG_ERROR = 2
     # From linux/socket.h
     AF_PACKET = 17
+    # From linux/vhost.h
+    VHOST_VSOCK_SET_GUEST_CID = 0x8008af60
 else:
     # From include/linux/sockios.h
     SIOCSIFHWADDR = 0x8924
@@ -72,6 +74,8 @@ else:
     NLMSG_ERROR = 2
     # From linux/socket.h
     AF_PACKET = 17
+    # From linux/vhost.h
+    VHOST_VSOCK_SET_GUEST_CID = 0x4008af60
 
 
 def get_kvm_module_list():
