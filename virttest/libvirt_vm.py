@@ -2033,6 +2033,16 @@ class VM(virt_vm.BaseVM):
         # Since dest_uri could be None, checking it is necessary.
         if result.exit_status == 0 and dest_uri:
             self.connect_uri = dest_uri
+
+        # Set vm name in case --dname is specified.
+        migrate_options = ""
+        if option:
+            migrate_options = str(option)
+        if extra:
+            migrate_options += " %s" % extra
+        if migrate_options.count("--dname"):
+            migrate_options_list = migrate_options.split()
+            self.name = migrate_options_list[migrate_options_list.index("--dname") + 1]
         self.create_serial_console()
         return result
 
