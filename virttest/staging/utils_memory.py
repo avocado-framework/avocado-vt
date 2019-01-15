@@ -1,33 +1,56 @@
 from __future__ import division
 import re
-import glob
 import math
 import logging
 import os
 
 from avocado.core import exceptions
 from avocado.utils import process
-from virttest.compat_52lts import results_stdout_52lts, decode_to_text
+
+from virttest import kernel_interface
 
 
 # Returns total memory in kb
-def read_from_meminfo(key):
-    cmd_result = process.run('grep %s /proc/meminfo' % key, verbose=False)
-    meminfo = results_stdout_52lts(cmd_result)
+def read_from_meminfo(key, session=None):
+    """
+    wrapper to return value from /proc/meminfo using key
+
+    :param key: filter based on the key
+    :param session: ShellSession Object of remote host / guest
+    :return: value mapped to the key of type int
+    """
+    func = process.getoutput
+    if session:
+        func = session.cmd_output
+    meminfo = func('grep %s /proc/meminfo' % key)
     return int(re.search(r'\d+', meminfo).group(0))
 
 
-def memtotal():
-    return read_from_meminfo('MemTotal')
+def memtotal(session=None):
+    """
+    Method to get the memtotal from /proc/meminfo
+
+    :param session: ShellSession Object of remote host / guest
+    """
+    return read_from_meminfo('MemTotal', session=session)
 
 
-def freememtotal():
-    return read_from_meminfo('MemFree')
+def freememtotal(session=None):
+    """
+    Method to get the freememtotal from /proc/meminfo
+
+    :param session: ShellSession Object of remote host / guest
+    """
+    return read_from_meminfo('MemFree', session=session)
 
 
-def rounded_memtotal():
-    # Get total of all physical mem, in kbytes
-    usable_kbytes = memtotal()
+def rounded_memtotal(session=None):
+    """
+    Method to get total of all physical mem, in kbytes
+
+    :param session: ShellSession Object of remote host / guest
+    """
+    usable_kbytes = memtotal(session=session)
     # usable_kbytes is system's usable DRAM in kbytes,
     #   as reported by memtotal() from device /proc/meminfo memtotal
     #   after Linux deducts 1.5% to 5.1% for system table overhead
@@ -56,43 +79,90 @@ def rounded_memtotal():
     return phys_kbytes
 
 
-def numa_nodes():
-    node_paths = glob.glob('/sys/devices/system/node/node*')
+def numa_nodes(session=None):
+    """
+    Method to get total no of numa nodes
+
+    :param session: ShellSession Object of remote host / guest
+    """
+    func = process.getoutput
+    if session:
+        func = session.cmd_output
+    base_path = "/sys/devices/system/node"
+    node_avail = func("ls %s | grep 'node'" % base_path).split()
+    node_paths = [os.path.join(base_path, each_node) for each_node in node_avail]
     nodes = [int(re.sub(r'.*node(\d+)', r'\1', x)) for x in node_paths]
     return (sorted(nodes))
 
 
-def node_size():
-    nodes = max(len(numa_nodes()), 1)
+def node_size(session=None):
+    """
+    Method to get node size
+
+    :param session: ShellSession Object of remote host / guest
+    """
+    nodes = max(len(numa_nodes(session=session)), 1)
     return ((memtotal() * 1024) // nodes)
 
 
-def get_huge_page_size():
-    return read_from_meminfo('Hugepagesize')
+def get_huge_page_size(session=None):
+    """
+    Method to get huge page size
+
+    :param session: ShellSession Object of remote host / guest
+    """
+    return read_from_meminfo('Hugepagesize', session=session)
 
 
-def get_num_huge_pages():
-    return read_from_meminfo('HugePages_Total')
+def get_num_huge_pages(session=None):
+    """
+    Method to get total no of hugepages
+
+    :param session: ShellSession Object of remote host / guest
+    """
+    return read_from_meminfo('HugePages_Total', session=session)
 
 
-def get_num_huge_pages_free():
-    return read_from_meminfo('HugePages_Free')
+def get_num_huge_pages_free(session=None):
+    """
+    Method to get free hugepages available
+
+    :param session: ShellSession Object of remote host / guest
+    """
+    return read_from_meminfo('HugePages_Free', session=session)
 
 
-def get_num_huge_pages_rsvd():
-    return read_from_meminfo('HugePages_Rsvd')
+def get_num_huge_pages_rsvd(session=None):
+    """
+    Method to get reserved hugepage pages
+
+    :param session: ShellSession Object of remote host / guest
+    """
+    return read_from_meminfo('HugePages_Rsvd', session=session)
 
 
-def get_num_anon_huge_pages(pid=0):
+def get_num_anon_huge_pages(pid=0, session=None):
+    """
+    Method to get total no of anon hugepages
+
+    :param pid: pid of the specific process
+    :param session: ShellSession Object of remote host / guest
+    """
     if int(pid) > 1:
         # get AnonHugePages usage of specified process
-        return read_from_smaps(pid, 'AnonHugePages')
+        return read_from_smaps(pid, 'AnonHugePages', session=session)
     else:
         # invalid pid, so return AnonHugePages of the host
-        return read_from_meminfo('AnonHugePages')
+        return read_from_meminfo('AnonHugePages', session=session)
 
 
-def get_transparent_hugepage():
+def get_transparent_hugepage(session=None, regex="[]"):
+    """
+    Method to get total no of transparent hugepage
+
+    :param regex: regex used to hightlight the selected value
+    :param session: ShellSession Object of remote host / guest
+    """
     UPSTREAM_THP_PATH = "/sys/kernel/mm/transparent_hugepage"
     RH_THP_PATH = "/sys/kernel/mm/redhat_transparent_hugepage"
     if os.path.isdir(UPSTREAM_THP_PATH):
@@ -101,22 +171,30 @@ def get_transparent_hugepage():
         thp_path = RH_THP_PATH
     else:
         raise exceptions.TestFail("transparent hugepage Not supported")
-    out = decode_to_text(process.system_output('cat %s/enabled' % thp_path))
-    if out[0] == "[always]":
-        return 'always'
-    elif out[1] == "[madvise]":
-        return 'madvise'
-    else:
-        return 'never'
+    thp = kernel_interface.SysFS(os.path.join(thp_path, 'enabled'),
+                                 session=session)
+    return thp.sys_fs_value.strip(regex)
 
 
-def set_num_huge_pages(num):
-    process.system('/sbin/sysctl vm.nr_hugepages=%d' % num)
-
-
-def set_transparent_hugepage(sflag):
+def set_num_huge_pages(num, session=None):
     """
-    sflag only can be set always, madvise or never.
+    Method to set no of transparent hugepages
+
+    :param num: value to be set for THP
+    :param session: ShellSession Object of remote host / guest
+    """
+    func = process.system
+    if session:
+        func = session.cmd_status
+    return func('/sbin/sysctl vm.nr_hugepages=%d' % num) == 0
+
+
+def set_transparent_hugepage(sflag, session=None):
+    """
+    Method to set THP parameter
+
+    :param sflag:  only can be set always, madvise or never.
+    :param session: ShellSession Object of remote host / guest
     """
     flags = ['always', 'madvise', 'never']
     if sflag not in flags:
@@ -129,35 +207,47 @@ def set_transparent_hugepage(sflag):
         thp_path = RH_THP_PATH
     else:
         raise exceptions.TestFail("transparent hugepage Not supported")
-    ret = os.system("echo %s > %s/enabled" % (sflag, thp_path))
-    if ret != 0:
+    thp = kernel_interface.SysFS(os.path.join(thp_path, 'enabled'),
+                                 session=session)
+    thp.sys_fs_value = sflag
+    if sflag not in thp.sys_fs_value:
         raise exceptions.TestFail("setting transparent_hugepage failed")
 
 
-def drop_caches():
-    """Writes back all dirty pages to disk and clears all the caches."""
-    process.run("sync", verbose=False)
+def drop_caches(session=None):
+    """
+    Method to write back all dirty pages to disk and clears all the caches
+
+    :param session: ShellSession Object of remote host / guest
+    """
+    func = process.getoutput
+    if session:
+        func = session.cmd_output
+    func("sync")
     # We ignore failures here as this will fail on 2.6.11 kernels.
-    process.run("echo 3 > /proc/sys/vm/drop_caches", ignore_status=True,
-                verbose=False, shell=True, sudo=True)
+    drop_caches = kernel_interface.ProcFS("/proc/sys/vm/drop_caches",
+                                          session=session)
+    drop_caches.proc_fs_value = 3
 
 
-def read_from_vmstat(key):
+def read_from_vmstat(key, session=None):
     """
     Get specific item value from vmstat
 
     :param key: The item you want to check from vmstat
     :type key: String
+    :param session: ShellSession Object of remote host / guest
     :return: The value of the item
     :rtype: int
     """
-    vmstat = open("/proc/vmstat")
-    vmstat_info = vmstat.read()
-    vmstat.close()
+    func = process.getoutput
+    if session:
+        func = session.cmd_output
+    vmstat_info = func("cat /proc/vmstat")
     return int(re.findall("%s\s+(\d+)" % key, vmstat_info)[0])
 
 
-def read_from_smaps(pid, key):
+def read_from_smaps(pid, key, session=None):
     """
     Get specific item value from the smaps of a process include all sections.
 
@@ -165,12 +255,14 @@ def read_from_smaps(pid, key):
     :type pid: String
     :param key: The item you want to check from smaps
     :type key: String
+    :param session: ShellSession Object of remote host / guest
     :return: The value of the item in kb
     :rtype: int
     """
-    smaps = open("/proc/%s/smaps" % pid)
-    smaps_info = smaps.read()
-    smaps.close()
+    func = process.getoutput
+    if session:
+        func = session.cmd_output
+    smaps_info = func('grep %s /proc/%s/smaps' % (key, pid))
 
     memory_size = 0
     for each_number in re.findall("%s:\s+(\d+)" % key, smaps_info):
@@ -179,17 +271,24 @@ def read_from_smaps(pid, key):
     return memory_size
 
 
-def read_from_numastat(pid, key):
+def read_from_numastat(pid, key, session=None):
     """
     Get the process numastat from numastat output.
+
+    :param pid: pid of the specific process
+    :param key: filter based on the key
+    :param session: ShellSession Object of remote host / guest
     """
+    func = process.getoutput
+    if session:
+        func = session.cmd_output
     cmd = "numastat %s" % pid
-    numa_mem = results_stdout_52lts(process.run(cmd)).strip()
+    numa_mem = func(cmd).strip()
     mem_line = re.findall(r"^%s.*" % key, numa_mem, re.M)[0]
     return re.findall(r"(\d+.\d+)", mem_line)
 
 
-def read_from_numa_maps(pid, key):
+def read_from_numa_maps(pid, key, session=None):
     """
     Get the process numa related info from numa_maps. This function
     only use to get the numbers like anon=1.
@@ -198,12 +297,14 @@ def read_from_numa_maps(pid, key):
     :type pid: String
     :param key: The item you want to check from numa_maps
     :type key: String
+    :param session: ShellSession Object of remote host / guest
     :return: A dict using the address as the keys
     :rtype: dict
     """
-    numa_maps = open("/proc/%s/numa_maps" % pid)
-    numa_map_info = numa_maps.read()
-    numa_maps.close()
+    func = process.getoutput
+    if session:
+        func = session.cmd_output
+    numa_map_info = func("cat /proc/%s/numa_maps" % pid)
 
     numa_maps_dict = {}
     numa_pattern = r"(^[\dabcdfe]+)\s+.*%s[=:](\d+)" % key
@@ -213,7 +314,7 @@ def read_from_numa_maps(pid, key):
     return numa_maps_dict
 
 
-def get_buddy_info(chunk_sizes, nodes="all", zones="all"):
+def get_buddy_info(chunk_sizes, nodes="all", zones="all", session=None):
     """
     Get the fragement status of the host. It use the same method
     to get the page size in buddyinfo.
@@ -233,12 +334,14 @@ def get_buddy_info(chunk_sizes, nodes="all", zones="all"):
     :type nodes: string
     :param zones: The memory zone that you want to check. Default value is all
     :type zones: string
+    :param session: ShellSession Object of remote host / guest
     :return: A dict using the chunk_size as the keys
     :rtype: dict
     """
-    buddy_info = open("/proc/buddyinfo")
-    buddy_info_content = buddy_info.read()
-    buddy_info.close()
+    func = process.getoutput
+    if session:
+        func = session.cmd_output
+    buddy_info_content = func("cat /proc/buddyinfo")
 
     re_buddyinfo = "Node\s+"
     if nodes == "all":
