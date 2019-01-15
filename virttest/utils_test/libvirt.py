@@ -426,7 +426,8 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
                          mount_options="rw",
                          export_dir="nfs-export",
                          restore_selinux="",
-                         rm_export_dir=True):
+                         rm_export_dir=True,
+                         set_selinux_permissive=False):
     """
     Set SElinux to "permissive" and Set up nfs service on localhost.
     Or clean up nfs service on localhost and restore SElinux.
@@ -457,6 +458,8 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
                       Default to "nfs-export".
     :param rm_export_dir: Boolean, True for forcely removing nfs export dir
                                    False for keeping nfs export dir
+    :param set_selinux_permissive: Boolean, True to set selinux to permissive
+                                   mode, False not set.
     :return: A dict contains export and mount result parameters:
              export_dir: Absolute directory of exported local NFS file system.
              mount_dir: Absolute directory NFS file system mounted on.
@@ -482,11 +485,16 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
     _nfs = nfs.Nfs(nfs_params)
 
     if is_setup:
-        # Set selinux to permissive that the file in nfs
-        # can be used freely
         if not ubuntu and utils_selinux.is_enforcing():
-            utils_selinux.set_status("permissive")
-
+            if set_selinux_permissive:
+                utils_selinux.set_status("permissive")
+                logging.debug("selinux set to permissive mode, "
+                              "this is not recommended, potential access "
+                              "control error could be missed.")
+            else:
+                logging.debug("selinux is in enforcing mode, libvirt needs "
+                              "\"setsebool virt_use_nfs on\" to get "
+                              "nfs access right.")
         _nfs.setup()
         if not is_mount:
             _nfs.umount()
