@@ -190,30 +190,30 @@ def clear_win_driver_verifier(driver, vm, timeout=300):
 @error_context.context_aware
 def windrv_verify_running(session, test, driver, timeout=300):
     """
-    Check if driver is running for windows guest.
+    Check if driver is running for windows guest within a period time.
+
     :param session: VM session
     :param test: Kvm test object
     :param driver: The driver which needs to check.
     :param timeout: Timeout in seconds.
-    :return: A tuple (status, output) where status is the driver check result
-    and output is the detail information.
     """
-    error_context.context("Check %s driver state." % driver,
-                          logging.info)
-    # It's a temp method to check driver,if there's better one,will modify.
-    msinfo_cmd = "start /wait msinfo32 /report c:\msinfo.txt"
-    driver_check_cmd = "type c:\msinfo.txt |findstr /i \"%s.sys\" " \
-                       "|findstr /i \"running\"" % driver
-    end_time = time.time() + timeout
-    while time.time() < end_time:
-        session.cmd(msinfo_cmd, timeout)
-        status = session.cmd_status(driver_check_cmd)
-        if not status:
-            break
-    if status:
+
+    def _check_driver_stat():
+        """
+        Check if driver is in Running status.
+
+        """
+        output = session.cmd_output(driver_check_cmd)
+        if "Running" in output:
+            return True
+        return False
+
+    error_context.context("Check %s driver state." % driver, logging.info)
+    driver_check_cmd = (r'wmic sysdriver where PathName="C:\\Windows\\System32'
+                        r'\\drivers\\%s.sys" get State /value') % driver
+
+    if not utils_misc.wait_for(_check_driver_stat, timeout, 0, 5):
         test.error("%s driver is not running" % driver)
-    else:
-        logging.info("%s driver is running" % driver)
 
 
 @error_context.context_aware
