@@ -81,10 +81,10 @@ class NetperfPackage(remote.Remote_Package):
         if client == "ssh":
             if self.netperf_source.endswith("tar.bz2"):
                 self.pack_suffix = ".tar.bz2"
-                self.decomp_cmd = "tar jxvf"
+                self.decomp_cmd = "tar jxf"
             elif self.netperf_source.endswith("tar.gz"):
                 self.pack_suffix = ".tar.gz"
-                self.decomp_cmd = "tar zxvf"
+                self.decomp_cmd = "tar zxf"
             self.netperf_dir = os.path.join(self.remote_path,
                                             self.netperf_file.rstrip(self.pack_suffix))
 
@@ -125,10 +125,10 @@ class NetperfPackage(remote.Remote_Package):
         # Create dict to make other OS architectures easy to extend
         build_type = {"aarch64": "aarch64-unknown-linux-gnu"}
         build_arch = self.session.cmd_output("arch", timeout=60).strip()
-        np_build = build_type.get(build_arch, build_arch)
-        setup_cmd = "./configure --build=%s %s > /dev/null" % (np_build,
-                                                               compile_option)
-        setup_cmd += " && make > /dev/null"
+        np_build = build_type.get(build_arch, build_arch).strip()
+        setup_cmd = "./configure --build=%s %s > /dev/null 2>&1" % (np_build,
+                                                                    compile_option)
+        setup_cmd += " && make > /dev/null 2>&1"
         self.env_cleanup(clean_all=False)
         cmd = "%s && %s " % (pre_setup_cmd, setup_cmd)
         try:
