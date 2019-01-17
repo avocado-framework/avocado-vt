@@ -42,19 +42,22 @@ class DevContainer(object):
     """
     # General methods
 
-    def __init__(self, qemu_binary, vmname, strict_mode="no",
+    def __init__(self, qemu_binary, vmname, machine_type, strict_mode="no",
                  workaround_qemu_qmp_crash="no", allow_hotplugged_vm="yes"):
         """
         :param qemu_binary: qemu binary
         :param vm: related VM
+        :param machine_type: VM machine type
         :param strict_mode: Use strict mode (set optional params)
         """
-        def get_hmp_cmds(qemu_binary):
+        def get_hmp_cmds():
             """ :return: list of human monitor commands """
-            _ = decode_to_text(process.system_output("echo -e 'help\nquit' | %s -monitor "
-                                                     "stdio -vnc none" % qemu_binary,
-                                                     timeout=10, ignore_status=True,
-                                                     shell=True, verbose=False))
+            c = "echo -e 'help\nquit' | %s -M %s -monitor stdio -vnc none" % \
+                (self.__qemu_binary, self.__machine_type)
+            _ = decode_to_text(process.system_output(c, timeout=10,
+                                                     ignore_status=True,
+                                                     shell=True,
+                                                     verbose=False))
             _ = re.findall(r'^([^()\|\[\sA-Z]+\|?\w+)', _, re.M)
             hmp_cmds = []
             for cmd in _:
@@ -65,26 +68,26 @@ class DevContainer(object):
                     hmp_cmds.extend(cmd.split('|'))
             return hmp_cmds
 
-        def get_qmp_cmds(qemu_binary, workaround_qemu_qmp_crash=False):
+        def get_qmp_cmds(workaround_qemu_qmp_crash=False):
             """ :return: list of qmp commands """
+            c1 = ('echo -e \'{ "execute": "qmp_capabilities" }\n'
+                  '{ "execute": "query-commands", "id": "RAND91" }\n'
+                  '{ "execute": "quit" }\'')
+            c2 = '(sleep 1; cat )'
+            c3 = '%s -M %s -qmp stdio -vnc none | grep return | grep RAND91' % \
+                 (self.__qemu_binary, self.__machine_type)
+
             cmds = None
             if not workaround_qemu_qmp_crash:
-                cmds = decode_to_text(process.system_output('echo -e \''
-                                                            '{ "execute": "qmp_capabilities" }\n'
-                                                            '{ "execute": "query-commands", "id": "RAND91" }\n'
-                                                            '{ "execute": "quit" }\''
-                                                            '| %s -qmp stdio -vnc none | grep return |'
-                                                            ' grep RAND91' % qemu_binary, timeout=10,
-                                                            ignore_status=True, shell=True,
+                cmds = decode_to_text(process.system_output("%s | %s" % (c1, c3),
+                                                            timeout=10,
+                                                            ignore_status=True,
+                                                            shell=True,
                                                             verbose=False)).splitlines()
             if not cmds:
                 # Some qemu versions crashes when qmp used too early; add sleep
-                cmds = decode_to_text(process.system_output('echo -e \''
-                                                            '{ "execute": "qmp_capabilities" }\n'
-                                                            '{ "execute": "query-commands", "id": "RAND91" }\n'
-                                                            '{ "execute": "quit" }\' | (sleep 1; cat )'
-                                                            '| %s -qmp stdio -vnc none | grep return |'
-                                                            ' grep RAND91' % qemu_binary, timeout=10,
+                cmds = decode_to_text(process.system_output("%s | %s | %s" % (c1, c2, c3),
+                                                            timeout=10,
                                                             ignore_status=True, shell=True,
                                                             verbose=False)).splitlines()
             if cmds:
@@ -93,34 +96,18 @@ class DevContainer(object):
                 return cmds
 
         self.__state = -1    # -1 synchronized, 0 synchronized after hotplug
+        self.__machine_type = machine_type
         self.__qemu_binary = qemu_binary
         self.__execute_qemu_last = None
         self.__execute_qemu_out = ""
-        # Check whether we need to add machine_type
-        cmd = "%s -device \? 2>&1" % qemu_binary
-        result = process.run(cmd, timeout=10,
-                             ignore_status=True,
-                             shell=True,
-                             verbose=False)
-        # Some architectures (arm) require machine type to be always set
-        if result.exit_status and b"machine specified" in result.stdout:
-            self.__workaround_machine_type = True
-            basic_qemu_cmd = "%s -machine virt" % qemu_binary
-        else:
-            self.__workaround_machine_type = False
-            basic_qemu_cmd = qemu_binary
+
         self.__qemu_help = self.execute_qemu("-help", 10)
         # escape the '?' otherwise it will fail if we have a single-char
         # filename in cwd
         self.__device_help = self.execute_qemu("-device \? 2>&1", 10)
-        self.__machine_types = decode_to_text(process.system_output("%s -M \?" % qemu_binary,
-                                                                    timeout=10,
-                                                                    ignore_status=True,
-                                                                    shell=True,
-                                                                    verbose=False))
-        self.__hmp_cmds = get_hmp_cmds(basic_qemu_cmd)
-        self.__qmp_cmds = get_qmp_cmds(basic_qemu_cmd,
-                                       workaround_qemu_qmp_crash == 'always')
+        self.__machine_types = decode_to_text(self.execute_qemu("-M \?", 10))
+        self.__hmp_cmds = get_hmp_cmds()
+        self.__qmp_cmds = get_qmp_cmds(workaround_qemu_qmp_crash == 'always')
         self.vmname = vmname
         self.strict_mode = strict_mode == 'yes'
         self.__devices = []
@@ -430,6 +417,9 @@ class DevContainer(object):
     def execute_qemu(self, options, timeout=5):
         """
         Execute this qemu and return the stdout+stderr output.
+
+        The function adds -M option to qemu command line if the options
+        argument doesn't contain it.
         :param options: additional qemu options
         :type options: string
         :param timeout: execution timeout
@@ -438,11 +428,11 @@ class DevContainer(object):
         :rtype: string
         """
         if self.__execute_qemu_last != options:
-            if self.__workaround_machine_type:
-                cmd = "%s -machine virt %s 2>&1" % (self.__qemu_binary,
-                                                    options)
+            if "-M" in options or "-machine" in options:
+                cmd = "%s %s" % (self.__qemu_binary, options)
             else:
-                cmd = "%s %s 2>&1" % (self.__qemu_binary, options)
+                cmd = "%s -M %s %s" % (self.__qemu_binary,
+                                       self.__machine_type, options)
             result = process.run(cmd, timeout=timeout,
                                  ignore_status=True,
                                  shell=True,
