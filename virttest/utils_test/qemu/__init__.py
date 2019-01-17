@@ -257,7 +257,7 @@ def setup_runlevel(params, session):
         tmp_runlevel = session.cmd(cmd)
         tmp_runlevel = tmp_runlevel.split()[-1]
         if tmp_runlevel != expect_runlevel:
-            logging.warn("Changing runlevel from %s to %s failed (%s)!" %
+            logging.warn("Changing runlevel from %s to %s failed (%s)!",
                          ori_runlevel, expect_runlevel, tmp_runlevel)
 
 
