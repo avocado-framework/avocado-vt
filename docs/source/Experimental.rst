@@ -4,6 +4,7 @@
 Experimental features
 =====================
 
+.. _riscv64_setup:
 
 riscv64
 =======

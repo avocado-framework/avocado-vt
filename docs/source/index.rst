@@ -35,6 +35,7 @@ Contents:
    InstallWinVirtio
    RunQemuUnittests
    ParallelJobs
+   RunningInEmulationTCG
    contributing/index
    Experimental
 
