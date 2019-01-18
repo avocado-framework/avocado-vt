@@ -58,3 +58,17 @@ def file_exists(session, filename):
     if not session.cmd_status(check_cmd):
         return True
     return False
+
+
+def escape_cmd_string(string):
+    """
+    Adding the escape character before a command symbol allows it to be treated
+    as ordinary text.
+
+    :param string: The string need to be converted.
+    """
+    #TODO: Except for these 6 chars, there are other kinds of chars need to be
+    #      escaped as well.
+    for char in ('^', '&', '\\', '<', '>', '|'):
+        string = string.replace(char, '^'+char)
+    return string
