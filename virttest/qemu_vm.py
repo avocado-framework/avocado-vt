@@ -2305,6 +2305,9 @@ class VM(virt_vm.BaseVM):
             options["deflate-on-oom"] = deflate_on_oom
             guest_polling = balloon_params.get("balloon_opt_guest_polling")
             options["guest-stats-polling-interval"] = guest_polling
+            balloon_addr = balloon_params.get("balloon_addr")
+            if balloon_addr:
+                options["addr"] = balloon_addr
             add_balloon(devices, devid=balloon_devid, bus=balloon_bus,
                         use_old_format=use_ofmt, options=options)
 
