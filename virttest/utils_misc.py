@@ -71,6 +71,7 @@ from virttest import cartesian_config
 from virttest import utils_selinux
 from virttest import utils_disk
 from virttest import logging_manager
+from virttest import kernel_interface
 from virttest.staging import utils_koji
 from virttest.staging import service
 from virttest.xml_utils import XMLTreeFile
@@ -148,25 +149,37 @@ class InterruptedThread(threading.Thread):
             self._retval = None
 
 
-def get_guest_cmd_status_output(vm, cmd, timeout=120):
+def cmd_status_output(cmd, shell=False, ignore_status=True, verbose=True,
+                      timeout=None, session=None):
     """
-    Get guest cmd status and output.
-    Encapsulate session.cmd_status_output() with getting a new session.
+    common wrapper method of `def cmd_status_output()` that could
+    support 52lts in local system and with ShellSession object for
+    VM/remote host
 
-    :param vm: Guest vm.
-    :param cmd: Cmd will be executed in guest.
-    :param timeout: Timeout for cmd execution in seconds.
-
-    :return: A tuple (status, output) where status is the exit status and
-            output is the output of cmd.
+    :param cmd: command line to be run
+    :param shell: Whether to run the command on a subshell
+    :param ignore_status: Whether to raise an exception when command fails
+    :param verbose: Whether to log the command run and stdout/stderr
+    :param timeout: Time limit in seconds to wait for cmd to complete
+    :param session: ShellSession object of VM/remote host
+    :return: command status and output compatible with 52LTS
     """
-    if vm:
-        session = vm.wait_for_login()
-        try:
-            return session.cmd_status_output(cmd, timeout=timeout)
-        finally:
-            session.close()
-    return (None, None)
+    status = None
+    stdout = None
+    try:
+        if session:
+            status, output = session.cmd_status_output(cmd, timeout=timeout)
+
+        else:
+            cmd_obj = process.run(cmd, shell=shell, ignore_status=ignore_status,
+                                  verbose=verbose, timeout=timeout)
+            status = cmd_obj.exit_status
+            stdout = results_stdout_52lts(cmd_obj).strip()
+    except Exception as info:
+        status = 1
+        stdout = decode_to_text(info)
+    finally:
+        return status, stdout
 
 
 def write_keyval(path, dictionary, type_tag=None, tap_report=None):
@@ -738,12 +751,7 @@ def get_pci_id_using_filter(pci_filter, session=None):
     :return: list of pci ids with adapter name regex
     """
     cmd = "lspci | grep -F '%s' | awk '{print $1}'" % pci_filter
-    if session:
-        status, output = session.cmd_status_output(cmd)
-    else:
-        cmd_output = process.run(cmd, shell=True)
-        status = cmd_output.exit_status
-        output = results_stdout_52lts(cmd_output)
+    status, output = cmd_status_output(cmd, shell=True, session=session)
     if status != 0 or not output:
         return []
     return str(output).strip().split()
@@ -762,23 +770,13 @@ def get_interface_from_pci_id(pci_id, session=None, nic_regex=""):
     if not nic_regex:
         nic_regex = "\w+(?=: flags)|\w+(?=\s*Link)"
     cmd = "ifconfig -a"
-    if session:
-        status, output = session.cmd_status_output(cmd)
-    else:
-        cmd_output = process.run(cmd, shell=True)
-        status = cmd_output.exit_status
-        output = results_stdout_52lts(cmd_output)
-    if status:
+    status, output = cmd_status_output(cmd, shell=True, session=session)
+    if status != 0:
         return None
     ethnames = re.findall(nic_regex, output.strip())
     for each_interface in ethnames:
         cmd = "ethtool -i %s | awk '/bus-info/ {print $2}'" % each_interface
-        if session:
-            status, output = session.cmd_status_output(cmd)
-        else:
-            cmd_output = process.run(cmd, shell=True)
-            status = cmd_output.exit_status
-            output = results_stdout_52lts(cmd_output)
+        status, output = session.cmd_status_output(cmd, shell=True, session=session)
         if status:
             continue
         if pci_id in output.strip():
@@ -1480,6 +1478,39 @@ def cpu_str_to_list(origin_str):
         return cpu_list
 
 
+def get_cpu_info(session=None):
+    """
+    Return information about the CPU architecture
+
+    :param session: session Object
+    :return: A dirt of cpu information
+    """
+    cpu_info = {}
+    cmd = "lscpu"
+    if session is None:
+        output = decode_to_text(process.system_output(cmd, ignore_status=True)).splitlines()
+    else:
+        try:
+            output = session.cmd_output(cmd).splitlines()
+        finally:
+            session.close()
+    cpu_info = dict(map(lambda x: [i.strip() for i in x.split(":")], output))
+    return cpu_info
+
+
+def check_isfile(file_name, session=None):
+    """
+    check whether the file exist in local/remote host/VM
+
+    :param file_name: File name to be checked
+    :param session: ShellSession object of VM/remote host
+    """
+    if session:
+        return session.cmd_status("cat %s" % file_name) == 0
+    else:
+        return os.path.isfile(file_name)
+
+
 class NumaInfo(object):
 
     """
@@ -1487,14 +1518,16 @@ class NumaInfo(object):
     of the node.
     """
 
-    def __init__(self, all_nodes_path=None, online_nodes_path=None):
+    def __init__(self, all_nodes_path=None, online_nodes_path=None, session=None):
         """
         :param all_nodes_path: Alternative path to
                 /sys/devices/system/node/possible. Useful for unittesting.
-        :param all_nodes_path: Alternative path to
+        :param online_nodes_path: Alternative path to
                 /sys/devices/system/node/online. Useful for unittesting.
+        :param session: ShellSession object
         """
         from virttest import utils_package
+        self.session = session
         self.numa_sys_path = "/sys/devices/system/node"
         self.all_nodes = self.get_all_nodes(all_nodes_path)
         self.online_nodes = self.get_online_nodes(online_nodes_path)
@@ -1506,11 +1539,11 @@ class NumaInfo(object):
         self.distances = {}
 
         # ensure numactl package is available
-        if not utils_package.package_install('numactl'):
+        if not utils_package.package_install('numactl', session=self.session):
             logging.error("Numactl package is not installed")
 
         for node_id in self.online_nodes:
-            self.nodes[node_id] = NumaNode(node_id + 1)
+            self.nodes[node_id] = NumaNode(node_id + 1, session=self.session)
             self.distances[node_id] = self.get_node_distance(node_id)
 
     def get_all_nodes(self, all_nodes_path=None):
@@ -1524,11 +1557,9 @@ class NumaInfo(object):
             all_nodes = get_path(self.numa_sys_path, "possible")
         else:
             all_nodes = all_nodes_path
-        all_nodes_file = open(all_nodes, "r")
-        nodes_info = all_nodes_file.read()
-        all_nodes_file.close()
-
-        return cpu_str_to_list(nodes_info)
+        numa_sys = kernel_interface.SysFS(all_nodes, session=self.session,
+                                          regex="\d+%s")
+        return cpu_str_to_list(str(numa_sys.sys_fs_value))
 
     def get_online_nodes(self, online_nodes_path=None):
         """
@@ -1541,11 +1572,9 @@ class NumaInfo(object):
             online_nodes = get_path(self.numa_sys_path, "online")
         else:
             online_nodes = online_nodes_path
-        online_nodes_file = open(online_nodes, "r")
-        nodes_info = online_nodes_file.read()
-        online_nodes_file.close()
-
-        return cpu_str_to_list(nodes_info)
+        numa_sys = kernel_interface.SysFS(online_nodes, session=self.session,
+                                          regex="\d+%s")
+        return cpu_str_to_list(str(numa_sys.sys_fs_value))
 
     def get_node_distance(self, node_id):
         """
@@ -1556,9 +1585,13 @@ class NumaInfo(object):
         :return: A list in of distance for the node in positive-sequence
         :rtype: builtin.list
         """
-        cmd = process.run("numactl --hardware")
+        cmd = "numactl --hardware"
+        status, output = cmd_status_output(cmd, shell=True,
+                                           session=self.session)
+        if status != 0:
+            logging.error("Failed to get information from %s", cmd)
         try:
-            node_distances = results_stdout_52lts(cmd).split("node distances:")[-1].strip()
+            node_distances = output.split("node distances:")[-1].strip()
             node_distance = re.findall("%s:.*" % node_id, node_distances)[0]
             node_distance = node_distance.split(":")[-1]
         except Exception:
@@ -1566,13 +1599,13 @@ class NumaInfo(object):
             numa_sys_path = self.numa_sys_path
             distance_path = get_path(numa_sys_path,
                                      "node%s/distance" % node_id)
-            if not os.path.isfile(distance_path):
+            if not check_isfile(distance_path, session=self.session):
                 logging.error("Can not get distance information for"
                               " node %s" % node_id)
                 return []
-            node_distance_file = open(distance_path, 'r')
-            node_distance = node_distance_file.read()
-            node_distance_file.close()
+            numa_sys = kernel_interface.SysFS(distance_path, session=self.session,
+                                              regex="\d+%s")
+            node_distance = str(numa_sys.sys_fs_value)
 
         return node_distance.strip().split()
 
@@ -1588,11 +1621,11 @@ class NumaInfo(object):
         # meminfo for online nodes are taken from numa_sys_path
         for node in self.get_online_nodes():
             node_meminfo = {}
-            meminfo_f = open(meminfo_file % node, 'r')
-            for info in meminfo_f.readlines():
+            numa_sys = kernel_interface.SysFS(meminfo_file % node,
+                                              session=self.session)
+            for info in str(numa_sys.sys_fs_value).split("\n"):
                 key, value = re.match(r'Node \d+ (\S+):\s+(\d+)', info).groups()
                 node_meminfo[key] = value
-            meminfo_f.close()
             meminfo[node] = node_meminfo
         return meminfo
 
@@ -1616,10 +1649,11 @@ class NumaInfo(object):
 
         online_nodes_mem = get_path(self.numa_sys_path,
                                     "has_normal_memory")
-        if os.path.isfile(online_nodes_mem):
-            online_nodes_mem_file = open(online_nodes_mem, "r")
-            nodes_info = online_nodes_mem_file.read()
-            online_nodes_mem_file.close()
+        if check_isfile(online_nodes_mem, session=self.session):
+            numa_sys = kernel_interface.SysFS(online_nodes_mem,
+                                              session=self.session,
+                                              regex="\d+%s")
+            nodes_info = str(numa_sys.sys_fs_value)
         else:
             logging.warning("sys numa node with memory file not"
                             "present, fallback to online nodes")
@@ -1633,10 +1667,11 @@ class NumaInfo(object):
 
         online_nodes_cpu = get_path(self.numa_sys_path,
                                     "has_cpu")
-        if os.path.isfile(online_nodes_cpu):
-            online_nodes_cpu_file = open(online_nodes_cpu, "r")
-            nodes_info = online_nodes_cpu_file.read()
-            online_nodes_cpu_file.close()
+        if check_isfile(online_nodes_cpu, session=self.session):
+            numa_sys = kernel_interface.SysFS(online_nodes_cpu,
+                                              session=self.session,
+                                              regex="\d+%s")
+            nodes_info = str(numa_sys.sys_fs_value)
         else:
             logging.warning("sys numa node with cpu file not"
                             "present, fallback to online nodes")
@@ -1650,16 +1685,20 @@ class NumaNode(object):
     Numa node to control processes and shared memory.
     """
 
-    def __init__(self, i=-1, all_nodes_path=None, online_nodes_path=None):
+    def __init__(self, i=-1, all_nodes_path=None, online_nodes_path=None,
+                 session=None):
         """
         :param all_nodes_path: Alternative path to
                 /sys/devices/system/node/possible. Useful for unittesting.
-        :param all_nodes_path: Alternative path to
+        :param online_nodes_path: Alternative path to
                 /sys/devices/system/node/online. Useful for unittesting.
+        :param session: ShellSession object of VM/remote host
         """
         self.extra_cpus = []
+        self.session = session
         if i < 0:
-            host_numa_info = NumaInfo(all_nodes_path, online_nodes_path)
+            host_numa_info = NumaInfo(all_nodes_path, online_nodes_path,
+                                      session=self.session)
             available_nodes = list(host_numa_info.nodes.keys())
             self.cpus = self.get_node_cpus(available_nodes[-1]).split()
             if len(available_nodes) > 1:
@@ -1685,20 +1724,25 @@ class NumaNode(object):
 
         :param i: Index of the CPU inside the node.
         """
-        cmd = process.run("numactl --hardware")
-        cpus = re.findall("node %s cpus: (.*)" % i, results_stdout_52lts(cmd))
+        cmd = "numactl --hardware"
+        status, output = cmd_status_output(cmd, session=self.session)
+        if status != 0:
+            logging.error("Failed to get the information of %s", cmd)
+        cpus = re.findall("node %s cpus: (.*)" % i, output)
         if cpus:
             cpus = cpus[0]
         else:
             break_flag = False
             cpulist_path = "/sys/devices/system/node/node%s/cpulist" % i
             try:
-                cpulist_file = open(cpulist_path, 'r')
-                cpus = cpulist_file.read()
-                cpulist_file.close()
-            except IOError:
+                numa_sys = kernel_interface.SysFS(cpulist_path,
+                                                  session=self.session,
+                                                  regex="\d+%s")
+                cpus = str(numa_sys.sys_fs_value)
+            except Exception as info:
                 logging.warn("Can not find the cpu list information from both"
-                             " numactl and sysfs. Please check your system.")
+                             " numactl and sysfs. Please check your system.\n"
+                             " Error: %s", info)
                 break_flag = True
             if not break_flag:
                 # Try to expand the numbers with '-' to a string of numbers
@@ -1741,9 +1785,10 @@ class NumaNode(object):
         for key in key_list:
             try:
                 key_path = eval(key + '_path')
-                file_obj = open(key_path, 'r')
-                key_val = file_obj.read().rstrip('\n')
-                file_obj.close()
+                numa_sys = kernel_interface.SysFS(key_path,
+                                                  session=self.session,
+                                                  regex="\d+%s")
+                key_val = str(numa_sys.sys_fs_value).rstrip('\n')
                 cpu_topo[key] = key_val
             except IOError:
                 logging.warn("Can not find file %s from sysfs. Please check "
@@ -1768,8 +1813,10 @@ class NumaNode(object):
         """
         Flush pin dict, remove the record of exited process.
         """
-        cmd = process.run("ps -eLf | awk '{print $4}'", shell=True)
-        all_pids = results_stdout_52lts(cmd)
+        cmd = "ps -eLf | awk '{print $4}'"
+        status, all_pids = cmd_status_output(cmd, shell=True, session=self.session)
+        if status != 0:
+            logging.error("Failed to get information of %s", cmd)
         for i in self.cpus:
             for j in self.dict[i]:
                 if str(j) not in all_pids:
@@ -1800,7 +1847,7 @@ class NumaNode(object):
                 self.dict[i].append(pid)
                 cmd = "taskset -cp %s %s" % (int(i), pid)
                 logging.debug("NumaNode (%s): " % i + cmd)
-                process.run(cmd)
+                cmd_status_output(cmd, shell=True, session=self.session)
                 return i
 
     def show(self):
@@ -4101,12 +4148,8 @@ def get_pid(name, session=None):
     :return: Pid of the process or None in case of exceptions
     """
     cmd = "pgrep -f '%s'" % name
-    if session:
-        status, output = session.cmd_status_output(cmd)
-    else:
-        ret = process.run(cmd, shell=True, ignore_status=True)
-        status, output = ret.exit_status, results_stdout_52lts(ret).strip()
-    if status:
+    status, output = cmd_status_output(cmd, shell=True, session=session)
+    if status != 0:
         return None
     else:
         return int(output.split()[0])
