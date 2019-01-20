@@ -23,6 +23,7 @@ from six.moves import xrange
 
 # Internal imports
 from virttest import arch, storage, data_dir, virt_vm
+from virttest import data_plane
 from virttest.qemu_devices import qdevices
 from virttest.qemu_devices.utils import (DeviceError, DeviceHotplugError,
                                          DeviceInsertError, DeviceRemoveError,
@@ -126,6 +127,64 @@ class DevContainer(object):
         self.__devices = []
         self.__buses = []
         self.allow_hotplugged_vm = allow_hotplugged_vm == 'yes'
+        self.iothread_manager = None
+        self.iothread_supported_devices = set()
+
+    def set_iothread_manager(self, iothreads, iothread_scheme, guestcpuinfo):
+        """
+        Set iothread manager.
+        :param iothreads: iothreads
+        :param iothread_scheme: iothread_scheme
+        :param guestcpuinfo: Cpuinfo object that stores guest cpu info
+        """
+        if iothreads:
+            msg = "iothreads: %s, use 'PredefinedManager'." % iothreads
+            iothreads = [qdevices.IOThread(id=iothread_id,
+                                           params=iothreads[iothread_id])
+                         for iothread_id in iothreads]
+            manager = data_plane.PredefinedManager(iothreads)
+        elif iothread_scheme is not None:
+            if iothread_scheme.startswith("roundrobin"):
+                msg = "iothread_scheme: %s , use 'RoundRobinManager'"
+                match = re.match(r"roundrobin_(\d+)?", iothread_scheme)
+                count = match.group(1) if match else 1
+                manager = data_plane.RoundRobinManager(count=int(count))
+            elif iothread_scheme == "optimal":
+                msg = "iothread_scheme: %s, use 'OptimalManager'"
+                manager = data_plane.OptimalManager(guestcpuinfo.cores)
+            elif iothread_scheme == "oto":
+                msg = ("iothread_scheme: %s, one device mapping to one "
+                       "iothread object, use'OTOManager'")
+                manager = data_plane.OTOManager()
+            elif iothread_scheme == "rhv":
+                msg = ("iothread_scheme: %s, one iothread for all devices,"
+                       " use 'RoundRobinManager'")
+                manager = data_plane.RoundRobinManager()
+            else:
+                msg = ("unrecognized iothread_scheme: %s, fall back to "
+                       "use 'PredefinedManager'")
+                manager = data_plane.PredefinedManager([])
+            msg %= iothread_scheme
+        else:
+            msg = ("no iothread config, fall back to use "
+                   "'PredefinedManager'")
+            manager = data_plane.PredefinedManager([])
+        logging.debug(msg)
+        self.iothread_manager = manager
+        for iothread in manager:
+            self.insert(iothread)
+
+    def is_dev_iothread_supported(self, dev):
+        """Check if dev supports iothread."""
+        if dev in self.iothread_supported_devices:
+            return True
+        query_command = "%s --device %s,\\? 2>&1" % (self.__qemu_binary, dev)
+        out = process.run(query_command, timeout=10, ignore_status=True,
+                          shell=True, verbose=False).stdout_text
+        if "iothread" in out:
+            self.iothread_supported_devices.add(dev)
+            return True
+        return False
 
     def __getitem__(self, item):
         """
@@ -466,15 +525,42 @@ class DevContainer(object):
                 buses.append(bus)
         return buses
 
-    def get_first_free_bus(self, bus_spec, addr):
+    def get_first_free_bus(self, bus_spec, addr, iothread="OFF"):
         """
         :param bus_spec: Bus specification (dictionary)
         :param addr: Desired address
+        :param iothread: iothread scheme to filter buses
+                        'OFF' to turn off, 'ON' to get buses with iothread,
+                        'iothread%d' to get buses with specified iothread,
+                        'EXCLUDED' to get buses without iothread
+        :type iothread: str
         :return: First matching bus with free desired address (the latest
-                 added matching bus)
+                 added matching bus) and desired iothread
         """
+        def _retrieve_iothread(bus):
+            """Get allocated iothread for bus."""
+            return bus.get_device().get_param("iothread")
+
+        # get buses based on specification
         buses = self.get_buses(bus_spec)
-        for bus in buses:
+
+        # filter buses based on iothread
+        pattern = ("(?P<OFF>OFF)|(?P<ON>ON)|(?P<SPECIFIED>iothread\d+)|"
+                   "(?P<EXCLUDED>EXCLUDED)")
+        match = re.match(pattern, iothread, re.I)
+        scheme = match.lastgroup if match else "OFF"
+        action_map = {
+            "OFF": lambda bus: True,
+            "SPECIFIED": lambda bus: _retrieve_iothread(bus) == iothread,
+            "ON": lambda bus: _retrieve_iothread(bus),
+            "EXCLUDED": lambda bus: _retrieve_iothread(bus) is None
+        }
+        percolated = list(filter(action_map[scheme], buses))
+        if scheme == "SPECIFIED" and not percolated:
+            percolated = list(filter(action_map["ON"], buses))
+
+        # get lastest added bus that has free desired address
+        for bus in percolated:
             _ = bus.get_free_slot(addr)
             if _ is not None and _ is not False:
                 return bus
@@ -661,6 +747,11 @@ class DevContainer(object):
         self.set_dirty()
         # Remove all devices, which are removed together with this dev
         out = device.unplug(monitor)
+
+        # update iothread pool
+        iothread = device.get_param("iothread")
+        if iothread is not None:
+            self.iothread_manager.update_iothread_in_unplug(device, iothread)
 
         # The unplug action sometimes delays for a while per host performance,
         # it will be accepted if the unplug been accomplished within 30s
@@ -1262,7 +1353,7 @@ class DevContainer(object):
                                    physical_block_size=None, logical_block_size=None,
                                    readonly=None, scsiid=None, lun=None, aio=None,
                                    strict_mode=None, media=None, imgfmt=None,
-                                   pci_addr=None, scsi_hba=None, x_data_plane=None,
+                                   pci_addr=None, scsi_hba=None, iothread=None,
                                    blk_extra_params=None, scsi=None,
                                    drv_extra_params=None,
                                    num_queues=None, bus_extra_params=None,
@@ -1305,7 +1396,7 @@ class DevContainer(object):
         :param bus_extra_params: options want to add to virtio-scsi-pci bus
         """
         def define_hbas(qtype, atype, bus, unit, port, qbus, pci_bus,
-                        addr_spec=None, num_queues=None,
+                        addr_spec=None, num_queues=None, iothread="OFF",
                         bus_extra_params=None):
             """
             Helper for creating HBAs of certain type.
@@ -1317,9 +1408,10 @@ class DevContainer(object):
             else:
                 _hba = atype.replace('-', '_') + '%s.0'  # HBA id
             _bus = bus
+            pattern = {'type': qtype, 'atype': atype}
             if bus is None:
-                bus = self.get_first_free_bus({'type': qtype, 'atype': atype},
-                                              [unit, port])
+                bus = self.get_first_free_bus(pattern, [unit, port],
+                                              iothread=iothread)
                 if bus is None:
                     bus = self.idx_of_next_named_bus(_hba)
                 else:
@@ -1347,14 +1439,20 @@ class DevContainer(object):
                                                parent_bus=pci_bus,
                                                child_bus=qbus(busid=bus_name))
                     devices.append(dev)
+                    if re.match("iothread\d+", iothread):
+                        is_new, iothread_obj = self.iothread_manager.sync(
+                            dev, iothread)
+                        if is_new:
+                            devices.insert(-1, iothread_obj)
                 bus = _hba % bus
+            pattern["busid"] = bus
             if qbus == qdevices.QAHCIBus and unit is not None:
                 bus += ".%d" % unit
             # If bus was not set, don't set it, unless the device is
             # a spapr-vscsi device.
             elif _bus is None and 'spapr_vscsi' not in _hba:
                 bus = None
-            return devices, bus, {'type': qtype, 'atype': atype}
+            return devices, bus, pattern
 
         #
         # Parse params
@@ -1408,6 +1506,18 @@ class DevContainer(object):
                          "(disk %s)", name)
             bus = none_or_int(pci_addr)
 
+        iothread = self.iothread_manager.get_iothread(iothread)
+        # turn off iothread
+        if iothread is None:
+            iothread = "OFF"
+        # if block device is `scsi-cd`, `ioevent=off` is in either
+        # blk_extra_params or bus_extra_params, define or find device without
+        # iothread attached
+        if any([fmt in ["scsi-cd"],
+                bus_extra_params and "ioeventfd=off" in bus_extra_params,
+                blk_extra_params and "ioeventfd=off" in blk_extra_params]):
+            iothread = "EXCLUDED"
+
         #
         # HBA
         # fmt: ide, scsi, virtio, scsi-hd, ahci, usb1,2,3 + hba
@@ -1457,9 +1567,12 @@ class DevContainer(object):
             elif scsi_hba == 'spapr-vscsi':
                 addr_spec = [8, 16384]
                 pci_bus = None
+            if not self.is_dev_iothread_supported(scsi_hba):
+                iothread = "OFF"
             _, bus, dev_parent = define_hbas('SCSI', scsi_hba, bus, unit, port,
                                              qdevices.QSCSIBus, pci_bus,
                                              addr_spec, num_queues=num_queues,
+                                             iothread=iothread,
                                              bus_extra_params=bus_extra_params)
             devices.extend(_)
         elif fmt in ('usb1', 'usb2', 'usb3'):
@@ -1609,10 +1722,13 @@ class DevContainer(object):
         devices[-1].set_param('min_io_size', min_io_size)
         devices[-1].set_param('opt_io_size', opt_io_size)
         devices[-1].set_param('bootindex', bootindex)
-        if x_data_plane in ["yes", "no", "on", "off"]:
-            devices[-1].set_param('x-data-plane', x_data_plane, bool)
-        else:
-            devices[-1].set_param('iothread', x_data_plane)
+        if (re.match("iothread\d+", iothread) and
+                self.is_dev_iothread_supported(devices[-1].get_param(
+                    'driver'))):
+            is_new, iothread_obj = self.iothread_manager.sync(devices[-1],
+                                                              iothread)
+            if is_new:
+                devices.insert(-1, iothread_obj)
         if 'serial' in options:
             devices[-1].set_param('serial', serial)
             devices[-2].set_param('serial', None)   # remove serial from drive
@@ -1621,7 +1737,6 @@ class DevContainer(object):
                                 blk_extra_params.split(',') if _)
             for key, value in blk_extra_params:
                 devices[-1].set_param(key, value)
-
         return devices
 
     def images_define_by_params(self, name, image_params, media=None,
@@ -1698,7 +1813,7 @@ class DevContainer(object):
                                                    "drive_pci_addr"),
                                                scsi_hba,
                                                image_params.get(
-                                                   "x-data-plane"),
+                                                   "iothread"),
                                                image_params.get(
                                                    "blk_extra_params"),
                                                image_params.get(
@@ -1806,7 +1921,7 @@ class DevContainer(object):
                                                    "drive_pci_addr"),
                                                scsi_hba,
                                                image_params.get(
-                                                   "x-data-plane"),
+                                                   "iothread"),
                                                image_params.get(
                                                    "blk_extra_params"),
                                                image_params.get(

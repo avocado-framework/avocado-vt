@@ -72,10 +72,11 @@ class MinQueue(object):
 
     def remove(self, item):
         """Remove item and re-heapify."""
-        if item not in self._queue:
-            return
-        self._queue.remove(item)
-        heapq.heapify(self._queue)
+        try:
+            self._queue.remove(item)
+            heapq.heapify(self._queue)
+        except ValueError:
+            pass
 
 
 class IOThreadManagerError(Exception):
@@ -192,7 +193,9 @@ class PredefinedManager(IOThreadManagerBase):
     """
     Predefined iothread allocation based on params, backward support with
     previous patch that defines iothread objects with 'iothreads=...' and add
-    to device with bus_extra_params and blk_extra_params.
+    to device with "iothread_image0 = iothread0
+    Naming for iothread must follow: r'iothread\d+'.
+    "
     """
 
     def __init__(self, iothreads):
