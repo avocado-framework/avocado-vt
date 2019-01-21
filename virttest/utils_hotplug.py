@@ -514,7 +514,8 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
         tg_xml = memory.Memory.Target()
         tg_xml.size = int(tg_size)
         tg_xml.size_unit = tg_sizeunit
-        tg_xml.node = int(tg_node)
+        if tg_node != "":
+            tg_xml.node = int(tg_node)
         mem_xml.target = tg_xml
     if pg_size:
         src_xml = memory.Memory.Source()
