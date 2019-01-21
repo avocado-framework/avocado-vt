@@ -247,6 +247,11 @@ class UnattendedInstallConfig(object):
                 os.makedirs(os.path.dirname(self.floppy))
 
         self.image_path = os.path.dirname(self.kernel)
+        if not os.path.isdir(self.image_path):
+            # To prevent errors
+            if os.path.isfile(self.image_path):
+                os.unlink(self.image_path)
+            os.makedirs(self.image_path)
 
         # Content server params
         # lookup host ip address for first nic by interface name
@@ -845,8 +850,6 @@ class UnattendedInstallConfig(object):
         """
         error_context.context("Copying vmlinuz and initrd.img from install cdrom %s" %
                               self.cdrom_cd1)
-        if not os.path.isdir(self.image_path):
-            os.makedirs(self.image_path)
 
         if (self.params.get('unattended_delivery_method') in
                 ['integrated', 'url']):
@@ -936,8 +939,6 @@ class UnattendedInstallConfig(object):
         if self.vm_type == 'qemu':
             error_context.context(
                 "downloading vmlinuz/initrd.img from %s" % self.url)
-            if not os.path.exists(self.image_path):
-                os.mkdir(self.image_path)
             os.chdir(self.image_path)
 
             kernel_basename = os.path.basename(self.kernel)
