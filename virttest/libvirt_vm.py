@@ -2477,7 +2477,7 @@ class VM(virt_vm.BaseVM):
             state = self.state()
             if state != 'paused':
                 virsh.suspend(
-                    self.name, uri=self.connect_uri, ignore_statues=False)
+                    self.name, uri=self.connect_uri, ignore_status=False)
             return True
         except Exception:
             logging.error("VM %s failed to suspend", self.name)

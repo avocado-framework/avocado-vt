@@ -3477,6 +3477,10 @@ def verify_dmesg(dmesg_log_file=None, ignore_result=False, level_check=3,
                         4 - emerg,alert,crit,err
                         5 - emerg,alert,crit,err,warn
     :param session: session object to guest
+    :param return: if ignore_result=True, return True if no errors/crash
+                   observed, False otherwise.
+    :param raise: if ignore_result=False, raise TestFail exception on
+                  observing errors/crash
     """
     cmd = "dmesg -T -l %s|grep ." % ",".join(map(str, xrange(0, int(level_check))))
     if session:
@@ -3504,6 +3508,8 @@ def verify_dmesg(dmesg_log_file=None, ignore_result=False, level_check=3,
             process.system("dmesg -C", ignore_status=True)
         if not ignore_result:
             raise exceptions.TestFail(err)
+        return False
+    return True
 
 
 def add_ker_cmd(kernel_cmdline, kernel_param, remove_similar=False):
