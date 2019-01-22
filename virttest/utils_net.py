@@ -1008,7 +1008,8 @@ class Bridge(object):
         result = dict()
         for br_iface in os.listdir(sysfs_path):
             br_iface_path = os.path.join(sysfs_path, br_iface)
-            if "bridge" not in os.listdir(br_iface_path):
+            if (not os.path.isdir(br_iface_path) or
+                    "bridge" not in os.listdir(br_iface_path)):
                 continue
             result[br_iface] = dict()
             # Get stp_state
