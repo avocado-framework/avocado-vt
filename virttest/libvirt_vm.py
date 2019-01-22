@@ -961,7 +961,10 @@ class VM(virt_vm.BaseVM):
         # Add the VM's name
         virt_install_cmd += add_name(help_text, name)
 
-        machine_type = params.get("machine_type")
+        # The machine_type format is [avocado-type:]machine_type
+        # where avocado-type is optional part and is used in
+        # tp-qemu to use different devices. Use only the second part
+        machine_type = params.get("machine_type").split(':', 1)[-1]
         if machine_type:
             if machine_type in support_machine_type:
                 virt_install_cmd += add_machine_type(help_text, machine_type)
