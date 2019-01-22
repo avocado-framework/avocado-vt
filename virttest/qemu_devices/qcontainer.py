@@ -993,7 +993,7 @@ class DevContainer(object):
                                                   child_bus=bus,
                                                   aobject="virtio-mmio-bus"))
             # And this is the pcie bus
-            bus = (qdevices.QPCIBus('pcie.0', 'PCIE', 'pci.0'),
+            bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type, 'pci.0'),
                    qdevices.QStrictCustomBus(None, [['chassis'], [256]],
                                              '_PCI_CHASSIS', first_port=[1]),
                    qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
