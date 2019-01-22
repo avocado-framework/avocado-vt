@@ -32,6 +32,23 @@ need to specify:
   the destination qemu binary (otherwise default one is used)
 * ``enable_kvm=no`` - to disable KVM (if necessary)
 
+.. note::
+
+   Some test require additional dependencies and are marked as ``no JeOS``
+   (another group is marked as ``only RHEL``) but it might be useful for
+   debugging purposes to use them with JeOS. You can do that by symlinking
+   the ``$avocado-vt-data/images/jeos-$version-$arch.qcow2`` to
+   ``$avocado-vt-data/images/rhel${version}devel-$arch.qcow2`` and using
+   the boot test with ``--vt-guest-os RHEL.$version``. To add extra
+   packages use ``ctrl+Z`` when it's about to ssh in. Then you can
+   ssh to that guest from your machine, run ``dnf install ...``
+   to install the extra packages (``gcc`` suffices for most test), shut
+   the machine down, backup it to ``$name.backup`` and resume the ``boot``
+   test by ``ctrl+Z``. Obviously the test will fail, refreshes the image
+   from ``$name.backup`` but since then you have slightly fattier JeOS
+   symlinked to RHEL capable of running some extended tests without
+   the need to run full installation in TCG mode. Beware, vt-bootstrap
+   might overwrite the `.backup` from archive.
 
 aarch64
 =======
