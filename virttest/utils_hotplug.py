@@ -493,7 +493,8 @@ def vcpuhotunplug_unsupport_str():
 
 
 def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
-                   pg_unit="KiB", tg_node=0, node_mask=0, mem_model="dimm"):
+                   pg_unit="KiB", tg_node=0, node_mask=0, mem_model="dimm",
+                   lb_size=None, lb_sizeunit="Kib", mem_access=None):
     """
     Create memory device xml.
     Parameters:
@@ -505,6 +506,9 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
     :param tg_node: Target node to hotplug.
     :param node_mask: Source node for hotplug.
     :param mem_model: Memory Model, Default="dimm".
+    :param lb_size: Label size in Target
+    :param lb_sizeunit: Label size unit, Default=KiB
+    :param mem_access: Value of attrib 'access' of memory
     :return: Returns a copy of Memory Hotplug xml instance.
     """
     mem_xml = memory.Memory()
@@ -516,6 +520,11 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
         tg_xml.size_unit = tg_sizeunit
         if tg_node != "":
             tg_xml.node = int(tg_node)
+        if lb_size:
+            lb_xml = memory.Memory.Target.Label()
+            lb_xml.size = int(lb_size)
+            lb_xml.size_unit = lb_sizeunit
+            tg_xml.label = lb_xml
         mem_xml.target = tg_xml
     if pg_size:
         src_xml = memory.Memory.Source()
@@ -526,6 +535,8 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
     if mem_addr:
         mem_xml.address = mem_xml.new_mem_address(
             **{"attrs": mem_addr})
+    if mem_access:
+        mem_xml.mem_access = mem_access
 
     logging.debug("Memory device xml: %s", mem_xml)
     return mem_xml.copy()
