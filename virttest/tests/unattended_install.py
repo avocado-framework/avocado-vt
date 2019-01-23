@@ -1012,6 +1012,9 @@ class UnattendedInstallConfig(object):
                  (self.nfs_server, self.nfs_dir, self.nfs_mount))
         process.run(m_cmd, verbose=DEBUG)
 
+        if not os.path.isdir(self.image_path):
+            os.makedirs(self.image_path)
+
         try:
             kernel_fetch_cmd = ("cp %s/%s/%s %s" %
                                 (self.nfs_mount, self.boot_path,
