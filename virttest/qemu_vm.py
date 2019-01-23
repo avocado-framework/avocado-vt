@@ -1493,7 +1493,8 @@ class VM(virt_vm.BaseVM):
                 cmd += "numactl -m %s " % n
 
         # Start constructing devices representation
-        devices = qcontainer.DevContainer(qemu_binary, self.name,
+        machine_type = params.get('machine_type').split(':', 1)[-1]
+        devices = qcontainer.DevContainer(qemu_binary, self.name, machine_type,
                                           params.get('strict_mode'),
                                           params.get(
                                               'workaround_qemu_qmp_crash'),
