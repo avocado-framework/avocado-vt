@@ -52,7 +52,7 @@ class DevContainer(object):
         def get_hmp_cmds(qemu_binary):
             """ :return: list of human monitor commands """
             _ = decode_to_text(process.system_output("echo -e 'help\nquit' | %s -monitor "
-                                                     "stdio -vnc none" % qemu_binary,
+                                                     "stdio -vnc none -S" % qemu_binary,
                                                      timeout=10, ignore_status=True,
                                                      shell=True, verbose=False))
             _ = re.findall(r'^([^()\|\[\sA-Z]+\|?\w+)', _, re.M)
@@ -73,7 +73,7 @@ class DevContainer(object):
                                                             '{ "execute": "qmp_capabilities" }\n'
                                                             '{ "execute": "query-commands", "id": "RAND91" }\n'
                                                             '{ "execute": "quit" }\''
-                                                            '| %s -qmp stdio -vnc none | grep return |'
+                                                            '| %s -qmp stdio -vnc none -S | grep return |'
                                                             ' grep RAND91' % qemu_binary, timeout=10,
                                                             ignore_status=True, shell=True,
                                                             verbose=False)).splitlines()
@@ -83,7 +83,7 @@ class DevContainer(object):
                                                             '{ "execute": "qmp_capabilities" }\n'
                                                             '{ "execute": "query-commands", "id": "RAND91" }\n'
                                                             '{ "execute": "quit" }\' | (sleep 1; cat )'
-                                                            '| %s -qmp stdio -vnc none | grep return |'
+                                                            '| %s -qmp stdio -vnc none -S | grep return |'
                                                             ' grep RAND91' % qemu_binary, timeout=10,
                                                             ignore_status=True, shell=True,
                                                             verbose=False)).splitlines()
