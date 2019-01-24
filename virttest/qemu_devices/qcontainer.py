@@ -981,24 +981,14 @@ class DevContainer(object):
                           % aavmf_vars)
             devices.append(qdevices.QStringDevice('AAVMF_VARS',
                                                   cmdline=aavmf_vars))
-            # Add virtio-bus
-            # TODO: Currently this uses QNoAddrCustomBus and does not
-            # set the device's properties. This means that the qemu qtree
-            # and autotest's representations are completelly different and
-            # can't be used.
-            bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
-                                            'virtio-mmio-bus', 'virtio-bus',
-                                            'virtio-mmio-bus')
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="virtio-mmio-bus"))
-            # And this is the pcie bus
-            bus = (qdevices.QPCIBus('pcie.0', 'PCIE', 'pci.0'),
+
+            bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type, 'pci.0'),
                    qdevices.QStrictCustomBus(None, [['chassis'], [256]],
                                              '_PCI_CHASSIS', first_port=[1]),
                    qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
                                              '_PCI_CHASSIS_NR', first_port=[1]))
-            devices.append(qdevices.QStringDevice('pci.0', child_bus=bus,
+            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
+                                                  child_bus=bus,
                                                   aobject="pci.0"))
             devices.append(qdevices.QStringDevice('gpex-root',
                                                   {'addr': 0, 'driver': 'gpex-root'},
