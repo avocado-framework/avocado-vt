@@ -2362,6 +2362,8 @@ def check_if_vm_vcpu_match(vcpu_desire, vm):
     the value desired.
     """
     vcpu_actual = vm.get_cpu_count()
+    if isinstance(vcpu_desire, str) and vcpu_desire.isdigit():
+        vcpu_desire = int(vcpu_desire)
     if vcpu_desire != vcpu_actual:
         logging.debug("CPU quantity mismatched !!! guest said it got %s "
                       "but we assigned %s" % (vcpu_actual, vcpu_desire))
