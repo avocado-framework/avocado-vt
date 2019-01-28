@@ -424,6 +424,45 @@ def get_cpustats(vm, cpu=None):
     return cpustats
 
 
+def get_domstats(vm, key):
+    """
+    Get VM's domstats output value for given keyword
+    :param vm: VM object
+    :param key: keyword for which value is needed
+    :return: value string
+    """
+    domstats_output = virsh.domstats(vm.name)
+    for item in results_stdout_52lts(domstats_output).strip().split():
+        if key in item:
+            return item.split("=")[1]
+
+
+def check_vcpu_domstats(vm, exp_vcpu):
+    """
+    Check the cpu values from domstats output
+    :param vm: VM object
+    :param exp_vcpu: dict of expected vcpus
+    :return: True if exp_vcpu matches the domstats output, False if not
+    """
+    status = True
+    cur_vcpu = int(get_domstats(vm, "vcpu.current"))
+    max_vcpu = int(get_domstats(vm, "vcpu.maximum"))
+    if vm.is_alive():
+        exp_cur_vcpu = exp_vcpu['cur_live']
+    else:
+        exp_cur_vcpu = exp_vcpu['cur_config']
+    if exp_cur_vcpu != cur_vcpu:
+        status = False
+        logging.error("Mismatch in current vcpu in domstats output, "
+                      "Expected: %s Actual: %s", exp_cur_vcpu, cur_vcpu)
+    if exp_vcpu['max_config'] != max_vcpu:
+        status = False
+        logging.error("Mismatch in maximum vcpu in domstats output, Expected:"
+                      " %s Actual: %s", exp_vcpu['max_config'], max_vcpu)
+
+    return status
+
+
 def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False):
     """
     Check domain vcpu, including vcpucount, vcpuinfo, vcpupin, vcpu number and
@@ -470,6 +509,9 @@ def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False):
         # 1.6 Check guest numa
         if not guest_numa_check(vm, exp_vcpu):
             final_result = False
+    # 1.7 Check virsh domstats output
+    if not check_vcpu_domstats(vm, exp_vcpu):
+        final_result = False
 
     return final_result
 
