@@ -946,19 +946,26 @@ class BaseVM(object):
                                guest dmesg to logging.debug.
         :param connect_uri: Libvirt connect uri of vm
         """
-        if(len(self.virtnet) > 0 and self.virtnet[0].nettype != "macvtap" and
-           not connect_uri):
-            session = self.wait_for_login()
-        else:
-            if connect_uri and self.params.get("vm_type", "qemu") == "libvirt":
-                self.connect_uri = connect_uri
-            session = self.wait_for_serial_login()
+        session = None
         level = self.params.get("guest_dmesg_level", 3)
         ignore_result = self.params.get("guest_dmesg_ignore", "no") == "yes"
-        utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
-                                ignore_result=ignore_result,
-                                level_check=level, session=session)
-        session.close()
+        try:
+            if(len(self.virtnet) > 0 and self.virtnet[0].nettype != "macvtap" and
+               not connect_uri):
+                session = self.wait_for_login()
+            else:
+                if connect_uri and self.params.get("vm_type", "qemu") == "libvirt":
+                    actual_uri = self.connect_uri
+                    self.connect_uri = connect_uri
+                session = self.wait_for_serial_login()
+            return utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
+                                           ignore_result=ignore_result,
+                                           level_check=level, session=session)
+        finally:
+            if connect_uri:
+                self.connect_uri = actual_uri
+            if session:
+                session.close()
 
     def verify_bsod(self, scrdump_file):
         # For windows guest
