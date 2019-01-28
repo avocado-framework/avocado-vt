@@ -57,7 +57,7 @@ class Memory(base.UntypedDeviceBase):
         size_unit:
             string.
         """
-        __slots__ = ('size', 'size_unit', 'node')
+        __slots__ = ('size', 'size_unit', 'node', 'label')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLElementInt('size',
@@ -72,8 +72,39 @@ class Memory(base.UntypedDeviceBase):
             accessors.XMLElementInt('node',
                                     self, parent_xpath='/',
                                     tag_name='node')
+            accessors.XMLElementNest('label', self, parent_xpath='/',
+                                     tag_name='label', subclass=self.Label,
+                                     subclass_dargs={
+                                         'virsh_instance': virsh_instance})
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<target/>'
+
+        class Label(base.base.LibvirtXMLBase):
+
+            """
+            Memory target label xml class.
+
+            Properties:
+
+            size:
+                int.
+            size_unit:
+                string.
+            """
+            __slots__ = ('size', 'size_unit')
+
+            def __init__(self, virsh_instance=base.base.virsh):
+                accessors.XMLElementInt('size',
+                                        self, parent_xpath='/',
+                                        tag_name='size')
+                accessors.XMLAttribute(property_name="size_unit",
+                                       libvirtxml=self,
+                                       forbidden=None,
+                                       parent_xpath='/',
+                                       tag_name='size',
+                                       attribute='unit')
+                super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+                self.xml = '<label/>'
 
     class Source(base.base.LibvirtXMLBase):
 
@@ -87,7 +118,7 @@ class Memory(base.UntypedDeviceBase):
         pagesize_unit, nodemask:
             string.
         """
-        __slots__ = ('pagesize', 'pagesize_unit', 'nodemask')
+        __slots__ = ('pagesize', 'pagesize_unit', 'nodemask', 'path')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLElementInt('pagesize',
@@ -102,6 +133,9 @@ class Memory(base.UntypedDeviceBase):
             accessors.XMLElementText('nodemask',
                                      self, parent_xpath='/',
                                      tag_name='nodemask')
+            accessors.XMLElementText('path',
+                                     self, parent_xpath='/',
+                                     tag_name='path')
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<source/>'
 
