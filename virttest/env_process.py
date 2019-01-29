@@ -1134,6 +1134,45 @@ def preprocess(test, params, env):
                                                args=(test, params, env))
         _vm_register_thread.start()
 
+    # start test in nested guest
+    if params.get("run_nested_guest_test", "no") == "yes":
+        nest_params = params.copy()
+        current_level = nest_params.get("nested_guest_level", "L1")
+        max_level = nest_params.get("nested_guest_max_level", "L1")
+        nest_timeout = int(nest_params.get("nested_guest_timeout", "3600"))
+        install_type = nest_params.get("avocado_guest_install_type", "git")
+        nest_vms = env.get_all_vms()
+        # Have buffer memory 1G for VMs to work seamlessly
+        nest_memory = (int(nest_params.get("mem")) // len(nest_vms)) - 1024
+        if nest_memory < 512:
+            raise exceptions.TestCancel("Memory is not sufficient for "
+                                        "VMs to boot and perform nested "
+                                        "virtualization tests")
+        # set memory for the nested VM
+        nest_params["vt_extra_params"] = "mem=\"%s\"" % nest_memory
+        if current_level != max_level:
+            next_level = "L%s" % (int(current_level[-1]) + 1)
+            logging.debug("Test is running in Guest level: %s", current_level)
+            for vm in nest_vms:
+                # params with nested level specific configuration
+                new_params = nest_params.object_params(current_level)
+                # params with VM name specific in that particular level
+                new_params = new_params.object_params(vm.name)
+                # update the current_level for next_level guest
+                new_params["nested_guest_level"] = str(next_level)
+                testlist = [new_params.get("avocado_guest_vt_test",
+                                           "boot")]
+                avocadotestargs = new_params.get("avocado_guest_add_args", "")
+                obj = utils_test.AvocadoGuest(vm, new_params, test, testlist,
+                                              testrepo='',
+                                              timeout=nest_timeout,
+                                              installtype=install_type,
+                                              avocado_vt=True,
+                                              reinstall=False,
+                                              add_args=avocadotestargs)
+                if not obj.run_avocado():
+                    raise exceptions.TestFail("Test inside nested guest "
+                                              "reported failure")
     return params
 
 
