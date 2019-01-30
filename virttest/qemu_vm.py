@@ -4423,9 +4423,9 @@ class VM(virt_vm.BaseVM):
         block_list = self.process_info_block(blocks_info)
         for block in block_list:
             for key, value in six.iteritems(p_dict):
-                    # for new qemu we just deal with key = [removable,
-                    # file,backing_file], for other types key, we should
-                    # fixup later
+                # for new qemu we just deal with key = [removable,
+                # file,backing_file], for other types key, we should
+                # fixup later
                 logging.info("block = %s" % block)
                 if key == 'removable':
                     if value is False:
