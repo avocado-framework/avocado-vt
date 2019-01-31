@@ -467,17 +467,32 @@ def get_memory_info(lvms):
     return meminfo
 
 
-def find_python(session, try_binaries=('python3', 'python2', 'python')):
+def find_bin(session, try_binaries=[]):
     """
-    Look for the python interpreter installed in the guest.
+    Look for the binary installed in the guest.
 
     :param session: A shell session.
-    :param try_binaries: A list of python binaries to look for.
-    :return: The python binary found, otherwise None.
+    :param try_binaries: A list of binaries names to look for.
+    :return: The binary found, otherwise None.
     """
-    for python in try_binaries:
-        if session.cmd_status("which %s" % python) == 0:
-            return python
+    for binary in try_binaries:
+        if session.cmd_status("which %s" % binary) == 0:
+            return binary
+
+
+def find_python(session, compat="python3"):
+    """
+    Look for the python binary installed in the guest.
+
+    :param session: A shell session.
+    :param compat: preference to compat version
+    """
+    binaries = ['python', 'python2', 'python3']
+    compat_bin = find_bin(session, try_binaries=[compat])
+    if not compat_bin:
+        binaries.remove(compat)
+        return find_bin(session, try_binaries=binaries)
+    return compat_bin
 
 
 @error_context.context_aware
@@ -841,177 +856,284 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
         session.close()
 
 
-def run_avocado(vm, params, test, testlist=[], timeout=3600,
-                testrepo="https://github.com/avocado-framework-tests/avocado-misc-tests.git",
-                installtype="pip", reinstall=False, add_args=None, ignore_result=True):
+def session_handler(func):
     """
-    Function to run avocado tests inside guest
-
-    :param vm: VM object
-    :param params: VM param
-    :param test: test object
-    :param testlist: testlist as list of tuples like (testcase, muxfile)
-    :param timeout: test timeout
-    :param testrepo: test repository default is avocado-misc-tests
-    :param installtype: how to install avocado, supported types
-                        pip, package, git
-    :param reinstall: flag to reinstall incase of avocado present inside guest
-    :param add_args: additional arguments to be passed to the avocado cmdline
-    :param ignore_result: True or False
-    :return: Bool result status
+    decorator method to handle session for Stress
     """
-    plugins = {'pip': ['avocado-framework-plugin-varianter-yaml-to-mux', 'avocado-framework-plugin-result-html'],
-               'package': [],
-               'git': ['varianter_yaml_to_mux', 'html']}
-    prerequisites = ['python', 'git']
 
-    def env_check():
+    def manage_session(self):
+        try:
+            if self.vm or self.remote_host:
+                self.session = self.get_session()
+            return func(self)
+        finally:
+            if self.vm or self.remote_host:
+                self.session.close()
+    return manage_session
+
+
+class AvocadoGuest(object):
+
+    def __init__(self, vm, params, test, testlist=[], timeout=3600,
+                 testrepo="https://github.com/avocado-framework-tests/avocado-misc-tests.git",
+                 installtype="pip", avocado_vt=False, reinstall=False,
+                 add_args="", ignore_result=True):
+        """
+        Class to run Avocado/Avocado-VT tests inside guest
+
+        :param vm: VM object
+        :param params: VM param
+        :param test: test object
+        :param testlist: testlist as list of tuples like (testcase, muxfile)
+        :param timeout: test timeout
+        :param testrepo: test repository default is avocado-misc-tests
+        :param installtype: how to install avocado, supported types
+                            pip, package, git
+        :param reinstall: flag to reinstall incase of avocado present inside guest
+        :param add_args: additional arguments to be passed to the avocado cmdline
+        :param ignore_result: True or False
+        :return: Bool result status
+        """
+        self.vm = vm
+        self.params = params
+        self.test = test
+        self.testlist = testlist
+        self.timeout = timeout
+        self.test_repo = testrepo
+        self.installtype = installtype
+        self.avocado_vt = avocado_vt
+        self.reinstall = reinstall
+        self.add_args = add_args
+        self.ignore_result = "yes" if ignore_result else "no"
+        self.session = None
+        self.test_path = self.params.get("vm_test_path", "/var/tmp/avocado/")
+        self.kvm_module = self.params.get("nested_kvm_module", "kvm_hv")
+        self.result_path = os.path.join(self.test_path, "results")
+        self.avocado_repo = self.params.get("avocado_repo_path",
+                                            "https://github.com/avocado-framework/avocado.git")
+        self.avocado_repo_branch = self.params.get("avocado_repo_branch", "")
+        self.plugins = {'pip': ['avocado-framework-plugin-varianter-yaml-to-mux', 'avocado-framework-plugin-result-html'],
+                        'package': [],
+                        'git': ['varianter_yaml_to_mux', 'html']}
+        self.plugins_path = os.path.join(self.test_path,
+                                         self.repo_name(self.avocado_repo),
+                                         "optional_plugins")
+        self.prerequisites = {'packages': ['git'],
+                              'python': ['python', 'python-pip', 'python-devel'],
+                              'python2': ['python2', 'python2-pip', 'python2-devel']}
+        if self.avocado_vt:
+            self.vt_type = self.params.get("vt_type", "qemu")
+            self.vt_arch = self.params.get("vt_arch", "")
+            self.vt_only_filter = self.params.get("vt_only_filter", "")
+            self.vt_no_filter = self.params.get("vt_no_filter", "")
+            self.vt_extra_params = self.params.get("vt_extra_params", "")
+            self.guest_image = self.params.get("vt_guest_image", "")
+            vt_package_list = ['attr', 'gcc', '@Virtualization*', 'tcpdump']
+            self.prerequisites['packages'].extend(vt_package_list)
+            if self.installtype == 'pip':
+                self.plugins['pip'].append('avocado-framework-plugin-avocado-vt')
+            elif self.installtype == 'git':
+                self.avocado_vt_repo = self.params.get("avocado_vt_repo",
+                                                       "https://github.com/avocado-framework/avocado-vt.git")
+                self.avocado_vt_repo_branch = self.params.get("avocado_vt_repo_branch", "")
+        if not self.env_check():
+            raise exceptions.TestError("avocado env check failed, "
+                                       "consult previous errors")
+        if not self.install_avocado():
+            raise exceptions.TestError("avocado installation failed, "
+                                       "consult previous errors")
+
+    @session_handler
+    def env_check(self):
         """
         Check prerequisites
         """
         # TODO: Try installing the prerequisites
-        err_msg = "Following packages not availale: "
-        check = True
-        for item in prerequisites:
-            cmd = "which %s" % item
-            if session.cmd_status(cmd) > 0:
-                check = False
-                err_msg += "%s " % item
-        if not check:
-            err_msg += "\nConsider install them and rerun"
-            raise exceptions.TestError(err_msg)
+        for _, packages in self.prerequisites.iteritems():
+            pacman = utils_package.package_manager(self.session, packages)
+            if not pacman.install(timeout=self.timeout):
+                logging.error("Failed to install - %s", packages)
+        self.python = find_python(self.session, compat='python')
+        if not self.python:
+            logging.error("Unable to find python.")
+            return False
+        self.pip_bin = find_bin(self.session, ['pip', 'pip2', 'pip3'])
+        if not utils_misc.make_dirs(self.test_path, session=self.session):
+            logging.error("Failed to create test path in guest")
+            return False
+        if self.avocado_vt:
+            cmd = "lsmod | grep %s || modprobe %s" % (self.kvm_module,
+                                                      self.kvm_module)
+            if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
+                logging.error("nested kvm module not available")
+                return False
+            cmd = "service libvirtd restart"
+            if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
+                logging.error("Failed to restart libvirtd inside guest")
+                return False
+            pip_pack = ['setuptools', 'netifaces', 'aexpect', 'netaddr']
+            cmd = ""
+            for each in pip_pack:
+                cmd += "%s install %s --upgrade;" % (self.pip_bin, each)
+            if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
+                logging.error("Failed to update pip and its packages")
+                return False
+        if not utils_misc.make_dirs(self.result_path, session=self.session):
+            logging.error("Failed to create result path in guest")
+            return False
+        return True
 
-    def install_avocado(installtype="pip"):
+    @session_handler
+    def install_avocado(self):
         """
-        Install avocado
+        Method to install Avocado/Avocado-VT and its plugins
         """
         logging.debug("Installing avocado")
         status = 0
-        if (session.cmd_status("which avocado") == 0) and not reinstall:
+        if (self.session.cmd_status("which avocado") == 0) and not self.reinstall:
             return True
-        if "pip" in installtype:
-            python = find_python(session)
-            if not python:
-                logging.error("Unable to find python.")
-                return False
-
-            cmd = "%s -m pip --version" % python
-            if session.cmd_status(cmd) > 0:
-                logging.debug("pip is not found. Attempt to install it.")
-                cmd = "%s -c \"import os; import sys;" % python
-                cmd += " from six.moves import urllib;" \
-                       "f = urllib.request.urlretrieve(\'https://bootstrap.pypa.io/get-pip.py\')[0]; "
-                cmd += "os.system(\'%s %s\' % (sys.executable, f))\""
-                status, output = session.cmd_status_output(cmd)
-                if status > 0:
-                    logging.error("pip installation failed:\n%s" % output)
-                    return False
-            pip_install_cmd = "%s -m pip install" % python
+        if "pip" in self.installtype:
+            pip_install_cmd = "%s install" % self.pip_bin
             cmd = "%s avocado-framework" % pip_install_cmd
-            status, output = session.cmd_status_output(cmd)
-            if status > 0:
+            status, output = self.session.cmd_status_output(cmd, timeout=self.timeout)
+            if status != 0:
                 logging.error("Avocado pip installation failed:\n%s", output)
                 return False
-            for plugin in plugins[installtype]:
+            for plugin in self.plugins[self.installtype]:
                 cmd = "%s %s" % (pip_install_cmd, plugin)
-                status, output = session.cmd_status_output(cmd)
-                if status > 0:
+                status, output = self.session.cmd_status_output(cmd, timeout=self.timeout)
+                if status != 0:
                     logging.error("Avocado plugin %s pip "
                                   "installation failed:\n%s", plugin, output)
                     return False
-        elif "package" in installtype:
+        elif "package" in self.installtype:
             raise NotImplementedError
-        elif "git" in installtype:
-            test_path = params.get("vm_test_path", "/var/tmp/avocado/")
-            cmd = "git clone https://github.com/avocado-framework/avocado.git;"
-            cmd += "cd avocado;%s setup.py install" % python
-            if session.cmd_status(cmd) > 0:
+        elif "git" in self.installtype:
+            if not self.git_install(self.avocado_repo,
+                                    branch=self.avocado_repo_branch):
                 logging.error("Avocado git installation failed")
                 return False
-            for plugin in plugins[installtype]:
-                cmd = "[ -d optional_plugins/%s ] && cd optional_plugins/" % plugin
-                cmd += "%s && %s setup.py install && cd .." % (plugin, python)
-                if session.cmd_status(cmd) > 0:
+            for plugin in self.plugins[self.installtype]:
+                cmd = "cd %s;" % os.path.join(self.plugins_path, plugin)
+                cmd += "%s setup.py install" % self.python
+                if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
                     logging.error("Avocado plugin %s git "
                                   "installation failed", plugin)
                     return False
+            if self.avocado_vt and not self.git_install(self.avocado_vt_repo,
+                                                        make='requirements',
+                                                        branch=self.avocado_vt_repo_branch):
+                logging.error("Avocado-VT git installation failed")
+                return False
         return True
 
-    def runtest(session, testrepo, testlist, timeout, result_path, test_path):
+    def git_install(self, repo_path, branch="", make="", install=True):
         """
-        run test
+        method to clone and install from git repo inside guest
+
+        :param repo_path: repo link to be cloned
         """
-        success = True
 
-        cmd = "[ -n \"$(ls %s)\" ]" % test_path
-        if session.cmd_status(cmd) > 0:
-            cmd = "mkdir -p %s" % test_path
-            session.cmd(cmd)
+        cmd = "cd %s;" % self.test_path
+        cmd += "rm -rf %s" % self.repo_name(repo_path)
+        self.session.cmd(cmd, timeout=self.timeout)
+        cmd = "git clone %s" % repo_path
+        if branch:
+            cmd += " -b %s" % branch
+        cmd += " && cd %s;" % self.repo_name(repo_path)
+        if make:
+            cmd += "make %s;" % make
+        if install:
+            cmd += "%s setup.py install" % self.python
+        return self.session.cmd_status(cmd, timeout=self.timeout) == 0
 
-        cmd = "[ -n \"$(ls %s)\" ]" % result_path
-        if session.cmd_status(cmd) > 0:
-            cmd = "mkdir -p %s" % result_path
-            session.cmd(cmd)
+    def repo_name(self, repo_path):
+        """ Wrapper to return the repo name """
+        return repo_path.split(os.sep)[-1].split(".")[0]
 
+    def runtest(self):
+        """
+        Run test method to download the tests and trigger avocado command
+        """
         logging.debug("Downloading Test")
-        cmd = "cd %s;[ -d %s ] || git clone %s" % (test_path,
-                                                   testrepo.split(
-                                                       "/")[-1].split('.')[0],
-                                                   testrepo)
-        status, output = session.cmd_status_output(cmd, timeout=100)
-        if status > 0:
-            raise exceptions.TestError("Downloading test failed: %s" % output)
-        logging.debug("Running Test")
-        for test in testlist:
-            mux = ""
-            testcase = test[0]
-            testcase = os.path.join(test_path,
-                                    testrepo.split("/")[-1].split('.')[0],
-                                    testcase)
-            try:
-                mux = test[1]
-            except KeyError:
-                pass
-            cmd = "avocado run %s --job-results-dir %s --job-timeout %d" % (
-                testcase, result_path, timeout)
-            if mux:
-                cmd += " -m %s" % mux
-            if add_args:
-                cmd += " %s" % add_args
-            status, output = session.cmd_status_output(cmd, timeout=timeout)
-            if status > 0:
-                # TODO: Map test return status with error strings and print
-                logging.error("Testcase: %s has failures consult "
-                              "the logs for details\nstatus: "
-                              "%s\nstdout: %s", testcase, status, output)
-                success = False
-        return success
+        if self.avocado_vt:
+            cmd = "avocado vt-bootstrap --yes-to-all"
+            if self.vt_type:
+                cmd += " --vt-type %s" % self.vt_type
+            if self.guest_image:
+                cmd += " --vt-guest-os %s" % self.guest_image
+            if self.vt_arch:
+                cmd += ".%s" % self.vt_arch
+            status, output = self.session.cmd_status_output(cmd, timeout=self.timeout)
+            if status != 0:
+                raise exceptions.TestError("Downloading test failed: %s" % output)
+        else:
+            if not self.git_install(self.test_repo, install=False):
+                raise exceptions.TestError("Downloading test failed")
 
-    def get_results(test_path, result_path, session):
+        logging.debug("Running Test")
+        avocado_cmd = "avocado run"
+        if self.avocado_vt:
+            avocado_cmd += " %s" % self.testlist[0].strip()
+            if self.vt_type:
+                avocado_cmd += " --vt-type %s" % self.vt_type
+            if self.vt_only_filter:
+                avocado_cmd += " --vt-only-filter %s" % self.vt_only_filter
+            if self.vt_no_filter:
+                avocado_cmd += " --vt-no-filter %s" % self.vt_no_filter
+            if self.vt_arch:
+                avocado_cmd += " --vt-arch %s" % self.vt_arch
+            if self.vt_extra_params:
+                avocado_cmd += " --vt-extra-params %s" % self.vt_extra_params
+        else:
+            for test_each in self.testlist:
+                mux = ""
+                testcase = test_each[0]
+                testcase = os.path.join(self.test_path,
+                                        self.repo_name(self.test_repo),
+                                        testcase)
+                avocado_cmd += " %s" % testcase
+                try:
+                    mux = test_each[1]
+                except KeyError:
+                    pass
+                if mux:
+                    avocado_cmd += " -m %s" % mux
+        if self.add_args:
+            avocado_cmd += " %s" % self.add_args
+        avocado_cmd += " --job-results-dir %s --job-timeout %d" % (self.result_path,
+                                                                   self.timeout)
+        status, output = self.session.cmd_status_output(avocado_cmd,
+                                                        timeout=self.timeout)
+        if status != 0:
+            # TODO: Map test return status with error strings and print
+            logging.error("Avocado cmd: %s has failures consult "
+                          "the logs for details\nstatus: "
+                          "%s\nstdout: %s", avocado_cmd, status, output)
+        return status == 0
+
+    def get_results(self):
         """
         Copy avocado results present on the guest back to the host.
         """
         logging.debug("Trying to copy avocado results from guest")
-        cmd = "[ -n \"$(ls %s)\" ]" % result_path
-        if session.cmd_status(cmd) > 0:
-            raise exceptions.TestError("No results folder found")
-        guest_results_dir = utils_misc.get_path(test.debugdir,
-                                                "guest_avocado_results")
+        guest_results_dir = utils_misc.get_path(self.test.debugdir,
+                                                self.vm.name)
         os.makedirs(guest_results_dir)
         logging.debug("Guest avocado test results placed "
                       "under %s", guest_results_dir)
         # result info tarball to host result dir
-        results_tarball = os.path.join(test_path, "results.tgz")
-        compress_cmd = "cd %s && " % result_path
+        results_tarball = os.path.join(self.test_path, "results.tgz")
+        compress_cmd = "cd %s && " % self.result_path
         compress_cmd += "tar cjvf %s" % results_tarball
         compress_cmd += " --exclude=*core*"
         compress_cmd += " --exclude=*crash*"
         compress_cmd += " ./*"
-        session.cmd(compress_cmd, timeout=600)
-        vm.copy_files_from(results_tarball, guest_results_dir)
+        self.session.cmd(compress_cmd, timeout=self.timeout)
+        self.vm.copy_files_from(results_tarball, guest_results_dir)
         # cleanup results dir from guest
-        clean_cmd = "rm -f %s;rm -rf %s" % (results_tarball, result_path)
-        session.cmd(clean_cmd, timeout=240)
+        clean_cmd = "rm -f %s;rm -rf %s" % (results_tarball, self.result_path)
+        self.session.cmd(clean_cmd, timeout=self.timeout)
         results_tarball = os.path.basename(results_tarball)
         results_tarball = os.path.join(guest_results_dir, results_tarball)
         uncompress_cmd = "tar xjvf %s -C %s" % (results_tarball,
@@ -1019,28 +1141,32 @@ def run_avocado(vm, params, test, testlist=[], timeout=3600,
         process.run(uncompress_cmd)
         process.run("rm -f %s" % results_tarball)
 
-    # Run test
-    try:
-        session = vm.wait_for_login()
-    except Exception:
-        raise exceptions.TestError("Unable to get VM session, "
-                                   "skipped to run avocado test")
+    def get_session(self):
+        """
+        Method to get the session of the vm instance
+        """
+        try:
+            return self.vm.wait_for_login()
+        except aexpect.ShellError as detail:
+            raise exceptions.TestError("Unable to get VM session, "
+                                       "skipped to run avocado test: %s" %
+                                       detail)
 
-    test_path = params.get("vm_test_path", "/var/tmp/avocado/")
-    result_path = os.path.join(test_path, "results")
-    if not install_avocado(installtype):
-        exceptions.TestError("avocado installation failed, "
-                             "consult previous errors")
-    test_status = runtest(session, testrepo, testlist,
-                          timeout, result_path, test_path)
-    get_results(test_path, result_path, session)
-    # Cleanup
-    session.cmd("rm -rf %s" % test_path)
-
-    if not test_status and not ignore_result:
-        exceptions.TestFail("consult previous errors")
-    else:
-        return test_status
+    @session_handler
+    def run_avocado(self):
+        """
+        Method to run avocado, check dmesg and copy the results to host
+        """
+        try:
+            self.vm.params["guest_dmesg_ignore"] = self.ignore_result
+            test_status = self.runtest()
+            if not test_status and not self.ignore_result:
+                raise exceptions.TestFail("consult previous errors")
+            return test_status
+        finally:
+            self.get_results()
+            # Cleanup
+            self.session.cmd("rm -rf %s" % self.test_path, timeout=self.timeout)
 
 
 def run_autotest(vm, session, control_path, timeout,
@@ -1859,7 +1985,8 @@ def get_date(session=None):
         raise exceptions.TestFail("Get date failed. %s " % detail)
 
 
-def run_avocado_bg(vm, params, test):
+def run_avocado_bg(vm, params, test, testlist=[], avocado_vt=False,
+                   ignore_status=True):
     """
     Function to run avocado tests inside guest in background
 
@@ -1868,33 +1995,21 @@ def run_avocado_bg(vm, params, test):
     :param test: test object
     :return: background test thread
     """
-    testlist = []
-    avocado_test = params.get("avocado_test", "")
-    avocado_mux = params.get("avocado_mux", "")
     avocado_testargs = params.get("avocado_testargs", "")
     avocado_timeout = int(params.get("avocado_timeout", 3600))
     avocado_testrepo = params.get("avocado_testrepo",
                                   "https://github.com/avocado-framework-tests/avocado-misc-tests.git")
-    avocado_reinstall = params.get("avocado_reinstall", False)
-    avocado_installtype = params.get("avocado_installtype", "pip")
-    avocado_ignoreresult = params.get("avocado_ignoreresult", False)
-    for index, item in enumerate(avocado_test.split(',')):
-        try:
-            mux = ''
-            mux = avocado_mux.split(',')[index]
-        except IndexError:
-            pass
-        testlist.append((item, mux))
-    if testlist:
-        bt = BackgroundTest(run_avocado,
-                            [vm, params, test, testlist,
-                             avocado_timeout, avocado_testrepo,
-                             avocado_installtype, avocado_reinstall,
-                             avocado_testargs, avocado_ignoreresult])
+    try:
+        avocado_obj = AvocadoGuest(vm, params, test, testlist, avocado_timeout,
+                                   avocado_testrepo, installtype="pip",
+                                   avocado_vt=avocado_vt, reinstall=True,
+                                   add_args=avocado_testargs,
+                                   ignore_result=ignore_status)
+        bt = BackgroundTest(avocado_obj.run_avocado, params)
         bt.start()
         return bt
-    else:
-        logging.warning("Background guest tests not run")
+    except Exception as info:
+        logging.warning("Background guest tests not run: %s", info)
         return None
 
 
@@ -1911,22 +2026,6 @@ class StressError(Exception):
 
     def __str__(self):
         return self.msg
-
-
-def session_handler(func):
-    """
-    decorator method to handle session for Stress
-    """
-
-    def manage_session(self):
-        try:
-            if self.vm or self.remote_host:
-                self.session = self.get_session()
-            return func(self)
-        finally:
-            if self.vm or self.remote_host:
-                self.session.close()
-    return manage_session
 
 
 class Stress(object):
