@@ -2465,6 +2465,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     secret_type = params.get("secret_type")
     secret_usage = params.get("secret_usage")
     secret_uuid = params.get("secret_uuid")
+    enable_cache = "yes" == params.get("enable_cache", "yes")
     driver_cache = params.get("driver_cache", "none")
     disk_params = {'device_type': disk_device,
                    'disk_snapshot_attr': disk_snapshot_attr,
@@ -2472,7 +2473,6 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                    'target_dev': disk_target,
                    'target_bus': disk_target_bus,
                    'driver_type': disk_format,
-                   'driver_cache': driver_cache,
                    'driver_iothread': driver_iothread,
                    'sec_model': sec_model,
                    'relabel': relabel,
@@ -2482,6 +2482,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                    'secret_uuid': secret_uuid,
                    'secret_usage': secret_usage}
 
+    if enable_cache:
+        disk_params['driver_cache'] = driver_cache
     if not tmp_dir:
         tmp_dir = data_dir.get_tmp_dir()
 
