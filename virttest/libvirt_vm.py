@@ -509,45 +509,63 @@ class VM(virt_vm.BaseVM):
                 cmd += ",threads=%s" % threads
             return cmd
 
-        def add_numa(vcpus, max_mem, numa_nodes):
+        def add_numa():
             """
             Method to add Numa node to guest
-
-            :param vcpus: vcpus of guest
-            :param max_mem: max memory of guest
-            :param numa_nodes: No of guest numa nodes required
-
             :return: appended numa parameter to virt-install cmd
             """
             if not has_sub_option('cpu', 'cell'):
+                logging.warning("virt-install version does not support numa cmd line")
                 return ""
             cmd = " --cpu"
             cell = "cell%s.cpus=%s,cell%s.id=%s,cell%s.memory=%s"
             cells = ""
+            numa_val = {}
+            for numa_node in params.objects("guest_numa_nodes"):
+                numa_params = params.object_params(numa_node)
+                numa_mem = numa_params.get("numa_mem")
+                numa_cpus = numa_params.get("numa_cpus")
+                numa_nodeid = numa_params.get("numa_nodeid")
+                numa_memdev = numa_params.get("numa_memdev")
+                numa_val[numa_nodeid] = [numa_cpus, numa_mem, numa_memdev]
 
-            # we need atleast 1 vcpu for 1 numa node
-            if numa_nodes > vcpus:
-                numa_nodes = vcpus
-                params['numa_nodes'] = vcpus
-            if vcpus > 1:
-                cpus = vcpus // numa_nodes
-                cpus_balance = vcpus % numa_nodes
-                memory = max_mem // numa_nodes
-                memory_balance = max_mem % numa_nodes
+            if numa_val:
+                for cellid, value in numa_val.items():
+                    cells += "%s," % cell % (cellid, value[0], cellid, cellid, cellid, value[1])
             else:
-                cpus = vcpus
-                memory = max_mem
-            cpu_start = 0
-            for numa in range(numa_nodes):
-                if numa == numa_nodes - 1 and vcpus > 1:
-                    cpus = cpus + cpus_balance
-                    memory = memory + memory_balance
-                if cpus == 1:
-                    cpu_str = "%s" % (cpu_start + (cpus - 1))
+                # Lets calculate and assign the node cpu and memory
+                vcpus = params.get("smp")
+                vcpu_max_cpus = params.get("vcpu_maxcpus")
+                max_mem = int(params.get("mem")) * 1024
+                maxmemory = params.get("maxmemory", None)
+                numa_nodes = int(params.get("numa_nodes", 2))
+                if vcpu_max_cpus:
+                    vcpus = int(vcpu_max_cpus)
+                if maxmemory:
+                    max_mem = int(maxmemory) * 1024
+                # we need atleast 1 vcpu for 1 numa node
+                if numa_nodes > vcpus:
+                    numa_nodes = vcpus
+                    params['numa_nodes'] = vcpus
+                if vcpus > 1:
+                    cpus = vcpus // numa_nodes
+                    cpus_balance = vcpus % numa_nodes
+                    memory = max_mem // numa_nodes
+                    memory_balance = max_mem % numa_nodes
                 else:
-                    cpu_str = "%s-%s" % (cpu_start, cpu_start + (cpus - 1))
-                cpu_start += cpus
-                cells += "%s," % cell % (numa, cpu_str, numa, numa, numa, memory)
+                    cpus = vcpus
+                    memory = max_mem
+                cpu_start = 0
+                for numa in range(numa_nodes):
+                    if numa == numa_nodes - 1 and vcpus > 1:
+                        cpus = cpus + cpus_balance
+                        memory = memory + memory_balance
+                    if cpus == 1:
+                        cpu_str = "%s" % (cpu_start + (cpus - 1))
+                    else:
+                        cpu_str = "%s-%s" % (cpu_start, cpu_start + (cpus - 1))
+                    cpu_start += cpus
+                    cells += "%s," % cell % (numa, cpu_str, numa, numa, numa, memory)
             cmd += " %s" % cells
             return cmd.strip(",")
 
@@ -998,17 +1016,7 @@ class VM(virt_vm.BaseVM):
                                         vcpu_sockets, vcpu_cores, vcpu_threads)
         numa = params.get("numa", "no") == "yes"
         if numa:
-            # Number of numa nodes required can be set in param
-            numa_nodes = int(params.get("numa_nodes", 2))
-            numa_vcpus = int(smp)
-            # virt-install takes --memory in MiB but --cpu cell adds numa
-            # memory in KiB by default
-            numa_memory = int(mem) * 1024
-            if vcpu_max_cpus:
-                numa_vcpus = int(vcpu_max_cpus)
-            if maxmemory:
-                numa_memory = int(maxmemory)
-            virt_install_cmd += add_numa(numa_vcpus, numa_memory, numa_nodes)
+            virt_install_cmd += add_numa()
             if params.get("numa_pin", "no") == "yes":
                 # Get online host numa nodes
                 host_numa_node = utils_misc.NumaInfo()
