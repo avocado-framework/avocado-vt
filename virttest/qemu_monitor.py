@@ -356,7 +356,7 @@ class Monitor:
             timestr = time.strftime("%Y-%m-%d %H:%M:%S")
             try:
                 if log not in self.open_log_files:
-                    self.open_log_files[log] = open(log, "w")
+                    self.open_log_files[log] = open(log, "a")
                 for line in log_str.splitlines():
                     self.open_log_files[log].write(
                         "%s: %s\n" % (timestr, line))
