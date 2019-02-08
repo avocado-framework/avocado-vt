@@ -16,11 +16,11 @@ SHORT_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%h' -n 1)
 all:
 	@echo
 	@echo "Development related targets:"
-	@echo "check:  Runs tree static check, unittests and functional tests"
-	@echo "develop: Runs 'python setup.py --develop' on this tree alone"
-	@echo "clean:  Get rid of scratch and byte files"
-	@echo "link:  Enables egg links and links needed resources"
-	@echo "unlink:  Disables egg links and unlinks needed resources"
+	@echo "check:    Runs tree static check, unittests and fast functional tests"
+	@echo "develop:  Runs 'python setup.py --develop' on this tree alone"
+	@echo "link:     Runs 'python setup.py --develop' in all subprojects and links the needed resources"
+	@echo "clean:    Get rid of scratch, byte files and removes the links to other subprojects"
+	@echo "unlink:   Disables egg links and unlinks needed resources"
 	@echo
 	@echo "Platform independent distribution/installtion related targets:"
 	@echo "source:   Create source package"
