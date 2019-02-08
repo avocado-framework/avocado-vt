@@ -17,6 +17,7 @@ all:
 	@echo
 	@echo "Development related targets:"
 	@echo "check:  Runs tree static check, unittests and functional tests"
+	@echo "develop: Runs 'python setup.py --develop' on this tree alone"
 	@echo "clean:  Get rid of scratch and byte files"
 	@echo "link:  Enables egg links and links needed resources"
 	@echo "unlink:  Disables egg links and unlinks needed resources"
@@ -100,12 +101,14 @@ clean:
 	rm -rf build/ MANIFEST BUILD BUILDROOT SPECS RPMS SRPMS SOURCES
 	find . -name '*.pyc' -delete
 
-link:
+develop:
+	$(PYTHON) setup.py develop $(PYTHON_DEVELOP_ARGS)
+
+link: develop
 	for CONF in etc/avocado/conf.d/*; do\
 		[ -d "../$(AVOCADO_DIRNAME)/avocado/etc/avocado/conf.d" ] && ln -srf $(CURDIR)/$$CONF ../$(AVOCADO_DIRNAME)/avocado/$$CONF || true;\
 		[ -d "../$(AVOCADO_DIRNAME)/etc/avocado/conf.d" ] && ln -srf $(CURDIR)/$$CONF ../$(AVOCADO_DIRNAME)/$$CONF || true;\
 	done
-	$(PYTHON) setup.py develop  $(PYTHON_DEVELOP_ARGS)
 
 unlink:
 	$(PYTHON) setup.py develop --uninstall $(PYTHON_DEVELOP_ARGS)
