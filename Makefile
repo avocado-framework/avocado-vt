@@ -10,7 +10,13 @@ RELEASE_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%H' -n 1 $(VERSION))
 RELEASE_SHORT_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%h' -n 1 $(VERSION))
 
 COMMIT=$(shell git log --abbrev=8 --pretty=format:'%H' -n 1)
+COMMIT_DATE=$(shell git log --pretty='format:%cd' --date='format:%Y%m%d' -n 1)
 SHORT_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%h' -n 1)
+MOCK_CONFIG=default
+ARCHIVE_BASE_NAME=avocado-vt
+RPM_BASE_NAME=avocado-plugins-vt
+
+include Makefile.include
 
 all:
 	@echo
@@ -35,35 +41,7 @@ all:
 	@echo "rpm-release:     Generate binary RPMs for the latest tagged release"
 	@echo
 
-
-source: clean
-	if test ! -d SOURCES; then mkdir SOURCES; fi
-	git archive --prefix="avocado-vt-$(COMMIT)/" -o "SOURCES/avocado-vt-$(VERSION)-$(SHORT_COMMIT).tar.gz" HEAD
-
-source-release: clean
-	if test ! -d SOURCES; then mkdir SOURCES; fi
-	git archive --prefix="avocado-plugins-vt-$(RELEASE_COMMIT)/" -o "SOURCES/avocado-plugins-vt-$(VERSION)-$(RELEASE_SHORT_COMMIT).tar.gz" $(VERSION)
-
-install:
-	$(PYTHON) setup.py install --root $(DESTDIR) $(COMPILE)
-
-srpm: source
-	if test ! -d BUILD/SRPM; then mkdir -p BUILD/SRPM; fi
-	mock --old-chroot --resultdir BUILD/SRPM -D "commit $(COMMIT)" --buildsrpm --spec avocado-plugins-vt.spec --sources SOURCES
-
-rpm: srpm
-	if test ! -d BUILD/RPM; then mkdir -p BUILD/RPM; fi
-	mock --old-chroot --resultdir BUILD/RPM -D "commit $(COMMIT)" --rebuild BUILD/SRPM/avocado-plugins-vt-$(VERSION)-*.src.rpm
-
-srpm-release: source-release
-	if test ! -d BUILD/SRPM; then mkdir -p BUILD/SRPM; fi
-	mock --old-chroot --resultdir BUILD/SRPM -D "commit $(RELEASE_COMMIT)" --buildsrpm --spec avocado-plugins-vt.spec --sources SOURCES
-
-rpm-release: srpm-release
-	if test ! -d BUILD/RPM; then mkdir -p BUILD/RPM; fi
-	mock --old-chroot --resultdir BUILD/RPM -D "commit $(RELEASE_COMMIT)" --rebuild BUILD/SRPM/avocado-plugins-vt-$(VERSION)-*.src.rpm
-
-requirements:
+requirements: pip
 	- $(PYTHON) -m pip install "pip>=6.0.1"
 	- $(PYTHON) -m pip install -r requirements.txt
 
