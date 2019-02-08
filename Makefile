@@ -4,7 +4,6 @@ endif
 VERSION=$(shell $(PYTHON) setup.py --version 2>/dev/null)
 PYTHON_DEVELOP_ARGS=$(shell if ($(PYTHON) setup.py develop --help 2>/dev/null | grep -q '\-\-user'); then echo "--user"; else echo ""; fi)
 DESTDIR=/
-PROJECT=avocado
 AVOCADO_DIRNAME?=avocado
 
 RELEASE_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%H' -n 1 $(VERSION))
@@ -30,11 +29,6 @@ all:
 	@echo "srpm:  Generate a source RPM package (.srpm)"
 	@echo "rpm:   Generate binary RPMs"
 	@echo
-	@echo "Debian related targets:"
-	@echo "deb:      Generate both source and binary debian packages"
-	@echo "deb-src:  Generate a source debian package"
-	@echo "deb-bin:  Generate a binary debian package"
-	@echo
 	@echo "Release related targets:"
 	@echo "source-release:  Create source package for the latest tagged release"
 	@echo "srpm-release:    Generate a source RPM package (.srpm) for the latest tagged release"
@@ -52,25 +46,6 @@ source-release: clean
 
 install:
 	$(PYTHON) setup.py install --root $(DESTDIR) $(COMPILE)
-
-prepare-source:
-	# build the source package in the parent directory
-	# then rename it to project_version.orig.tar.gz
-	dch -D "vivid" -M -v "$(VERSION)" "Automated (make builddeb) build."
-	$(PYTHON) setup.py sdist $(COMPILE) --dist-dir=../ --prune
-	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' ../*
-
-deb-src: prepare-source
-	# build the source package
-	dpkg-buildpackage -S -elookkas@gmail.com -rfakeroot
-
-deb-bin: prepare-source
-	# build binary package
-	dpkg-buildpackage -b -rfakeroot
-
-deb: prepare-source
-	# build both source and binary packages
-	dpkg-buildpackage -i -I -rfakeroot
 
 srpm: source
 	if test ! -d BUILD/SRPM; then mkdir -p BUILD/SRPM; fi
@@ -97,7 +72,6 @@ check:
 
 clean:
 	$(PYTHON) setup.py clean
-	$(MAKE) -f $(CURDIR)/debian/rules clean || true
 	rm -rf build/ MANIFEST BUILD BUILDROOT SPECS RPMS SRPMS SOURCES
 	find . -name '*.pyc' -delete
 
