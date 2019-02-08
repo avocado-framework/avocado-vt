@@ -1,4 +1,6 @@
-PYTHON=$(shell which python 2>/dev/null || which python3 2>/dev/null)
+ifndef PYTHON
+PYTHON=$(shell which python3 2>/dev/null || which python2 2>/dev/null || which python 2>/dev/null)
+endif
 PYTHON_DEVELOP_ARGS=$(shell if ($(PYTHON) setup.py develop --help 2>/dev/null | grep -q '\-\-user'); then echo "--user"; else echo ""; fi)
 DESTDIR=/
 BUILDIR=$(CURDIR)/debian/avocado-vt
