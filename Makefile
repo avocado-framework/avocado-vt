@@ -4,7 +4,6 @@ endif
 VERSION=$(shell $(PYTHON) setup.py --version 2>/dev/null)
 PYTHON_DEVELOP_ARGS=$(shell if ($(PYTHON) setup.py develop --help 2>/dev/null | grep -q '\-\-user'); then echo "--user"; else echo ""; fi)
 DESTDIR=/
-BUILDIR=$(CURDIR)/debian/avocado-vt
 PROJECT=avocado
 AVOCADO_DIRNAME?=avocado
 
