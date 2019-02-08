@@ -1,11 +1,11 @@
 ifndef PYTHON
 PYTHON=$(shell which python3 2>/dev/null || which python2 2>/dev/null || which python 2>/dev/null)
 endif
+VERSION=$(shell $(PYTHON) setup.py --version 2>/dev/null)
 PYTHON_DEVELOP_ARGS=$(shell if ($(PYTHON) setup.py develop --help 2>/dev/null | grep -q '\-\-user'); then echo "--user"; else echo ""; fi)
 DESTDIR=/
 BUILDIR=$(CURDIR)/debian/avocado-vt
 PROJECT=avocado
-VERSION=$(shell cat $(CURDIR)/VERSION)
 AVOCADO_DIRNAME?=avocado
 
 RELEASE_COMMIT=$(shell git log --abbrev=8 --pretty=format:'%H' -n 1 $(VERSION))
