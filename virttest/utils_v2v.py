@@ -705,7 +705,11 @@ def v2v_cmd(params):
     vpx_dc = params.get('vpx_dc')
     esx_ip = params.get('esx_ip')
     opts_extra = params.get('v2v_opts')
-    v2v_timeout = params.get('v2v_timeout', 5400)
+    # Set v2v_timeout to 3 hours, the value can give v2v enough time to execute,
+    # and avoid v2v process be killed by mistake.
+    # the value is bigger than the timeout value in CI, so when some timeout
+    # really happens, CI will still interrupt the v2v process.
+    v2v_timeout = params.get('v2v_timeout', 10800)
     rhv_upload_opts = params.get('rhv_upload_opts')
 
     uri_obj = Uri(hypervisor)
