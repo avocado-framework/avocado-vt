@@ -284,7 +284,7 @@ class CmdSlave(object):
         self.stdin_pipe = None
         self.stdout_pipe = None
         self.stderr_pipe = None
-        self.async = False
+        self.asynchronous = False
         self.nohup = False
         self.manage = False
         self.msg = None
@@ -317,7 +317,7 @@ class CmdSlave(object):
             self.manage = True
             func_name = func_name[1:]
         if func_name[0] == "async":  # start command in new process.
-            self.async = True
+            self.asynchronous = True
             func_name = func_name[1:]
         if func_name[0] == "nohup":  # start command in new daemon process.
             self.nohup = True
@@ -351,7 +351,7 @@ class CmdSlave(object):
                                             **self.basecmd.kargs)
             self.basecmd._finished = True
             self.finish(commander)
-        elif self.async:  # start command in new process
+        elif self.asynchronous:  # start command in new process
             self.basecmd.results = self.__call_async__(commander)
             self.basecmd._async = True
         elif self.nohup:   # start command in new daemon process
