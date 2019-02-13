@@ -441,7 +441,8 @@ class FileReader(StrReader):
 
         :parse filename: The name of the input file.
         """
-        StrReader.__init__(self, open(filename).read())
+        with open(filename) as f:
+            StrReader.__init__(self, f.read())
         self.filename = filename
 
 
