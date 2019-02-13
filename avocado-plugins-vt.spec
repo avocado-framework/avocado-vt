@@ -33,8 +33,8 @@
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 67.0
-Release: 1%{?gitrel}%{?dist}
+Version: 68.0
+Release: 0%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -77,6 +77,14 @@ Xunit output, among others.
 Summary: %{summary}
 Requires: python2, python2-devel, python2-avocado >= 51.0, python2-aexpect
 Requires: python2-netaddr, python2-netifaces, python2-simplejson
+# For compatibility reasons, let's mark this package as one that
+# provides the same functionality as the old package name and also
+# one that obsoletes the old package name, so that the new name is
+# favored.  These could (and should) be removed in the future.
+# These changes are backed by the following guidelines:
+# https://fedoraproject.org/wiki/Upgrade_paths_%E2%80%94_renaming_or_splitting_packages
+Obsoletes: %{name} <= 67.0-1
+Provides: %{name} = %{version}-%{release}
 %{?python_provide:%python_provide python2-%{srcname}}
 %description -n python2-%{name}
 Avocado Virt Test is a plugin that lets you execute virt-tests
@@ -144,6 +152,9 @@ Xunit output, among others.
 
 
 %changelog
+* Wed Feb 13 2019 Cleber Rosa <cleber@redhat.com> - 68.0-0
+- New release
+
 * Sat Jan 5 2019 Plamen Dimitrov <pdimitrov@pevogam.com> - 67.0-1
 - Add support for release builds in addition to snapshot builds
 - Add python 3 package and thus support for python 3 RPMs
