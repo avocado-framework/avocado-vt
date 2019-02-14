@@ -1326,7 +1326,7 @@ class VM(virt_vm.BaseVM):
         virtinstall_qemu_cmdline = params.get("virtinstall_qemu_cmdline", "")
         if virtinstall_qemu_cmdline:
             if has_option(help_text, "qemu-commandline"):
-                virt_install_cmd += " --qemu-commandline=%s" % virtinstall_qemu_cmdline
+                virt_install_cmd += ' --qemu-commandline="%s"' % virtinstall_qemu_cmdline
 
         virtinstall_extra_args = params.get("virtinstall_extra_args", "")
         if virtinstall_extra_args:
