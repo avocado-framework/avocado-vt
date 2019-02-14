@@ -549,7 +549,7 @@ class StepMakerWindow(object):
         self.image.clear()
         self.image_width = 0
         self.image_height = 0
-        self.image_data = ""
+        self.image_data = b""
 
     def update_screendump_id(self, data_dir):
         if not self.image_data:

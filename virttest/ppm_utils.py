@@ -36,7 +36,7 @@ except ImportError:
 # Some directory/filename utils, for consistency
 
 
-def md5eval(data):
+def _md5eval(data):
     """
     Returns a md5 hash evaluator. This function is implemented in order to
     encapsulate objects in a way that is compatible with python 2.4 and
@@ -104,12 +104,11 @@ def image_read_from_ppm_file(filename):
     :return: A 3 element tuple containing the width, height and data of the
             image.
     """
-    fin = open(filename, "r")
-    fin.readline()
-    l2 = fin.readline()
-    fin.readline()
-    data = fin.read()
-    fin.close()
+    with open(filename, "rb") as fin:
+        fin.readline()
+        l2 = fin.readline()
+        fin.readline()
+        data = fin.read()
 
     (w, h) = list(map(int, l2.split()))
     return (w, h, data)
@@ -123,12 +122,11 @@ def image_write_to_ppm_file(filename, width, height, data):
     :param width: PPM file width (pixels)
     :param height: PPM file height (pixels)
     """
-    fout = open(filename, "w")
-    fout.write("P6\n")
-    fout.write("%d %d\n" % (width, height))
-    fout.write("255\n")
-    fout.write(data)
-    fout.close()
+    with open(filename, "wb") as fout:
+        fout.write(b"P6\n")
+        fout.write(("%d %d\n" % (width, height)).encode())
+        fout.write(b"255\n")
+        fout.write(data)
 
 
 def image_crop(width, height, data, x1, y1, dx, dy):
@@ -153,7 +151,7 @@ def image_crop(width, height, data, x1, y1, dx, dy):
         dx = width - x1
     if dy > height - y1:
         dy = height - y1
-    newdata = ""
+    newdata = b""
     index = (x1 + y1 * width) * 3
     for _ in range(dy):
         newdata += data[index:(index + dx * 3)]
@@ -170,7 +168,7 @@ def image_md5sum(width, height, data):
     :param data: PPM file data
     """
     header = "P6\n%d %d\n255\n" % (width, height)
-    hsh = md5eval(header)
+    hsh = _md5eval(header.encode())
     hsh.update(data)
     return hsh.hexdigest()
 
@@ -209,10 +207,10 @@ def image_verify_ppm_file(filename):
     try:
         size = os.path.getsize(filename)
         with open(filename, "rb") as fin:
-            assert(fin.readline().decode().strip() == "P6")
-            (width, height) = list(map(int, fin.readline().decode().split()))
+            assert(fin.readline().strip() == b"P6")
+            (width, height) = map(int, fin.readline().split())
             assert(width > 0 and height > 0)
-            assert(fin.readline().decode().strip() == "255")
+            assert(fin.readline().strip() == b"255")
             size_read = fin.tell()
         assert(size - size_read == width * height * 3)
         return True
