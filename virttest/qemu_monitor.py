@@ -2364,16 +2364,22 @@ class QMPMonitor(Monitor):
         """
         return self.cmd("inject-nmi")
 
-    def block_resize(self, device, size):
+    def block_resize(self, device, size, node_name=None):
         """
-        Resize the block device size
+        Resize the block device size.
 
-        :param device: Block device name
+        :param device: Block device name.
         :param size: Block device size need to set to. Unit is bytes.
-        :return: Command output
+        :param node_name: Graph node name to get the image resized.
+        :return: The response to the command.
         """
-        cmd = "block_resize device=%s,size=%s" % (device, size)
-        return self.send_args_cmd(cmd)
+        cmd = 'block_resize '
+        option = ['device', 'node-name', 'size']
+        value = [device, node_name, size]
+        for opt, val in zip(option, value):
+            if val is not None:
+                cmd += "{}={},".format(opt, val)
+        return self.send_args_cmd(cmd.rstrip(','))
 
     def eject_cdrom(self, device, force=False):
         """
@@ -2391,6 +2397,131 @@ class QMPMonitor(Monitor):
         cmd = "change"
         self.verify_supported_cmd(cmd)
         args = {"device": device, "target": target}
+        return self.cmd(cmd, args)
+
+    def blockdev_open_tray(self, dev_id, force=None):
+        """
+        Opens a block device's tray. If there is a block driver state tree
+        inserted as a medium, it will become inaccessible to the guest (but
+        it will remain associated to the block device, so closing the tray
+        will make it accessible again).
+
+        :param dev_id: The name or QOM path of the guest device.
+        :type dev_id: str
+        :param force: If false, an eject request will be sent to the guest if
+                      it has locked the tray (and the tray will not be opened
+                      immediately); if true, the tray will be opened regardless
+                      of whether it is locked.
+        :type force: bool
+        :return: The response of command.
+        """
+        cmd = "blockdev-open-tray"
+        self.verify_supported_cmd(cmd)
+        args = {"id": dev_id}
+        if force is not None:
+            args["force"] = force
+        return self.cmd(cmd, args)
+
+    def blockdev_close_tray(self, dev_id):
+        """
+        Closes a block device's tray. If there is a block driver state tree
+        associated with the block device (which is currently ejected), that
+        tree will be loaded as the medium.If the tray was already closed
+        before, this will be a no-op.
+
+        :param dev_id: The name or QOM path of the guest device.
+        :type dev_id: str
+        :return: The response of command.
+        """
+        cmd = "blockdev-close-tray"
+        self.verify_supported_cmd(cmd)
+        args = {"id": dev_id}
+        return self.cmd(cmd, args)
+
+    def blockdev_remove_medium(self, dev_id):
+        """
+        Removes a medium (a block driver state tree) from a block device. That
+        block device's tray must currently be open (unless there is no attached
+        guest device).
+
+        :param dev_id: The name or QOM path of the guest device.
+        :type dev_id: str
+        :return: The response of command.
+        """
+        cmd = "blockdev-remove-medium"
+        self.verify_supported_cmd(cmd)
+        args = {"id": dev_id}
+        return self.cmd(cmd, args)
+
+    def blockdev_insert_medium(self, dev_id, node_name):
+        """
+        Inserts a medium (a block driver state tree) into a block device. That
+        block device's tray must currently be open (unless there is no attached
+        guest device) and there must be no medium inserted already.
+
+        :param dev_id: The name or QOM path of the guest device.
+        :type dev_id: str
+        :param node_name: The name of a node in the block driver state graph.
+        :type node_name: str
+        :return: The response of command.
+        """
+        cmd = "blockdev-insert-medium"
+        self.verify_supported_cmd(cmd)
+        args = {"id": dev_id, "node-name": node_name}
+        return self.cmd(cmd, args)
+
+    def blockdev_change_medium(self, dev_id, filename, fmt=None, mode=None):
+        """
+        Changes the medium inserted into a block device by ejecting the current
+        medium and loading a new image file which is inserted as the new medium
+        (this command combines blockdev-open-tray, blockdev-remove-medium,
+        blockdev-insert-medium and blockdev-close-tray).
+
+        :param dev_id: The name or QOM path of the guest device.
+        :type dev_id: str
+        :param filename: The filename of the new image to be loaded.
+        :type filename: str
+        :param fmt: The format to open the new image.
+        :type fmt: str
+        :param mode: Change the read-only mode of the device.
+        :type mode: str
+        :return: The response of command.
+        """
+        cmd = "blockdev-change-medium"
+        self.verify_supported_cmd(cmd)
+        args = {"id": dev_id, "filename": filename}
+        if fmt is not None:
+            args["format"] = fmt
+        if mode is not None:
+            args["read-only-mode"] = mode
+        return self.cmd(cmd, args)
+
+    def blockdev_add(self, props):
+        """
+        Creates a new block device.
+
+        :param props: Dictionary with the blockdev-add parameters
+                      (property of block device).
+        :type props: dict
+        :return: The response of command.
+        """
+        cmd = "blockdev-add"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd, props)
+
+    def blockdev_del(self, node_name):
+        """
+        Deletes a block device that has been added using blockdev-add.
+        The command will fail if the node is attached to a device or is
+        otherwise being used.
+
+        :param node_name: Name of the graph node to delete.
+        :type node_name: str
+        :return: The response of command.
+        """
+        cmd = "blockdev-del"
+        self.verify_supported_cmd(cmd)
+        args = {"node-name": node_name}
         return self.cmd(cmd, args)
 
     def qom_set(self, path, qproperty, qvalue):
