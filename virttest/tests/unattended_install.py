@@ -523,6 +523,13 @@ class UnattendedInstallConfig(object):
                       self.virtio_balloon_path, self.virtio_viorng_path,
                       self.virtio_vioser_path, self.virtio_pvpanic_path,
                       self.virtio_vioinput_path]
+
+            # XXX: Force to replace the drive letter which loaded the
+            # virtio driver by the specified letter.
+            letter = self.params.get('virtio_drive_letter')
+            if letter is not None:
+                values = (re.sub(r'^\w+', letter, val) for val in values)
+
             for path, value in list(zip(paths, values)):
                 if value:
                     path_text = path.childNodes[0]
