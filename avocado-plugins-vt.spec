@@ -34,7 +34,7 @@
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 68.0
-Release: 0%{?gitrel}%{?dist}
+Release: 1%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -76,7 +76,13 @@ Xunit output, among others.
 %package -n python2-%{name}
 Summary: %{summary}
 Requires: python2, python2-devel, python2-avocado >= 51.0, python2-aexpect
-Requires: python2-netaddr, python2-netifaces, python2-simplejson
+Requires: python2-simplejson
+%if 0%{?rhel} == 7
+Requires: python-netaddr, python-netifaces
+%else
+Requires: python2-netaddr, python2-netifaces
+%endif
+
 # For compatibility reasons, let's mark this package as one that
 # provides the same functionality as the old package name and also
 # one that obsoletes the old package name, so that the new name is
@@ -152,6 +158,9 @@ Xunit output, among others.
 
 
 %changelog
+* Sat Feb 16 2019 Cleber Rosa <cleber@redhat.com> - 68.0-1
+- Use python2 requires on EL7
+
 * Wed Feb 13 2019 Cleber Rosa <cleber@redhat.com> - 68.0-0
 - New release
 
