@@ -3,7 +3,7 @@ Basic nfs support for Linux host. It can support the remote
 nfs mount and the local nfs set up and mount.
 """
 import re
-import os
+import aexpect
 import logging
 
 from avocado.utils import path
@@ -12,6 +12,7 @@ from avocado.utils import distro
 from avocado.core import exceptions
 
 from virttest import utils_misc
+from virttest import test_setup
 from virttest.utils_iptables import Iptables
 from virttest.utils_conn import SSHConnection
 from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
@@ -19,14 +20,19 @@ from virttest.compat_52lts import decode_to_text
 from virttest.staging import service
 
 
-def nfs_exported():
+def nfs_exported(session=None):
     """
     Get the list for nfs file system already exported
+
+    :param session: ShellSessionObject of remote/guest
 
     :return: a list of nfs that is already exported in system
     :rtype: a lit of nfs file system exported
     """
-    exportfs = decode_to_text(process.system_output("exportfs -v"))
+    func = process.system_output
+    if session:
+        func = session.cmd_output
+    exportfs = decode_to_text(func("exportfs -v"))
     if not exportfs:
         return {}
 
@@ -51,7 +57,7 @@ class Exportfs(object):
     Add or remove one entry to exported nfs file system.
     """
 
-    def __init__(self, path, client="*", options="", ori_exported=None):
+    def __init__(self, path, client="*", options="", ori_exported=None, session=None):
         if ori_exported is None:
             ori_exported = []
         self.path = path
@@ -61,6 +67,10 @@ class Exportfs(object):
         self.entry_tag = "%s_%s" % (self.path, self.client)
         self.already_exported = False
         self.ori_options = ""
+        self.session = session
+        self.func = process.getoutput
+        if self.session:
+            self.func = self.session.cmd_output
 
     def is_exported(self):
         """
@@ -69,7 +79,7 @@ class Exportfs(object):
         :return: If the entry is exported
         :rtype: Boolean
         """
-        ori_exported = self.ori_exported or nfs_exported()
+        ori_exported = self.ori_exported or nfs_exported(session=self.session)
         if self.entry_tag in list(ori_exported.keys()):
             return True
         return False
@@ -82,7 +92,7 @@ class Exportfs(object):
         :return: Need re export the entry or not
         :rtype: Boolean
         """
-        ori_exported = self.ori_exported or nfs_exported()
+        ori_exported = self.ori_exported or nfs_exported(session=self.session)
         if self.is_exported():
             exported_options = ori_exported[self.entry_tag]
             options = [_ for _ in self.options if _ not in exported_options]
@@ -97,7 +107,7 @@ class Exportfs(object):
         """
         if self.is_exported():
             unexport_cmd = "exportfs -u %s:%s" % (self.client, self.path)
-            process.system(unexport_cmd)
+            self.func(unexport_cmd)
         else:
             logging.warn("Target %s %s is not exported yet."
                          "Can not unexport it." % (self.client, self.path))
@@ -133,8 +143,8 @@ class Exportfs(object):
             export_cmd += " -o %s" % ",".join(self.options)
         export_cmd += " %s:%s" % (self.client, self.path)
         try:
-            process.system(export_cmd)
-        except process.CmdError as export_failed_err:
+            self.func(export_cmd)
+        except (process.CmdError, aexpect.ShellTimeoutError) as export_failed_err:
             logging.error("Can not export target: %s" % export_failed_err)
             return False
         return True
@@ -156,25 +166,44 @@ class Nfs(object):
         self.rm_mount_dir = False
         self.rm_export_dir = False
         self.unexportfs_in_clean = False
-        distro_details = distro.detect()
+        distro_details = distro.detect().name
+        self.session = None
+        self.setup_nfs_ip = params.get("nfs_server_ip", "127.0.0.1")
+        self.export_dir = (params.get("export_dir") or
+                           self.mount_src.split(":")[-1])
+        self.export_ip = params.get("export_ip", "*")
+        self.export_options = params.get("export_options", "").strip()
 
-        if params.get("setup_local_nfs") == "yes":
+        if params.get("setup_remote_nfs") == "yes":
             self.nfs_setup = True
+            self.setup_nfs_ip = params["nfs_server_ip"]
+            nfs_server_params = {'server_ip': self.setup_nfs_ip,
+                                 'server_pwd': params["nfs_server_pwd"],
+                                 'server_user': params.get("nfs_server_user",
+                                                           "root")}
+            self.session = test_setup.remote_session(nfs_server_params)
+            distro_details = utils_misc.get_distro(self.session)
+            if self.session.cmd_status("exportfs -h") != 0:
+                logging.error("exportfs cmd not available in remote host")
+
+        elif params.get("setup_local_nfs") == "yes":
+            self.nfs_setup = True
+            self.setup_nfs_ip = "127.0.0.1"
             path.find_command("service")
             path.find_command("exportfs")
-            if distro_details.name in ('Ubuntu', 'rhel'):
-                self.nfs_service = service.Factory.create_service("nfs-server")
-            else:
-                self.nfs_service = service.Factory.create_service("nfs")
-            self.rpcbind_service = service.Factory.create_service("rpcbind")
 
-            self.export_dir = (params.get("export_dir") or
-                               self.mount_src.split(":")[-1])
-            self.export_ip = params.get("export_ip", "*")
-            self.export_options = params.get("export_options", "").strip()
+        if(params.get("setup_remote_nfs") == "yes" or
+           params.get("setup_local_nfs") == "yes"):
+            if 'Ubuntu' in distro_details or 'rhel' in distro_details:
+                self.nfs_service = service.Service("nfs-server",
+                                                   session=self.session)
+            else:
+                self.nfs_service = service.Service("nfs", session=self.session)
+
+            self.rpcbind_service = service.Service("rpcbind", session=self.session)
             self.exportfs = Exportfs(self.export_dir, self.export_ip,
-                                     self.export_options)
-            self.mount_src = "127.0.0.1:%s" % self.export_dir
+                                     self.export_options, session=self.session)
+        self.mount_src = "%s:%s" % (self.setup_nfs_ip, self.export_dir)
 
     def is_mounted(self):
         """
@@ -211,20 +240,21 @@ class Nfs(object):
                 self.rpcbind_service.restart()
                 self.nfs_service.restart()
 
-            if not os.path.isdir(self.export_dir):
-                os.makedirs(self.export_dir)
+            if not utils_misc.check_isdir(self.export_dir, session=self.session):
+                utils_misc.make_dirs(self.export_dir, session=self.session)
                 self.rm_export_dir = True
             self.exportfs.export()
             self.unexportfs_in_clean = not self.exportfs.already_exported
 
         logging.debug("Mount %s to %s" % (self.mount_src, self.mount_dir))
-        if os.path.exists(self.mount_dir) and not os.path.isdir(self.mount_dir):
+        if(utils_misc.check_exists(self.mount_dir, session=self.session)
+           and not utils_misc.check_isdir(self.mount_dir, session=self.session)):
             raise OSError(
                 "Mount point %s is not a directory, check your setup." %
                 self.mount_dir)
 
-        if not os.path.isdir(self.mount_dir):
-            os.makedirs(self.mount_dir)
+        if not utils_misc.check_isdir(self.mount_dir, session=self.session):
+            utils_misc.make_dirs(self.mount_dir, session=self.session)
             self.rm_mount_dir = True
         self.mount()
 
@@ -238,10 +268,12 @@ class Nfs(object):
         self.umount()
         if self.nfs_setup and self.unexportfs_in_clean:
             self.exportfs.reset_export()
-            if self.rm_export_dir and os.path.isdir(self.export_dir):
+            if self.rm_export_dir and utils_misc.check_isdir(self.export_dir,
+                                                             session=self.session):
                 utils_misc.safe_rmdir(self.export_dir)
-        if self.rm_mount_dir and os.path.isdir(self.mount_dir):
-            utils_misc.safe_rmdir(self.mount_dir)
+        if self.rm_mount_dir and utils_misc.check_isdir(self.mount_dir,
+                                                        session=self.session):
+            utils_misc.safe_rmdir(self.mount_dir, session=self.session)
 
 
 class NFSClient(object):
