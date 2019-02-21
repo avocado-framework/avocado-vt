@@ -229,7 +229,7 @@ def handle_prompts(session, username, password, prompt, timeout=10,
 
 
 def remote_login(client, host, port, username, password, prompt, linesep="\n",
-                 log_filename=None, timeout=10, interface=None,
+                 log_filename=None, timeout=10, interface=None, identity_file=None,
                  status_test_command="echo $?", verbose=False, bind_ip=None):
     """
     Log into a remote host (guest) using SSH/Telnet/Netcat.
@@ -246,8 +246,10 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
     :param timeout: The maximal time duration (in seconds) to wait for
             each step of the login procedure (i.e. the "Are you sure" prompt
             or the password prompt)
-    :interface: The interface the neighbours attach to (only use when
-                using ipv6 linklocal address.)
+    :param interface: The interface the neighbours attach to (only use when
+                      using ipv6 linklocal address.)
+    :param identity_file: Selects a file from which the identity (private key)
+                          for public key authentication is read
     :param status_test_command: Command to be used for getting the last
             exit status of commands run inside the shell (used by
             cmd_status_output() and friends).
@@ -266,16 +268,16 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
                              "be assigned")
         host = "%s%%%s" % (host, interface)
     if client == "ssh":
-        if not bind_ip:
-            cmd = ("ssh %s -o UserKnownHostsFile=/dev/null "
-                   "-o StrictHostKeyChecking=no "
-                   "-o PreferredAuthentications=password -p %s %s@%s" %
-                   (verbose, port, username, host))
+        cmd = ("ssh %s -o UserKnownHostsFile=/dev/null "
+               "-o StrictHostKeyChecking=no -p %s" %
+               (verbose, port))
+        if bind_ip:
+            cmd += (" -b %s" % bind_ip)
+        if identity_file:
+            cmd += (" -i %s" % identity_file)
         else:
-            cmd = ("ssh %s -o UserKnownHostsFile=/dev/null "
-                   "-o StrictHostKeyChecking=no "
-                   "-o PreferredAuthentications=password -p %s -b %s %s@%s" %
-                   (verbose, port, bind_ip, username, host))
+            cmd += " -o PreferredAuthentications=password"
+        cmd += " %s@%s" % (username, host)
     elif client == "telnet":
         cmd = "telnet -l %s %s %s" % (username, host, port)
     elif client == "nc":
