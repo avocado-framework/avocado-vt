@@ -33,6 +33,7 @@ from virttest import remote
 from virttest import utils_libvirtd
 from virttest import utils_net
 from virttest import utils_config
+from virttest import kernel_interface
 from virttest.staging import service
 from virttest.staging import utils_memory
 from virttest.compat_52lts import results_stderr_52lts, decode_to_text
@@ -206,13 +207,14 @@ class SetupManager(object):
 
 class TransparentHugePageConfig(object):
 
-    def __init__(self, test, params):
+    def __init__(self, test, params, session=None):
         """
         Find paths for transparent hugepages and kugepaged configuration. Also,
         back up original host configuration so it can be restored during
         cleanup.
         """
         self.params = params
+        self.session = session
 
         RH_THP_PATH = "/sys/kernel/mm/redhat_transparent_hugepage"
         UPSTREAM_THP_PATH = "/sys/kernel/mm/transparent_hugepage"
@@ -244,22 +246,20 @@ class TransparentHugePageConfig(object):
             base_dir = f[0]
             if f[2]:
                 for name in f[2]:
-                    f_dir = os.path.join(base_dir, name)
-                    with open(f_dir, 'r') as param_f:
-                        parameter = param_f.read()
-                    logging.debug("Reading path %s: %s", f_dir,
-                                  parameter.strip())
+                    f_dir = kernel_interface.SysFS(os.path.join(base_dir, name),
+                                                   session=self.session)
+                    parameter = str(f_dir.sys_fs_value).strip("[]")
+                    logging.debug("Reading path %s: %s", f_dir.sys_fs,
+                                  parameter)
                     try:
                         # Verify if the path in question is writable
-                        f = open(f_dir, 'w')
+                        f = open(f_dir.sys_fs, 'w')
                         f.close()
-                        if re.findall("\[(.*)\]", parameter):
-                            original_config[f_dir] = re.findall("\[(.*)\]",
-                                                                parameter)[0]
-                            self.file_list_str.append(f_dir)
+                        original_config[f_dir.sys_fs] = parameter
+                        if isinstance(parameter, str):
+                            self.file_list_str.append(f_dir.sys_fs)
                         else:
-                            original_config[f_dir] = int(parameter)
-                            self.file_list_num.append(f_dir)
+                            self.file_list_num.append(f_dir.sys_fs)
                     except IOError:
                         pass
 
@@ -275,18 +275,8 @@ class TransparentHugePageConfig(object):
             for path in list(self.test_config.keys()):
                 logging.info("Writing path %s: %s", path,
                              self.test_config[path])
-                with open(path, 'w') as cfg_f:
-                    cfg_f.write(self.test_config[path])
-
-    def value_listed(self, value):
-        """
-        Get a parameters list from a string
-        """
-        value_list = []
-        for i in re.split("\[|\]|\n+|\s+", value):
-            if i:
-                value_list.append(i)
-        return value_list
+                cfg_f = kernel_interface.SysFS(path, session=self.session)
+                cfg_f.sys_fs_value = self.test_config[path]
 
     def khugepaged_test(self):
         """
@@ -299,52 +289,36 @@ class TransparentHugePageConfig(object):
             for (act, ret) in action_list:
                 logging.info("Writing path %s: %s, expected khugepage rc: %s ",
                              file_name, act, ret)
+                khugepage = kernel_interface.SysFS(file_name, session=self.session)
+                khugepage.sys_fs_value = act
                 try:
-                    file_object = open(file_name, "w")
-                    file_object.write(act)
-                    file_object.close()
-                except IOError as error_detail:
-                    logging.info("IO Operation on path %s failed: %s",
-                                 file_name, error_detail)
-                timeout = time.time() + 50
-                while time.time() < timeout:
-                    try:
-                        process.run('pgrep khugepaged', verbose=False)
-                        if ret != 0:
-                            time.sleep(1)
-                            continue
-                    except process.CmdError:
-                        if ret == 0:
-                            time.sleep(1)
-                            continue
-                    break
-                else:
-                    if ret != 0:
-                        raise THPKhugepagedError("Khugepaged still alive when"
-                                                 "transparent huge page is "
-                                                 "disabled")
-                    else:
-                        raise THPKhugepagedError("Khugepaged could not be set to"
-                                                 "status %s" % act)
-
+                    ret_val = process.system('pgrep khugepaged', shell=True,
+                                             verbose=False)
+                    if ret_val != ret:
+                        raise THPKhugepagedError("Khugepaged could not be set "
+                                                 "to expected status %s, "
+                                                 "instead actual status is %s "
+                                                 "for action %s" %
+                                                 (ret, ret_val, act))
+                except process.CmdError:
+                    raise THPKhugepagedError("Khugepaged still alive when"
+                                             "transparent huge page is "
+                                             "disabled")
         logging.info("Testing khugepaged")
         for file_path in self.file_list_str:
             action_list = []
-            if re.findall("enabled", file_path):
+            thp = kernel_interface.SysFS(file_path, session=self.session)
+            value_list = [each.strip("[]") for each in thp.fs_value.split()]
+            if re.match("enabled", file_path):
                 # Start and stop test for khugepaged
-                value_list = self.value_listed(open(file_path, "r").read())
                 for i in value_list:
-                    if re.match("n", i, re.I):
+                    if thp.sys_fs_value == "never":
                         action_stop = (i, 256)
-                for i in value_list:
-                    if re.match("[^n]", i, re.I):
                         action = (i, 0)
                         action_list += [action_stop, action, action_stop]
                 action_list += [action]
-
                 check_status_with_value(action_list, file_path)
             else:
-                value_list = self.value_listed(open(file_path, "r").read())
                 for i in value_list:
                     action = (i, 0)
                     action_list.append(action)
@@ -352,10 +326,8 @@ class TransparentHugePageConfig(object):
 
         for file_path in self.file_list_num:
             action_list = []
-            file_object = open(file_path, "r")
-            value = file_object.read()
-            value = int(value)
-            file_object.close()
+            file_object = kernel_interface.SysFS(file_path, session=self.session)
+            value = file_object.sys_fs_value
             if value != 0 and value != 1:
                 new_value = random.random()
                 action_list.append((str(int(value * new_value)), 0))
@@ -382,13 +354,8 @@ class TransparentHugePageConfig(object):
         for path in self.original_config:
             logging.info("Writing path %s: %s", path,
                          self.original_config[path])
-            try:
-                p_file = open(path, 'w')
-                p_file.write(str(self.original_config[path]))
-                p_file.close()
-            except IOError as error_detail:
-                logging.info("IO operation failed on file %s: %s", path,
-                             error_detail)
+            p_file = kernel_interface.SysFS(path, session=self.session)
+            p_file.sys_fs_value = str(self.original_config[path])
 
 
 class HugePageConfig(object):
