@@ -1419,34 +1419,16 @@ class VM(virt_vm.BaseVM):
         :param speed: speed of serial console
         :param remove: do remove operation
         """
-        try:
-            session = self.login()
-        except (remote.LoginError, virt_vm.VMError) as e:
-            logging.debug(e)
+        from . import utils_test
+        kernel_params = "console=%s" % device
+        if speed is not None:
+            kernel_params += ",%s" % speed
+        if remove:
+            utils_test.update_boot_option(self, args_removed=kernel_params)
         else:
-            try:
-                grub = "/boot/grub/grub.conf"
-                if not session.cmd_status("ls /boot/grub2/grub.cfg"):
-                    grub = "/boot/grub2/grub.cfg"
-                kernel_params = "console=%s" % device
-                if speed is not None:
-                    kernel_params += ",%s" % speed
-
-                output = session.cmd_output("cat %s" % grub)
-                if not re.search("console=%s" % device, output):
-                    if not remove:
-                        session.sendline("sed -i -e \'s/vmlinuz-.*/& %s/g\'"
-                                         " %s; sync" % (kernel_params, grub))
-                else:
-                    if remove:
-                        session.sendline("sed -i -e \'s/console=%s\w*\s//g\'"
-                                         " %s; sync" % (device, grub))
-                logging.debug("Set kernel params for %s successfully.", device)
-                return True
-            finally:
-                session.close()
-        logging.debug("Set kernel params for %s failed.", device)
-        return False
+            utils_test.update_boot_option(self, args_added=kernel_params)
+        logging.debug("Set kernel params for %s is successful", device)
+        return True
 
     def set_kernel_param(self, parameter, value=None, remove=False):
         """
