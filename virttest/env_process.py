@@ -899,7 +899,7 @@ def preprocess(test, params, env):
         kvm_version = "Unknown"
 
     logging.debug("KVM version: %s" % kvm_version)
-    version_info["kvm_version"] = kvm_version
+    version_info["kvm_version"] = str(kvm_version)
 
     # Checking required kernel, if not satisfied, cancel test
     if params.get("required_kernel"):
@@ -934,7 +934,7 @@ def preprocess(test, params, env):
             kvm_userspace_version = "Unknown"
 
     logging.debug("KVM userspace version(qemu): %s" % kvm_userspace_version)
-    version_info["qemu_version"] = kvm_userspace_version
+    version_info["qemu_version"] = str(kvm_userspace_version)
 
     # Checking required qemu, if not satisfied, cancel test
     if params.get("required_qemu"):
@@ -957,7 +957,7 @@ def preprocess(test, params, env):
                 libvirt_ver_cmd, shell=True)).strip()
         except a_process.CmdError:
             libvirt_version = "Unknown"
-        version_info["libvirt_version"] = libvirt_version
+        version_info["libvirt_version"] = str(libvirt_version)
         logging.debug("KVM userspace version(libvirt): %s" % libvirt_version)
 
     # Write it as a keyval
