@@ -409,6 +409,17 @@ def postprocess_vm(test, params, env, name):
         except Exception:
             pass
 
+    if params.get("vm_extra_dump_paths") is not None:
+        vm_extra_dumps = os.path.join(test.outputdir, "vm_extra_dumps")
+        if not os.path.exists(vm_extra_dumps):
+            os.makedirs(vm_extra_dumps)
+        for dump_path in params.get("vm_extra_dump_paths").split(";"):
+            try:
+                vm.copy_files_from(dump_path, vm_extra_dumps)
+            except:
+                logging.error("Could not copy the extra dump '%s' from the vm '%s'",
+                              dump_path, vm.name)
+
     if params.get("kill_vm") == "yes":
         kill_vm_timeout = float(params.get("kill_vm_timeout", 0))
         if kill_vm_timeout:
