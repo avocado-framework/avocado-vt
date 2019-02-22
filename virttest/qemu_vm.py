@@ -3685,6 +3685,17 @@ class VM(virt_vm.BaseVM):
         device_add_cmd += nic.get('nic_extra_params', '')
         if 'romfile' in nic:
             device_add_cmd += ",romfile=%s" % nic.romfile
+        bus = self.devices.get_buses({'aobject': 'pci.0'})[0]
+        if isinstance(bus, qdevices.QPCIEBus):
+            root_port_id = bus.get_free_root_port()
+            if root_port_id:
+                device_add_cmd += ",bus=%s" % root_port_id
+                root_port = self.devices.get_buses({'aobject': root_port_id})[0]
+                root_port.insert(qdevices.QBaseDevice(nic.nic_model,
+                                                      aobject=nic.nic_name))
+            else:
+                raise virt_vm.VMAddNicError("No free root port for device %s"
+                                            " to plug." % nic.nic_name)
         error_context.context("Activating nic on VM %s with monitor command %s" % (
             self.name, device_add_cmd))
 
