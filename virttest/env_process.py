@@ -9,6 +9,7 @@ import shutil
 import sys
 import copy
 import multiprocessing
+import weakref
 try:
     from urllib.request import ProxyHandler, build_opener, install_opener
 except ImportError:
@@ -1481,6 +1482,7 @@ def _take_screendumps(test, params, env):
     cache = {}
     counter = {}
     inactivity = {}
+    inactive_errors = weakref.WeakValueDictionary()
 
     while True:
         for vm in env.get_all_vms():
@@ -1525,14 +1527,21 @@ def _take_screendumps(test, params, env):
                         "%s screen is inactive for more than %d s (%d min)" %
                         (vm.name, time_inactive, time_inactive // 60))
                     if inactivity_watcher == "error":
-                        try:
-                            raise virt_vm.VMScreenInactiveError(vm,
-                                                                time_inactive)
-                        except virt_vm.VMScreenInactiveError:
-                            logging.error(msg)
-                            # Let's reset the counter
-                            inactivity[vm.instance] = time.time()
-                            test.background_errors.put(sys.exc_info())
+                        logging.error(msg)
+                        if vm.name in inactive_errors:
+                            # error has been pushed into bg error queue.
+                            inactive_errors[vm.name].inactive_time = \
+                                time_inactive
+                        else:
+                            # only push once.
+                            inactive_error = virt_vm.VMScreenInactiveError(
+                                vm, time_inactive
+                                )
+                            inactive_errors[vm.name] = inactive_error
+                            try:
+                                raise inactive_error
+                            except virt_vm.VMScreenInactiveError:
+                                test.background_errors.put(sys.exc_info())
                     elif inactivity_watcher == 'log':
                         logging.debug(msg)
             else:

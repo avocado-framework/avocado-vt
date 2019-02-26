@@ -2874,12 +2874,11 @@ class VM(virt_vm.BaseVM):
                 logging.info("Running qemu command (reformatted):\n%s",
                              qemu_command.replace(" -", " \\\n    -"))
                 self.qemu_command = qemu_command
-                self.process = aexpect.run_tail(qemu_command,
-                                                None,
-                                                logging.info,
-                                                "[qemu output] ",
-                                                auto_close=False,
-                                                pass_fds=pass_fds)
+                self.process = aexpect.run_tail(
+                    qemu_command, None, logging.info,
+                    "[%s qemu process output] " % self.name,
+                    auto_close=False, pass_fds=pass_fds
+                    )
 
             logging.info("Created qemu process with parent PID %d",
                          self.process.get_pid())

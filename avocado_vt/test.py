@@ -20,6 +20,7 @@ import imp
 import logging
 import os
 import sys
+import traceback
 import pickle
 import pipes
 try:
@@ -38,6 +39,7 @@ from virttest import data_dir
 from virttest import env_process
 from virttest import funcatexit
 from virttest import utils_env
+from virttest import utils_logging
 from virttest import utils_params
 from virttest import utils_misc
 from virttest import version
@@ -106,7 +108,12 @@ class VirtTest(test.Test):
         self.iteration = 0
         self.resultsdir = None
         self.file_handler = None
+        self.proc_term_handler = None
         self.background_errors = Queue.Queue()
+        if params_vt.get("enable_qemu_proc_log_watcher", "no") == "yes":
+            self.proc_term_handler = utils_logging.QemuProcessTermHandler(
+                self.background_errors
+                )
         super(VirtTest, self).__init__(methodName=methodName, name=name,
                                        params=params,
                                        base_logdir=base_logdir, job=job,
@@ -196,11 +203,15 @@ class VirtTest(test.Test):
         super(VirtTest, self)._start_logging()
         root_logger = logging.getLogger()
         root_logger.addHandler(self.file_handler)
+        if self.proc_term_handler:
+            root_logger.addHandler(self.proc_term_handler)
 
     def _stop_logging(self):
         super(VirtTest, self)._stop_logging()
         root_logger = logging.getLogger()
         root_logger.removeHandler(self.file_handler)
+        if self.proc_term_handler:
+            root_logger.removeHandler(self.proc_term_handler)
 
     def write_test_keyval(self, d):
         self.whiteboard = str(d)
@@ -208,15 +219,20 @@ class VirtTest(test.Test):
     def verify_background_errors(self):
         """
         Verify if there are any errors that happened on background threads.
+        Logs all errors in the background queue and raise the first error.
 
-        :raise Exception: Any exception stored on the background_errors queue.
+        :raise Exception: First exception stored on the background_errors
+            queue.
         """
-        try:
-            exc = self.background_errors.get(block=False)
-        except Queue.Empty:
-            pass
-        else:
-            six.reraise(*exc)
+        bg_errors = list(self.background_errors.queue)
+        error_to_raise = None
+        for index, error in enumerate(bg_errors):
+            if index == 0:
+                error_to_raise = error
+            logging.error("error #%d received from background:", index + 1)
+            logging.error("".join(traceback.format_exception(*error)))
+        if error_to_raise is not None:
+            six.reraise(*error_to_raise)
 
     def __safe_env_save(self, env):
         """
