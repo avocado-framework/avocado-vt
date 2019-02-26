@@ -863,8 +863,6 @@ def ping(dest=None, count=None, interval=None, interface=None,
             command += " -l %s" % packetsize
         if ttl:
             command += " -i %s" % ttl
-        if interface:
-            command += " -S %s" % interface
         if flood:
             command += " -t"
     else:
