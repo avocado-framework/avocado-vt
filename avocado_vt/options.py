@@ -479,12 +479,25 @@ class VirtTestOptionsProcess(object):
 
         if self.options.vt_config:
             cfg = os.path.abspath(self.options.vt_config)
-
-        if not self.options.vt_config:
+            self.cartesian_parser.parse_file(cfg)
+        elif self.options.vt_filter_default_filters:
+            cfg = data_dir.get_backend_cfg_path(self.options.vt_type,
+                                                'tests-shared.cfg')
+            self.cartesian_parser.parse_file(cfg)
+            for arg in ('no_9p_export', 'no_virtio_rng', 'no_pci_assignable',
+                        'smallpages', 'default_bios', 'bridge'):
+                if arg not in self.options.vt_filter_default_filters:
+                    self.cartesian_parser.only_filter(arg)
+            if 'image_backend' not in self.options.vt_filter_default_filters:
+                self.cartesian_parser.only_filter('(image_backend='
+                                                  'filesystem)')
+            if 'multihost' not in self.options.vt_filter_default_filters:
+                self.cartesian_parser.no_filter('multihost')
+        else:
             cfg = data_dir.get_backend_cfg_path(self.options.vt_type,
                                                 'tests.cfg')
+            self.cartesian_parser.parse_file(cfg)
 
-        self.cartesian_parser.parse_file(cfg)
         if self.options.vt_type != 'lvsb':
             self._process_general_options()
 
