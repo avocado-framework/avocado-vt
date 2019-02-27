@@ -9,8 +9,10 @@ import time
 import os
 import logging
 import fcntl
+import struct
 import re
 import random
+import errno
 
 from functools import partial
 
@@ -18,6 +20,7 @@ import aexpect
 from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils import crypto
+from avocado.utils import linux_modules
 
 import six
 from six.moves import xrange
@@ -1896,6 +1899,46 @@ class VM(virt_vm.BaseVM):
                               device_driver=device_driver,
                               pci_bus=pci_bus)
                 iov += 1
+
+        def get_cid(cid):
+            """ Get an unused guest cid from system """
+            while cid:
+                cid_c = struct.pack('L', cid)
+                try:
+                    fcntl.ioctl(
+                        vsock_fd, arch.VHOST_VSOCK_SET_GUEST_CID, cid_c)
+                except IOError as e:
+                    if e.errno == errno.EADDRINUSE:
+                        cid += 1
+                        continue
+                    else:
+                        raise e
+                else:
+                    return cid
+
+        # Add vsock device, cid 0-2 are reserved by system
+        vsocks = params.objects('vsocks')
+        if vsocks:
+            vsock_path = "/dev/vhost-vsock"
+            if not os.path.exists(vsock_path):
+                logging.info("vsock module was not loaded, loading it...")
+                if not linux_modules.load_module('vhost_vsock'):
+                    raise exceptions.TestError(
+                        "Failed on loading module vhost_vsock.")
+            vsock_fd = os.open(vsock_path, os.O_RDWR)
+            min_cid = 3
+            for vsock in vsocks:
+                guest_cid = get_cid(min_cid)
+                vsock_params = {"id": vsock, "guest-cid": guest_cid}
+                if '-mmio:' in params.get('machine_type'):
+                    dev_vsock = QDevice('vhost-vsock-device', vsock_params)
+                elif params.get('machine_type').startswith("s390"):
+                    dev_vsock = QDevice("vhost-vsock-ccw", vsock_params)
+                else:
+                    dev_vsock = QDevice('vhost-vsock-pci', vsock_params)
+                devices.insert(dev_vsock)
+                min_cid = guest_cid + 1
+            os.close(vsock_fd)
 
         # Add Memory devices
         add_memorys(devices, params)
