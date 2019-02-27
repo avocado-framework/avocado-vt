@@ -10,7 +10,7 @@
     %global gittar          %{srcname}-%{version}.tar.gz
 %else
     %if ! 0%{?commit:1}
-        %global commit      8b85d88132209ff138200ec69ad01e48ffbf37fd
+        %global commit      0f5ea15d9d986f21313d18b6a21fa0e70806772b 
     %endif
     %if ! 0%{?commit_date:1}
         %global commit_date 20181212
@@ -33,8 +33,8 @@
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 68.0
-Release: 1%{?gitrel}%{?dist}
+Version: 69.0
+Release: 0%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -158,6 +158,9 @@ Xunit output, among others.
 
 
 %changelog
+* Tue Feb 26 2019 Cleber Rosa <cleber@redhat.com> - 69.0-0
+- New release
+
 * Sat Feb 16 2019 Cleber Rosa <cleber@redhat.com> - 68.0-1
 - Use python2 requires on EL7
 
