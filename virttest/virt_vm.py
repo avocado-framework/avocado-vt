@@ -985,6 +985,7 @@ class BaseVM(object):
         """
         level = self.params.get("guest_dmesg_level", 3)
         ignore_result = self.params.get("guest_dmesg_ignore", "no") == "yes"
+        guest_dmesg_white_list = self.params.get("guest_dmesg_white_list").split(';')
         serial_login = self.params.get("serial_login", "no") == "yes"
         if serial_login:
             self.session = self.wait_for_serial_login()
@@ -994,7 +995,7 @@ class BaseVM(object):
         return utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
                                        ignore_result=ignore_result,
                                        level_check=level,
-                                       session=self.session)
+                                       session=self.session, dmesg_white_list=guest_dmesg_white_list)
 
     def verify_bsod(self, scrdump_file):
         # For windows guest

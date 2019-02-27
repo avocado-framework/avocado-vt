@@ -3542,7 +3542,7 @@ def monotonic_time():
 
 
 def verify_dmesg(dmesg_log_file=None, ignore_result=False, level_check=3,
-                 session=None):
+                 session=None, dmesg_white_list=None):
     """
     Find host/guest call trace in dmesg log.
 
@@ -3556,15 +3556,23 @@ def verify_dmesg(dmesg_log_file=None, ignore_result=False, level_check=3,
                         4 - emerg,alert,crit,err
                         5 - emerg,alert,crit,err,warn
     :param session: session object to guest
+    :param dmesg_white_list: some dmesg that need to be ignored in case
     :param return: if ignore_result=True, return True if no errors/crash
                    observed, False otherwise.
     :param raise: if ignore_result=False, raise TestFail exception on
                   observing errors/crash
     """
     cmd = "dmesg -T -l %s|grep ." % ",".join(map(str, xrange(0, int(level_check))))
+    enable_dmesg_white_list = False
     if session:
         environ = "guest"
         status, output = session.cmd_status_output(cmd)
+        # go through white list, if any of them in the output, just set enable_dmesg_white_list to True
+        if dmesg_white_list:
+            for white_list_item in dmesg_white_list:
+                if re.search(r"%s" % white_list_item, output, re.I):
+                    enable_dmesg_white_list = True
+                    break
     else:
         environ = "host"
         out = process.run(cmd, timeout=30, ignore_status=True,
@@ -3585,7 +3593,8 @@ def verify_dmesg(dmesg_log_file=None, ignore_result=False, level_check=3,
             session.cmd("dmesg -C")
         else:
             process.system("dmesg -C", ignore_status=True)
-        if not ignore_result:
+        # if enable_dmesg_white_list is True, don't throw exception
+        if not ignore_result and not enable_dmesg_white_list:
             raise exceptions.TestFail(err)
         return False
     return True
