@@ -360,7 +360,8 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
         # with a new backup. i.e. assume pre-existing image/backup
         # would not be usable after this test succeeds. The best
         # example for this is when 'unattended_install' is run.
-        if params.get("backup_image", "no") == "yes":
+        if (params.get("backup_image_after_testing_passed", "no") == "yes" and
+                params.get("test_passed") == "True"):
             image.backup_image(params, base_dir, "backup", True)
 
     if (not restored and params.get("restore_image", "no") == "yes"):
