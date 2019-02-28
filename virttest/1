@@ -4710,9 +4710,9 @@ class VM(virt_vm.BaseVM):
         cmd = "balloon"
         qmp_event = "BALLOON_CHANGE"
         # Look for BALLOON QMP events
-        if check_event and self.params.get("monitor_type") == "qmp":
+        if check_event:
             # Clear the event list of QMP monitors
-            self.monitor.clear_event(qmp_event)
+            self.clear_event(qmp_event)
             if not utils_misc.wait_for(lambda: self.monitor.get_event(qmp_event), 120):
                 raise QMPEventError(cmd, qmp_event, self.name, self.monitor.name)
             logging.info("%s QMP event received" % qmp_event)

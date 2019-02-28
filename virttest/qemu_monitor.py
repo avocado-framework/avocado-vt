@@ -2558,16 +2558,9 @@ class QMPMonitor(Monitor):
         :param size: int type values.
         """
         cmd = "balloon"
-        qmp_event = "BALLOON_CHANGE"
         self.verify_supported_cmd(cmd)
-        # Clear the event list of QMP monitors
-        self.clear_event(qmp_event)
         # Send a balloon monitor command
         self.send_args_cmd("%s value=%s" % (cmd, size))
-        # Look for BALLOON QMP events
-        if not utils_misc.wait_for(lambda: self.get_event(qmp_event), 120):
-            raise QMPEventError(cmd, qmp_event, self.vm.name, self.name)
-        logging.info("%s QMP event received" % qmp_event)
 
     def set_migrate_capability(self, state, capability):
         """
