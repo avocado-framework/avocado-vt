@@ -565,10 +565,6 @@ class QemuImg(storage.QemuImg):
                                               " during image check. No data "
                                               "integrity problem was found "
                                               "though. (%s)" % image_filename)
-
-                # Just handle normal operation
-                if params.get("backup_image", "no") == "yes":
-                    self.backup_image(params, root_dir, "backup", True, True)
         else:
             if not storage.file_exists(params, image_filename):
                 logging.debug("Image file %s not found, skipping check",
