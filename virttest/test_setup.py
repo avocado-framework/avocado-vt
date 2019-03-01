@@ -619,7 +619,7 @@ class HugePageConfig(object):
         error_context.context(
             "setting hugepages limit to %s" % self.target_hugepages)
         try:
-            hugepage_cfg = open(self.kernel_hp_file, "r+")
+            hugepage_cfg = open(self.kernel_hp_file, "r")
             hp = hugepage_cfg.readline().strip()
             hugepage_cfg.close()
         except IOError:
