@@ -61,12 +61,17 @@ class Disk(base.TypedDeviceBase):
             libvirt_xml.devices.Disk.DiskSource instance
         encryption:
             libvirt_xml.devices.Disk.Encryption instance.
-    """
+        auth:
+            libvirt_xml.devices.Disk.Auth instance.
+        reservations:
+            libvirt_xml.devices.Disk.Reservations instance.
+   """
 
     __slots__ = ('device', 'rawio', 'sgio', 'snapshot', 'driver', 'target', 'alias',
                  'address', 'boot', 'readonly', 'transient', 'share',
                  'mirror', 'ready', 'iotune', 'source', 'blockio', 'geometry',
-                 'wwn', 'serial', 'vendor', 'product', 'encryption', 'auth')
+                 'wwn', 'serial', 'vendor', 'product', 'encryption', 'auth',
+                 'reservations')
 
     def __init__(self, type_name='file', virsh_instance=base.base.virsh):
         accessors.XMLAttribute('device', self, parent_xpath='/',
@@ -128,6 +133,11 @@ class Disk(base.TypedDeviceBase):
                                  tag_name='auth', subclass=self.Auth,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
+        accessors.XMLElementNest('reservations', self, parent_xpath='/',
+                                 tag_name='reservations',
+                                 subclass=Disk.Reservations,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
         super(Disk, self).__init__(device_tag='disk', type_name=type_name,
                                    virsh_instance=virsh_instance)
 
@@ -176,6 +186,15 @@ class Disk(base.TypedDeviceBase):
             setattr(new_one, key, value)
         return new_one
 
+    def new_reservations(self, **dargs):
+        """
+        Return a new disk reservations instance and set properties from dargs
+        """
+        new_one = self.Reservations(virsh_instance=self.virsh)
+        for key, value in list(dargs.items()):
+            setattr(new_one, key, value)
+        return new_one
+
     # For convenience
     Address = librarian.get('address')
 
@@ -192,7 +211,7 @@ class Disk(base.TypedDeviceBase):
         """
 
         __slots__ = ('attrs', 'seclabels', 'hosts', 'encryption', 'auth',
-                     'config_file', 'snapshot_name',)
+                     'reservations', 'config_file', 'snapshot_name',)
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLElementDict('attrs', self, parent_xpath='/',
@@ -204,11 +223,17 @@ class Disk(base.TypedDeviceBase):
                                      marshal_from=self.marshal_from_host,
                                      marshal_to=self.marshal_to_host)
             accessors.XMLElementNest('encryption', self, parent_xpath='/',
-                                     tag_name='encryption', subclass=Disk.Encryption,
+                                     tag_name='encryption',
+                                     subclass=Disk.Encryption,
                                      subclass_dargs={
                                          'virsh_instance': virsh_instance})
             accessors.XMLElementNest('auth', self, parent_xpath='/',
                                      tag_name='auth', subclass=Disk.Auth,
+                                     subclass_dargs={
+                                         'virsh_instance': virsh_instance})
+            accessors.XMLElementNest('reservations', self, parent_xpath='/',
+                                     tag_name='reservations',
+                                     subclass=Disk.Reservations,
                                      subclass_dargs={
                                          'virsh_instance': virsh_instance})
             accessors.XMLAttribute('config_file', self, parent_xpath='/',
@@ -351,4 +376,36 @@ class Disk(base.TypedDeviceBase):
             accessors.XMLAttribute('secret_usage', self, parent_xpath='/',
                                    tag_name='secret', attribute='usage')
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-            self.xml = u"<auth/>"
+            self.xml = '<auth/>'
+
+    class Reservations(base.base.LibvirtXMLBase):
+
+        """
+        Reservations device XML class
+
+        Properties:
+
+        reservations_managed:
+            string, attribute of reservations tag
+        reservations_source_type:
+            string, attribute of source tag, sub-tag of the reservations tag
+        reservations_source_path:
+            string, attribute of source tag, sub-tag of the reservations tag
+        reservations_source_mode:
+            string, attribute of source tag, sub-tag of the reservations tag
+        """
+
+        __slots__ = ('reservations_managed', 'reservations_source_type',
+                     'reservations_source_path', 'reservations_source_mode')
+
+        def __init__(self, virsh_instance=base.base.virsh, reservations_managed=""):
+            accessors.XMLAttribute('reservations_managed', self, parent_xpath='/',
+                                   tag_name='reservations', attribute='managed')
+            accessors.XMLAttribute('reservations_source_type', self, parent_xpath='/',
+                                   tag_name='source', attribute='type')
+            accessors.XMLAttribute('reservations_source_path', self, parent_xpath='/',
+                                   tag_name='source', attribute='path')
+            accessors.XMLAttribute('reservations_source_mode', self, parent_xpath='/',
+                                   tag_name='source', attribute='mode')
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            self.xml = '<reservations/>'
