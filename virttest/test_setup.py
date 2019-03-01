@@ -665,6 +665,9 @@ class HugePageConfig(object):
                       self.hugepage_size)
         logging.debug("Number of large memory pages needed for this test: %s",
                       self.target_hugepages)
+        # Drop caches to clean some usable memory
+        with open("/proc/sys/vm/drop_caches", "w") as caches:
+            caches.write('3')
         if self.target_nodes:
             for node, num in six.iteritems(self.target_node_num):
                 self.set_node_num_huge_pages(num, node, self.hugepage_size)
