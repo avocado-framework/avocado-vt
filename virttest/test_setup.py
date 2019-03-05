@@ -1041,7 +1041,7 @@ class PciAssignable(object):
     def __init__(self, driver=None, driver_option=None, host_set_flag=None,
                  kvm_params=None, vf_filter_re=None, pf_filter_re=None,
                  device_driver=None, nic_name_re=None, static_ip=None,
-                 net_mask=None, start_addr_PF=None, pa_type=None):
+                 net_mask=None, start_addr_PF=None, pa_type=None, session=None):
         """
         Initialize parameter 'type' which could be:
         vf: Virtual Functions
@@ -1076,6 +1076,7 @@ class PciAssignable(object):
         :param static_ip: Flag to be set if the test should assign static IP
         :param start_addr_PF: Starting private IPv4 address for the PF interface
         :param pa_type: pci_assignable type, pf or vf
+        :param session: ShellSession object of VM/Remote Host
         """
         self.devices = []
         self.driver = driver
@@ -1091,7 +1092,12 @@ class PciAssignable(object):
         self.net_mask = net_mask
         self.start_addr_PF = start_addr_PF
         self.pa_type = pa_type
-
+        self.session = session
+        self.cmd_output = process.getoutput
+        self.cmd_status_output = process.getstatusoutput
+        if self.session:
+            self.cmd_output = self.session.cmd_output
+            self.cmd_status_output = self.session.cmd_status_output
         if nic_name_re:
             self.nic_name_re = nic_name_re
         else:
@@ -1208,7 +1214,7 @@ class PciAssignable(object):
         """
         base_dir = "/sys/bus/pci"
         drv_path = os.path.join(base_dir, "devices/%s/driver" % pci_id)
-        if self.device_driver in os.readlink(drv_path):
+        if self.device_driver in utils_misc.readlink(drv_path, session=self.session):
             error_context.context(
                 "Release device %s to host" % pci_id, logging.info)
 
@@ -1218,7 +1224,7 @@ class PciAssignable(object):
             logging.info("Run command in host: %s" % cmd)
             try:
                 output = None
-                output = decode_to_text(process.system_output(cmd, shell=True, timeout=60))
+                output = self.cmd_output(cmd, timeout=60)
             except Exception:
                 msg = "Command %s fail with output %s" % (cmd, output)
                 logging.error(msg)
@@ -1229,7 +1235,7 @@ class PciAssignable(object):
             logging.info("Run command in host: %s" % cmd)
             try:
                 output = None
-                output = decode_to_text(process.system_output(cmd, shell=True, timeout=60))
+                output = self.cmd_output(cmd, timeout=60)
             except Exception:
                 msg = "Command %s fail with output %s" % (cmd, output)
                 logging.error(msg)
@@ -1257,7 +1263,7 @@ class PciAssignable(object):
         tub_path = os.path.join(base_dir, "drivers/pci-stub")
         vf_res_path = os.path.join(tub_path, "%s/resource*" % vf_id)
         cmd = "lsof %s" % vf_res_path
-        output = decode_to_text(process.system_output(cmd, timeout=60, ignore_status=True))
+        output = self.cmd_output(cmd, timeout=60)
         if 'qemu' in output:
             return True
         else:
@@ -1303,27 +1309,28 @@ class PciAssignable(object):
         for pf_id in pf_ids:
             pf_info = {}
             vf_ids = []
-            full_id = utils_misc.get_full_pci_id(pf_id)
+            full_id = utils_misc.get_full_pci_id(pf_id, session=self.session)
             pf_info["pf_id"] = full_id
             pf_info["occupied"] = False
             d_link = os.path.join("/sys/bus/pci/devices", full_id)
-            txt = decode_to_text(process.system_output("ls %s" % d_link))
+            txt = self.cmd_output("ls %s" % d_link)
             re_vfn = "(virtfn\d+)"
             paths = re.findall(re_vfn, txt)
             for path in paths:
                 f_path = os.path.join(d_link, path)
-                vf_id = os.path.basename(os.path.realpath(f_path))
+                vf_id = os.path.basename(utils_misc.readlink(f_path,
+                                                             session=self.session))
                 vf_info = {}
                 vf_info["vf_id"] = vf_id
                 vf_info["occupied"] = False
                 vf_ids.append(vf_info)
             pf_info["vf_ids"] = vf_ids
             pf_vf_dict.append(pf_info)
-        if_out = decode_to_text(process.system_output("ifconfig -a"))
+        if_out = self.cmd_output("ifconfig -a")
         ethnames = re.findall(self.nic_name_re, if_out)
         for eth in ethnames:
             cmd = "ethtool -i %s | awk '/bus-info/ {print $2}'" % eth
-            pci_id = decode_to_text(process.system_output(cmd, shell=True)).strip()
+            pci_id = self.cmd_output(cmd).strip()
             if not pci_id:
                 continue
             for pf in pf_vf_dict:
@@ -1408,13 +1415,13 @@ class PciAssignable(object):
                 set_mac_cmd = "ip link set dev %s vf %s mac %s " % (ethname,
                                                                     vf_num,
                                                                     device["mac"])
-                process.run(set_mac_cmd)
+                self.cmd_output(set_mac_cmd)
 
             elif d_type == "pf":
                 dev_id = pf_ids.pop(0)
             dev_ids.append(dev_id)
-            unbind_driver = os.path.realpath(os.path.join(base_dir,
-                                                          "devices/%s/driver" % dev_id))
+            unbind_driver_path = os.path.join(base_dir, "devices/%s/driver" % dev_id)
+            unbind_driver = utils_misc.readlink(unbind_driver_path, session=self.session)
             self.dev_unbind_drivers[dev_id] = unbind_driver
         if len(dev_ids) != len(devices):
             logging.error("Did not get enough PCI Device")
@@ -1428,7 +1435,7 @@ class PciAssignable(object):
         # 'virtual function' belongs to which physical card considering
         # that if the host has more than one 82576 card. PCI_ID?
         cmd = "lspci | grep '%s' | wc -l" % self.vf_filter_re
-        vf_num = int(decode_to_text(process.system_output(cmd, shell=True, verbose=False)))
+        vf_num = int(self.cmd_output(cmd))
         logging.info("Found %s vf in host", vf_num)
         return vf_num
 
@@ -1445,7 +1452,7 @@ class PciAssignable(object):
         base_dir = "/sys/bus/pci/devices"
         devices_link = os.path.join(base_dir,
                                     "%s/iommu_group/devices/" % pci_id)
-        out = decode_to_text(process.system_output("ls %s" % devices_link))
+        out = self.cmd_output("ls %s" % devices_link)
 
         if out:
             pci_ids = out.split()
@@ -1456,13 +1463,12 @@ class PciAssignable(object):
         Get the id of PF devices
         """
         cmd = "lspci | grep -v 'Virtual Function' |awk '/%s/ {print $1}'" % self.pf_filter_re
-        PF_devices = [i for i in decode_to_text(process.system_output(
-            cmd, shell=True)).splitlines()]
+        PF_devices = [i for i in self.cmd_output(cmd).splitlines()]
         if not PF_devices:
             raise exceptions.TestSkipError("No specified pf found in the host!")
         pf_ids = []
         for pf in PF_devices:
-            pf_id = utils_misc.get_full_pci_id(pf)
+            pf_id = utils_misc.get_full_pci_id(pf, session=self.session)
             pf_ids.append(pf_id)
         return pf_ids
 
@@ -1477,12 +1483,13 @@ class PciAssignable(object):
                 "No IP / netmask found, please populate starting IP address for PF devices in configuration file")
         ip_addr = netaddr.IPAddress(self.start_addr_PF)
         for PF in pf_devices:
-            ifname = utils_misc.get_interface_from_pci_id(PF)
+            ifname = utils_misc.get_interface_from_pci_id(PF,
+                                                          session=self.session)
             ip_assign = "ifconfig %s %s netmask %s up" % (
                 ifname, ip_addr, self.net_mask)
             logging.info("assign IP to PF device %s : %s", PF,
                          ip_assign)
-            cmd = process.system(ip_assign, shell=True, ignore_status=True)
+            cmd, _ = self.cmd_status_output(ip_assign)
             if cmd:
                 raise exceptions.TestSetupFail("Failed to assign IP : %s"
                                                % cmd)
@@ -1504,7 +1511,7 @@ class PciAssignable(object):
         """
         try:
             cmd = "lspci | grep '%s'| grep -o '\s[A-Z].*:\s'" % self.pf_filter_re
-            return decode_to_text(process.system_output(cmd, shell=True)).split("\n")[-1].strip().strip(':')
+            return self.cmd_output(cmd, shell=True).split("\n")[-1].strip().strip(':')
         except IndexError:
             logging.debug("Unable to fetch the controller details")
             return None
@@ -1518,7 +1525,8 @@ class PciAssignable(object):
         """
         base_dir = "/sys/bus/pci/"
         stub_path = os.path.join(base_dir, "drivers/%s" % self.device_driver)
-        return os.path.exists(os.path.join(stub_path, full_id))
+        return utils_misc.check_exists(os.path.join(stub_path, full_id),
+                                       session=self.session)
 
     def generate_ib_port_id(self):
         """
@@ -1535,8 +1543,8 @@ class PciAssignable(object):
         pids = {}
         try:
             cmd = "ls -R /sys/class/infiniband/*/device/sriov/*"
-            dev = decode_to_text(process.system_output(cmd, shell=True))
-        except process.CmdError as detail:
+            dev = self.cmd_output(cmd)
+        except Exception as detail:
             logging.error("No VF's found for set-up, command-failed as: %s",
                           str(detail))
             return False
@@ -1552,8 +1560,9 @@ class PciAssignable(object):
         for key in pids.keys():
             logging.info("The key %s corresponds to %s", key, pids[key])
             for subkey in pids[key].keys():
-                status = process.system("echo %s > %s" % (pids[key][subkey],
-                                        os.path.join(key, subkey)), shell=True)
+                status, _ = self.cmd_status_output("echo %s > %s" %
+                                                   (pids[key][subkey],
+                                                    os.path.join(key, subkey)))
                 if status != 0:
                     return False
         return True
@@ -1567,7 +1576,8 @@ class PciAssignable(object):
         :return: True on success, False on failure
         """
         cmd = "echo %s > /sys/bus/pci/devices/%s/sriov_numvfs" % (vf_no, pci_pf)
-        if process.system(cmd, shell=True, ignore_status=True):
+        status, _ = self.cmd_status_output(cmd)
+        if status:
             logging.debug("Failed to set %s vfs in %s", vf_no, pci_pf)
             return False
         # When the VFs loaded on a PF are > 10 [I have tested till 63 which is
@@ -1598,7 +1608,8 @@ class PciAssignable(object):
                 if not self.set_vf(PF):
                     return False
             cmd = "rmmod mlx5_ib;modprobe -r mlx5_core;modprobe mlx5_ib"
-        if process.system(cmd, ignore_status=True, shell=True):
+        status, _ = self.cmd_status_output(cmd)
+        if status:
             logging.debug("Failed to remove driver: %s", driver)
             return False
         return True
@@ -1616,7 +1627,8 @@ class PciAssignable(object):
         msg = "Loading the driver '%s'" % driver
         error_context.context(msg, logging.info)
         cmd = "modprobe %s" % driver
-        if process.system(cmd, ignore_status=True, shell=True):
+        status, _ = self.cmd_status_output(cmd)
+        if status:
             logging.debug("Failed to modprobe driver: %s", driver)
             return False
         return True
@@ -1638,7 +1650,7 @@ class PciAssignable(object):
                               logging.info)
         if ARCH != 'ppc64le':
             kvm_re_probe = True
-            dmesg = decode_to_text(process.system_output("dmesg", verbose=False))
+            dmesg = self.cmd_output("dmesg")
             ecap = re.findall("ecap\s+(.\w+)", dmesg)
             if not ecap:
                 logging.error("Fail to check host interrupt remapping support")
@@ -1656,32 +1668,32 @@ class PciAssignable(object):
                 error_context.context("enable PCI passthrough with '%s'" % cmd,
                                       logging.info)
                 try:
-                    process.system(cmd)
+                    self.cmd_output(cmd)
                 except Exception:
                     logging.debug(
                         "Can not enable the interrupt remapping support")
             lnk = "/sys/module/vfio_iommu_type1/parameters/allow_unsafe_interrupts"
             if self.device_driver == "vfio-pci":
                 # If driver is not available modprobe it
-                if process.system('lsmod | grep vfio_pci', ignore_status=True,
-                                  shell=True):
+                status, _ = self.cmd_status_output('lsmod | grep vfio_pci')
+                if status:
                     self.modprobe_driver(driver="vfio-pci")
                     time.sleep(3)
                 if not ecap or (int(ecap[0], 16) & 8 != 8):
                     cmd = "echo Y > %s" % lnk
                     error_context.context("enable PCI passthrough with '%s'" % cmd,
                                           logging.info)
-                    process.run(cmd)
+                    self.cmd_output(cmd)
         else:
             if self.device_driver == "vfio-pci":
-                if process.system('lsmod | grep vfio_pci', ignore_status=True,
-                                  shell=True):
+                status, _ = self.cmd_status_output('lsmod | grep vfio_pci')
+                if status:
                     self.modprobe_driver(driver="vfio-pci")
                     time.sleep(3)
         re_probe = False
         # If driver not available after modprobe try to remove it and reprobe
-        if process.system("lsmod | grep -w %s" % self.driver, ignore_status=True,
-                          shell=True):
+        status, _ = self.cmd_status_output("lsmod | grep -w %s" % self.driver)
+        if status:
             re_probe = True
         # If driver is available and pa_type is vf then set VFs
         elif self.pa_type == 'vf':
@@ -1712,9 +1724,7 @@ class PciAssignable(object):
                 if not self.check_vfs_count():
                     # Even after re-probe there are no VFs created
                     return False
-            dmesg = decode_to_text(process.system_output("dmesg", timeout=60,
-                                                         ignore_status=True,
-                                                         verbose=False))
+            _, dmesg = self.cmd_status_output("dmesg", timeout=60)
             file_name = "host_dmesg_after_load_%s.txt" % self.driver
             logging.info("Log dmesg after loading '%s' to '%s'.", self.driver,
                          file_name)
@@ -1743,15 +1753,15 @@ class PciAssignable(object):
                         cmd = "echo %s > %s" % (value, kvm_param)
                         logging.info("Write '%s' to '%s'", value, kvm_param)
                         try:
-                            process.system(cmd)
+                            self.cmd_output(cmd)
                         except Exception:
                             logging.error("Failed to write  '%s' to '%s'", value,
                                           kvm_param)
 
         re_probe = False
         # if lsmod lists the driver then remove it to clean up
-        if not process.system('lsmod | grep %s' % self.driver,
-                              ignore_status=True, shell=True):
+        status, _ = self.cmd_status_output('lsmod | grep %s' % self.driver)
+        if not status:
             if not self.remove_driver():
                 re_probe = True
 
@@ -1799,8 +1809,11 @@ class PciAssignable(object):
                 if not os.path.exists(drv_path):
                     dev_prev_driver = ""
                 else:
-                    dev_prev_driver = os.path.realpath(os.path.join(drv_path,
-                                                                    os.readlink(drv_path)))
+                    dev_prev_driver = os.path.join(drv_path,
+                                                   utils_misc.readlink(drv_path,
+                                                                       session=self.session))
+                    dev_prev_driver = utils_misc.readlink(dev_prev_driver,
+                                                          session=self.session)
                 self.dev_drivers[pci_id] = dev_prev_driver
 
                 # Judge whether the device driver has been binded to stub
