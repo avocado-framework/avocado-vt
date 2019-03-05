@@ -314,6 +314,18 @@ def check_image(test, params, image_name, vm_process_status=None):
                               " Skip the image check.")
                 check_image_flag = False
 
+    # Save the potential bad image when the test is not passed.
+    # It should before image check.
+    if params.get("save_image", "no") == "yes":
+        if vm_process_status == "dead":
+            hsh = utils_misc.generate_random_string(4)
+            name = ("JOB-%s-TEST-%s-%s-%s.%s" % (
+                test.job.unique_id[:7], str(test.name.uid),
+                image_name, hsh, image.image_format))
+            image.save_image(params, name)
+        else:
+            logging.error("Not saving images, VM is not stopped.")
+
     if check_image_flag:
         try:
             if clone_master is None:
