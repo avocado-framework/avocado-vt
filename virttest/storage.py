@@ -476,12 +476,10 @@ class QemuImg(object):
         """Check if available disk size is enough for the data copy."""
         minimum_disk_free = 1.2 * required
         if available < minimum_disk_free:
-            # bitshift trick to do a quick convert (MB) for the log
-            bitshift = 20
-            logging.error("Free space: %s MB", (available >> bitshift))
-            logging.error("Backup size: %s MB", (required >> bitshift))
+            logging.error("Free space: %s MB", (available / 1048576.))
+            logging.error("Backup size: %s MB", (required / 1048576.))
             logging.error("Minimum free space acceptable: %s MB",
-                          (minimum_disk_free >> bitshift))
+                          (minimum_disk_free / 1048576.))
             logging.error("Available disk space is not enough. Skipping...")
             return False
         return True
