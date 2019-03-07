@@ -597,7 +597,7 @@ class HugePageConfig(object):
         """
         Set number of pages of certain page size under given numa node.
 
-        :param num: string or int, number of pages
+        :param num: int, number of pages
         :param node: string or int, node number
         :param pagesize: string or int, page size in kB
         """
@@ -607,7 +607,7 @@ class HugePageConfig(object):
             raise ValueError("%s page size nr_hugepages file of node %s did "
                              "not exist" % (pagesize, node))
         process.system("echo %s > %s" % (num, node_page_path), shell=True)
-        if int(num) != self.get_node_num_huge_pages(node, pagesize):
+        if num != self.get_node_num_huge_pages(node, pagesize):
             raise ValueError("Cannot set %s hugepages on node %s, please check"
                              " if the node has enough memory" % (num, node))
 
@@ -667,7 +667,7 @@ class HugePageConfig(object):
                       self.target_hugepages)
         if self.target_nodes:
             for node, num in six.iteritems(self.target_node_num):
-                self.set_node_num_huge_pages(num, node, self.hugepage_size)
+                self.set_node_num_huge_pages(int(num), node, self.hugepage_size)
         else:
             self.set_hugepages()
         self.mount_hugepage_fs()
