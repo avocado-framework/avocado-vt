@@ -81,7 +81,7 @@ def verify_timezone_win(session):
         match_pattern = "(?:\(UTC([+|-]\d{2}:\d{2})?)(?:.*\n)(\w+.*(?:\s\w+)*)"
         timezone_sets = []
         for para in re.split("(?:\r?\n){2,}", timezone_list.strip()):
-            result = re.match(match_pattern, para, re.M | re.A)
+            result = re.match(match_pattern, para, re.M)
             if not result:
                 continue
             code, name = result.groups()
