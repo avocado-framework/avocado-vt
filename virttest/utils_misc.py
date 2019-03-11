@@ -2298,7 +2298,7 @@ def get_qemu_best_cpu_model(params):
     return params.get("default_cpu_model", None)
 
 
-def get_qemu_version(params):
+def get_qemu_version(params=None):
     """
     Get the qemu-kvm(-rhev) version info.
 
@@ -2309,6 +2309,8 @@ def get_qemu_version(params):
     version = {'major': None, 'minor': None, 'update': None, 'is_rhev': False}
     regex = r'\s*[Ee]mulator [Vv]ersion\s*(\d+)\.(\d+)\.(\d+)'
 
+    if params is None:
+        params = {}
     qemu_binary = get_qemu_binary(params)
     version_raw = decode_to_text(process.system_output("%s -version" % qemu_binary,
                                                        shell=True)).splitlines()
