@@ -29,6 +29,15 @@ class VMError(Exception):
         Exception.__init__(self, *args)
 
 
+class VMExitStatusError(VMError):
+
+    def __init__(self, vm, exit_status, msg=None):
+        msg = msg or "vm %s exited with non-zero status %s" % (vm, exit_status)
+        super(VMExitStatusError, self).__init__(msg)
+        self.vm = vm
+        self.exit_status = exit_status
+
+
 class VMCreateError(VMError):
 
     def __init__(self, cmd, status, output):

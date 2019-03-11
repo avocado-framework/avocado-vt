@@ -13,6 +13,7 @@ import struct
 import re
 import random
 import errno
+import sys
 
 from functools import partial
 
@@ -36,6 +37,7 @@ from virttest import utils_net
 from virttest import arch
 from virttest import storage
 from virttest import error_context
+from virttest import error_message_bus
 from virttest.compat_52lts import decode_to_text
 from virttest.qemu_devices import qdevices, qcontainer
 from virttest.qemu_devices.utils import DeviceError
@@ -91,6 +93,23 @@ def clean_tmp_files():
 
 CREATE_LOCK_FILENAME = os.path.join(data_dir.get_tmp_dir(),
                                     'avocado-vt-vm-create.lock')
+
+
+def monitor_qemu_process_term(vm, term_watcher, exit_status):
+    """
+    Callback function to detect QEMU process non-zero exit status and
+    push VMExitStatusError to background error bus.
+    """
+    if exit_status != 0:
+        msg = "vm %s exited with non-zero status %s" % (vm, exit_status)
+        if term_watcher == "log":
+            logging.debug(msg)
+        elif term_watcher == "error":
+            logging.error(msg)
+            try:
+                raise virt_vm.VMExitStatusError(vm, exit_status, msg=msg)
+            except virt_vm.VMExitStatusError:
+                error_message_bus.error_message_bus.put(sys.exc_info())
 
 
 class VM(virt_vm.BaseVM):
@@ -2917,12 +2936,12 @@ class VM(virt_vm.BaseVM):
                 logging.info("Running qemu command (reformatted):\n%s",
                              qemu_command.replace(" -", " \\\n    -"))
                 self.qemu_command = qemu_command
-                self.process = aexpect.run_tail(qemu_command,
-                                                None,
-                                                logging.info,
-                                                "[qemu output] ",
-                                                auto_close=False,
-                                                pass_fds=pass_fds)
+                self.process = aexpect.run_tail(
+                    qemu_command,
+                    partial(monitor_qemu_process_term, self.name,
+                            params.get("qemu_term_watcher", "log")),
+                    logging.info, "[qemu output] ",
+                    auto_close=False, pass_fds=pass_fds)
 
             logging.info("Created qemu process with parent PID %d",
                          self.process.get_pid())
