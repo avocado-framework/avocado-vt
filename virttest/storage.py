@@ -383,7 +383,7 @@ class QemuImg(object):
             if action not in ('backup', 'restore'):
                 logging.error("No backup sets for action: %s, state: %s",
                               action, good)
-                return backup_set
+                return bkp_set
             if good:
                 src = filename
                 dst = os.path.join(backup_dir, "%s.backup" % basename)
