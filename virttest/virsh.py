@@ -1403,15 +1403,18 @@ def destroy(name, options="", **dargs):
     return command("destroy %s %s" % (name, options), **dargs)
 
 
-def define(xml_path, **dargs):
+def define(xml_path, options=None, **dargs):
     """
     Return cmd result of domain define.
 
     :param xml_path: XML file path
+    :param options: options for virsh define
     :param dargs: standardized virsh function API keywords
     :return: CmdResult object
     """
     cmd = "define --file %s" % xml_path
+    if options is not None:
+        cmd += " %s" % options
     logging.debug("Define VM from %s", xml_path)
     return command(cmd, **dargs)
 
