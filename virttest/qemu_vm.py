@@ -9,10 +9,8 @@ import time
 import os
 import logging
 import fcntl
-import struct
 import re
 import random
-import errno
 
 from functools import partial
 
@@ -36,6 +34,7 @@ from virttest import utils_net
 from virttest import arch
 from virttest import storage
 from virttest import error_context
+from virttest import utils_vsock
 from virttest.compat_52lts import decode_to_text
 from virttest.qemu_devices import qdevices, qcontainer
 from virttest.qemu_devices.utils import DeviceError
@@ -1900,35 +1899,13 @@ class VM(virt_vm.BaseVM):
                               pci_bus=pci_bus)
                 iov += 1
 
-        def get_cid(cid):
-            """ Get an unused guest cid from system """
-            while cid:
-                cid_c = struct.pack('L', cid)
-                try:
-                    fcntl.ioctl(
-                        vsock_fd, arch.VHOST_VSOCK_SET_GUEST_CID, cid_c)
-                except IOError as e:
-                    if e.errno == errno.EADDRINUSE:
-                        cid += 1
-                        continue
-                    else:
-                        raise e
-                else:
-                    return cid
-
         # Add vsock device, cid 0-2 are reserved by system
         vsocks = params.objects('vsocks')
         if vsocks:
-            vsock_path = "/dev/vhost-vsock"
-            if not os.path.exists(vsock_path):
-                logging.info("vsock module was not loaded, loading it...")
-                if not linux_modules.load_module('vhost_vsock'):
-                    raise exceptions.TestError(
-                        "Failed on loading module vhost_vsock.")
-            vsock_fd = os.open(vsock_path, os.O_RDWR)
+            linux_modules.load_module('vhost_vsock')
             min_cid = 3
             for vsock in vsocks:
-                guest_cid = get_cid(min_cid)
+                guest_cid = utils_vsock.get_guest_cid(min_cid)
                 vsock_params = {"id": vsock, "guest-cid": guest_cid}
                 if '-mmio:' in params.get('machine_type'):
                     dev_vsock = QDevice('vhost-vsock-device', vsock_params)
@@ -1938,7 +1915,6 @@ class VM(virt_vm.BaseVM):
                     dev_vsock = QDevice('vhost-vsock-pci', vsock_params)
                 devices.insert(dev_vsock)
                 min_cid = guest_cid + 1
-            os.close(vsock_fd)
 
         # Add Memory devices
         add_memorys(devices, params)
