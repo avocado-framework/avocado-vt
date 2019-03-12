@@ -12,7 +12,7 @@ sudo: false
 install:
     - pip install Sphinx==1.3b1
     - pip install -r requirements-travis.txt
-    - git clone --depth 1 https://github.com/avocado-framework/avocado.git --branch 69lts avocado-libs
+    - git clone --depth 1 https://github.com/avocado-framework/avocado.git --branch $([ $TRAVIS_PYTHON_VERSION == "2.7" ] && echo 69lts || echo master) avocado-libs
     - cd avocado-libs
     - pip install -e .
     - cd ..
