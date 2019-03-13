@@ -1,5 +1,8 @@
 Sphinx==1.3b1
-inspektor==0.4.5
+# inspektor (static and style checks)
+pylint==1.9.3; python_version <= '2.7'
+pylint==2.3.0; python_version >= '3.4'
+inspektor==0.5.2
 autotest>=0.16.2; python_version < '3.0'
 aexpect==1.5.1
 simplejson==3.8.0
