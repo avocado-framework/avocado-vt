@@ -977,8 +977,9 @@ class Dimm(QDevice):
         if "unknown command" in out:       # Old qemu don't have info qtree
             return out
         dev_id_name = self.get_qid()
-        if dev_id_name in str(out):
-            return True
+        for item in out:
+            if item['data']['id'] == dev_id_name:
+                return True
         return False
 
     def verify_unplug(self, dev_type, monitor):
@@ -986,9 +987,10 @@ class Dimm(QDevice):
         if "unknown command" in out:       # Old qemu don't have info qtree
             return out
         dev_id_name = self.get_qid()
-        if dev_id_name not in str(out):
-            return True
-        return False
+        for item in out:
+            if item['data']['id'] == dev_id_name:
+                return False
+        return True
 
 
 class CharDevice(QCustomDevice):
