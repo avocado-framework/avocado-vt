@@ -3826,25 +3826,44 @@ class VM(virt_vm.BaseVM):
                 ret = len(re.findall("migrated: true", s, re.I)) > 0
             else:
                 ret = len(re.findall("true", str(s.get("migrated")), re.I)) > 0
+        if ret is False:
+            return ret
         o = self.monitor.info("migrate")
-        if isinstance(o, six.string_types):
-            return ret and not re.search(r"status: *[\w-]*active", o)
-        else:
-            return ret and not ("active" in o.get("status"))
+        ret = (self._mig_none(o) or
+               self._mig_succeeded(o) or
+               self._mig_failed(o) or
+               self._mig_cancelled(o))
+        return ret
+
+    @staticmethod
+    def _is_mig_status(out, expected):
+        if isinstance(out, six.string_types):   # HMP
+            pattern = "Migration status: %s" % expected
+            return pattern in out
+        else:                                   # QMP
+            return out.get("status") == expected
+
+    def _mig_none(self, out):
+        return self._is_mig_status(out, "none")
+
+    def _mig_succeeded(self, out):
+        return self._is_mig_status(out, "completed")
 
     def mig_succeeded(self):
         o = self.monitor.info("migrate")
-        if isinstance(o, six.string_types):
-            return "status: completed" in o
-        else:
-            return o.get("status") == "completed"
+        return self._mig_succeeded(o)
+
+    def _mig_failed(self, out):
+        return self._is_mig_status(out, "failed")
 
     def mig_failed(self):
         o = self.monitor.info("migrate")
-        if isinstance(o, six.string_types):
-            return "status: failed" in o
-        else:
-            return o.get("status") == "failed"
+        return self._mig_failed(o)
+
+    def _mig_cancelled(self, out):
+        ret = (self._is_mig_status(out, "cancelled") or
+               self._is_mig_status(out, "canceled"))
+        return ret
 
     def mig_cancelled(self):
         if self.mig_succeeded():
@@ -3853,12 +3872,7 @@ class VM(virt_vm.BaseVM):
         elif self.mig_failed():
             raise virt_vm.VMMigrateFailedError("Migration failed")
         o = self.monitor.info("migrate")
-        if isinstance(o, six.string_types):
-            return ("Migration status: cancelled" in o or
-                    "Migration status: canceled" in o)
-        else:
-            return (o.get("status") == "cancelled" or
-                    o.get("status") == "canceled")
+        return self._mig_cancelled(o)
 
     def wait_for_migration(self, timeout):
         if not utils_misc.wait_for(self.mig_finished, timeout, 2, 2,
