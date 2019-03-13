@@ -27,8 +27,16 @@ class VMStressEvents():
         self.max_vcpu = params.get("vcpu_maxcpus", 32)
         self.ignore_status = params.get("ignore_status", "no") == "yes"
         self.vms = env.get_all_vms()
-        self.events = params.get("stress_events", "reboot").split(',')
-        self.host_events = params.get("host_stress_events", "").split(',')
+        self.events = params.get("stress_events", "reboot")
+        if self.events:
+            self.events = self.events.split(',')
+        else:
+            self.events = []
+        self.host_events = params.get("host_stress_events", "")
+        if self.host_events:
+            self.host_events = self.host_events.split(',')
+        else:
+            self.host_events = []
         self.threads = []
         self.iface_num = params.get("iface_num", '1')
         self.iface_type = params.get("iface_type", "network")
