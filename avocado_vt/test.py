@@ -22,17 +22,16 @@ import os
 import sys
 import pickle
 import pipes
-try:
-    import queue as Queue
-except ImportError:
-    import Queue
+import traceback
 
 from avocado.core import exceptions
 from avocado.core import test
 from avocado.utils import stacktrace
 from avocado.utils import process
+from avocado.utils import genio
 
 from virttest import asset
+from virttest import error_event
 from virttest import bootstrap
 from virttest import data_dir
 from virttest import env_process
@@ -63,7 +62,8 @@ if 'AUTOTEST_PATH' in os.environ:
     SETUP_MODULES.setup(base_path=CLIENT_DIR,
                         root_module_name="autotest.client")
 
-import six
+
+BG_ERR_FILE = "background-error.log"
 
 
 def cleanup_env(env_filename, env_version):
@@ -106,7 +106,9 @@ class VirtTest(test.Test):
         self.iteration = 0
         self.resultsdir = None
         self.file_handler = None
-        self.background_errors = Queue.Queue()
+        self.background_errors = error_event.error_events_bus
+        # clear existing error events
+        self.background_errors.clear()
         super(VirtTest, self).__init__(methodName=methodName, name=name,
                                        params=params,
                                        base_logdir=base_logdir, job=job,
@@ -208,15 +210,24 @@ class VirtTest(test.Test):
     def verify_background_errors(self):
         """
         Verify if there are any errors that happened on background threads.
-
-        :raise Exception: Any exception stored on the background_errors queue.
+        Logs all errors in the background_errors into background-error.log and
+        error the test.
         """
-        try:
-            exc = self.background_errors.get(block=False)
-        except Queue.Empty:
-            pass
-        else:
-            six.reraise(*exc)
+        err_file_path = os.path.join(self.logdir, BG_ERR_FILE)
+        bg_errors = self.background_errors.get_all()
+        error_messages = ["BACKGROUND ERROR LIST:"]
+        for index, error in enumerate(bg_errors):
+            error_messages.append(
+                "- ERROR #%d -\n%s" % (index, "".join(
+                    traceback.format_exception(*error)
+                    )))
+        genio.write_file(err_file_path, '\n'.join(error_messages))
+        if bg_errors:
+            msg = ["Background error"]
+            msg.append("s are" if len(bg_errors) > 1 else " is")
+            msg.append((" detected, please refer to file: "
+                        "'%s' for more details.") % BG_ERR_FILE)
+            self.error(''.join(msg))
 
     def __safe_env_save(self, env):
         """
