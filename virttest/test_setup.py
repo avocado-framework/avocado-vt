@@ -491,7 +491,8 @@ class HugePageConfig(object):
         """
         Get the current system setting for huge memory page size.
         """
-        meminfo = open('/proc/meminfo', 'r').readlines()
+        with open('/proc/meminfo', 'r') as meminfo_fd:
+            meminfo = meminfo_fd.readlines()
         huge_line_list = [h for h in meminfo if h.startswith("Hugepagesize")]
         try:
             return int(huge_line_list[0].split()[1])
@@ -521,9 +522,8 @@ class HugePageConfig(object):
             self.hugepage_force_allocate = "yes"
 
         if self.hugepage_force_allocate == "no":
-            hugepage_allocated = open(self.kernel_hp_file, "r")
-            available_hugepages = int(hugepage_allocated.read().strip())
-            hugepage_allocated.close()
+            with open(self.kernel_hp_file, "r") as hugepage_allocated:
+                available_hugepages = int(hugepage_allocated.read().strip())
             chunk_bottom = int(math.log(self.hugepage_size / utils_memory.getpagesize(), 2))
             if ARCH == 'ppc64le':
                 chunk_info = utils_memory.get_buddy_info(">=%s" % chunk_bottom)
@@ -619,20 +619,18 @@ class HugePageConfig(object):
         error_context.context(
             "setting hugepages limit to %s" % self.target_hugepages)
         try:
-            hugepage_cfg = open(self.kernel_hp_file, "r+")
-            hp = hugepage_cfg.readline().strip()
-            hugepage_cfg.close()
+            with open(self.kernel_hp_file, "r") as hugepage_cfg:
+                hp = hugepage_cfg.readline().strip()
         except IOError:
             raise exceptions.TestSetupFail("Can't read kernel hugepage file")
         while int(hp) < self.target_hugepages:
             loop_hp = hp
             try:
-                hugepage_cfg = open(self.kernel_hp_file, "r+")
-                hugepage_cfg.write(str(self.target_hugepages))
-                hugepage_cfg.flush()
-                hugepage_cfg.seek(0)
-                hp = int(hugepage_cfg.readline().strip())
-                hugepage_cfg.close()
+                with open(self.kernel_hp_file, "r+") as hugepage_cfg:
+                    hugepage_cfg.write(str(self.target_hugepages))
+                    hugepage_cfg.flush()
+                    hugepage_cfg.seek(0)
+                    hp = int(hugepage_cfg.readline().strip())
             except IOError:
                 msg = "Can't read/write from kernel hugepage file"
                 raise exceptions.TestSetupFail(msg)
@@ -665,6 +663,9 @@ class HugePageConfig(object):
                       self.hugepage_size)
         logging.debug("Number of large memory pages needed for this test: %s",
                       self.target_hugepages)
+        # Drop caches to clean some usable memory
+        with open("/proc/sys/vm/drop_caches", "w") as caches:
+            caches.write('3')
         if self.target_nodes:
             for node, num in six.iteritems(self.target_node_num):
                 self.set_node_num_huge_pages(num, node, self.hugepage_size)
