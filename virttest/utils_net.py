@@ -1026,10 +1026,14 @@ class Bridge(object):
     def list_br(self):
         return list(self.get_structure().keys())
 
-    def list_iface(self):
+    def list_iface(self, br=None):
         """
         Return all interfaces used by bridge.
+
+        :param br: Name of bridge
         """
+        if br:
+            return self.get_structure()[br]['iface']
         interface_list = []
         for br in self.list_br():
             for (value) in self.get_structure()[br]['iface']:
