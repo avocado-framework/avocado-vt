@@ -912,6 +912,22 @@ class VM(virt_vm.BaseVM):
                 logging.warning("boot option is not supported")
             return result.rstrip(',')
 
+        def add_cputune(vcpu_cputune=""):
+            """
+            Add cputune for guest
+            """
+            if not vcpu_cputune:
+                return ""
+            cputune_list = vcpu_cputune.split(" ")
+            item = 0
+            cputune_str = " --cputune "
+            for vcpu, cpulist in enumerate(cputune_list):
+                if "N" in cpulist:
+                    continue
+                cputune_str += "vcpupin%s.cpuset=\"%s\",vcpupin%s.vcpu=\"%s\"," % (item, cpulist, item, vcpu)
+                item += 1
+            return cputune_str.rstrip(",")
+
         # End of command line option wrappers
 
         if name is None:
@@ -1069,6 +1085,9 @@ class VM(virt_vm.BaseVM):
                                             model=params.get('virt_cpu_model', ''),
                                             match=params.get('virt_cpu_match', ''),
                                             vendor=params.get('virt_cpu_vendor', False))
+        cputune_list = params.get("vcpu_cputune", "")
+        if cputune_list:
+            virt_install_cmd += add_cputune(cputune_list)
         # TODO: directory location for vmlinuz/kernel for cdrom install ?
         location = None
         if params.get("medium") == 'url':
