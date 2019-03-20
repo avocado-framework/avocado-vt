@@ -11,9 +11,11 @@ from virttest.libvirt_xml.devices.character import CharacterBase
 
 class Channel(CharacterBase):
 
-    __slots__ = ('source', 'target', 'alias', 'address')
+    __slots__ = ('source', 'target', 'alias', 'address', 'type')
 
     def __init__(self, type_name='unix', virsh_instance=base.virsh):
+        accessors.XMLAttribute('type', self, parent_xpath='/',
+                               tag_name='channel', attribute='type')
         accessors.XMLElementDict('source', self, parent_xpath='/',
                                  tag_name='source')
         accessors.XMLElementDict('target', self, parent_xpath='/',
