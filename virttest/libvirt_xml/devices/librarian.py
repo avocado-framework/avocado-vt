@@ -13,7 +13,7 @@ DEVICE_TYPES = ['disk', 'filesystem', 'controller', 'lease',
                 'hub', 'graphics', 'video', 'parallel', 'serial', 'console',
                 'channel', 'sound', 'watchdog', 'memballoon', 'rng', 'vsock',
                 'seclabel', 'address', 'emulator', 'panic', 'memory', 'filterref',
-                'iommu']
+                'iommu', 'tpm']
 
 
 def get(name):
