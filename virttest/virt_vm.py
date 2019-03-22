@@ -1385,12 +1385,12 @@ class BaseVM(object):
             else:
                 self.send_key(char)
 
-    def get_cpu_count(self):
+    def get_cpu_count(self, check_cmd='cpu_chk_cmd'):
         """
         Get the cpu count of the VM.
         """
         session = self.wait_for_login()
-        cmd = self.params.get("cpu_chk_cmd")
+        cmd = self.params.get(check_cmd)
         try:
             out = session.cmd_output_safe(cmd)
             return int(re.search("\d+", out, re.M).group())
