@@ -23,12 +23,21 @@ class VMStressEvents():
         self.iterations = int(params.get("stress_itrs", 1))
         self.host_iterations = int(params.get("host_event_itrs", 10))
         self.event_sleep_time = int(params.get("event_sleep_time", 10))
+        self.itr_sleep_time = int(params.get("itr_sleep_time", 10))
         self.current_vcpu = params.get("smp", 32)
         self.max_vcpu = params.get("vcpu_maxcpus", 32)
         self.ignore_status = params.get("ignore_status", "no") == "yes"
         self.vms = env.get_all_vms()
-        self.events = params.get("stress_events", "reboot").split(',')
-        self.host_events = params.get("host_stress_events", "").split(',')
+        self.events = params.get("stress_events", "reboot")
+        if self.events:
+            self.events = self.events.split(',')
+        else:
+            self.events = []
+        self.host_events = params.get("host_stress_events", "")
+        if self.host_events:
+            self.host_events = self.host_events.split(',')
+        else:
+            self.host_events = []
         self.threads = []
         self.iface_num = params.get("iface_num", '1')
         self.iface_type = params.get("iface_type", "network")
@@ -163,6 +172,7 @@ class VMStressEvents():
                         libvirt.delete_local_disk(self.disk_type, disk_name)
             else:
                 raise NotImplementedError
+            time.sleep(self.itr_sleep_time)
 
     def host_stress_event(self, event):
         """
@@ -188,3 +198,4 @@ class VMStressEvents():
                 cpu.online(processor)
             else:
                 raise NotImplementedError
+            time.sleep(self.itr_sleep_time)
