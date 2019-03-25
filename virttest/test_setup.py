@@ -800,6 +800,14 @@ class PrivateBridgeConfig(object):
                 ports.append(u_port)
             self.iptables_rules = self._assemble_iptables_rules(ports)
             self.physical_nic = params.get("physical_nic")
+            if self.physical_nic:
+                if self.physical_nic.split(':', 1)[0] == "shell":
+                    self.physical_nic = decode_to_text(process.system_output(
+                        self.physical_nic.split(':', 1)[1], shell=True))
+                if self.physical_nic not in utils_net.get_host_iface():
+                    raise exceptions.TestSetupFail("Physical network '%s'"
+                                                   "does not exist" %
+                                                   self.physical_nic)
             self.force_create = False
             if params.get("bridge_force_create", "no") == "yes":
                 self.force_create = True
