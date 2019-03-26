@@ -1490,16 +1490,14 @@ def _take_screendumps(test, params, env):
     inactivity_treshold = float(params.get("inactivity_treshold", 1800))
     inactivity_watcher = params.get("inactivity_watcher", "log")
 
-    cache = {}
     counter = {}
-    inactivity = {}
 
     while True:
         for vm in env.get_all_vms():
             if vm.instance not in list(counter.keys()):
                 counter[vm.instance] = 0
-            if vm.instance not in list(inactivity.keys()):
-                inactivity[vm.instance] = time.time()
+            timer = virt_vm.get_timer(vm, inactivity_treshold, delay,
+                                      inactivity_watcher)
             if not vm.is_alive():
                 continue
             vm_pid = vm.get_pid()
@@ -1530,26 +1528,12 @@ def _take_screendumps(test, params, env):
             screendump_filename = os.path.join(screendump_dir, filename)
             vm.verify_bsod(screendump_filename)
             image_hash = crypto.hash_file(temp_filename)
-            if image_hash in cache:
-                time_inactive = time.time() - inactivity[vm.instance]
-                if time_inactive > inactivity_treshold:
-                    msg = (
-                        "%s screen is inactive for more than %d s (%d min)" %
-                        (vm.name, time_inactive, time_inactive // 60))
-                    if inactivity_watcher == "error":
-                        try:
-                            raise virt_vm.VMScreenInactiveError(vm,
-                                                                time_inactive)
-                        except virt_vm.VMScreenInactiveError:
-                            logging.error(msg)
-                            # Let's reset the counter
-                            inactivity[vm.instance] = time.time()
-                            test.background_errors.put(sys.exc_info())
-                    elif inactivity_watcher == 'log':
-                        logging.debug(msg)
-            else:
-                inactivity[vm.instance] = time.time()
-            cache[image_hash] = screendump_filename
+            resp = timer.send(("CONT", image_hash))
+            if resp:
+                try:
+                    raise resp
+                except virt_vm.VMScreenInactiveError:
+                    test.background_errors.put(sys.exc_info())
             try:
                 try:
                     timestamp = os.stat(temp_filename).st_ctime
@@ -1575,6 +1559,8 @@ def _take_screendumps(test, params, env):
         else:
             # Exit event was deleted, exit this thread
             break
+
+    virt_vm.remove_timers()
 
 
 def store_vm_register(vm, log_filename, append=False):

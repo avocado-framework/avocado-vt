@@ -6,6 +6,7 @@ import os
 import re
 import socket
 import traceback
+import threading
 
 from aexpect.exceptions import ShellError
 from aexpect.exceptions import ExpectError
@@ -13,6 +14,7 @@ from avocado.core import exceptions
 
 import six
 from six.moves import xrange
+from collections import OrderedDict
 
 from virttest import utils_misc
 from virttest import utils_net
@@ -418,15 +420,22 @@ class VMUSBPortInUseError(VMUSBError):
 
 class VMScreenInactiveError(VMError):
 
-    def __init__(self, vm, inactive_time):
+    def __init__(self, vm, start_inteval, threshold, detail=None):
         VMError.__init__(self)
         self.vm = vm
-        self.inactive_time = inactive_time
+        self.start_inteval = start_inteval
+        self.threshold = threshold
+        self.detail = detail
 
     def __str__(self):
-        msg = ("%s screen is inactive for %d s (%d min)" %
-               (self.vm.name, self.inactive_time, self.inactive_time // 60))
-        return msg
+        if self.detail is None:
+            self.detail = ("{vm.name} screen is detected inactive(threshold "
+                           "{threshold}), starting within range ("
+                           "{start_inteval[0]}, {start_inteval[1]}]").format(
+                               vm=self.vm, threshold=self.threshold,
+                               start_inteval=self.start_inteval
+                           )
+        return self.detail
 
 
 class VMLoginError(VMError):
@@ -462,6 +471,116 @@ class CpuInfo(object):
         self.sockets = sockets
         self.cores = cores
         self.threads = threads
+
+
+def screen_inactivity_timer(vm, threshold, delay, watcher):
+    """A coroutine used to time vm screen inactivity.
+
+    This corotine only produce VMScreenInactiveError instance only if all
+    circumstances list below are satisfied:
+    1. the hash of screendump image is stored in cache as the last inserted
+    item, which means the vm stucks in this screen for a period of time.
+    2. the inactivity duration exceeds threshold.
+    3. no VMScreenInactiveError has been produced for this inactivity before.
+
+    Usage:
+    to reset timer: timer.send(("RESET", None))
+    to check inactivity: timer.send(("CONT", image_hash))
+
+    :param vm: vm instance
+    :param threshold: inactivity_treshold
+    :param delay: screendump_delay
+    :param watcher: inactivity_watcher
+    """
+    cache = OrderedDict()
+    ret = None
+    while True:
+        op, image_hash = yield ret
+        if op.lower() == "reset":
+            cache.clear()
+            continue
+        now = time.time()
+        if image_hash in cache:
+            last_hash, (start, has_err) = cache.popitem(last=True)
+            if last_hash == image_hash:
+                if now - start > threshold and not has_err:
+                    start_inteval = \
+                        tuple(time.strftime("%c", time.localtime(tm))
+                              for tm in (start - delay, start))
+                    detail = ("{vm.name} screen is detected inactive(threshold"
+                              " {threshold}), starting within range ("
+                              "{start_inteval[0]}, {start_inteval[1]}]")
+                    detail = detail.format(vm=vm, threshold=threshold,
+                                           start_inteval=start_inteval)
+                    if watcher == "error":
+                        logging.error(detail)
+                        ret = VMScreenInactiveError(vm, start_inteval,
+                                                    threshold, detail=detail)
+                    elif watcher == "log":
+                        logging.debug(detail)
+                    has_err = True
+                cache[image_hash] = (start, has_err)
+            else:
+                cache.pop(image_hash)
+                cache[last_hash] = (start, has_err)
+                cache[image_hash] = (now, False)
+        else:
+            cache[image_hash] = (now, False)
+
+
+class CoroSerializer(object):
+    """Wrap coro with lock to ensure thread-safe."""
+
+    def __init__(self, coro):
+        self.coro = coro
+        self.lock = threading.Lock()
+
+    def __iter__(self):
+        """Return an iterator object, in this case: self."""
+        return self
+
+    def send(self, arg):
+        """Call coro.send in thread-safe way."""
+        with self.lock:
+            return self.coro.send(arg)
+
+    def __next__(self):
+        """Return next item from the coro, py3 support."""
+        self.send(None)
+
+    def next(self):
+        """Return next item from the coro, py2 support."""
+        self.send(None)
+
+    def close(self):
+        """Close the coroutine."""
+        with self.lock:
+            self.coro.close()
+
+
+# dict used to store vm to timer mapping
+timers = dict()
+
+
+def get_timer(vm, threshold, delay, watcher):
+    """Return a started thread-safe timer coroutine."""
+    if vm.instance in timers:
+        timer = timers[vm.instance]
+    else:
+        timer = CoroSerializer(
+            screen_inactivity_timer(vm, threshold, delay, watcher)
+            )
+        timers[vm.instance] = timer
+        # start the timer coro
+        timer.send(None)
+    return timer
+
+
+def remove_timers():
+    """Remove all timers."""
+    for _, timer in timers.items():
+        timer.close()
+    timers.clear()
 
 
 class BaseVM(object):
