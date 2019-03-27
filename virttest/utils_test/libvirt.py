@@ -1585,20 +1585,28 @@ def check_result(result,
     expectation.
 
     :param result: Command result instance.
-    :param expected_fails: list of regex of expected stderr patterns. The check
-                           will pass if any of these patterns matches.
-    :param skip_if: list of regex of expected patterns. The check will raise a
-                    TestSkipError if any of these patterns matches.
+    :param expected_fails: a string or list of regex of expected stderr patterns.
+                           The check will pass if any of these patterns matches.
+    :param skip_if: a string or list of regex of expected stderr patterns. The
+                    check will raise a TestSkipError if any of these patterns matches.
     :param any_error: Whether expect on any error message. Setting to True will
                       will override expected_fails
-    :param expected_match: list of regex of expected match. The check only check
-                           the stdout result
+    :param expected_match: a string or list of regex of expected stdout patterns.
+                           The check will pass if any of these patterns matches.
     """
     stderr = results_stderr_52lts(result)
     stdout = results_stdout_52lts(result)
     all_msg = '\n'.join([stdout, stderr])
     logging.debug("Command result: %s", all_msg)
+
+    try:
+        unicode
+    except NameError:
+        unicode = str
+
     if skip_if:
+        if isinstance(skip_if, (str, unicode)):
+            skip_if = [skip_if]
         for patt in skip_if:
             if re.search(patt, stderr):
                 raise exceptions.TestSkipError("Test skipped: found '%s' in test "
@@ -1613,6 +1621,8 @@ def check_result(result,
 
     if result.exit_status:
         if expected_fails:
+            if isinstance(expected_fails, (str, unicode)):
+                expected_fails = [expected_fails]
             if not any(re.search(patt, stderr)
                        for patt in expected_fails):
                 raise exceptions.TestFail("Expect should fail with one of %s, "
@@ -1627,6 +1637,8 @@ def check_result(result,
                                       "but succeeded: %s" %
                                       (expected_fails, all_msg))
         elif expected_match:
+            if isinstance(expected_match, (str, unicode)):
+                expected_match = [expected_match]
             if not any(re.search(patt, stdout)
                        for patt in expected_match):
                 raise exceptions.TestFail("Expect should match with one of %s,"
