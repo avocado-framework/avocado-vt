@@ -3908,7 +3908,7 @@ class VM(virt_vm.BaseVM):
                 for parameter, value in migrate_parameters[0].items():
                     self.monitor.set_migrate_parameter(parameter, value)
                     s = self.monitor.get_migrate_parameter(parameter)
-                    if s != value:
+                    if str(s) != str(value):
                         msg = ("Migrate parameter '%s' should be '%s', "
                                "but actual result is '%s' on source guest"
                                % (parameter, value, s))
@@ -3922,7 +3922,7 @@ class VM(virt_vm.BaseVM):
                 for parameter, value in migrate_parameters[1].items():
                     clone.monitor.set_migrate_parameter(parameter, value)
                     s = clone.monitor.get_migrate_parameter(parameter)
-                    if s != value:
+                    if str(s) != str(value):
                         msg = ("Migrate parameter '%s' should be '%s', "
                                "but actual result is '%s' on destination guest"
                                % (parameter, value, s))
