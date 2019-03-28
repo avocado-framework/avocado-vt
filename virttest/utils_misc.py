@@ -2361,7 +2361,11 @@ def check_if_vm_vcpu_match(vcpu_desire, vm):
     This checks whether the VM vCPU quantity matches
     the value desired.
     """
-    vcpu_actual = vm.get_cpu_count()
+    release = platform.dist()[0]
+    if release and release in ['fedora', ]:
+        vcpu_actual = vm.get_cpu_count("cpu_chk_all_cmd")
+    else:
+        vcpu_actual = vm.get_cpu_count("cpu_chk_cmd")
     if isinstance(vcpu_desire, str) and vcpu_desire.isdigit():
         vcpu_desire = int(vcpu_desire)
     if vcpu_desire != vcpu_actual:
