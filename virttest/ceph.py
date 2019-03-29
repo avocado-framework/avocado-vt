@@ -159,3 +159,16 @@ def get_image_filename(ceph_monitor, rbd_pool_name, rbd_image_name):
     """
     return "rbd:%s/%s:mon_host=%s" % (rbd_pool_name, rbd_image_name,
                                       ceph_monitor)
+
+
+@error_context.context_aware
+def create_config_file(ceph_monitor):
+    """
+    Create an ceph config file when the config file is not exist
+    :params ceph_monitor: The specified monitor to connect to
+    """
+    ceph_cfg = "/etc/ceph/ceph.conf"
+    if not os.path.exists(ceph_cfg):
+        with open(ceph_cfg, 'w+') as f:
+            f.write('mon_host = %s' % ceph_monitor)
+        return ceph_cfg
