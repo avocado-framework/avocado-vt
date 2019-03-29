@@ -3906,7 +3906,19 @@ class VM(virt_vm.BaseVM):
                 logging.info("Set source migrate parameters before migration: "
                              "%s", str(migrate_parameters[0]))
                 for parameter, value in migrate_parameters[0].items():
-                    self.monitor.set_migrate_parameter(parameter, value)
+                    if parameter == "x-multifd-page-count":
+                        try:
+                            self.monitor.set_migrate_parameter(parameter,
+                                                               value, True)
+                        except qemu_monitor.MonitorNotSupportedError:
+                            # x-multifd-page-count was dropped without
+                            # replacement, ignore this param
+                            logging.warn("Parameter x-multifd-page-count "
+                                         "not supported on src, probably "
+                                         "newer qemu, not setting it.")
+                            continue
+                    else:
+                        self.monitor.set_migrate_parameter(parameter, value)
                     s = self.monitor.get_migrate_parameter(parameter)
                     if str(s) != str(value):
                         msg = ("Migrate parameter '%s' should be '%s', "
@@ -3920,7 +3932,19 @@ class VM(virt_vm.BaseVM):
                              "%s", str(migrate_parameters[1]))
                 # target qemu migration parameters configuration
                 for parameter, value in migrate_parameters[1].items():
-                    clone.monitor.set_migrate_parameter(parameter, value)
+                    if parameter == "x-multifd-page-count":
+                        try:
+                            clone.monitor.set_migrate_parameter(parameter,
+                                                                value, True)
+                        except qemu_monitor.MonitorNotSupportedError:
+                            logging.warn("Parameter x-multifd-page-count "
+                                         "not supported on dst, probably "
+                                         "newer qemu, not setting it.")
+                            # x-multifd-page-count was dropped without
+                            # replacement, ignore this param
+                            continue
+                    else:
+                        clone.monitor.set_migrate_parameter(parameter, value)
                     s = clone.monitor.get_migrate_parameter(parameter)
                     if str(s) != str(value):
                         msg = ("Migrate parameter '%s' should be '%s', "
