@@ -961,6 +961,44 @@ def copy_files_from(address, client, username, password, port, remote_path,
                                    "values are scp and rss" % client)
 
 
+def run_remote_cmd(cmd, params, remote_runner=None, ignore_status=True):
+    """
+    A function to run a command on remote host.
+
+    :param cmd: the command to be executed
+    :param params: the parameter for executing
+    :param remote_runner: a remote runner object on remote host
+    :param ignore_status: True - not raise exception when failed
+                          False - raise exception when failed
+
+    :return: CmdResult object
+    :raise: exceptions.TestFail or exceptions.TestError
+    """
+    try:
+        if not remote_runner:
+            remote_ip = params.get("server_ip", params.get("remote_ip"))
+            remote_pwd = params.get("server_pwd", params.get("remote_pwd"))
+            remote_user = params.get("server_user", params.get("remote_user"))
+            remote_runner = RemoteRunner(host=remote_ip,
+                                         username=remote_user,
+                                         password=remote_pwd)
+
+        cmdresult = remote_runner.run(cmd, ignore_status=ignore_status)
+        logging.debug("Remote runner run result:\n%s", cmdresult)
+        if cmdresult.exit_status and not ignore_status:
+            raise exceptions.TestFail("Failed to run '%s' on remote: %s"
+                                      % (cmd, cmdresult))
+        return cmdresult
+    except (LoginError, LoginTimeoutError,
+            LoginAuthenticationError, LoginProcessTerminatedError) as e:
+        logging.error(e)
+        raise exceptions.TestError(e)
+    except process.CmdError as cmderr:
+        logging.error("Remote runner run failed:\n%s", cmderr)
+        raise exceptions.TestFail("Failed to run '%s' on remote: %s"
+                                  % (cmd, cmderr))
+
+
 class Remote_Package(object):
 
     def __init__(self, address, client, username, password, port, remote_path):
