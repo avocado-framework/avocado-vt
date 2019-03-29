@@ -2434,7 +2434,9 @@ class VM(virt_vm.BaseVM):
             auto_close=False,
             output_func=utils_misc.log_line,
             output_params=(log_name,),
-            prompt=self.params.get("shell_prompt", "[\#\$]"))
+            prompt=self.params.get("shell_prompt", "[\#\$]"),
+            status_test_command=self.params.get("status_test_command",
+                                                "echo $?"))
         del tmp_serial
 
     def create_virtio_console(self):
