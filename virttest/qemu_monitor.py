@@ -1476,10 +1476,10 @@ class HumanMonitor(Monitor):
 
         :param parameter: the parameter which need to get
         """
-        parameter_info = self.query("migrate_parameters")
-        parameter_info = parameter_info.split(" ")
-        value = parameter_info[parameter_info.index("parameter") + 1]
-        return value
+        for line in self.query("migrate_parameters").splitlines():
+            split = line.split(':', 1)
+            if split[0] == parameter:
+                return split[1].lstrip()
 
     def migrate_start_postcopy(self):
         """
