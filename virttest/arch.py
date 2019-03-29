@@ -14,6 +14,8 @@ if ARCH in ('ppc64', 'ppc64le'):
     SIOCSIFADDR = 0x8916
     SIOCGIFNETMASK = 0x891B
     SIOCSIFNETMASK = 0x891C
+    SIOCGIFMTU = 0x8921
+    SIOCSIFMTU = 0x8922
     SIOCGIFINDEX = 0x8933
     SIOCBRADDIF = 0x89a2
     SIOCBRDELIF = 0x89a3
@@ -30,6 +32,7 @@ if ARCH in ('ppc64', 'ppc64le'):
     IFF_VNET_HDR = 0x4000
     # From linux/include/linux/if.h
     IFF_UP = 0x1
+    IFF_PROMISC = 0x100
     # From linux/netlink.h
     NETLINK_ROUTE = 0
     NLM_F_REQUEST = 1
@@ -50,6 +53,8 @@ else:
     SIOCSIFADDR = 0x8916
     SIOCGIFNETMASK = 0x891B
     SIOCSIFNETMASK = 0x891C
+    SIOCGIFMTU = 0x8921
+    SIOCSIFMTU = 0x8922
     SIOCGIFINDEX = 0x8933
     SIOCBRADDIF = 0x89a2
     SIOCBRDELIF = 0x89a3
@@ -66,6 +71,7 @@ else:
     IFF_VNET_HDR = 0x4000
     # From linux/include/linux/if.h
     IFF_UP = 0x1
+    IFF_PROMISC = 0x100
     # From linux/netlink.h
     NETLINK_ROUTE = 0
     NLM_F_REQUEST = 1

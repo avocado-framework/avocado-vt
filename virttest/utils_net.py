@@ -390,52 +390,69 @@ class Interface(object):
                                     self.name, id(self))
 
     @warp_init_del
+    def set_iface_flag(self, flag, active=True):
+        # Get existing device flags
+        ifreq = struct.pack('16sh', self.name.encode(), 0)
+        flags = struct.unpack('16sh',
+                              fcntl.ioctl(sockfd, arch.SIOCGIFFLAGS, ifreq))[1]
+
+        # Set new flags
+        if active:
+            flags = flags | flag
+        else:
+            flags = flags & ~flag
+
+        ifreq = struct.pack('16sh', self.name.encode(), flags)
+        fcntl.ioctl(sockfd, arch.SIOCSIFFLAGS, ifreq)
+
+    @warp_init_del
+    def is_iface_flag_on(self, flag):
+        ifreq = struct.pack('16sh', self.name.encode(), 0)
+        flags = struct.unpack('16sh',
+                              fcntl.ioctl(sockfd, arch.SIOCGIFFLAGS, ifreq))[1]
+
+        if flags & flag:
+            return True
+        else:
+            return False
+
     def up(self):
         '''
         Bring up the bridge interface. Equivalent to ifconfig [iface] up.
         '''
+        self.set_iface_flag(arch.IFF_UP)
 
-        # Get existing device flags
-        ifreq = struct.pack('16sh', self.name.encode(), 0)
-        flags = struct.unpack('16sh',
-                              fcntl.ioctl(sockfd, arch.SIOCGIFFLAGS, ifreq))[1]
-
-        # Set new flags
-        flags = flags | arch.IFF_UP
-        ifreq = struct.pack('16sh', self.name.encode(), flags)
-        fcntl.ioctl(sockfd, arch.SIOCSIFFLAGS, ifreq)
-
-    @warp_init_del
     def down(self):
         '''
-        Bring up the bridge interface. Equivalent to ifconfig [iface] down.
+        Bring down the bridge interface. Equivalent to ifconfig [iface] down.
         '''
+        self.set_iface_flag(arch.IFF_UP, active=False)
 
-        # Get existing device flags
-        ifreq = struct.pack('16sh', self.name.encode(), 0)
-        flags = struct.unpack('16sh',
-                              fcntl.ioctl(sockfd, arch.SIOCGIFFLAGS, ifreq))[1]
-
-        # Set new flags
-        flags = flags & ~arch.IFF_UP
-        ifreq = struct.pack('16sh', self.name.encode(), flags)
-        fcntl.ioctl(sockfd, arch.SIOCSIFFLAGS, ifreq)
-
-    @warp_init_del
     def is_up(self):
         '''
         Return True if the interface is up, False otherwise.
         '''
-        # Get existing device flags
-        ifreq = struct.pack('16sh', self.name.encode(), 0)
-        flags = struct.unpack('16sh',
-                              fcntl.ioctl(sockfd, arch.SIOCGIFFLAGS, ifreq))[1]
+        return self.is_iface_flag_on(arch.IFF_UP)
 
-        # Set new flags
-        if flags & arch.IFF_UP:
-            return True
-        else:
-            return False
+    def promisc_on(self):
+        '''
+        Enable promiscuous mode on the interface.
+        Equivalent to ip link set [iface] promisc on.
+        '''
+        self.set_iface_flag(arch.IFF_PROMISC)
+
+    def promisc_off(self):
+        '''
+        Disable promiscuous mode on the interface.
+        Equivalent to ip link set [iface] promisc off.
+        '''
+        self.set_iface_flag(arch.IFF_PROMISC, active=False)
+
+    def is_promisc(self):
+        '''
+        Return True if the interface promiscuous mode is on, False otherwise.
+        '''
+        return self.is_iface_flag_on(arch.IFF_PROMISC)
 
     @warp_init_del
     def get_mac(self):
@@ -517,6 +534,26 @@ class Interface(object):
         ifreq = struct.pack('16sH2si8s', self.name.encode(),
                             socket.AF_INET, b'\x00' * 2, nmbytes, b'\x00' * 8)
         fcntl.ioctl(sockfd, arch.SIOCSIFNETMASK, ifreq)
+
+    @warp_init_del
+    def get_mtu(self):
+        '''
+        Get MTU size of the interface
+        '''
+        ifreq = struct.pack('16sH14s', self.name.encode(),
+                            socket.AF_INET, b'\x00' * 14)
+        res = fcntl.ioctl(sockfd, arch.SIOCGIFMTU, ifreq)
+
+        return struct.unpack('16sH14s', res)[1]
+
+    @warp_init_del
+    def set_mtu(self, newmtu):
+        '''
+        Set MTU size of the interface
+        '''
+        ifreq = struct.pack('16sH14s', self.name.encode(),
+                            newmtu, b'\x00' * 14)
+        fcntl.ioctl(sockfd, arch.SIOCSIFMTU, ifreq)
 
     @warp_init_del
     def get_index(self):
