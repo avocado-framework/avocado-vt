@@ -13,12 +13,14 @@ class Graphics(base.TypedDeviceBase):
     __slots__ = ('passwd', 'channel', 'listen', 'listens', 'autoport', 'port',
                  'tlsPort', 'defaultMode', 'image_compression',
                  'jpeg_compression', 'zlib_compression', 'playback_compression',
-                 'listen_type', 'listen_addr')
+                 'listen_type', 'listen_addr', 'passwdValidTo')
 
     def __init__(self, type_name='vnc', virsh_instance=base.base.virsh):
         # Add additional attribute 'passwd' for security
         accessors.XMLAttribute('passwd', self, parent_xpath='/',
                                tag_name='graphics', attribute='passwd')
+        accessors.XMLAttribute('passwdValidTo', self, parent_xpath='/',
+                               tag_name='graphics', attribute='passwdValidTo')
         accessors.XMLAttribute('listen', self, parent_xpath='/',
                                tag_name='graphics', attribute='listen')
         accessors.XMLAttribute('autoport', self, parent_xpath='/',
