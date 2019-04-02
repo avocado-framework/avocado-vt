@@ -1841,7 +1841,7 @@ class QPCIEBus(QPCIBus):
         :param device: the QBaseDevice object
         :return: bool value for directly plug or not.
         """
-        pcie_devices = ["virtio-net-pci", "virtio-blk-pci", "vhost-vsock-pci"
+        pcie_devices = ["virtio-net-pci", "virtio-blk-pci", "vhost-vsock-pci",
                         "virtio-scsi-pci", "virtio-balloon-pci",
                         "virtio-serial-pci", "virtio-rng-pci",
                         "e1000e", "virtio-gpu-device", "qemu-xhci"]
