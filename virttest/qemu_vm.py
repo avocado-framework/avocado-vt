@@ -1912,7 +1912,8 @@ class VM(virt_vm.BaseVM):
                 elif params.get('machine_type').startswith("s390"):
                     dev_vsock = QDevice("vhost-vsock-ccw", vsock_params)
                 else:
-                    dev_vsock = QDevice('vhost-vsock-pci', vsock_params)
+                    dev_vsock = QDevice('vhost-vsock-pci', vsock_params,
+                                        parent_bus=pci_bus)
                 devices.insert(dev_vsock)
                 min_cid = guest_cid + 1
 
