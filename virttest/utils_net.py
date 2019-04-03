@@ -29,6 +29,8 @@ from virttest import utils_misc
 from virttest import arch
 from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 from virttest.versionable_class import factory
+from virttest.utils_windows import virtio_win
+from virttest.utils_windows import system
 
 
 try:
@@ -3744,3 +3746,205 @@ def map_hostname_ipaddress(hostname_ip_dict, session=None):
                 return False
     logging.info("All the hostnames and IPs are mapped in %s", hosts_file)
     return True
+
+
+def _get_traceview_path(session, params):
+    """
+    Get the proper traceview.exe path.
+
+    :param session: a session to send cmd
+    :param params: the test params
+    :return: the proper traceview path
+    """
+
+    traceview_path_template = params.get("traceview_path_template",
+                                         "WIN_UTILS:\\traceview\\%s\\%%PROCESSOR_ARCHITECTURE%%\\traceview.exe")
+    traceview_ver = "win10"
+    os_version = system.version(session)
+    main_ver = int(os_version.split('.')[0])
+    if main_ver < 10:
+        traceview_ver = "win8"
+    traceview_path_template = traceview_path_template % traceview_ver
+    return utils_misc.set_winutils_letter(session, traceview_path_template)
+
+
+def _get_pdb_path(session, driver_name):
+    """
+    Get the proper [driver_name].pdb path from iso.
+
+    :param session: a session to send cmd
+    :param driver_name: the driver name
+    :return: the proper pdb path
+    """
+
+    viowin_ltr = virtio_win.drive_letter_iso(session)
+    if not viowin_ltr:
+        err = "Could not find virtio-win drive in guest"
+        raise exceptions.TestError(err)
+    guest_name = virtio_win.product_dirname_iso(session)
+    if not guest_name:
+        err = "Could not get product dirname of the vm"
+        raise exceptions.TestError(err)
+    guest_arch = virtio_win.arch_dirname_iso(session)
+    if not guest_arch:
+        err = "Could not get architecture dirname of the vm"
+        raise exceptions.TestError(err)
+
+    pdb_middle_path = "%s\\%s" % (guest_name, guest_arch)
+    pdb_find_cmd = 'dir /b /s %s\\%s.pdb | findstr "\\%s\\\\"'
+    pdb_find_cmd %= (viowin_ltr, driver_name, pdb_middle_path)
+    pdb_path = session.cmd(pdb_find_cmd).strip()
+    logging.info("Found %s.pdb file at %s" % (driver_name, pdb_path))
+    return pdb_path
+
+
+def _prepare_traceview_windows(params, vm, session, timeout=360):
+    """
+    Copy traceview.exe and corresponding pdb file to drive c: for future use.
+
+    :param params: the test params
+    :param vm: target vm
+    :param session: a session to send command
+    :param timeout: the command execute timeout
+    :return: a tuple which consists of local traceview.exe and pdb file paths
+    """
+
+    copy_cmd = "xcopy %s %s /y"
+    dst_folder = "c:\\"
+    # copy traceview.exe
+    logging.info("Copy traceview.exe to drive %s" % dst_folder)
+    traceview_path = _get_traceview_path(session, params)
+    session.cmd(copy_cmd % (traceview_path, dst_folder))
+
+    # copy Netkvm.pdb
+    driver_name = params.get("driver_name", "netkvm")
+    logging.info("Locate %s.pdb and copy to drive %s" %
+                 (driver_name, dst_folder))
+    pdb_path = _get_pdb_path(session, driver_name)
+    session.cmd(copy_cmd % (pdb_path, dst_folder))
+
+    # return local file names
+    pdb_local_path = "%s%s.pdb" % (dst_folder, driver_name)
+    traceview_local_path = dst_folder + "traceview.exe"
+    return (pdb_local_path, traceview_local_path)
+
+
+def _get_MSI_queue_from_traceview_output(output):
+    """
+    Extract msi&queues infomation from traceview log file output
+
+    :param output: the content of traceview processed log infomation
+    :return: a tuple of (msis, queues)
+    """
+    info_str = "Start checking dump content for msi & queues info"
+    logging.info(info_str)
+    search_exp = r'No MSIX, using (\d+) queue'
+    # special case for vectors = 0
+    queue_when_no_msi = re.search(search_exp, output)
+    if queue_when_no_msi:
+        return (0, int(queue_when_no_msi.group(1)))
+    search_exp = r'(\d+) MSIs, (\d+) queues'
+    search_res = re.search(search_exp, output)
+    if not search_res:
+        return (None, None)
+
+    MSIs_number = int(search_res.group(1))
+    queues_number = int(search_res.group(2))
+    return (MSIs_number, queues_number)
+
+
+def _wait_for_traceview_dump_finished(session, dump_file_path, timeout=100):
+    """
+    Check the dump file size periodically, untill the file size doesn't change,
+    considered the dump process has finished. Then kill the idled progress.
+
+    :param session: a session to send command
+    :param dump_file_path: the dump file to check
+    """
+    last_size = [0]
+    check_file_size_cmd = "for %%I in (%s) do @echo %%~zI" % dump_file_path
+
+    def _check_file_size_unchanged():
+        """
+        Check whether dump file size is changed, by comparing current
+        file size and last checked size. If unchanged, the dump process
+        is considered finished.
+        """
+        status, output = session.cmd_status_output(check_file_size_cmd)
+        if status or not output.isdigit():
+            return False
+        file_size = int(output)
+        if file_size != last_size[0]:
+            last_size[0] = file_size
+            return False
+        return True
+
+    utils_misc.wait_for(lambda: _check_file_size_unchanged(),
+                        timeout=timeout,
+                        step=10.0)
+    kill_cmd = "taskkill /im traceview.exe"
+    session.cmd(kill_cmd)
+
+
+def get_MSIs_and_queues_windows(params, vm, timeout=360):
+    """
+    Get msi&queues infomation of currentwindows guest.
+    First start a traceview session, then restart the nic interface
+    to trigger logging. By analyzing the dumped output, the msi& queue
+    info is acquired.
+
+    :param params: the test params
+    :param vm: target vm
+    :param timeout: the timeout of login
+    :return: a tuple of (msis, queues)
+    """
+
+    session = vm.wait_for_login(timeout=timeout)
+    # prepare traceview environment
+    pdb_local_path, traceview_local_path = _prepare_traceview_windows(params,
+                                                                      vm,
+                                                                      session,
+                                                                      timeout)
+    session.close()
+
+    # start traceview
+    logging.info("Start trace view with pdb file")
+    session_serial = vm.wait_for_serial_login(timeout=timeout)
+    log_path = "c:\\logfile.etl"
+    clean_cmd = "del %s"
+    session_serial.cmd(clean_cmd % log_path)
+    start_traceview_cmd = "%s -start test_session -pdb %s"
+    start_traceview_cmd += " -level 5 -flag 0x1fff -f %s"
+    start_traceview_cmd %= (traceview_local_path, pdb_local_path, log_path)
+    session_serial.cmd(start_traceview_cmd, timeout=timeout)
+
+    # restart nic
+    logging.info("Restart guest nic")
+    mac = vm.get_mac_address(0)
+    connection_id = get_windows_nic_attribute(session_serial,
+                                              "macaddress",
+                                              mac,
+                                              "netconnectionid")
+    restart_windows_guest_network(session_serial, connection_id)
+
+    # stop traceview
+    logging.info("Stop traceview")
+    stop_traceview_cmd = "%s -stop test_session" % traceview_local_path
+    session_serial.cmd(stop_traceview_cmd, timeout=timeout)
+
+    # checkout traceview output
+    logging.info("Check etl file generated by traceview")
+    dump_file = "c:\\trace.txt"
+    session_serial.cmd(clean_cmd % dump_file)
+    dump_cmd = "%s -process %s -pdb %s -o %s"
+    dump_cmd %= (traceview_local_path, log_path, pdb_local_path, dump_file)
+    status, output = session_serial.cmd_status_output(dump_cmd)
+    if status:
+        logging.error("Cann't dump log file %s: %s" % (log_path, output))
+    _wait_for_traceview_dump_finished(session_serial, dump_file)
+    status, output = session_serial.cmd_status_output("type %s" % dump_file)
+    if status:
+        raise exceptions.TestError("Cann't read dumped file %s: %s" %
+                                   (dump_file, output))
+    session_serial.close()
+    return _get_MSI_queue_from_traceview_output(output)
