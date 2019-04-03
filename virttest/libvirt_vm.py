@@ -422,6 +422,8 @@ class VM(virt_vm.BaseVM):
                nic_model -- string to pass as 'model' parameter for this
                NIC (e.g. e1000)
         """
+        from virttest.utils_test import libvirt
+
         # helper function for command line option wrappers
         def has_option(help_text, option):
             return bool(re.search(r"--%s" % option, help_text, re.MULTILINE))
@@ -960,20 +962,8 @@ class VM(virt_vm.BaseVM):
         hvm_or_pv = params.get("hvm_or_pv", "hvm")
         # default to 'uname -m' output
         arch_name = params.get("vm_arch_name", platform.machine())
-        capabs = libvirt_xml.CapabilityXML()
-        try:
-            support_machine_type = capabs.guest_capabilities[
-                hvm_or_pv][arch_name]['machine']
-        except KeyError as detail:
-            if detail.args[0] == hvm_or_pv:
-                raise KeyError("No libvirt support for %s virtualization, "
-                               "does system hardware + software support it?"
-                               % hvm_or_pv)
-            elif detail.args[0] == arch_name:
-                raise KeyError("No libvirt support for %s virtualization of "
-                               "%s, does system hardware + software support "
-                               "it?" % (hvm_or_pv, arch_name))
-            raise
+        support_machine_type = libvirt.get_machine_types(arch_name, hvm_or_pv,
+                                                         ignore_status=False)
         logging.debug("Machine types supported for %s/%s: %s",
                       hvm_or_pv, arch_name, support_machine_type)
 

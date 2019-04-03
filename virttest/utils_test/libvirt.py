@@ -66,6 +66,8 @@ from virttest.libvirt_xml import pool_xml
 from virttest.libvirt_xml import nwfilter_xml
 from virttest.libvirt_xml import vol_xml
 from virttest.libvirt_xml import secret_xml
+from virttest.libvirt_xml import CapabilityXML
+from virttest.libvirt_xml import base
 from virttest.libvirt_xml.devices import disk
 from virttest.libvirt_xml.devices import hostdev
 from virttest.libvirt_xml.devices import controller
@@ -156,6 +158,37 @@ class LibvirtNetwork(object):
         virsh.net_destroy(self.name)
         if self.persistent:
             virsh.net_undefine(self.name)
+
+
+def get_machine_types(arch, virt_type, virsh_instance=base.virsh, ignore_status=True):
+    """
+    Method to get all supported machine types
+
+    :param arch: architecture of the machine
+    :param virt_type: virtualization type hvm or pv
+    :param virsh_instance: virsh instance object
+    :param ignore_status: False to raise Error, True to ignore
+
+    :return: list of machine types supported
+    """
+    machine_types = []
+    try:
+        capability = CapabilityXML(virsh_instance=virsh_instance)
+        machine_types = capability.guest_capabilities[virt_type][arch]['machine']
+        return machine_types
+    except KeyError as detail:
+        if ignore_status:
+            return machine_types
+        else:
+            if detail.args[0] == virt_type:
+                raise KeyError("No libvirt support for %s virtualization, "
+                               "does system hardware + software support it?"
+                               % virt_type)
+            elif detail.args[0] == arch:
+                raise KeyError("No libvirt support for %s virtualization of "
+                               "%s, does system hardware + software support "
+                               "it?" % (virt_type, arch))
+            raise exceptions.TestError(detail)
 
 
 def cpus_parser(cpulist):
