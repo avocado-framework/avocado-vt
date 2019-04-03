@@ -24,6 +24,7 @@ from avocado.utils import distro
 from avocado.core import exceptions
 
 from virttest import data_dir
+from virttest import kernel_interface
 from virttest import error_context
 from virttest import utils_misc
 from virttest import versionable_class
@@ -577,21 +578,51 @@ class HugePageConfig(object):
             raise ValueError("Root hugepage control sysfs directory %s did not"
                              " exist" % self.pool_path)
 
-    def get_node_num_huge_pages(self, node, pagesize):
+    def get_kernel_hugepages(self, pagesize):
+        """
+        Get specific hugepages number allocated by kernel at runtime
+        read page number from
+        /sys/kernel/mm/hugepages/hugepages-${pagesize}kB/nr_hugepages
+
+        :param pagesize: string or int, page size in kB
+        :return: page number
+        """
+        pgfile = "%s/hugepages-%skB/nr_hugepages" % (self.pool_path, pagesize)
+
+        obj = kernel_interface.SysFS(pgfile)
+        return obj.sys_fs_value
+
+    def set_kernel_hugepages(self, pagesize, pagenum):
+        """
+        Let kernel allocate some specific hugepages at runtime
+        write page number to
+        /sys/kernel/mm/hugepages/hugepages-${pagesize}kB/nr_hugepages
+
+        :param pagesize: string or int, page size in kB
+        :param pagenum: page number
+        """
+        pgfile = "%s/hugepages-%skB/nr_hugepages" % (self.pool_path, pagesize)
+
+        obj = kernel_interface.SysFS(pgfile)
+        obj.sys_fs_value = pagenum
+
+    def get_node_num_huge_pages(self, node, pagesize, type="total"):
         """
         Get number of pages of certain page size under given numa node.
 
         :param node: string or int, node number
         :param pagesize: string or int, page size in kB
+        :param type: total pages or free pages
         :return: int, node huge pages number of given page size
         """
+        if type == 'free':
+            ptype = "free_hugepages"
+        else:
+            ptype = "nr_hugepages"
         node_page_path = "%s/node%s" % (self.sys_node_path, node)
-        node_page_path += "/hugepages/hugepages-%skB/nr_hugepages" % pagesize
-        if not os.path.isfile(node_page_path):
-            raise ValueError("%s page size nr_hugepages file of node %s did "
-                             "not exist" % (pagesize, node))
-        out = decode_to_text(process.system_output("cat %s" % node_page_path))
-        return int(out)
+        node_page_path += "/hugepages/hugepages-%skB/%s" % (pagesize, ptype)
+        obj = kernel_interface.SysFS(node_page_path)
+        return obj.sys_fs_value
 
     def set_node_num_huge_pages(self, num, node, pagesize):
         """
@@ -603,11 +634,9 @@ class HugePageConfig(object):
         """
         node_page_path = "%s/node%s" % (self.sys_node_path, node)
         node_page_path += "/hugepages/hugepages-%skB/nr_hugepages" % pagesize
-        if not os.path.isfile(node_page_path):
-            raise ValueError("%s page size nr_hugepages file of node %s did "
-                             "not exist" % (pagesize, node))
-        process.system("echo %s > %s" % (num, node_page_path), shell=True)
-        if int(num) != self.get_node_num_huge_pages(node, pagesize):
+        obj = kernel_interface.SysFS(node_page_path)
+        obj.sys_fs_value = num
+        if obj.sys_fs_value != int(num):
             raise ValueError("Cannot set %s hugepages on node %s, please check"
                              " if the node has enough memory" % (num, node))
 
