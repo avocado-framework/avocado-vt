@@ -1038,6 +1038,13 @@ def preprocess(test, params, env):
             params["ker_remove_similar_pci"] = "yes"
         else:
             kernel_extra_params_remove += " pci=nomsi"
+    if (params.get("enable_guest_iommu") and
+            utils_misc.get_cpu_vendor(verbose=False) == 'GenuineIntel'):
+        enable_guest_iommu = params.get("enable_guest_iommu")
+        if enable_guest_iommu == "yes":
+            kernel_extra_params_add += " intel_iommu=on"
+        else:
+            kernel_extra_params_remove += " intel_iommu=on"
 
     # Clone master image from vms.
     base_dir = data_dir.get_data_dir()
