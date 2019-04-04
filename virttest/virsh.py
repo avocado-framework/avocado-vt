@@ -1541,7 +1541,7 @@ def migrate_getspeed(domain, **dargs):
 
 def migrate_setmaxdowntime(domain, downtime, extra=None, **dargs):
     """
-    Set maximum tolerable downtime of a domain
+    Set maximum tolerable downtime of a domain (in ms)
     which is being live-migrated to another host.
 
     :param domain: name/uuid/id of guest
@@ -1550,6 +1550,18 @@ def migrate_setmaxdowntime(domain, downtime, extra=None, **dargs):
     cmd = "migrate-setmaxdowntime %s %s" % (domain, downtime)
     if extra is not None:
         cmd += " %s" % extra
+    return command(cmd, **dargs)
+
+
+def migrate_getmaxdowntime(domain, **dargs):
+    """
+    Get maximum tolerable downtime of a domain.
+
+    :param domain: name/uuid/id of guest
+    :param dargs: standardized virsh function API keywords
+    :return: standard output from command
+    """
+    cmd = "migrate-getmaxdowntime %s" % domain
     return command(cmd, **dargs)
 
 
