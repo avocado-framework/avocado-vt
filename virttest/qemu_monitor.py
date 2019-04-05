@@ -195,7 +195,8 @@ class VM(object):
         self.name = name
 
 
-class Monitor:
+class Monitor(object):
+
     """
     Common code for monitor classes.
     """
@@ -676,7 +677,7 @@ class HumanMonitor(Monitor):
                 docstring.
         """
         try:
-            Monitor.__init__(self, vm, name, filename)
+            super(HumanMonitor, self).__init__(vm, name, filename)
 
             self.protocol = "human"
 
@@ -1546,7 +1547,7 @@ class QMPMonitor(Monitor):
                 fails.  See cmd()'s docstring.
         """
         try:
-            Monitor.__init__(self, vm, name, filename)
+            super(QMPMonitor, self).__init__(vm, name, filename)
 
             self.protocol = "qmp"
             self._greeting = None
