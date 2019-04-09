@@ -1045,6 +1045,9 @@ def preprocess(test, params, env):
             kernel_extra_params_add += " intel_iommu=on"
         else:
             kernel_extra_params_remove += " intel_iommu=on"
+        guest_iommu_option = params.get("guest_iommu_option")
+        if guest_iommu_option:
+            kernel_extra_params_add += " iommu=%s" % guest_iommu_option
 
     # Clone master image from vms.
     base_dir = data_dir.get_data_dir()
