@@ -1741,11 +1741,15 @@ def ipv6_from_mac_addr(mac_addr):
     return ":".join(map(lambda x: x.lstrip("0"), mac_address.split(":")))
 
 
-def refresh_neigh_table(interface_name=None, neigh_address="ff02::1"):
+def refresh_neigh_table(interface_name=None, neigh_address="ff02::1",
+                        session=None, timeout=60.0, **dargs):
     """
     Refresh host neighbours table, if interface_name is assigned only refresh
     neighbours of this interface, else refresh the all the neighbours.
     """
+    func = process.getoutput
+    if session:
+        func = session.cmd_output
     if isinstance(interface_name, list):
         interfaces = interface_name
     elif isinstance(interface_name, six.string_types):
@@ -1757,18 +1761,23 @@ def refresh_neigh_table(interface_name=None, neigh_address="ff02::1"):
     for interface in interfaces:
         refresh_cmd = "ping6 -c 2 -I %s %s > /dev/null" % (interface,
                                                            neigh_address)
-        process.system(refresh_cmd, ignore_status=True)
+        func(refresh_cmd, timeout=timeout, **dargs)
 
 
-def get_neighbours_info(neigh_address="", interface_name=None):
+def get_neighbours_info(neigh_address="", interface_name=None, session=None,
+                        timeout=60.0, **dargs):
     """
     Get the neighbours infomation
     """
-    refresh_neigh_table(interface_name, neigh_address)
+    refresh_neigh_table(interface_name, neigh_address, session=session,
+                        timeout=timeout, **dargs)
+    func = process.getoutput
+    if session:
+        func = session.cmd_output
     cmd = "ip -6 neigh show nud reachable"
     if neigh_address:
         cmd += " %s" % neigh_address
-    output = decode_to_text(process.system_output(cmd))
+    output = func(cmd, timeout=timeout, **dargs)
     if not output:
         raise VMIPV6NeighNotFoundError(neigh_address)
     all_neigh = {}
@@ -1784,29 +1793,33 @@ def get_neighbours_info(neigh_address="", interface_name=None):
     return all_neigh
 
 
-def neigh_reachable(neigh_address, attach_if=None):
+def neigh_reachable(neigh_address, attach_if=None, session=None, timeout=60.0,
+                    **dargs):
     """
     Check the neighbour is reachable
     """
     try:
-        get_neighbours_info(neigh_address, attach_if)
+        get_neighbours_info(neigh_address, attach_if, session=session,
+                            timeout=timeout, **dargs)
     except VMIPV6NeighNotFoundError:
         return False
     return True
 
 
-def get_neigh_attch_interface(neigh_address):
+def get_neigh_attch_interface(neigh_address, session=None, timeout=60.0, **dargs):
     """
-    Get the interface wihch can reach the neigh_address
+    Get the interface which can reach the neigh_address
     """
-    return get_neighbours_info(neigh_address)[neigh_address]["attach_if"]
+    return get_neighbours_info(neigh_address, session=session, timeout=timeout,
+                               **dargs)[neigh_address]["attach_if"]
 
 
-def get_neigh_mac(neigh_address):
+def get_neigh_mac(neigh_address, session=None, timeout=60.0, **dargs):
     """
     Get neighbour mac by his address
     """
-    return get_neighbours_info(neigh_address)[neigh_address]["mac"]
+    return get_neighbours_info(neigh_address, session=session, timeout=timeout,
+                               **dargs)[neigh_address]["mac"]
 
 
 def check_add_dnsmasq_to_br(br_name, tmpdir):
@@ -3086,15 +3099,21 @@ class VirtNet(DbNet, ParamsNet):
         return self[nic_index_or_name].ifname
 
 
-def parse_arp():
+def parse_arp(session=None, timeout=60.0, **dargs):
     """
     Read /proc/net/arp, return a mapping of MAC to IP
 
+    :param session: ShellSession object of remote host
+    :param timeout: Timeout for commands executed
+    :param dargs: extra options for session/process commands
     :return: dict mapping MAC to IP
     """
     ret = {}
-    with open('/proc/net/arp') as arp_f:
-        arp_cache = arp_f.readlines()
+    func = process.getoutput
+    if session:
+        func = session.cmd_output
+    arp_cache = func('cat /proc/net/arp', timeout=timeout,
+                     **dargs).strip().split('\n')
 
     for line in arp_cache:
         mac = line.split()[3]
@@ -3114,22 +3133,28 @@ def parse_arp():
     return ret
 
 
-def verify_ip_address_ownership(ip, macs, timeout=20.0, devs=None):
+def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
+                                session=None):
     """
     Make sure a given IP address belongs to one of the given
     MAC addresses.
 
     :param ip: The IP address to be verified.
     :param macs: A list or tuple of MAC addresses.
+    :param timeout: Timeout for retry verifying IP and for commands
     :param devs: A set of network interfaces to check on. If is absent
                  then use route table to get a name for possible
                  network interfaces.
+    :param session: ShellSession object of remote host
     :return: True if ip is assigned to a MAC address in macs.
     """
-    def __arping(ip, macs, dev, timeout):
+    def __arping(ip, macs, dev, timeout, session=None, **dargs):
+        func = process.getoutput
+        if session:
+            func = session.cmd_output
         # Compile a regex that matches the given IP address and any of the
         # given MAC addresses from arping output
-        ip_map = parse_arp()
+        ip_map = parse_arp(session=session, timeout=timeout, **dargs)
         for mac in macs:
             if ip_map.get(mac) == ip:
                 return True
@@ -3137,9 +3162,10 @@ def verify_ip_address_ownership(ip, macs, timeout=20.0, devs=None):
         mac_regex = "|".join("(%s)" % mac for mac in macs)
         regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex), re.I)
         arping_bin = utils_path.find_command("arping")
+        if session:
+            arping_bin = func("which arping", timeout=timeout, **dargs)
         cmd = "%s --help" % arping_bin
-        if "-C count" in decode_to_text(process.system_output(cmd, shell=True, ignore_status=True,
-                                                              verbose=False)):
+        if "-C count" in func(cmd, timeout=timeout, **dargs):
             regex = re.compile(r"\b%s\b.*\b(%s)" % (mac_regex, ip), re.I)
             arping_cmd = "%s -C1 -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
                                                        dev, ip)
@@ -3147,15 +3173,15 @@ def verify_ip_address_ownership(ip, macs, timeout=20.0, devs=None):
             arping_cmd = "%s -f -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
                                                       dev, ip)
         try:
-            o = decode_to_text(process.system_output(arping_cmd, shell=True, verbose=False))
-        except process.CmdError:
+            o = func(arping_cmd, timeout=timeout, **dargs)
+        except (process.CmdError, aexpect.ShellError):
             return False
         return bool(regex.search(o))
 
-    def __verify_neigh(ip, macs, dev, timeout):
-        refresh_neigh_table(dev, ip)
+    def __verify_neigh(ip, macs, dev, timeout, session=None, **dargs):
+        refresh_neigh_table(dev, ip, session=session, timeout=timeout, **dargs)
         try:
-            neigh_mac = get_neigh_mac(ip)
+            neigh_mac = get_neigh_mac(ip, session=session, timeout=timeout, **dargs)
             for mac in macs:
                 if neigh_mac.lower() == mac.lower():
                     return True
@@ -3165,12 +3191,21 @@ def verify_ip_address_ownership(ip, macs, timeout=20.0, devs=None):
 
     ip_ver = netaddr.IPAddress(ip).version
 
+    func = process.getoutput
+    dargs = dict()
+    if session:
+        func = session.cmd_output
+        dargs["safe"] = True
+    else:
+        dargs["ignore_bg_processes"] = True
     if not devs:
         # Get the name of the bridge device for ip route cache
         ip_cmd = utils_path.find_command("ip")
+        if session:
+            ip_cmd = func("which ip", timeout=timeout, **dargs)
         ip_cmd = "%s route get %s; %s -%d route | grep default" % (
             ip_cmd, ip, ip_cmd, ip_ver)
-        output = process.getoutput(ip_cmd)
+        output = func(ip_cmd, timeout=timeout, **dargs)
         devs = set(re.findall(r"dev\s+(\S+)", output, re.I))
     if not devs:
         logging.debug("No path to %s in route table: %s" % (ip, output))
@@ -3179,9 +3214,12 @@ def verify_ip_address_ownership(ip, macs, timeout=20.0, devs=None):
     # TODO: use same verification function for both ipv4 and ipv6
     verify_func = __verify_neigh if ip_ver == 6 else __arping
     for dev in devs:
-        if verify_func(ip, macs, dev, timeout):
-            return True
-    return False
+        # VM might take some time to respond after migration
+        return bool(utils_misc.wait_for(lambda: verify_func(ip, macs, dev,
+                                                            timeout,
+                                                            session=session, **dargs),
+                                        timeout,
+                                        text="Retry verifying IP address"))
 
 
 def generate_mac_address_simple():

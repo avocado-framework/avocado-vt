@@ -712,11 +712,17 @@ class BaseVM(object):
             raise VMMACAddressMissingError(nic_index)
         return mac
 
-    def get_address(self, index=0, ip_version="ipv4"):
+    def get_address(self, index=0, ip_version="ipv4", session=None,
+                    timeout=60.0):
         """
         Wrapper for self._get_address. if 'flexible_nic_index' is 'yes',
         will traverses from first nic to first element toward the end
         util get a reachable IP address;
+
+        :param index: Name or index of the NIC whose address is requested.
+        :param ip_version: IP version, value in 'ipv4' or 'ipv6,
+        :param session: remote host session, if VM is migrated
+        :param timeout: Timeout for retry verifying IP address and commands
         """
         nr_nics = len(self.virtnet.mac_list())
         nics_index = [index]
@@ -726,19 +732,23 @@ class BaseVM(object):
 
         for nic in nics_index:
             try:
-                return self._get_address(nic, ip_version)
+                return self._get_address(nic, ip_version, session=session,
+                                         timeout=timeout)
             except (VMMACAddressMissingError, VMIPAddressMissingError,
                     VMAddressVerificationError):
                 if nic == nics_index[-1]:
                     raise
 
-    def _get_address(self, index=0, ip_version="ipv4"):
+    def _get_address(self, index=0, ip_version="ipv4", session=None,
+                     timeout=60.0):
         """
         Return the IP address of a NIC or guest (in host space).
 
         :param index: Name or index of the NIC whose address is requested.
         :param ip_version: IP version, value in 'ipv4' or 'ipv6,
                            default value is 'ipv4'
+        :param session: ShellSession object of remote host
+        :param timeout: Timeout for retry verifying IP address and commands
         :return: 'localhost': Port redirection is in use
         :return: IP address of NIC if valid in arp cache.
         :raise VMMACAddressMissingError: If no MAC address is defined for the
@@ -753,6 +763,8 @@ class BaseVM(object):
         # TODO: Determine port redirection in use w/o checking nettype
         if nic.nettype not in ['bridge', 'macvtap']:
             hostname = socket.gethostname()
+            if session:
+                hostname = session.cmd_output("hostname -f", timeout=timeout)
             return socket.gethostbyname(hostname)
 
         mac = self.get_mac_address(index).lower()
@@ -768,7 +780,9 @@ class BaseVM(object):
 
         devs = set([nic.netdst]) if 'netdst' in nic else set()
         if not utils_net.verify_ip_address_ownership(ip_addr, [mac],
-                                                     devs=devs):
+                                                     devs=devs,
+                                                     session=session,
+                                                     timeout=timeout):
             self.address_cache.drop(mac_pattern % mac)
 
             nic_params = self.params.object_params(nic.nic_name)
