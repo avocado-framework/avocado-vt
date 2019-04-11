@@ -2139,6 +2139,8 @@ class VMFeaturesXML(base.LibvirtXMLBase):
 
     __slots__ = ('feature_list', 'hyperv_relaxed_state', 'hyperv_vapic_state',
                  'hyperv_spinlocks_state', 'hyperv_spinlocks_retries',
+                 'hyperv_tlbflush_state', 'hyperv_frequencies_state',
+                 'hyperv_reenlightenment_state', 'hyperv_vpindex_state',
                  'kvm_hidden_state', 'pvspinlock_state', 'smm', 'hpt_resizing',
                  'htm', 'smm_tseg_unit', 'smm_tseg')
 
@@ -2163,6 +2165,26 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                                parent_xpath='/hyperv',
                                tag_name='spinlocks',
                                attribute='retries')
+        accessors.XMLAttribute(property_name='hyperv_vpindex_state',
+                               libvirtxml=self,
+                               parent_xpath='/hyperv',
+                               tag_name='vpindex',
+                               attribute='state')
+        accessors.XMLAttribute(property_name='hyperv_tlbflush_state',
+                               libvirtxml=self,
+                               parent_xpath='/hyperv',
+                               tag_name='tlbflush',
+                               attribute='state')
+        accessors.XMLAttribute(property_name='hyperv_frequencies_state',
+                               libvirtxml=self,
+                               parent_xpath='/hyperv',
+                               tag_name='frequencies',
+                               attribute='state')
+        accessors.XMLAttribute(property_name='hyperv_reenlightenment_state',
+                               libvirtxml=self,
+                               parent_xpath='/hyperv',
+                               tag_name='reenlightenment',
+                               attribute='state')
         accessors.XMLAttribute(property_name='kvm_hidden_state',
                                libvirtxml=self,
                                parent_xpath='/kvm',
