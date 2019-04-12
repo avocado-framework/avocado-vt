@@ -1276,17 +1276,17 @@ class MigrationTest(object):
         vm_ip = params.get("vm_ip_dict", {})
         server_session = None
         func = test.error
-        if uri:
+        if uri and uri != "qemu:///system":
             func = test.fail
-            server_ip = params.get("server_ip")
             src_uri = "qemu:///system"
             vm.connect_uri = uri
-            vm_ip[vm.name] = vm.get_address()
-            server_pwd = params.get("server_pwd")
-            server_user = params.get("server_user")
-            server_session = remote.wait_for_login('ssh', server_ip, '22',
-                                                   server_user, server_pwd,
-                                                   r"[\#\$]\s*$")
+            server_session = test_setup.remote_session(params)
+            # after migration VM would take some time to respond and to
+            # avoid the race of framework querying IP address before VM
+            # starts responding, provide timeout for 120 seconds to retry
+            # and raise if VM fails to respond
+            vm_ip[vm.name] = vm.get_address(session=server_session,
+                                            timeout=120)
             logging.info("Check VM network connectivity after migrating")
         else:
             logging.info("Check VM network connectivity before migration")
@@ -1301,8 +1301,9 @@ class MigrationTest(object):
                                         session=server_session)
         logging.info(o_ping)
         if uri:
-            server_session.close()
             vm.connect_uri = src_uri
+            if server_session:
+                server_session.close()
         if s_ping != 0:
             if uri:
                 if "offline" in params.get("migrate_options"):
