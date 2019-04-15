@@ -91,6 +91,13 @@ class Target(object):
             target = "libvirt"
         self.target = target
         self.uri = uri
+        # Save NFS mount records like {0:(src, dst, fstype)}
+        self.mount_record = {}
+
+    def cleanup(self):
+        # Cleanup NFS mount records
+        for src, dst, fstype in self.mount_record.values():
+            utils_misc.umount(src, dst, fstype)
 
     def get_cmd_options(self, params):
         """
@@ -100,6 +107,12 @@ class Target(object):
         self.params = params
         self.output_method = self.params.get('output_method', 'rhev')
         self.input_mode = self.params.get('input_mode')
+        self.input_transport = self.params.get('input_transport')
+        self.vddk_libdir = self.params.get('vddk_libdir')
+        self.vddk_libdir_src = self.params.get('vddk_libdir_src')
+        self.vddk_thumbprint = self.params.get('vddk_thumbprint')
+        self.vcenter_host = self.params.get('vcenter_host')
+        self.vcenter_password = self.params.get('vcenter_password')
         self.vm_name = self.params.get('main_vm')
         self.bridge = self.params.get('bridge')
         self.network = self.params.get('network')
@@ -110,6 +123,59 @@ class Target(object):
         self.new_name = self.params.get('new_name')
         self.net_vm_opts = ""
 
+        def _compose_input_transport_options():
+            """
+            Set input transport options for v2v
+            """
+            options = ''
+            if self.input_transport is None:
+                return options
+
+            if self.input_transport == 'vddk':
+                if self.vddk_libdir is None or not os.path.isdir(
+                        self.vddk_libdir):
+                    # Invalid nfs mount source if no ':'
+                    if self.vddk_libdir_src is None or ':' not in self.vddk_libdir_src:
+                        logging.error(
+                            'Neither vddk_libdir nor vddk_libdir_src was set')
+                        raise exceptions.TestError(
+                            "VDDK library directory or NFS mount point must be set")
+
+                    mount_point = os.path.join(
+                        data_dir.get_tmp_dir(), 'vddk_libdir')
+                    if not os.path.exists(mount_point):
+                        os.makedirs(mount_point)
+
+                    if not utils_misc.mount(
+                        self.vddk_libdir_src,
+                        mount_point,
+                        'nfs',
+                            verbose=True):
+                        raise exceptions.TestError(
+                            'Mount %s for %s failed' %
+                            (self.vddk_libdir_src, mount_point))
+                    self.vddk_libdir = mount_point
+                    self.mount_record[len(self.mount_record)] = (
+                        self.vddk_libdir_src, self.vddk_libdir, None)
+
+                # Invalid vddk thumbprint if no ':'
+                if self.vddk_thumbprint is None or ':' not in self.vddk_thumbprint:
+                    self.vddk_thumbprint = get_vddk_thumbprint(
+                        self.vcenter_host, self.vcenter_password)
+
+            # New input_transport type can be added here
+
+            # A dict to save input_transport types and their io options, new it_types
+            # should be added here. Their io values were composed during running time
+            # based on user's input
+            input_transport_args = {
+                'vddk': "-io vddk-libdir=%s -io vddk-thumbprint=%s" % (self.vddk_libdir,
+                                                                       self.vddk_thumbprint)}
+
+            options = " -it %s " % (self.input_transport)
+            options += input_transport_args[self.input_transport]
+            return options
+
         if self.bridge:
             self.net_vm_opts += " -b %s" % self.bridge
 
@@ -118,7 +184,7 @@ class Target(object):
 
         self.net_vm_opts += " %s" % self.vm_name
 
-        options = opts_func()
+        options = opts_func() + _compose_input_transport_options()
 
         if self.new_name:
             options += ' -on %s' % self.new_name
@@ -155,10 +221,10 @@ class Target(object):
         Return command options.
         """
         options = " -ic %s -o %s -os %s -of %s" % (
-                    self.uri,
-                    self.output_method.replace('_', '-'),
-                    self.storage if self.output_method != "rhv_upload" else self.storage_name,
-                    self.format)
+            self.uri,
+            self.output_method.replace('_', '-'),
+            self.storage if self.output_method != "rhv_upload" else self.storage_name,
+            self.format)
         options = options + self.net_vm_opts
 
         return options
@@ -208,7 +274,7 @@ class VMCheck(object):
         self.export_name = params.get('export_name')
         self.delete_vm = 'yes' == params.get('vm_cleanup', 'yes')
         self.virsh_session_id = params.get("virsh_session_id")
-        self.windows_root = params.get("windows_root", "C:\WINDOWS")
+        self.windows_root = params.get("windows_root", r"C:\WINDOWS")
         self.output_method = params.get("output_method")
         # Need create session after create the instance
         self.session = None
@@ -625,7 +691,7 @@ class WindowsVMCheck(VMCheck):
         """
         Get viostor info.
         """
-        cmd = "dir %s\Drivers\VirtIO\\viostor.sys" % self.windows_root
+        cmd = r"dir %s\Drivers\VirtIO\\viostor.sys" % self.windows_root
         return self.run_cmd(cmd)[1]
 
     def get_driver_info(self, signed=True):
@@ -661,7 +727,7 @@ class WindowsVMCheck(VMCheck):
         status, output = self.run_cmd(cmd)
         if status != 0:
             # For win2003 and winXP, use following cmd
-            cmd = "CSCRIPT %s\system32\eventquery.vbs " % self.windows_root
+            cmd = r"CSCRIPT %s\system32\eventquery.vbs " % self.windows_root
             cmd += "/l application /Fi \"Source eq WSH\""
             output = self.run_cmd(cmd)[1]
         return output
@@ -717,20 +783,25 @@ def v2v_cmd(params):
     uri = uri_obj.get_uri(hostname, vpx_dc, esx_ip)
 
     target_obj = Target(target, uri)
-    # Return virt-v2v command line options based on 'target' and 'hypervisor'
-    options = target_obj.get_cmd_options(params)
+    try:
+        # Return virt-v2v command line options based on 'target' and 'hypervisor'
+        options = target_obj.get_cmd_options(params)
 
-    if rhv_upload_opts:
-        options = options + ' ' + rhv_upload_opts
-    if opts_extra:
-        options = options + ' ' + opts_extra
+        if rhv_upload_opts:
+            options = options + ' ' + rhv_upload_opts
+        if opts_extra:
+            options = options + ' ' + opts_extra
 
-    # Construct a final virt-v2v command
-    cmd = '%s %s' % (V2V_EXEC, options)
-    cmd_result = process.run(cmd, timeout=v2v_timeout,
-                             verbose=True, ignore_status=True)
+        # Construct a final virt-v2v command
+        cmd = '%s %s' % (V2V_EXEC, options)
+        cmd_result = process.run(cmd, timeout=v2v_timeout,
+                                 verbose=True, ignore_status=True)
+    finally:
+        target_obj.cleanup()
+
     cmd_result.stdout = results_stdout_52lts(cmd_result)
     cmd_result.stderr = results_stderr_52lts(cmd_result)
+
     return cmd_result
 
 
@@ -798,7 +869,7 @@ def check_log(params, log):
 
     def _check_log(pattern_list, expect=True):
         for pattern in pattern_list:
-            line = '\s*'.join(pattern.split())
+            line = r'\s*'.join(pattern.split())
             expected = 'expected' if expect else 'not expected'
             logging.info('Searching for %s log: %s' % (expected, pattern))
             compiled_pattern = re.compile(line)
@@ -869,3 +940,23 @@ def cleanup_constant_files(params):
                 params.get("vpx_passwd_file")]
 
     map(os.remove, [x for x in tmpfiles if x and os.path.isfile(x)])
+
+
+def get_vddk_thumbprint(host, password, prompt=r"[\#\$]"):
+    """
+    Get vddk thumbprint from VMware vCenter
+
+    :param host: hostname or IP address
+    :param password: Password
+    :param prompt: Shell prompt (regular expression)
+    """
+    cmd = 'openssl x509 -in /etc/vmware-vpx/ssl/rui.crt -fingerprint -sha1 -noout'
+
+    r_runner = remote.RemoteRunner(host=host,
+                                   password=password,
+                                   prompt=prompt)
+    cmdresult = r_runner.run(cmd)
+    logging.debug("vddk thumbprint:\n%s", cmdresult.stdout)
+    vddk_thumbprint = cmdresult.stdout.strip().split('=')[1]
+
+    return vddk_thumbprint
