@@ -2141,7 +2141,7 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                  'hyperv_spinlocks_state', 'hyperv_spinlocks_retries',
                  'hyperv_tlbflush_state', 'hyperv_frequencies_state',
                  'hyperv_reenlightenment_state', 'hyperv_vpindex_state',
-                 'kvm_hidden_state', 'pvspinlock_state', 'smm', 'hpt_resizing',
+                 'kvm_hidden_state', 'pvspinlock_state', 'smm', 'hpt',
                  'htm', 'smm_tseg_unit', 'smm_tseg')
 
     def __init__(self, virsh_instance=base.virsh):
@@ -2207,11 +2207,13 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                                attribute='unit')
         accessors.XMLElementText('smm_tseg', self, parent_xpath='/smm',
                                  tag_name='tseg')
-        accessors.XMLAttribute(property_name='hpt_resizing',
-                               libvirtxml=self,
-                               parent_xpath='/',
-                               tag_name='hpt',
-                               attribute='resizing')
+        accessors.XMLElementNest(property_name='hpt',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='hpt',
+                                 subclass=VMFeaturesHptXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
         accessors.XMLAttribute(property_name='htm',
                                libvirtxml=self,
                                parent_xpath='/',
@@ -2611,3 +2613,39 @@ class VMIothreadidsXML(VMXML):
         if tag != 'iothread':
             return None
         return attr_dict['id']
+
+
+class VMFeaturesHptXML(base.LibvirtXMLBase):
+
+    """
+    Hpt tag XML class of features tag
+
+    Element:
+        resizing:               text
+        maxpagesize_unit:       attribute
+        maxpagesize:            int
+    Example:
+        <hpt resizing="required">
+            <maxpagesize unit="KiB">64</maxpagesize>
+        </hpt>
+    """
+
+    __slots__ = ('resizing', 'maxpagesize_unit', 'maxpagesize')
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLAttribute(property_name="resizing",
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='hpt',
+                               attribute='resizing')
+        accessors.XMLElementInt(property_name='maxpagesize',
+                                libvirtxml=self,
+                                parent_xpath='/',
+                                tag_name='maxpagesize')
+        accessors.XMLAttribute(property_name="maxpagesize_unit",
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='maxpagesize',
+                               attribute='unit')
+        super(VMFeaturesHptXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<hpt/>'
