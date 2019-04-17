@@ -1566,7 +1566,7 @@ def get_loss_ratio(output):
     :param output: Ping output.
     """
     try:
-        return int(re.findall('(\d+)%.*loss', output)[0])
+        return float(re.findall(r'(\d*\.?\d+)%.*loss', output)[0])
     except IndexError:
         logging.warn("Invaild output of ping command: %s" % output)
     return -1
