@@ -201,6 +201,7 @@ def x_non_x_feature(feature):
 
 
 def pick_supported_x_feature(feature, supported_features,
+                             disable_auto_x_evaluation,
                              error_on_missing=False, feature_type="Feature"):
     """
     Attempts to choose supported feature with/without "x-" prefix based
@@ -210,12 +211,14 @@ def pick_supported_x_feature(feature, supported_features,
     :param supported_features: list of supported features
     :param error_on_missing: whether to fail when no variant is supported
     :param feature_type: type of the feature used for exception description
+    :param disable_auto_x_evaluation: Whether to automatically choose
+                                      feature with/without "x-" prefix
     :return: supported variant of the feature or the original one when no
              match is found
     :raise MonitorNotSupportedError: When error_on_missing is enabled and
                                      the feature is not supported.
     """
-    if feature in supported_features:
+    if disable_auto_x_evaluation or (feature in supported_features):
         return feature
     feature2 = x_non_x_feature(feature)
     if feature2 in supported_features:
@@ -696,27 +699,35 @@ class Monitor(object):
             old_progress = progress
             time.sleep(0.1)
 
-    def _get_migrate_capability(self, capability):
+    def _get_migrate_capability(self, capability,
+                                disable_auto_x_evaluation=True):
         """
         Verify the $capability is listed in migrate-capabilities. If not try
         x-/non-x- version. In case none is supported, return the original param
 
         :param capability: migrate capability
+        :param disable_auto_x_evaluation: Whether to automatically choose
+                                          feature with/without "x-" prefix
         :return: migrate paramter that is hopefully supported
         """
         return pick_supported_x_feature(capability,
-                                        self._supported_migrate_capabilities)
+                                        self._supported_migrate_capabilities,
+                                        disable_auto_x_evaluation)
 
-    def _get_migrate_parameter(self, parameter, error_on_missing=False):
+    def _get_migrate_parameter(self, parameter, error_on_missing=False,
+                               disable_auto_x_evaluation=True):
         """
         Verify the $parameter is listed in migrate-parameters. If not try
         x-/non-x- version. In case none is supported, return the original param
 
         :param parameter: migrate parameter
+        :param disable_auto_x_evaluation: Whether to automatically choose
+                                          param with/without "x-" prefix
         :return: migrate paramter that is hopefully supported
         """
         return pick_supported_x_feature(parameter,
                                         self._supported_migrate_parameters,
+                                        disable_auto_x_evaluation,
                                         error_on_missing,
                                         "Migration parameter")
 
@@ -1469,7 +1480,8 @@ class HumanMonitor(Monitor):
         size = float(normalize_data_size("%sB" % size, 'M', '1024'))
         return self.cmd("balloon %d" % size)
 
-    def _get_migrate_capability(self, capability):
+    def _get_migrate_capability(self, capability,
+                                disable_auto_x_evaluation=True):
         if self._supported_migrate_capabilities is None:
             ret = self.query("migrate_capabilities")
             caps = []
@@ -1478,14 +1490,18 @@ class HumanMonitor(Monitor):
                 if len(split) == 2:
                     caps.append(split[0])
             self._supported_migrate_capabilities = caps
-        return super(HumanMonitor, self)._get_migrate_capability(capability)
+        return super(HumanMonitor, self)._get_migrate_capability(capability,
+                                                                 disable_auto_x_evaluation)
 
-    def set_migrate_capability(self, state, capability):
+    def set_migrate_capability(self, state, capability,
+                               disable_auto_x_evaluation=True):
         """
         Set the capability of migrate to state.
 
         :param state: Bool value of capability.
         :param capability: capability which need to set.
+        :param disable_auto_x_evaluation: Whether to automatically choose
+                                          feature with/without "x-" prefix
         :raise MonitorNotSupportedMigCapError: if the capability is unknown
         """
         cmd = "migrate_set_capability"
@@ -1493,7 +1509,8 @@ class HumanMonitor(Monitor):
         value = "off"
         if state:
             value = "on"
-        capability = self._get_migrate_capability(capability)
+        capability = self._get_migrate_capability(capability,
+                                                  disable_auto_x_evaluation)
         cmd += " %s %s" % (capability, value)
         result = self.cmd(cmd)
         if result != "":
@@ -1502,16 +1519,20 @@ class HumanMonitor(Monitor):
                                                  (capability, result))
         return result
 
-    def get_migrate_capability(self, capability):
+    def get_migrate_capability(self, capability,
+                               disable_auto_x_evaluation=True):
         """
         Get the state of migrate-capability.
 
         :param capability: capability which need to get.
+        :param disable_auto_x_evaluation: Whether to automatically choose
+                                          feature with/without "x-" prefix
         :raise MonitorNotSupportedMigCapError: if the capability is unknown
         :return: the state of migrate-capability.
         """
         capability_info = self.query("migrate_capabilities")
-        capability = self._get_migrate_capability(capability)
+        capability = self._get_migrate_capability(capability,
+                                                  disable_auto_x_evaluation)
         pattern = r"%s:\s+(on|off)" % capability
         match = re.search(pattern, capability_info, re.M)
         if match is None:
@@ -1539,7 +1560,8 @@ class HumanMonitor(Monitor):
         value = cache_size_info.split(":")[1].split()[0].strip()
         return value
 
-    def _get_migrate_parameter(self, parameter, error_on_missing=False):
+    def _get_migrate_parameter(self, parameter, error_on_missing=False,
+                               disable_auto_x_evaluation=True):
         if self._supported_migrate_parameters is None:
             params = []
             for line in self.query("migrate_parameters").splitlines():
@@ -1548,7 +1570,7 @@ class HumanMonitor(Monitor):
                     params.append(split[0])
             self._supported_migrate_parameters = params
         return super(HumanMonitor, self)._get_migrate_parameter(
-            parameter, error_on_missing)
+            parameter, error_on_missing, disable_auto_x_evaluation)
 
     def set_migrate_parameter(self, parameter, value, error_on_missing=False):
         """
@@ -1563,13 +1585,16 @@ class HumanMonitor(Monitor):
         cmd += " %s %s" % (parameter, value)
         return self.cmd(cmd)
 
-    def get_migrate_parameter(self, parameter):
+    def get_migrate_parameter(self, parameter, disable_auto_x_evaluation=True):
         """
         Get the parameter value. e.g. cpu-throttle-initial: 30
 
         :param parameter: the parameter which need to get
+        :param disable_auto_x_evaluation: Whether to automatically choose
+                                          param with/without "x-" prefix
         """
-        parameter = self._get_migrate_parameter(parameter)
+        parameter = self._get_migrate_parameter(parameter,
+                                                disable_auto_x_evaluation=disable_auto_x_evaluation)
         for line in self.query("migrate_parameters").splitlines():
             split = line.split(':', 1)
             if split[0] == parameter:
@@ -2810,23 +2835,28 @@ class QMPMonitor(Monitor):
             raise QMPEventError(cmd, qmp_event, self.vm.name, self.name)
         logging.info("%s QMP event received" % qmp_event)
 
-    def _get_migrate_capability(self, capability):
+    def _get_migrate_capability(self, capability,
+                                disable_auto_x_evaluation=True):
         if self._supported_migrate_capabilities is None:
             ret = self.query("migrate-capabilities")
             self._supported_migrate_capabilities = set(_["capability"]
                                                        for _ in ret)
-        return super(QMPMonitor, self)._get_migrate_capability(capability)
+        return super(QMPMonitor, self)._get_migrate_capability(capability,
+                                                               disable_auto_x_evaluation)
 
-    def set_migrate_capability(self, state, capability):
+    def set_migrate_capability(self, state, capability,
+                               disable_auto_x_evaluation=True):
         """
         Set the capability of migrate to state.
 
         :param state: Bool value of capability.
         :param capability: capability which need to set.
-        :note: automatically fallback to "x-"/non-"x-" variant of the cap.
+        :param disable_auto_x_evaluation: Whether to automatically choose
+                                          feature with/without "x-" prefix
         :raise MonitorNotSupportedMigCapError: if the capability is unsettable
         """
-        capability = self._get_migrate_capability(capability)
+        capability = self._get_migrate_capability(capability,
+                                                  disable_auto_x_evaluation)
         cmd = "migrate-set-capabilities"
         self.verify_supported_cmd(cmd)
         args = {"capabilities": [{"state": state, "capability": capability}]}
@@ -2836,6 +2866,8 @@ class QMPMonitor(Monitor):
         try:
             return self.cmd(cmd, args)
         except QMPCmdError as exc:
+            if disable_auto_x_evaluation:
+                raise
             # Try it again with/without "x-" prefix
             capability2 = x_non_x_feature(capability)
             args = {"capabilities": [{"state": state,
@@ -2857,7 +2889,8 @@ class QMPMonitor(Monitor):
                     else:
                         raise exc
 
-    def get_migrate_capability(self, capability):
+    def get_migrate_capability(self, capability,
+                               disable_auto_x_evaluation=True):
         """
         Get the state of migrate-capability.
 
@@ -2866,7 +2899,8 @@ class QMPMonitor(Monitor):
         :note: automatically checks for "x-"/non-"x-" variant of the cap.
         :raise MonitorNotSupportedMigCapError: if the capability is unknown
         """
-        capability = self._get_migrate_capability(capability)
+        capability = self._get_migrate_capability(capability,
+                                                  disable_auto_x_evaluation)
         capability_infos = self.query("migrate-capabilities")
         for item in capability_infos:
             if item["capability"] == capability:
@@ -2891,35 +2925,43 @@ class QMPMonitor(Monitor):
         """
         return self.query("migrate-cache-size")
 
-    def _get_migrate_parameter(self, parameter, error_on_missing=False):
+    def _get_migrate_parameter(self, parameter, error_on_missing=False,
+                               disable_auto_x_evaluation=True):
         if self._supported_migrate_parameters is None:
             ret = self.query("migrate-parameters")
             self._supported_migrate_parameters = ret.keys()
         return super(QMPMonitor, self)._get_migrate_parameter(parameter,
-                                                              error_on_missing)
+                                                              error_on_missing,
+                                                              disable_auto_x_evaluation)
 
-    def set_migrate_parameter(self, parameter, value, error_on_missing=False):
+    def set_migrate_parameter(self, parameter, value, error_on_missing=False,
+                              disable_auto_x_evaluation=True):
         """
         Set the parameters of migrate.
 
         :param parameter: the parameter which need to set.
         :param value: the value of parameter
+        :param disable_auto_x_evaluation: Whether to automatically choose
+                                          param with/without "x-" prefix
         """
         cmd = "migrate-set-parameters"
         self.verify_supported_cmd(cmd)
-        parameter = self._get_migrate_parameter(
-            parameter, error_on_missing=error_on_missing)
+        parameter = self._get_migrate_parameter(parameter, error_on_missing,
+                                                disable_auto_x_evaluation)
         args = {parameter: value}
         return self.cmd(cmd, args)
 
-    def get_migrate_parameter(self, parameter):
+    def get_migrate_parameter(self, parameter, disable_auto_x_evaluation=True):
         """
         Get the value of parameter.
 
         :param parameter: parameter which need to get.
+        :param disable_auto_x_evaluation: Whether to automatically choose
+                                          param with/without "x-" prefix
         """
         parameter_info = self.query("migrate-parameters")
-        parameter = self._get_migrate_parameter(parameter)
+        parameter = self._get_migrate_parameter(parameter,
+                                                disable_auto_x_evaluation=disable_auto_x_evaluation)
         if parameter in parameter_info:
             return parameter_info[parameter]
         return False
