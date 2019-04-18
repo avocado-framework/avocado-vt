@@ -30,7 +30,7 @@ SUPPORTED_IMAGE_TYPES = ['raw', 'qcow2', 'qed', 'vmdk']
 SUPPORTED_DISK_BUSES = ['ide', 'scsi', 'virtio_blk',
                         'virtio_scsi', 'lsi_scsi', 'ahci', 'usb2', 'xenblk']
 SUPPORTED_NIC_MODELS = ["virtio_net", "e1000", "rtl8139", "spapr-vlan"]
-SUPPORTED_NET_TYPES = ["bridge", "user", "none"]
+SUPPORTED_NET_TYPES = ["bridge", "user", "none", "socket"]
 
 
 def find_default_qemu_paths(options_qemu=None, options_dst_qemu=None):

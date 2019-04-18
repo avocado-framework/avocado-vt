@@ -681,6 +681,8 @@ class VM(virt_vm.BaseVM):
                 mode = 'tap'
             elif nettype == 'user':
                 mode = 'user'
+            elif nettype == 'socket':
+                mode = 'socket'
             else:
                 logging.warning("Unknown/unsupported nettype %s" % nettype)
                 return ''
@@ -2779,9 +2781,9 @@ class VM(virt_vm.BaseVM):
                         nic.vhostfds = ':'.join(vhostfds)
                         for fd in vhostfds:
                             pass_fds.append(int(fd))
-                    elif nic.nettype == 'user':
+                    elif nic.nettype == 'user' or nic.nettype == 'socket':
                         logging.info("Assuming dependencies met for "
-                                     "user mode nic %s, and ready to go"
+                                     "user/socket mode nic %s, and ready to go"
                                      % nic.nic_name)
                     # Update the fd and vhostfd for nic devices
                     if self.devices is not None:
@@ -3536,7 +3538,7 @@ class VM(virt_vm.BaseVM):
                 ids.append(utils_misc.generate_random_id())
             nic.set_if_none('tapfd_ids', ids)
 
-        elif nic.nettype == 'user':
+        elif nic.nettype in ['user', 'socket']:
             pass  # nothing to do
         else:  # unsupported nettype
             raise virt_vm.VMUnknownNetTypeError(self.name, nic_name,
@@ -3656,6 +3658,8 @@ class VM(virt_vm.BaseVM):
                 utils_net.add_to_bridge(nic.ifname, nic.netdst)
         elif nic.nettype == 'user':
             attach_cmd += " user,id=%s" % nic.device_id
+        elif nic.nettype == 'socket':
+            attach_cmd += " socket,id=%s" % nic.device_id
         elif nic.nettype == 'none':
             attach_cmd += " none"
         else:  # unsupported nettype

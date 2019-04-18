@@ -178,6 +178,8 @@ class VirtTestOptionsProcess(object):
                 self.cartesian_parser.assign("netdst", self.options.vt_netdst)
             elif self.options.vt_nettype == 'user':
                 self.cartesian_parser.assign("nettype", "user")
+            elif self.options.vt_nettype == 'socket':
+                self.cartesian_parser.assign("nettype", "socket")
         else:
             logging.info("Config provided, ignoring %s", nettype_setting)
 
