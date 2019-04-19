@@ -1309,18 +1309,20 @@ class VMXML(VMXMLBase):
         vmxml['cpu'] = cpuxml
         vmxml.sync()
 
-    def add_device(self, value):
+    def add_device(self, value, allow_dup=False):
         """
         Add a device into VMXML.
 
         :param value: instance of device in libvirt_xml/devices/
+        :param allow_dup: Boolean value. True for allow to add duplicated devices
         """
         devices = self.get_devices()
-        for device in devices:
-            if device == value:
-                logging.debug("Device %s is already in VM %s.",
-                              value, self.vm_name)
-                return
+        if not allow_dup:
+            for device in devices:
+                if device == value:
+                    logging.debug("Device %s is already in VM %s.",
+                                  value, self.vm_name)
+                    return
         devices.append(value)
         self.set_devices(devices)
 
