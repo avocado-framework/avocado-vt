@@ -1570,6 +1570,29 @@ class VMXML(VMXMLBase):
         """
         self.remove_all_device_by_type('disk')
 
+    @staticmethod
+    def set_vm_features(vm_name, **attrs):
+        """
+        Set attrs of vm features xml
+
+        :param vm_name: The name of vm to be set
+        :param attrs: attributes to be set
+        """
+        vmxml = VMXML.new_from_inactive_dumpxml(vm_name)
+        if vmxml.xmltreefile.find('/features'):
+            features_xml = vmxml.features
+        else:
+            features_xml = VMFeaturesXML()
+        try:
+            for attr_key, value in attrs.items():
+                setattr(features_xml, attr_key, value)
+            logging.debug('New features_xml: %s', features_xml)
+            vmxml.features = features_xml
+            vmxml.sync()
+        except (AttributeError, TypeError, ValueError) as detail:
+            raise xcepts.LibvirtXMLError(
+                "Invalid feature tag or attribute: %s" % detail)
+
 
 class VMCPUXML(base.LibvirtXMLBase):
 
