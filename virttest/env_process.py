@@ -846,6 +846,10 @@ def preprocess(test, params, env):
                 firewalld.start()
                 if not firewalld.status():
                     test.log.warning('Failed to start firewalld')
+
+        if distro.detect().name == 'Ubuntu':
+            params['firewalld_dhcp_workaround'] = "no"
+
         # Workaround know issue where firewall blocks dhcp from guest
         # through virbr0
         if params.get('firewalld_dhcp_workaround', "no") == "yes":

@@ -424,7 +424,8 @@ class NFSClient(object):
             self.mkdir_mount_remote = True
 
         if self.params.get("firewall_to_permit_nfs", "yes") == "yes":
-            self.firewall_to_permit_nfs()
+            if distro.detect().name != "Ubuntu":
+                self.firewall_to_permit_nfs()
 
         self.mount_src = "%s:%s" % (self.nfs_server_ip, self.mount_src)
         logging.debug("Mount %s to %s" % (self.mount_src, self.mount_dir))

@@ -1365,7 +1365,7 @@ class MigrationTest(object):
         :param cleanup: if True revert back to default setting, used to cleanup
         :param ports: ports used for allowing migration
         """
-        use_firewall_cmd = True
+        use_firewall_cmd = distro.detect().name != "Ubuntu"
         try:
             utils_path.find_command("firewall-cmd")
         except utils_path.CmdNotFoundError:
