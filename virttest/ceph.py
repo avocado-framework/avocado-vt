@@ -167,7 +167,10 @@ def create_config_file(ceph_monitor):
     Create an ceph config file when the config file is not exist
     :params ceph_monitor: The specified monitor to connect to
     """
-    ceph_cfg = "/etc/ceph/ceph.conf"
+    ceph_dir = "/etc/ceph"
+    ceph_cfg = os.path.join(ceph_dir, "ceph.conf")
+    if not os.path.exists(ceph_dir):
+        os.makedirs(ceph_dir)
     if not os.path.exists(ceph_cfg):
         with open(ceph_cfg, 'w+') as f:
             f.write('mon_host = %s' % ceph_monitor)
