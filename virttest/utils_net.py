@@ -2,6 +2,7 @@ import re
 import os
 import socket
 import fcntl
+import errno
 import struct
 import logging
 import random
@@ -1045,9 +1046,16 @@ class Bridge(object):
         result = dict()
         for br_iface in os.listdir(sysfs_path):
             br_iface_path = os.path.join(sysfs_path, br_iface)
-            if (not os.path.isdir(br_iface_path) or
-                    "bridge" not in os.listdir(br_iface_path)):
-                continue
+            if os.path.isdir(br_iface_path):
+                try:
+                    if "bridge" not in os.listdir(br_iface_path):
+                        continue
+                except OSError as e:
+                    if e.errno == errno.ENOENT:
+                        continue
+                    else:
+                        raise e
+
             result[br_iface] = dict()
             # Get stp_state
             stp_state_path = os.path.join(br_iface_path, "bridge", "stp_state")
