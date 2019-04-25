@@ -150,9 +150,11 @@ def affinity_from_vcpupin(vm):
     vcpupin_output = {}
     vcpupin_affinity = {}
     host_cpu_count = utils.total_cpus_count()
-    result = virsh.vcpupin(vm.name)
+    result = virsh.vcpupin(vm.name, debug=True)
     for vcpu in results_stdout_52lts(result).strip().split('\n')[2:]:
-        vcpupin_output[int(vcpu.split(":")[0])] = vcpu.split(":")[1]
+        # On newer version of libvirt, there is no ':' in
+        # vcpupin output anymore
+        vcpupin_output[int(vcpu.split()[0].rstrip(':'))] = vcpu.split()[1]
     for vcpu in vcpupin_output:
         vcpupin_affinity[vcpu] = libvirt.cpus_string_to_affinity_list(
             vcpupin_output[vcpu], host_cpu_count)
