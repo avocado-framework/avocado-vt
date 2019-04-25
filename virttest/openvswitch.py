@@ -299,6 +299,10 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
 
     def del_port(self, br_name, port_name):
         self.ovs_vsctl(["del-port", br_name, port_name])
+        if utils_misc.wait_for(lambda: port_name in self.list_ports(br_name),
+                               timeout=5, first=0.5):
+            logging.warning("Failed to delete %s from %s" % (port_name,
+                                                             br_name))
 
     def add_port_tag(self, port_name, tag):
         self.ovs_vsctl(["set", "Port", port_name, "tag=%s" % tag])
