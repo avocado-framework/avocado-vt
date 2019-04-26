@@ -1235,13 +1235,11 @@ class QSparseBus(object):
         :return: First matching object from this bus
         :raise KeyError: In case no match was found
         """
-        if isinstance(item, QBaseDevice):
-            if item in six.itervalues(self.bus):
+        for device in self:
+            if item is device:
                 return item
-        else:
-            for device in six.itervalues(self.bus):
-                if device.get_aid() == item:
-                    return device
+            elif item == device.get_aid():
+                return device
         raise KeyError("Device %s is not in %s" % (item, self))
 
     def get(self, item):
@@ -1270,14 +1268,11 @@ class QSparseBus(object):
         :param item: autotest id or QObject-like object
         :return: True - yes, False - no
         """
-        if isinstance(item, QBaseDevice):
-            if item in six.itervalues(self.bus):
-                return True
-        else:
-            for device in self:
-                if device.get_aid() == item:
-                    return True
-        return False
+        try:
+            self[item]
+        except KeyError:
+            return False
+        return True
 
     def __iter__(self):
         """ Iterate over all defined devices. """
@@ -1293,12 +1288,9 @@ class QSparseBus(object):
 
     def _str_devices(self):
         """ short string representation of the good bus """
-        out = '{'
-        for addr in sorted(self.bus.keys()):
-            out += "%s:%s," % (addr, self.bus[addr])
-        if out[-1] == ',':
-            out = out[:-1]
-        return out + '}'
+        out = ",".join(["%s:%s" % (addr, self.bus[addr])
+                        for addr in sorted(self.bus.keys())])
+        return "{%s}" % out
 
     def str_long(self):
         """ long string representation """
@@ -1311,17 +1303,18 @@ class QSparseBus(object):
 
     def _str_devices_long(self):
         """ long string representation of devices in the good bus """
-        out = ""
+        out = []
+        header = '%s< %%4s >%s\n' % ('-' * 15, '-' * 15)
+        # two-spaces padding in the line beginning.
+        padding = "  "
         for addr, dev in six.iteritems(self.bus):
-            out += '%s< %4s >%s\n  ' % ('-' * 15, addr,
-                                        '-' * 15)
+            out.append(header % addr)
             if isinstance(dev, six.string_types):
-                out += '"%s"\n  ' % dev
+                lines = ['"%s"\n' % dev]
             else:
-                out += dev.str_long().replace('\n', '\n  ')
-                out = out[:-3]
-            out += '\n'
-        return out
+                lines = dev.str_long().splitlines(True)
+            out.extend((padding + line for line in lines))
+        return "".join(out)
 
     def _increment_addr(self, addr, last_addr=None):
         """
@@ -1330,20 +1323,16 @@ class QSparseBus(object):
         :param last_addr: previous address
         :return: last_addr + 1
         """
+        digit_num = len(self.addr_lengths)
         if not last_addr:
-            last_addr = [0] * len(self.addr_lengths)
-        i = -1
-        while True:
-            if i < -len(self.addr_lengths):
-                return False
-            if addr[i] is not None:
-                i -= 1
-                continue
-            last_addr[i] += 1
-            if last_addr[i] < self.addr_lengths[i]:
-                return last_addr
-            last_addr[i] = 0
-            i -= 1
+            last_addr = [0] * digit_num
+        for i in reversed(range(digit_num)):
+            if addr[i] is None:
+                last_addr[i] += 1
+                if last_addr[i] < self.addr_lengths[i]:
+                    return last_addr
+                last_addr[i] = 0
+        return False
 
     @staticmethod
     def _addr2stor(addr):
@@ -1352,16 +1341,10 @@ class QSparseBus(object):
         :param addr: internal address [addr1, addr2, ...]
         :return: storable address "addr1-addr2-..."
         """
-        out = ""
-        for value in addr:
-            if value is None:
-                out += '*-'
-            else:
-                out += '%s-' % value
+        out = [value is None and "*" or str(value) for value in addr]
         if out:
-            return out[:-1]
-        else:
-            return "*"
+            return "-".join(out)
+        return "*"
 
     def _dev2addr(self, device):
         """
@@ -1369,27 +1352,20 @@ class QSparseBus(object):
         :param device: QBaseDevice device
         :return: internal address  [addr1, addr2, ...]
         """
-        addr = []
-        for key in self.addr_items:
-            addr.append(none_or_int(device.get_param(key)))
-        return addr
+        return [none_or_int(device.get_param(key)) for key in self.addr_items]
 
     def _set_first_addr(self, addr_pattern):
-        """
+        """Fill ommitted address in addr_pattern with self.last_addr.
+
         :param addr_pattern: Address pattern (full qualified or with Nones)
         :return: first valid address based on addr_pattern
         """
-        use_reserved = True
         if addr_pattern is None:
             addr_pattern = [None] * len(self.addr_lengths)
-        # set first usable addr
-        last_addr = addr_pattern[:]
-        if None in last_addr:  # Address is not fully specified
-            use_reserved = False    # Use only free address
-            for i in xrange(len(last_addr)):
-                if last_addr[i] is None:
-                    last_addr[i] = self.first_port[i]
-        return last_addr, use_reserved
+        last_addr = []
+        for digit0, digit1 in zip(addr_pattern, self.first_port):
+            last_addr.append(digit1 if digit0 is None else digit0)
+        return last_addr, None not in addr_pattern
 
     def get_free_slot(self, addr_pattern):
         """
@@ -1409,10 +1385,8 @@ class QSparseBus(object):
                 return False
         # Increment addr until free match is found
         while last_addr is not False:
-            if self._addr2stor(last_addr) not in self.bus:
-                return last_addr
-            if (use_reserved and
-                    self.bus[self._addr2stor(last_addr)] == "reserved"):
+            item = self.get(self._addr2stor(last_addr))
+            if item is None or (use_reserved and item == "reserved"):
                 return last_addr
             last_addr = self._increment_addr(addr_pattern, last_addr)
         return None     # No free matching address found
@@ -1423,11 +1397,8 @@ class QSparseBus(object):
         :param device: QBaseDevice device
         :return: True in case ids are correct, False when not
         """
-        if (device.get_param(self.bus_item) and
-                device.get_param(self.bus_item) != self.busid):
-            return False
-        else:
-            return True
+        return (device.get_param(self.bus_item) and
+                device.get_param(self.bus_item) != self.busid)
 
     def _set_device_props(self, device, addr):
         """
@@ -1520,14 +1491,9 @@ class QSparseBus(object):
         :param device: QBaseDevice device
         :return: True when removed, False when the device wasn't found
         """
-        if device in six.itervalues(self.bus):
-            remove = None
-            for key, item in six.iteritems(self.bus):
-                if item is device:
-                    remove = key
-                    break
-            if remove is not None:
-                del(self.bus[remove])
+        for key, value in self.bus.items():
+            if device is value:
+                del(self.bus[key])
                 return True
         return False
 
