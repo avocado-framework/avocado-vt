@@ -1047,7 +1047,6 @@ def preprocess(test, params, env):
             kernel_extra_params_remove += " intel_iommu=on"
 
     # Clone master image from vms.
-    base_dir = data_dir.get_data_dir()
     if params.get("master_images_clone"):
         for vm_name in params.get("vms").split():
             vm = env.get_vm(vm_name)
