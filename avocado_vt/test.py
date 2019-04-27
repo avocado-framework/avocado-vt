@@ -77,7 +77,7 @@ def cleanup_env(env_filename, env_version):
 class VirtTest(test.Test):
 
     """
-    Mininal test class used to run a virt test.
+    Minimal test class used to run a virt test.
     """
 
     env_version = utils_env.get_env_version()
