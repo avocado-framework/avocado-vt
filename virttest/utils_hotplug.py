@@ -139,18 +139,19 @@ def affinity_from_xml(vm):
     return xml_affinity
 
 
-def affinity_from_vcpupin(vm):
+def affinity_from_vcpupin(vm, vcpu=None, options=None):
     """
     Returns dict of vcpu's affinity from virsh vcpupin output
 
     :param vm: VM object
-
+    :param vcpu: virtual cpu to qeury
+    :param options: --live, --current or --config
     :return: dict of affinity of VM
     """
     vcpupin_output = {}
     vcpupin_affinity = {}
     host_cpu_count = utils.total_cpus_count()
-    result = virsh.vcpupin(vm.name, debug=True)
+    result = virsh.vcpupin(vm.name, vcpu=vcpu, options=options, debug=True)
     for vcpu in results_stdout_52lts(result).strip().split('\n')[2:]:
         # On newer version of libvirt, there is no ':' in
         # vcpupin output anymore
