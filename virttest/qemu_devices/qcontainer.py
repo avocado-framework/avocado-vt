@@ -373,7 +373,7 @@ class DevContainer(object):
 
     def str_bus_long(self):
         """ Long representation of all buses """
-        out = "Devices of %s:\n  " % self.vmname
+        out = "Buses of %s:\n  " % self.vmname
         for bus in self.__buses:
             out += bus.str_long().replace('\n', '\n  ')
         return out[:-3]
