@@ -1,6 +1,7 @@
 import os
 import logging
 import threading
+import functools
 try:
     from collections import UserDict as IterableUserDict
 except ImportError:
@@ -36,16 +37,10 @@ def lock_safe(function):
 
     :param function: Function to wrap.
     """
-    def wrapper(*args, **kwargs):
-        env = args[0]
-        env.save_lock.acquire()
-        try:
-            return function(*args, **kwargs)
-        finally:
-            env.save_lock.release()
-    wrapper.__name__ = function.__name__
-    wrapper.__doc__ = function.__doc__
-    wrapper.__dict__.update(function.__dict__)
+    @functools.wraps(function)
+    def wrapper(env, *args, **kwargs):
+        with env.save_lock:
+            return function(env, *args, **kwargs)
     return wrapper
 
 
@@ -74,9 +69,8 @@ class Env(IterableUserDict):
         if filename:
             try:
                 if os.path.isfile(filename):
-                    f = open(filename, "rb")
-                    env = cPickle.load(f)
-                    f.close()
+                    with open(filename, "rb") as f:
+                        env = cPickle.load(f)
                     if env.get("version", 0) >= version:
                         self.data = env
                     else:
@@ -108,22 +102,14 @@ class Env(IterableUserDict):
         filename = filename or self._filename
         if filename is None:
             raise EnvSaveError("No filename specified for this env file")
-        self.save_lock.acquire()
-        try:
-            with open(filename, "wb") as f:
-                cPickle.dump(self.data, f, protocol=0)
-        finally:
-            self.save_lock.release()
+        with self.save_lock, open(filename, "wb") as f:
+            cPickle.dump(self.data, f, protocol=0)
 
     def get_all_vms(self):
         """
         Return a list of all VM objects in this Env object.
         """
-        vm_list = []
-        for key in list(self.data.keys()):
-            if key and key.startswith("vm__"):
-                vm_list.append(self.data[key])
-        return vm_list
+        return [v for k, v in self.data.items() if k and k.startswith("vm__")]
 
     def clean_objects(self):
         """
