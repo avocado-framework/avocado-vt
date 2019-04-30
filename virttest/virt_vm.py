@@ -945,7 +945,7 @@ class BaseVM(object):
         panic_re = "|".join(panic_re)
         if self.serial_console:
             data = self.serial_console.get_output()
-            if not data:
+            if data is None:
                 logging.warn("Unable to read serial console")
                 return
             match = re.search(panic_re, data, re.DOTALL | re.MULTILINE | re.I)
@@ -1005,7 +1005,7 @@ class BaseVM(object):
         """
         if self.serial_console is not None:
             data = self.serial_console.get_output()
-            if not data:
+            if data is None:
                 logging.warn("Unable to read serial console")
                 return
             match = re.findall(r".*trap invalid opcode.*\n", data,
