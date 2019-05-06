@@ -2662,7 +2662,9 @@ class RemoteVMManager(object):
                          % (ssh_options, pub_key, vm_ip))
         while True:
             matched_strs = [r"[Aa]re you sure", r"[Pp]assword:\s*$",
-                            r"lost connection", r"]#"]
+                            r"lost connection", r"]#", r"/usr/bin/ssh-copy-id:",
+                            r"Warning:"]
+
             try:
                 index, text = session.read_until_last_line_matches(
                     matched_strs, timeout=20,
@@ -2685,6 +2687,9 @@ class RemoteVMManager(object):
             elif index == 3:
                 logging.debug("Logged in now...")
                 break
+            elif index in [4, 5]:
+                logging.debug("Ignore...")
+                continue
 
     def check_network(self, vm_ip, count=5, timeout=60):
         """
