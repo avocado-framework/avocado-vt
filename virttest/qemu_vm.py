@@ -1820,13 +1820,20 @@ class VM(virt_vm.BaseVM):
             for dev in devices.usbc_by_params(usb_name, usb_params, parent_bus):
                 devices.insert(dev)
 
-        for iothread in params.get("iothreads", "").split():
-            cmd = "-object iothread,"
-            iothread_id = params.get("%s_id" % iothread.strip())
-            if not iothread_id:
-                iothread_id = iothread.strip()
-            cmd += "id=%s" % iothread_id
-            devices.insert(StrDev("IOthread_%s" % iothread_id, cmdline=cmd))
+        # set iothread allocation scheme
+        iothreads = {}
+        props = ["poll_max_ns"]
+        for iothread_id in params.get("iothreads", "").split():
+            iothread_params = params.object_params(iothread_id)
+            iothreads[iothread_id] = {
+                prop.replace("_", "-"): iothread_params[prop]
+                for prop in props if prop in iothread_params
+                }
+        devices.set_iothread_manager(
+            iothreads,
+            params.get("iothread_scheme"),
+            self.cpuinfo
+        )
 
         # Add images (harddrives)
         for image_name in params.objects("images"):

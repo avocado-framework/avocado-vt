@@ -25,6 +25,7 @@ from six.moves import xrange
 # Internal imports
 from virttest import utils_qemu
 from virttest import arch, storage, data_dir, virt_vm
+from virttest import qemu_iothread
 from virttest import qemu_storage
 from virttest.qemu_devices import qdevices
 from virttest.qemu_devices.utils import (DeviceError, DeviceHotplugError,
@@ -153,6 +154,8 @@ class DevContainer(object):
         self.allow_hotplugged_vm = allow_hotplugged_vm == 'yes'
         self.caps = Capabilities()
         self._probe_capabilities()
+        self.iothread_manager = None
+        self.iothread_supported_devices = set()
 
     def _probe_capabilities(self):
         """ Probe capabilities. """
@@ -165,6 +168,122 @@ class DevContainer(object):
         # -smp dies=?
         if ver in VersionInterval(self.SMP_DIES_VERSION_SCOPE):
             self.caps.set_flag(Flags.SMP_DIES)
+
+    def set_iothread_manager(self, iothreads, iothread_scheme, guestcpuinfo):
+        """Set iothread manager.
+        :param iothreads: iothreads
+        :param iothread_scheme: iothread_scheme
+        :param guestcpuinfo: Cpuinfo object that stores guest cpu info
+        """
+        if iothreads:
+            msg = "iothreads: %s, use 'PredefinedManager'." % iothreads
+            iothreads = [qdevices.QIOThread(iothread_id=iothread_id,
+                                            params=iothreads[iothread_id])
+                         for iothread_id in iothreads]
+            manager = qemu_iothread.PredefinedManager(iothreads)
+        elif iothread_scheme is not None:
+            if iothread_scheme.startswith("roundrobin"):
+                msg = "iothread_scheme: %s , use 'RoundRobinManager'"
+                match = re.match(r"roundrobin_(\d+)?", iothread_scheme)
+                count = int(match.group(1)) if match else 1
+                manager = qemu_iothread.RoundRobinManager(count=count)
+            elif iothread_scheme == "optimal":
+                msg = "iothread_scheme: %s, use 'OptimalManager'"
+                manager = qemu_iothread.OptimalManager(guestcpuinfo.cores)
+            elif iothread_scheme == "oto":
+                msg = ("iothread_scheme: %s, one device mapping to one "
+                       "iothread object, use 'OTOManager'")
+                manager = qemu_iothread.OTOManager()
+            elif iothread_scheme == "rhv":
+                msg = ("iothread_scheme: %s, one iothread for all devices, "
+                       "use 'RoundRobinManager'")
+                manager = qemu_iothread.RoundRobinManager()
+            else:
+                msg = ("unrecognized iothread_scheme: %s, fall back to "
+                       "use 'PredefinedManager'")
+                manager = qemu_iothread.PredefinedManager([])
+            msg %= iothread_scheme
+        else:
+            msg = ("no iothread config, fall back to use "
+                   "'PredefinedManager'")
+            manager = qemu_iothread.PredefinedManager([])
+        logging.debug(msg)
+        self.iothread_manager = manager
+        for iothread in manager:
+            self.insert(iothread)
+
+    def is_dev_iothread_supported(self, device):
+        """Check if dev supports iothread.
+
+        :param device: device to check
+        :type device: QDevice or string
+        """
+        try:
+            device = device.get_param("driver")
+        except AttributeError:
+            if not isinstance(device, six.string_types):
+                raise TypeError("device: expected string or QDevice")
+        if not device:
+            return False
+        if device in self.iothread_supported_devices:
+            return True
+        options = "--device %s,\\?" % device
+        out = self.execute_qemu(options)
+        if "iothread" in out:
+            self.iothread_supported_devices.add(device)
+            return True
+        return False
+
+    def request_iothread(self, iothread):
+        """Request next available iothread id to use.
+
+        :param iothread: iothread scheme
+        """
+        iothread.iothread = \
+            self.iothread_manager.request_iothread(iothread.iothread)
+
+    def allocate_iothread(self, device, iothread):
+        """Allocate iothread for supported device.
+
+        1. check if device supports iothread.
+        2. set iothread in device.
+        3. allocate iothread object for the device, and if allocated iothread
+        object is new, activate it, aka push it into iothread manager.
+        4. attach the device to the iothread object.
+
+        :param device: device that requests iothread
+        :param iothread: iothread allocation scheme
+        """
+        if not self.is_dev_iothread_supported(device):
+            iothread.scheme = qemu_iothread.IOThreadScheme.IOTHREAD_OFF
+        if iothread.is_iothread_specified():
+            device.set_param("iothread", iothread.iothread)
+            is_new, iothread_obj = self.iothread_manager.allocate_iothread(
+                iothread.iothread
+                )
+            if is_new:
+                self.iothread_manager.activate_iothread(iothread_obj)
+            self.iothread_manager.bind_device_with_iothread(device,
+                                                            iothread.iothread)
+            if is_new:
+                return iothread_obj
+        return None
+
+    def sync_iothread_in_insert(self, device):
+        """Sync iothread manager with device container in device insertion."""
+        if isinstance(device, qdevices.QIOThread):
+            if device not in self.iothread_manager:
+                self.iothread_manager.activate_iothread(device)
+
+    def sync_iothread_in_remove(self, device):
+        """Sync iothread manager with device container in device removal."""
+        if isinstance(device, qdevices.QIOThread):
+            self.iothread_manager.deactivate_iothread(device)
+        else:
+            iothread_id = device.get_param("iothread")
+            if iothread_id:
+                self.iothread_manager.unbind_device_with_iothread(device,
+                                                                  iothread_id)
 
     def __getitem__(self, item):
         """
@@ -257,6 +376,7 @@ class DevContainer(object):
             for bus in device.child_bus:    # Remove child buses from vm buses
                 self.__buses.remove(bus)
             self.__devices.remove(device)   # Remove from list of devices
+        self.sync_iothread_in_remove(device)
 
     def wash_the_device_out(self, device):
         """
@@ -278,6 +398,7 @@ class DevContainer(object):
         # remove device from self.__devices
         if device in self.__devices:
             self.__devices.remove(device)
+        self.sync_iothread_in_remove(device)
 
     def __len__(self):
         """ :return: Number of inserted devices """
@@ -520,15 +641,40 @@ class DevContainer(object):
                 buses.append(bus)
         return buses
 
-    def get_first_free_bus(self, bus_spec, addr):
-        """
+    def get_first_free_bus(self, bus_spec, addr, iothread):
+        """Get first available bus to use.
+
         :param bus_spec: Bus specification (dictionary)
         :param addr: Desired address
+        :param iothread: iothread scheme to filter buses
+        :type iothread: qemu_iothread.IOThreadScheme
         :return: First matching bus with free desired address (the latest
-                 added matching bus)
+                 added matching bus) and desired iothread
         """
+        def _retrieve_iothread(bus):
+            """Get allocated iothread for bus."""
+            return bus.get_device().get_param("iothread")
+
+        # get buses based on specification
         buses = self.get_buses(bus_spec)
-        for bus in buses:
+
+        action_map = {
+            qemu_iothread.IOThreadScheme.IOTHREAD_ON:
+            lambda bus: _retrieve_iothread(bus),
+            qemu_iothread.IOThreadScheme.IOTHREAD_OFF: lambda bus: True,
+            qemu_iothread.IOThreadScheme.IOTHREAD_SPECIFIED:
+            lambda bus: _retrieve_iothread(bus) == iothread.iothread,
+            qemu_iothread.IOThreadScheme.IOTHREAD_EXCLUDED:
+            lambda bus: _retrieve_iothread(bus) is None
+        }
+        percolated = list(filter(action_map[iothread.scheme], buses))
+        if iothread.is_iothread_specified() and not percolated:
+            percolated = list(filter(
+                action_map[qemu_iothread.IOThreadScheme.IOTHREAD_ON], buses
+                ))
+
+        # get lastest added bus that has free desired address
+        for bus in percolated:
             _ = bus.get_free_slot(addr)
             if _ is not None and _ is not False:
                 return bus
@@ -636,6 +782,7 @@ class DevContainer(object):
         device.set_aid(self.__create_unique_aid(device.get_qid()))
         self.__devices.append(device)
         added_devices.append(device)
+        self.sync_iothread_in_insert(device)
         return added_devices
 
     def is_pci_device(self, device):
@@ -1392,7 +1539,7 @@ class DevContainer(object):
                                    scsiid=None, lun=None, aio=None,
                                    strict_mode=None, media=None, imgfmt=None,
                                    pci_addr=None, scsi_hba=None,
-                                   x_data_plane=None, blk_extra_params=None,
+                                   iothread=None, blk_extra_params=None,
                                    scsi=None, drv_extra_params=None,
                                    num_queues=None, bus_extra_params=None,
                                    force_fmt=None, image_encryption=None,
@@ -1431,17 +1578,21 @@ class DevContainer(object):
         :param imgfmt: image format (qcow2, raw, ...)
         :param pci_addr: drive pci address ($int)
         :param scsi_hba: Custom scsi HBA
+        :param iothread: iothread specified
         :param num_queues: performace option for virtio-scsi-pci
         :param bus_extra_params: options want to add to virtio-scsi-pci bus
         :param image_encryption: ImageEncryption object for image
         :param image_access: The remote image access information object
         """
-        def define_hbas(qtype, atype, bus, unit, port, qbus, pci_bus,
+        def define_hbas(qtype, atype, bus, unit, port, qbus, pci_bus, iothread,
                         addr_spec=None, num_queues=None,
                         bus_extra_params=None):
             """
             Helper for creating HBAs of certain type.
             """
+            if (not iothread.is_iothread_excluded()
+                    and not self.is_dev_iothread_supported(atype)):
+                iothread.scheme = qemu_iothread.IOThreadScheme.IOTHREAD_OFF
             devices = []
             # AHCI uses multiple ports, id is different
             if qbus == qdevices.QAHCIBus:
@@ -1449,9 +1600,9 @@ class DevContainer(object):
             else:
                 _hba = atype.replace('-', '_') + '%s.0'  # HBA id
             _bus = bus
+            pattern = {'type': qtype, 'atype': atype}
             if bus is None:
-                bus = self.get_first_free_bus({'type': qtype, 'atype': atype},
-                                              [unit, port])
+                bus = self.get_first_free_bus(pattern, [unit, port], iothread)
                 if bus is None:
                     bus = self.idx_of_next_named_bus(_hba)
                 else:
@@ -1479,14 +1630,19 @@ class DevContainer(object):
                                                parent_bus=pci_bus,
                                                child_bus=qbus(busid=bus_name))
                     devices.append(dev)
+                    iothread_obj = self.allocate_iothread(dev, iothread)
+                    if iothread_obj is not None:
+                        devices.insert(-1, iothread_obj)
                 bus = _hba % bus
+            if iothread.is_iothread_specified():
+                pattern["busid"] = bus
             if qbus == qdevices.QAHCIBus and unit is not None:
                 bus += ".%d" % unit
             # If bus was not set, don't set it, unless the device is
             # a spapr-vscsi device.
             elif _bus is None and 'spapr_vscsi' not in _hba:
                 bus = None
-            return devices, bus, {'type': qtype, 'atype': atype}
+            return devices, bus, pattern
 
         #
         # Parse params
@@ -1570,6 +1726,16 @@ class DevContainer(object):
                          "(disk %s)", name)
             bus = none_or_int(pci_addr)
 
+        iothread = qemu_iothread.IOThreadScheme(iothread)
+        self.request_iothread(iothread)
+        # if block device is `scsi-cd`, `ioevent=off` is in either
+        # blk_extra_params or bus_extra_params, define or find device without
+        # iothread attached
+        if any([fmt in ["scsi-cd"],
+                "ioeventfd=off" in (bus_extra_params or ""),
+                "ioeventfd=off" in (blk_extra_params or "")]):
+            iothread.scheme = qemu_iothread.IOThreadScheme.IOTHREAD_EXCLUDED
+
         #
         # HBA
         # fmt: ide, scsi, virtio, scsi-hd, ahci, usb1,2,3 + hba
@@ -1587,10 +1753,12 @@ class DevContainer(object):
                 # In case we hotplug, lsi wasn't added during the startup hook
                 if arch.ARCH in ('ppc64', 'ppc64le'):
                     _ = define_hbas('SCSI', 'spapr-vscsi', None, None, None,
-                                    qdevices.QSCSIBus, None, [8, 16384])
+                                    qdevices.QSCSIBus, None, iothread,
+                                    addr_spec=[8, 16384])
                 else:
                     _ = define_hbas('SCSI', 'lsi53c895a', None, None, None,
-                                    qdevices.QSCSIBus, pci_bus, [8, 16384])
+                                    qdevices.QSCSIBus, pci_bus, iothread,
+                                    addr_spec=[8, 16384])
                 devices.extend(_[0])
         elif fmt == "ide":
             if bus:
@@ -1600,7 +1768,8 @@ class DevContainer(object):
             dev_parent = {'type': 'IDE', 'atype': 'ide'}
         elif fmt == "ahci":
             devs, bus, dev_parent = define_hbas('IDE', 'ahci', bus, unit, port,
-                                                qdevices.QAHCIBus, pci_bus)
+                                                qdevices.QAHCIBus, pci_bus,
+                                                iothread)
             devices.extend(devs)
         elif fmt.startswith('scsi-'):
             if not scsi_hba:
@@ -1621,7 +1790,8 @@ class DevContainer(object):
                 pci_bus = None
             _, bus, dev_parent = define_hbas('SCSI', scsi_hba, bus, unit, port,
                                              qdevices.QSCSIBus, pci_bus,
-                                             addr_spec, num_queues=num_queues,
+                                             iothread, addr_spec=addr_spec,
+                                             num_queues=num_queues,
                                              bus_extra_params=bus_extra_params)
             devices.extend(_)
         elif fmt in ('usb1', 'usb2', 'usb3'):
@@ -1878,10 +2048,6 @@ class DevContainer(object):
         devices[-1].set_param('min_io_size', min_io_size)
         devices[-1].set_param('opt_io_size', opt_io_size)
         devices[-1].set_param('bootindex', bootindex)
-        if x_data_plane in ["yes", "no", "on", "off"]:
-            devices[-1].set_param('x-data-plane', x_data_plane, bool)
-        else:
-            devices[-1].set_param('iothread', x_data_plane)
         if Flags.BLOCKDEV in self.caps:
             if isinstance(devices[-3], qdevices.QBlockdevProtocolHostDevice):
                 self.cache_map[cache]['write-cache'] = None
@@ -1899,7 +2065,9 @@ class DevContainer(object):
                                 blk_extra_params.split(',') if _)
             for key, value in blk_extra_params:
                 devices[-1].set_param(key, value)
-
+        iothread_obj = self.allocate_iothread(devices[-1], iothread)
+        if iothread_obj is not None:
+            devices.insert(-1, iothread_obj)
         return devices
 
     def _get_access_secret_info(self, image_access):
@@ -2001,7 +2169,7 @@ class DevContainer(object):
                                                    "drive_pci_addr"),
                                                scsi_hba,
                                                image_params.get(
-                                                   "x-data-plane"),
+                                                   "iothread"),
                                                image_params.get(
                                                    "blk_extra_params"),
                                                image_params.get(
@@ -2042,7 +2210,8 @@ class DevContainer(object):
                 else:
                     pci_bus = {'aobject': 'pci.0'}
                 bus = self.get_first_free_bus(
-                    {'type': 'SERIAL', 'atype': bus_type}, [None, nr])
+                    {'type': 'SERIAL', 'atype': bus_type}, [None, nr],
+                    qemu_iothread.IOThreadScheme())
                 #  Multiple virtio console devices can't share a single bus
                 if bus is None or serial_type == 'virtconsole':
                     _hba = bus_type.replace('-', '_') + '%s'
@@ -2244,7 +2413,7 @@ class DevContainer(object):
                                                    "drive_pci_addr"),
                                                scsi_hba,
                                                image_params.get(
-                                                   "x-data-plane"),
+                                                   "iothread"),
                                                image_params.get(
                                                    "blk_extra_params"),
                                                image_params.get(
