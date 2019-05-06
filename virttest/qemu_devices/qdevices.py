@@ -1238,6 +1238,101 @@ class Dimm(QDevice):
         return True
 
 
+class QIOThread(QObject):
+    """iothread object.
+
+    attributes of iothread
+    ["id", "poll-max-ns", "poll-grow", "poll-shrink"]
+    """
+
+    def __init__(self, iothread_id, params=None):
+        if params is None:
+            params = dict()
+        params["id"] = iothread_id
+        self.__attached_devices = list()
+        kwargs = dict(backend="iothread", params=params)
+        super(QIOThread, self).__init__(**kwargs)
+        self.set_aid(iothread_id)
+
+    def __hash__(self):
+        return hash(self.get_aid())
+
+    def attached_devices_count(self):
+        """Returns the count of devices attached."""
+        return len(self.__attached_devices)
+
+    def str_short(self):
+        """Format print string with attached devices."""
+        return "%s [%s]" % (super(QIOThread, self).str_short(),
+                            ", ".join(dev.str_short()
+                                      for dev in self.__attached_devices))
+
+    @staticmethod
+    def query(monitor):
+        """Get a dictionary of info iothreads."""
+        out = monitor.info("iothreads", debug=False)
+        if isinstance(monitor, qemu_monitor.HumanMonitor):
+            pattern = (r"([\w-]+):\s+(thread_id)=(\d+)\s+(poll-max-ns)=(\d+)"
+                       r"\s+(poll-grow)=(\d+)\s+(poll-shrink)=(\d+)")
+            result = []
+            for t in re.findall(pattern, out):
+                it_dict = {}
+                it_dict["id"] = t[0]
+                it_dict.update(zip(t[1::2], t[2::2]))
+                result.append(it_dict)
+            out = result
+        return out
+
+    def get_children(self):
+        """Get child devices, skip QObject."""
+        return super(QObject, self).get_children()  # pylint: disable=E1003
+
+    def hotplug_qmp(self):
+        """Return hotplug qmp command string."""
+        params = dict(self.params)
+        backend = params.pop("backend")
+        iothread_id = params.pop("id")
+        kwargs = {"qom-type": backend, "id": iothread_id, "props": params}
+        return "object-add", kwargs
+
+    def _is_attached_to_qemu(self, monitor):
+        """Check if iothread is in use by QEMU."""
+        out = QIOThread.query(monitor)
+        return any(self.get_qid() == iothread["id"] for iothread in out)
+
+    def verify_hotplug(self, out, monitor):
+        """Verify if it is plugged into VM."""
+        return self._is_attached_to_qemu(monitor)
+
+    def verify_unplug(self, out, monitor):
+        """Verify if it is unplugged from VM."""
+        return not self._is_attached_to_qemu(monitor)
+
+    def is_attached(self, device):
+        """Check if device is using this iothread."""
+        return device in self.__attached_devices
+
+    def unplug_hook(self):
+        """Remove from attached devices' params."""
+        for dev in self.__attached_devices:
+            dev.set_param("iothread", None)
+
+    def unplug_unhook(self):
+        """Reset attached devices' params."""
+        for dev in self.__attached_devices:
+            dev.set_param("iothread", self.get_qid())
+
+    def attach(self, device):
+        """Attach device to this iothread."""
+        if self.is_attached(device):
+            return
+        self.__attached_devices.append(device)
+
+    def detach(self, device):
+        """Detach device from this iothread."""
+        self.__attached_devices.remove(device)
+
+
 class CharDevice(QCustomDevice):
     """
     Qemu Char Device object, hotplug and hotunplug only support via QMP
