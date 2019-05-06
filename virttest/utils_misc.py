@@ -2358,16 +2358,25 @@ def compare_qemu_version(major, minor, update, is_rhev=True, params={}):
     return True
 
 
-def check_if_vm_vcpu_match(vcpu_desire, vm):
+def check_if_vm_vcpu_match(vcpu_desire, vm, connect_uri=None, session=None):
     """
     This checks whether the VM vCPU quantity matches
     the value desired.
+
+    :param vcpu_desire: vcpu value to be checked
+    :param vm: VM Object
+    :param connect_uri: libvirt uri of target host
+    :param session: ShellSession object of VM
+
+    :return: Boolean, True if actual vcpu value matches with vcpu_desire
     """
-    release = platform.dist()[0]
+    release = vm.get_distro(connect_uri=connect_uri)
     if release and release in ['fedora', ]:
-        vcpu_actual = vm.get_cpu_count("cpu_chk_all_cmd")
+        vcpu_actual = vm.get_cpu_count("cpu_chk_all_cmd",
+                                       connect_uri=connect_uri)
     else:
-        vcpu_actual = vm.get_cpu_count("cpu_chk_cmd")
+        vcpu_actual = vm.get_cpu_count("cpu_chk_cmd",
+                                       connect_uri=connect_uri)
     if isinstance(vcpu_desire, str) and vcpu_desire.isdigit():
         vcpu_desire = int(vcpu_desire)
     if vcpu_desire != vcpu_actual:
