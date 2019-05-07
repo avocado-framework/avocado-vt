@@ -29,6 +29,24 @@ class VMError(Exception):
         Exception.__init__(self, *args)
 
 
+class VMUnexpectedExitError(VMError):
+
+    def __init__(self, vm, exit_status=None):
+        super(VMUnexpectedExitError, self).__init__(vm, exit_status)
+        self.vm = vm
+        self.exit_status = exit_status
+        self.msg = None
+
+    def __str__(self):
+        if self.msg is None:
+            self.msg = "vm %s is exited unexpectedly%s."
+            if self.exit_status is None:
+                self.msg %= (self.vm, "")
+            else:
+                self.msg %= (self.vm, ", exit status: %s" % self.exit_status)
+        return self.msg
+
+
 class VMCreateError(VMError):
 
     def __init__(self, cmd, status, output):
