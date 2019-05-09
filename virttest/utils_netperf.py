@@ -5,6 +5,7 @@ import re
 import aexpect
 from avocado.utils import download
 from avocado.utils import aurl
+from avocado.utils import wait
 
 from six.moves import xrange
 
@@ -281,7 +282,7 @@ class NetperfServer(Netperf):
             logging.info("Start netserver with cmd: '%s'" % server_cmd)
             self.session.cmd_output_safe(server_cmd)
 
-        if not self.is_server_running():
+        if not wait.wait_for(self.is_server_running, 5):
             raise NetserverError("Can not start netperf server!")
         logging.info("Netserver start successfully")
 
