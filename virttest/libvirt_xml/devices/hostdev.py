@@ -9,12 +9,12 @@ from virttest.libvirt_xml import accessors
 
 class Hostdev(base.TypedDeviceBase):
 
-    __slots__ = ('hostdev_type', 'mode', 'managed', 'sgio', 'rawio',
+    __slots__ = ('type', 'mode', 'managed', 'sgio', 'rawio',
                  'source', 'boot_order', 'readonly', 'shareable'
                  )
 
     def __init__(self, type_name="hostdev", virsh_instance=base.base.virsh):
-        accessors.XMLAttribute('hostdev_type', self, parent_xpath='/',
+        accessors.XMLAttribute('type', self, parent_xpath='/',
                                tag_name='hostdev', attribute='type')
         accessors.XMLAttribute('mode', self, parent_xpath='/',
                                tag_name='hostdev', attribute='mode')
@@ -40,12 +40,12 @@ class Hostdev(base.TypedDeviceBase):
 
     def new_source(self, **dargs):
         new_one = self.Source(virsh_instance=self.virsh)
-        if self.hostdev_type == 'pci':
+        if self.type == 'pci':
             pass
-        elif self.hostdev_type == 'usb':
+        elif self.type == 'usb':
             new_one.vendor_id = dargs.pop("vendor_id", None)
             new_one.product_id = dargs.pop("product_id", None)
-        elif self.hostdev_type == 'scsi':
+        elif self.type == 'scsi':
             if dargs.get("adapter_name"):
                 new_one.adapter_name = dargs.pop("adapter_name")
             if dargs.get("protocol"):

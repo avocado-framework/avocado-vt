@@ -1432,7 +1432,7 @@ class VMXML(VMXMLBase):
         """
         dev = self.get_device_class('hostdev')()
         dev.mode = mode
-        dev.hostdev_type = hostdev_type
+        dev.type = hostdev_type
         dev.managed = managed
         if boot_order:
             dev.boot_order = boot_order
