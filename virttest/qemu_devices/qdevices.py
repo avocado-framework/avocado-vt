@@ -10,6 +10,7 @@ import logging
 import re
 import traceback
 from collections import OrderedDict
+from functools import reduce
 
 from virttest import qemu_monitor
 from virttest import utils_misc
@@ -627,6 +628,240 @@ class QRHDrive(QDrive):
             raise DeviceError("qid not set; device %s can't be unplugged"
                               % self)
         return "__com.redhat_drive_del", {'id': self.get_qid()}
+
+
+class QBlockdevNode(QCustomDevice):
+    """ Representation of the '-blockdev' qemu object. """
+
+    TYPE = None
+
+    def __init__(self, aobject, child_bus=None, is_root=True):
+        """
+        :param aobject: Related autotest object(e.g, image1).
+        :type aobject: str
+        :param child_bus: List of buses, which this device provides.
+        :type child_bus: qdevice.QDriveBus
+        :param is_root: True if the blockdev node is root node, else False.
+        :type is_root: bool
+        """
+        super(QBlockdevNode, self).__init__(
+            "blockdev", {}, aobject, (), child_bus)
+
+        if is_root:
+            self.params['node-name'] = '%s_%s' % ('drive', aobject)
+        else:
+            self.params['node-name'] = '%s_%s' % (self.TYPE, aobject)
+        self.set_param('driver', self.TYPE)
+
+    @staticmethod
+    def _convert_blkdev_args(args):
+        """
+        Convert string type of 'on' and 'off' to boolean, and create new dict
+        (e.g: 'cache': {'direct': 'true'}) from key which include symbol '.'
+        (e.g: 'cache.direct': 'true') to adhere to the blockdev qmp syntax.
+
+        :param args: Dictionary with the qmp parameters.
+        :type args: dict
+        :return: Converted args.
+        :rtype: dict
+        """
+        new_args = {}
+        tmp = {}
+        for key, val in six.iteritems(args):
+            if val in ('on', 'yes'):
+                val = True
+            elif val in ('off', 'no'):
+                val = False
+            if '.' in key:
+                sub_key = key.split('.')
+                reduce(lambda d, k: d.setdefault(
+                    k, {}), sub_key[1:-1], tmp)[sub_key[-1]] = val
+                new_args[sub_key[0]] = tmp
+            else:
+                new_args[key] = val
+        return new_args
+
+    def hotplug_qmp(self):
+        """
+        Hot plug this blockdev node by qmp.
+
+        :return: Hot plug qemu command and arguments.
+        :rtype: tuple
+        """
+        return "blockdev-add", self._convert_blkdev_args(self.params)
+
+    def unplug_qmp(self):
+        """
+        Unplug this blockdev node by qmp.
+
+        :return: Unplug qemu command and arguments.
+        :rtype: tuple
+        """
+        return "blockdev-del", {"node-name": self.get_qid()}
+
+    def verify_hotplug(self, out, monitor):
+        """
+        Verify the status of hot plug.
+
+        :param out: Output of the hot plug command.
+        :type out: str
+        :param monitor: Monitor used for unplugging.
+        :type monitor: qemu_monitor.QMPMonitor
+        :return: True when successful, False when unsuccessful.
+        :rtype: bool
+        """
+        return len(out) == 0
+
+    def verify_unplug(self, out, monitor):
+        """
+        Verify the status of unplugging.
+
+        :param out: Output of the unplug command.
+        :type out: str
+        :param monitor: Monitor used for unplugging.
+        :type monitor: qemu_monitor.QMPMonitor
+        :return: True when successful, False when unsuccessful.
+        :rtype: bool
+        """
+        return len(out) == 0
+
+    def set_param(self, option, value, option_type=None):
+        """
+        Set device param using qemu notation ("on", "off" instead of bool...)
+        It restricts setting of the 'node-name' param as it's automatically
+        created.
+
+        :param option: Which option's value to set.
+        :type option: str
+        :param value: New value.
+        :type value: str
+        :param option_type: Type of the option.
+        :type option_type: bool
+        """
+        if option == 'node-name':
+            raise KeyError(
+                "Blockdev node-name is automatically created from aobject. %s"
+                % self.aobject)
+        super(QBlockdevNode, self).set_param(option, value, option_type)
+
+    def get_qid(self):
+        """ Get the node name instead of qemu id. """
+        return self.params.get('node-name')
+
+
+class QBlockdevFormatNode(QBlockdevNode):
+    """ New a format type blockdev node. """
+    def __init__(self, aobject):
+        child_bus = QDriveBus('drive_%s' % aobject, aobject)
+        super(QBlockdevFormatNode, self).__init__(aobject, child_bus)
+        self.__hook_drive_bus = None
+        self._child_nodes = []
+
+    def get_child_nodes(self):
+        """
+        Get the child blockdev nodes.
+
+        :return: list of child blockdev nodes.
+        :rtype: list
+        """
+        return self._child_nodes
+
+    def add_child_node(self, node):
+        """
+        Add a child blockdev node.
+
+        :param node: the blockdev node which will be added.
+        :type node: qdevices.QBlockdevNode
+        """
+        self._child_nodes.append(node)
+
+    def del_child_node(self, node):
+        """
+        Delete a child blockdev node.
+
+        :param node: the blockdev node which will be deleted.
+        :type node: qdevices.QBlockdevNode
+        """
+        self._child_nodes.remove(node)
+
+    def get_children(self):
+        """ Device bus should be removed too. """
+        for bus in self.child_bus:
+            if isinstance(bus, QDriveBus):
+                drive_bus = bus
+                self.rm_child_bus(bus)
+                break
+        devices = super(QBlockdevFormatNode, self).get_children()
+        self.add_child_bus(drive_bus)
+        return devices
+
+    def unplug_hook(self):
+        """
+        Devices from this bus are not removed, only 'drive' is set to None.
+        """
+        for bus in self.child_bus:
+            if isinstance(bus, QDriveBus):
+                for dev in bus:
+                    self.__hook_drive_bus = dev.get_param('drive')
+                    dev['drive'] = None
+                break
+
+    def unplug_unhook(self):
+        """
+        Set back the previous 'drive' (unsafe, using the last value).
+        """
+        if self.__hook_drive_bus is not None:
+            for bus in self.child_bus:
+                if isinstance(bus, QDriveBus):
+                    for dev in bus:
+                        dev['drive'] = self.__hook_drive_bus
+                    break
+
+
+class QBlockdevFormatQcow2(QBlockdevFormatNode):
+    """ New a format qcow2 blockdev node. """
+    TYPE = 'qcow2'
+
+
+class QBlockdevFormatRaw(QBlockdevFormatNode):
+    """ New a format raw blockdev node. """
+    TYPE = 'raw'
+
+
+class QBlockdevFormatLuks(QBlockdevFormatNode):
+    """ New a format luks blockdev node. """
+    TYPE = 'luks'
+
+
+class QBlockdevProtocol(QBlockdevNode):
+    """ New a protocol blockdev node. """
+    def __init__(self, aobject):
+        super(QBlockdevProtocol, self).__init__(aobject, None, False)
+
+
+class QBlockdevProtocolFile(QBlockdevProtocol):
+    """ New a protocol file blockdev node. """
+    TYPE = 'file'
+
+
+class QBlockdevProtocolNullCo(QBlockdevProtocol):
+    """ New a protocol null-co node. """
+    TYPE = 'null-co'
+
+
+class QBlockdevProtocolHostDevice(QBlockdevProtocol):
+    """ New a protocol host_device blockdev node. """
+    TYPE = 'host_device'
+
+
+class QBlockdevProtocolBlkdebug(QBlockdevProtocol):
+    """ New a protocol blkdebug blockdev node. """
+    TYPE = 'blkdebug'
+
+
+class QBlockdevProtocolHostCdrom(QBlockdevProtocol):
+    """ New a protocol host_cdrom blockdev node. """
+    TYPE = 'host_cdrom'
 
 
 class QDevice(QCustomDevice):
