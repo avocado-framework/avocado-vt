@@ -40,6 +40,8 @@ from virttest import error_event
 from virttest.compat_52lts import decode_to_text
 from virttest.qemu_devices import qdevices, qcontainer
 from virttest.qemu_devices.utils import DeviceError
+from virttest.utils_version import VersionInterval
+from virttest.qemu_capabilities import Flags, Capabilities
 
 
 class QemuSegFaultError(virt_vm.VMError):
@@ -128,6 +130,8 @@ class VM(virt_vm.BaseVM):
     #: off enable this option
     DISABLE_AUTO_X_MIG_OPTS = False
 
+    BLOCKDEV_VERSION_SCOPE = '[2.12.0, )'
+
     def __init__(self, name, params, root_dir, address_cache, state=None):
         """
         Initialize the object and set a few attributes.
@@ -190,6 +194,25 @@ class VM(virt_vm.BaseVM):
         self.start_monotonic_time = 0.0
         self.last_boot_index = 0
         self.last_driver_index = 0
+        self._caps = Capabilities()
+
+    def _probe_capabilities(self):
+        """ Probe whether the vm sets the capabilities. """
+        ver_dict = utils_misc.get_qemu_version(self.params)
+        ver = '{major}.{minor}.{update}'.format(**ver_dict)
+
+        if self.params.get("qemu_force_use_drive_expression", "no") == "no":
+            if ver in VersionInterval(self.BLOCKDEV_VERSION_SCOPE):
+                self._caps.set_flag(Flags.BLOCKDEV)
+
+    def check_capability(self, capability):
+        """
+        Check whether the given capability is set in the vm capabilities.
+
+        :param capability: the given capability
+        :rtype capability: qemu_capabilities.Flags
+        """
+        return capability in self._caps
 
     def verify_alive(self):
         """
@@ -1416,7 +1439,8 @@ class VM(virt_vm.BaseVM):
                                           params.get('strict_mode'),
                                           params.get(
                                               'workaround_qemu_qmp_crash'),
-                                          params.get('allow_hotplugged_vm'))
+                                          params.get('allow_hotplugged_vm'),
+                                          self._caps)
         StrDev = qdevices.QStringDevice
         QDevice = qdevices.QDevice
 
@@ -2132,21 +2156,38 @@ class VM(virt_vm.BaseVM):
             path = storage.get_image_filename_filesytem(params,
                                                         current_data_dir)
             ovmf_vars_path = "%s.fd" % path
-            dev = qdevices.QDrive('ovmf_code', use_device=False)
-            dev.set_param("if", "pflash")
-            dev.set_param("format", "raw")
-            dev.set_param("readonly", "on")
-            dev.set_param("file", ovmf_code_path)
-            devices.insert(dev)
+            devs = []
+            pflash0, pflash1 = ('ovmf_code', 'ovmf_vars')
+            if Flags.BLOCKDEV in self._caps:
+                devs.append(qdevices.QBlockdevProtocolFile(pflash0))
+                devs[-1].set_param("read-only", "on")
+                devs[-1].set_param("filename", ovmf_code_path)
+            else:
+                devs.append(qdevices.QDrive(pflash0, use_device=False))
+                devs[-1].set_param("if", "pflash")
+                devs[-1].set_param("format", "raw")
+                devs[-1].set_param("readonly", "on")
+                devs[-1].set_param("file", ovmf_code_path)
             if (not os.path.exists(ovmf_vars_path) or
                     params.get("restore_ovmf_vars") == "yes"):
                 cp_cmd = "cp -f %s %s" % (ovmf_vars_src_path, ovmf_vars_path)
                 process.system(cp_cmd)
-            dev = qdevices.QDrive('ovmf_vars', use_device=False)
-            dev.set_param("if", "pflash")
-            dev.set_param("format", "raw")
-            dev.set_param("file", ovmf_vars_path)
-            devices.insert(dev)
+            if Flags.BLOCKDEV in self._caps:
+                devs.append(qdevices.QBlockdevProtocolFile(pflash1))
+                devs[-1].set_param("filename", ovmf_vars_path)
+            else:
+                devs.append(qdevices.QDrive(pflash1, use_device=False))
+                devs[-1].set_param("if", "pflash")
+                devs[-1].set_param("format", "raw")
+                devs[-1].set_param("file", ovmf_vars_path)
+            if Flags.BLOCKDEV in self._caps:
+                machine_vals = []
+                for flash, dev in zip(['pflash0', 'pflash1'], devs):
+                    machine_vals.append(
+                        '{}={}'.format(flash, dev.get_param('node-name')))
+                cmd = "-machine %s" % ','.join(machine_vals)
+                devs.append(qdevices.QStringDevice('machine_sysfw', cmdline=cmd))
+            devices.insert(devs)
 
         disable_kvm_option = ""
         if (devices.has_option("no-kvm")):
@@ -2505,6 +2546,8 @@ class VM(virt_vm.BaseVM):
         pass_fds = []
         if migration_fd:
             pass_fds.append(int(migration_fd))
+
+        self._probe_capabilities()
 
         # Verify the md5sum of the ISO images
         for cdrom in params.objects("cdroms"):
@@ -4340,7 +4383,10 @@ class VM(virt_vm.BaseVM):
                             matched = False
                             break
                 if matched:
-                    return block['device']
+                    if Flags.BLOCKDEV in self._caps:
+                        return block['inserted']['node-name']
+                    else:
+                        return block['device']
         return None
 
     def process_info_block(self, blocks_info):
@@ -4587,7 +4633,12 @@ class VM(virt_vm.BaseVM):
         :param device: device ID;
         :param force: force eject or not;
         """
-        return self.monitor.eject_cdrom(device, force)
+        if Flags.BLOCKDEV in self._caps:
+            qdev = self.devices.get_qdev_by_drive(device)
+            self.monitor.blockdev_open_tray(qdev, force)
+            return self.monitor.blockdev_remove_medium(qdev)
+        else:
+            return self.monitor.eject_cdrom(device, force)
 
     def change_media(self, device, target):
         """
@@ -4596,7 +4647,11 @@ class VM(virt_vm.BaseVM):
         :param device: Device ID;
         :param target: new media file;
         """
-        return self.monitor.change_media(device, target)
+        if Flags.BLOCKDEV in self._caps:
+            qdev = self.devices.get_qdev_by_drive(device)
+            return self.monitor.blockdev_change_medium(qdev, target)
+        else:
+            return self.monitor.change_media(device, target)
 
     def balloon(self, size):
         """
