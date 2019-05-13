@@ -1134,6 +1134,13 @@ def postprocess(test, params, env):
     # recover the changes done to kernel params in postprocess
     kernel_extra_params_add = params.get("kernel_extra_params_add", "")
     kernel_extra_params_remove = params.get("kernel_extra_params_remove", "")
+
+    if params.get("enable_guest_iommu") == "yes":
+        kernel_extra_params_add += " intel_iommu=on"
+        guest_iommu_option = params.get("guest_iommu_option")
+        if guest_iommu_option:
+            kernel_extra_params_add += " iommu=%s" % guest_iommu_option
+
     if kernel_extra_params_add or kernel_extra_params_remove:
         for vm in env.get_all_vms():
             if vm:
