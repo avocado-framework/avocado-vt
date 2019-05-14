@@ -6,6 +6,7 @@ import os
 import re
 import socket
 import traceback
+import functools
 
 from aexpect.exceptions import ShellError
 from aexpect.exceptions import ExpectError
@@ -482,6 +483,31 @@ class CpuInfo(object):
         self.threads = threads
 
 
+def session_handler(func):
+    """
+    decorator method to handle uri and session for libvirt
+    """
+    @functools.wraps(func)
+    def manage_session(vm, *args, **kwargs):
+        connect_uri = None
+        uri = kwargs.get("connect_uri")
+        libvirt = vm.params.get("vm_type") == 'libvirt'
+        try:
+            if uri and libvirt:
+                connect_uri = vm.connect_uri
+                vm.connect_uri = uri
+                vm.session = vm.wait_for_serial_login()
+            else:
+                vm.session = vm.wait_for_login()
+            return func(vm, *args, **kwargs)
+        finally:
+            if vm.session:
+                vm.session.close()
+            if connect_uri:
+                vm.connect_uri = connect_uri
+    return manage_session
+
+
 class BaseVM(object):
 
     """
@@ -536,6 +562,7 @@ class BaseVM(object):
         self.name = name
         self.params = params
         self.serial_console = None
+        self.session = None
         # Create instance if not already set
         if not hasattr(self, 'instance'):
             self._generate_unique_id()
@@ -641,15 +668,14 @@ class BaseVM(object):
         if self.is_dead():
             raise VMDeadError
 
-    def get_distro(self):
+    @session_handler
+    def get_distro(self, connect_uri=None):
         """
         Get distribution name of the vm instance.
         """
-        session = self.wait_for_login()
-        distro_name = utils_misc.get_distro(session=session)
-        session.close()
-        return distro_name
+        return utils_misc.get_distro(session=self.session)
 
+    @session_handler
     def uptime(self, connect_uri=None):
         """
         Get uptime of the vm instance.
@@ -657,32 +683,20 @@ class BaseVM(object):
         :param connect_uri: Libvirt connect uri of vm
         :return: uptime of the vm on success, None on failure
         """
-        uptime = None
-        session = None
-        try:
-            if connect_uri:
-                self.connect_uri = connect_uri
-                session = self.wait_for_serial_login()
-            else:
-                session = self.wait_for_login()
-            uptime = utils_misc.get_uptime(session)
-        finally:
-            if session:
-                session.close()
-            return uptime
+        return utils_misc.get_uptime(self.session)
 
-    def sosreport(self, path=None, uri=None):
+    @session_handler
+    def sosreport(self, path=None, connect_uri=None):
         """
         Get sosreport of the vm instance
 
         :param path: local host path where guest sosreport to be saved
-        :param uri: Connect uri for libvirt
+        :param connect_uri: Connect uri for libvirt
 
         :return: host path where guest sosrepost saved, default to logdir
                  None if vm is not linux or sosreport fails.
         """
         log_path = None
-        connect_uri = None
         if not self.params["os_type"] == "linux":
             logging.warn("sosreport not applicable for %s",
                          self.params["os_type"])
@@ -691,26 +705,16 @@ class BaseVM(object):
             pkg = "sos"
             if "ubuntu" in self.get_distro().lower():
                 pkg = "sosreport"
-            if uri:
-                connect_uri = self.connect_uri
-                self.connect_uri = uri
-                session = self.wait_for_serial_login()
-            else:
-                session = self.wait_for_login()
-            guest_ip = self.get_address()
+            guest_ip = self.get_address(session=self.session)
             guest_user = self.params["username"]
             guest_pwd = self.params["password"]
-            log_path = utils_misc.get_sosreport(session=session,
+            log_path = utils_misc.get_sosreport(session=self.session,
                                                 remote_ip=guest_ip,
                                                 remote_pwd=guest_pwd,
                                                 remote_user=guest_user,
                                                 sosreport_name=self.name,
                                                 sosreport_pkg=pkg)
         finally:
-            if uri:
-                self.connect_uri = connect_uri
-            if session:
-                session.close()
             return log_path
 
     def get_mac_address(self, nic_index=0):
@@ -970,6 +974,7 @@ class BaseVM(object):
             if match:
                 raise VMDeadKernelCrashError(match.group(0))
 
+    @session_handler
     def verify_dmesg(self, dmesg_log_file=None, connect_uri=None):
         """
         Verify guest dmesg
@@ -978,26 +983,15 @@ class BaseVM(object):
                                guest dmesg to logging.debug.
         :param connect_uri: Libvirt connect uri of vm
         """
-        session = None
         level = self.params.get("guest_dmesg_level", 3)
         ignore_result = self.params.get("guest_dmesg_ignore", "no") == "yes"
-        try:
-            if(len(self.virtnet) > 0 and self.virtnet[0].nettype != "macvtap" and
-               not connect_uri):
-                session = self.wait_for_login()
-            else:
-                if connect_uri and self.params.get("vm_type", "qemu") == "libvirt":
-                    actual_uri = self.connect_uri
-                    self.connect_uri = connect_uri
-                session = self.wait_for_serial_login()
-            return utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
-                                           ignore_result=ignore_result,
-                                           level_check=level, session=session)
-        finally:
-            if connect_uri:
-                self.connect_uri = actual_uri
-            if session:
-                session.close()
+        if(len(self.virtnet) > 0 and self.virtnet[0].nettype != "macvtap" and
+           not connect_uri):
+            self.session = self.wait_for_login()
+        return utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
+                                       ignore_result=ignore_result,
+                                       level_check=level,
+                                       session=self.session)
 
     def verify_bsod(self, scrdump_file):
         # For windows guest
@@ -1417,17 +1411,14 @@ class BaseVM(object):
             else:
                 self.send_key(char)
 
-    def get_cpu_count(self, check_cmd='cpu_chk_cmd'):
+    @session_handler
+    def get_cpu_count(self, check_cmd='cpu_chk_cmd', connect_uri=None):
         """
         Get the cpu count of the VM.
         """
-        session = self.wait_for_login()
         cmd = self.params.get(check_cmd)
-        try:
-            out = session.cmd_output_safe(cmd)
-            return int(re.search("\d+", out, re.M).group())
-        finally:
-            session.close()
+        out = self.session.cmd_output_safe(cmd)
+        return int(re.search("\d+", out, re.M).group())
 
     def get_memory_size(self, cmd=None, timeout=60):
         """
