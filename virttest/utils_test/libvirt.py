@@ -1830,7 +1830,7 @@ def create_hostdev_xml(pci_id, boot_order=0, xmlfile=True):
     hostdev_xml = hostdev.Hostdev()
     hostdev_xml.mode = "subsystem"
     hostdev_xml.managed = "yes"
-    hostdev_xml.hostdev_type = "pci"
+    hostdev_xml.type = "pci"
     if boot_order:
         hostdev_xml.boot_order = boot_order
     attrs = {'domain': device_domain, 'slot': device_slot,

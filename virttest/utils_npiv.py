@@ -256,7 +256,7 @@ def create_hostdev_xml(adapter_name="", **kwargs):
     managed = kwargs.get('managed', 'no')
 
     hostdev_xml = hostdev.Hostdev()
-    hostdev_xml.hostdev_type = "scsi"
+    hostdev_xml.type = "scsi"
     hostdev_xml.managed = managed
     hostdev_xml.mode = mode
 
