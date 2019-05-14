@@ -88,13 +88,11 @@ class VMStressEvents():
                     if not self.ignore_status:
                         libvirt.check_exit_status(result)
             elif "emulatorpin" in event:
-                for vcpu in range(int(self.current_vcpu)):
-                    result = virsh.emulatorpin(vm.name,
-                                               random.choice(
-                                                   self.host_cpu_list),
-                                               **dargs)
-                    if not self.ignore_status:
-                        libvirt.check_exit_status(result)
+                result = virsh.emulatorpin(vm.name,
+                                           random.choice(self.host_cpu_list),
+                                           **dargs)
+                if not self.ignore_status:
+                    libvirt.check_exit_status(result)
             elif "suspend" in event:
                 result = virsh.suspend(vm.name, **dargs)
                 if not self.ignore_status:
