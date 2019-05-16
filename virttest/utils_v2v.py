@@ -71,9 +71,13 @@ class Uri(object):
         """
         Return esx uri.
         """
-        uri = "vpx://root@%s/%s/%s/?no_verify=1" % (self.host,
-                                                    self.vpx_dc,
-                                                    self.esx_ip)
+        uri = ''
+        if self.vpx_dc and self.esx_ip:
+            uri = "vpx://root@%s/%s/%s/?no_verify=1" % (self.host,
+                                                        self.vpx_dc,
+                                                        self.esx_ip)
+        if not self.vpx_dc and self.esx_ip:
+            uri = "esx://root@%s/?no_verify=1" % self.esx_ip
         return uri
 
     # add new hypervisor in here.
@@ -107,6 +111,10 @@ class Target(object):
         self.params = params
         self.output_method = self.params.get('output_method', 'rhev')
         self.input_mode = self.params.get('input_mode')
+        self.esxi_host = self.params.get(
+            'esxi_host', self.params.get('esx_ip'))
+        self.src_uri_type = params.get('src_uri_type')
+        self.esxi_password = params.get('esxi_password')
         self.input_transport = self.params.get('input_transport')
         self.vddk_libdir = self.params.get('vddk_libdir')
         self.vddk_libdir_src = self.params.get('vddk_libdir_src')
@@ -160,8 +168,14 @@ class Target(object):
 
                 # Invalid vddk thumbprint if no ':'
                 if self.vddk_thumbprint is None or ':' not in self.vddk_thumbprint:
+                    if self.src_uri_type == 'esx':
+                        tmp_host = self.esxi_host
+                        tmp_passwd = self.esxi_password
+                    else:
+                        tmp_passwd = self.vcenter_password
+                        tmp_host = self.vcenter_host
                     self.vddk_thumbprint = get_vddk_thumbprint(
-                        self.vcenter_host, self.vcenter_password)
+                        tmp_host, tmp_passwd, self.src_uri_type)
 
             # New input_transport type can be added here
 
@@ -767,9 +781,11 @@ def v2v_cmd(params):
 
     target = params.get('target')
     hypervisor = params.get('hypervisor')
+    # vpx:// or esx://
+    src_uri_type = params.get('src_uri_type')
     hostname = params.get('hostname')
     vpx_dc = params.get('vpx_dc')
-    esx_ip = params.get('esx_ip')
+    esxi_host = params.get('esxi_host', params.get('esx_ip'))
     opts_extra = params.get('v2v_opts')
     # Set v2v_timeout to 3 hours, the value can give v2v enough time to execute,
     # and avoid v2v process be killed by mistake.
@@ -780,11 +796,14 @@ def v2v_cmd(params):
 
     uri_obj = Uri(hypervisor)
     # Return actual 'uri' according to 'hostname' and 'hypervisor'
-    uri = uri_obj.get_uri(hostname, vpx_dc, esx_ip)
+    if src_uri_type == 'esx':
+        vpx_dc = None
+    uri = uri_obj.get_uri(hostname, vpx_dc, esxi_host)
 
     target_obj = Target(target, uri)
     try:
-        # Return virt-v2v command line options based on 'target' and 'hypervisor'
+        # Return virt-v2v command line options based on 'target' and
+        # 'hypervisor'
         options = target_obj.get_cmd_options(params)
 
         if rhv_upload_opts:
@@ -942,19 +961,25 @@ def cleanup_constant_files(params):
     map(os.remove, [x for x in tmpfiles if x and os.path.isfile(x)])
 
 
-def get_vddk_thumbprint(host, password, prompt=r"[\#\$]"):
+def get_vddk_thumbprint(host, password, uri_type=None, prompt=r"[\#\$\[\]]"):
     """
     Get vddk thumbprint from VMware vCenter
 
     :param host: hostname or IP address
     :param password: Password
+    :param uri_type: conversion source uri type
     :param prompt: Shell prompt (regular expression)
     """
-    cmd = 'openssl x509 -in /etc/vmware-vpx/ssl/rui.crt -fingerprint -sha1 -noout'
+
+    if uri_type == 'esx':
+        cmd = 'openssl x509 -in /etc/vmware/ssl/rui.crt -fingerprint -sha1 -noout'
+    else:
+        cmd = 'openssl x509 -in /etc/vmware-vpx/ssl/rui.crt -fingerprint -sha1 -noout'
 
     r_runner = remote.RemoteRunner(host=host,
                                    password=password,
-                                   prompt=prompt)
+                                   prompt=prompt,
+                                   preferred_authenticaton='password,keyboard-interactive')
     cmdresult = r_runner.run(cmd)
     logging.debug("vddk thumbprint:\n%s", cmdresult.stdout)
     vddk_thumbprint = cmdresult.stdout.strip().split('=')[1]
