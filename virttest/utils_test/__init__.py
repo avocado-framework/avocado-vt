@@ -1087,8 +1087,10 @@ class AvocadoGuest(object):
                 avocado_cmd += " --vt-no-filter \"%s\"" % self.vt_no_filter
             if self.vt_arch:
                 avocado_cmd += " --vt-arch %s" % self.vt_arch
+            if self.guest_image:
+                avocado_cmd += " --vt-guest-os %s" % self.guest_image
             if self.vt_extra_params:
-                avocado_cmd += " --vt-extra-params \"%s\"" % self.vt_extra_params
+                avocado_cmd += " --vt-extra-params %s" % self.vt_extra_params
         else:
             for test_each in self.testlist:
                 mux = ""

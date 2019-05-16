@@ -72,6 +72,8 @@ _post_hugepages_surp = 0
 #: information from the output produced by `qemu -version`
 QEMU_VERSION_RE = r"QEMU (?:PC )?emulator version\s([0-9]+\.[0-9]+\.[0-9]+)\s?\((.*?)\)"
 
+THREAD_ERROR = False
+
 
 def preprocess_image(test, params, image_name, vm_process_status=None):
     """
@@ -136,6 +138,24 @@ def preprocess_vm(test, params, env, name):
     else:
         pass
     if create_vm:
+        # configure nested guest
+        if params.get("run_nested_guest_test", "no") == "yes":
+            current_level = params.get("nested_guest_level", "L1")
+            max_level = params.get("nested_guest_max_level", "L1")
+            if current_level != max_level:
+                if params.get("vm_type") == "libvirt":
+                    params["create_vm_libvirt"] = "yes"
+                    nested_cmdline = params.get("virtinstall_qemu_cmdline", "")
+                    # virt-install doesn't have option, so use qemu-cmdline
+                    if "cap-nested-hv=on" not in nested_cmdline:
+                        params["virtinstall_qemu_cmdline"] = ("%s -M %s,cap-nested-hv=on" %
+                                                              (nested_cmdline,
+                                                               params["machine_type"]))
+                elif params.get("vm_type") == "qemu":
+                    nested_cmdline = params.get("machine_type_extra_params", "")
+                    if "cap-nested-hv=on" not in nested_cmdline:
+                        params["machine_type_extra_params"] = ("%s,cap-nested-hv=on" %
+                                                               nested_cmdline)
         vm = env.create_vm(vm_type, target, name, params, test.bindir)
         if params.get("create_vm_libvirt") == "yes" and vm_type == 'libvirt':
             params["medium"] = "import"
@@ -1136,30 +1156,54 @@ def preprocess(test, params, env):
 
     # start test in nested guest
     if params.get("run_nested_guest_test", "no") == "yes":
+        def thread_func(obj):
+            """
+            Thread method to trigger nested VM test
+
+            :param obj: AvocadoGuest Object of the VM
+            """
+            global THREAD_ERROR
+            try:
+                obj.run_avocado()
+            except Exception as info:
+                logging.error(info)
+                THREAD_ERROR = True
         nest_params = params.copy()
+        nested_params = eval(nest_params.get("nested_params", "{}"))
+        # update the current level's param with nested params sent
+        # from previous level
+        nest_params.update(nested_params)
         current_level = nest_params.get("nested_guest_level", "L1")
         max_level = nest_params.get("nested_guest_max_level", "L1")
-        nest_timeout = int(nest_params.get("nested_guest_timeout", "3600"))
-        install_type = nest_params.get("avocado_guest_install_type", "git")
-        nest_vms = env.get_all_vms()
-        # Have buffer memory 1G for VMs to work seamlessly
-        nest_memory = (int(nest_params.get("mem")) // len(nest_vms)) - 1024
-        if nest_memory < 512:
-            raise exceptions.TestCancel("Memory is not sufficient for "
-                                        "VMs to boot and perform nested "
-                                        "virtualization tests")
-        # set memory for the nested VM
-        nest_params["vt_extra_params"] = "mem=\"%s\"" % nest_memory
-        if current_level != max_level:
-            next_level = "L%s" % (int(current_level[-1]) + 1)
+        if int(current_level.lstrip("L")) < int(max_level.lstrip("L")):
+            threads = []
+            nest_timeout = int(nest_params.get("nested_guest_timeout", "3600"))
+            install_type = nest_params.get("avocado_guest_install_type", "git")
+            nest_vms = env.get_all_vms()
+            # Have buffer memory 1G for VMs to work seamlessly
+            nest_memory = (int(nest_params.get("mem")) // len(nest_vms)) - 1024
+            if nest_memory < 512:
+                raise exceptions.TestCancel("Memory is not sufficient for "
+                                            "VMs to boot and perform nested "
+                                            "virtualization tests")
+            # set memory for the nested VM
+            nest_params["vt_extra_params"] = "mem=\"%s\"" % nest_memory
+            # pass the params current level to next level
+            nest_params["vt_extra_params"] += " nested_params=\"%s\"" % nested_params
+            # update the current_level for next_level guest
+            nest_params["vt_extra_params"] += (" nested_guest_level=\"L%s\"" %
+                                               (int(current_level.lstrip("L")) +
+                                                1))
+            # persist the max_level in every level of guest
+            nest_params["vt_extra_params"] += (" nested_guest_max_level=\"L%s\"" %
+                                               int(max_level.lstrip("L")))
+            nest_params["vt_extra_params"] += " run_nested_guest_test=\"yes\""
             logging.debug("Test is running in Guest level: %s", current_level)
             for vm in nest_vms:
                 # params with nested level specific configuration
                 new_params = nest_params.object_params(current_level)
                 # params with VM name specific in that particular level
                 new_params = new_params.object_params(vm.name)
-                # update the current_level for next_level guest
-                new_params["nested_guest_level"] = str(next_level)
                 testlist = [new_params.get("avocado_guest_vt_test",
                                            "boot")]
                 avocadotestargs = new_params.get("avocado_guest_add_args", "")
@@ -1170,9 +1214,15 @@ def preprocess(test, params, env):
                                               avocado_vt=True,
                                               reinstall=False,
                                               add_args=avocadotestargs)
-                if not obj.run_avocado():
-                    raise exceptions.TestFail("Test inside nested guest "
-                                              "reported failure")
+                thread = threading.Thread(target=thread_func, args=(obj,))
+                threads.append(thread)
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+            if THREAD_ERROR:
+                raise exceptions.TestFail("Test inside nested guest "
+                                          "reported failure")
     return params
 
 
