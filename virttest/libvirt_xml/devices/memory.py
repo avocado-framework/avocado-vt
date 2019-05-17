@@ -11,7 +11,7 @@ from virttest.libvirt_xml.devices import librarian
 class Memory(base.UntypedDeviceBase):
 
     __slots__ = ('mem_model', 'target', 'source', 'address', 'mem_discard',
-                 'mem_access')
+                 'mem_access', 'alias')
 
     def __init__(self, virsh_instance=base.base.virsh):
         accessors.XMLAttribute('mem_model', self,
@@ -39,6 +39,8 @@ class Memory(base.UntypedDeviceBase):
                                  subclass_dargs={
                                      'type_name': 'dimm',
                                      'virsh_instance': virsh_instance})
+        accessors.XMLElementDict('alias', self, parent_xpath='/',
+                                 tag_name='alias')
         super(Memory, self).__init__(device_tag='memory',
                                      virsh_instance=virsh_instance)
         self.xml = '<memory/>'

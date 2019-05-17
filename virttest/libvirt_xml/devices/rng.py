@@ -10,7 +10,7 @@ from virttest.libvirt_xml.devices import base
 
 class Rng(base.UntypedDeviceBase):
 
-    __slots__ = ('rng_model', 'rate', 'backend')
+    __slots__ = ('rng_model', 'rate', 'backend', 'alias')
 
     def __init__(self, virsh_instance=base.base.virsh):
         accessors.XMLAttribute('rng_model', self,
@@ -24,6 +24,8 @@ class Rng(base.UntypedDeviceBase):
                                  tag_name='backend', subclass=self.Backend,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
+        accessors.XMLElementDict('alias', self, parent_xpath='/',
+                                 tag_name='alias')
         super(Rng, self).__init__(
             device_tag='rng', virsh_instance=virsh_instance)
         self.xml = '<rng/>'

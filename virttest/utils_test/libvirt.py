@@ -71,6 +71,7 @@ from virttest.libvirt_xml import base
 from virttest.libvirt_xml.devices import disk
 from virttest.libvirt_xml.devices import hostdev
 from virttest.libvirt_xml.devices import controller
+from virttest.libvirt_xml.devices import redirdev
 from virttest.libvirt_xml.devices import seclabel
 from virttest.libvirt_xml.devices import channel
 from virttest.libvirt_xml.devices import interface
@@ -1680,8 +1681,10 @@ def check_result(result,
             if not any(re.search(patt, stderr)
                        for patt in expected_fails):
                 raise exceptions.TestFail("Expect should fail with one of %s, "
-                                          "but failed with: %s" %
+                                          "but failed with:\n%s" %
                                           (expected_fails, all_msg))
+            else:
+                logging.info("Get expect error msg:%s" % stderr)
         else:
             raise exceptions.TestFail(
                 "Expect should succeed, but got: %s" % all_msg)
@@ -1828,16 +1831,22 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
     return check_pass
 
 
-def create_hostdev_xml(pci_id, boot_order=0, xmlfile=True):
+def create_hostdev_xml(pci_id, boot_order=None, xmlfile=True,
+                       dev_type="pci", managed="yes", alias=None):
     """
     Create a hostdev configuration file.
 
-    :param pci_id: such as "0000:03:04.0"
-    :param boot_order: boot order of hostdev device
+    :param pci_id: such as "0000:03:04.0" for pci and "1d6b:0002:001:002" for
+                   usb (vendor:product:bus:device)
+    :param boot_order: boot order for hostdev device
     :param xmlfile: Return the file path of xmlfile if True
+    :param dev_type: type of hostdev
+    :param managed: managed of hostdev
+    :param alias: alias name of hostdev
     :return: xml of hostdev device by default
     """
     # Create attributes dict for device's address element
+    logging.info("pci_id is %s" % pci_id)
     device_domain = pci_id.split(':')[0]
     device_domain = "0x%s" % device_domain
     device_bus = pci_id.split(':')[1]
@@ -1849,17 +1858,73 @@ def create_hostdev_xml(pci_id, boot_order=0, xmlfile=True):
 
     hostdev_xml = hostdev.Hostdev()
     hostdev_xml.mode = "subsystem"
-    hostdev_xml.managed = "yes"
-    hostdev_xml.type = "pci"
+    hostdev_xml.managed = managed
+    hostdev_xml.type = dev_type
     if boot_order:
         hostdev_xml.boot_order = boot_order
-    attrs = {'domain': device_domain, 'slot': device_slot,
-             'bus': device_bus, 'function': device_function}
-    hostdev_xml.source = hostdev_xml.new_source(**attrs)
+    if alias:
+        hostdev_xml.alias = dict(name=alias)
+    if dev_type == "pci":
+        attrs = {'domain': device_domain, 'slot': device_slot,
+                 'bus': device_bus, 'function': device_function}
+        hostdev_xml.source = hostdev_xml.new_source(**attrs)
+    if dev_type == "usb":
+        addr_bus = pci_id.split(':')[2]
+        addr_device = pci_id.split(':')[3]
+        hostdev_xml.source = hostdev_xml.new_source(
+            **(dict(vendor_id=device_domain, product_id=device_bus,
+                    address_bus=addr_bus, address_device=addr_device)))
+
     logging.debug("Hostdev XML:\n%s", str(hostdev_xml))
     if not xmlfile:
         return hostdev_xml
     return hostdev_xml.xml
+
+
+def create_controller_xml(contr_type='scsi', contr_model='virtio-scsi',
+                          contr_index='0', contr_alias=None):
+    """
+    Create controller xml
+
+    :param contr_type: controller type name
+    :param contr_model: controller device model
+    :param contr_index: controller device index
+    :param contr_alias: controller device alias name
+    :return: controller xml file
+    """
+    contr = controller.Controller(contr_type)
+    contr.model = contr_model
+    contr.index = contr_index
+    if contr_alias:
+        contr.alias = dict(name=contr_alias)
+    return contr.xml
+
+
+def create_redirdev_xml(redir_type="spicevmc", redir_bus="usb",
+                        redir_alias=None, redir_params={}):
+    """
+    Create redirdev xml
+
+    :param redir_type: redirdev type name
+    :param redir_bus: redirdev bus type
+    :param redir_alias: redirdev alias name
+    :param redir_params: others redir xml parameters
+    :return redirdev xml file
+    """
+    redir = redirdev.Redirdev(redir_type)
+    redir.type = redir_type
+    redir.bus = redir_bus
+    if redir_alias:
+        redir.alias = dict(name=redir_alias)
+    redir_source = redir_params.get("source")
+    if redir_source:
+        redir_source_dict = eval(redir_source)
+        redir.source = redir.new_source(**redir_source_dict)
+    redir_protocol = redir_params.get("protocol")
+    if redir_protocol:
+        redir.protocol = eval(redir_protocol)
+
+    return redir.xml
 
 
 def alter_boot_order(vm_name, pci_id, boot_order=0):
@@ -2376,7 +2441,10 @@ def create_channel_xml(params, alias=False, address=False):
                       'source': channel_source,
                       'target': channel_target}
     if alias:
-        channel_alias = target_name
+        if isinstance(alias, str):
+            channel_alias = alias
+        else:
+            channel_alias = target_name
         channel_params['alias'] = {'name': channel_alias}
     if address:
         channel_address = {'type': 'virtio-serial',
