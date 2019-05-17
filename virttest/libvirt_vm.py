@@ -2384,6 +2384,8 @@ class VM(virt_vm.BaseVM):
         session.close()
 
         error_context.context("logging in after reboot", logging.info)
+        if serial:
+            return self.wait_for_serial_login(timeout=timeout)
         return self.wait_for_login(nic_index, timeout=timeout)
 
     def screendump(self, filename, debug=False):
