@@ -240,7 +240,8 @@ def handle_prompts(session, username, password, prompt, timeout=10,
 
 def remote_login(client, host, port, username, password, prompt, linesep="\n",
                  log_filename=None, timeout=10, interface=None, identity_file=None,
-                 status_test_command="echo $?", verbose=False, bind_ip=None):
+                 status_test_command="echo $?", verbose=False, bind_ip=None,
+                 preferred_authenticaton='password'):
     """
     Log into a remote host (guest) using SSH/Telnet/Netcat.
 
@@ -265,6 +266,7 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
             cmd_status_output() and friends).
     :param bind_ip: ssh through specific interface on
                     client(specify interface ip)
+    :param preferred_authenticaton: The preferred authentication of SSH connection
     :raise LoginError: If using ipv6 linklocal but not assign a interface that
                        the neighbour attache
     :raise LoginBadClientError: If an unknown client is requested
@@ -286,7 +288,7 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
         if identity_file:
             cmd += (" -i %s" % identity_file)
         else:
-            cmd += " -o PreferredAuthentications=password"
+            cmd += " -o PreferredAuthentications=%s" % preferred_authenticaton
         cmd += " %s@%s" % (username, host)
     elif client == "telnet":
         cmd = "telnet -l %s %s %s" % (username, host, port)
@@ -389,7 +391,8 @@ def remote_commander(client, host, port, username, password, prompt,
 
 def wait_for_login(client, host, port, username, password, prompt,
                    linesep="\n", log_filename=None, timeout=240,
-                   internal_timeout=10, interface=None):
+                   internal_timeout=10, interface=None,
+                   preferred_authenticaton='password'):
     """
     Make multiple attempts to log into a guest until one succeeds or timeouts.
 
@@ -397,6 +400,7 @@ def wait_for_login(client, host, port, username, password, prompt,
     :param internal_timeout: The maximum time duration (in seconds) to wait for
                              each step of the login procedure (e.g. the
                              "Are you sure" prompt or the password prompt)
+    :param preferred_authenticaton: The preferred authentication of SSH connection
     :interface: The interface the neighbours attach to
                 (only use when using ipv6 linklocal address.)
     :see: remote_login()
@@ -411,14 +415,16 @@ def wait_for_login(client, host, port, username, password, prompt,
         try:
             return remote_login(client, host, port, username, password, prompt,
                                 linesep, log_filename, internal_timeout,
-                                interface, verbose=verbose)
+                                interface, verbose=verbose,
+                                preferred_authenticaton=preferred_authenticaton)
         except LoginError as e:
             logging.debug(e)
             verbose = True
         time.sleep(2)
     # Timeout expired; try one more time but don't catch exceptions
     return remote_login(client, host, port, username, password, prompt,
-                        linesep, log_filename, internal_timeout, interface)
+                        linesep, log_filename, internal_timeout, interface,
+                        preferred_authenticaton=preferred_authenticaton)
 
 
 def _remote_scp(
@@ -1279,7 +1285,7 @@ class RemoteRunner(object):
     def __init__(self, client="ssh", host=None, port="22", username="root",
                  password=None, prompt=r"[\#\$]\s*$", linesep="\n",
                  log_filename=None, timeout=240, internal_timeout=10,
-                 session=None):
+                 session=None, preferred_authenticaton='password'):
         """
         Initialization of RemoteRunner. Init a session login to remote host or
         guest.
@@ -1298,6 +1304,7 @@ class RemoteRunner(object):
                 for each step of the login procedure (e.g. the "Are you sure"
                 prompt or the password prompt)
         :param session: An existing session
+        :param preferred_authenticaton: The preferred authentication of SSH connection
         :see: wait_for_login()
         :raise: Whatever wait_for_login() raises
         """
@@ -1308,7 +1315,8 @@ class RemoteRunner(object):
             self.session = wait_for_login(client, host, port, username,
                                           password, prompt, linesep,
                                           log_filename, timeout,
-                                          internal_timeout)
+                                          internal_timeout,
+                                          preferred_authenticaton=preferred_authenticaton)
         else:
             self.session = session
         # Init stdout pipe and stderr pipe.
