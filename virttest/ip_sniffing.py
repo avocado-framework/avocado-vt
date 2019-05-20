@@ -200,7 +200,7 @@ class Sniffer(object):
         if self._remote_opts:
             self._start_remote()
         else:
-            self._process = aexpect.run_tail(
+            self._process = aexpect.run_bg(
                 command=cmd,
                 output_func=self._output_logger_handler)
 
