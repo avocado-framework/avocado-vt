@@ -1871,6 +1871,9 @@ def run_avocado_bg(vm, params, test):
     avocado_timeout = int(params.get("avocado_timeout", 3600))
     avocado_testrepo = params.get("avocado_testrepo",
                                   "https://github.com/avocado-framework-tests/avocado-misc-tests.git")
+    avocado_reinstall = params.get("avocado_reinstall", False)
+    avocado_installtype = params.get("avocado_installtype", "pip")
+    avocado_ignoreresult = params.get("avocado_ignoreresult", False)
     for index, item in enumerate(avocado_test.split(',')):
         try:
             mux = ''
@@ -1881,8 +1884,9 @@ def run_avocado_bg(vm, params, test):
     if testlist:
         bt = BackgroundTest(run_avocado,
                             [vm, params, test, testlist,
-                             avocado_timeout, avocado_testrepo, "pip",
-                             True, avocado_testargs, True])
+                             avocado_timeout, avocado_testrepo,
+                             avocado_installtype, avocado_reinstall,
+                             avocado_testargs, avocado_ignoreresult])
         bt.start()
         return bt
     else:
