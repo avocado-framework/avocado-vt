@@ -106,9 +106,6 @@ class NetperfPackage(remote.Remote_Package):
                                            linesep, timeout=360,
                                            status_test_command=status_test_command)
 
-    def __del__(self):
-        self.env_cleanup()
-
     def env_cleanup(self, clean_all=True):
         clean_cmd = ""
         if self.netperf_dir:
@@ -184,7 +181,7 @@ class Netperf(object):
                  prompt="^root@.*[\#\$]\s*$|", linesep="\n", status_test_command="echo $?",
                  compile_option="--enable-demo=yes", install=True):
         """
-        Init NetperfServer class.
+        Init Netperf class.
 
         :param address: Remote host or guest address
         :param netperf_path: Remote netperf path
@@ -233,6 +230,15 @@ class Netperf(object):
         if self.is_target_running(target):
             raise NetserverError("Cannot stop %s" % target)
         logging.info("Stop %s successfully" % target)
+
+    def cleanup(self, clean_all=True):
+        """
+        Cleanup the netperf packages.
+
+        :param clean_all: True to delete both netperf binary and source tarball
+                          and False to delete only binary.
+        """
+        self.package.env_cleanup(clean_all=clean_all)
 
 
 class NetperfServer(Netperf):
