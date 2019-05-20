@@ -985,8 +985,11 @@ class BaseVM(object):
         """
         level = self.params.get("guest_dmesg_level", 3)
         ignore_result = self.params.get("guest_dmesg_ignore", "no") == "yes"
-        if(len(self.virtnet) > 0 and self.virtnet[0].nettype != "macvtap" and
-           not connect_uri):
+        serial_login = self.params.get("serial_login", "no") == "yes"
+        if serial_login:
+            self.session = self.wait_for_serial_login()
+        elif(len(self.virtnet) > 0 and self.virtnet[0].nettype != "macvtap" and
+             not connect_uri):
             self.session = self.wait_for_login()
         return utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
                                        ignore_result=ignore_result,
