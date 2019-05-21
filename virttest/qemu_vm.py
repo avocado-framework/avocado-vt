@@ -2821,7 +2821,7 @@ class VM(virt_vm.BaseVM):
 
             # Find available VNC port, if needed
             if params.get("display") == "vnc":
-                self.vnc_port = utils_misc.find_free_port(5900, 6900)
+                self.vnc_port = utils_misc.find_free_port(5900, 6900, sequent=True)
 
             # Find random UUID if specified 'uuid = random' in config file
             if params.get("uuid") == "random":
