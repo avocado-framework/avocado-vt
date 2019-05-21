@@ -25,6 +25,7 @@ from avocado.utils.service import SpecificServiceManager
 from virttest import error_context
 from virttest import utils_numeric
 from virttest.compat_52lts import decode_to_text
+from virttest.compat_52lts import results_stdout_52lts
 
 PARTITION_TABLE_TYPE_MBR = "msdos"
 PARTITION_TABLE_TYPE_GPT = "gpt"
@@ -790,6 +791,48 @@ def configure_empty_disk(session, did, size, ostype, start="0M", n_partitions=1,
     return configure_empty_linux_disk(session, did, size, start,
                                       n_partitions, fstype,
                                       labeltype, timeout)
+
+
+def get_parts_list(session=None):
+    """
+    Get all partition lists.
+    """
+    parts_cmd = "cat /proc/partitions"
+    if session:
+        _, parts_out = session.cmd_status_output(parts_cmd)
+    else:
+        parts_out = results_stdout_52lts(process.run(parts_cmd))
+    parts = []
+    if parts_out:
+        for line in parts_out.rsplit("\n"):
+            if line.startswith("major") or line == "":
+                continue
+            parts_line = line.rsplit()
+            if len(parts_line) == 4:
+                parts.append(parts_line[3])
+    logging.debug("Find parts: %s", parts)
+    return parts
+
+
+def get_disk_by_serial(serial_str, session=None):
+    """
+    Get disk by serial in VM or host
+
+    :param serial_str: ID_SERIAL of disk, string value
+    :param session: VM session or None
+    :return: Disk name if find one with serial_str, else None
+    """
+    parts_list = get_parts_list(session=session)
+    for disk in parts_list:
+        cmd = ("udevadm info --query=all --name=/dev/{} | grep ID_SERIAL={}"
+               .format(disk, serial_str))
+        if session:
+            status = session.cmd_status(cmd)
+        else:
+            status = process.run(cmd, shell=True, ignore_status=True).exit_status
+        if not status:
+            logging.debug("Disk %s has serial %s", disk, serial_str)
+            return disk
 
 
 class Disk(object):
