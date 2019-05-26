@@ -4,6 +4,8 @@ import os
 import tempfile
 import unittest
 import sys
+import threading
+import time
 
 from avocado.utils import process
 
@@ -222,6 +224,87 @@ class TestNumaNode(unittest.TestCase):
         self.god.unstub_all()
         os.unlink(self.all_nodes_path)
         os.unlink(self.online_nodes_path)
+
+
+class TimeoutLockTest(unittest.TestCase):
+
+    def setUp(self):
+        self.exit_event = threading.Event()
+        self.thread = None
+
+    def _start_thread(self, f, wait_before_exit=False):
+        """Start a thread with target f."""
+        def task():
+            try:
+                f()
+            finally:
+                self.exit_event.wait()
+
+        if wait_before_exit:
+            self.exit_event.clear()
+        else:
+            self.exit_event.set()
+        self.thread = threading.Thread(target=task)
+        self.thread.start()
+
+    def _wait_for_thread_finish(self):
+        self.exit_event.set()
+        self.thread.join()
+
+    def test_reacquire(self):
+        lock = utils_misc.TimeoutLock()
+        lock.acquire()
+        lock.acquire()
+        lock.release()
+        lock.acquire()
+        lock.release()
+        lock.release()
+
+    def test_release_unacquired(self):
+        lock = utils_misc.TimeoutLock()
+        self.assertRaises(RuntimeError, lock.release)
+        lock.acquire()
+        lock.acquire()
+        lock.release()
+        lock.acquire()
+        lock.release()
+        lock.release()
+        self.assertRaises(RuntimeError, lock.release)
+
+    def test_timeout(self):
+        def f():
+            t1 = time.time()
+            results.append(lock.acquire(timeout=0.5))
+            t2 = time.time()
+            results.append(t2 - t1)
+
+        lock = utils_misc.TimeoutLock()
+        lock.acquire()
+        results = []
+        self._start_thread(f)
+        self._wait_for_thread_finish()
+        self.assertFalse(results[0])
+        self.assertTrue(results[1] >= 0.5)
+
+    def test_acquire_during_timeout(self):
+        def f():
+            t1 = time.time()
+            results.append(lock.acquire(timeout=20))
+            t2 = time.time()
+            results.append(t2 - t1)
+
+        lock = utils_misc.TimeoutLock()
+        lock.acquire()
+        results = []
+        self._start_thread(f)
+        lock.release()
+        self._wait_for_thread_finish()
+        self.assertTrue(results[0])
+        self.assertTrue(results[1] <= 20)
+
+    def tearDown(self):
+        if self.thread:
+            self._wait_for_thread_finish()
 
 
 if __name__ == '__main__':

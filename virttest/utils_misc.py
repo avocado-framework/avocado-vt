@@ -377,18 +377,36 @@ def get_virt_test_open_fds():
 
 
 # An easy way to log lines to files when the logging system can't be used
+class TimeoutLock(object):
+    """Lock that supports waiting timeout in lock-acquisition."""
+
+    def __init__(self):
+        self.lock = threading.RLock()
+        self.con = threading.Condition(threading.Lock())
+
+    def acquire(self, timeout=10):
+        """Acquire lock with waiting timeout."""
+        with self.con:
+            current_time = time.time()
+            end_time = current_time + timeout
+            while current_time < end_time:
+                if self.lock.acquire(False):
+                    return True
+                # wait till others' release of the lock.
+                self.con.wait(end_time - current_time)
+                current_time = time.time()
+        return False
+
+    def release(self):
+        """Release lock and notify."""
+        with self.con:
+            self.lock.release()
+            # notify the lock release.
+            self.con.notify()
+
 
 _log_file_dir = data_dir.get_tmp_dir()
-_log_lock = threading.RLock()
-
-
-def _acquire_lock(lock, timeout=10):
-    end_time = time.time() + timeout
-    while time.time() < end_time:
-        if lock.acquire(False):
-            return True
-        time.sleep(0.05)
-    return False
+_log_lock = TimeoutLock()
 
 
 class LogLockError(Exception):
@@ -405,7 +423,7 @@ def log_line(filename, line):
     """
     global _open_log_files, _log_file_dir, _log_lock
 
-    if not _acquire_lock(_log_lock):
+    if not _log_lock.acquire():
         raise LogLockError("Could not acquire exclusive lock to access"
                            " _open_log_files")
     log_file = get_log_filename(filename)
@@ -458,7 +476,7 @@ def get_log_filename(filename):
 def close_log_file(filename):
     global _open_log_files, _log_file_dir, _log_lock
     remove = []
-    if not _acquire_lock(_log_lock):
+    if not _log_lock.acquire():
         raise LogLockError("Could not acquire exclusive lock to access"
                            " _open_log_files")
     try:
