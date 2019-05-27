@@ -203,7 +203,7 @@ def windrv_verify_running(session, test, driver, timeout=300):
         Check if driver is in Running status.
 
         """
-        output = session.cmd_output(driver_check_cmd)
+        output = session.cmd_output(driver_check_cmd, timeout=timeout)
         if "Running" in output:
             return True
         return False
