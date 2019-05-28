@@ -3175,7 +3175,7 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
             arping_cmd = "%s -f -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
                                                       dev, ip)
         try:
-            o = func(arping_cmd, timeout=timeout, **dargs)
+            o = func(arping_cmd, **dargs)
         except (process.CmdError, aexpect.ShellError):
             return False
         return bool(regex.search(o))
