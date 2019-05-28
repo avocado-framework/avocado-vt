@@ -8,7 +8,7 @@ from avocado.core import exceptions
 from avocado.utils import software_manager
 from six import string_types
 
-from virttest import utils_misc
+from virttest.utils_misc import wait_for
 from virttest import vt_console
 
 PACKAGE_MANAGERS = ['apt-get',
@@ -219,7 +219,7 @@ def package_install(pkg, session=None, timeout=300):
     :return: True if all packages installed, False if any error
     """
     mgr = package_manager(session, pkg)
-    return utils_misc.wait_for(mgr.install, timeout)
+    return wait_for(mgr.install, timeout)
 
 
 def package_remove(pkg, session=None, timeout=300):
@@ -232,4 +232,4 @@ def package_remove(pkg, session=None, timeout=300):
     :return: True if all packages removed, False if any error
     """
     mgr = package_manager(session, pkg)
-    return utils_misc.wait_for(mgr.remove, timeout)
+    return wait_for(mgr.remove, timeout)

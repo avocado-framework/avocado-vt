@@ -147,10 +147,10 @@ def umount(src, dst, fstype=None, verbose=False, session=None):
     """
     mounted = is_mount(src, dst, fstype, verbose=verbose, session=session)
     if mounted:
-        from . import utils_package
+        from virttest.utils_package import package_install
         package = "psmisc"
         # check package is available, if not try installing it
-        if not utils_package.package_install(package):
+        if not package_install(package):
             logging.error("%s is not available/installed for fuser", package)
         fuser_cmd = "fuser -km %s" % dst
         umount_cmd = "umount %s" % dst
