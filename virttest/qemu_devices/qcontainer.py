@@ -644,7 +644,7 @@ class DevContainer(object):
                                      % exc, self, ver_out)
         return out, ver_out
 
-    def simple_unplug(self, device, monitor):
+    def simple_unplug(self, device, monitor, timeout=30):
         """
         Function unplug device to devices representation. If verification is
         supported by unplugged device and result of verification is True
@@ -655,6 +655,8 @@ class DevContainer(object):
         :type device: string, qdevices.QDevice.
         :param monitor: Monitor from vm.
         :type monitor: qemu_monitor.Monitor
+        :param timeout: execution timeout
+        :type timeout: int
         :return: tuple(monitor.cmd(), verify_unplug output)
         """
         device = self[device]
@@ -667,7 +669,7 @@ class DevContainer(object):
         from virttest import utils_misc
         if not utils_misc.wait_for(
                 lambda: device.verify_unplug(out, monitor) is True,
-                first=1, step=5, timeout=30):
+                first=1, step=5, timeout=timeout):
             self.set_clean()
             return out, device.verify_unplug(out, monitor)
 
