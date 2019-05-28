@@ -18,6 +18,8 @@ try:
 except ImportError:
     import cPickle
 
+from aexpect import remote
+
 from avocado.core import exceptions
 from avocado.utils import crypto
 from avocado.utils import data_factory
@@ -26,7 +28,6 @@ from avocado.utils import process
 from avocado.utils.data_structures import DataSize
 
 from virttest import data_dir
-from virttest import remote
 from virttest import storage
 from virttest import utils_test
 from virttest import utils_misc

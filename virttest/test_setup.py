@@ -15,6 +15,8 @@ import resource
 from abc import ABCMeta
 from abc import abstractmethod
 
+from aexpect import remote
+
 from avocado.utils import process
 from avocado.utils import archive
 from avocado.utils import wait
@@ -29,7 +31,6 @@ from virttest import cpu
 from virttest import utils_misc
 from virttest import versionable_class
 from virttest import openvswitch
-from virttest import remote
 from virttest import utils_libvirtd
 from virttest import utils_net
 from virttest import utils_config

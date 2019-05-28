@@ -4324,8 +4324,8 @@ def get_sosreport(path=None, session=None, remote_ip=None, remote_pwd=None,
 
     :return: sosreport log path on success, None on fail
     """
+    from aexpect import remote
     from avocado.core import data_dir
-    from virttest import remote
     from virttest import utils_package
 
     if "ubuntu" in get_distro(session=session).lower():

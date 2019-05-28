@@ -29,6 +29,8 @@ import platform
 import random
 import string
 
+from aexpect import remote
+
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
 from avocado.utils import process
@@ -48,7 +50,6 @@ from virttest import utils_selinux
 from virttest import libvirt_storage
 from virttest import utils_net
 from virttest import gluster
-from virttest import remote
 from virttest import test_setup
 from virttest import data_dir
 from virttest import utils_libvirtd

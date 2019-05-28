@@ -3,6 +3,8 @@ import logging
 import re
 
 import aexpect
+from aexpect import remote
+
 from avocado.utils import download
 from avocado.utils import aurl
 from avocado.utils import wait
@@ -10,7 +12,7 @@ from avocado.utils import wait
 from six.moves import xrange
 
 from . import data_dir
-from . import remote
+from . import remote as remote_old
 
 
 class NetperfError(Exception):
@@ -50,7 +52,7 @@ class NetperfTestError(NetperfError):
         return e_msg
 
 
-class NetperfPackage(remote.Remote_Package):
+class NetperfPackage(remote_old.Remote_Package):
 
     def __init__(self, address, netperf_path, md5sum="", netperf_source="",
                  client="ssh", port="22", username="root", password="123456",

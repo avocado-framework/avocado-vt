@@ -11,11 +11,12 @@ try:
 except ImportError:
     import cPickle
 
+from aexpect import remote
+
 from avocado.core import exceptions
 
 from virttest import virt_vm
 from virttest import ip_sniffing
-from virttest import remote
 
 ENV_VERSION = 1
 
