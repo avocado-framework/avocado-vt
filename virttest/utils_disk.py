@@ -1080,16 +1080,17 @@ class GuestFSModiDisk(object):
         try:
             import guestfs
         except ImportError:
-            install_cmd = "yum -y install python-libguestfs"
-            try:
-                process.run(install_cmd)
-                import guestfs
-            except Exception:
+            from virttest.utils_package import package_install
+            if not package_install("python*-libguestfs"):
                 raise exceptions.TestSkipError('We need python-libguestfs (or '
                                                'the equivalent for your '
                                                'distro) for this particular '
                                                'feature (modifying guest '
                                                'files with libguestfs)')
+            try:
+                import guestfs
+            except ImportError:
+                raise exceptions.TestError("Couldn't import guestfs")
 
         self.g = guestfs.GuestFS()
         self.disk = disk
