@@ -1177,7 +1177,7 @@ class VM(virt_vm.BaseVM):
                 if vga == 'virtio' and not devices.has_device(vga_dev):
                     # Arm doesn't usually supports 'virtio-vga'
                     vga_dev = 'virtio-gpu-pci'
-            elif machine_type == 's390-ccw-virtio':
+            elif machine_type.startswith('s390-ccw-virtio'):
                 if vga == 'virtio':
                     vga_dev = 'virtio-gpu-ccw'
                     parent_bus = None
