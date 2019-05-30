@@ -4309,7 +4309,18 @@ class VM(virt_vm.BaseVM):
                     # For short period of time the status can be "inmigrate"
                     # for example when using external program
                     # (qemu commit fe823b6f87b2ebedd692ca480ceb9693439d816e)
-                    self.resume(60)
+                    # Another potential issue is when postcopy migration
+                    # fails and machine ends-up in postcopy-paused state
+                    # that is evaulated as "paused" but it's not possible
+                    # to send "cont" in such case. Let's simply log the
+                    # exception and proceed in such case, that should
+                    # raise the original exception (or VM will fail to
+                    # login if "cont" failed for different reason)
+                    try:
+                        self.resume(60)
+                    except qemu_monitor.MonitorError:
+                        utils_misc.log_last_traceback('Fail to resume qemu '
+                                                      'after migration:')
                 clone.destroy(gracefully=False)
                 if env:
                     env.unregister_vm("%s_clone" % self.name)
