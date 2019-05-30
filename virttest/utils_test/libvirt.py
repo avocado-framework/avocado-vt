@@ -73,6 +73,7 @@ from virttest.libvirt_xml.devices import hostdev
 from virttest.libvirt_xml.devices import controller
 from virttest.libvirt_xml.devices import seclabel
 from virttest.libvirt_xml.devices import channel
+from virttest.libvirt_xml.devices import interface
 
 ping = utils_net.ping
 
@@ -158,6 +159,25 @@ class LibvirtNetwork(object):
         virsh.net_destroy(self.name)
         if self.persistent:
             virsh.net_undefine(self.name)
+
+
+def create_macvtap_vmxml(iface, params):
+    """
+    Method to create Macvtap interface xml for VM
+
+    :param iface: macvtap interface name
+    :param params: Test dict params for macvtap config
+
+    :return: macvtap xml object
+    """
+    mode = params.get('macvtap_mode', 'passthrough')
+    model = params.get('macvtap_model', 'virtio')
+    macvtap_type = params.get('macvtap_type', 'direct')
+    macvtap = interface.Interface(macvtap_type)
+    macvtap.mac_address = utils_net.generate_mac_address_simple()
+    macvtap.model = model
+    macvtap.source = {'dev': iface, 'mode': mode}
+    return macvtap
 
 
 def get_machine_types(arch, virt_type, virsh_instance=base.virsh, ignore_status=True):
