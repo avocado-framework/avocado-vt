@@ -1296,14 +1296,18 @@ def run(test, params, env):
                 # Bug `reboot` param from the kickstart is not actually restarts
                 # the VM instead it shutsoff this is temporary workaround
                 # for the test to proceed
-                if "reboot" in open(unattended_install_config.unattended_file).read():
-                    if kickstart_reboot_bug and not vm.is_alive():
+                if unattended_install_config.unattended_file:
+                    with open(unattended_install_config.unattended_file) as unattended_fd:
+                        reboot_in_unattended = "reboot" in unattended_fd.read()
+                    if (reboot_in_unattended and kickstart_reboot_bug and not
+                            vm.is_alive()):
                         try:
                             vm.start()
                             break
                         except:
-                            logging.warn("Failed to start unattended install image "
-                                         "workaround reboot kickstart parameter bug")
+                            logging.warn("Failed to start unattended install "
+                                         "image workaround reboot kickstart "
+                                         "parameter bug")
 
                 # Print out the original exception before copying images.
                 logging.error(e)
