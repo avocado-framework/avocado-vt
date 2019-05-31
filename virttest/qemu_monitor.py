@@ -1725,6 +1725,14 @@ class QMPMonitor(Monitor):
         finally:
             self._lock.release()
 
+    @staticmethod
+    def _build_args(**kargs):
+        """
+        Build args used in cmd.
+        """
+        return {k.replace("_", "-"): v
+                for k, v in kargs.items() if v is not None}
+
     def cmd_raw(self, data, timeout=CMD_TIMEOUT):
         """
         Send a raw string to the QMP monitor and return the response.
@@ -2713,17 +2721,74 @@ class QMPMonitor(Monitor):
         """
         Add, remove or clear a dirty bitmap.
 
+        NOTE: this method is deprecated, please use corresponding dedicated
+              methods:
+              block_dirty_bitmap_add
+              block_dirty_bitmap_remove
+              block_dirty_bitmap_clear
+              block_dirty_bitmap_enable
+              block_dirty_bitmap_disable
+
         :param operation: operations to bitmap, can be 'add', 'remove', and 'clear'
         :param node: device/node on which to operate dirty bitmap
         :param name: name of the dirty bitmap to operate
         :param granularity: granularity to track writes with
         """
+        return self._operate_dirty_bitmap(operation, node, name,
+                                          granularity=granularity)
+
+    def _operate_dirty_bitmap(self, operation, node, name, **kargs):
+        """
+        Operate dirty bitmap.
+
+        :param operation: operations to bitmap
+        :param node: device node
+        :param name: name of the dirty bitmap to operate
+        """
         cmd = "block-dirty-bitmap-%s" % operation
         self.verify_supported_cmd(cmd)
         args = {"node": node, "name": name}
-        if operation == "add":
-            args["granularity"] = granularity
+        args.update(self._build_args(**kargs))
         return self.cmd(cmd, args)
+
+    def block_dirty_bitmap_add(self, node, name, disabled=None,
+                               granularity=None, persistent=None):
+        """
+        Add a dirty bitmap.
+
+        :param node: device node
+        :param name: bitmap name
+        :param disabled: bitmap created in disabled state
+        :param granularity: segment size
+        :param persistent: persistent through QEMU shutdown
+        """
+        return self._operate_dirty_bitmap("add", node, name, disabled=disabled,
+                                          granularity=granularity,
+                                          persistent=persistent)
+
+    def block_dirty_bitmap_remove(self, node, name):
+        """
+        Remove a dirty bitmap.
+        """
+        return self._operate_dirty_bitmap("remove", node, name)
+
+    def block_dirty_bitmap_clear(self, node, name):
+        """
+        Reset a dirty bitmap.
+        """
+        return self._operate_dirty_bitmap("clear", node, name)
+
+    def block_dirty_bitmap_enable(self, node, name):
+        """
+        Enable a dirty bitmap.
+        """
+        return self._operate_dirty_bitmap("enable", node, name)
+
+    def block_dirty_bitmap_disable(self, node, name):
+        """
+        Disable a dirty bitmap.
+        """
+        return self._operate_dirty_bitmap("disable", node, name)
 
     def drive_backup(self, device, target, format, sync, speed=0,
                      mode='absolute-paths', bitmap=''):
