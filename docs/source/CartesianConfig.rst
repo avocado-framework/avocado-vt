@@ -4,11 +4,16 @@
 Cartesian Configuration
 =======================
 
-Cartesian Configuration is a highly specialized way of providing lists
-of key/value pairs within combination's of various categories. The
-format simplifies and condenses highly complex multidimensional arrays
-of test parameters into a flat list. The combinatorial result can be
-filtered and adjusted prior to testing, with filters, dependencies, and
+In software testing, key/value pairs are usually used as test input parameters.
+
+Cartesian product is a mathematical operation which creates a set from
+multiple sets. Given sets A and B, the cartesian product of both is
+the set of all ordered pairs (a,b) where a belongs to A and b belongs to B.
+
+In Avocado VT, cartesian configuration is a method of defining key/value pairs
+which are later combined using the cartesian product concept. Each element of
+this product is used as input by a different test execution. The product can
+be filtered and adjusted prior to testing, with filters, dependencies, and
 key/value substitutions.
 
 The parser relies on indentation, and is very sensitive to misplacement
@@ -16,7 +21,6 @@ of tab and space characters. It’s highly recommended to edit/view
 Cartesian configuration files in an editor capable of collapsing tab
 characters into four space characters. Improper attention to column
 spacing can drastically affect output.
-
 
 .. _keys_and_values:
 
@@ -29,26 +33,33 @@ format. A statement in the form ``<key> = <value>`` sets ``<key>`` to
 surrounding quotes completely optional (but honored). A reference of
 descriptions for most keys is included in section Configuration Parameter
 Reference.
-The key will become part of all lower-level (i.e. further indented) variant
-stanzas (see section variants_).
 However, key precedence is evaluated in top-down or ‘last defined’
 order. In other words, the last parsed key has precedence over earlier
 definitions.
-
 
 .. _variants:
 
 Variants
 ========
 
-A ‘variants’ stanza is opened by a ‘variants:’ statement. The contents
-of the stanza must be indented further left than the ‘variants:’
-statement. Each variant stanza or block defines a single dimension of
-the output array. When a Cartesian configuration file contains
-two variants stanzas, the output will be all possible combination's of
-both variant contents. Variants may be nested within other variants,
-effectively nesting arbitrarily complex arrays within the cells of
-outside arrays.  For example::
+A variant is a named list of key/value pairs. A variant set is a list of
+variants. The cartesian configuration parser reads a cartesian configuration
+file and creates a cartesian product of variant sets; the number of
+combinations is the multiplication of the number of variants in each variant
+set, each combination is a tuple and the number of elements in this tuple is
+equal to the number of variant sets. Eg. if variant sets A and B have 3 and 4
+variants respectively, their cartesian product will have 3 x 4 = 12 tuples of
+2 elements.
+
+A variant contains key-value pairs. Each ordered variant tuple in the cartesian
+product defines a ordered list of key-value pairs definitions. The ordered execution
+of these definitions creates a dictionary (a list of key/value pairs in which
+each key appears just once).
+
+In a cartesian configuration file, a variant set is defined using the ‘variants’
+block, which is opened by a ‘variants:’ statement. The contents of the block
+must be indented further right than the ‘variants:’ statement.  Each variant is
+defined using a ‘<variant_name>:‘ statement. For example::
 
     variants:
         - one:
@@ -65,11 +76,10 @@ outside arrays.  For example::
             key1 = foo
             key2 = bar
 
-While combining, the parser forms names for each outcome based on
-prepending each variant onto a list. In other words, the first variant
-name parsed will appear as the left most name component. These names can
-become quite long, and since they contain keys to distinguishing between
-results, a 'short-name' key is also used.  For example, running
+While combining variant sets, the parser creates names for each combination
+prepending each variant to a list. In other words, the first variant name parsed
+will appear as the right most name component. This list may be represented with
+a string with the '.' character between each component name. For example, running
 ``cartesian_config.py`` against the content above produces the following
 combinations and names::
 
@@ -83,85 +93,15 @@ combinations and names::
     dict    8:  six.two
     dict    9:  six.three
 
-Variant shortnames represent the <TESTNAME> value used when results are
-recorded (see section Job Names and Tags. For convenience
-variants who’s name begins with a ‘``@``’ do not prepend their name to
-'short-name', only 'name'. This allows creating ‘shortcuts’ for
-specifying multiple sets or changes to key/value pairs without changing
-the results directory name. For example, this is often convenient for
-providing a collection of related pre-configured tests based on a
-combination of others.
+Dict 1 elements::
 
+    key1 = Hello
+    key3 = foo
 
-Named variants
-==============
+Dict 7 elements::
 
-Named variants allow assigning a parseable name to a variant set.  This enables
-an entire variant set to be used for in filters_.  All output combinations will
-inherit the named variant key, along with the specific variant name.  For example::
-
-   variants var1_name:
-        - one:
-            key1 = Hello
-        - two:
-            key2 = World
-        - three:
-   variants var2_name:
-        - one:
-            key3 = Hello2
-        - two:
-            key4 = World2
-        - three:
-
-   only (var2_name=one).(var1_name=two)
-
-Results in the following outcome when parsed with ``cartesian_config.py -c``::
-
-    dict    1:  (var2_name=one).(var1_name=two)
-          dep = []
-          key2 = World         # variable key2 from variants var1_name and variant two.
-          key3 = Hello2        # variable key3 from variants var2_name and variant one.
-          name = (var2_name=one).(var1_name=two)
-          shortname = (var2_name=one).(var1_name=two)
-          var1_name = two      # variant name in same namespace as variables.
-          var2_name = one      # variant name in same namespace as variables.
-
-Named variants could also be used as normal variables.::
-
-   variants guest_os:
-        - fedora:
-        - ubuntu:
-   variants disk_interface:
-        - virtio:
-        - hda:
-
-Which then results in the following::
-
-    dict    1:  (disk_interface=virtio).(guest_os=fedora)
-        dep = []
-        disk_interface = virtio
-        guest_os = fedora
-        name = (disk_interface=virtio).(guest_os=fedora)
-        shortname = (disk_interface=virtio).(guest_os=fedora)
-    dict    2:  (disk_interface=virtio).(guest_os=ubuntu)
-        dep = []
-        disk_interface = virtio
-        guest_os = ubuntu
-        name = (disk_interface=virtio).(guest_os=ubuntu)
-        shortname = (disk_interface=virtio).(guest_os=ubuntu)
-    dict    3:  (disk_interface=hda).(guest_os=fedora)
-        dep = []
-        disk_interface = hda
-        guest_os = fedora
-        name = (disk_interface=hda).(guest_os=fedora)
-        shortname = (disk_interface=hda).(guest_os=fedora)
-    dict    4:  (disk_interface=hda).(guest_os=ubuntu)
-        dep = []
-        disk_interface = hda
-        guest_os = ubuntu
-        name = (disk_interface=hda).(guest_os=ubuntu)
-        shortname = (disk_interface=hda).(guest_os=ubuntu)
-
+    key1 = foo
+    key2 = bar
 
 .. _dependencies:
 
@@ -191,52 +131,55 @@ Results in the correct sequence of variant sets: one, two, *then* three.
 
 .. _filters:
 
-Filters
-=======
+Variant set combination filters
+===============================
 
-Filter statements allow modifying the resultant set of keys based on the
-name of the variant set (see section variants_). Filters can be used in 3 ways:
-Limiting the set to include only combination names matching a pattern.
-Limiting the set to exclude all combination names not matching a
-pattern. Modifying the set or contents of key/value pairs within a
-matching combination name.
+Filters allow specifying a subset of all variant set combinations. Names are
+matched by combining variant names with one of the character(s) below:
 
-Names are matched by pairing a variant name component with the
-character(s) ‘,’ meaning OR, ‘..’ meaning AND, and ‘.’ meaning
-IMMEDIATELY-FOLLOWED-BY. When used alone, they permit modifying the list
-of key/values previously defined. For example:
+* ‘,’ : OR operator
+* ‘..’ : AND operator
+* ‘.’ : immediately followed by
 
-::
+Considering the list of variant set combinations below::
 
-    Linux..OpenSuse:
-    initrd = initrd
+    Linux.x86.OpenSuse
+    Linux.x86.Debian
+    Linux.OpenSuse
 
-Modifies all variants containing ‘Linux’ followed anywhere thereafter
-with ‘OpenSuse’, such that the ‘initrd’ key is created or overwritten
-with the value ‘initrd’.
+The filter::
 
-When a filter is preceded by the keyword ‘only’ or ‘no’, it limits the
-selection of variant combination's This is used where a particular set
-of one or more variant combination's should be considered selectively or
-exclusively. When given an extremely large matrix of variants, the
-‘only’ keyword is convenient to limit the result set to only those
-matching the filter. Whereas the ‘no’ keyword could be used to remove
-particular conflicting key/value sets under other variant combination
-names. For example:
+    Linux..OpenSuse
 
-::
+matches the following combinations::
 
-    only Linux..Fedora..64
+    Linux.x86.OpenSuse
+    Linux.OpenSuse
 
-Would reduce an arbitrarily large matrix to only those variants who’s
-names contain Linux, Fedora, and 64 in them.
+The filter::
 
-However, note that any of these filters may be used within named
-variants as well. In this application, they are only evaluated when that
-variant name is selected for inclusion (implicitly or explicitly) by a
-higher-order. For example:
+    Linux.OpenSuse
 
-::
+matches the following combinations::
+
+    Linux.OpenSuse
+
+The filter::
+
+    Linux.OpenSuse,Linux..Debian
+
+matches the following combinations::
+
+    Linux.OpenSuse
+    Linux.x86.Debian
+
+Filters can be used in 3 ways:
+
+1. include only combinations names matching a pattern. Requires keyword 'only'
+Useful to limit the combinations list size when there is an extremely large matrix
+of variants.
+
+Example::
 
     variants:
         - one:
@@ -253,14 +196,75 @@ higher-order. For example:
 
     only default
 
-Results in the following outcome:
+Results in the following:
 
 ::
 
-    name = default.three.one
-    key1 = Hello
-    key2 =
-    key3 = World
+    dict 1: default.three.one
+      key1 = Hello
+      key2 =
+      key3 = World
+
+
+2. exclude all combinations names not matching a pattern. Requires keyword 'no'
+Useful to remove particular conflicting key/value pairs from some combinations.
+
+Example::
+
+    key1 = value1
+    key2 = value2
+
+    variants:
+        - one:
+            key1 = Hello World
+            key2 = foo1
+        - two:
+            key2 = foo2
+        - three:
+
+    variants:
+        - A:
+            no one
+
+Results in the following::
+
+    Dict 1: A.two
+        key1 = value1
+        key2 = foo1
+    Dict 2: A.three
+        key1 = value1
+        key2 = value2
+
+
+3. update key/value pairs of combinations names matching a pattern
+
+Example::
+
+    variants:
+        - OpenSuse
+            initrd = b
+        - Debian
+            initrd = c
+    variants:
+        - Linux:
+            initrd = a
+
+    Linux..OpenSuse:
+    initrd = initrd
+
+Results in the following::
+
+    dict 1: Linux.Debian
+      initrd = c
+    dict 2: Linux.OpenSuse
+      initrd = initrd_value
+
+Thus, this sets the ‘initrd’ key to ‘initrd_value’ in all combinations containing
+‘Linux’ followed (immediately or not) by ‘OpenSuse’.
+
+However, note that any of these filters may be used within variants as well.
+In this case, they are only evaluated when that variant name is
+selected for inclusion (implicitly or explicitly) by a higher-order.
 
 
 .. _value_substitutions:
@@ -362,7 +366,6 @@ is not important; statements addressing a single object always override
 statements addressing all objects. Note: This is contrary to the way the
 Cartesian configuration file as a whole is parsed (top-down).
 
-
 .. _include_statements:
 
 Include statements
@@ -376,35 +379,193 @@ relevant, and will carry through any key/value substitutions
 (see section key_sub_arrays_) as if parsing a complete, flat file.
 
 
-.. _combinatorial_outcome:
+.. developing_configurations:
 
-Combinatorial outcome
-=====================
+Developing cartesian configurations
+===================================
 
-The parser is available as both a python module and command-line tool
-for examining the parsing results in a text-based listing. To utilize it
-on the command-line, run the module followed by the path of the
-configuration file to parse. For example,
-``common_lib/cartesian_config.py tests/libvirt/tests.cfg``.
+The parser is available as both a Python module and command line tool
+for examining the cartesian configuration parsing results in a text
+output. To use it on the command line, run the module followed by the path of
+the cartesian configuration file to parse. For example,
+``virttest/cartesian_config.py tests/libvirt/tests.cfg``.
 
-The output will be just the names of the combinatorial result set items
-(see short-names, section Variants). However,
-the ‘``--contents``’ parameter may be specified to examine the output in
-more depth. Internally, the key/value data is stored/accessed similar to
-a python dictionary instance. With the collection of dictionaries all
-being part of a python list-like object. Irrespective of the internals,
-running this module from the command-line is an excellent tool for both
-reviewing and learning about the Cartesian Configuration format.
+The output will be just the names of the variants sets combinations.
+However, the ‘``--contents``’ parameter may be specified to examine the output
+in more depth. The key/value data is stored as a Python dict-like object,
+the collection of dictionaries is displayed as a Python list-like object
+and the tool output reflects that. Running this tool from the command line
+is an excellent method for both reviewing and learning about the Cartesian
+Configuration format.
 
-In general, each individual combination of the defined variants provides
-the parameters for a single test. Testing proceeds in order, through
-each result, passing the set of keys and values through to the harness
-and test code. When examining Cartesian configuration files, it’s
-helpful to consider the earliest key definitions as “defaults”, then
-look to the end of the file for other top-level override to those
-values. If in doubt of where to define or set a key, placing it at the
-top indentation level, at the end of the file, will guarantee it is
-used.
+When examining Cartesian configuration files, it is helpful to consider the
+earliest key definitions as “defaults”, then look to the end of the file for
+other top-level override to those values. If in doubt of where to define
+a key, placing it at the top indentation level  at the end of the file, will
+guarantee it is used.
+
+Advanced features
+=================
+
+Variant sets combinations short names
+-------------------------------------
+
+Variant set combinations names can become quite long and, due to this, a
+'short name' is also automatically created by the test framework. For
+convenience, variants which name begins with a ‘``@``’ do not prepend their
+name to 'short name', only 'name'. This allows creating ‘shortcuts’ for
+specifying multiple sets or changes to key/value pairs without changing
+the results directory name. For example, this is often convenient for
+providing a collection of related pre-configured tests based on a
+combination of others.
+
+::
+
+    key1 = value1
+    key2 = value2
+    key3 = value3
+
+    variants:
+        - one:
+            key1 = Hello World
+            key2 <= some_prefix_
+        - two: one
+            key2 <= another_prefix_
+        - three: one two
+
+    variants:
+        - @A:
+            no one
+        - B:
+            only one,three
+
+Results in the following::
+
+    Dictionary #0:
+        depend = ['A.one']
+        key1 = value1
+        key2 = another_prefix_value2
+        key3 = value3
+        name = A.two
+        shortname = two
+    Dictionary #1:
+        depend = ['A.one', 'A.two']
+        key1 = value1
+        key2 = value2
+        key3 = value3
+        name = A.three
+        shortname = three
+    Dictionary #2:
+        depend = []
+        key1 = Hello World
+        key2 = some_prefix_value2
+        key3 = value3
+        name = B.one
+        shortname = B.one
+    Dictionary #3:
+        depend = ['B.one', 'B.two']
+        key1 = value1
+        key2 = value2
+        key3 = value3
+        name = B.three
+        shortname = B.three
+
+
+Named variant set
+-----------------
+
+It is possible to assign a name to a variant set.  This enables an entire
+variant set to be used in filters_. All variant set combinations will contain an
+extra key/value pair for each named variant set it contains, the key is
+the variant set name and the value is the corresponding current variant name.
+For example::
+
+   variants var1_name:
+        - one:
+            key1 = Hello
+        - two:
+            key2 = World
+        - three:
+   variants var2_name:
+        - one:
+            key3 = Hello2
+        - two:
+            key4 = World2
+        - three:
+
+   only (var2_name=one).(var1_name=two)
+
+Results in the following when parsed with ``cartesian_config.py -c``::
+
+    dict    1:  (var2_name=one).(var1_name=two)
+          dep = []
+          key2 = World         # variable key2 from variants var1_name and variant two.
+          key3 = Hello2        # variable key3 from variants var2_name and variant one.
+          name = (var2_name=one).(var1_name=two)
+          shortname = (var2_name=one).(var1_name=two)
+          var1_name = two      # variant name in same namespace as variables.
+          var2_name = one      # variant name in same namespace as variables.
+
+Named variants could also be used as normal variables.::
+
+   variants guest_os:
+        - fedora:
+        - ubuntu:
+   variants disk_interface:
+        - virtio:
+        - hda:
+
+Results in the following::
+
+    dict    1:  (disk_interface=virtio).(guest_os=fedora)
+        dep = []
+        disk_interface = virtio
+        guest_os = fedora
+        name = (disk_interface=virtio).(guest_os=fedora)
+        shortname = (disk_interface=virtio).(guest_os=fedora)
+    dict    2:  (disk_interface=virtio).(guest_os=ubuntu)
+        dep = []
+        disk_interface = virtio
+        guest_os = ubuntu
+        name = (disk_interface=virtio).(guest_os=ubuntu)
+        shortname = (disk_interface=virtio).(guest_os=ubuntu)
+    dict    3:  (disk_interface=hda).(guest_os=fedora)
+        dep = []
+        disk_interface = hda
+        guest_os = fedora
+        name = (disk_interface=hda).(guest_os=fedora)
+        shortname = (disk_interface=hda).(guest_os=fedora)
+    dict    4:  (disk_interface=hda).(guest_os=ubuntu)
+        dep = []
+        disk_interface = hda
+        guest_os = ubuntu
+        name = (disk_interface=hda).(guest_os=ubuntu)
+        shortname = (disk_interface=hda).(guest_os=ubuntu)
+
+Implicit keys
+-------------
+
+Some special keys are expected to be defined with a list of values and
+implicitly define a set of keys for each one of its values. For example, each
+value of the 'vms' key will implicitly define keys such as 'mem_<vm>'.
+In this case a default 'mem' key is also available. Example::
+
+    vms = vm1 second_vm another_vm
+    mem = 128
+    mem_vm1 = 512
+    mem_second_vm = 1024
+
+As result, 3 virtual machine objects are created with the following
+amount of memory::
+
+    vm1: 512
+    second_vm: 1024
+    another_vm: 128 (default)
+
+The order in which these statements are written in a configuration file
+is not important. Assignments to a single object always override assignments
+to all objects. Note: This is contrary to the way the Cartesian configuration
+file as a whole is parsed (top-down).
 
 
 .. _formal_definition:
@@ -776,57 +937,6 @@ Examples
         key3 = value3
         name = A.three
         shortname = A.three
-    Dictionary #2:
-        depend = []
-        key1 = Hello World
-        key2 = some_prefix_value2
-        key3 = value3
-        name = B.one
-        shortname = B.one
-    Dictionary #3:
-        depend = ['B.one', 'B.two']
-        key1 = value1
-        key2 = value2
-        key3 = value3
-        name = B.three
-        shortname = B.three
-
--  Short-names::
-
-    key1 = value1
-    key2 = value2
-    key3 = value3
-
-    variants:
-        - one:
-            key1 = Hello World
-            key2 <= some_prefix_
-        - two: one
-            key2 <= another_prefix_
-        - three: one two
-
-    variants:
-        - @A:
-            no one
-        - B:
-            only one,three
-
-   Results in the following::
-
-    Dictionary #0:
-        depend = ['A.one']
-        key1 = value1
-        key2 = another_prefix_value2
-        key3 = value3
-        name = A.two
-        shortname = two
-    Dictionary #1:
-        depend = ['A.one', 'A.two']
-        key1 = value1
-        key2 = value2
-        key3 = value3
-        name = A.three
-        shortname = three
     Dictionary #2:
         depend = []
         key1 = Hello World
