@@ -1526,16 +1526,19 @@ def migrate_setspeed(domain, bandwidth, extra=None, **dargs):
     return command(cmd, **dargs)
 
 
-def migrate_getspeed(domain, **dargs):
+def migrate_getspeed(domain, extra="", **dargs):
     """
     Get the maximum migration bandwidth (in MiB/s) for
     a domain.
 
     :param domain: name/uuid/id of guest
+    :param extra: extra options to migrate-getspeed
     :param dargs: standardized virsh function API keywords
     :return: standard output from command
     """
     cmd = "migrate-getspeed %s" % domain
+    if extra:
+        cmd += " %s" % extra
     return command(cmd, **dargs)
 
 
