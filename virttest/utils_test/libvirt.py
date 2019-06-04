@@ -921,27 +921,6 @@ def mkfs(partition, fs_type, options="", session=None):
         process.run(mkfs_cmd)
 
 
-def get_parts_list(session=None):
-    """
-    Get all partition lists.
-    """
-    parts_cmd = "cat /proc/partitions"
-    if session:
-        _, parts_out = session.cmd_status_output(parts_cmd)
-    else:
-        parts_out = results_stdout_52lts(process.run(parts_cmd))
-    parts = []
-    if parts_out:
-        for line in parts_out.rsplit("\n"):
-            if line.startswith("major") or line == "":
-                continue
-            parts_line = line.rsplit()
-            if len(parts_line) == 4:
-                parts.append(parts_line[3])
-    logging.debug("Find parts: %s" % parts)
-    return parts
-
-
 def yum_install(pkg_list, session=None):
     """
     Try to install packages on system
@@ -3323,7 +3302,7 @@ def new_disk_vol_name(pool_name):
         return None
     disk = poolxml.get_source().device_path[5:]
     part_num = len(list(filter(lambda s: s.startswith(disk),
-                               get_parts_list())))
+                               utils_misc.utils_disk.get_parts_list())))
     return disk + str(part_num)
 
 
