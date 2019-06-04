@@ -1112,6 +1112,12 @@ class DevContainer(object):
                              'i440FX')
                 devices = machine_i440FX(False)
 
+        if params.get("vm_pci_hole64_fix"):
+            if machine_type.startswith('pc'):
+                devices.append(qdevices.QGlobal("i440FX-pcihost", "x-pci-hole64-fix", "off"))
+            if machine_type.startswith('q35'):
+                devices.append(qdevices.QGlobal("q35-pcihost", "x-pci-hole64-fix", "off"))
+
         # reserve pci.0 addresses
         pci_params = params.object_params('pci.0')
         reserved = pci_params.get('reserved_slots', '').split()
