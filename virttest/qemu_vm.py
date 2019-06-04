@@ -4240,6 +4240,26 @@ class VM(virt_vm.BaseVM):
             except Exception:
                 return True
 
+        def _go_down_qmp():
+            """
+            Listen on QMP monitor for RESET event
+
+            :note: During migration the qemu process finishes, but the
+                `monitor.get_event` function is not prepared to treat this
+                properly and raises `qemu_monitor.MonitorSocketError`. Let's
+                return `False` in such case and keep listening for RESET event
+                on the new (dst) monitor.
+            :warning: This fails when the source monitor command emits RESET
+                event and finishes before we read-it-out. Then we are stuck
+                in this loop until a timeout and error is raised.
+            """
+            try:
+                return bool(self.monitor.get_event("RESET"))
+            except qemu_monitor.MonitorSocketError:
+                logging.warn("MonitorSocketError while querying for RESET QMP "
+                             "event, it might get lost.")
+                return False
+
         def _shell_reboot(session, timeout):
             if not session:
                 if not serial:
@@ -4264,9 +4284,10 @@ class VM(virt_vm.BaseVM):
             _check_go_down = partial(bool, True)
         else:
             raise virt_vm.VMRebootError("Unknown reboot method: %s" % method)
-
+        # We consider QMPMonitor event as the most reliable method, always
+        # use it when available.
         if isinstance(self.monitor, qemu_monitor.QMPMonitor):
-            _check_go_down = partial(self.monitor.get_event, "RESET")
+            _check_go_down = _go_down_qmp
             self.monitor.clear_event("RESET")
 
         try:
