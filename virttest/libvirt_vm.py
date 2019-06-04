@@ -536,7 +536,7 @@ class VM(virt_vm.BaseVM):
                     cells += "%s," % cell % (cellid, value[0], cellid, cellid, cellid, value[1])
             else:
                 # Lets calculate and assign the node cpu and memory
-                vcpus = params.get("smp")
+                vcpus = int(params.get("smp"))
                 vcpu_max_cpus = params.get("vcpu_maxcpus")
                 max_mem = int(params.get("mem")) * 1024
                 maxmemory = params.get("maxmemory", None)
