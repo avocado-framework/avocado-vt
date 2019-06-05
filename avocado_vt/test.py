@@ -213,21 +213,25 @@ class VirtTest(test.Test):
         Logs all errors in the background_errors into background-error.log and
         error the test.
         """
-        err_file_path = os.path.join(self.logdir, BG_ERR_FILE)
         bg_errors = self.background_errors.get_all()
-        error_messages = ["BACKGROUND ERROR LIST:"]
-        for index, error in enumerate(bg_errors):
-            error_messages.append(
-                "- ERROR #%d -\n%s" % (index, "".join(
-                    traceback.format_exception(*error)
-                    )))
-        genio.write_file(err_file_path, '\n'.join(error_messages))
         if bg_errors:
-            msg = ["Background error"]
-            msg.append("s are" if len(bg_errors) > 1 else " is")
-            msg.append((" detected, please refer to file: "
-                        "'%s' for more details.") % BG_ERR_FILE)
-            self.error(''.join(msg))
+            err_file_path = os.path.join(self.logdir, BG_ERR_FILE)
+            try:
+                error_messages = ["BACKGROUND ERROR LIST:"]
+                for index, error in enumerate(bg_errors):
+                    error_messages.append(
+                        "- ERROR #%d -\n%s" % (index, "".join(
+                            traceback.format_exception(*error)
+                            )))
+                genio.write_file(err_file_path, '\n'.join(error_messages))
+                msg = ["Background error"]
+                msg.append("s are" if len(bg_errors) > 1 else " is")
+                msg.append((" detected, please refer to file: "
+                            "'%s' for more details.") % BG_ERR_FILE)
+                self.error(''.join(msg))
+            except:
+                self.log.warn("Failed to save background error: %s"
+                              % error_messages)
 
     def __safe_env_save(self, env):
         """
@@ -436,8 +440,8 @@ class VirtTest(test.Test):
                             t_type, test_module)
                         try:
                             run_func(self, params, env)
-                            self.verify_background_errors()
                         finally:
+                            self.verify_background_errors()
                             self.__safe_env_save(env)
                     test_passed = True
                     error_message = funcatexit.run_exitfuncs(env, t_type)
