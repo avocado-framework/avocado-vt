@@ -1493,6 +1493,18 @@ def add_identities_into_ssh_agent():
     process.run("ssh-add")
 
 
+def make_dirs(dir_name, session=None):
+    """
+    wrapper method to create directory in local/remote host/VM
+
+    :param dir_name: Directory name to be created
+    :param session: ShellSession object of VM/remote host
+    """
+    if session:
+        return session.cmd_status("mkdir -p %s" % dir_name) == 0
+    return os.makedirs(dir_name)
+
+
 class NumaInfo(object):
 
     """
