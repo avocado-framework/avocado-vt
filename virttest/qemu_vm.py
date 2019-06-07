@@ -2428,10 +2428,10 @@ class VM(virt_vm.BaseVM):
                 if nic.vhostfds:
                     for i in nic.vhostfds.split(':'):
                         os.close(int(i))
-                if nic.ifname and nic.ifname not in utils_net.get_net_if():
-                    _, br_name = utils_net.find_current_bridge(nic.ifname)
+                if nic.ifname:
+                    br_mgr, br_name = utils_net.find_current_bridge(nic.ifname)
                     if br_name == nic.netdst:
-                        utils_net.del_from_bridge(nic.ifname, nic.netdst)
+                        br_mgr.del_port(nic.netdst, nic.ifname)
         except TypeError:
             pass
 
@@ -2778,9 +2778,10 @@ class VM(virt_vm.BaseVM):
 
                     if nic.ifname in utils_net.get_net_if():
                         self.virtnet.generate_ifname(nic.nic_name)
-                    elif (utils_net.find_current_bridge(nic.ifname)[1] ==
-                          nic.netdst):
-                        utils_net.del_from_bridge(nic.ifname, nic.netdst)
+                    else:
+                        br_mgr, br_name = utils_net.find_current_bridge(nic.ifname)
+                        if br_name == nic.netdst:
+                            br_mgr.del_port(nic.netdst, nic.ifname)
 
                     if nic.nettype in ['bridge', 'network', 'macvtap']:
                         self._nic_tap_add_helper(nic)
@@ -3221,10 +3222,10 @@ class VM(virt_vm.BaseVM):
             if nic.nettype == 'macvtap':
                 tap = utils_net.Macvtap(nic.ifname)
                 tap.delete()
-            elif nic.ifname and nic.ifname not in utils_net.get_net_if():
-                _, br_name = utils_net.find_current_bridge(nic.ifname)
+            elif nic.ifname:
+                br_mgr, br_name = utils_net.find_current_bridge(nic.ifname)
                 if br_name == nic.netdst:
-                    utils_net.del_from_bridge(nic.ifname, nic.netdst)
+                    br_mgr.del_port(nic.netdst, nic.ifname)
 
     def destroy(self, gracefully=True, free_mac_addresses=True):
         """
