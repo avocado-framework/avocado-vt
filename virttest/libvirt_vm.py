@@ -529,11 +529,21 @@ class VM(virt_vm.BaseVM):
                 numa_cpus = numa_params.get("numa_cpus")
                 numa_nodeid = numa_params.get("numa_nodeid")
                 numa_memdev = numa_params.get("numa_memdev")
-                numa_val[numa_nodeid] = [numa_cpus, numa_mem, numa_memdev]
-
+                numa_distance = numa_params.get("numa_distance", "").split()
+                numa_val[numa_nodeid] = [numa_cpus, numa_mem, numa_memdev,
+                                         numa_distance]
             if numa_val:
                 for cellid, value in numa_val.items():
-                    cells += "%s," % cell % (cellid, value[0], cellid, cellid, cellid, value[1])
+                    cells += "%s," % cell % (cellid, value[0], cellid, cellid,
+                                             cellid, value[1])
+                    if value[3]:  # numa_distance
+                        for siblingid in range(len(value[3])):
+                            cells += "cell%s.distances.sibling%s.id=%s," % (cellid,
+                                                                            siblingid,
+                                                                            siblingid)
+                            cells += "cell%s.distances.sibling%s.value=%s," % (cellid,
+                                                                               siblingid,
+                                                                               value[3][siblingid])
             else:
                 # Lets calculate and assign the node cpu and memory
                 vcpus = int(params.get("smp"))
