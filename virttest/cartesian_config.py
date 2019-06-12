@@ -535,15 +535,15 @@ class Node(object):
                 child.dump(indent + 3, recurse)
 
 
-match_subtitute = re.compile("\$\{(.+?)\}")
+match_substitute = re.compile("\$\{(.+?)\}")
 
 
-def _subtitution(value, d):
+def _substitution(value, d):
     """
-    Only optimization string Template subtitute is quite expensive operation.
+    Only optimization string Template substitute is quite expensive operation.
 
-    :param value: String where could be $string for subtitution.
-    :param d: Dictionary from which should be value subtituted to value.
+    :param value: String where could be $string for substitution.
+    :param d: Dictionary from which should be value substituted to value.
 
     :return: Substituted string
     """
@@ -551,12 +551,12 @@ def _subtitution(value, d):
         start = 0
         st = ""
         try:
-            match = match_subtitute.search(value, start)
+            match = match_substitute.search(value, start)
             while match:
                 val = eval(match.group(1), None, d)
                 st += value[start:match.start()] + str(val)
                 start = match.end()
-                match = match_subtitute.search(value, start)
+                match = match_substitute.search(value, start)
         except Exception:
             pass
         st += value[start:len(value)]
@@ -813,7 +813,7 @@ class LSet(LOperators):
         :param d: Dictionary for apply value
         """
         if self.name not in _reserved_keys:
-            d[self.name] = _subtitution(self.value, d)
+            d[self.name] = _substitution(self.value, d)
 
 
 class LAppend(LOperators):
@@ -822,7 +822,7 @@ class LAppend(LOperators):
 
     def apply_to_dict(self, d):
         if self.name not in _reserved_keys:
-            d[self.name] = d.get(self.name, "") + _subtitution(self.value, d)
+            d[self.name] = d.get(self.name, "") + _substitution(self.value, d)
 
 
 class LPrepend(LOperators):
@@ -831,7 +831,7 @@ class LPrepend(LOperators):
 
     def apply_to_dict(self, d):
         if self.name not in _reserved_keys:
-            d[self.name] = _subtitution(self.value, d) + d.get(self.name, "")
+            d[self.name] = _substitution(self.value, d) + d.get(self.name, "")
 
 
 class LRegExpSet(LOperators):
@@ -840,7 +840,7 @@ class LRegExpSet(LOperators):
 
     def apply_to_dict(self, d):
         exp = re.compile("%s$" % self.name)
-        value = _subtitution(self.value, d)
+        value = _substitution(self.value, d)
         for key in d:
             if key not in _reserved_keys and exp.match(key):
                 d[key] = value
@@ -852,7 +852,7 @@ class LRegExpAppend(LOperators):
 
     def apply_to_dict(self, d):
         exp = re.compile("%s$" % self.name)
-        value = _subtitution(self.value, d)
+        value = _substitution(self.value, d)
         for key in d:
             if key not in _reserved_keys and exp.match(key):
                 d[key] += value
@@ -864,7 +864,7 @@ class LRegExpPrepend(LOperators):
 
     def apply_to_dict(self, d):
         exp = re.compile("%s$" % self.name)
-        value = _subtitution(self.value, d)
+        value = _substitution(self.value, d)
         for key in d:
             if key not in _reserved_keys and exp.match(key):
                 d[key] = value + d[key]
@@ -1843,10 +1843,13 @@ class Parser(object):
                                          lexer.line))
             raise
 
-    # Merge suffixes for same var, or drop off unnecessary suffixes
-    # This step safely can be done only by top level generator, before output
-    # dictionary to outside world
     def drop_suffixes(self, d):
+        """
+        Merge suffixes for same var, or drop off unnecessary suffixes
+
+        This step can be done safely only by the top level generator, before
+        outputting the dictionary to outside world.
+        """
         # dictionary `d' is going to change, keep its original copy
         d_orig = d.copy()
         for key in d_orig:
@@ -1889,24 +1892,27 @@ class Parser(object):
                 new_key = ''.join((map(str, new_key)))
             d[new_key] = d.pop(key)
 
-    # join filter_1 filter_2 .....
-    # Multiply all dicts:
-    # all-dicts-match-filter_1 * all-dicts-match-filter_2 * ....
-    # <join only_one_filter> == <only only_one_filter>
-    # Also works: join filter_1 filter_1
-    # Transforms to: all_variants_match_filter_1 * all_variants_mats_filter_1
-    #
-    # Example:
-    # join a
-    # join a
-    # Transforms into:
-    # join a a
     def get_dicts(self, node=None, ctx=[], content=[], shortname=[], dep=[]):
         """
-        Process 'join' entry, unpack join filter for node
-        ctx - node labels/names
-        content - previous content in plain
-        Return: dictionary
+        Process 'join' entry, unpack join filter for node.
+
+        :param ctx: node labels/names
+        :param content: previous content in plain
+        :returns: dictionary
+
+        1) join filter_1 filter_2 ....
+            multiplies all dictionaries as:
+                all_variants_match_filter_1 * all_variants_match_filter_2 * ....
+        2) join only_one_filter
+                == only only_one_filter
+        3) join filter_1 filter_1
+            also works and transforms to:
+                all_variants_match_filter_1 * all_variants_match_filter_1
+            Example:
+                join a
+                join a
+            Transforms into:
+                join a a
         """
         node = node or self.node
 
@@ -1919,7 +1925,7 @@ class Parser(object):
             self.parent_generator = False
 
         # Node is a current block. It has content, its contents: node.content
-        # Content withoun joins
+        # Content without joins
         new_content = []
 
         # All joins in current node
@@ -1932,7 +1938,7 @@ class Parser(object):
                 new_content.append(t)
                 continue
 
-            # Accummulate all joins at one node
+            # Accumulate all joins at one node
             joins += [t]
 
         if not joins:
@@ -1950,16 +1956,16 @@ class Parser(object):
                     f = OnlyFilter([word], str(word))
                     onlys += [(filename, linenum, f)]
 
-            old_conten = node.content[:]
+            old_content = node.content[:]
             node.content = new_content
             for d in self.multiply_join(onlys, node, ctx, content, shortname, dep):
                 if parent:
                     self.drop_suffixes(d)
                 yield d
-            node.content = old_conten[:]
+            node.content = old_content[:]
 
-    # Make name for test. Case: two dics were merged
     def mk_name(self, n1, n2):
+        """Make name for test. Case: two dics were merged"""
         common_prefix = n1[:[x[0] == x[1] for x in list(zip(n1, n2))].index(0)]
         cp = ".".join(common_prefix.split('.')[:-1])
         p1 = re.sub(r"^"+cp, "", n1)
@@ -1970,10 +1976,12 @@ class Parser(object):
             name = p1 + "." + p2
         return name
 
-    # Multiply all joins. Return dictionaries one by one
-    # Each `join' is the same as `only' filter
-    # This functions is supposed to be a generator, recursive generator
     def multiply_join(self, onlys, node=None, ctx=[], content=[], shortname=[], dep=[]):
+        """
+        Multiply all joins. Return dictionaries one by one
+        Each `join' is the same as `only' filter
+        This functions is supposed to be a generator, recursive generator
+        """
         # Current join/only
         only = onlys[:1]
         remains = onlys[1:]
