@@ -842,7 +842,8 @@ class LRegExpSet(LOperators):
         exp = re.compile("%s$" % self.name)
         value = _substitution(self.value, d)
         for key in d:
-            if key not in _reserved_keys and exp.match(key):
+            keystr = "".join(key) if isinstance(key, tuple) else key
+            if key not in _reserved_keys and exp.match(keystr):
                 d[key] = value
 
 
@@ -854,7 +855,8 @@ class LRegExpAppend(LOperators):
         exp = re.compile("%s$" % self.name)
         value = _substitution(self.value, d)
         for key in d:
-            if key not in _reserved_keys and exp.match(key):
+            keystr = "".join(key) if isinstance(key, tuple) else key
+            if key not in _reserved_keys and exp.match(keystr):
                 d[key] += value
 
 
@@ -866,7 +868,8 @@ class LRegExpPrepend(LOperators):
         exp = re.compile("%s$" % self.name)
         value = _substitution(self.value, d)
         for key in d:
-            if key not in _reserved_keys and exp.match(key):
+            keystr = "".join(key) if isinstance(key, tuple) else key
+            if key not in _reserved_keys and exp.match(keystr):
                 d[key] = value + d[key]
 
 
