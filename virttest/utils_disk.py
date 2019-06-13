@@ -793,6 +793,27 @@ def configure_empty_disk(session, did, size, ostype, start="0M", n_partitions=1,
                                       labeltype, timeout)
 
 
+def linux_disk_check(session, did):
+    """
+    Check basic functions for linux guest disk on localhost.
+    Create partition on disk, format, mount, create a file and then unmount, clean
+    partition
+
+    :param session: VM session
+    :param did: Disk Kname in VM. eg. vdb
+    """
+
+    mount_point = configure_empty_linux_disk(session, did, "100M")
+    try:
+        if len(mount_point) != 1:
+            raise exceptions.TestError("Incorrect mount point {}".format(mount_point))
+        cmd = "echo teststring >  {}/testfile".format(mount_point[0])
+        if session.cmd_status(cmd):
+            raise exceptions.TestError("Failed to run {}".format(cmd))
+    finally:
+        clean_partition_linux(session, did)
+
+
 def get_parts_list(session=None):
     """
     Get all partition lists.
