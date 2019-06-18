@@ -3151,6 +3151,39 @@ def do_migration(vm_name, uri, extra, auth_pwd, auth_user="root",
         return (False, log)
 
 
+def update_vm_disk_driver_cache(vm_name, driver_cache="none", disk_index=0):
+    """
+    Update disk driver cache of the VM
+
+    :param vm_name: vm name
+    :param driver_cache: new vm disk driver cache mode, default to none if not provided
+    :param disk_index: vm disk index to be updated, the index of first disk is 0.
+    """
+    vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
+
+    try:
+        # Get the disk to be updated
+        devices = vmxml.devices
+        device_index = devices.index(devices.by_device_tag('disk')[disk_index])
+        disk = devices[device_index]
+
+        # Update disk driver cache mode
+        driver_dict = disk.driver
+        driver_dict['cache'] = driver_cache
+        disk.driver = driver_dict
+        logging.debug("The new vm disk driver cache is %s", disk.driver['cache'])
+
+        vmxml.devices = devices
+
+        # SYNC VM XML change
+        logging.debug("The new VM XML:\n%s", vmxml)
+        vmxml.sync()
+        return True
+    except Exception as e:
+        logging.error("Can't update disk driver cache!! %s", e)
+        return False
+
+
 def update_vm_disk_source(vm_name, disk_source_path,
                           disk_image_name="",
                           source_type="file"):
