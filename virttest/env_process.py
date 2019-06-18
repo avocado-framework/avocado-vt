@@ -1124,7 +1124,7 @@ def postprocess(test, params, env):
                 guest_dmesg_log_file += ".%s" % vm.name
             try:
                 vm.verify_dmesg(dmesg_log_file=guest_dmesg_log_file)
-            except exceptions.TestFail as details:
+            except Exception as details:
                 err += ("\n: Guest %s dmesg verification failed: %s"
                         % (vm.name, details))
 
