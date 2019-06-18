@@ -5,14 +5,17 @@ Interfaces to the QEMU monitor.
 """
 
 from __future__ import division
-import socket
-import time
-import threading
+
 import logging
-import select
-import re
 import os
+import re
+import select
+import socket
+import threading
+import time
+
 import six
+
 try:
     import json
 except ImportError:
@@ -178,12 +181,12 @@ class VM(object):
     """
     Dummy class to represent "vm.name" for pickling to avoid circular deps
     """
+
     def __init__(self, name):
         self.name = name
 
 
 class Monitor:
-
     """
     Common code for monitor classes.
     """
@@ -376,6 +379,7 @@ class Monitor:
         Automatic conversion "-" and "_" in commands if the translate command
         is supported commands;
         """
+
         def translate(cmd):
             return "-".join(re.split("[_-]", cmd))
 
@@ -525,23 +529,24 @@ class Monitor:
         for line in info:
             if not line.strip():
                 continue
-            if not line.startswith(' '):   # new block device
+            if not line.startswith(' '):  # new block device
                 line = line.split(':', 1)
-                name = line[0].split(' ', 1)[0]  # disregard extra info such as #(blockNNN)
+                # disregard extra info such as #(blockNNN)
+                name = line[0].split(' ', 1)[0]
                 line = line[1][1:]
                 blocks[name] = {}
                 if line == "[not inserted]":
                     blocks[name]['not-inserted'] = 1
                     continue
                 line = line.rsplit(' (', 1)
-                if len(line) == 1:       # disk_name
+                if len(line) == 1:  # disk_name
                     blocks[name]['file'] = line
-                else:       # disk_name (options)
+                else:  # disk_name (options)
                     blocks[name]['file'] = line[0]
                     options = (_.strip() for _ in line[1][:-1].split(','))
                     _ = False
                     for option in options:
-                        if not _:   # First argument is driver (qcow2, raw, ..)
+                        if not _:  # First argument is driver (qcow2, raw, ..)
                             blocks[name]['drv'] = option
                             _ = True
                         elif option == 'read-only':
@@ -631,7 +636,6 @@ class Monitor:
 
 
 class HumanMonitor(Monitor):
-
     """
     Wraps "human monitor" commands.
     """
@@ -1381,7 +1385,7 @@ class HumanMonitor(Monitor):
         """
         parameter_info = self.query("migrate_parameters")
         parameter_info = parameter_info.split(" ")
-        value = parameter_info[parameter_info.index("parameter")+1]
+        value = parameter_info[parameter_info.index("parameter") + 1]
         return value
 
     def migrate_start_postcopy(self):
@@ -1422,7 +1426,6 @@ class HumanMonitor(Monitor):
 
 
 class QMPMonitor(Monitor):
-
     """
     Wraps QMP monitor commands.
     """
@@ -1627,6 +1630,7 @@ class QMPMonitor(Monitor):
         :param resp: Response from monitor command.
         :param debug: Whether to print the commands.
         """
+
         def _log_output(o, indent=0):
             logging.debug("(monitor %s.%s)    %s%s",
                           self.vm.name, self.name, " " * indent, o)
@@ -2681,7 +2685,8 @@ class QMPMonitor(Monitor):
                 logging.debug("Migration progress: 0%")
                 return 0
             else:
-                raise MonitorError("Unable to parse migration progress:\n%s" % status)
+                raise MonitorError(
+                    "Unable to parse migration progress:\n%s" % status)
 
     def migrate_start_postcopy(self):
         """
