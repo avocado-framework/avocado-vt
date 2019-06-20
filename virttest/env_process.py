@@ -60,8 +60,8 @@ except ImportError:
 _screendump_thread = None
 _screendump_thread_termination_event = None
 
-_vm_register_thread = None
-_vm_register_thread_termination_event = None
+_vm_info_thread = None
+_vm_info_thread_termination_event = None
 
 _setup_manager = test_setup.SetupManager()
 
@@ -1173,14 +1173,13 @@ def preprocess(test, params, env):
         _screendump_thread.start()
 
     # Start the register query thread
-    if params.get("store_vm_register") == "yes" and\
-       params.get("vm_type") == "qemu":
-        global _vm_register_thread, _vm_register_thread_termination_event
-        _vm_register_thread_termination_event = threading.Event()
-        _vm_register_thread = threading.Thread(target=_store_vm_register,
-                                               name='VmRegister',
-                                               args=(test, params, env))
-        _vm_register_thread.start()
+    if params.get("store_vm_info") == "yes":
+        global _vm_info_thread, _vm_info_thread_termination_event
+        _vm_info_thread_termination_event = threading.Event()
+        _vm_info_thread = threading.Thread(target=_store_vm_info,
+                                           name='VmMonInfo',
+                                           args=(test, params, env))
+        _vm_info_thread.start()
 
     # start test in nested guest
     if params.get("run_nested_guest_test", "no") == "yes":
@@ -1400,11 +1399,11 @@ def postprocess(test, params, env):
             os.unlink(f)
 
     # Terminate the register query thread
-    global _vm_register_thread, _vm_register_thread_termination_event
-    if _vm_register_thread is not None:
-        _vm_register_thread_termination_event.set()
-        _vm_register_thread.join(10)
-        _vm_register_thread = None
+    global _vm_info_thread, _vm_info_thread_termination_event
+    if _vm_info_thread is not None:
+        _vm_info_thread_termination_event.set()
+        _vm_info_thread.join(10)
+        _vm_info_thread = None
 
     # Kill all unresponsive VMs
     if params.get("kill_unresponsive_vms") == "yes":
@@ -1765,28 +1764,44 @@ def _take_screendumps(test, params, env):
             break
 
 
-def store_vm_register(vm, log_filename, append=False):
+def store_vm_info(vm, log_filename, info_cmd='registers',
+                  append=False, vmtype='qemu'):
     """
-    Store the register information of vm into a log file
+    Store the info information of vm into a log file
 
     :param vm: VM object
     :type vm: vm object
+    :info_cmd: monitor info cmd
+    :type info_cmd: string
     :param log_filename: log file name
     :type log_filename: string
     :param append: Add the log to the end of the log file or not
     :type append: bool
+    :param vmtype: VM Type
+    :type vmtype: string
     :return: Store the vm register information to log file or not
     :rtype: bool
     """
-    try:
-        output = vm.catch_monitor.info('registers', debug=False)
-        timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-    except qemu_monitor.MonitorError as err:
-        logging.warn(err)
-        return False
-    except AttributeError as err:
-        logging.warn(err)
-        return False
+    if vmtype == "qemu":
+        try:
+            timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+            output = vm.catch_monitor.info(info_cmd, debug=False)
+        except qemu_monitor.MonitorError as err:
+            logging.warn(err)
+            return False
+        except AttributeError as err:
+            logging.warn(err)
+            return False
+    elif vmtype == "libvirt":
+        try:
+            timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+            result = virsh.qemu_monitor_command(vm.name,
+                                                "info %s" % info_cmd,
+                                                "--hmp", debug=False)
+            output = result.stdout
+        except Exception as details:
+            logging.warn(details)
+            return False
 
     log_filename = "%s_%s" % (log_filename, timestamp)
     if append:
@@ -1795,68 +1810,77 @@ def store_vm_register(vm, log_filename, append=False):
         output += "\n"
     else:
         vr_log = open(log_filename, 'w')
-    vr_log.write(output)
+    vr_log.write(str(output))
     vr_log.close()
     return True
 
 
-def _store_vm_register(test, params, env):
-    def report_result(status, results):
+def _store_vm_info(test, params, env):
+    def report_result(status, cmd, results):
         msg = "%s." % status
         for vm_instance in list(results.keys()):
             if results[vm_instance] > 0:
-                msg += " Used to failed to get register info from guest"
+                msg += " Used to failed to get %s info from guest" % cmd
                 msg += " %s for %s times." % (vm_instance,
                                               results[vm_instance])
 
         if msg != "%s." % status:
             logging.debug(msg)
 
-    global _vm_register_thread_termination_event
-    delay = float(params.get("vm_register_delay", 5))
-    counter = {}
-    vm_register_error_count = {}
+    global _vm_info_thread_termination_event
+    delay = float(params.get("vm_info_delay", 5))
+    cmds = params.get('vm_info_cmds', 'registers').split(',')
+    cmd_details = {}
+    for cmd in cmds:
+        cmd_details.update({cmd: {'counter': {},
+                                  'vm_info_error_count': {}}
+                            })
     while True:
-        for vm in env.get_all_vms():
-            if vm.instance not in vm_register_error_count:
-                vm_register_error_count[vm.instance] = 0
+        for cmd in cmds:
+            for vm in env.get_all_vms():
+                if vm.instance not in cmd_details[cmd]['vm_info_error_count']:
+                    cmd_details[cmd]['vm_info_error_count'][vm.instance] = 0
 
-            if not vm.is_alive():
-                if vm_register_error_count[vm.instance] < 1:
-                    logging.warning(
-                        "%s is not alive. Can't query the register status" % vm.name)
-                vm_register_error_count[vm.instance] += 1
-                continue
-            vm_pid = vm.get_pid()
-            vr_dir = utils_misc.get_path(test.debugdir,
-                                         "vm_register_%s_%s" % (vm.name,
+                if not vm.is_alive():
+                    if cmd_details[cmd]['vm_info_error_count'][vm.instance] < 1:
+                        logging.warning(
+                            "%s is not alive. Can't query the %s status", cmd, vm.name)
+                    cmd_details[cmd]['vm_info_error_count'][vm.instance] += 1
+                    continue
+                vm_pid = vm.get_pid()
+                vr_dir = utils_misc.get_path(test.debugdir,
+                                             "vm_info_%s_%s" % (vm.name,
                                                                 vm_pid))
-            try:
-                os.makedirs(vr_dir)
-            except OSError:
-                pass
+                try:
+                    os.makedirs(vr_dir)
+                except OSError:
+                    pass
 
-            if vm.instance not in counter:
-                counter[vm.instance] = 1
-            vr_filename = "%04d" % counter[vm.instance]
-            vr_filename = utils_misc.get_path(vr_dir, vr_filename)
-            stored_log = store_vm_register(vm, vr_filename)
-            if vm_register_error_count[vm.instance] >= 1:
-                logging.debug("%s alive now. Used to failed to get register"
-                              " info from guest %s"
-                              " times" % (vm.name,
-                                          vm_register_error_count[vm.instance]))
-                vm_register_error_count[vm.instance] = 0
-            if stored_log:
-                counter[vm.instance] += 1
+                if vm.instance not in cmd_details[cmd]['counter']:
+                    cmd_details[cmd]['counter'][vm.instance] = 1
+                vr_filename = "%04d_%s" % (cmd_details[cmd]['counter'][vm.instance], cmd)
+                vr_filename = utils_misc.get_path(vr_dir, vr_filename)
+                vmtype = params.get("vm_type")
+                stored_log = store_vm_info(vm, vr_filename, cmd, vmtype=vmtype)
+                if cmd_details[cmd]['vm_info_error_count'][vm.instance] >= 1:
+                    logging.debug("%s alive now. Used to failed to get register"
+                                  " info from guest %s"
+                                  " times", vm.name, cmd_details[cmd]['vm_info_error_count'][vm.instance])
+                    cmd_details[cmd]['vm_info_error_count'][vm.instance] = 0
+                if stored_log:
+                    cmd_details[cmd]['counter'][vm.instance] += 1
 
-        if _vm_register_thread_termination_event is not None:
-            if _vm_register_thread_termination_event.isSet():
-                _vm_register_thread_termination_event = None
-                report_result("Thread quit", vm_register_error_count)
+        if _vm_info_thread_termination_event is not None:
+            if _vm_info_thread_termination_event.isSet():
+                _vm_info_thread_termination_event = None
+                for cmd in cmds:
+                    report_result("Thread quit", cmd,
+                                  cmd_details[cmd]['vm_info_error_count'])
                 break
-            _vm_register_thread_termination_event.wait(delay)
+            _vm_info_thread_termination_event.wait(delay)
         else:
-            report_result("Thread quit", vm_register_error_count)
+            for cmd in cmds:
+                report_result("Thread quit", cmd,
+                              cmd_details[cmd]['vm_info_error_count'])
             # Exit event was deleted, exit this thread
             break
