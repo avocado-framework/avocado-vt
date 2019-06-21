@@ -1075,7 +1075,25 @@ def preprocess(test, params, env):
         for vm in env.get_all_vms():
             if vm:
                 if not vm.is_alive():
-                    vm.start()
+                    if params.get("vm_type") == "libvirt":
+                        vm.start()
+                    elif params.get("vm_type") == "qemu":
+                        # Start the VM (or restart it if it's already up)
+                        if params.get("reuse_previous_config", "no") == "no":
+                            vm.create(params.get("main_vm"), params, test.bindir,
+                                      timeout=int(
+                                          params.get("vm_create_timeout", 90)),
+                                      migration_mode=params.get("migration_mode"),
+                                      migration_fd=params.get("migration_fd"),
+                                      migration_exec_cmd=params.get(
+                                          "migration_exec_cmd_dst"))
+                        else:
+                            vm.create(
+                                timeout=int(params.get("vm_create_timeout", 90)),
+                                migration_mode=params.get("migration_mode"),
+                                migration_fd=params.get("migration_fd"),
+                                migration_exec_cmd=params.get(
+                                    "migration_exec_cmd_dst"))
                 utils_test.update_boot_option(vm, args_added=kernel_extra_params_add,
                                               args_removed=kernel_extra_params_remove)
 
@@ -1149,7 +1167,25 @@ def postprocess(test, params, env):
         for vm in env.get_all_vms():
             if vm:
                 if not vm.is_alive():
-                    vm.start()
+                    if params.get("vm_type") == "libvirt":
+                        vm.start()
+                    elif params.get("vm_type") == "qemu":
+                        # Start the VM (or restart it if it's already up)
+                        if params.get("reuse_previous_config", "no") == "no":
+                            vm.create(params.get("main_vm"), params, test.bindir,
+                                      timeout=int(
+                                          params.get("vm_create_timeout", 90)),
+                                      migration_mode=params.get("migration_mode"),
+                                      migration_fd=params.get("migration_fd"),
+                                      migration_exec_cmd=params.get(
+                                          "migration_exec_cmd_dst"))
+                        else:
+                            vm.create(
+                                timeout=int(params.get("vm_create_timeout", 90)),
+                                migration_mode=params.get("migration_mode"),
+                                migration_fd=params.get("migration_fd"),
+                                migration_exec_cmd=params.get(
+                                    "migration_exec_cmd_dst"))
                 utils_test.update_boot_option(vm, args_added=kernel_extra_params_remove,
                                               args_removed=kernel_extra_params_add)
 
