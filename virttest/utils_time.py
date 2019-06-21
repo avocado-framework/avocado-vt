@@ -38,10 +38,10 @@ def verify_timezone_linux(session):
     """
     error_context.context("Verify guest's timezone", logging.info)
     timezone_cmd = 'timedatectl | /usr/bin/grep "Time zone"'
-    timezone_pattern = '^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$'
+    timezone_pattern = '(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)'
     guest_timezone = session.cmd_output_safe(timezone_cmd, timeout=240)
     try:
-        guest_timezone_set = re.match(timezone_pattern, guest_timezone).groups()
+        guest_timezone_set = re.search(timezone_pattern, guest_timezone).groups()
         return guest_timezone_set[0] == get_host_timezone()['timezone_city']
     except (AttributeError, IndexError):
         raise exceptions.TestError("Fail to get guest's timezone.")
