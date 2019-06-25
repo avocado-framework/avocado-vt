@@ -928,8 +928,11 @@ class AvocadoGuest(object):
             self.vt_no_filter = self.params.get("vt_no_filter", "")
             self.vt_extra_params = self.params.get("vt_extra_params", "")
             self.guest_image = self.params.get("vt_guest_image", "")
+            self.package_list = self.params.get("vt_guest_packages", "").split(",")
             vt_package_list = ['attr', 'gcc', '@Virtualization*', 'tcpdump']
             self.prerequisites['packages'].extend(vt_package_list)
+            if self.package_list:
+                self.prerequisites['packages'].extend(self.package_list)
             if self.installtype == 'pip':
                 self.plugins['pip'].append('avocado-framework-plugin-avocado-vt')
             elif self.installtype == 'git':
@@ -1078,13 +1081,13 @@ class AvocadoGuest(object):
             if self.vt_type:
                 avocado_cmd += " --vt-type %s" % self.vt_type
             if self.vt_only_filter:
-                avocado_cmd += " --vt-only-filter %s" % self.vt_only_filter
+                avocado_cmd += " --vt-only-filter \"%s\"" % self.vt_only_filter
             if self.vt_no_filter:
-                avocado_cmd += " --vt-no-filter %s" % self.vt_no_filter
+                avocado_cmd += " --vt-no-filter \"%s\"" % self.vt_no_filter
             if self.vt_arch:
                 avocado_cmd += " --vt-arch %s" % self.vt_arch
             if self.vt_extra_params:
-                avocado_cmd += " --vt-extra-params %s" % self.vt_extra_params
+                avocado_cmd += " --vt-extra-params \"%s\"" % self.vt_extra_params
         else:
             for test_each in self.testlist:
                 mux = ""
