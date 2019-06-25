@@ -3,12 +3,15 @@ Windows drive utilities
 """
 
 from . import wmic
+from virttest import utils_misc
 
 
 def _logical_disks(session, cond=None, props=None):
     cmd = wmic.make_query("LogicalDisk", cond, props,
                           get_swch=wmic.FMT_TYPE_LIST)
-    return wmic.parse_list(session.cmd(cmd, timeout=120))
+    out = utils_misc.wait_for(lambda: wmic.parse_list(session.cmd(cmd,
+                              timeout=120)), 240)
+    return out if out else []
 
 
 def get_hard_drive_letter(session, label):
