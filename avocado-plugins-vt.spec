@@ -31,10 +31,14 @@
 # from the RPM automatic requires/provides scanner.
 %global __requires_exclude ^/usr/bin/python[23]$
 
+# Disable the shebangs checks on scripts that currently dont'
+# define a Python version
+%global __brp_mangle_shebangs_exclude_from multicast_guest.py|netperf_agent.py|ksm_overcommit_guest.py|check_cpu_flag.py|virtio_console_guest.py|boottool.py|VirtIoChannel_guest_send_receive.py|serial_host_send_receive.py
+
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 69.0
-Release: 0%{?gitrel}%{?dist}
+Release: 1%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -158,6 +162,9 @@ Xunit output, among others.
 
 
 %changelog
+* Tue Jun 25 2019 Cleber Rosa <cleber@redhat.com> - 69.0-1
+- Exclude scripts from shebangs checks
+
 * Tue Feb 26 2019 Cleber Rosa <cleber@redhat.com> - 69.0-0
 - New release
 
