@@ -237,6 +237,9 @@ class _IscsiComm(object):
                 self.emulated_expect_size = block_size * size
                 self.create_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"
                                    % (self.emulated_image, size, block_size))
+            else:
+                raise exceptions.TestError("Image size provided is not in valid"
+                                           " format, specify proper units [K|M|G|T]")
         else:
             self.device = None
 
