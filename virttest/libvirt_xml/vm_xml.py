@@ -790,8 +790,8 @@ class VMXML(VMXMLBase):
                                          'threads': threads}
                 vmxml['cpu'] = vmcpu_xml
             try:
+                vmcpu_xml = vmxml['cpu']
                 if update_numa and vmxml.cpu.numa_cell:
-                    vmcpu_xml = vmxml['cpu']
                     no_numa_cell = len(vmxml.cpu.numa_cell)
                     if vcpus >= no_numa_cell:
                         vcpus_num = vcpus // no_numa_cell
