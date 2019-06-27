@@ -72,6 +72,7 @@ from virttest import cartesian_config
 from virttest import utils_selinux
 from virttest import utils_disk
 from virttest import logging_manager
+from virttest import libvirt_version
 from virttest.staging import utils_koji
 from virttest.staging import service
 from virttest.xml_utils import XMLTreeFile
@@ -4035,7 +4036,8 @@ class SELinuxBoolean(object):
 
 def get_model_features(model_name):
     """
-    /usr/share/libvirt/cpu_map.xml defines all CPU models.
+    libvirt-4.5.0 :/usr/share/libvirt/cpu_map.xml defines all CPU models.
+    libvirt-5.0.0 :/usr/share/libvirt/cpu_map/ defines all CPU models.
     One CPU model is a set of features.
     This function is to get features of one specific model.
 
@@ -4045,26 +4047,37 @@ def get_model_features(model_name):
     """
     features = []
     conf = "/usr/share/libvirt/cpu_map.xml"
+    conf_dir = "/usr/share/libvirt/cpu_map/"
 
     try:
-        output = open(conf, 'r').read()
-        root = ET.fromstring(output)
-        # Find model
-        for model_n in root.findall('arch/model'):
-            if model_n.get('name') == model_name:
-                model_node = model_n
-                for feature in model_n.findall('feature'):
-                    features.append(feature.get('name'))
-                break
-        # Handle nested model
-        nested_model = model_node.find('model')
-        if nested_model is not None:
-            nested_model_name = nested_model.get('name')
-            for model_n in root.findall('arch/model'):
-                if model_n.get('name') == nested_model_name:
-                    for feature in model_n.findall('feature'):
-                        features.append(feature.get('name'))
-                    break
+        if not libvirt_version.version_compare(5, 0, 0):
+            with open(conf, 'r') as output:
+                root = ET.fromstring(output.read())
+                while True:
+                    # Find model in file /usr/share/libvirt/cpu_map.xml
+                    for model_n in root.findall('arch/model'):
+                        if model_n.get('name') == model_name:
+                            model_node = model_n
+                            for feature in model_n.findall('feature'):
+                                features.append(feature.get('name'))
+                            break
+                    # Handle nested model
+                    if model_node.find('model') is not None:
+                        model_name = model_node.find('model').get('name')
+                        continue
+                    else:
+                        break
+
+        else:
+            # Find model in dir /usr/share/libvirt/cpu_map
+            filelist = os.listdir(conf_dir)
+            for file_name in filelist:
+                if model_name in file_name:
+                    with open(os.path.join(conf_dir, file_name), "r") as output:
+                        model = ET.fromstring(output.read())
+                        for feature in model.findall("model/feature"):
+                            features.append(feature.get('name'))
+                        break
     except ET.ParseError as error:
         logging.warn("Configuration file %s has wrong xml format" % conf)
         raise
