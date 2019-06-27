@@ -1840,7 +1840,8 @@ class VM(virt_vm.BaseVM):
                 queues = nic.get("queues", 1)
                 # specify the number of MSI-X vectors that the card should have;
                 # this option currently only affects virtio cards
-                if nic_params.get("enable_msix_vectors") == "yes":
+                if nic_params.get("enable_msix_vectors") == "yes"\
+                        and int(queues) != 1:
                     if "vectors" in nic:
                         vectors = nic.vectors
                     else:
