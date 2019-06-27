@@ -363,6 +363,136 @@ statements addressing all objects. Note: This is contrary to the way the
 Cartesian configuration file as a whole is parsed (top-down).
 
 
+.. _heterogeneous_guest_variants:
+
+Heterogeneous guest variants
+============================
+
+The ‘``join``’ filter combined with the ‘``suffix``’ operator can be utilized
+together in order to produce guest variants with different guest OS or other
+types of configuration within the same test. Adding the ‘``suffix``’ keyword
+at the end of each variant to be combined and joining all the variants in the
+end will produce one final variant product with all participating variant
+dictionaries separately suffixed and combined into one final dictionary. For
+instance the following definition
+
+::
+
+    variants:
+        - one:
+            key1 = Hello
+            key2 = Brave
+            suffix _v1
+        - two:
+            key1 = Bye
+            key2 = Brave
+            key3 = World
+            suffix _v2
+        - three:
+    variants:
+        - four:
+            key4 = foo
+            only one
+        - five:
+            key4 = bar
+        - six:
+            key1 = foo
+            key2 = bar
+            key3 = baz
+            only two
+
+    join one two
+
+will join variants ``one`` and ``two`` with suffixed parameters
+``key1_v1 = Hello`` and ``key1_v2 = Bye`` in each of the following resulting
+dictionaries:
+
+::
+
+    dict    1:  four.one.five.two
+        dep = []
+        key1_v1 = Hello
+        key1_v2 = Bye
+        key2 = Brave
+        key3 = World
+        key4 = bar
+        name = four.one.five.two
+        shortname = four.one.five.two
+    dict    2:  four.one.six.two
+        dep = []
+        key1 = foo
+        key1_v1 = Hello
+        key1_v2 = Bye
+        key2 = bar
+        key2_v1 = Brave
+        key2_v2 = Brave
+        key3 = baz
+        key3_v2 = World
+        key4 = foo
+        name = four.one.six.two
+        shortname = four.one.six.two
+    dict    3:  five.one.two
+        dep = []
+        key1_v1 = Hello
+        key1_v2 = Bye
+        key2 = Brave
+        key3 = World
+        key4 = bar
+        name = five.one.two
+        shortname = five.one.two
+    dict    4:  five.one.six.two
+        dep = []
+        key1 = foo
+        key1_v1 = Hello
+        key1_v2 = Bye
+        key2 = bar
+        key2_v1 = Brave
+        key2_v2 = Brave
+        key3 = baz
+        key3_v2 = World
+        key4 = bar
+        name = five.one.six.two
+        shortname = five.one.six.two
+
+Regarding the choice of variants, using the ``join one two`` also plays the
+role of a filter for ``three`` which restricts the final selection to all
+joined ``one``-``two`` test variants. The ``join one`` operation is thus
+equivalent to an ``only one`` filter. The outcome above is additionally
+filtered by ``only`` filters, which restrict the initial joined Cartesian
+products:
+
+::
+
+    dict    1:  four.one.two
+    dict    2:  four.one.five.two
+    dict    3:  four.one.six.two
+    dict    4:  five.one.four.two
+    dict    5:  five.one.two
+    dict    6:  five.one.six.two
+    dict    7:  six.one.four.two
+    dict    8:  six.one.five.two
+    dict    9:  six.one.two
+
+of pairs ``<four-or-five-or-six>.one`` and ``<four-or-five-or-six>.two`` to
+variants containing ``four.one``, ``six.two``, or ``five.<one-or-two>``
+
+::
+
+    dict    1:  four.one.five.two
+    dict    2:  four.one.six.two
+    dict    3:  five.one.two
+    dict    4:  five.one.six.two
+
+One important point to consider when using heterogeneous variants is that
+parameter overwriting of suffixed parameters is only possible using regex
+operators like ‘``?=``’, ‘``?<=``’, and ‘``?+=``’. Since adding a suffix will
+transform all parameters within the variant (or at least the ones that have
+more general nonsuffixed version of different value), regular overwriting will
+only match the general parameter and will not perform a search for the suffixed
+versions for performance reasons. Using the above operators with proper regular
+expression for the key will solve this.
+
+
 .. _include_statements:
 
 Include statements
