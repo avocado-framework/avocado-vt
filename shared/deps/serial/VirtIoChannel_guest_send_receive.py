@@ -95,7 +95,9 @@ class VirtIoChannel:
                 raise ShakeHandError("Host didn't ACK the file size message.")
             return size
         elif action == "receive":
-            txt = self.receive(hi_msg_len)
+            txt = ''
+            while len(txt) < hi_msg_len:
+                txt += self.receive(hi_msg_len)
             hi_str = struct.unpack(self.hi_format, txt)[0]
             if hi_str != self.hi_msg:
                 raise ShakeHandError("Fail to get HI from host.")
