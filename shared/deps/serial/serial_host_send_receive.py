@@ -204,6 +204,8 @@ def main():
         print("md5_post = %s" % md5_post)
         if md5_ori != md5_post:
             raise Md5MissMatch(md5_ori, md5_post)
+    vport.shutdown(socket.SHUT_RDWR)
+    vport.close()
 
 
 if __name__ == "__main__":
