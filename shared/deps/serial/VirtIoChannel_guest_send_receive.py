@@ -86,22 +86,21 @@ class VirtIoChannel:
             txt = self.receive(hi_msg_len)
             out = struct.unpack(self.hi_format, txt)[0]
             if out != "HI":
-                raise ShakeHandError("Fail to get HI from guest.")
+                raise ShakeHandError("Fail to get HI from host.")
             size_s = struct.pack("q", size)
             self.send(size_s)
             txt = self.receive(ack_msg_len)
             ack_str = struct.unpack(self.ack_format, txt)[0]
             if ack_str != self.ack_msg:
-                raise ShakeHandError("Guest didn't ACK the file size message.")
+                raise ShakeHandError("Host didn't ACK the file size message.")
             return size
         elif action == "receive":
             txt = self.receive(hi_msg_len)
             hi_str = struct.unpack(self.hi_format, txt)[0]
             if hi_str != self.hi_msg:
-                raise ShakeHandError("Fail to get HI from guest.")
+                raise ShakeHandError("Fail to get HI from host.")
             self.send(txt)
             size = self.receive(8)
-            print("xxxx size = %s" % size)
             if size:
                 size = struct.unpack("q", size)[0]
                 txt = struct.pack(self.ack_format, self.ack_msg)
@@ -190,20 +189,20 @@ def receive(device, filename, p_size=1024):
 
 
 def send(device, filename, p_size=1024):
-    recv_size = 0
+    send_size = 0
     f_size = os.path.getsize(filename)
     vio = VirtIoChannel(device)
     vio.shake_hand(f_size, action="send")
     md5_value = md5_init()
     file_no = open(filename, 'rb')
     try:
-        while recv_size < f_size:
+        while send_size < f_size:
             txt = file_no.read(p_size)
             vio.send(txt)
             md5_value.update(txt)
-            recv_size += len(txt)
+            send_size += len(txt)
     finally:
-        print("received size = %s" % recv_size)
+        print("Sent size = %s" % send_size)
         file_no.close()
         if vio:
             vio.close()

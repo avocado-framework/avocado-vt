@@ -141,19 +141,19 @@ def receive(connect, filename, p_size=1024):
 
 
 def send(connect, filename, p_size=1024):
-    recv_size = 0
+    send_size = 0
     f_size = os.path.getsize(filename)
     shake_hand(connect, f_size, action="send")
     md5_value = md5_init()
     file_no = open(filename, 'rb')
     try:
-        while recv_size < f_size:
+        while send_size < f_size:
             txt = file_no.read(p_size)
             connect.send(txt)
             md5_value.update(txt)
-            recv_size += len(txt)
+            send_size += len(txt)
     finally:
-        print("received size = %s" % recv_size)
+        print("Sent size = %s" % send_size)
         file_no.close()
     md5_sum = md5_value.hexdigest()
     return md5_sum
