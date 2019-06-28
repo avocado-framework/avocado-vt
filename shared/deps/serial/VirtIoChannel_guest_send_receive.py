@@ -181,7 +181,7 @@ def receive(device, filename, p_size=1024):
             txt = vio.receive(p_size)
             md5_value.update(txt)
             file_no.write(txt)
-            recv_size += p_size
+            recv_size += len(txt)
     finally:
         file_no.close()
         if vio:
