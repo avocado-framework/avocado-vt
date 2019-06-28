@@ -797,7 +797,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
 
     dir_name = data_dir.get_tmp_dir()
     transfer_timeout = int(params.get("transfer_timeout", 720))
-    tmp_dir = params.get("tmp_dir", data_dir.get_tmp_dir())
+    tmp_dir = params.get("tmp_dir", '/var/tmp/')
     filesize = int(params.get("filesize", 10))
     count = int(filesize)
 
