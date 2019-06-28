@@ -394,6 +394,11 @@ class UnattendedInstallConfig(object):
             raise ValueError("Unexpected installation medium %s" % self.url)
         contents = re.sub(dummy_medium_re, content, contents)
 
+        dummy_rh_system_stream_id_re = r'\bRH_SYSTEM_STREAM_ID\b'
+        if re.search(dummy_rh_system_stream_id_re, contents):
+            rh_system_stream_id = self.params.get("rh_system_stream_id", "")
+            contents = re.sub(dummy_rh_system_stream_id_re, rh_system_stream_id, contents)
+
         dummy_repos_re = r'\bKVM_TEST_REPOS\b'
         if re.search(dummy_repos_re, contents):
             repo_list = self.params.get("kickstart_extra_repos", "").split()
@@ -1238,6 +1243,8 @@ def run(test, params, env):
     install_error_str = params.get("install_error_str")
     install_error_exception_str = ("Installation error reported in serial "
                                    "console log: %s" % install_error_str)
+    rh_upgrade_error_str = params.get("rh_upgrade_error_str",
+                                      "RH system upgrade failed")
     post_finish_str = params.get("post_finish_str",
                                  "Post set up finished")
     install_timeout = int(params.get("install_timeout", 4800))
@@ -1284,6 +1291,8 @@ def run(test, params, env):
                 try:
                     install_error_str_found = string_in_serial_log(
                         log_file, install_error_str)
+                    rh_upgrade_error_str_found = string_in_serial_log(
+                        log_file, rh_upgrade_error_str)
                     post_finish_str_found = string_in_serial_log(
                         log_file, post_finish_str)
                 except IOError:
@@ -1291,6 +1300,9 @@ def run(test, params, env):
                 else:
                     if install_error_str_found:
                         raise exceptions.TestFail(install_error_exception_str)
+                    if rh_upgrade_error_str_found:
+                        raise exceptions.TestFail("rh system upgrade failed, please "
+                                                  "check serial log")
                     if post_finish_str_found:
                         break
                 # Bug `reboot` param from the kickstart is not actually restarts
@@ -1326,6 +1338,8 @@ def run(test, params, env):
             try:
                 install_error_str_found = string_in_serial_log(
                     log_file, install_error_str)
+                rh_upgrade_error_str_found = string_in_serial_log(
+                    log_file, rh_upgrade_error_str)
                 post_finish_str_found = string_in_serial_log(
                     log_file, post_finish_str)
             except IOError:
@@ -1338,6 +1352,9 @@ def run(test, params, env):
             else:
                 if install_error_str_found:
                     raise exceptions.TestFail(install_error_exception_str)
+                if rh_upgrade_error_str_found:
+                    raise exceptions.TestFail("rh system upgrade failed, please "
+                                              "check serial log")
                 if post_finish_str_found:
                     break
 
