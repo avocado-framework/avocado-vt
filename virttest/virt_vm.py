@@ -1043,21 +1043,6 @@ class BaseVM(object):
         return os.path.join(data_dir.get_tmp_dir(),
                             "testlog-%s" % self.instance)
 
-    def get_virtio_port_filename(self, port_name):
-        """
-        Return the filename corresponding to a givven monitor name.
-        """
-        return os.path.join(data_dir.get_tmp_dir(),
-                            "virtio_port-%s-%s" % (port_name, self.instance))
-
-    def get_virtio_port_filenames(self):
-        """
-        Return a list of all virtio port filenames (as specified in the VM's
-        params).
-        """
-        return [self.get_virtio_port_filename(v) for v in
-                self.params.objects("virtio_ports")]
-
     @error_context.context_aware
     def login(self, nic_index=0, timeout=LOGIN_TIMEOUT,
               username=None, password=None):

@@ -28,6 +28,7 @@ from virttest.qemu_devices.utils import (DeviceError, DeviceHotplugError,
                                          DeviceInsertError, DeviceRemoveError,
                                          DeviceUnplugError, none_or_int)
 from virttest.compat_52lts import results_stdout_52lts, decode_to_text
+from virttest.utils_params import Params
 
 #
 # Device container (device representation of VM)
@@ -1423,9 +1424,9 @@ class DevContainer(object):
         # bus: ahci, virtio-scsi-pci, USB
         #
         if not use_device:
-            if fmt and (fmt == "scsi" or (fmt.startswith('scsi') and
-                                          (scsi_hba == 'lsi53c895a' or
-                                           scsi_hba == 'spapr-vscsi'))):
+            if fmt and (fmt == "scsi" or (fmt.startswith('scsi')
+                                          and (scsi_hba == 'lsi53c895a'
+                                               or scsi_hba == 'spapr-vscsi'))):
                 if not (bus is None and unit is None and port is None):
                     logging.warn("Using scsi interface without -device "
                                  "support; ignoring bus/unit/port. (%s)", name)
@@ -1717,6 +1718,145 @@ class DevContainer(object):
                                                image_params.get(
                                                    "bus_extra_params"),
                                                image_params.get("force_drive_format"))
+
+    def serials_define_by_variables(self, serial_id, serial_type, chardev_id,
+                                    bus_type=None, serial_name=None,
+                                    bus=None, nr=None, reg=None):
+        """
+        Creates related devices by variables
+
+        :param serial_id: the id of the serial device
+        :param serial_type: the type of the serial device
+        :param chardev_id: the id of the chardev device
+        :param bus_type: bus type of the serial device(optional, virtio only)
+        :param serial_name: the name option of serial device(optional)
+        :param bus: the busid of parent bus(optional, virtio only)
+        :param nr: the nr(port) of the parent bus(optional, virtio only)
+        :param reg: reg option of isa-serial(optional)
+        :return: the device list that construct the serial device
+        """
+
+        devices = []
+        # For virtio devices, generate controller and create the port device
+        if serial_type.startswith('virt'):
+            if not bus:
+                if bus_type == 'virtio-serial-device':
+                    pci_bus = {'type': 'virtio-bus'}
+                else:
+                    pci_bus = {'aobject': 'pci.0'}
+                bus = self.get_first_free_bus(
+                    {'type': 'SERIAL', 'atype': bus_type}, [None, nr])
+                #  Multiple virtio console devices can't share a single bus
+                if bus is None or serial_type == 'virtconsole':
+                    _hba = bus_type.replace('-', '_') + '%s'
+                    bus = self.idx_of_next_named_bus(_hba)
+                    bus = self.list_missing_named_buses(
+                        _hba, 'SERIAL', bus + 1)[-1]
+                    logging.debug("list missing named bus: %s", bus)
+                    devices.append(
+                        qdevices.QDevice(bus_type,
+                                         {"id": bus},
+                                         bus,
+                                         pci_bus,
+                                         qdevices.QSerialBus(
+                                             bus, bus_type, bus)))
+                else:
+                    bus = bus.busid
+            devices.append(
+                qdevices.QDevice(serial_type,
+                                 {"id": serial_id},
+                                 parent_bus={'busid': bus}))
+            devices[-1].set_param('name', serial_name)
+        else:  # none virtio type, generate serial device directly
+            devices.append(qdevices.QDevice(serial_type, {"id": serial_id}))
+            devices[-1].set_param("reg", reg)
+        devices[-1].set_param('chardev', chardev_id)
+
+        return devices
+
+    def serials_define_by_params(self, serial_id, params,
+                                 file_name=None):
+        """
+        Wrapper for creating serial device from serial params.
+
+        :param serial_id: id of serial object
+        :param params: serial params
+        :param file_name: the file path of the serial device (optional)
+        :return: the device list that construct the serial device
+        """
+        serial_type = params['serial_type']
+        machine = params.get('machine_type')
+
+        # Arm lists "isa-serial" as supported but can't use it,
+        # fallback to "-serial"
+        legacy_cmd = " -serial unix:'%s',server,nowait" % file_name
+        legacy_dev = qdevices.QStringDevice('SER-%s' % serial_id,
+                                            cmdline=legacy_cmd)
+        arm_serial = (serial_type == 'isa-serial'
+                      and 'arm' in params.get("machine_type", ""))
+        if (arm_serial or not self.has_option("chardev")
+                or not self.has_device(serial_type)):
+            return legacy_dev
+
+        bus_type = None
+        if serial_type.startswith('virt'):
+            if '-mmio' in machine:
+                controller_suffix = 'device'
+            elif machine.startswith("s390"):
+                controller_suffix = 'ccw'
+            else:
+                controller_suffix = 'pci'
+            bus_type = 'virtio-serial-%s' % controller_suffix
+
+        prefix = params.get('virtio_port_name_prefix')
+        name = prefix + serial_id if prefix else serial_id
+        chardev_id = 'chardev_%s' % serial_id
+        chardev_device = self.chardev_define_by_params(chardev_id, params, file_name)
+        serial_devices = self.serials_define_by_variables(serial_id,
+                                                          serial_type,
+                                                          chardev_id,
+                                                          bus_type=bus_type,
+                                                          serial_name=name,
+                                                          bus=params.get(
+                                                              "serial_bus"),
+                                                          nr=params.get(
+                                                              "serial_nr"),
+                                                          reg=params.get(
+                                                              "serial_reg"))
+
+        return [chardev_device] + serial_devices
+
+    def chardev_define_by_params(self, chardev_id, params, file_name=None):
+        """
+        Wrapper for creating -chardev device from params.
+        :param chardev_id: chardev id
+        :param params: chardev params
+        :param file_name: file name of chardev (optional)
+        :return: CharDevice object
+        """
+        backend = params.get('chardev_backend', 'unix_socket')
+        # for tcp_socket and unix_socket, both form to 'socket'
+        _backend = 'socket' if 'socket' in backend else backend
+        # Generate -chardev device
+        chardev_param = Params({'backend': _backend, 'id': chardev_id})
+        if backend in ['unix_socket', 'file', 'pipe', 'serial',
+                       'tty', 'parallel', 'parport']:
+            chardev_param.update({'path': file_name})
+        elif backend in ['udp', 'tcp_socket']:
+            chardev_param.update(
+                {'host': params['chardev_host'],
+                 'port': params['chardev_port'],
+                 'ipv4': params.get('chardev_ipv4'),
+                 'ipv6': params.get('chardev_ipv6')})
+        if 'socket' in backend:  # tcp_socket & unix_socket
+            chardev_param.update(
+                {'server': params.get('chardev_server', 'yes'),
+                 'nowait': params.get('chardev_nowait', 'yes')})
+        elif backend in ['spicevmc', 'spiceport']:
+            chardev_param.update(
+                {'debug': params.get('chardev_debug'),
+                 'name': params.get('chardev_name')})
+        return qdevices.CharDevice(chardev_param, chardev_id)
 
     def cdroms_define_by_params(self, name, image_params, media=None,
                                 index=None, image_boot=None,

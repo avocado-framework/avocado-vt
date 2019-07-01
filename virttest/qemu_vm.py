@@ -142,7 +142,7 @@ class VM(virt_vm.BaseVM):
             self.process = None
             self.serial_ports = []
             self.serial_console_log = None
-            self.virtio_console = None
+            self.serial_session_device = None
             self.redirs = {}
             self.spice_options = {}
             self.vnc_port = 5900
@@ -339,12 +339,6 @@ class VM(virt_vm.BaseVM):
         return [self.get_serial_console_filename(_) for _ in
                 self.params.objects("serials")]
 
-    def get_virtio_port_filenames(self):
-        """
-        Get socket file of virtio ports
-        """
-        return [_.hostfile for _ in self.virtio_ports]
-
     def cleanup_serial_console(self):
         """
         Close serial console and associated log file
@@ -476,104 +470,6 @@ class VM(virt_vm.BaseVM):
             cmd += " -mon chardev=%s" % monitor_id
             cmd += _add_option("mode", "control")
             return cmd
-
-        def add_serial(devices, name, filename):
-            # Arm lists "isa-serial" as supported but can't use it,
-            # fallback to "-serial"
-            legacy_cmd = " -serial unix:'%s',server,nowait" % filename
-            if (not devices.has_option("chardev") or
-                    'arm' in params.get("machine_type", "")):
-                return legacy_cmd
-            for serial_dev in ("sclpconsole", "spapr-vty", "isa-serial"):
-                if devices.has_device(serial_dev):
-                    break
-            else:
-                return legacy_cmd
-
-            serial_id = "serial_id_%s" % name
-            cmd = " -chardev socket"
-            cmd += _add_option("id", serial_id)
-            cmd += _add_option("path", filename)
-            cmd += _add_option("server", "NO_EQUAL_STRING")
-            cmd += _add_option("nowait", "NO_EQUAL_STRING")
-            cmd += " -device %s" % serial_dev
-            if serial_dev == 'spapr-vty':
-                # Workaround for console issue, details:
-                # http://lists.gnu.org/archive/html/qemu-ppc/2013-10/msg00129.html
-                reg = 0x30000000 + 0x1000 * self.serial_ports.index(name)
-                cmd += _add_option("reg", hex(reg))
-            cmd += _add_option("chardev", serial_id)
-            return cmd
-
-        def add_chardev(devices, params, qid=None):
-            """
-            Generate qdevices.CharDevice object
-
-            :param devices: device container object
-            :param params: dict to create char device object
-            :param qid: char device ID
-            """
-            if not devices.has_option("chardev"):
-                logging.warn("'chardev' option not support")
-                return None
-
-            dynamic = False
-            chardev = qdevices.CharDevice(params=params)
-            if not qid:
-                qid = utils_misc.generate_random_id()
-                dynamic = True
-            chardev.set_param("id", qid, dynamic=dynamic)
-
-            return chardev
-
-        def add_virtio_port(devices, chardev, params, name, bus, index=None):
-            """
-            Appends virtio_serialport or virtio_console device to cmdline.
-            :param chardev: qdevices.CharDevice object
-            :param params: Space sepparated chardev params
-            :param name: Name of the port
-            :param bus: Which virtio-serial-pci device use
-            :param index: Index of the current virtio_port
-            """
-            def set_extra_options(virtio_port, params):
-                """Set extra params pairs"""
-                extra_params = params.get('virtio_port_params', '')
-                for _ in extra_params.split():
-                    try:
-                        if "=" not in _:
-                            key, value = _, "NO_EQUAL_STRING"
-                        else:
-                            key, value = _.split('=')
-                        virtio_port.set_param(key, value)
-                    except Exception:
-                        msg = ("Invaild params %s in " % _ +
-                               "'virtio_port_param' = %s" % extra_params)
-                        logging.error(msg)
-                return virtio_port
-
-            # used by spiceagent (com.redhat.spice.*)
-            if 'console' in params.get('virtio_port_type'):
-                port_type = 'virtconsole'
-            else:
-                port_type = 'virtserialport'
-            virtio_port = QDevice(port_type)
-
-            if not virtio_port.get_param("id"):
-                devid = utils_misc.generate_random_id()
-                virtio_port.set_param("id", devid, dynamic=True)
-
-            if params.get('virtio_port_name_prefix'):
-                prefix = params["virtio_port_name_prefix"]
-                name = "%s%d" % (prefix, index)
-            virtio_port.set_param("name", name)
-
-            if bus:
-                virtio_port.set_param("bus", bus)
-
-            virtio_port.set_param("chardev", chardev.get_qid())
-            set_extra_options(virtio_port, params)
-
-            return virtio_port
 
         def add_log_seabios(devices):
             if not devices.has_device("isa-debugcon"):
@@ -1632,83 +1528,46 @@ class VM(virt_vm.BaseVM):
                 devices.insert(pvpanic_dev)
 
         # Add serial console redirection
-        for serial in params.objects("serials"):
+        serials = params.objects('serials')
+        if serials:
+            self.serial_session_device = serials[0]
+            host = params.get('chardev_host', '127.0.0.1')
+            free_ports = utils_misc.find_free_ports(
+                5000, 6000, len(serials), host)
+            reg_count = 0
+        for index, serial in enumerate(serials):
             serial_filename = vm.get_serial_console_filename(serial)
-            cmd = add_serial(devices, serial, serial_filename)
-            devices.insert(StrDev('SER-%s' % serial, cmdline=cmd))
+            serial_params = params.object_params(serial)
+            # Workaround for console issue, details:
+            # http://lists.gnu.org/archive/html/qemu-ppc/2013-10/msg00129.html
+            if 'ppc' in params.get('vm_arch_name', arch.ARCH)\
+                    and serial_params.get('serial_type') == 'spapr-vty':
+                reg = 0x30000000 + 0x1000 * reg_count
+                serial_params['serial_reg'] = hex(reg)
+                reg_count += 1
+            backend = serial_params.get('chardev_backend',
+                                        'unix_socket')
+            if backend in ['udp', 'tcp_socket']:
+                serial_params['chardev_host'] = host
+                serial_params['chardev_port'] = free_ports[index]
+            serial_devices = devices.serials_define_by_params(
+                serial, serial_params, serial_filename)
 
-        # Add virtio_serial ports
-        if not devices.has_device("virtconsole"):
-            logging.warn("virt-console/serialport devices are not supported")
-        else:
-            no_virtio_serial_pcis = 0
-            no_virtio_ports = 0
-            virtio_port_spread = int(params.get('virtio_port_spread', 2))
-            for port_name in params.objects("virtio_ports"):
-                port_params = params.object_params(port_name)
-                parent_bus = _get_pci_bus(
-                    devices, port_params, "vio_port", True)
-                bus = params.get('virtio_port_bus', False)
-                if bus is not False:     # Manually set bus
-                    bus = int(bus)
-                elif not virtio_port_spread:
-                    # bus not specified, let qemu decide
-                    pass
-                elif not no_virtio_ports % virtio_port_spread:
-                    # Add new vio-pci every n-th port. (Spread ports)
-                    bus = no_virtio_serial_pcis
-                else:  # Port not overriden, use last vio-pci
-                    bus = no_virtio_serial_pcis - 1
-                    if bus < 0:     # First bus
-                        bus = 0
-                # Add virtio_serial_pcis
-                # Multiple virtio console devices can't share a
-                # single virtio-serial-pci bus. So add a virtio-serial-pci bus
-                # when the port is a virtio console.
-                if (port_params.get('virtio_port_type') == 'console' and
-                        params.get('virtio_port_bus') is None):
-                    if '-mmio:' in params.get('machine_type'):
-                        dev = QDevice('virtio-serial-device')
-                    elif params.get('machine_type').startswith("s390"):
-                        dev = QDevice("virtio-serial-ccw")
-                    else:
-                        dev = QDevice(
-                            'virtio-serial-pci', parent_bus=parent_bus)
-                    dev.set_param('id',
-                                  'virtio_serial_pci%d' % no_virtio_serial_pcis)
-                    devices.insert(dev)
-                    no_virtio_serial_pcis += 1
-                for i in range(no_virtio_serial_pcis, bus + 1):
-                    if '-mmio:' in params.get('machine_type'):
-                        dev = QDevice('virtio-serial-device')
-                    elif params.get('machine_type').startswith("s390"):
-                        dev = QDevice("virtio-serial-ccw")
-                    else:
-                        dev = QDevice(
-                            'virtio-serial-pci', parent_bus=parent_bus)
-                    dev.set_param('id', 'virtio_serial_pci%d' % i)
-                    devices.insert(dev)
-                    no_virtio_serial_pcis += 1
-                if bus is not False:
-                    bus = "virtio_serial_pci%d.0" % bus
-                # Add actual ports
-                char_params = port_params.copy()
-                backend = port_params.get("virtio_port_chardev", "socket")
-                port_file = self.get_virtio_port_filename(port_name)
-                char_params.update({"backend": backend,
-                                    "server": "yes",
-                                    "nowait": "yes",
-                                    "name": port_name,
-                                    "path": port_file})
-                char_dev = add_chardev(devices, char_params)
-                virtio_port = add_virtio_port(devices,
-                                              char_dev,
-                                              port_params,
-                                              port_name,
-                                              bus,
-                                              no_virtio_ports)
-                devices.insert([char_dev, virtio_port])
-                no_virtio_ports += 1
+            devices.insert(serial_devices)
+
+            # Create virtio_ports (virtserialport and virtconsole)
+            serial_type = serial_params['serial_type']
+            if serial_type.startswith('virt'):
+                if backend == "spicevmc":
+                    serial_filename = 'dev%s' % serial
+                port_name = serial_devices[-1].get_param('name')
+                if "console" in serial_type:
+                    self.virtio_ports.append(qemu_virtio_port.VirtioConsole(
+                        serial, port_name, serial_filename))
+                else:
+                    self.virtio_ports.append(qemu_virtio_port.VirtioSerial(
+                        serial, port_name, serial_filename))
+
         # Add virtio-rng devices
         for virtio_rng in params.objects("virtio_rngs"):
             rng_params = params.object_params(virtio_rng)
@@ -2443,43 +2302,23 @@ class VM(virt_vm.BaseVM):
         Let's consider the first serial port as serial console.
         Note: requires a version of netcat that supports -U
         """
-        try:
-            tmp_serial = self.serial_ports[0]
-        except IndexError:
+        if self.serial_session_device is None:
             logging.warning("No serial ports defined!")
             return
-        log_name = "serial-%s-%s.log" % (tmp_serial, self.name)
+        log_name = "serial-%s-%s.log" % (
+            self.serial_session_device, self.name)
         self.serial_console_log = os.path.join(utils_misc.get_log_file_dir(),
                                                log_name)
+        file_name = self.get_serial_console_filename(
+            self.serial_session_device)
         self.serial_console = aexpect.ShellSession(
-            "nc -U %s" % self.get_serial_console_filename(tmp_serial),
+            "nc -U %s" % file_name,
             auto_close=False,
             output_func=utils_misc.log_line,
             output_params=(log_name,),
             prompt=self.params.get("shell_prompt", "[\#\$]"),
             status_test_command=self.params.get("status_test_command",
                                                 "echo $?"))
-        del tmp_serial
-
-    def create_virtio_console(self):
-        """
-        Establish a session with the serial console.
-        """
-        for port in self.virtio_ports:
-            if isinstance(port, qemu_virtio_port.VirtioConsole):
-                logfile = "serial-%s-%s.log" % (port.name, self.name)
-                socat_cmd = "nc -U %s" % port.hostfile
-                self.virtio_console = aexpect.ShellSession(
-                    socat_cmd,
-                    auto_close=False,
-                    output_func=utils_misc.log_line,
-                    output_params=(logfile,),
-                    prompt=self.params.get("shell_prompt", "[\#\$]"))
-                return
-        if self.virtio_ports:
-            logging.warning(
-                "No virtio console created in VM. Virtio ports: %s", self.virtio_ports)
-        self.virtio_console = None
 
     def update_system_dependent_devs(self):
         # Networking
@@ -2841,8 +2680,10 @@ class VM(virt_vm.BaseVM):
                     raise virt_vm.VMPAError(pa_type)
 
             # Create serial ports.
-            for serial in params.objects("serials"):
-                self.serial_ports.append(serial)
+            for serial in params.objects('serials'):
+                if not params.object_params(serial).get(
+                        "serial_type").startswith('virt'):
+                    self.serial_ports.append(serial)
 
             if (name is None and params is None and root_dir is None and
                     self.devices is not None):
@@ -2993,32 +2834,6 @@ class VM(virt_vm.BaseVM):
 
                 # Add this monitor to the list
                 self.monitors.append(monitor)
-
-            # Create virtio_ports (virtio_serialports and virtio_consoles)
-            i = 0
-            self.virtio_ports = []
-            for port in params.objects("virtio_ports"):
-                port_params = params.object_params(port)
-                if port_params.get('virtio_port_chardev') == "spicevmc":
-                    filename = 'dev%s' % port
-                else:
-                    filename = self.get_virtio_port_filename(port)
-                port_name = port_params.get('virtio_port_name_prefix', None)
-                if port_name:   # If port_name_prefix was used
-                    port_name = port_name + str(i)
-                else:           # Implicit name - port
-                    port_name = port
-                if port_params.get('virtio_port_type') in ("console",
-                                                           "virtio_console"):
-                    self.virtio_ports.append(
-                        qemu_virtio_port.VirtioConsole(port, port_name,
-                                                       filename))
-                else:
-                    self.virtio_ports.append(
-                        qemu_virtio_port.VirtioSerial(port, port_name,
-                                                      filename))
-                i += 1
-            self.create_virtio_console()
 
             # Get the output so far, to see if we have any problems with
             # KVM modules or with hugepage setup.
@@ -3198,7 +3013,6 @@ class VM(virt_vm.BaseVM):
         # Generate the tmp file which should be deleted.
         file_list = [self.get_testlog_filename()]
         file_list += qemu_monitor.get_monitor_filenames(self)
-        file_list += self.get_virtio_port_filenames()
         file_list += self.get_serial_console_filenames()
         file_list += list(self.logs.values())
 
