@@ -1528,6 +1528,7 @@ class VM(virt_vm.BaseVM):
                 devices.insert(pvpanic_dev)
 
         # Add serial console redirection
+        self.virtio_ports = []
         serials = params.objects('serials')
         if serials:
             self.serial_session_device = serials[0]
