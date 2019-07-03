@@ -193,7 +193,7 @@ def update_clksrc(vm, clksrc=None):
     Update linux guest's clocksource and re-boot guest
 
     :params vm: Virtual machine for vm
-    :params clksrc: Expected clocksource, 'kvm-clock' by default
+    :params clksrc: Expected clocksource
     """
     params = vm.get_params()
     if 'fedora' in params["os_variant"] and clksrc and clksrc != 'kvm-clock':
@@ -203,8 +203,7 @@ def update_clksrc(vm, clksrc=None):
     error_context.context("Update guest kernel cli to '%s'" %
                           (clksrc or "kvm-clock"),
                           logging.info)
-    utils_test.update_boot_option(vm, args_removed="clocksource=*")
-    if clksrc and clksrc != 'kvm-clock':
+    if clksrc:
         boot_option_added = "clocksource=%s" % clksrc
         utils_test.update_boot_option(vm, args_added=boot_option_added)
 
