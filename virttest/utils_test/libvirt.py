@@ -1260,13 +1260,45 @@ class MigrationTest(object):
         # The CmdResult returned from virsh migrate command
         self.ret = None
 
-    def ping_vm(self, vm, test, params, uri=None, ping_count=10,
+    def post_migration_check(self, vms, params, uptime, uri=None):
+        """
+        Validating migration by performing checks in this method
+        * uptime of the migrated vm > uptime of vm before migration
+        * ping vm from target host
+        * check vm state after migration
+
+        :param vms: VM objects of migrating vms
+        :param uptime: uptime dict of vms before migration
+        :param uri: target virsh uri
+        :return: updated dict of uptime
+        """
+        vm_state = params.get("virsh_migrated_state", "running")
+        ping_count = int(params.get("ping_count", 10))
+        for vm in vms:
+            if not self.check_vm_state(vm.name, vm_state, uri):
+                raise exceptions.TestFail("Migrated VMs failed to be in %s "
+                                          "state at destination" % vm_state)
+            logging.info("Guest state is '%s' at destination is as expected",
+                         vm_state)
+            if "offline" not in params.get("migrate_options"):
+                vm_uptime = vm.uptime(connect_uri=uri)
+                logging.info("uptime of migrated VM %s: %s", vm.name,
+                             vm_uptime)
+                if vm_uptime < uptime[vm.name]:
+                    raise exceptions.TestFail("vm went for a reboot during "
+                                              "migration")
+                self.ping_vm(vm, params, uri=uri, ping_count=ping_count)
+                # update vm uptime to check when migrating back
+                uptime[vm.name] = vm_uptime
+                vm.verify_dmesg(connect_uri=uri)
+        return uptime
+
+    def ping_vm(self, vm, params, uri=None, ping_count=10,
                 ping_timeout=60):
         """
         Method used to ping the VM before and after migration
 
         :param vm: VM object
-        :param test: test object
         :param params: Test dict params
         :param uri: connect uri
         :param ping_count: count of icmp packet
@@ -1274,9 +1306,9 @@ class MigrationTest(object):
         """
         vm_ip = params.get("vm_ip_dict", {})
         server_session = None
-        func = test.error
+        func = exceptions.TestError
         if uri and uri != "qemu:///system":
-            func = test.fail
+            func = exceptions.TestFail
             src_uri = "qemu:///system"
             vm.connect_uri = uri
             server_session = test_setup.remote_session(params)
@@ -1455,6 +1487,8 @@ class MigrationTest(object):
                      for process.run
 
         """
+        for vm in vms:
+            vm.connect_uri = args.get("virsh_uri", "qemu:///system")
         if migration_type == "orderly":
             for vm in vms:
                 migration_thread = threading.Thread(target=self.thread_func_migration,
@@ -1542,7 +1576,6 @@ class MigrationTest(object):
                     self.RET_LOCK.acquire()
                     self.RET_MIGRATION = False
                     self.RET_LOCK.release()
-
         if not self.RET_MIGRATION and not ignore_status:
             raise exceptions.TestFail()
 
