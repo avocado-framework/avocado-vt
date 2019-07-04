@@ -2891,12 +2891,14 @@ def format_windows_disk(session, did, mountpoint=None, size=None,
                 mkpart_cmd = 'echo create partition primary size=%s '
                 mkpart_cmd += '>> disk'
                 mkpart_cmd = mkpart_cmd % size
-            mkpart_cmd = ' '.join([cmd_header, mkpart_cmd, cmd_footer])
+            list_cmd = ' && echo list partition >> disk '
+            cmds = ' '.join([cmd_header, mkpart_cmd, list_cmd, cmd_footer])
             logging.info("Create partition on 'Disk%s'" % did)
-            session.cmd(mkpart_cmd)
+            partition_index = re.search(
+                r'\*\s+Partition\s(\d+)\s+', session.cmd(cmds), re.M).group(1)
             logging.info("Format the 'Disk%s' to %s" % (did, fstype))
             format_cmd = 'echo list partition >> disk && '
-            format_cmd += 'echo select partition 1 >> disk && '
+            format_cmd += 'echo select partition %s >> disk && ' % partition_index
             if not mountpoint:
                 format_cmd += 'echo assign >> disk && '
             else:
