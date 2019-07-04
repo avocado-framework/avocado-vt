@@ -57,7 +57,7 @@ class VirtioPortTest(object):
                 _no_consoles < no_consoles or
                 spread != _spread):
             if not quiet:
-                out = "tests reqirements are different from cfg: "
+                out = "tests requirements are different from cfg: "
                 if _no_serialports < no_serialports:
                     out += "serial_ports(%d), " % no_serialports
                 if _no_consoles < no_consoles:
@@ -66,7 +66,7 @@ class VirtioPortTest(object):
                     out += "spread(%s), " % spread
                 logging.warning(out[:-2] + ". Modify config to speedup tests.")
 
-            params['virtio_ports'] = ""
+            params['serials'] = params.objects('serials')[0]
             if spread:
                 params['virtio_port_spread'] = spread
             else:
@@ -74,13 +74,13 @@ class VirtioPortTest(object):
 
             for i in xrange(max(no_consoles, _no_consoles)):
                 name = "console-%d" % i
-                params['virtio_ports'] += " %s" % name
-                params['virtio_port_type_%s' % name] = "console"
+                params['serials'] += " %s" % name
+                params['serial_type_%s' % name] = "virtconsole"
 
             for i in xrange(max(no_serialports, _no_serialports)):
                 name = "serialport-%d" % i
-                params['virtio_ports'] += " %s" % name
-                params['virtio_port_type_%s' % name] = "serialport"
+                params['serials'] += " %s" % name
+                params['serial_type_%s' % name] = "virtserialport"
 
             if quiet:
                 logging.debug("Recreating VM with more virtio ports.")
