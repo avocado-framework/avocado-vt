@@ -27,6 +27,7 @@ import platform
 import traceback
 import math
 import select
+import aexpect
 
 try:
     from io import BytesIO
@@ -190,7 +191,7 @@ def write_keyval(path, dictionary, type_tag=None, tap_report=None):
     :param dictionary: the items to write
     :param type_tag: see text above
     """
-    if os.path.isdir(path):
+    if check_isdir(path):
         path = os.path.join(path, 'keyval')
     keyval = open(path, 'a')
 
@@ -947,7 +948,32 @@ def parallel(targets):
     return [t.join() for t in threads]
 
 
-def safe_rmdir(path, timeout=10):
+def check_isdir(path, session=None):
+    """
+    wrapper method to check given path is dir in local/remote host/VM
+
+    :param path: path to be checked
+    :param session: ShellSession object of VM/remote host
+    """
+    if session:
+        output = session.cmd_output("file %s" % path)
+        return "directory" in output.strip()
+    return os.path.isdir(path)
+
+
+def check_exists(path, session=None):
+    """
+    wrapper method to check given path is exists in local/remote host/VM
+
+    :param path: path to be check whether it exists
+    :param session: ShellSession object of VM/remote host
+    """
+    if session:
+        return session.cmd_status("ls -l %s" % path) == 0
+    return os.path.exists(path)
+
+
+def safe_rmdir(path, timeout=10, session=None):
     """
     Try to remove a directory safely, even on NFS filesystems.
 
@@ -960,13 +986,18 @@ def safe_rmdir(path, timeout=10):
     :type path: string
     :param timeout: Time that the function will try to remove the dir before
                     giving up (seconds)
+    :param session: ShellSession Object
     :type timeout: int
     :raises: OSError, with errno 39 in case after the timeout
              shutil.rmtree could not successfuly complete. If any attempt
              to rmtree fails with errno different than 39, that exception
              will be just raised.
     """
-    assert os.path.isdir(path), "Invalid directory to remove %s" % path
+    assert check_isdir(path, session=session), "Invalid directory to remove %s" % path
+    func = shutil.rmtree
+    if session:
+        func = session.cmd
+        path = "rm -rf %s" % path
     step = int(timeout / 10)
     start_time = time.time()
     success = False
@@ -974,7 +1005,7 @@ def safe_rmdir(path, timeout=10):
     while int(time.time() - start_time) < timeout:
         attempts += 1
         try:
-            shutil.rmtree(path)
+            func(path)
             success = True
             break
         except OSError as err_info:
@@ -984,6 +1015,10 @@ def safe_rmdir(path, timeout=10):
             if err_info.errno != 39:
                 raise
             time.sleep(step)
+        except (aexpect.ShellTimeoutError, aexpect.ShellError) as info:
+            raise exceptions.TestSetupError("Failed to remove directory "
+                                            "%s from remote machine: %s "
+                                            % (path, info))
 
     if not success:
         raise OSError(39,
@@ -1262,7 +1297,7 @@ def get_module_params(sys_path, module_name):
     """
     dir_params = os.path.join(sys_path, "module", module_name, "parameters")
     module_params = {}
-    if os.path.isdir(dir_params):
+    if check_isdir(dir_params):
         for filename in os.listdir(dir_params):
             full_dir = os.path.join(dir_params, filename)
             tmp = open(full_dir, 'r').read().strip()
@@ -2221,7 +2256,7 @@ def get_qemu_binary(params):
     else:
         library_path = os.path.join(
             _get_backend_dir(params), 'install_root', 'lib')
-        if os.path.isdir(library_path):
+        if check_isdir(library_path):
             library_path = os.path.abspath(library_path)
             qemu_binary = ("LD_LIBRARY_PATH=%s %s" %
                            (library_path, qemu_binary_path))
@@ -2244,7 +2279,7 @@ def get_qemu_dst_binary(params):
     # Update LD_LIBRARY_PATH for built libraries (libspice-server)
     library_path = os.path.join(
         _get_backend_dir(params), 'install_root', 'lib')
-    if os.path.isdir(library_path):
+    if check_isdir(library_path):
         library_path = os.path.abspath(library_path)
         qemu_dst_binary = ("LD_LIBRARY_PATH=%s %s" %
                            (library_path, qemu_binary_path))
@@ -3191,7 +3226,7 @@ def is_qemu_capability_supported(capability):
     :raise: exceptions.TestError: if no capability file or no directory
     """
     qemu_path = "/var/cache/libvirt/qemu/capabilities/"
-    if not os.path.isdir(qemu_path) or not len(os.listdir(qemu_path)):
+    if not check_isdir(qemu_path) or not len(os.listdir(qemu_path)):
         raise exceptions.TestError("Missing the directory %s or no file "
                                    "exists in the directory" % qemu_path)
     qemu_capxml = qemu_path + os.listdir(qemu_path)[0]
@@ -3291,7 +3326,7 @@ class KSMController(object):
         # Default control way is files on host
         # But it will be ksmctl command on older ksm version
         self.interface = "sysfs"
-        if os.path.isdir(self.ksm_path):
+        if check_isdir(self.ksm_path):
             _KSM_PARAMS = os.listdir(_KSM_PATH)
             for param in _KSM_PARAMS:
                 self.ksm_params[param] = _KSM_PATH + param
@@ -3728,7 +3763,7 @@ def check_device_driver(pci_id, driver_type):
     Check whether device's driver is same as expected.
     """
     device_driver = "/sys/bus/pci/devices/%s/driver" % pci_id
-    if not os.path.isdir(device_driver):
+    if not check_isdir(device_driver):
         logging.debug("Make sure %s has binded driver.")
         return False
     driver = decode_to_text(process.system_output("readlink %s" % device_driver,
@@ -4639,7 +4674,7 @@ def get_sosreport(path=None, session=None, remote_ip=None, remote_pwd=None,
         path = "/tmp/sosreport"
         session.cmd("mkdir -p %s" % path)
     else:
-        if os.path.isdir(path):
+        if check_isdir(path):
             os.remove(path)
         os.makedirs(path)
     cmd += " --tmp-dir %s" % path
