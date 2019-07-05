@@ -22,6 +22,7 @@ from virttest import ppm_utils
 from virttest import data_dir
 from virttest import remote
 from virttest import utils_misc
+from virttest import ssh_key
 
 try:
     V2V_EXEC = path.find_command('virt-v2v')
@@ -96,12 +97,43 @@ class Target(object):
         self.target = target
         self.uri = uri
         # Save NFS mount records like {0:(src, dst, fstype)}
-        self.mount_record = {}
+        self.mount_records = {}
+        # authorized_keys in remote vmx host
+        self.authorized_keys = []
 
     def cleanup(self):
-        # Cleanup NFS mount records
-        for src, dst, fstype in self.mount_record.values():
+        """
+        Cleanup NFS mount records
+        """
+        for src, dst, fstype in self.mount_records.values():
             utils_misc.umount(src, dst, fstype)
+
+        self.cleanup_authorized_keys_in_vmx()
+
+    def cleanup_authorized_keys_in_vmx(self):
+        """
+        Clean up authorized_keys in vmx server
+        """
+        session = None
+        if len(self.authorized_keys) == 0:
+            return
+
+        try:
+            session = remote.remote_login(
+                client='ssh',
+                host=self.esxi_host,
+                port=22,
+                username=self.username,
+                password=self.esxi_password,
+                prompt=r"[\#\$\[\]]",
+                preferred_authenticaton='password,keyboard-interactive')
+            for key in self.authorized_keys:
+                session.cmd(
+                    "sed -i '/%s/d' /etc/ssh/keys-root/authorized_keys" %
+                    key)
+        finally:
+            if session:
+                session.close()
 
     def get_cmd_options(self, params):
         """
@@ -113,6 +145,7 @@ class Target(object):
         self.input_mode = self.params.get('input_mode')
         self.esxi_host = self.params.get(
             'esxi_host', self.params.get('esx_ip'))
+        self.datastore = self.params.get('datastore')
         self.src_uri_type = params.get('src_uri_type')
         self.esxi_password = params.get('esxi_password')
         self.input_transport = self.params.get('input_transport')
@@ -129,7 +162,23 @@ class Target(object):
         self.format = self.params.get('output_format', 'raw')
         self.input_file = self.params.get('input_file')
         self.new_name = self.params.get('new_name')
+        self.username = self.params.get('username', 'root')
+        self.vmx_nfs_src = self.params.get('vmx_nfs_src')
+        self.has_genid = self.params.get('has_genid')
         self.net_vm_opts = ""
+
+        def _compose_vmx_filename():
+            """
+            Return vmx filename for '-i vmx'.
+            """
+            mount_point = v2v_mount(self.vmx_nfs_src, 'vmx_nfs_src')
+            self.mount_records[len(self.mount_records)] = (
+                self.vmx_nfs_src, mount_point, None)
+
+            vmx_filename = "{}/{name}/{name}.vmx".format(
+                mount_point, name=self.vm_name)
+
+            return vmx_filename
 
         def _compose_input_transport_options():
             """
@@ -139,6 +188,7 @@ class Target(object):
             if self.input_transport is None:
                 return options
 
+            # -it vddk
             if self.input_transport == 'vddk':
                 if self.vddk_libdir is None or not os.path.isdir(
                         self.vddk_libdir):
@@ -149,33 +199,30 @@ class Target(object):
                         raise exceptions.TestError(
                             "VDDK library directory or NFS mount point must be set")
 
-                    mount_point = os.path.join(
-                        data_dir.get_tmp_dir(), 'vddk_libdir')
-                    if not os.path.exists(mount_point):
-                        os.makedirs(mount_point)
-
-                    if not utils_misc.mount(
-                        self.vddk_libdir_src,
-                        mount_point,
-                        'nfs',
-                            verbose=True):
-                        raise exceptions.TestError(
-                            'Mount %s for %s failed' %
-                            (self.vddk_libdir_src, mount_point))
+                    mount_point = v2v_mount(
+                        self.vddk_libdir_src, 'vddk_libdir')
                     self.vddk_libdir = mount_point
-                    self.mount_record[len(self.mount_record)] = (
+                    self.mount_records[len(self.mount_records)] = (
                         self.vddk_libdir_src, self.vddk_libdir, None)
 
                 # Invalid vddk thumbprint if no ':'
                 if self.vddk_thumbprint is None or ':' not in self.vddk_thumbprint:
-                    if self.src_uri_type == 'esx':
-                        tmp_host = self.esxi_host
-                        tmp_passwd = self.esxi_password
-                    else:
-                        tmp_passwd = self.vcenter_password
-                        tmp_host = self.vcenter_host
                     self.vddk_thumbprint = get_vddk_thumbprint(
-                        tmp_host, tmp_passwd, self.src_uri_type)
+                        *
+                        (
+                            self.esxi_host,
+                            self.esxi_password,
+                            self.src_uri_type) if self.src_uri_type == 'esx' else (
+                            self.vcenter_host,
+                            self.vcenter_password,
+                            self.src_uri_type))
+
+            # -it ssh
+            if self.input_transport == 'ssh':
+                pub_key = setup_esx_ssh_key(
+                    self.esxi_host, self.username, self.esxi_password)
+                self.authorized_keys.append(pub_key.split()[1].split('/')[0])
+                utils_misc.add_identities_into_ssh_agent()
 
             # New input_transport type can be added here
 
@@ -184,7 +231,11 @@ class Target(object):
             # based on user's input
             input_transport_args = {
                 'vddk': "-io vddk-libdir=%s -io vddk-thumbprint=%s" % (self.vddk_libdir,
-                                                                       self.vddk_thumbprint)}
+                                                                       self.vddk_thumbprint),
+                'ssh': "ssh://root@{}/vmfs/volumes/{}/{name}/{name}.vmx".format(
+                    self.esxi_host,
+                    self.datastore,
+                    name=self.vm_name)}
 
             options = " -it %s " % (self.input_transport)
             options += input_transport_args[self.input_transport]
@@ -196,7 +247,10 @@ class Target(object):
         if self.network:
             self.net_vm_opts += " -n %s" % self.network
 
-        self.net_vm_opts += " %s" % self.vm_name
+        if self.input_mode != 'vmx':
+            self.net_vm_opts += " %s" % self.vm_name
+        elif self.input_transport is None:
+            self.net_vm_opts += " %s" % _compose_vmx_filename()
 
         options = opts_func() + _compose_input_transport_options()
 
@@ -961,7 +1015,7 @@ def cleanup_constant_files(params):
     map(os.remove, [x for x in tmpfiles if x and os.path.isfile(x)])
 
 
-def get_vddk_thumbprint(host, password, uri_type=None, prompt=r"[\#\$\[\]]"):
+def get_vddk_thumbprint(host, password, uri_type, prompt=r"[\#\$\[\]]"):
     """
     Get vddk thumbprint from VMware vCenter
 
@@ -976,12 +1030,71 @@ def get_vddk_thumbprint(host, password, uri_type=None, prompt=r"[\#\$\[\]]"):
     else:
         cmd = 'openssl x509 -in /etc/vmware-vpx/ssl/rui.crt -fingerprint -sha1 -noout'
 
-    r_runner = remote.RemoteRunner(host=host,
-                                   password=password,
-                                   prompt=prompt,
-                                   preferred_authenticaton='password,keyboard-interactive')
+    r_runner = remote.RemoteRunner(
+        host=host,
+        password=password,
+        prompt=prompt,
+        preferred_authenticaton='password,keyboard-interactive')
     cmdresult = r_runner.run(cmd)
     logging.debug("vddk thumbprint:\n%s", cmdresult.stdout)
     vddk_thumbprint = cmdresult.stdout.strip().split('=')[1]
 
     return vddk_thumbprint
+
+
+def setup_esx_ssh_key(hostname, username, password, port=22):
+    """
+    Setup up remote login in esx server by using public key
+
+    :param hostname: hostname or IP address
+    :param username: username
+    :param password: Password
+    :param port: ssh port number
+    """
+    session = None
+    logging.debug('Performing SSH key setup on %s:%d as %s.' %
+                  (hostname, port, username))
+    try:
+        session = remote.remote_login(
+            client='ssh',
+            host=hostname,
+            username=username,
+            port=port,
+            password=password,
+            prompt=r"[\#\$\[\]]",
+            preferred_authenticaton='password,keyboard-interactive')
+        public_key = ssh_key.get_public_key()
+        session.cmd("echo '%s' >> /etc/ssh/keys-root/authorized_keys; " %
+                    public_key)
+        logging.debug('SSH key setup complete.')
+
+        return public_key
+    except Exception as err:
+        raise exceptions.TestFail("SSH key setup failed: '%s'" % err)
+    finally:
+        if session:
+            session.close()
+
+
+def v2v_mount(src, dst='v2v_mount_point'):
+    """
+    Mount nfs src to dst
+
+    :param src: NFS source
+    :param dst: NFS mount point
+    """
+    mount_point = os.path.join(
+        data_dir.get_tmp_dir(), dst)
+    if not os.path.exists(mount_point):
+        os.makedirs(mount_point)
+
+    if not utils_misc.mount(
+        src,
+        mount_point,
+        'nfs',
+            verbose=True):
+        raise exceptions.TestError(
+            'Mount %s for %s failed' %
+            (src, mount_point))
+
+    return mount_point
