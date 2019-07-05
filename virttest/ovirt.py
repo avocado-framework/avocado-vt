@@ -183,13 +183,7 @@ class VMManager(virt_vm.BaseVM):
         if net_name != '*':
             vnet_list = [vnet for vnet in vnet_list if vnet.name == net_name]
         try:
-            if len(vnet_list) == 1:
-                return vnet_list[0].mac.address
-            # Multiple network interfaces
-            elif len(vnet_list) > 1:
-                for vnet in vnet_list:
-                    if self.address_cache.get(vnet.mac.address):
-                        return vnet.mac.address
+            return [vnet.mac.address for vnet in vnet_list if vnet.mac.address]
         except Exception as e:
             logging.error('Failed to get %s status:\n%s' % (self.name, str(e)))
 
@@ -596,11 +590,12 @@ class VMManager(virt_vm.BaseVM):
         nic = self.virtnet[index]
         if nic.nettype == 'bridge':
             mac = self.get_mac_address()
-            ip = self.address_cache.get(mac)
+            for mac_i in mac:
+                ip = self.address_cache.get(mac_i)
+                if ip:
+                    return ip
             # TODO: Verify MAC-IP address mapping on remote ovirt node
-            if not ip:
-                raise virt_vm.VMIPAddressMissingError(mac)
-            return ip
+            raise virt_vm.VMIPAddressMissingError(mac)
         else:
             raise ValueError("Ovirt only support bridge nettype now.")
 
