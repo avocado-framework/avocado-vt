@@ -26,6 +26,7 @@ from functools import reduce
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
 from avocado.utils import process
+from avocado.utils import cpu as cpuutil
 
 from virttest import error_context
 from virttest import utils_misc
@@ -62,7 +63,7 @@ def get_numa_status(numa_node_info, qemu_pid, debug=True):
     node_list = numa_node_info.online_nodes
     qemu_memory = []
     qemu_cpu = []
-    cpus = utils_misc.get_pid_cpu(qemu_pid)
+    cpus = cpuutil.get_pid_cpus(qemu_pid)
     for node_id in node_list:
         qemu_memory_status = utils_memory.read_from_numa_maps(qemu_pid,
                                                               "N%d" % node_id)

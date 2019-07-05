@@ -32,6 +32,7 @@ from virttest import ppm_utils
 from virttest import test_setup
 from virttest import virt_vm
 from virttest import utils_misc
+from virttest import cpu
 from virttest import storage
 from virttest import utils_libguestfs
 from virttest import qemu_storage
@@ -250,7 +251,7 @@ def preprocess_vm(test, params, env, name):
             else:
                 kernel_extra_params_remove += " pci=nomsi"
         if (params.get("enable_guest_iommu") and
-                utils_misc.get_cpu_vendor(verbose=False) == 'GenuineIntel'):
+                cpu_utils.get_cpu_vendor_name() == 'intel'):
             enable_guest_iommu = params.get("enable_guest_iommu")
             if enable_guest_iommu == "yes":
                 kernel_extra_params_add += " intel_iommu=on"
@@ -994,7 +995,7 @@ def preprocess(test, params, env):
     if (params.get("auto_cpu_model") == "yes" and
             vm_type == "qemu"):
         if not env.get("cpu_model"):
-            env["cpu_model"] = utils_misc.get_qemu_best_cpu_model(params)
+            env["cpu_model"] = cpu.get_qemu_best_cpu_model(params)
         params["cpu_model"] = env.get("cpu_model")
 
     version_info = {}

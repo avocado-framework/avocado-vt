@@ -26,6 +26,7 @@ import six
 from six.moves import xrange
 
 from virttest import utils_misc
+from virttest import cpu
 from virttest import virt_vm
 from virttest import test_setup
 from virttest import qemu_monitor
@@ -1185,8 +1186,7 @@ class VM(virt_vm.BaseVM):
             # CPU model is 'Penryn' or 'Nehalem'(see detail RHBZ#1252134), and
             # it's harmless for other guest, so add it here.
             if cpu_model in ['Penryn', 'Nehalem']:
-                recognize_flags = utils_misc.get_recognized_cpuid_flags(
-                    qemu_binary)
+                recognize_flags = cpu.get_recognized_cpuid_flags(qemu_binary)
                 if not ('erms' in flags or 'erms' in recognize_flags):
                     cmd += ',+erms'
             if family:
@@ -1854,7 +1854,7 @@ class VM(virt_vm.BaseVM):
         amd_vendor_string = params.get("amd_vendor_string")
         if not amd_vendor_string:
             amd_vendor_string = "AuthenticAMD"
-        if amd_vendor_string == utils_misc.get_cpu_vendor():
+        if amd_vendor_string == cpu.get_cpu_vendor():
             # AMD cpu do not support multi threads.
             if params.get("test_negative_thread", "no") != "yes":
                 vcpu_threads = 1
@@ -1895,7 +1895,7 @@ class VM(virt_vm.BaseVM):
             if numa_mem is not None:
                 numa_total_mem += int(numa_mem)
             if numa_cpus is not None:
-                numa_total_cpus += len(utils_misc.cpu_str_to_list(numa_cpus))
+                numa_total_cpus += len(cpu.cpu_str_to_list(numa_cpus))
             cmdline = add_numa_node(devices, numa_memdev,
                                     numa_mem, numa_cpus, numa_nodeid)
             devices.insert(StrDev('numa', cmdline=cmdline))

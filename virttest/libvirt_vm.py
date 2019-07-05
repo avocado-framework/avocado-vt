@@ -22,6 +22,7 @@ from avocado.core import exceptions
 
 from virttest import error_context
 from virttest import utils_misc
+from virttest import cpu
 from virttest import virt_vm
 from virttest import storage
 from virttest import remote
@@ -2349,7 +2350,7 @@ class VM(virt_vm.BaseVM):
 
     def get_cpu_topology_in_vm(self):
         cpu_topology = {}
-        cpu_info = utils_misc.get_cpu_info(self.wait_for_login())
+        cpu_info = cpu.get_cpu_info(self.wait_for_login())
         if cpu_info:
             cpu_topology['sockets'] = cpu_info['Socket(s)']
             cpu_topology['cores'] = cpu_info['Core(s) per socket']
