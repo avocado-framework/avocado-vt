@@ -18,7 +18,7 @@ class FS(object):
         """
         self.fs = fs
         if not os.path.isfile(self.fs):
-            raise AttributeError("%s is not available: %s" % self.fs)
+            raise AttributeError("%s is not available" % self.fs)
         self.func = process.getstatusoutput
         self.session = session
         if self.session:
@@ -79,7 +79,10 @@ class ProcFS(FS):
 
         :return: String, current value in given proc filesystem
         """
-        return int(self.fs_value)
+        try:
+            return int(self.fs_value)
+        except ValueError:
+            return self.fs_value
 
     @proc_fs_value.setter
     def proc_fs_value(self, value):
@@ -129,7 +132,10 @@ class SysFS(FS):
         output = re.search(self.pattern, self.fs_value)
         if output:
             return str(output.group()).strip()
-        return int(self.fs_value)
+        try:
+            return int(self.fs_value)
+        except ValueError:
+            return self.fs_value
 
     @sys_fs_value.setter
     def sys_fs_value(self, value):
