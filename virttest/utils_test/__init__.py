@@ -52,6 +52,7 @@ from virttest import remote
 from virttest import scan_autotest_results
 from virttest import storage
 from virttest import utils_misc
+from virttest import utils_disk
 from virttest import utils_net
 from virttest import virt_vm
 from virttest import utils_package
@@ -1952,7 +1953,7 @@ class BackgroundTest(object):
 
 
 def get_image_info(image_file):
-    return utils_misc.get_image_info(image_file)
+    return utils_disk.get_image_info(image_file)
 
 
 def ntpdate(service_ip, session=None):
