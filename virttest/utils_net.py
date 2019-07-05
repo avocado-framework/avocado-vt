@@ -13,6 +13,8 @@ import signal
 import netifaces
 import netaddr
 import platform
+import uuid
+import hashlib
 
 import aexpect
 from avocado.core import exceptions
@@ -2379,6 +2381,66 @@ class IPv6Manager(propcan.PropCanBase):
         self.close_session()
 
 
+def ieee_eui_generator(base, mask, start=0, repeat=False):
+    """
+    IEEE extended unique identifier(EUI) generator.
+
+    :param base: The base identifier number.
+    :param mask: The mask to calculate identifiers.
+    :param start: The ordinal number of the first identifier.
+    :param repeat: Whether use repeated identifiers when exhausted.
+
+    :return generator: The target EUI generator.
+    """
+    offset = 0
+    while True:
+        out = base + ((start + offset) & mask)
+        yield out
+        offset += 1
+        if offset > mask:
+            if not repeat:
+                break
+            offset = 0
+
+
+def ieee_eui_assignment(eui_bits):
+    """
+    IEEE EUI assignment.
+
+    :param eui_bits: The number of EUI bits.
+    """
+    def assignment(oui_bits, prefix=0, repeat=False):
+        """
+        The template of assignment.
+
+        :param oui_bits: The number of OUI bits.
+        :param prefix: The prefix of OUI, for example 0x9a.
+        :param repeat: Whether use repeated identifiers when exhausted.
+        """
+        # Using UUID1 combine with `__file__` to avoid getting the same hash
+        data = uuid.uuid1().hex + __file__
+        data = hashlib.sha256(data.encode()).digest()[:(eui_bits // 8)]
+        sample = 0
+        for num in bytearray(data):
+            sample <<= 8
+            sample |= num
+        bits = eui_bits - oui_bits
+        mask = (1 << bits) - 1
+        start = sample & mask
+        base = sample ^ start
+        if prefix > 0:
+            pbits = eui_bits + (-(prefix.bit_length()) // 4) * 4
+            pmask = (1 << pbits) - 1
+            prefix <<= pbits
+            base = prefix | (base & pmask)
+        return ieee_eui_generator(base, mask, start, repeat=repeat)
+    return assignment
+
+
+ieee_eui48_assignment = ieee_eui_assignment(48)
+ieee_eui64_assignment = ieee_eui_assignment(64)
+
+
 class VirtIface(propcan.PropCan, object):
 
     """
@@ -2387,10 +2449,11 @@ class VirtIface(propcan.PropCan, object):
 
     __slots__ = ['nic_name', 'g_nic_name', 'mac', 'nic_model', 'ip',
                  'nettype', 'netdst']
-    # Make sure first byte generated is always zero and it follows
-    # the class definition.  This helps provide more predictable
-    # addressing while avoiding clashes between multiple NICs.
-    LASTBYTE = random.SystemRandom().randint(0x00, 0xff)
+    # Using MA-S assignment here, that means we can have at most 4096 unique
+    # identifiers (MAC addresses) on the same job instance. We may consider
+    # using bigger blocks for large-scale deployment, such as microVM
+    # applications
+    EUI48_ASSIGNMENT = ieee_eui48_assignment(36, repeat=True)
 
     def __getstate__(self):
         state = {}
@@ -2466,15 +2529,30 @@ class VirtIface(propcan.PropCan, object):
                 mac_bytes[byte_index] = "%x" % mac
         return mac_bytes
 
+    @staticmethod
+    def _int_to_int_list(number):
+        """
+        Convert integer to integer list split by byte.
+        """
+        out = []
+        while number > 0:
+            out.insert(0, number & 0xff)
+            number >>= 8
+        if not out:
+            out.append(0)
+        return out
+
     @classmethod
-    def generate_bytes(cls):
+    def _generate_eui48(cls, prefix=None):
         """
-        Return next byte from ring
+        Generate EUI-48.
         """
-        cls.LASTBYTE += 1
-        if cls.LASTBYTE > 0xff:
-            cls.LASTBYTE = 0
-        yield cls.LASTBYTE
+        out = next(cls.EUI48_ASSIGNMENT)
+        out = cls._int_to_int_list(out)
+        if prefix:
+            for idx, num in enumerate(prefix):
+                out[idx] = num
+        return out
 
     @classmethod
     def complete_mac_address(cls, mac):
@@ -2485,11 +2563,11 @@ class VirtIface(propcan.PropCan, object):
         :raise: TypeError if mac is not a string or a list
         """
         mac = cls.mac_str_to_int_list(mac)
-        if len(mac) == 6:
-            return ":".join(cls.int_list_to_mac_str(mac))
-        for rand_byte in cls.generate_bytes():
-            mac.append(rand_byte)
-            return cls.complete_mac_address(cls.int_list_to_mac_str(mac))
+        nr_bytes = len(mac)
+        assert not (nr_bytes > 6)
+        if nr_bytes < 6:
+            mac = cls._generate_eui48(mac)
+        return ":".join(cls.int_list_to_mac_str(mac))
 
 
 class LibvirtIface(VirtIface):
