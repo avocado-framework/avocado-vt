@@ -2129,7 +2129,8 @@ def get_host_cpu_models():
 
     cpu_types = {"AuthenticAMD": ["EPYC", "Opteron_G5", "Opteron_G4",
                                   "Opteron_G3", "Opteron_G2", "Opteron_G1"],
-                 "GenuineIntel": ["KnightsMill",
+                 "GenuineIntel": ["KnightsMill", "Icelake-Server",
+                                  "Icelake-Client", "Cascadelake-Server",
                                   "Skylake-Server", "Skylake-Client",
                                   "Broadwell", "Broadwell-noTSX",
                                   "Haswell", "Haswell-noTSX", "IvyBridge",
@@ -2143,6 +2144,12 @@ def get_host_cpu_models():
                    "Opteron_G2": "cx16",
                    "Opteron_G1": "",
                    "KnightsMill": "avx512_4vnniw,avx512pf,avx512er",
+                   "Icelake-Server": "avx512_vnni,la57,clflushopt",
+                   "Icelake-Client": ("avx512_vpopcntdq|avx512-vpopcntdq,"
+                                      "avx512vbmi,avx512vbmi2|avx512_vbmi2,"
+                                      "gfni,vaes,vpclmulqdq,avx512_vnni"),
+                   "Cascadelake-Server": ("avx512f,avx512dq,avx512bw,avx512cd,"
+                                          "avx512vl,clflushopt,avx512_vnni"),
                    "Skylake-Server": "mpx,avx512f,clwb,xgetbv1,pcid",
                    "Skylake-Client": "mpx,xgetbv1,pcid",
                    "Broadwell": "adx,rdseed,3dnowprefetch,hle",
