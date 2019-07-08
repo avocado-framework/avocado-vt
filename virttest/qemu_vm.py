@@ -1419,7 +1419,9 @@ class VM(virt_vm.BaseVM):
         devices.insert(StrDev('PREFIX', cmdline=cmd))
         # Add the qemu binary
         devices.insert(StrDev('qemu', cmdline=qemu_binary))
-        devices.insert(StrDev('-S', cmdline="-S"))
+        qemu_stop = params.get("qemu_stop", "on")
+        if qemu_stop == "on":
+            devices.insert(StrDev('-S', cmdline="-S"))
         # Add the VM's name
         devices.insert(StrDev('vmname', cmdline=add_name(name)))
 
