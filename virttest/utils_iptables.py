@@ -235,16 +235,19 @@ class Firewall_cmd(object):
         self.command(cmd, **dargs)
         return self.output
 
-    def get(self, key='zones', **dargs):
+    def get(self, key='zones', is_direct=False, **dargs):
         """
         Method to get existing zones/services etc.,
 
         :param key: key to be get from firewall-cmd
+        :param is_direct: True to get with direct option
         :param dargs: Additional arguments for the command
 
         :return: output of the --get-*
         """
         cmd = "--get-%s" % key
+        if is_direct:
+            cmd = "--direct " + cmd
         dargs['firewalld_reload'] = False
         self.command(cmd, **dargs)
         return self.output
@@ -314,4 +317,34 @@ class Firewall_cmd(object):
             cmd = "firewall-cmd --complete-reload"
         self.status, self.output = self.func(cmd)
 
+        return self.status == 0
+
+    def add_direct_rule(self, rule, **dargs):
+        """
+        Method to add direct rule by firewall-cmd
+
+        :param rule: Rule to be added
+        :param dargs: Additional arguments for the command
+
+        :return: True on success, False on failure.
+        """
+        dargs["zone"] = None
+        dargs["firewalld_reload"] = False
+        cmd = "--direct --add-rule %s" % (rule)
+        self.command(cmd, **dargs)
+        return self.status == 0
+
+    def remove_direct_rule(self, rule, **dargs):
+        """
+        Method to remove direct rule by firewall-cmd
+
+        :param rule: Rule to be removed
+        :param dargs: Additional arguments for the command
+
+        :return: True on success, False on failure.
+        """
+        dargs["zone"] = None
+        dargs["firewalld_reload"] = False
+        cmd = "--direct --remove-rule %s" % (rule)
+        self.command(cmd, **dargs)
         return self.status == 0
