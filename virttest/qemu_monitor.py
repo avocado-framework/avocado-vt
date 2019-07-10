@@ -177,6 +177,15 @@ def wait_for_create_monitor(vm, monitor_name, monitor_params, timeout):
         raise MonitorConnectError(monitor_name)
 
 
+def get_monitor_function(vm, cmd):
+    """
+    Get support function by function name
+    """
+    cmd = vm.monitor.get_workable_cmd(cmd)
+    func_name = cmd.replace("-", "_")
+    return getattr(vm.monitor, func_name)
+
+
 class VM(object):
     """
     Dummy class to represent "vm.name" for pickling to avoid circular deps
@@ -374,7 +383,7 @@ class Monitor:
         finally:
             self._log_lock.release()
 
-    def correct(self, cmd):
+    def get_workable_cmd(self, cmd):
         """
         Automatic conversion "-" and "_" in commands if the translate command
         is supported commands;
@@ -383,9 +392,14 @@ class Monitor:
         def translate(cmd):
             return "-".join(re.split("[_-]", cmd))
 
+        found = False
         if not self._has_command(cmd):
             for _cmd in self._supported_cmds:
                 if translate(_cmd) == translate(cmd):
+                    found = True
+                elif translate(_cmd) == translate("x-%s" % cmd):
+                    found = True
+                if found:
                     logging.info("Convert command %s -> %s", cmd, _cmd)
                     return _cmd
         return cmd
@@ -968,7 +982,7 @@ class HumanMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         cmd += " %s" % device
         if speed is not None:
@@ -992,7 +1006,7 @@ class HumanMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         cmd += " %s" % device
         if speed:
@@ -1015,7 +1029,7 @@ class HumanMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         cmd += " %s %sB" % (device, speed)
         return self.cmd(cmd)
@@ -1030,7 +1044,7 @@ class HumanMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         cmd += " %s" % device
         return self.send_args_cmd(cmd)
@@ -1045,7 +1059,7 @@ class HumanMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         cmd += " %s" % device
         return self.send_args_cmd(cmd)
@@ -1060,10 +1074,79 @@ class HumanMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         cmd += " %s" % device
         return self.send_args_cmd(cmd)
+
+    def job_dismiss(self, identifier):
+        """Dismiss a block job"""
+        raise NotImplementedError
+
+    def blockdev_create(self, job_id, options):
+        """
+        Create block device image file by qemu
+
+        :param kwargs: dictionary containing required parameters
+        :return: block job ID
+        :rtype: string
+        """
+        raise NotImplementedError
+
+    def blockdev_backup(self, options):
+        """
+        Backup block device via QMP command blockdev-backup
+
+        :param kwargs: dictionary containing required parameters
+        :return: block job ID
+        :rtype: string
+        """
+        raise NotImplementedError
+
+    def debug_block_dirty_bitmap_sha256(self, node, bitmap):
+        """
+        get sha256 of bitmap
+
+        :param string node: node name
+        :param string bitmap: bitmap name
+        """
+        raise NotImplementedError
+
+    def x_debug_block_dirty_bitmap_sha256(self, node, bitmap):
+        """
+        get sha256 of bitmap
+
+        :param string node: node name
+        :param string bitmap: bitmap name
+        """
+        raise NotImplementedError
+
+    def block_dirty_bitmap_merge(self, node, src_bitmaps, dst_bitmap):
+        """
+        Merge source bitmaps into target bitmap in node
+
+        :param node: device ID or node-name
+        :param src_bitmaps: source bitmap list
+        :param dst_bitmap: target bitmap name
+        """
+        raise NotImplementedError
+
+    def x_block_dirty_bitmap_merge(self, node, src_bitmap, dst_bitmap):
+        """
+        Merge source bitmaps to target bitmap for given node
+
+        :param string node: block device node name
+        :parma list src_bitmaps: list of source bitmaps
+        :param string dst_bitmap: target bitmap name
+        :raise: MonitorNotSupportedCmdError if 'block-dirty-bitmap-mege' and
+                'x-block-dirty-bitmap-mege' commands not supported by QMP
+                monitor.
+        """
+        raise NotImplementedError
+
+    def query_named_block_nodes(self):
+        """Query named block nodes info"""
+        raise NotImplementedError
 
     def query_block_job(self, device):
         """
@@ -1089,6 +1172,10 @@ class HumanMonitor(Monitor):
                 job["speed"] = int(re.findall("\d+", output)[-1])
                 break
         return job
+
+    def query_jobs(self):
+        """Query block job info """
+        return self.query("jobs")
 
     def get_backingfile(self, device):
         """
@@ -1127,11 +1214,12 @@ class HumanMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         args = " %s %s %s" % (device, target, kwargs.get("format", "qcow2"))
         info = str(self.cmd("help %s" % cmd))
-        if (kwargs.get("mode", "absolute-paths") == "existing") and "-n" in info:
+        if (kwargs.get("mode", "absolute-paths")
+                == "existing") and "-n" in info:
             args = "-n %s" % args
         if (sync == "full") and "-f" in info:
             args = "-f %s" % args
@@ -1154,7 +1242,7 @@ class HumanMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         args = "%s" % device
         info = str(self.cmd("help %s" % cmd))
@@ -1163,7 +1251,8 @@ class HumanMonitor(Monitor):
         cmd = "%s %s" % (cmd, args)
         return self.cmd(cmd)
 
-    def migrate(self, uri, full_copy=False, incremental_copy=False, wait=False):
+    def migrate(self, uri, full_copy=False,
+                incremental_copy=False, wait=False):
         """
         Migrate.
 
@@ -2046,7 +2135,8 @@ class QMPMonitor(Monitor):
         """
         return self.human_monitor_cmd("sendkey %s %s" % (keystr, hold_time))
 
-    def migrate(self, uri, full_copy=False, incremental_copy=False, wait=False):
+    def migrate(self, uri, full_copy=False,
+                incremental_copy=False, wait=False):
         """
         Migrate.
 
@@ -2139,7 +2229,7 @@ class QMPMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         args = {"device": device}
         if speed is not None:
@@ -2164,7 +2254,7 @@ class QMPMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         args = {"device": device}
         if speed:
@@ -2187,7 +2277,7 @@ class QMPMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         args = {"device": device,
                 "speed": speed}
@@ -2203,7 +2293,7 @@ class QMPMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         args = {"device": device}
         return self.cmd(cmd, args)
@@ -2218,7 +2308,7 @@ class QMPMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         args = {"device": device}
         return self.cmd(cmd, args)
@@ -2233,7 +2323,7 @@ class QMPMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         args = {"device": device}
         return self.cmd(cmd, args)
@@ -2253,6 +2343,16 @@ class QMPMonitor(Monitor):
         except Exception:
             job = dict()
         return job
+
+    def query_jobs(self):
+        """Query block job info """
+        return self.query("jobs")
+
+    def query_named_block_nodes(self):
+        """Query named block nodes info"""
+        cmd = "query-named-block-nodes"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd)
 
     def get_backingfile(self, device):
         """
@@ -2297,7 +2397,7 @@ class QMPMonitor(Monitor):
         :return: The command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         args = {"device": device,
                 "target": target}
@@ -2322,7 +2422,7 @@ class QMPMonitor(Monitor):
         :return: the command's output
         """
         if correct:
-            cmd = self.correct(cmd)
+            cmd = self.get_workable_cmd(cmd)
         self.verify_supported_cmd(cmd)
         args = {"device": device}
         if cmd.startswith("__"):
@@ -2508,6 +2608,19 @@ class QMPMonitor(Monitor):
             args["read-only-mode"] = mode
         return self.cmd(cmd, args)
 
+    def blockdev_create(self, job_id, options):
+        """
+        Create block device image file by qemu
+
+        :param kwargs: dictionary containing required parameters
+        :return: block job ID
+        :rtype: string
+        """
+        cmd = "blockdev-create"
+        self.verify_supported_cmd(cmd)
+        arguments = {"job-id": job_id, "options": options}
+        return self.cmd(cmd, arguments)
+
     def blockdev_add(self, props):
         """
         Creates a new block device.
@@ -2535,6 +2648,24 @@ class QMPMonitor(Monitor):
         self.verify_supported_cmd(cmd)
         args = {"node-name": node_name}
         return self.cmd(cmd, args)
+
+    def blockdev_backup(self, options):
+        """
+        Backup block device via QMP command blockdev-backup
+
+        :param kwargs: dictionary containing required parameters
+        :return: block job ID
+        :rtype: string
+        """
+        cmd = "blockdev-backup"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd, options)
+
+    def job_dismiss(self, identifier):
+        """Dismiss a block job"""
+        cmd = "job-dismiss"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd, {"id": identifier})
 
     def qom_set(self, path, qproperty, qvalue):
         """
@@ -2739,18 +2870,20 @@ class QMPMonitor(Monitor):
         :param name: name of the dirty bitmap to operate
         :param granularity: granularity to track writes with
         """
-        return self._operate_dirty_bitmap(operation, node, name,
+        cmd = "block-dirty-bitmap-%s" % operation
+        if not self._has_command(cmd):
+            cmd += "x-"
+        return self._operate_dirty_bitmap(cmd, node, name,
                                           granularity=granularity)
 
-    def _operate_dirty_bitmap(self, operation, node, name, **kargs):
+    def _operate_dirty_bitmap(self, cmd, node, name, **kargs):
         """
         Operate dirty bitmap.
 
-        :param operation: operations to bitmap
+        :param cmd: command to operate bitmap
         :param node: device node
         :param name: name of the dirty bitmap to operate
         """
-        cmd = "block-dirty-bitmap-%s" % operation
         self.verify_supported_cmd(cmd)
         args = {"node": node, "name": name}
         args.update(self._build_args(**kargs))
@@ -2767,33 +2900,113 @@ class QMPMonitor(Monitor):
         :param granularity: segment size
         :param persistent: persistent through QEMU shutdown
         """
-        return self._operate_dirty_bitmap("add", node, name, disabled=disabled,
-                                          granularity=granularity,
-                                          persistent=persistent)
+        kwargs = {"granularity": granularity,
+                  "disabled": disabled,
+                  "persistent": persistent}
+        cmd = "block-dirty-bitmap-add"
+        try:
+            return self._operate_dirty_bitmap(cmd, node, name, **kwargs)
+        except QMPCmdError as e:
+            if "'disabled' is unexpected" in str(e):
+                kwargs["x-disabled"] = kwargs.pop("disabled")
+            else:
+                raise e
+        return self._operate_dirty_bitmap(cmd, node, name, **kwargs)
 
     def block_dirty_bitmap_remove(self, node, name):
         """
         Remove a dirty bitmap.
         """
-        return self._operate_dirty_bitmap("remove", node, name)
+        cmd = "block-dirty-bitmap-remove"
+        return self._operate_dirty_bitmap(cmd, node, name)
 
     def block_dirty_bitmap_clear(self, node, name):
         """
         Reset a dirty bitmap.
         """
-        return self._operate_dirty_bitmap("clear", node, name)
+        cmd = "block-dirty-bitmap-clear"
+        return self._operate_dirty_bitmap(cmd, node, name)
+
+    def block_dirty_bitmap_merge(self, node, src_bitmaps, dst_bitmap):
+        """
+        Merge source bitmaps into target bitmap in node
+
+        :param node: device ID or node-name
+        :param src_bitmaps: source bitmap list
+        :param dst_bitmap: target bitmap name
+        """
+        cmd = "block-dirty-bitmap-merge"
+        self.verify_supported_cmd(cmd)
+        args = {"node": node, "bitmaps": src_bitmaps, "target": dst_bitmap}
+        return self.cmd(cmd, args)
+
+    def x_block_dirty_bitmap_merge(self, node, src_bitmap, dst_bitmap):
+        """
+        Merge source bitmaps to target bitmap for given node
+
+        :param string node: block device node name
+        :parma list src_bitmaps: list of source bitmaps
+        :param string dst_bitmap: target bitmap name
+        :raise: MonitorNotSupportedCmdError if 'block-dirty-bitmap-mege' and
+                'x-block-dirty-bitmap-mege' commands not supported by QMP
+                monitor.
+        """
+        cmd = "x-block-dirty-bitmap-merge"
+        self.verify_supported_cmd(cmd)
+        args = {"node": node, "src_name": src_bitmap, "dst_name": dst_bitmap}
+        return self.cmd(cmd, args)
 
     def block_dirty_bitmap_enable(self, node, name):
         """
         Enable a dirty bitmap.
         """
-        return self._operate_dirty_bitmap("enable", node, name)
+        cmd = "block-dirty-bitmap-enable"
+        return self._operate_dirty_bitmap(cmd, node, name)
+
+    def x_block_dirty_bitmap_enable(self, node, name):
+        """
+        Enable a dirty bitmap.
+        """
+        cmd = "x-block-dirty-bitmap-enable"
+        return self._operate_dirty_bitmap(cmd, node, name)
 
     def block_dirty_bitmap_disable(self, node, name):
         """
         Disable a dirty bitmap.
         """
-        return self._operate_dirty_bitmap("disable", node, name)
+        cmd = "block-dirty-bitmap-disable"
+        return self._operate_dirty_bitmap(cmd, node, name)
+
+    def x_block_dirty_bitmap_disable(self, node, name):
+        """
+        Disable a dirty bitmap.
+        """
+        cmd = "x-block-dirty-bitmap-disable"
+        return self._operate_dirty_bitmap(cmd, node, name)
+
+    def debug_block_dirty_bitmap_sha256(self, node, bitmap):
+        """
+        get sha256 of bitmap
+
+        :param string node: node name
+        :param string bitmap: bitmap name
+        """
+        cmd = "debug-block-dirty-bitmap-sha256"
+        self.verify_supported_cmd(cmd)
+        args = {"node": node, "name": bitmap}
+        return self.cmd(cmd, args)
+
+    def x_debug_block_dirty_bitmap_sha256(self, node, bitmap):
+        """
+        get sha256 of bitmap
+
+        :param string node: node name
+        :param string bitmap: bitmap name
+        """
+        cmd = "x-debug-block-dirty-bitmap-sha256"
+        self.verify_supported_cmd(cmd)
+        args = {"node": node, "name": bitmap}
+        return self.cmd(cmd, args)
 
     def drive_backup(self, device, target, format, sync, speed=0,
                      mode='absolute-paths', bitmap=''):
