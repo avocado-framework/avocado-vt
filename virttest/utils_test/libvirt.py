@@ -1631,7 +1631,7 @@ class MigrationTest(object):
         """
         def check_state():
             try:
-                return self.check_vm_state(dest_vm_name, state, uri)
+                return self.check_vm_state(dest_vm_name, state, uri=uri)
             except Exception:
                 return False
 
