@@ -156,7 +156,21 @@ def send(connect, filename, p_size=1024):
         print("Sent size = %s" % send_size)
         file_no.close()
     md5_sum = md5_value.hexdigest()
+    wait_receive_ack(connect)
     return md5_sum
+
+
+def wait_receive_ack(connect):
+    exp_str = b'ALLRECEIVED'
+    exp_size = len(exp_str)
+    r_str = b''
+    r_size = 0
+    while r_size < exp_size:
+        txt = connect.recv(exp_size)
+        r_size += len(txt)
+        r_str += txt
+    if struct.unpack("11s", txt)[0] != exp_str:
+        raise ShakeHandError("Not get Received ACK from guest.")
 
 
 def main():

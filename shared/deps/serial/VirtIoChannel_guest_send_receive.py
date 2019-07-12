@@ -51,6 +51,7 @@ class VirtIoChannel:
         self.ack_msg = b"ACK"
         self.hi_format = "2s"
         self.hi_msg = "HI"
+        self.recv_msg = b'ALLRECEIVED'
         if self.is_windows:
             vport_name = '\\\\.\\Global\\' + device_name
             from windows_support import WinBufferedReadFile
@@ -182,6 +183,7 @@ def receive(device, filename, p_size=1024):
             md5_value.update(txt)
             file_no.write(txt)
             recv_size += len(txt)
+        vio.send(vio.recv_msg)
     finally:
         file_no.close()
         if vio:
