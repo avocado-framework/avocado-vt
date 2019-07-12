@@ -44,6 +44,7 @@ from virttest import utils_test
 from virttest import utils_iptables
 from virttest.utils_version import VersionInterval
 from virttest.compat_52lts import decode_to_text
+from virttest.staging import service
 
 try:
     import PIL.Image
@@ -834,14 +835,14 @@ def preprocess(test, params, env):
 
     firewalld_service = params.get('firewalld_service')
     if firewalld_service == 'disable':
-        firewalld = utils_iptables.Firewalld()
+        firewalld = service.Service("firewalld")
         if firewalld.status():
             firewalld.stop()
             if firewalld.status():
                 test.log.warning('Failed to stop firewalld')
     else:
         if firewalld_service == 'enable':
-            firewalld = utils_iptables.Firewalld()
+            firewalld = service.Service("firewalld")
             if not firewalld.status():
                 firewalld.start()
                 if not firewalld.status():
