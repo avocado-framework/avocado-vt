@@ -98,19 +98,19 @@ def shake_hand(connect, size=0, action="receive"):
         connect.send(hi_str)
         txt = connect.recv(hi_str_len)
         hi_str = struct.unpack("2s", txt)[0]
-        if hi_str != "HI":
+        if hi_str != b"HI":
             raise ShakeHandError("Fail to get HI from guest.")
         size_str = struct.pack("q", size)
         connect.send(size_str)
         txt = connect.recv(3)
         ack_str = struct.unpack("3s", txt)[0]
-        if ack_str != "ACK":
+        if ack_str != b"ACK":
             raise ShakeHandError("Guest did not ACK the file size message.")
         return size
     elif action == "receive":
         txt = connect.recv(hi_str_len)
         hi_str = struct.unpack("2s", txt)[0]
-        if hi_str != "HI":
+        if hi_str != b"HI":
             raise ShakeHandError("Fail to get HI from guest.")
         connect.send(hi_str)
         size = connect.recv(8)

@@ -50,7 +50,7 @@ class VirtIoChannel:
         self.ack_format = "3s"
         self.ack_msg = b"ACK"
         self.hi_format = "2s"
-        self.hi_msg = "HI"
+        self.hi_msg = b"HI"
         self.recv_msg = b'ALLRECEIVED'
         if self.is_windows:
             vport_name = '\\\\.\\Global\\' + device_name
@@ -86,7 +86,7 @@ class VirtIoChannel:
             self.send(self.hi_msg)
             txt = self.receive(hi_msg_len)
             out = struct.unpack(self.hi_format, txt)[0]
-            if out != "HI":
+            if out != b"HI":
                 raise ShakeHandError("Fail to get HI from host.")
             size_s = struct.pack("q", size)
             self.send(size_s)
@@ -96,7 +96,7 @@ class VirtIoChannel:
                 raise ShakeHandError("Host didn't ACK the file size message.")
             return size
         elif action == "receive":
-            txt = ''
+            txt = b''
             while len(txt) < hi_msg_len:
                 txt += self.receive(hi_msg_len)
             hi_str = struct.unpack(self.hi_format, txt)[0]
