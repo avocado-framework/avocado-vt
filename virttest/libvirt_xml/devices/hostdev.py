@@ -10,8 +10,8 @@ from virttest.libvirt_xml import accessors
 class Hostdev(base.TypedDeviceBase):
 
     __slots__ = ('type', 'mode', 'managed', 'sgio', 'rawio',
-                 'source', 'boot_order', 'readonly', 'shareable'
-                 )
+                 'source', 'boot_order', 'readonly', 'shareable',
+                 'alias')
 
     def __init__(self, type_name="hostdev", virsh_instance=base.base.virsh):
         accessors.XMLAttribute('type', self, parent_xpath='/',
@@ -34,6 +34,8 @@ class Hostdev(base.TypedDeviceBase):
                                  tag_name='readonly')
         accessors.XMLElementBool('shareable', self, parent_xpath='/',
                                  tag_name='shareable')
+        accessors.XMLElementDict('alias', self, parent_xpath='/',
+                                 tag_name='alias')
         super(self.__class__, self).__init__(device_tag='hostdev',
                                              type_name=type_name,
                                              virsh_instance=virsh_instance)
@@ -45,6 +47,8 @@ class Hostdev(base.TypedDeviceBase):
         elif self.type == 'usb':
             new_one.vendor_id = dargs.pop("vendor_id", None)
             new_one.product_id = dargs.pop("product_id", None)
+            new_one.address_bus = dargs.pop("address_bus", None)
+            new_one.address_device = dargs.pop("address_device", None)
         elif self.type == 'scsi':
             if dargs.get("adapter_name"):
                 new_one.adapter_name = dargs.pop("adapter_name")
@@ -73,7 +77,8 @@ class Hostdev(base.TypedDeviceBase):
 
         __slots__ = ('untyped_address', 'vendor_id', 'product_id',
                      'adapter_name', 'protocol', 'source_name',
-                     'host_name', 'host_port', 'auth')
+                     'host_name', 'host_port', 'auth', 'address_bus',
+                     'address_device')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLAttribute('vendor_id', self, parent_xpath='/',
@@ -94,6 +99,10 @@ class Hostdev(base.TypedDeviceBase):
                                    tag_name='host', attribute='name')
             accessors.XMLAttribute('host_port', self, parent_xpath='/',
                                    tag_name='host', attribute='port')
+            accessors.XMLAttribute('address_bus', self, parent_xpath='/',
+                                   tag_name='address', attribute='bus')
+            accessors.XMLAttribute('address_device', self, parent_xpath='/',
+                                   tag_name='address', attribute='device')
             accessors.XMLElementNest('auth', self, parent_xpath='/',
                                      tag_name='auth', subclass=self.Auth,
                                      subclass_dargs={
