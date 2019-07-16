@@ -774,12 +774,12 @@ class WindowsVMCheck(VMCheck):
         while count > 0:
             logging.debug('%d times remaining for getting driver info' % count)
             try:
+                # Clean up output
+                self.session.cmd('cls')
                 output = self.session.cmd_output(cmd)
             except Exception as detail:
                 logging.error(detail)
                 count -= 1
-                # Clean up output
-                self.session.cmd('cls')
             else:
                 break
         if not output:
