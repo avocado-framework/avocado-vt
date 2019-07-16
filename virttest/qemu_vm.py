@@ -1563,13 +1563,16 @@ class VM(virt_vm.BaseVM):
             if serial_type.startswith('virt'):
                 if backend == "spicevmc":
                     serial_filename = 'dev%s' % serial
+                if backend in ['udp', 'tcp_socket']:
+                    serial_filename = (serial_params['chardev_host'],
+                                       serial_params['chardev_port'])
                 port_name = serial_devices[-1].get_param('name')
                 if "console" in serial_type:
                     self.virtio_ports.append(qemu_virtio_port.VirtioConsole(
-                        serial, port_name, serial_filename))
+                        serial, port_name, serial_filename, backend))
                 else:
                     self.virtio_ports.append(qemu_virtio_port.VirtioSerial(
-                        serial, port_name, serial_filename))
+                        serial, port_name, serial_filename, backend))
 
         # Add virtio-rng devices
         for virtio_rng in params.objects("virtio_rngs"):
