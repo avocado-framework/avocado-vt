@@ -81,6 +81,16 @@ def add_basic_vt_options(parser):
                         dest="vt_only_filter", default="", help="List of space"
                         " separated 'only' filters to be passed to the config "
                         "parser.  Default: '%(default)s'")
+    parser.add_argument("--vt-filter-default-filters", nargs='+',
+                        help="Allows to selectively skip certain default "
+                        "filters. This uses directly 'tests-shared.cfg' and "
+                        "instead of '$provider/tests.cfg' and applies "
+                        "following lists of default filters, unless they are "
+                        "specified as arguments: no_9p_export,no_virtio_rng,"
+                        "no_pci_assignable,smallpages,default_bios,bridge,"
+                        "image_backend,multihost. This can be used to eg. "
+                        "run hugepages tests by filtering 'smallpages' via "
+                        "this option.")
 
 
 def add_qemu_bin_vt_option(parser):
