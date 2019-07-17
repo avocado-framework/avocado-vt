@@ -215,7 +215,10 @@ class Monitor:
         self._passfd = None
         self._supported_cmds = []
         self.debug_log = False
-        self.log_file = "%s-%s.log" % (name, vm.name)
+        vm_pid = vm.get_pid()
+        if vm_pid is None:
+            vm_pid = 'unknown'
+        self.log_file = "%s-%s-pid-%s.log" % (name, vm.name, vm_pid)
         self.open_log_files = {}
 
         try:
