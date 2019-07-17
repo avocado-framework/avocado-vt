@@ -353,7 +353,7 @@ class NFSClient(object):
         except process.CmdError:
             raise exceptions.TestFail("Failed to run: %s" % umount_cmd)
 
-    def cleanup(self, ssh_auto_recover=True):
+    def cleanup(self, ssh_auto_recover=False):
         """
         Cleanup NFS client.
         """
@@ -369,8 +369,9 @@ class NFSClient(object):
             raise exceptions.TestFail("Failed to umount %s" % self.mount_dir)
 
         # Recover SSH connection
-        self.ssh_obj.auto_recover = ssh_auto_recover
-        del self.ssh_obj
+        if ssh_auto_recover:
+            self.ssh_obj.auto_recover = ssh_auto_recover
+            del self.ssh_obj
 
     def firewall_to_permit_nfs(self):
         """
