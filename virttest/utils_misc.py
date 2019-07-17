@@ -3941,6 +3941,7 @@ class SELinuxBoolean(object):
         self.server_ip = params.get("server_ip", None)
         self.ssh_user = params.get("server_user", "root")
         self.ssh_cmd = "ssh %s@%s " % (self.ssh_user, self.server_ip)
+        self.ssh_obj = None
         if self.server_ip:
             # Setup SSH connection
             from virttest.utils_conn import SSHConnection
@@ -4009,11 +4010,10 @@ class SELinuxBoolean(object):
         else:
             self.cleanup_remote = False
 
-    def cleanup(self, keep_authorized_keys=False):
+    def cleanup(self, keep_authorized_keys=False, auto_recover=False):
         """
         Cleanup SELinux boolean value.
         """
-        self.ssh_obj.auto_recover = True
 
         # Recover local SELinux boolean value
         if self.cleanup_local and not self.selinux_disabled:
@@ -4031,8 +4031,10 @@ class SELinuxBoolean(object):
                 raise exceptions.TestError(results_stderr_52lts(result).strip())
 
         # Recover SSH connection
-        if self.ssh_obj.auto_recover and not keep_authorized_keys:
-            del self.ssh_obj
+        if self.ssh_obj:
+            self.ssh_obj.auto_recover = auto_recover
+            if self.ssh_obj.auto_recover and not keep_authorized_keys:
+                del self.ssh_obj
 
     def setup_local(self):
         """
