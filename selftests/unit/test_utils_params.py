@@ -105,14 +105,18 @@ class TestParams(unittest.TestCase):
     def testGetNumeric(self):
         self.params["something"] = "7"
         self.params["foobar"] = 11
-        self.params["barsome"] = 13.0
+        self.params["barsome"] = 13.17
         self.assertEqual(7, self.params.get_numeric('something'))
+        self.assertEqual(7, self.params.get_numeric('something'), int)
+        self.assertEqual(7.0, self.params.get_numeric('something'), float)
         self.assertEqual(11, self.params.get_numeric('foobar'))
+        self.assertEqual(11, self.params.get_numeric('something'), int)
         self.assertEqual(11.0, self.params.get_numeric('foobar'), float)
         self.assertEqual(13, self.params.get_numeric('barsome'))
-        self.assertEqual(13.0, self.params.get_numeric('barsome'), float)
+        self.assertEqual(13, self.params.get_numeric('barsome'), int)
+        self.assertEqual(13.17, self.params.get_numeric('barsome'), float)
         self.assertEqual(17, self.params.get_numeric('joke', 17))
-        self.assertEqual(17.0, self.params.get_numeric('joke', 17), float)
+        self.assertEqual(17.13, self.params.get_numeric('joke', 17.13), float)
 
     def testGetList(self):
         self.params["primes"] = "7 11 13 17"
