@@ -1899,22 +1899,23 @@ class LibvirtPolkitConfig(object):
         self.polkit_rules_path = "/etc/polkit-1/rules.d/"
         self.polkit_rules_path += "500-libvirt-acl-virttest.rules"
         self.polkit_name = "polkit"
+        self.params = params
         distro_obj = distro.detect()
         # For ubuntu polkitd have to be used
         if distro_obj.name.lower().strip() == 'ubuntu':
             self.polkit_name = "polkitd"
         self.polkitd = service.Factory.create_service(self.polkit_name)
 
-        if params.get("action_id"):
-            self.action_id = params.get("action_id").split()
+        if self.params.get("action_id"):
+            self.action_id = self.params.get("action_id").split()
         else:
             self.action_id = []
-        self.user = params.get("unprivileged_user")
-        if params.get("action_lookup"):
+        self.user = self.params.get("unprivileged_user")
+        if self.params.get("action_lookup"):
             # The action_lookup string should be separated by space and
             # each separated string should have ':' which represent key:value
             # for later use.
-            self.attr = params.get("action_lookup").split()
+            self.attr = self.params.get("action_lookup").split()
         else:
             self.attr = []
 
@@ -2042,12 +2043,14 @@ class LibvirtPolkitConfig(object):
         # Use 'testacl' if unprivileged_user in cfg contains string 'EXAMPLE',
         # and if user 'testacl' is not exist on host, create it for test.
         if self.user.count('EXAMPLE'):
-            cmd = "id testacl"
-            if process.system(cmd, ignore_status=True):
-                logging.debug("Create new user 'testacl' on host.")
-                cmd = "useradd testacl"
-                process.system(cmd, ignore_status=True)
             self.user = 'testacl'
+
+        cmd = "id %s" % self.user
+        if process.system(cmd, ignore_status=True):
+            self.params['add_polkit_user'] = 'yes'
+            logging.debug("Create new user '%s' on host." % self.user)
+            cmd = "useradd %s" % self.user
+            process.system(cmd, ignore_status=True)
         self._set_polkit_conf()
         # Polkit rule will take about 1 second to take effect after change.
         # Restart polkit daemon will force it immediately.
@@ -2063,9 +2066,12 @@ class LibvirtPolkitConfig(object):
             if os.path.exists(self.libvirtd_backup_path):
                 os.rename(self.libvirtd_backup_path, self.libvirtd_path)
             if self.user.count('EXAMPLE'):
-                logging.debug("Delete the created user 'testacl'.")
-                cmd = "userdel -r testacl"
+                self.user = 'testacl'
+            if self.params.get('add_polkit_user'):
+                logging.debug("Delete the created user '%s'." % self.user)
+                cmd = "userdel -r %s" % self.user
                 process.system(cmd, ignore_status=True)
+                del self.params['add_polkit_user']
         except Exception:
             raise PolkitConfigCleanupError("Failed to cleanup polkit config.")
 
