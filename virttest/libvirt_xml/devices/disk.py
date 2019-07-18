@@ -71,7 +71,7 @@ class Disk(base.TypedDeviceBase):
                  'address', 'boot', 'readonly', 'transient', 'share',
                  'mirror', 'ready', 'iotune', 'source', 'blockio', 'geometry',
                  'wwn', 'serial', 'vendor', 'product', 'encryption', 'auth',
-                 'reservations')
+                 'reservations', 'backingstore')
 
     def __init__(self, type_name='file', virsh_instance=base.base.virsh):
         accessors.XMLAttribute('device', self, parent_xpath='/',
@@ -136,6 +136,11 @@ class Disk(base.TypedDeviceBase):
         accessors.XMLElementNest('reservations', self, parent_xpath='/',
                                  tag_name='reservations',
                                  subclass=Disk.Reservations,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
+        accessors.XMLElementNest('backingstore', self, parent_xpath='/',
+                                 tag_name='backingStore',
+                                 subclass=self.BackingStore,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
         super(Disk, self).__init__(device_tag='disk', type_name=type_name,
@@ -409,3 +414,86 @@ class Disk(base.TypedDeviceBase):
                                    tag_name='source', attribute='mode')
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<reservations/>'
+
+    class BackingStore(base.base.LibvirtXMLBase):
+        """
+        BakingStore of disk device XML class
+
+        type:
+            string, attribute of backingStore tag
+        index:
+            string, attribute of backingStore tag
+        format:
+            dict, key-attribute of backingStore tag
+        source:
+            nested xml of backingStore tag
+        """
+        __slots__ = ('type', 'index', 'format', 'source')
+
+        def __init__(self, virsh_instance=base.base.virsh):
+            accessors.XMLAttribute('type', self,
+                                   parent_xpath='/',
+                                   tag_name='backingStore',
+                                   attribute='type')
+            accessors.XMLAttribute('index', self,
+                                   parent_xpath='/',
+                                   tag_name='backingStore',
+                                   attribute='index')
+            accessors.XMLElementDict('format', self,
+                                     parent_xpath='/',
+                                     tag_name='format')
+            accessors.XMLElementNest('source', self,
+                                     parent_xpath='/',
+                                     tag_name='source',
+                                     subclass=self.Source,
+                                     subclass_dargs={
+                                         'virsh_instance': virsh_instance})
+
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            self.xml = '<backingStore><backingStore/></backingStore>'
+
+        def new_source(self, **dargs):
+            """
+            Create new source for backingstore
+
+            """
+            new_one = self.Source(virsh_instance=self.virsh)
+            for key, value in list(dargs.items()):
+                setattr(new_one, key, value)
+            return new_one
+
+        class Source(base.base.LibvirtXMLBase):
+            """
+            Source of backingstore xml class
+
+            dev:
+                string, attribute of backingStore/source tag
+            protocal:
+                string, attribute of backingStore/source tag
+            name:
+                string, attribute of backingStore/source tag
+            host:
+                dict, nested xml of backingStore/source tag
+            """
+
+            __slots__ = ('dev', 'protocol', 'name', 'host')
+
+            def __init__(self, virsh_instance=base.base.virsh):
+                accessors.XMLAttribute('dev', self,
+                                       parent_xpath='/',
+                                       tag_name='source',
+                                       attribute='dev')
+                accessors.XMLAttribute('protocol', self,
+                                       parent_xpath='/',
+                                       tag_name='source',
+                                       attribute='protocol')
+                accessors.XMLAttribute('name', self,
+                                       parent_xpath='/',
+                                       tag_name='source',
+                                       attribute='name')
+                accessors.XMLElementDict('host', self,
+                                         parent_xpath='/',
+                                         tag_name='host')
+
+                super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+                self.xml = '<source/>'
