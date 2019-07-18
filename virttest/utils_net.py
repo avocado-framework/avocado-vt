@@ -1050,15 +1050,15 @@ class Bridge(object):
         result = dict()
         for br_iface in os.listdir(sysfs_path):
             br_iface_path = os.path.join(sysfs_path, br_iface)
-            if os.path.isdir(br_iface_path):
-                try:
-                    if "bridge" not in os.listdir(br_iface_path):
-                        continue
-                except OSError as e:
-                    if e.errno == errno.ENOENT:
-                        continue
-                    else:
-                        raise e
+            try:
+                if (not os.path.isdir(br_iface_path) or
+                        "bridge" not in os.listdir(br_iface_path)):
+                    continue
+            except OSError as e:
+                if e.errno == errno.ENOENT:
+                    continue
+                else:
+                    raise e
 
             result[br_iface] = dict()
             # Get stp_state
@@ -1132,10 +1132,6 @@ class Bridge(object):
         """
         try:
             self._br_ioctl(arch.SIOCBRDELIF, brname, ifname)
-            if utils_misc.wait_for(lambda: ifname in self.list_iface(brname),
-                                   timeout=5, first=0.5):
-                logging.warning("Failed to delete %s from %s" % (ifname,
-                                                                 brname))
         except IOError as details:
             raise BRDelIfError(ifname, brname, details)
 
