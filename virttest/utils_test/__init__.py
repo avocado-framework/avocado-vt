@@ -867,7 +867,7 @@ def session_handler(func):
                 self.session = self.get_session()
             return func(self)
         finally:
-            if self.vm or self.remote_host:
+            if (self.vm or self.remote_host) and self.session:
                 self.session.close()
     return manage_session
 
