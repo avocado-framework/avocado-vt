@@ -207,6 +207,36 @@ def preprocess_vm(test, params, env, name):
                           migration_mode=params.get("migration_mode"),
                           migration_fd=params.get("migration_fd"),
                           migration_exec_cmd=params.get("migration_exec_cmd_dst"))
+
+        # Update kernel param
+        kernel_extra_params_add = params.get("kernel_extra_params_add", "")
+        kernel_extra_params_remove = params.get("kernel_extra_params_remove", "")
+        if params.get("disable_pci_msi"):
+            disable_pci_msi = params.get("disable_pci_msi")
+            if disable_pci_msi == "yes":
+                if "pci=" in kernel_extra_params_add:
+                    kernel_extra_params_add = re.sub("pci=.*?\s+", "pci=nomsi ",
+                                                     kernel_extra_params_add)
+                else:
+                    kernel_extra_params_add += " pci=nomsi"
+                params["ker_remove_similar_pci"] = "yes"
+            else:
+                kernel_extra_params_remove += " pci=nomsi"
+        if (params.get("enable_guest_iommu") and
+                utils_misc.get_cpu_vendor(verbose=False) == 'GenuineIntel'):
+            enable_guest_iommu = params.get("enable_guest_iommu")
+            if enable_guest_iommu == "yes":
+                kernel_extra_params_add += " intel_iommu=on"
+            else:
+                kernel_extra_params_remove += " intel_iommu=on"
+            guest_iommu_option = params.get("guest_iommu_option")
+            if guest_iommu_option:
+                kernel_extra_params_add += " iommu=%s" % guest_iommu_option
+        if kernel_extra_params_add or kernel_extra_params_remove:
+            utils_test.update_boot_option(vm,
+                                          args_added=kernel_extra_params_add,
+                                          args_removed=kernel_extra_params_remove)
+
     elif not vm.is_alive():    # VM is dead and won't be started, update params
         vm.devices = None
         vm.params = params
@@ -414,6 +444,28 @@ def postprocess_vm(test, params, env, name):
     vm = env.get_vm(name)
     if not vm:
         return
+
+    if params.get("start_vm") == "yes":
+        # recover the changes done to kernel params in postprocess
+        kernel_extra_params_add = params.get("kernel_extra_params_add", "")
+        kernel_extra_params_remove = params.get("kernel_extra_params_remove", "")
+
+        if params.get("enable_guest_iommu") == "yes":
+            kernel_extra_params_add += " intel_iommu=on"
+            guest_iommu_option = params.get("guest_iommu_option")
+            if guest_iommu_option:
+                kernel_extra_params_add += " iommu=%s" % guest_iommu_option
+
+        if kernel_extra_params_add or kernel_extra_params_remove:
+            # VM might be brought down after test
+            if vm and not vm.is_alive():
+                if params.get("vm_type") == "libvirt":
+                    vm.start()
+                elif params.get("vm_type") == "qemu":
+                    vm.create(params=params)
+                utils_test.update_boot_option(vm,
+                                              args_added=kernel_extra_params_remove,
+                                              args_removed=kernel_extra_params_add)
 
     # Close all SSH sessions that might be active to this VM
     for s in vm.remote_sessions[:]:
@@ -1031,30 +1083,6 @@ def preprocess(test, params, env):
                         int(params.get("pre_command_timeout", "600")),
                         params.get("pre_command_noncritical") == "yes")
 
-    kernel_extra_params_add = params.get("kernel_extra_params_add", "")
-    kernel_extra_params_remove = params.get("kernel_extra_params_remove", "")
-    if params.get("disable_pci_msi"):
-        disable_pci_msi = params.get("disable_pci_msi")
-        if disable_pci_msi == "yes":
-            if "pci=" in kernel_extra_params_add:
-                kernel_extra_params_add = re.sub("pci=.*?\s+", "pci=nomsi ",
-                                                 kernel_extra_params_add)
-            else:
-                kernel_extra_params_add += " pci=nomsi"
-            params["ker_remove_similar_pci"] = "yes"
-        else:
-            kernel_extra_params_remove += " pci=nomsi"
-    if (params.get("enable_guest_iommu") and
-            utils_misc.get_cpu_vendor(verbose=False) == 'GenuineIntel'):
-        enable_guest_iommu = params.get("enable_guest_iommu")
-        if enable_guest_iommu == "yes":
-            kernel_extra_params_add += " intel_iommu=on"
-        else:
-            kernel_extra_params_remove += " intel_iommu=on"
-        guest_iommu_option = params.get("guest_iommu_option")
-        if guest_iommu_option:
-            kernel_extra_params_add += " iommu=%s" % guest_iommu_option
-
     # Clone master image from vms.
     if params.get("master_images_clone"):
         for vm_name in params.get("vms").split():
@@ -1071,15 +1099,6 @@ def preprocess(test, params, env):
     # Preprocess all VMs and images
     if params.get("not_preprocess", "no") == "no":
         process(test, params, env, preprocess_image, preprocess_vm)
-
-    # change the kernel params if configured
-    if kernel_extra_params_add or kernel_extra_params_remove:
-        for vm in env.get_all_vms():
-            if vm:
-                if not vm.is_alive():
-                    vm.start()
-                utils_test.update_boot_option(vm, args_added=kernel_extra_params_add,
-                                              args_removed=kernel_extra_params_remove)
 
     # Start the screendump thread
     if params.get("take_regular_screendumps") == "yes":
@@ -1136,24 +1155,6 @@ def postprocess(test, params, env):
         for vm in living_vms:
             sosreport_path = vm.sosreport()
             logging.info("Sosreport for guest: %s", sosreport_path)
-
-    # recover the changes done to kernel params in postprocess
-    kernel_extra_params_add = params.get("kernel_extra_params_add", "")
-    kernel_extra_params_remove = params.get("kernel_extra_params_remove", "")
-
-    if params.get("enable_guest_iommu") == "yes":
-        kernel_extra_params_add += " intel_iommu=on"
-        guest_iommu_option = params.get("guest_iommu_option")
-        if guest_iommu_option:
-            kernel_extra_params_add += " iommu=%s" % guest_iommu_option
-
-    if kernel_extra_params_add or kernel_extra_params_remove:
-        for vm in env.get_all_vms():
-            if vm:
-                if not vm.is_alive():
-                    vm.start()
-                utils_test.update_boot_option(vm, args_added=kernel_extra_params_remove,
-                                              args_removed=kernel_extra_params_add)
 
     # Postprocess all VMs and images
     try:
