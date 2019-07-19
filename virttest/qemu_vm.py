@@ -2858,9 +2858,7 @@ class VM(virt_vm.BaseVM):
                 raise e
 
             logging.debug("VM appears to be alive with PID %s", self.get_pid())
-            vcpu_thread_pattern = self.params.get("vcpu_thread_pattern",
-                                                  r"thread_id.?[:|=]\s*(\d+)")
-            self.vcpu_threads = self.get_vcpu_pids(vcpu_thread_pattern)
+            self.vcpu_threads = self.get_vcpu_pids(debug=True)
 
             vhost_thread_pattern = params.get("vhost_thread_pattern",
                                               r"\w+\s+(\d+)\s.*\[vhost-%s\]")
@@ -3231,14 +3229,25 @@ class VM(virt_vm.BaseVM):
 
         return self.vnc_port
 
-    def get_vcpu_pids(self, vcpu_thread_pattern):
+    def get_vcpu_pids(self, debug=False):
         """
         Return the list of vcpu PIDs
 
         :return: the list of vcpu PIDs
         """
-        return [int(_) for _ in re.findall(vcpu_thread_pattern,
-                                           str(self.monitor.info("cpus")))]
+        if isinstance(self.monitor, qemu_monitor.QMPMonitor):
+            try:
+                self.monitor.verify_supported_cmd('query-cpus-fast')
+                vcpus_info = self.monitor.query('cpus-fast', debug=debug)
+                vcpu_pids = [int(vcpu_info.get('thread-id')) for vcpu_info in vcpus_info]
+            except qemu_monitor.MonitorNotSupportedCmdError:
+                vcpus_info = self.monitor.query('cpus', debug=debug)
+                vcpu_pids = [int(vcpu_info.get('thread_id')) for vcpu_info in vcpus_info]
+        else:
+            vcpus_info = self.monitor.info('cpus', debug=debug).splitlines()
+            vcpu_pids = [int(vcpu_info.split('thread_id=')[1]) for vcpu_info in vcpus_info]
+
+        return vcpu_pids
 
     def get_vhost_threads(self, vhost_thread_pattern):
         """
@@ -3317,9 +3326,7 @@ class VM(virt_vm.BaseVM):
         except qemu_monitor.QMPCmdError as e:
             return (False, str(e))
 
-        vcpu_thread_pattern = self.params.get("vcpu_thread_pattern",
-                                              r"thread_id.?[:|=]\s*(\d+)")
-        self.vcpu_threads = self.get_vcpu_pids(vcpu_thread_pattern)
+        self.vcpu_threads = self.get_vcpu_pids()
         # Will hotplug/unplug more than one vcpu.
         add_remove_count = int(self.params.get("vcpu_threads", 1))
         if unplug == "yes":
