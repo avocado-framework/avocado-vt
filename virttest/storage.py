@@ -129,14 +129,13 @@ def get_image_blkdebug_filename(params, root_dir):
     return blkdebug_filename
 
 
-def get_image_filename(params, root_dir):
+def get_image_filename(params, root_dir, basename=False):
     """
     Generate an image path from params and root_dir.
 
     :param params: Dictionary containing the test parameters.
     :param root_dir: Base directory for relative filenames.
-    :param image_name: Force name of image.
-    :param image_format: Format for image.
+    :param basename: True to use only basename of image_name
 
     :note: params should contain:
            image_name -- the name of the image file, without extension
@@ -159,17 +158,18 @@ def get_image_filename(params, root_dir):
                                         image_format)
             return ceph.get_image_filename(ceph_monitor, rbd_pool_name,
                                            rbd_image_name)
-        return get_image_filename_filesytem(params, root_dir)
+        return get_image_filename_filesytem(params, root_dir, basename=basename)
     else:
         logging.warn("image_name parameter not set.")
 
 
-def get_image_filename_filesytem(params, root_dir):
+def get_image_filename_filesytem(params, root_dir, basename=False):
     """
     Generate an image path from params and root_dir.
 
     :param params: Dictionary containing the test parameters.
     :param root_dir: Base directory for relative filenames.
+    :param basename: True to use only basename of image_name
 
     :note: params should contain:
            image_name -- the name of the image file, without extension
@@ -202,6 +202,8 @@ def get_image_filename_filesytem(params, root_dir):
         return cmp(first, second)
 
     image_name = params.get("image_name", "image")
+    if basename:
+        image_name = os.path.basename(image_name)
     indirect_image_select = params.get("indirect_image_select")
     if indirect_image_select:
         re_name = image_name
@@ -243,26 +245,23 @@ def get_image_filename_filesytem(params, root_dir):
     return image_filename
 
 
-def copy_nfs_image(params, image_name, root_dir):
+def copy_nfs_image(params, root_dir, basename=False):
     """
     copy image from image_path to nfs mount dir if image is not available
     or corrupted.
 
     :param params: Test dict params
-    :param image_name: Master image name.
     :param root_dir: Base directory for relative filenames.
+    :param basename: True to use only basename of image name
     :raise: TestSetupFail if image is unavailable/corrupted
     """
-    image_format = params.get("image_format", "qcow2")
     if params.get("setup_local_nfs", "no") == "yes":
         # check for image availability in NFS shared path
         base_dir = params.get("images_base_dir", data_dir.get_data_dir())
-        dst = get_image_filename(params, base_dir)
+        dst = get_image_filename(params, base_dir, basename=basename)
         if(not os.path.isfile(dst) or
            utils_misc.get_image_info(dst)['lcounts'].lower() == "true"):
-            source = os.path.join(root_dir, "images", image_name)
-            if image_format not in source:
-                source = "%s.%s" % (source, image_format)
+            source = get_image_filename(params, root_dir)
             logging.debug("Checking for image available in image data "
                           "path - %s", source)
             # check for image availability in images data directory
@@ -524,11 +523,6 @@ class QemuImg(object):
 
                 m_image_fn = get_image_filename(params, root_dir)
                 image_fn = get_image_filename(image_params, root_dir)
-
-                # If image is not available/corrupted in nfs share location
-                # ensure it is copied before cloning
-                if params.get("storage_type") == "nfs":
-                    copy_nfs_image(params, image_name, root_dir)
                 force_clone = params.get("force_image_clone", "no")
                 if not os.path.exists(image_fn) or force_clone == "yes":
                     logging.info("Clone master image for vms.")

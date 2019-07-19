@@ -825,8 +825,6 @@ def preprocess(test, params, env):
             seLinuxBool.setup()
 
         image_name_only = os.path.basename(params["image_name"])
-        params['image_name'] = os.path.join(image_nfs.mount_dir,
-                                            image_name_only)
         for image_name in params.objects("images"):
             name_tag = "image_name_%s" % image_name
             if params.get(name_tag):
