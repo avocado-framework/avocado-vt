@@ -1065,8 +1065,8 @@ def preprocess(test, params, env):
 
             vm_params = params.object_params(vm_name)
             for image in vm_params.get("master_images_clone").split():
-                image_obj = qemu_storage.QemuImg(params, base_dir, image)
-                image_obj.clone_image(params, vm_name, image, base_dir)
+                image_obj = qemu_storage.QemuImg(vm_params, base_dir, image)
+                image_obj.clone_image(vm_params, vm_name, image, base_dir)
 
     # Preprocess all VMs and images
     if params.get("not_preprocess", "no") == "no":
