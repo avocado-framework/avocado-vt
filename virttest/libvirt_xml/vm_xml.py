@@ -548,6 +548,20 @@ class VMXMLBase(base.LibvirtXMLBase):
             devices_element.append(element.getroot())
         self.xmltreefile.write()
 
+    def get_controller(self, controller_type=None, model=None):
+        """
+        Return controllers list according to controller type and model
+        """
+        all_controllers = self.xmltreefile.findall("devices/controller")
+        return_controllers = []
+        for controller in all_controllers:
+            if controller_type is not None and controller_type != controller.get("type") or\
+               model is not None and model != controller.get("model"):
+                continue
+            else:
+                return_controllers.append(controller)
+        return return_controllers
+
     def del_controller(self, controller_type=None):
         """
         Delete controllers according controller type
