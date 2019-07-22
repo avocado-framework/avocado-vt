@@ -5,10 +5,13 @@ This exports:
   - two functions for get image/blkdebug filename
   - class for image operates and basic parameters
 """
+import collections
+import json
 import logging
 import os
 import re
 import six
+import string
 
 from avocado.core import exceptions
 from avocado.utils import process
@@ -23,11 +26,139 @@ from virttest.compat_52lts import (results_stdout_52lts,
                                    decode_to_text)
 
 
-class QemuImg(storage.QemuImg):
+def _get_image_meta(image, params, root_dir):
+    """Retrieve image meta dict."""
+    image_filename = storage.get_image_filename(params, root_dir)
+    image_format = params.get("image_format", "qcow2")
+    image_encryption = params.get("image_encryption", "off")
+    meta = collections.OrderedDict()
+    secret = storage.ImageSecret.image_secret_define_by_params(image, params)
+    if image_format == "qcow2" and image_encryption == "luks":
+        meta["encrypt.key-secret"] = secret.aid
+    meta["driver"] = image_format
+    meta["file"] = collections.OrderedDict()
+    meta["file"]["driver"] = "file"
+    meta["file"]["filename"] = image_filename
+    if image_format == "luks":
+        meta["key-secret"] = secret.aid
+    return meta
 
+
+def get_image_json(image, params, root_dir):
+    """Generate image json representation."""
+    return "json:%s" % json.dumps(_get_image_meta(image, params, root_dir))
+
+
+def get_image_opts(image, params, root_dir):
+    """Generate image-opts."""
+    def _dict_to_dot(dct):
+        """Convert dictionary to dot representation."""
+        flat = []
+        prefix = []
+        stack = [six.iteritems(dct)]
+        while stack:
+            it = stack[-1]
+            try:
+                key, value = next(it)
+            except StopIteration:
+                if prefix:
+                    prefix.pop()
+                stack.pop()
+                continue
+            if isinstance(value, collections.Mapping):
+                prefix.append(key)
+                stack.append(six.iteritems(value))
+            else:
+                flat.append((".".join(prefix + [key]), value))
+        return flat
+
+    meta = _get_image_meta(image, params, root_dir)
+    return ",".join(["%s=%s" % (attr, value) for
+                     attr, value in _dict_to_dot(meta)])
+
+
+def get_image_repr(image, params, root_dir, representation=None):
+    """Get image representation."""
+    mapping = {"filename": lambda i, p, r: storage.get_image_filename(p, r),
+               "json": get_image_json,
+               "opts": get_image_opts}
+    func = mapping.get(representation, None)
+    if func is None:
+        if storage.ImageSecret.image_secret_define_by_params(image, params):
+            func = mapping["json"]
+        else:
+            func = mapping["filename"]
+    return func(image, params, root_dir)
+
+
+class _ParameterAssembler(string.Formatter):
     """
-    KVM class for handling operations of disk/block images.
+    Command line parameter assembler.
+
+    This will automatically prepend parameter if corresponding value is passed
+    to the format string.
     """
+    sentinal = object()
+
+    def __init__(self, cmd_params=None):
+        string.Formatter.__init__(self)
+        self.cmd_params = cmd_params or {}
+
+    def format(self, format_string, *args, **kwargs):
+        """Remove redundant whitespaces and return format string."""
+        ret = string.Formatter.format(self, format_string, *args, **kwargs)
+        return re.sub(" +", " ", ret)
+
+    def get_value(self, key, args, kwargs):
+        try:
+            val = string.Formatter.get_value(self, key, args, kwargs)
+        except KeyError:
+            if key in self.cmd_params:
+                val = None
+            else:
+                raise
+        return (self.cmd_params.get(key, self.sentinal), val)
+
+    def convert_field(self, value, conversion):
+        """
+        Do conversion on the resulting object.
+
+        supported conversions:
+            'b': keep the parameter only if bool(value) is True.
+            'v': keep both the parameter and its corresponding value,
+                 the default mode.
+        """
+        if value[0] is self.sentinal:
+            return string.Formatter.convert_field(self, value[1], conversion)
+        if conversion is None:
+            conversion = "v"
+        if conversion == "v":
+            return "" if value[1] is None else " ".join(value)
+        if conversion == "b":
+            return value[0] if bool(value[1]) else ""
+        raise ValueError("Unknown conversion specifier {}".format(conversion))
+
+
+class QemuImg(storage.QemuImg):
+    """KVM class for handling operations of disk/block images."""
+    qemu_img_parameters = {
+        "image_format": "-f",
+        "backing_file": "-b",
+        "backing_format": "-F",
+        "unsafe": "-u",
+        "options": "-o",
+        "secret_object": "",
+        "image_opts": "",
+        "check_repair": "-r",
+        "output_format": "--output",
+        "force_share": "-U"
+        }
+    create_cmd = ("create {secret_object} {image_format} {backing_file} "
+                  "{backing_format} {unsafe!b} {options} {image_filename} "
+                  "{image_size}")
+    check_cmd = ("check {secret_object} {image_opts} {image_format} "
+                 "{output_format} {check_repair} {force_share!b} "
+                 "{image_filename}")
 
     def __init__(self, params, root_dir, tag):
         """
@@ -43,6 +174,55 @@ class QemuImg(storage.QemuImg):
                                shell=True, verbose=False)
         self.help_text = results_stdout_52lts(q_result)
         self.cap_force_share = '-U' in self.help_text
+        self._cmd_formatter = _ParameterAssembler(self.qemu_img_parameters)
+
+    def _parse_options(self, params):
+        """Build options used for qemu-img amend, create, convert, measure."""
+        options_mapping = {
+            "preallocated": ("off", "preallocation", ("qcow2", "raw", "luks")),
+            "image_cluster_size": (None, "cluster_size", ("qcow2",)),
+            "lazy_refcounts": (None, "lazy_refcounts", ("qcow2",)),
+            "qcow2_compatible": (None, "compat", ("qcow2",))
+        }
+        image_format = params.get("image_format", "qcow2")
+        options = []
+        for key, (default, opt_key, support_fmt) in options_mapping.items():
+            if image_format in support_fmt:
+                value = params.get(key, default)
+                if not (value is None or value == "off"):
+                    options.append("%s=%s" % (opt_key, value))
+
+        if self.encryption_config.key_secret:
+            opts = list(self.encryption_config)
+            opts.remove("base_key_secrets")
+            if image_format == "luks":
+                opts.remove("format")
+            for opt_key in opts:
+                opt_val = getattr(self.encryption_config, opt_key)
+                if opt_val:
+                    if image_format == "qcow2":
+                        opt_key = "encrypt.%s" % opt_key
+                    options.append("%s=%s" % (opt_key.replace("_", "-"),
+                                              str(opt_val)))
+
+        image_extra_params = params.get("image_extra_params")
+        if image_extra_params:
+            options.append(image_extra_params.strip(','))
+        if params.get("has_backing_file") == "yes":
+            backing_param = params.object_params("backing_file")
+            backing_file = storage.get_image_filename(backing_param,
+                                                      self.root_dir)
+            options.append("backing_file=%s" % backing_file)
+            backing_fmt = backing_param.get("image_format")
+            options.append("backing_fmt=%s" % backing_fmt)
+        return options
+
+    @property
+    def _secret_objects(self):
+        """All secret objects str needed for command line."""
+        secret_objects = self.encryption_config.image_key_secrets
+        secret_obj_str = "--object secret,id={s.aid},data={s.data}"
+        return [secret_obj_str.format(s=s) for s in secret_objects]
 
     @error_context.context_aware
     def create(self, params, ignore_errors=False):
@@ -94,51 +274,32 @@ class QemuImg(storage.QemuImg):
             qemu_img_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"
                             % (self.image_filename, size, block_size))
         else:
-            qemu_img_cmd = self.image_cmd
-            qemu_img_cmd += " create"
-
-            qemu_img_cmd += " -f %s" % self.image_format
-
-            image_cluster_size = params.get("image_cluster_size", None)
-            preallocated = params.get("preallocated", "off")
-            encrypted = params.get("encrypted", "off")
-            image_extra_params = params.get("image_extra_params", "")
-            has_backing_file = params.get('has_backing_file')
-
-            qemu_img_cmd += " -o "
-            if self.image_format == "qcow2":
-                if preallocated != "off":
-                    qemu_img_cmd += "preallocation=%s," % preallocated
-
-                if encrypted != "off":
-                    qemu_img_cmd += "encryption=%s," % encrypted
-
-                if image_cluster_size:
-                    qemu_img_cmd += "cluster_size=%s," % image_cluster_size
-
-                if has_backing_file == "yes":
-                    backing_param = params.object_params("backing_file")
-                    backing_file = storage.get_image_filename(backing_param,
-                                                              self.root_dir)
-                    backing_fmt = backing_param.get("image_format")
-                    qemu_img_cmd += "backing_file=%s," % backing_file
-
-                    qemu_img_cmd += "backing_fmt=%s," % backing_fmt
-
-            if image_extra_params:
-                qemu_img_cmd += "%s," % image_extra_params
-
-            qemu_img_cmd = qemu_img_cmd.rstrip(" -o")
-            qemu_img_cmd = qemu_img_cmd.rstrip(",")
-
+            cmd_dict = {}
+            cmd_dict["image_format"] = self.image_format
             if self.base_tag:
-                qemu_img_cmd += " -b %s" % self.base_image_filename
-                if self.base_format:
-                    qemu_img_cmd += " -F %s" % self.base_format
+                # if base image has secret, use json representation
+                base_key_secrets = self.encryption_config.base_key_secrets
+                if self.base_tag in [s.image_id for s in base_key_secrets]:
+                    base_params = params.object_params(self.base_tag)
+                    cmd_dict["backing_file"] = "'%s'" % \
+                        get_image_json(self.base_tag, base_params,
+                                       self.root_dir)
+                else:
+                    cmd_dict["backing_file"] = self.base_image_filename
+                    if self.base_format:
+                        cmd_dict["backing_format"] = self.base_format
 
-            qemu_img_cmd += " %s" % self.image_filename
+            secret_objects = self._secret_objects
+            if secret_objects:
+                cmd_dict["secret_object"] = " ".join(secret_objects)
 
-            qemu_img_cmd += " %s" % self.size
+            cmd_dict["image_filename"] = self.image_filename
+            cmd_dict["image_size"] = self.size
+            options = self._parse_options(params)
+            if options:
+                cmd_dict["options"] = ",".join(options)
+            qemu_img_cmd = self.image_cmd + " " + \
+                self._cmd_formatter.format(self.create_cmd, **cmd_dict)
 
         if (params.get("image_backend", "filesystem") == "filesystem"):
             image_dirname = os.path.dirname(self.image_filename)
@@ -166,6 +327,8 @@ class QemuImg(storage.QemuImg):
         if cmd_result.exit_status != 0 and not ignore_errors:
             raise exceptions.TestError("Failed to create image %s\n%s" %
                                        (self.image_filename, cmd_result))
+        if self.encryption_config.key_secret:
+            self.encryption_config.key_secret.save_to_file()
         cmd_result.stdout = results_stdout_52lts(cmd_result)
         cmd_result.stderr = results_stderr_52lts(cmd_result)
         return self.image_filename, cmd_result
@@ -394,6 +557,10 @@ class QemuImg(storage.QemuImg):
             os.unlink(self.image_filename)
         else:
             logging.debug("Image file %s not found", self.image_filename)
+        secret_filename = (self.encryption_config.key_secret and
+                           self.encryption_config.key_secret.filename)
+        if secret_filename and os.path.exists(secret_filename):
+            os.unlink(secret_filename)
 
     def info(self, force_share=False, output="human"):
         """
@@ -522,12 +689,17 @@ class QemuImg(storage.QemuImg):
                 except process.CmdError:
                     logging.error("Error getting info from image %s",
                                   image_filename)
-
-                chk_cmd = "%s check" % self.image_cmd
-                if force_share:
-                    chk_cmd += " -U"
-                chk_cmd += " %s" % image_filename
-                cmd_result = process.run(chk_cmd, ignore_status=True,
+                cmd_dict = {"image_filename": image_filename,
+                            "force_share": force_share}
+                if self.encryption_config.key_secret:
+                    cmd_dict["image_filename"] = "'%s'" % \
+                        get_image_json(self.tag, params, root_dir)
+                secret_objects = self._secret_objects
+                if secret_objects:
+                    cmd_dict["secret_object"] = " ".join(secret_objects)
+                check_cmd = self.image_cmd + " " + \
+                    self._cmd_formatter.format(self.check_cmd, **cmd_dict)
+                cmd_result = process.run(check_cmd, ignore_status=True,
                                          shell=True, verbose=False)
                 # Error check, large chances of a non-fatal problem.
                 # There are chances that bad data was skipped though

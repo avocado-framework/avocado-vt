@@ -6,6 +6,7 @@ This exports:
   - class for image operates and basic parameters
 """
 from __future__ import division
+import errno
 import logging
 import os
 import shutil
@@ -245,6 +246,129 @@ def get_image_filename_filesytem(params, root_dir, basename=False):
     return image_filename
 
 
+secret_dir = os.path.join(data_dir.get_data_dir(), "images/secrets")
+
+
+def _make_secret_dir():
+    """Create image secret directory."""
+    try:
+        os.makedirs(secret_dir)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+
+
+class ImageSecret(object):
+    """Image secret object."""
+
+    def __init__(self, image, data):
+        if not data:
+            raise ValueError("Empty image secret for %s" % image)
+        self.image_id = image
+        self.data = data
+        self.filename = os.path.join(secret_dir, "%s.secret" % image)
+        self.aid = "%s_%s" % (self.image_id, "encrypt0")
+
+    def __str__(self):
+        return self.aid
+
+    @classmethod
+    def image_secret_define_by_params(cls, image, params):
+        """Get image secret from vt params."""
+        image_secret = params.get("image_secret")
+        image_format = params.get("image_format")
+        image_encryption = params.get("image_encryption")
+        if ((image_format == "qcow2" and image_encryption == "luks") or
+                image_format == "luks"):
+            return cls(image, image_secret)
+
+    def save_to_file(self):
+        """Save secret data to file."""
+        _make_secret_dir()
+        with open(self.filename, "w") as fd:
+            fd.write(self.data)
+
+
+def retrieve_secrets(image, params):
+    """Get all image secrets in image_chain, up to image."""
+    secrets = []
+    # use image instead if image_chain is empty
+    # or no backing image available
+    image_chain = params.get("image_chain", "")
+    if image not in image_chain:
+        image_chain = image
+    for img in image_chain.split():
+        img_params = params.object_params(img)
+        secret = ImageSecret.image_secret_define_by_params(img, img_params)
+        if secret:
+            secrets.append(secret)
+        # NOTE: break here to exclude secrets of snapshots.
+        if img == image:
+            break
+    return secrets
+
+
+class ImageEncryption(object):
+    """Image encryption configuration."""
+
+    __slots__ = ("format", "key_secret", "base_key_secrets",
+                 "cipher_alg", "cipher_mode", "ivgen_alg",
+                 "ivgen_hash_alg", "hash_alg", "iter_time")
+
+    def __init__(self, encryption_format, key_secret, base_key_secrets,
+                 cipher_alg, cipher_mode, ivgen_alg, ivgen_hash_alg, hash_alg,
+                 iter_time):
+        """
+        Initialize image encryption configuration.
+
+        :param encrypt_format: encryption format
+        :param key_secret: ImageSecret object for this image
+        :param base_key_secrets: ImageSecret objects from its backing images
+        :param cipher_alg: name of encryption cipher algorithm
+        :param cipher_mode: name of encryption cipher mode
+        :param ivgen_alg: name of iv generator algorithm
+        :param ivgen_hash_alg: name of iv generator hash algorithm
+        :param hash_alg: name of encryption hash algorithm
+        :param iter_time: time to spend in PBKDF in milliseconds
+        """
+        self.format = encryption_format
+        self.key_secret = key_secret
+        self.base_key_secrets = base_key_secrets
+        self.cipher_alg = cipher_alg
+        self.cipher_mode = cipher_mode
+        self.ivgen_alg = ivgen_alg
+        self.ivgen_hash_alg = ivgen_hash_alg
+        self.hash_alg = hash_alg
+        self.iter_time = iter_time
+
+    def __iter__(self):
+        return iter(self.__slots__)
+
+    @classmethod
+    def encryption_define_by_params(cls, image, params):
+        """Get image encryption from vt params."""
+        encryption_format = params.get("image_encryption")
+        key_secrets = retrieve_secrets(image, params)
+        key_secret = None
+        if key_secrets and key_secrets[-1].image_id == image:
+            key_secret = key_secrets.pop()
+        cipher_alg = params.get("image_cipher_alg")
+        cipher_mode = params.get("image_cipher_mode")
+        ivgen_alg = params.get("image_ivgen_alg")
+        ivgen_hash_alg = params.get("image_ivgen_hash_alg")
+        hash_alg = params.get("image_hash_alg")
+        iter_time = params.get("image_iter_time")
+        return cls(encryption_format, key_secret, key_secrets, cipher_alg,
+                   cipher_mode, ivgen_alg, ivgen_hash_alg, hash_alg, iter_time)
+
+    @property
+    def image_key_secrets(self):
+        """All image secrets required to use this image."""
+        if self.key_secret:
+            return self.base_key_secrets + [self.key_secret]
+        return self.base_key_secrets
+
+
 def copy_nfs_image(params, root_dir, basename=False):
     """
     copy image from image_path to nfs mount dir if image is not available
@@ -313,7 +437,10 @@ class QemuImg(object):
                                                                    root_dir)
         self.remote_keywords = params.get("remote_image",
                                           "gluster iscsi ceph").split()
+        self.encryption_config = ImageEncryption.encryption_define_by_params(
+            tag, params)
         image_chain = params.get("image_chain")
+        self.tag = tag
         self.root_dir = root_dir
         self.base_tag = None
         self.snapshot_tag = None
@@ -432,6 +559,12 @@ class QemuImg(object):
             if not self.is_disk_size_enough(backup_size,
                                             image_dir_free_disk_size):
                 return
+
+        # backup secret file if presented
+        if self.encryption_config.key_secret:
+            backup_set.extend(
+                get_backup_set(self.encryption_config.key_secret.filename,
+                               secret_dir, action, good))
 
         for src, dst in backup_set:
             if action == 'backup' and skip_existing and os.path.exists(dst):
