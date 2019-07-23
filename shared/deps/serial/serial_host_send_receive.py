@@ -177,11 +177,15 @@ def main():
     parser = optparse.OptionParser("Transfer data between guest and host"
                                    "through virtio serial. Please make sure"
                                    "VirtIOChannel.py run in guest first.")
+    parser.add_option("-t", "--type", dest="type", default="unix_socket",
+                      help="The device type of chardev, eg:unix_socket,"
+                           " tcp_socket, udp, etc. unix_socket by default")
     parser.add_option("-s", "--socket", dest="socket",
-                      help="unix socket device used in qemu command"
+                      help="The host device used in qemu command"
                            "eg:your CLI:-chardev socket,id=channel2,"
                            "path=/tmp/helloworld2 ,then input"
-                           "'/tmp/helloworld2' here")
+                           "'/tmp/helloworld2' here. Or '127.0.0.1:6001'"
+                           " for tcp/udp socket")
     parser.add_option("-f", "--filename", dest="filename",
                       help="File transfer to guest or save data to.")
     parser.add_option("-a", "--action", dest="action", default="send",
@@ -191,8 +195,9 @@ def main():
 
     options, args = parser.parse_args()
 
+    chardev_type = options.type
     if options.socket:
-        sock = options.socket
+        device = options.socket
     else:
         parser.error("Please set -s parameter.")
 
@@ -203,8 +208,18 @@ def main():
     action = options.action
     p_size = options.package
 
-    vport = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    vport.connect(sock)
+    if chardev_type == 'unix_socket':
+        sock_flag = socket.AF_UNIX
+    elif chardev_type in ('tcp_socket', 'udp'):
+        sock_flag = socket.AF_INET
+        device = device.split(':')
+        device = (device[0], int(device[1]))
+    if chardev_type == 'udp':
+        sock_type = socket.SOCK_DGRAM
+    elif chardev_type in ('tcp_socket', 'unix_socket'):
+        sock_type = socket.SOCK_STREAM
+    vport = socket.socket(sock_flag, sock_type)
+    vport.connect(device)
     if action == "receive":
         md5_sum = receive(vport, filename, p_size=p_size)
         print("md5_sum = %s" % md5_sum)
