@@ -4087,3 +4087,59 @@ def get_msis_and_queues_windows(params, vm, timeout=360):
     """
     output = dump_traceview_log_windows(params, vm, timeout)
     return _get_msis_queues_from_traceview_output(output)
+
+
+def set_netkvm_param_value(vm, param, value):
+    """
+    Set the value of certain 'param' in netkvm driver to 'value'
+    This funcion will restart the first nic, so all the sessions
+    opened before this function need close before this function is called.
+
+    param vm: the target vm
+    param param: the param
+    param value: the value
+    """
+
+    session = vm.wait_for_serial_login(timeout=360)
+    try:
+        logging.info("Set %s to %s" % (param, value))
+        cmd = 'netsh netkvm setparam 0 param=%s value=%s'
+        cmd = cmd % (param, value)
+        status, output = session.cmd_status_output(cmd)
+        if status:
+            err = "Error occured when set %s to value %s. " % (param, value)
+            err += "With status=%s, output=%s" % (status, output)
+            raise exceptions.TestError(err)
+
+        logging.info("Restart nic to apply changes")
+        dev_mac = vm.virtnet[0].mac
+        connection_id = get_windows_nic_attribute(
+            session, "macaddress", dev_mac, "netconnectionid")
+        restart_windows_guest_network(session, connection_id)
+        time.sleep(10)
+    finally:
+        session.close()
+
+
+def get_netkvm_param_value(vm, param):
+    """
+    Get the value of certain 'param' in netkvm driver.
+
+    param vm: the target vm
+    param param: the param
+    return: the value of the param
+    """
+
+    session = vm.wait_for_serial_login(timeout=360)
+    try:
+        logging.info("Get the value of %s" % param)
+        cmd = 'netsh netkvm getparam 0 param=%s' % param
+        status, output = session.cmd_status_output(cmd)
+        if status:
+            err = "Error occured when get value of %s. " % param
+            err += "With status=%s, output=%s" % (status, output)
+            raise exceptions.TestError(err)
+        value = output.strip().split('=')[1].strip()
+        return value
+    finally:
+        session.close()
