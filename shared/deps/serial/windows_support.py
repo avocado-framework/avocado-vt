@@ -31,6 +31,9 @@ class WinBufferedReadFile(object):
         win32api.CloseHandle(self._read_ovrlpd.hEvent)
         win32api.CloseHandle(self._write_ovrlpd.hEvent)
 
+    def close(self):
+        win32api.CloseHandle(self._hfile)
+
     def write(self, s):
         win32file.WriteFile(self._hfile, s, self._write_ovrlpd)
         win32file.GetOverlappedResult(self._hfile, self._write_ovrlpd, True)
