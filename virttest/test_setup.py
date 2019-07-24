@@ -1489,13 +1489,17 @@ class PciAssignable(object):
             ip_addr += 1
         return True
 
-    def check_vfs_count(self):
+    def check_vfs_count(self, count=''):
         """
         Check VFs count number according to the parameter driver_options.
+
+        :param count: no of expected vf count in string
         """
         # The VF count should be multiplied with the total no.of PF's
         # present, rather than fixed number of network interfaces.
-        expected_count = int((re.findall("(\d+)", self.driver_option)[0])) * len(self.get_pf_ids())
+        if not count:
+            count = self.driver_option
+        expected_count = int((re.findall("(\d+)", count)[0])) * len(self.get_pf_ids())
         return (self.get_vfs_count() == expected_count)
 
     def get_controller_type(self):
@@ -1578,7 +1582,7 @@ class PciAssignable(object):
         # CmdError: Command 'ifconfig -a' failed (rc=1)
         if int(vf_no) > 10:
             time.sleep(60)
-        return True
+        return self.check_vfs_count(count=vf_no)
 
     def remove_driver(self, driver=None):
         """
