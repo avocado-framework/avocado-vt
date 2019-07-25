@@ -33,6 +33,8 @@ PARTITION_TYPE_PRIMARY = "primary"
 PARTITION_TYPE_EXTENDED = "extended"
 PARTITION_TYPE_LOGICAL = "logical"
 
+SIZE_AVAILABLE = "available size"
+
 # Whether to print all shell commands called
 DEBUG = False
 
@@ -599,6 +601,174 @@ def create_filesystem(session, partition_name, fstype, ostype, timeout=360):
         create_filesystem_windows(session, partition_name, fstype, timeout)
     else:
         create_filesyetem_linux(session, partition_name, fstype, timeout)
+
+
+def _get_mpoint_fstype_linux(session, partition):
+    """
+    Get a partition's file system type and mountpoint.
+
+    :param session: session object to guest.
+    :param partition: disk partition, like /dev/sdb1.
+    :return: Tuple (mountpoint, fstype)
+    """
+    mount_list = session.cmd_output('cat /proc/mounts')
+    mount_info = re.search(r'%s\s(.+?)\s(.+?)\s' % partition, mount_list)
+    return mount_info.groups()
+
+
+def get_partition_attrs_linux(session, partition):
+    """
+    Get partition attributes in linux guest.
+
+    :param session: session object to guest.
+    :param partition: like /dev/sdb1.
+    :return: dict like {'start': '512B', 'end': '16106127359B',
+                       'size': '16106126848B', 'type': 'primary'}
+    """
+    pattern = r'(/dev/.*)p(\d+)' if "nvme" in partition else r'(/dev/.*)(\d+)'
+    dev_name, part_num = re.match(pattern, partition).groups()
+    parted_cmd = 'parted -s %s unit B print' % dev_name
+    pattern = re.compile(r'%s\s+(?P<start>\d+\w+)\s+(?P<end>\d+\w+)\s+'
+                         r'(?P<size>\d+\w+)\s+(?P<type>\w+)' % part_num)
+    return pattern.search(session.cmd(parted_cmd), re.M).groupdict()
+
+
+def resize_filesystem_linux(session, partition, size):
+    """
+    Resize file system in linux guest.
+    For ext2, ext3, ext4 filesystem, support enlarge and shrink.
+    For xfs filesystem, only support enlarge, not support shrink.
+
+    :param session: session object to guest.
+    :param partition: disk partition, like /dev/sdb1.
+    :param size: resize file system to size.
+                 size unit can be 'B', 'K', 'M', 'G'.
+                 support transfer size with SIZE_AVAILABLE,
+                 enlarge to maximun available size.
+    """
+    def get_start_size():
+        start_size = get_partition_attrs_linux(session, partition)['start']
+        return int(utils_numeric.normalize_data_size(start_size, 'B').split('.')[0])
+
+    def resize_xfs_fs(size):
+        if size == SIZE_AVAILABLE:
+            resize_fs_cmd = 'xfs_growfs -d %s' % mountpoint
+        else:
+            output = session.cmd_output('xfs_growfs -n %s' % mountpoint)
+            bsize = int(re.findall(r'data\s+=\s+bsize=(\d+)', output, re.M)[0])
+            blocks = (int(utils_numeric.normalize_data_size(size, 'B').split('.')[0]) -
+                      get_start_size()) // bsize
+            resize_fs_cmd = 'xfs_growfs -D %s %s' % (blocks, mountpoint)
+        session.cmd(resize_fs_cmd)
+
+    def resize_ext_fs(size):
+        flag = False
+        if is_mount(partition, dst=mountpoint, fstype=fstype, session=session):
+            umount(partition, mountpoint, fstype=fstype, session=session)
+            flag = True
+
+        session.cmd('e2fsck -f %s' % partition)
+
+        if size == SIZE_AVAILABLE:
+            resize_fs_cmd = 'resize2fs %s' % partition
+        else:
+            output = session.cmd_output('tune2fs -l %s | grep -i block' % partition)
+            bsize = int(re.findall(r'Block size:\s+(\d+)', output, re.M)[0])
+            size = ((int(utils_numeric.normalize_data_size(size, 'B').split(".")[0]) -
+                     get_start_size()) // bsize) * bsize
+            size = utils_numeric.normalize_data_size(str(size).split(".")[0], 'K')
+            resize_fs_cmd = 'resize2fs %s %sK' % (partition, int(size.split(".")[0]))
+        session.cmd(resize_fs_cmd)
+        if flag:
+            mount(partition, mountpoint, fstype=fstype, session=session)
+
+    mountpoint, fstype = _get_mpoint_fstype_linux(session, partition)
+    if fstype == 'xfs':
+        resize_xfs_fs(size)
+    elif fstype.startswith("ext"):
+        resize_ext_fs(size)
+    else:
+        raise NotImplementedError
+
+
+def resize_partition_linux(session, partition, size):
+    """
+    Resize partition in linux guest.
+    Note: not support gpt type resize for linux guest.
+
+    :param session: session object to guest.
+    :param partition: partition that to be shrunk, like /dev/sdb1.
+    :param size: resize partition to size, unit is B.
+    """
+    mountpoint, fstype = _get_mpoint_fstype_linux(session, partition)
+    flag = False
+    if is_mount(partition, dst=mountpoint, fstype=fstype, session=session):
+        umount(partition, mountpoint, fstype=fstype, session=session)
+        flag = True
+
+    # FIXME: if nvme device need support this function.
+    dev_name, part_num = re.match(r'(/dev/.*)(\d+)', partition).groups()
+    parted_cmd = 'parted -s %s print' % dev_name
+    part_attrs = get_partition_attrs_linux(session, partition)
+    start_size = int(utils_numeric.normalize_data_size(part_attrs['start'],
+                                                       'B').split('.')[0])
+    end_size = (int(utils_numeric.normalize_data_size(size, 'B').split('.')[0])
+                - start_size)
+    session.cmd(' '.join((parted_cmd, 'rm %s' % part_num)))
+    resizepart_cmd = ' '.join((parted_cmd, 'unit B mkpart {0} {1} {2}'))
+    session.cmd(resizepart_cmd.format(part_attrs['type'], start_size, end_size))
+    session.cmd('partprobe %s' % dev_name)
+
+    if fstype == 'xfs':
+        session.cmd('xfs_repair -n %s' % partition)
+    elif fstype.startswith("ext"):
+        session.cmd('e2fsck -f %s' % partition)
+    else:
+        raise NotImplementedError
+
+    if flag:
+        mount(partition, mountpoint, fstype=fstype, session=session)
+
+
+def get_disk_size_windows(session, did):
+    """
+    Get disk size from windows guest.
+
+    :param session: session object to guest.
+    :param did: disk index which show in 'diskpart list disk'.
+                e.g. 0, 1
+    :return: disk size.
+    """
+    cmd = "wmic diskdrive get size, index"
+    return int(re.findall(r'%s\s+(\d+)' % did, session.cmd_output(cmd))[0])
+
+
+def get_disk_size_linux(session, did):
+    """
+    Get disk size from linux guest.
+
+    :param session: session object to guest.
+    :param did: disk kname. e.g. 'sdb', 'sdc'
+    :return: disk size.
+    """
+    disks_info = get_linux_disks(session, partition=True)
+    disk_size = disks_info['%s' % did][1]
+    return int(utils_numeric.normalize_data_size(disk_size, 'B').split('.')[0])
+
+
+def get_disk_size(session, os_type, did):
+    """
+    Get disk size from guest.
+
+    :param session: session object to guest.
+    :param ostype: guest os type 'windows' or 'linux'.
+    :param did: disk ID in guest.
+    :return: disk size.
+    """
+    if os_type == "linux":
+        return get_disk_size_linux(session, did)
+    else:
+        return get_disk_size_windows(session, did)
 
 
 def set_drive_letter(session, did, partition_no=1):
