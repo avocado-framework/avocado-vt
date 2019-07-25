@@ -2195,15 +2195,14 @@ class Stress(object):
         """
         Download stress tool
         """
-        url = self.download_url
-        tmp_path = data_dir.get_tmp_dir()
-        logging.info('Download stress tool from %s', url)
         # If it is git/wget based download proceed, else fall back if user already
         # have downloaded tool path, else raise
         try:
             download_method = getattr(
                 self, "_%s_download" % self.download_type)
-            download_method(url, tmp_path)
+            tmp_path = data_dir.get_tmp_dir()
+            logging.info('Download stress tool from %s', self.download_url)
+            download_method(self.download_url, tmp_path)
         except AttributeError:
             if not self.downloaded_file_path:
                 raise exceptions.TestError("Tool is not downloaded or download"
