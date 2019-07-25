@@ -136,13 +136,14 @@ class Params(IterableUserDict):
         """
         return target_type(self.get(key, default))
 
-    def get_list(self, key, default="", delimiter=' ', target_type=str):
+    def get_list(self, key, default="", delimiter=None, target_type=str):
         """
         Get a parameter value that is a character delimited list.
 
         :param str key: parameter whose value is list
         :param str default: default list value
-        :param str delimiter: character to split list items
+        :param delimiter: character to split list items
+        :type delimiter: str or None
         :param type target_type: type of each item, default is string
         :returns: empty list if if the key is not in the parameters
         :rtype: [str]
@@ -157,13 +158,14 @@ class Params(IterableUserDict):
         else:
             return [target_type(entry) for entry in param_string.split(delimiter)]
 
-    def get_dict(self, key, default="", delimiter=' ', need_order=False):
+    def get_dict(self, key, default="", delimiter=None, need_order=False):
         """
         Get a param value that has the form 'name1=value1 name2=value2 ...'.
 
         :param str key: parameter whose value is dict
         :param str default: default dict value
         :param str delimiter: character to split list items
+        :type delimiter: str or None
         :param bool need_order: whether to return an OrderedDict instead of
                                 a regular dict
         :returns: empty dict if if the key is not in the parameters, a dict
@@ -181,7 +183,7 @@ class Params(IterableUserDict):
             if index == -1:
                 raise ValueError('failed to find "=" in "{0}" (value for {1})'
                                  .format(entry, key))
-            result[entry[:index]] = entry[index+1:]
+            result[entry[:index].strip()] = entry[index+1:].strip()
         return result
 
     def drop_dict_internals(self):
