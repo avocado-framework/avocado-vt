@@ -4,7 +4,6 @@ http://libvirt.org/formatdomain.html
 """
 
 import logging
-import platform
 
 from .. import xml_utils
 from .. import utils_misc
@@ -634,8 +633,12 @@ class VMXML(VMXMLBase):
 
     def undefine(self, options=None, virsh_instance=base.virsh):
         """Undefine this VM with libvirt retaining XML in instance"""
-        # add --nvram in undefine for aarch64
-        if "aarch" in platform.machine():
+        try:
+            nvram = getattr(getattr(self, "os"), "nvram")
+        except xcepts.LibvirtXMLNotFoundError:
+            nvram = None
+
+        if nvram:
             if options is None:
                 options = "--nvram"
             if "--nvram" not in options:
