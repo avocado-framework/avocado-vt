@@ -1807,22 +1807,12 @@ class DevContainer(object):
             else:
                 controller_suffix = 'pci'
             bus_type = 'virtio-serial-%s' % controller_suffix
-
-        prefix = params.get('virtio_port_name_prefix')
-        name = prefix + serial_id if prefix else serial_id
         chardev_id = 'chardev_%s' % serial_id
         chardev_device = self.chardev_define_by_params(chardev_id, params, file_name)
-        serial_devices = self.serials_define_by_variables(serial_id,
-                                                          serial_type,
-                                                          chardev_id,
-                                                          bus_type=bus_type,
-                                                          serial_name=name,
-                                                          bus=params.get(
-                                                              "serial_bus"),
-                                                          nr=params.get(
-                                                              "serial_nr"),
-                                                          reg=params.get(
-                                                              "serial_reg"))
+        serial_devices = self.serials_define_by_variables(
+            serial_id, serial_type, chardev_id, bus_type=bus_type,
+            serial_name=params.get("serial_name"), bus=params.get("serial_bus"),
+            nr=params.get("serial_nr"), reg=params.get("serial_reg"))
 
         return [chardev_device] + serial_devices
 

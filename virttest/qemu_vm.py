@@ -1553,6 +1553,10 @@ class VM(virt_vm.BaseVM):
             if backend in ['udp', 'tcp_socket']:
                 serial_params['chardev_host'] = host
                 serial_params['chardev_port'] = free_ports[index]
+            prefix = serial_params.get('virtio_port_name_prefix')
+            serial_name = prefix + str(len(self.virtio_ports))\
+                if prefix else serial
+            serial_params['serial_name'] = serial_name
             serial_devices = devices.serials_define_by_params(
                 serial, serial_params, serial_filename)
 
