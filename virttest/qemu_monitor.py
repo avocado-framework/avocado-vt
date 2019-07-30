@@ -1950,6 +1950,24 @@ class QMPMonitor(Monitor):
             if e.get("event") == name:
                 return e
 
+    def get_job_event_by_id(self, name, jid):
+        """
+        Look for an event with the given name and ID in the list of events.
+
+        :param name: The name of event to look for (e.g. 'BLOCK_JOB_CHANGE')
+        :param jid: String of block job ID
+        :return: An event object or None if none is found
+        """
+        for e in self.get_events():
+            if e.get("event") == name:
+                # option 'device' takes the job ID in BLOCK_JOB_COMPLETED
+                # event, it was the backwards compatible way to introduce
+                # job IDs. more details see redhat bug#1626441
+                key = "device" if name == "BLOCK_JOB_COMPLETED" else "id"
+                if e["data"].get(key) == jid:
+                    return e
+        return None
+
     def human_monitor_cmd(self, cmd="", timeout=CMD_TIMEOUT,
                           debug=True, fd=None):
         """
