@@ -123,6 +123,10 @@ class VM(virt_vm.BaseVM):
     # By default we inherit all timeouts from the base VM class except...
     CLOSE_SESSION_TIMEOUT = 30
     MIGRATE_TIMEOUT = 2000
+    #: By default translate standard and experimental (prefixed with x-)
+    #: options according to supported parameters/capabilities. To turn this
+    #: off enable this option
+    DISABLE_AUTO_X_MIG_OPTS = False
 
     def __init__(self, name, params, root_dir, address_cache, state=None):
         """
@@ -3891,14 +3895,18 @@ class VM(virt_vm.BaseVM):
                     "Set migrate capabilities.", logging.info)
                 for key, value in list(migrate_capabilities.items()):
                     state = value == "on"
-                    self.monitor.set_migrate_capability(state, key)
-                    s = self.monitor.get_migrate_capability(key)
+                    self.monitor.set_migrate_capability(state, key,
+                                                        self.DISABLE_AUTO_X_MIG_OPTS)
+                    s = self.monitor.get_migrate_capability(key,
+                                                            self.DISABLE_AUTO_X_MIG_OPTS)
                     if s != state:
                         msg = ("Migrate capability '%s' should be '%s', "
                                "but actual result is '%s'" % (key, state, s))
                         raise exceptions.TestError(msg)
-                    clone.monitor.set_migrate_capability(state, key)
-                    s = clone.monitor.get_migrate_capability(key)
+                    clone.monitor.set_migrate_capability(state, key,
+                                                         self.DISABLE_AUTO_X_MIG_OPTS)
+                    s = clone.monitor.get_migrate_capability(key,
+                                                             self.DISABLE_AUTO_X_MIG_OPTS)
                     if s != state:
                         msg = ("Migrate capability '%s' should be '%s', "
                                "but actual result is '%s' on destination guest"
@@ -3910,9 +3918,26 @@ class VM(virt_vm.BaseVM):
                 logging.info("Set source migrate parameters before migration: "
                              "%s", str(migrate_parameters[0]))
                 for parameter, value in migrate_parameters[0].items():
-                    self.monitor.set_migrate_parameter(parameter, value)
-                    s = self.monitor.get_migrate_parameter(parameter)
-                    if s != value:
+                    if (parameter == "x-multifd-page-count" and
+                            not self.DISABLE_AUTO_X_MIG_OPTS):
+                        try:
+                            self.monitor.set_migrate_parameter(parameter,
+                                                               value, True,
+                                                               self.DISABLE_AUTO_X_MIG_OPTS)
+                        except qemu_monitor.MonitorNotSupportedError:
+                            # x-multifd-page-count was dropped without
+                            # replacement, ignore this param
+                            logging.warn("Parameter x-multifd-page-count "
+                                         "not supported on src, probably "
+                                         "newer qemu, not setting it.")
+                            continue
+                    else:
+                        self.monitor.set_migrate_parameter(parameter, value,
+                                                           False,
+                                                           self.DISABLE_AUTO_X_MIG_OPTS)
+                    s = self.monitor.get_migrate_parameter(parameter,
+                                                           self.DISABLE_AUTO_X_MIG_OPTS)
+                    if str(s) != str(value):
                         msg = ("Migrate parameter '%s' should be '%s', "
                                "but actual result is '%s' on source guest"
                                % (parameter, value, s))
@@ -3924,9 +3949,26 @@ class VM(virt_vm.BaseVM):
                              "%s", str(migrate_parameters[1]))
                 # target qemu migration parameters configuration
                 for parameter, value in migrate_parameters[1].items():
-                    clone.monitor.set_migrate_parameter(parameter, value)
-                    s = clone.monitor.get_migrate_parameter(parameter)
-                    if s != value:
+                    if (parameter == "x-multifd-page-count" and
+                            not self.DISABLE_AUTO_X_MIG_OPTS):
+                        try:
+                            clone.monitor.set_migrate_parameter(parameter,
+                                                                value, True,
+                                                                False)
+                        except qemu_monitor.MonitorNotSupportedError:
+                            logging.warn("Parameter x-multifd-page-count "
+                                         "not supported on dst, probably "
+                                         "newer qemu, not setting it.")
+                            # x-multifd-page-count was dropped without
+                            # replacement, ignore this param
+                            continue
+                    else:
+                        clone.monitor.set_migrate_parameter(parameter, value,
+                                                            False,
+                                                            self.DISABLE_AUTO_X_MIG_OPTS)
+                    s = clone.monitor.get_migrate_parameter(parameter,
+                                                            self.DISABLE_AUTO_X_MIG_OPTS)
+                    if str(s) != str(value):
                         msg = ("Migrate parameter '%s' should be '%s', "
                                "but actual result is '%s' on destination guest"
                                % (parameter, value, s))
