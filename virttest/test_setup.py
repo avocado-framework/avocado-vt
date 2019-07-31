@@ -2159,7 +2159,7 @@ class EGDConfig(object):
         return pid
 
     def setup(self):
-        backend = self.params["chardev_backend"]
+        backend = self.params["rng_chardev_backend"]
         backend_type = self.params["%s_type" % backend]
         path = "path_%s" % backend_type
         port = "port_%s" % backend_type

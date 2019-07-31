@@ -857,7 +857,7 @@ class VM(virt_vm.BaseVM):
                 set_dev_params(rng_dev, rng_params, backend, backend_type)
 
                 if backend_type == "chardev":
-                    backend = rng_params["chardev_backend"]
+                    backend = rng_params["rng_chardev_backend"]
                     backend_type = rng_params["%s_type" % backend]
                     char_dev = qdevices.QCustomDevice(dev_type="chardev",
                                                       backend="backend")
