@@ -2922,7 +2922,7 @@ class RemoteVMManager(object):
                                           password=self.remote_pwd)
 
     def setup_ssh_auth(self, vm_ip, vm_pwd, vm_user="root",
-                       port=22, timeout=10):
+                       port=22, timeout=20):
         """
         Setup SSH passwordless access between remote host
         and VM, which is on the remote host.
@@ -2948,7 +2948,7 @@ class RemoteVMManager(object):
                             r"lost connection", r"]#"]
             try:
                 index, text = session.read_until_last_line_matches(
-                    matched_strs, timeout=20,
+                    matched_strs, timeout=timeout,
                     internal_timeout=0.5)
             except (aexpect.ExpectTimeoutError,
                     aexpect.ExpectProcessTerminatedError) as e:
