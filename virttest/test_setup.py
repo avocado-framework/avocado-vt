@@ -410,6 +410,8 @@ class HugePageConfig(object):
             self.kernel_hp_file = '/proc/sys/vm/nr_hugepages'
         else:
             raise exceptions.TestSkipError("System doesn't support hugepages")
+        self.over_commit_hp = "/proc/sys/vm/nr_overcommit_hugepages"
+        self.over_commit = kernel_interface.ProcFS(self.over_commit_hp)
         self.pool_path = "/sys/kernel/mm/hugepages"
         self.sys_node_path = "/sys/devices/system/node"
         # Unit is KB as default for hugepage size.
@@ -434,6 +436,11 @@ class HugePageConfig(object):
         vm_mem_minimum = params.get("vm_mem_minimum", "512M")
         self.lowest_mem_per_vm = float(normalize_data_size(vm_mem_minimum))
         utils_memory.drop_caches()
+        self.ext_hugepages_surp = utils_memory.get_num_huge_pages_surp()
+
+        overcommit_hugepages = int(params.get("overcommit_hugepages", 0))
+        if overcommit_hugepages != self.over_commit.proc_fs_value:
+            self.over_commit.proc_fs_value = overcommit_hugepages
 
         target_hugepages = params.get("target_hugepages")
         if target_hugepages is None:
@@ -441,7 +448,8 @@ class HugePageConfig(object):
         else:
             target_hugepages = int(target_hugepages)
 
-        self.target_hugepages = target_hugepages
+        self.target_hugepages = (target_hugepages + self.ext_hugepages_surp -
+                                 overcommit_hugepages)
         self.target_nodes = params.get("target_nodes")
         if self.target_nodes:
             self.target_node_num = {}
@@ -636,7 +644,8 @@ class HugePageConfig(object):
         node_page_path += "/hugepages/hugepages-%skB/nr_hugepages" % pagesize
         obj = kernel_interface.SysFS(node_page_path)
         obj.sys_fs_value = num
-        if obj.sys_fs_value != int(num):
+        # If node has some used hugepage, result will be larger than expected.
+        if obj.sys_fs_value < int(num):
             raise ValueError("Cannot set %s hugepages on node %s, please check"
                              " if the node has enough memory" % (num, node))
 
@@ -690,6 +699,9 @@ class HugePageConfig(object):
         logging.debug("Amount of memory used by each vm: %s", self.mem)
         logging.debug("System setting for large memory page size: %s",
                       self.hugepage_size)
+        if self.over_commit.proc_fs_value > 0:
+            logging.debug("Number of overcommit large memory pages will be set"
+                          " for this test: %s", self.over_commit.proc_fs_value)
         logging.debug("Number of large memory pages needed for this test: %s",
                       self.target_hugepages)
         # Drop caches to clean some usable memory
@@ -713,6 +725,8 @@ class HugePageConfig(object):
             except process.CmdError:
                 return
             process.system("echo 0 > %s" % self.kernel_hp_file, shell=True)
+            self.over_commit.proc_fs_value = 0
+            self.ext_hugepages_surp = utils_memory.get_num_huge_pages_surp()
             logging.debug("Hugepage memory successfully deallocated")
 
 
