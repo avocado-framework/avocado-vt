@@ -32,6 +32,7 @@ from virttest import test_setup
 from virttest import virt_vm
 from virttest import utils_misc
 from virttest import storage
+from virttest import utils_libguestfs
 from virttest import qemu_storage
 from virttest import utils_libvirtd
 from virttest import remote
@@ -1082,6 +1083,14 @@ def preprocess(test, params, env):
         process_command(test, params, env, params.get("pre_command"),
                         int(params.get("pre_command_timeout", "600")),
                         params.get("pre_command_noncritical") == "yes")
+
+    # Sysprep the master image if requested, to customize image before cloning
+    if params.get("sysprep_required", "no") == "yes":
+        logging.info("Syspreping the image as requested before cloning.")
+        image_filename = storage.get_image_filename(params, base_dir)
+        sysprep_options = params.get("sysprep_options", "--operations machine-id")
+        utils_libguestfs.virt_sysprep_cmd(
+            image_filename, options=sysprep_options, ignore_status=False)
 
     # Clone master image from vms.
     if params.get("master_images_clone"):
