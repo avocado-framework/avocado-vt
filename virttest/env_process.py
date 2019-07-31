@@ -62,6 +62,10 @@ _vm_register_thread_termination_event = None
 
 _setup_manager = test_setup.SetupManager()
 
+# default num of surplus hugepage, order to compare the values before and after
+# the test when 'setup_hugepages = yes'
+_pre_hugepages_surp = 0
+_post_hugepages_surp = 0
 
 #: QEMU version regex.  Attempts to extract the simple and extended version
 #: information from the output produced by `qemu -version`
@@ -1040,7 +1044,9 @@ def preprocess(test, params, env):
         params["setup_hugepages"] = "yes"
 
     if params.get("setup_hugepages") == "yes":
+        global _pre_hugepages_surp
         h = test_setup.HugePageConfig(params)
+        _pre_hugepages_surp = h.ext_hugepages_surp
         suggest_mem = h.setup()
         if suggest_mem is not None:
             params['mem'] = suggest_mem
@@ -1340,6 +1346,7 @@ def postprocess(test, params, env):
                 test_setup.switch_smt(state="on", params=params)
 
     if params.get("setup_hugepages") == "yes":
+        global _post_hugepages_surp
         try:
             h = test_setup.HugePageConfig(params)
             h.cleanup()
@@ -1348,6 +1355,8 @@ def postprocess(test, params, env):
         except Exception as details:
             err += "\nHP cleanup: %s" % str(details).replace('\\n', '\n  ')
             logging.error(details)
+        else:
+            _post_hugepages_surp = h.ext_hugepages_surp
 
     if params.get("setup_thp") == "yes":
         try:
@@ -1482,6 +1491,9 @@ def postprocess(test, params, env):
 
     if err:
         raise RuntimeError("Failures occurred while postprocess:\n%s" % err)
+    elif _post_hugepages_surp > _pre_hugepages_surp:
+        leak_num = _post_hugepages_surp - _pre_hugepages_surp
+        raise exceptions.TestFail("%d huge pages leaked!" % leak_num)
 
 
 def postprocess_on_error(test, params, env):

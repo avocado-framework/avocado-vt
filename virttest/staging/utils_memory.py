@@ -141,6 +141,14 @@ def get_num_huge_pages_rsvd(session=None):
     return read_from_meminfo('HugePages_Rsvd', session=session)
 
 
+def get_num_huge_pages_surp(session=None):
+    """
+    Method to get surplus hugepage pages
+    :param session: ShellSession Object of remote host / guest
+    """
+    return read_from_meminfo('HugePages_Surp', session=session)
+
+
 def get_num_anon_huge_pages(pid=0, session=None):
     """
     Method to get total no of anon hugepages
