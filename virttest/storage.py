@@ -17,6 +17,7 @@ from avocado.utils import process
 
 from virttest import iscsi
 from virttest import utils_misc
+from virttest import utils_disk
 from virttest import virt_vm
 from virttest import gluster
 from virttest import lvm
@@ -259,7 +260,7 @@ def copy_nfs_image(params, image_name, root_dir):
         base_dir = params.get("images_base_dir", data_dir.get_data_dir())
         dst = get_image_filename(params, base_dir)
         if(not os.path.isfile(dst) or
-           utils_misc.get_image_info(dst)['lcounts'].lower() == "true"):
+           utils_disk.get_image_info(dst)['lcounts'].lower() == "true"):
             source = os.path.join(root_dir, "images", image_name)
             if image_format not in source:
                 source = "%s.%s" % (source, image_format)
@@ -267,7 +268,7 @@ def copy_nfs_image(params, image_name, root_dir):
                           "path - %s", source)
             # check for image availability in images data directory
             if(os.path.isfile(source) and not
-               utils_misc.get_image_info(source)['lcounts'].lower() == "true"):
+               utils_disk.get_image_info(source)['lcounts'].lower() == "true"):
                 logging.debug("Copying guest image from %s to %s", source,
                               dst)
                 shutil.copy(source, dst)
