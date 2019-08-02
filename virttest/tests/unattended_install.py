@@ -1204,13 +1204,6 @@ def run(test, params, env):
         process.system(dd_cmd)
     image_name = os.path.basename(dst)
     mount_point = params.get("dst_dir")
-
-    # libvirt import of guest from NFS shared path, then copy image
-    # from image_path to nfs mount dir
-    if(params.get("virt_test_type", "qemu") == "libvirt" and
-       params.get("storage_type") == "nfs"):
-        storage.copy_nfs_image(params, image_name, vt_data_dir)
-
     if mount_point and src:
         funcatexit.register(env, params.get("type"), copy_file_from_nfs, src,
                             dst, mount_point, image_name)

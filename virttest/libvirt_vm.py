@@ -1195,8 +1195,9 @@ class VM(virt_vm.BaseVM):
             base_dir = image_params.get("images_base_dir",
                                         data_dir.get_data_dir())
 
+            basename = params.get("storage_type") == "nfs"
             filename = storage.get_image_filename(image_params,
-                                                  base_dir)
+                                                  base_dir, basename=basename)
             if image_params.get("use_storage_pool") == "yes":
                 filename = None
                 virt_install_cmd += add_drive(help_text,
@@ -1873,6 +1874,9 @@ class VM(virt_vm.BaseVM):
         params = self.params
         root_dir = self.root_dir
 
+        if self.params.get("storage_type") == "nfs":
+            storage.copy_nfs_image(self.params, data_dir.get_data_dir(),
+                                   basename=True)
         # Verify the md5sum of the ISO images
         for cdrom in params.objects("cdroms"):
             if params.get("medium") == "import":
