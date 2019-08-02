@@ -3438,7 +3438,7 @@ class VM(virt_vm.BaseVM):
             nic.netdev_id = self.add_netdev(**dict(nic))
         nic.set_if_none('nic_model', params['nic_model'])
         nic.set_if_none('queues', params.get('queues', '1'))
-        if params.get("enable_msix_vectors") == "yes":
+        if params.get("enable_msix_vectors") == "yes" and int(nic.queues) > 1:
             nic.set_if_none('vectors', 2 * int(nic.queues) + 2)
         return nic
 
@@ -3561,8 +3561,8 @@ class VM(virt_vm.BaseVM):
         if nic['nic_model'] == 'virtio-net-pci':
             if int(nic['queues']) > 1:
                 device_add_cmd += ",mq=on"
-            if 'vectors' in nic:
-                device_add_cmd += ",vectors=%s" % nic.vectors
+                if 'vectors' in nic:
+                    device_add_cmd += ",vectors=%s" % nic.vectors
         device_add_cmd += nic.get('nic_extra_params', '')
         if 'romfile' in nic:
             device_add_cmd += ",romfile=%s" % nic.romfile
