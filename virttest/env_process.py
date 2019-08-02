@@ -980,7 +980,7 @@ def preprocess(test, params, env):
     if params.get("required_kernel"):
         required_kernel = params.get("required_kernel")
         logging.info("Test requires kernel version: %s" % required_kernel)
-        match = re.search(r'[0-9]+\.[0-9]+\.[0-9](\-[0-9]+)?', kvm_version)
+        match = re.search(r'[0-9]+\.[0-9]+\.[0-9]+(\-[0-9]+)?', kvm_version)
         if match is None:
             test.cancel("Can not get host kernel version.")
         host_kernel = match.group(0)
@@ -1015,7 +1015,7 @@ def preprocess(test, params, env):
     if params.get("required_qemu"):
         required_qemu = params.get("required_qemu")
         logging.info("Test requires qemu version: %s" % required_qemu)
-        match = re.search(r'[0-9]+\.[0-9]+\.[0-9](\-[0-9]+)?',
+        match = re.search(r'[0-9]+\.[0-9]+\.[0-9]+(\-[0-9]+)?',
                           kvm_userspace_version)
         if match is None:
             test.cancel("Can not get host qemu version.")
