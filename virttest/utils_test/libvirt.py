@@ -3786,6 +3786,30 @@ def customize_libvirt_config(params,
     return obj_conf
 
 
+def check_logfile(search_str, log_file, str_in_log=True,
+                  cmd_parms=None, runner_on_target=None):
+    """
+    Check if the given string exists in the log file
+
+    :param search_str: the string to be searched
+    :param log_file: the given file
+    :param str_in_log: Ture if the file should include the given string,
+                        otherwise, False
+    :param cmd_parms: The parms for remote executing
+    :param runner_on_target:  Remote runner
+    :raise: test.fail when the result is not expected
+    """
+    cmd = "grep -E '%s' %s" % (search_str, log_file)
+    if not (cmd_parms and runner_on_target):
+        cmdRes = process.run(cmd, shell=True, ignore_status=True)
+    else:
+        cmdRes = remote.run_remote_cmd(cmd, cmd_parms, runner_on_target)
+    if str_in_log == bool(int(cmdRes.exit_status)):
+        raise exceptions.TestFail("The string '{}' {} included in {}"
+                                  .format(search_str, "is not" if str_in_log else "is",
+                                          log_file))
+
+
 def check_qemu_cmd_line(content, err_ignore=False):
     """
     Check the specified content in the qemu command line
