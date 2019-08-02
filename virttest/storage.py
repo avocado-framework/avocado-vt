@@ -33,8 +33,8 @@ def preprocess_images(bindir, params, env):
             vm.destroy(free_mac_addresses=False)
         vm_params = params.object_params(vm_name)
         for image in vm_params.get("master_images_clone").split():
-            image_obj = QemuImg(params, bindir, image)
-            image_obj.clone_image(params, vm_name, image, bindir)
+            image_obj = QemuImg(vm_params, bindir, image)
+            image_obj.clone_image(vm_params, vm_name, image, bindir)
 
 
 def preprocess_image_backend(bindir, params, env):
@@ -50,8 +50,8 @@ def postprocess_images(bindir, params):
     for vm in params.get("vms").split():
         vm_params = params.object_params(vm)
         for image in vm_params.get("master_images_clone").split():
-            image_obj = QemuImg(params, bindir, image)
-            image_obj.rm_cloned_image(params, vm, image, bindir)
+            image_obj = QemuImg(vm_params, bindir, image)
+            image_obj.rm_cloned_image(vm_params, vm, image, bindir)
 
 
 def file_exists(params, filename_path):
@@ -521,7 +521,13 @@ class QemuImg(object):
                 image_params = params.object_params(image_name)
                 image_params["image_name"] = vm_image_name
 
-                m_image_fn = get_image_filename(params, root_dir)
+                master_image = params.get("master_image_name")
+                if master_image:
+                    image_format = params.get("image_format", "qcow2")
+                    m_image_fn = "%s.%s" % (master_image, image_format)
+                    m_image_fn = utils_misc.get_path(root_dir, m_image_fn)
+                else:
+                    m_image_fn = get_image_filename(params, root_dir)
                 image_fn = get_image_filename(image_params, root_dir)
                 force_clone = params.get("force_image_clone", "no")
                 if not os.path.exists(image_fn) or force_clone == "yes":
