@@ -494,6 +494,12 @@ def find_python(session, compat="python3"):
         return find_bin(session, try_binaries=binaries)
     return compat_bin
 
+def find_host_python(try_binaries=('python3', 'python2', 'python')):
+    for python in try_binaries:
+        out = process.run("which %s" % python, shell=True)
+        if out.exit_status == 0:
+            return python
+
 
 @error_context.context_aware
 def get_image_version(qemu_image):
@@ -803,6 +809,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
 
     host_data_file = os.path.join(dir_name,
                                   "tmp-%s" % utils_misc.generate_random_string(8))
+    session.cmd("mkdir -p %s" % tmp_dir)
     guest_data_file = os.path.join(tmp_dir,
                                    "tmp-%s" % utils_misc.generate_random_string(8))
 
@@ -836,14 +843,22 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
     host_script = params.get("host_script", "serial_host_send_receive.py")
     host_script = os.path.join(data_dir.get_root_dir(), "shared", "deps",
                                "serial", host_script)
-    host_cmd = "python %s -s %s -f %s -a %s" % (host_script, host_device,
-                                                host_data_file, action)
+
+    host_python = find_host_python()
+    if host_python is None:
+        logging.error("Python not found on host.")
+    host_cmd = "%s %s -s %s -f %s -a %s" % (host_python, host_script,
+                                            host_device, host_data_file, action)
     guest_script = params.get("guest_script",
                               "VirtIoChannel_guest_send_receive.py")
     guest_script = os.path.join(guest_path, guest_script)
 
-    guest_cmd = "python %s -d %s -f %s -a %s" % (guest_script, port_name,
-                                                 guest_data_file, guest_action)
+    guest_python = find_python(session)
+    if guest_python is None:
+        logging.error("Python not found on guest.")
+    guest_cmd = "%s %s -d %s -f %s -a %s" % (guest_python, guest_script,
+                                             port_name, guest_data_file,
+                                             guest_action)
     n_time = int(params.get("repeat_times", 1))
     txt += " for %s times" % n_time
     try:

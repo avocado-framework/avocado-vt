@@ -50,7 +50,7 @@ class VirtIoChannel:
         self.ack_format = "3s"
         self.ack_msg = b"ACK"
         self.hi_format = "2s"
-        self.hi_msg = "HI"
+        self.hi_msg = b"HI"
         if self.is_windows:
             vport_name = '\\\\.\\Global\\' + device_name
             from windows_support import WinBufferedReadFile
@@ -85,7 +85,7 @@ class VirtIoChannel:
             self.send(self.hi_msg)
             txt = self.receive(hi_msg_len)
             out = struct.unpack(self.hi_format, txt)[0]
-            if out != "HI":
+            if out != b"HI":
                 raise ShakeHandError("Fail to get HI from guest.")
             size_s = struct.pack("q", size)
             self.send(size_s)
@@ -101,7 +101,6 @@ class VirtIoChannel:
                 raise ShakeHandError("Fail to get HI from guest.")
             self.send(txt)
             size = self.receive(8)
-            print("xxxx size = %s" % size)
             if size:
                 size = struct.unpack("q", size)[0]
                 txt = struct.pack(self.ack_format, self.ack_msg)
@@ -180,7 +179,7 @@ def receive(device, filename, p_size=1024):
             txt = vio.receive(p_size)
             md5_value.update(txt)
             file_no.write(txt)
-            recv_size += p_size
+            recv_size += len(txt)
     finally:
         file_no.close()
         if vio:
