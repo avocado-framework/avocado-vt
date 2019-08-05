@@ -3,9 +3,11 @@ Windows virtio-win utilities
 """
 
 import re
+import logging
 
 from . import drive
 from . import system
+from avocado.core import exceptions
 
 
 ARCH_MAP_ISO = {"32-bit": "x86", "64-bit": "amd64"}
@@ -104,3 +106,50 @@ def drive_letter_vfd(session):
         # FIXME: addresses the drive accurately
         return letter
     return None
+
+
+def _get_netkvmco_path(session):
+    """
+    Get the proper netkvmco.dll path from iso.
+
+    :param session: a session to send cmd
+    :return: the proper netkvmco.dll path.
+    """
+
+    viowin_ltr = drive_letter_iso(session)
+    if not viowin_ltr:
+        err = "Could not find virtio-win drive in guest"
+        raise exceptions.TestError(err)
+    guest_name = product_dirname_iso(session)
+    if not guest_name:
+        err = "Could not get product dirname of the vm"
+        raise exceptions.TestError(err)
+    guest_arch = arch_dirname_iso(session)
+    if not guest_arch:
+        err = "Could not get architecture dirname of the vm"
+        raise exceptions.TestError(err)
+
+    middle_path = "%s\\%s" % (guest_name, guest_arch)
+    find_cmd = 'dir /b /s %s\\netkvmco.dll | findstr "\\%s\\\\"'
+    find_cmd %= (viowin_ltr,  middle_path)
+    netkvmco_path = session.cmd(find_cmd).strip()
+    logging.info("Found netkvmco.dll file at %s" % netkvmco_path)
+    return netkvmco_path
+
+
+def prepare_netkvmco(vm):
+    """
+    Copy the proper netkvmco.dll to driver c:\\, and register it.
+
+    param vm: the target vm
+    """
+    logging.info("Prepare the netkvmco.dll")
+    session = vm.wait_for_login(timeout=360)
+    try:
+        netkvmco_path = _get_netkvmco_path(session)
+        prepare_netkvmco_cmd = "xcopy %s c:\\ /y && "
+        prepare_netkvmco_cmd += "rundll32 netkvmco.dll,"
+        prepare_netkvmco_cmd += "RegisterNetKVMNetShHelper"
+        session.cmd(prepare_netkvmco_cmd % netkvmco_path, timeout=240)
+    finally:
+        session.close()
