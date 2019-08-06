@@ -720,7 +720,8 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
                     return port.hostfile
 
     def run_host_cmd(host_cmd, timeout=720):
-        return decode_to_text(process.system_output(host_cmd, timeout=timeout))
+        return decode_to_text(process.system_output(
+            host_cmd, shell=True, timeout=timeout))
 
     def transfer_data(session, host_cmd, guest_cmd, n_time, timeout,
                       md5_check, action):
@@ -797,7 +798,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
 
     dir_name = data_dir.get_tmp_dir()
     transfer_timeout = int(params.get("transfer_timeout", 720))
-    tmp_dir = params.get("tmp_dir", data_dir.get_tmp_dir())
+    tmp_dir = params.get("tmp_dir", '/var/tmp/')
     filesize = int(params.get("filesize", 10))
     count = int(filesize)
 
@@ -836,14 +837,14 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
     host_script = params.get("host_script", "serial_host_send_receive.py")
     host_script = os.path.join(data_dir.get_root_dir(), "shared", "deps",
                                "serial", host_script)
-    host_cmd = "python %s -s %s -f %s -a %s" % (host_script, host_device,
-                                                host_data_file, action)
+    host_cmd = ("`command -v python python3 | head -1` %s -s %s -f %s -a %s"
+                % (host_script, host_device, host_data_file, action))
     guest_script = params.get("guest_script",
                               "VirtIoChannel_guest_send_receive.py")
     guest_script = os.path.join(guest_path, guest_script)
 
-    guest_cmd = "python %s -d %s -f %s -a %s" % (guest_script, port_name,
-                                                 guest_data_file, guest_action)
+    guest_cmd = ("`command -v python python3 | head -1` %s -d %s -f %s -a %s"
+                 % (guest_script, port_name, guest_data_file, guest_action))
     n_time = int(params.get("repeat_times", 1))
     txt += " for %s times" % n_time
     try:

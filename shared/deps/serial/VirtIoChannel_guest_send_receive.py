@@ -50,7 +50,8 @@ class VirtIoChannel:
         self.ack_format = "3s"
         self.ack_msg = b"ACK"
         self.hi_format = "2s"
-        self.hi_msg = "HI"
+        self.hi_msg = b"HI"
+        self.recv_msg = b'ALLRECEIVED'
         if self.is_windows:
             vport_name = '\\\\.\\Global\\' + device_name
             from windows_support import WinBufferedReadFile
@@ -85,23 +86,24 @@ class VirtIoChannel:
             self.send(self.hi_msg)
             txt = self.receive(hi_msg_len)
             out = struct.unpack(self.hi_format, txt)[0]
-            if out != "HI":
-                raise ShakeHandError("Fail to get HI from guest.")
+            if out != b"HI":
+                raise ShakeHandError("Fail to get HI from host.")
             size_s = struct.pack("q", size)
             self.send(size_s)
             txt = self.receive(ack_msg_len)
             ack_str = struct.unpack(self.ack_format, txt)[0]
             if ack_str != self.ack_msg:
-                raise ShakeHandError("Guest didn't ACK the file size message.")
+                raise ShakeHandError("Host didn't ACK the file size message.")
             return size
         elif action == "receive":
-            txt = self.receive(hi_msg_len)
+            txt = b''
+            while len(txt) < hi_msg_len:
+                txt += self.receive(hi_msg_len)
             hi_str = struct.unpack(self.hi_format, txt)[0]
             if hi_str != self.hi_msg:
-                raise ShakeHandError("Fail to get HI from guest.")
+                raise ShakeHandError("Fail to get HI from host.")
             self.send(txt)
             size = self.receive(8)
-            print("xxxx size = %s" % size)
             if size:
                 size = struct.unpack("q", size)[0]
                 txt = struct.pack(self.ack_format, self.ack_msg)
@@ -180,7 +182,8 @@ def receive(device, filename, p_size=1024):
             txt = vio.receive(p_size)
             md5_value.update(txt)
             file_no.write(txt)
-            recv_size += p_size
+            recv_size += len(txt)
+        vio.send(vio.recv_msg)
     finally:
         file_no.close()
         if vio:
@@ -190,20 +193,20 @@ def receive(device, filename, p_size=1024):
 
 
 def send(device, filename, p_size=1024):
-    recv_size = 0
+    send_size = 0
     f_size = os.path.getsize(filename)
     vio = VirtIoChannel(device)
     vio.shake_hand(f_size, action="send")
     md5_value = md5_init()
     file_no = open(filename, 'rb')
     try:
-        while recv_size < f_size:
+        while send_size < f_size:
             txt = file_no.read(p_size)
             vio.send(txt)
             md5_value.update(txt)
-            recv_size += len(txt)
+            send_size += len(txt)
     finally:
-        print("received size = %s" % recv_size)
+        print("Sent size = %s" % send_size)
         file_no.close()
         if vio:
             vio.close()
@@ -239,6 +242,8 @@ if __name__ == "__main__":
         parser.error("Please set -f parameter.")
     p_size = options.package
     action = options.action
+    if action not in ("receive", "send", "both"):
+        parser.error('Please set -a parameter: "receive", "send", "both"')
 
     if action == "receive":
         md5_sum = receive(device, filename, p_size=p_size)
