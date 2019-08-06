@@ -441,6 +441,20 @@ class QemuImg(object):
                 continue
             backup_func(src, dst)
 
+    def rm_backup_image(self):
+        """
+        Remove backup image
+        """
+        backup_dir = utils_misc.get_path(self.root_dir,
+                                         self.params.get("backup_dir", ""))
+        image_name = os.path.join(backup_dir, "%s.backup" %
+                                  os.path.basename(self.image_filename))
+        logging.debug("Removing image file %s as requested", image_name)
+        if os.path.exists(image_name):
+            os.unlink(image_name)
+        else:
+            logging.warning("Image file %s not found", image_name)
+
     def save_image(self, params, filename, root_dir=None):
         """
         Save images to a path for later debugging.
