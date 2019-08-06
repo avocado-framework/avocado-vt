@@ -207,6 +207,8 @@ def main():
         parser.error("Please set -f parameter.")
     action = options.action
     p_size = options.package
+    if action not in ("receive", "send", "both"):
+        parser.error('Please set -a parameter: "receive", "send", "both"')
 
     if chardev_type == 'unix_socket':
         sock_flag = socket.AF_UNIX

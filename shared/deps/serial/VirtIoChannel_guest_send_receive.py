@@ -242,6 +242,8 @@ if __name__ == "__main__":
         parser.error("Please set -f parameter.")
     p_size = options.package
     action = options.action
+    if action not in ("receive", "send", "both"):
+        parser.error('Please set -a parameter: "receive", "send", "both"')
 
     if action == "receive":
         md5_sum = receive(device, filename, p_size=p_size)
