@@ -2695,8 +2695,9 @@ class VM(virt_vm.BaseVM):
 
             # Create serial ports.
             for serial in params.objects('serials'):
-                if not params.object_params(serial).get(
-                        "serial_type").startswith('virt'):
+                serial_params = params.object_params(serial)
+                serial_type = serial_params["serial_type"]
+                if not serial_type.startswith('virt'):
                     self.serial_ports.append(serial)
 
             if (name is None and params is None and root_dir is None and
