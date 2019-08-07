@@ -21,7 +21,9 @@ from setuptools import setup, find_packages
 
 VERSION = open('VERSION', 'r').read().strip()
 
-VIRTUAL_ENV = hasattr(sys, 'real_prefix')
+
+def __is_virtual_env():
+    return hasattr(sys, 'real_prefix')
 
 
 def get_dir(system_path=None, virtual_path=None):
@@ -33,7 +35,7 @@ def get_dir(system_path=None, virtual_path=None):
     """
     if virtual_path is None:
         virtual_path = system_path
-    if VIRTUAL_ENV:
+    if __is_virtual_env():
         if virtual_path is None:
             virtual_path = []
         return os.path.join(*virtual_path)
