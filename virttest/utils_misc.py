@@ -2881,8 +2881,8 @@ def get_all_disks_did(session, partition=False):
     return all_disks_did
 
 
-def format_windows_disk(session, did, mountpoint=None, size=None,
-                        fstype="ntfs", force=False):
+def format_windows_disk(session, did, mountpoint=None, size=None, fstype="ntfs",
+                        labletype=utils_disk.PARTITION_TABLE_TYPE_MBR, force=False):
     """
     Create a partition on disk in windows guest and format it.
 
@@ -2891,11 +2891,14 @@ def format_windows_disk(session, did, mountpoint=None, size=None,
     :param mountpoint: mount point for the disk.
     :param size: partition size.
     :param fstype: filesystem type for the disk.
+    :param labletype: disk partition table type.
+    :param force: if need force format.
     :return Boolean: disk usable or not.
     """
     list_disk_cmd = "echo list disk > disk && "
     list_disk_cmd += "echo exit >> disk && diskpart /s disk"
     disks = session.cmd_output(list_disk_cmd, timeout=120)
+    utils_disk.create_partition_table_windows(session, did, labletype)
 
     if size:
         size = int(float(normalize_data_size(size, order_magnitude="M")))
