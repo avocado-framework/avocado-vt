@@ -23,7 +23,8 @@ VERSION = open('VERSION', 'r').read().strip()
 
 
 def __is_virtual_env():
-    return hasattr(sys, 'real_prefix')
+    return (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and
+                                            sys.base_prefix != sys.prefix))
 
 
 def get_dir(system_path=None, virtual_path=None):
