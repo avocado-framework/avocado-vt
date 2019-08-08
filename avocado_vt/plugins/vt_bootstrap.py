@@ -12,7 +12,6 @@
 # Copyright: Red Hat Inc. 2015
 # Author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 
-import argparse
 import sys
 import logging
 
@@ -97,18 +96,14 @@ class VTBootstrap(CLICmd):
                             help=("The architecture of the distro to be used when "
                                   "generating the host configuration entry."))
 
-    def run(self, args):
+    def run(self, config):
         # Enable root logger as some Avocado-vt libraries use that
         handler = logging.StreamHandler()
         handler.setLevel(logging.DEBUG)
         logging.getLogger("").addHandler(handler)
 
-        # Compatibility with nrunner Avocado
-        if isinstance(args, dict):
-            args = argparse.Namespace(**args)
-
         try:
-            bootstrap.bootstrap(options=args, interactive=True)
+            bootstrap.bootstrap(options=config, interactive=True)
             sys.exit(0)
         except process.CmdError as ce:
             if ce.result.interrupted:

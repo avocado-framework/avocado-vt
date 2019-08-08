@@ -19,6 +19,7 @@ from . import utils_selinux
 from . import defaults
 from . import arch
 from .compat_52lts import results_stdout_52lts
+from .compat import get_opt
 
 
 LOG = logging.getLogger("avocado.app")
@@ -325,8 +326,8 @@ def host_os_get_distro_name(options, detected):
     :param detected: result of :class:`avocado.utils.distro.detect`
     :type detected: :class:`avocado.utils.distro.LinuxDistro`
     """
-    if options.vt_host_distro_name:
-        return options.vt_host_distro_name
+    if get_opt(options, 'vt_host_distro_name'):
+        return get_opt(options, 'vt_host_distro_name')
     if detected.name == 'rhel':
         return 'RHEL'
     elif detected.name == 'fedora':
@@ -340,15 +341,16 @@ def create_host_os_cfg(options):
             return forced
         else:
             return detected
-    host_os_cfg_path = data_dir.get_backend_cfg_path(options.vt_type, 'host-os.cfg')
+    host_os_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt_type'),
+                                                     'host-os.cfg')
     with open(host_os_cfg_path, 'w') as cfg:
         detected = distro.detect()
         name = host_os_get_distro_name(options, detected)
-        version = _forced_or_detected(options.vt_host_distro_version,
+        version = _forced_or_detected(get_opt(options, 'vt_host_distro_version'),
                                       "m%s" % detected.version)
-        release = _forced_or_detected(options.vt_host_distro_release,
+        release = _forced_or_detected(get_opt(options, 'vt_host_distro_release'),
                                       "u%s" % detected.release)
-        arch = _forced_or_detected(options.vt_host_distro_arch,
+        arch = _forced_or_detected(get_opt(options, 'vt_host_distro_arch'),
                                    "Host_arch_%s" % detected.arch)
         cfg.write("variants:\n")
         cfg.write("    - @Host:\n")
@@ -361,10 +363,10 @@ def create_host_os_cfg(options):
         cfg.write("                                variants:\n")
         cfg.write("                                    - @%s:\n" % arch)
 
-    count = [options.vt_host_distro_name,
-             options.vt_host_distro_version,
-             options.vt_host_distro_release,
-             options.vt_host_distro_arch].count(None)
+    count = [get_opt(options, 'vt_host_distro_name'),
+             get_opt(options, 'vt_host_distro_version'),
+             get_opt(options, 'vt_host_distro_release'),
+             get_opt(options, 'vt_host_distro_arch')].count(None)
     if count == 4:
         source = "distro detection"
     elif count == 0:
@@ -832,18 +834,19 @@ def bootstrap(options, interactive=False):
     :param options: Command line options.
     :param interactive: Whether to ask for confirmation.
     """
-    if options.yes_to_all:
+    if get_opt(options, 'yes_to_all'):
         interactive = False
 
-    LOG.info("Running bootstrap for %s", options.vt_type)
+    vt_type = get_opt(options, 'vt_type')
+    LOG.info("Running bootstrap for %s", vt_type)
     step = 0
 
     LOG.info("")
     step += 1
     LOG.info("%d - Checking the mandatory programs and headers", step)
-    guest_os = options.vt_guest_os or defaults.DEFAULT_GUEST_OS
+    guest_os = get_opt(options, 'vt_guest_os') or defaults.DEFAULT_GUEST_OS
     try:
-        verify_mandatory_programs(options.vt_type, guest_os)
+        verify_mandatory_programs(vt_type, guest_os)
     except Exception as details:
         LOG.debug(details)
         LOG.debug('Install the missing programs and/or headers and '
@@ -853,7 +856,7 @@ def bootstrap(options, interactive=False):
     LOG.info("")
     step += 1
     LOG.info("%d - Checking the recommended programs", step)
-    verify_recommended_programs(options.vt_type)
+    verify_recommended_programs(vt_type)
 
     LOG.info("")
     step += 1
@@ -867,11 +870,11 @@ def bootstrap(options, interactive=False):
         action = "Downloading"
     else:
         action = "Updating"
-    if not options.vt_no_downloads:
+    if not get_opt(options, 'vt_no_downloads'):
         LOG.info("")
         step += 1
         LOG.info("%d - %s the test providers from remote repos", step, action)
-        asset.download_all_test_providers(options.vt_update_providers)
+        asset.download_all_test_providers(get_opt(options, 'vt_update_providers'))
     else:
         if not_downloaded:
             LOG.warn("The following test providers have not been downloaded: %s",
@@ -902,46 +905,47 @@ def bootstrap(options, interactive=False):
 
     sync_download_dir(interactive)
 
-    test_dir = data_dir.get_backend_dir(options.vt_type)
-    if options.vt_type == 'libvirt':
+    test_dir = data_dir.get_backend_dir(vt_type)
+    if vt_type == 'libvirt':
         step = create_config_files(test_dir, shared_dir, interactive,
-                                   options.vt_type, step,
-                                   force_update=options.vt_update_config)
-        create_subtests_cfg(options.vt_type)
-        create_guest_os_cfg(options.vt_type)
+                                   vt_type, step,
+                                   force_update=get_opt(options, 'vt_update_config'))
+        create_subtests_cfg(vt_type)
+        create_guest_os_cfg(vt_type)
         # Don't bother checking if changes can't be made
         if os.getuid() == 0:
             verify_selinux(datadir,
                            os.path.join(datadir, 'images'),
                            os.path.join(datadir, 'isos'),
                            data_dir.get_tmp_dir(),
-                           interactive, options.vt_selinux_setup)
+                           interactive, get_opt(options, 'vt_selinux_setup'))
 
     # lvsb test doesn't use any shared configs
-    elif options.vt_type == 'lvsb':
-        create_subtests_cfg(options.vt_type)
+    elif vt_type == 'lvsb':
+        create_subtests_cfg(vt_type)
         if os.getuid() == 0:
             # Don't bother checking if changes can't be made
             verify_selinux(datadir,
                            os.path.join(datadir, 'images'),
                            os.path.join(datadir, 'isos'),
                            data_dir.get_tmp_dir(),
-                           interactive, options.vt_selinux_setup)
+                           interactive, get_opt(options, 'vt_selinux_setup'))
     else:  # Some other test
         step = create_config_files(test_dir, shared_dir, interactive,
-                                   options.vt_type, step,
-                                   force_update=options.vt_update_config)
-        create_subtests_cfg(options.vt_type)
-        create_guest_os_cfg(options.vt_type)
+                                   vt_type, step,
+                                   force_update=get_opt(options, 'vt_update_config'))
+        create_subtests_cfg(vt_type)
+        create_guest_os_cfg(vt_type)
     create_host_os_cfg(options)
 
-    if not (options.vt_no_downloads or options.vt_skip_verify_download_assets):
+    if not (get_opt(options, 'vt_no_downloads') or
+            get_opt(options, 'vt_skip_verify_download_assets')):
         LOG.info("")
         step += 1
         LOG.info("%s - Verifying (and possibly downloading) guest image",
                  step)
         try:
-            for os_info in get_guest_os_info_list(options.vt_type, guest_os):
+            for os_info in get_guest_os_info_list(vt_type, guest_os):
                 os_asset = os_info['asset']
                 try:
                     asset.download_asset(os_asset, interactive=interactive,
@@ -954,9 +958,9 @@ def bootstrap(options, interactive=False):
             sys.exit(1)
 
     check_modules = []
-    if options.vt_type == "qemu":
+    if vt_type == "qemu":
         check_modules = arch.get_kvm_module_list()
-    elif options.vt_type == "openvswitch":
+    elif vt_type == "openvswitch":
         check_modules = ["openvswitch"]
 
     if check_modules:
