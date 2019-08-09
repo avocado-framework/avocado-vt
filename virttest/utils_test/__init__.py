@@ -2089,6 +2089,8 @@ class Stress(object):
             "stress_install_from_repo") == "yes"
         self.download_url = self.params.get('download_url_%s' % stress_type,
                                             download_url)
+        if not aurl.is_url(self.download_url) and not os.path.isabs(self.download_url):
+            self.download_url = utils_misc.get_path(data_dir.DEPS_DIR, self.download_url)
         self.download_type = self.params.get('download_type_%s' % stress_type,
                                              download_type)
         self.base_name = self.download_url.split("/")[-1]
