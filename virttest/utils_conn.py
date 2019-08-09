@@ -622,7 +622,7 @@ class SSHConnection(ConnectionBase):
                 raise ConnToolNotFoundError(tool_name,
                                             "executable not set or found on path,")
 
-        if os.path.exists("/root/.ssh/id_rsa"):
+        if not client_session.cmd_status("ls /root/.ssh/id_rsa"):
             pass
         else:
             cmd = "%s -t rsa -f /root/.ssh/id_rsa -N '' " % (ssh_keygen)
