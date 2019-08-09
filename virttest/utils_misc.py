@@ -1055,7 +1055,7 @@ def mount(src, mount_point, fstype, perm=None, verbose=False, fstype_mtab=None):
 
 
 def is_mounted(src, mount_point, fstype, perm=None, verbose=False,
-               fstype_mtab=None):
+               fstype_mtab=None, session=None):
     """
     Check mount status from /etc/mtab
 
@@ -1071,10 +1071,11 @@ def is_mounted(src, mount_point, fstype, perm=None, verbose=False,
     :type verbose: Boolean
     :param fstype_mtab: file system type in mtab could be different
     :type fstype_mtab: str
+    :param session: Session Object
     :return: if the src is mounted as expect
     :rtype: Boolean
     """
-    return utils_disk.is_mount(src, mount_point, fstype, perm, verbose)
+    return utils_disk.is_mount(src, mount_point, fstype, perm, verbose, session)
 
 
 def install_host_kernel(job, params):
