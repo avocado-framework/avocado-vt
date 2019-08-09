@@ -2831,6 +2831,12 @@ class ParamsNet(VMNet):
                 except IndexError:
                     existing_value = None
                 nic_dict[propertea] = nic_params.get(propertea, existing_value)
+                if propertea == "netdst" and "shell:" in nic_dict[propertea]:
+                    nic_dict[propertea] = process.getoutput(
+                        nic_dict[propertea].split(':', 1)[1])
+                    if not nic_dict[propertea]:
+                        raise exceptions.TestError(
+                            "netdst is null, please check the shell command")
             result_list.append(nic_dict)
         VMNet.__init__(self, self.container_class, result_list)
 
