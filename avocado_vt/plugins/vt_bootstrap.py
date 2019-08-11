@@ -12,6 +12,7 @@
 # Copyright: Red Hat Inc. 2015
 # Author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 
+import argparse
 import sys
 import logging
 
@@ -101,6 +102,10 @@ class VTBootstrap(CLICmd):
         handler = logging.StreamHandler()
         handler.setLevel(logging.DEBUG)
         logging.getLogger("").addHandler(handler)
+
+        # Compatibility with nrunner Avocado
+        if isinstance(args, dict):
+            args = argparse.Namespace(**args)
 
         try:
             bootstrap.bootstrap(options=args, interactive=True)
