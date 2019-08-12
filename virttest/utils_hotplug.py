@@ -57,7 +57,8 @@ def get_cpu_xmldata(vm, options=""):
     try:
         cpu_xmldata['current_vcpu'] = int(vm_xml.current_vcpu)
     except LibvirtXMLNotFoundError:
-        logging.debug("current vcpu value not present in xml")
+        logging.debug("current vcpu value not present in xml, set as max value")
+        cpu_xmldata['current_vcpu'] = int(vm_xml.vcpu)
     cpu_xmldata['vcpu'] = int(vm_xml.vcpu)
     return cpu_xmldata
 
@@ -358,14 +359,17 @@ def check_xmlcount(vm, exp_vcpu, option):
     result = True
     cpu_xml = {}
     cpu_xml = get_cpu_xmldata(vm, option)
-    if 'config' in option:
-        if cpu_xml['current_vcpu'] != exp_vcpu['cur_config']:
-            logging.error("currrent vcpu number mismatch in xml\n"
-                          "Expected: %s\nActual:%s", exp_vcpu['cur_config'],
-                          cpu_xml['current_vcpu'])
-            result = False
-        else:
-            logging.debug("current vcpu count in xml check pass")
+    if "--config" in option or vm.is_dead():
+        exp_key = "cur_config"
+    else:
+        exp_key = "cur_live"
+    if cpu_xml['current_vcpu'] != exp_vcpu[exp_key]:
+        logging.error("currrent vcpu number mismatch in xml\n"
+                      "Expected: %s\nActual:%s", exp_vcpu[exp_key],
+                      cpu_xml['current_vcpu'])
+        result = False
+    else:
+        logging.debug("current vcpu count in xml check pass")
     if cpu_xml['vcpu'] != exp_vcpu['max_config']:
         logging.error("vcpu count mismatch in xml\nExpected: %s\nActual: %s",
                       exp_vcpu['max_config'], cpu_xml['vcpu'])
