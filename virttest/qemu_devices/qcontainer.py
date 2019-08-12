@@ -29,6 +29,7 @@ from virttest.qemu_devices.utils import (DeviceError, DeviceHotplugError,
                                          DeviceUnplugError, none_or_int)
 from virttest.compat_52lts import results_stdout_52lts, decode_to_text
 from virttest.utils_params import Params
+from virttest.qemu_capabilities import Flags, Capabilities
 
 #
 # Device container (device representation of VM)
@@ -43,12 +44,30 @@ class DevContainer(object):
     """
     # General methods
 
+    cache_map = {'writeback': {'write-cache': 'on',
+                               'cache.direct': 'off',
+                               'cache.no-flush': 'off'},
+                 'none': {'write-cache': 'on',
+                          'cache.direct': 'on',
+                          'cache.no-flush': 'off'},
+                 'writethrough': {'write-cache': 'off',
+                                  'cache.direct': 'off',
+                                  'cache.no-flush': 'off'},
+                 'directsync': {'write-cache': 'off',
+                                'cache.direct': 'on',
+                                'cache.no-flush': 'off'},
+                 'unsafe': {'write-cache': 'on',
+                            'cache.direct': 'off',
+                            'cache.no-flush': 'on'}}
+
     def __init__(self, qemu_binary, vmname, strict_mode="no",
-                 workaround_qemu_qmp_crash="no", allow_hotplugged_vm="yes"):
+                 workaround_qemu_qmp_crash="no", allow_hotplugged_vm="yes",
+                 capabilities=None):
         """
         :param qemu_binary: qemu binary
         :param vm: related VM
         :param strict_mode: Use strict mode (set optional params)
+        :param capabilities: the capabilities of vm
         """
         def get_hmp_cmds(qemu_binary):
             """ :return: list of human monitor commands """
@@ -127,6 +146,9 @@ class DevContainer(object):
         self.__devices = []
         self.__buses = []
         self.allow_hotplugged_vm = allow_hotplugged_vm == 'yes'
+        if capabilities is None:
+            capabilities = Capabilities()
+        self.__caps = capabilities
 
     def __getitem__(self, item):
         """
@@ -329,6 +351,22 @@ class DevContainer(object):
                 if device.get_qid() == qid:
                     ret.append(device)
         return ret
+
+    def get_qdev_by_drive(self, device):
+        """
+        Get the qdev ID of device by drive name.
+
+        :param device: device name
+        :type device: str
+        :return: the qdev ID
+        :rtype: str
+        """
+        for dev in self.__devices:
+            try:
+                if isinstance(dev, qdevices.QDevice) and device == dev.params['drive']:
+                    return dev.params['id']
+            except KeyError:
+                continue
 
     def str_short(self):
         """ Short string representation of all devices """
@@ -680,7 +718,20 @@ class DevContainer(object):
             device.unplug_hook()
             drive = device.get_param("drive")
             if drive:
-                self.remove(drive)
+                if Flags.BLOCKDEV in self.__caps:
+                    format_node = self[drive]
+                    nodes = [format_node]
+                    nodes.extend((n for n in format_node.get_child_nodes()))
+                    for node in nodes:
+                        if not node.verify_unplug(node.unplug(monitor), monitor):
+                            raise DeviceUnplugError(
+                                node, "Failed to unplug blockdev node.", self)
+                        self.remove(node, True if isinstance(
+                            node, qdevices.QBlockdevFormatNode) else False)
+                        if not isinstance(node, qdevices.QBlockdevFormatNode):
+                            format_node.del_child_node(node)
+                else:
+                    self.remove(drive)
             self.remove(device, True)
             if ver_out is True:
                 self.set_clean()
@@ -1492,29 +1543,73 @@ class DevContainer(object):
             dev_parent = {'type': fmt}
 
         #
-        # Drive
+        # Drive mode:
         # -drive fmt or -drive fmt=none -device ...
+        # Blockdev mode:
+        # -blockdev node-name ... -device ...
         #
-        if self.has_hmp_cmd('__com.redhat_drive_add') and use_device:
-            devices.append(qdevices.QRHDrive(name))
-        elif self.has_hmp_cmd('drive_add') and use_device:
-            devices.append(qdevices.QHPDrive(name))
-        elif self.has_option("device"):
-            devices.append(qdevices.QDrive(name, use_device))
-        else:       # very old qemu without 'addr' support
-            devices.append(qdevices.QOldDrive(name, use_device))
-        devices[-1].set_param('if', 'none')
-        devices[-1].set_param('rerror', rerror)
-        devices[-1].set_param('werror', werror)
-        devices[-1].set_param('serial', serial)
-        devices[-1].set_param('boot', boot, bool)
-        devices[-1].set_param('snapshot', snapshot, bool)
-        devices[-1].set_param('readonly', readonly, bool)
+        if Flags.BLOCKDEV in self.__caps:
+            protocol_cls = qdevices.QBlockdevProtocolFile
+            if not filename:
+                protocol_cls = qdevices.QBlockdevProtocolNullCo
+            elif fmt in ('scsi-generic', 'scsi-block'):
+                protocol_cls = qdevices.QBlockdevProtocolHostDevice
+            elif blkdebug is not None:
+                protocol_cls = qdevices.QBlockdevProtocolBlkdebug
+
+            if imgfmt == 'qcow2':
+                format_cls = qdevices.QBlockdevFormatQcow2
+            elif imgfmt == 'raw' or media == 'cdrom':
+                format_cls = qdevices.QBlockdevFormatRaw
+
+            format_node = format_cls(name)
+            protocol_node = protocol_cls(name)
+            format_node.add_child_node(protocol_node)
+            devices.append(protocol_node)
+            devices.append(format_node)
+        else:
+            if self.has_hmp_cmd('__com.redhat_drive_add') and use_device:
+                devices.append(qdevices.QRHDrive(name))
+            elif self.has_hmp_cmd('drive_add') and use_device:
+                devices.append(qdevices.QHPDrive(name))
+            elif self.has_option("device"):
+                devices.append(qdevices.QDrive(name, use_device))
+            else:       # very old qemu without 'addr' support
+                devices.append(qdevices.QOldDrive(name, use_device))
+
+        if Flags.BLOCKDEV in self.__caps:
+            for opt, val in zip(('snapshot', 'serial', 'boot'),
+                                (snapshot, serial, boot)):
+                if val is not None:
+                    if (opt, val) == ('snapshot', 'yes'):
+                        raise exceptions.TestCancel(
+                            "The snapshot=on is not supported by -blockdev.")
+                    logging.warn("The command line option %s is not supported "
+                                 "on %s by -blockdev." % (opt, name))
+            if media == 'cdrom':
+                readonly = 'on'
+            devices[-2].set_param('read-only', readonly, bool)
+            devices[-1].set_param('read-only', readonly, bool)
+        else:
+            devices[-1].set_param('if', 'none')
+            devices[-1].set_param('rerror', rerror)
+            devices[-1].set_param('werror', werror)
+            devices[-1].set_param('serial', serial)
+            devices[-1].set_param('boot', boot, bool)
+            devices[-1].set_param('snapshot', snapshot, bool)
+            devices[-1].set_param('readonly', readonly, bool)
+
         if 'aio' in self.get_help_text():
             if aio == 'native' and snapshot == 'yes':
                 logging.warn('snapshot is on, fallback aio to threads.')
                 aio = 'threads'
-            devices[-1].set_param('aio', aio)
+                if Flags.BLOCKDEV in self.__caps:
+                    if isinstance(devices[-2], (qdevices.QBlockdevProtocolFile,
+                                                qdevices.QBlockdevProtocolHostDevice,
+                                                qdevices.QBlockdevProtocolHostCdrom)):
+                        devices[-2].set_param('aio', aio)
+                else:
+                    devices[-1].set_param('aio', aio)
             if aio == 'native':
                 # Since qemu 2.6, aio=native has no effect without
                 # cache.direct=on or cache=none, It will be error out.
@@ -1524,18 +1619,33 @@ class DevContainer(object):
         # More info from qemu commit 91a097e74.
         if not filename:
             cache = None
-        devices[-1].set_param('cache', cache)
-        devices[-1].set_param('media', media)
-        devices[-1].set_param('format', imgfmt)
-        if blkdebug is not None:
-            devices[-1].set_param('file', 'blkdebug:%s:%s' % (blkdebug,
-                                                              filename))
+        if Flags.BLOCKDEV in self.__caps:
+            devices[-2].set_param('filename', filename)
+            for dev in (devices[-1], devices[-2]):
+                if cache is None:
+                    direct, no_flush = (None, None)
+                else:
+                    direct, no_flush = (self.cache_map[cache]['cache.direct'],
+                                        self.cache_map[cache]['cache.no-flush'])
+                dev.set_param('cache.direct', direct)
+                dev.set_param('cache.no-flush', no_flush)
+            devices[-1].set_param('file', devices[-2].get_qid())
         else:
-            devices[-1].set_param('file', filename)
+            devices[-1].set_param('cache', cache)
+            devices[-1].set_param('media', media)
+            devices[-1].set_param('format', imgfmt)
+            if blkdebug is not None:
+                devices[-1].set_param('file', 'blkdebug:%s:%s' % (blkdebug, filename))
+            else:
+                devices[-1].set_param('file', filename)
         if drv_extra_params:
             drv_extra_params = (_.split('=', 1) for _ in
                                 drv_extra_params.split(',') if _)
             for key, value in drv_extra_params:
+                if Flags.BLOCKDEV in self.__caps:
+                    if key == 'discard':
+                        value = re.sub('on', 'unmap', re.sub('off', 'ignore', value))
+                    devices[-2].set_param(key, value)
                 devices[-1].set_param(key, value)
         if not use_device:
             if fmt and fmt.startswith('scsi-'):
@@ -1622,6 +1732,15 @@ class DevContainer(object):
             devices[-1].set_param('x-data-plane', x_data_plane, bool)
         else:
             devices[-1].set_param('iothread', x_data_plane)
+        if Flags.BLOCKDEV in self.__caps:
+            if isinstance(devices[-3], qdevices.QBlockdevProtocolHostDevice):
+                self.cache_map[cache]['write-cache'] = None
+            write_cache = None if cache is None else self.cache_map[cache]['write-cache']
+            devices[-1].set_param('write-cache', write_cache)
+            if 'scsi-generic' == fmt:
+                rerror, werror = (None, None)
+            devices[-1].set_param('rerror', rerror)
+            devices[-1].set_param('werror', werror)
         if 'serial' in options:
             devices[-1].set_param('serial', serial)
             devices[-2].set_param('serial', None)   # remove serial from drive

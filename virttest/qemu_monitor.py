@@ -27,6 +27,8 @@ from . import utils_misc
 from . import cartesian_config
 from . import data_dir
 
+from virttest.qemu_capabilities import Flags
+
 
 class MonitorError(Exception):
     pass
@@ -261,6 +263,7 @@ class Monitor(object):
         :raise MonitorConnectError: Raised if the connection fails
         """
         self.vm = VM(vm.name)
+        self._enable_blockdev = vm.check_capability(Flags.BLOCKDEV)
         self.name = name
         self.filename = filename
         self._lock = threading.RLock()
@@ -643,17 +646,18 @@ class Monitor(object):
 
         return blocks
 
-    @staticmethod
-    def _parse_info_block_qmp(info):
+    def _parse_info_block_qmp(self, info):
         """
         Parse output of "query block" into dict of disk params
         """
         blocks = {}
         for item in info:
-            if not item.get('device'):
-                raise ValueError("Incorrect QMP respone, device not set in"
-                                 "info block: %s" % info)
-            name = item.pop('device')
+            if not item.get('inserted').get(
+                    'node-name') if self._enable_blockdev else not item.get('device'):
+                raise ValueError("Incorrect QMP respone, device or node-name "
+                                 "not set in info block: %s" % info)
+            name = item.get('inserted').get(
+                'node-name') if self._enable_blockdev else item.pop('device')
             blocks[name] = {}
             if 'inserted' not in item:
                 blocks[name]['not-inserted'] = True
