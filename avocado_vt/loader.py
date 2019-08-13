@@ -16,6 +16,7 @@
 Avocado VT plugin
 """
 
+import argparse
 import copy
 import logging
 import os
@@ -103,6 +104,9 @@ class VirtTestLoader(loader.TestLoader):
            of this plugins "self.args" (extends the --vt-extra-params)
         """
         vt_extra_params = extra_params.pop("avocado_vt_extra_params", None)
+        # Compatibility with nrunner Avocado
+        if isinstance(args, dict):
+            args = argparse.Namespace(**args)
         super(VirtTestLoader, self).__init__(args, extra_params)
         self._fill_optional_args()
         if vt_extra_params:

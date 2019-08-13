@@ -16,6 +16,7 @@
 Avocado VT plugin
 """
 
+import argparse
 import logging
 import os
 
@@ -44,7 +45,11 @@ class VirtTestOptionsProcess(object):
         """
         Parses options and initializes attributes.
         """
-        self.options = options
+        # Compatibility with nrunner Avocado
+        if isinstance(options, dict):
+            self.options = argparse.Namespace(**options)
+        else:
+            self.options = options
         # There are a few options from the original virt-test runner
         # that don't quite make sense for avocado (avocado implements a
         # better version of the virt-test feature).
