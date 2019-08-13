@@ -1,0 +1,27 @@
+smoke_task:
+    env:
+       CIRRUS_CLONE_DEPTH: 1
+    setup_script:
+       - dnf -y install python3 git xz tcpdump nc iproute iputils gcc python3-devel qemu-kvm qemu-img
+       - $PYTHON -m pip install $AVOCADO_SOURCE
+       - $PYTHON -m pip install -r requirements.txt
+       - $PYTHON setup.py develop --user
+    bootstrap_script:
+       - $PYTHON -m avocado vt-bootstrap --vt-skip-verify-download-assets --yes-to-all
+    list_script:
+       - $PYTHON -m avocado list
+    dry_run_script:
+       - $PYTHON -m avocado --show all run --dry-run -- boot
+    container:
+        matrix:
+          - image: fedora:30
+          - image: fedora:29
+          - image: centos:7
+    env:
+        matrix:
+          - AVOCADO_SOURCE: avocado-framework<70.0
+          - AVOCADO_SOURCE: -e git+https://github.com/avocado-framework/avocado#egg=avocado_framework
+        matrix:
+          - PYTHON: python2
+          - PYTHON: python3
+    only_if: $PYTHON != 'python2' && $AVOCADO_SOURCE != '-e git+https://github.com/avocado-framework/avocado#egg=avocado_framework'
