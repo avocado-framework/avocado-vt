@@ -40,6 +40,7 @@ from virttest import error_event
 from virttest.compat_52lts import decode_to_text
 from virttest.qemu_devices import qdevices, qcontainer
 from virttest.qemu_devices.utils import DeviceError
+from virttest.qemu_devices.utils import DeviceNotFoundError
 from virttest.utils_version import VersionInterval
 from virttest.qemu_capabilities import Flags, Capabilities
 
@@ -4492,8 +4493,7 @@ class VM(virt_vm.BaseVM):
                     return block['locked']
         return False
 
-    def live_snapshot(self, base_file, snapshot_file,
-                      snapshot_format="qcow2"):
+    def live_snapshot(self, device, base_file, snapshot_file, **kwargs):
         """
         Take a live disk snapshot.
 
@@ -4503,32 +4503,74 @@ class VM(virt_vm.BaseVM):
 
         :return: File name of disk snapshot.
         """
-        device = self.get_block({"file": base_file})
+        def get_node_name():
+            if base_file:
+                node_info = self.query_named_block_nodes("file", base_file)
+                return node_info.get("node-name")
+            elif device and '_' in device:
+                qdev = device.split('_')[1]
+                return self.get_top_node_by_qdev(qdev)
+            return None
 
-        output = self.monitor.live_snapshot(device, snapshot_file,
-                                            format=snapshot_format)
-        logging.debug(output)
-        device = self.get_block({"file": snapshot_file})
-        if device:
-            current_file = device
-        else:
-            current_file = None
+        if Flags.BLOCKDEV in self._caps:
+            node_name = get_node_name()
+            if not node_name:
+                raise DeviceNotFoundError(device, self.devices)
+            snapshot_node_name = os.path.basename(snapshot_file)
+            kwargs = {"node-name": node_name,
+                      "snapshot-node-name": snapshot_node_name}
+            self.monitor.blockdev_snapshot_sync(None, snapshot_file, **kwargs)
+            return node_name
+        self.monitor.live_snapshot(device, snapshot_file, **kwargs)
+        return device
 
-        return current_file
-
-    def block_stream(self, device, speed, base=None, correct=True, **kwargs):
+    def block_stream(self, device, **kwargs):
         """
-        start to stream block device, aka merge snapshot;
-
-        :param device: device ID;
-        :param speed: limited speed, default unit B/s;
-        :param base: base file;
-        :param correct: auto correct cmd, correct by default
-        :param kwargs: optional keyword arguments
+        :param device: device name or top image node-name
+        :param qdev: qdev id, it equal to device id by default
+        :param kwargs: keyword arguments
         """
-        cmd = self.params.get("block_stream_cmd", "block-stream")
-        return self.monitor.block_stream(device, speed, base,
-                                         cmd, correct=correct, **kwargs)
+        if self.monitor._enable_blockdev:
+            node_info = self.query_named_block_nodes("device", device)
+            node_name = node_info.get("node-name")
+            if not node_name and '_' in device:
+                node_name = self.get_top_node_by_qdev(device.split('_')[1])
+            if not node_name:
+                raise DeviceNotFoundError(device, self.devices)
+            device = node_name
+            # Notes:
+            # Originally the device name use as identifier, since
+            # qemu2.7 other value is allowed. For compatibility, still
+            # use device id or top overlay node name as job ID.
+            kwargs.setdefault("job-id", node_name)
+        self.monitor.block_stream(device, **kwargs)
+        return device
+
+    def get_top_node_by_qdev(self, qdev):
+        """
+        Get top overlay node-name by qdev
+
+        :param qdev: qemu device id
+        :return: if found return node-name else return None
+        """
+        return self.monitor.get_top_node_by_qdev(qdev)
+
+    def query_named_block_nodes(self, key, value):
+        """
+        Get the named block driver by given condition
+
+        :param key: search keyword of search condition
+        :param value: value of search keyword
+
+        :return: dict of drive info
+        """
+        out = self.monitor.query_named_block_nodes()
+        if key:
+            for item in out:
+                if item.get(key) == value:
+                    return item
+            return dict()
+        return out
 
     def block_commit(self, device, speed, base=None, top=None, correct=True):
         """

@@ -32,6 +32,17 @@ class DeviceInsertError(DeviceError):
                             self.vmdev.str_short(), self.vmdev.str_bus_long()))
 
 
+class DeviceNotFoundError(DeviceError):
+    """ Fail to found device in VM"""
+    def __init__(self, vmdev, device):
+        self.vmdev = vmdev
+        self.device = device
+
+    def __str__(self):
+        return ("No device '%s' found in VM devices %s" %
+                self.device, self.vmdev.str_short())
+
+
 class DeviceRemoveError(DeviceInsertError):
 
     """ Fail to remove device """

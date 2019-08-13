@@ -1056,27 +1056,41 @@ class HumanMonitor(Monitor):
             cmd += " %s" % kwargs['format']
         return self.cmd(cmd)
 
-    def block_stream(self, device, speed=None, base=None,
-                     cmd="block_stream", correct=True):
+    def blockdev_snapshot_sync(self, device, snapshot_file, **kwargs):
         """
-        Start block-stream job;
+        Generates a synchronous snapshot of a block device
 
-        :param device: device ID
-        :param speed: int type, lmited speed(B/s)
-        :param base: base file
-        :param correct: auto correct command, correct by default
+        :param device: device name if it's invaild, node-name is must
+                       in kwargs dict.
+        :param snapshot_file: snapshot file path
+        :param kwargs: other options
+        """
+        raise NotImplementedError
 
+    def blockdev_snapshot(self, node, overlay):
+        """Generates a snapshot of a block device"""
+        raise NotImplementedError
+
+    def block_stream(self, device, **kwargs):
+        """
+        Copy data from a backing file into a block device.
+
+        :param device: the device or node name of top image
+        :param kwargs: other options. e,g. 'base', 'base-node',
+                       'backing-file', 'speed' and so on.
         :return: The command's output
         """
-        if correct:
-            cmd = self.get_workable_cmd(cmd)
-        self.verify_supported_cmd(cmd)
-        cmd += " %s" % device
-        if speed is not None:
-            cmd += " %sB" % speed
-        if base:
-            cmd += " %s" % base
-        return self.cmd(cmd)
+        raise NotImplementedError
+
+    def get_top_node_by_qdev(self, qdev):
+        """
+        Get top overlay node-name by qdev
+
+        :param qdev: qdev id, always equal to device id
+        :return: if not found return None, else return
+                 string value of node-name
+        """
+        raise NotImplementedError
 
     def block_commit(self, device, speed=None, base=None, top=None,
                      cmd="block_commit", correct=True):
@@ -1272,14 +1286,10 @@ class HumanMonitor(Monitor):
 
         :return: string, backing_file path
         """
-        backing_file = None
         block_info = self.query("block")
-        try:
-            pattern = "%s:.*backing_file=([^\s]*)" % device
-            backing_file = re.search(pattern, block_info, re.M).group(1)
-        except Exception:
-            pass
-        return backing_file
+        pattern = "%s:.*backing_file=([^\s]*)" % device
+        match = re.search(pattern, block_info, re.M)
+        return match.group(1) if match else None
 
     def block_mirror(self, device, target, sync, cmd="drive_mirror",
                      correct=True, **kwargs):
@@ -2074,6 +2084,24 @@ class QMPMonitor(Monitor):
             if e.get("event") == name:
                 return e
 
+    def get_event_by_id(self, name, job_id):
+        """
+        Look for an event with given name and id in the list of events
+
+        :param name: The name of the event to look for
+        :param job_id: job id string, for block job maybe device id
+        :return: An event object or None if no found
+        """
+        # Notes:
+        # Except for block job events other events store job id in
+        # 'id' field. Expect 'BLOCK_JOB_PENDING' event other block
+        # job events store job id in 'device' field.
+        key = ((name.startswith("BLOCK_JOB") and
+                name != "BLOCK_JOB_PENDING") and ["device"] or ["id"])[0]
+        events = list([e for e in self.get_events() if e.get(
+            "event") == name and e["data"].get(key) == job_id])
+        return events[0] if events else None
+
     def human_monitor_cmd(self, cmd="", timeout=CMD_TIMEOUT,
                           debug=True, fd=None):
         """
@@ -2319,52 +2347,64 @@ class QMPMonitor(Monitor):
         args = {"value": value}
         return self.cmd("migrate_set_downtime", args)
 
+    def blockdev_snapshot_sync(self, device, snapshot_file, **kwargs):
+        """
+        Generates a synchronous snapshot of a block device
+
+        :param device: device name if it's invaild, node-name is must
+                       in kwargs dict.
+        :param snapshot_file: snapshot file path
+        :param kwargs: other options
+        """
+        cmd = "blockdev-snapshot-sync"
+        self.verify_supported_cmd(cmd)
+        if device:
+            kwargs["device"] = device
+        if snapshot_file:
+            kwargs["snapshot-file"] = snapshot_file
+        kwargs.setdefault("format", "qcow2")
+        kwargs.setdefault("mode", "absolute-paths")
+        return self.cmd(cmd, kwargs)
+
+    def blockdev_snapshot(self, node, overlay):
+        """Generates a snapshot of a block device"""
+        cmd = "blockdev-snapshot"
+        self.verify_supported_cmd(cmd)
+        args = {"node": node, "overlay": overlay}
+        return self.cmd(cmd, args)
+
     def live_snapshot(self, device, snapshot_file, **kwargs):
+        """Alias for blockdev_snapshot_sync"""
+        return self.blockdev_snapshot_sync(device, snapshot_file, **kwargs)
+
+    def block_stream(self, device, **kwargs):
         """
-        Take a live disk snapshot.
+        Copy data from a backing file into a block device.
 
-        :param device: the name of the device to generate the snapshot from.
-        :param snapshot_file: the target of the new image. A new file will
-                              be created if mode is "absolute-paths".
-        :param kwargs: optional keyword arguments to pass to func.
-        :keyword args (optional):
-            format: the format of the snapshot image, default is 'qcow2'.
-            mode: whether and how QEMU should create a new image,
-            default is 'absolute-paths'.
-
-        :return: The response to the command
-        """
-        args = {"device": device,
-                "snapshot-file": snapshot_file}
-        kwargs.update(args)
-        if 'format' not in kwargs:
-            kwargs.update({"format": "qcow2"})
-        if 'mode' not in kwargs:
-            kwargs.update({"mode": "absolute-paths"})
-        return self.cmd("blockdev-snapshot-sync", kwargs)
-
-    def block_stream(self, device, speed=None, base=None,
-                     cmd="block-stream", correct=True, **kwargs):
-        """
-        Start block-stream job;
-
-        :param device: device ID
-        :param speed: int type, limited speed(B/s)
-        :param base: base file
-        :param correct: auto correct command, correct by default
-        :param kwargs: optional keyword arguments
+        :param device: the device or node name of top image
+        :param kwargs: other options. e,g. 'base', 'base-node',
+                       'backing-file', 'speed' and so on.
         :return: The command's output
         """
-        if correct:
-            cmd = self.get_workable_cmd(cmd)
+        cmd = self.get_workable_cmd("block-stream")
         self.verify_supported_cmd(cmd)
-        args = {"device": device}
-        if speed is not None:
-            args["speed"] = speed
-        if base:
-            args["base"] = base
-        kwargs.update(args)
+        kwargs.setdefault("device", device)
         return self.cmd(cmd, kwargs)
+
+    def get_top_node_by_qdev(self, qdev):
+        """
+        Get top overlay node-name by qdev
+
+        :param qdev: qdev id, always equal to device id
+        :return: if not found return None, else return
+                 string value of node-name
+        """
+        for info in self.query("block"):
+            image_info = info.get("inserted")
+            if not image_info:
+                continue
+            if info.get("qdev") == qdev:
+                return image_info.get("node-name")
 
     def block_commit(self, device, speed=None, base=None, top=None,
                      cmd="block-commit", correct=True):
@@ -2464,12 +2504,8 @@ class QMPMonitor(Monitor):
         :return: dict about job info, return empty dict if no active job
         """
         output = self.info("block-jobs")
-        try:
-            job = filter(lambda x: x.get("device") == device, output)
-            job = list(job)[0]
-        except Exception:
-            job = dict()
-        return job
+        jobs = list([i for i in output if i.get("device") == device])
+        return jobs[0] if jobs else dict()
 
     def query_jobs(self):
         """Query block job info """
@@ -2489,15 +2525,13 @@ class QMPMonitor(Monitor):
 
         :return: string, backing_file path
         """
-        backing_file = None
-        block_info = self.query("block")
-        try:
-            image_info = filter(lambda x: x["device"] == device, block_info)
-            image_info = list(image_info)[0]
-            backing_file = image_info["inserted"].get("backing_file")
-        except Exception:
-            pass
-        return backing_file
+        qdev = device.split('_')[1] if '_' in device else None
+        for item in self.query("block"):
+            image_info = item.get("inserted")
+            if not image_info:
+                continue
+            if item["device"] == device or (qdev and item["qdev"] == qdev):
+                return image_info.get("backing_file")
 
     def block_mirror(self, device, target, sync, cmd="drive-mirror",
                      correct=True, **kwargs):
