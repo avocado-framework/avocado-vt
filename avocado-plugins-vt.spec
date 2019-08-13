@@ -38,7 +38,7 @@
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 70.0
-Release: 0%{?gitrel}%{?dist}
+Release: 1%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -49,9 +49,11 @@ Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}.tar.g
 # old way of retrieving snapshot sources
 #Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}/%{srcname}-%{version}-%{shortcommit}.tar.gz
 %endif
-BuildRequires: python2-devel, python2-setuptools
+BuildRequires: python2-devel, python2-setuptools, python-six
+Requires: python-six
 %if %{with_python3}
-BuildRequires: python3-devel, python3-setuptools
+BuildRequires: python3-devel, python3-setuptools, python3-six
+Requires: python3-six
 %endif
 BuildArch: noarch
 Requires: autotest-framework, xz, tcpdump, iproute, iputils, gcc, glibc-headers, nc, git
@@ -162,6 +164,9 @@ Xunit output, among others.
 
 
 %changelog
+* Tue Aug 13 2019 Cleber Rosa <cleber@redhat.com> - 70.0-1
+- Added six requirement
+
 * Wed Jun 26 2019 Cleber Rosa <cleber@redhat.com> - 70.0-0
 - New release
 
