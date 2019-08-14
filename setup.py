@@ -58,10 +58,7 @@ def get_data_files():
                        os.path.isfile(path)]
         return [((get_dir(installed_location, level)), files_found)]
 
-    data_files = [(get_dir(['etc', 'avocado', 'conf.d']),
-                   ['etc/avocado/conf.d/vt.conf'])]
-
-    data_files += add_files(["test-providers.d"])
+    data_files = add_files(["test-providers.d"])
     data_files_dirs = ['backends', 'shared']
 
     for data_file_dir in data_files_dirs:
@@ -82,25 +79,42 @@ def pre_post_plugin_type():
         return 'avocado.plugins.job.prepost'
 
 
-setup(name='avocado-plugins-vt',
-      version=VERSION,
-      description='Avocado Virt Test Compatibility Layer plugin',
-      author='Avocado Developers',
-      author_email='avocado-devel@redhat.com',
-      url='http://github.com/avocado-framework/avocado-vt',
-      packages=find_packages(exclude=('selftests*',)),
-      package_data={"virttest": ["*.*"]},
-      data_files=get_data_files(),
-      entry_points={
-          'avocado.plugins.cli': [
-              'vt-list = avocado_vt.plugins.vt_list:VTLister',
-              'vt = avocado_vt.plugins.vt:VTRun',
-              ],
-          'avocado.plugins.cli.cmd': [
-              'vt-bootstrap = avocado_vt.plugins.vt_bootstrap:VTBootstrap',
-              ],
-          pre_post_plugin_type(): [
-              'vt-joblock = avocado_vt.plugins.vt_joblock:VTJobLock',
-              ],
-          },
-      )
+if __name__ == "__main__":
+    requirements = ["netifaces", "aexpect", "netaddr", "simplejson"]
+    if sys.version_info[:2] >= (2, 7):
+        requirements.append("avocado-framework>=68.0")
+    else:
+        # Latest py2 supported stevedore is 1.10.0, need to limit it here
+        # as older avocado versions were not limiting it.
+        # Note: Avocado 70+ doesn't require stevedore and older Avocado
+        # can use whatever version of stevedore on py3
+        requirements.append("stevedore>=1.8.0,<=1.10.0")
+        requirements.append("avocado-framework>=68.0,<70.0")
+
+    setup(name='avocado-framework-plugins-vt',
+          version=VERSION,
+          description='Avocado Plugin for Virtualization Testing',
+          author='Avocado Developers',
+          author_email='avocado-devel@redhat.com',
+          url='http://github.com/avocado-framework/avocado-vt',
+          packages=find_packages(exclude=('selftests*',)),
+          package_data={"virttest": ["*.*"]},
+          data_files=get_data_files(),
+          include_package_data=True,
+          entry_points={
+              'avocado.plugins.settings': [
+                  'vt-settings = avocado_vt.plugins.vt_settings:VTSettings',
+                  ],
+              'avocado.plugins.cli': [
+                  'vt-list = avocado_vt.plugins.vt_list:VTLister',
+                  'vt = avocado_vt.plugins.vt:VTRun',
+                  ],
+              'avocado.plugins.cli.cmd': [
+                  'vt-bootstrap = avocado_vt.plugins.vt_bootstrap:VTBootstrap',
+                  ],
+              pre_post_plugin_type(): [
+                  'vt-joblock = avocado_vt.plugins.vt_joblock:VTJobLock',
+                  ],
+              },
+          install_requires=requirements,
+          )

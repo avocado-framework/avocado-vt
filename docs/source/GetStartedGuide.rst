@@ -6,30 +6,59 @@ Getting Started
 
 The first step towards using Avocado-VT is, quite obviously, installing it.
 
-Installing Avocado
-==================
-
-Start by following the instructions on `this link <http://avocado-framework.readthedocs.org/en/latest/GetStartedGuide.html#installing-avocado>`__.
-
-Installing Avocado-VT
+Installing Avocado-vt
 =====================
 
-Having installed Avocado, you should already have the right repos enabled.
+Avocado-vt is an Avocado plugin, therefor you are going to need both in
+order to be able to execute the tests. Usually the packaging mechanism
+should take care of the deps, but when package is not available for
+your distro, you need to start by installing Avocado, steps are
+`described here <http://avocado-framework.readthedocs.org/en/latest/GetStartedGuide.html#installing-avocado>`__.
 
-.. note:: If you use avocado from sources, use `make link` as described `here <http://avocado-framework.readthedocs.io/en/latest/ContributionGuide.html#hacking-and-using-avocado>`__.
-
-Fedora and Enterprise Linux
----------------------------
+Fedora and Red Hat Enterprise Linux
+-----------------------------------
 
 Installing Avocado-VT on Fedora or Enterprise Linux is a matter of
 installing the `avocado-plugins-vt` package. Install it with::
 
     $ yum install avocado-plugins-vt
 
+Which takes care of all the dependencies (python and non-python ones).
+
+Installing via PIP
+------------------
+
+Pip is useful when it comes to python dependencies, but it fails
+in non-python ones. List of non-python requirements based on Fedora
+package names is::
+
+    $ dnf install xz tcpdump iproute iputils gcc glibc-headers nc git python-netaddr
+
+Then you can get Avocado-vt via pip::
+
+    $ pip install git+https://github.com/avocado-framework/avocado-vt
+
+Or by manually cloning it from github::
+
+    $ git clone https://github.com/avocado-framework/avocado-vt
+    $ cd avocado-vt
+    $ pip install .
+
+It's recommended to use ``pip`` even for local install as it treats
+requirements differently and the use of ``python setup.py install``
+might fail.
+
+Using Avocado-vt from sources
+-----------------------------
+
+If you intend use avocado from sources, clone it into the same parent dir
+as Avocado sources and use ``make link`` from the Avocado sources dir.
+Details about this can be found `here <http://avocado-framework.readthedocs.io/en/latest/ContributionGuide.html#hacking-and-using-avocado>`__.
+
 .. _run_bootstrap:
 
 Bootstrapping Avocado-VT
-------------------------
+========================
 
 After the package, a bootstrap process must be run. Choose your test backend
 (qemu, libvirt, v2v, openvswitch, etc) and run the `vt-bootstrap` command. Example::
