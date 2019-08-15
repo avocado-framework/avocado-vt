@@ -1118,8 +1118,7 @@ class HumanMonitor(Monitor):
             cmd += " %s" % top
         return self.cmd(cmd)
 
-    def set_block_job_speed(self, device, speed=0,
-                            cmd="block_job_set_speed", correct=True):
+    def block_job_set_speed(self, device, speed=0):
         """
         Set limited speed for runnig job on the device
 
@@ -1129,53 +1128,41 @@ class HumanMonitor(Monitor):
 
         :return: The command's output
         """
-        if correct:
-            cmd = self.get_workable_cmd(cmd)
+        cmd = self.get_workable_cmd("block-job-set-speed")
         self.verify_supported_cmd(cmd)
         cmd += " %s %sB" % (device, speed)
         return self.cmd(cmd)
 
-    def cancel_block_job(self, device, cmd="block_job_cancel", correct=True):
+    def block_job_cancel(self, device):
         """
         Cancel running block stream/mirror job on the device
 
         :param device: device ID
-        :param correct: auto correct command, correct by default
-
         :return: The command's output
         """
-        if correct:
-            cmd = self.get_workable_cmd(cmd)
+        cmd = self.get_workable_cmd("block-job-cancel")
         self.verify_supported_cmd(cmd)
         cmd += " %s" % device
         return self.send_args_cmd(cmd)
 
-    def pause_block_job(self, device, cmd="block_job_pause", correct=True):
+    def block_job_pause(self, device):
         """
         Pause an active block streaming operation.
         :param device: device ID
-        :param cmd: pause block job command
-        :param correct: auto correct command, correct by default
-
         :return: The command's output
         """
-        if correct:
-            cmd = self.get_workable_cmd(cmd)
+        cmd = self.get_workable_cmd("block-job-pause")
         self.verify_supported_cmd(cmd)
         cmd += " %s" % device
         return self.send_args_cmd(cmd)
 
-    def resume_block_job(self, device, cmd="block_job_resume", correct=True):
+    def block_job_resume(self, device):
         """
         Resume a paused block streaming operation.
         :param device: device ID
-        :param cmd: resume block job command
-        :param correct: auto correct command, correct by default
-
         :return: The command's output
         """
-        if correct:
-            cmd = self.get_workable_cmd(cmd)
+        cmd = self.get_workable_cmd("block-job-resume")
         self.verify_supported_cmd(cmd)
         cmd += " %s" % device
         return self.send_args_cmd(cmd)
@@ -1257,22 +1244,7 @@ class HumanMonitor(Monitor):
 
         :return: dict about job info, return empty dict if no active job
         """
-        job = dict()
-        output = str(self.info("block-jobs"))
-        for line in output.split("\n"):
-            if "No" in re.match("\w+", output).group(0):
-                continue
-            if device in line:
-                if "Streaming" in re.match("\w+", output).group(0):
-                    job["type"] = "stream"
-                else:
-                    job["type"] = "mirror"
-                job["device"] = device
-                job["offset"] = int(re.findall("\d+", output)[-3])
-                job["len"] = int(re.findall("\d+", output)[-2])
-                job["speed"] = int(re.findall("\d+", output)[-1])
-                break
-        return job
+        raise NotImplementedError
 
     def query_jobs(self):
         """Query block job info """
@@ -1291,18 +1263,12 @@ class HumanMonitor(Monitor):
         match = re.search(pattern, block_info, re.M)
         return match.group(1) if match else None
 
-    def block_mirror(self, device, target, sync, cmd="drive_mirror",
-                     correct=True, **kwargs):
+    def drive_mirror(self, device, target, **kwargs):
         """
         Start mirror type block device copy job
 
         :param device: device name to operate on
         :param target: name of new image file
-        :param sync: what parts of the disk image should be copied to the
-                     destination
-        :param cmd: block mirror command
-        :param correct: auto correct command, correct by default
-        :param kwargs: optional keyword arguments including but not limited to below
         :keyword Args:
             format (str): format of target image file
             mode (str): target image create mode, 'absolute-paths' or 'existing'
@@ -1310,8 +1276,7 @@ class HumanMonitor(Monitor):
 
         :return: The command's output
         """
-        if correct:
-            cmd = self.get_workable_cmd(cmd)
+        cmd = self.get_workable_cmd("drive-mirror")
         self.verify_supported_cmd(cmd)
         args = " %s %s %s" % (device, target, kwargs.get("format", "qcow2"))
         info = str(self.cmd("help %s" % cmd))
@@ -1325,7 +1290,7 @@ class HumanMonitor(Monitor):
         cmd = "%s %s" % (cmd, args)
         return self.cmd(cmd)
 
-    def block_reopen(self, device, new_image_file, image_format,
+    def block_job_complete(self, device, new_image_file, image_format,
                      cmd="block_job_complete", correct=True):
         """
         Reopen new target image
@@ -2432,65 +2397,51 @@ class QMPMonitor(Monitor):
             args["top"] = top
         return self.cmd(cmd, args)
 
-    def set_block_job_speed(self, device, speed=0,
-                            cmd="block-job-set-speed", correct=True):
+    def block_job_set_speed(self, device, speed=0):
         """
         Set limited speed for runnig job on the device
 
         :param device: device ID
         :param speed: int type, limited speed(B/s)
-        :param correct: auto correct command, correct by default
-
         :return: The command's output
         """
-        if correct:
-            cmd = self.get_workable_cmd(cmd)
+        cmd = self.get_workable_cmd("block-job-set-speed")
         self.verify_supported_cmd(cmd)
         args = {"device": device,
                 "speed": speed}
         return self.cmd(cmd, args)
 
-    def cancel_block_job(self, device, cmd="block-job-cancel", correct=True):
+    def block_job_cancel(self, device):
         """
         Cancel running block stream/mirror job on the device
 
         :param device: device ID
-        :param correct: auto correct command, correct by default
-
         :return: The command's output
         """
-        if correct:
-            cmd = self.get_workable_cmd(cmd)
+        cmd = self.get_workable_cmd("block-job-cancel")
         self.verify_supported_cmd(cmd)
         args = {"device": device}
         return self.cmd(cmd, args)
 
-    def pause_block_job(self, device, cmd="block-job-pause", correct=True):
+    def block_job_pause(self, device):
         """
         Pause an active block streaming operation.
         :param device: device ID
-        :param cmd: pause block job command
-        :param correct: auto correct command, correct by default
-
         :return: The command's output
         """
-        if correct:
-            cmd = self.get_workable_cmd(cmd)
+        cmd = self.get_workable_cmd("block-job-pause")
         self.verify_supported_cmd(cmd)
         args = {"device": device}
         return self.cmd(cmd, args)
 
-    def resume_block_job(self, device, cmd="block-job-resume", correct=True):
+    def block_job_resume(self, device):
         """
         Resume a paused block streaming operation.
         :param device: device ID
-        :param cmd: resume block job command
-        :param correct: auto correct command, correct by default
 
         :return: The command's output
         """
-        if correct:
-            cmd = self.get_workable_cmd(cmd)
+        cmd = self.get_workable_cmd("block-job-resume")
         self.verify_supported_cmd(cmd)
         args = {"device": device}
         return self.cmd(cmd, args)
@@ -2503,9 +2454,10 @@ class QMPMonitor(Monitor):
 
         :return: dict about job info, return empty dict if no active job
         """
-        output = self.info("block-jobs")
-        jobs = list([i for i in output if i.get("device") == device])
-        return jobs[0] if jobs else dict()
+        for job in self.info("block-jobs"):
+            if job.get("device") == device:
+                return job
+        return dict()
 
     def query_jobs(self):
         """Query block job info """
@@ -2525,25 +2477,25 @@ class QMPMonitor(Monitor):
 
         :return: string, backing_file path
         """
-        qdev = device.split('_')[1] if '_' in device else None
         for item in self.query("block"):
             image_info = item.get("inserted")
             if not image_info:
                 continue
-            if item["device"] == device or (qdev and item["qdev"] == qdev):
+            if item["device"] == device:
                 return image_info.get("backing_file")
+            if image_info.get("node-name") == device:
+                return image_info.get("backing_file")
+            if "_" in device:
+                qdev = device.split("_")[1]
+                if item["qdev"] == qdev:
+                    return image_info.get("backing_file")
 
-    def block_mirror(self, device, target, sync, cmd="drive-mirror",
-                     correct=True, **kwargs):
+    def drive_mirror(self, device, target, sync="full", **kwargs):
         """
         Start mirror type block device copy job
 
         :param device: device name to operate on
         :param target: name of new image file
-        :param sync: what parts of the disk image should be copied to the
-                     destination
-        :param cmd: block mirror command
-        :param correct: auto correct command, correct by default
         :param kwargs: optional keyword arguments including but not limited to below
         :keyword Args:
                 format (str): format of target image file
@@ -2557,39 +2509,29 @@ class QMPMonitor(Monitor):
 
         :return: The command's output
         """
-        if correct:
-            cmd = self.get_workable_cmd(cmd)
+        cmd = self.get_workable_cmd("drive-mirror")
         self.verify_supported_cmd(cmd)
-        args = {"device": device,
-                "target": target}
-        if cmd.startswith("__com.redhat"):
-            args["full"] = sync
-        else:
-            args["sync"] = sync
-        kwargs.update(args)
+        if device:
+            kwargs["device"] = device
+        if target:
+            kwargs["target"] = target
+        key = "full" if cmd.startswith("__") else "sync"
+        if sync:
+            kwargs[key] = sync
         return self.cmd(cmd, kwargs)
 
-    def block_reopen(self, device, new_image_file, image_format,
-                     cmd="block-job-complete", correct=True):
+    def block_job_complete(self, device, **kwargs):
         """
         Reopen new target image;
 
         :param device: device ID
-        :param new_image_file: new image file name
-        :param image_format: new image file format
-        :param cmd: image reopen command
-        :param correct: auto correct command, correct by default
-
         :return: the command's output
         """
-        if correct:
-            cmd = self.get_workable_cmd(cmd)
+        cmd = self.get_workable_cmd("block-job-complete")
         self.verify_supported_cmd(cmd)
-        args = {"device": device}
-        if cmd.startswith("__"):
-            args["new-image-file"] = new_image_file
-            args["format"] = image_format
-        return self.cmd(cmd, args)
+        if device:
+            kwargs["device"] = device
+        return self.cmd(cmd, kwargs)
 
     def getfd(self, fd, name):
         """

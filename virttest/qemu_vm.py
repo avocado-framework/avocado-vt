@@ -4530,21 +4530,24 @@ class VM(virt_vm.BaseVM):
         :param qdev: qdev id, it equal to device id by default
         :param kwargs: keyword arguments
         """
-        if self.monitor._enable_blockdev:
-            node_info = self.query_named_block_nodes("device", device)
-            node_name = node_info.get("node-name")
-            if not node_name and '_' in device:
-                node_name = self.get_top_node_by_qdev(device.split('_')[1])
-            if not node_name:
-                raise DeviceNotFoundError(device, self.devices)
-            device = node_name
-            # Notes:
-            # Originally the device name use as identifier, since
-            # qemu2.7 other value is allowed. For compatibility, still
-            # use device id or top overlay node name as job ID.
-            kwargs.setdefault("job-id", node_name)
+        if not self.monitor._enable_blockdev:
+            self.monitor.block_stream(device, **kwargs)
+            return device
+        # blockdev model, overlay node name instead device ID
+        node_info = self.query_named_block_nodes("device", device)
+        node_name = node_info.get("node-name")
+        # get top node name by qdev ID
+        if not node_name and '_' in device:
+            node_name = self.get_top_node_by_qdev(device.split('_')[1])
+        if not node_name:
+            raise DeviceNotFoundError(device, self.devices)
+        # Notes:
+        # Originally the device name use as identifier, since
+        # qemu2.7 other value is allowed. For compatibility, still
+        # use device id or top overlay node name as job ID.
+        kwargs.setdefault("job-id", node_name)
         self.monitor.block_stream(device, **kwargs)
-        return device
+        return node_name
 
     def get_top_node_by_qdev(self, qdev):
         """
@@ -4624,51 +4627,42 @@ class VM(virt_vm.BaseVM):
         return self.monitor.block_reopen(device, new_image,
                                          format, cmd, correct=correct)
 
-    def cancel_block_job(self, device, correct=True):
+    def block_job_cancel(self, device):
         """
         cancel active job on the image_file
 
         :param device: device ID
-        :param correct: auto correct cmd, correct by default
         """
-        cmd = self.params.get("block_job_cancel_cmd", "block-job-cancel")
-        return self.monitor.cancel_block_job(device, cmd, correct=correct)
+        return self.monitor.block_job_cancel(device)
 
-    def pause_block_job(self, device, correct=True):
+    def block_job_pause(self, device):
         """
         Pause an active block streaming operation.
         :param device: device ID
-        :param correct: auto correct command, correct by default
 
         :return: The command's output
         """
-        cmd = self.params.get("block_job_pause_cmd", "block-job-pause")
-        return self.monitor.pause_block_job(device, cmd, correct=correct)
+        return self.monitor.block_job_pause(device)
 
-    def resume_block_job(self, device, correct=True):
+    def block_job_resume(self, device):
         """
         Resume a paused block streaming operation.
         :param device: device ID
-        :param correct: auto correct command, correct by default
 
         :return: The command's output
         """
-        cmd = self.params.get("block_job_resume_cmd", "block-job-resume")
-        return self.monitor.resume_block_job(device, cmd, correct=correct)
+        return self.monitor.block_job_resume(device)
 
-    def set_job_speed(self, device, speed="0", correct=True):
+    def block_job_set_speed(self, device, speed="0"):
         """
         set max speed of block job;
 
         :param device: device ID
         :param speed: max speed of block job
-        :param correct: auto correct cmd, correct by default
         """
-        cmd = self.params.get("set_block_job_speed", "block-job-set-speed")
-        return self.monitor.set_block_job_speed(device, speed,
-                                                cmd, correct=correct)
+        return self.monitor.block_job_set_speed(device, speed)
 
-    def get_job_status(self, device):
+    def query_block_job(self, device):
         """
         get block job info;
 
