@@ -12,6 +12,7 @@ import fcntl
 import re
 import random
 import sys
+import math
 
 from functools import partial
 
@@ -2311,6 +2312,11 @@ class VM(virt_vm.BaseVM):
 
         return devices, spice_options
 
+    def _del_port_from_bridge(self, nic):
+        br_mgr, br_name = utils_net.find_current_bridge(nic.ifname)
+        if br_name == nic.netdst:
+            br_mgr.del_port(nic.netdst, nic.ifname)
+
     def _nic_tap_add_helper(self, nic):
         if nic.nettype == 'macvtap':
             macvtap_mode = self.params.get("macvtap_mode", "vepa")
@@ -2344,9 +2350,10 @@ class VM(virt_vm.BaseVM):
                     for i in nic.vhostfds.split(':'):
                         os.close(int(i))
                 if nic.ifname:
-                    br_mgr, br_name = utils_net.find_current_bridge(nic.ifname)
-                    if br_name == nic.netdst:
-                        br_mgr.del_port(nic.netdst, nic.ifname)
+                    deletion_time = max(5, math.ceil(int(nic.queues) / 8))
+                    if utils_misc.wait_for(lambda: nic.ifname not in utils_net.get_net_if(),
+                                           deletion_time):
+                        self._del_port_from_bridge(nic)
         except TypeError:
             pass
 
@@ -2676,9 +2683,7 @@ class VM(virt_vm.BaseVM):
                     if nic.ifname in utils_net.get_net_if():
                         self.virtnet.generate_ifname(nic.nic_name)
                     else:
-                        br_mgr, br_name = utils_net.find_current_bridge(nic.ifname)
-                        if br_name == nic.netdst:
-                            br_mgr.del_port(nic.netdst, nic.ifname)
+                        self._del_port_from_bridge(nic)
 
                     if nic.nettype in ['bridge', 'network', 'macvtap']:
                         self._nic_tap_add_helper(nic)
@@ -3089,14 +3094,24 @@ class VM(virt_vm.BaseVM):
             for nic_index in xrange(0, len(self.virtnet)):
                 self.free_mac_address(nic_index)
 
+        port_mapping = {}
         for nic in self.virtnet:
             if nic.nettype == 'macvtap':
                 tap = utils_net.Macvtap(nic.ifname)
                 tap.delete()
             elif nic.ifname:
-                br_mgr, br_name = utils_net.find_current_bridge(nic.ifname)
-                if br_name == nic.netdst:
-                    br_mgr.del_port(nic.netdst, nic.ifname)
+                port_mapping[nic.ifname] = nic
+
+        if port_mapping:
+            queues_num = sum([int(_.queues) for _ in port_mapping.values()])
+            deletion_time = max(5, math.ceil(queues_num / 8))
+            utils_misc.wait_for(lambda: set(port_mapping.keys()).isdisjoint(
+                utils_net.get_net_if()), deletion_time)
+            for inactive_port in set(port_mapping.keys()).difference(utils_net.get_net_if()):
+                nic = port_mapping.pop(inactive_port)
+                self._del_port_from_bridge(nic)
+            for active_port in port_mapping.keys():
+                logging.warning("Deleting %s failed during tap cleanup" % active_port)
 
     def destroy(self, gracefully=True, free_mac_addresses=True):
         """
