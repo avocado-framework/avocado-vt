@@ -38,7 +38,7 @@
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 70.0
-Release: 3%{?gitrel}%{?dist}
+Release: 4%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -129,11 +129,12 @@ Xunit output, among others.
 %endif
 
 %install
+%{__mkdir} -p %{buildroot}/etc/avocado/conf.d
 %{__python2} setup.py install --root %{buildroot} --skip-build
+%{__mv} %{buildroot}%{python2_sitelib}/avocado_vt/conf.d/* %{buildroot}/etc/avocado/conf.d
 %if %{with_python3}
 %{__python3} setup.py install --root %{buildroot} --skip-build
-%{__mkdir} -p %{buildroot}/etc/avocado/conf.d
-%{__mv} %{buildroot}%{python2_sitelib}/avocado_vt/conf.d/* %{buildroot}/etc/avocado/conf.d
+%{__mv} %{buildroot}%{python3_sitelib}/avocado_vt/conf.d/* %{buildroot}/etc/avocado/conf.d
 %endif
 
 %files -n python2-%{name}
@@ -166,6 +167,9 @@ Xunit output, among others.
 
 
 %changelog
+* Thu Aug 15 2019 Cleber Rosa <cleber@redhat.com> - 70.0-4
+- Fixed configuration location on Python 2 (only) builds
+
 * Wed Aug 14 2019 Cleber Rosa <cleber@redhat.com> - 70.0-3
 - Added six requirement
 
