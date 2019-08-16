@@ -1622,7 +1622,7 @@ class DevContainer(object):
         if Flags.BLOCKDEV in self.__caps:
             devices[-2].set_param('filename', filename)
             for dev in (devices[-1], devices[-2]):
-                if cache is None:
+                if not cache:
                     direct, no_flush = (None, None)
                 else:
                     direct, no_flush = (self.cache_map[cache]['cache.direct'],
@@ -1735,7 +1735,7 @@ class DevContainer(object):
         if Flags.BLOCKDEV in self.__caps:
             if isinstance(devices[-3], qdevices.QBlockdevProtocolHostDevice):
                 self.cache_map[cache]['write-cache'] = None
-            write_cache = None if cache is None else self.cache_map[cache]['write-cache']
+            write_cache = None if not cache else self.cache_map[cache]['write-cache']
             devices[-1].set_param('write-cache', write_cache)
             if 'scsi-generic' == fmt:
                 rerror, werror = (None, None)
