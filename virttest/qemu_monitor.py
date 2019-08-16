@@ -3239,3 +3239,22 @@ class QMPMonitor(Monitor):
                     "data": key
                 }}}]}
         return self.cmd(cmd, args)
+
+    def input_send_event(self, events, device=None, head=None):
+        """
+        Send input event(s) to guest.
+
+        :param device: display device to send event(s) to.
+        :param head: head to send event(s) to, in case the
+                     display device supports multiple scanouts.
+        :param events: List of InputEvent union.
+        """
+        cmd = "input-send-event"
+        self.verify_supported_cmd(cmd)
+        arguments = dict()
+        if device:
+            arguments["device"] = device
+        if head:
+            arguments["head"] = int(head)
+        arguments["events"] = events
+        return self.cmd(cmd, arguments)
