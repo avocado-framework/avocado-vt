@@ -7,7 +7,7 @@ source-release: clean
 	git archive --prefix="$(ARCHIVE_BASE_NAME)-$(VERSION)/" -o "SOURCES/$(ARCHIVE_BASE_NAME)-$(VERSION).tar.gz" $(VERSION)
 
 install:
-	$(PYTHON) -m pip install --root $(DESTDIR) .
+	$(PYTHON) -m pip install --prefix $(DESTDIR) .
 
 srpm: source
 	if test ! -d BUILD/SRPM; then mkdir -p BUILD/SRPM; fi
