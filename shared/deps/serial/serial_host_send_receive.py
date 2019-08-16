@@ -91,46 +91,62 @@ def get_md5(filename, size=None):
     return md5_value.hexdigest()
 
 
-def shake_hand(connect, size=0, action="receive"):
+def read(connect, exp_len, connect_type):
+    if connect_type == 'socket':
+        return connect.recv(exp_len)
+    else:
+        return os.read(connect, exp_len)
+
+
+def write(connect, txt, connect_type):
+    if connect_type == 'socket':
+        connect.send(txt)
+    else:
+        os.write(connect, txt)
+
+
+def shake_hand(connect, size=0, action="receive", connect_type='socket'):
     hi_str = struct.pack("2s", b"HI")
     hi_str_len = len(hi_str)
     if action == "send":
-        connect.send(hi_str)
-        txt = connect.recv(hi_str_len)
+        write(connect, hi_str, connect_type)
+        txt = read(connect, hi_str_len, connect_type)
         hi_str = struct.unpack("2s", txt)[0]
         if hi_str != b"HI":
             raise ShakeHandError("Fail to get HI from guest.")
         size_str = struct.pack("q", size)
-        connect.send(size_str)
-        txt = connect.recv(3)
+        write(connect, size_str, connect_type)
+        txt = read(connect, 3, connect_type)
         ack_str = struct.unpack("3s", txt)[0]
         if ack_str != b"ACK":
             raise ShakeHandError("Guest did not ACK the file size message.")
         return size
     elif action == "receive":
-        txt = connect.recv(hi_str_len)
+        txt = b''
+        while len(txt) < hi_str_len:
+            txt += read(connect, hi_str_len, connect_type)
         hi_str = struct.unpack("2s", txt)[0]
         if hi_str != b"HI":
             raise ShakeHandError("Fail to get HI from guest.")
-        connect.send(hi_str)
-        size = connect.recv(8)
+        write(connect, hi_str, connect_type)
+        size = read(connect, 8, connect_type)
         if size:
             size = struct.unpack("q", size)[0]
             txt = struct.pack("3s", b"ACK")
-            connect.send(txt)
+            write(connect, txt, connect_type)
         return size
 
 
-def receive(connect, filename, p_size=1024):
+def receive(connect, filename, p_size=1024, connect_type='socket'):
     recv_size = 0
-    size = shake_hand(connect, action="receive")
+    size = shake_hand(connect, action="receive", connect_type=connect_type)
     if p_size < int(size):
         p_size = int(size)
     md5_value = md5_init()
     file_no = open(filename, 'wb')
     try:
         while recv_size < size:
-            txt = connect.recv(p_size)
+            txt = read(connect, p_size, connect_type)
             file_no.write(txt)
             md5_value.update(txt)
             recv_size += len(txt)
@@ -140,37 +156,45 @@ def receive(connect, filename, p_size=1024):
     return md5_sum
 
 
-def send(connect, filename, p_size=1024):
+def send(connect, filename, p_size=1024, connect_type='socket'):
     send_size = 0
     f_size = os.path.getsize(filename)
-    shake_hand(connect, f_size, action="send")
+    shake_hand(connect, f_size, action="send", connect_type=connect_type)
     md5_value = md5_init()
     file_no = open(filename, 'rb')
     try:
         while send_size < f_size:
             txt = file_no.read(p_size)
-            connect.send(txt)
+            write(connect, txt, connect_type)
             md5_value.update(txt)
             send_size += len(txt)
     finally:
         print("Sent size = %s" % send_size)
         file_no.close()
     md5_sum = md5_value.hexdigest()
-    wait_receive_ack(connect)
+    wait_receive_ack(connect, connect_type)
     return md5_sum
 
 
-def wait_receive_ack(connect):
+def wait_receive_ack(connect, connect_type):
     exp_str = b'ALLRECEIVED'
     exp_size = len(exp_str)
     r_str = b''
     r_size = 0
     while r_size < exp_size:
-        txt = connect.recv(exp_size)
+        txt = read(connect, exp_size, connect_type)
         r_size += len(txt)
         r_str += txt
     if struct.unpack("11s", txt)[0] != exp_str:
         raise ShakeHandError("Not get Received ACK from guest.")
+
+
+def close_connect(connect, connect_type):
+    if connect_type == 'socket':
+        connect.shutdown(socket.SHUT_RDWR)
+        connect.close()
+    else:
+        os.close(connect)
 
 
 def main():
@@ -210,33 +234,45 @@ def main():
     if action not in ("receive", "send", "both"):
         parser.error('Please set -a parameter: "receive", "send", "both"')
 
-    if chardev_type == 'unix_socket':
-        sock_flag = socket.AF_UNIX
-    elif chardev_type in ('tcp_socket', 'udp'):
-        sock_flag = socket.AF_INET
+    device_property = {'pty': {'connect_type': 'device'},
+                       'unix_socket': {'connect_type': 'socket',
+                                       'sock_flag': socket.AF_UNIX,
+                                       'sock_type': socket.SOCK_STREAM},
+                       'tcp_socket': {'connect_type': 'socket',
+                                      'sock_flag': socket.AF_INET,
+                                      'sock_type': socket.SOCK_STREAM},
+                       'udp': {'connect_type': 'socket',
+                               'sock_flag': socket.AF_INET,
+                               'sock_type': socket.SOCK_DGRAM}}
+    if chardev_type in ('tcp_socket', 'udp'):
         device = device.split(':')
         device = (device[0], int(device[1]))
-    if chardev_type == 'udp':
-        sock_type = socket.SOCK_DGRAM
-    elif chardev_type in ('tcp_socket', 'unix_socket'):
-        sock_type = socket.SOCK_STREAM
-    vport = socket.socket(sock_flag, sock_type)
-    vport.connect(device)
+    prop = device_property.get(chardev_type)
+    connect_type = prop.get('connect_type')
+    if connect_type == 'socket':
+        vport = socket.socket(prop.get('sock_flag'),
+                              prop.get('sock_type'))
+        vport.connect(device)
+    else:
+        vport = os.open(device, os.O_RDWR)
     if action == "receive":
-        md5_sum = receive(vport, filename, p_size=p_size)
+        md5_sum = receive(vport, filename, p_size=p_size,
+                          connect_type=connect_type)
         print("md5_sum = %s" % md5_sum)
     elif action == "send":
-        md5_sum = send(vport, filename, p_size=p_size)
+        md5_sum = send(vport, filename, p_size=p_size,
+                       connect_type=connect_type)
         print("md5_sum = %s" % md5_sum)
     else:
-        md5_ori = send(vport, filename, p_size=p_size)
+        md5_ori = send(vport, filename, p_size=p_size,
+                       connect_type=connect_type)
         print("md5_original = %s" % md5_ori)
-        md5_post = receive(vport, filename, p_size=p_size)
+        md5_post = receive(vport, filename, p_size=p_size,
+                           connect_type=connect_type)
         print("md5_post = %s" % md5_post)
         if md5_ori != md5_post:
             raise Md5MissMatch(md5_ori, md5_post)
-    vport.shutdown(socket.SHUT_RDWR)
-    vport.close()
+    close_connect(vport, connect_type)
 
 
 if __name__ == "__main__":
