@@ -2157,7 +2157,7 @@ class Stress(object):
 
         logging.info("stop stress app in guest/host/remote host")
         utils_misc.wait_for(_unload_stress, self.stress_wait_for_timeout, first=2.0,
-                            text="wait stress app quit", step=1.0)
+                            text="wait stress app quit", step=2.0)
 
     def app_running(self):
         """
@@ -2547,7 +2547,8 @@ class ServerClientStress(object):
         self.need_profile = int(params.get("need_profile", False))
         self.server_cmd = params.get("%s_server_cmd" % self.stress_type)
         self.client_cmd = params.get("%s_client_cmd" % self.stress_type)
-        self.custom_pair = params.get("server_clients", "").split()
+        self.custom_pair = params.get("vm_pair", "").split()
+        stress_config = params.get("stress_config", "client_server")
         self.server_vms = []
         self.client_vms = []
         self.stress_vm = {}
@@ -2569,14 +2570,14 @@ class ServerClientStress(object):
                         self.server_vms.append(vm)
                     if vm.name == pair.split("_")[1]:
                         self.client_vms.append(vm)
-        if (len(set(self.server_vms)) + len(set(self.client_vms))) != len(self.vms):
-            raise exceptions.TestError(
-                "Number of server client vms does not match total_vms")
-        elif len(self.server_vms) != len(self.client_vms):
+        if stress_config != "mix":
+            if (len(set(self.server_vms)) + len(set(self.client_vms))) != len(self.vms):
+                raise exceptions.TestError(
+                    "Number of server client vms does not match total_vms")
+        if len(self.server_vms) != len(self.client_vms):
             raise exceptions.TestError(
                 "This test requires server and client vms in 1:1 ratio")
-        else:
-            self.pair_vms = zip(self.server_vms, self.client_vms)
+        self.pair_vms = zip(self.server_vms, self.client_vms)
 
     def prepare_profile(self, fpath, pat_repl):
         """
