@@ -2851,8 +2851,6 @@ class ParamsNet(VMNet):
         default_params['netdev_extra_params'] = ''
         nic_name_list = self.params.objects('nics')
         default_params['vlan'] = str(nic_name_list.index(nic_name))
-        if nic_params.get('enable_misx_vectors') == 'yes':
-            default_params['vectors'] = 2 * 1 + 2
         for key, val in list(default_params.items()):
             nic_params.setdefault(key, val)
 

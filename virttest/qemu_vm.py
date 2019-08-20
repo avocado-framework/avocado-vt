@@ -3497,7 +3497,7 @@ class VM(virt_vm.BaseVM):
             nic.netdev_id = self.add_netdev(**dict(nic))
         nic.set_if_none('nic_model', params['nic_model'])
         nic.set_if_none('queues', params.get('queues', '1'))
-        if params.get("enable_msix_vectors") == "yes":
+        if params.get("enable_msix_vectors") == "yes" and int(nic.queues) > 1:
             nic.set_if_none('vectors', 2 * int(nic.queues) + 2)
         return nic
 
@@ -3620,24 +3620,27 @@ class VM(virt_vm.BaseVM):
         if nic['nic_model'] == 'virtio-net-pci':
             if int(nic['queues']) > 1:
                 device_add_cmd += ",mq=on"
-            if 'vectors' in nic:
-                device_add_cmd += ",vectors=%s" % nic.vectors
+                if 'vectors' in nic:
+                    device_add_cmd += ",vectors=%s" % nic.vectors
         device_add_cmd += nic.get('nic_extra_params', '')
         if 'romfile' in nic:
             device_add_cmd += ",romfile=%s" % nic.romfile
         bus = self.devices.get_buses({'aobject': 'pci.0'})[0]
-        if isinstance(bus, qdevices.QPCIEBus):
-            root_port_id = bus.get_free_root_port()
-            if root_port_id:
-                device_add_cmd += ",bus=%s" % root_port_id
-                root_port = self.devices.get_buses({'aobject': root_port_id})[0]
-                root_port.insert(qdevices.QBaseDevice(nic.nic_model,
-                                                      aobject=nic.nic_name))
-            else:
-                raise virt_vm.VMAddNicError("No free root port for device %s"
-                                            " to plug." % nic.nic_name)
-        error_context.context("Activating nic on VM %s with monitor command %s" % (
-            self.name, device_add_cmd))
+        nic_dev = qdevices.QDevice(params={'id': nic.nic_name,
+                                           'driver': nic.nic_model},
+                                   parent_bus=({'aobject': 'pci.0'},))
+        nic_dev.set_aid(nic_dev.get_qid())
+        bus.prepare_hotplug(nic_dev)
+        qdev_out = self.devices.insert(nic_dev)
+        if not isinstance(qdev_out, list) or len(qdev_out) != 1:
+            raise virt_vm.VMAddNicError("%s for device %s to plug."
+                                        % (qdev_out, nic.nic_name))
+        else:
+            device_add_cmd += ",bus=%s,addr=%s" % (nic_dev.get_param('bus'),
+                                                   nic_dev.get_param('addr'))
+
+        error_context.context("Activating nic on VM %s with monitor command %s"
+                              % (self.name, device_add_cmd))
 
         if self.monitor.protocol == 'qmp':
             self.monitor.send_args_cmd(device_add_cmd)
@@ -3645,9 +3648,11 @@ class VM(virt_vm.BaseVM):
             self.monitor.send_args_cmd(device_add_cmd, convert=False)
 
         error_context.context("Verifying nic %s shows in qtree" % nic.nic_name)
-        qtree = self.monitor.info("qtree")
-        if nic.nic_name not in qtree:
+        qtree = self.monitor.info("qtree", debug=False)
+        nic_pattern = r'dev: %s, id "%s"' % (nic.nic_model, nic.nic_name)
+        if not re.search(nic_pattern, qtree):
             logging.error(qtree)
+            self.devices.remove(nic_dev)
             raise virt_vm.VMAddNicError("Device %s was not plugged into qdev"
                                         "tree" % nic.nic_name)
 
