@@ -529,7 +529,8 @@ class VM(virt_vm.BaseVM):
         def add_nic(devices, vlan, model=None, mac=None, device_id=None,
                     netdev_id=None, nic_extra_params=None, pci_addr=None,
                     bootindex=None, queues=1, vectors=None, pci_bus='pci.0',
-                    ctrl_mac_addr=None):
+                    ctrl_mac_addr=None, indirect_desc=None, mrg_rxbuf=None,
+                    ctrl_vq=None, ctrl_vlan=None, status=None):
             if model == 'none':
                 return
             if devices.has_option("device"):
@@ -580,6 +581,14 @@ class VM(virt_vm.BaseVM):
                     dev.set_param('mq', 'on')
                 if vectors:
                     dev.set_param('vectors', vectors)
+                check_opt = {"indirect_desc": indirect_desc,
+                             "mrg_rxbuf": mrg_rxbuf,
+                             "ctrl_vq": ctrl_vq,
+                             "ctrl_vlan": ctrl_vlan,
+                             "status": status}
+                for opt in check_opt:
+                    if check_opt[opt] and check_opt[opt] in ["on", "off"]:
+                        dev.set_param(opt, check_opt[opt])
             if devices.has_option("netdev"):
                 dev.set_param('netdev', netdev_id)
             else:
@@ -591,7 +600,7 @@ class VM(virt_vm.BaseVM):
                     netdev_extra_params=None, tapfds=None, script=None,
                     downscript=None, vhost=None, queues=None, vhostfds=None,
                     add_queues=None, helper=None, add_tapfd=None,
-                    add_vhostfd=None, vhostforce=None):
+                    add_vhostfd=None, vhostforce=None, poll_us=0):
             mode = None
             if nettype in ['bridge', 'network', 'macvtap']:
                 mode = 'tap'
@@ -631,6 +640,8 @@ class VM(virt_vm.BaseVM):
                         if add_vhostfd:
                             cmd += ",vhostfd=%(vhostfd)s"
                             cmd_nd += ",vhostfd=%(vhostfd)s"
+                    if poll_us > 0:
+                        cmd += ",poll-us=%d" % poll_us
                 if vhostforce in ["on", "off"]:
                     cmd += ",vhostforce=%s" % vhostforce
                     cmd_nd = cmd
@@ -1682,6 +1693,7 @@ class VM(virt_vm.BaseVM):
                 helper = nic_params.get("helper")
                 tapfds_len = int(nic_params.get("tapfds_len", -1))
                 vhostfds_len = int(nic_params.get("vhostfds_len", -1))
+                poll_us = int(nic_params.get("poll_us", 0))
                 if nic.get("tftp"):
                     tftp = utils_misc.get_path(root_dir, nic.get("tftp"))
                 else:
@@ -1735,14 +1747,20 @@ class VM(virt_vm.BaseVM):
                         device_id, netdev_id, nic_extra,
                         nic_params.get("nic_pci_addr"),
                         bootindex, queues, vectors, parent_bus,
-                        nic_params.get("ctrl_mac_addr"))
+                        nic_params.get("ctrl_mac_addr"),
+                        nic_params.get("indirect_desc"),
+                        nic_params.get("mrg_rxbuf"),
+                        nic_params.get("ctrl_vq"),
+                        nic_params.get("ctrl_vlan"),
+                        nic_params.get("status"))
 
                 # Handle the '-net tap' or '-net user' or '-netdev' part
                 cmd, cmd_nd = add_net(devices, vlan, nettype, ifname, tftp,
                                       bootp, redirs, netdev_id, netdev_extra,
                                       tapfds, script, downscript, vhost,
                                       queues, vhostfds, add_queues, helper,
-                                      add_tapfd, add_vhostfd, vhostforce)
+                                      add_tapfd, add_vhostfd, vhostforce,
+                                      poll_us)
 
                 if vhostfds is None:
                     vhostfds = ""
