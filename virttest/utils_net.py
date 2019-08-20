@@ -2526,7 +2526,7 @@ class VirtIface(propcan.PropCan, object):
         return mac_bytes
 
     @staticmethod
-    def _int_to_int_list(number):
+    def _int_to_int_list(number, align=0):
         """
         Convert integer to integer list split by byte.
         """
@@ -2536,6 +2536,9 @@ class VirtIface(propcan.PropCan, object):
             number >>= 8
         if not out:
             out.append(0)
+        blen = len(out)
+        if align > blen:
+            out = ([0] * (align - blen)) + out
         return out
 
     @classmethod
@@ -2544,7 +2547,7 @@ class VirtIface(propcan.PropCan, object):
         Generate EUI-48.
         """
         out = next(cls.EUI48_ASSIGNMENT)
-        out = cls._int_to_int_list(out)
+        out = cls._int_to_int_list(out, 6)
         if prefix:
             for idx, num in enumerate(prefix):
                 out[idx] = num
