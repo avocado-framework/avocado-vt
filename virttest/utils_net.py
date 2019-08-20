@@ -4141,7 +4141,8 @@ def get_netkvm_param_value(vm, param):
             err = "Error occured when get value of %s. " % param
             err += "With status=%s, output=%s" % (status, output)
             raise exceptions.TestError(err)
-        value = output.strip().split('=')[1].strip()
+        lines = output.strip().splitlines()
+        value = lines[0].strip().split('=')[1].strip()
         return value
     finally:
         session.close()
