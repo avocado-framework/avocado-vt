@@ -7,7 +7,6 @@ Virtualization test utility functions.
 from __future__ import division
 import time
 import string
-import random
 import socket
 import os
 import stat
@@ -54,6 +53,7 @@ from avocado.utils import aurl
 from avocado.utils import download
 from avocado.utils import linux_modules
 from avocado.utils import memory
+from avocado.utils import data_factory
 from avocado.utils.astring import string_safe_encode
 # Symlink avocado implementation of process functions
 from avocado.utils.process import CmdResult
@@ -71,7 +71,6 @@ from virttest import data_dir
 from virttest import error_context
 from virttest import cartesian_config
 from virttest import utils_selinux
-from virttest import utils_disk
 from virttest import logging_manager
 from virttest import libvirt_version
 from virttest.staging import utils_koji
@@ -495,39 +494,11 @@ def get_path(base_path, user_path):
     return os.path.realpath(user_path)
 
 
-def generate_random_string(length, ignore_str=string.punctuation,
-                           convert_str=""):
-    """
-    Return a random string using alphanumeric characters.
-
-    :param length: Length of the string that will be generated.
-    :param ignore_str: Characters that will not include in generated string.
-    :param convert_str: Characters that need to be escaped (prepend "\\").
-
-    :return: The generated random string.
-    """
-    r = random.SystemRandom()
-    sr = ""
-    chars = string.ascii_letters + string.digits + string.punctuation
-    if not ignore_str:
-        ignore_str = ""
-    for i in ignore_str:
-        chars = chars.replace(i, "")
-
-    while length > 0:
-        tmp = r.choice(chars)
-        if convert_str and (tmp in convert_str):
-            tmp = "\\%s" % tmp
-        sr += tmp
-        length -= 1
-    return sr
-
-
 def generate_random_id():
     """
     Return a random string suitable for use as a qemu id.
     """
-    return "id" + generate_random_string(6)
+    return "id" + data_factory.generate_random_string(6)
 
 
 def generate_tmp_file_name(file_name, ext=None,
@@ -537,7 +508,7 @@ def generate_tmp_file_name(file_name, ext=None,
     """
     while True:
         file_name = (file_name + '-' + time.strftime("%Y%m%d-%H%M%S-") +
-                     generate_random_string(4))
+                     data_factory.generate_random_string(4))
         if ext:
             file_name += '.' + ext
         file_name = os.path.join(directory, file_name)
@@ -1025,57 +996,6 @@ def safe_rmdir(path, timeout=10, session=None):
                       "Could not delete directory %s "
                       "after %d s and %d attempts." %
                       (path, timeout, attempts))
-
-
-def umount(src, mount_point, fstype, verbose=False, fstype_mtab=None):
-    """
-    Umount the src mounted in mount_point.
-
-    :src: mount source
-    :mount_point: mount point
-    :type: file system type
-    :param fstype_mtab: file system type in mtab could be different
-    :type fstype_mtab: str
-    """
-    return utils_disk.umount(src, mount_point, fstype, verbose)
-
-
-def mount(src, mount_point, fstype, perm=None, verbose=False, fstype_mtab=None):
-    """
-    Mount the src into mount_point of the host.
-
-    :src: mount source
-    :mount_point: mount point
-    :fstype: file system type
-    :perm: mount permission
-    :param fstype_mtab: file system type in mtab could be different
-    :type fstype_mtab: str
-    """
-    return utils_disk.mount(src, mount_point, fstype, perm, verbose)
-
-
-def is_mounted(src, mount_point, fstype, perm=None, verbose=False,
-               fstype_mtab=None, session=None):
-    """
-    Check mount status from /etc/mtab
-
-    :param src: mount source
-    :type src: string
-    :param mount_point: mount point
-    :type mount_point: string
-    :param fstype: file system type
-    :type fstype: string
-    :param perm: mount permission
-    :type perm: string
-    :param verbose: if display mtab content
-    :type verbose: Boolean
-    :param fstype_mtab: file system type in mtab could be different
-    :type fstype_mtab: str
-    :param session: Session Object
-    :return: if the src is mounted as expect
-    :rtype: Boolean
-    """
-    return utils_disk.is_mount(src, mount_point, fstype, perm, verbose, session)
 
 
 def install_host_kernel(job, params):
@@ -2835,206 +2755,6 @@ def get_uptime(session=None):
         except process.CmdError:
             return None
     return float(uptime.split()[0])
-
-
-def list_linux_guest_disks(session, partition=False):
-    """
-    List all disks OR disks with no partition in linux guest.
-
-    :param session: session object to guest
-    :param partition: if true, list all disks; otherwise,
-                      list only disks with no partition.
-    :return: the disks set.
-    """
-    cmd = "ls /dev/[vhs]d*"
-    if not partition:
-        cmd = "%s | grep -v [0-9]$" % cmd
-    status, output = session.cmd_status_output(cmd)
-    if status != 0:
-        raise exceptions.TestFail("Get disks failed with output %s" % output)
-    return set(output.split())
-
-
-def get_all_disks_did(session, partition=False):
-    """
-    Get all disks did lists in a linux guest, each disk list
-    include disk kname, serial and wwn.
-
-    :param session: session object to guest.
-    :param partition: if true, get all disks did lists; otherwise,
-                      get the ones with no partition.
-    :return: a dict with all disks did lists each include disk
-             kname, serial and wwn.
-    """
-    disks = list_linux_guest_disks(session, partition)
-    logging.debug("Disks detail: %s" % disks)
-    all_disks_did = {}
-    for line in disks:
-        kname = line.split('/')[2]
-        get_disk_info_cmd = "udevadm info -q property -p /sys/block/%s" % kname
-        output = session.cmd_output_safe(get_disk_info_cmd)
-        re_str = r"(?<=DEVNAME=/dev/)(.*)|(?<=ID_SERIAL=)(.*)|"
-        re_str += "(?<=ID_SERIAL_SHORT=)(.*)|(?<=ID_WWN=)(.*)"
-        did_list_group = re.finditer(re_str, output, re.M)
-        did_list = [match.group() for match in did_list_group if match]
-        all_disks_did[kname] = did_list
-
-    return all_disks_did
-
-
-def format_windows_disk(session, did, mountpoint=None, size=None, fstype="ntfs",
-                        labletype=utils_disk.PARTITION_TABLE_TYPE_MBR, force=False):
-    """
-    Create a partition on disk in windows guest and format it.
-
-    :param session: session object to guest.
-    :param did: disk index which show in 'diskpart list disk'.
-    :param mountpoint: mount point for the disk.
-    :param size: partition size.
-    :param fstype: filesystem type for the disk.
-    :param labletype: disk partition table type.
-    :param force: if need force format.
-    :return Boolean: disk usable or not.
-    """
-    list_disk_cmd = "echo list disk > disk && "
-    list_disk_cmd += "echo exit >> disk && diskpart /s disk"
-    disks = session.cmd_output(list_disk_cmd, timeout=120)
-    utils_disk.create_partition_table_windows(session, did, labletype)
-
-    if size:
-        size = int(float(normalize_data_size(size, order_magnitude="M")))
-
-    for disk in disks.splitlines():
-        if re.search(r"DISK %s" % did, disk, re.I | re.M):
-            cmd_header = 'echo list disk > disk &&'
-            cmd_header += 'echo select disk %s >> disk &&' % did
-            cmd_footer = '&& echo exit>> disk && diskpart /s disk'
-            cmd_footer += '&& del /f disk'
-            detail_cmd = 'echo detail disk >> disk'
-            detail_cmd = ' '.join([cmd_header, detail_cmd, cmd_footer])
-            logging.debug("Detail for 'Disk%s'" % did)
-            details = session.cmd_output(detail_cmd)
-
-            pattern = "DISK %s.*Offline" % did
-            if re.search(pattern, details, re.I | re.M):
-                online_cmd = 'echo online disk>> disk'
-                online_cmd = ' '.join([cmd_header, online_cmd, cmd_footer])
-                logging.info("Online 'Disk%s'" % did)
-                session.cmd(online_cmd)
-
-            if re.search("Read.*Yes", details, re.I | re.M):
-                set_rw_cmd = 'echo attributes disk clear readonly>> disk'
-                set_rw_cmd = ' '.join([cmd_header, set_rw_cmd, cmd_footer])
-                logging.info("Clear readonly bit on 'Disk%s'" % did)
-                session.cmd(set_rw_cmd)
-
-            if re.search(r"Volume.*%s" % fstype, details, re.I | re.M) and not force:
-                logging.info("Disk%s has been formated, cancel format" % did)
-                continue
-
-            if not size:
-                mkpart_cmd = 'echo create partition primary >> disk'
-            else:
-                mkpart_cmd = 'echo create partition primary size=%s '
-                mkpart_cmd += '>> disk'
-                mkpart_cmd = mkpart_cmd % size
-            list_cmd = ' && echo list partition >> disk '
-            cmds = ' '.join([cmd_header, mkpart_cmd, list_cmd, cmd_footer])
-            logging.info("Create partition on 'Disk%s'" % did)
-            partition_index = re.search(
-                r'\*\s+Partition\s(\d+)\s+', session.cmd(cmds), re.M).group(1)
-            logging.info("Format the 'Disk%s' to %s" % (did, fstype))
-            format_cmd = 'echo list partition >> disk && '
-            format_cmd += 'echo select partition %s >> disk && ' % partition_index
-            if not mountpoint:
-                format_cmd += 'echo assign >> disk && '
-            else:
-                format_cmd += 'echo assign letter=%s >> disk && ' % mountpoint
-            format_cmd += 'echo format fs=%s quick >> disk ' % fstype
-            format_cmd = ' '.join([cmd_header, format_cmd, cmd_footer])
-            session.cmd(format_cmd, timeout=300)
-
-            return True
-
-    return False
-
-
-def format_linux_disk(session, did, all_disks_did, partition=False,
-                      mountpoint=None, size=None, fstype="ext3"):
-    """
-    Create a partition on disk in linux guest and format and mount it.
-
-    :param session: session object to guest.
-    :param did: disk kname, serial or wwn.
-    :param all_disks_did: all disks did lists each include
-                          disk kname, serial and wwn.
-    :param partition: if true, can format all disks; otherwise,
-                      only format the ones with no partition originally.
-    :param mountpoint: mount point for the disk.
-    :param size: partition size.
-    :param fstype: filesystem type for the disk.
-    :return Boolean: disk usable or not.
-    """
-    disks = list_linux_guest_disks(session, partition)
-    logging.debug("Disks detail: %s" % disks)
-    for line in disks:
-        kname = line.split('/')[2]
-        did_list = all_disks_did[kname]
-        if did not in did_list:
-            # Continue to search target disk
-            continue
-        if not size:
-            size_output = session.cmd_output_safe("lsblk -oKNAME,SIZE|grep %s"
-                                                  % kname)
-            size = size_output.splitlines()[0].split()[1]
-        all_disks_before = list_linux_guest_disks(session, True)
-        devname = line
-        logging.info("Create partition on disk '%s'" % devname)
-        mkpart_cmd = "parted -s %s mklabel gpt mkpart "
-        mkpart_cmd += "primary 0 %s"
-        mkpart_cmd = mkpart_cmd % (devname, size)
-        session.cmd_output_safe(mkpart_cmd)
-        session.cmd_output_safe("partprobe %s" % devname)
-        all_disks_after = list_linux_guest_disks(session, True)
-        partname = (all_disks_after - all_disks_before).pop()
-        logging.info("Format partition to '%s'" % fstype)
-        format_cmd = "yes|mkfs -t %s %s" % (fstype, partname)
-        session.cmd_output_safe(format_cmd)
-        if not mountpoint:
-            session.cmd_output_safe("mkdir /mnt/%s" % kname)
-            mountpoint = os.path.join("/mnt", kname)
-        logging.info("Mount the disk to '%s'" % mountpoint)
-        mount_cmd = "mount -t %s %s %s" % (fstype, partname, mountpoint)
-        session.cmd_output_safe(mount_cmd)
-        return True
-
-    return False
-
-
-def format_guest_disk(session, did, all_disks_did, ostype, partition=False,
-                      mountpoint=None, size=None, fstype=None):
-    """
-    Create a partition on disk in guest and format and mount it.
-
-    :param session: session object to guest.
-    :param did: disk ID in guest.
-    :param all_disks_did: a dict contains all disks did lists each
-                          include disk kname, serial and wwn for linux guest.
-    :param ostype: guest os type 'windows' or 'linux'.
-    :param partition: if true, can format all disks; otherwise,
-                      only format the ones with no partition originally.
-    :param mountpoint: mount point for the disk.
-    :param size: partition size.
-    :param fstype: filesystem type for the disk; when it's the default None,
-                   it will use the default one for corresponding ostype guest
-    :return Boolean: disk usable or not.
-    """
-    default_fstype = "ntfs" if (ostype == "windows") else "ext3"
-    fstype = fstype or default_fstype
-    if ostype == "windows":
-        return format_windows_disk(session, did, mountpoint, size, fstype)
-    return format_linux_disk(session, did, all_disks_did, partition,
-                             mountpoint, size, fstype)
 
 
 def get_linux_drive_path(session, did, timeout=120):

@@ -18,10 +18,11 @@ from avocado.utils import iso9660
 from avocado.utils import process
 from avocado.utils import crypto
 from avocado.utils import download
+from avocado.utils import wait
 
 from virttest import virt_vm
 from virttest import asset
-from virttest import utils_disk
+from virttest import disk
 from virttest import qemu_monitor
 from virttest import remote
 from virttest import syslog_server
@@ -111,7 +112,7 @@ class RemoteInstall(object):
 
     def __init__(self, path, ip, port, filename):
         self.path = path
-        utils_disk.cleanup(self.path)
+        disk.cleanup(self.path)
         os.makedirs(self.path)
         self.ip = ip
         self.port = port
@@ -705,9 +706,9 @@ class UnattendedInstallConfig(object):
         if self.unattended_file.endswith('.sif'):
             dest_fname = 'winnt.sif'
             setup_file = 'winnt.bat'
-            boot_disk = utils_disk.FloppyDisk(self.floppy,
-                                              self.qemu_img_binary,
-                                              self.tmpdir, self.vfd_size)
+            boot_disk = disk.FloppyDisk(self.floppy,
+                                        self.qemu_img_binary,
+                                        self.tmpdir, self.vfd_size)
             answer_path = boot_disk.get_answer_file_path(dest_fname)
             self.answer_windows_ini(answer_path)
             setup_file_path = os.path.join(self.unattended_dir, setup_file)
@@ -735,11 +736,10 @@ class UnattendedInstallConfig(object):
                                            kernel_params)
 
                 self.kernel_params = None
-                boot_disk = utils_disk.CdromInstallDisk(
-                    self.cdrom_unattended,
-                    self.tmpdir,
-                    self.cdrom_cd1_mount,
-                    kernel_params)
+                boot_disk = disk.CdromInstallDisk(self.cdrom_unattended,
+                                                  self.tmpdir,
+                                                  self.cdrom_cd1_mount,
+                                                  kernel_params)
             elif self.params.get('unattended_delivery_method') == 'url':
                 if self.unattended_server_port is None:
                     self.unattended_server_port = utils_misc.find_free_port(
@@ -764,12 +764,11 @@ class UnattendedInstallConfig(object):
 
                 self.kernel_params = kernel_params
             elif self.params.get('unattended_delivery_method') == 'cdrom':
-                boot_disk = utils_disk.CdromDisk(self.cdrom_unattended,
-                                                 self.tmpdir)
+                boot_disk = disk.CdromDisk(self.cdrom_unattended,
+                                           self.tmpdir)
             elif self.params.get('unattended_delivery_method') == 'floppy':
-                boot_disk = utils_disk.FloppyDisk(self.floppy,
-                                                  self.qemu_img_binary,
-                                                  self.tmpdir, self.vfd_size)
+                boot_disk = disk.FloppyDisk(self.floppy, self.qemu_img_binary,
+                                            self.tmpdir, self.vfd_size)
                 ks_param = '%s=floppy' % self.unattended_file_kernel_param_name
                 kernel_params = self.kernel_params
                 if '%s=' % self.unattended_file_kernel_param_name in kernel_params:
@@ -801,8 +800,8 @@ class UnattendedInstallConfig(object):
                 dest_fname = "autoinst.xml"
                 if (self.cdrom_unattended and
                         self.params.get('unattended_delivery_method') == 'cdrom'):
-                    boot_disk = utils_disk.CdromDisk(self.cdrom_unattended,
-                                                     self.tmpdir)
+                    boot_disk = disk.CdromDisk(self.cdrom_unattended,
+                                               self.tmpdir)
                 elif self.floppy:
                     autoyast_param = 'autoyast=device://fd0/autoinst.xml'
                     kernel_params = self.kernel_params
@@ -815,10 +814,10 @@ class UnattendedInstallConfig(object):
                             kernel_params, autoyast_param)
 
                     self.kernel_params = kernel_params
-                    boot_disk = utils_disk.FloppyDisk(self.floppy,
-                                                      self.qemu_img_binary,
-                                                      self.tmpdir,
-                                                      self.vfd_size)
+                    boot_disk = disk.FloppyDisk(self.floppy,
+                                                self.qemu_img_binary,
+                                                self.tmpdir,
+                                                self.vfd_size)
                 else:
                     raise ValueError("Neither cdrom_unattended nor floppy set "
                                      "on the config file, please verify")
@@ -829,18 +828,18 @@ class UnattendedInstallConfig(object):
                 # Windows unattended install
                 dest_fname = "autounattend.xml"
                 if self.params.get('unattended_delivery_method') == 'cdrom':
-                    boot_disk = utils_disk.CdromDisk(self.cdrom_unattended,
-                                                     self.tmpdir)
+                    boot_disk = disk.CdromDisk(self.cdrom_unattended,
+                                               self.tmpdir)
                     if self.install_virtio == "yes":
                         boot_disk.setup_virtio_win2008(self.virtio_floppy,
                                                        self.cdrom_virtio)
                     else:
                         self.cdrom_virtio = None
                 else:
-                    boot_disk = utils_disk.FloppyDisk(self.floppy,
-                                                      self.qemu_img_binary,
-                                                      self.tmpdir,
-                                                      self.vfd_size)
+                    boot_disk = disk.FloppyDisk(self.floppy,
+                                                self.qemu_img_binary,
+                                                self.tmpdir,
+                                                self.vfd_size)
                     if self.install_virtio == "yes":
                         boot_disk.setup_virtio_win2008(self.virtio_floppy)
                 answer_path = boot_disk.get_answer_file_path(dest_fname)
@@ -898,7 +897,7 @@ class UnattendedInstallConfig(object):
                 if (self.params.get('unattended_delivery_method') !=
                         'integrated'):
                     i.close()
-                    utils_disk.cleanup(self.cdrom_cd1_mount)
+                    disk.cleanup(self.cdrom_cd1_mount)
             elif ((self.vm.driver_type == 'xen') and
                   (self.params.get('hvm_or_pv') == 'pv')):
                 logging.debug("starting unattended content web server")
@@ -1041,7 +1040,7 @@ class UnattendedInstallConfig(object):
                                  os.path.basename(self.initrd), self.image_path))
             process.run(initrd_fetch_cmd, verbose=DEBUG)
         finally:
-            utils_disk.cleanup(self.nfs_mount)
+            disk.cleanup(self.nfs_mount)
 
         if 'autoyast=' in self.kernel_params:
             # SUSE
@@ -1129,10 +1128,10 @@ def terminate_syslog_server_thread():
 def copy_file_from_nfs(src, dst, mount_point, image_name):
     logging.info("Test failed before the install process start."
                  " So just copy a good image from nfs for following tests.")
-    utils_misc.mount(src, mount_point, "nfs", perm="ro")
+    disk.mount(src, mount_point, "nfs", "ro")
     image_src = utils_misc.get_path(mount_point, image_name)
     shutil.copy(image_src, dst)
-    utils_misc.umount(src, mount_point, "nfs")
+    disk.umount(src, mount_point, "nfs")
 
 
 def string_in_serial_log(serial_log_file_path, string):
@@ -1451,7 +1450,7 @@ def run(test, params, env):
         _url_auto_content_server_thread_event.set()
         _url_auto_content_server_thread.join(3)
         _url_auto_content_server_thread = None
-        utils_disk.cleanup(unattended_install_config.cdrom_cd1_mount)
+        disk.cleanup(unattended_install_config.cdrom_cd1_mount)
 
     global _unattended_server_thread
     global _unattended_server_thread_event
@@ -1478,7 +1477,7 @@ def run(test, params, env):
         if params.get("medium", "cdrom") == "import":
             vm.shutdown()
         try:
-            if utils_misc.wait_for(vm.is_dead, shutdown_cleanly_timeout, 1, 1):
+            if wait.wait_for(vm.is_dead, shutdown_cleanly_timeout, 1, 1):
                 logging.info("Guest managed to shutdown cleanly")
         except qemu_monitor.MonitorError as e:
             logging.warning("Guest apparently shut down, but got a "

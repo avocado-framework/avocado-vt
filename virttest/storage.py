@@ -14,6 +14,7 @@ import functools
 
 from avocado.core import exceptions
 from avocado.utils import process
+from avocado.utils import data_factory
 
 from virttest import iscsi
 from virttest import utils_misc
@@ -395,7 +396,7 @@ class QemuImg(object):
                 # of the good image
                 src_bad = filename
                 src_good = os.path.join(backup_dir, "%s.backup" % basename)
-                hsh = utils_misc.generate_random_string(4)
+                hsh = data_factory.generate_random_string(4)
                 dst_bad = (os.path.join(backup_dir, "%s.bad.%s" %
                                         (basename, hsh)))
                 dst_good = (os.path.join(backup_dir, "%s.good.%s" %

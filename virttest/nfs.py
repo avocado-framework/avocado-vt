@@ -13,6 +13,7 @@ from avocado.core import exceptions
 
 from virttest import utils_misc
 from virttest import test_setup
+from virttest import disk
 from virttest.utils_iptables import Iptables
 from virttest.utils_conn import SSHConnection
 from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
@@ -212,20 +213,20 @@ class Nfs(object):
         :return: If the src is mounted as expect
         :rtype: Boolean
         """
-        return utils_misc.is_mounted(self.mount_src, self.mount_dir, "nfs")
+        return disk.is_mount(self.mount_src, self.mount_dir, "nfs")
 
     def mount(self):
         """
         Mount source into given mount point.
         """
-        return utils_misc.mount(self.mount_src, self.mount_dir, "nfs",
-                                perm=self.mount_options)
+        return disk.mount(self.mount_src, self.mount_dir, "nfs",
+                          self.mount_options)
 
     def umount(self):
         """
         Umount the given mount point.
         """
-        return utils_misc.umount(self.mount_src, self.mount_dir, "nfs")
+        return disk.umount(self.mount_src, self.mount_dir, "nfs")
 
     def setup(self):
         """
