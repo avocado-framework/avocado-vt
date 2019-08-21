@@ -1,0 +1,5 @@
+FROM centos:7.6.1810
+LABEL description "CentOS 7 image used on integration checks, such as cirrus-ci"
+RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+RUN yum -y install git tcpdump nc iproute gcc python-devel qemu-kvm qemu-img python2-pip
+RUN yum -y clean all
