@@ -1090,11 +1090,22 @@ def preprocess(test, params, env):
 
     # Sysprep the master image if requested, to customize image before cloning
     if params.get("sysprep_required", "no") == "yes":
-        logging.info("Syspreping the image as requested before cloning.")
         image_filename = storage.get_image_filename(params, base_dir)
         sysprep_options = params.get("sysprep_options", "--operations machine-id")
-        utils_libguestfs.virt_sysprep_cmd(
-            image_filename, options=sysprep_options, ignore_status=False)
+        # backup the original master image before customization
+        logging.info("Backup the master image before sysprep")
+        image_obj = qemu_storage.QemuImg(params, base_dir, image_filename)
+        image_obj.backup_image(params, base_dir, "backup", True, True)
+        logging.info("Syspreping the image as requested before cloning.")
+        try:
+            utils_libguestfs.virt_sysprep_cmd(
+                image_filename, options=sysprep_options, ignore_status=False)
+        except utils_libguestfs.LibguestfsCmdError as detail:
+            # when virt-sysprep fails the original master image is unchanged.
+            # We can remove backup image, so that test would not spend much time
+            # in restoring disk back during postprocess.
+            image_obj.rm_backup_image()
+            test.error("Sysprep failed: %s" % detail)
 
     # Clone master image from vms.
     if params.get("master_images_clone"):
@@ -1163,6 +1174,15 @@ def postprocess(test, params, env):
             except Exception as details:
                 err += ("\n: Guest %s dmesg verification failed: %s"
                         % (vm.name, details))
+
+    base_dir = data_dir.get_data_dir()
+    # if sysprep was requested in preprocess then restore back the original image
+    if params.get("sysprep_required", "no") == "yes":
+        logging.info("Restoring the original master image.")
+        image_filename = storage.get_image_filename(params, base_dir)
+        image_obj = qemu_storage.QemuImg(params, base_dir, image_filename)
+        image_obj.backup_image(params, base_dir, "restore", True)
+        image_obj.rm_backup_image()
 
     # collect sosreport of guests during postprocess if enabled
     if params.get("enable_guest_sosreport", "no") == "yes":
@@ -1419,7 +1439,6 @@ def postprocess(test, params, env):
                                                                       '\n  ')
             logging.error(details)
 
-    base_dir = data_dir.get_data_dir()
     if params.get("storage_type") == "iscsi":
         try:
             iscsidev = qemu_storage.Iscsidev(params, base_dir, "iscsi")
