@@ -1,0 +1,41 @@
+env:
+  CIRRUS_CLONE_DEPTH: 1
+
+fedora_30_task:
+  env:
+    PYTHON: python3
+  container:
+    image: quay.io/avocado-framework/avocado-vt-ci-fedora-30
+  setup_script:
+    - $PYTHON --version
+    - $PYTHON -m pip install $AVOCADO_SRC
+    - $PYTHON -m pip install -r requirements.txt
+    - $PYTHON setup.py develop --user
+  bootstrap_script:
+    - $PYTHON -m avocado vt-bootstrap --vt-skip-verify-download-assets --yes-to-all
+  list_script:
+    - $PYTHON -m avocado list
+  dry_run_script:
+    - $PYTHON -m avocado --show all run --dry-run -- boot
+  env:
+    matrix:
+      - AVOCADO_SRC: avocado-framework<70.0
+      - AVOCADO_SRC: -e git+https://github.com/avocado-framework/avocado#egg=avocado_framework
+
+centos_7_task:
+  env:
+    PYTHON: python2
+    AVOCADO_SRC: avocado-framework<70.0
+  container:
+    image: quay.io/avocado-framework/avocado-vt-ci-centos-7
+  setup_script:
+    - $PYTHON --version
+    - $PYTHON -m pip install $AVOCADO_SRC
+    - $PYTHON -m pip install -r requirements.txt
+    - $PYTHON setup.py develop --user
+  bootstrap_script:
+    - $PYTHON -m avocado vt-bootstrap --vt-skip-verify-download-assets --yes-to-all
+  list_script:
+    - $PYTHON -m avocado list
+  dry_run_script:
+    - $PYTHON -m avocado --show all run --dry-run -- boot
