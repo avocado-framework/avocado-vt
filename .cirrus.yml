@@ -19,7 +19,5 @@ integration_task:
           container:
             matrix:
               - image: quay.io/avocado-framework/avocado-vt-ci-centos-7
-                env:
-                  - PYTHON: python2
               - image: quay.io/avocado-framework/avocado-vt-ci-fedora-30
         - AVOCADO_SRC: -e git+https://github.com/avocado-framework/avocado#egg=avocado_framework
