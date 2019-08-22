@@ -68,7 +68,7 @@ class Disk(base.TypedDeviceBase):
    """
 
     __slots__ = ('device', 'rawio', 'sgio', 'snapshot', 'driver', 'target', 'alias',
-                 'address', 'boot', 'readonly', 'transient', 'share',
+                 'address', 'boot', 'readonly', 'transient', 'share', 'model',
                  'mirror', 'ready', 'iotune', 'source', 'blockio', 'geometry',
                  'wwn', 'serial', 'vendor', 'product', 'encryption', 'auth',
                  'reservations', 'backingstore')
@@ -76,6 +76,8 @@ class Disk(base.TypedDeviceBase):
     def __init__(self, type_name='file', virsh_instance=base.base.virsh):
         accessors.XMLAttribute('device', self, parent_xpath='/',
                                tag_name='disk', attribute='device')
+        accessors.XMLAttribute('model', self, parent_xpath='/',
+                               tag_name='disk', attribute='model')
         accessors.XMLAttribute('rawio', self, parent_xpath='/',
                                tag_name='disk', attribute='rawio')
         accessors.XMLAttribute('sgio', self, parent_xpath='/',
