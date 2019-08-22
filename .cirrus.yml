@@ -1,0 +1,66 @@
+env:
+  CIRRUS_CLONE_DEPTH: 1
+
+fedora_30_task:
+  container:
+    image: quay.io/avocado-framework/avocado-vt-ci-fedora-30
+  env:
+    PYTHON: python3
+    matrix:
+      - AVOCADO_SRC:
+      - AVOCADO_SRC: avocado-framework<70.0
+      - AVOCADO_SRC: -e git+https://github.com/avocado-framework/avocado#egg=avocado_framework
+    matrix:
+      - SETUP: setup.py develop --user
+      - SETUP: -m pip install .
+  setup_script: &setup_scr
+    - $PYTHON --version
+    - test -z $AVOCADO_SRC || $PYTHON -m pip install $AVOCADO_SRC
+    - $PYTHON $SETUP
+  bootstrap_script: &bootstrap_scr
+    - $PYTHON -m avocado vt-bootstrap --vt-skip-verify-download-assets --yes-to-all
+  list_script: &list_scr
+    - $PYTHON -m avocado list
+  dry_run_script: &dry_run_scr
+    - $PYTHON -m avocado --show all run --dry-run -- boot
+
+rhel_8_task:
+  container:
+    image: quay.io/avocado-framework/avocado-vt-ci-rhel-8
+  env:
+    PYTHON: python3
+    matrix:
+      - AVOCADO_SRC:
+      - AVOCADO_SRC: avocado-framework<70.0
+      # When installing from source, pip tries to install at
+      # /usr/local/lib/python3.6/site-packages/ and fails with:
+      # [Errno 2] No such file or directory: '/usr/local/lib/python3.6/site-packages/test-easy-install-78.write-test'
+      # workaround is to add "--prefix /"
+      - AVOCADO_SRC: --prefix / -e git+https://github.com/avocado-framework/avocado#egg=avocado_framework
+    matrix:
+      - SETUP: setup.py develop --user
+      - SETUP: -m pip install .
+  setup_script:
+    *setup_scr
+  plugin_script:
+    - $PYTHON -m avocado plugins 2>/dev/null | grep vt-bootstrap
+
+centos_7_task:
+  env:
+    PYTHON: python2
+    matrix:
+      - AVOCADO_SRC:
+      - AVOCADO_SRC: avocado-framework<70.0
+    matrix:
+      - SETUP: setup.py develop --user
+      - SETUP: -m pip install .
+  container:
+    image: quay.io/avocado-framework/avocado-vt-ci-centos-7
+  setup_script:
+    *setup_scr
+  bootstrap_script:
+    *bootstrap_scr
+  list_script:
+    *list_scr
+  dry_run_script:
+    *dry_run_scr
