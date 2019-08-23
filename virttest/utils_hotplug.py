@@ -543,7 +543,8 @@ def vcpuhotunplug_unsupport_str():
 
 def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
                    pg_unit="KiB", tg_node=0, node_mask=0, mem_model="dimm",
-                   lb_size=None, lb_sizeunit="Kib", mem_access=None):
+                   lb_size=None, lb_sizeunit="Kib", mem_access=None,
+                   alias=None):
     """
     Create memory device xml.
     Parameters:
@@ -586,6 +587,8 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
             **{"attrs": mem_addr})
     if mem_access:
         mem_xml.mem_access = mem_access
+    if alias:
+        mem_xml.alias = dict(name=alias)
 
     logging.debug("Memory device xml: %s", mem_xml)
     return mem_xml.copy()
