@@ -1441,7 +1441,7 @@ class VM(virt_vm.BaseVM):
                                           params.get(
                                               'workaround_qemu_qmp_crash'),
                                           params.get('allow_hotplugged_vm'),
-                                          self._caps)
+                                          vm._caps)
         StrDev = qdevices.QStringDevice
         QDevice = qdevices.QDevice
 
@@ -2159,7 +2159,7 @@ class VM(virt_vm.BaseVM):
             ovmf_vars_path = "%s.fd" % path
             devs = []
             pflash0, pflash1 = ('ovmf_code', 'ovmf_vars')
-            if Flags.BLOCKDEV in self._caps:
+            if vm.check_capability(Flags.BLOCKDEV):
                 devs.append(qdevices.QBlockdevProtocolFile(pflash0))
                 devs[-1].set_param("read-only", "on")
                 devs[-1].set_param("filename", ovmf_code_path)
@@ -2173,7 +2173,7 @@ class VM(virt_vm.BaseVM):
                     params.get("restore_ovmf_vars") == "yes"):
                 cp_cmd = "cp -f %s %s" % (ovmf_vars_src_path, ovmf_vars_path)
                 process.system(cp_cmd)
-            if Flags.BLOCKDEV in self._caps:
+            if vm.check_capability(Flags.BLOCKDEV):
                 devs.append(qdevices.QBlockdevProtocolFile(pflash1))
                 devs[-1].set_param("filename", ovmf_vars_path)
             else:
@@ -2181,7 +2181,7 @@ class VM(virt_vm.BaseVM):
                 devs[-1].set_param("if", "pflash")
                 devs[-1].set_param("format", "raw")
                 devs[-1].set_param("file", ovmf_vars_path)
-            if Flags.BLOCKDEV in self._caps:
+            if vm.check_capability(Flags.BLOCKDEV):
                 machine_vals = []
                 for flash, dev in zip(['pflash0', 'pflash1'], devs):
                     machine_vals.append(
