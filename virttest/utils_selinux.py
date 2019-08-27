@@ -278,6 +278,26 @@ def set_context_of_file(filename, context, selinux_force=False):
     logging.debug("Set context of %s success.", filename)
 
 
+def check_context_of_file(filename, label, selinux_force=False):
+    """
+    Check for label in the context of given filename.
+
+    :param filename: filename for which context to be retrieved
+    :param label: label to be checked in the context
+    :param selinux_force: True to force selinux configuration on Ubuntu
+    """
+    se_label = get_context_of_file(filename, selinux_force)
+    if se_label is not None:
+        logging.debug("Context of shared filename '%s' is '%s'" %
+                      (filename, se_label))
+        if label not in se_label:
+            return False
+    else:
+        logging.warning("Context of shared filename '%s' is None" % filename)
+        return False
+    return True
+
+
 def get_context_of_process(pid):
     """
     Get context of process.
