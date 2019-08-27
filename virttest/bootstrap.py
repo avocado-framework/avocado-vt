@@ -6,6 +6,7 @@ import shutil
 import sys
 import re
 
+from avocado.utils import cpu
 from avocado.utils import distro
 from avocado.utils import genio
 from avocado.utils import linux_modules
@@ -340,8 +341,7 @@ def create_host_os_cfg(options):
             return forced
         else:
             return detected
-    host_os_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt_type'),
-                                                     'host-os.cfg')
+    host_os_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt_type'), 'host.cfg')
     with open(host_os_cfg_path, 'w') as cfg:
         detected = distro.detect()
         name = host_os_get_distro_name(options, detected)
@@ -351,6 +351,10 @@ def create_host_os_cfg(options):
                                       "u%s" % detected.release)
         arch = _forced_or_detected(get_opt(options, 'vt_host_distro_arch'),
                                    "Host_arch_%s" % detected.arch)
+        vendor = cpu.get_vendor() if hasattr(cpu, 'get_vendor') else cpu.get_cpu_vendor_name()
+        family = cpu.get_family() if hasattr(cpu, 'get_family') else None
+        cpu_version = cpu.get_version() if hasattr(cpu, 'get_version') else None
+
         cfg.write("variants:\n")
         cfg.write("    - @Host:\n")
         cfg.write("        variants:\n")
@@ -361,6 +365,20 @@ def create_host_os_cfg(options):
         cfg.write("                            - @%s:\n" % release)
         cfg.write("                                variants:\n")
         cfg.write("                                    - @%s:\n" % arch)
+        cfg.write("variants:\n")
+        cfg.write("    - @HostCpuVendor:\n")
+        cfg.write("        variants:\n")
+        cfg.write("            - @%s:\n" % vendor)
+        if family:
+            cfg.write("variants:\n")
+            cfg.write("    - @HostCpuFamily:\n")
+            cfg.write("        variants:\n")
+            cfg.write("            - @%s:\n" % family)
+            if cpu_version:
+                cfg.write("                variants:\n")
+                cfg.write("                    - @HostCpuVersion:\n")
+                cfg.write("                        variants:\n")
+                cfg.write("                            - @%s:\n" % cpu_version)
 
     count = [get_opt(options, 'vt_host_distro_name'),
              get_opt(options, 'vt_host_distro_version'),
