@@ -1965,6 +1965,9 @@ class DevContainer(object):
             chardev_param.update(
                 {'debug': params.get('chardev_debug'),
                  'name': params.get('chardev_name')})
+        elif 'ringbuf' in backend:
+            chardev_param.update(
+                {'ringbuf_write_size': int(params.get('ringbuf_write_size'))})
         return qdevices.CharDevice(chardev_param, chardev_id)
 
     def cdroms_define_by_params(self, name, image_params, media=None,
