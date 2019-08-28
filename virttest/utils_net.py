@@ -2444,7 +2444,7 @@ class VirtIface(propcan.PropCan, object):
     """
 
     __slots__ = ['nic_name', 'g_nic_name', 'mac', 'nic_model', 'ip',
-                 'nettype', 'netdst']
+                 'nettype', 'netdst', 'queues', 'net_driver']
     # Using MA-S assignment here, that means we can have at most 4096 unique
     # identifiers (MAC addresses) on the same job instance. We may consider
     # using bigger blocks for large-scale deployment, such as microVM
