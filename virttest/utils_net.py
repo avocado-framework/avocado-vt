@@ -3313,8 +3313,7 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
         return bool(utils_misc.wait_for(lambda: verify_func(ip, macs, dev,
                                                             timeout,
                                                             session=session, **dargs),
-                                        timeout,
-                                        text="Retry verifying IP address"))
+                                        timeout))
 
 
 def generate_mac_address_simple():
