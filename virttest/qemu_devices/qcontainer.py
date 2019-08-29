@@ -1603,13 +1603,13 @@ class DevContainer(object):
             if aio == 'native' and snapshot == 'yes':
                 logging.warn('snapshot is on, fallback aio to threads.')
                 aio = 'threads'
-                if Flags.BLOCKDEV in self.__caps:
-                    if isinstance(devices[-2], (qdevices.QBlockdevProtocolFile,
-                                                qdevices.QBlockdevProtocolHostDevice,
-                                                qdevices.QBlockdevProtocolHostCdrom)):
-                        devices[-2].set_param('aio', aio)
-                else:
-                    devices[-1].set_param('aio', aio)
+            if Flags.BLOCKDEV in self.__caps:
+                if isinstance(devices[-2], (qdevices.QBlockdevProtocolFile,
+                                            qdevices.QBlockdevProtocolHostDevice,
+                                            qdevices.QBlockdevProtocolHostCdrom)):
+                    devices[-2].set_param('aio', aio)
+            else:
+                devices[-1].set_param('aio', aio)
             if aio == 'native':
                 # Since qemu 2.6, aio=native has no effect without
                 # cache.direct=on or cache=none, It will be error out.
