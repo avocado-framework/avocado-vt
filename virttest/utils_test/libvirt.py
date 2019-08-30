@@ -1918,23 +1918,47 @@ def create_hostdev_xml(pci_id, boot_order=None, xmlfile=True,
     return hostdev_xml.xml
 
 
-def create_controller_xml(contr_type='scsi', contr_model='virtio-scsi',
-                          contr_index='0', contr_alias=None):
+def create_controller_xml(contr_dict, oper="get_xml", vm_name=None):
     """
-    Create controller xml
+    Create controller xml or add controller
 
-    :param contr_type: controller type name
-    :param contr_model: controller device model
-    :param contr_index: controller device index
-    :param contr_alias: controller device alias name
-    :return: controller xml file
+    :param contr_dict: The dict params includs controller configurations
+    :param oper: Operation need to do, current we have 2 choice
+                1. "get_xml": controller xml according to dict
+                2. "add_controller": add controller according to dict and
+                updated in vm
+    :param vm_name: name of vm, mandatory for 'add_controller' operation
+    :return: controller xml file if oper is equal to "get_xml";
+             controller object for 'add_controller'.
     """
+    contr_type = contr_dict.get("controller_type", 'scsi')
+    contr_model = contr_dict.get("controller_model", "virtio-scsi")
+    contr_index = contr_dict.get("controller_index")
+    contr_alias = contr_dict.get("contr_alias")
+    contr_addr = contr_dict.get("controller_addr")
     contr = controller.Controller(contr_type)
     contr.model = contr_model
-    contr.index = contr_index
+    if contr_index:
+        contr.index = contr_index
     if contr_alias:
         contr.alias = dict(name=contr_alias)
-    return contr.xml
+    if contr_addr:
+        contr.address = contr.new_controller_address(attrs=eval(contr_addr))
+    if oper == "add_controller":
+        vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm_name)
+        org_controllers = vmxml.get_controllers(contr_type)
+        vmxml.add_device(contr)
+        vmxml.sync()
+        vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm_name)
+        updated_controllers = vmxml.get_controllers(contr_type)
+        for contr in updated_controllers:
+            if contr not in org_controllers:
+                new_added_ctr = contr
+        if 'new_added_ctr' not in locals():
+            raise exceptions.TestFail("Fail to get new added controller.")
+        return new_added_ctr
+    elif oper == "get_xml":
+        return contr.xml
 
 
 def create_redirdev_xml(redir_type="spicevmc", redir_bus="usb",
@@ -2105,6 +2129,7 @@ def create_disk_xml(params):
         driver_type = params.get("driver_type", "")
         driver_cache = params.get("driver_cache", "")
         driver_discard = params.get("driver_discard", "")
+        driver_model = params.get("model")
         if driver_name:
             driver_attrs['name'] = driver_name
         if driver_type:
@@ -2115,6 +2140,8 @@ def create_disk_xml(params):
             driver_attrs['discard'] = driver_discard
         if driver_attrs:
             diskxml.driver = driver_attrs
+        if driver_model:
+            diskxml.model = driver_model
         diskxml.readonly = "yes" == params.get("readonly", "no")
         diskxml.share = "yes" == params.get("shareable", "no")
         diskxml.target = {'dev': target_dev, 'bus': target_bus}
@@ -2610,6 +2637,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     disk_type = params.get("disk_type", "file")
     disk_target = params.get("disk_target", 'vda')
     disk_target_bus = params.get("disk_target_bus", "virtio")
+    disk_model = params.get("disk_model")
     disk_src_protocol = params.get("disk_source_protocol")
     disk_src_name = params.get("disk_source_name")
     disk_src_host = params.get("disk_source_host", "127.0.0.1")
@@ -2624,7 +2652,9 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     exp_opt = params.get("export_options", "rw,no_root_squash,fsid=0")
     exp_dir = params.get("export_dir", "nfs-export")
     first_disk = vm.get_first_disk_devices()
+    logging.debug("first disk is %s", first_disk)
     blk_source = first_disk['source']
+    blk_source = params.get("blk_source_name", blk_source)
     disk_xml = vmxml.devices.by_device_tag('disk')[0]
     src_disk_format = disk_xml.xmltreefile.find('driver').get('type')
     sec_model = params.get('sec_model')
@@ -2638,6 +2668,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     secret_uuid = params.get("secret_uuid")
     enable_cache = "yes" == params.get("enable_cache", "yes")
     driver_cache = params.get("driver_cache", "none")
+    create_controller = params.get("create_controller") == "yes"
     disk_params = {'device_type': disk_device,
                    'disk_snapshot_attr': disk_snapshot_attr,
                    'type_name': disk_type,
@@ -2655,6 +2686,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
 
     if enable_cache:
         disk_params['driver_cache'] = driver_cache
+    if disk_model:
+        disk_params['model'] = disk_model
     if not tmp_dir:
         tmp_dir = data_dir.get_tmp_dir()
 
@@ -2796,6 +2829,19 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         if disk_.target['dev'] == disk_target:
             vmxml.del_device(disk_)
 
+    #Create controller
+    if create_controller:
+        contr_type = params.get("controller_type", 'scsi')
+        contr_model = params.get("controller_model", "virtio-scsi")
+        contr_index = params.get("controller_index")
+        contr_dict = {'controller_type': contr_type,
+                      'controller_model': contr_model,
+                      'controller_index': contr_index}
+        new_added = create_controller_xml(contr_dict, "add_controller", vm.name)
+        if not contr_index:
+            contr_index = new_added.get("index")
+        vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
+
     # New disk xml
     new_disk = disk.Disk(type_name=disk_type)
     new_disk.new_disk_source(attrs={'file': blk_source})
@@ -2804,6 +2850,24 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     new_disk.xml = disk_xml
     # Add new disk xml and redefine vm
     vmxml.add_device(new_disk)
+
+    # Update disk address
+    if create_controller:
+        vmxml.sync()
+        vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
+        contr_type_from_address = vmxml.get_disk_attr(vm.name, disk_target,
+                                                      "address", "type")
+        if contr_type_from_address == 'pci':
+            address_params = {'bus': "%0#4x" % int(contr_index)}
+        elif contr_type_from_address == 'drive':
+            address_params = {'controller': contr_index}
+        elif contr_type_from_address == 'usb':
+            address_params = {'bus': contr_index}
+        else:
+            # TODO: Other controller types
+            pass
+        if not set_disk_attr(vmxml, disk_target, 'address', address_params):
+            raise exceptions.TestFail("Fail to update disk address.")
 
     # Set domain options
     dom_iothreads = params.get("dom_iothreads")
