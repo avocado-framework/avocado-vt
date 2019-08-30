@@ -25,7 +25,8 @@ class SourceXML(base.LibvirtXMLBase):
     __slots__ = ('device_path', 'vg_name', 'host_name', 'dir_path',
                  'adp_type', 'adp_name', 'adp_parent', 'adp_wwnn',
                  'adp_wwpn', 'format_type', 'hosts', 'auth_type',
-                 'auth_username', 'secret_usage', 'secret_uuid')
+                 'auth_username', 'secret_usage', 'secret_uuid',
+                 'iqn_name')
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -103,6 +104,11 @@ class SourceXML(base.LibvirtXMLBase):
                                parent_xpath='/auth',
                                tag_name='secret',
                                attribute='uuid')
+        accessors.XMLAttribute(property_name='iqn_name',
+                               libvirtxml=self,
+                               parent_xpath='/initiator',
+                               tag_name='iqn',
+                               attribute='name')
 
         super(SourceXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = u"<source></source>"
