@@ -3240,6 +3240,12 @@ class QMPMonitor(Monitor):
                 }}}]}
         return self.cmd(cmd, args)
 
+    def query_mice(self):
+        """
+        Query mice status.
+        """
+        return self.cmd("query-mice")
+
     def input_send_event(self, events, device=None, head=None):
         """
         Send input event(s) to guest.
