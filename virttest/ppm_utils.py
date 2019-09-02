@@ -432,3 +432,14 @@ def add_timestamp(image, timestamp, margin=2):
     x, y = margin, height + margin
     draw.text((x, y), watermark, font=font, fill='black')
     return new_image
+
+
+def image_size(image):
+    """
+    Return image's size as a tuple (width, height).
+
+    :param image: image file.
+    """
+
+    img = Image.open(image)
+    return img.size
