@@ -63,6 +63,7 @@ class DevContainer(object):
                             'cache.no-flush': 'on'}}
 
     BLOCKDEV_VERSION_SCOPE = '[2.12.0, )'
+    SMP_DIES_VERSION_SCOPE = '[4.1.0, )'
 
     def __init__(self, qemu_binary, vmname, strict_mode="no",
                  workaround_qemu_qmp_crash="no", allow_hotplugged_vm="yes"):
@@ -159,6 +160,9 @@ class DevContainer(object):
         if (self.has_option('blockdev') and
                 ver in VersionInterval(self.BLOCKDEV_VERSION_SCOPE)):
             self.caps.set_flag(Flags.BLOCKDEV)
+        # -smp dies=?
+        if ver in VersionInterval(self.SMP_DIES_VERSION_SCOPE):
+            self.caps.set_flag(Flags.SMP_DIES)
 
     def __getitem__(self, item):
         """

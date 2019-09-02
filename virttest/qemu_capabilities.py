@@ -19,6 +19,7 @@ class Flags(object):
     """ Enumerate the flags of VM capabilities. """
 
     BLOCKDEV = _auto_value()
+    SMP_DIES = _auto_value()
 
 
 class Capabilities(object):
