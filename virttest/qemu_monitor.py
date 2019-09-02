@@ -2223,6 +2223,10 @@ class QMPMonitor(Monitor):
         """
         return self.info(what, debug)
 
+    def query_cpus_fast(self, debug=True):
+        """ Query cpus-fast info """
+        return self.query('cpus-fast', debug)
+
     def screendump(self, filename, debug=True):
         """
         Request a screendump.
