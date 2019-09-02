@@ -1391,7 +1391,7 @@ class CharDevice(QCustomDevice):
                  when can't decide.
         """
         out = monitor.query("chardev")
-        return self.get_qid() in out
+        return "\'%s\'" % self.get_qid() in str(out)
 
     def verify_unplug(self, out, monitor):  # pylint: disable=W0613,R0201
         """
@@ -1399,7 +1399,7 @@ class CharDevice(QCustomDevice):
         :param monitor: Monitor used for unplug
         """
         out = monitor.query("chardev")
-        return self.get_qid() not in out
+        return "\'%s\'" % self.get_qid() not in str(out)
 
 
 #
