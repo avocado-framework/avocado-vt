@@ -8,6 +8,7 @@ interact with qemu qdev structure.
 """
 import logging
 import re
+import os
 import traceback
 from collections import OrderedDict
 from functools import reduce
@@ -1402,6 +1403,73 @@ class CharDevice(QCustomDevice):
         return "\'%s\'" % self.get_qid() not in str(out)
 
 
+class QCPUDevice(QDevice):
+    """
+    CPU Device object, supports hot plug/unplug vcpu device with specified
+    properties.
+    """
+
+    def __init__(self, cpu_type, params=None, aobject=None, parent_bus=None):
+        self.enabled = params.pop('enabled')
+        self.count = params.pop('count')
+        self.property = params.pop('property')
+        params.update(self.property)
+        super(QCPUDevice, self).__init__(cpu_type, params, aobject, parent_bus)
+        self.cpu_location = None
+
+    def cmdline(self):
+        """
+        :return: cmdline command to define this device. (if enabled)
+        """
+        if self.enabled:
+            return super(QCPUDevice, self).cmdline()
+
+    def cmdline_nd(self):
+        """
+        :return: cmdline command to define this device without dynamic
+                 parameters. (if enabled)
+        """
+        if self.enabled:
+            return super(QCPUDevice, self).cmdline_nd()
+
+    @staticmethod
+    def _get_vcpu_ids(monitor):
+        """
+        :return: list of vcpu ids
+        """
+        out = monitor.info("hotpluggable-cpus", debug=False)
+        if monitor.protocol == "qmp":
+            cpu_id_list = [os.path.split(vcpu_info['qom-path'])[1] for
+                           vcpu_info in out if 'qom-path' in vcpu_info]
+        elif monitor.protocol == "human":
+            cpu_id_list = re.findall(r'qom_path: "(?:/\D+){2}/(\S+)"', out, re.M)
+        else:
+            raise qemu_monitor.MonitorNotSupportedError("Invalid monitor object: %s(%s)"
+                                                        % (monitor, type(monitor)))
+        return cpu_id_list
+
+    def verify_hotplug(self, out, monitor):  # pylint: disable=W0613,R0201
+        """
+        :param out: Output of the hotplug command
+        :param monitor: Monitor used for hotplug
+        :return: True when successful, False when unsuccessful.
+        """
+        ver_out = self.get_qid() in self._get_vcpu_ids(monitor)
+        if ver_out:
+            self.enabled = True
+        return ver_out
+
+    def verify_unplug(self, out, monitor):  # pylint: disable=W0613,R0201
+        """
+        :param out: Output of the unplug command
+        :param monitor: Monitor used for unplug
+        :return: True when successful, False when unsuccessful.
+        """
+        ver_out = self.get_qid() not in self._get_vcpu_ids(monitor)
+        if ver_out:
+            self.enabled = False
+        return ver_out
+
 #
 # Bus representations
 # HDA, I2C, IDE, ISA, PCI, SCSI, System, uhci, ehci, ohci, xhci, ccid,
@@ -2422,3 +2490,84 @@ class QOldFloppyBus(QDenseBus):
     def _set_device_props(self, device, addr):
         """ Change value to drive{A,B,...} """
         device.set_param('index', self._addr2stor(addr))
+
+
+class QCPUBus(QSparseBus):
+    """
+    CPU bus representation including cpu/cpu-core handling.
+    """
+
+    def __init__(self, cpu_model, cpu_type, lengths, fixed_vcpu, cpu_property,
+                 aobject=None, atype=None):
+        """
+        :param cpu_model: cpu model (host/qemu64 ...)
+        :type cpu_model: str
+        :param cpu_type: type of the cpu_model (x86_64-cpu, spapr-cpu-core, ...)
+        :type cpu_type: str
+        :param lengths: Number of vcpu device count (maxcpus)
+        :type lengths: int
+        :param fixed_vcpu: Number of unhotpluggable vcpu (smp)
+        :type fixed_vcpu: int
+        :param cpu_property: vcpu properties (socket-id, core-id, ...)
+        :type cpu_property: list of dict
+        """
+        super(QCPUBus, self).__init__(None, [['cpu_location'], [lengths]],
+                                      cpu_model, cpu_type, aobject, atype)
+        for addr in range(fixed_vcpu):
+            self.bus[self._addr2stor([addr])] = 'fixed_vcpu'
+        self.cpu_property = cpu_property
+
+    def __getitem__(self, item):
+        """
+        :param item: autotest id or QObject-like object
+        :return: First matching object from this bus
+        :raise KeyError: In case no match was found
+        """
+        if isinstance(item, QBaseDevice):
+            if item in six.itervalues(self.bus):
+                return item
+        else:
+            for device in six.itervalues(self.bus):
+                if hasattr(device, 'get_aid'):
+                    if device.get_aid() == item:
+                        return device
+        raise KeyError("Device %s is not in %s" % (item, self))
+
+    def _str_devices(self):
+        """ Short string representation of all cpu index even when they are
+        fixed cpu."""
+        out = {}
+        for addr, dev in six.iteritems(self.bus):
+            vcpu_short = str(dev)
+            if isinstance(dev, QCPUDevice) and not dev.enabled:
+                vcpu_short += '(idled)'
+            out[addr] = vcpu_short
+        return str(out).replace("'", "")
+
+    def _str_devices_long(self):
+        """ Long string representation of all cpu index even when they are
+        fixed cpu. """
+        out = ""
+        for addr, dev in six.iteritems(self.bus):
+            if isinstance(dev, QCPUDevice) and not dev.enabled:
+                addr += ' idled'
+            out += '%s< %s >%s\n  ' % ('-' * 15, addr.ljust(16), '-' * 15)
+            if isinstance(dev, six.string_types):
+                out += '"%s"\n  ' % dev
+            else:
+                out += dev.str_long().replace('\n', '\n  ')
+                out = out[:-3]
+            out += '\n'
+        return out
+
+    def _dev2addr(self, device):
+        """ Convert cpu properties to index. """
+        return [self.cpu_property.index(device.property)]
+
+    def _update_device_props(self, device, addr):
+        """ Always set props """
+        self._set_device_props(device, addr)
+
+    def _set_device_props(self, device, addr):
+        """ Change value to drive{A,B,...} """
+        setattr(device, self.addr_items[0], addr[0])
