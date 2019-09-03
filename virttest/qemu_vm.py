@@ -196,6 +196,7 @@ class VM(virt_vm.BaseVM):
         self.last_boot_index = 0
         self.last_driver_index = 0
         self._caps = Capabilities()
+        self._probe_capabilities()
 
     def _probe_capabilities(self):
         """ Probe whether the vm sets the capabilities. """
@@ -205,6 +206,14 @@ class VM(virt_vm.BaseVM):
         if self.params.get("qemu_force_use_drive_expression", "no") == "no":
             if ver in VersionInterval(self.BLOCKDEV_VERSION_SCOPE):
                 self._caps.set_flag(Flags.BLOCKDEV)
+
+    def _reprobe_capabilities(self):
+        """
+        Refresh capabilities, should call this when VM's definition
+        has been changed.
+        """
+        self._caps = Capabilities()
+        self._probe_capabilities()
 
     def check_capability(self, capability):
         """
@@ -2544,6 +2553,7 @@ class VM(virt_vm.BaseVM):
         if params is not None:
             self.params = params
             self.devices = None     # Representation changed
+            self._reprobe_capabilities()
         if root_dir is not None:
             self.root_dir = root_dir
             self.devices = None     # Representation changed
@@ -2553,8 +2563,6 @@ class VM(virt_vm.BaseVM):
         pass_fds = []
         if migration_fd:
             pass_fds.append(int(migration_fd))
-
-        self._probe_capabilities()
 
         # Verify the md5sum of the ISO images
         for cdrom in params.objects("cdroms"):
