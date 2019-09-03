@@ -2211,3 +2211,19 @@ class DevContainer(object):
             logging.warn("'%s' is not supported by your qemu", driver)
 
         return devices
+
+    def vcpu_device_define_by_params(self, params, parent_bus=None):
+        """
+        Create vcpu device by params.
+        :param params: vpcu device params.
+        :param parent_bus: Parent bus.
+        """
+        vcpu_driver = params['driver']
+        if not self.has_device(vcpu_driver):
+            raise exceptions.TestSkipError("Unsupported cpu driver: %s"
+                                           % vcpu_driver)
+        if parent_bus is None:
+            parent_bus = {'aobject': vcpu_driver}
+        vcpu_dev = qdevices.QCPUDevice(vcpu_type=vcpu_driver, params=params,
+                                       parent_bus=parent_bus)
+        return vcpu_dev
