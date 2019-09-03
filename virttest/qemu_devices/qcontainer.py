@@ -663,24 +663,24 @@ class DevContainer(object):
                             break
             if bus is not None:
                 bus.prepare_hotplug(device)
-        out = device.hotplug(monitor)
-        ver_out = device.verify_hotplug(out, monitor)
-
-        if ver_out is False:
-            self.set_clean()
-            return out, ver_out
 
         try:
+            # Insert the device first to assign slot
             qdev_out = self.insert(device)
             if not isinstance(qdev_out, list) or len(qdev_out) != 1:
                 raise NotImplementedError("This device %s require to hotplug "
-                                          "multiple devices %s, which is not "
-                                          "supported." % (device, out))
-            if ver_out is True:
-                self.set_clean()
+                                          "multiple devices, which is not "
+                                          "supported." % device)
         except DeviceError as exc:
             raise DeviceHotplugError(device, 'According to qemu_device: %s'
-                                     % exc, self, ver_out)
+                                     % exc, self)
+        else:
+            out = device.hotplug(monitor)
+            ver_out = device.verify_hotplug(out, monitor)
+            if ver_out is False:
+                self.remove(device)
+            self.set_clean()
+
         return out, ver_out
 
     def simple_unplug(self, device, monitor, timeout=30):
