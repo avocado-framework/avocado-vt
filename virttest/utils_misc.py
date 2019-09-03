@@ -2229,6 +2229,16 @@ def get_qemu_cpu_models(qemu_binary):
     return extract_qemu_cpu_models(results_stdout_52lts(result))
 
 
+def get_qemu_cpu_driver(params):
+    """Get listing of CPU device driver supported by QEMU
+    Filter list of CPU device driver by parsing the output of <qemu> -device '?'
+    """
+    qemu_binary = get_qemu_binary(params)
+    cmd = qemu_binary + " -device '?'"
+    result = process.run(cmd, verbose=False)
+    return re.findall(r'name "(\S+-cpu\S*)"', results_stdout_52lts(result), re.M)
+
+
 def _get_backend_dir(params):
     """
     Get the appropriate backend directory. Example: backends/qemu.

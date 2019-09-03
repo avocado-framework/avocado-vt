@@ -991,11 +991,19 @@ def preprocess(test, params, env):
             vm.destroy()
             del env[key]
 
-    if (params.get("auto_cpu_model") == "yes" and
-            vm_type == "qemu"):
+    if params.get("auto_cpu_model") == "yes" and vm_type == "qemu":
         if not env.get("cpu_model"):
             env["cpu_model"] = utils_misc.get_qemu_best_cpu_model(params)
+            if params["machine_type"].startswith('pseries'):
+                env["cpu_model"] = 'host'
+
         params["cpu_model"] = env.get("cpu_model")
+
+        if not params.get("cpu_driver_type"):
+            cpu_model = params["cpu_model"]
+            for cpu_driver in utils_misc.get_qemu_cpu_driver(params):
+                if cpu_driver.startswith(cpu_model):
+                    params['cpu_driver_type'] = cpu_driver.replace('%s-' % cpu_model, '')
 
     version_info = {}
     # Get the KVM kernel module version
