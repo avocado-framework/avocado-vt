@@ -1940,6 +1940,53 @@ class VM(virt_vm.BaseVM):
             cmd = add_cpu_flags(devices, cpu_model, flags, vendor, family)
             devices.insert(StrDev('cpu', cmdline=cmd))
 
+        # Add vcpu devices
+        if 'ppc64' in arch.ARCH and params['machine_type'].startswith('pseries'):
+            vcpu_driver_model = cpu_model if cpu_model else 'host'
+            vcpu_property = [{'core-id': c * vcpu_threads} for c in
+                             range(vcpu_sockets * vcpu_cores)]
+            fixed_vcpu = smp // vcpu_threads
+            vcpus_count = vcpu_threads
+        else:
+            # FIXME: Need to confirm that other architectures have the same cpu
+            #  driver naming as x86.
+            vcpu_driver_model = cpu_model if cpu_model else 'qemu64'
+            if vm.check_capability(Flags.SMP_DIES):
+                vcpu_property = [{'socket-id': s, 'die-id': d, 'core-id': c,
+                                 'thread-id': t} for s in range(vcpu_sockets)
+                                 for d in range(vcpu_dies) for c in
+                                 range(vcpu_cores) for t in range(vcpu_threads)]
+            else:
+                vcpu_property = [{'socket-id': s, 'core-id': c, 'thread-id': t}
+                                 for s in range(vcpu_sockets) for c in
+                                 range(vcpu_cores) for t in range(vcpu_threads)]
+            fixed_vcpu = smp
+            vcpus_count = 1
+
+        vcpu_driver_type = params['cpu_driver_type']
+        vcpu_driver = vcpu_driver_model + '-' + vcpu_driver_type
+        vcpu_topology = []
+        for vcpu_index in range(len(vcpu_property)):
+            vcpu_id = 'vcpu' + str(vcpu_index)
+            if vcpu_index < fixed_vcpu:
+                vcpu_enabled = True
+            else:
+                vcpu_dev_params = params.object_params(vcpu_id)
+                vcpu_enabled = vcpu_dev_params.get('vcpu_enabled', 'no') == 'yes'
+            vcpu_params = {'driver': vcpu_driver, 'id': vcpu_id, 'enabled':
+                           vcpu_enabled, 'property': vcpu_property[vcpu_index],
+                           'count': vcpus_count}
+            vcpu_topology.append(vcpu_params)
+
+        vcpu_bus = qdevices.QCPUBus(vcpu_driver_model, vcpu_driver_type,
+                                    len(vcpu_property), fixed_vcpu,
+                                    vcpu_property, aobject=vcpu_driver)
+        devices.insert(StrDev(vcpu_driver, child_bus=vcpu_bus))
+        for vcpu_params in vcpu_topology[fixed_vcpu:]:
+            vcpu_dev = devices.vcpu_device_define_by_params(vcpu_params,
+                                                            {'type': vcpu_driver_type})
+            devices.insert(vcpu_dev)
+
         # Add cdroms
         for cdrom in params.objects("cdroms"):
             image_params = params.object_params(cdrom)
@@ -3352,6 +3399,24 @@ class VM(virt_vm.BaseVM):
         """
         return self.spice_options.get(spice_var, None)
 
+    def get_vcpu_device(self):
+        """
+        Returns list of hotpluggable and hotunpluggable vcpu devices.
+        :return: [hotpluggable vcpu], [hotunpluggable vcpu]
+        :rtype: tuple of list
+        """
+        hotpluggable_vcpu = []
+        hotunpluggable_vcpu = []
+        bus_type = self.params['cpu_driver_type']
+        vcpu_bus = self.devices.get_buses({'type': bus_type})[0]
+        for vcpu_dev in vcpu_bus:
+            if hasattr(vcpu_dev, 'enabled'):
+                vcpu_enabled = vcpu_dev.enabled
+                (hotunpluggable_vcpu.append(vcpu_dev.get_qid()) if vcpu_enabled
+                 else hotpluggable_vcpu.append(vcpu_dev.get_qid()))
+
+        return hotpluggable_vcpu, hotunpluggable_vcpu
+
     @error_context.context_aware
     def hotplug_vcpu(self, cpu_id=None, plug_command="", unplug=""):
         """
@@ -3404,6 +3469,58 @@ class VM(virt_vm.BaseVM):
             return(True, plug_cpu_id)
         else:
             return(False, cmd_output)
+
+    @error_context.context_aware
+    def hotplug_vcpu_device(self, cpu_id=None):
+        """
+        Hotplug a vcpu device, if not assign the cpu_id, will use the first
+        unused.
+        :param cpu_id: the cpu id you want hotplug.
+        """
+        if not cpu_id:
+            hotpluggable_vcpus = self.get_vcpu_device_placement()[0]
+            cpu_id = hotpluggable_vcpus[0]
+
+        vcpu_device = self.devices.get_by_qid(cpu_id)[0]
+        if vcpu_device.enabled:
+            raise self.devices.DeviceHotplugError('%s is online' % vcpu_device)
+        expected_vcpu_threads = len(self.get_vcpu_pids()) + vcpu_device.count
+        out = vcpu_device.hotplug(self.monitor)
+        ver_out = vcpu_device.verify_hotplug(out, self.monitor)
+        if ver_out is False:
+            raise exceptions.TestError('Hotplug %s failed: %s' % (vcpu_device, out))
+        actual_vcpu_threads = len(self.get_vcpu_pids())
+        if expected_vcpu_threads != actual_vcpu_threads:
+            raise exceptions.TestError('Number of cpu is inconsistent with '
+                                       'expectations: Expected(%d):Actual(%d)'
+                                       % (expected_vcpu_threads, actual_vcpu_threads))
+        self.params['vcpu_enabled_%s' % vcpu_device.get_qid()] = 'yes'
+
+    @error_context.context_aware
+    def hotunplug_vcpu_device(self, cpu_id=None):
+        """
+        Hotunplug a vcpu device, if not assign the cpu_id, will use the last
+        used.
+        :param cpu_id: the cpu_id you want hotunplug.
+        """
+        if not cpu_id:
+            hotunpluggable_vcpus = self.get_vcpu_device_placement()[1]
+            cpu_id = hotunpluggable_vcpus[-1]
+
+        vcpu_device = self.devices.get_by_qid(cpu_id)[0]
+        if not vcpu_device.enabled:
+            raise self.devices.DeviceUnplugError('%s is offline' % vcpu_device)
+        expected_vcpu_threads = len(self.get_vcpu_pids()) - vcpu_device.count
+        out = vcpu_device.hotunplug(self.monitor)
+        ver_out = vcpu_device.verify_unplug(out, self.monitor)
+        if ver_out is False:
+            raise exceptions.TestError('Hotunplug %s failed: %s' % (vcpu_device, out))
+        actual_vcpu_threads = len(self.get_vcpu_pids())
+        if expected_vcpu_threads != actual_vcpu_threads:
+            raise exceptions.TestError('Number of cpu is inconsistent with '
+                                       'expectations: Expected(%d):Actual(%d)'
+                                       % (expected_vcpu_threads, actual_vcpu_threads))
+        self.params['vcpu_enabled_%s' % vcpu_device.get_qid()] = 'no'
 
     @error_context.context_aware
     def hotplug_nic(self, **params):
