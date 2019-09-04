@@ -554,13 +554,21 @@ class LinuxVMCheck(VMCheck):
             logging.error("Fail to find virtio driver")
         return False
 
-    def is_disk_virtio(self, disk="/dev/vda"):
+    def is_disk_virtio(self):
         """
-        Check whether disk is virtio.
+        Check whether disk is virtio after convertion.
+
+        Note: If kernel supports virtio_blk, v2v will always convert disks
+        to virtio_blk in copying mode. That means all disk have /dev/vdx
+        path name.
         """
-        cmd = "fdisk -l %s" % disk
+        cmd = "fdisk -l"
+        virtio_disks = r'/dev/vd[a-z]+[0-9]*'
+        non_virtio_disks = r'/dev/[hs]d[a-z]+[0-9]*'
         output = self.run_cmd(cmd)[1]
-        if re.search(disk, output):
+        if re.search(non_virtio_disks, output):
+            return False
+        if re.search(virtio_disks, output):
             return True
         return False
 
@@ -820,6 +828,25 @@ class WindowsVMCheck(VMCheck):
         """
         cmd = "DEL C:\rss.reg.bak"
         return self.run_cmd(cmd)[0]
+
+    def is_uefi_guest(self):
+        """
+        Check whether windows guest is uefi guest
+
+        More info:
+        https://www.tenforums.com/tutorials/85195-check-if-windows-10-using-uefi-legacy-bios.html
+        """
+        search_str = "Detected boot environment"
+        target_file = "c:\Windows\Panther\setupact.log"
+        cmd = 'findstr /c:"%s" %s' % (search_str, target_file)
+        status, output = self.run_cmd(cmd)
+        if 'BIOS' in output:
+            return False
+
+        if 'EFI' in output:
+            return True
+
+        return False
 
 
 def v2v_cmd(params):
