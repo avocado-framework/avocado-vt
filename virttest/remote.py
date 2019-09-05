@@ -1241,16 +1241,15 @@ class RemoteFile(object):
         """
         Remove the lines in remote file which matchs a pattern
         in pattern_list.
+
+        :param pattern_list: pattern list to be matched
         """
         lines = self._read_local()
-        for pattern in pattern_list:
-            for index in range(len(lines)):
-                line = lines[index]
-                if re.match(pattern, line):
+        for line in lines:
+            for pattern in pattern_list:
+                if re.match(pattern, line.rstrip('\n')):
                     lines.remove(line)
-                    # Check this line is the last one or not.
-                    if (not line.endswith('\n') and (index > 0)):
-                        lines[index - 1] = lines[index - 1].rstrip("\n")
+                    break
         self._write_local(lines)
         self._push_file()
 
