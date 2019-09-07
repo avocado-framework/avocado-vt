@@ -562,17 +562,19 @@ class VMXMLBase(base.LibvirtXMLBase):
         for controller in del_controllers:
             self.xmltreefile.remove(controller)
 
-    def get_controllers(self, controller_type=None):
+    def get_controllers(self, controller_type=None, model=None):
         """
-        Get controllers according controller type
+        Get controllers according controller type and/or model type
 
         :param controller_type: type of controllers need to get
+        :param model: model of controllers need to get
         :return: controller list
         """
         all_controllers = self.xmltreefile.findall("devices/controller")
         type_controllers = []
         for controller in all_controllers:
-            if controller.get("type") != controller_type:
+            if ((controller_type is not None and controller.get("type") != controller_type) or
+                    (model is not None and model != controller.get("model"))):
                 continue
             type_controllers.append(controller)
         return type_controllers

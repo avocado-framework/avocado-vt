@@ -105,7 +105,6 @@ class VirtTest(test.Test):
 
         self.iteration = 0
         self.resultsdir = None
-        self.file_handler = None
         self.background_errors = error_event.error_events_bus
         # clear existing error events
         self.background_errors.clear()
@@ -193,16 +192,6 @@ class VirtTest(test.Test):
         if state["params"] == self.__params_vt:
             state["params"] = self.avocado_params
         return state
-
-    def _start_logging(self):
-        super(VirtTest, self)._start_logging()
-        root_logger = logging.getLogger()
-        root_logger.addHandler(self.file_handler)
-
-    def _stop_logging(self):
-        super(VirtTest, self)._stop_logging()
-        root_logger = logging.getLogger()
-        root_logger.removeHandler(self.file_handler)
 
     def write_test_keyval(self, d):
         self.whiteboard = str(d)
