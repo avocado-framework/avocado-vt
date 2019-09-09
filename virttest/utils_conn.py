@@ -14,6 +14,7 @@ from avocado.utils import process
 from virttest import propcan, remote, utils_libvirtd
 from virttest import data_dir
 from virttest import utils_package
+from virttest import libvirt_version
 from virttest.compat_52lts import results_stderr_52lts
 
 
@@ -728,7 +729,12 @@ class TCPConnection(ConnectionBase):
                                             server_user, server_pwd,
                                             r"[\#\$]\s*$")
             libvirtd_service = utils_libvirtd.Libvirtd(session=session)
-            libvirtd_service.restart()
+            if libvirt_version.version_compare(5, 6, 0, session):
+                libvirtd_service.stop()
+                session.cmd("systemctl stop libvirtd-tcp.socket")
+                libvirtd_service.start()
+            else:
+                libvirtd_service.restart()
         except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
 
@@ -793,7 +799,14 @@ class TCPConnection(ConnectionBase):
             remote_runner = remote.RemoteRunner(session=session)
             remote_runner.run('iptables -F', ignore_status=True)
             libvirtd_service = utils_libvirtd.Libvirtd(session=session)
-            libvirtd_service.restart()
+            # From libvirt 5.6, libvirtd is using systemd socket activation
+            # by default
+            if libvirt_version.version_compare(5, 6, 0, session):
+                libvirtd_service.stop()
+                session.cmd("systemctl restart libvirtd-tcp.socket")
+                libvirtd_service.start()
+            else:
+                libvirtd_service.restart()
         except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
 
@@ -1003,7 +1016,12 @@ class TLSConnection(ConnectionBase):
                                             server_user, server_pwd,
                                             r"[\#\$]\s*$")
             libvirtd_service = utils_libvirtd.Libvirtd(session=session)
-            libvirtd_service.restart()
+            if libvirt_version.version_compare(5, 6, 0, session):
+                libvirtd_service.stop()
+                session.cmd("systemctl stop libvirtd-tls.socket")
+                libvirtd_service.start()
+            else:
+                libvirtd_service.restart()
         except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
         logging.debug("TLS connection recover successfully.")
@@ -1262,7 +1280,14 @@ class TLSConnection(ConnectionBase):
         if restart_libvirtd == "yes":
             if on_local:
                 libvirtd_service = utils_libvirtd.Libvirtd()
-                libvirtd_service.restart()
+                # From libvirt 5.6, libvirtd is using systemd socket activation
+                # by default
+                if libvirt_version.version_compare(5, 6, 0):
+                    libvirtd_service.stop()
+                    process.run("systemctl restart libvirtd-tls.socket")
+                    libvirtd_service.start()
+                else:
+                    libvirtd_service.restart()
             else:
                 try:
                     session = remote.wait_for_login('ssh', server_ip, '22',
@@ -1271,7 +1296,12 @@ class TLSConnection(ConnectionBase):
                     remote_runner = remote.RemoteRunner(session=session)
                     remote_runner.run('iptables -F', ignore_status=True)
                     libvirtd_service = utils_libvirtd.Libvirtd(session=session)
-                    libvirtd_service.restart()
+                    if libvirt_version.version_compare(5, 6, 0, session):
+                        libvirtd_service.stop()
+                        session.cmd("systemctl restart libvirtd-tls.socket")
+                        libvirtd_service.start()
+                    else:
+                        libvirtd_service.restart()
                 except (remote.LoginError, aexpect.ShellError) as detail:
                     raise ConnServerRestartError(detail)
 
