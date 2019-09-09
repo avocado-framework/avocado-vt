@@ -88,6 +88,7 @@ if __name__ == "__main__":
         # as older avocado versions were not limiting it.
         # Note: Avocado 70+ doesn't require stevedore and older Avocado
         # can use whatever version of stevedore on py3
+        requirements.append("urllib3<=1.24.3")
         requirements.append("stevedore>=1.8.0,<=1.10.0")
         requirements.append("avocado-framework>=68.0,<70.0")
 
