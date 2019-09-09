@@ -26,6 +26,7 @@ from avocado.core import exceptions
 from virttest import data_dir
 from virttest import kernel_interface
 from virttest import error_context
+from virttest import cpu
 from virttest import utils_misc
 from virttest import versionable_class
 from virttest import openvswitch
@@ -440,7 +441,7 @@ class HugePageConfig(object):
         Need check the cpu flag and kernel CML.
         """
         error_context.context("Check whether the host support hugepage.")
-        host_cpu_flags = utils_misc.get_cpu_flags()
+        host_cpu_flags = cpu.get_cpu_flags()
         host_ker_cml = utils_misc.get_ker_cmd()
         if self.hugepage_cpu_flag not in host_cpu_flags:
             raise exceptions.TestSkipError("Your host does not support hugepage,"

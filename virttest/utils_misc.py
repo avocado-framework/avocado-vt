@@ -39,8 +39,6 @@ try:
 except NameError:
     basestring = (str, bytes)
 
-import xml.etree.ElementTree as ET
-
 from aexpect.utils.genio import _open_log_files
 
 from avocado.core import status
@@ -73,7 +71,6 @@ from virttest import cartesian_config
 from virttest import utils_selinux
 from virttest import utils_disk
 from virttest import logging_manager
-from virttest import libvirt_version
 from virttest.staging import utils_koji
 from virttest.staging import service
 from virttest.xml_utils import XMLTreeFile
@@ -84,10 +81,6 @@ from six.moves import xrange
 
 
 ARCH = platform.machine()
-
-
-class UnsupportedCPU(exceptions.TestError):
-    pass
 
 
 class InterruptedThread(threading.Thread):
@@ -1394,38 +1387,6 @@ def convert_ipv4_to_ipv6(ipv4):
     return converted_ip
 
 
-def get_thread_cpu(thread):
-    """
-    Get the light weight process(thread) used cpus.
-
-    :param thread: thread checked
-    :type thread: string
-    :return: A list include all cpus the thread used
-    :rtype: builtin.list
-    """
-    cmd = "ps -o cpuid,lwp -eL | grep -w %s$" % thread
-    cpu_thread = decode_to_text(process.system_output(cmd, shell=True))
-    if not cpu_thread:
-        return []
-    return list(set([_.strip().split()[0] for _ in cpu_thread.splitlines()]))
-
-
-def get_pid_cpu(pid):
-    """
-    Get the process used cpus.
-
-    :param pid: process id
-    :type thread: string
-    :return: A list include all cpus the process used
-    :rtype: builtin.list
-    """
-    cmd = "ps -o cpuid -L -p %s" % pid
-    cpu_pid = decode_to_text(process.system_output(cmd))
-    if not cpu_pid:
-        return []
-    return list(set([_.strip() for _ in cpu_pid.splitlines()]))
-
-
 def compare_uuid(uuid1, uuid2):
     """
     compare UUID with uniform format
@@ -1440,7 +1401,41 @@ def compare_uuid(uuid1, uuid2):
     return cmp(uuid1.replace('-', '').lower(), uuid2.replace('-', '').lower())
 
 
-# Utility functions for numa node pinning
+def add_identities_into_ssh_agent():
+    """
+    Adds RSA or DSA identities to the authentication agent
+    """
+    ssh_env = subprocess.check_output(["ssh-agent"]).decode("utf-8")
+    logging.info("The current SSH ENV: %s", ssh_env)
+
+    re_auth_sock = re.compile('SSH_AUTH_SOCK=(?P<SSH_AUTH_SOCK>[^;]*);')
+    ssh_auth_sock = re.search(re_auth_sock, ssh_env).group("SSH_AUTH_SOCK")
+    logging.debug("The SSH_AUTH_SOCK: %s", ssh_auth_sock)
+
+    re_agent_pid = re.compile('SSH_AGENT_PID=(?P<SSH_AGENT_PID>[^;]*);')
+    ssh_agent_pid = re.search(re_agent_pid, ssh_env).group("SSH_AGENT_PID")
+    logging.debug("SSH_AGENT_PID: %s", ssh_agent_pid)
+
+    logging.debug("Update SSH envrionment variables")
+    os.environ['SSH_AUTH_SOCK'] = ssh_auth_sock
+    os.system("set SSH_AUTH_SOCK " + ssh_auth_sock)
+    os.environ['SSH_AGENT_PID'] = ssh_agent_pid
+    process.run("set SSH_AGENT_PID " + ssh_agent_pid, shell=True)
+
+    logging.info("Adds RSA or DSA identities to the authentication agent")
+    process.run("ssh-add")
+
+
+def make_dirs(dir_name, session=None):
+    """
+    wrapper method to create directory in local/remote host/VM
+
+    :param dir_name: Directory name to be created
+    :param session: ShellSession object of VM/remote host
+    """
+    if session:
+        return session.cmd_status("mkdir -p %s" % dir_name) == 0
+    return os.makedirs(dir_name)
 
 
 def get_node_cpus(i=0):
@@ -1483,63 +1478,6 @@ def cpu_str_to_list(origin_str):
                     break
         cpu_list.sort()
         return cpu_list
-
-
-def get_cpu_info(session=None):
-    """
-    Return information about the CPU architecture
-
-    :param session: session Object
-    :return: A dirt of cpu information
-    """
-    cpu_info = {}
-    cmd = "lscpu"
-    if session is None:
-        output = decode_to_text(process.system_output(cmd, ignore_status=True)).splitlines()
-    else:
-        try:
-            output = session.cmd_output(cmd).splitlines()
-        finally:
-            session.close()
-    cpu_info = dict(map(lambda x: [i.strip() for i in x.split(":")], output))
-    return cpu_info
-
-
-def add_identities_into_ssh_agent():
-    """
-    Adds RSA or DSA identities to the authentication agent
-    """
-    ssh_env = subprocess.check_output(["ssh-agent"]).decode("utf-8")
-    logging.info("The current SSH ENV: %s", ssh_env)
-
-    re_auth_sock = re.compile('SSH_AUTH_SOCK=(?P<SSH_AUTH_SOCK>[^;]*);')
-    ssh_auth_sock = re.search(re_auth_sock, ssh_env).group("SSH_AUTH_SOCK")
-    logging.debug("The SSH_AUTH_SOCK: %s", ssh_auth_sock)
-
-    re_agent_pid = re.compile('SSH_AGENT_PID=(?P<SSH_AGENT_PID>[^;]*);')
-    ssh_agent_pid = re.search(re_agent_pid, ssh_env).group("SSH_AGENT_PID")
-    logging.debug("SSH_AGENT_PID: %s", ssh_agent_pid)
-
-    logging.debug("Update SSH envrionment variables")
-    os.environ['SSH_AUTH_SOCK'] = ssh_auth_sock
-    os.system("set SSH_AUTH_SOCK " + ssh_auth_sock)
-    os.environ['SSH_AGENT_PID'] = ssh_agent_pid
-    process.run("set SSH_AGENT_PID " + ssh_agent_pid, shell=True)
-
-    logging.info("Adds RSA or DSA identities to the authentication agent")
-    process.run("ssh-add")
-
-
-def make_dirs(dir_name, session=None):
-    """
-    wrapper method to create directory in local/remote host/VM
-
-    :param dir_name: Directory name to be created
-    :param session: ShellSession object of VM/remote host
-    """
-    if session:
-        return session.cmd_status("mkdir -p %s" % dir_name) == 0
-    return os.makedirs(dir_name)
 
 
 class NumaInfo(object):
@@ -1887,179 +1825,6 @@ def get_dev_major_minor(dev):
                                    "device %s:\n%s" % (dev, details))
 
 
-class Flag(str):
-
-    """
-    Class for easy merge cpuflags.
-    """
-    aliases = {}
-
-    def __new__(cls, flag):
-        if flag in Flag.aliases:
-            flag = Flag.aliases[flag]
-        return str.__new__(cls, flag)
-
-    def __eq__(self, other):
-        s = set(self.split("|"))
-        o = set(other.split("|"))
-        if s & o:
-            return True
-        else:
-            return False
-
-    def __str__(self):
-        return self.split("|")[0]
-
-    def __repr__(self):
-        return self.split("|")[0]
-
-    def __hash__(self, *args, **kwargs):
-        return 0
-
-
-kvm_map_flags_to_test = {
-    Flag('avx'): set(['avx']),
-    Flag('sse3|pni'): set(['sse3']),
-    Flag('ssse3'): set(['ssse3']),
-    Flag('sse4.1|sse4_1|sse4.2|sse4_2'): set(['sse4']),
-    Flag('aes'): set(['aes', 'pclmul']),
-    Flag('pclmuldq'): set(['pclmul']),
-    Flag('pclmulqdq'): set(['pclmul']),
-    Flag('rdrand'): set(['rdrand']),
-    Flag('sse4a'): set(['sse4a']),
-    Flag('fma4'): set(['fma4']),
-    Flag('xop'): set(['xop']),
-}
-
-
-kvm_map_flags_aliases = {
-    'sse4_1': 'sse4.1',
-    'sse4_2': 'sse4.2',
-    'pclmuldq': 'pclmulqdq',
-    'sse3': 'pni',
-    'ffxsr': 'fxsr_opt',
-    'xd': 'nx',
-    'i64': 'lm',
-    'psn': 'pn',
-    'clfsh': 'clflush',
-    'dts': 'ds',
-    'htt': 'ht',
-    'CMPXCHG8B': 'cx8',
-    'Page1GB': 'pdpe1gb',
-    'LahfSahf': 'lahf_lm',
-    'ExtApicSpace': 'extapic',
-    'AltMovCr8': 'cr8_legacy',
-    'cr8legacy': 'cr8_legacy'
-}
-
-
-def kvm_flags_to_stresstests(flags):
-    """
-    Covert [cpu flags] to [tests]
-
-    :param cpuflags: list of cpuflags
-    :return: Return tests like string.
-    """
-    tests = set([])
-    for f in flags:
-        tests |= kvm_map_flags_to_test[f]
-    param = ""
-    for f in tests:
-        param += "," + f
-    return param
-
-
-def set_cpu_status(cpu_num, enable=True):
-    """
-    Set assigned cpu to be enable or disable
-    """
-    if cpu_num == 0:
-        raise exceptions.TestSkipError("The 0 cpu cannot be set!")
-    cpu_status = get_cpu_status(cpu_num)
-    if cpu_status == -1:
-        return False
-    cpu_file = "/sys/devices/system/cpu/cpu%s/online" % cpu_num
-    if enable:
-        cpu_enable = 1
-    else:
-        cpu_enable = 0
-    if cpu_status == cpu_enable:
-        logging.debug("No need to set, %s has already been '%s'"
-                      % (cpu_file, cpu_enable))
-        return True
-    try:
-        cpu_file_w = open(cpu_file, 'w')
-        cpu_file_w.write("%s" % cpu_enable)
-        cpu_file_w.close()
-    except IOError:
-        return False
-    return True
-
-
-def get_cpu_status(cpu_num):
-    """
-    Get cpu status to check it's enable or disable
-    """
-    if cpu_num == 0:
-        logging.debug("The 0 cpu always be enable.")
-        return 1
-    cpu_file = "/sys/devices/system/cpu/cpu%s/online" % cpu_num
-    if not os.path.exists(cpu_file):
-        logging.debug("'%s' cannot be found!" % cpu_file)
-        return -1
-    cpu_file_r = open(cpu_file, 'r')
-    cpu_status = int(cpu_file_r.read().strip())
-    cpu_file_r.close()
-    return cpu_status
-
-
-def get_cpu_flags(cpu_info=""):
-    """
-    Returns a list of the CPU flags
-    """
-    cpu_flags_re = "flags\s+:\s+([\w\s]+)\n"
-    if not cpu_info:
-        fd = open("/proc/cpuinfo")
-        cpu_info = fd.read()
-        fd.close()
-    cpu_flag_lists = re.findall(cpu_flags_re, cpu_info)
-    if not cpu_flag_lists:
-        return []
-    cpu_flags = cpu_flag_lists[0]
-    return re.split("\s+", cpu_flags.strip())
-
-
-def get_cpu_processors(verbose=True):
-    """
-    Returns a list of the processors
-    """
-    cmd = "grep processor /proc/cpuinfo"
-    output = decode_to_text(process.system_output(cmd, verbose=verbose, ignore_status=True))
-    processor_list = re.findall('processor\s+: (\d+)', output)
-    if verbose:
-        logging.debug("CPU processor: %s", processor_list)
-    return processor_list
-
-
-def get_cpu_vendor(cpu_info="", verbose=True):
-    """
-    Returns the name of the CPU vendor
-    """
-    vendor_re = "vendor_id\s+:\s+(\w+)"
-    if not cpu_info:
-        fd = open("/proc/cpuinfo")
-        cpu_info = fd.read()
-        fd.close()
-    vendor = re.findall(vendor_re, cpu_info)
-    if not vendor:
-        vendor = 'unknown'
-    else:
-        vendor = vendor[0]
-    if verbose:
-        logging.debug("Detected CPU vendor as '%s'", vendor)
-    return vendor
-
-
 def get_support_machine_type(qemu_binary="/usr/libexec/qemu-kvm", remove_alias=False):
     """
     Get all of the machine type the host support.
@@ -2084,149 +1849,6 @@ def get_support_machine_type(qemu_binary="/usr/libexec/qemu-kvm", remove_alias=F
         c.append(machine_list[1])
         v.append(machine_list[2])
     return (s, c, v)
-
-
-def get_recognized_cpuid_flags(qemu_binary="/usr/libexec/qemu-kvm"):
-    """
-    Get qemu recongnized CPUID flags
-
-    :param qemu_binary: qemu-kvm binary file path
-    :return: flags list
-    """
-    out = decode_to_text(process.system_output("%s -cpu ?" % qemu_binary),
-                         errors='replace')
-    match = re.search("Recognized CPUID flags:(.*)", out, re.M | re.S)
-    try:
-        return list(filter(None, re.split('\s', match.group(1))))
-    except AttributeError:
-        pass
-    return []
-
-
-def get_host_cpu_models():
-    """
-    Get cpu model from host cpuinfo
-    """
-    def _cpu_flags_sort(cpu_flags):
-        """
-        Update the cpu flags get from host to a certain order and format
-        """
-        flag_list = sorted(re.split("\s+", cpu_flags.strip()))
-        cpu_flags = " ".join(flag_list)
-        return cpu_flags
-
-    def _make_up_pattern(flags):
-        """
-        Update the check pattern to a certain order and format
-        """
-        pattern_list = sorted(re.split(",", flags.strip()))
-        pattern = r"(\b%s\b)" % pattern_list[0]
-        for i in pattern_list[1:]:
-            pattern += r".+(\b%s\b)" % i
-        return pattern
-
-    if ARCH in ('ppc64', 'ppc64le'):
-        return []     # remove -cpu and leave it on qemu to decide
-
-    cpu_types = {"AuthenticAMD": ["EPYC", "Opteron_G5", "Opteron_G4",
-                                  "Opteron_G3", "Opteron_G2", "Opteron_G1"],
-                 "GenuineIntel": ["KnightsMill", "Icelake-Server",
-                                  "Icelake-Client", "Cascadelake-Server",
-                                  "Skylake-Server", "Skylake-Client",
-                                  "Broadwell", "Broadwell-noTSX",
-                                  "Haswell", "Haswell-noTSX", "IvyBridge",
-                                  "SandyBridge", "Westmere", "Nehalem",
-                                  "Penryn", "Conroe"]}
-    cpu_type_re = {"EPYC": "avx2,adx,bmi2,sha_ni",
-                   "Opteron_G5": "f16c,fma4,xop,tbm",
-                   "Opteron_G4": ("fma4,xop,avx,xsave,aes,sse4.2|sse4_2,"
-                                  "sse4.1|sse4_1,cx16,ssse3,sse4a"),
-                   "Opteron_G3": "cx16,sse4a",
-                   "Opteron_G2": "cx16",
-                   "Opteron_G1": "",
-                   "KnightsMill": "avx512_4vnniw,avx512pf,avx512er",
-                   "Icelake-Server": "avx512_vnni,la57,clflushopt",
-                   "Icelake-Client": ("avx512_vpopcntdq|avx512-vpopcntdq,"
-                                      "avx512vbmi,avx512vbmi2|avx512_vbmi2,"
-                                      "gfni,vaes,vpclmulqdq,avx512_vnni"),
-                   "Cascadelake-Server": ("avx512f,avx512dq,avx512bw,avx512cd,"
-                                          "avx512vl,clflushopt,avx512_vnni"),
-                   "Skylake-Server": "mpx,avx512f,clwb,xgetbv1,pcid",
-                   "Skylake-Client": "mpx,xgetbv1,pcid",
-                   "Broadwell": "adx,rdseed,3dnowprefetch,hle",
-                   "Broadwell-noTSX": "adx,rdseed,3dnowprefetch",
-                   "Haswell": "fma,avx2,movbe,hle",
-                   "Haswell-noTSX": "fma,avx2,movbe",
-                   "IvyBridge": "f16c,fsgsbase,erms",
-                   "SandyBridge": ("avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,"
-                                   "cx16,ssse3"),
-                   "Westmere": "aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
-                   "Nehalem": "sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
-                   "Penryn": "sse4.1|sse4_1,cx16,ssse3",
-                   "Conroe": "ssse3"}
-
-    fd = open("/proc/cpuinfo")
-    cpu_info = fd.read()
-    fd.close()
-
-    cpu_flags = " ".join(get_cpu_flags(cpu_info))
-    vendor = get_cpu_vendor(cpu_info)
-
-    cpu_model = None
-    cpu_support_model = []
-    if cpu_flags:
-        cpu_flags = _cpu_flags_sort(cpu_flags)
-        for cpu_type in cpu_types.get(vendor):
-            pattern = _make_up_pattern(cpu_type_re.get(cpu_type))
-            if re.findall(pattern, cpu_flags):
-                cpu_model = cpu_type
-                cpu_support_model.append(cpu_model)
-    else:
-        logging.warn("Can not Get cpu flags from cpuinfo")
-
-    return cpu_support_model
-
-
-def extract_qemu_cpu_models(qemu_cpu_help_text):
-    """
-    Get all cpu models from qemu -cpu help text.
-
-    :param qemu_cpu_help_text: text produced by <qemu> -cpu '?'
-    :return: list of cpu models
-    """
-    def check_model_list(pattern):
-        cpu_re = re.compile(pattern)
-        qemu_cpu_model_list = cpu_re.findall(qemu_cpu_help_text)
-        if qemu_cpu_model_list:
-            return qemu_cpu_model_list
-        else:
-            return None
-
-    x86_pattern_list = "x86\s+\[?([a-zA-Z0-9_-]+)\]?.*\n"
-    ppc64_pattern_list = "PowerPC\s+\[?([a-zA-Z0-9_-]+\.?[0-9]?)\]?.*\n"
-    s390_pattern_list = "s390\s+\[?([a-zA-Z0-9_-]+)\]?.*\n"
-
-    for pattern_list in [x86_pattern_list, ppc64_pattern_list, s390_pattern_list]:
-        model_list = check_model_list(pattern_list)
-        if model_list is not None:
-            return model_list
-
-    e_msg = ("CPU models reported by qemu -cpu ? not supported by avocado-vt. "
-             "Please work with us to add support for it")
-    logging.error(e_msg)
-    for line in qemu_cpu_help_text.splitlines():
-        logging.error(line)
-    raise UnsupportedCPU(e_msg)
-
-
-def get_qemu_cpu_models(qemu_binary):
-    """Get listing of CPU models supported by QEMU
-
-    Get list of CPU models by parsing the output of <qemu> -cpu '?'
-    """
-    cmd = qemu_binary + " -cpu '?'"
-    result = process.run(cmd, verbose=False)
-    return extract_qemu_cpu_models(results_stdout_52lts(result))
 
 
 def _get_backend_dir(params):
@@ -2329,31 +1951,6 @@ def get_qemu_io_binary(params):
     return get_binary('qemu-io', params)
 
 
-def get_qemu_best_cpu_model(params):
-    """
-    Try to find out the best CPU model available for qemu.
-
-    This function can't be in qemu_vm, because it is used in env_process,
-    where there's no vm object available yet, and env content is synchronized
-    in multi host testing.
-
-    1) Get host CPU model
-    2) Verify if host CPU model is in the list of supported qemu cpu models
-    3) If so, return host CPU model
-    4) If not, return the default cpu model set in params, if none defined,
-        return 'qemu64'.
-    """
-    host_cpu_models = get_host_cpu_models()
-    qemu_binary = get_qemu_binary(params)
-    qemu_cpu_models = get_qemu_cpu_models(qemu_binary)
-    # Let's try to find a suitable model on the qemu list
-    for host_cpu_model in host_cpu_models:
-        if host_cpu_model in qemu_cpu_models:
-            return host_cpu_model
-    # If no host cpu model can be found on qemu_cpu_models, choose the default
-    return params.get("default_cpu_model", None)
-
-
 def get_qemu_version(params=None):
     """
     Get the qemu-kvm(-rhev) version info.
@@ -2411,35 +2008,6 @@ def compare_qemu_version(major, minor, update, is_rhev=True, params={}):
         int(update)
     if compared_version_value > installed_version_value:
         return False
-    return True
-
-
-def check_if_vm_vcpu_match(vcpu_desire, vm, connect_uri=None, session=None):
-    """
-    This checks whether the VM vCPU quantity matches
-    the value desired.
-
-    :param vcpu_desire: vcpu value to be checked
-    :param vm: VM Object
-    :param connect_uri: libvirt uri of target host
-    :param session: ShellSession object of VM
-
-    :return: Boolean, True if actual vcpu value matches with vcpu_desire
-    """
-    release = vm.get_distro(connect_uri=connect_uri)
-    if release and release in ['fedora', ]:
-        vcpu_actual = vm.get_cpu_count("cpu_chk_all_cmd",
-                                       connect_uri=connect_uri)
-    else:
-        vcpu_actual = vm.get_cpu_count("cpu_chk_cmd",
-                                       connect_uri=connect_uri)
-    if isinstance(vcpu_desire, str) and vcpu_desire.isdigit():
-        vcpu_desire = int(vcpu_desire)
-    if vcpu_desire != vcpu_actual:
-        logging.debug("CPU quantity mismatched !!! guest said it got %s "
-                      "but we assigned %s" % (vcpu_actual, vcpu_desire))
-        return False
-    logging.info("CPU quantity matched: %s" % vcpu_actual)
     return True
 
 
@@ -4083,66 +3651,6 @@ class SELinuxBoolean(object):
         logging.debug("To check remote boolean value: %s", boolean_curr)
         if boolean_curr != self.remote_bool_value:
             raise exceptions.TestFail(results_stderr_52lts(result).strip())
-
-
-def get_model_features(model_name):
-    """
-    libvirt-4.5.0 :/usr/share/libvirt/cpu_map.xml defines all CPU models.
-    libvirt-5.0.0 :/usr/share/libvirt/cpu_map/ defines all CPU models.
-    One CPU model is a set of features.
-    This function is to get features of one specific model.
-
-    :params model_name: CPU model name, valid name is given in cpu_map.xml
-    :return: feature list, like ['apic', 'ss']
-
-    """
-    features = []
-    conf = "/usr/share/libvirt/cpu_map.xml"
-    conf_dir = "/usr/share/libvirt/cpu_map/"
-
-    try:
-        if not libvirt_version.version_compare(5, 0, 0):
-            with open(conf, 'r') as output:
-                root = ET.fromstring(output.read())
-                while True:
-                    # Find model in file /usr/share/libvirt/cpu_map.xml
-                    for model_n in root.findall('arch/model'):
-                        if model_n.get('name') == model_name:
-                            model_node = model_n
-                            for feature in model_n.findall('feature'):
-                                features.append(feature.get('name'))
-                            break
-                    # Handle nested model
-                    if model_node.find('model') is not None:
-                        model_name = model_node.find('model').get('name')
-                        continue
-                    else:
-                        break
-
-        else:
-            # Find model in dir /usr/share/libvirt/cpu_map
-            filelist = os.listdir(conf_dir)
-            for file_name in filelist:
-                if model_name in file_name:
-                    with open(os.path.join(conf_dir, file_name), "r") as output:
-                        model = ET.fromstring(output.read())
-                        for feature in model.findall("model/feature"):
-                            features.append(feature.get('name'))
-                        break
-    except ET.ParseError as error:
-        logging.warn("Configuration file %s has wrong xml format" % conf)
-        raise
-    except AttributeError as elem_attr:
-        logging.warn("No attribute %s in file %s" % (str(elem_attr), conf))
-        raise
-    except Exception:
-        # Other excptions like IOError when open/read configuration file,
-        # capture here
-        logging.warn("Some other exceptions, like configuration file is not "
-                     "found or not file: %s" % conf)
-        raise
-
-    return features
 
 
 class _NullStream(object):

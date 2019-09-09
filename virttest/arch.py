@@ -1,6 +1,6 @@
 import platform
 
-from virttest import utils_misc
+from avocado.utils import cpu
 
 ARCH = platform.machine()
 
@@ -86,8 +86,7 @@ else:
 
 def get_kvm_module_list():
     if ARCH == 'x86_64':
-        arch_convert = {'GenuineIntel': 'intel', 'AuthenticAMD': 'amd'}
-        host_cpu_type = utils_misc.get_cpu_vendor(verbose=False)
-        return ["kvm", "kvm-%s" % arch_convert[host_cpu_type]]
+        host_cpu_type = cpu.get_cpu_vendor_name()
+        return ["kvm", "kvm-%s" % host_cpu_type]
     elif ARCH in ('ppc64', 'ppc64le'):
         return ["kvm"]
