@@ -81,7 +81,7 @@ def pre_post_plugin_type():
 
 if __name__ == "__main__":
     requirements = ["netifaces", "aexpect", "netaddr", "simplejson", "six"]
-    if sys.version_info[:2] >= (2, 7):
+    if sys.version_info[:2] >= (3, 0):
         requirements.append("avocado-framework>=68.0")
     else:
         # Latest py2 supported stevedore is 1.10.0, need to limit it here
