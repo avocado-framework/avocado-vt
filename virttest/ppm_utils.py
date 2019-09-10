@@ -26,6 +26,12 @@ except ImportError:
                     'and Windows guest BSOD detection are disabled. '
                     'In order to enable it, please install python-imaging or '
                     'the equivalent for your distro.')
+# Prevent logs pollution
+if Image is not None:
+    for _logger_name in logging.root.manager.loggerDict:
+        if _logger_name.split('.', 1)[0] == 'PIL':
+            _pil_logger = logging.getLogger(_logger_name)
+            _pil_logger.setLevel(logging.CRITICAL)
 
 
 try:
