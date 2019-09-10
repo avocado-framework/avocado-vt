@@ -26,6 +26,7 @@ import six
 from six.moves import xrange
 
 from virttest import utils_misc
+from virttest import cpu
 from virttest import virt_vm
 from virttest import test_setup
 from virttest import qemu_monitor
@@ -1185,8 +1186,7 @@ class VM(virt_vm.BaseVM):
             # CPU model is 'Penryn' or 'Nehalem'(see detail RHBZ#1252134), and
             # it's harmless for other guest, so add it here.
             if cpu_model in ['Penryn', 'Nehalem']:
-                recognize_flags = utils_misc.get_recognized_cpuid_flags(
-                    qemu_binary)
+                recognize_flags = cpu.get_recognized_cpuid_flags(qemu_binary)
                 if not ('erms' in flags or 'erms' in recognize_flags):
                     cmd += ',+erms'
             if family:
@@ -1854,7 +1854,7 @@ class VM(virt_vm.BaseVM):
         amd_vendor_string = params.get("amd_vendor_string")
         if not amd_vendor_string:
             amd_vendor_string = "AuthenticAMD"
-        if amd_vendor_string == utils_misc.get_cpu_vendor():
+        if amd_vendor_string == cpu.get_cpu_vendor():
             # AMD cpu do not support multi threads.
             if params.get("test_negative_thread", "no") != "yes":
                 vcpu_threads = 1
@@ -1895,7 +1895,7 @@ class VM(virt_vm.BaseVM):
             if numa_mem is not None:
                 numa_total_mem += int(numa_mem)
             if numa_cpus is not None:
-                numa_total_cpus += len(utils_misc.cpu_str_to_list(numa_cpus))
+                numa_total_cpus += len(cpu.cpu_str_to_list(numa_cpus))
             cmdline = add_numa_node(devices, numa_memdev,
                                     numa_mem, numa_cpus, numa_nodeid)
             devices.insert(StrDev('numa', cmdline=cmdline))
@@ -3512,10 +3512,10 @@ class VM(virt_vm.BaseVM):
         :raise: VMAddNetDevError: if operation failed
         """
         nic = self.virtnet[nic_index_or_name]
+        netdev_id = nic.netdev_id
         error_context.context("Activating netdev for %s based on %s" %
                               (self.name, nic))
-        msg_sfx = ("nic %s on vm %s with attach_cmd " %
-                   (self.virtnet[nic_index_or_name], self.name))
+        msg_sfx = ("nic %s on vm %s with attach_cmd " % (nic_index_or_name, self.name))
 
         attach_cmd = "netdev_add"
         if nic.nettype in ['bridge', 'macvtap']:
@@ -3523,8 +3523,7 @@ class VM(virt_vm.BaseVM):
                                   logging.debug)
             if nic.nettype == "bridge":
                 tun_tap_dev = "/dev/net/tun"
-                python_tapfds = utils_net.open_tap(tun_tap_dev,
-                                                   nic.ifname,
+                python_tapfds = utils_net.open_tap(tun_tap_dev, nic.ifname,
                                                    queues=nic.queues,
                                                    vnet_hdr=False)
             elif nic.nettype == "macvtap":
@@ -3559,11 +3558,9 @@ class VM(virt_vm.BaseVM):
                 raise virt_vm.VMAddNetDevError(err_msg)
             if ((int(nic.queues)) > 1 and
                     ',fds=' in self.devices.get_help_text()):
-                attach_cmd += " type=tap,id=%s,fds=%s" % (nic.device_id,
-                                                          nic.tapfds)
+                attach_cmd += " type=tap,id=%s,fds=%s" % (netdev_id, nic.tapfds)
             else:
-                attach_cmd += " type=tap,id=%s,fd=%s" % (nic.device_id,
-                                                         nic.tapfds)
+                attach_cmd += " type=tap,id=%s,fd=%s" % (netdev_id, nic.tapfds)
             error_context.context("Raising interface for " + msg_sfx + attach_cmd,
                                   logging.debug)
             utils_net.bring_up_ifname(nic.ifname)
@@ -3573,7 +3570,7 @@ class VM(virt_vm.BaseVM):
                                       logging.debug)
                 utils_net.add_to_bridge(nic.ifname, nic.netdst)
         elif nic.nettype == 'user':
-            attach_cmd += " user,id=%s" % nic.device_id
+            attach_cmd += " user,id=%s" % netdev_id
         elif nic.nettype == 'none':
             attach_cmd += " none"
         else:  # unsupported nettype
@@ -3581,24 +3578,20 @@ class VM(virt_vm.BaseVM):
                                                 nic.nettype)
         if 'netdev_extra_params' in nic and nic.netdev_extra_params:
             attach_cmd += nic.netdev_extra_params
-        error_context.context(
-            "Hotplugging " +
-            msg_sfx +
-            attach_cmd,
-            logging.debug)
+        error_context.context("Hotplugging " + msg_sfx + attach_cmd, logging.debug)
 
         if self.monitor.protocol == 'qmp':
             self.monitor.send_args_cmd(attach_cmd)
         else:
             self.monitor.send_args_cmd(attach_cmd, convert=False)
 
-        network_info = self.monitor.info("network")
-        if nic.device_id not in network_info:
+        network_info = self.monitor.info("network", debug=False)
+        if not re.search(r'{}:'.format(netdev_id), network_info):
+            logging.error(network_info)
             # Don't leave resources dangling
             self.deactivate_netdev(nic_index_or_name)
             raise virt_vm.VMAddNetDevError(("Failed to add netdev: %s for " %
-                                            nic.device_id) + msg_sfx +
-                                           attach_cmd)
+                                            netdev_id) + msg_sfx + attach_cmd)
 
     @error_context.context_aware
     def activate_nic(self, nic_index_or_name):
@@ -3608,15 +3601,16 @@ class VM(virt_vm.BaseVM):
         :param nic_index_or_name: name or index number for existing NIC
         """
         error_context.context("Retrieving info for NIC %s on VM %s" % (
-            nic_index_or_name, self.name))
+                              nic_index_or_name, self.name))
         nic = self.virtnet[nic_index_or_name]
+        device_id = nic.device_id
         device_add_cmd = "device_add"
         if 'nic_model' in nic:
             device_add_cmd += ' driver=%s' % nic.nic_model
-        device_add_cmd += ",netdev=%s" % nic.device_id
+        device_add_cmd += ",netdev=%s" % nic.netdev_id
         if 'mac' in nic:
             device_add_cmd += ",mac=%s" % nic.mac
-        device_add_cmd += ",id=%s" % nic.nic_name
+        device_add_cmd += ",id=%s" % device_id
         if nic['nic_model'] == 'virtio-net-pci':
             if int(nic['queues']) > 1:
                 device_add_cmd += ",mq=on"
@@ -3626,7 +3620,7 @@ class VM(virt_vm.BaseVM):
         if 'romfile' in nic:
             device_add_cmd += ",romfile=%s" % nic.romfile
         bus = self.devices.get_buses({'aobject': 'pci.0'})[0]
-        nic_dev = qdevices.QDevice(params={'id': nic.nic_name,
+        nic_dev = qdevices.QDevice(params={'id': device_id,
                                            'driver': nic.nic_model},
                                    parent_bus=({'aobject': 'pci.0'},))
         nic_dev.set_aid(nic_dev.get_qid())
@@ -3634,7 +3628,7 @@ class VM(virt_vm.BaseVM):
         qdev_out = self.devices.insert(nic_dev)
         if not isinstance(qdev_out, list) or len(qdev_out) != 1:
             raise virt_vm.VMAddNicError("%s for device %s to plug."
-                                        % (qdev_out, nic.nic_name))
+                                        % (qdev_out, device_id))
         else:
             device_add_cmd += ",bus=%s,addr=%s" % (nic_dev.get_param('bus'),
                                                    nic_dev.get_param('addr'))
@@ -3647,14 +3641,14 @@ class VM(virt_vm.BaseVM):
         else:
             self.monitor.send_args_cmd(device_add_cmd, convert=False)
 
-        error_context.context("Verifying nic %s shows in qtree" % nic.nic_name)
+        error_context.context("Verifying nic %s shows in qtree" % device_id)
         qtree = self.monitor.info("qtree", debug=False)
-        nic_pattern = r'dev: %s, id "%s"' % (nic.nic_model, nic.nic_name)
+        nic_pattern = r'dev: %s, id "%s"' % (nic.nic_model, device_id)
         if not re.search(nic_pattern, qtree):
             logging.error(qtree)
             self.devices.remove(nic_dev)
             raise virt_vm.VMAddNicError("Device %s was not plugged into qdev"
-                                        "tree" % nic.nic_name)
+                                        "tree" % device_id)
 
     @error_context.context_aware
     def deactivate_nic(self, nic_index_or_name, wait=20):
@@ -3665,26 +3659,30 @@ class VM(virt_vm.BaseVM):
         :param wait: Time test will wait for the guest to unplug the device
         """
         nic = self.virtnet[nic_index_or_name]
+        device_id = nic.device_id
         error_context.context("Removing nic %s from VM %s" %
                               (nic_index_or_name, self.name))
-        nic_del_cmd = "device_del id=%s" % (nic.nic_name)
+        nic_del_cmd = "device_del id=%s" % device_id
 
         if self.monitor.protocol == 'qmp':
             self.monitor.send_args_cmd(nic_del_cmd)
         else:
             self.monitor.send_args_cmd(nic_del_cmd, convert=True)
+        nic_dev = self.devices.get_by_qid(device_id)[0]
+        self.devices.remove(nic_dev)
 
         if wait:
             logging.info("waiting for the guest to finish the unplug")
             nic_eigenvalue = r'dev:\s+%s,\s+id\s+"%s"' % (nic.nic_model,
-                                                          nic.nic_name)
-            if not utils_misc.wait_for(lambda: nic_eigenvalue not in
-                                       self.monitor.info("qtree"),
+                                                          device_id)
+            if not utils_misc.wait_for(lambda: not re.search(nic_eigenvalue,
+                                       self.monitor.info("qtree", debug=False)),
                                        wait, 5, 1):
-                raise virt_vm.VMDelNicError("Device is not unplugged by "
+                logging.error(self.monitor.info("qtree", debug=False))
+                raise virt_vm.VMDelNicError("Device %s is not unplugged by "
                                             "guest, please check whether the "
                                             "hotplug module was loaded in "
-                                            "guest")
+                                            "guest" % device_id)
 
     @error_context.context_aware
     def deactivate_netdev(self, nic_index_or_name):
@@ -3695,7 +3693,7 @@ class VM(virt_vm.BaseVM):
         """
         # FIXME: Need to down interface & remove from bridge????
         nic = self.virtnet[nic_index_or_name]
-        netdev_id = nic.device_id
+        netdev_id = nic.netdev_id
         error_context.context("removing netdev id %s from vm %s" %
                               (netdev_id, self.name))
         nic_del_cmd = "netdev_del id=%s" % netdev_id
@@ -3705,9 +3703,9 @@ class VM(virt_vm.BaseVM):
         else:
             self.monitor.send_args_cmd(nic_del_cmd, convert=True)
 
-        network_info = self.monitor.info("network")
-        netdev_eigenvalue = r'netdev\s+=\s+%s' % netdev_id
-        if netdev_eigenvalue in network_info:
+        network_info = self.monitor.info("network", debug=False)
+        if re.search(r'{}:'.format(netdev_id), network_info):
+            logging.error(network_info)
             raise virt_vm.VMDelNetDevError("Fail to remove netdev %s" %
                                            netdev_id)
         if nic.nettype == 'macvtap':
