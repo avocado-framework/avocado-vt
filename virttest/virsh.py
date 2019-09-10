@@ -2575,6 +2575,7 @@ def capabilities(option='', to_file=None, **dargs):
 
     return results_stdout_52lts(cmd_result).strip()
 
+
 def pool_capabilities(option='', to_file=None, **dargs):
     """
     Return output from virsh pool-capabilities command
@@ -2588,6 +2589,7 @@ def pool_capabilities(option='', to_file=None, **dargs):
          result_file.write(cmd_result.stdout.strip())
          result_file.close()
     return results_stdout_52lts(cmd_result).strip()
+
 
 def nodecpustats(option='', **dargs):
     """
