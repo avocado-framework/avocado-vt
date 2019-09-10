@@ -2581,13 +2581,13 @@ def pool_capabilities(option='', to_file=None, **dargs):
     Return output from virsh pool-capabilities command
 
     :param option: additional options (takes none)
-    :param dargs: standardized virsh function API keywords       
+    :param dargs: standardized virsh function API keywords
     """
     cmd_result = command('pool-capabilities %s' % option, **dargs)
     if to_file is not None:
-         result_file = open(to_file, 'w')
-         result_file.write(cmd_result.stdout.strip())
-         result_file.close()
+        result_file = open(to_file, 'w')
+        result_file.write(cmd_result.stdout.strip())
+        result_file.close()
     return results_stdout_52lts(cmd_result).strip()
 
 
