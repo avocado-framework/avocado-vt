@@ -1231,13 +1231,15 @@ class VM(virt_vm.BaseVM):
                 return " -device sga"
 
         def add_watchdog(devices, device_type=None, action="reset"):
-            watchdog_cmd = ""
-            if devices.has_option("watchdog"):
-                if device_type:
-                    watchdog_cmd += " -watchdog %s" % device_type
-                watchdog_cmd += " -watchdog-action %s" % action
-
-            return watchdog_cmd
+            watchdog_devs = []
+            parent_bus = None
+            if device_type and devices.has_device(device_type):
+                if devices.is_pci_device(device_type):
+                    parent_bus = pci_bus
+                watchdog_devs.append(QDevice(device_type, parent_bus=parent_bus))
+            cmd = "-watchdog-action %s" % action
+            watchdog_devs.append(StrDev('watchdog_action', cmdline=cmd))
+            return watchdog_devs
 
         def add_option_rom(devices, opt_rom):
             if not devices.has_option("option-rom"):
@@ -1492,6 +1494,12 @@ class VM(virt_vm.BaseVM):
                     addr = int(params.get("qxl_base_addr", 29))
                     cmdline = add_qxl(qxl_dev_nr, addr)
                     devices.insert(StrDev('qxl', cmdline=cmdline))
+
+        # Add watchdog device
+        if params.get("enable_watchdog", "no") == "yes":
+            device_type = params.get("watchdog_device_type")
+            action = params.get("watchdog_action", "reset")
+            devices.insert(add_watchdog(devices, device_type, action))
 
         # When old scsi fmt is used, new device with lowest pci_addr is created
         devices.hook_fill_scsi_hbas(params)
@@ -2225,12 +2233,6 @@ class VM(virt_vm.BaseVM):
             sc_id = params.get("smartcard_id")
             devices.insert(StrDev('smartcard',
                                   cmdline=add_smartcard(sc_chardev, sc_id)))
-
-        if params.get("enable_watchdog", "no") == "yes":
-            cmd = add_watchdog(devices,
-                               params.get("watchdog_device_type", None),
-                               params.get("watchdog_action", "reset"))
-            devices.insert(StrDev('watchdog', cmdline=cmd))
 
         option_roms = params.get("option_roms")
         if option_roms:
