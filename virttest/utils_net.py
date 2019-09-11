@@ -3386,21 +3386,25 @@ def get_ip_address_by_interface(ifname, ip_ver="ipv4", linklocal=False):
         return None
 
 
-def get_host_ip_address(params, ip_ver="ipv4", linklocal=False):
+def get_host_ip_address(params=None, ip_ver="ipv4", linklocal=False):
     """
     Returns ip address of host specified in host_ip_addr parameter if provided.
     Otherwise ip address on interface specified in netdst parameter is returned.
     In case of "nettype == user" "netdst" parameter is left empty, then the
     default interface of the system is used.
+
     :param params
     :param ip_ver: Host IP version, ipv4 or ipv6.
     :param linklocal: Whether ip address is local or remote
+    :raise: TestFail when failed to fetch IP address
     """
-    host_ip = params.get('host_ip_addr', None)
-    if host_ip:
-        logging.debug("Use IP address at config %s=%s", 'host_ip_addr', host_ip)
-        return host_ip
-    net_dev = params.get("netdst")
+    net_dev = ""
+    if params:
+        host_ip = params.get('host_ip_addr', None)
+        if host_ip:
+            logging.debug("Use IP address at config %s=%s", 'host_ip_addr', host_ip)
+            return host_ip
+        net_dev = params.get("netdst")
     if not net_dev:
         net_dev = get_host_default_gateway(iface_name=True)
     logging.warning("No IP address of host was provided, using IP address"

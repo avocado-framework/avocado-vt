@@ -507,76 +507,6 @@ def setup_or_cleanup_iscsi(is_setup, is_login=True,
     return ""
 
 
-def get_host_ipv4_addr():
-    """
-    Get host ipv4 addr
-    """
-    if_up = utils_net.get_net_if(state="UP")
-    for i in if_up:
-        ipv4_value = utils_net.get_net_if_addrs(i)["ipv4"]
-        logging.debug("ipv4_value is %s", ipv4_value)
-        if ipv4_value != []:
-            ip_addr = ipv4_value[0]
-            break
-    if ip_addr is not None:
-        logging.info("ipv4 address is %s", ip_addr)
-    else:
-        raise exceptions.TestFail("Fail to get ip address")
-    return ip_addr
-
-
-def setup_or_cleanup_gluster(is_setup, vol_name, brick_path="", pool_name="",
-                             file_path="/etc/glusterfs/glusterd.vol", **kwargs):
-    """
-    Set up or clean up glusterfs environment on localhost
-    :param is_setup: Boolean value, true for setup, false for cleanup
-    :param vol_name: gluster created volume name
-    :param brick_path: Dir for create glusterfs
-    :param kwargs: Other parameters that need to set for gluster
-    :return: ip_addr or nothing
-    """
-    try:
-        utils_path.find_command("gluster")
-    except utils_path.CmdNotFoundError:
-        raise exceptions.TestSkipError("Missing command 'gluster'")
-    if not brick_path:
-        tmpdir = data_dir.get_tmp_dir()
-        brick_path = os.path.join(tmpdir, pool_name)
-
-    # Check gluster server apply or not
-    ip_addr = kwargs.get("gluster_server_ip", "")
-    session = None
-    if ip_addr != "":
-        remote_user = kwargs.get("gluster_server_user")
-        remote_pwd = kwargs.get("gluster_server_pwd")
-        remote_identity_file = kwargs.get("gluster_identity_file")
-        session = remote.remote_login("ssh", ip_addr, "22",
-                                      remote_user, remote_pwd, "#",
-                                      identity_file=remote_identity_file)
-    if is_setup:
-        if ip_addr == "":
-            ip_addr = get_host_ipv4_addr()
-            gluster.add_rpc_insecure(file_path)
-            gluster.glusterd_start()
-            logging.debug("finish start gluster")
-            logging.debug("The contents of %s: \n%s", file_path, open(file_path).read())
-
-        gluster.gluster_vol_create(vol_name, ip_addr, brick_path, True, session)
-        gluster.gluster_allow_insecure(vol_name, session)
-        gluster.gluster_nfs_disable(vol_name, session)
-        logging.debug("finish vol create in gluster")
-        if session:
-            session.close()
-        return ip_addr
-    else:
-        gluster.gluster_vol_stop(vol_name, True, session)
-        gluster.gluster_vol_delete(vol_name, session)
-        gluster.gluster_brick_delete(brick_path, session)
-        if session:
-            session.close()
-        return ""
-
-
 def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
     """
     To define a given type pool(Support types: 'dir', 'netfs', logical',
@@ -649,8 +579,8 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         gluster_vol_number = kwargs.get('gluster_vol_number')
 
         # Prepare gluster service and create volume
-        hostip = setup_or_cleanup_gluster(True, gluster_source_name,
-                                          pool_name=pool_name, **kwargs)
+        hostip = gluster.setup_or_cleanup_gluster(True, gluster_source_name,
+                                                  pool_name=pool_name, **kwargs)
         logging.debug("hostip is %s", hostip)
         # create image in gluster volume
         file_path = "gluster://%s/%s" % (hostip, gluster_source_name)
@@ -926,8 +856,8 @@ class PoolVolumeTest(object):
                 if os.path.exists(pool_target):
                     shutil.rmtree(pool_target)
             if pool_type == "gluster" or source_format == 'glusterfs':
-                setup_or_cleanup_gluster(False, source_name,
-                                         pool_name=pool_name, **kwargs)
+                gluster.setup_or_cleanup_gluster(False, source_name,
+                                                 pool_name=pool_name, **kwargs)
 
     def pre_pool(self, pool_name, pool_type, pool_target, emulated_image,
                  **kwargs):
@@ -1007,8 +937,9 @@ class PoolVolumeTest(object):
             if not os.path.exists(pool_target):
                 os.mkdir(pool_target)
             if source_format == 'glusterfs':
-                hostip = setup_or_cleanup_gluster(True, source_name,
-                                                  pool_name=pool_name, **kwargs)
+                hostip = gluster.setup_or_cleanup_gluster(True, source_name,
+                                                          pool_name=pool_name,
+                                                          **kwargs)
                 logging.debug("hostip is %s", hostip)
                 extra = "--source-host %s --source-path %s" % (hostip,
                                                                source_name)
@@ -1088,8 +1019,9 @@ class PoolVolumeTest(object):
         elif pool_type == "gluster":
             source_path = kwargs.get('source_path')
             logging.info("source path is %s" % source_path)
-            hostip = setup_or_cleanup_gluster(True, source_name,
-                                              pool_name=pool_name, **kwargs)
+            hostip = gluster.setup_or_cleanup_gluster(True, source_name,
+                                                      pool_name=pool_name,
+                                                      **kwargs)
             logging.debug("Gluster host ip address: %s", hostip)
             extra = "--source-host %s --source-path %s --source-name %s" % \
                     (hostip, source_path, source_name)
@@ -2610,7 +2542,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                                'source_host_port': disk_src_port}
     elif disk_src_protocol == 'gluster':
         # Setup gluster.
-        host_ip = setup_or_cleanup_gluster(True, brick_path=brick_path, **params)
+        host_ip = gluster.setup_or_cleanup_gluster(True, brick_path=brick_path,
+                                                   **params)
         logging.debug("host ip: %s " % host_ip)
         dist_img = "gluster.%s" % disk_format
 
