@@ -10,7 +10,7 @@ install:
 	if [ "$$($(PYTHON) --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1)" == "2" ]; then \
 		$(PYTHON) setup.py install --root $(DESTDIR) $(COMPILE); \
 	else \
-		$(PYTHON) -m pip install --prefix $(DESTDIR) .; \
+		$(PYTHON) -m pip install --prefix $(DESTDIR) --upgrade .; \
 	fi
 
 srpm: source
