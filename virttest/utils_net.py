@@ -1133,7 +1133,9 @@ class Bridge(object):
         try:
             self._br_ioctl(arch.SIOCBRDELIF, brname, ifname)
         except IOError as details:
-            raise BRDelIfError(ifname, brname, details)
+            # Avoid failing the test when port not present in br
+            if ifname in self.list_iface(brname):
+                raise BRDelIfError(ifname, brname, details)
 
     def add_bridge(self, brname):
         """
