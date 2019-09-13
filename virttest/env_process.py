@@ -1074,7 +1074,7 @@ def preprocess(test, params, env):
     # Write it as a keyval
     test.write_test_keyval(version_info)
 
-    libvirtd_inst = utils_libvirtd.Libvirtd()
+    libvirtd_inst = None
 
     # If guest is configured to be backed by hugepages, setup hugepages in host
     if params.get("hugepage") == "yes":
@@ -1088,6 +1088,8 @@ def preprocess(test, params, env):
         if suggest_mem is not None:
             params['mem'] = suggest_mem
         if vm_type == "libvirt":
+            if libvirtd_inst is None:
+                libvirtd_inst = utils_libvirtd.Libvirtd()
             libvirtd_inst.restart()
 
     if params.get("setup_thp") == "yes":
@@ -1118,6 +1120,8 @@ def preprocess(test, params, env):
                 logging.error(str(e))
             except Exception as e:
                 logging.error("Unexpected error: '%s'" % str(e))
+            if libvirtd_inst is None:
+                libvirtd_inst = utils_libvirtd.Libvirtd()
             libvirtd_inst.restart()
 
     # Execute any pre_commands
@@ -1470,7 +1474,7 @@ def postprocess(test, params, env):
         # keeping the number of filedescriptors used by avocado-vt honest.
         vm.cleanup_serial_console()
 
-    libvirtd_inst = utils_libvirtd.Libvirtd()
+    libvirtd_inst = None
     vm_type = params.get("vm_type")
 
     cpu_arch = cpu_utils.get_cpu_arch()
@@ -1505,6 +1509,8 @@ def postprocess(test, params, env):
             h = test_setup.HugePageConfig(params)
             h.cleanup()
             if vm_type == "libvirt":
+                if libvirtd_inst is None:
+                    libvirtd_inst = utils_libvirtd.Libvirtd()
                 libvirtd_inst.restart()
         except Exception as details:
             err += "\nHP cleanup: %s" % str(details).replace('\\n', '\n  ')
@@ -1541,6 +1547,8 @@ def postprocess(test, params, env):
             try:
                 pol = test_setup.LibvirtPolkitConfig(params)
                 pol.cleanup()
+                if libvirtd_inst is None:
+                    libvirtd_inst = utils_libvirtd.Libvirtd()
                 libvirtd_inst.restart()
             except test_setup.PolkitConfigCleanupError as e:
                 err += "\nPolkit cleanup: %s" % str(e).replace('\\n', '\n  ')
