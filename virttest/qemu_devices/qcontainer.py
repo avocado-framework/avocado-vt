@@ -1314,19 +1314,21 @@ class DevContainer(object):
                                      params.get("usbdev_serial"))
 
     # Images (disk, cdrom, floppy) device related methods
-    def images_define_by_variables(self, name, filename, pci_bus, index=None, fmt=None,
-                                   cache=None, werror=None, rerror=None, serial=None,
-                                   snapshot=None, boot=None, blkdebug=None, bus=None,
-                                   unit=None, port=None, bootindex=None, removable=None,
-                                   min_io_size=None, opt_io_size=None,
-                                   physical_block_size=None, logical_block_size=None,
-                                   readonly=None, scsiid=None, lun=None, aio=None,
+    def images_define_by_variables(self, name, filename, pci_bus, index=None,
+                                   fmt=None, cache=None, werror=None,
+                                   rerror=None, serial=None, snapshot=None,
+                                   boot=None, blkdebug=None, bus=None,
+                                   unit=None, port=None, bootindex=None,
+                                   removable=None, min_io_size=None,
+                                   opt_io_size=None, physical_block_size=None,
+                                   logical_block_size=None, readonly=None,
+                                   scsiid=None, lun=None, aio=None,
                                    strict_mode=None, media=None, imgfmt=None,
-                                   pci_addr=None, scsi_hba=None, x_data_plane=None,
-                                   blk_extra_params=None, scsi=None,
-                                   drv_extra_params=None,
+                                   pci_addr=None, scsi_hba=None,
+                                   x_data_plane=None, blk_extra_params=None,
+                                   scsi=None, drv_extra_params=None,
                                    num_queues=None, bus_extra_params=None,
-                                   force_fmt=None):
+                                   force_fmt=None, image_encryption=None):
         """
         Creates related devices by variables
         :note: To skip the argument use None, to disable it use False
@@ -1363,6 +1365,7 @@ class DevContainer(object):
         :param scsi_hba: Custom scsi HBA
         :param num_queues: performace option for virtio-scsi-pci
         :param bus_extra_params: options want to add to virtio-scsi-pci bus
+        :param image_encryption: ImageEncryption object for image
         """
         def define_hbas(qtype, atype, bus, unit, port, qbus, pci_bus,
                         addr_spec=None, num_queues=None,
@@ -1420,6 +1423,16 @@ class DevContainer(object):
         # Parse params
         #
         devices = []    # All related devices
+
+        # add required secret objects for image
+        secret_obj = None
+        if image_encryption:
+            for secret in image_encryption.image_key_secrets:
+                devices.append(qdevices.QObject("secret"))
+                devices[-1].set_param("id", secret.aid)
+                devices[-1].set_param("data", secret.data)
+            if image_encryption.key_secret:
+                secret_obj = devices[-1]
 
         use_device = self.has_option("device")
         if fmt == "scsi":   # fmt=scsi force the old version of devices
@@ -1598,6 +1611,14 @@ class DevContainer(object):
             devices[-1].set_param('boot', boot, bool)
             devices[-1].set_param('snapshot', snapshot, bool)
             devices[-1].set_param('readonly', readonly, bool)
+            if secret_obj:
+                if imgfmt == "qcow2":
+                    devices[-1].set_param('encrypt.format',
+                                          image_encryption.format)
+                    devices[-1].set_param('encrypt.key-secret',
+                                          secret_obj.get_qid())
+                elif imgfmt == "luks":
+                    devices[-1].set_param('key-secret', secret_obj.get_qid())
 
         if 'aio' in self.get_help_text():
             if aio == 'native' and snapshot == 'yes':
@@ -1766,7 +1787,8 @@ class DevContainer(object):
         :param name: Name of the new disk
         :param params: Disk params (params.object_params(name))
         """
-        shared_dir = os.path.join(data_dir.get_data_dir(), "shared")
+        data_root = data_dir.get_data_dir()
+        shared_dir = os.path.join(data_root, "shared")
         drive_format = image_params.get("drive_format")
         scsi_hba = image_params.get("scsi_hba", "virtio-scsi-pci")
         if drive_format == "virtio":    # translate virtio to ccw/device
@@ -1780,10 +1802,11 @@ class DevContainer(object):
                 scsi_hba = "virtio-scsi-device"
             elif "s390" in image_params.get("machine_type"):
                 scsi_hba = "virtio-scsi-ccw"
+        image_encryption = storage.ImageEncryption.encryption_define_by_params(
+            name, image_params)
         return self.images_define_by_variables(name,
                                                storage.get_image_filename(
-                                                   image_params,
-                                                   data_dir.get_data_dir()),
+                                                   image_params, data_root),
                                                pci_bus,
                                                index,
                                                drive_format,
@@ -1836,7 +1859,9 @@ class DevContainer(object):
                                                image_params.get("num_queues"),
                                                image_params.get(
                                                    "bus_extra_params"),
-                                               image_params.get("force_drive_format"))
+                                               image_params.get(
+                                                   "force_drive_format"),
+                                               image_encryption)
 
     def serials_define_by_variables(self, serial_id, serial_type, chardev_id,
                                     bus_type=None, serial_name=None,
