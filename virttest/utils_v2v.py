@@ -576,7 +576,7 @@ class LinuxVMCheck(VMCheck):
         """
         Check whether guest is uefi guest
         """
-        cmd = "ls /boot/efi/EFI/BOOT/"
+        cmd = "ls /sys/firmware/efi"
         status, output = self.run_cmd(cmd)
         if status != 0:
             return False
