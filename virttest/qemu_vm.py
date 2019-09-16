@@ -2093,10 +2093,10 @@ class VM(virt_vm.BaseVM):
 
         if devices.has_option("boot"):
             boot_opts = {}
-            boot_opts["order"] = params.get("boot_order", "cdn")
-            boot_opts["once"] = params.get("boot_once", "c")
-            boot_opts["menu"] = params.get("boot_menu", "off")
-            boot_opts["strict"] = params.get("boot_strict", "off")
+            boot_opts["menu"] = params.get("boot_menu")
+            boot_opts["order"] = params.get("boot_order")
+            boot_opts["once"] = params.get("boot_once")
+            boot_opts["strict"] = params.get("boot_strict")
             boot_opts["reboot-timeout"] = params.get("boot_reboot_timeout")
             cmd = add_boot(devices, boot_opts)
             devices.insert(StrDev('bootmenu', cmdline=cmd))
