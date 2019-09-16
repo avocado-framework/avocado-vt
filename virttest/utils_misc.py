@@ -150,7 +150,7 @@ class InterruptedThread(threading.Thread):
 
 
 def cmd_status_output(cmd, shell=False, ignore_status=True, verbose=True,
-                      timeout=None, session=None):
+                      timeout=60, session=None):
     """
     common wrapper method of `def cmd_status_output()` that could
     support 52lts in local system and with ShellSession object for
@@ -168,7 +168,7 @@ def cmd_status_output(cmd, shell=False, ignore_status=True, verbose=True,
     stdout = None
     try:
         if session:
-            status, output = session.cmd_status_output(cmd, timeout=timeout)
+            status, stdout = session.cmd_status_output(cmd, timeout=timeout)
 
         else:
             cmd_obj = process.run(cmd, shell=shell, ignore_status=ignore_status,
