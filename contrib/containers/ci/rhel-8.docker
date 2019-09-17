@@ -2,3 +2,5 @@ FROM registry.access.redhat.com/ubi8/ubi
 LABEL description "RHEL 8 image used on integration checks, such as cirrus-ci"
 RUN dnf -y install git xz nc iproute iputils gcc python3-devel
 RUN dnf -y clean all
+# Mock the additional requirements by touch&chmod, which is enough for --dry-run
+RUN for PROG in tcpdump qemu-kvm qemu-img qemu-io; do touch /usr/local/bin/$PROG; chmod +x /usr/local/bin/$PROG; done

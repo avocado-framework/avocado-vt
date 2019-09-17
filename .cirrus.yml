@@ -27,7 +27,6 @@ fedora_30_task:
   dry_run_script: &dry_run_scr
     - $PYTHON -m avocado --show all run --dry-run -- boot
 
-# Due to lack of pkgs perform only "plugin_script" check
 rhel_8_task:
   container:
     image: quay.io/avocado-framework/avocado-vt-ci-rhel-8
@@ -46,8 +45,12 @@ rhel_8_task:
       - SETUP: -m pip install .
   setup_script:
     *setup_scr
-  plugin_script:
-    - $PYTHON -m avocado plugins 2>/dev/null | grep vt-bootstrap
+  bootstrap_script:
+    *bootstrap_scr
+  list_script:
+    *list_scr
+  dry_run_script:
+    *dry_run_scr
 
 centos_7_task:
   env:
