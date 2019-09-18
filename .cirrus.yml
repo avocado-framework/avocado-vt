@@ -7,8 +7,11 @@ fedora_30_task:
   env:
     PYTHON: python3
     matrix:
+      # Get deps from setup.py (therefor pip version of avocado)
       - AVOCADO_SRC:
+      # Latest LTS release is 69.x
       - AVOCADO_SRC: avocado-framework<70.0
+      # Latest Avocado from git
       - AVOCADO_SRC: -e git+https://github.com/avocado-framework/avocado#egg=avocado_framework
     matrix:
       - SETUP: setup.py develop --user
@@ -42,8 +45,12 @@ rhel_8_task:
       - SETUP: -m pip install .
   setup_script:
     *setup_scr
-  plugin_script:
-    - $PYTHON -m avocado plugins 2>/dev/null | grep vt-bootstrap
+  bootstrap_script:
+    *bootstrap_scr
+  list_script:
+    *list_scr
+  dry_run_script:
+    *dry_run_scr
 
 centos_7_task:
   env:
