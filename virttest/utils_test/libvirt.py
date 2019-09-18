@@ -3088,13 +3088,14 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
                 logging.error("The real prompt text: <%s>", text)
                 break
 
+        log = session.get_output()
         session.close()
-        return True
+        return (True, log)
     except (aexpect.ShellError, aexpect.ExpectError) as details:
         log = session.get_output()
         session.close()
         logging.error("Failed to connect libvirtd: %s\n%s", details, log)
-        return False
+        return (False, log)
 
 
 def get_all_vol_paths():
