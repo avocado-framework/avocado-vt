@@ -151,7 +151,9 @@ class QemuImg(storage.QemuImg):
         "image_opts": "",
         "check_repair": "-r",
         "output_format": "--output",
-        "force_share": "-U"
+        "force_share": "-U",
+        "resize_preallocation": "--preallocation",
+        "resize_shrink": "--shrink",
         }
     create_cmd = ("create {secret_object} {image_format} {backing_file} "
                   "{backing_format} {unsafe!b} {options} {image_filename} "
@@ -159,6 +161,8 @@ class QemuImg(storage.QemuImg):
     check_cmd = ("check {secret_object} {image_opts} {image_format} "
                  "{output_format} {check_repair} {force_share!b} "
                  "{image_filename}")
+    resize_cmd = ("resize {secret_object} {image_opts} {resize_shrink!b} "
+                  "{resize_preallocation} {image_filename} {image_size}")
 
     def __init__(self, params, root_dir, tag):
         """
@@ -803,20 +807,31 @@ class QemuImg(storage.QemuImg):
         cmd_result.stderr = results_stderr_52lts(cmd_result)
         return cmd_result
 
-    def resize(self, size, shrink=False):
+    def resize(self, size, shrink=False, preallocation=None):
         """
         Qemu image resize wrapper.
 
         :param size: string of size representations.(eg. +1G, -1k, 1T)
         :param shrink: boolean
+        :param preallocation: preallocation mode
         :return: process.CmdResult object containing the result of the
                  command
         """
-        cmd_list = [self.image_cmd, "resize"]
-        if shrink:
-            cmd_list.append("--shrink")
-        cmd_list.extend([self.image_filename, size])
-        cmd_result = process.run(" ".join(cmd_list), ignore_status=True)
+        cmd_dict = {
+            "resize_shrink": shrink,
+            "resize_preallocation": preallocation,
+            "image_filename": self.image_filename,
+            "image_size": size,
+            }
+        if self.encryption_config.key_secret:
+            cmd_dict["image_filename"] = "'%s'" % get_image_json(
+                self.tag, self.params, self.root_dir)
+        secret_objects = self._secret_objects
+        if secret_objects:
+            cmd_dict["secret_object"] = " ".join(secret_objects)
+        resize_cmd = self.image_cmd + " " + \
+            self._cmd_formatter.format(self.resize_cmd, **cmd_dict)
+        cmd_result = process.run(resize_cmd, ignore_status=True)
         return cmd_result
 
     def map(self, output="human"):
