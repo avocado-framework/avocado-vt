@@ -953,7 +953,7 @@ class AvocadoGuest(object):
         Check prerequisites
         """
         # TODO: Try installing the prerequisites
-        for _, packages in self.prerequisites.iteritems():
+        for _, packages in self.prerequisites.items():
             pacman = utils_package.package_manager(self.session, packages)
             if not pacman.install(timeout=self.timeout):
                 logging.error("Failed to install - %s", packages)
