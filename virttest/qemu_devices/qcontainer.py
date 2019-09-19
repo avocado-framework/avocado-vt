@@ -13,6 +13,7 @@ import logging
 import re
 import os
 import shutil
+import json
 
 # Avocado imports
 from avocado.core import exceptions
@@ -890,7 +891,9 @@ class DevContainer(object):
                    qdevices.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
                                              first_port=[1]),
                    qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
-                                             '_PCI_CHASSIS_NR', first_port=[1]))
+                                             '_PCI_CHASSIS_NR', first_port=[1]),
+                   qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
+                                    "vcpu"))
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
                                                   child_bus=bus,
                                                   aobject="pci.0"))
@@ -928,7 +931,53 @@ class DevContainer(object):
                    qdevices.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
                                              first_port=[1]),
                    qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
-                                             '_PCI_CHASSIS_NR', first_port=[1]))
+                                             '_PCI_CHASSIS_NR', first_port=[1]),
+                   qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
+                                    "vcpu"))
+            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
+                                                  child_bus=bus,
+                                                  aobject="pci.0"))
+            devices.append(qdevices.QStringDevice('i440FX',
+                                                  {'addr': 0, 'driver': 'i440FX'},
+                                                  parent_bus={'aobject': 'pci.0'}))
+            devices.append(qdevices.QStringDevice('PIIX4_PM', {'addr': '01.3',
+                                                               'driver': 'PIIX4_PM'},
+                                                  parent_bus={'aobject': 'pci.0'}))
+            devices.append(qdevices.QStringDevice('PIIX3',
+                                                  {'addr': 1, 'driver': 'PIIX3'},
+                                                  parent_bus={'aobject': 'pci.0'}))
+            devices.append(qdevices.QStringDevice('piix3-ide', {'addr': '01.1',
+                                                                'driver': 'piix3-ide'},
+                                                  parent_bus={
+                                                      'aobject': 'pci.0'},
+                                                  child_bus=qdevices.QIDEBus('ide')))
+            if self.has_option('device') and self.has_option("global"):
+                devices.append(qdevices.QStringDevice('fdc',
+                                                      child_bus=qdevices.QFloppyBus('floppy')))
+            else:
+                devices.append(qdevices.QStringDevice('fdc',
+                                                      child_bus=qdevices.QOldFloppyBus('floppy'))
+                               )
+            return devices
+
+        def machine_pseries(cmd=False):
+            """
+            Pseries, not full support yet.
+            :param cmd: If set uses "-M $cmd" to force this machine type
+            :return: List of added devices (including default buses)
+            """
+            # TODO: This one is copied from machine_i440FX, in order to
+            #  distinguish it from the i440FX, its bus structure will be
+            #  modified in the future.
+            devices = []
+            pci_bus = "pci.0"
+            bus = (qdevices.QPCIBus(pci_bus, 'PCI', 'pci.0'),
+                   qdevices.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
+                                             first_port=[1]),
+                   qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
+                                             '_PCI_CHASSIS_NR', first_port=[1]),
+                   qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
+                                    "vcpu"))
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
                                                   child_bus=bus,
                                                   aobject="pci.0"))
@@ -1076,9 +1125,11 @@ class DevContainer(object):
             # and autotest's representations are completelly different and
             # can't be used.
             logging.warn('Support for s390x is highly experimental!')
-            bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [64]],
-                                            'virtio-blk-ccw', 'virtio-bus',
-                                            'virtio-blk-ccw')
+            bus = (qdevices.QNoAddrCustomBus('bus', [['addr'], [64]],
+                                             'virtio-blk-ccw', 'virtio-bus',
+                                             'virtio-blk-ccw'),
+                   qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
+                                    "vcpu"))
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
                                                   child_bus=bus,
                                                   aobject="virtio-blk-ccw"))
@@ -1148,6 +1199,8 @@ class DevContainer(object):
                     devices = machine_arm64_mmio(cmd)
                 elif machine_type.startswith("s390"):
                     devices = machine_s390_virtio(cmd)
+                elif machine_type.startswith("pseries"):
+                    devices = machine_pseries(cmd)
                 elif avocado_machine == 'riscv64-mmio':
                     devices = machine_riscv64_mmio(cmd)
                 elif 'isapc' not in machine_type:   # i440FX
@@ -2339,3 +2392,24 @@ class DevContainer(object):
             logging.warn("'%s' is not supported by your qemu", driver)
 
         return devices
+
+    def vcpu_device_define_by_params(self, params, name):
+        """
+        Create vcpu device by params.
+        :param params: vcpu device params.
+        :param name: Object name of vcpu device.
+        """
+        params = params.object_params(name)
+        cpu_driver = params["cpu_driver"]
+        if not self.has_device(cpu_driver):
+            raise virt_vm.VMDeviceNotSupportedError(self.vmname, cpu_driver)
+        vcpu_params = {"id": params.get("vcpu_id", name)}
+        # Uses JSON format to update vcpu properties. e.g. {"node-id": 0}
+        vcpu_props = json.loads(params.get("vcpu_props", "{}"))
+        vcpu_params.update(vcpu_props)
+
+        vcpu_dev = qdevices.QCPUDevice(cpu_driver,
+                                       params.get_boolean("vcpu_enable"),
+                                       params=vcpu_params,
+                                       parent_bus={"aobject": "vcpu"})
+        return vcpu_dev
