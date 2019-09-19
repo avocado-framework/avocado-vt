@@ -1420,6 +1420,62 @@ class CharDevice(QCustomDevice):
         return "\'%s\'" % self.get_qid() not in str(out)
 
 
+class QCPUDevice(QDevice):
+    """
+    CPU Device object, supports hot plug/unplug vcpu device with specified
+    properties.
+    """
+
+    def __init__(self, cpu_driver, enable, params=None, aobject=None,
+                 parent_bus=None):
+        """
+        :param cpu_driver: cpu driver name
+        :type cpu_driver: str
+        :param enable: Whether to enable this cpu device in qemu
+        :type enable: bool
+        """
+        super(QCPUDevice, self).__init__(cpu_driver, params, aobject,
+                                         parent_bus)
+        self._enabled = enable
+
+    def is_enabled(self):
+        """Return True if cpu device is enabled"""
+        return self._enabled
+
+    def cmdline(self):
+        """
+        :return: cmdline command to define this device. (if enabled)
+        """
+        if self._enabled:
+            return super(QCPUDevice, self).cmdline()
+        return ""
+
+    def cmdline_nd(self):
+        """
+        :return: cmdline command to define this device without dynamic
+                 parameters. (if enabled)
+        """
+        if self._enabled:
+            return super(QCPUDevice, self).cmdline_nd()
+        return ""
+
+    def enable(self, monitor):
+        """Alias for hotplug"""
+        out = self.hotplug(monitor)
+        ver_out = not bool(out)
+        if ver_out:
+            self._enabled = True
+        return out, ver_out
+
+    def disable(self, monitor):
+        """Alias for unplug"""
+        out = self.unplug(monitor)
+        ver_out = not bool(out)
+        if ver_out:
+            self._enabled = False
+        return out, ver_out
+
+
 #
 # Bus representations
 # HDA, I2C, IDE, ISA, PCI, SCSI, System, uhci, ehci, ohci, xhci, ccid,
@@ -2440,3 +2496,81 @@ class QOldFloppyBus(QDenseBus):
     def _set_device_props(self, device, addr):
         """ Change value to drive{A,B,...} """
         device.set_param('index', self._addr2stor(addr))
+
+
+class QCPUBus(QSparseBus):
+    """
+    CPU virtual bus representation.
+    """
+
+    def __init__(self, cpu_model, addr_spec, aobject=None, atype=None):
+        """
+        :param cpu_model: cpu model name
+        :type cpu_model: str
+        """
+        super(QCPUBus, self).__init__(None, addr_spec, "vcpu_bus", cpu_model,
+                                      aobject, atype)
+        self.vcpus_count = 0
+
+    def _str_devices(self):
+        """
+        short string representation of the bus, will ignore all reserved slot
+        """
+        out = '{'
+        for addr in sorted(self.bus.keys(), key=lambda x: "{0:0>8}".format(x)):
+            if self.bus[addr] != "reserved":
+                out += "%s:%s, " % (addr, self.bus[addr])
+        return out.rstrip(", ") + '}'
+
+    def _str_devices_long(self):
+        """
+        long string representation of the bus, will ignore all reserved slot
+        """
+        out = ""
+        for addr in sorted(self.bus.keys(), key=lambda x: "{0:0>8}".format(x)):
+            dev = self.bus[addr]
+            if dev != "reserved":
+                if not dev.is_enabled():
+                    addr += " idled"
+                out += "%s< %s >%s\n  " % ("-" * 15, addr.center(10), "-" * 15)
+                out += dev.str_long().replace('\n', '\n  ')
+                out = out.rstrip()
+            out += '\n'
+        return out.rstrip()
+
+    def _update_device_props(self, device, addr):
+        """ Always set properties """
+        return self._set_device_props(device, addr)
+
+    def initialize(self, cpuinfo):
+        """
+        Use full cpu information to reinitialize.
+        :param cpuinfo: virt_vm.CpuInfo Object
+        """
+        if cpuinfo.qemu_type == "spapr" or "s390" in cpuinfo.qemu_type:
+            self.vcpus_count = 1
+            self.addr_items = ["core-id"]
+            self.addr_lengths = [cpuinfo.maxcpus]
+            self.first_port = [range(cpuinfo.maxcpus)[cpuinfo.smp]]
+            if cpuinfo.qemu_type == "spapr":
+                self.vcpus_count = cpuinfo.threads
+                next_addr = list(self.first_port)
+                while next_addr is not False:
+                    if next_addr[0] % self.vcpus_count != 0:
+                        self.reserve(next_addr)
+                    next_addr = self._increment_addr([None], next_addr)
+        else:
+            self.vcpus_count = 1
+            self.addr_items = ["socket-id", "core-id", "thread-id"]
+            self.addr_lengths = [cpuinfo.sockets, cpuinfo.cores,
+                                 cpuinfo.threads]
+            self.first_port = [[s, c, t] for s in range(cpuinfo.sockets)
+                               for c in range(cpuinfo.cores)
+                               for t in range(cpuinfo.threads)][cpuinfo.smp]
+            if cpuinfo.dies != 0:
+                self.addr_items.insert(1, "die-id")
+                self.addr_lengths.insert(1, cpuinfo.dies)
+                self.first_port = [[s, d, c, t] for s in range(cpuinfo.sockets)
+                                   for d in range(cpuinfo.dies)
+                                   for c in range(cpuinfo.cores)
+                                   for t in range(cpuinfo.threads)][cpuinfo.smp]
