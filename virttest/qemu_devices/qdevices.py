@@ -1294,6 +1294,9 @@ class CharDevice(QCustomDevice):
             special_opts = ["host", "port", "localaddr",
                             "localport", "ipv4", "ipv6"]
 
+        elif backend == 'ringbuf':
+            special_opts = ["ringbuf_write_size"]
+
         return set(common_opts + special_opts)
 
     def format_params(self, params):
@@ -1362,6 +1365,11 @@ class CharDevice(QCustomDevice):
 
         if self.params.get("backend") in ["serial", "parallel"]:
             args["backend"]["data"] = {"device": self.get_param("path")}
+            return args
+
+        if self.params.get("backend") in "ringbuf":
+            args["backend"]["data"] = {
+                "size": self.get_param("ringbuf_write_size")}
             return args
 
         raise DeviceError("chardev '%s' not support hotplug" %
