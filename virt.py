@@ -104,8 +104,8 @@ class virt(test.test):
                     bin_dir = self.bindir
 
                     for d in other_subtests_dirs.split():
-                        # Replace split char.
-                        d = os.path.join(*d.split("/"))
+                        # If d starts with a "/" an absolute path will be assumed
+                        # else the relative path will be searched in the bin_dir
                         subtestdir = os.path.join(bin_dir, d, "tests")
                         if not os.path.isdir(subtestdir):
                             raise exceptions.TestError("Directory %s not"
