@@ -86,6 +86,22 @@ QEMU_VERSION_RE = r"QEMU (?:PC )?emulator version\s([0-9]+\.[0-9]+\.[0-9]+)\s?\(
 THREAD_ERROR = False
 
 
+def _get_qemu_version(qemu_cmd):
+    """
+    Return normalized qemu version
+
+    :param qemu_cmd: Path to qemu binary
+    """
+    version_output = decode_to_text(a_process.system_output(
+        "%s -version" % qemu_cmd, verbose=False))
+    version_line = version_output.split('\n')[0]
+    matches = re.match(QEMU_VERSION_RE, version_line)
+    if matches:
+        return "%s (%s)" % matches.groups()
+    else:
+        return "Unknown"
+
+
 def preprocess_image(test, params, image_name, vm_process_status=None):
     """
     Preprocess a single QEMU image according to the instructions in params.
@@ -1047,16 +1063,13 @@ def preprocess(test, params, env):
             kvm_userspace_version = "Unknown"
     else:
         qemu_path = utils_misc.get_qemu_binary(params)
-        version_output = decode_to_text(a_process.system_output(
-            "%s -version" % qemu_path, verbose=False))
-        version_line = version_output.split('\n')[0]
-        matches = re.match(QEMU_VERSION_RE, version_line)
-        if matches:
-            kvm_userspace_version = "%s (%s)" % matches.groups()
-        else:
-            kvm_userspace_version = "Unknown"
+        kvm_userspace_version = _get_qemu_version(qemu_path)
+        qemu_dst_path = utils_misc.get_qemu_dst_binary(params)
+        if qemu_dst_path and qemu_dst_path != qemu_path:
+            logging.debug("KVM userspace dst version(qemu): %s",
+                          _get_qemu_version(qemu_dst_path))
 
-    logging.debug("KVM userspace version(qemu): %s" % kvm_userspace_version)
+    logging.debug("KVM userspace version(qemu): %s", kvm_userspace_version)
     version_info["qemu_version"] = str(kvm_userspace_version)
 
     # Checking required qemu, if not satisfied, cancel test
