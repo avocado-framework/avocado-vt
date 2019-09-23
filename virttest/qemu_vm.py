@@ -42,8 +42,7 @@ from virttest import error_event
 from virttest.compat_52lts import decode_to_text
 from virttest.qemu_devices import qdevices, qcontainer
 from virttest.qemu_devices.utils import DeviceError
-from virttest.utils_version import VersionInterval
-from virttest.qemu_capabilities import Flags, Capabilities
+from virttest.qemu_capabilities import Flags
 
 
 class QemuSegFaultError(virt_vm.VMError):
@@ -132,8 +131,6 @@ class VM(virt_vm.BaseVM):
     #: off enable this option
     DISABLE_AUTO_X_MIG_OPTS = False
 
-    BLOCKDEV_VERSION_SCOPE = '[2.12.0, )'
-
     def __init__(self, name, params, root_dir, address_cache, state=None):
         """
         Initialize the object and set a few attributes.
@@ -196,16 +193,6 @@ class VM(virt_vm.BaseVM):
         self.start_monotonic_time = 0.0
         self.last_boot_index = 0
         self.last_driver_index = 0
-        self._caps = Capabilities()
-
-    def _probe_capabilities(self):
-        """ Probe whether the vm sets the capabilities. """
-        ver_dict = utils_misc.get_qemu_version(self.params)
-        ver = '{major}.{minor}.{update}'.format(**ver_dict)
-
-        if self.params.get("qemu_force_use_drive_expression", "no") == "no":
-            if ver in VersionInterval(self.BLOCKDEV_VERSION_SCOPE):
-                self._caps.set_flag(Flags.BLOCKDEV)
 
     def check_capability(self, capability):
         """
@@ -214,7 +201,10 @@ class VM(virt_vm.BaseVM):
         :param capability: the given capability
         :rtype capability: qemu_capabilities.Flags
         """
-        return capability in self._caps
+        if self.devices is None:
+            raise virt_vm.VMStatusError('Using capabilities before '
+                                        'VM being defined')
+        return capability in self.devices.caps
 
     def verify_alive(self):
         """
@@ -1442,10 +1432,14 @@ class VM(virt_vm.BaseVM):
                                           params.get('strict_mode'),
                                           params.get(
                                               'workaround_qemu_qmp_crash'),
-                                          params.get('allow_hotplugged_vm'),
-                                          vm._caps)
+                                          params.get('allow_hotplugged_vm'))
         StrDev = qdevices.QStringDevice
         QDevice = qdevices.QDevice
+
+        # update capabilities by users willingness
+        if (params.get("qemu_force_use_drive_expression", "no") == "yes" and
+                Flags.BLOCKDEV in devices.caps):
+            devices.caps.clear_flag(Flags.BLOCKDEV)
 
         devices.insert(StrDev('PREFIX', cmdline=cmd))
         # Add the qemu binary
@@ -2167,7 +2161,7 @@ class VM(virt_vm.BaseVM):
             ovmf_vars_path = "%s.fd" % path
             devs = []
             pflash0, pflash1 = ('ovmf_code', 'ovmf_vars')
-            if vm.check_capability(Flags.BLOCKDEV):
+            if Flags.BLOCKDEV in devices.caps:
                 devs.append(qdevices.QBlockdevProtocolFile(pflash0))
                 devs[-1].set_param("read-only", "on")
                 devs[-1].set_param("filename", ovmf_code_path)
@@ -2181,7 +2175,7 @@ class VM(virt_vm.BaseVM):
                     params.get("restore_ovmf_vars") == "yes"):
                 cp_cmd = "cp -f %s %s" % (ovmf_vars_src_path, ovmf_vars_path)
                 process.system(cp_cmd)
-            if vm.check_capability(Flags.BLOCKDEV):
+            if Flags.BLOCKDEV in devices.caps:
                 devs.append(qdevices.QBlockdevProtocolFile(pflash1))
                 devs[-1].set_param("filename", ovmf_vars_path)
             else:
@@ -2189,7 +2183,7 @@ class VM(virt_vm.BaseVM):
                 devs[-1].set_param("if", "pflash")
                 devs[-1].set_param("format", "raw")
                 devs[-1].set_param("file", ovmf_vars_path)
-            if vm.check_capability(Flags.BLOCKDEV):
+            if Flags.BLOCKDEV in devices.caps:
                 machine_vals = []
                 for flash, dev in zip(['pflash0', 'pflash1'], devs):
                     machine_vals.append(
@@ -2555,8 +2549,6 @@ class VM(virt_vm.BaseVM):
         pass_fds = []
         if migration_fd:
             pass_fds.append(int(migration_fd))
-
-        self._probe_capabilities()
 
         # Verify the md5sum of the ISO images
         for cdrom in params.objects("cdroms"):
@@ -4411,7 +4403,7 @@ class VM(virt_vm.BaseVM):
                             matched = False
                             break
                 if matched:
-                    if Flags.BLOCKDEV in self._caps:
+                    if self.check_capability(Flags.BLOCKDEV):
                         return block['inserted']['node-name']
                     else:
                         return block['device']
@@ -4661,7 +4653,7 @@ class VM(virt_vm.BaseVM):
         :param device: device ID;
         :param force: force eject or not;
         """
-        if Flags.BLOCKDEV in self._caps:
+        if self.check_capability(Flags.BLOCKDEV):
             qdev = self.devices.get_qdev_by_drive(device)
             self.monitor.blockdev_open_tray(qdev, force)
             return self.monitor.blockdev_remove_medium(qdev)
@@ -4675,7 +4667,7 @@ class VM(virt_vm.BaseVM):
         :param device: Device ID;
         :param target: new media file;
         """
-        if Flags.BLOCKDEV in self._caps:
+        if self.check_capability(Flags.BLOCKDEV):
             qdev = self.devices.get_qdev_by_drive(device)
             return self.monitor.blockdev_change_medium(qdev, target)
         else:
