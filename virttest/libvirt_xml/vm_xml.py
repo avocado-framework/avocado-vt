@@ -2078,6 +2078,7 @@ class VMOSXML(base.LibvirtXMLBase):
     Class to access <os> tag of domain XML.
 
     Elements:
+        os:           list attributes - firmware
         type:         text attributes - arch, machine
         loader:       path
         boots:        list attributes - dev
@@ -2099,7 +2100,7 @@ class VMOSXML(base.LibvirtXMLBase):
                  'smbios_mode', 'bios_useserial', 'bios_reboot_timeout', 'init',
                  'bootloader', 'bootloader_args', 'kernel', 'initrd', 'cmdline',
                  'dtb', 'initargs', 'loader_readonly', 'loader_type', 'nvram',
-                 'nvram_template', 'secure', 'bootmenu_timeout')
+                 'nvram_template', 'secure', 'bootmenu_timeout', 'os_firmware')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementText('type', self, parent_xpath='/',
@@ -2147,6 +2148,8 @@ class VMOSXML(base.LibvirtXMLBase):
                                  tag_name='nvram')
         accessors.XMLAttribute('secure', self, parent_xpath='/',
                                tag_name='loader', attribute='secure')
+        accessors.XMLAttribute('os_firmware', self, parent_xpath='/',
+                               tag_name='os', attribute='firmware')
         super(VMOSXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<os/>'
 
