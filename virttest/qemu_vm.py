@@ -529,7 +529,7 @@ class VM(virt_vm.BaseVM):
         def add_nic(devices, vlan, model=None, mac=None, device_id=None,
                     netdev_id=None, nic_extra_params=None, pci_addr=None,
                     bootindex=None, queues=1, vectors=None, pci_bus='pci.0',
-                    ctrl_mac_addr=None):
+                    ctrl_mac_addr=None, mq=None):
             if model == 'none':
                 return
             if devices.has_option("device"):
@@ -577,7 +577,8 @@ class VM(virt_vm.BaseVM):
             dev.set_param('id', device_id, 'NEED_QUOTE')
             if "virtio" in model:
                 if int(queues) > 1:
-                    dev.set_param('mq', 'on')
+                    mq = 'on' if mq is None else mq
+                    dev.set_param('mq', mq)
                 if vectors:
                     dev.set_param('vectors', vectors)
             if devices.has_option("netdev"):
@@ -1735,7 +1736,8 @@ class VM(virt_vm.BaseVM):
                         device_id, netdev_id, nic_extra,
                         nic_params.get("nic_pci_addr"),
                         bootindex, queues, vectors, parent_bus,
-                        nic_params.get("ctrl_mac_addr"))
+                        nic_params.get("ctrl_mac_addr"),
+                        nic_params.get("mq"))
 
                 # Handle the '-net tap' or '-net user' or '-netdev' part
                 cmd, cmd_nd = add_net(devices, vlan, nettype, ifname, tftp,
