@@ -154,6 +154,10 @@ class QemuImg(storage.QemuImg):
         "force_share": "-U",
         "resize_preallocation": "--preallocation",
         "resize_shrink": "--shrink",
+        "convert_compressed": "-c",
+        "cache_mode": "-t",
+        "target_image_format": "-O",
+        "convert_sparse_size": "-S",
         }
     create_cmd = ("create {secret_object} {image_format} {backing_file} "
                   "{backing_format} {unsafe!b} {options} {image_filename} "
@@ -161,6 +165,10 @@ class QemuImg(storage.QemuImg):
     check_cmd = ("check {secret_object} {image_opts} {image_format} "
                  "{output_format} {check_repair} {force_share!b} "
                  "{image_filename}")
+    convert_cmd = ("convert {secret_object} {convert_compressed!b} "
+                   "{image_format} {cache_mode} {target_image_format} "
+                   "{options} {convert_sparse_size} {image_filename} "
+                   "{target_image_filename}")
     resize_cmd = ("resize {secret_object} {image_opts} {resize_shrink!b} "
                   "{resize_preallocation} {image_filename} {image_size}")
 
@@ -183,7 +191,7 @@ class QemuImg(storage.QemuImg):
     def _parse_options(self, params):
         """Build options used for qemu-img amend, create, convert, measure."""
         options_mapping = {
-            "preallocated": ("off", "preallocation", ("qcow2", "raw", "luks")),
+            "preallocated": (None, "preallocation", ("qcow2", "raw", "luks")),
             "image_cluster_size": (None, "cluster_size", ("qcow2",)),
             "lazy_refcounts": (None, "lazy_refcounts", ("qcow2",)),
             "qcow2_compatible": (None, "compat", ("qcow2",))
@@ -193,7 +201,7 @@ class QemuImg(storage.QemuImg):
         for key, (default, opt_key, support_fmt) in options_mapping.items():
             if image_format in support_fmt:
                 value = params.get(key, default)
-                if not (value is None or value == "off"):
+                if value is not None:
                     options.append("%s=%s" % (opt_key, value))
 
         if self.encryption_config.key_secret:
@@ -349,68 +357,56 @@ class QemuImg(storage.QemuImg):
                            ``unsafe``.
 
         :note: params should contain:
-
-            convert_image_tag
-                the image name of the convert image
-            convert_filename
-                the name of the image after convert
-            convert_fmt
-                the format after convert
+            convert_target
+                the convert target image tag
             compressed
                 indicates that target image must be compressed
-            encrypted
-                there are two value "off" and "on", default value is "off"
+            sparse_size
+                indicate the consecutive number of bytes contains zeros to
+                create sparse image during conversion
         """
-        convert_image_tag = params["image_convert"]
-        convert_image = params["convert_name_%s" % convert_image_tag]
-        convert_compressed = params.get("convert_compressed")
-        convert_encrypted = params.get("convert_encrypted", "off")
-        preallocated = params.get("preallocated")
-        compat = params.get("compat")
-        lazy_refcounts = params.get("lazy_refcounts")
-        cluster_size = params.get("cluster_size")
-        sparse_size = params.get("sparse_size")
-        convert_format = params["convert_format_%s" % convert_image_tag]
-        params_convert = {"image_name": convert_image,
-                          "image_format": convert_format}
+        convert_target = params["convert_target"]
+        convert_params = params.object_params(convert_target)
+        convert_image = QemuImg(convert_params, root_dir, convert_target)
 
-        convert_image_filename = storage.get_image_filename(params_convert,
-                                                            root_dir)
+        convert_compressed = convert_params.get("convert_compressed")
+        sparse_size = convert_params.get("sparse_size")
 
-        cmd = self.image_cmd
-        cmd += " convert"
-        if convert_compressed == "yes":
-            cmd += " -c"
-        if sparse_size:
-            cmd += " -S %s" % sparse_size
+        cmd_dict = {
+            "convert_compressed": convert_compressed == "yes",
+            "convert_sparse_size": sparse_size,
+            "image_filename": self.image_filename,
+            "image_format": self.image_format,
+            "target_image_format": convert_image.image_format,
+            "target_image_filename": convert_image.image_filename,
+            "cache_mode": cache_mode,
+        }
 
-        options = []
-        if convert_encrypted != "off":
-            options.append("encryption=%s" % convert_encrypted)
-        if preallocated:
-            options.append("preallocation=%s" % preallocated)
-        if cluster_size:
-            options.append("cluster_size=%s" % cluster_size)
-        if compat:
-            options.append("compat=%s" % compat)
-            if lazy_refcounts:
-                options.append("lazy_refcounts=%s" % lazy_refcounts)
+        options = convert_image._parse_options(convert_params)
         if options:
-            cmd += " -o %s" % ",".join(options)
+            cmd_dict["options"] = ",".join(options)
 
-        if self.image_format:
-            cmd += " -f %s" % self.image_format
-        cmd += " -O %s" % convert_format
-        if cache_mode:
-            cmd += " -t %s" % cache_mode
-        cmd += " %s %s" % (self.image_filename, convert_image_filename)
+        if self.encryption_config.key_secret:
+            cmd_dict["image_filename"] = "'%s'" % get_image_json(
+                self.tag, self.params, self.root_dir)
+            cmd_dict.pop("image_format")
+        secret_objects = self._secret_objects
+
+        if convert_image.encryption_config.key_secret:
+            secret_objects.extend(convert_image._secret_objects)
+        if secret_objects:
+            cmd_dict["secret_object"] = " ".join(secret_objects)
+
+        convert_cmd = self.image_cmd + " " + \
+            self._cmd_formatter.format(self.convert_cmd, **cmd_dict)
 
         logging.info("Convert image %s from %s to %s", self.image_filename,
-                     self.image_format, convert_format)
+                     self.image_format, convert_image.image_format)
+        process.system(convert_cmd)
+        if convert_image.encryption_config.key_secret:
+            convert_image.encryption_config.key_secret.save_to_file()
 
-        process.system(cmd)
-
-        return convert_image_tag
+        return convert_target
 
     def rebase(self, params, cache_mode=None):
         """
