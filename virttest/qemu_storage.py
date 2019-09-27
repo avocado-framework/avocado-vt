@@ -158,6 +158,7 @@ class QemuImg(storage.QemuImg):
         "cache_mode": "-t",
         "target_image_format": "-O",
         "convert_sparse_size": "-S",
+        "commit_drop": "-d",
         }
     create_cmd = ("create {secret_object} {image_format} {backing_file} "
                   "{backing_format} {unsafe!b} {options} {image_filename} "
@@ -169,6 +170,8 @@ class QemuImg(storage.QemuImg):
                    "{image_format} {cache_mode} {target_image_format} "
                    "{options} {convert_sparse_size} {image_filename} "
                    "{target_image_filename}")
+    commit_cmd = ("commit {secret_object} {image_format} {cache_mode} "
+                  "{backing_file} {commit_drop!b} {image_filename}")
     resize_cmd = ("resize {secret_object} {image_opts} {resize_shrink!b} "
                   "{resize_preallocation} {image_filename} {image_size}")
 
@@ -461,21 +464,38 @@ class QemuImg(storage.QemuImg):
 
         return self.base_tag
 
-    def commit(self, params={}, cache_mode=None):
+    def commit(self, params={}, cache_mode=None, base=None, drop=False):
         """
         Commit image to it's base file
 
         :param cache_mode: the cache mode used to write the output disk image,
             the valid options are: 'none', 'writeback' (default),
             'writethrough', 'directsync' and 'unsafe'.
+        :param base: the backing file into which the changes will be committed
+        :param drop: drop image after commit
         """
-        cmd = self.image_cmd
-        cmd += " commit"
-        if cache_mode:
-            cmd += " -t %s" % cache_mode
-        cmd += " -f %s %s" % (self.image_format, self.image_filename)
-        logging.info("Commit snapshot %s" % self.image_filename)
-        process.system(cmd)
+        cmd_dict = {"image_format": self.image_format,
+                    "image_filename": self.image_filename,
+                    "cache_mode": cache_mode, "commit_drop": drop}
+        secret_objects = self._secret_objects
+        if secret_objects:
+            cmd_dict["secret_object"] = " ".join(secret_objects)
+        if base:
+            base_params = self.params.object_params(base)
+            base_image = QemuImg(base_params, self.root_dir, base)
+            if base_image.encryption_config.key_secret:
+                cmd_dict["backing_file"] = "'%s'" % get_image_json(
+                    base, base_params, self.root_dir)
+            else:
+                cmd_dict["backing_file"] = base_image.image_filename
+        if self.encryption_config.key_secret:
+            cmd_dict["image_filename"] = "'%s'" % get_image_json(
+                self.tag, self.params, self.root_dir)
+            cmd_dict.pop("image_format")
+        commit_cmd = self.image_cmd + " " + \
+            self._cmd_formatter.format(self.commit_cmd, **cmd_dict)
+        logging.info("Commit image %s" % self.image_filename)
+        process.system(commit_cmd)
 
         return self.image_filename
 
