@@ -2890,6 +2890,13 @@ def delete_scsi_disk():
     """
     Delete scsi device by removing scsi_debug kernel module.
     """
+    scsi_dbg_check = process.run("lsscsi|grep scsi_debug", shell=True)
+    if scsi_dbg_check.exit_status == 0:
+        scsi_addr_pattern = '[0-9]+:[0-9]+:[0-9]+:[0-9]+'
+        for addr in re.findall(scsi_addr_pattern, scsi_dbg_check.stdout_text):
+            process.run("echo 1>/sys/class/scsi_device/{}/device/delete".format(addr),
+                        shell=True)
+
     if linux_modules.module_is_loaded("scsi_debug"):
         linux_modules.unload_module("scsi_debug")
 
