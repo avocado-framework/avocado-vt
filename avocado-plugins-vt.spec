@@ -129,12 +129,12 @@ Xunit output, among others.
 %endif
 
 %install
-%{__mkdir} -p %{buildroot}/etc/avocado/conf.d
+%{__mkdir} -p %{buildroot}%{_sysconfdir}/avocado/conf.d
 %{__python2} setup.py install --root %{buildroot} --skip-build
-%{__mv} %{buildroot}%{python2_sitelib}/avocado_vt/conf.d/* %{buildroot}/etc/avocado/conf.d
+%{__mv} %{buildroot}%{python2_sitelib}/avocado_vt/conf.d/* %{buildroot}%{_sysconfdir}/avocado/conf.d
 %if %{with_python3}
 %{__python3} setup.py install --root %{buildroot} --skip-build
-%{__mv} %{buildroot}%{python3_sitelib}/avocado_vt/conf.d/* %{buildroot}/etc/avocado/conf.d
+%{__mv} %{buildroot}%{python3_sitelib}/avocado_vt/conf.d/* %{buildroot}%{_sysconfdir}/avocado/conf.d
 %endif
 
 %files -n python2-%{name}
@@ -153,8 +153,8 @@ Xunit output, among others.
 %if %{with_python3}
 %files -n python3-%{name}
 %defattr(-,root,root,-)
-%dir /etc/avocado
-%dir /etc/avocado/conf.d
+%dir %{_sysconfdir}/avocado
+%dir %{_sysconfdir}/avocado/conf.d
 %config(noreplace)%{_sysconfdir}/avocado/conf.d/*.conf
 %doc README.rst LICENSE
 %{python3_sitelib}/avocado_vt*
