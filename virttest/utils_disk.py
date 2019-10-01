@@ -204,26 +204,25 @@ def get_linux_disks(session, partition=False):
     :return: the disks dict.
              e.g. {kname: [kname, size, type, serial, wwn]}
     """
-    list_disk_cmd = "lsblk -o KNAME,SIZE,TYPE,SERIAL,WWN"
-    get_disk_name_cmd = "lsblk -no pkname /dev/%s"
-    output = session.cmd_output(list_disk_cmd)
-    devs = output.splitlines()
     disks_dict = {}
-    part_dict = {}
-    for dev in devs:
-        dev = dev.split()
-        if "disk" in dev:
-            disks_dict[dev[0]] = dev
-        if "part" in dev:
-            part_dict[dev[0]] = dev
-    if partition:
-        disks_dict = dict(disks_dict, **part_dict)
-    else:
-        for part in part_dict.keys():
-            output = session.cmd_output(get_disk_name_cmd % part)
-            disk = output.splitlines()[0].strip()
-            if disk in disks_dict.keys():
-                disks_dict.pop(disk)
+    parent_disks = set()
+    block_info = session.cmd('ls /sys/dev/block -l | grep "/pci"')
+    for matched in re.finditer(r'/block/(\S+)\s^', block_info, re.M):
+        knames = matched.group(1).split('/')
+        if len(knames) == 2:
+            parent_disks.add(knames[0])
+        if partition is False and knames[0] in parent_disks:
+            if knames[0] in disks_dict:
+                del disks_dict[knames[0]]
+            continue
+
+        disks_dict[knames[-1]] = [knames[-1]]
+        o = session.cmd('lsblk -o KNAME,SIZE | grep "%s "' % knames[-1])
+        disks_dict[knames[-1]].append(o.split()[-1])
+        o = session.cmd('udevadm info -q all -n %s' % knames[-1])
+        for parttern in (r'DEVTYPE=(\w+)\s^', r'ID_SERIAL=(\S+)\s^', r'ID_WWN=(\S+)\s^'):
+            searched = re.search(parttern, o, re.M | re.I)
+            disks_dict[knames[-1]].append(searched.group(1) if searched else None)
     return disks_dict
 
 
