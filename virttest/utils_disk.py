@@ -20,6 +20,7 @@ from functools import cmp_to_key
 
 from avocado.core import exceptions
 from avocado.utils import process
+from avocado.utils import wait
 from avocado.utils.service import SpecificServiceManager
 
 from virttest import error_context
@@ -374,15 +375,23 @@ def create_partition_linux(session, did, size, start,
     :param start: partition beginning at start. e.g. 0M
     :param part_type: partition type, primary extended logical
     :param timeout: Timeout for cmd execution in seconds.
+    :return: The kname of partition created.
     """
     size = utils_numeric.normalize_data_size(size, order_magnitude="M") + "M"
     start = utils_numeric.normalize_data_size(start, order_magnitude="M") + "M"
     end = str(float(start[:-1]) + float(size[:-1])) + size[-1]
+    orig_disks = set(disk for disk in get_linux_disks(session, True))
     partprobe_cmd = "partprobe /dev/%s" % did
     mkpart_cmd = 'parted -s "%s" mkpart %s %s %s'
     mkpart_cmd %= ("/dev/%s" % did, part_type, start, end)
     session.cmd(mkpart_cmd)
     session.cmd(partprobe_cmd, timeout=timeout)
+    partition_created = wait.wait_for(
+        lambda: set(disk for disk in get_linux_disks(session, True)) - orig_disks,
+        step=0.5, timeout=30)
+    if not partition_created:
+        raise exceptions.TestError('Failed to create partition.')
+    return partition_created.pop()
 
 
 def create_partition_windows(session, did, size, start,
@@ -396,13 +405,15 @@ def create_partition_windows(session, did, size, start,
     :param start: partition beginning at start. e.g. 0M
     :param part_type: partition type, primary extended logical
     :param timeout: Timeout for cmd execution in seconds.
+    :return: The index of partition created.
     """
     size = utils_numeric.normalize_data_size(size, order_magnitude="M")
     start = utils_numeric.normalize_data_size(start, order_magnitude="M")
     size = int(float(size) - float(start))
-    mkpart_cmd = " echo create partition %s size=%s"
+    mkpart_cmd = " echo create partition %s size=%s; echo list partition"
     mkpart_cmd = _wrap_windows_cmd(mkpart_cmd)
-    session.cmd(mkpart_cmd % (did, part_type, size), timeout=timeout)
+    output = session.cmd(mkpart_cmd % (did, part_type, size), timeout=timeout)
+    return re.search(r'\*\s+Partition\s+(\d+)\s+', output, re.M).group(1)
 
 
 def create_partition(session, did, size, start, ostype,
@@ -417,11 +428,11 @@ def create_partition(session, did, size, start, ostype,
     :param ostype: linux or windows.
     :param part_type: partition type, primary extended logical
     :param timeout: Timeout for cmd execution in seconds.
+    :return: The kname of partition created in linux, index in windows.
     """
     if ostype == "windows":
-        create_partition_windows(session, did, size, start, part_type, timeout)
-    else:
-        create_partition_linux(session, did, size, start, part_type, timeout)
+        return create_partition_windows(session, did, size, start, part_type, timeout)
+    return create_partition_linux(session, did, size, start, part_type, timeout)
 
 
 def delete_partition_linux(session, partition_name, timeout=360):
@@ -900,24 +911,23 @@ def configure_empty_linux_disk(session, did, size, start="0M", n_partitions=1,
     else:
         part_type = PARTITION_TYPE_PRIMARY
     for i in range(n_partitions):
-        pre_partition = get_linux_disks(session, partition=True).keys()
         if i == 0:
-            create_partition_linux(session, did, str(partition_size) + size[-1],
-                                   str(start) + size[-1], timeout=timeout)
+            new_partition = create_partition_linux(
+                session, did, str(partition_size) + size[-1],
+                str(start) + size[-1], timeout=timeout)
         else:
             if part_type == PARTITION_TYPE_EXTENDED:
                 create_partition_linux(session, did, str(extended_size) + size[-1],
                                        str(start) + size[-1], part_type, timeout)
-                pre_partition = get_linux_disks(session, partition=True).keys()
                 part_type = PARTITION_TYPE_LOGICAL
-                create_partition_linux(session, did, str(partition_size) + size[-1],
-                                       str(start) + size[-1], part_type, timeout)
+                new_partition = create_partition_linux(
+                    session, did, str(partition_size) + size[-1],
+                    str(start) + size[-1], part_type, timeout)
             else:
-                create_partition_linux(session, did, str(partition_size) + size[-1],
-                                       str(start) + size[-1], part_type, timeout)
+                new_partition = create_partition_linux(
+                    session, did, str(partition_size) + size[-1],
+                    str(start) + size[-1], part_type, timeout)
         start += partition_size
-        post_partition = get_linux_disks(session, partition=True).keys()
-        new_partition = list(set(post_partition) - set(pre_partition))[0]
         create_filesyetem_linux(session, new_partition, fstype, timeout)
         mount_dst = "/mnt/" + new_partition
         session.cmd("rm -rf %s; mkdir %s" % (mount_dst, mount_dst))
