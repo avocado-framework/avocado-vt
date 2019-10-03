@@ -3878,6 +3878,7 @@ class VM(virt_vm.BaseVM):
         if self.params.get('qemu_dst_binary', None) is not None:
             clone.params[
                 'qemu_binary'] = utils_misc.get_qemu_dst_binary(self.params)
+            clone.params['qemu_dst_binary'] = self.params['qemu_binary']
         if env:
             env.register_vm("%s_clone" % clone.name, clone)
 
