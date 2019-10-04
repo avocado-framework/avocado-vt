@@ -443,11 +443,11 @@ def delete_partition_linux(session, partition_name, timeout=360):
     :param partition_name: partition name. e.g. sdb1
     :param timeout: Timeout for cmd execution in seconds.
     """
-    get_kname_cmd = "lsblk -no pkname /dev/%s"
-    kname = session.cmd_output(get_kname_cmd % partition_name)
+    ls_block_cmd = 'ls /sys/dev/block -l | grep "/pci"'
+    regex = r'/block/(\S+)/%s\s^' % partition_name
+    kname = re.search(regex, session.cmd(ls_block_cmd), re.M).group(1)
     list_disk_cmd = "lsblk -o KNAME,MOUNTPOINT"
-    output = session.cmd_output(list_disk_cmd)
-    output = output.splitlines()
+    output = session.cmd(list_disk_cmd).splitlines()
     rm_cmd = 'parted -s "/dev/%s" rm %s'
     for line in output:
         partition = re.findall(partition_name, line, re.I | re.M)
@@ -459,6 +459,9 @@ def delete_partition_linux(session, partition_name, timeout=360):
             break
     session.cmd(rm_cmd % (kname, partition[0]))
     session.cmd("partprobe /dev/%s" % kname, timeout=timeout)
+    if not wait.wait_for(lambda: not re.search(
+            regex, session.cmd(ls_block_cmd), re.M), step=0.5, timeout=30):
+        raise exceptions.TestError('Failed to delete partition.')
 
 
 def delete_partition_windows(session, partition_name, timeout=360):
@@ -525,6 +528,11 @@ def clean_partition_linux(session, did, timeout=360):
             logging.info("remove partition %s on %s" % (number, did))
             session.cmd(rm_cmd % (did, number))
         session.cmd("partprobe /dev/%s" % did, timeout=timeout)
+        regex = r'/block/%s/\S+\s^' % did
+        ls_block_cmd = 'ls /sys/dev/block -l | grep "/pci"'
+        if not wait.wait_for(lambda: not re.search(
+                regex, session.cmd(ls_block_cmd), re.M), step=0.5, timeout=30):
+            raise exceptions.TestError('Failed to clean the all partitions.')
 
 
 def clean_partition_windows(session, did, timeout=360):
