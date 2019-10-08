@@ -4365,7 +4365,7 @@ class VM(virt_vm.BaseVM):
             """
             try:
                 return bool(self.monitor.get_event("RESET"))
-            except qemu_monitor.MonitorSocketError:
+            except (qemu_monitor.MonitorSocketError, AttributeError):
                 logging.warn("MonitorSocketError while querying for RESET QMP "
                              "event, it might get lost.")
                 return False
