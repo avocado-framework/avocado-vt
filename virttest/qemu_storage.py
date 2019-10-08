@@ -174,6 +174,9 @@ class QemuImg(storage.QemuImg):
                   "{backing_file} {commit_drop!b} {image_filename}")
     resize_cmd = ("resize {secret_object} {image_opts} {resize_shrink!b} "
                   "{resize_preallocation} {image_filename} {image_size}")
+    rebase_cmd = ("rebase {secret_object} {image_format} {cache_mode} "
+                  "{unsafe!b} {backing_file} {backing_format} "
+                  "{image_filename}")
 
     def __init__(self, params, root_dir, tag):
         """
@@ -419,48 +422,45 @@ class QemuImg(storage.QemuImg):
         :param cache_mode: the cache mode used to write the output disk image,
                            the valid options are: 'none', 'writeback' (default),
                            'writethrough', 'directsync' and 'unsafe'.
-
-        :note: params should contain:
-
-            cmd
-                qemu-img cmd
-            snapshot_img
-                the snapshot name
-            base_img
-                base image name
-            base_fmt
-                base image format
-            snapshot_fmt
-                the snapshot format
-            mode
-                there are two value, "safe" and "unsafe", default is "safe"
         """
         self.check_option("base_image_filename")
         self.check_option("base_format")
 
         rebase_mode = params.get("rebase_mode")
-        cmd = self.image_cmd
-        cmd += " rebase"
-        if self.image_format:
-            cmd += " -f %s" % self.image_format
-        if cache_mode:
-            cmd += " -t %s" % cache_mode
-        if rebase_mode == "unsafe":
-            cmd += " -u"
+        cmd_dict = {"image_format": self.image_format,
+                    "image_filename": self.image_filename,
+                    "cache_mode": cache_mode,
+                    "unsafe": rebase_mode == "unsafe"}
+        secret_objects = self._secret_objects
+        if secret_objects:
+            cmd_dict["secret_object"] = " ".join(secret_objects)
+        if self.encryption_config.key_secret:
+            cmd_dict["image_filename"] = "'%s'" % get_image_json(
+                self.tag, self.params, self.root_dir)
+            cmd_dict.pop("image_format")
         if self.base_tag:
             if self.base_tag == "null":
-                cmd += " -b \"\" -F %s %s" % (self.base_format,
-                                              self.image_filename)
+                cmd_dict["backing_file"] = "''"
             else:
-                cmd += " -b %s -F %s %s" % (self.base_image_filename,
-                                            self.base_format, self.image_filename)
+                base_params = self.params.object_params(self.base_tag)
+                base_image = QemuImg(base_params, self.root_dir, self.base_tag)
+                self.base_image_filename = base_image.image_filename
+                self.base_format = base_image.image_format
+                if base_image.encryption_config.key_secret:
+                    cmd_dict["backing_file"] = "'%s'" % get_image_json(
+                        base_image.tag, base_image.params, base_image.root_dir)
+                else:
+                    cmd_dict["backing_file"] = base_image.image_filename
+                    cmd_dict["backing_format"] = base_image.image_format
         else:
             raise exceptions.TestError("Can not find the image parameters need"
                                        " for rebase.")
 
         logging.info("Rebase snapshot %s to %s..." % (self.image_filename,
                                                       self.base_image_filename))
-        process.system(cmd)
+        rebase_cmd = self.image_cmd + " " + \
+            self._cmd_formatter.format(self.rebase_cmd, **cmd_dict)
+        process.system(rebase_cmd)
 
         return self.base_tag
 
