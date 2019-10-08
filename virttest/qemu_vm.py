@@ -4386,19 +4386,26 @@ class VM(virt_vm.BaseVM):
         error_context.context()
 
         start_time = time.time()
-        if method == "shell":
-            _reboot = partial(_shell_reboot, session, timeout)
-            _check_go_down = partial(_go_down, session, timeout)
-        elif method == "system_reset":
-            _reboot = self.system_reset
-            _check_go_down = partial(bool, True)
-        else:
-            raise virt_vm.VMRebootError("Unknown reboot method: %s" % method)
-        # We consider QMPMonitor event as the most reliable method, always
-        # use it when available.
-        if isinstance(self.monitor, qemu_monitor.QMPMonitor):
+        _check_go_down = None
+        if (self.params.get("force_reset_go_down_check") == "qmp" and
+                isinstance(self.monitor, qemu_monitor.QMPMonitor)):
             _check_go_down = _go_down_qmp
             self.monitor.clear_event("RESET")
+        if method == "shell":
+            _reboot = partial(_shell_reboot, session, timeout)
+            _check_go_down = _check_go_down or partial(_go_down, session, timeout)
+        elif method == "system_reset":
+            _reboot = self.system_reset
+        else:
+            raise virt_vm.VMRebootError("Unknown reboot method: %s" % method)
+        if _check_go_down is None:
+            if isinstance(self.monitor, qemu_monitor.QMPMonitor):
+                _check_go_down = _go_down_qmp
+                self.monitor.clear_event("RESET")
+            else:
+                logging.warning("No suitable way to check for reboot, assuming"
+                                " it already rebooted")
+                _check_go_down = partial(bool, True)
 
         try:
             # TODO detect and handle guest crash?
