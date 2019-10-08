@@ -826,13 +826,13 @@ class BaseVM(object):
                                                      devs=devs,
                                                      session=session,
                                                      timeout=timeout):
-            self.address_cache.drop(mac_pattern % mac)
-
             nic_params = self.params.object_params(nic.nic_name)
             pci_assignable = nic_params.get("pci_assignable") != "no"
 
             if not (pci_assignable or nic.nettype == "macvtap"):
                 raise VMAddressVerificationError(mac, ip_addr)
+
+            self.address_cache.drop(mac_pattern % mac)
 
             # SR-IOV/Macvtap cards may not be in same subnet with the cards
             # used by host by default, so arp checks won't work. Therefore,
