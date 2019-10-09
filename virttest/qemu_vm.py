@@ -2785,8 +2785,15 @@ class VM(virt_vm.BaseVM):
             elif migration_mode == "exec":
                 if migration_exec_cmd is None:
                     self.migration_port = utils_misc.find_free_port(5200, 6000)
-                    qemu_command += (' -incoming "exec:nc -l %s"' %
-                                     self.migration_port)
+                    # check whether ip version supported by nc
+                    if process.system("nc -h | grep -E '\-4 | \-6'",
+                                      shell=True, ignore_status=True) == 0:
+                        qemu_command += (' -incoming "exec:nc -l -%s %s"' %
+                                         (self.ip_version[-1],
+                                          self.migration_port))
+                    else:
+                        qemu_command += (' -incoming "exec:nc -l %s"' %
+                                         self.migration_port)
                 else:
                     qemu_command += (' -incoming "exec:%s"' %
                                      migration_exec_cmd)
