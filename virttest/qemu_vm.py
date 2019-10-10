@@ -4141,8 +4141,9 @@ class VM(virt_vm.BaseVM):
 
             # Switch self <-> clone
             temp = self.clone(copy_state=True)
-            self.__dict__ = clone.__dict__
-            clone = temp
+            self.destroy(gracefully=False)      # self is the source dead vm
+            self.__dict__ = clone.__dict__      # self becomes the dst vm
+            clone = temp    # for cleanup purposes keep clone
 
         finally:
             # If we're doing remote migration and it's completed successfully,
