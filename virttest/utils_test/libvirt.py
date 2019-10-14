@@ -2560,7 +2560,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     secret_uuid = params.get("secret_uuid")
     enable_cache = "yes" == params.get("enable_cache", "yes")
     driver_cache = params.get("driver_cache", "none")
-    create_controller = params.get("create_controller") == "yes"
+    create_controller = "yes" == params.get("create_controller")
+    del_disks = "yes" == params.get("cleanup_disks", 'no')
     disk_params = {'device_type': disk_device,
                    'disk_snapshot_attr': disk_snapshot_attr,
                    'type_name': disk_type,
@@ -2716,10 +2717,19 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         disk_params_src = {'source_file': blk_source}
 
     # Delete disk elements
+    disk_deleted = False
     disks = vmxml.get_devices(device_type="disk")
     for disk_ in disks:
         if disk_.target['dev'] == disk_target:
             vmxml.del_device(disk_)
+            disk_deleted = True
+            continue
+        if del_disks:
+            vmxml.del_device(disk_)
+            disk_deleted = True
+    if disk_deleted:
+        vmxml.sync()
+        vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
 
     #Create controller
     if create_controller:
