@@ -914,7 +914,7 @@ class PoolVolumeTest(object):
                 setup_or_cleanup_iscsi(is_setup=False,
                                        emulated_image=emulated_image)
             # Used iscsi device anyway
-            if pool_type in ["iscsi", "scsi"]:
+            if pool_type in ["iscsi", "iscsi-direct", "scsi"]:
                 setup_or_cleanup_iscsi(is_setup=False,
                                        emulated_image=emulated_image)
                 if pool_type == "scsi":
@@ -1027,22 +1027,23 @@ class PoolVolumeTest(object):
                 source_host = self.params.get("source_host", "localhost")
                 extra = "--source-host %s --source-path %s" % (source_host,
                                                                nfs_path)
-        elif pool_type == "iscsi":
+        elif pool_type in ["iscsi", "iscsi-direct"]:
             ip_protocal = kwargs.get('ip_protocal', "ipv4")
             iscsi_chap_user = kwargs.get('iscsi_chap_user', None)
             iscsi_chap_password = kwargs.get('iscsi_chap_password', None)
             iscsi_secret_usage = kwargs.get('iscsi_secret_usage', None)
+            iscsi_initiator = kwargs.get('iscsi_initiator', None)
             if ip_protocal == "ipv6":
                 ip_addr = "::1"
             else:
                 ip_addr = "127.0.0.1"
             if iscsi_chap_user and iscsi_chap_password and iscsi_secret_usage:
-                logging.debug("setup iscsi pool with chap authentication")
+                logging.debug("setup %s pool with chap authentication", pool_type)
                 extra = (" --auth-type chap --auth-username %s "
                          "--secret-usage %s" %
                          (iscsi_chap_user, iscsi_secret_usage))
             else:
-                logging.debug("setup iscsi pool without authentication")
+                logging.debug("setup %s pool without authentication", pool_type)
             setup_or_cleanup_iscsi(is_setup=True,
                                    emulated_image=emulated_image,
                                    image_size=image_size,
@@ -1058,6 +1059,9 @@ class PoolVolumeTest(object):
             iscsi.iscsi_logout(iscsi_target)
             extra += " --source-host %s  --source-dev %s" % (ip_addr,
                                                              iscsi_target)
+            if pool_type == "iscsi-direct":
+                extra += " --source-iqn %s" % iscsi_initiator
+
         elif pool_type == "scsi":
             scsi_xml_file = self.params.get("scsi_xml_file", "")
             if not os.path.exists(scsi_xml_file):
@@ -1118,6 +1122,8 @@ class PoolVolumeTest(object):
             result = func(scsi_xml_file, debug=True)
         elif pool_type == "mpath":
             result = func(mpath_xml_file, debug=True)
+        elif pool_type == "iscsi-direct":
+            result = func(pool_name, pool_type, "", extra, debug=True)
         else:
             result = func(pool_name, pool_type, pool_target, extra, debug=True)
         # Here, virsh.pool_create_as return a boolean value and all other 3
