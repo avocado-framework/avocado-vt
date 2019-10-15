@@ -11,6 +11,7 @@ import logging
 
 from avocado.utils import path
 from avocado.utils import process
+from avocado.utils import wait
 from avocado.core import exceptions
 from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 
@@ -23,6 +24,7 @@ from virttest import data_dir
 from virttest import remote
 from virttest import utils_misc
 from virttest import ssh_key
+from virttest import disk
 
 try:
     V2V_EXEC = path.find_command('virt-v2v')
@@ -106,7 +108,7 @@ class Target(object):
         Cleanup NFS mount records
         """
         for src, dst, fstype in self.mount_records.values():
-            utils_misc.umount(src, dst, fstype)
+            disk.umount(src, dst, fstype)
 
         self.cleanup_authorized_keys_in_vmx()
 
@@ -201,6 +203,14 @@ class Target(object):
 
                     mount_point = v2v_mount(
                         self.vddk_libdir_src, 'vddk_libdir')
+                    if not os.path.exists(mount_point):
+                        os.makedirs(mount_point)
+
+                    if not disk.mount(self.vddk_libdir_src, mount_point, 'nfs',
+                                      verbose=True):
+                        raise exceptions.TestError('Mount %s for %s failed' %
+                                                   (self.vddk_libdir_src,
+                                                    mount_point))
                     self.vddk_libdir = mount_point
                     self.mount_records[len(self.mount_records)] = (
                         self.vddk_libdir_src, self.vddk_libdir, None)
@@ -523,7 +533,7 @@ class LinuxVMCheck(VMCheck):
         cmd = 'xset -q'
         if self.run_cmd(cmd)[0] == 127:
             return
-        utils_misc.wait_for(
+        wait.wait_for(
             lambda: not bool(
                 self.run_cmd(
                     cmd,
@@ -1115,13 +1125,8 @@ def v2v_mount(src, dst='v2v_mount_point'):
     if not os.path.exists(mount_point):
         os.makedirs(mount_point)
 
-    if not utils_misc.mount(
-        src,
-        mount_point,
-        'nfs',
-            verbose=True):
-        raise exceptions.TestError(
-            'Mount %s for %s failed' %
-            (src, mount_point))
+    if not disk.mount(src, mount_point, 'nfs', verbose=True):
+        raise exceptions.TestError('Mount %s for %s failed' % (src,
+                                                               mount_point))
 
     return mount_point

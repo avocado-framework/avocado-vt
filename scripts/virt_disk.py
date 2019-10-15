@@ -17,7 +17,7 @@ basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.isdir(os.path.join(basedir, 'virttest')):
     sys.path.append(basedir)
 
-from virttest import utils_disk
+from virttest import disk
 
 
 class OptionParser(optparse.OptionParser):
@@ -85,13 +85,13 @@ class App:
     def main(self):
         self.parse_cmdline()
         if self.options.floppy:
-            self.disk = utils_disk.FloppyDisk(self.image,
-                                              self.options.qemu_img,
-                                              self.options.temp,
-                                              self.options.vfd_size)
+            self.disk = disk.FloppyDisk(self.image,
+                                        self.options.qemu_img,
+                                        self.options.temp,
+                                        self.options.vfd_size)
         elif self.options.cdrom:
-            self.disk = utils_disk.CdromDisk(self.image,
-                                             self.options.temp)
+            self.disk = disk.CdromDisk(self.image,
+                                       self.options.temp)
 
         for f in self.files:
             self.disk.copy_to(f)

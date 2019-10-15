@@ -12,6 +12,7 @@ import string
 import tempfile
 import logging
 import re
+import socket
 try:
     import configparser as ConfigParser
 except ImportError:
@@ -20,10 +21,15 @@ from functools import cmp_to_key
 
 from avocado.core import exceptions
 from avocado.utils import process
+from avocado.utils import data_factory
 from avocado.utils.service import SpecificServiceManager
 
 from virttest import error_context
 from virttest import utils_numeric
+from virttest import utils_net
+from virttest import gluster
+from virttest import data_dir
+from virttest.libvirt_xml import pool_xml
 from virttest.compat_52lts import decode_to_text
 from virttest.compat_52lts import results_stdout_52lts
 
@@ -67,7 +73,7 @@ def copytree(src, dst, overwrite=True, ignore=''):
 
 
 def is_mount(src, dst=None, fstype=None, options=None, verbose=False,
-             session=None):
+             session=None, fstype_mtab=None):
     """
     Check is src or dst mounted.
 
@@ -109,7 +115,8 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False,
     return False
 
 
-def mount(src, dst, fstype=None, options=None, verbose=False, session=None):
+def mount(src, dst, fstype=None, options=None, verbose=False, session=None,
+          fstype_mtab=None):
     """
     Mount src under dst if it's really mounted, then remout with options.
 
@@ -137,7 +144,8 @@ def mount(src, dst, fstype=None, options=None, verbose=False, session=None):
     return process.system(cmd, verbose=verbose) == 0
 
 
-def umount(src, dst, fstype=None, verbose=False, session=None):
+def umount(src, dst, fstype=None, verbose=False, session=None,
+           fstype_mtab=None):
     """
     Umount src from dst, if src really mounted under dst.
 
@@ -1024,6 +1032,335 @@ def get_disk_by_serial(serial_str, session=None):
         if not status:
             logging.debug("Disk %s has serial %s", disk, serial_str)
             return disk
+
+
+def new_disk_vol_name(pool_name):
+    """
+    According to BZ#1138523, the new volume name must be the next
+    created partition(sdb1, etc.), so we need to inspect the original
+    partitions of the disk then count the new partition number.
+
+    :param pool_name: Disk pool name
+    :return: New volume name or none
+    """
+    poolxml = pool_xml.PoolXML.new_from_dumpxml(pool_name)
+    if poolxml.get_type(pool_name) != "disk":
+        logging.error("This is not a disk pool")
+        return None
+    disk = poolxml.get_source().device_path[5:]
+    part_num = len(list(filter(lambda s: s.startswith(disk),
+                               get_parts_list())))
+    return disk + str(part_num)
+
+
+def list_linux_guest_disks(session, partition=False):
+    """
+    List all disks OR disks with no partition in linux guest.
+
+    :param session: session object to guest
+    :param partition: if true, list all disks; otherwise,
+                      list only disks with no partition.
+    :return: the disks set.
+    """
+    cmd = "ls /dev/[vhs]d*"
+    if not partition:
+        cmd = "%s | grep -v [0-9]$" % cmd
+    status, output = session.cmd_status_output(cmd)
+    if status != 0:
+        raise exceptions.TestFail("Get disks failed with output %s" % output)
+    return set(output.split())
+
+
+def get_all_disks_did(session, partition=False):
+    """
+    Get all disks did lists in a linux guest, each disk list
+    include disk kname, serial and wwn.
+
+    :param session: session object to guest.
+    :param partition: if true, get all disks did lists; otherwise,
+                      get the ones with no partition.
+    :return: a dict with all disks did lists each include disk
+             kname, serial and wwn.
+    """
+    disks = list_linux_guest_disks(session, partition)
+    logging.debug("Disks detail: %s" % disks)
+    all_disks_did = {}
+    for line in disks:
+        kname = line.split('/')[2]
+        get_disk_info_cmd = "udevadm info -q property -p /sys/block/%s" % kname
+        output = session.cmd_output_safe(get_disk_info_cmd)
+        re_str = r"(?<=DEVNAME=/dev/)(.*)|(?<=ID_SERIAL=)(.*)|"
+        re_str += "(?<=ID_SERIAL_SHORT=)(.*)|(?<=ID_WWN=)(.*)"
+        did_list_group = re.finditer(re_str, output, re.M)
+        did_list = [match.group() for match in did_list_group if match]
+        all_disks_did[kname] = did_list
+
+    return all_disks_did
+
+
+def format_windows_disk(session, did, mountpoint=None, size=None, fstype="ntfs",
+                        labletype=PARTITION_TABLE_TYPE_MBR, force=False):
+    """
+    Create a partition on disk in windows guest and format it.
+
+    :param session: session object to guest.
+    :param did: disk index which show in 'diskpart list disk'.
+    :param mountpoint: mount point for the disk.
+    :param size: partition size.
+    :param fstype: filesystem type for the disk.
+    :param labletype: disk partition table type.
+    :param force: if need force format.
+    :return Boolean: disk usable or not.
+    """
+    list_disk_cmd = "echo list disk > disk && "
+    list_disk_cmd += "echo exit >> disk && diskpart /s disk"
+    disks = session.cmd_output(list_disk_cmd, timeout=120)
+    create_partition_table_windows(session, did, labletype)
+
+    if size:
+        size = int(float(utils_numeric.normalize_data_size(size,
+                                                           order_magnitude="M")))
+
+    for disk in disks.splitlines():
+        if re.search(r"DISK %s" % did, disk, re.I | re.M):
+            cmd_header = 'echo list disk > disk &&'
+            cmd_header += 'echo select disk %s >> disk &&' % did
+            cmd_footer = '&& echo exit>> disk && diskpart /s disk'
+            cmd_footer += '&& del /f disk'
+            detail_cmd = 'echo detail disk >> disk'
+            detail_cmd = ' '.join([cmd_header, detail_cmd, cmd_footer])
+            logging.debug("Detail for 'Disk%s'" % did)
+            details = session.cmd_output(detail_cmd)
+
+            pattern = "DISK %s.*Offline" % did
+            if re.search(pattern, details, re.I | re.M):
+                online_cmd = 'echo online disk>> disk'
+                online_cmd = ' '.join([cmd_header, online_cmd, cmd_footer])
+                logging.info("Online 'Disk%s'" % did)
+                session.cmd(online_cmd)
+
+            if re.search("Read.*Yes", details, re.I | re.M):
+                set_rw_cmd = 'echo attributes disk clear readonly>> disk'
+                set_rw_cmd = ' '.join([cmd_header, set_rw_cmd, cmd_footer])
+                logging.info("Clear readonly bit on 'Disk%s'" % did)
+                session.cmd(set_rw_cmd)
+
+            if re.search(r"Volume.*%s" % fstype, details, re.I | re.M) and not force:
+                logging.info("Disk%s has been formated, cancel format" % did)
+                continue
+
+            if not size:
+                mkpart_cmd = 'echo create partition primary >> disk'
+            else:
+                mkpart_cmd = 'echo create partition primary size=%s '
+                mkpart_cmd += '>> disk'
+                mkpart_cmd = mkpart_cmd % size
+            list_cmd = ' && echo list partition >> disk '
+            cmds = ' '.join([cmd_header, mkpart_cmd, list_cmd, cmd_footer])
+            logging.info("Create partition on 'Disk%s'" % did)
+            partition_index = re.search(
+                r'\*\s+Partition\s(\d+)\s+', session.cmd(cmds), re.M).group(1)
+            logging.info("Format the 'Disk%s' to %s" % (did, fstype))
+            format_cmd = 'echo list partition >> disk && '
+            format_cmd += 'echo select partition %s >> disk && ' % partition_index
+            if not mountpoint:
+                format_cmd += 'echo assign >> disk && '
+            else:
+                format_cmd += 'echo assign letter=%s >> disk && ' % mountpoint
+            format_cmd += 'echo format fs=%s quick >> disk ' % fstype
+            format_cmd = ' '.join([cmd_header, format_cmd, cmd_footer])
+            session.cmd(format_cmd, timeout=300)
+
+            return True
+
+    return False
+
+
+def format_linux_disk(session, did, all_disks_did, partition=False,
+                      mountpoint=None, size=None, fstype="ext3"):
+    """
+    Create a partition on disk in linux guest and format and mount it.
+
+    :param session: session object to guest.
+    :param did: disk kname, serial or wwn.
+    :param all_disks_did: all disks did lists each include
+                          disk kname, serial and wwn.
+    :param partition: if true, can format all disks; otherwise,
+                      only format the ones with no partition originally.
+    :param mountpoint: mount point for the disk.
+    :param size: partition size.
+    :param fstype: filesystem type for the disk.
+    :return Boolean: disk usable or not.
+    """
+    disks = list_linux_guest_disks(session, partition)
+    logging.debug("Disks detail: %s" % disks)
+    for line in disks:
+        kname = line.split('/')[2]
+        did_list = all_disks_did[kname]
+        if did not in did_list:
+            # Continue to search target disk
+            continue
+        if not size:
+            size_output = session.cmd_output_safe("lsblk -oKNAME,SIZE|grep %s"
+                                                  % kname)
+            size = size_output.splitlines()[0].split()[1]
+        all_disks_before = list_linux_guest_disks(session, True)
+        devname = line
+        logging.info("Create partition on disk '%s'" % devname)
+        mkpart_cmd = "parted -s %s mklabel gpt mkpart "
+        mkpart_cmd += "primary 0 %s"
+        mkpart_cmd = mkpart_cmd % (devname, size)
+        session.cmd_output_safe(mkpart_cmd)
+        session.cmd_output_safe("partprobe %s" % devname)
+        all_disks_after = list_linux_guest_disks(session, True)
+        partname = (all_disks_after - all_disks_before).pop()
+        logging.info("Format partition to '%s'" % fstype)
+        format_cmd = "yes|mkfs -t %s %s" % (fstype, partname)
+        session.cmd_output_safe(format_cmd)
+        if not mountpoint:
+            session.cmd_output_safe("mkdir /mnt/%s" % kname)
+            mountpoint = os.path.join("/mnt", kname)
+        logging.info("Mount the disk to '%s'" % mountpoint)
+        mount_cmd = "mount -t %s %s %s" % (fstype, partname, mountpoint)
+        session.cmd_output_safe(mount_cmd)
+        return True
+
+    return False
+
+
+def format_guest_disk(session, did, all_disks_did, ostype, partition=False,
+                      mountpoint=None, size=None, fstype=None):
+    """
+    Create a partition on disk in guest and format and mount it.
+
+    :param session: session object to guest.
+    :param did: disk ID in guest.
+    :param all_disks_did: a dict contains all disks did lists each
+                          include disk kname, serial and wwn for linux guest.
+    :param ostype: guest os type 'windows' or 'linux'.
+    :param partition: if true, can format all disks; otherwise,
+                      only format the ones with no partition originally.
+    :param mountpoint: mount point for the disk.
+    :param size: partition size.
+    :param fstype: filesystem type for the disk; when it's the default None,
+                   it will use the default one for corresponding ostype guest
+    :return Boolean: disk usable or not.
+    """
+    default_fstype = "ntfs" if (ostype == "windows") else "ext3"
+    fstype = fstype or default_fstype
+    if ostype == "windows":
+        return format_windows_disk(session, did, mountpoint, size, fstype)
+    return format_linux_disk(session, did, all_disks_did, partition,
+                             mountpoint, size, fstype)
+
+
+def glusterfs_mount(g_uri, mount_point):
+    """
+    Mount gluster volume to mountpoint.
+
+    :param g_uri: stripped gluster uri from create_gluster_uri(.., True)
+    :type g_uri: str
+    """
+    mount(g_uri, mount_point, "glusterfs", None, False, "fuse.glusterfs")
+
+
+@error_context.context_aware
+def create_gluster_vol(params):
+    vol_name = params.get("gluster_volume_name")
+    force = params.get('force_recreate_gluster') == "yes"
+
+    brick_path = params.get("gluster_brick")
+    if not os.path.isabs(brick_path):  # do nothing when path is absolute
+        base_dir = params.get("images_base_dir", data_dir.get_data_dir())
+        brick_path = os.path.join(base_dir, brick_path)
+
+    error_context.context("Host name lookup failed")
+    hostname = socket.gethostname()
+    if not hostname or hostname == "(none)":
+        if_up = utils_net.get_net_if(state="UP")
+        for i in if_up:
+            ipv4_value = utils_net.get_net_if_addrs(i)["ipv4"]
+            logging.debug("ipv4_value is %s", ipv4_value)
+            if ipv4_value != []:
+                ip_addr = ipv4_value[0]
+                break
+        hostname = ip_addr
+
+    # Start the gluster dameon, if not started
+    gluster.glusterd_start()
+    # Check for the volume is already present, if not create one.
+    if not gluster.is_gluster_vol_avail(vol_name) or force:
+        return gluster.gluster_vol_create(vol_name, hostname, brick_path,
+                                          force)
+    else:
+        return True
+
+
+@error_context.context_aware
+def gluster_vol_create(vol_name, hostname, brick_path, force=False, session=None):
+    """
+    Gluster Volume Creation
+
+    :param vol_name: Name of gluster volume
+    :param hostname: hostname to create gluster volume
+    :param force: Boolean for adding force option or not
+    """
+    # Create a brick
+    if gluster.is_gluster_vol_avail(vol_name, session):
+        gluster.gluster_vol_stop(vol_name, True, session)
+        gluster.gluster_vol_delete(vol_name, session)
+        gluster.gluster_brick_delete(brick_path, session)
+
+    gluster.gluster_brick_create(brick_path, session=session)
+
+    if force:
+        force_opt = "force"
+    else:
+        force_opt = ""
+
+    cmd = "gluster volume create %s %s:/%s %s" % (vol_name, hostname,
+                                                  brick_path, force_opt)
+    error_context.context("Volume creation failed")
+    if session:
+        session.cmd(cmd)
+    else:
+        process.system(cmd)
+    return gluster.is_gluster_vol_avail(vol_name, session)
+
+
+def file_exists(params, filename_path):
+    sg_uri = gluster.create_gluster_uri(params, stripped=True)
+    g_uri = gluster.create_gluster_uri(params, stripped=False)
+    # Using directly /tmp dir because directory should be really temporary and
+    # should be deleted immediately when no longer needed and
+    # created directory don't file tmp dir by any data.
+    tmpdir = "gmount-%s" % (data_factory.generate_random_string(6))
+    tmpdir_path = os.path.join(data_dir.get_tmp_dir(), tmpdir)
+    while os.path.exists(tmpdir_path):
+        tmpdir = "gmount-%s" % (data_factory.generate_random_string(6))
+        tmpdir_path = os.path.join(data_dir.get_tmp_dir(), tmpdir)
+    ret = False
+    try:
+        try:
+            os.mkdir(tmpdir_path)
+            glusterfs_mount(sg_uri, tmpdir_path)
+            mount_filename_path = os.path.join(tmpdir_path,
+                                               filename_path[len(g_uri):])
+            if os.path.exists(mount_filename_path):
+                ret = True
+        except Exception as e:
+            logging.error("Failed to mount gluster volume %s to"
+                          " mount dir %s: %s", sg_uri, tmpdir_path, e)
+    finally:
+        if umount(sg_uri, tmpdir_path, "glusterfs", False, "fuse.glusterfs"):
+            try:
+                os.rmdir(tmpdir_path)
+            except OSError:
+                pass
+        else:
+            logging.warning("Unable to unmount tmp directory %s with glusterfs"
+                            " mount.", tmpdir_path)
+    return ret
 
 
 class Disk(object):

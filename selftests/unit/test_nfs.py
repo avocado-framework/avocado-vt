@@ -14,7 +14,7 @@ if os.path.isdir(os.path.join(basedir, 'virttest')):
 
 from virttest.unittest_utils import mock
 from virttest import nfs
-from virttest import utils_misc
+from virttest import disk
 from virttest.staging import service
 
 
@@ -58,18 +58,18 @@ class nfs_test(unittest.TestCase):
         os.makedirs.expect_call(nfs_obj.export_dir)
         nfs_obj.exportfs.export.expect_call()
         os.makedirs.expect_call(nfs_obj.mount_dir)
-        utils_misc.mount.expect_call(nfs_obj.mount_src, nfs_obj.mount_dir,
-                                     "nfs", perm=nfs_obj.mount_options)
+        disk.mount.expect_call(nfs_obj.mount_src, nfs_obj.mount_dir,
+                               "nfs", nfs_obj.mount_options)
 
     def setup_stubs_is_mounted(self, nfs_obj):
-        utils_misc.is_mounted.expect_call(nfs_obj.mount_src,
-                                          nfs_obj.mount_dir,
-                                          "nfs").and_return(True)
+        disk.is_mount.expect_call(nfs_obj.mount_src,
+                                  nfs_obj.mount_dir,
+                                  "nfs").and_return(True)
 
     def setup_stubs_cleanup(self, nfs_obj):
-        utils_misc.umount.expect_call(nfs_obj.mount_src,
-                                      nfs_obj.mount_dir,
-                                      "nfs")
+        disk.umount.expect_call(nfs_obj.mount_src,
+                                nfs_obj.mount_dir,
+                                "nfs")
         nfs_obj.exportfs.reset_export.expect_call()
 
     def setUp(self):
@@ -84,9 +84,9 @@ class nfs_test(unittest.TestCase):
         self.god.stub_function(process, "system_output")
         self.god.stub_function(os.path, "isfile")
         self.god.stub_function(os, "makedirs")
-        self.god.stub_function(utils_misc, "is_mounted")
-        self.god.stub_function(utils_misc, "mount")
-        self.god.stub_function(utils_misc, "umount")
+        self.god.stub_function(disk, "is_mount")
+        self.god.stub_function(disk, "mount")
+        self.god.stub_function(disk, "umount")
         self.god.stub_function(service.Factory, "create_service")
         attr = getattr(nfs, "Exportfs")
         setattr(attr, "already_exported", False)
