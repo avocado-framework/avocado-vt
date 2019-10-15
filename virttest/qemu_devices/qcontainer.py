@@ -1584,6 +1584,8 @@ class DevContainer(object):
                 format_cls = qdevices.QBlockdevFormatQcow2
             elif imgfmt == 'raw' or media == 'cdrom':
                 format_cls = qdevices.QBlockdevFormatRaw
+            elif imgfmt == 'luks':
+                format_cls = qdevices.QBlockdevFormatLuks
 
             format_node = format_cls(name)
             protocol_node = protocol_cls(name)
@@ -1613,6 +1615,14 @@ class DevContainer(object):
                 readonly = 'on'
             devices[-2].set_param('read-only', readonly, bool)
             devices[-1].set_param('read-only', readonly, bool)
+            if secret_obj:
+                if isinstance(devices[-1], qdevices.QBlockdevFormatQcow2):
+                    devices[-1].set_param('encrypt.format',
+                                          image_encryption.format)
+                    devices[-1].set_param('encrypt.key-secret',
+                                          secret_obj.get_qid())
+                elif isinstance(devices[-1], qdevices.QBlockdevFormatLuks):
+                    devices[-1].set_param('key-secret', secret_obj.get_qid())
         else:
             devices[-1].set_param('if', 'none')
             devices[-1].set_param('rerror', rerror)
