@@ -314,8 +314,7 @@ class DevContainer(object):
         qdev2 = qdev2.__dict__
         for key, value in six.iteritems(self.__dict__):
             if key in ("_DevContainer__devices", "_DevContainer__buses",
-                       "_DevContainer__state",
-                       "allow_hotplugged_vm"):
+                       "_DevContainer__state", "caps", "allow_hotplugged_vm"):
                 continue
             if key not in qdev2 or qdev2[key] != value:
                 return False
