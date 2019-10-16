@@ -1511,6 +1511,46 @@ def check_isfile(file_name, session=None):
         return os.path.isfile(file_name)
 
 
+def make_symlink(target, link_name, session=None):
+    """
+    Create symlink in local/remote host/VM
+
+    :param target: Target to be linked
+    :param link_name: Link name of symbolic link
+    :param session: ShellSession object of VM/remote host
+    """
+    if is_symlink(link_name, session):
+        rm_link(link_name, session)
+    if session:
+        return session.cmd_status("ln -s {} {}".format(target, link_name)) == 0
+    return os.symlink(target, link_name)
+
+
+def rm_link(link_name, session=None):
+    """
+    Remove symlink in local/remote host/VM
+
+    :param link_name: Link name to be removed
+    :param session: ShellSession object of VM/remote host
+    """
+    if session:
+        return session.cmd_status("unlink %s" % link_name) == 0
+    return os.unlink(link_name)
+
+
+def is_symlink(link_name, session=None):
+    """
+    Check if it's symlink in local/remote host/VM
+
+    :param link_name: Link name to be checked
+    :param session: ShellSession object of VM/remote host
+    """
+    if session:
+        cmd = "file %s | grep -q 'symbolic link to'" % link_name
+        return session.cmd_status(cmd) == 0
+    return os.path.islink(link_name)
+
+
 class NumaInfo(object):
 
     """

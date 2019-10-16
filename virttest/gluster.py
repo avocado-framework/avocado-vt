@@ -12,8 +12,12 @@ import re
 import socket
 
 from avocado.utils import process
+from avocado.utils import path as utils_path
+from avocado.core import exceptions
 
 from virttest import data_dir
+from virttest import utils_disk
+from virttest import remote
 from virttest import utils_misc
 from virttest import utils_net
 from virttest import error_context
@@ -236,15 +240,45 @@ def gluster_vol_create(vol_name, hostname, brick_path, force=False, session=None
     return is_gluster_vol_avail(vol_name, session)
 
 
-def glusterfs_mount(g_uri, mount_point):
+@error_context.context_aware
+def glusterfs_mount(g_uri, mount_point, session=None):
     """
     Mount gluster volume to mountpoint.
 
     :param g_uri: stripped gluster uri from create_gluster_uri(.., True)
     :type g_uri: str
+    :param mount_point: mount point, str
+    :session: mount within the session if given
     """
-    utils_misc.mount(g_uri, mount_point, "glusterfs", None,
-                     False, "fuse.glusterfs")
+    glusterfs_umount(g_uri, mount_point, session)
+    utils_disk.mount(g_uri, mount_point, "glusterfs", None,
+                     False, session)
+
+
+@error_context.context_aware
+def glusterfs_umount(g_uri, mount_point, session=None):
+    """
+    Umount gluster volume from mountpoint.
+
+    :param g_uri: stripped gluster uri from create_gluster_uri(.., True)
+    :type g_uri: str
+    :param mount_point: mount point, str
+    :session: mount within the session if given
+    """
+    utils_disk.umount(g_uri, mount_point, "fuse.glusterfs", False,
+                      session)
+
+
+@error_context.context_aware
+def glusterfs_is_mounted(g_uri, session=None):
+    """
+    Check mount status of gluster volume.
+
+    :param g_uri: stripped gluster uri from create_gluster_uri(.., True)
+    :type g_uri: str
+    :session: mount within the session if given
+    """
+    utils_disk.is_mount(g_uri, fstype="fuse.glusterfs", session=session)
 
 
 @error_context.context_aware
@@ -422,3 +456,56 @@ def gluster_nfs_disable(vol_name, session=None):
         output = decode_to_text(process.system_output(cmd2))
 
     return 'nfs.disable: on' in output
+
+
+def setup_or_cleanup_gluster(is_setup, vol_name, brick_path="", pool_name="",
+                             file_path="/etc/glusterfs/glusterd.vol", **kwargs):
+    """
+    Set up or clean up glusterfs environment on localhost or remote
+
+    :param is_setup: Boolean value, true for setup, false for cleanup
+    :param vol_name: gluster created volume name
+    :param brick_path: Dir for create glusterfs
+    :param kwargs: Other parameters that need to set for gluster
+    :return: ip_addr or nothing
+    """
+    try:
+        utils_path.find_command("gluster")
+    except utils_path.CmdNotFoundError:
+        raise exceptions.TestSkipError("Missing command 'gluster'")
+    if not brick_path:
+        tmpdir = data_dir.get_tmp_dir()
+        brick_path = os.path.join(tmpdir, pool_name)
+
+    # Check gluster server apply or not
+    ip_addr = kwargs.get("gluster_server_ip", "")
+    session = None
+    if ip_addr != "":
+        remote_user = kwargs.get("gluster_server_user")
+        remote_pwd = kwargs.get("gluster_server_pwd")
+        remote_identity_file = kwargs.get("gluster_identity_file")
+        session = remote.remote_login("ssh", ip_addr, "22",
+                                      remote_user, remote_pwd, "#",
+                                      identity_file=remote_identity_file)
+    if is_setup:
+        if ip_addr == "":
+            ip_addr = utils_net.get_host_ip_address()
+            add_rpc_insecure(file_path)
+            glusterd_start()
+            logging.debug("finish start gluster")
+            logging.debug("The contents of %s: \n%s", file_path, open(file_path).read())
+
+        gluster_vol_create(vol_name, ip_addr, brick_path, True, session)
+        gluster_allow_insecure(vol_name, session)
+        gluster_nfs_disable(vol_name, session)
+        logging.debug("finish vol create in gluster")
+        if session:
+            session.close()
+        return ip_addr
+    else:
+        gluster_vol_stop(vol_name, True, session)
+        gluster_vol_delete(vol_name, session)
+        gluster_brick_delete(brick_path, session)
+        if session:
+            session.close()
+        return ""
