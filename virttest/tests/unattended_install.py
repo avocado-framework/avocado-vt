@@ -1080,7 +1080,7 @@ class UnattendedInstallConfig(object):
             raise ValueError("Unexpected installation method %s" %
                              self.medium)
 
-        if self.unattended_file:
+        if self.unattended_file and not self.unattended_file.endswith('.preseed'):
             if self.floppy or self.cdrom_unattended:
                 self.setup_boot_disk()
                 if self.params.get("store_boot_disk") == "yes":
