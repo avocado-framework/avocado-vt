@@ -1183,9 +1183,11 @@ class UnattendedInstallConfig(object):
                 self.syslog_server_ip, self.syslog_server_port, self.syslog_server_tcp
             )
 
+        preseeded = False
         if self.medium in ["cdrom", "kernel_initrd"]:
             if self.kernel and self.initrd:
                 self.setup_cdrom()
+                preseeded = self.unattended_file.endswith(".preseed")
         elif self.medium == "url":
             self.setup_url()
         elif self.medium == "nfs":
@@ -1195,7 +1197,7 @@ class UnattendedInstallConfig(object):
         else:
             raise ValueError("Unexpected installation method %s" % self.medium)
 
-        if self.unattended_file:
+        if self.unattended_file and not preseeded:
             if self.floppy or self.cdrom_unattended:
                 self.setup_boot_disk()
                 if self.params.get("store_boot_disk") == "yes":
