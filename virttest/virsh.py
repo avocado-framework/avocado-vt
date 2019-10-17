@@ -1979,7 +1979,7 @@ def _pool_type_check(pool_type):
     :return: valid pool type or None
     """
     valid_types = ['dir', 'fs', 'netfs', 'disk', 'iscsi', 'logical',
-                   'gluster', 'rbd', 'scsi']
+                   'gluster', 'rbd', 'scsi', 'iscsi-direct']
 
     if pool_type and pool_type not in valid_types:
         logging.error("Specified pool type '%s' not in '%s'",
