@@ -879,8 +879,9 @@ class PoolVolumeTest(object):
                 if os.path.exists(pool_target):
                     shutil.rmtree(pool_target)
             if pool_type == "gluster" or source_format == 'glusterfs':
-                gluster.setup_or_cleanup_gluster(False, source_name,
-                                                 pool_name=pool_name, **kwargs)
+                if kwargs.get("remote_gluster_manage", "yes") == "yes":
+                    gluster.setup_or_cleanup_gluster(False, source_name,
+                                                     pool_name=pool_name, **kwargs)
 
     def pre_pool(self, pool_name, pool_type, pool_target, emulated_image,
                  **kwargs):
@@ -960,9 +961,11 @@ class PoolVolumeTest(object):
             if not os.path.exists(pool_target):
                 os.mkdir(pool_target)
             if source_format == 'glusterfs':
-                hostip = gluster.setup_or_cleanup_gluster(True, source_name,
-                                                          pool_name=pool_name,
-                                                          **kwargs)
+                hostip = kwargs.get("gluster_server_ip", "")
+                if kwargs.get("remote_gluster_manage", "yes") == "yes":
+                    hostip = gluster.setup_or_cleanup_gluster(True, source_name,
+                                                              pool_name=pool_name,
+                                                              **kwargs)
                 logging.debug("hostip is %s", hostip)
                 extra = "--source-host %s --source-path %s" % (hostip,
                                                                source_name)
