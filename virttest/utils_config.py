@@ -428,6 +428,7 @@ class LibvirtQemuConfig(LibvirtConfigCommon):
         'migration_port_min': 'int',
         'migration_port_max': 'int',
         'namespaces': 'list',
+        'vnc_tls_x509_secret_uuid': 'string',
     }
 
 
