@@ -6,6 +6,7 @@ http://libvirt.org/formatnwfilter.html#nwfconceptsvars
 """
 
 from virttest.libvirt_xml import accessors
+from virttest.libvirt_xml import xcepts
 from virttest.libvirt_xml.devices import base, librarian
 
 
@@ -14,7 +15,7 @@ class Interface(base.TypedDeviceBase):
     __slots__ = ('source', 'hostdev_address', 'managed', 'mac_address',
                  'bandwidth', 'model', 'coalesce', 'link_state', 'target', 'driver',
                  'address', 'boot', 'rom', 'mtu', 'filterref', 'backend',
-                 'virtualport_type', 'alias')
+                 'virtualport_type', 'alias', "ips")
 
     def __init__(self, type_name, virsh_instance=base.base.virsh):
         super(Interface, self).__init__(device_tag='interface',
@@ -110,10 +111,38 @@ class Interface(base.TypedDeviceBase):
                                tag_name='virtualport', attribute='type')
         accessors.XMLElementDict('alias', self, parent_xpath='/',
                                  tag_name='alias')
+        accessors.XMLElementList(property_name='ips',
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/',
+                                 marshal_from=self.marshal_from_ips,
+                                 marshal_to=self.marshal_to_ips)
+
     # For convenience
     Address = librarian.get('address')
 
     Filterref = librarian.get('filterref')
+
+    @staticmethod
+    def marshal_from_ips(item, index, libvirtxml):
+        """Convert an Address instance into tag + attributes"""
+        """Convert a dictionary into a tag + attributes"""
+        del index           # not used
+        del libvirtxml      # not used
+        if not isinstance(item, dict):
+            raise xcepts.LibvirtXMLError("Expected a dictionary of ip"
+                                         "attributes, not a %s"
+                                         % str(item))
+        return ('ip', dict(item))  # return copy of dict, not reference
+
+    @staticmethod
+    def marshal_to_ips(tag, attr_dict, index, libvirtxml):
+        """Convert a tag + attributes into an Address instance """
+        del index                    # not used
+        del libvirtxml               # not used
+        if not tag == 'ip':
+            return None              # skip this one
+        return dict(attr_dict)       # return copy of dict, not reference
 
     def new_bandwidth(self, **dargs):
         """
