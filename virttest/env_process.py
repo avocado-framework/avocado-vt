@@ -47,6 +47,7 @@ from virttest import utils_test
 from virttest import utils_iptables
 from virttest import utils_package
 from virttest import utils_qemu
+from virttest.utils_kernel_module import KernelModuleHandler
 from virttest.utils_version import VersionInterval
 from virttest.compat_52lts import decode_to_text
 from virttest.staging import service
@@ -79,6 +80,8 @@ preprocess_vm_on_hook = None
 postprocess_vm_on_hook = None
 postprocess_vm_off_hook = None
 
+#: File to serialize kvm module handler into if required.
+KVM_MODULE_HANDLER_FILE = "/tmp/kvm_module_handler"
 
 #: QEMU version regex.  Attempts to extract the simple and extended version
 #: information from the output produced by `qemu -version`
@@ -1046,6 +1049,19 @@ def preprocess(test, params, env):
                 if cpu_driver:
                     env["cpu_driver"] = cpu_driver[0]
                     params["cpu_driver"] = env.get("cpu_driver")
+
+    kvm_module_handler_file = KVM_MODULE_HANDLER_FILE
+    kvm_module_params = params.get("kvm_module_parameters", "DEFAULT")
+    should_modify_kvm_module_params = kvm_module_params != "DEFAULT"
+    already_modified_kvm_module_params = os.path.isfile(kvm_module_handler_file)
+
+    if should_modify_kvm_module_params or already_modified_kvm_module_params:
+        kvm_module_handler = KernelModuleHandler('kvm', kvm_module_handler_file)
+        if kvm_module_params == "DEFAULT":
+            kvm_module_handler.restore()
+        else:
+            kvm_module_force = params.get("kvm_module_force_load", "no") == "yes"
+            kvm_module_handler.load_module(force=kvm_module_force, params=kvm_module_params)
 
     version_info = {}
     # Get the KVM kernel module version

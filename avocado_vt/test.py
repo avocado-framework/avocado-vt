@@ -37,6 +37,7 @@ from virttest import data_dir
 from virttest import env_process
 from virttest import funcatexit
 from virttest import utils_env
+from virttest import utils_kernel_module
 from virttest import utils_params
 from virttest import utils_misc
 from virttest import version
@@ -70,8 +71,23 @@ def cleanup_env(env_filename, env_version):
     """
     Pickable function to initialize and destroy the virttest env
     """
+    try_restore_kvm_module_parameters()
     env = utils_env.Env(env_filename, env_version)
     env.destroy()
+
+
+def try_restore_kvm_module_parameters():
+    """Restores original kvm module parameters if modified by last test"""
+
+    try:
+        kvm_module_handler_file = env_process.KVM_MODULE_HANDLER_FILE
+        if os.path.isfile(kvm_module_handler_file):
+            utils_kernel_module.\
+                KernelModuleHandler("kvm", kvm_module_handler_file).restore()
+    except Exception as e:
+        logging.warning("Couldn't restore kvm module configuration."
+                        " You can try to do this manually from %s."
+                        " Error was: %s" % (kvm_module_handler_file, e))
 
 
 class VirtTest(test.Test):
