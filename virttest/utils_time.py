@@ -1,6 +1,7 @@
 import logging
 import re
 
+from avocado.utils import path
 from avocado.utils import process
 from avocado.core import exceptions
 
@@ -8,15 +9,17 @@ from virttest import error_context
 from virttest import utils_test
 from virttest.compat_52lts import decode_to_text
 
+# command `grep --color` may have alias name `grep` in some systems,
+# so get explicit command 'grep' with path
+grep_binary = path.find_command("grep")
+
 
 @error_context.context_aware
 def get_host_timezone():
     """
     Get host's timezone
     """
-    # command `grep --color` may have alias name `grep` in some systems,
-    # so get explicit command 'grep' with path
-    timezone_cmd = 'timedatectl | /usr/bin/grep "Time zone"'
+    timezone_cmd = 'timedatectl | %s "Time zone"' % grep_binary
     timezone_pattern = '^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$'
     error_context.context("Get host's timezone", logging.info)
     host_timezone = decode_to_text(
@@ -37,7 +40,7 @@ def verify_timezone_linux(session):
     :param session: VM session
     """
     error_context.context("Verify guest's timezone", logging.info)
-    timezone_cmd = 'timedatectl | /usr/bin/grep "Time zone"'
+    timezone_cmd = 'timedatectl | %s "Time zone"' % grep_binary
     timezone_pattern = '(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)'
     guest_timezone = session.cmd_output_safe(timezone_cmd, timeout=240)
     try:
@@ -212,7 +215,7 @@ def is_ntp_enabled(session):
     """
     Get current NTP state for guest/host
     """
-    cmd = 'timedatectl | /usr/bin/grep "NTP enabled"'
+    cmd = 'timedatectl | %s "NTP enabled"' % grep_binary
     return 'yes' in execute(cmd, session=session).split(":")[1].strip()
 
 
