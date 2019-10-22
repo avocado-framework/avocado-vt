@@ -542,6 +542,8 @@ class VM(virt_vm.BaseVM):
                 smp_str += ",maxcpus=%d" % self.cpuinfo.maxcpus
             smp_str += ",cores=%d" % self.cpuinfo.cores
             smp_str += ",threads=%d" % self.cpuinfo.threads
+            if self.cpuinfo.dies != 0:
+                smp_str += ",dies=%d" % self.cpuinfo.dies
             smp_str += ",sockets=%d" % self.cpuinfo.sockets
             return smp_str
 
@@ -1840,12 +1842,21 @@ class VM(virt_vm.BaseVM):
 
         # Add Memory devices
         add_memorys(devices, params)
-        smp = int(params.get("smp", 0))
         mem = int(params.get("mem", 0))
-        vcpu_maxcpus = int(params.get("vcpu_maxcpus", 0))
-        vcpu_sockets = int(params.get("vcpu_sockets", 0))
-        vcpu_cores = int(params.get("vcpu_cores", 0))
-        vcpu_threads = int(params.get("vcpu_threads", 0))
+
+        # Add smp
+        smp = params.get_numeric('smp')
+        vcpu_maxcpus = params.get_numeric("vcpu_maxcpus")
+        vcpu_sockets = params.get_numeric("vcpu_sockets")
+        vcpu_cores = params.get_numeric("vcpu_cores")
+        vcpu_threads = params.get_numeric("vcpu_threads")
+        vcpu_dies = params.get("vcpu_dies", 0)
+        enable_dies = vcpu_dies != "INVALID" and Flags.SMP_DIES in devices.caps
+        if not enable_dies:
+            # Set dies=1 when computing missing values
+            vcpu_dies = 1
+        # PC target support SMP 'dies' parameter since qemu 4.1
+        vcpu_dies = int(vcpu_dies)
 
         # Some versions of windows don't support more than 2 sockets of cpu,
         # here is a workaround to make all windows use only 2 sockets.
@@ -1864,28 +1875,35 @@ class VM(virt_vm.BaseVM):
                 logging.warn(txt)
 
         if smp == 0 or vcpu_sockets == 0:
+            vcpu_dies = vcpu_dies or 1
             vcpu_cores = vcpu_cores or 1
             vcpu_threads = vcpu_threads or 1
-            if smp and vcpu_sockets == 0:
-                vcpu_sockets = int(smp / (vcpu_cores * vcpu_threads)) or 1
-            else:
-                vcpu_sockets = vcpu_sockets or 1
             if smp == 0:
-                smp = vcpu_cores * vcpu_threads * vcpu_sockets
-        else:
-            if vcpu_cores == 0:
-                vcpu_threads = vcpu_threads or 1
-                vcpu_cores = int(smp / (vcpu_sockets * vcpu_threads)) or 1
+                vcpu_sockets = vcpu_sockets or 1
+                smp = vcpu_cores * vcpu_threads * vcpu_dies * vcpu_sockets
             else:
-                vcpu_threads = int(smp / (vcpu_cores * vcpu_sockets)) or 1
+                vcpu_sockets = smp // (vcpu_cores * vcpu_threads * vcpu_dies) or 1
+        elif vcpu_dies == 0:
+            vcpu_cores = vcpu_cores or 1
+            vcpu_threads = vcpu_threads or 1
+            vcpu_dies = smp // (vcpu_sockets * vcpu_cores * vcpu_threads) or 1
+        elif vcpu_cores == 0:
+            vcpu_threads = vcpu_threads or 1
+            vcpu_cores = smp // (vcpu_sockets * vcpu_threads * vcpu_dies) or 1
+        else:
+            vcpu_threads = smp // (vcpu_cores * vcpu_sockets * vcpu_dies) or 1
+        vcpu_maxcpus = vcpu_maxcpus or smp
 
         self.cpuinfo.smp = smp
-        self.cpuinfo.maxcpus = vcpu_maxcpus or smp
+        self.cpuinfo.maxcpus = vcpu_maxcpus
         self.cpuinfo.cores = vcpu_cores
         self.cpuinfo.threads = vcpu_threads
         self.cpuinfo.sockets = vcpu_sockets
+        if enable_dies:
+            self.cpuinfo.dies = vcpu_dies
         devices.insert(StrDev('smp', cmdline=add_smp(devices)))
 
+        # Add numa nodes
         numa_total_cpus = 0
         numa_total_mem = 0
         for numa_node in params.objects("guest_numa_nodes"):
@@ -1913,6 +1931,7 @@ class VM(virt_vm.BaseVM):
                 raise virt_vm.VMDeviceError("The numa node cfg can not fit"
                                             " smp and memory cfg.")
 
+        # Add cpu model
         cpu_model = params.get("cpu_model")
         use_default_cpu_model = True
         if cpu_model:

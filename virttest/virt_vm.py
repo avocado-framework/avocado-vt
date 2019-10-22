@@ -459,17 +459,18 @@ class CpuInfo(object):
     """
 
     def __init__(self, model=None, vendor=None, flags=None, family=None,
-                 smp=0, maxcpus=0, sockets=0, cores=0, threads=0):
+                 smp=0, maxcpus=0, cores=0, threads=0, dies=0, sockets=0):
         """
         :param model: CPU Model of VM (use 'qemu -cpu ?' for list)
         :param vendor: CPU Vendor of VM
         :param flags: CPU Flags of VM
-        :param flags: CPU Family of VM
+        :param family: CPU Family of VM
         :param smp: set the number of CPUs to 'n' [default=1]
         :param maxcpus: maximum number of total cpus, including
                         offline CPUs for hotplug, etc
-        :param cores: number of CPU cores on one socket
+        :param cores: number of CPU cores on one socket (for PC, it's on one die)
         :param threads: number of threads on one CPU core
+        :param dies: number of CPU dies on one socket (for PC only)
         :param sockets: number of discrete sockets in the system
         """
         self.model = model
@@ -478,9 +479,10 @@ class CpuInfo(object):
         self.family = family
         self.smp = smp
         self.maxcpus = maxcpus
-        self.sockets = sockets
         self.cores = cores
         self.threads = threads
+        self.dies = dies
+        self.sockets = sockets
 
 
 def session_handler(func):
