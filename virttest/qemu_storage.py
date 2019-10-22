@@ -156,6 +156,7 @@ class QemuImg(storage.QemuImg):
         "resize_shrink": "--shrink",
         "convert_compressed": "-c",
         "cache_mode": "-t",
+        "source_cache_mode": "-T",
         "target_image_format": "-O",
         "convert_sparse_size": "-S",
         "commit_drop": "-d",
@@ -167,9 +168,9 @@ class QemuImg(storage.QemuImg):
                  "{output_format} {check_repair} {force_share!b} "
                  "{image_filename}")
     convert_cmd = ("convert {secret_object} {convert_compressed!b} "
-                   "{image_format} {cache_mode} {target_image_format} "
-                   "{options} {convert_sparse_size} {image_filename} "
-                   "{target_image_filename}")
+                   "{image_format} {cache_mode} {source_cache_mode} "
+                   "{target_image_format} {options} {convert_sparse_size} "
+                   "{image_filename} {target_image_filename}")
     commit_cmd = ("commit {secret_object} {image_format} {cache_mode} "
                   "{backing_file} {commit_drop!b} {image_filename}")
     resize_cmd = ("resize {secret_object} {image_opts} {resize_shrink!b} "
@@ -351,7 +352,8 @@ class QemuImg(storage.QemuImg):
         cmd_result.stderr = results_stderr_52lts(cmd_result)
         return self.image_filename, cmd_result
 
-    def convert(self, params, root_dir, cache_mode=None):
+    def convert(self, params, root_dir, cache_mode=None,
+                source_cache_mode=None):
         """
         Convert image
 
@@ -361,7 +363,7 @@ class QemuImg(storage.QemuImg):
                            Valid options are: ``none``, ``writeback``
                            (default), ``writethrough``, ``directsync`` and
                            ``unsafe``.
-
+        :param source_cache_mode: the cache mode used with source image file
         :note: params should contain:
             convert_target
                 the convert target image tag
@@ -386,6 +388,7 @@ class QemuImg(storage.QemuImg):
             "target_image_format": convert_image.image_format,
             "target_image_filename": convert_image.image_filename,
             "cache_mode": cache_mode,
+            "source_cache_mode": source_cache_mode,
         }
 
         options = convert_image._parse_options(convert_params)
