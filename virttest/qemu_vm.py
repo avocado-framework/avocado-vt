@@ -1915,7 +1915,7 @@ class VM(virt_vm.BaseVM):
             if numa_mem is not None:
                 numa_total_mem += int(numa_mem)
             if numa_cpus is not None:
-                numa_total_cpus += len(cpu.cpu_str_to_list(numa_cpus))
+                numa_total_cpus += len(utils_misc.cpu_str_to_list(numa_cpus))
             cmdline = add_numa_node(devices, numa_memdev,
                                     numa_mem, numa_cpus, numa_nodeid)
             devices.insert(StrDev('numa', cmdline=cmdline))
