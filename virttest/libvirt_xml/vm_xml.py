@@ -2221,7 +2221,8 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                  'hyperv_tlbflush_state', 'hyperv_frequencies_state',
                  'hyperv_reenlightenment_state', 'hyperv_vpindex_state',
                  'kvm_hidden_state', 'pvspinlock_state', 'smm', 'hpt',
-                 'htm', 'smm_tseg_unit', 'smm_tseg', 'nested_hv')
+                 'htm', 'smm_tseg_unit', 'smm_tseg', 'nested_hv',
+                 'pmu')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLAttribute(property_name='hyperv_relaxed_state',
@@ -2302,6 +2303,11 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                                libvirtxml=self,
                                parent_xpath='/',
                                tag_name='htm',
+                               attribute='state')
+        accessors.XMLAttribute(property_name='pmu',
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='pmu',
                                attribute='state')
         accessors.AllForbidden(property_name="feature_list",
                                libvirtxml=self)
