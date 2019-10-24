@@ -1690,7 +1690,7 @@ class VM(virt_vm.BaseVM):
             self.serial_session_device = serials[0]
             host = params.get('chardev_host', '127.0.0.1')
             free_ports = utils_misc.find_free_ports(
-                5000, 6000, len(serials), host)
+                5000, 5899, len(serials), host)
             reg_count = 0
         for index, serial in enumerate(serials):
             serial_filename = vm.get_serial_console_filename(serial)
@@ -2619,7 +2619,7 @@ class VM(virt_vm.BaseVM):
             # Handle port redirections
             redir_names = params.objects("redirs")
             host_ports = utils_misc.find_free_ports(
-                5000, 6000, len(redir_names))
+                5000, 5899, len(redir_names))
 
             old_redirs = {}
             if self.redirs:
@@ -2785,7 +2785,7 @@ class VM(virt_vm.BaseVM):
 
             # Add migration parameters if required
             if migration_mode in ["tcp", "rdma", "x-rdma"]:
-                self.migration_port = utils_misc.find_free_port(5200, 6000)
+                self.migration_port = utils_misc.find_free_port(5200, 5899)
                 qemu_command += (" -incoming " + migration_mode +
                                  ":0:%d" % self.migration_port)
             elif migration_mode == "unix":
@@ -2795,7 +2795,7 @@ class VM(virt_vm.BaseVM):
                 qemu_command += " -incoming unix:%s" % self.migration_file
             elif migration_mode == "exec":
                 if migration_exec_cmd is None:
-                    self.migration_port = utils_misc.find_free_port(5200, 6000)
+                    self.migration_port = utils_misc.find_free_port(5200, 5899)
                     # check whether ip version supported by nc
                     if process.system("nc -h | grep -E '\-4 | \-6'",
                                       shell=True, ignore_status=True) == 0:
