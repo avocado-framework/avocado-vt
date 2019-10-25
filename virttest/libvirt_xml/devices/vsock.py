@@ -23,6 +23,7 @@ class Vsock(base.UntypedDeviceBase):
         accessors.XMLElementNest('address', self, parent_xpath='/',
                                  tag_name='address', subclass=self.Address,
                                  subclass_dargs={
+                                     'type_name': 'pci',
                                      'virsh_instance': virsh_instance})
         accessors.XMLElementDict('alias', self,
                                  parent_xpath='/',
