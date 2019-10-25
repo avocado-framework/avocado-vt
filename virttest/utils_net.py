@@ -1542,6 +1542,23 @@ def set_guest_ip_addr(session, mac, ip_addr,
         raise IPAddrSetError(mac, ip_addr, err)
 
 
+def get_guest_nameserver(session):
+    """
+    Get guest nameserver from serial session for linux guest
+
+    :param session: serial session
+    :return: return nameserver
+    """
+    cmd = "cat /etc/resolv.conf  | grep nameserver"
+    output = None
+    try:
+        output = session.cmd_output(cmd).strip()
+        logging.debug("Guest name server is %s" % output)
+    except (aexpect.ShellError, aexpect.ShellTimeoutError):
+        logging.error("Failed to get the guest's nameserver")
+    return output
+
+
 def restart_guest_network(session, mac_addr=None, os_type="linux",
                           ip_version="ipv4", timeout=240):
     """
@@ -3407,7 +3424,7 @@ def get_host_ip_address(params=None, ip_ver="ipv4", linklocal=False):
             return host_ip
         net_dev = params.get("netdst")
     if not net_dev:
-        net_dev = get_host_default_gateway(iface_name=True)
+        net_dev = get_default_gateway(iface_name=True)
     logging.warning("No IP address of host was provided, using IP address"
                     " on %s interface", net_dev)
     return get_ip_address_by_interface(net_dev, ip_ver, linklocal)
@@ -3748,13 +3765,13 @@ def get_host_iface():
     return [_.strip() for _ in re.findall("(.*):", host_iface_info)]
 
 
-def get_host_default_gateway(iface_name=False):
+def get_default_gateway(iface_name=False, session=None):
     """
-    Get the Default Gateway or Interface of host.
+    Get the Default Gateway or Interface of host or guest.
 
     :param iface_name: Whether default interface (True), or default gateway
                        (False) is returned.
-    :return: A string of the host's default gateway or interface.
+    :return: A string of the host's or guest's default gateway or interface.
     :rtype: string
     """
     if iface_name:
@@ -3762,9 +3779,13 @@ def get_host_default_gateway(iface_name=False):
     else:
         cmd = "ip route | awk '/default/ { print $3 }'"
     try:
-        output = decode_to_text(process.system_output(cmd, shell=True).rstrip())
-    except process.CmdError:
-        logging.error("Failed to get the host's default GateWay")
+        if session:
+            output = session.cmd_output(cmd).strip()
+            logging.debug("Guest default gateway is %s" % output)
+        else:
+            output = decode_to_text(process.system_output(cmd, shell=True).rstrip())
+    except (aexpect.ShellError, aexpect.ShellTimeoutError, process.CmdError):
+        logging.error("Failed to get the default GateWay")
         return None
     return output
 
