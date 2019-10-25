@@ -8,6 +8,7 @@ import os
 import re
 import time
 import logging
+import random
 
 from avocado.utils import path
 from avocado.utils import process
@@ -16,6 +17,7 @@ from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, de
 
 from virttest import ovirt
 from virttest.utils_test import libvirt
+from virttest.libvirt_xml import vm_xml
 from virttest import libvirt_vm as lvirt
 from virttest import virsh
 from virttest import ppm_utils
@@ -165,6 +167,11 @@ class Target(object):
         self.username = self.params.get('username', 'root')
         self.vmx_nfs_src = self.params.get('vmx_nfs_src')
         self.has_genid = self.params.get('has_genid')
+        # --mac arguments with format as v2v, multiple macs can be
+        # sperated by ';'.
+        self.iface_macs = self.params.get('iface_macs')
+        # '_iface_list' is set automatically, Users should not use it.
+        self._iface_list = self.params.get('_iface_list')
         self.net_vm_opts = ""
 
         def _compose_vmx_filename():
@@ -241,11 +248,40 @@ class Target(object):
             options += input_transport_args[self.input_transport]
             return options
 
-        if self.bridge:
-            self.net_vm_opts += " -b %s" % self.bridge
+        supported_mac = v2v_supported_option('--mac')
+        if supported_mac:
+            if self.iface_macs:
+                for mac_i in self.iface_macs.split(';'):
+                    # [mac, net_type, net], e.x. ['xx:xx:xx:xx:xx:xx', 'bridge', 'virbr0']
+                    mac_i_list = mac_i.rsplit(':', 2)
+                    # Just warning invalid values in case for negative testing
+                    if len(mac_i_list) != 3 or mac_i_list[1] not in [
+                            'bridge', 'network']:
+                        logging.warning(
+                            "Invalid value for --mac '%s'" %
+                            mac_i_list)
+                    mac, net_type, netname = mac_i_list
+                    self.net_vm_opts += " --mac %s:%s:%s" % (
+                        mac, net_type, netname)
+            else:
+                logging.info("auto set --mac option")
+                for mac, _ in self._iface_list:
+                    # Randomly cover both 'bridge' and 'network' even thought there is no
+                    # difference.
+                    if random.choice(['bridge', 'network']) is 'network':
+                        self.net_vm_opts += " --mac %s:%s:%s" % (
+                            mac, 'network', self.network)
+                    else:
+                        self.net_vm_opts += " --mac %s:%s:%s" % (
+                            mac, 'bridge', self.bridge)
 
-        if self.network:
-            self.net_vm_opts += " -n %s" % self.network
+        if not self.net_vm_opts:
+            if supported_mac:
+                logging.warning("auto set --mac failed, roll back to -b/-n")
+            if self.bridge:
+                self.net_vm_opts += " -b %s" % self.bridge
+            if self.network:
+                self.net_vm_opts += " -n %s" % self.network
 
         if self.input_mode != 'vmx':
             self.net_vm_opts += " %s" % self.vm_name
@@ -837,7 +873,7 @@ class WindowsVMCheck(VMCheck):
         https://www.tenforums.com/tutorials/85195-check-if-windows-10-using-uefi-legacy-bios.html
         """
         search_str = "Detected boot environment"
-        target_file = "c:\Windows\Panther\setupact.log"
+        target_file = r"c:\Windows\Panther\setupact.log"
         cmd = 'findstr /c:"%s" %s' % (search_str, target_file)
         status, output = self.run_cmd(cmd)
         if 'BIOS' in output:
@@ -857,6 +893,27 @@ def v2v_cmd(params):
                     'target', 'hypervisor' and 'hostname', etc.
     :return: A CmdResult object
     """
+    def _v2v_pre_cmd():
+        """
+        Preprocess before running v2v cmd, such as starting VM for warm convertion,
+        create virsh instance, etc.
+        """
+        # Cannot get mac address in 'ova' mode
+        if input_mode != 'ova':
+            v2v_virsh = create_virsh_instance(
+                hypervisor, uri, hostname, username, password)
+            iface_info = get_all_ifaces_info(vm_name, v2v_virsh)
+            # For v2v option '--mac', this is automatically generated.
+            params['_iface_list'] = iface_info
+        else:
+            params['_iface_list'] = ''
+
+    def _v2v_post_cmd():
+        """
+        Postprocess after running v2v cmd
+        """
+        close_virsh_instance(v2v_virsh)
+
     if V2V_EXEC is None:
         raise ValueError('Missing command: virt-v2v')
 
@@ -874,12 +931,23 @@ def v2v_cmd(params):
     # really happens, CI will still interrupt the v2v process.
     v2v_timeout = params.get('v2v_timeout', 10800)
     rhv_upload_opts = params.get('rhv_upload_opts')
+    # username and password of remote hypervisor server
+    username = params.get('username', 'root')
+    password = params.get('password')
+    vm_name = params.get('main_vm')
+    input_mode = params.get('input_mode')
+    # virsh instance of remote hypervisor
+    v2v_virsh = None
 
     uri_obj = Uri(hypervisor)
+
     # Return actual 'uri' according to 'hostname' and 'hypervisor'
     if src_uri_type == 'esx':
         vpx_dc = None
     uri = uri_obj.get_uri(hostname, vpx_dc, esxi_host)
+
+    # Pre-process for v2v
+    _v2v_pre_cmd()
 
     target_obj = Target(target, uri)
     try:
@@ -894,10 +962,16 @@ def v2v_cmd(params):
 
         # Construct a final virt-v2v command
         cmd = '%s %s' % (V2V_EXEC, options)
+        # Old v2v version doesn't support '-ip' option
+        if not v2v_supported_option("-ip <filename>"):
+            cmd = cmd.replace('-ip', '--password-file', 1)
         cmd_result = process.run(cmd, timeout=v2v_timeout,
                                  verbose=True, ignore_status=True)
     finally:
         target_obj.cleanup()
+
+    # Post-process for v2v
+    _v2v_post_cmd()
 
     cmd_result.stdout = results_stdout_52lts(cmd_result)
     cmd_result.stderr = results_stderr_52lts(cmd_result)
@@ -1125,3 +1199,80 @@ def v2v_mount(src, dst='v2v_mount_point'):
             (src, mount_point))
 
     return mount_point
+
+
+def create_virsh_instance(
+        hypervisor,
+        uri,
+        remote_ip,
+        remote_user,
+        remote_pwd,
+        debug=True):
+    """
+    Create a virsh instance for all hypervisors(VMWARE, XEN, KVM)
+
+    :param hypervisor: a hypervisor type
+    :param uri: uri of libvirt instance to connect to
+    :param remote_ip: Hostname/IP of remote system to ssh into (if any)
+    :param remote_user: Username to ssh in as (if any)
+    :param remote_pwd: Password to use, or None for host/pubkey
+    :param debug: Whether to enable debug
+    """
+    logging.debug("virsh connection info: uri=%s ip=%s", uri, remote_ip)
+    if hypervisor == 'kvm':
+        v2v_virsh = virsh
+    else:
+        virsh_dargs = {'uri': uri,
+                       'remote_ip': remote_ip,
+                       'remote_user': remote_user,
+                       'remote_pwd': remote_pwd,
+                       'debug': debug}
+        v2v_virsh = virsh.VirshPersistent(**virsh_dargs)
+    return v2v_virsh
+
+
+def close_virsh_instance(virsh_instance=None):
+    """
+    Close a virsh instance
+
+    :param v2v_virsh_instance: a virsh instance
+    """
+
+    if virsh_instance:
+        virsh_instance.close_session()
+
+
+def get_all_ifaces_info(vm_name, virsh_instance):
+    """
+    Get all interfaces' information
+
+    :param vm_name: vm's name
+    :param v2v_virsh_instance: a virsh instance
+    """
+    vmxml = vm_xml.VMXML.new_from_dumpxml(
+        vm_name, virsh_instance=virsh_instance)
+    interfaces = vmxml.get_iface_all()
+    if len(interfaces.keys()) == 0:
+        raise exceptions.TestError("Not found mac address for vm %s" % vm_name)
+
+    # vm_ifaces = [(mac, type), ...]
+    vm_ifaces = []
+    for mac, iface in interfaces.items():
+        vm_ifaces.append((mac, iface.get('type')))
+
+    logging.debug("Iface information for vm %s: %s", vm_name, vm_ifaces)
+    return vm_ifaces
+
+
+def v2v_supported_option(opt_str):
+    """
+    Check if an cmd option is supported by v2v
+
+    :param opt_str: option string for checking
+    """
+    cmd = 'virt-v2v --help'
+    result = process.run(cmd, verbose=True, ignore_status=True)
+    result.stdout = results_stdout_52lts(result)
+    if re.search(r'%s' % opt_str, result.stdout):
+        return True
+    return False
