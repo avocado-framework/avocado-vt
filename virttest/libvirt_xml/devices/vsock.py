@@ -31,4 +31,14 @@ class Vsock(base.UntypedDeviceBase):
         super(Vsock, self).__init__(device_tag='vsock',
                                     virsh_instance=virsh_instance)
         self.xml = '<vsock/>'
+
     Address = librarian.get('address')
+
+    def new_vsock_address(self, **dargs):
+        """
+        Return a new interface Address instance and set properties from dargs
+        """
+        new_one = self.Address("pci", virsh_instance=self.virsh)
+        for key, value in list(dargs.items()):
+            setattr(new_one, key, value)
+        return new_one
