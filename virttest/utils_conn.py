@@ -663,7 +663,8 @@ class TCPConnection(ConnectionBase):
     """
     __slots__ = ('tcp_port', 'remote_syslibvirtd', 'sasl_type',
                  'remote_libvirtdconf', 'sasl_allowed_users',
-                 'auth_tcp', 'listen_addr', 'remote_saslconf')
+                 'auth_tcp', 'listen_addr', 'remote_saslconf',
+                 'remote_libvirtd_tcp_socket')
 
     def __init__(self, *args, **dargs):
         """
@@ -699,6 +700,14 @@ class TCPConnection(ConnectionBase):
             port='22',
             remote_path='/etc/libvirt/libvirtd.conf')
 
+        self.remote_libvirtd_tcp_socket = remote.RemoteFile(
+            address=self.server_ip,
+            client='scp',
+            username=self.server_user,
+            password=self.server_pwd,
+            port='22',
+            remote_path='/usr/lib/systemd/system/libvirtd-tcp.socket')
+
         self.remote_saslconf = remote.RemoteFile(
             address=self.server_ip,
             client='scp',
@@ -723,6 +732,8 @@ class TCPConnection(ConnectionBase):
         del self.remote_syslibvirtd
         del self.remote_libvirtdconf
         del self.remote_saslconf
+        del self.remote_libvirtd_tcp_socket
+
         # restart libvirtd service on server
         try:
             session = remote.wait_for_login('ssh', server_ip, '22',
@@ -747,7 +758,9 @@ class TCPConnection(ConnectionBase):
         (1).initialization for variables.
         (2).edit /etc/sysconfig/libvirtd on server.
         (3).edit /etc/libvirt/libvirtd.conf on server.
-        (4).restart libvirtd service on server.
+        (4).edit /usr/lib/systemd/system/libvirtd-tcp.socket on server for
+            libvirt >= 5.6.
+        (5).restart libvirtd service on server.
         """
         # initialize variables
         server_ip = self.server_ip
@@ -755,6 +768,7 @@ class TCPConnection(ConnectionBase):
         server_pwd = self.server_pwd
         tcp_port = self.tcp_port
         auth_tcp = self.auth_tcp
+        server_session = self.server_session
         # require a list data type
         sasl_allowed_users = self.sasl_allowed_users
         listen_addr = self.listen_addr
@@ -790,6 +804,10 @@ class TCPConnection(ConnectionBase):
                            "mech_list: %s" % self.sasl_type,
                            r".*keytab\s*:\s*.*": keytab}
         self.remote_saslconf.sub_else_add(pattern_to_repl)
+
+        if tcp_port != '16509' and libvirt_version.version_compare(5, 6, 0, server_session):
+            pattern_to_repl = {r".*ListenStream\s*=.*": 'ListenStream=%s' % (tcp_port)}
+            self.remote_libvirtd_tcp_socket.sub_else_add(pattern_to_repl)
 
         # restart libvirtd service on server
         try:
@@ -846,7 +864,8 @@ class TLSConnection(ConnectionBase):
                  'ca_cakey_path', 'scp_new_cacert', 'restart_libvirtd',
                  'client_libvirtdconf', 'client_syslibvirtd', 'server_hosts',
                  'credential_dict', 'qemu_tls', 'qemu_chardev_tls',
-                 'server_saslconf', 'server_qemuconf', 'client_qemuconf')
+                 'server_saslconf', 'server_qemuconf', 'client_qemuconf',
+                 'server_libvirtd_tls_socket', 'client_libvirtd_tls_socket')
 
     def __init__(self, *args, **dargs):
         """
@@ -983,6 +1002,22 @@ class TLSConnection(ConnectionBase):
             port='22',
             remote_path='/etc/libvirt/libvirtd.conf')
 
+        self.client_libvirtd_tls_socket = remote.RemoteFile(
+            address=self.client_ip,
+            client='scp',
+            username=self.client_user,
+            password=self.client_pwd,
+            port='22',
+            remote_path='/usr/lib/systemd/system/libvirtd-tls.socket')
+
+        self.server_libvirtd_tls_socket = remote.RemoteFile(
+            address=self.server_ip,
+            client='scp',
+            username=self.server_user,
+            password=self.server_pwd,
+            port='22',
+            remote_path='/usr/lib/systemd/system/libvirtd-tls.socket')
+
     def conn_recover(self):
         """
         Do the clean up work.
@@ -1009,6 +1044,8 @@ class TLSConnection(ConnectionBase):
         del self.client_syslibvirtd
         del self.client_libvirtdconf
         del self.client_qemuconf
+        del self.server_libvirtd_tls_socket
+        del self.client_libvirtd_tls_socket
 
         # restart libvirtd service on server
         try:
@@ -1190,10 +1227,12 @@ class TLSConnection(ConnectionBase):
         if on_local:
             operate_libvirtdconf = self.client_libvirtdconf
             operate_syslibvirtd = self.client_syslibvirtd
+            operate_libvirtd_tls_socket = self.client_libvirtd_tls_socket
             operate_qemuconf = self.server_qemuconf
         else:
             operate_libvirtdconf = self.server_libvirtdconf
             operate_syslibvirtd = self.server_syslibvirtd
+            operate_libvirtd_tls_socket = self.server_libvirtd_tls_socket
             operate_qemuconf = self.client_qemuconf
 
         # Change qemu conf file to support tls for chardev
@@ -1230,8 +1269,12 @@ class TLSConnection(ConnectionBase):
 
         # edit the /etc/libvirt/libvirtd.conf to add tls_port=$tls_port
         if tls_port != '16514':
-            pattern_to_repl = {r".*tls_port\s*=\s*.*": 'tls_port="%s"' % tls_port}
-            operate_libvirtdconf.sub_else_add(pattern_to_repl)
+            if libvirt_version.version_compare(5, 6, 0, server_session):
+                pattern_to_repl = {r".*ListenStream\s*=\s*.*": 'ListenStream=%s' % tls_port}
+                operate_libvirtd_tls_socket.sub_else_add(pattern_to_repl)
+            else:
+                pattern_to_repl = {r".*tls_port\s*=\s*.*": 'tls_port="%s"' % tls_port}
+                operate_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add
         # tls_allowed_dn_list=$tls_allowed_dn_list
@@ -1536,8 +1579,8 @@ class UNIXConnection(ConnectionBase):
                  'unix_sock_rw_perms', 'access_drivers',
                  'client_ip', 'client_user', 'client_pwd',
                  'client_libvirtdconf', 'restart_libvirtd',
-                 'client_saslconf', 'client_hosts', 'sasl_type',
-                 'sasl_allowed_username_list')
+                 'client_saslconf', 'client_hosts', 'sasl_type', 'libvirt_ver',
+                 'sasl_allowed_username_list', 'client_libvirtd_socket')
 
     def __init__(self, *args, **dargs):
         """
@@ -1578,6 +1621,11 @@ class UNIXConnection(ConnectionBase):
 
         super(UNIXConnection, self).__init__(init_dict)
 
+        # Unable to get libvirt verion via libvirt_version.version_compare
+        # once UNIX connection is setup, so set the value here.
+        client_session = self.client_session
+        self.libvirt_ver = libvirt_version.version_compare(5, 6, 0, client_session)
+
         self.client_libvirtdconf = remote.RemoteFile(
             address=self.client_ip,
             client='scp',
@@ -1585,6 +1633,14 @@ class UNIXConnection(ConnectionBase):
             password=self.client_pwd,
             port='22',
             remote_path='/etc/libvirt/libvirtd.conf')
+
+        self.client_libvirtd_socket = remote.RemoteFile(
+            address=self.client_ip,
+            client='scp',
+            username=self.client_user,
+            password=self.client_pwd,
+            port='22',
+            remote_path='/usr/lib/systemd/system/libvirtd.socket')
 
         self.client_saslconf = remote.RemoteFile(
             address=self.client_ip,
@@ -1612,11 +1668,18 @@ class UNIXConnection(ConnectionBase):
         del self.client_libvirtdconf
         del self.client_saslconf
         del self.client_hosts
+        del self.client_libvirtd_socket
         # restart libvirtd service on server
         client_session = self.client_session
         try:
             libvirtd_service = utils_libvirtd.Libvirtd(session=client_session)
-            libvirtd_service.restart()
+            if self.libvirt_ver:
+                process.run("systemctl daemon-reload")
+                libvirtd_service.stop()
+                process.run("systemctl restart libvirtd.socket")
+                libvirtd_service.start()
+            else:
+                libvirtd_service.restart()
         except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
 
@@ -1628,7 +1691,8 @@ class UNIXConnection(ConnectionBase):
 
         (1).Initialize variables.
         (2).Update libvirtd.conf configuration.
-        (3).Restart libvirtd on client.
+        (3).Update libvirtd.socket for libvirt >= 5.6.
+        (4).Restart libvirtd on client.
         """
         # initialize variables
         auth_unix_ro = self.auth_unix_ro
@@ -1662,9 +1726,14 @@ class UNIXConnection(ConnectionBase):
 
         # edit the /etc/libvirt/libvirtd.conf to add unix_sock_dir arg
         if unix_sock_dir != '/var/run/libvirt':
-            pattern_to_repl = {r".*unix_sock_dir\s*=.*":
-                               'unix_sock_dir="%s"' % unix_sock_dir}
-            self.client_libvirtdconf.sub_else_add(pattern_to_repl)
+            if self.libvirt_ver:
+                pattern_to_repl = {r".*ListenStream\s*=.*":
+                                   'ListenStream=%s/libvirt-sock' % unix_sock_dir}
+                self.client_libvirtd_socket.sub_else_add(pattern_to_repl)
+            else:
+                pattern_to_repl = {r".*unix_sock_dir\s*=.*":
+                                   'unix_sock_dir="%s"' % unix_sock_dir}
+                self.client_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add access_drivers arg
         if access_drivers != ["polkit"]:
@@ -1685,9 +1754,14 @@ class UNIXConnection(ConnectionBase):
 
         # edit the /etc/libvirt/libvirtd.conf to add unix_sock_rw_perms arg
         if unix_sock_rw_perms:
-            pattern_to_repl = {r".*unix_sock_rw_perms\s*=.*":
-                               'unix_sock_rw_perms="%s"' % unix_sock_rw_perms}
-            self.client_libvirtdconf.sub_else_add(pattern_to_repl)
+            if self.libvirt_ver:
+                pattern_to_repl = {r".*SocketMode\s*=.*":
+                                   'SocketMode=%s' % unix_sock_rw_perms}
+                self.client_libvirtd_socket.sub_else_add(pattern_to_repl)
+            else:
+                pattern_to_repl = {r".*unix_sock_rw_perms\s*=.*":
+                                   'unix_sock_rw_perms="%s"' % unix_sock_rw_perms}
+                self.client_libvirtdconf.sub_else_add(pattern_to_repl)
 
         if self.sasl_type == 'digest-md5':
             utils_package.package_install('cyrus-sasl-md5', session=client_session)
@@ -1724,7 +1798,13 @@ class UNIXConnection(ConnectionBase):
             try:
                 libvirtd_service = utils_libvirtd.Libvirtd(
                     session=client_session)
-                libvirtd_service.restart()
+                if self.libvirt_ver:
+                    libvirtd_service.stop()
+                    process.run("systemctl daemon-reload")
+                    process.run("systemctl restart libvirtd.socket")
+                    libvirtd_service.start()
+                else:
+                    libvirtd_service.restart()
             except (remote.LoginError, aexpect.ShellError) as detail:
                 raise ConnServerRestartError(detail)
 
