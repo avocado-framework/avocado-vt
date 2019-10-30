@@ -494,6 +494,12 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
                               "\"setsebool virt_use_nfs on\" to get "
                               "nfs access right.")
         _nfs.setup()
+        nfs_mount_info = process.run('nfsstat -m', shell=True).stdout_text.strip().split(",")
+        for i in nfs_mount_info:
+            if 'vers' in i:
+                source_protocol_ver = i[5]
+                result["source_protocol_ver"] = source_protocol_ver
+                break
         if not is_mount:
             _nfs.umount()
             del result["mount_dir"]
@@ -962,6 +968,7 @@ class PoolVolumeTest(object):
         adapter_type = kwargs.get('pool_adapter_type', 'scsi_host')
         pool_wwnn = kwargs.get('pool_wwnn', None)
         pool_wwpn = kwargs.get('pool_wwpn', None)
+        source_protocol_ver = kwargs.get('source_protocol_ver', "no")
 
         # If tester does not provide block device, creating one
         if (device_name.count("EXAMPLE") and
@@ -1040,6 +1047,8 @@ class PoolVolumeTest(object):
                 source_host = self.params.get("source_host", "localhost")
                 extra = "--source-host %s --source-path %s" % (source_host,
                                                                nfs_path)
+                if source_protocol_ver == "yes":
+                    extra += "  --source-protocol-ver %s" % res["source_protocol_ver"]
         elif pool_type in ["iscsi", "iscsi-direct"]:
             ip_protocal = kwargs.get('ip_protocal', "ipv4")
             iscsi_chap_user = kwargs.get('iscsi_chap_user', None)

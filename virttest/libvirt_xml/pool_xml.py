@@ -25,7 +25,7 @@ class SourceXML(base.LibvirtXMLBase):
                  'adp_type', 'adp_name', 'adp_parent', 'adp_wwnn',
                  'adp_wwpn', 'format_type', 'hosts', 'auth_type',
                  'auth_username', 'secret_usage', 'secret_uuid',
-                 'iqn_name')
+                 'iqn_name', 'protocol_ver')
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -108,6 +108,11 @@ class SourceXML(base.LibvirtXMLBase):
                                parent_xpath='/initiator',
                                tag_name='iqn',
                                attribute='name')
+        accessors.XMLAttribute(property_name='protocol_ver',
+                               libvirtxml=self,
+                               parent_xpath='/',
+                               tag_name='protocol',
+                               attribute='ver')
 
         super(SourceXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = u"<source></source>"
