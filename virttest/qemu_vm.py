@@ -1503,6 +1503,127 @@ class VM(virt_vm.BaseVM):
         # Additional PCI RC/switch/bridges
         add_pci_controllers(devices, params)
 
+        # Add Memory devices
+        add_memorys(devices, params)
+        mem = int(params.get("mem", 0))
+
+        # Add smp
+        smp = params.get_numeric('smp')
+        vcpu_maxcpus = params.get_numeric("vcpu_maxcpus")
+        vcpu_sockets = params.get_numeric("vcpu_sockets")
+        vcpu_cores = params.get_numeric("vcpu_cores")
+        vcpu_threads = params.get_numeric("vcpu_threads")
+        vcpu_dies = params.get("vcpu_dies", 0)
+        enable_dies = vcpu_dies != "INVALID" and Flags.SMP_DIES in devices.caps
+        if not enable_dies:
+            # Set dies=1 when computing missing values
+            vcpu_dies = 1
+        # PC target support SMP 'dies' parameter since qemu 4.1
+        vcpu_dies = int(vcpu_dies)
+
+        # Some versions of windows don't support more than 2 sockets of cpu,
+        # here is a workaround to make all windows use only 2 sockets.
+        if (vcpu_sockets and vcpu_sockets > 2 and
+                params.get("os_type") == 'windows'):
+            vcpu_sockets = 2
+
+        amd_vendor_string = params.get("amd_vendor_string")
+        if not amd_vendor_string:
+            amd_vendor_string = "AuthenticAMD"
+        if amd_vendor_string == cpu.get_cpu_vendor():
+            # AMD cpu do not support multi threads.
+            if params.get("test_negative_thread", "no") != "yes":
+                vcpu_threads = 1
+                txt = "Set vcpu_threads to 1 for AMD cpu."
+                logging.warn(txt)
+
+        if smp == 0 or vcpu_sockets == 0:
+            vcpu_dies = vcpu_dies or 1
+            vcpu_cores = vcpu_cores or 1
+            vcpu_threads = vcpu_threads or 1
+            if smp == 0:
+                vcpu_sockets = vcpu_sockets or 1
+                smp = vcpu_cores * vcpu_threads * vcpu_dies * vcpu_sockets
+            else:
+                vcpu_sockets = smp // (vcpu_cores * vcpu_threads * vcpu_dies) or 1
+        elif vcpu_dies == 0:
+            vcpu_cores = vcpu_cores or 1
+            vcpu_threads = vcpu_threads or 1
+            vcpu_dies = smp // (vcpu_sockets * vcpu_cores * vcpu_threads) or 1
+        elif vcpu_cores == 0:
+            vcpu_threads = vcpu_threads or 1
+            vcpu_cores = smp // (vcpu_sockets * vcpu_threads * vcpu_dies) or 1
+        else:
+            vcpu_threads = smp // (vcpu_cores * vcpu_sockets * vcpu_dies) or 1
+        vcpu_maxcpus = vcpu_maxcpus or smp
+
+        self.cpuinfo.smp = smp
+        self.cpuinfo.maxcpus = vcpu_maxcpus
+        self.cpuinfo.cores = vcpu_cores
+        self.cpuinfo.threads = vcpu_threads
+        self.cpuinfo.sockets = vcpu_sockets
+        if enable_dies:
+            self.cpuinfo.dies = vcpu_dies
+        devices.insert(StrDev('smp', cmdline=add_smp(devices)))
+
+        # Add numa nodes
+        numa_total_cpus = 0
+        numa_total_mem = 0
+        for numa_node in params.objects("guest_numa_nodes"):
+            numa_params = params.object_params(numa_node)
+            numa_mem = numa_params.get("numa_mem")
+            numa_cpus = numa_params.get("numa_cpus")
+            numa_nodeid = numa_params.get("numa_nodeid")
+            numa_memdev = numa_params.get("numa_memdev")
+            if numa_mem is not None:
+                numa_total_mem += int(numa_mem)
+            if numa_cpus is not None:
+                numa_total_cpus += len(utils_misc.cpu_str_to_list(numa_cpus))
+            cmdline = add_numa_node(devices, numa_memdev,
+                                    numa_mem, numa_cpus, numa_nodeid)
+            devices.insert(StrDev('numa', cmdline=cmdline))
+
+        if params.get("numa_consistency_check_cpu_mem", "no") == "yes":
+            if (numa_total_cpus > int(smp) or numa_total_mem > int(mem) or
+                    len(params.objects("guest_numa_nodes")) > int(smp)):
+                logging.debug("-numa need %s vcpu and %s memory. It is not "
+                              "matched the -smp and -mem. The vcpu number "
+                              "from -smp is %s, and memory size from -mem is"
+                              " %s" % (numa_total_cpus, numa_total_mem, smp,
+                                       mem))
+                raise virt_vm.VMDeviceError("The numa node cfg can not fit"
+                                            " smp and memory cfg.")
+
+        # Add cpu model
+        cpu_model = params.get("cpu_model")
+        use_default_cpu_model = True
+        if cpu_model:
+            use_default_cpu_model = False
+            for model in re.split(",", cpu_model):
+                model = model.strip()
+                if model not in support_cpu_model:
+                    continue
+                cpu_model = model
+                break
+            else:
+                cpu_model = model
+                logging.error("Non existing CPU model %s will be passed "
+                              "to qemu (wrong config or negative test)", model)
+
+        if use_default_cpu_model:
+            cpu_model = params.get("default_cpu_model")
+
+        if cpu_model:
+            family = params.get("cpu_family", "")
+            flags = params.get("cpu_model_flags", "")
+            vendor = params.get("cpu_model_vendor", "")
+            self.cpuinfo.model = cpu_model
+            self.cpuinfo.vendor = vendor
+            self.cpuinfo.flags = flags
+            self.cpuinfo.family = family
+            cmd = add_cpu_flags(devices, cpu_model, flags, vendor, family)
+            devices.insert(StrDev('cpu', cmdline=cmd))
+
         # -soundhw addresses are always the lowest after scsi
         soundhw = params.get("soundcards")
         if soundhw:
@@ -1839,127 +1960,6 @@ class VM(virt_vm.BaseVM):
                                         parent_bus=pci_bus)
                 devices.insert(dev_vsock)
                 min_cid = guest_cid + 1
-
-        # Add Memory devices
-        add_memorys(devices, params)
-        mem = int(params.get("mem", 0))
-
-        # Add smp
-        smp = params.get_numeric('smp')
-        vcpu_maxcpus = params.get_numeric("vcpu_maxcpus")
-        vcpu_sockets = params.get_numeric("vcpu_sockets")
-        vcpu_cores = params.get_numeric("vcpu_cores")
-        vcpu_threads = params.get_numeric("vcpu_threads")
-        vcpu_dies = params.get("vcpu_dies", 0)
-        enable_dies = vcpu_dies != "INVALID" and Flags.SMP_DIES in devices.caps
-        if not enable_dies:
-            # Set dies=1 when computing missing values
-            vcpu_dies = 1
-        # PC target support SMP 'dies' parameter since qemu 4.1
-        vcpu_dies = int(vcpu_dies)
-
-        # Some versions of windows don't support more than 2 sockets of cpu,
-        # here is a workaround to make all windows use only 2 sockets.
-        if (vcpu_sockets and vcpu_sockets > 2 and
-                params.get("os_type") == 'windows'):
-            vcpu_sockets = 2
-
-        amd_vendor_string = params.get("amd_vendor_string")
-        if not amd_vendor_string:
-            amd_vendor_string = "AuthenticAMD"
-        if amd_vendor_string == cpu.get_cpu_vendor():
-            # AMD cpu do not support multi threads.
-            if params.get("test_negative_thread", "no") != "yes":
-                vcpu_threads = 1
-                txt = "Set vcpu_threads to 1 for AMD cpu."
-                logging.warn(txt)
-
-        if smp == 0 or vcpu_sockets == 0:
-            vcpu_dies = vcpu_dies or 1
-            vcpu_cores = vcpu_cores or 1
-            vcpu_threads = vcpu_threads or 1
-            if smp == 0:
-                vcpu_sockets = vcpu_sockets or 1
-                smp = vcpu_cores * vcpu_threads * vcpu_dies * vcpu_sockets
-            else:
-                vcpu_sockets = smp // (vcpu_cores * vcpu_threads * vcpu_dies) or 1
-        elif vcpu_dies == 0:
-            vcpu_cores = vcpu_cores or 1
-            vcpu_threads = vcpu_threads or 1
-            vcpu_dies = smp // (vcpu_sockets * vcpu_cores * vcpu_threads) or 1
-        elif vcpu_cores == 0:
-            vcpu_threads = vcpu_threads or 1
-            vcpu_cores = smp // (vcpu_sockets * vcpu_threads * vcpu_dies) or 1
-        else:
-            vcpu_threads = smp // (vcpu_cores * vcpu_sockets * vcpu_dies) or 1
-        vcpu_maxcpus = vcpu_maxcpus or smp
-
-        self.cpuinfo.smp = smp
-        self.cpuinfo.maxcpus = vcpu_maxcpus
-        self.cpuinfo.cores = vcpu_cores
-        self.cpuinfo.threads = vcpu_threads
-        self.cpuinfo.sockets = vcpu_sockets
-        if enable_dies:
-            self.cpuinfo.dies = vcpu_dies
-        devices.insert(StrDev('smp', cmdline=add_smp(devices)))
-
-        # Add numa nodes
-        numa_total_cpus = 0
-        numa_total_mem = 0
-        for numa_node in params.objects("guest_numa_nodes"):
-            numa_params = params.object_params(numa_node)
-            numa_mem = numa_params.get("numa_mem")
-            numa_cpus = numa_params.get("numa_cpus")
-            numa_nodeid = numa_params.get("numa_nodeid")
-            numa_memdev = numa_params.get("numa_memdev")
-            if numa_mem is not None:
-                numa_total_mem += int(numa_mem)
-            if numa_cpus is not None:
-                numa_total_cpus += len(utils_misc.cpu_str_to_list(numa_cpus))
-            cmdline = add_numa_node(devices, numa_memdev,
-                                    numa_mem, numa_cpus, numa_nodeid)
-            devices.insert(StrDev('numa', cmdline=cmdline))
-
-        if params.get("numa_consistency_check_cpu_mem", "no") == "yes":
-            if (numa_total_cpus > int(smp) or numa_total_mem > int(mem) or
-                    len(params.objects("guest_numa_nodes")) > int(smp)):
-                logging.debug("-numa need %s vcpu and %s memory. It is not "
-                              "matched the -smp and -mem. The vcpu number "
-                              "from -smp is %s, and memory size from -mem is"
-                              " %s" % (numa_total_cpus, numa_total_mem, smp,
-                                       mem))
-                raise virt_vm.VMDeviceError("The numa node cfg can not fit"
-                                            " smp and memory cfg.")
-
-        # Add cpu model
-        cpu_model = params.get("cpu_model")
-        use_default_cpu_model = True
-        if cpu_model:
-            use_default_cpu_model = False
-            for model in re.split(",", cpu_model):
-                model = model.strip()
-                if model not in support_cpu_model:
-                    continue
-                cpu_model = model
-                break
-            else:
-                cpu_model = model
-                logging.error("Non existing CPU model %s will be passed "
-                              "to qemu (wrong config or negative test)", model)
-
-        if use_default_cpu_model:
-            cpu_model = params.get("default_cpu_model")
-
-        if cpu_model:
-            family = params.get("cpu_family", "")
-            flags = params.get("cpu_model_flags", "")
-            vendor = params.get("cpu_model_vendor", "")
-            self.cpuinfo.model = cpu_model
-            self.cpuinfo.vendor = vendor
-            self.cpuinfo.flags = flags
-            self.cpuinfo.family = family
-            cmd = add_cpu_flags(devices, cpu_model, flags, vendor, family)
-            devices.insert(StrDev('cpu', cmdline=cmd))
 
         # Add cdroms
         for cdrom in params.objects("cdroms"):
