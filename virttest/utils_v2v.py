@@ -298,6 +298,10 @@ class Target(object):
             if self.input_mode in ['ova', 'disk',
                                    'libvirtxml'] and self.input_file:
                 options = options.replace(self.vm_name, self.input_file)
+
+        # In '-i vmx', '-ic' is not needed
+        if self.input_mode == 'vmx':
+            options = re.sub(r'-ic .*? ', '', options)
         return options
 
     def _get_libvirt_options(self):
