@@ -975,7 +975,7 @@ class PrivateBridgeConfig(object):
         try:
             self.bridge_manager.del_bridge(self.brname)
         except:
-            pass
+            logging.warning("Failed to delete private bridge")
 
     def cleanup(self):
         if self._br_exist() and not self._br_in_use():
@@ -993,31 +993,24 @@ class PrivateOvsBridgeConfig(PrivateBridgeConfig):
         super(PrivateOvsBridgeConfig, self).__init__(params)
         ovs = versionable_class.factory(openvswitch.OpenVSwitchSystem)()
         ovs.init_system()
-        self.ovs = ovs
-
-    def _get_bridge_info(self):
-        return self.ovs.status()
+        self.bridge_manager = ovs
 
     def _br_exist(self):
-        return "Bridge \"%s\"" % self.brname in self._get_bridge_info()
+        return self.bridge_manager.br_exist(self.brname)
 
     def _br_in_use(self):
-        output = self._get_bridge_info()
-        for br_info in output.split("Bridge"):
-            br_info = br_info.strip()
-            if (br_info and re.match(self.brname, br_info) and
-                    len(re.findall("Port\s+", br_info)) == 1):
-                return False
-        return True
+        return len(self.bridge_manager.list_ports(self.brname)) != 0
 
     def _verify_bridge(self):
-        self.ovs.check()
+        self.bridge_manager.check()
 
     def _add_bridge(self):
-        self.ovs.add_br(self.brname)
+        self.bridge_manager.add_br(self.brname)
+        if self.physical_nic:
+            self.bridge_manager.add_port(self.brname, self.physical_nic)
 
     def _remove_bridge(self):
-        self.ovs.del_br(self.brname)
+        self.bridge_manager.del_br(self.brname)
 
 
 class PciAssignable(object):
