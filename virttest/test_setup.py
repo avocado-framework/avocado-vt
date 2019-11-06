@@ -24,7 +24,6 @@ from avocado.utils import distro
 from avocado.core import exceptions
 
 from virttest import data_dir
-from virttest import kernel_interface
 from virttest import error_context
 from virttest import cpu
 from virttest import utils_misc
@@ -34,6 +33,7 @@ from virttest import remote
 from virttest import utils_libvirtd
 from virttest import utils_net
 from virttest import utils_config
+from virttest import utils_package
 from virttest import kernel_interface
 from virttest.staging import service
 from virttest.staging import utils_memory
@@ -797,6 +797,7 @@ class PrivateBridgeConfig(object):
         if params is not None:
             self.brname = params.get("priv_brname", 'atbr0')
             self.subnet = params.get("priv_subnet", '192.168.58')
+            self.netmask = params.get("priv_netmask", '255.255.255.0')
             self.ip_version = params.get("bridge_ip_version", "ipv4")
             self.dhcp_server_pid = None
             ports = params.get("priv_bridge_ports", '53 67').split()
@@ -822,6 +823,7 @@ class PrivateBridgeConfig(object):
             self.force_create = False
             if params.get("bridge_force_create", "no") == "yes":
                 self.force_create = True
+        self.bridge_manager = utils_net.Bridge()
 
     def _assemble_iptables_rules(self, port_list):
         rules = []
@@ -844,18 +846,20 @@ class PrivateBridgeConfig(object):
         return rules
 
     def _add_bridge(self):
-        addbr_cmd = ("ip link add name %s type bridge stp_state 1"
+        self.bridge_manager.add_bridge(self.brname)
+        setbr_cmd = ("ip link set name %s type bridge stp_state 1"
                      " forward_delay 400" % self.brname)
-        process.system(addbr_cmd)
+        process.system(setbr_cmd)
         ip_fwd_path = "/proc/sys/net/%s/ip_forward" % self.ip_version
         with open(ip_fwd_path, "w") as ip_fwd:
             ip_fwd.write("1\n")
         if self.physical_nic:
-            process.system("ip link set %s master %s"
-                           % (self.physical_nic, self.brname))
+            self.bridge_manager.add_port(self.brname, self.physical_nic)
 
     def _bring_bridge_up(self):
-        process.system("ifconfig %s %s.1 up" % (self.brname, self.subnet))
+        utils_net.set_net_if_ip(self.brname, "%s.1/%s" % (self.subnet,
+                                                          self.netmask))
+        utils_net.bring_up_ifname(self.brname)
 
     def _iptables_add(self, cmd):
         return process.system("iptables -I %s" % cmd)
@@ -868,7 +872,9 @@ class PrivateBridgeConfig(object):
             self._iptables_add(rule)
 
     def _start_dhcp_server(self):
-        process.system("service dnsmasq stop")
+        if not utils_package.package_install("dnsmasq"):
+            exceptions.TestSkipError("Failed to install dnsmasq package")
+        service.Factory.create_service("dnsmasq").stop()
         process.system("dnsmasq --strict-order --bind-interfaces "
                        "--listen-address %s.1 --dhcp-range %s.2,%s.254 "
                        "--dhcp-lease-max=253 "
@@ -891,20 +897,11 @@ class PrivateBridgeConfig(object):
             raise PrivateBridgeError(self.brname)
 
     def _br_exist(self):
-        result = process.run("ip link show %s type bridge" % self.brname,
-                             ignore_status=True)
-        if result.exit_status > 0:
-            return False
-        output = decode_to_text(result.stdout).strip()
-        if not output:
-            return False
-        return True
+        return self.brname in self.bridge_manager.list_br()
 
     def _br_in_use(self):
         # Return `True` when there is any TAP using the bridge
-        output = process.system_output("ip link show master %s" % self.brname)
-        output = decode_to_text(output).strip()
-        return bool(output)
+        return len(self.bridge_manager.list_iface(self.brname)) != 0
 
     def setup(self):
         if self._br_exist() and self.force_create:
@@ -956,7 +953,7 @@ class PrivateBridgeConfig(object):
             try:
                 dhcp_server_pid = int(open('%s/dnsmasq.pid' %
                                            data_dir.get_tmp_dir(), 'r').read())
-            except ValueError:
+            except (ValueError, OSError):
                 return
             try:
                 os.kill(dhcp_server_pid, 15)
@@ -964,7 +961,7 @@ class PrivateBridgeConfig(object):
                 pass
 
     def _bring_bridge_down(self):
-        process.system("ifconfig %s down" % self.brname, ignore_status=True)
+        utils_net.bring_down_ifname(self.brname)
 
     def _disable_nat(self):
         for rule in self.iptables_rules:
@@ -975,8 +972,10 @@ class PrivateBridgeConfig(object):
             self._iptables_del(rule)
 
     def _remove_bridge(self):
-        process.system("ip link delete %s type bridge" % self.brname,
-                       ignore_status=True)
+        try:
+            self.bridge_manager.del_bridge(self.brname)
+        except:
+            pass
 
     def cleanup(self):
         if self._br_exist() and not self._br_in_use():
