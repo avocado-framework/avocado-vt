@@ -148,6 +148,7 @@ class Target(object):
         self.esxi_host = self.params.get(
             'esxi_host', self.params.get('esx_ip'))
         self.datastore = self.params.get('datastore')
+        self._nfspath = self.params.get('_nfspath')
         self.src_uri_type = params.get('src_uri_type')
         self.esxi_password = params.get('esxi_password')
         self.input_transport = self.params.get('input_transport')
@@ -182,8 +183,8 @@ class Target(object):
             self.mount_records[len(self.mount_records)] = (
                 self.vmx_nfs_src, mount_point, None)
 
-            vmx_filename = "{}/{name}/{name}.vmx".format(
-                mount_point, name=self.vm_name)
+            vmx_filename = "{}/{}/{name}.vmx".format(
+                mount_point, self._nfspath, name=self.vm_name)
 
             return vmx_filename
 
@@ -239,9 +240,10 @@ class Target(object):
             input_transport_args = {
                 'vddk': "-io vddk-libdir=%s -io vddk-thumbprint=%s" % (self.vddk_libdir,
                                                                        self.vddk_thumbprint),
-                'ssh': "ssh://root@{}/vmfs/volumes/{}/{name}/{name}.vmx".format(
+                'ssh': "ssh://root@{}/vmfs/volumes/{}/{}/{name}.vmx".format(
                     self.esxi_host,
                     self.datastore,
+                    self._nfspath,
                     name=self.vm_name)}
 
             options = " -it %s " % (self.input_transport)
@@ -905,6 +907,16 @@ def v2v_cmd(params):
             iface_info = get_all_ifaces_info(vm_name, v2v_virsh)
             # For v2v option '--mac', this is automatically generated.
             params['_iface_list'] = iface_info
+
+            if input_mode == 'vmx':
+                disks_info = get_esx_disk_source_info(vm_name, v2v_virsh)
+                if not disks_info:
+                    raise exceptions.TestError(
+                        "Found esx disk source error")
+                # It's impossible that a VM is saved in two different
+                # datastores
+                params['datastore'] = list(disks_info)[0]
+                params['_nfspath'] = list(disks_info[list(disks_info)[0]])[0]
         else:
             params['_iface_list'] = ''
 
@@ -1262,6 +1274,57 @@ def get_all_ifaces_info(vm_name, virsh_instance):
 
     logging.debug("Iface information for vm %s: %s", vm_name, vm_ifaces)
     return vm_ifaces
+
+
+def get_esx_disk_source_info(vm_name, virsh_instance):
+    """
+    Get VM's datastore, real path of disks in NFS, etc
+
+    The return values looks like:
+    {'esx6.7': {'esx6.7-rhel7.5-multi-disks':
+      ['esx6.7-rhel7.5-multi-disks.vmdk', 'esx6.7-rhel7.5-multi-disks_2.vmdk']}}
+
+    It can be used to construct real path value in
+    '-i vmx -it ssh' mode of v2v command.
+
+    disk info example:
+    <disk type='file' device='disk'>
+      <source file='[esx6.7] esx6.7-rhel7.5-multi-disks/esx6.7-rhel7.5-multi-disks.vmdk'/>
+      <target dev='sda' bus='scsi'/>
+      <address type='drive' controller='0' bus='0' target='0' unit='0'/>
+    </disk>
+
+    The meanings of source file info.
+    '[esx6.7]' is datastore of the VM.
+    'esx6.7-rhel7.5-multi-disks' is the real path in NFS storage.
+    'esx6.7-rhel7.5-multi-disks.vmdk' is disk name.
+
+    Only works for VMs in ESX server
+
+    :param vm_name: vm's name
+    :param v2v_virsh_instance: a virsh instance
+    """
+    def _parse_file_info(path):
+        res = re.search(r'\[(.*)\] (.*?)/(.*\.vmdk)', path)
+        if not res:
+            return []
+        return [res.group(i) for i in range(1, 4)]
+
+    disks_info = {}
+    disks = vm_xml.get_disk_source(vm_name, virsh_instance=virsh_instance)
+    for disk in disks:
+        attr_value = disk.find('source').get('file')
+        file_info = _parse_file_info(attr_value)
+        if not file_info:
+            continue
+        if file_info[0] not in disks_info:
+            disks_info[file_info[0]] = {file_info[1]: []}
+        if file_info[1] not in disks_info[file_info[0]]:
+            disks_info[file_info[0]][file_info[1]] = []
+        disks_info[file_info[0]][file_info[1]].append(file_info[2])
+
+    logging.debug("source disk info vm %s: %s", vm_name, disks_info)
+    return disks_info
 
 
 def v2v_supported_option(opt_str):
