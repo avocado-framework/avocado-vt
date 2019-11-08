@@ -24,6 +24,7 @@ from six.moves import xrange
 # Internal imports
 from virttest import utils_qemu
 from virttest import arch, storage, data_dir, virt_vm
+from virttest import qemu_storage
 from virttest.qemu_devices import qdevices
 from virttest.qemu_devices.utils import (DeviceError, DeviceHotplugError,
                                          DeviceInsertError, DeviceRemoveError,
@@ -1341,7 +1342,8 @@ class DevContainer(object):
                                    x_data_plane=None, blk_extra_params=None,
                                    scsi=None, drv_extra_params=None,
                                    num_queues=None, bus_extra_params=None,
-                                   force_fmt=None, image_encryption=None):
+                                   force_fmt=None, image_encryption=None,
+                                   image_access=None):
         """
         Creates related devices by variables
         :note: To skip the argument use None, to disable it use False
@@ -1379,6 +1381,7 @@ class DevContainer(object):
         :param num_queues: performace option for virtio-scsi-pci
         :param bus_extra_params: options want to add to virtio-scsi-pci bus
         :param image_encryption: ImageEncryption object for image
+        :param image_access: The remote image access information object
         """
         def define_hbas(qtype, atype, bus, unit, port, qbus, pci_bus,
                         addr_spec=None, num_queues=None,
@@ -1446,6 +1449,26 @@ class DevContainer(object):
                 devices[-1].set_param("data", secret.data)
             if image_encryption.key_secret:
                 secret_obj = devices[-1]
+
+        iscsi_initiator = None
+        access_secret, secret_type = self._get_access_secret_info(image_access)
+        access_secret_obj = None
+        if access_secret is not None:
+            # create and add secret object: -object secret
+            access_secret_obj = qdevices.QObject('secret')
+            access_secret_obj.set_param("id", access_secret.aid)
+            access_secret_obj.set_param('format', access_secret.data_format)
+
+            if secret_type == 'password':
+                access_secret_obj.set_param("file", access_secret.filename)
+            elif secret_type == 'key':
+                access_secret_obj.set_param("data", access_secret.data)
+
+            devices.append(access_secret_obj)
+
+        if image_access is not None:
+            if image_access.storage_type == 'iscsi-direct':
+                iscsi_initiator = image_access.iscsi_initiator
 
         use_device = self.has_option("device")
         if fmt == "scsi":   # fmt=scsi force the old version of devices
@@ -1578,6 +1601,10 @@ class DevContainer(object):
             protocol_cls = qdevices.QBlockdevProtocolFile
             if not filename:
                 protocol_cls = qdevices.QBlockdevProtocolNullCo
+            elif filename.startswith('iscsi:'):
+                protocol_cls = qdevices.QBlockdevProtocolISCSI
+            elif filename.startswith('rbd:'):
+                protocol_cls = qdevices.QBlockdevProtocolRBD
             elif fmt in ('scsi-generic', 'scsi-block'):
                 protocol_cls = qdevices.QBlockdevProtocolHostDevice
             elif blkdebug is not None:
@@ -1664,7 +1691,21 @@ class DevContainer(object):
         if not filename:
             cache = None
         if Flags.BLOCKDEV in self.caps:
-            devices[-2].set_param('filename', filename)
+            file_opts = qemu_storage.filename_to_file_opts(filename)
+            for key, value in six.iteritems(file_opts):
+                devices[-2].set_param(key, value)
+
+            if access_secret is not None:
+                if secret_type == 'password':
+                    devices[-2].set_param('password-secret',
+                                          access_secret_obj.get_qid())
+                elif secret_type == 'key':
+                    devices[-2].set_param('key-secret',
+                                          access_secret_obj.get_qid())
+
+            if iscsi_initiator is not None:
+                devices[-2].set_param('initiator-name', iscsi_initiator)
+
             for dev in (devices[-1], devices[-2]):
                 if not cache:
                     direct, no_flush = (None, None)
@@ -1682,6 +1723,18 @@ class DevContainer(object):
                 devices[-1].set_param('file', 'blkdebug:%s:%s' % (blkdebug, filename))
             else:
                 devices[-1].set_param('file', filename)
+
+            if access_secret is not None:
+                if secret_type == 'password':
+                    devices[-1].set_param('file.password-secret',
+                                          access_secret_obj.get_qid())
+                elif secret_type == 'key':
+                    devices[-1].set_param('file.key-secret',
+                                          access_secret_obj.get_qid())
+
+            if iscsi_initiator is not None:
+                devices[-1].set_param('file.initiator-name', iscsi_initiator)
+
         if drv_extra_params:
             drv_extra_params = (_.split('=', 1) for _ in
                                 drv_extra_params.split(',') if _)
@@ -1796,6 +1849,25 @@ class DevContainer(object):
 
         return devices
 
+    def _get_access_secret_info(self, image_access):
+        access_secret, secret_type = None, None
+        if image_access is not None:
+            if image_access.auth is not None:
+                access_secret = image_access.auth
+                if image_access.storage_type == 'ceph':
+                    # Now we use 'key-secret' for both -drive and -blockdev,
+                    # but for -drive, 'password-secret' also works, add an
+                    # option in cfg file to enable 'password-secret' in future
+                    secret_type = 'key'
+                elif image_access.storage_type == 'iscsi-direct':
+                    if Flags.BLOCKDEV in self.caps:
+                        # -blockdev: only password-secret is supported
+                        secret_type = 'password'
+                    else:
+                        # -drive: u/p included in the filename
+                        access_secret = None
+        return access_secret, secret_type
+
     def images_define_by_params(self, name, image_params, media=None,
                                 index=None, image_boot=None,
                                 image_bootindex=None,
@@ -1827,6 +1899,10 @@ class DevContainer(object):
                 scsi_hba = "virtio-scsi-ccw"
         image_encryption = storage.ImageEncryption.encryption_define_by_params(
             name, image_params)
+
+        # add storage access secret object for image
+        image_access = storage.retrieve_access_info(name, image_params)
+
         return self.images_define_by_variables(name,
                                                storage.get_image_filename(
                                                    image_params, data_root),
@@ -1884,7 +1960,8 @@ class DevContainer(object):
                                                    "bus_extra_params"),
                                                image_params.get(
                                                    "force_drive_format"),
-                                               image_encryption)
+                                               image_encryption,
+                                               image_access)
 
     def serials_define_by_variables(self, serial_id, serial_type, chardev_id,
                                     bus_type=None, serial_name=None,
