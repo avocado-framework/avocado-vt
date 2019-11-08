@@ -140,6 +140,12 @@ def preprocess_image(test, params, image_name, vm_process_status=None):
         image.create(params)
 
 
+def preprocess_vms(test, params, env):
+    for vm_name in params.objects("vms"):
+        vm_params = params.object_params(vm_name)
+        preprocess_vm(test, vm_params, env, vm_name)
+
+
 def preprocess_vm(test, params, env, name):
     """
     Preprocess a single VM object according to the instructions in params.
@@ -483,6 +489,11 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
                 image.remove()
 
 
+def postprocess_vms(test, params, env):
+    for vm in env.get_all_vms():
+        postprocess_vm(test, vm.params, env, vm.name)
+
+
 def postprocess_vm(test, params, env, name):
     """
     Postprocess a single VM object according to the instructions in params.
@@ -690,9 +701,7 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
     :param vm_first: Call vm_func first or not.
     """
     def _call_vm_func():
-        for vm_name in params.objects("vms"):
-            vm_params = params.object_params(vm_name)
-            vm_func(test, vm_params, env, vm_name)
+        return vm_func(test, params, env)
 
     def _call_image_func():
         if params.get("skip_image_processing") == "yes":
@@ -1191,7 +1200,7 @@ def preprocess(test, params, env):
 
     # Preprocess all VMs and images
     if params.get("not_preprocess", "no") == "no":
-        process(test, params, env, preprocess_image, preprocess_vm)
+        process(test, params, env, preprocess_image, preprocess_vms)
 
     # Start the screendump thread
     if params.get("take_regular_screendumps") == "yes":
@@ -1362,7 +1371,7 @@ def postprocess(test, params, env):
                             " or install gcovr package for qemu coverage report")
     # Postprocess all VMs and images
     try:
-        process(test, params, env, postprocess_image, postprocess_vm,
+        process(test, params, env, postprocess_image, postprocess_vms,
                 vm_first=True)
     except Exception as details:
         err += "\nPostprocess: %s" % str(details).replace('\\n', '\n  ')
