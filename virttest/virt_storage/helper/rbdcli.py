@@ -31,7 +31,8 @@ class RbdCli(object):
         self.cluster = rados.Rados(conffile=conffile, conf=conf)
         self._pool = pool
         self._is_connect = False
-        self._base_url = "rbd:%s/" % self._pool
+        self._protocol = "rbd:"
+        self._base_url = "%s%s/" % (self._protocol, self._pool)
 
     def list_images(self):
         self.connect()
@@ -42,6 +43,11 @@ class RbdCli(object):
 
     def get_url_by_name(self, image):
         return "%s%s" % (self._base_url, image)
+
+    def url_to_path(self, url):
+        if url.startswith(self._protocol):
+            return url[len(self._protocol):]
+        return url
 
     def get_size(self, image):
         if not self.is_image_exists(image):

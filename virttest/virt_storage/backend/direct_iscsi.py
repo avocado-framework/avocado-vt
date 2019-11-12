@@ -63,4 +63,5 @@ class IscsiDriectPool(base.BaseStoragePool):
 
     @property
     def available(self):
-        return sum(filter(lambda x: x.url and x.name is None, self._volumes))
+        free_voluems = filter(lambda x: x.is_allocated and x.name is None, self._volumes)
+        return sum(map(lambda x: x.capacity, free_voluems))

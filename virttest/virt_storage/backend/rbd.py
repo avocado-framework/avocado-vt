@@ -28,9 +28,6 @@ class RbdPool(base.BaseStoragePool):
         return volume
 
     def create_volume(self, volume):
-        if volume.url is None:
-            url = self.helper.get_url_by_name(volume.name)
-            volume.url = volume.path = url
         if volume.is_allocated:
             self.helper.remove_image(volume.url)
         storage_util.create_volume(volume)

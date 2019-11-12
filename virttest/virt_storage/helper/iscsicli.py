@@ -15,7 +15,7 @@ def get_pool_helper(pool):
 
 
 class IscsiCli(object):
-    dev_root = '/dev/disk/by-path/'
+    dev_root = '/dev/disk/by-path'
     initiator_file = "/etc/iscsi/initiatorname.iscsi"
     iscsi_service = service.SpecificServiceManager("iscsi")
 
@@ -106,6 +106,16 @@ class IscsiCli(object):
                 secret += "@"
             return "iscsi://%s%s/%s/%s" % (secret, portal, target, lun)
 
+        return None
+
+    def url_to_path(self, url):
+        match = re.search(r"iscsi://(?P<secret>.*)@(?P<portoal>.*)/(?P<target>.*)/(?P<lun>\d+)", url)
+        if match:
+            portal = match.groupdict()['portal']
+            target = match.groupdict()['target']
+            lun = match.groupdict()['lun']
+            name = "ip-%s-iscsi-%s-lun-%s" % (portal, target, lun)
+            return "%s/%s" % (self.dev_root, name)
         return None
 
     @property

@@ -21,30 +21,3 @@ def get_pool_helper(pool):
     func = getattr(driver, func_name)
     return func(pool)
 
-
-def get_instance_info(inst):
-    _info = dict()
-    for key, val in vars(inst).items():
-        # skip method
-        if callable(val):
-            continue
-        # skip private attributes
-        if key.startswith("_"):
-            key = key.lstrip("_")
-            if hasattr(inst, key):
-                _info[key] = getattr(inst, key)
-            continue
-
-        if isinstance(val, list):
-            val = list(map(str, val))
-            _info[key] = val
-            continue
-        elif isinstance(val, dict):
-            for k, v in val.items():
-                val[k] = str(v)
-            _info[key] = val
-            continue
-        else:
-            _info[key] = str(val)
-            continue
-    return _info

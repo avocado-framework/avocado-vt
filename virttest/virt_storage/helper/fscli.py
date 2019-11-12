@@ -1,4 +1,3 @@
-import logging
 import os
 import shutil
 
@@ -14,12 +13,11 @@ class FsCli(object):
     def __init__(self, dir_path):
         self.dir_path = dir_path
         self._is_export = None
+        self._protocol = r"file://"
 
     def create(self):
         if not self.is_exists:
             os.makedirs(self.dir_path)
-        else:
-            logging.warn("Dir '%s' is exists!" % self.dir_path)
         self._is_export = True
 
     def remove(self):
@@ -32,7 +30,12 @@ class FsCli(object):
         return process.system("rm -f %s" % path, shell=True)
 
     def get_path_by_name(self, name):
-        return os.path.join(self.dir_path, name)
+        path = os.path.join(self.dir_path, name)
+        return os.path.realpath(path)
+
+    def get_url_by_name(self, name):
+        path = self.get_path_by_name(name)
+        return self.path_to_url(path)
 
     def list_files(self, _root=None):
         """List all files in top directory"""
@@ -40,7 +43,8 @@ class FsCli(object):
         def _list_files(_dir):
             for root, dirs, files in os.walk(_dir):
                 for f in files:
-                    yield os.path.join(root, f)
+                    path = os.path.join(root, f)
+                    yield os.path.realpath(path)
                 for d in dirs:
                     _d = os.path.join(root, d)
                     _list_files(_d)
@@ -49,22 +53,19 @@ class FsCli(object):
         return _list_files(root_dir)
 
     @staticmethod
-    def get_size(f):
+    def get_size(path):
         """Get file size"""
         try:
-            return os.path.getsize(f)
+            return os.path.getsize(path)
         except OSError:
             return 0
 
-    @staticmethod
-    def url_to_path(f):
-        """Get file real-path"""
-        return os.path.realpath(f)
-
-    @staticmethod
-    def path_to_url(f):
+    def path_to_url(self, path):
         """Get url schema path"""
-        return "file://%s" % os.path.realpath(f)
+        return "%s%s" % (self._protocol, os.path.realpath(path))
+
+    def url_to_path(self, url):
+        return url[len(self._protocol):]
 
     @property
     def is_exists(self):

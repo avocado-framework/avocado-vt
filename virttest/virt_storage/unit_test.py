@@ -128,7 +128,23 @@ class VirtStorageTest(unittest.TestCase):
             unittest.TestCase.assertTrue(self, volume.is_allocated,
                                          "volume(%s) is_allocated value mismatch!" % volume.name)
 
-    def test_06_find_pool_by_volume(self):
+    def test_06_compare_volume_info_img1(self):
+        img1 = sp_admin.get_volume_by_name("img1")
+        info1 = {'capacity': 104857600, 'name': 'img1', 'format': 'qcow2', 'url': 'file:///tmp/avocado/img1',
+                 'encryption': 'None', 'auth': 'None', 'backing_store': 'StorageVolume: img4, /tmp/avocado/img4',
+                 'preallocation': 'off', 'key': '/tmp/avocado/img1', 'path': '/tmp/avocado/img1',
+                 'pool': 'DirectoryPool:sp1'}
+        unittest.TestCase.assertEqual(self, info1, img1.info(), "Volume info of 'img1' mismatch!")
+
+    def test_06_compare_volume_info_img4(self):
+        img = sp_admin.get_volume_by_name("img4")
+        info = {'capacity': 104857600, 'name': 'img4', 'format': 'qcow2', 'url': 'file:///tmp/avocado/img4',
+                'encryption': 'VolumeEncryption: luks', 'auth': 'None',
+                'backing_store': 'StorageVolume: img5, /tmp/avocado/img5', 'preallocation': 'off',
+                'key': '/tmp/avocado/img4', 'path': '/tmp/avocado/img4', 'pool': 'DirectoryPool:sp1'}
+        unittest.TestCase.assertEqual(self, info, img.info(), "Volume info of 'img4' mismatch!")
+
+    def test_07_find_pool_by_volume(self):
         for volume in sp_admin.list_volumes():
             if volume.name:
                 pool = sp_admin.find_pool_by_volume(volume)
@@ -137,7 +153,7 @@ class VirtStorageTest(unittest.TestCase):
                 unittest.TestCase.assertEqual(
                     self, pool.name, pool_name, "pool name mismatch!")
 
-    def test_07_find_volume_by_key(self):
+    def test_08_find_volume_by_key(self):
         path_img1 = "/tmp/avocado/img1"
         unittest.TestCase.assertIsNotNone(
             self,
@@ -151,20 +167,20 @@ class VirtStorageTest(unittest.TestCase):
                                       sp_admin.get_volume_by_name("img1"),
                                       "volumes are not same!")
 
-    def test_08_find_pool_by_path(self):
+    def test_09_find_pool_by_path(self):
         path = "/tmp/avocado"
         pool = sp_admin.find_pool_by_path(path)
         unittest.TestCase.assertEqual(
             self, "sp1", pool.name, "can not found pool by path!")
 
-    def test_09_remove_volume(self):
+    def test_10_remove_volume(self):
         for volume in sp_admin.list_volumes():
             if volume.is_allocated:
                 sp_admin.remove_volume(volume)
                 unittest.TestCase.assertNotIn(self, volume, sp_admin.list_volumes(),
                                               "Volume (%s) is exists!" % volume.name)
 
-    def test_10_stop_pool(self):
+    def test_11_stop_pool(self):
         for pool in sp_admin.list_pools():
             sp_admin.stop_pool(pool)
             unittest.TestCase.assertEqual(
@@ -174,7 +190,7 @@ class VirtStorageTest(unittest.TestCase):
                 "pool (%s) state mismatch" %
                 pool.name)
 
-    def test_11_destory_pool(self):
+    def test_12_destory_pool(self):
         for pool in sp_admin.list_pools():
             sp_admin.destroy_pool(pool)
             unittest.TestCase.assertEqual(

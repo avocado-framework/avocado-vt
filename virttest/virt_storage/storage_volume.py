@@ -1,5 +1,4 @@
 from virttest import utils_misc
-from virttest.virt_storage import utils
 
 
 class StorageVolume(object):
@@ -7,18 +6,42 @@ class StorageVolume(object):
     def __init__(self, pool, name=None, _format="raw"):
         self.name = name
         self.pool = pool
-        self.url = None
-        self.path = None
-        self.format = _format
+        self._url = None
+        self._path = None
         self._capacity = None
         self._backing_store = None
         self._key = None
         self._auth = None
+        self.format = _format
         self.is_allocated = None
         self.encryption = None
         self.preallocation = None
         self.used_by = []
         self.pool.add_volume(self)
+
+    @property
+    def url(self):
+        if self._url is None:
+            if self.name and hasattr(self.pool.helper, "get_url_by_name"):
+                url = self.pool.helper.get_url_by_name(self.name)
+                self._url = url
+        return self._url
+
+    @url.setter
+    def url(self, url):
+        self._url = url
+
+    @property
+    def path(self):
+        if self._path is None:
+            if self.url and hasattr(self.pool.helper, "url_to_path"):
+                path = self.pool.helper.url_to_path(self.url)
+                self._path = path
+        return self._path
+
+    @path.setter
+    def path(self, path):
+        self._path = path
 
     @property
     def key(self):
@@ -36,9 +59,8 @@ class StorageVolume(object):
     @property
     def capacity(self):
         if self._capacity is None:
-            if self.key:
-                driver = self.pool.helper
-                self._capacity = driver.get_size(self.key)
+            if self.key and hasattr(self.pool.helper, "get_size"):
+                self._capacity = self.pool.get_size(self.key)
         return int(self._capacity)
 
     @capacity.setter
@@ -61,11 +83,24 @@ class StorageVolume(object):
     @property
     def auth(self):
         if self._auth is None:
-            self._auth = self.pool.source.auth
+            if self.pool.source:
+                self._auth = self.pool.source.auth
         return self._auth
 
     def info(self):
-        return utils.get_instance_info(self)
+        out = dict()
+        out["name"] = self.name
+        out["pool"] = str(self.pool)
+        out["url"] = self.url
+        out["path"] = self.path
+        out["key"] = self.key
+        out["format"] = self.format
+        out["auth"] = str(self.auth)
+        out["capacity"] = self.capacity
+        out["backing_store"] = str(self.backing_store)
+        out["encryption"] = str(self.encryption)
+        out["preallocation"] = self.preallocation
+        return out
 
     def generate_qemu_img_options(self):
         options = " -f %s" % self.format

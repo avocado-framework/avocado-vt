@@ -40,8 +40,6 @@ class DirectoryPool(base.BaseStoragePool):
         return volume
 
     def create_volume(self, volume):
-        if volume.path is None:
-            volume.path = self.helper.get_path_by_name(volume.name)
         storage_util.create_volume(volume)
         volume.is_allocated = True
         return volume

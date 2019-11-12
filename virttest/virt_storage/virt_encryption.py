@@ -7,6 +7,9 @@ class VolumeEncryption(object):
         self.format = encrypt_format
         self.secret = secret
 
+    def __str__(self):
+        return "%s: %s" % (self.__class__.__name__, self.format)
+
     @classmethod
     def encryption_define_by_params(cls, params):
         instance = cls()

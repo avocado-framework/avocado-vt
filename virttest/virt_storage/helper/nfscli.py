@@ -21,6 +21,7 @@ class NfsCli(fscli.FsCli):
         self._target = target
         self._is_mounted = None
         self._is_export = None
+        self._protocol = r"nfs://"
         super(NfsCli, self).__init__(self.target)
 
     @property
@@ -66,13 +67,13 @@ class NfsCli(fscli.FsCli):
         self._is_mounted = True
 
     def path_to_url(self, f):
-        return f.replace(self.target, "nfs://%s" % self.src_path)
+        return f.replace(self.target, "%s%s" % (self._protocol, self.src_path))
 
     def url_to_path(self, url):
-        return url.replace("nfs://%s" % self.src_path, self.target)
+        return url.replace("%s%s" % (self._protocol, self.src_path), self.target)
 
     def get_url_by_name(self, name):
-        return "nfs://%s/%s" % (self.src_path, name)
+        return "%s%s/%s" % (self._protocol, self.src_path, name)
 
     @property
     def is_export(self):

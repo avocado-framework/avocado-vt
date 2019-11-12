@@ -51,12 +51,6 @@ class GlusterCli(object):
         except OSError:
             return 0
 
-    def refresh(self):
-        if self.volume.mounted:
-            self.volume.umount()
-        self.volume.mount()
-        self.volume.umount()
-
     def mount(self):
         if not self.is_mounted:
             self.volume.mount()

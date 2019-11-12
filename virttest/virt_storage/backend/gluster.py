@@ -24,9 +24,6 @@ class GlusterPool(nfs.NfsPool):
         self._volumes.remove(volume)
 
     def create_volume(self, volume):
-        if volume.url is None:
-            url = self.helper.get_url_by_name(volume.name)
-            volume.url = volume.path = url
         storage_util.create_volume(volume)
         volume.is_allocated = True
         return volume

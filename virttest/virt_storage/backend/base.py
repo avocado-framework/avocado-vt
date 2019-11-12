@@ -127,7 +127,17 @@ class BaseStoragePool(object):
         self.refresh()
 
     def info(self):
-        return utils.get_instance_info(self)
+        out = dict()
+        out["name"] = self.name
+        out["uuid"] = str(self.uuid)
+        out["state"] = self.state
+        out["source"] = str(self.source)
+        out["target"] = str(self.target)
+        out["capacity"] = str(self.capacity)
+        out["available"] = str(self.available)
+        out["helper"] = str(self.helper)
+        out["volumes"] = list(map(str, self._volumes))
+        return out
 
     def __str__(self):
         return "%s:%s" % (self.__class__.__name__, self.name)

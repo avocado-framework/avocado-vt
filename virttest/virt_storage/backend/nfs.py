@@ -27,19 +27,16 @@ class NfsPool(directory.DirectoryPool):
         return map(self.create_volume_from_remote, urls)
 
     def create_volume_from_remote(self, url):
+        path = self.helper.url_to_path(url)
+        capacity = self.helper.get_size(path)
         volume = storage_volume.StorageVolume(self)
         volume.url = url
-        volume.path = self.helper.url_to_path(url)
-        volume.capacity = self.helper.get_size(volume.path)
+        volume.path = path
+        volume.capacity = capacity
         volume.is_allocated = True
         return volume
 
     def create_volume(self, volume):
-        if volume.url is None:
-            url = self.helper.get_url_by_name(volume.name)
-            volume.url = url
-            path = self.helper.url_to_path(volume.url)
-            volume.path = path
         storage_util.create_volume(volume)
         volume.is_allocated = True
         return volume
