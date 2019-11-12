@@ -1062,8 +1062,8 @@ def check_log(params, log):
             line = r'\s*'.join(pattern.split())
             expected = 'expected' if expect else 'not expected'
             logging.info('Searching for %s log: %s' % (expected, pattern))
-            compiled_pattern = re.compile(line)
-            search = re.search(compiled_pattern, log, flags=re.S)
+            compiled_pattern = re.compile(line, flags=re.S)
+            search = re.search(compiled_pattern, log)
             if search:
                 logging.info('Found log: %s', search.group(0))
                 if not expect:
