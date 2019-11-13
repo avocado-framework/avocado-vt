@@ -1942,7 +1942,7 @@ class VM(virt_vm.BaseVM):
             # Handle port redirections
             redir_names = params.objects("redirs")
             host_ports = utils_misc.find_free_ports(
-                5000, 6000, len(redir_names))
+                5000, 5899, len(redir_names))
             self.redirs = {}
             for i in range(len(redir_names)):
                 redir_params = params.object_params(redir_names[i])

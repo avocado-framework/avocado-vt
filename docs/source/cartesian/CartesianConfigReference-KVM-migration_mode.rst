@@ -15,7 +15,7 @@ To start a VM in incoming mode for receiving migration data via tcp:
 
     migration_mode = tcp
 
-A port will be allocated from the range 5200 to 6000.
+A port will be allocated from the range 5200 to 5899.
 
 Defined On
 ----------
