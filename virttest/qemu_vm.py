@@ -4116,15 +4116,6 @@ class VM(virt_vm.BaseVM):
                 raise virt_vm.VMMigrateFailedError("Migration ended with "
                                                    "unknown status")
 
-            # Switch self <-> clone
-            temp = self.clone(copy_state=True)
-            self.__dict__ = clone.__dict__
-            clone = temp
-
-            # From now on, clone is the source VM that will soon be destroyed
-            # and self is the destination VM that will remain alive.  If this
-            # is remote migration, self is a dead VM object.
-
             error_context.context("after migration")
             if local:
                 time.sleep(1)
@@ -4132,8 +4123,8 @@ class VM(virt_vm.BaseVM):
 
             if local and stable_check:
                 try:
-                    save1 = os.path.join(save_path, "src-" + clone.instance)
-                    save2 = os.path.join(save_path, "dst-" + self.instance)
+                    save1 = os.path.join(save_path, "dst-" + clone.instance)
+                    save2 = os.path.join(save_path, "src-" + self.instance)
                     clone.save_to_file(save1)
                     self.save_to_file(save2)
                     # Fail if we see deltas
@@ -4147,6 +4138,12 @@ class VM(virt_vm.BaseVM):
                             os.remove(save1)
                         if os.path.isfile(save2):
                             os.remove(save2)
+
+            # Switch self <-> clone
+            temp = self.clone(copy_state=True)
+            self.destroy(gracefully=False)      # self is the source dead vm
+            self.__dict__ = clone.__dict__      # self becomes the dst vm
+            clone = temp    # for cleanup purposes keep clone
 
         finally:
             # If we're doing remote migration and it's completed successfully,
