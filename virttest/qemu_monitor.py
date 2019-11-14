@@ -3242,7 +3242,7 @@ class QMPMonitor(Monitor):
 
     def query_mice(self):
         """
-        Query mice status.
+        Query active mouse device information.
         """
         return self.cmd("query-mice")
 
