@@ -875,3 +875,30 @@ class QemuAgent(Monitor):
         cmd = "guest-get-osinfo"
         self.check_has_command(cmd)
         return self.cmd(cmd)
+
+    def get_memory_block_info(self):
+        """
+        Get information relating to guest memory blocks.
+        """
+        cmd = "guest-get-memory-block-info"
+        self.check_has_command(cmd)
+        return self.cmd(cmd=cmd)
+
+    def get_memory_blocks(self):
+        """
+        Get the list of the guest's memory blocks.
+        """
+        cmd = "guest-get-memory-blocks"
+        self.check_has_command(cmd)
+        return self.cmd(cmd=cmd)
+
+    def set_memory_blocks(self, mem_blocks_list):
+        """
+        Reconfigure (currently: enable/disable) state of guest memory blocks.
+
+        :param mem_blocks_list: a list of memory blocks the guest knows about
+        :return: a list of memory blocks response, which is corresponding
+                 to the input list
+        """
+        cmd = "guest-set-memory-blocks"
+        return self._cmd_args_update(cmd, mem_blks=mem_blocks_list)
