@@ -2665,15 +2665,21 @@ class VM(virt_vm.BaseVM):
                             net_mask=params.get("net_mask", None),
                             pa_type=pa_type)
 
+                    if nic_params.get("device_name", "").startswith("shell:"):
+                        name = decode_to_text(process.system_output(
+                            nic_params.get("device_name").split(':', 1)[1],
+                            shell=True))
+                    else:
+                        name = nic_params.get("device_name")
                     # Virtual Functions (VF) assignable devices
                     if pa_type == "vf":
                         self.pci_assignable.add_device(device_type=pa_type,
                                                        mac=mac,
-                                                       name=nic_params.get("device_name"))
+                                                       name=name)
                     # Physical NIC (PF) assignable devices
                     elif pa_type == "pf":
                         self.pci_assignable.add_device(device_type=pa_type,
-                                                       name=nic_params.get("device_name"))
+                                                       name=name)
                     else:
                         raise virt_vm.VMBadPATypeError(pa_type)
                 else:
