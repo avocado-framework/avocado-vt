@@ -2281,8 +2281,12 @@ class VM(virt_vm.BaseVM):
             attr_info = ["timestamp", params["msg_timestamp"], bool]
             add_qemu_option(devices, "msg", [attr_info])
         if params.get("realtime_mlock"):
-            attr_info = ["mlock", params["realtime_mlock"], bool]
-            add_qemu_option(devices, "realtime", [attr_info])
+            if devices.has_option("overcommit"):
+                attr_info = ["mem-lock", params["realtime_mlock"], bool]
+                add_qemu_option(devices, "overcommit", [attr_info])
+            else:
+                attr_info = ["mlock", params["realtime_mlock"], bool]
+                add_qemu_option(devices, "realtime", [attr_info])
         if params.get("keyboard_layout"):
             attr_info = [None, params["keyboard_layout"], None]
             add_qemu_option(devices, "k", [attr_info])
