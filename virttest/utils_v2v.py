@@ -1165,7 +1165,7 @@ def setup_esx_ssh_key(hostname, username, password, port=22):
 
     :param hostname: hostname or IP address
     :param username: username
-    :param password: Password
+    :param password: password
     :param port: ssh port number
     """
     session = None
@@ -1179,7 +1179,9 @@ def setup_esx_ssh_key(hostname, username, password, port=22):
             port=port,
             password=password,
             prompt=r"[\#\$\[\]]",
-            preferred_authenticaton='password,keyboard-interactive')
+            verbose=True,
+            preferred_authenticaton='password,keyboard-interactive',
+            user_known_hosts_file='${HOME}/.ssh/known_hosts')
         public_key = ssh_key.get_public_key()
         session.cmd("echo '%s' >> /etc/ssh/keys-root/authorized_keys; " %
                     public_key)
@@ -1315,7 +1317,8 @@ def get_esx_disk_source_info(vm_name, virsh_instance):
         return [res.group(i) for i in range(1, 4)]
 
     disks_info = {}
-    disks = vm_xml.get_disk_source(vm_name, virsh_instance=virsh_instance)
+    disks = vm_xml.VMXML.get_disk_source(
+        vm_name, virsh_instance=virsh_instance)
     for disk in disks:
         attr_value = disk.find('source').get('file')
         file_info = _parse_file_info(attr_value)

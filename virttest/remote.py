@@ -241,7 +241,8 @@ def handle_prompts(session, username, password, prompt, timeout=10,
 def remote_login(client, host, port, username, password, prompt, linesep="\n",
                  log_filename=None, timeout=10, interface=None, identity_file=None,
                  status_test_command="echo $?", verbose=False, bind_ip=None,
-                 preferred_authenticaton='password'):
+                 preferred_authenticaton='password',
+                 user_known_hosts_file='/dev/null'):
     """
     Log into a remote host (guest) using SSH/Telnet/Netcat.
 
@@ -267,6 +268,7 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
     :param bind_ip: ssh through specific interface on
                     client(specify interface ip)
     :param preferred_authenticaton: The preferred authentication of SSH connection
+    :param user_known_hosts_file: one or more files to use for the user host key database
     :raise LoginError: If using ipv6 linklocal but not assign a interface that
                        the neighbour attache
     :raise LoginBadClientError: If an unknown client is requested
@@ -280,9 +282,9 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
                              "be assigned")
         host = "%s%%%s" % (host, interface)
     if client == "ssh":
-        cmd = ("ssh %s -o UserKnownHostsFile=/dev/null "
+        cmd = ("ssh %s -o UserKnownHostsFile=%s "
                "-o StrictHostKeyChecking=no -p %s" %
-               (verbose, port))
+               (verbose, user_known_hosts_file, port))
         if bind_ip:
             cmd += (" -b %s" % bind_ip)
         if identity_file:
