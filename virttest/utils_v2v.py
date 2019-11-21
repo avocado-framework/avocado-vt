@@ -985,11 +985,11 @@ def v2v_cmd(params):
     vpx_dc = params.get('vpx_dc')
     esxi_host = params.get('esxi_host', params.get('esx_ip'))
     opts_extra = params.get('v2v_opts')
-    # Set v2v_timeout to 3 hours, the value can give v2v enough time to execute,
+    # Set v2v_cmd_timeout to 5 hours, the value can give v2v enough time to execute,
     # and avoid v2v process be killed by mistake.
     # the value is bigger than the timeout value in CI, so when some timeout
     # really happens, CI will still interrupt the v2v process.
-    v2v_timeout = params.get('v2v_timeout', 10800)
+    v2v_cmd_timeout = params.get('v2v_cmd_timeout', 18000)
     rhv_upload_opts = params.get('rhv_upload_opts')
     # username and password of remote hypervisor server
     username = params.get('username', 'root')
@@ -1025,7 +1025,7 @@ def v2v_cmd(params):
         # Old v2v version doesn't support '-ip' option
         if not v2v_supported_option("-ip <filename>"):
             cmd = cmd.replace('-ip', '--password-file', 1)
-        cmd_result = process.run(cmd, timeout=v2v_timeout,
+        cmd_result = process.run(cmd, timeout=v2v_cmd_timeout,
                                  verbose=True, ignore_status=True)
     finally:
         target_obj.cleanup()
@@ -1280,7 +1280,7 @@ def create_virsh_instance(
     :param remote_pwd: Password to use, or None for host/pubkey
     :param debug: Whether to enable debug
     """
-    logging.debug("virsh connection info: uri=%s ip=%s", uri, remote_ip)
+    logging.debug("virsh connection info: hypervisor=%s uri=%s ip=%s", hypervisor, uri, remote_ip)
     if hypervisor == 'kvm':
         v2v_virsh = virsh
     else:
