@@ -176,8 +176,8 @@ class QemuImg(storage.QemuImg):
     resize_cmd = ("resize {secret_object} {image_opts} {resize_shrink!b} "
                   "{resize_preallocation} {image_filename} {image_size}")
     rebase_cmd = ("rebase {secret_object} {image_format} {cache_mode} "
-                  "{unsafe!b} {backing_file} {backing_format} "
-                  "{image_filename}")
+                  "{source_cache_mode} {unsafe!b} {backing_file} "
+                  "{backing_format} {image_filename}")
 
     def __init__(self, params, root_dir, tag):
         """
@@ -417,7 +417,7 @@ class QemuImg(storage.QemuImg):
 
         return convert_target
 
-    def rebase(self, params, cache_mode=None):
+    def rebase(self, params, cache_mode=None, source_cache_mode=None):
         """
         Rebase image.
 
@@ -433,6 +433,7 @@ class QemuImg(storage.QemuImg):
         cmd_dict = {"image_format": self.image_format,
                     "image_filename": self.image_filename,
                     "cache_mode": cache_mode,
+                    "source_cache_mode": source_cache_mode,
                     "unsafe": rebase_mode == "unsafe"}
         secret_objects = self._secret_objects
         if secret_objects:
