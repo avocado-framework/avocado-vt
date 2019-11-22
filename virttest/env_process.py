@@ -1840,9 +1840,9 @@ def store_vm_info(vm, log_filename, info_cmd='registers',
     :return: Store the vm register information to log file or not
     :rtype: bool
     """
+    timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
     if vmtype == "qemu":
         try:
-            timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
             output = vm.catch_monitor.info(info_cmd, debug=False)
         except qemu_monitor.MonitorError as err:
             logging.warn(err)
@@ -1852,7 +1852,6 @@ def store_vm_info(vm, log_filename, info_cmd='registers',
             return False
     elif vmtype == "libvirt":
         try:
-            timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
             result = virsh.qemu_monitor_command(vm.name,
                                                 "info %s" % info_cmd,
                                                 "--hmp", debug=False)
