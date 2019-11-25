@@ -12,17 +12,22 @@ import shutil
 import sys
 import logging
 
-import pygtk
+try:
+    from gi import pygtkcompat as pygtk
+except ImportError:
+    pygtk = None
+if pygtk is not None:
+    pygtk.enable()
+    pygtk.enable_gtk(version='3.0')
 import gtk
 
 from virttest import ppm_utils
 
-pygtk.require('2.0')
-
 
 # General utilities
 
-def corner_and_size_clipped(startpoint, endpoint, limits):
+def corner_and_size_clipped(startpoint, endpoint, width, height):
+    limits = width, height
     c0 = startpoint[:]
     c1 = endpoint[:]
     if c0[0] < 0:
@@ -48,9 +53,9 @@ def corner_and_size_clipped(startpoint, endpoint, limits):
 
 
 def key_event_to_qemu_string(event):
-    keymap = gtk.gdk.keymap_get_default()
+    keymap = gtk.gdk.Keymap.get_default()
     keyvals = keymap.get_entries_for_keycode(event.hardware_keycode)
-    keyval = keyvals[0][0]
+    keyval = keyvals[2][0]
     keyname = gtk.gdk.keyval_name(keyval)
 
     keymap = {"Return": "ret",
@@ -105,11 +110,11 @@ def key_event_to_qemu_string(event):
         return ""
 
     if event.state & gtk.gdk.CONTROL_MASK:
-        sr = "ctrl-" + str
+        sr = "ctrl-" + sr
     if event.state & gtk.gdk.MOD1_MASK:
-        sr = "alt-" + str
+        sr = "alt-" + sr
     if event.state & gtk.gdk.SHIFT_MASK:
-        sr = "shift-" + str
+        sr = "shift-" + sr
 
     return sr
 
@@ -219,8 +224,10 @@ class StepMakerWindow(object):
         box.pack_start(self.check_sleep, False)
         self.check_sleep.show()
 
-        self.spin_sleep = gtk.SpinButton(gtk.Adjustment(0, 0, 50000, 1, 10, 0),
-                                         climb_rate=0.0)
+        self.spin_sleep = gtk.SpinButton()
+        adjustment = gtk.Adjustment(0, 0, 50000, 1, 10, 0)
+        self.spin_sleep.set_adjustment(adjustment)
+        self.spin_sleep.climb_rate = 0.0
         box.pack_start(self.spin_sleep, False)
         self.spin_sleep.show()
 
@@ -252,9 +259,10 @@ class StepMakerWindow(object):
         box.pack_start(self.label_barrier_timeout, False)
         self.label_barrier_timeout.show()
 
-        self.spin_barrier_timeout = gtk.SpinButton(gtk.Adjustment(0, 0, 50000,
-                                                                  1, 10, 0),
-                                                   climb_rate=0.0)
+        self.spin_barrier_timeout = gtk.SpinButton()
+        adjustment = gtk.Adjustment(0, 0, 50000, 1, 10, 0)
+        self.spin_barrier_timeout.set_adjustment(adjustment)
+        self.spin_barrier_timeout.climb_rate = 0.0
         box.pack_start(self.spin_barrier_timeout, False)
         self.spin_barrier_timeout.show()
 
@@ -276,8 +284,8 @@ class StepMakerWindow(object):
         box.pack_start(frame)
         frame.show()
 
-        self.text_buffer = gtk.TextBuffer()
-        self.entry_keys = gtk.TextView(self.text_buffer)
+        self.entry_keys = gtk.TextView()
+        self.text_buffer = self.entry_keys.get_buffer()
         self.entry_keys.set_wrap_mode(gtk.WRAP_WORD)
         self.entry_keys.connect("key-press-event", self.event_key_press)
         frame.add(self.entry_keys)
@@ -314,9 +322,10 @@ class StepMakerWindow(object):
         box.pack_start(self.check_mouseclick, False)
         self.check_mouseclick.show()
 
-        self.spin_sensitivity = gtk.SpinButton(gtk.Adjustment(1, 1, 100, 1, 10,
-                                                              0),
-                                               climb_rate=0.0)
+        self.spin_sensitivity = gtk.SpinButton()
+        adjustment = gtk.Adjustment(1, 1, 100, 1, 10, 0)
+        self.spin_sensitivity.set_adjustment(adjustment)
+        self.spin_sensitivity.climb_rate = 0.0
         box.pack_end(self.spin_sensitivity, False)
         self.spin_sensitivity.show()
 
@@ -324,9 +333,10 @@ class StepMakerWindow(object):
         box.pack_end(label, False)
         label.show()
 
-        self.spin_latency = gtk.SpinButton(
-            gtk.Adjustment(10, 1, 500, 1, 10, 0),
-            climb_rate=0.0)
+        self.spin_latency = gtk.SpinButton()
+        adjustment = gtk.Adjustment(10, 1, 500, 1, 10, 0)
+        self.spin_latency.set_adjustment(adjustment)
+        self.spin_latency.climb_rate = 0.0
         box.pack_end(self.spin_latency, False)
         self.spin_latency.show()
 
@@ -338,9 +348,11 @@ class StepMakerWindow(object):
         self.handler_event_box_release = None
         self.handler_event_box_scroll = None
         self.handler_event_box_motion = None
-        self.handler_event_box_expose = None
+        self.handler_event_box_draw = None
 
         self.window.realize()
+        # maximize to handle bug where the barrier region is not drawn
+        self.window.maximize()
         self.window.show()
 
         self.clear_state()
@@ -417,7 +429,7 @@ class StepMakerWindow(object):
         return filename
 
     def redirect_event_box_input(self, press=None, release=None, scroll=None,
-                                 motion=None, expose=None):
+                                 motion=None, draw=None):
         if self.handler_event_box_press is not None:
             self.event_box.disconnect(self.handler_event_box_press)
         if self.handler_event_box_release is not None:
@@ -426,13 +438,13 @@ class StepMakerWindow(object):
             self.event_box.disconnect(self.handler_event_box_scroll)
         if self.handler_event_box_motion is not None:
             self.event_box.disconnect(self.handler_event_box_motion)
-        if self.handler_event_box_expose is not None:
-            self.event_box.disconnect(self.handler_event_box_expose)
+        if self.handler_event_box_draw is not None:
+            self.event_box.disconnect(self.handler_event_box_draw)
         self.handler_event_box_press = None
         self.handler_event_box_release = None
         self.handler_event_box_scroll = None
         self.handler_event_box_motion = None
-        self.handler_event_box_expose = None
+        self.handler_event_box_draw = None
         if press is not None:
             self.handler_event_box_press = (
                 self.event_box.connect("button-press-event", press))
@@ -445,14 +457,14 @@ class StepMakerWindow(object):
         if motion is not None:
             self.handler_event_box_motion = (
                 self.event_box.connect("motion-notify-event", motion))
-        if expose is not None:
-            self.handler_event_box_expose = (
-                self.event_box.connect_after("expose-event", expose))
+        if draw is not None:
+            self.handler_event_box_draw = (
+                self.event_box.connect_after("draw", draw))
 
     def get_keys(self):
         return self.text_buffer.get_text(
             self.text_buffer.get_start_iter(),
-            self.text_buffer.get_end_iter())
+            self.text_buffer.get_end_iter(), True)
 
     def add_key(self, key):
         text = self.get_keys()
@@ -743,9 +755,10 @@ class StepMakerWindow(object):
                 self.event_button_release,
                 None,
                 None,
-                self.event_expose)
+                self.event_draw)
             self.event_box.queue_draw()
-            self.event_box.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
+            cursor = gtk.gdk.Cursor(gtk.gdk.CursorType.CROSSHAIR)
+            self.event_box.window.set_cursor(cursor)
             self.label_barrier_region.set_sensitive(True)
             self.label_barrier_md5sum.set_sensitive(True)
             self.label_barrier_timeout.set_sensitive(True)
@@ -774,31 +787,32 @@ class StepMakerWindow(object):
         self.clear_keys()
         self.entry_keys.grab_focus()
 
-    def event_expose(self, widget, event):
+    def event_draw(self, widget, event):
         if not self.barrier_selection_started:
             return
+        max_width = self.event_box.get_preferred_width()[1]
+        max_height = self.event_box.get_preferred_height()[1]
         (corner, size) = corner_and_size_clipped(self.barrier_corner0,
                                                  self.barrier_corner1,
-                                                 self.event_box.size_request())
-        gc = self.event_box.window.new_gc(line_style=gtk.gdk.LINE_DOUBLE_DASH,
-                                          line_width=1)
-        gc.set_foreground(gc.get_colormap().alloc_color("red"))
-        gc.set_background(gc.get_colormap().alloc_color("dark red"))
-        gc.set_dashes(0, (4, 4))
-        self.event_box.window.draw_rectangle(
-            gc, False,
-            corner[0], corner[1],
-            size[0] - 1, size[1] - 1)
+                                                 max_width, max_height)
+        cr = self.event_box.window.cairo_create()
+        cr.set_source_rgb(1.0, 0.0, 0.0)
+        cr.set_line_width(1.0)
+        cr.set_dash((4.0, 4.0), 0)
+        cr.rectangle(corner[0], corner[1], size[0] - 1, size[1] - 1)
+        cr.stroke()
 
     def event_drag_motion(self, widget, event):
         old_corner1 = self.barrier_corner1
         self.barrier_corner1 = [int(event.x), int(event.y)]
+        max_width = self.event_box.get_preferred_width()[1]
+        max_height = self.event_box.get_preferred_height()[1]
         (corner, size) = corner_and_size_clipped(self.barrier_corner0,
                                                  self.barrier_corner1,
-                                                 self.event_box.size_request())
+                                                 max_width, max_height)
         (old_corner, old_size) = corner_and_size_clipped(self.barrier_corner0,
                                                          old_corner1,
-                                                         self.event_box.size_request())
+                                                         max_width, max_height)
         corner0 = [
             min(corner[0], old_corner[0]), min(corner[1], old_corner[1])]
         corner1 = [max(corner[0] + size[0], old_corner[0] + old_size[0]),
@@ -809,9 +823,11 @@ class StepMakerWindow(object):
             corner0[0], corner0[1], size[0], size[1])
 
     def event_button_press(self, widget, event):
+        max_width = self.event_box.get_preferred_width()[1]
+        max_height = self.event_box.get_preferred_height()[1]
         (corner, size) = corner_and_size_clipped(self.barrier_corner0,
                                                  self.barrier_corner1,
-                                                 self.event_box.size_request())
+                                                 max_width, max_height)
         self.event_box.queue_draw_area(corner[0], corner[1], size[0], size[1])
         self.barrier_corner0 = [int(event.x), int(event.y)]
         self.barrier_corner1 = [int(event.x), int(event.y)]
@@ -820,19 +836,21 @@ class StepMakerWindow(object):
             self.event_button_release,
             None,
             self.event_drag_motion,
-            self.event_expose)
+            self.event_draw)
         self.barrier_selection_started = True
 
     def event_button_release(self, widget, event):
+        max_width = self.event_box.get_preferred_width()[1]
+        max_height = self.event_box.get_preferred_height()[1]
         self.redirect_event_box_input(
             self.event_button_press,
             self.event_button_release,
             None,
             None,
-            self.event_expose)
+            self.event_draw)
         (self.barrier_corner, self.barrier_size) = \
             corner_and_size_clipped(self.barrier_corner0, self.barrier_corner1,
-                                    self.event_box.size_request())
+                                    max_width, max_height)
         self.barrier_md5sum = ppm_utils.get_region_md5sum(
             self.image_width, self.image_height, self.image_data,
             self.barrier_corner[0], self.barrier_corner[1],
