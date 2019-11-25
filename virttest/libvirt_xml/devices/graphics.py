@@ -14,7 +14,7 @@ class Graphics(base.TypedDeviceBase):
                  'tlsPort', 'defaultMode', 'image_compression',
                  'jpeg_compression', 'zlib_compression', 'playback_compression',
                  'listen_type', 'listen_addr', 'passwdValidTo', 'clipboard_copypaste',
-                 'filetransfer_enable')
+                 'filetransfer_enable', 'streaming_mode')
 
     def __init__(self, type_name='vnc', virsh_instance=base.base.virsh):
         # Add additional attribute 'passwd' for security
@@ -50,6 +50,8 @@ class Graphics(base.TypedDeviceBase):
                                tag_name='clipboard', attribute='copypaste')
         accessors.XMLAttribute('filetransfer_enable', self, parent_xpath='/',
                                tag_name='filetransfer', attribute='enable')
+        accessors.XMLAttribute('streaming_mode', self, parent_xpath='/',
+                               tag_name='streaming', attribute='mode')
         super(Graphics, self).__init__(device_tag='graphics',
                                        type_name=type_name,
                                        virsh_instance=virsh_instance)
