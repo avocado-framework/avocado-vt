@@ -4300,7 +4300,7 @@ def virt_format(disk, filesystem=None, image_format=None, lvm=None,
     Virt-format takes an existing disk file (or it can be a host partition,
     LV etc), erases all data on it, and formats it as a blank disk.
     """
-    cmd = "virt-format -a %s" % disk
+    cmd = "virt-format"
     if filesystem is not None:
         cmd += " --filesystem=%s" % filesystem
     if image_format is not None:
@@ -4311,6 +4311,7 @@ def virt_format(disk, filesystem=None, image_format=None, lvm=None,
         cmd += " --partition=%s" % partition
     if wipe is True:
         cmd += " --wipe"
+    cmd += " -a %s" % disk
     return lgf_command(cmd, ignore_status, debug, timeout)
 
 
