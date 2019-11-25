@@ -20,10 +20,12 @@ import stat
 import traceback
 import signal
 import time
+import platform
 
 import six
 from six.moves import xrange
 from six.moves import input
+from distutils.version import LooseVersion  # pylint: disable=W0611,E0611
 
 
 if os.name == "posix":  # Linux
@@ -233,6 +235,8 @@ class VirtioGuestPosix(VirtioGuest):
         :return: Ports dictionary of port properties
         """
         ports = {}
+        current_version = LooseVersion(platform.uname()[2])
+        fixed_version = LooseVersion("4.18.0-97")
         not_present_msg = "FAIL: There's no virtio-ports dir in debugfs"
         if not os.path.ismount(DEBUGPATH):
             os.system('mount -t debugfs none %s' % (DEBUGPATH))
@@ -273,7 +277,10 @@ class VirtioGuestPosix(VirtioGuest):
                         port[m.group(1)] = m.group(2)
 
                     if port['is_console'] == "yes":
-                        port["path"] = "/dev/hvc%s" % (port["console_vtermno"])
+                        port_num = int(port["console_vtermno"])
+                        if current_version >= fixed_version:
+                            port_num -= 1
+                        port["path"] = "/dev/hvc%d" % port_num
                         # Console works like a serialport
                     else:
                         port["path"] = "/dev/%s" % name
