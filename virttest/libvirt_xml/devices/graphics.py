@@ -13,7 +13,8 @@ class Graphics(base.TypedDeviceBase):
     __slots__ = ('passwd', 'channel', 'listen', 'listens', 'autoport', 'port',
                  'tlsPort', 'defaultMode', 'image_compression',
                  'jpeg_compression', 'zlib_compression', 'playback_compression',
-                 'listen_type', 'listen_addr', 'passwdValidTo', 'copypaste')
+                 'listen_type', 'listen_addr', 'passwdValidTo', 'clipboard_copypaste',
+                 'filetransfer_enable')
 
     def __init__(self, type_name='vnc', virsh_instance=base.base.virsh):
         # Add additional attribute 'passwd' for security
@@ -45,8 +46,10 @@ class Graphics(base.TypedDeviceBase):
                                tag_name='listen', attribute='type')
         accessors.XMLAttribute('listen_addr', self, parent_xpath='/',
                                tag_name='listen', attribute='address')
-        accessors.XMLAttribute('copypaste', self, parent_xpath='/',
+        accessors.XMLAttribute('clipboard_copypaste', self, parent_xpath='/',
                                tag_name='clipboard', attribute='copypaste')
+        accessors.XMLAttribute('filetransfer_enable', self, parent_xpath='/',
+                               tag_name='filetransfer', attribute='enable')
         super(Graphics, self).__init__(device_tag='graphics',
                                        type_name=type_name,
                                        virsh_instance=virsh_instance)
