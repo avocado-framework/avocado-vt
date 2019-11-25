@@ -291,7 +291,7 @@ class Target(object):
             options += input_transport_args[self.input_transport]
             return options
 
-        supported_mac = v2v_supported_option('--mac')
+        supported_mac = v2v_supported_option('--mac <mac:network\|bridge:out>')
         if supported_mac:
             if self.iface_macs:
                 for mac_i in self.iface_macs.split(';'):
