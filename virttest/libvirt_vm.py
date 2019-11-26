@@ -727,7 +727,7 @@ class VM(virt_vm.BaseVM):
 
         def add_drive(help_text, filename, pool=None, vol=None, device=None,
                       bus=None, perms=None, size=None, sparse=False,
-                      cache=None, fmt=None):
+                      cache=None, fmt=None, driver_name=None):
             cmd = " --disk"
             if filename:
                 cmd += " path=%s" % filename
@@ -750,6 +750,8 @@ class VM(virt_vm.BaseVM):
                 cmd += ",format=%s" % fmt
             if cache:
                 cmd += ",cache=%s" % cache
+            if driver_name:
+                cmd += ",driver_name=%s" % driver_name
             return cmd
 
         def add_floppy(help_text, filename):
@@ -1236,13 +1238,14 @@ class VM(virt_vm.BaseVM):
                                               filename,
                                               None,
                                               None,
-                                              None,
+                                              image_params.get("image_device"),
                                               _drive_format,
                                               None,
                                               image_params.get("image_size"),
                                               image_params.get("drive_sparse"),
                                               image_params.get("drive_cache"),
-                                              image_params.get("image_format"))
+                                              image_params.get("image_format"),
+                                              image_params.get("driver_name"))
 
         unattended_integrated = (params.get('unattended_delivery_method') !=
                                  'integrated')
