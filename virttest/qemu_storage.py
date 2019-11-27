@@ -217,6 +217,8 @@ class QemuImg(storage.QemuImg):
         "target_image_format": "-O",
         "convert_sparse_size": "-S",
         "commit_drop": "-d",
+        "compare_strict_mode": "-s",
+        "compare_second_image_format": "-F"
         }
     create_cmd = ("create {secret_object} {image_format} {backing_file} "
                   "{backing_format} {unsafe!b} {options} {image_filename} "
@@ -238,6 +240,10 @@ class QemuImg(storage.QemuImg):
     dd_cmd = ("dd {secret_object} {image_format} {target_image_format} "
               "{block_size} {count} {skip} "
               "if={image_filename} of={target_image_filename}")
+    compare_cmd = ("compare {secret_object} {image_format} "
+                   "{compare_second_image_format} {source_cache_mode} "
+                   "{compare_strict_mode!b} {force_share!b} "
+                   "{image_filename} {compare_second_image_filename}")
 
     def __init__(self, params, root_dir, tag):
         """
@@ -770,6 +776,57 @@ class QemuImg(storage.QemuImg):
             cmd_result.stdout = results_stdout_52lts(cmd_result)
             cmd_result.stderr = results_stderr_52lts(cmd_result)
             return cmd_result
+
+    def compare_to(self, target_image, source_cache_mode=None,
+                   strict_mode=False, force_share=False, verbose=True):
+        """
+        Compare to target image.
+
+        :param target_image: target image object
+        :param source_cache_mode: source cache used to open source image
+        :param strict_mode: compare fails on sector allocation or image size
+        :param force_share: open image in shared mode
+        :return: compare result [process.CmdResult]
+        """
+        if not self.support_cmd("compare"):
+            logging.warn("qemu-img subcommand compare not supported")
+            return
+        force_share &= self.cap_force_share
+        logging.info("compare image %s to image %s",
+                     self.image_filename, target_image.image_filename)
+
+        cmd_dict = {
+            "image_format": self.image_format,
+            "compare_second_image_format": target_image.image_format,
+            "source_cache_mode": source_cache_mode,
+            "compare_strict_mode": strict_mode,
+            "force_share": force_share,
+            "image_filename": self.image_filename,
+            "compare_second_image_filename": target_image.image_filename,
+        }
+
+        secret_objects = self._secret_objects + target_image._secret_objects
+        # if compared images are in the same snapshot chain,
+        # needs to remove duplicated secrets
+        secret_objects = list(set(secret_objects))
+        cmd_dict["secret_object"] = " ".join(secret_objects)
+
+        if self.encryption_config.key_secret:
+            cmd_dict["image_filename"] = "'%s'" % \
+                get_image_json(self.tag, self.params, self.root_dir)
+        if target_image.encryption_config.key_secret:
+            cmd_dict["compare_second_image_filename"] = "'%s'" % \
+                get_image_json(target_image.tag, target_image.params,
+                               target_image.root_dir)
+
+        compare_cmd = self.image_cmd + " " + \
+            self._cmd_formatter.format(self.compare_cmd, **cmd_dict)
+        result = process.run(compare_cmd, ignore_status=True, shell=True)
+
+        if verbose:
+            logging.debug("compare output:\n%s", results_stdout_52lts(result))
+
+        return result
 
     def check_image(self, params, root_dir, force_share=False):
         """
