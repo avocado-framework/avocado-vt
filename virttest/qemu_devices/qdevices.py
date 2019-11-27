@@ -864,6 +864,16 @@ class QBlockdevProtocolHostCdrom(QBlockdevProtocol):
     TYPE = 'host_cdrom'
 
 
+class QBlockdevProtocolISCSI(QBlockdevProtocol):
+    """ New a protocol iscsi blockdev node. """
+    TYPE = 'iscsi'
+
+
+class QBlockdevProtocolRBD(QBlockdevProtocol):
+    """ New a protocol rbd blockdev node. """
+    TYPE = 'rbd'
+
+
 class QDevice(QCustomDevice):
 
     """
