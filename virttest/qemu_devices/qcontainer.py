@@ -1585,7 +1585,7 @@ class DevContainer(object):
         :param num_queues: performace option for virtio-scsi-pci
         :param bus_extra_params: options want to add to virtio-scsi-pci bus
         :param image_encryption: ImageEncryption object for image
-        :param image_access: The logical image access information object
+        :param image_access: The remote image access information object
         """
         def _get_access_secrets(image_access):
             """Get all secret objects of the image and its backing images"""
