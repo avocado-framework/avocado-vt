@@ -97,6 +97,15 @@ def _get_image_meta(image, params, root_dir):
             if image_access.storage_type == 'ceph':
                 # qemu-img needs secret object only for ceph access
                 meta['file']['password-secret'] = image_access.auth.aid
+            elif image_access.storage_type == 'iscsi-direct':
+                # '-b json' demands password
+                # note that image creation doesn't support secret object
+                meta['file']['password'] = image_access.auth.data
+
+        if (image_access.storage_type == 'iscsi-direct'
+                and image_access.iscsi_initiator is not None):
+            # set initiator-name besides password
+            meta['file']['initiator-name'] = image_access.iscsi_initiator
 
     return meta
 
@@ -141,7 +150,20 @@ def get_image_repr(image, params, root_dir, representation=None):
                "opts": get_image_opts}
     func = mapping.get(representation, None)
     if func is None:
-        if storage.ImageSecret.image_secret_define_by_params(image, params):
+        access_secret = None
+        initiator = None
+        image_access = storage.ImageAccessInfo.access_info_define_by_params(
+                                                              image, params)
+        if image_access is not None:
+            if image_access.storage_type == 'ceph':
+                # only ceph access needs secret object
+                access_secret = image_access.auth
+            elif image_access.storage_type == 'iscsi-direct':
+                # besides secret, iscsi access may need initiator
+                initiator = image_access.iscsi_initiator
+
+        if (storage.ImageSecret.image_secret_define_by_params(image, params)
+                or access_secret or initiator):
             func = mapping["json"]
         else:
             func = mapping["filename"]
@@ -290,7 +312,8 @@ class QemuImg(storage.QemuImg):
                     options.append("%s=%s" % (opt_key.replace("_", "-"),
                                               str(opt_val)))
 
-        access_secret, secret_type = self._get_access_secret_info()
+        access_secret, secret_type = self._access_secrets.get(self.tag,
+                                                              (None, None))
         if access_secret is not None:
             if secret_type == 'password':
                 options.append("password-secret=%s" % access_secret.aid)
@@ -317,17 +340,18 @@ class QemuImg(storage.QemuImg):
         return [secret_obj_str.format(s=s) for s in secret_objects]
 
     @property
-    def _storage_secret_object(self):
-        secret_obj_str = ''
-        access_secret, secret_type = self._get_access_secret_info()
-        if access_secret is not None:
+    def _storage_secret_objects(self):
+        secrets = []
+        image_secrets = self._access_secrets
+        for image in image_secrets:
+            access_secret, secret_type = image_secrets[image]
+            secret_obj_str = ''
             if secret_type == 'password':
                 secret_obj_str = "--object secret,id={s.aid},format={s.data_format},file={s.filename}"
-                return secret_obj_str.format(s=access_secret)
             elif secret_type == 'key':
                 secret_obj_str = "--object secret,id={s.aid},format={s.data_format},data={s.data}"
-                return secret_obj_str.format(s=access_secret)
-        return secret_obj_str
+            secrets.append(secret_obj_str.format(s=access_secret))
+        return secrets
 
     @error_context.context_aware
     def create(self, params, ignore_errors=False):
@@ -384,7 +408,8 @@ class QemuImg(storage.QemuImg):
             if self.base_tag:
                 # if base image has secret, use json representation
                 base_key_secrets = self.encryption_config.base_key_secrets
-                if self.base_tag in [s.image_id for s in base_key_secrets]:
+                if (self.base_tag in [s.image_id for s in base_key_secrets]
+                        or self.need_access_info(self.base_tag)):
                     base_params = params.object_params(self.base_tag)
                     cmd_dict["backing_file"] = "'%s'" % \
                         get_image_json(self.base_tag, base_params,
@@ -394,10 +419,7 @@ class QemuImg(storage.QemuImg):
                     if self.base_format:
                         cmd_dict["backing_format"] = self.base_format
 
-            secret_objects = []
-            storage_secret_object = self._storage_secret_object
-            if storage_secret_object:
-                secret_objects.append(storage_secret_object)
+            secret_objects = self._storage_secret_objects
             image_secret_objects = self._secret_objects
             if image_secret_objects:
                 secret_objects.extend(image_secret_objects)
@@ -674,9 +696,8 @@ class QemuImg(storage.QemuImg):
         secret_files = []
         if self.encryption_config.key_secret:
             secret_files.append(self.encryption_config.key_secret.filename)
-        access_secret, _ = self._get_access_secret_info()
-        if access_secret is not None:
-            secret_files.append(access_secret.filename)
+        if self.tag in self._access_secrets:
+            secret_files.append(self._access_secrets[self.tag][0].filename)
         for f in secret_files:
             if os.path.exists(f):
                 os.unlink(f)
@@ -692,6 +713,12 @@ class QemuImg(storage.QemuImg):
         force_share &= self.cap_force_share
         cmd = self.image_cmd
         cmd += " info"
+
+        # need secret object to access image or its backing file
+        secret_objects = self._storage_secret_objects
+        if secret_objects:
+            cmd += " %s" % (" ".join(secret_objects))
+
         if force_share:
             cmd += " -U"
         if backing_chain == "yes":
@@ -699,11 +726,17 @@ class QemuImg(storage.QemuImg):
                 cmd += " --backing-chain"
             else:
                 logging.warn("'--backing-chain' option is not supported")
-        if os.path.exists(self.image_filename) or self.is_remote_image():
-            cmd += " %s --output=%s" % (self.image_filename, output)
+
+        image_filename = self.image_filename
+        if self.need_access_info(self.tag):
+            # represented as json when access info is required
+            image_filename = "'%s'" % get_image_json(self.tag, self.params,
+                                                     self.root_dir)
+        if os.path.exists(image_filename) or self.is_remote_image():
+            cmd += " %s --output=%s" % (image_filename, output)
             output = decode_to_text(process.system_output(cmd, verbose=True))
         else:
-            logging.debug("Image file %s not found", self.image_filename)
+            logging.debug("Image file %s not found", image_filename)
             output = None
         return output
 
@@ -861,14 +894,12 @@ class QemuImg(storage.QemuImg):
                                   image_filename)
                 cmd_dict = {"image_filename": image_filename,
                             "force_share": force_share}
-                if self.encryption_config.key_secret:
+                if (self.encryption_config.key_secret
+                        or self.need_access_info(self.tag)):
                     cmd_dict["image_filename"] = "'%s'" % \
                         get_image_json(self.tag, params, root_dir)
 
-                secret_objects = []
-                storage_secret_object = self._storage_secret_object
-                if storage_secret_object:
-                    secret_objects.append(storage_secret_object)
+                secret_objects = self._storage_secret_objects
                 image_secret_objects = self._secret_objects
                 if image_secret_objects:
                     secret_objects.extend(image_secret_objects)
@@ -1072,9 +1103,10 @@ class QemuImg(storage.QemuImg):
             cmd_dict['image_format'] = cmd_dict['target_image_format'] = 'raw'
 
         # use 'json:{}' instead when accessing storage with auth
-        access_secret, _ = self._get_access_secret_info()
-        meta = _get_image_meta(
-            self.tag, self.params, self.root_dir) if access_secret else None
+        meta = None
+        meta = _get_image_meta(self.tag,
+                               self.params,
+                               self.root_dir) if self.need_access_info(self.tag) else None
         if meta is not None:
             if raw_copy:
                 # drop image secret from meta
@@ -1084,8 +1116,9 @@ class QemuImg(storage.QemuImg):
             meta['driver'] = cmd_dict.pop("image_format")
             cmd_dict["image_filename"] = "'json:%s'" % json.dumps(meta)
 
-        if self._storage_secret_object:
-            cmd_dict["secret_object"] = self._storage_secret_object
+        secret_objects = self._storage_secret_objects
+        if secret_objects:
+            cmd_dict["secret_object"] = " ".join(secret_objects)
 
         dd_cmd = self.image_cmd + " " + \
             self._cmd_formatter.format(self.dd_cmd, **cmd_dict)

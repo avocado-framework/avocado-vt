@@ -375,10 +375,16 @@ class ImageAccessInfo(object):
 
 
 def retrieve_access_info(image, params):
-    """Create image access info object"""
-    img_params = params.object_params(image)
-    # TODO: get all image access info
-    return ImageAccessInfo.access_info_define_by_params(image, img_params)
+    """Create all image access info objects"""
+    access_info = []
+    image_chain = params.get("image_chain")
+    images = image_chain.split() if image_chain else [image]
+    for img in images:
+        img_params = params.object_params(img)
+        access = ImageAccessInfo.access_info_define_by_params(img, img_params)
+        if access is not None:
+            access_info.append(access)
+    return access_info
 
 
 def retrieve_secrets(image, params):
@@ -555,18 +561,44 @@ class QemuImg(object):
                                                               root_dir)
             self.snapshot_format = ss_params.get("image_format")
 
-        self.image_access = retrieve_access_info(self.tag, self.params)
+        self._images_access = retrieve_access_info(self.tag, self.params)
 
-    def _get_access_secret_info(self):
-        access_secret, secret_type = None, None
-        if self.image_access is not None:
-            if self.image_access.auth is not None:
-                if self.image_access.storage_type == 'ceph':
+    def need_access_info(self, image=None):
+        """
+        Check if image access info is required.
+
+        :param image: image name
+        :return: True or False
+        """
+        tag = image if image is not None else self.tag
+        access = self._access_info.get(tag, None)
+        initiator = access.iscsi_initiator if access and access.storage_type == 'iscsi-direct' else ""
+        return tag in self._access_secrets or initiator
+
+    @property
+    def _access_info(self):
+        """
+        Get all image access objects
+
+        :return: a dict of {image: access object} or {}
+        """
+        return {access.image: access for access in self._images_access}
+
+    @property
+    def _access_secrets(self):
+        """
+        Get all image access secret object and its type
+
+        :return: a dict of {image: (secret object, secret type)} or {}
+        """
+        secrets = {}
+        for access in self._images_access:
+            if access.auth is not None:
+                if access.storage_type == 'ceph':
                     # Only ceph image access requires secret object by
                     # qemu-img and only 'password-secret' is supported
-                    access_secret = self.image_access.auth
-                    secret_type = 'password'
-        return access_secret, secret_type
+                    secrets[access.image] = access.auth, 'password'
+        return secrets
 
     def check_option(self, option):
         """
