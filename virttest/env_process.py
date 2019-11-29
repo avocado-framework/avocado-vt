@@ -46,6 +46,7 @@ from virttest import virsh
 from virttest import utils_test
 from virttest import utils_iptables
 from virttest import utils_package
+from virttest import utils_qemu
 from virttest.utils_version import VersionInterval
 from virttest.compat_52lts import decode_to_text
 from virttest.staging import service
@@ -1025,6 +1026,18 @@ def preprocess(test, params, env):
         if not env.get("cpu_model"):
             env["cpu_model"] = cpu.get_qemu_best_cpu_model(params)
         params["cpu_model"] = env.get("cpu_model")
+
+    if params.get("cpu_driver") is None:
+        cpu_model = params.get("cpu_model")
+        if cpu_model:
+            search_pattern = r"%s-\w+-cpu" % cpu_model
+            qemu_path = utils_misc.get_qemu_binary(params)
+            cpu_driver = utils_qemu.find_supported_devices(qemu_path,
+                                                           search_pattern,
+                                                           "CPU")
+            if cpu_driver:
+                env["cpu_driver"] = cpu_driver[0]
+                params["cpu_driver"] = env.get("cpu_driver")
 
     version_info = {}
     # Get the KVM kernel module version
