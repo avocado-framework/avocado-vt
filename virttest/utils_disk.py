@@ -3,6 +3,8 @@ Virtualization test - Virtual disk related utility functions
 
 :copyright: Red Hat Inc.
 """
+import ctypes
+import ctypes.util
 import os
 import glob
 import shutil
@@ -64,6 +66,83 @@ def copytree(src, dst, overwrite=True, ignore=''):
                 else:
                     continue
             shutil.copy(src_file, dst_dir)
+
+
+def _fallocate():
+    """Wrapper factory for `fallocate`."""
+    libc_name = ctypes.util.find_library("c")
+    libc = ctypes.CDLL(libc_name)
+
+    c_fallocate = libc.fallocate
+    c_fallocate.restype = ctypes.c_int
+    c_fallocate.argtypes = [ctypes.c_int, ctypes.c_int,
+                            ctypes.c_int64, ctypes.c_int64]
+
+    def fallocate(fd, mode, offset, length):
+        """Manipulate file space."""
+        res = c_fallocate(fd.fileno(), mode, offset, length)
+        if res != 0:
+            raise IOError(res, "fallocate")
+
+    return fallocate
+
+
+fallocate = _fallocate()
+
+
+FALLOC_FL_KEEP_SIZE = 0x01
+FALLOC_FL_PUNCH_HOLE = 0x02
+
+
+def copyfileobj(fsrc, fdst, sparse=True):
+    """
+    Copy data from file object source to file object dest.
+
+    :param fsrc: source file object
+    :param fdst: dest file object
+    :param sparse: True to create sparse file if source file contains a long
+                   enough sequence of zero bytes
+    """
+    blk_size = getattr(os.fstatvfs(fsrc.fileno()), "f_bsize", 16 * 1024)
+    while True:
+        buf = fsrc.read(blk_size)
+        if not buf:
+            break
+        if sparse and buf == b'\0' * len(buf):
+            fdst.seek(len(buf), os.SEEK_CUR)
+            # xfs will preallocate for write, lseek above will not discard
+            fallocate(fdst,
+                      FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE,
+                      fdst.tell() - len(buf),
+                      len(buf))
+        else:
+            fdst.write(buf)
+    if sparse:
+        fdst.truncate()
+
+
+def copyfile(src, dst, sparse=True):
+    """
+    Copy data from source file to dest file.
+
+    This resembles GNU's "cp" command.
+
+    :param src: source filename
+    :param dst: dest filename
+    :param sparse: True to create sparse file if source file contains a long
+                   enough sequence of zero bytes
+    """
+    if os.path.isdir(dst):
+        dst = os.path.join(dst, os.path.basename(src))
+    try:
+        if os.path.samefile(src, dst):
+            raise ValueError("'%s' and '%s' are the same file" % (src, dst))
+    except OSError:
+        pass
+
+    with open(src, "rb") as fsrc, open(dst, "wb") as fdst:
+        copyfileobj(fsrc, fdst, sparse=sparse)
+    shutil.copymode(src, dst)
 
 
 def is_mount(src, dst=None, fstype=None, options=None, verbose=False,

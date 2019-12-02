@@ -9,7 +9,6 @@ from __future__ import division
 import errno
 import logging
 import os
-import shutil
 import re
 import functools
 
@@ -17,6 +16,7 @@ from avocado.core import exceptions
 from avocado.utils import process
 
 from virttest import iscsi
+from virttest import utils_disk
 from virttest import utils_misc
 from virttest import utils_numeric
 from virttest import virt_vm
@@ -485,7 +485,7 @@ def copy_nfs_image(params, root_dir, basename=False):
                utils_misc.get_image_info(source)['lcounts'].lower() == "true"):
                 logging.debug("Copying guest image from %s to %s", source,
                               dst)
-                shutil.copy(source, dst)
+                utils_disk.copyfile(source, dst)
             else:
                 raise exceptions.TestSetupFail("Guest image is unavailable"
                                                "/corrupted in %s and %s" %
@@ -769,7 +769,7 @@ class QemuImg(object):
         if os.path.isfile(src):
             logging.debug("Copying %s -> %s", src, dst)
             _dst = dst + '.part'
-            shutil.copy(src, _dst)
+            utils_disk.copyfile(src, _dst)
             os.rename(_dst, dst)
         else:
             logging.info("No source file %s, skipping copy...", src)
