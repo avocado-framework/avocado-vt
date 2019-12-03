@@ -1027,17 +1027,19 @@ def preprocess(test, params, env):
             env["cpu_model"] = cpu.get_qemu_best_cpu_model(params)
         params["cpu_model"] = env.get("cpu_model")
 
-    if params.get("cpu_driver") is None:
-        cpu_model = params.get("cpu_model")
-        if cpu_model:
-            search_pattern = r"%s-\w+-cpu" % cpu_model
-            qemu_path = utils_misc.get_qemu_binary(params)
-            cpu_driver = utils_qemu.find_supported_devices(qemu_path,
-                                                           search_pattern,
-                                                           "CPU")
-            if cpu_driver:
-                env["cpu_driver"] = cpu_driver[0]
-                params["cpu_driver"] = env.get("cpu_driver")
+    if vm_type == "qemu":
+        qemu_path = utils_misc.get_qemu_binary(params)
+        if (utils_qemu.has_device_category(qemu_path, "CPU")
+                and params.get("cpu_driver") is None):
+            cpu_model = params.get("cpu_model")
+            if cpu_model:
+                search_pattern = r"%s-\w+-cpu" % cpu_model
+                cpu_driver = utils_qemu.find_supported_devices(qemu_path,
+                                                               search_pattern,
+                                                               "CPU")
+                if cpu_driver:
+                    env["cpu_driver"] = cpu_driver[0]
+                    params["cpu_driver"] = env.get("cpu_driver")
 
     version_info = {}
     # Get the KVM kernel module version
