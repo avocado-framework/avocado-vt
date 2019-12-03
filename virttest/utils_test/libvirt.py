@@ -793,6 +793,29 @@ def check_actived_pool(pool_name):
     return True
 
 
+def check_vm_state(vm_name, state='paused', reason=None, uri=None):
+    """
+    checks whether state of the vm is as expected
+
+    :param vm_name: VM name
+    :param state: expected state of the VM
+    :param reason: expected reason of vm state
+    :param uri: connect uri
+
+    :return: True if state of VM is as expected, False otherwise
+    """
+    if not virsh.domain_exists(vm_name, uri=uri):
+        return False
+    if reason:
+        result = virsh.domstate(vm_name, extra="--reason", uri=uri)
+        expected_result = "%s (%s)" % (state.lower(), reason.lower())
+    else:
+        result = virsh.domstate(vm_name, uri=uri)
+        expected_result = state.lower()
+    vm_state = results_stdout_52lts(result).strip()
+    return vm_state.lower() == expected_result
+
+
 class PoolVolumeTest(object):
 
     """Test class for storage pool or volume"""
@@ -1125,7 +1148,7 @@ class MigrationTest(object):
         vm_state = params.get("virsh_migrated_state", "running")
         ping_count = int(params.get("ping_count", 10))
         for vm in vms:
-            if not self.check_vm_state(vm.name, vm_state, uri=uri):
+            if not check_vm_state(vm.name, vm_state, uri=uri):
                 raise exceptions.TestFail("Migrated VMs failed to be in %s "
                                           "state at destination" % vm_state)
             logging.info("Guest state is '%s' at destination is as expected",
@@ -1444,28 +1467,6 @@ class MigrationTest(object):
         # Set connect uri back to local uri
         vm.connect_uri = srcuri
 
-    def check_vm_state(self, vm_name, state='paused', reason=None, uri=None):
-        """
-        checks whether state of the vm is as expected
-
-        :param vm_name: VM name
-        :param state: expected state of the VM
-        :param reason: expected reason of vm state
-        :param uri: connect uri
-
-        :return: True if state of VM is as expected, False otherwise
-        """
-        if not virsh.domain_exists(vm_name, uri=uri):
-            return False
-        if reason:
-            result = virsh.domstate(vm_name, extra="--reason", uri=uri)
-            expected_result = "%s (%s)" % (state.lower(), reason.lower())
-        else:
-            result = virsh.domstate(vm_name, uri=uri)
-            expected_result = state.lower()
-        vm_state = results_stdout_52lts(result).strip()
-        return vm_state.lower() == expected_result
-
     def wait_for_migration_start(self, vm, state='paused', uri=None,
                                  migrate_options='', timeout=60):
         """
@@ -1481,7 +1482,7 @@ class MigrationTest(object):
         """
         def check_state():
             try:
-                return self.check_vm_state(dest_vm_name, state, uri=uri)
+                return check_vm_state(dest_vm_name, state, uri=uri)
             except Exception:
                 return False
 

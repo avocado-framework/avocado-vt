@@ -14,7 +14,8 @@ import random
 import sys
 import math
 
-from functools import partial
+from functools import partial, reduce
+from operator import mul
 
 import aexpect
 from avocado.core import exceptions
@@ -550,7 +551,7 @@ class VM(virt_vm.BaseVM):
         def add_nic(devices, vlan, model=None, mac=None, device_id=None,
                     netdev_id=None, nic_extra_params=None, pci_addr=None,
                     bootindex=None, queues=1, vectors=None, pci_bus='pci.0',
-                    ctrl_mac_addr=None):
+                    ctrl_mac_addr=None, mq=None):
             if model == 'none':
                 return
             if devices.has_option("device"):
@@ -598,7 +599,8 @@ class VM(virt_vm.BaseVM):
             dev.set_param('id', device_id, 'NEED_QUOTE')
             if "virtio" in model:
                 if int(queues) > 1:
-                    dev.set_param('mq', 'on')
+                    mq = 'on' if mq is None else mq
+                    dev.set_param('mq', mq)
                 if vectors:
                     dev.set_param('vectors', vectors)
             if devices.has_option("netdev"):
@@ -1537,25 +1539,67 @@ class VM(virt_vm.BaseVM):
                 txt = "Set vcpu_threads to 1 for AMD cpu."
                 logging.warn(txt)
 
-        if smp == 0 or vcpu_sockets == 0:
-            vcpu_dies = vcpu_dies or 1
-            vcpu_cores = vcpu_cores or 1
-            vcpu_threads = vcpu_threads or 1
-            if smp == 0:
-                vcpu_sockets = vcpu_sockets or 1
-                smp = vcpu_cores * vcpu_threads * vcpu_dies * vcpu_sockets
-            else:
-                vcpu_sockets = smp // (vcpu_cores * vcpu_threads * vcpu_dies) or 1
-        elif vcpu_dies == 0:
-            vcpu_cores = vcpu_cores or 1
-            vcpu_threads = vcpu_threads or 1
-            vcpu_dies = smp // (vcpu_sockets * vcpu_cores * vcpu_threads) or 1
-        elif vcpu_cores == 0:
-            vcpu_threads = vcpu_threads or 1
-            vcpu_cores = smp // (vcpu_sockets * vcpu_threads * vcpu_dies) or 1
+        smp_err = ""
+        if vcpu_maxcpus != 0:
+            smp_values = [vcpu_sockets, vcpu_dies, vcpu_cores, vcpu_threads]
+            if smp_values.count(0) == 1:
+                smp_values.remove(0)
+                topology_product = reduce(mul, smp_values)
+                if vcpu_maxcpus < topology_product:
+                    smp_err = ("maxcpus(%d) must be equal to or greater than "
+                               "topological product(%d)" % (vcpu_maxcpus,
+                                                            topology_product))
+                else:
+                    missing_value, cpu_mod = divmod(vcpu_maxcpus, topology_product)
+                    vcpu_maxcpus -= cpu_mod
+                    vcpu_sockets = vcpu_sockets or missing_value
+                    vcpu_dies = vcpu_dies or missing_value
+                    vcpu_cores = vcpu_cores or missing_value
+                    vcpu_threads = vcpu_threads or missing_value
+            elif smp_values.count(0) > 1:
+                if vcpu_maxcpus == 1 and max(smp_values) < 2:
+                    vcpu_sockets = vcpu_dies = vcpu_cores = vcpu_threads = 1
+                else:
+                    smp_err = ("Two or more non-zero parameters are missing to"
+                               " calculate the available SMP topology for VM "
+                               "%s" % self.name)
+
+            hotpluggable_cpus = len(params.objects("vcpu_devices"))
+            if params["machine_type"].startswith("pseries"):
+                hotpluggable_cpus *= vcpu_threads
+            smp = smp or vcpu_maxcpus - hotpluggable_cpus
         else:
-            vcpu_threads = smp // (vcpu_cores * vcpu_sockets * vcpu_dies) or 1
-        vcpu_maxcpus = vcpu_maxcpus or smp
+            if smp == 0 or vcpu_sockets == 0:
+                vcpu_dies = vcpu_dies or 1
+                vcpu_cores = vcpu_cores or 1
+                vcpu_threads = vcpu_threads or 1
+                if smp == 0:
+                    vcpu_sockets = vcpu_sockets or 1
+                    smp = vcpu_cores * vcpu_threads * vcpu_dies * vcpu_sockets
+                else:
+                    vcpu_sockets = smp // (vcpu_cores * vcpu_threads * vcpu_dies) or 1
+            elif vcpu_dies == 0:
+                vcpu_cores = vcpu_cores or 1
+                vcpu_threads = vcpu_threads or 1
+                vcpu_dies = smp // (vcpu_sockets * vcpu_cores * vcpu_threads) or 1
+            elif vcpu_cores == 0:
+                vcpu_threads = vcpu_threads or 1
+                vcpu_cores = smp // (vcpu_sockets * vcpu_threads * vcpu_dies) or 1
+            else:
+                vcpu_threads = smp // (vcpu_cores * vcpu_sockets * vcpu_dies) or 1
+
+            hotpluggable_cpus = len(params.objects("vcpu_devices"))
+            if params["machine_type"].startswith("pseries"):
+                hotpluggable_cpus *= vcpu_threads
+            vcpu_maxcpus = smp
+            smp -= hotpluggable_cpus
+
+        if smp <= 0:
+            smp_err = ("Number of hotpluggable vCPUs(%d) is greater "
+                       "than or equal to the maxcpus(%d)."
+                       % (hotpluggable_cpus, vcpu_maxcpus))
+        if smp_err:
+            raise virt_vm.VMSMPTopologyInvalidError(smp_err)
 
         self.cpuinfo.smp = smp
         self.cpuinfo.maxcpus = vcpu_maxcpus
@@ -1584,13 +1628,13 @@ class VM(virt_vm.BaseVM):
             devices.insert(StrDev('numa', cmdline=cmdline))
 
         if params.get("numa_consistency_check_cpu_mem", "no") == "yes":
-            if (numa_total_cpus > int(smp) or numa_total_mem > int(mem) or
-                    len(params.objects("guest_numa_nodes")) > int(smp)):
+            if (numa_total_cpus > vcpu_maxcpus or numa_total_mem > int(mem) or
+                    len(params.objects("guest_numa_nodes")) > vcpu_maxcpus):
                 logging.debug("-numa need %s vcpu and %s memory. It is not "
                               "matched the -smp and -mem. The vcpu number "
                               "from -smp is %s, and memory size from -mem is"
-                              " %s" % (numa_total_cpus, numa_total_mem, smp,
-                                       mem))
+                              " %s" % (numa_total_cpus, numa_total_mem,
+                                       vcpu_maxcpus, mem))
                 raise virt_vm.VMDeviceError("The numa node cfg can not fit"
                                             " smp and memory cfg.")
 
@@ -1621,8 +1665,30 @@ class VM(virt_vm.BaseVM):
             self.cpuinfo.vendor = vendor
             self.cpuinfo.flags = flags
             self.cpuinfo.family = family
+            cpu_driver = params.get("cpu_driver")
+            if cpu_driver:
+                try:
+                    cpu_driver_items = cpu_driver.split("-")
+                    ctype = cpu_driver_items[cpu_driver_items.index("cpu") - 1]
+                    self.cpuinfo.qemu_type = ctype
+                except ValueError:
+                    logging.warning("Can not assign cpuinfo.type, assign as"
+                                    " 'unknown'")
+                    self.cpuinfo.qemu_type = "unknown"
             cmd = add_cpu_flags(devices, cpu_model, flags, vendor, family)
             devices.insert(StrDev('cpu', cmdline=cmd))
+
+        # Add vcpu devices
+        vcpu_bus = devices.get_buses({'aobject': 'vcpu'})
+        if vcpu_bus and params.get("vcpu_devices"):
+            vcpu_bus = vcpu_bus[0]
+            vcpu_bus.initialize(self.cpuinfo)
+            vcpu_devices = params.objects("vcpu_devices")
+            params["vcpus_count"] = str(vcpu_bus.vcpus_count)
+
+            for vcpu in vcpu_devices:
+                vcpu_dev = devices.vcpu_device_define_by_params(params, vcpu)
+                devices.insert(vcpu_dev)
 
         # -soundhw addresses are always the lowest after scsi
         soundhw = params.get("soundcards")
@@ -1898,7 +1964,8 @@ class VM(virt_vm.BaseVM):
                         device_id, netdev_id, nic_extra,
                         nic_params.get("nic_pci_addr"),
                         bootindex, queues, vectors, parent_bus,
-                        nic_params.get("ctrl_mac_addr"))
+                        nic_params.get("ctrl_mac_addr"),
+                        nic_params.get("mq"))
 
                 # Handle the '-net tap' or '-net user' or '-netdev' part
                 cmd, cmd_nd = add_net(devices, vlan, nettype, ifname, tftp,
@@ -2281,8 +2348,12 @@ class VM(virt_vm.BaseVM):
             attr_info = ["timestamp", params["msg_timestamp"], bool]
             add_qemu_option(devices, "msg", [attr_info])
         if params.get("realtime_mlock"):
-            attr_info = ["mlock", params["realtime_mlock"], bool]
-            add_qemu_option(devices, "realtime", [attr_info])
+            if devices.has_option("overcommit"):
+                attr_info = ["mem-lock", params["realtime_mlock"], bool]
+                add_qemu_option(devices, "overcommit", [attr_info])
+            else:
+                attr_info = ["mlock", params["realtime_mlock"], bool]
+                add_qemu_option(devices, "realtime", [attr_info])
         if params.get("keyboard_layout"):
             attr_info = [None, params["keyboard_layout"], None]
             add_qemu_option(devices, "k", [attr_info])
@@ -2576,6 +2647,8 @@ class VM(virt_vm.BaseVM):
                 continue
             if cdrom_params.get("enable_ceph") == "yes":
                 continue
+            if cdrom_params.get("enable_iscsi") == "yes":
+                continue
             iso = cdrom_params.get("cdrom")
             if iso:
                 iso = utils_misc.get_path(data_dir.get_data_dir(), iso)
@@ -2665,15 +2738,21 @@ class VM(virt_vm.BaseVM):
                             net_mask=params.get("net_mask", None),
                             pa_type=pa_type)
 
+                    if nic_params.get("device_name", "").startswith("shell:"):
+                        name = decode_to_text(process.system_output(
+                            nic_params.get("device_name").split(':', 1)[1],
+                            shell=True))
+                    else:
+                        name = nic_params.get("device_name")
                     # Virtual Functions (VF) assignable devices
                     if pa_type == "vf":
                         self.pci_assignable.add_device(device_type=pa_type,
                                                        mac=mac,
-                                                       name=nic_params.get("device_name"))
+                                                       name=name)
                     # Physical NIC (PF) assignable devices
                     elif pa_type == "pf":
                         self.pci_assignable.add_device(device_type=pa_type,
-                                                       name=nic_params.get("device_name"))
+                                                       name=name)
                     else:
                         raise virt_vm.VMBadPATypeError(pa_type)
                 else:
@@ -3336,6 +3415,21 @@ class VM(virt_vm.BaseVM):
 
         return vcpu_pids
 
+    def _get_hotpluggable_vcpu_qids(self):
+        """
+        :return: list of hotpluggable vcpu ids
+        """
+        vcpu_ids_list = []
+        out = self.monitor.info("hotpluggable-cpus", debug=False)
+        if self.monitor.protocol == "qmp":
+            vcpu_ids_list = [vcpu_info["qom-path"].rsplit("/", 1)[-1]
+                             for vcpu_info in out if "qom-path" in vcpu_info
+                             and "peripheral" in vcpu_info["qom-path"]]
+        elif self.monitor.protocol == "human":
+            vcpu_ids_list = re.findall(r'qom_path: "/\D+/peripheral/(\S+)"',
+                                       out, re.M)
+        return vcpu_ids_list
+
     def get_vhost_threads(self, vhost_thread_pattern):
         """
         Return the list of vhost threads PIDs
@@ -3424,6 +3518,68 @@ class VM(virt_vm.BaseVM):
             return(True, plug_cpu_id)
         else:
             return(False, cmd_output)
+
+    @error_context.context_aware
+    def hotplug_vcpu_device(self, vcpu_id):
+        """
+        Hotplug a vcpu device and verify that this step is successful.
+        :param vcpu_id: the vcpu id you want to hotplug.
+        """
+        try:
+            vcpu_device = self.devices.get_by_qid(vcpu_id)
+            if vcpu_device[0].is_enabled():
+                raise virt_vm.VMDeviceStateError("%s has been enabled"
+                                                 % vcpu_id)
+        except IndexError:
+            raise virt_vm.VMDeviceNotFoundError("Cannot find vcpu device %s"
+                                                % vcpu_id)
+        else:
+            vcpu_device = vcpu_device[0]
+
+        out, ver_out = vcpu_device.enable(self.monitor)
+        if ver_out is False:
+            raise virt_vm.VMDeviceCheckError("Failed to hotplug %s: %s"
+                                             % (vcpu_id, out))
+
+        vcpu_inserted = vcpu_id in self._get_hotpluggable_vcpu_qids()
+        if not vcpu_inserted:
+            out = "Could not find %s in hotpluggable CPUs" % vcpu_id
+            raise virt_vm.VMDeviceCheckError("Failed to hotplug %s: %s"
+                                             % (vcpu_id, out))
+        # Workaround to make vm can be migrated after hotplug.
+        self.params["vcpu_enable_%s" % vcpu_id] = "yes"
+
+    @error_context.context_aware
+    def hotunplug_vcpu_device(self, vcpu_id, verify_timeout=10):
+        """
+        Hotunplug a vcpu device and verify that this step is successful.
+        :param vcpu_id: the vcpu id you want to hotunplug.
+        :param verify_timeout: execution timeout
+        """
+        try:
+            vcpu_device = self.devices.get_by_qid(vcpu_id)
+            if not vcpu_device[0].is_enabled():
+                raise virt_vm.VMDeviceStateError("%s has been disabled"
+                                                 % vcpu_id)
+        except IndexError:
+            raise virt_vm.VMDeviceNotFoundError("Cannot find vcpu device %s"
+                                                % vcpu_id)
+        else:
+            vcpu_device = vcpu_device[0]
+
+        out, ver_out = vcpu_device.disable(self.monitor)
+        if ver_out is False:
+            raise virt_vm.VMDeviceCheckError("Failed to hotunplug %s: %s"
+                                             % (vcpu_id, out))
+
+        if not utils_misc.wait_for(
+                lambda: vcpu_id not in self._get_hotpluggable_vcpu_qids(),
+                verify_timeout):
+            out = "Can still find %s in hotpluggable CPUs" % vcpu_id
+            raise virt_vm.VMDeviceCheckError("Failed to hotunplug %s: %s"
+                                             % (vcpu_id, out))
+        # Workaround to make vm can be migrated after hotunplug.
+        self.params["vcpu_enable_%s" % vcpu_id] = "no"
 
     @error_context.context_aware
     def hotplug_nic(self, **params):

@@ -7,6 +7,7 @@ Virt-v2v test utility functions.
 import os
 import re
 import time
+import glob
 import logging
 import random
 
@@ -174,19 +175,59 @@ class Target(object):
         # '_iface_list' is set automatically, Users should not use it.
         self._iface_list = self.params.get('_iface_list')
         self.net_vm_opts = ""
+        self._vmx_filename_fullpath = self._vmx_filename = ""
 
         def _compose_vmx_filename():
             """
             Return vmx filename for '-i vmx'.
+
+            All vmname, nfs directory and vmx name may be different
+            e.g.
+            vmname:  esx6.7-ubuntu18.04-x86_64
+            nfspath: esx6.5-ubuntu18.04-x86_64-bug1481930/esx6.5-ubuntu18.04-x86_64-bug1481930.vmx
             """
-            mount_point = v2v_mount(self.vmx_nfs_src, 'vmx_nfs_src')
-            self.mount_records[len(self.mount_records)] = (
-                self.vmx_nfs_src, mount_point, None)
+            if self.vmx_nfs_src and ':' in self.vmx_nfs_src:
+                mount_point = v2v_mount(self.vmx_nfs_src, 'vmx_nfs_src')
+                self.mount_records[len(self.mount_records)] = (
+                    self.vmx_nfs_src, mount_point, None)
 
-            vmx_filename = "{}/{}/{name}.vmx".format(
-                mount_point, self._nfspath, name=self.vm_name)
+                vmx_path = os.path.join(mount_point, self._nfspath, '*.vmx')
+                vmxfiles = glob.glob(vmx_path)
 
-            return vmx_filename
+                if len(vmxfiles) == 0:
+                    raise exceptions.TestError(
+                        "Did not found any vmx files in %s" % vmx_path)
+
+                self._vmx_filename_fullpath = vmxfiles[0]
+                self._vmx_filename = os.path.basename(vmxfiles[0])
+                logging.debug(
+                    'vmx file full path is %s' %
+                    self._vmx_filename_fullpath)
+            else:
+                # This only works for -i vmx -it ssh, because it only needs an vmx filename,
+                # and doesn't have to mount the nfs storage. If the guessed name is wrong,
+                # v2v will report an error.
+                logging.info(
+                    'vmx_nfs_src is not set in cfg file, try to guess vmx filename')
+                # some guest's direcotory name ends with '_1',
+                # e.g. esx5.5-win10-x86_64_1/esx5.5-win10-x86_64.vmx
+                guess_ptn_list = [r'(^.*?(x86_64|i386))_[0-9]+$',
+                                  r'(^.*?(x86_64|i386)$)',
+                                  r'(^.*?)_[0-9]+$']
+
+                for ptn in guess_ptn_list:
+                    if re.search(ptn, self._nfspath):
+                        self._vmx_filename = re.search(
+                            ptn, self._nfspath).group(1)
+                        break
+
+                if not self._vmx_filename:
+                    self._vmx_filename = self._nfspath
+
+                self._vmx_filename = self._vmx_filename + '.vmx'
+                logging.debug(
+                    'Guessed vmx file name is %s' %
+                    self._vmx_filename)
 
         def _compose_input_transport_options():
             """
@@ -240,17 +281,17 @@ class Target(object):
             input_transport_args = {
                 'vddk': "-io vddk-libdir=%s -io vddk-thumbprint=%s" % (self.vddk_libdir,
                                                                        self.vddk_thumbprint),
-                'ssh': "ssh://root@{}/vmfs/volumes/{}/{}/{name}.vmx".format(
+                'ssh': "ssh://root@{}/vmfs/volumes/{}/{}/{}".format(
                     self.esxi_host,
                     self.datastore,
                     self._nfspath,
-                    name=self.vm_name)}
+                    self._vmx_filename)}
 
             options = " -it %s " % (self.input_transport)
             options += input_transport_args[self.input_transport]
             return options
 
-        supported_mac = v2v_supported_option('--mac')
+        supported_mac = v2v_supported_option('--mac <mac:network\|bridge:out>')
         if supported_mac:
             if self.iface_macs:
                 for mac_i in self.iface_macs.split(';'):
@@ -277,6 +318,9 @@ class Target(object):
                         self.net_vm_opts += " --mac %s:%s:%s" % (
                             mac, 'bridge', self.bridge)
 
+        if self.input_mode == 'vmx':
+            _compose_vmx_filename()
+
         if not self.net_vm_opts:
             if supported_mac:
                 logging.warning("auto set --mac failed, roll back to -b/-n")
@@ -288,7 +332,7 @@ class Target(object):
         if self.input_mode != 'vmx':
             self.net_vm_opts += " %s" % self.vm_name
         elif self.input_transport is None:
-            self.net_vm_opts += " %s" % _compose_vmx_filename()
+            self.net_vm_opts += " %s" % self._vmx_filename_fullpath
 
         options = opts_func() + _compose_input_transport_options()
 
@@ -422,6 +466,7 @@ class VMCheck(object):
                 self.vm.undefine()
 
         if self.target == "ovirt":
+            logging.debug("Deleting VM %s in Ovirt", self.name)
             self.vm.delete()
             # When vm is deleted, the disk will also be removed from
             # data domain, so it's not necessary to delete disk from
@@ -904,8 +949,8 @@ def v2v_cmd(params):
         Preprocess before running v2v cmd, such as starting VM for warm convertion,
         create virsh instance, etc.
         """
-        # Cannot get mac address in 'ova' mode
-        if input_mode != 'ova':
+        # Cannot get mac address in 'ova', 'libvirtxml', etc.
+        if input_mode not in ['disk', 'libvirtxml', 'local', 'ova']:
             v2v_virsh = create_virsh_instance(
                 hypervisor, uri, hostname, username, password)
             iface_info = get_all_ifaces_info(vm_name, v2v_virsh)
@@ -941,11 +986,11 @@ def v2v_cmd(params):
     vpx_dc = params.get('vpx_dc')
     esxi_host = params.get('esxi_host', params.get('esx_ip'))
     opts_extra = params.get('v2v_opts')
-    # Set v2v_timeout to 3 hours, the value can give v2v enough time to execute,
+    # Set v2v_cmd_timeout to 5 hours, the value can give v2v enough time to execute,
     # and avoid v2v process be killed by mistake.
     # the value is bigger than the timeout value in CI, so when some timeout
     # really happens, CI will still interrupt the v2v process.
-    v2v_timeout = params.get('v2v_timeout', 10800)
+    v2v_cmd_timeout = params.get('v2v_cmd_timeout', 18000)
     rhv_upload_opts = params.get('rhv_upload_opts')
     # username and password of remote hypervisor server
     username = params.get('username', 'root')
@@ -981,7 +1026,7 @@ def v2v_cmd(params):
         # Old v2v version doesn't support '-ip' option
         if not v2v_supported_option("-ip <filename>"):
             cmd = cmd.replace('-ip', '--password-file', 1)
-        cmd_result = process.run(cmd, timeout=v2v_timeout,
+        cmd_result = process.run(cmd, timeout=v2v_cmd_timeout,
                                  verbose=True, ignore_status=True)
     finally:
         target_obj.cleanup()
@@ -1165,7 +1210,7 @@ def setup_esx_ssh_key(hostname, username, password, port=22):
 
     :param hostname: hostname or IP address
     :param username: username
-    :param password: Password
+    :param password: password
     :param port: ssh port number
     """
     session = None
@@ -1179,7 +1224,9 @@ def setup_esx_ssh_key(hostname, username, password, port=22):
             port=port,
             password=password,
             prompt=r"[\#\$\[\]]",
-            preferred_authenticaton='password,keyboard-interactive')
+            verbose=True,
+            preferred_authenticaton='password,keyboard-interactive',
+            user_known_hosts_file='${HOME}/.ssh/known_hosts')
         public_key = ssh_key.get_public_key()
         session.cmd("echo '%s' >> /etc/ssh/keys-root/authorized_keys; " %
                     public_key)
@@ -1193,7 +1240,7 @@ def setup_esx_ssh_key(hostname, username, password, port=22):
             session.close()
 
 
-def v2v_mount(src, dst='v2v_mount_point'):
+def v2v_mount(src, dst='v2v_mount_point', fstype='nfs'):
     """
     Mount nfs src to dst
 
@@ -1208,7 +1255,7 @@ def v2v_mount(src, dst='v2v_mount_point'):
     if not utils_misc.mount(
         src,
         mount_point,
-        'nfs',
+        fstype,
             verbose=True):
         raise exceptions.TestError(
             'Mount %s for %s failed' %
@@ -1234,7 +1281,7 @@ def create_virsh_instance(
     :param remote_pwd: Password to use, or None for host/pubkey
     :param debug: Whether to enable debug
     """
-    logging.debug("virsh connection info: uri=%s ip=%s", uri, remote_ip)
+    logging.debug("virsh connection info: hypervisor=%s uri=%s ip=%s", hypervisor, uri, remote_ip)
     if hypervisor == 'kvm':
         v2v_virsh = virsh
     else:
@@ -1315,7 +1362,8 @@ def get_esx_disk_source_info(vm_name, virsh_instance):
         return [res.group(i) for i in range(1, 4)]
 
     disks_info = {}
-    disks = vm_xml.get_disk_source(vm_name, virsh_instance=virsh_instance)
+    disks = vm_xml.VMXML.get_disk_source(
+        vm_name, virsh_instance=virsh_instance)
     for disk in disks:
         attr_value = disk.find('source').get('file')
         file_info = _parse_file_info(attr_value)

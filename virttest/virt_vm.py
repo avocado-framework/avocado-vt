@@ -354,6 +354,18 @@ class VMDeviceNotSupportedError(VMDeviceError):
                 (self.device, self.name))
 
 
+class VMDeviceCheckError(VMDeviceError):
+    pass
+
+
+class VMDeviceNotFoundError(VMDeviceError):
+    pass
+
+
+class VMDeviceStateError(VMDeviceError):
+    pass
+
+
 class VMPCIDeviceError(VMDeviceError):
     pass
 
@@ -452,6 +464,10 @@ class VMLoginError(VMError):
     pass
 
 
+class VMSMPTopologyInvalidError(VMError):
+    pass
+
+
 class CpuInfo(object):
 
     """
@@ -459,12 +475,14 @@ class CpuInfo(object):
     """
 
     def __init__(self, model=None, vendor=None, flags=None, family=None,
-                 smp=0, maxcpus=0, cores=0, threads=0, dies=0, sockets=0):
+                 qemu_type=None, smp=0, maxcpus=0, cores=0, threads=0,
+                 dies=0, sockets=0):
         """
         :param model: CPU Model of VM (use 'qemu -cpu ?' for list)
         :param vendor: CPU Vendor of VM
         :param flags: CPU Flags of VM
         :param family: CPU Family of VM
+        :param qemu_type: cpu driver type of qemu
         :param smp: set the number of CPUs to 'n' [default=1]
         :param maxcpus: maximum number of total cpus, including
                         offline CPUs for hotplug, etc
@@ -477,6 +495,7 @@ class CpuInfo(object):
         self.vendor = vendor
         self.flags = flags
         self.family = family
+        self.qemu_type = qemu_type
         self.smp = smp
         self.maxcpus = maxcpus
         self.cores = cores

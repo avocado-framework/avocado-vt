@@ -29,6 +29,17 @@ from virttest.compat_52lts import results_stderr_52lts, decode_to_text
 ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
 
 
+def get_image_filename(portal, target, lun=0, user=None, password=None):
+    """
+    Form the iscsi image name, now only tcp is supported by qemu
+    e.g. iscsi://10.66.10.26/iqn.2019-09.com.example:zhencliu/0
+    """
+    uri = 'iscsi://{auth}{portal}/{target}/{lun}'
+    auth = '{user}:{password}@'.format(
+        user=user, password=password) if user and password else ''
+    return uri.format(auth=auth, portal=portal, target=target, lun=lun)
+
+
 def restart_iscsid(reset_failed=True):
     """
     Restart iscsid service.
