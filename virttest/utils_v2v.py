@@ -466,6 +466,7 @@ class VMCheck(object):
                 self.vm.undefine()
 
         if self.target == "ovirt":
+            logging.debug("Deleting VM %s in Ovirt", self.name)
             self.vm.delete()
             # When vm is deleted, the disk will also be removed from
             # data domain, so it's not necessary to delete disk from
@@ -948,8 +949,8 @@ def v2v_cmd(params):
         Preprocess before running v2v cmd, such as starting VM for warm convertion,
         create virsh instance, etc.
         """
-        # Cannot get mac address in 'ova' mode
-        if input_mode != 'ova':
+        # Cannot get mac address in 'ova', 'libvirtxml', etc.
+        if input_mode not in ['disk', 'libvirtxml', 'local', 'ova']:
             v2v_virsh = create_virsh_instance(
                 hypervisor, uri, hostname, username, password)
             iface_info = get_all_ifaces_info(vm_name, v2v_virsh)
