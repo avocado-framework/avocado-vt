@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 Based on work from Douglas Creager <dcreager@dcreager.net>
 
@@ -139,6 +138,8 @@ def get_pretty_version_info():
         version_str += ", SHA1 '%s'" % top_commit
     return version_str
 
+def main():
+    print(get_pretty_version_info())
 
 if __name__ == "__main__":
-    print(get_pretty_version_info())
+    main()

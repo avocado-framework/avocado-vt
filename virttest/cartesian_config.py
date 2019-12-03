@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 """
 Cartesian configuration format file parser.
 
@@ -2270,7 +2268,7 @@ def postfix_parse(dic):
         dic[key] = tmp_dict[key]
 
 
-if __name__ == "__main__":
+def main():
     parser = optparse.OptionParser('usage: %prog [options] filename '
                                    '[extra code] ...\n\nExample:\n\n    '
                                    '%prog tests.cfg "only my_set" "no qcow2"')
@@ -2311,3 +2309,6 @@ if __name__ == "__main__":
 
     dicts = c.get_dicts()
     print_dicts(options, dicts)
+
+if __name__ == "__main__":
+    main()
