@@ -11,6 +11,8 @@ import glob
 import logging
 import random
 
+import aexpect
+
 from avocado.utils import path
 from avocado.utils import process
 from avocado.core import exceptions
@@ -999,6 +1001,9 @@ def v2v_cmd(params):
     input_mode = params.get('input_mode')
     # virsh instance of remote hypervisor
     v2v_virsh = None
+    custom_inputs = params.get('custom_inputs')
+    sasl_user = params.get('sasl_user')
+    sasl_pwd = params.get('sasl_pwd')
 
     uri_obj = Uri(hypervisor)
 
@@ -1011,6 +1016,7 @@ def v2v_cmd(params):
     _v2v_pre_cmd()
 
     target_obj = Target(target, uri)
+
     try:
         # Return virt-v2v command line options based on 'target' and
         # 'hypervisor'
@@ -1026,6 +1032,25 @@ def v2v_cmd(params):
         # Old v2v version doesn't support '-ip' option
         if not v2v_supported_option("-ip <filename>"):
             cmd = cmd.replace('-ip', '--password-file', 1)
+        logging.debug(cmd)
+
+        # To deal with inputs during conversion
+        if custom_inputs or (sasl_user and sasl_pwd):
+            v2v_log = os.path.join(data_dir.get_tmp_dir(), 'v2v_log')
+            v2v_session = aexpect.ShellSession(command=cmd,
+                                               output_func=utils_misc.log_line,
+                                               output_params=(v2v_log,))
+            remote.handle_v2v_prompts(v2v_session, sasl_user, sasl_pwd, timeout=v2v_cmd_timeout/2,
+                                      debug=True, input_line=custom_inputs)
+            # Wait until the session is dead, then get the output and exit_status
+            # of the session
+            utils_misc.wait_for(lambda: v2v_session.is_alive() is not True, v2v_cmd_timeout)
+            cmd_result = process.CmdResult(command=cmd,
+                                           stdout=v2v_session.get_output(),
+                                           exit_status=v2v_session.get_status())
+            cmd_result.stdout = results_stdout_52lts(cmd_result)
+            cmd_result.stderr = results_stderr_52lts(cmd_result)
+            return cmd_result
         cmd_result = process.run(cmd, timeout=v2v_cmd_timeout,
                                  verbose=True, ignore_status=True)
     finally:
