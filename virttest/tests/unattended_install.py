@@ -1259,6 +1259,9 @@ def run(test, params, env):
             ver_from = utils_test.get_image_version(qemu_image)
             utils_test.update_qcow2_image_version(qemu_image, ver_from, ver_to)
 
+    vm = env.get_vm(params["main_vm"])
+    # at this stage we need vm specific parameters
+    params = params.object_params(vm.name)
     src = params.get('images_good')
     vt_data_dir = data_dir.get_data_dir()
     base_dir = params.get("images_base_dir", vt_data_dir)
@@ -1275,7 +1278,6 @@ def run(test, params, env):
         funcatexit.register(env, params.get("type"), copy_file_from_nfs, src,
                             dst, mount_point, image_name)
 
-    vm = env.get_vm(params["main_vm"])
     local_dir = params.get("local_dir", os.path.abspath(vt_data_dir))
     local_dir = utils_misc.get_path(vt_data_dir, local_dir)
     for media in params.get("copy_to_local", "").split():
