@@ -4305,6 +4305,7 @@ class VM(virt_vm.BaseVM):
             # If we're doing remote migration and it's completed successfully,
             # self points to a dead VM object
             if not not_wait_for_migration:
+                clone.destroy(gracefully=False)
                 if self.is_alive() and self.is_paused():
                     # For short period of time the status can be "inmigrate"
                     # for example when using external program
@@ -4321,7 +4322,6 @@ class VM(virt_vm.BaseVM):
                     except qemu_monitor.MonitorError:
                         utils_misc.log_last_traceback('Fail to resume qemu '
                                                       'after migration:')
-                clone.destroy(gracefully=False)
                 if env:
                     env.unregister_vm("%s_clone" % self.name)
 
