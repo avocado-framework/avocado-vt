@@ -1650,7 +1650,7 @@ class VMCPUXML(base.LibvirtXMLBase):
     # Must copy these here or there will be descriptor problems
     __slots__ = ('model', 'vendor', 'feature_list', 'mode', 'match',
                  'fallback', 'topology', 'numa_cell', 'check',
-                 'cache')
+                 'cache', 'vendor_id')
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -1691,6 +1691,12 @@ class VMCPUXML(base.LibvirtXMLBase):
                                parent_xpath='/',
                                tag_name='model',
                                attribute='fallback')
+        accessors.XMLAttribute(property_name="vendor_id",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='model',
+                               attribute='vendor_id')
         accessors.XMLElementDict(property_name="topology",
                                  libvirtxml=self,
                                  forbidden=[],
