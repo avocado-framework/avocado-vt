@@ -13,9 +13,10 @@ bootloader --location=mbr --append="console=tty0 console=ttyS0,115200"
 zerombr
 poweroff
 KVM_TEST_LOGGING
-
 clearpart --all --initlabel
 autopart
+# Additional repositories could be specified in 'kickstart_extra_repos' parameter
+KVM_TEST_REPOS
 
 %packages --ignoremissing
 @standard
