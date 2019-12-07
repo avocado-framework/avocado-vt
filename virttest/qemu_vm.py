@@ -4425,9 +4425,11 @@ class VM(virt_vm.BaseVM):
             utils_net.update_mac_ip_address(self)
 
         if serial:
-            return self.wait_for_serial_login(timeout=(timeout - shutdown_dur))
+            return self.wait_for_serial_login(timeout=(timeout - shutdown_dur),
+                                              status_check=False)
         return self.wait_for_login(nic_index=nic_index,
-                                   timeout=(timeout - shutdown_dur))
+                                   timeout=(timeout - shutdown_dur),
+                                   status_check=False)
 
     def send_key(self, keystr):
         """

@@ -1150,7 +1150,7 @@ class BaseVM(object):
     def wait_for_login(self, nic_index=0, timeout=LOGIN_WAIT_TIMEOUT,
                        internal_timeout=LOGIN_TIMEOUT,
                        serial=False, restart_network=False,
-                       username=None, password=None):
+                       username=None, password=None, status_check=True):
         """
         Make multiple attempts to log into the guest via SSH/Telnet/Netcat.
 
@@ -1161,6 +1161,9 @@ class BaseVM(object):
                 (ssh, rss) failed.
         :param restart_network: Whether to try to restart guest's network
                 when remote login (ssh, rss) failed.
+        :param status_check: Whether to call verify_alive to detect bad
+            VM state early. Disable this when VM status might be unreliable,
+            eg. during reboot or pause)
         :return: A ShellSession object.
         """
         def print_guest_network_info():
@@ -1193,7 +1196,8 @@ class BaseVM(object):
                                       ip_version=self.ip_version)
         except Exception as err:
             error = err
-            self.verify_alive()
+            if status_check:
+                self.verify_alive()
             print_guest_network_info()
             if not (serial or restart_network):
                 raise
@@ -1359,7 +1363,8 @@ class BaseVM(object):
     def wait_for_serial_login(self, timeout=LOGIN_WAIT_TIMEOUT,
                               internal_timeout=LOGIN_TIMEOUT,
                               restart_network=False,
-                              username=None, password=None, virtio=False):
+                              username=None, password=None, virtio=False,
+                              status_check=True):
         """
         Make multiple attempts to log into the guest via serial console.
 
@@ -1367,6 +1372,9 @@ class BaseVM(object):
         :param internal_timeout: Timeout to pass to serial_login().
         :param restart_network: Whether try to restart guest's network.
         :param virtio: is a console virtio console (deprecated).
+        :param status_check: Whether to call verify_alive to detect bad
+            VM state early. Disable this when VM status might be unreliable,
+            eg. during reboot or pause)
         :return: ConsoleSession instance.
         """
         logging.debug("Attempting to log into '%s' via serial console "
@@ -1380,7 +1388,8 @@ class BaseVM(object):
                                             virtio=virtio)
                 break
             except remote.LoginError:
-                self.verify_alive()
+                if status_check:
+                    self.verify_alive()
                 time.sleep(0.5)
                 continue
         else:
