@@ -291,7 +291,8 @@ class Target(object):
             options += input_transport_args[self.input_transport]
             return options
 
-        supported_mac = v2v_supported_option('--mac <mac:network\|bridge:out>')
+        supported_mac = v2v_supported_option(
+            r'--mac <mac:network\|bridge:out>')
         if supported_mac:
             if self.iface_macs:
                 for mac_i in self.iface_macs.split(';'):
@@ -950,7 +951,11 @@ def v2v_cmd(params):
         create virsh instance, etc.
         """
         # Cannot get mac address in 'ova', 'libvirtxml', etc.
-        if input_mode not in ['disk', 'libvirtxml', 'local', 'ova']:
+        if input_mode not in [
+            'disk',
+            'libvirtxml',
+            'local',
+                'ova'] and not skip_virsh_pre_conn:
             v2v_virsh = create_virsh_instance(
                 hypervisor, uri, hostname, username, password)
             iface_info = get_all_ifaces_info(vm_name, v2v_virsh)
@@ -968,6 +973,10 @@ def v2v_cmd(params):
                 params['_nfspath'] = list(disks_info[list(disks_info)[0]])[0]
         else:
             params['_iface_list'] = ''
+            # params['_nfspath'] only be used when composing nfs vmx file path,
+            # in the case, vm_name is same as nfs directory name
+            if input_mode == 'vmx':
+                params['_nfspath'] = vm_name
 
     def _v2v_post_cmd():
         """
@@ -997,6 +1006,10 @@ def v2v_cmd(params):
     password = params.get('password')
     vm_name = params.get('main_vm')
     input_mode = params.get('input_mode')
+    # A switch controls a virsh pre-connection to source hypervisor,
+    # but some testing envrionments(like, gating in OSP) don't have
+    # source hypervisor, the pre-connection must be skipped.
+    skip_virsh_pre_conn = 'yes' == params.get('skip_virsh_pre_conn')
     # virsh instance of remote hypervisor
     v2v_virsh = None
 
@@ -1281,7 +1294,11 @@ def create_virsh_instance(
     :param remote_pwd: Password to use, or None for host/pubkey
     :param debug: Whether to enable debug
     """
-    logging.debug("virsh connection info: hypervisor=%s uri=%s ip=%s", hypervisor, uri, remote_ip)
+    logging.debug(
+        "virsh connection info: hypervisor=%s uri=%s ip=%s",
+        hypervisor,
+        uri,
+        remote_ip)
     if hypervisor == 'kvm':
         v2v_virsh = virsh
     else:
