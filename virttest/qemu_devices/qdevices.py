@@ -1122,6 +1122,75 @@ class QObject(QCustomDevice):
         raise DeviceError("'verify_hotplug' function unimplemented")
 
 
+class QIOThread(QObject):
+    """iothread object.
+    attributes of iothread
+    ["id", "poll-max-ns", "poll-grow", "poll-shrink"]
+    """
+
+    def __init__(self, iothread_id, params=None):
+        if params is None:
+            params = dict()
+        params["id"] = iothread_id
+        kwargs = dict(backend="iothread", params=params)
+        super(QIOThread, self).__init__(**kwargs)
+        self.set_aid(iothread_id)
+        self.iothread_bus = QIOThreadBus(iothread_id)
+        self.add_child_bus(self.iothread_bus)
+
+    @staticmethod
+    def _query(monitor):
+        """Return a list of active iothreads."""
+        out = monitor.info("iothreads", debug=False)
+        if isinstance(monitor, qemu_monitor.HumanMonitor):
+            pattern = (r"([\w-]+):\s+(thread_id)=(\d+)\s+(poll-max-ns)=(\d+)"
+                       r"\s+(poll-grow)=(\d+)\s+(poll-shrink)=(\d+)")
+            result = []
+            for t in re.findall(pattern, out):
+                it_dict = {}
+                it_dict["id"] = t[0]
+                it_dict.update(zip(t[1::2], t[2::2]))
+                result.append(it_dict)
+            out = result
+        return out
+
+    def get_children(self):
+        """Get child devices, always empty."""
+        # iothread could be removed without unplug child devices
+        return []
+
+    def unplug_hook(self):
+        """Remove iothread from attached devices' params."""
+        for device in self.iothread_bus:
+            device.set_param("iothread", None)
+
+    def unplug_unhook(self):
+        """Reset attached devices' params."""
+        for device in self.iothread_bus:
+            device.set_param(self.get_qid())
+
+    def hotplug_qmp(self):
+        """Return hotplug qmp command string."""
+        params = dict(self.params)
+        backend = params.pop("backend")
+        iothread_id = params.pop("id")
+        kwargs = {"qom-type": backend, "id": iothread_id, "props": params}
+        return "object-add", kwargs
+
+    def _is_attached_to_qemu(self, monitor):
+        """Check if iothread is in use by QEMU."""
+        out = QIOThread._query(monitor)
+        return any(self.get_qid() == iothread["id"] for iothread in out)
+
+    def verify_hotplug(self, out, monitor):
+        """Verify if it is plugged into VM."""
+        return self._is_attached_to_qemu(monitor)
+
+    def verify_unplug(self, out, monitor):
+        """Verify if it is unplugged from VM."""
+        return not self._is_attached_to_qemu(monitor)
+
+
 class Memory(QObject):
 
     """
@@ -2574,3 +2643,38 @@ class QCPUBus(QSparseBus):
                                    for d in range(cpuinfo.dies)
                                    for c in range(cpuinfo.cores)
                                    for t in range(cpuinfo.threads)][cpuinfo.smp]
+
+
+class QIOThreadBus(QSparseBus):
+    """IOThread virtual bus."""
+
+    def __init__(self, iothread_id):
+        """
+        iothread bus constructor.
+
+        :param iothread_id: related QIOThread object id
+        """
+        super(QIOThreadBus, self).__init__("iothread", [[], []],
+                                           "iothread_bus_%s" % iothread_id,
+                                           "IOTHREAD", iothread_id)
+
+    def _check_bus(self, device):
+        """Check if the device is pluggable."""
+        iothread = device.get_param(self.bus_item)
+        return iothread is None or iothread == self.get_device().get_qid()
+
+    def _dev2addr(self, device):
+        """Return the device id as address."""
+        return [device.get_qid()]
+
+    def get_free_slot(self, addr_pattern):
+        """Return the device id as unoccupied address."""
+        return addr_pattern
+
+    def _set_device_props(self, device, addr):
+        """Set device iothread param."""
+        device.set_param(self.bus_item, self.get_device().get_qid())
+
+    def _update_device_props(self, device, addr):
+        """Always set devie iothread param."""
+        self._set_device_props(device, addr)
