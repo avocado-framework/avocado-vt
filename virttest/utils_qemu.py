@@ -8,6 +8,7 @@ from avocado.utils import process
 QEMU_VERSION_RE = re.compile(r"QEMU (?:PC )?emulator version\s"
                              r"([0-9]+\.[0-9]+\.[0-9]+)"
                              r"(?:\s\((.*?)\))?")
+DEVICE_CATEGORY_RE = re.compile(r"([A-Z]\S+) devices:")
 
 
 def _get_info(bin_path, options, allow_output_check=None):
@@ -67,17 +68,26 @@ def get_devices_info(bin_path, category=None):
 
     :param bin_path: Path to qemu binary
     :param category: device category (e.g. 'USB', 'Network', 'CPU')
-    :return:  A dict of all devices
+    :return: A dict of all devices
     """
-    output = _get_info(bin_path, r"-device help", allow_output_check="combined")
     qemu_devices = {}
+    output = _get_info(bin_path, "-device help", allow_output_check="combined")
+    require_machine = "No machine specified" in output
+    # Some architectures (arm) require machine type to be always set, but this
+    # function is not yet supported
+    if require_machine:
+        return qemu_devices
+
     for device_info in output.split("\n\n"):
-        device_type = re.match(r"([A-Z]\S+) devices:", device_info).group(1)
-        devs_info = re.findall(r'^name "(\S+)"(.*)', device_info, re.M)
-        qemu_devices[device_type] = {dev[0]: dev[1].replace(", ", "", 1)
-                                     for dev in devs_info}
+        device_type = DEVICE_CATEGORY_RE.match(device_info)
+        if device_type:
+            device_type = device_type.group(1)
+            devs_info = re.findall(r'^name "(\S+)"(.*)', device_info,
+                                   re.M)
+            qemu_devices[device_type] = {dev[0]: dev[1].replace(", ", "", 1)
+                                         for dev in devs_info}
     if category:
-        return qemu_devices[category]
+        return qemu_devices.get(category, {})
     return {k: v for d in qemu_devices.values() for k, v in d.items()}
 
 
@@ -90,6 +100,18 @@ def get_supported_devices_list(bin_path, category=None):
     :return: A list of all devices supported by qemu
     """
     return list(get_devices_info(bin_path, category).keys())
+
+
+def has_device_category(bin_path, category):
+    """
+    Check if device category is included in the qemu devices info
+
+    :param bin_path: Path to qemu binary
+    :param category: device category (e.g. 'USB', 'Network', 'CPU')
+    :return: True if device category existed in qemu devices help info
+    """
+    out = _get_info(bin_path, "-device help")
+    return category in DEVICE_CATEGORY_RE.findall(out)
 
 
 def find_supported_devices(bin_path, pattern, category=None):
