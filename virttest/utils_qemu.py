@@ -110,7 +110,7 @@ def has_device_category(bin_path, category):
     :param category: device category (e.g. 'USB', 'Network', 'CPU')
     :return: True if device category existed in qemu devices help info
     """
-    out = _get_info(bin_path, "-device help")
+    out = _get_info(bin_path, "-device help", allow_output_check="combined")
     return category in DEVICE_CATEGORY_RE.findall(out)
 
 
