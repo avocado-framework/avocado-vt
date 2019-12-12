@@ -776,7 +776,7 @@ def get_interface_from_pci_id(pci_id, session=None, nic_regex=""):
     ethnames = re.findall(nic_regex, output.strip())
     for each_interface in ethnames:
         cmd = "ethtool -i %s | awk '/bus-info/ {print $2}'" % each_interface
-        status, output = session.cmd_status_output(cmd, shell=True, session=session)
+        status, output = cmd_status_output(cmd, shell=True, session=session)
         if status:
             continue
         if pci_id in output.strip():
