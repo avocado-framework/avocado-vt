@@ -1,0 +1,26 @@
+Avocado-vt inside the container
+
+That a simple way to use avocado-vt in the system, when you are worried
+about breaking the system or you wish to test a new version of the
+framework.
+
+How to use avocado-vt inside the container:
+First you need clone the dockerfile Fedora.dockerfile
+On the Fedora 31 podman is a default instead docker
+Build an image with provided avocado version:
+
+# podman build --build-arg avocado_version=73.0 -t avocado-vt -f Fedora.dockerfile .
+
+   It can be change and provide next args:
+            avocado_version
+            --build-arg TAG_VERSION=30
+
+To run tests need to add a list of volumes from the system and the list
+will be depends-on which test you want to run:
+avocado_command - test command
+# podman run --name avocado-vt --network host --rm --privileged -v "/usr/bin/qemu-img:/usr/bin/qemu-img" \
+      -v "/usr/bin/qemu-io:/usr/bin/qemu-io" -v "/usr/libexec/qemu-kvm:/usr/libexec/qemu-kvm" -v "/root/avocado:/root/avocado" \
+      -v "/var/lib/avocado:/var/lib/avocado" -v "/var/log:/var/log" -v "/usr/lib64/qemu-kvm:/usr/lib64/qemu-kvm" -v \
+       "/usr/share/qemu-kvm:/usr/share/qemu-kvm" -v "/usr/share/ipxe.efi:/usr/share/ipxe.efi" \
+      -i -t localhost/avocado-vt avocado {{ avocado_command }}
+
