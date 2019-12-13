@@ -473,7 +473,7 @@ def copy_nfs_image(params, root_dir, basename=False):
     """
     if params.get("setup_local_nfs", "no") == "yes":
         # check for image availability in NFS shared path
-        base_dir = params.get("images_base_dir", data_dir.get_data_dir())
+        base_dir = params["nfs_mount_dir"]
         dst = get_image_filename(params, base_dir, basename=basename)
         if(not os.path.isfile(dst) or
            utils_misc.get_image_info(dst)['lcounts'].lower() == "true"):

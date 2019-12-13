@@ -1197,12 +1197,14 @@ class VM(virt_vm.BaseVM):
                 virt_install_cmd += add_pcidevice(help_text, pci_id)
 
         for image_name in params.objects("images"):
+            basename = False
             image_params = params.object_params(image_name)
 
             base_dir = image_params.get("images_base_dir",
                                         data_dir.get_data_dir())
-
-            basename = params.get("storage_type") == "nfs"
+            if params.get("storage_type") == "nfs":
+                basename = True
+                base_dir = params["nfs_mount_dir"]
             filename = storage.get_image_filename(image_params,
                                                   base_dir, basename=basename)
             if image_params.get("use_storage_pool") == "yes":
