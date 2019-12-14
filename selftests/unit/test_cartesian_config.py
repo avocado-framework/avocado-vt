@@ -409,6 +409,83 @@ class CartesianConfigTest(unittest.TestCase):
                               ],
                               True)
 
+    def testVariableLazyAssignment(self):
+        self._checkStringDump("""
+            arg1 = ~balabala
+            variants:
+                - base_content:
+                    foo = bar
+                - empty_content:
+            variants:
+                - lazy_set:
+                    foo ~= baz
+                - lazy_set_with_substitution:
+                    foo ~= ${arg1}
+                - lazy_set_with_double_token:
+                    foo ~= ~= foo
+                - dummy_set:
+            foo ~= qux
+            """,
+                              [
+                                  {'_name_map_file': {'<string>': 'lazy_set.base_content'},
+                                   '_short_name_map_file': {'<string>': 'lazy_set.base_content'},
+                                   'arg1': '~balabala',
+                                   'dep': [],
+                                   'foo': 'bar',
+                                   'name': 'lazy_set.base_content',
+                                   'shortname': 'lazy_set.base_content'},
+                                  {'_name_map_file': {'<string>': 'lazy_set.empty_content'},
+                                   '_short_name_map_file': {'<string>': 'lazy_set.empty_content'},
+                                   'arg1': '~balabala',
+                                   'dep': [],
+                                   'foo': 'baz',
+                                   'name': 'lazy_set.empty_content',
+                                   'shortname': 'lazy_set.empty_content'},
+                                  {'_name_map_file': {'<string>': 'lazy_set_with_substitution.base_content'},
+                                   '_short_name_map_file': {'<string>': 'lazy_set_with_substitution.base_content'},
+                                   'arg1': '~balabala',
+                                   'dep': [],
+                                   'foo': 'bar',
+                                   'name': 'lazy_set_with_substitution.base_content',
+                                   'shortname': 'lazy_set_with_substitution.base_content'},
+                                  {'_name_map_file': {'<string>': 'lazy_set_with_substitution.empty_content'},
+                                   '_short_name_map_file': {'<string>': 'lazy_set_with_substitution.empty_content'},
+                                   'arg1': '~balabala',
+                                   'dep': [],
+                                   'foo': '~balabala',
+                                   'name': 'lazy_set_with_substitution.empty_content',
+                                   'shortname': 'lazy_set_with_substitution.empty_content'},
+                                  {'_name_map_file': {'<string>': 'lazy_set_with_double_token.base_content'},
+                                   '_short_name_map_file': {'<string>': 'lazy_set_with_double_token.base_content'},
+                                   'arg1': '~balabala',
+                                   'dep': [],
+                                   'foo': 'bar',
+                                   'name': 'lazy_set_with_double_token.base_content',
+                                   'shortname': 'lazy_set_with_double_token.base_content'},
+                                  {'_name_map_file': {'<string>': 'lazy_set_with_double_token.empty_content'},
+                                   '_short_name_map_file': {'<string>': 'lazy_set_with_double_token.empty_content'},
+                                   'arg1': '~balabala',
+                                   'dep': [],
+                                   'foo': '~= foo',
+                                   'name': 'lazy_set_with_double_token.empty_content',
+                                   'shortname': 'lazy_set_with_double_token.empty_content'},
+                                  {'_name_map_file': {'<string>': 'dummy_set.base_content'},
+                                   '_short_name_map_file': {'<string>': 'dummy_set.base_content'},
+                                   'arg1': '~balabala',
+                                   'dep': [],
+                                   'foo': 'bar',
+                                   'name': 'dummy_set.base_content',
+                                   'shortname': 'dummy_set.base_content'},
+                                  {'_name_map_file': {'<string>': 'dummy_set.empty_content'},
+                                   '_short_name_map_file': {'<string>': 'dummy_set.empty_content'},
+                                   'arg1': '~balabala',
+                                   'dep': [],
+                                   'foo': 'qux',
+                                   'name': 'dummy_set.empty_content',
+                                   'shortname': 'dummy_set.empty_content'},
+                              ],
+                              True)
+
     def testCondition(self):
         self._checkStringDump("""
             variants tests [meta1]:

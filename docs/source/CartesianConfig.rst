@@ -570,6 +570,10 @@ Formal definition
       value of <key> in all dicts of the current frame. If a dict lacks
       <key>, it will be created.
 
+   -  A statement of the form <key> ~= <value> sets the value of <key>
+      to <value> in all dicts of the current frame unless the <key> was
+      already defined. Otherwise the original value is preserved.
+
    -  A statement of the form <key> ?= <value> sets the value of <key>
       to <value>, in all dicts of the current frame, but only if <key>
       exists in the dict. The operators ?+= and ?<= are also supported.
