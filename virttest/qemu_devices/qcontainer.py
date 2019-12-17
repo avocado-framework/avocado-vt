@@ -2018,7 +2018,8 @@ class DevContainer(object):
 
     def serials_define_by_variables(self, serial_id, serial_type, chardev_id,
                                     bus_type=None, serial_name=None,
-                                    bus=None, nr=None, reg=None):
+                                    bus=None, nr=None, reg=None,
+                                    bus_extra_params=None):
         """
         Creates related devices by variables
 
@@ -2030,10 +2031,14 @@ class DevContainer(object):
         :param bus: the busid of parent bus(optional, virtio only)
         :param nr: the nr(port) of the parent bus(optional, virtio only)
         :param reg: reg option of isa-serial(optional)
+        :param bus_extra_params: extra virtio_serial_pci params
         :return: the device list that construct the serial device
         """
 
         devices = []
+        if bus_extra_params:
+            bus_params = (dict([_.split('=')
+                                for _ in bus_extra_params.split(',') if _]))
         # For virtio devices, generate controller and create the port device
         if serial_type.startswith('virt'):
             if not bus:
@@ -2050,9 +2055,10 @@ class DevContainer(object):
                     bus = self.list_missing_named_buses(
                         _hba, 'SERIAL', bus + 1)[-1]
                     logging.debug("list missing named bus: %s", bus)
+                    bus_params["id"] = bus
                     devices.append(
                         qdevices.QDevice(bus_type,
-                                         {"id": bus},
+                                         bus_params,
                                          bus,
                                          pci_bus,
                                          qdevices.QSerialBus(
@@ -2109,7 +2115,8 @@ class DevContainer(object):
         serial_devices = self.serials_define_by_variables(
             serial_id, serial_type, chardev_id, bus_type=bus_type,
             serial_name=params.get("serial_name"), bus=params.get("serial_bus"),
-            nr=params.get("serial_nr"), reg=params.get("serial_reg"))
+            nr=params.get("serial_nr"), reg=params.get("serial_reg"),
+            bus_extra_params=params.get("virtio_serial_extra_params"))
 
         return [chardev_device] + serial_devices
 
