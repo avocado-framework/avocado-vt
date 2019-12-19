@@ -101,7 +101,8 @@ class Target(object):
         self.uri = uri
         # Save NFS mount records like {0:(src, dst, fstype)}
         self.mount_records = {}
-        # authorized_keys in remote vmx host
+        # Authorized_keys is a list which every element is a tuple.
+        # The value of each tuple is like (session, key, server_type).
         self.authorized_keys = []
 
     def cleanup(self):
@@ -111,32 +112,30 @@ class Target(object):
         for src, dst, fstype in self.mount_records.values():
             utils_misc.umount(src, dst, fstype)
 
-        self.cleanup_authorized_keys_in_vmx()
+        self.cleanup_authorized_keys()
 
-    def cleanup_authorized_keys_in_vmx(self):
+    def cleanup_authorized_keys(self):
         """
-        Clean up authorized_keys in vmx server
+        Clean up authorized_keys in remote server
         """
-        session = None
-        if len(self.authorized_keys) == 0:
-            return
-
         try:
-            session = remote.remote_login(
-                client='ssh',
-                host=self.esxi_host,
-                port=22,
-                username=self.username,
-                password=self.esxi_password,
-                prompt=r"[\#\$\[\]]",
-                preferred_authenticaton='password,keyboard-interactive')
-            for key in self.authorized_keys:
-                session.cmd(
-                    "sed -i '/%s/d' /etc/ssh/keys-root/authorized_keys" %
-                    key)
+            for session, key, server_type in self.authorized_keys:
+                if not session or not key:
+                    continue
+                logging.debug(
+                    "session=%s key=%s server_type=%s",
+                    session,
+                    key,
+                    server_type)
+                session.cmd("sed -i '/%s/d' %s" %
+                            (key, get_authorized_keys_file(server_type)))
         finally:
-            if session:
-                session.close()
+            # Close session here in case the following element use same
+            # session, although it could not happen in general.
+            for session, _, _ in self.authorized_keys:
+                if session:
+                    logging.debug("closed session = %s", session)
+                    session.close()
 
     def get_cmd_options(self, params):
         """
@@ -268,9 +267,10 @@ class Target(object):
 
             # -it ssh
             if self.input_transport == 'ssh':
-                pub_key = setup_esx_ssh_key(
-                    self.esxi_host, self.username, self.esxi_password)
-                self.authorized_keys.append(pub_key.split()[1].split('/')[0])
+                pub_key, session = v2v_setup_ssh_key(
+                    self.esxi_host, self.username, self.esxi_password, server_type='esx', auto_close=False)
+                self.authorized_keys.append(
+                    (session, pub_key.split()[1].split('/')[0], 'esx'))
                 utils_misc.add_identities_into_ssh_agent()
 
             # New input_transport type can be added here
@@ -1217,40 +1217,121 @@ def get_vddk_thumbprint(host, password, uri_type, prompt=r"[\#\$\[\]]"):
     return vddk_thumbprint
 
 
-def setup_esx_ssh_key(hostname, username, password, port=22):
+def v2v_setup_ssh_key(
+        hostname,
+        username,
+        password,
+        port=22,
+        server_type=None,
+        auto_close=True,
+        preferred_authenticaton=None,
+        user_known_hosts_file=None):
     """
-    Setup up remote login in esx server by using public key
+    Setup up remote login in another server by using public key
 
     :param hostname: hostname or IP address
     :param username: username
     :param password: password
     :param port: ssh port number
+    :param server_type: the type of remote server, the values could be 'esx' or 'None'.
+    :param auto_close: If it's True, the session will closed automatically,
+                       else Uses should call v2v_setup_ssh_key_cleanup to close the session
+    :param preferred_authenticaton: The preferred authentication of SSH connection
+    :param user_known_hosts_file: one or more files to use for the user host key database
+
+    :return: A tuple (public_key, session) will always be returned
     """
     session = None
     logging.debug('Performing SSH key setup on %s:%d as %s.' %
                   (hostname, port, username))
     try:
+        # Both Xen and ESX can work with following settings.
+        if not preferred_authenticaton:
+            preferred_authenticaton = 'password,keyboard-interactive'
+        if not user_known_hosts_file:
+            user_known_hosts_file = os.path.expanduser('~/.ssh/known_hosts')
+
+        # If remote host identification has changed, v2v will fail.
+        # We always delete the identification first.
+        if os.path.isfile(user_known_hosts_file):
+            cmd = r"sed -i '/%s/d' %s" % (hostname, user_known_hosts_file)
+            process.run(cmd, verbose=True, ignore_status=True)
+
         session = remote.remote_login(
             client='ssh',
             host=hostname,
             username=username,
             port=port,
             password=password,
-            prompt=r"[\#\$\[\]]",
+            prompt=r"[\#\$\[\]%]",
             verbose=True,
-            preferred_authenticaton='password,keyboard-interactive',
-            user_known_hosts_file='${HOME}/.ssh/known_hosts')
-        public_key = ssh_key.get_public_key()
-        session.cmd("echo '%s' >> /etc/ssh/keys-root/authorized_keys; " %
-                    public_key)
+            preferred_authenticaton=preferred_authenticaton,
+            user_known_hosts_file=user_known_hosts_file)
+
+        # Add rstrip to avoid blank lines in authorized_keys on remote server
+        public_key = ssh_key.get_public_key().rstrip()
+
+        if server_type == 'esx':
+            session.cmd(
+                "echo '%s' >> /etc/ssh/keys-root/authorized_keys; " %
+                public_key)
+        else:
+            session.cmd('mkdir -p ~/.ssh')
+            session.cmd('chmod 700 ~/.ssh')
+            session.cmd("echo '%s' >> ~/.ssh/authorized_keys; " % public_key)
+            session.cmd('chmod 600 ~/.ssh/authorized_keys')
+
         logging.debug('SSH key setup complete.')
 
-        return public_key
+        return public_key, session
     except Exception as err:
         raise exceptions.TestFail("SSH key setup failed: '%s'" % err)
     finally:
+        if auto_close and session:
+            session.close()
+
+
+def v2v_setup_ssh_key_cleanup(session=None, key=None, server_type=None):
+    """
+    Close the session and delete the key from authorized_keys.
+
+    If auto_close is 'False' in v2v_setup_ssh_key, Users must call this
+    function to cleanup session and keys on remote server explicitly.
+    But if the caller of v2v_setup_ssh_key is an instance of class Target,
+    you can save the resources in self.authorized_keys to cleanup
+    automatically.
+
+    :param session: An aexpect session to remote server
+    :param key: The public_key which get by ssh_key.get_public_key().
+    :param server_type: the type of remote server, the values could be 'esx' or 'None'.
+    """
+    try:
+        if not session or not key:
+            return
+
+        # Only use a part of pub_keys as a pattern in sed
+        key = key.rstrip().split()[1].split('/')[0]
+        authorized_keys = get_authorized_keys_file(server_type)
+        cmd = r"sed -i '/%s/d' %s" % (key, authorized_keys)
+        session.cmd(cmd)
+    finally:
         if session:
             session.close()
+
+
+def get_authorized_keys_file(server_type=None):
+    """
+    Get authorized_keys file path for a remote server
+
+    :param server_type: the type of remote server, the values could be 'esx' or 'None'.
+
+    :return: The path of authorized_keys file on remote server
+    """
+    if server_type == 'esx':
+        authorized_keys = '/etc/ssh/keys-root/authorized_keys'
+    else:
+        authorized_keys = os.path.expanduser('~/.ssh/authorized_keys')
+    return authorized_keys
 
 
 def v2v_mount(src, dst='v2v_mount_point', fstype='nfs'):
