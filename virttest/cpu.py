@@ -459,16 +459,18 @@ def check_vcpu_domstats(vm, exp_vcpu):
     max_vcpu = int(get_domstats(vm, "vcpu.maximum"))
     if vm.is_alive():
         exp_cur_vcpu = exp_vcpu['cur_live']
+        exp_cur_max = exp_vcpu['max_live']
     else:
         exp_cur_vcpu = exp_vcpu['cur_config']
+        exp_cur_max = exp_vcpu['max_config']
     if exp_cur_vcpu != cur_vcpu:
         status = False
         logging.error("Mismatch in current vcpu in domstats output, "
                       "Expected: %s Actual: %s", exp_cur_vcpu, cur_vcpu)
-    if exp_vcpu['max_config'] != max_vcpu:
+    if exp_cur_max != max_vcpu:
         status = False
         logging.error("Mismatch in maximum vcpu in domstats output, Expected:"
-                      " %s Actual: %s", exp_vcpu['max_config'], max_vcpu)
+                      " %s Actual: %s", exp_cur_max, max_vcpu)
 
     return status
 
