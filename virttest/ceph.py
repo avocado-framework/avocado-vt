@@ -24,7 +24,8 @@ class CephError(Exception):
 
 @error_context.context_aware
 def rbd_image_create(ceph_monitor, rbd_pool_name, rbd_image_name,
-                     rbd_image_size, force_create=False, ceph_conf=None):
+                     rbd_image_size, force_create=False,
+                     ceph_conf=None, keyfile=None):
     """
     Create a rbd image.
     :params ceph_monitor: The specified monitor to connect to
@@ -33,6 +34,7 @@ def rbd_image_create(ceph_monitor, rbd_pool_name, rbd_image_name,
     :params rbd_image_size: The size of rbd image
     :params force_create: Force create the image or not
     :params ceph_conf: The path to the ceph configuration file
+    :params keyfile: The path to the ceph keyring configuration file
     """
     create_image = True
     try:
@@ -41,44 +43,50 @@ def rbd_image_create(ceph_monitor, rbd_pool_name, rbd_image_name,
     except ValueError:
         compare_str = utils_numeric.normalize_data_size(rbd_image_size, 'M')
 
-    if rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name, ceph_conf):
+    if rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name,
+                       ceph_conf, keyfile):
         create_image = False
         image_info = rbd_image_info(ceph_monitor, rbd_pool_name,
-                                    rbd_image_name, ceph_conf)
+                                    rbd_image_name, ceph_conf, keyfile)
         if image_info['size'] != compare_str or force_create:
             rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name,
-                         ceph_conf)
+                         ceph_conf, keyfile)
             create_image = True
 
     if create_image:
-        cmd = "rbd {opts} create {pool}/{image} {size}"
+        cmd = "rbd {opts} create {pool}/{image} {size} {keyring}"
         c_opt = '-c %s' % ceph_conf if ceph_conf else ''
         m_opt = '-m %s' % ceph_monitor if ceph_monitor else ''
         opts = m_opt + ' ' + c_opt
         size = '-s %d' % utils_numeric.align_value(compare_str, 1)
+        keyring = '--keyring %s' % keyfile if keyfile else ''
         cmd = cmd.format(opts=opts, pool=rbd_pool_name,
-                         image=rbd_image_name, size=size)
+                         image=rbd_image_name, size=size, keyring=keyring)
         process.system(cmd, verbose=True)
     else:
         logging.debug("Image already exist skip the create.")
 
 
 @error_context.context_aware
-def rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name, ceph_conf=None):
+def rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name,
+                 ceph_conf=None, keyfile=None):
     """
     Remove a rbd image
     :params ceph_monitor: The specified monitor to connect to
     :params rbd_pool_name: The name of rbd pool
     :params rbd_image_name: The name of rbd image
-    :params ceph_conf: The path to the ceph_configuration file
+    :params ceph_conf: The path to the ceph configuration file
+    :params keyfile: The path to the ceph keyring configuration file
     """
     if rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name,
-                       ceph_conf):
-        cmd = "rbd {opts} rm {pool}/{image}"
+                       ceph_conf, keyfile):
+        cmd = "rbd {opts} rm {pool}/{image} {keyring}"
         c_opt = '-c %s' % ceph_conf if ceph_conf else ''
         m_opt = '-m %s' % ceph_monitor if ceph_monitor else ''
         opts = m_opt + ' ' + c_opt
-        cmd = cmd.format(opts=opts, pool=rbd_pool_name, image=rbd_image_name)
+        keyring = '--keyring %s' % keyfile if keyfile else ''
+        cmd = cmd.format(opts=opts, pool=rbd_pool_name, image=rbd_image_name,
+                         keyring=keyring)
         process.system(cmd, verbose=True)
     else:
         logging.debug("Image not exist, skip to remove it.")
@@ -86,19 +94,21 @@ def rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name, ceph_conf=None):
 
 @error_context.context_aware
 def rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name,
-                    ceph_conf=None):
+                    ceph_conf=None, keyfile=None):
     """
     Check if rbd image is exist
     :params ceph_monitor: The specified monitor to connect to
     :params rbd_pool_name: The name of rbd pool
     :params rbd_image_name: The name of rbd image
     :params ceph_conf: The path to the ceph configuration file
+    :params keyfile: The path to the ceph keyring configuration file
     """
-    cmd = "rbd {opts} ls {pool}"
+    cmd = "rbd {opts} ls {pool} {keyring}"
     c_opt = '-c %s' % ceph_conf if ceph_conf else ''
     m_opt = '-m %s' % ceph_monitor if ceph_monitor else ''
     opts = m_opt + ' ' + c_opt
-    cmd = cmd.format(opts=opts, pool=rbd_pool_name)
+    keyring = '--keyring %s' % keyfile if keyfile else ''
+    cmd = cmd.format(opts=opts, pool=rbd_pool_name, keyring=keyring)
     output = decode_to_text(process.system_output(cmd, ignore_status=True,
                                                   verbose=True))
 
@@ -109,19 +119,22 @@ def rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name,
 
 @error_context.context_aware
 def rbd_image_info(ceph_monitor, rbd_pool_name, rbd_image_name,
-                   ceph_conf=None):
+                   ceph_conf=None, keyfile=None):
     """
     Get information of a rbd image
     :params ceph_monitor: The specified monitor to connect to
     :params rbd_pool_name: The name of rbd pool
     :params rbd_image_name: The name of rbd image
     :params ceph_conf: The path to the ceph configuration file
+    :params keyfile: The path to the ceph keyring configuration file
     """
-    cmd = "rbd {opts} info {pool}/{image}"
+    cmd = "rbd {opts} info {pool}/{image} {keyring}"
     c_opt = '-c %s' % ceph_conf if ceph_conf else ''
     m_opt = '-m %s' % ceph_monitor if ceph_monitor else ''
     opts = m_opt + ' ' + c_opt
-    cmd = cmd.format(opts=opts, pool=rbd_pool_name, image=rbd_image_name)
+    keyring = '--keyring %s' % keyfile if keyfile else ''
+    cmd = cmd.format(opts=opts, pool=rbd_pool_name, image=rbd_image_name,
+                     keyring=keyring)
     output = process.system(cmd)
     info_pattern = "rbd image \'%s\':.*?$" % rbd_image_name
 

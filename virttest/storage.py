@@ -79,8 +79,9 @@ def file_exists(params, filename_path):
         rbd_pool_name = params["rbd_pool_name"]
         rbd_image_name = "%s.%s" % (image_name.split("/")[-1], image_format)
         ceph_conf = params.get("ceph_conf")
+        keyring_conf = params.get("image_ceph_keyring_conf")
         return ceph.rbd_image_exist(ceph_monitor, rbd_pool_name,
-                                    rbd_image_name, ceph_conf)
+                                    rbd_image_name, ceph_conf, keyring_conf)
     return os.path.exists(filename_path)
 
 
@@ -97,8 +98,9 @@ def file_remove(params, filename_path):
         rbd_pool_name = params["rbd_pool_name"]
         rbd_image_name = "%s.%s" % (image_name.split("/")[-1], image_format)
         ceph_conf = params.get("ceph_conf")
+        keyring_conf = params.get("image_ceph_keyring_conf")
         return ceph.rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name,
-                                 ceph_conf)
+                                 ceph_conf, keyring_conf)
 
     if params.get("gluster_brick"):
         # TODO: Add implementation for gluster_brick
