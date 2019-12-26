@@ -62,6 +62,9 @@ def filename_to_file_opts(filename):
                 if matches.group('conf') is not None:
                     # optional option
                     file_opts['conf'] = matches.group('conf')
+    # FIXME: Judge the host device by the string starts with "/dev/".
+    elif filename.startswith('/dev/'):
+        file_opts = {'driver': 'host_device', 'filename': filename}
     else:
         file_opts = {'driver': 'file', 'filename': filename}
 
