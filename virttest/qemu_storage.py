@@ -828,6 +828,48 @@ class QemuImg(storage.QemuImg):
 
         return result
 
+    def check(self, params, root_dir, force_share=False, output=None):
+        """
+        Check an image using the appropriate tools for each virt backend.
+
+        :param params: Dictionary containing the test parameters.
+        :param root_dir: Base directory for relative filenames.
+        :param output: The format of the output(json, human).
+
+        :note: params should contain:
+               image_name -- the name of the image file, without extension
+               image_format -- the format of the image (qcow2, raw etc)
+
+        :return: The output of check result if the image exists, or None.
+        """
+        image_filename = self.image_filename
+        logging.debug("Checking image file %s", image_filename)
+        force_share &= self.cap_force_share
+
+        cmd_dict = {"image_filename": image_filename,
+                    "force_share": force_share,
+                    "output_format": output}
+        if self.encryption_config.key_secret:
+            cmd_dict["image_filename"] = "'%s'" % get_image_json(
+                self.tag, params, root_dir)
+
+        secret_objects = []
+        storage_secret_object = self._storage_secret_object
+        if storage_secret_object:
+            secret_objects.append(storage_secret_object)
+        image_secret_objects = self._secret_objects
+        if image_secret_objects:
+            secret_objects.extend(image_secret_objects)
+        if secret_objects:
+            cmd_dict["secret_object"] = " ".join(secret_objects)
+
+        check_cmd = self.image_cmd + " " + self._cmd_formatter.format(
+            self.check_cmd, **cmd_dict)
+        cmd_result = process.run(check_cmd, ignore_status=True,
+                                 shell=True, verbose=False)
+
+        return cmd_result
+
     def check_image(self, params, root_dir, force_share=False):
         """
         Check an image using the appropriate tools for each virt backend.
@@ -848,73 +890,49 @@ class QemuImg(storage.QemuImg):
 
         if (storage.file_exists(params, image_filename) or
                 self.is_remote_image()) and image_is_checkable:
-            check_img = self.support_cmd("check") and self.support_cmd("info")
-            if not check_img:
-                logging.debug("Skipping image check "
-                              "(lack of support in qemu-img)")
-            else:
-                try:
-                    # FIXME: do we really need it?
-                    self.info(force_share)
-                except process.CmdError:
-                    logging.error("Error getting info from image %s",
-                                  image_filename)
-                cmd_dict = {"image_filename": image_filename,
-                            "force_share": force_share}
-                if self.encryption_config.key_secret:
-                    cmd_dict["image_filename"] = "'%s'" % \
-                        get_image_json(self.tag, params, root_dir)
-
-                secret_objects = []
-                storage_secret_object = self._storage_secret_object
-                if storage_secret_object:
-                    secret_objects.append(storage_secret_object)
-                image_secret_objects = self._secret_objects
-                if image_secret_objects:
-                    secret_objects.extend(image_secret_objects)
-                if secret_objects:
-                    cmd_dict["secret_object"] = " ".join(secret_objects)
-
-                check_cmd = self.image_cmd + " " + \
-                    self._cmd_formatter.format(self.check_cmd, **cmd_dict)
-                cmd_result = process.run(check_cmd, ignore_status=True,
-                                         shell=True, verbose=False)
-                # Error check, large chances of a non-fatal problem.
-                # There are chances that bad data was skipped though
-                if cmd_result.exit_status == 1:
-                    stdout = results_stdout_52lts(cmd_result)
-                    for e_line in stdout.splitlines():
-                        logging.error("[stdout] %s", e_line)
-                    stderr = results_stderr_52lts(cmd_result)
-                    for e_line in stderr.splitlines():
-                        logging.error("[stderr] %s", e_line)
-                    chk = params.get("backup_image_on_check_error", "no")
-                    if chk == "yes":
-                        self.backup_image(params, root_dir, "backup", False)
-                    raise exceptions.TestWarn(
-                        "qemu-img check not completed because of internal "
-                        "errors. Some bad data in the image may have gone "
-                        "unnoticed (%s)" % image_filename)
-                # Exit status 2 is data corruption for sure,
-                # so fail the test
-                elif cmd_result.exit_status == 2:
-                    stdout = results_stdout_52lts(cmd_result)
-                    for e_line in stdout.splitlines():
-                        logging.error("[stdout] %s", e_line)
-                    stderr = results_stderr_52lts(cmd_result)
-                    for e_line in stderr.splitlines():
-                        logging.error("[stderr] %s", e_line)
-                    chk = params.get("backup_image_on_check_error", "no")
-                    if chk == "yes":
-                        self.backup_image(params, root_dir, "backup", False)
-                    raise virt_vm.VMImageCheckError(image_filename)
-                # Leaked clusters, they are known to be harmless to data
-                # integrity
-                elif cmd_result.exit_status == 3:
-                    raise exceptions.TestWarn("Leaked clusters were noticed"
-                                              " during image check. No data "
-                                              "integrity problem was found "
-                                              "though. (%s)" % image_filename)
+            try:
+                # FIXME: do we really need it?
+                self.info(force_share)
+            except process.CmdError:
+                logging.error("Error getting info from image %s",
+                              image_filename)
+            cmd_result = self.check(params, root_dir, force_share=False)
+            # Error check, large chances of a non-fatal problem.
+            # There are chances that bad data was skipped though
+            if cmd_result.exit_status == 1:
+                stdout = results_stdout_52lts(cmd_result)
+                for e_line in stdout.splitlines():
+                    logging.error("[stdout] %s", e_line)
+                stderr = results_stderr_52lts(cmd_result)
+                for e_line in stderr.splitlines():
+                    logging.error("[stderr] %s", e_line)
+                chk = params.get("backup_image_on_check_error", "no")
+                if chk == "yes":
+                    self.backup_image(params, root_dir, "backup", False)
+                raise exceptions.TestWarn(
+                    "qemu-img check not completed because of internal "
+                    "errors. Some bad data in the image may have gone "
+                    "unnoticed (%s)" % image_filename)
+            # Exit status 2 is data corruption for sure,
+            # so fail the test
+            elif cmd_result.exit_status == 2:
+                stdout = results_stdout_52lts(cmd_result)
+                for e_line in stdout.splitlines():
+                    logging.error("[stdout] %s", e_line)
+                stderr = results_stderr_52lts(cmd_result)
+                for e_line in stderr.splitlines():
+                    logging.error("[stderr] %s", e_line)
+                chk = params.get("backup_image_on_check_error", "no")
+                if chk == "yes":
+                    self.backup_image(params, root_dir, "backup", False)
+                raise virt_vm.VMImageCheckError(image_filename)
+            # Leaked clusters, they are known to be harmless to data
+            # integrity
+            elif cmd_result.exit_status == 3:
+                raise exceptions.TestWarn("Leaked clusters were noticed"
+                                          " during image check. No data "
+                                          "integrity problem was found "
+                                          "though. (%s)" % image_filename)
         else:
             if not storage.file_exists(params, image_filename):
                 logging.debug("Image file %s not found, skipping check",
