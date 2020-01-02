@@ -378,7 +378,8 @@ class DevContainer(object):
         """
         for dev in self.__devices:
             try:
-                if isinstance(dev, qdevices.QDevice) and device == dev.params['drive']:
+                if isinstance(
+                        dev, qdevices.QDevice) and device == dev.params['drive']:
                     return dev.params['id']
             except KeyError:
                 continue
@@ -738,7 +739,8 @@ class DevContainer(object):
                     nodes = [format_node]
                     nodes.extend((n for n in format_node.get_child_nodes()))
                     for node in nodes:
-                        if not node.verify_unplug(node.unplug(monitor), monitor):
+                        if not node.verify_unplug(
+                                node.unplug(monitor), monitor):
                             raise DeviceUnplugError(
                                 node, "Failed to unplug blockdev node.", self)
                         self.remove(node, True if isinstance(
@@ -1233,9 +1235,17 @@ class DevContainer(object):
 
         if params.get("vm_pci_hole64_fix"):
             if machine_type.startswith('pc'):
-                devices.append(qdevices.QGlobal("i440FX-pcihost", "x-pci-hole64-fix", "off"))
+                devices.append(
+                    qdevices.QGlobal(
+                        "i440FX-pcihost",
+                        "x-pci-hole64-fix",
+                        "off"))
             if machine_type.startswith('q35'):
-                devices.append(qdevices.QGlobal("q35-pcihost", "x-pci-hole64-fix", "off"))
+                devices.append(
+                    qdevices.QGlobal(
+                        "q35-pcihost",
+                        "x-pci-hole64-fix",
+                        "off"))
 
         # reserve pci.0 addresses
         pci_params = params.object_params('pci.0')
@@ -1773,7 +1783,8 @@ class DevContainer(object):
             devices[-1].set_param('media', media)
             devices[-1].set_param('format', imgfmt)
             if blkdebug is not None:
-                devices[-1].set_param('file', 'blkdebug:%s:%s' % (blkdebug, filename))
+                devices[-1].set_param('file', 'blkdebug:%s:%s' %
+                                      (blkdebug, filename))
             else:
                 devices[-1].set_param('file', filename)
 
@@ -1794,7 +1805,9 @@ class DevContainer(object):
             for key, value in drv_extra_params:
                 if Flags.BLOCKDEV in self.caps:
                     if key == 'discard':
-                        value = re.sub('on', 'unmap', re.sub('off', 'ignore', value))
+                        value = re.sub(
+                            'on', 'unmap', re.sub(
+                                'off', 'ignore', value))
                     devices[-2].set_param(key, value)
                 devices[-1].set_param(key, value)
         if not use_device:
@@ -2105,7 +2118,8 @@ class DevContainer(object):
                 controller_suffix = 'pci'
             bus_type = 'virtio-serial-%s' % controller_suffix
         chardev_id = 'chardev_%s' % serial_id
-        chardev_device = self.chardev_define_by_params(chardev_id, params, file_name)
+        chardev_device = self.chardev_define_by_params(
+            chardev_id, params, file_name)
         serial_devices = self.serials_define_by_variables(
             serial_id, serial_type, chardev_id, bus_type=bus_type,
             serial_name=params.get("serial_name"), bus=params.get("serial_bus"),

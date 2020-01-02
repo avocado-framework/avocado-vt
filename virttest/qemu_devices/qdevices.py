@@ -29,7 +29,8 @@ def _convert_args(arg_dict):
     :return: A string in humanmonitor's 'key=value' format, or a empty
              '' when the dict is empty.
     """
-    return ",".join("%s=%s" % (key, val) for key, val in six.iteritems(arg_dict))
+    return ",".join("%s=%s" % (key, val)
+                    for key, val in six.iteritems(arg_dict))
 
 
 def _build_cmd(cmd, args=None, q_id=None):
@@ -751,6 +752,7 @@ class QBlockdevNode(QCustomDevice):
 
 class QBlockdevFormatNode(QBlockdevNode):
     """ New a format type blockdev node. """
+
     def __init__(self, aobject):
         child_bus = QDriveBus('drive_%s' % aobject, aobject)
         super(QBlockdevFormatNode, self).__init__(aobject, child_bus)
@@ -835,6 +837,7 @@ class QBlockdevFormatLuks(QBlockdevFormatNode):
 
 class QBlockdevProtocol(QBlockdevNode):
     """ New a protocol blockdev node. """
+
     def __init__(self, aobject):
         super(QBlockdevProtocol, self).__init__(aobject, None, False)
 
@@ -2229,7 +2232,8 @@ class QBusUnitBus(QDenseBus):
 
     """ Implementation of bus-unit/nr bus (ahci, ide, virtio-serial) """
 
-    def __init__(self, busid, bus_type, lengths, aobject=None, atype=None, unit_spec='unit'):
+    def __init__(self, busid, bus_type, lengths,
+                 aobject=None, atype=None, unit_spec='unit'):
         """
         :param busid: id of the bus (mybus.0)
         :type busid: str

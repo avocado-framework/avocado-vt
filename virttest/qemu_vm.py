@@ -1049,7 +1049,9 @@ class VM(virt_vm.BaseVM):
                 tmp = optget("spice_plaintext_channels")
                 if tmp:
                     for item in tmp.split(","):
-                        spice_opts.append("plaintext-channel=%s" % (item.strip()))
+                        spice_opts.append(
+                            "plaintext-channel=%s" %
+                            (item.strip()))
 
             # Less common options
             set_value("seamless-migration=%s", "spice_seamless_migration")
@@ -1230,7 +1232,10 @@ class VM(virt_vm.BaseVM):
             if device_type and devices.has_device(device_type):
                 if devices.is_pci_device(device_type):
                     parent_bus = pci_bus
-                watchdog_devs.append(QDevice(device_type, parent_bus=parent_bus))
+                watchdog_devs.append(
+                    QDevice(
+                        device_type,
+                        parent_bus=parent_bus))
             cmd = "-watchdog-action %s" % action
             watchdog_devs.append(StrDev('watchdog_action', cmdline=cmd))
             return watchdog_devs
@@ -1304,11 +1309,11 @@ class VM(virt_vm.BaseVM):
             if option in options:
                 dev.set_param(option, value)
 
-        def _add_pci_controller_in_q35_machine(devices, device_type, bus_type, bus_idx, parent_bus=None):
+        def _add_pci_controller_in_q35_machine(
+                devices, device_type, bus_type, bus_idx, parent_bus=None):
             if not parent_bus:
                 parent_bus = {'aobject': 'pci.0'}
-            num = int(str(bus_idx).replace('.',''))
-            first_port = 1 if bus_type == 'PCIE' else 0
+            num = int(str(bus_idx).replace('.', ''))
             bus_id = '%s%s' % (bus_type, bus_idx)
             params = {'id': bus_id}
             first_port = 0
@@ -1319,24 +1324,37 @@ class VM(virt_vm.BaseVM):
                     first_port = 1
                     params['multifunction'] = 'on'
             else:
+                # multifunction for pcie-root-port is enabled by default
+                # and, the 'pcie-pci-bridge' hang on pcie-root-port,
+                # so first port of child_bus for pcie-pci-bridge is 1 too.
                 first_port = 1
-            child_bus = qdevices.QPCIBus(bus_id, bus_type, aobject=bus_id, first_port=first_port)
-            device = QDevice(device_type, params, aobject=bus_id, parent_bus=parent_bus, child_bus=child_bus)
+            child_bus = qdevices.QPCIBus(
+                bus_id, bus_type, aobject=bus_id, first_port=first_port)
+            device = QDevice(
+                device_type,
+                params,
+                aobject=bus_id,
+                parent_bus=parent_bus,
+                child_bus=child_bus)
             devices.insert(device)
             return device
 
-        def add_pci_controller_in_q35_machine(devices, device_type, bus_type, bus_idx, parent_bus=None):
-            root_port = _add_pci_controller_in_q35_machine(devices, device_type, bus_type, bus_idx, parent_bus)
+        def add_pci_controller_in_q35_machine(
+                devices, device_type, bus_type, bus_idx, parent_bus=None):
+            root_port = _add_pci_controller_in_q35_machine(
+                devices, device_type, bus_type, bus_idx, parent_bus)
             if device_type != "pcie-root-port":
                 return
             addr = int(root_port.get_param("addr"), 16)
             for idx in range(1, 8):
                 _bus_idx = '%s.%s' % (bus_idx, idx)
                 _addr = '%s.%s' % (hex(addr), hex(idx))
-                child_port = _add_pci_controller_in_q35_machine(devices, device_type, bus_type, _bus_idx, parent_bus)
+                child_port = _add_pci_controller_in_q35_machine(
+                    devices, device_type, bus_type, _bus_idx, parent_bus)
                 child_port.set_param('addr', _addr)
 
-        def _get_pci_bus(devices, params, dtype=None, pcie=False, root_bus=False):
+        def _get_pci_bus(devices, params, dtype=None,
+                         pcie=False, root_bus=False):
             """
             Get device parent pci bus by dtype
 
@@ -1371,17 +1389,20 @@ class VM(virt_vm.BaseVM):
                 bus_spec = {'aobject': 'PCIE0.%s' % function_idx}
                 buses = devices.get_buses(bus_spec, True)
                 if not buses:
-                    add_pci_controller_in_q35_machine(devices, 'pcie-root-port', 'PCIE', 0, None)
+                    add_pci_controller_in_q35_machine(
+                        devices, 'pcie-root-port', 'PCIE', 0, None)
                 idx = devices.idx_of_next_named_bus(bus_pattern)
                 if 0 < idx:
                     if bus_type == "PCI":
-                        return {'aobject': 'PCI%s' % (idx -1)}
+                        return {'aobject': 'PCI%s' % (idx - 1)}
                     else:
-                        return {'aobject': 'PCIE%s.%s' % (idx -1, function_idx)}
+                        return {'aobject': 'PCIE%s.%s' % (
+                            idx - 1, function_idx)}
                 else:
                     if bus_type == "PCI":
                         parent_bus = {'aobject': 'PCIE0.%s' % function_idx}
-                        add_pci_controller_in_q35_machine(devices, device_type, bus_type, 0, parent_bus)
+                        add_pci_controller_in_q35_machine(
+                            devices, device_type, bus_type, 0, parent_bus)
                         return {'aobject': 'PCI0'}
                     else:
                         return bus_spec
@@ -1604,7 +1625,8 @@ class VM(virt_vm.BaseVM):
                                "topological product(%d)" % (vcpu_maxcpus,
                                                             topology_product))
                 else:
-                    missing_value, cpu_mod = divmod(vcpu_maxcpus, topology_product)
+                    missing_value, cpu_mod = divmod(
+                        vcpu_maxcpus, topology_product)
                     vcpu_maxcpus -= cpu_mod
                     vcpu_sockets = vcpu_sockets or missing_value
                     vcpu_dies = vcpu_dies or missing_value
@@ -1631,16 +1653,20 @@ class VM(virt_vm.BaseVM):
                     vcpu_sockets = vcpu_sockets or 1
                     smp = vcpu_cores * vcpu_threads * vcpu_dies * vcpu_sockets
                 else:
-                    vcpu_sockets = smp // (vcpu_cores * vcpu_threads * vcpu_dies) or 1
+                    vcpu_sockets = smp // (vcpu_cores *
+                                           vcpu_threads * vcpu_dies) or 1
             elif vcpu_dies == 0:
                 vcpu_cores = vcpu_cores or 1
                 vcpu_threads = vcpu_threads or 1
-                vcpu_dies = smp // (vcpu_sockets * vcpu_cores * vcpu_threads) or 1
+                vcpu_dies = smp // (vcpu_sockets *
+                                    vcpu_cores * vcpu_threads) or 1
             elif vcpu_cores == 0:
                 vcpu_threads = vcpu_threads or 1
-                vcpu_cores = smp // (vcpu_sockets * vcpu_threads * vcpu_dies) or 1
+                vcpu_cores = smp // (vcpu_sockets *
+                                     vcpu_threads * vcpu_dies) or 1
             else:
-                vcpu_threads = smp // (vcpu_cores * vcpu_sockets * vcpu_dies) or 1
+                vcpu_threads = smp // (vcpu_cores *
+                                       vcpu_sockets * vcpu_dies) or 1
 
             hotpluggable_cpus = len(params.objects("vcpu_devices"))
             if params["machine_type"].startswith("pseries"):
@@ -1876,8 +1902,10 @@ class VM(virt_vm.BaseVM):
             #     hang on root PCI bus.
             controller_type = usb_params.get("usb_type", "")
             root_bus = False if "xhci" in controller_type else True
-            parent_bus = _get_pci_bus(devices, usb_params, "usbc", True, root_bus)
-            for dev in devices.usbc_by_params(usb_name, usb_params, parent_bus):
+            parent_bus = _get_pci_bus(
+                devices, usb_params, "usbc", True, root_bus)
+            for dev in devices.usbc_by_params(
+                    usb_name, usb_params, parent_bus):
                 devices.insert(dev)
 
         for iothread in params.get("iothreads", "").split():
@@ -2335,7 +2363,10 @@ class VM(virt_vm.BaseVM):
                     machine_vals.append(
                         '{}={}'.format(flash, dev.get_param('node-name')))
                 cmd = "-machine %s" % ','.join(machine_vals)
-                devs.append(qdevices.QStringDevice('machine_sysfw', cmdline=cmd))
+                devs.append(
+                    qdevices.QStringDevice(
+                        'machine_sysfw',
+                        cmdline=cmd))
             devices.insert(devs)
 
         disable_kvm_option = ""
@@ -2433,11 +2464,26 @@ class VM(virt_vm.BaseVM):
             ats = params.get("virtio_dev_ats", None)
             if dev_type in virtio_pci_devices:
                 if disable_legacy:
-                    add_virtio_option("disable-legacy", disable_legacy, devices, device, dev_type)
+                    add_virtio_option(
+                        "disable-legacy",
+                        disable_legacy,
+                        devices,
+                        device,
+                        dev_type)
                 if disable_modern:
-                    add_virtio_option("disable-modern", disable_modern, devices, device, dev_type)
+                    add_virtio_option(
+                        "disable-modern",
+                        disable_modern,
+                        devices,
+                        device,
+                        dev_type)
                 if iommu_platform:
-                    add_virtio_option("iommu_platform", iommu_platform, devices, device, dev_type)
+                    add_virtio_option(
+                        "iommu_platform",
+                        iommu_platform,
+                        devices,
+                        device,
+                        dev_type)
                 if ats:
                     add_virtio_option("ats", ats, devices, device, dev_type)
 
@@ -2861,7 +2907,8 @@ class VM(virt_vm.BaseVM):
 
             # Find available VNC port, if needed
             if params.get("display") == "vnc":
-                self.vnc_port = utils_misc.find_free_port(5900, 6900, sequent=True)
+                self.vnc_port = utils_misc.find_free_port(
+                    5900, 6900, sequent=True)
 
             # Find random UUID if specified 'uuid = random' in config file
             if params.get("uuid") == "random":
@@ -3251,11 +3298,14 @@ class VM(virt_vm.BaseVM):
             deletion_time = max(5, math.ceil(queues_num / 8))
             utils_misc.wait_for(lambda: set(port_mapping.keys()).isdisjoint(
                 utils_net.get_net_if()), deletion_time)
-            for inactive_port in set(port_mapping.keys()).difference(utils_net.get_net_if()):
+            for inactive_port in set(port_mapping.keys()).difference(
+                    utils_net.get_net_if()):
                 nic = port_mapping.pop(inactive_port)
                 self._del_port_from_bridge(nic)
             for active_port in port_mapping.keys():
-                logging.warning("Deleting %s failed during tap cleanup" % active_port)
+                logging.warning(
+                    "Deleting %s failed during tap cleanup" %
+                    active_port)
 
     def destroy(self, gracefully=True, free_mac_addresses=True):
         """
@@ -3450,13 +3500,16 @@ class VM(virt_vm.BaseVM):
             try:
                 self.monitor.verify_supported_cmd('query-cpus-fast')
                 vcpus_info = self.monitor.query('cpus-fast', debug=debug)
-                vcpu_pids = [int(vcpu_info.get('thread-id')) for vcpu_info in vcpus_info]
+                vcpu_pids = [int(vcpu_info.get('thread-id'))
+                             for vcpu_info in vcpus_info]
             except qemu_monitor.MonitorNotSupportedCmdError:
                 vcpus_info = self.monitor.query('cpus', debug=debug)
-                vcpu_pids = [int(vcpu_info.get('thread_id')) for vcpu_info in vcpus_info]
+                vcpu_pids = [int(vcpu_info.get('thread_id'))
+                             for vcpu_info in vcpus_info]
         else:
             vcpus_info = self.monitor.info('cpus', debug=debug).splitlines()
-            vcpu_pids = [int(vcpu_info.split('thread_id=')[1]) for vcpu_info in vcpus_info]
+            vcpu_pids = [int(vcpu_info.split('thread_id=')[1])
+                         for vcpu_info in vcpus_info]
 
         return vcpu_pids
 
@@ -3548,7 +3601,8 @@ class VM(virt_vm.BaseVM):
         try:
             # vcpu device based hotplug command contains arguments and with
             # convert=True, arguments will be filtered.
-            cmd_output = self.monitor.send_args_cmd(vcpu_add_cmd, convert=False)
+            cmd_output = self.monitor.send_args_cmd(
+                vcpu_add_cmd, convert=False)
         except qemu_monitor.QMPCmdError as e:
             return (False, str(e))
 
@@ -3736,7 +3790,9 @@ class VM(virt_vm.BaseVM):
         netdev_id = nic.netdev_id
         error_context.context("Activating netdev for %s based on %s" %
                               (self.name, nic))
-        msg_sfx = ("nic %s on vm %s with attach_cmd " % (nic_index_or_name, self.name))
+        msg_sfx = (
+            "nic %s on vm %s with attach_cmd " %
+            (nic_index_or_name, self.name))
 
         attach_cmd = "netdev_add"
         if nic.nettype in ['bridge', 'macvtap']:
@@ -3779,7 +3835,8 @@ class VM(virt_vm.BaseVM):
                 raise virt_vm.VMAddNetDevError(err_msg)
             if ((int(nic.queues)) > 1 and
                     ',fds=' in self.devices.get_help_text()):
-                attach_cmd += " type=tap,id=%s,fds=%s" % (netdev_id, nic.tapfds)
+                attach_cmd += " type=tap,id=%s,fds=%s" % (
+                    netdev_id, nic.tapfds)
             else:
                 attach_cmd += " type=tap,id=%s,fd=%s" % (netdev_id, nic.tapfds)
             error_context.context("Raising interface for " + msg_sfx + attach_cmd,
@@ -3799,7 +3856,11 @@ class VM(virt_vm.BaseVM):
                                                 nic.nettype)
         if 'netdev_extra_params' in nic and nic.netdev_extra_params:
             attach_cmd += nic.netdev_extra_params
-        error_context.context("Hotplugging " + msg_sfx + attach_cmd, logging.debug)
+        error_context.context(
+            "Hotplugging " +
+            msg_sfx +
+            attach_cmd,
+            logging.debug)
 
         if self.monitor.protocol == 'qmp':
             self.monitor.send_args_cmd(attach_cmd)
@@ -3897,7 +3958,7 @@ class VM(virt_vm.BaseVM):
             nic_eigenvalue = r'dev:\s+%s,\s+id\s+"%s"' % (nic.nic_model,
                                                           device_id)
             if not utils_misc.wait_for(lambda: not re.search(nic_eigenvalue,
-                                       self.monitor.info("qtree", debug=False)),
+                                                             self.monitor.info("qtree", debug=False)),
                                        wait, 5, 1):
                 logging.error(self.monitor.info("qtree", debug=False))
                 raise virt_vm.VMDelNicError("Device %s is not unplugged by "
@@ -4272,7 +4333,8 @@ class VM(virt_vm.BaseVM):
                     if func == "postcopy":
                         # trigger a postcopy at somewhere below the given % of
                         # the 1st pass
-                        self.monitor.wait_for_migrate_progress(random.randrange(param))
+                        self.monitor.wait_for_migrate_progress(
+                            random.randrange(param))
                         self.monitor.migrate_start_postcopy()
                     else:
                         msg = ("Unknown migration inner function '%s'" % func)
