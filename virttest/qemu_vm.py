@@ -1304,7 +1304,39 @@ class VM(virt_vm.BaseVM):
             if option in options:
                 dev.set_param(option, value)
 
-        def _get_pci_bus(devices, params, dtype=None, pcie=False):
+        def _add_pci_controller_in_q35_machine(devices, device_type, bus_type, bus_idx, parent_bus=None):
+            if not parent_bus:
+                parent_bus = {'aobject': 'pci.0'}
+            num = int(str(bus_idx).replace('.',''))
+            first_port = 1 if bus_type == 'PCIE' else 0
+            bus_id = '%s%s' % (bus_type, bus_idx)
+            params = {'id': bus_id}
+            first_port = 0
+            if device_type == "pcie-root-port":
+                params['port'] = hex(num)
+                params['chassis'] = num
+                if '.' not in str(bus_idx):
+                    first_port = 1
+                    params['multifunction'] = 'on'
+            else:
+                first_port = 1
+            child_bus = qdevices.QPCIBus(bus_id, bus_type, aobject=bus_id, first_port=first_port)
+            device = QDevice(device_type, params, aobject=bus_id, parent_bus=parent_bus, child_bus=child_bus)
+            devices.insert(device)
+            return device
+
+        def add_pci_controller_in_q35_machine(devices, device_type, bus_type, bus_idx, parent_bus=None):
+            root_port = _add_pci_controller_in_q35_machine(devices, device_type, bus_type, bus_idx, parent_bus)
+            if device_type != "pcie-root-port":
+                return
+            addr = int(root_port.get_param("addr"), 16)
+            for idx in range(1, 8):
+                _bus_idx = '%s.%s' % (bus_idx, idx)
+                _addr = '%s.%s' % (hex(addr), hex(idx))
+                child_port = _add_pci_controller_in_q35_machine(devices, device_type, bus_type, _bus_idx, parent_bus)
+                child_port.set_param('addr', _addr)
+
+        def _get_pci_bus(devices, params, dtype=None, pcie=False, root_bus=False):
             """
             Get device parent pci bus by dtype
 
@@ -1313,25 +1345,47 @@ class VM(virt_vm.BaseVM):
             :param dtype: device type like, 'nic', 'disk',
                           'vio_rng', 'vio_port' or 'cdrom'
             :param pcie: it's a pcie device or not (bool type)
+            :param root_bus: use system root bus or not
 
             :return: return QPCIBus object.
             """
+            default_bus = {'aobject': params.get('pci_bus', 'pci.0')}
             machine_type = params.get("machine_type", "")
             if "mmio" in machine_type:
                 return None
+            if root_bus:
+                return default_bus
             if dtype and "%s_pci_bus" % dtype in params:
                 return {"aobject": params["%s_pci_bus" % dtype]}
-            if machine_type == "q35" and not pcie:
-                pcic = "pci-bridge"
-                devices = [
-                    d for d in devices if isinstance(
-                        d, QDevice) and d.get_param("driver") == pcic]
-                try:
-                    idx = random.randint(0, (len(devices) - 1))
-                    return {"aobject": devices[idx].get_qid()}
-                except (IndexError, ValueError):
-                    pass
-            return {'aobject': params.get('pci_bus', 'pci.0')}
+            if machine_type == "q35":
+                if pcie:
+                    bus_type = 'PCIE'
+                    bus_pattern = r'PCIE'
+                    device_type = 'pcie-root-port'
+                else:
+                    bus_type = 'PCI'
+                    bus_pattern = r'PCI'
+                    device_type = 'pcie-pci-bridge'
+
+                function_idx = random.randint(1, 7)
+                bus_spec = {'aobject': 'PCIE0.%s' % function_idx}
+                buses = devices.get_buses(bus_spec, True)
+                if not buses:
+                    add_pci_controller_in_q35_machine(devices, 'pcie-root-port', 'PCIE', 0, None)
+                idx = devices.idx_of_next_named_bus(bus_pattern)
+                if 0 < idx:
+                    if bus_type == "PCI":
+                        return {'aobject': 'PCI%s' % (idx -1)}
+                    else:
+                        return {'aobject': 'PCIE%s.%s' % (idx -1, function_idx)}
+                else:
+                    if bus_type == "PCI":
+                        parent_bus = {'aobject': 'PCIE0.%s' % function_idx}
+                        add_pci_controller_in_q35_machine(devices, device_type, bus_type, 0, parent_bus)
+                        return {'aobject': 'PCI0'}
+                    else:
+                        return bus_spec
+            return default_bus
 
         def add_pci_controllers(devices, params):
             """
@@ -1816,7 +1870,13 @@ class VM(virt_vm.BaseVM):
             usbs = ("oldusb",)  # Old qemu, add only one controller '-usb'
         for usb_name in usbs:
             usb_params = params.object_params(usb_name)
-            parent_bus = _get_pci_bus(devices, usb_params, "usbc", True)
+            # Notes:
+            #
+            #     USB 3.0 controller hang on pcie-root-port other USB controller
+            #     hang on root PCI bus.
+            controller_type = usb_params.get("usb_type", "")
+            root_bus = False if "xhci" in controller_type else True
+            parent_bus = _get_pci_bus(devices, usb_params, "usbc", True, root_bus)
             for dev in devices.usbc_by_params(usb_name, usb_params, parent_bus):
                 devices.insert(dev)
 
@@ -2380,21 +2440,6 @@ class VM(virt_vm.BaseVM):
                     add_virtio_option("iommu_platform", iommu_platform, devices, device, dev_type)
                 if ats:
                     add_virtio_option("ats", ats, devices, device, dev_type)
-
-        # Add extra root_port at the end of the command line only if there is
-        # free slot on pci.0, discarding them otherwise
-        pcie_extra_root_port = int(params.get('pcie_extra_root_port', 0))
-        for num in range(pcie_extra_root_port):
-            try:
-                dev = devices.pcic_by_params(
-                    "pcie_extra_root_port_%s"
-                    % num, {"type": "pcie-root-port"})
-                devices.insert(dev)
-            except DeviceError:
-                logging.warning("No sufficient free slot for extra"
-                                " root port, discarding %d of them"
-                                % (pcie_extra_root_port - num))
-                break
 
         return devices, spice_options
 

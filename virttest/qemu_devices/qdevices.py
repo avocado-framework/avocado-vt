@@ -2109,7 +2109,7 @@ class QPCIBus(QSparseBus):
         orig_addr = device.get_param('addr')
         if addr[1] or (isinstance(orig_addr, six.string_types) and
                        orig_addr.find('.') != -1):
-            device.set_param('addr', '0x%x.%x' % (addr[0], addr[1]))
+            device.set_param('addr', '0x%x.0x%x' % (addr[0], addr[1]))
         else:
             device.set_param('addr', '0x%x' % addr[0])
 
@@ -2138,128 +2138,7 @@ class QPCIEBus(QPCIBus):
         :param root_port_type: root port type
         """
         super(QPCIEBus, self).__init__(busid, bus_type, aobject)
-        self.__root_ports = {}
         self.__root_port_type = root_port_type
-
-    def is_direct_plug(self, device):
-        """
-        Justify if the device should be plug to pcie bus directly,
-        the device is not directly plugged only if it is a virtio
-        pci device and the device param pcie_direct_plug is "no".
-
-        :param device: the QBaseDevice object
-        :return: bool value for directly plug or not.
-        """
-        pcie_devices = ["virtio-net-pci", "virtio-blk-pci", "vhost-vsock-pci",
-                        "virtio-scsi-pci", "virtio-balloon-pci",
-                        "virtio-serial-pci", "virtio-rng-pci",
-                        "e1000e", "virtio-gpu-device", "qemu-xhci"]
-        if device.get_param("driver") in pcie_devices and (
-                    device.get_param("pcie_direct_plug", "no") == "no"):
-            return False
-
-        return True
-
-    def add_root_port(self, addr, root_port_type, root_port=None,
-                      multifunction="off"):
-        """
-        Add pcie root port to the bus and __root_ports list, assign free slot,
-        chassis, and addr for it according to current list.
-
-        :param addr: addr to add the root port
-        :param root_port_type: root port type
-        :param root_port: pcie-root-port QDevice object
-        :param multifunction: if multifunction on or off
-        :return: pcie-root-port QDevice object
-        """
-        _addr = int(addr, 16)
-        if not root_port:
-            root_port = self._add_root_port(addr, root_port_type, multifunction)
-        bus = root_port.child_bus[0]
-        params = {'slot': _addr, 'chassis': _addr, 'addr': "0x%x" % _addr}
-        for key, value in six.iteritems(params):
-            root_port.set_param(key, value)
-        self.__root_ports[_addr] = bus
-        return root_port
-
-    def _add_root_port(self, addr, root_port_type, multifunction="off"):
-        """
-        Generate pcie-root-port QDevice object with certain addr and id
-
-        :param addr: addr to add the root port
-        :param root_port_type: root port type
-        :param multifunction: if multifunction on or off
-        :return: pcie-root-port QDevice object
-        """
-        _addr = int(addr, 16)
-        bus_id = "%s-root-port-%s" % (self.busid, _addr)
-        length = 1 if multifunction == "off" else 8
-        bus = QPCIBus(bus_id, 'PCIE', bus_id, length=length)
-        params = {'id': bus_id}
-        return QDevice(root_port_type,
-                       params,
-                       aobject=bus_id,
-                       parent_bus=[{'aobject': self.aobject}],
-                       child_bus=bus)
-
-    def _insert(self, device, addr):
-        """
-        Inserts a pcie-root-port before the device if it is not a
-        direct plug device.
-
-        :param device: qdevice.QDevice object
-        :param addr: addr to insert the device
-        """
-        _addr = addr.split('-')[0]
-        if self.is_direct_plug(device):
-            driver = device.get_param("driver")
-            if driver in ("ioh3420", "pcie-root-port"):
-                device = self.add_root_port(_addr, driver, device)
-            return super(QPCIEBus, self)._insert(device, addr)
-        added_devices = []
-        root_port = self.add_root_port(_addr, self.__root_port_type)
-        if root_port is not None:
-            added_devices.append(root_port)
-            device['bus'] = root_port.child_bus[0].busid
-        return added_devices
-
-    def _set_device_props(self, device, addr):
-        """
-        For indirect device, insert the device into the pcie port port instead
-        of setting the addr.
-
-        :param device: pcie-root-port QDevice object
-        :param addr: addr to insert the device
-        """
-        if self.is_direct_plug(device):
-            super(QPCIEBus, self)._set_device_props(device, addr)
-        else:
-            self.__root_ports[addr[0]].insert(device)
-
-    def get_free_root_port(self):
-        """
-        Get a free slot from any pcie root port
-        :return: The free root port busid
-        """
-        for root_port in self.__root_ports.values():
-            if len(root_port.bus) < root_port.addr_lengths[0]:
-                return root_port.busid
-
-        return None
-
-    def prepare_hotplug(self, device):
-        """
-        Prepares a device to be hot-plugged into this bus;
-        You need to call "insert" afterwards. Concurrent calls
-        of "prepare_hotplug" and "insert" are not supported
-        :param device: The QDevice object
-        """
-        root_port = self.get_free_root_port()
-        device.set_param("bus", root_port)
-        if not isinstance(device.parent_bus, (tuple, list)):
-            device.parent_bus = [device.parent_bus]
-        device.parent_bus = tuple(bus for bus in device.parent_bus
-                                  if not self.match_bus(bus)) + ({"busid": root_port},)
 
 
 class QPCISwitchBus(QPCIBus):

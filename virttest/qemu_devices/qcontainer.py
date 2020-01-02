@@ -2279,19 +2279,18 @@ class DevContainer(object):
                 name, bus_type, 'xio3130-downstream', name)
             driver = 'x3130-upstream'
         else:
+            bus_length = 23
+            bus_first_port = 0
             if driver == 'pci-bridge':  # addr 0x01-0x1f, chasis_nr
                 parent_bus.append({'busid': '_PCI_CHASSIS_NR'})
-                bus_length = 32
                 bus_first_port = 1
             elif driver == 'i82801b11-bridge':  # addr 0x1-0x13
                 bus_length = 20
                 bus_first_port = 1
-            elif driver in ('pcie-root-port', 'ioh3420'):
+            elif driver == 'pcie-root-port':
+                pcic_params['multifunction'] = 'on'
+            elif driver == 'ioh3420':
                 bus_length = 1  # multifunction off by default
-                bus_first_port = 0
-            else:   # addr = 0x0-0x1f
-                bus_length = 32
-                bus_first_port = 0
             bus = qdevices.QPCIBus(
                 name, bus_type, name, bus_length, bus_first_port)
         for addr in params.get('reserved_slots', '').split():
