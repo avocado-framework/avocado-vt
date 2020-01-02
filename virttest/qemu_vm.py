@@ -1304,7 +1304,7 @@ class VM(virt_vm.BaseVM):
             if option in options:
                 dev.set_param(option, value)
 
-        def _get_pci_bus(devices, params, dtype=None, pcie=False):
+        def _get_pci_bus(devices, params, dtype=None, pcie=False, root_bus=False):
             """
             Get device parent pci bus by dtype
 
@@ -1313,25 +1313,34 @@ class VM(virt_vm.BaseVM):
             :param dtype: device type like, 'nic', 'disk',
                           'vio_rng', 'vio_port' or 'cdrom'
             :param pcie: it's a pcie device or not (bool type)
+            :param root_bus: use system root bus or not
 
             :return: return QPCIBus object.
             """
+            default_bus = {'aobject': params.get('pci_bus', 'pci.0')}
             machine_type = params.get("machine_type", "")
             if "mmio" in machine_type:
                 return None
+            if root_bus:
+                return default_bus
             if dtype and "%s_pci_bus" % dtype in params:
                 return {"aobject": params["%s_pci_bus" % dtype]}
-            if machine_type == "q35" and not pcie:
-                pcic = "pci-bridge"
-                devices = [
+            if machine_type == "q35":
+                pcic = "pcie-root-port"
+                if not pcie:
+                    pcic = "pcie-pci-bridge"
+                pcic_lst = [
                     d for d in devices if isinstance(
                         d, QDevice) and d.get_param("driver") == pcic]
+                if pcie:
+                    pcic_lst = list(filter(lambda c: c.get_param('multifunction') != 'on', pcic_lst))
                 try:
-                    idx = random.randint(0, (len(devices) - 1))
-                    return {"aobject": devices[idx].get_qid()}
+                    pcic = random.choice(pcic_lst)
+                    return {"aobject": pcic.get_qid()}
                 except (IndexError, ValueError):
                     pass
-            return {'aobject': params.get('pci_bus', 'pci.0')}
+
+            return default_bus
 
         def add_pci_controllers(devices, params):
             """
@@ -1816,7 +1825,13 @@ class VM(virt_vm.BaseVM):
             usbs = ("oldusb",)  # Old qemu, add only one controller '-usb'
         for usb_name in usbs:
             usb_params = params.object_params(usb_name)
-            parent_bus = _get_pci_bus(devices, usb_params, "usbc", True)
+            # Notes:
+            #
+            #     USB 3.0 controller hang on pcie-root-port other USB controller
+            #     hang on root PCI bus.
+            controller_type = usb_params.get("usb_type", "")
+            root_bus = False if "xhci" in controller_type else True
+            parent_bus = _get_pci_bus(devices, usb_params, "usbc", True, root_bus)
             for dev in devices.usbc_by_params(usb_name, usb_params, parent_bus):
                 devices.insert(dev)
 
