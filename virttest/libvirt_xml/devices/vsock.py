@@ -23,6 +23,7 @@ class Vsock(base.UntypedDeviceBase):
         accessors.XMLElementNest('address', self, parent_xpath='/',
                                  tag_name='address', subclass=self.Address,
                                  subclass_dargs={
+                                     'type_name': 'pci',
                                      'virsh_instance': virsh_instance})
         accessors.XMLElementDict('alias', self,
                                  parent_xpath='/',
@@ -30,4 +31,14 @@ class Vsock(base.UntypedDeviceBase):
         super(Vsock, self).__init__(device_tag='vsock',
                                     virsh_instance=virsh_instance)
         self.xml = '<vsock/>'
+
     Address = librarian.get('address')
+
+    def new_vsock_address(self, **dargs):
+        """
+        Return a new interface Address instance and set properties from dargs
+        """
+        new_one = self.Address("pci", virsh_instance=self.virsh)
+        for key, value in list(dargs.items()):
+            setattr(new_one, key, value)
+        return new_one
