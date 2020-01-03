@@ -7,7 +7,7 @@ import logging
 from avocado.utils import cpu
 
 from virttest import virsh
-from virttest import utils_hotplug
+from virttest import cpu as cpuutil
 from virttest import utils_net
 from virttest.utils_test import libvirt
 from virttest.libvirt_xml.devices.disk import Disk
@@ -111,7 +111,7 @@ class VMStressEvents():
                                 'cur_config': current_vcpu,
                                 'cur_live': max_vcpu,
                                 'guest_live': max_vcpu}
-                    utils_hotplug.check_vcpu_value(
+                    cpuutil.check_vcpu_value(
                         vm, exp_vcpu, option="--live")
                 time.sleep(self.event_sleep_time)
                 result = virsh.setvcpus(vm.name, current_vcpu, "--live",
@@ -123,7 +123,7 @@ class VMStressEvents():
                                 'cur_config': current_vcpu,
                                 'cur_live': current_vcpu,
                                 'guest_live': current_vcpu}
-                    utils_hotplug.check_vcpu_value(
+                    cpuutil.check_vcpu_value(
                         vm, exp_vcpu, option="--live")
             elif "reboot" in event:
                 vm.reboot()
