@@ -27,6 +27,8 @@ import time
 import sys
 import aexpect
 import platform
+import random
+import string
 
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
@@ -76,6 +78,9 @@ from virttest.libvirt_xml.devices import seclabel
 from virttest.libvirt_xml.devices import channel
 from virttest.libvirt_xml.devices import interface
 from virttest.libvirt_xml.devices import panic
+from virttest.libvirt_xml.devices import vsock
+from virttest.libvirt_xml.devices import rng
+
 
 ping = utils_net.ping
 
@@ -2420,6 +2425,118 @@ def set_domain_state(vm, vm_state):
                                            " doesn't have pm-suspend-hybrid command!")
         session.cmd("pm-suspend-hybrid &")
         time.sleep(3)
+
+
+def create_vsock_xml(model, auto_cid='yes', invalid_cid=False):
+    """
+    Create vsock xml
+
+    :param model: device model
+    :param auto_cid: "yes" or "no"
+    :param invalid_cid: True or False for cid valid or not
+    :return: vsock device
+    """
+    vsock_dev = vsock.Vsock()
+    vsock_dev.model_type = model
+    if process.run("modprobe vhost_vsock").exit_status != 0:
+        raise exceptions.TestError("Failed to load vhost_vsock module")
+    if invalid_cid:
+        cid = "-1"
+    else:
+        cid = random.randint(3, 10)
+    vsock_dev.cid = {'auto': auto_cid, 'address': cid}
+    chars = string.ascii_letters + string.digits + '-_'
+    alias_name = 'ua-' + ''.join(random.choice(chars) for _ in list(range(64)))
+    vsock_dev.alias = {'name': alias_name}
+    logging.debug(vsock_dev)
+    return vsock_dev
+
+
+def create_rng_xml(dparams):
+    """
+    Modify interface xml options
+
+    :param dparams: Rng device paramter dict
+    """
+    rng_model = dparams.get("rng_model", "virtio")
+    rng_rate = dparams.get("rng_rate")
+    backend_model = dparams.get("backend_model", "random")
+    backend_type = dparams.get("backend_type")
+    backend_dev = dparams.get("backend_dev", "/dev/urandom")
+    backend_source_list = dparams.get("backend_source",
+                                      "").split()
+    backend_protocol = dparams.get("backend_protocol")
+    rng_alias = dparams.get("rng_alias")
+
+    rng_xml = rng.Rng()
+    rng_xml.rng_model = rng_model
+    if rng_rate:
+        rng_xml.rate = ast.literal_eval(rng_rate)
+    backend = rng.Rng.Backend()
+    backend.backend_model = backend_model
+    if backend_type:
+        backend.backend_type = backend_type
+    if backend_dev:
+        backend.backend_dev = backend_dev
+    if backend_source_list:
+        source_list = [ast.literal_eval(source) for source in
+                       backend_source_list]
+        backend.source = source_list
+    if backend_protocol:
+        backend.backend_protocol = backend_protocol
+    rng_xml.backend = backend
+    if rng_alias:
+        rng_xml.alias = dict(name=rng_alias)
+
+    logging.debug("Rng xml: %s", rng_xml)
+    return rng_xml
+
+
+def update_memballoon_xml(vmxml, membal_dict):
+    """
+    Add/update memballoon attr
+
+    :param vmxml: VMXML object
+    :param membal_dict: memballoon parameter dict
+    """
+    membal_model = membal_dict.get("membal_model")
+    membal_stats_period = membal_dict.get("membal_stats_period")
+    vmxml.del_device('memballoon', by_tag=True)
+    memballoon_xml = vmxml.get_device_class('memballoon')()
+    if membal_model:
+        memballoon_xml.model = membal_model
+    if membal_stats_period:
+        memballoon_xml.stats_period = membal_stats_period
+    vmxml.add_device(memballoon_xml)
+    logging.info(memballoon_xml)
+    vmxml.sync()
+
+
+def get_vm_device(vmxml, dev_tag, index=0):
+    """
+    Get current vm device according to device tag
+
+    :param vmxml: domain VMXML instance
+    :param dev_tag: device tag
+    :param index: device index
+    :return: device object
+    """
+    xml_devices = vmxml.devices
+    dev_index = xml_devices.index(xml_devices.by_device_tag(dev_tag)[index])
+    dev_obj = xml_devices[dev_index]
+    return (dev_obj, xml_devices)
+
+
+def add_vm_device(vmxml, new_device):
+    """
+    Add device in vmxml
+
+    :param vmxml: domain VMXML instance
+    :param new_device: device instance
+    """
+    vmxml.add_device(new_device)
+    vmxml.xmltreefile.write()
+    vmxml.sync()
 
 
 def set_guest_agent(vm):
