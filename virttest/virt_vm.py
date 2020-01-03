@@ -1472,7 +1472,7 @@ class BaseVM(object):
                 cmd += "cd /sys/devices/system/node/node%s/;" % node
                 cmd += "for i in `ls -d memory*`;"
             else:
-                cmd = "count=0;cd /sys/devices/system/memory/;for i in `ls`;"
+                cmd = "count=0;cd /sys/devices/system/memory/;for i in `ls -d memory*`;"
             if online == 'yes':
                 cmd += "do [ -f $i/online ] && a=$(<$i/online) && "
             else:
