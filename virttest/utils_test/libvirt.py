@@ -77,8 +77,10 @@ from virttest.libvirt_xml.devices import redirdev
 from virttest.libvirt_xml.devices import seclabel
 from virttest.libvirt_xml.devices import channel
 from virttest.libvirt_xml.devices import interface
+from virttest.libvirt_xml.devices import panic
 from virttest.libvirt_xml.devices import vsock
 from virttest.libvirt_xml.devices import rng
+
 
 ping = utils_net.ping
 
@@ -797,6 +799,29 @@ def check_actived_pool(pool_name):
     return True
 
 
+def check_vm_state(vm_name, state='paused', reason=None, uri=None):
+    """
+    checks whether state of the vm is as expected
+
+    :param vm_name: VM name
+    :param state: expected state of the VM
+    :param reason: expected reason of vm state
+    :param uri: connect uri
+
+    :return: True if state of VM is as expected, False otherwise
+    """
+    if not virsh.domain_exists(vm_name, uri=uri):
+        return False
+    if reason:
+        result = virsh.domstate(vm_name, extra="--reason", uri=uri)
+        expected_result = "%s (%s)" % (state.lower(), reason.lower())
+    else:
+        result = virsh.domstate(vm_name, uri=uri)
+        expected_result = state.lower()
+    vm_state = results_stdout_52lts(result).strip()
+    return vm_state.lower() == expected_result
+
+
 class PoolVolumeTest(object):
 
     """Test class for storage pool or volume"""
@@ -1129,7 +1154,7 @@ class MigrationTest(object):
         vm_state = params.get("virsh_migrated_state", "running")
         ping_count = int(params.get("ping_count", 10))
         for vm in vms:
-            if not self.check_vm_state(vm.name, vm_state, uri=uri):
+            if not check_vm_state(vm.name, vm_state, uri=uri):
                 raise exceptions.TestFail("Migrated VMs failed to be in %s "
                                           "state at destination" % vm_state)
             logging.info("Guest state is '%s' at destination is as expected",
@@ -1448,28 +1473,6 @@ class MigrationTest(object):
         # Set connect uri back to local uri
         vm.connect_uri = srcuri
 
-    def check_vm_state(self, vm_name, state='paused', reason=None, uri=None):
-        """
-        checks whether state of the vm is as expected
-
-        :param vm_name: VM name
-        :param state: expected state of the VM
-        :param reason: expected reason of vm state
-        :param uri: connect uri
-
-        :return: True if state of VM is as expected, False otherwise
-        """
-        if not virsh.domain_exists(vm_name, uri=uri):
-            return False
-        if reason:
-            result = virsh.domstate(vm_name, extra="--reason", uri=uri)
-            expected_result = "%s (%s)" % (state.lower(), reason.lower())
-        else:
-            result = virsh.domstate(vm_name, uri=uri)
-            expected_result = state.lower()
-        vm_state = results_stdout_52lts(result).strip()
-        return vm_state.lower() == expected_result
-
     def wait_for_migration_start(self, vm, state='paused', uri=None,
                                  migrate_options='', timeout=60):
         """
@@ -1485,7 +1488,7 @@ class MigrationTest(object):
         """
         def check_state():
             try:
-                return self.check_vm_state(dest_vm_name, state, uri=uri)
+                return check_vm_state(dest_vm_name, state, uri=uri)
             except Exception:
                 return False
 
@@ -2352,6 +2355,43 @@ def create_channel_xml(params, alias=False, address=False):
     channelxml = channel.Channel.new_from_dict(channel_params)
     logging.debug("Channel XML:\n%s", channelxml)
     return channelxml
+
+
+def update_on_crash(vm_name, on_crash):
+    """
+    Update on_crash state of vm
+
+    :param vm_name: name of vm
+    :param on_crash: on crash state, destroy, restart ...
+    """
+    vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
+    vmxml.on_crash = on_crash
+    vmxml.sync()
+
+
+def add_panic_device(vm_name, model='isa', addr_type='isa', addr_iobase='0x505'):
+    """
+    Create panic device xml
+
+    :param vm_name: name of vm
+    :param model: panic model
+    :param addr_type: address type
+    :param addr_iobase: address iobase
+    :return: If dev exist, return False, else return True
+    """
+    vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
+    panic_dev = vmxml.xmltreefile.find('devices/panic')
+    if panic_dev:
+        logging.info("Panic device already exists")
+        return False
+    else:
+        panic_dev = panic.Panic()
+        panic_dev.model = model
+        panic_dev.addr_type = addr_type
+        panic_dev.addr_iobase = addr_iobase
+        vmxml.add_device(panic_dev)
+        vmxml.sync()
+        return True
 
 
 def set_domain_state(vm, vm_state):

@@ -1576,16 +1576,20 @@ class HumanMonitor(Monitor):
         return super(HumanMonitor, self)._get_migrate_parameter(
             parameter, error_on_missing, disable_auto_x_evaluation)
 
-    def set_migrate_parameter(self, parameter, value, error_on_missing=False):
+    def set_migrate_parameter(self, parameter, value, error_on_missing=False,
+                              disable_auto_x_evaluation=True):
         """
         Set parameters of migrate.
 
         :param parameter: the parameter which need to set
         :param value: the value of parameter
+        :param disable_auto_x_evaluation: Whether to automatically choose
+                                          parameter with/without "x-" prefix
         """
         cmd = "migrate_set_parameter"
         self.verify_supported_cmd(cmd)
-        parameter = self._get_migrate_parameter(parameter, error_on_missing)
+        parameter = self._get_migrate_parameter(parameter, error_on_missing,
+                                                disable_auto_x_evaluation)
         cmd += " %s %s" % (parameter, value)
         return self.cmd(cmd)
 
@@ -3239,6 +3243,12 @@ class QMPMonitor(Monitor):
                     "data": key
                 }}}]}
         return self.cmd(cmd, args)
+
+    def query_mice(self):
+        """
+        Query active mouse device information.
+        """
+        return self.cmd("query-mice")
 
     def input_send_event(self, events, device=None, head=None):
         """

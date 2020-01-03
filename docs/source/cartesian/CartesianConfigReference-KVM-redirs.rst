@@ -16,7 +16,7 @@ Example:
     guest_port_remote_shell = 22
 
 A port will be allocated on the host, usually within the range
-5000-6000, and all traffic to/from this port will be redirect to guest's
+5000-5899, and all traffic to/from this port will be redirect to guest's
 port 22.
 
 Defined On

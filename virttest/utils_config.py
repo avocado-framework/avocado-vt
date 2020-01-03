@@ -1,12 +1,14 @@
 import ast
 import logging
 import os.path
-import platform
 from six import StringIO
+
 try:
     import configparser as ConfigParser
 except ImportError:
     import ConfigParser
+
+from avocado.utils import distro
 
 
 class ConfigError(Exception):
@@ -437,8 +439,7 @@ class LibvirtdSysConfig(LibvirtConfigCommon):
     """
     Class for sysconfig libvirtd config file.
     """
-    distro = platform.dist()
-    if 'Ubuntu' in distro:
+    if distro.detect().name == 'Ubuntu':
         conf_path = '/etc/default/libvirtd'
     else:
         conf_path = '/etc/sysconfig/libvirtd'

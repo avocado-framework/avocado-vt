@@ -18,6 +18,7 @@ from avocado.utils import process
 
 from virttest import iscsi
 from virttest import utils_misc
+from virttest import utils_numeric
 from virttest import virt_vm
 from virttest import gluster
 from virttest import lvm
@@ -74,12 +75,12 @@ def file_exists(params, filename_path):
     if params.get("enable_ceph") == "yes":
         image_name = params.get("image_name")
         image_format = params.get("image_format", "qcow2")
-        ceph_monitor = params["ceph_monitor"]
+        ceph_monitor = params.get("ceph_monitor")
         rbd_pool_name = params["rbd_pool_name"]
         rbd_image_name = "%s.%s" % (image_name.split("/")[-1], image_format)
+        ceph_conf = params.get("ceph_conf")
         return ceph.rbd_image_exist(ceph_monitor, rbd_pool_name,
-                                    rbd_image_name)
-
+                                    rbd_image_name, ceph_conf)
     return os.path.exists(filename_path)
 
 
@@ -92,16 +93,18 @@ def file_remove(params, filename_path):
     if params.get("enable_ceph") == "yes":
         image_name = params.get("image_name")
         image_format = params.get("image_format", "qcow2")
-        ceph_monitor = params["ceph_monitor"]
+        ceph_monitor = params.get("ceph_monitor")
         rbd_pool_name = params["rbd_pool_name"]
         rbd_image_name = "%s.%s" % (image_name.split("/")[-1], image_format)
-        return ceph.rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name)
+        ceph_conf = params.get("ceph_conf")
+        return ceph.rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name,
+                                 ceph_conf)
 
     if params.get("gluster_brick"):
         # TODO: Add implementation for gluster_brick
         return
 
-    if params.get('storage_type') in ('iscsi', 'lvm'):
+    if params.get('storage_type') in ('iscsi', 'lvm', 'iscsi-direct'):
         # TODO: Add implementation for iscsi/lvm
         return
 
@@ -145,20 +148,30 @@ def get_image_filename(params, root_dir, basename=False):
     """
     enable_gluster = params.get("enable_gluster", "no") == "yes"
     enable_ceph = params.get("enable_ceph", "no") == "yes"
+    enable_iscsi = params.get("enable_iscsi", "no") == "yes"
     image_name = params.get("image_name")
+    storage_type = params.get("storage_type")
     if image_name:
+        image_format = params.get("image_format", "qcow2")
+        if enable_iscsi:
+            if storage_type == 'iscsi-direct':
+                portal = params.get('portal_ip')
+                target = params.get('target')
+                lun = params.get('lun', 0)
+                user = params.get('chap_user')
+                password = params.get('chap_passwd')
+                return iscsi.get_image_filename(portal, target, lun,
+                                                user, password)
         if enable_gluster:
-            image_name = params.get("image_name", "image")
-            image_format = params.get("image_format", "qcow2")
             return gluster.get_image_filename(params, image_name, image_format)
         if enable_ceph:
-            image_format = params.get("image_format", "qcow2")
-            ceph_monitor = params["ceph_monitor"]
             rbd_pool_name = params["rbd_pool_name"]
             rbd_image_name = "%s.%s" % (image_name.split("/")[-1],
                                         image_format)
+            ceph_conf = params.get('ceph_conf')
+            ceph_monitor = params.get('ceph_monitor')
             return ceph.get_image_filename(ceph_monitor, rbd_pool_name,
-                                           rbd_image_name)
+                                           rbd_image_name, ceph_conf)
         return get_image_filename_filesytem(params, root_dir, basename=basename)
     else:
         logging.warn("image_name parameter not set.")
@@ -289,6 +302,85 @@ class ImageSecret(object):
             fd.write(self.data)
 
 
+class StorageAuth(object):
+    """Image storage authentication class"""
+
+    def __init__(self, image, data, data_format, auth_type):
+        self.aid = '%s_access_secret' % image
+        self._auth_type = auth_type
+        self.filename = os.path.join(secret_dir, "%s.secret" % self.aid)
+
+        if self._auth_type == 'chap':
+            self._chap_passwd = data
+        elif self._auth_type == 'cephx':
+            self._ceph_key = data
+        self.data_format = data_format
+
+        if self.data is not None:
+            self.save_to_file()
+
+    @property
+    def data(self):
+        if self._auth_type == 'chap':
+            return self._chap_passwd
+        elif self._auth_type == 'cephx':
+            return self._ceph_key
+        else:
+            return None
+
+    def save_to_file(self):
+        """Save secret data to file."""
+        _make_secret_dir()
+        with open(self.filename, "w") as fd:
+            fd.write(self.data)
+
+
+class ImageAccessInfo(object):
+    """
+    iscsi image access: initiator + StorageAuth(u/p)
+    ceph image access: StorageAuth(u/p)
+    """
+    def __init__(self, image, data, data_format, storage_type, initiator=None):
+        self.image = image
+        self.storage_type = storage_type
+        auth_type = None
+        if self.storage_type == 'iscsi-direct':
+            auth_type = 'chap'
+            self.iscsi_initiator = initiator
+        elif self.storage_type == 'ceph':
+            auth_type = 'cephx'
+        self.auth = StorageAuth(self.image, data, data_format,
+                                auth_type) if data is not None else None
+
+    @classmethod
+    def access_info_define_by_params(cls, image, params):
+        enable_ceph = params.get("enable_ceph", "no") == "yes"
+        enable_iscsi = params.get("enable_iscsi", "no") == "yes"
+        storage_type = params.get("storage_type")
+        access_info = None
+
+        if enable_iscsi:
+            if storage_type == 'iscsi-direct':
+                initiator = params.get('initiator')
+                data = params.get('chap_passwd')
+                data_format = params.get("data_format", "raw")
+                access_info = cls(image, data, data_format, storage_type,
+                                  initiator) if data or initiator else None
+        elif enable_ceph:
+            data = params.get('ceph_key')
+            data_format = params.get("data_format", "base64")
+            access_info = cls(image, data, data_format,
+                              storage_type) if data else None
+        return access_info
+
+
+def retrieve_access_info(image, params):
+    """Create image access info object"""
+    img_params = params.object_params(image)
+    # TODO: get all image access info
+    return ImageAccessInfo.access_info_define_by_params(image, img_params)
+
+
 def retrieve_secrets(image, params):
     """Get all image secrets in image_chain, up to image."""
     secrets = []
@@ -381,7 +473,7 @@ def copy_nfs_image(params, root_dir, basename=False):
     """
     if params.get("setup_local_nfs", "no") == "yes":
         # check for image availability in NFS shared path
-        base_dir = params.get("images_base_dir", data_dir.get_data_dir())
+        base_dir = params["nfs_mount_dir"]
         dst = get_image_filename(params, base_dir, basename=basename)
         if(not os.path.isfile(dst) or
            utils_misc.get_image_info(dst)['lcounts'].lower() == "true"):
@@ -436,7 +528,7 @@ class QemuImg(object):
         self.image_blkdebug_filename = get_image_blkdebug_filename(params,
                                                                    root_dir)
         self.remote_keywords = params.get("remote_image",
-                                          "gluster iscsi ceph").split()
+                                          "gluster iscsi rbd").split()
         self.encryption_config = ImageEncryption.encryption_define_by_params(
             tag, params)
         image_chain = params.get("image_chain")
@@ -463,6 +555,19 @@ class QemuImg(object):
                                                               root_dir)
             self.snapshot_format = ss_params.get("image_format")
 
+        self.image_access = retrieve_access_info(self.tag, self.params)
+
+    def _get_access_secret_info(self):
+        access_secret, secret_type = None, None
+        if self.image_access is not None:
+            if self.image_access.auth is not None:
+                if self.image_access.storage_type == 'ceph':
+                    # Only ceph image access requires secret object by
+                    # qemu-img and only 'password-secret' is supported
+                    access_secret = self.image_access.auth
+                    secret_type = 'password'
+        return access_secret, secret_type
+
     def check_option(self, option):
         """
         Check if object has the option required.
@@ -478,7 +583,7 @@ class QemuImg(object):
         """
 
         for keyword in self.remote_keywords:
-            if keyword in self.image_filename:
+            if self.image_filename.startswith(keyword):
                 return True
 
         return False
@@ -536,7 +641,11 @@ class QemuImg(object):
         backup_dir = params.get("backup_dir", "")
         if not os.path.isabs(backup_dir):
             backup_dir = os.path.join(root_dir, backup_dir)
-        if params.get('image_raw_device') == 'yes':
+        if self.is_remote_image():
+            backup_set = get_backup_set(self.image_filename, backup_dir,
+                                        action, good)
+            backup_func = self.copy_data_remote
+        elif params.get('image_raw_device') == 'yes':
             ifmt = params.get("image_format", "qcow2")
             ifilename = utils_misc.get_path(root_dir, ("raw_device.%s" % ifmt))
             backup_set = get_backup_set(ifilename, backup_dir, action, good)
@@ -551,20 +660,25 @@ class QemuImg(object):
             for src, dst in backup_set:
                 if os.path.isfile(src):
                     backup_size += os.path.getsize(src)
+                else:
+                    # TODO: get the size of block/remote images
+                    backup_size += int(float(utils_numeric.normalize_data_size(
+                                             self.size, order_magnitude="B")))
 
-            image_dir = os.path.dirname(self.image_filename)
-            s = os.statvfs(image_dir)
+            s = os.statvfs(backup_dir)
             image_dir_free_disk_size = s.f_bavail * s.f_bsize
-            logging.info("Checking disk size on %s.", image_dir)
+            logging.info("backup image size: %d, available size: %d.",
+                         backup_size, image_dir_free_disk_size)
             if not self.is_disk_size_enough(backup_size,
                                             image_dir_free_disk_size):
                 return
 
         # backup secret file if presented
         if self.encryption_config.key_secret:
-            backup_set.extend(
-                get_backup_set(self.encryption_config.key_secret.filename,
-                               secret_dir, action, good))
+            bk_set = get_backup_set(self.encryption_config.key_secret.filename,
+                                    secret_dir, action, good)
+            for src, dst in bk_set:
+                self.copy_data_file(src, dst)
 
         for src, dst in backup_set:
             if action == 'backup' and skip_existing and os.path.exists(dst):
@@ -600,7 +714,9 @@ class QemuImg(object):
         if root_dir is None:
             root_dir = os.path.dirname(src)
         backup_func = self.copy_data_file
-        if params.get('image_raw_device') == 'yes':
+        if self.is_remote_image():
+            backup_func = self.copy_data_remote
+        elif params.get('image_raw_device') == 'yes':
             ifmt = params.get("image_format", "qcow2")
             src = utils_misc.get_path(root_dir, ("raw_device.%s" % ifmt))
             backup_func = self.copy_data_raw
@@ -608,6 +724,10 @@ class QemuImg(object):
         backup_size = 0
         if os.path.isfile(src):
             backup_size = os.path.getsize(src)
+        else:
+            # TODO: get the size of block/remote images
+            backup_size += int(float(utils_numeric.normalize_data_size(
+                                     self.size, order_magnitude="B")))
         s = os.statvfs(root_dir)
         image_dir_free_disk_size = s.f_bavail * s.f_bsize
         logging.info("Checking disk size on %s.", root_dir)
@@ -629,6 +749,9 @@ class QemuImg(object):
             logging.error("Available disk space is not enough. Skipping...")
             return False
         return True
+
+    def copy_data_remote(self, src, dst):
+        pass
 
     @staticmethod
     def copy_data_raw(src, dst):

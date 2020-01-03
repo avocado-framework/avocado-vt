@@ -71,7 +71,6 @@ from virttest.utils_test import qemu
 from virttest.utils_test import libvirt
 from virttest.utils_test import libguestfs
 
-
 # This is so that other tests won't break when importing the names
 # 'ping' and 'raw_ping' from this namespace
 ping = utils_net.ping
@@ -156,8 +155,16 @@ def check_kernel_cmdline(session, remove_args="", args=""):
     return req_args.strip(), req_remove_args.strip()
 
 
+def __run_cmd_and_handle_error(msg, cmd, session, test_fail_msg):
+    logging.info(msg)
+    status, output = session.cmd_status_output(cmd)
+    if status != 0:
+        logging.error(output)
+        raise exceptions.TestError(test_fail_msg)
+
+
 def update_boot_option(vm, args_removed="", args_added="",
-                       need_reboot=True):
+                       need_reboot=True, guest_arch_name='x86_64'):
     """
     Update guest default kernel option.
 
@@ -165,6 +172,7 @@ def update_boot_option(vm, args_removed="", args_added="",
     :param args_removed: Kernel options want to remove.
     :param args_added: Kernel options want to add.
     :param need_reboot: Whether need reboot VM or not.
+    :param guest_arch_name: Guest architecture, e.g. x86_64, s390x
     :raise exceptions.TestError: Raised if fail to update guest kernel cmdline.
 
     """
@@ -203,12 +211,14 @@ def update_boot_option(vm, args_removed="", args_added="",
                 msg += " add args: %s" % req_args
                 cmd += '--args="%s"' % req_args
             if req_remove_args or req_args:
-                logging.info(msg)
-                status, output = session.cmd_status_output(cmd)
-                if status != 0:
-                    logging.error(output)
-                    raise exceptions.TestError(
-                        "Fail to modify guest kernel option")
+                __run_cmd_and_handle_error(msg, cmd, session,
+                                           "Failed to modify guest kernel option")
+
+        if guest_arch_name == 's390x':
+            msg = "Update boot media with zipl"
+            cmd = "zipl"
+            __run_cmd_and_handle_error(msg, cmd, session,
+                                       "Failed to update boot media with zipl")
 
         # reboot is required only if we really add/remove any args
         if need_reboot and (req_args or req_remove_args):
@@ -708,6 +718,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
     :param sender: Who is data sender. guest, host or both.
     :param md5_check: Check md5 or not.
     """
+
     def get_virtio_port_host_file(vm, port_name):
         """
         Returns separated virtserialports
@@ -870,6 +881,7 @@ def session_handler(func):
         finally:
             if (self.vm or self.remote_host) and self.session:
                 self.session.close()
+
     return manage_session
 
 
@@ -913,9 +925,10 @@ class AvocadoGuest(object):
         self.avocado_repo = self.params.get("avocado_repo_path",
                                             "https://github.com/avocado-framework/avocado.git")
         self.avocado_repo_branch = self.params.get("avocado_repo_branch", "")
-        self.plugins = {'pip': ['avocado-framework-plugin-varianter-yaml-to-mux', 'avocado-framework-plugin-result-html'],
-                        'package': [],
-                        'git': ['varianter_yaml_to_mux', 'html']}
+        self.plugins = {
+            'pip': ['avocado-framework-plugin-varianter-yaml-to-mux', 'avocado-framework-plugin-result-html'],
+            'package': [],
+            'git': ['varianter_yaml_to_mux', 'html']}
         self.plugins_path = os.path.join(self.test_path,
                                          self.repo_name(self.avocado_repo),
                                          "optional_plugins")
@@ -1400,7 +1413,7 @@ def run_autotest(vm, session, control_path, timeout,
                         jobline += ", %s='%s'" % (key, value)
                     jobline += ")\n"
                     newlines.append(jobline)
-                    break   # No need following lines
+                    break  # No need following lines
                 else:
                     # None of these lines' business
                     newlines.append(line)
@@ -1794,7 +1807,6 @@ def get_readable_cdroms(params, session):
 
 
 def service_setup(vm, session, directory):
-
     params = vm.get_params()
     rh_perf_envsetup_script = params.get("rh_perf_envsetup_script")
     rebooted = params.get("rebooted", "rebooted")
@@ -1913,7 +1925,6 @@ def get_driver_hardware_id(driver_path,
 
 
 class BackgroundTest(object):
-
     """
     This class would run a test in background through a dedicated thread.
     """
@@ -2021,7 +2032,6 @@ def run_avocado_bg(vm, params, test, testlist=[], avocado_vt=False,
 
 # Stress functions################
 class StressError(Exception):
-
     """
     Stress test exception.
     """
@@ -2035,7 +2045,6 @@ class StressError(Exception):
 
 
 class Stress(object):
-
     """
     Base class to run Stress tool in vms, host and remote host
     Stress tool can be stress, stress-ng, iozone and etc.
@@ -2151,6 +2160,7 @@ class Stress(object):
         """
         stop stress tool manually
         """
+
         def _unload_stress():
             self.sendline(self.stop_cmd)
             if not self.app_running():
@@ -2370,7 +2380,6 @@ class VMStress(Stress):
 
 
 class HostStress(Stress):
-
     """
     Run Stress tool on host, such as stress, unixbench, iozone and etc.
     """
@@ -2721,7 +2730,6 @@ class NetperfStressload(ServerClientStress):
 
 
 class RemoteDiskManager(object):
-
     """Control images on remote host"""
 
     def __init__(self, params):
@@ -2825,7 +2833,7 @@ class RemoteDiskManager(object):
             logging.debug("Volume group %s does already exist.", vgname)
             return True
         except process.CmdError:
-            pass    # Not found
+            pass  # Not found
         try:
             self.runner.run("vgcreate %s %s" % (vgname, device))
             return True
@@ -2915,7 +2923,6 @@ def check_dest_vm_network(vm, vm_ip, remote_host, username, password,
 
 
 class RemoteVMManager(object):
-
     """Manage VM on remote host"""
 
     def __init__(self, params):

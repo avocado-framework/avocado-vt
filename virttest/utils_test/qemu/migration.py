@@ -933,7 +933,7 @@ class MultihostMigrationFd(MultihostMigration):
         if self.params.get("hostid") == srchost:
             last_port = 5199
             for _ in range(vms_count):
-                last_port = utils_misc.find_free_port(last_port + 1, 6000)
+                last_port = utils_misc.find_free_port(last_port + 1, 5899)
                 mig_ports.append(last_port)
 
         sync = SyncData(self.master_id(), self.hostid,
@@ -1091,7 +1091,7 @@ class MultihostMigrationExec(MultihostMigration):
             if self.params.get("hostid") == dsthost:
                 last_port = 5199
                 for _ in range(vms_count):
-                    last_port = utils_misc.find_free_port(last_port + 1, 6000)
+                    last_port = utils_misc.find_free_port(last_port + 1, 5899)
                     mig_ports.append(last_port)
 
             mig_ports = sync.sync(mig_ports, timeout=120)

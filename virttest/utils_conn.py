@@ -329,15 +329,17 @@ class ConnectionBase(propcan.PropCanBase):
         """
         Clean up any leftover sessions and tmp_dir.
         """
-        self.close_session()
-        if self.auto_recover:
-            try:
-                self.conn_recover()
-            except ConnNotImplementedError:
-                pass
-        tmp_dir = self.tmp_dir
-        if (tmp_dir is not None) and (os.path.exists(tmp_dir)):
-            shutil.rmtree(tmp_dir)
+        try:
+            self.close_session()
+        finally:
+            if self.auto_recover:
+                try:
+                    self.conn_recover()
+                except ConnNotImplementedError:
+                    pass
+            tmp_dir = self.tmp_dir
+            if (tmp_dir is not None) and (os.path.exists(tmp_dir)):
+                shutil.rmtree(tmp_dir)
 
     def close_session(self):
         """
@@ -820,7 +822,9 @@ class TCPConnection(ConnectionBase):
             # From libvirt 5.6, libvirtd is using systemd socket activation
             # by default
             if libvirt_version.version_compare(5, 6, 0, session):
+                session.cmd("systemctl stop libvirtd.socket")
                 libvirtd_service.stop()
+                session.cmd("systemctl start libvirtd.socket")
                 session.cmd("systemctl restart libvirtd-tcp.socket")
                 libvirtd_service.start()
             else:
@@ -1326,7 +1330,9 @@ class TLSConnection(ConnectionBase):
                 # From libvirt 5.6, libvirtd is using systemd socket activation
                 # by default
                 if libvirt_version.version_compare(5, 6, 0):
+                    process.run("systemctl stop libvirtd.socket")
                     libvirtd_service.stop()
+                    process.run("systemctl start libvirtd.socket")
                     process.run("systemctl restart libvirtd-tls.socket")
                     libvirtd_service.start()
                 else:
@@ -1340,7 +1346,9 @@ class TLSConnection(ConnectionBase):
                     remote_runner.run('iptables -F', ignore_status=True)
                     libvirtd_service = utils_libvirtd.Libvirtd(session=session)
                     if libvirt_version.version_compare(5, 6, 0, session):
+                        session.cmd("systemctl stop libvirtd.socket")
                         libvirtd_service.stop()
+                        session.cmd("systemctl start libvirtd.socket")
                         session.cmd("systemctl restart libvirtd-tls.socket")
                         libvirtd_service.start()
                     else:
@@ -1675,12 +1683,14 @@ class UNIXConnection(ConnectionBase):
             libvirtd_service = utils_libvirtd.Libvirtd(session=client_session)
             if self.libvirt_ver:
                 process.run("systemctl daemon-reload")
+                process.run("systemctl stop libvirtd.socket")
                 libvirtd_service.stop()
-                process.run("systemctl restart libvirtd.socket")
+                process.run("systemctl start libvirtd.socket")
                 libvirtd_service.start()
             else:
                 libvirtd_service.restart()
-        except (remote.LoginError, aexpect.ShellError) as detail:
+        except (remote.LoginError, aexpect.ShellError,
+                process.CmdError) as detail:
             raise ConnServerRestartError(detail)
 
         logging.debug("UNIX connection recover successfully.")
@@ -1799,13 +1809,15 @@ class UNIXConnection(ConnectionBase):
                 libvirtd_service = utils_libvirtd.Libvirtd(
                     session=client_session)
                 if self.libvirt_ver:
+                    process.run("systemctl stop libvirtd.socket")
                     libvirtd_service.stop()
                     process.run("systemctl daemon-reload")
-                    process.run("systemctl restart libvirtd.socket")
+                    process.run("systemctl start libvirtd.socket")
                     libvirtd_service.start()
                 else:
                     libvirtd_service.restart()
-            except (remote.LoginError, aexpect.ShellError) as detail:
+            except (remote.LoginError, aexpect.ShellError,
+                    process.CmdError) as detail:
                 raise ConnServerRestartError(detail)
 
         logging.debug("UNIX connection setup successfully.")
