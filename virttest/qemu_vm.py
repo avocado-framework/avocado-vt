@@ -481,13 +481,23 @@ class VM(virt_vm.BaseVM):
             if not devices.has_option("chardev"):
                 return " -qmp unix:'%s',server,nowait" % filename
 
+            chardev_params = params.object_params(monitor_name)
+            backend = chardev_params.get('chardev_backend', 'unix_socket')
             monitor_id = "qmp_id_%s" % monitor_name
-            cmd = " -chardev socket"
-            cmd += _add_option("id", monitor_id)
-            cmd += _add_option("path", filename)
-            cmd += _add_option("server", "NO_EQUAL_STRING")
-            cmd += _add_option("nowait", "NO_EQUAL_STRING")
-            cmd += " -mon chardev=%s" % monitor_id
+            if backend == 'tcp_socket':
+                host = chardev_params.get('chardev_host', '127.0.0.1')
+                port = str(utils_misc.find_free_ports(5000, 6000, 1, host)[0])
+                chardev_params['chardev_host'] = host
+                chardev_params['chardev_port'] = port
+                params["chardev_host_%s" % monitor_name] = host
+                params["chardev_port_%s" % monitor_name] = port
+            elif backend == 'unix_socket':
+                params["monitor_filename_%s" % monitor_name] = filename
+            char_device = devices.chardev_define_by_params(
+                monitor_id, chardev_params, filename)
+            devices.insert(char_device)
+
+            cmd = " -mon chardev=%s" % monitor_id
             cmd += _add_option("mode", "control")
             return cmd
 
