@@ -69,8 +69,7 @@ def file_exists(params, filename_path):
 
     :return: True if image file exists else False
     """
-    gluster_image = params.get("gluster_brick")
-    if gluster_image:
+    if params.get("enable_gluster") == "yes":
         return gluster.file_exists(params, filename_path)
 
     if params.get("enable_ceph") == "yes":
@@ -320,19 +319,25 @@ class StorageAuth(object):
         :param storage_type: ceph, gluster or iscsi-direct
         :param info: other access information, such as:
                      iscsi-direct: initiator
-                     gluster: debug, logfile
+                     gluster: debug, logfile, peers, port, transport
         """
         self.image = image
         self.aid = '%s_access_secret' % self.image
         self.storage_type = storage_type
         self.filename = os.path.join(secret_dir, "%s.secret" % self.aid)
+        self.data_format = data_format
 
         if self.storage_type == 'iscsi-direct':
             self._chap_passwd = data
-            self.iscsi_initiator = info.get('initiator')
+            self.iscsi_initiator = info['initiator']
         elif self.storage_type == 'ceph':
             self._ceph_key = data
-        self.data_format = data_format
+        elif self.storage_type == 'glusterfs':
+            self.debug = info['debug']
+            self.logfile = info['logfile']
+            self.peers = info['peers']
+            self.port = info['port']
+            self.transport = info['transport']
 
         if self.data is not None:
             self.save_to_file()
@@ -362,6 +367,7 @@ class StorageAuth(object):
         storage_type = params.get("storage_type")
         enable_ceph = params.get("enable_ceph", "no") == "yes"
         enable_iscsi = params.get("enable_iscsi", "no") == "yes"
+        enable_gluster = params.get("enable_gluster", "no") == "yes"
 
         if enable_iscsi:
             if storage_type == 'iscsi-direct':
@@ -375,6 +381,16 @@ class StorageAuth(object):
             data_format = params.get('data_format', 'base64')
             auth = cls(image, data, data_format,
                        storage_type) if data else None
+        elif enable_gluster:
+            peers = params.get("gluster_peers", "").split()
+            port = params.get("gluster_port")
+            transport = params.get("gluster_transport")
+            debug = params.get("gluster_debug")
+            logfile = params.get("gluster_logfile")
+            auth = cls(image, None, None, storage_type,
+                       debug=debug, logfile=logfile,
+                       transport=transport, port=port,
+                       peers=peers) if debug or logfile or peers else None
         return auth
 
 

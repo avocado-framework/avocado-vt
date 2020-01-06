@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import socket
+import netaddr
 
 from avocado.utils import process
 from avocado.utils import path as utils_path
@@ -319,16 +320,14 @@ def create_gluster_uri(params, stripped=False):
     """
     vol_name = params.get("gluster_volume_name")
 
+    # Access gluster server by unix domain socket
+    unix_socket = os.path.exists(params.get("gluster_server"), "")
+
     error_context.context("Host name lookup failed")
-    hostname = socket.gethostname()
-    gluster_server = params.get("gluster_server")
-    gluster_port = params.get("gluster_port", "0")
-    if not gluster_server:
-        gluster_server = hostname
-    if not gluster_server or gluster_server == "(none)":
+    gluster_server = params.get("gluster_server", socket.gethostname())
+    if not gluster_server or gluster_server == "(none)" or unix_socket:
         if_up = utils_net.get_net_if(state="UP")
-        ip_addr = utils_net.get_net_if_addrs(if_up[0])["ipv4"][0]
-        gluster_server = ip_addr
+        gluster_server = utils_net.get_net_if_addrs(if_up[0])["ipv4"][0]
 
     # Start the gluster dameon, if not started
     # Building gluster uri
@@ -336,8 +335,31 @@ def create_gluster_uri(params, stripped=False):
     if stripped:
         gluster_uri = "%s:/%s" % (gluster_server, vol_name)
     else:
-        gluster_uri = "gluster://%s:%s/%s/" % (gluster_server, gluster_port,
-                                               vol_name)
+        transport = ""
+        host = ""
+        volume = "/%s/" % vol_name
+
+        if unix_socket:
+            transport = "+unix"
+        else:
+            # Access gluster server by hostname or ip
+            gluster_transport = params.get("gluster_transport")
+            transport = "+%s" % gluster_transport if gluster_transport else ""
+
+            # QEMU will send 0 which will make gluster to use the default port
+            gluster_port = params.get("gluster_port")
+            port = ":%s" % gluster_port if gluster_port else ""
+
+            # [IPv6 address]
+            server = "[%s]" % gluster_server if netaddr.valid_ipv6(
+                                gluster_server) else gluster_server
+
+            host = "%s%s" % (server, port)
+
+        gluster_uri = "gluster{t}://{h}{v}".format(t=transport,
+                                                   h=host,
+                                                   v=volume)
+
     return gluster_uri
 
 
@@ -381,14 +403,17 @@ def get_image_filename(params, image_name, image_format):
     """
     Form the image file name using gluster uri
     """
+    vol_uri = create_gluster_uri(params)
 
+    raw_image = params.get("image_raw_device") == "yes"
     img_name = image_name.split('/')[-1]
-    gluster_uri = create_gluster_uri(params)
-    if params.get("image_raw_device") == "yes":
-        image_filename = "%s%s" % (gluster_uri, img_name)
-    else:
-        image_filename = "%s%s.%s" % (gluster_uri, img_name, image_format)
-    return image_filename
+    image = img_name if raw_image else "%s.%s" % (img_name, image_format)
+
+    unix_type = vol_uri.startswith("gluster+unix:")
+    socket = "?socket=%s" % params.get("gluster_server") if unix_type else ""
+
+    filename = "{vol_uri}{path}{socket}"
+    return filename.format(vol_uri=vol_uri, path=image, socket=socket)
 
 
 @error_context.context_aware

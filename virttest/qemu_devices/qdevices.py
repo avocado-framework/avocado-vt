@@ -666,7 +666,9 @@ class QBlockdevNode(QCustomDevice):
         """
         Convert string type of 'on' and 'off' to boolean, and create new dict
         (e.g: 'cache': {'direct': 'true'}) from key which include symbol '.'
-        (e.g: 'cache.direct': 'true') to adhere to the blockdev qmp syntax.
+        (e.g: 'cache.direct': 'true'), or create new dict with dict list value
+        (e.g: 'server': [{'type': 'inet', ...}]) from key including two '.'
+        (e.g: 'server.0.type') to adhere to the blockdev qmp syntax.
 
         :param args: Dictionary with the qmp parameters.
         :type args: dict
@@ -675,6 +677,8 @@ class QBlockdevNode(QCustomDevice):
         """
         new_args = {}
         tmp = {}
+        tmp_new_args = {}
+        tmp_new = {}
         for key, val in six.iteritems(args):
             if val in ('on', 'yes'):
                 val = True
@@ -682,11 +686,22 @@ class QBlockdevNode(QCustomDevice):
                 val = False
             if '.' in key:
                 sub_key = key.split('.')
-                reduce(lambda d, k: d.setdefault(
-                    k, {}), sub_key[1:-1], tmp)[sub_key[-1]] = val
-                new_args[sub_key[0]] = tmp
+                if len(sub_key) == 3:
+                    # e.g. server.0.type
+                    reduce(lambda d, k: d.setdefault(
+                        k, {}), sub_key[1:-1], tmp_new)[sub_key[-1]] = val
+                    tmp_new_args[sub_key[0]] = tmp_new
+                else:
+                    # e.g. catch.direct
+                    reduce(lambda d, k: d.setdefault(
+                        k, {}), sub_key[1:-1], tmp)[sub_key[-1]] = val
+                    new_args[sub_key[0]] = tmp
             else:
                 new_args[key] = val
+
+        new_args.update({key: list(val.values())
+                         for key, val in six.iteritems(tmp_new_args)})
+
         return new_args
 
     def hotplug_qmp(self):
@@ -880,6 +895,11 @@ class QBlockdevProtocolISCSI(QBlockdevProtocol):
 class QBlockdevProtocolRBD(QBlockdevProtocol):
     """ New a protocol rbd blockdev node. """
     TYPE = 'rbd'
+
+
+class QBlockdevProtocolGLUSTER(QBlockdevProtocol):
+    """ New a protocol rbd blockdev node. """
+    TYPE = 'gluster'
 
 
 class QDevice(QCustomDevice):

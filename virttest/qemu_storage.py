@@ -62,6 +62,42 @@ def filename_to_file_opts(filename):
                 if matches.group('conf') is not None:
                     # optional option
                     file_opts['conf'] = matches.group('conf')
+    elif filename.startswith('gluster'):
+        filename_pattern = re.compile(
+            r'gluster\+?(?P<type>.+)?://((?P<host>[^/]+?)(:(?P<port>\d+))?)?/'
+            r'(?P<volume>.+?)/(?P<path>[^,?]+)'
+            r'(\?socket=(?P<socket>[^,]+))?'
+        )
+        matches = filename_pattern.match(filename)
+        if matches:
+            servers = []
+            transport = 'inet' if not matches.group('type') or matches.group('type') == 'tcp' else matches.group('type')
+
+            if matches.group('host'):
+                host = matches.group('host')
+
+                # IPv6 address
+                if host.startswith('[') and host.endswith(']'):
+                    host = host[1:len(host)-1]
+
+                # port should be set for both qemu-img and qemu-kvm
+                port = matches.group('port') if matches.group('port') else '0'
+
+                servers.append({'type': transport,
+                                'host': host,
+                                'port': port})
+            elif matches.group('socket'):
+                servers.append({'type': transport,
+                                'path': matches.group('socket')})
+
+            if matches.group('volume') and matches.group('path') and servers:
+                # required options for gluster
+                file_opts = {'driver': 'gluster',
+                             'volume': matches.group('volume'),
+                             'path': matches.group('path')}
+                file_opts.update({'server.{i}.{k}'.format(i=i, k=k): v
+                                 for i, server in enumerate(servers)
+                                 for k, v in six.iteritems(server)})
     # FIXME: Judge the host device by the string starts with "/dev/".
     elif filename.startswith('/dev/'):
         file_opts = {'driver': 'host_device', 'filename': filename}
@@ -106,6 +142,28 @@ def _get_image_meta(image, params, root_dir):
                 meta['file']['password'] = auth_info.data
             if auth_info.iscsi_initiator:
                 meta['file']['initiator-name'] = auth_info.iscsi_initiator
+        elif auth_info.storage_type == 'glusterfs':
+            if auth_info.debug:
+                meta['file']['debug'] = int(auth_info.debug)
+            if auth_info.logfile:
+                meta['file']['logfile'] = auth_info.logfile
+
+            # it's always 'inet' for both ipv4 and ipv6 addresses
+            transport = 'inet' if not auth_info.transport or auth_info.transport == 'tcp' else auth_info.transport
+            port = '0' if not auth_info.port else auth_info.port
+            peers = []
+            for host in auth_info.peers:
+                if os.path.exists(host):
+                    # access storage by unix domain socket
+                    peers.append({'type': 'unix', 'path': host})
+                else:
+                    # access storage by hostname/ip + port
+                    peers.append({'host': host,
+                                  'type': transport,
+                                  'port': port})
+            meta['file'].update({'server.{i}.{k}'.format(i=i+1, k=k): v
+                                for i, server in enumerate(peers)
+                                for k, v in six.iteritems(server)})
 
     return meta
 
@@ -165,6 +223,10 @@ def get_image_repr(image, params, root_dir, representation=None):
                 # url with u/p is used to access iscsi image,
                 # besides u/p, iscsi access may need initiator
                 if auth_info.iscsi_initiator:
+                    access_needed = True
+            elif auth_info.storage_type == 'glusterfs':
+                # debug, logfile and other servers represent in json
+                if auth_info.debug or auth_info.logfile or auth_info.peers:
                     access_needed = True
 
         func = mapping["json"] if image_secret or access_needed else mapping["filename"]
