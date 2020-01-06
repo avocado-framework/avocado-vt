@@ -1724,10 +1724,30 @@ class DevContainer(object):
                 access_secret, secret_type = sec, sectype
 
         iscsi_initiator = None
+        gluster_debug = None
+        gluster_logfile = None
+        gluster_peers = {}
         access = image_access.image_auth if image_access else None
         if access is not None:
             if access.storage_type == 'iscsi-direct':
                 iscsi_initiator = access.iscsi_initiator
+            elif access.storage_type == 'glusterfs-direct':
+                gluster_debug = access.debug
+                gluster_logfile = access.logfile
+
+                peers = []
+                for peer in access.peers:
+                    if 'path' in peer:
+                        # access storage by unix domain socket
+                        peers.append({'type': 'unix', 'path': peer['path']})
+                    else:
+                        # access storage by hostname/ip + port
+                        peers.append({'host': peer['host'],
+                                      'type': peer.get('type', 'inet'),
+                                      'port': '%s' % peer.get('port', '0')})
+                gluster_peers.update({'server.{i}.{k}'.format(i=i+1, k=k): v
+                                     for i, server in enumerate(peers)
+                                     for k, v in six.iteritems(server)})
 
         use_device = self.has_option("device")
         if fmt == "scsi":   # fmt=scsi force the old version of devices
@@ -1868,6 +1888,8 @@ class DevContainer(object):
                 protocol_cls = qdevices.QBlockdevProtocolISCSI
             elif filename.startswith('rbd:'):
                 protocol_cls = qdevices.QBlockdevProtocolRBD
+            elif filename.startswith('gluster'):
+                protocol_cls = qdevices.QBlockdevProtocolGluster
             elif fmt in ('scsi-generic', 'scsi-block'):
                 protocol_cls = qdevices.QBlockdevProtocolHostDevice
             elif blkdebug is not None:
@@ -1968,6 +1990,12 @@ class DevContainer(object):
 
             if iscsi_initiator:
                 devices[-2].set_param('initiator-name', iscsi_initiator)
+            if gluster_debug:
+                devices[-2].set_param('debug', int(gluster_debug))
+            if gluster_logfile:
+                devices[-2].set_param('logfile', gluster_logfile)
+            for key, value in six.iteritems(gluster_peers):
+                devices[-2].set_param(key, value)
 
             for dev in (devices[-1], devices[-2]):
                 if not cache:
@@ -1997,6 +2025,10 @@ class DevContainer(object):
 
             if iscsi_initiator:
                 devices[-1].set_param('file.initiator-name', iscsi_initiator)
+            if gluster_debug:
+                devices[-1].set_param('file.debug', int(gluster_debug))
+            if gluster_logfile:
+                devices[-1].set_param('file.logfile', gluster_logfile)
 
         if drv_extra_params:
             drv_extra_params = (_.split('=', 1) for _ in

@@ -13,6 +13,7 @@ import shutil
 import re
 import functools
 import collections
+import json
 
 from avocado.core import exceptions
 from avocado.utils import process
@@ -41,7 +42,7 @@ def preprocess_images(bindir, params, env):
 
 
 def preprocess_image_backend(bindir, params, env):
-    enable_gluster = params.get("enable_gluster")
+    enable_gluster = params.get_boolean("enable_gluster")
     gluster_image = params.get("gluster_brick")
     if enable_gluster and gluster_image:
         return gluster.create_gluster_vol(params)
@@ -69,8 +70,7 @@ def file_exists(params, filename_path):
 
     :return: True if image file exists else False
     """
-    gluster_image = params.get("gluster_brick")
-    if gluster_image:
+    if params.get_boolean("enable_gluster"):
         return gluster.file_exists(params, filename_path)
 
     if params.get("enable_ceph") == "yes":
@@ -321,22 +321,29 @@ class StorageAuth(object):
         :param image: image tag name
         :param data: sensitive data like password
         :param data_format: raw or base64
-        :param storage_type: ceph, gluster or iscsi-direct
+        :param storage_type: ceph, glusterfs-direct or iscsi-direct
         :param info: other access information, such as:
                      iscsi-direct: initiator
-                     gluster: debug, logfile
+                     gluster-direct: debug, logfile, peers
         """
         self.image = image
         self.aid = '%s_access_secret' % self.image
         self.storage_type = storage_type
         self.filename = os.path.join(secret_dir, "%s.secret" % self.aid)
+        self.data_format = data_format
 
         if self.storage_type == 'iscsi-direct':
             self._chap_passwd = data
             self.iscsi_initiator = info.get('initiator')
         elif self.storage_type == 'ceph':
             self._ceph_key = data
-        self.data_format = data_format
+        elif self.storage_type == 'glusterfs-direct':
+            self.peers = info['peers']
+
+            # TODO: logfile and debug will be moved to a class,
+            # they'll be defined as common options for all backends
+            self.debug = info['debug']
+            self.logfile = info['logfile']
 
         if self.data is not None:
             self.save_to_file()
@@ -366,6 +373,7 @@ class StorageAuth(object):
         storage_type = params.get("storage_type")
         enable_ceph = params.get("enable_ceph", "no") == "yes"
         enable_iscsi = params.get("enable_iscsi", "no") == "yes"
+        enable_gluster = params.get("enable_gluster", "no") == "yes"
 
         if enable_iscsi:
             if storage_type == 'iscsi-direct':
@@ -379,6 +387,14 @@ class StorageAuth(object):
             data_format = params.get('data_format', 'base64')
             auth = cls(image, data, data_format,
                        storage_type) if data else None
+        elif enable_gluster:
+            if storage_type == 'glusterfs-direct':
+                peers = json.loads(params.get('gluster_peers', '[]'))
+                debug = params.get('gluster_debug')
+                logfile = params.get('gluster_logfile')
+                auth = cls(image, None, None, storage_type,
+                           debug=debug, logfile=logfile,
+                           peers=peers) if debug or logfile or peers else None
         return auth
 
 

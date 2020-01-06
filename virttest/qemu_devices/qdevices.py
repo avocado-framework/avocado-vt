@@ -884,6 +884,33 @@ class QBlockdevProtocolRBD(QBlockdevProtocol):
     TYPE = 'rbd'
 
 
+class QBlockdevProtocolGluster(QBlockdevProtocol):
+    """ New a protocol gluster blockdev node. """
+    TYPE = 'gluster'
+
+    def hotplug_qmp(self):
+        # TODO: design a new _convert_blkdev_args to handle list
+        # of dicts, e.g. convert 'server.0.host', 'server.1.host'
+        # to {'server': [{'host':xx}, {'host':xx}]}
+        servers = {}
+        args = OrderedDict()
+        p = re.compile(r'server\.(?P<index>\d+)\.(?P<opt>.+)')
+
+        for key, value in six.iteritems(self.params):
+            m = p.match(key)
+            if m is not None:
+                index = int(m.group('index'))
+                servers.setdefault(index, {})
+                servers[index].update({m.group('opt'): value})
+            else:
+                args[key] = value
+
+        params = self._convert_blkdev_args(args)
+        params['server'] = [servers[i] for i in sorted(servers)]
+
+        return "blockdev-add", params
+
+
 class QDevice(QCustomDevice):
 
     """
