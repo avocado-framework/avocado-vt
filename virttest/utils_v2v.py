@@ -618,16 +618,107 @@ class LinuxVMCheck(VMCheck):
                     debug=False)[0]),
             timeout)
 
-    def get_vm_xorg(self):
+    def vm_xorg_search(self, substr):
         """
-        Get vm Xorg config/log.
+        Search expected string in Xorg config/log on VM.
+
+        :param substr: The expected string.
+        :return: True if search result meets expectation, otherwise False
         """
         self.wait_for_x_start()
-        cmd_file_exist = "ls /etc/X11/xorg.conf || ls /var/log/Xorg.0.log"
-        if self.run_cmd(cmd_file_exist)[0]:
-            return False
-        cmd = "cat /etc/X11/xorg.conf /var/log/Xorg.0.log"
-        return self.run_cmd(cmd)[1]
+        xorg_file_list = ["/etc/X11/xorg.conf",
+                          "/var/log/Xorg.0.log"]
+        # Ubuntu or rhel8 save xorg file in normal users home directory
+        # A shell script gets the xorg file:
+        #
+        # uid_min=$(grep -E '^UID_MIN' /etc/login.defs | awk -F' ' '{ print $2}');
+        # getent_cmd=('getent passwd' {${uid_min}..$(expr ${uid_min} + 100)});
+        # for i in $(eval ${getent_cmd[@]} | awk -F: '{ print $1}');
+        # do
+        #    found=false;
+        #    for j in $(seq 0 3);
+        #    do
+        #        if [ -f /home/${i}/.local/share/xorg/Xorg.${j}.log ]; then
+        #            echo \"/home/${i}/.local/share/xorg/Xorg.${j}.log\";
+        #            found=true;
+        #            break;
+        #        fi;
+        #    done;
+        #    if ${found}; then break; fi;
+        # done
+        get_uid_min = r"grep -E '^UID_MIN' /etc/login.defs | awk -F' ' '{ print $2}'"
+        uid_min = self.run_cmd(get_uid_min, debug=False)[
+            1].strip().splitlines()[-1]
+        if uid_min.isdigit():
+            # 100 times is enough
+            uid_max = str(int(uid_min) + 100)
+            extract_normal_users = r"getent passwd {%s..%s} | awk -F: '{ print $1}'" % (
+                uid_min, uid_max)
+            xorg_log_path = r"/home/${i}/.local/share/xorg/Xorg.${j}.log"
+            xorg_log_chk = "if [ -f {0} ]; then echo {0}; found=true; break; fi;".format(
+                xorg_log_path)
+            break_if_found = r"if ${found}; then break; fi;"
+            xorg_logs_loop = "for j in $(seq 0 3); do %s done; %s" % (
+                xorg_log_chk, break_if_found)
+            get_xorg_logs = "for i in $(%s);do found=false; %s done" % (
+                extract_normal_users, xorg_logs_loop)
+            logging.debug("Get xorg logs shell script:\n%s", get_xorg_logs)
+
+            # The first element is a malformed get_xorg_logs string, it
+            # should be removed.
+            xorg_files = self.run_cmd(get_xorg_logs, debug=False)[
+                1].strip().splitlines()
+            if len(xorg_files) > 0:
+                xorg_file_list.extend(xorg_files[1:])
+        else:
+            logging.debug("Get UID_MIN failed: %s", uid_min)
+
+        logging.debug("xorg files: %s", xorg_file_list)
+        for file_i in xorg_file_list:
+            cmd = 'grep -i "%s" "%s"' % (substr, file_i)
+            if self.run_cmd(cmd)[0] == 0:
+                return True
+        return False
+
+    def vm_journal_search(self, substr, options=None, flags=re.IGNORECASE):
+        """
+        Search journalctl log on vm
+
+        :param substr: The expected string.
+        :param options: the journalctl options
+        :param flags: A RegexFlag, Please refer RE moudule of python
+        :return: True if search result meets expectation, otherwise False
+        """
+        cmd = "journalctl"
+        if options:
+            cmd += " %s" % options
+
+        if self.vm_general_search(cmd, substr, flags, ignore_status=True):
+            return True
+        return False
+
+    def vm_general_search(
+            self,
+            cmd,
+            substr,
+            flags=re.IGNORECASE,
+            ignore_status=False,
+            debug=True):
+        """
+        Search a string by running a command on vm
+
+        :param cmd: A command to be excuted
+        :param substr: The expected string in output of cmd.
+        :param flags: A RegexFlag, Please refer RE moudule of python
+        :param ignore_status: If True, will not check command return status.
+        :param debug: If True, will print cmd output.
+        :return: True if search result meets expectation, otherwise False
+        """
+        status, output = self.run_cmd(cmd, debug)
+
+        if (ignore_status or status == 0) and re.search(substr, output, flags):
+            return True
+        return False
 
     def is_net_virtio(self):
         """
