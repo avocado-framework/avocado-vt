@@ -1820,13 +1820,8 @@ class VM(virt_vm.BaseVM):
             for dev in devices.usbc_by_params(usb_name, usb_params, parent_bus):
                 devices.insert(dev)
 
-        for iothread in params.get("iothreads", "").split():
-            cmd = "-object iothread,"
-            iothread_id = params.get("%s_id" % iothread.strip())
-            if not iothread_id:
-                iothread_id = iothread.strip()
-            cmd += "id=%s" % iothread_id
-            devices.insert(StrDev("IOthread_%s" % iothread_id, cmdline=cmd))
+        # initialize iothread manager
+        devices.initialize_iothread_manager(params, self.cpuinfo)
 
         # Add images (harddrives)
         for image_name in params.objects("images"):

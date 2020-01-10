@@ -22,7 +22,13 @@ from avocado.utils import process
 import six
 from six.moves import xrange
 
+try:
+    from collections.abc import Sequence
+except ImportError:
+    from collections import Sequence
+
 # Internal imports
+from virttest import vt_iothread
 from virttest import utils_qemu
 from virttest import arch, storage, data_dir, virt_vm
 from virttest import qemu_storage
@@ -153,6 +159,96 @@ class DevContainer(object):
         self.allow_hotplugged_vm = allow_hotplugged_vm == 'yes'
         self.caps = Capabilities()
         self._probe_capabilities()
+        self.__iothread_manager = None
+        self.__iothread_supported_devices = set()
+
+    def initialize_iothread_manager(self, params, guestcpuinfo):
+        """Initialize iothread manager.
+        :param params: vt params
+        :param guestcpuinfo: Cpuinfo object that stores guest cpu info
+        """
+        iothreads_lst = params.objects("iothreads")
+        iothread_scheme = params.get("iothread_scheme")
+
+        if iothread_scheme == "oto":
+            iothreads_lst = []
+        elif iothread_scheme == "rhv":
+            iothreads_lst = iothreads_lst[:1] or ["iothread0"]
+
+        iothread_props = {"iothread_poll_max_ns": "poll-max-ns"}
+        iothreads = []
+        for iothread in iothreads_lst:
+            iothread_params = params.object_params(iothread)
+            iothread_dict = {
+                iothread_props[prop]: iothread_params[prop]
+                for prop in iothread_props if prop in iothread_params
+            }
+            iothread = qdevices.QIOThread(iothread_id=iothread,
+                                          params=iothread_dict)
+            iothreads.append(iothread)
+
+        scheme_to_manager = {
+            "": vt_iothread.PredefinedManager,
+            "roundrobin": vt_iothread.RoundRobinManager,
+            "oto": vt_iothread.OTOManager,
+            "rhv": vt_iothread.RoundRobinManager,
+        }
+        manager = scheme_to_manager.get(iothread_scheme,
+                                        vt_iothread.PredefinedManager)
+
+        self.insert(iothreads)
+
+        self.__iothread_manager = manager(iothreads)
+
+    def is_dev_iothread_supported(self, device):
+        """Check if dev supports iothread.
+        :param device: device to check
+        :type device: QDevice or string
+        """
+        try:
+            device = device.get_param("driver")
+        except AttributeError:
+            if not isinstance(device, six.string_types):
+                raise TypeError("device: expected string or QDevice")
+        if not device:
+            return False
+        if device in self.__iothread_supported_devices:
+            return True
+        options = "--device %s,\\?" % device
+        out = self.execute_qemu(options)
+        if "iothread" in out:
+            self.__iothread_supported_devices.add(device)
+            return True
+        return False
+
+    def allocate_iothread(self, iothread, device):
+        """
+        Allocate iothread for device to use.
+
+        :param iothread: iothread specified in params
+                         could be:
+                         'auto': allocate iothread based on schems specified by
+                                 'iothread_scheme'.
+                         iothread id: request specific iothread to use.
+        :param device: device object
+        :return: iothread object allocated
+        """
+        if self.is_dev_iothread_supported(device):
+            iothread = self.__iothread_manager.request_iothread(iothread)
+            dev_iothread_parent = {"busid": iothread.iothread_bus.busid}
+            if device.parent_bus:
+                if isinstance(device.parent_bus, Sequence):
+                    device.parent_bus += (dev_iothread_parent,)
+                else:
+                    device.parent_bus = \
+                        (device.parent_bus, dev_iothread_parent)
+            else:
+                device.parent_bus = (dev_iothread_parent,)
+            return iothread
+        else:
+            err_msg = "Device %s(%s) not support iothread" % \
+                (device.get_aid(), device.get_param("driver"))
+            raise TypeError(err_msg)
 
     def _probe_capabilities(self):
         """ Probe capabilities. """
@@ -258,6 +354,9 @@ class DevContainer(object):
                 self.__buses.remove(bus)
             self.__devices.remove(device)   # Remove from list of devices
 
+        if isinstance(device, qdevices.QIOThread):
+            self.__iothread_manager.release_iothread(device)
+
     def wash_the_device_out(self, device):
         """
         Removes any traces of the device from representation.
@@ -320,7 +419,9 @@ class DevContainer(object):
         qdev2 = qdev2.__dict__
         for key, value in six.iteritems(self.__dict__):
             if key in ("_DevContainer__devices", "_DevContainer__buses",
-                       "_DevContainer__state", "caps", "allow_hotplugged_vm"):
+                       "_DevContainer__state", "caps", "allow_hotplugged_vm",
+                       "_DevContainer__iothread_manager",
+                       "_DevContainer__iothread_supported_devices"):
                 continue
             if key not in qdev2 or qdev2[key] != value:
                 return False
@@ -1392,7 +1493,7 @@ class DevContainer(object):
                                    scsiid=None, lun=None, aio=None,
                                    strict_mode=None, media=None, imgfmt=None,
                                    pci_addr=None, scsi_hba=None,
-                                   x_data_plane=None, blk_extra_params=None,
+                                   iothread=None, blk_extra_params=None,
                                    scsi=None, drv_extra_params=None,
                                    num_queues=None, bus_extra_params=None,
                                    force_fmt=None, image_encryption=None,
@@ -1430,13 +1531,14 @@ class DevContainer(object):
         :param media: type of the media (disk, cdrom, ...)
         :param imgfmt: image format (qcow2, raw, ...)
         :param pci_addr: drive pci address ($int)
+        :param iothread: iothread specified
         :param scsi_hba: Custom scsi HBA
         :param num_queues: performace option for virtio-scsi-pci
         :param bus_extra_params: options want to add to virtio-scsi-pci bus
         :param image_encryption: ImageEncryption object for image
         :param image_access: The remote image access information object
         """
-        def define_hbas(qtype, atype, bus, unit, port, qbus, pci_bus,
+        def define_hbas(qtype, atype, bus, unit, port, qbus, pci_bus, iothread,
                         addr_spec=None, num_queues=None,
                         bus_extra_params=None):
             """
@@ -1478,6 +1580,14 @@ class DevContainer(object):
                         dev = qdevices.QDevice(params=bus_params,
                                                parent_bus=pci_bus,
                                                child_bus=qbus(busid=bus_name))
+                    if iothread:
+                        try:
+                            iothread = self.allocate_iothread(iothread, dev)
+                        except TypeError:
+                            pass
+                        else:
+                            if iothread and iothread not in self:
+                                devices.append(iothread)
                     devices.append(dev)
                 bus = _hba % bus
             if qbus == qdevices.QAHCIBus and unit is not None:
@@ -1587,10 +1697,12 @@ class DevContainer(object):
                 # In case we hotplug, lsi wasn't added during the startup hook
                 if arch.ARCH in ('ppc64', 'ppc64le'):
                     _ = define_hbas('SCSI', 'spapr-vscsi', None, None, None,
-                                    qdevices.QSCSIBus, None, [8, 16384])
+                                    qdevices.QSCSIBus, None, iothread,
+                                    addr_spec=[8, 16384])
                 else:
                     _ = define_hbas('SCSI', 'lsi53c895a', None, None, None,
-                                    qdevices.QSCSIBus, pci_bus, [8, 16384])
+                                    qdevices.QSCSIBus, pci_bus, iothread,
+                                    addr_spec=[8, 16384])
                 devices.extend(_[0])
         elif fmt == "ide":
             if bus:
@@ -1600,7 +1712,8 @@ class DevContainer(object):
             dev_parent = {'type': 'IDE', 'atype': 'ide'}
         elif fmt == "ahci":
             devs, bus, dev_parent = define_hbas('IDE', 'ahci', bus, unit, port,
-                                                qdevices.QAHCIBus, pci_bus)
+                                                qdevices.QAHCIBus, pci_bus,
+                                                iothread)
             devices.extend(devs)
         elif fmt.startswith('scsi-'):
             if not scsi_hba:
@@ -1621,7 +1734,8 @@ class DevContainer(object):
                 pci_bus = None
             _, bus, dev_parent = define_hbas('SCSI', scsi_hba, bus, unit, port,
                                              qdevices.QSCSIBus, pci_bus,
-                                             addr_spec, num_queues=num_queues,
+                                             iothread, addr_spec,
+                                             num_queues=num_queues,
                                              bus_extra_params=bus_extra_params)
             devices.extend(_)
         elif fmt in ('usb1', 'usb2', 'usb3'):
@@ -1854,6 +1968,14 @@ class DevContainer(object):
             if bus is not None:
                 devices[-1].set_param('addr', hex(bus))
                 bus = None
+            if iothread:
+                try:
+                    iothread = self.allocate_iothread(iothread, devices[-1])
+                except TypeError:
+                    pass
+                else:
+                    if iothread and iothread not in self:
+                        devices.insert(-2, iothread)
         elif fmt in ('usb1', 'usb2', 'usb3'):
             devices[-1].set_param('driver', 'usb-storage')
             devices[-1].set_param('port', unit)
@@ -1878,10 +2000,6 @@ class DevContainer(object):
         devices[-1].set_param('min_io_size', min_io_size)
         devices[-1].set_param('opt_io_size', opt_io_size)
         devices[-1].set_param('bootindex', bootindex)
-        if x_data_plane in ["yes", "no", "on", "off"]:
-            devices[-1].set_param('x-data-plane', x_data_plane, bool)
-        else:
-            devices[-1].set_param('iothread', x_data_plane)
         if Flags.BLOCKDEV in self.caps:
             if isinstance(devices[-3], qdevices.QBlockdevProtocolHostDevice):
                 self.cache_map[cache]['write-cache'] = None
@@ -1899,7 +2017,6 @@ class DevContainer(object):
                                 blk_extra_params.split(',') if _)
             for key, value in blk_extra_params:
                 devices[-1].set_param(key, value)
-
         return devices
 
     def _get_access_secret_info(self, image_access):
@@ -2001,7 +2118,7 @@ class DevContainer(object):
                                                    "drive_pci_addr"),
                                                scsi_hba,
                                                image_params.get(
-                                                   "x-data-plane"),
+                                                   "image_iothread"),
                                                image_params.get(
                                                    "blk_extra_params"),
                                                image_params.get(
@@ -2243,8 +2360,7 @@ class DevContainer(object):
                                                image_params.get(
                                                    "drive_pci_addr"),
                                                scsi_hba,
-                                               image_params.get(
-                                                   "x-data-plane"),
+                                               None,    # skip iothread
                                                image_params.get(
                                                    "blk_extra_params"),
                                                image_params.get(
