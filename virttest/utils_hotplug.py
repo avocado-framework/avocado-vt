@@ -23,8 +23,8 @@ from virttest.libvirt_xml.devices import memory
 
 def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
                    pg_unit="KiB", tg_node=0, node_mask=0, mem_model="dimm",
-                   lb_size=None, lb_sizeunit="Kib", mem_access=None,
-                   alias=None):
+                   mem_discard=None, alias=None, lb_size=None,
+                   lb_sizeunit="Kib", mem_access=None):
     """
     Create memory device xml.
     Parameters:
@@ -36,6 +36,7 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
     :param tg_node: Target node to hotplug.
     :param node_mask: Source node for hotplug.
     :param mem_model: Memory Model, Default="dimm".
+    :param mem_discard: discard, Default="no".
     :param lb_size: Label size in Target
     :param lb_sizeunit: Label size unit, Default=KiB
     :param mem_access: Value of attrib 'access' of memory
@@ -62,6 +63,8 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
         src_xml.pagesize_unit = pg_unit
         src_xml.nodemask = node_mask
         mem_xml.source = src_xml
+    if mem_discard:
+        mem_xml.mem_discard = mem_discard
     if mem_addr:
         mem_xml.address = mem_xml.new_mem_address(
             **{"attrs": mem_addr})
