@@ -76,6 +76,8 @@ class VirtTestOptionsProcess(object):
         # common section
         self.options.vt_data_dir = settings.get_value(
             'vt.common', 'data_dir', default=None)
+        self.options.vt_tmp_dir = settings.get_value(
+            'vt.common', 'tmp_dir', default='')
         self.options.vt_type_specific = settings.get_value(
             'vt.common', 'type_specific_only', key_type=bool,
             default=False)
