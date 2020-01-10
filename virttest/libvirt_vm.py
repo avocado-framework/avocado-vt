@@ -2137,6 +2137,46 @@ class VM(virt_vm.BaseVM):
                                       ignore_status=ignore_status,
                                       debug=debug)
 
+    def attach_device(self, xml_file, options="", ensure_boot=False, debug=False):
+        """
+        Attach a device to VM.
+
+        :param xml_file: The device xml for attach.
+        :param options: The options for device attach, which could be '--live',
+                '--config', '--current', '--persistent' or any combinations.
+                Default value is "" for live hotplug.
+        :param ensure_boot: Make sure the device attach happens after vm has
+                booted. That is necessary when checking the function of
+                hotplugged device.
+        :param debug: Open or close debug information.
+        """
+        if (ensure_boot):
+            if (not self.is_alive()):
+                self.start()
+            self.wait_for_login()
+        return virsh.attach_device(self.name, filearg=xml_file,
+                                   flagstr=options, debug=debug)
+
+    def detach_device(self, xml_file, options="", ensure_boot=False, debug=True):
+        """
+        Detach a device from VM.
+
+        :param: xml_file: The device xml for detach.
+        :param: options: The options for device detach, which could be '--live'
+                '--config', '--current', '--persistent' or any combinations.
+                Default value is "" for live hotunplug.
+        :param ensure_boot: Make sure the device detach happens after vm has
+                booted. That is necessary when checking the function of
+                hotunplugged device.
+        :param debug: Open or close debug information.
+        """
+        if (ensure_boot):
+            if (not self.is_alive()):
+                self.start()
+            self.wait_for_login()
+        return virsh.detach_device(self.name, filearg=xml_file,
+                                   flagstr=options, debug=debug)
+
     def destroy(self, gracefully=True, free_mac_addresses=True):
         """
         Destroy the VM.
