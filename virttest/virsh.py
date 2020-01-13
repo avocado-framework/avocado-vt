@@ -4546,6 +4546,21 @@ def iothreadpin(name, thread_id, cpuset, options=None, **dargs):
     return command(cmd, **dargs)
 
 
+def iothreadset(name, thread_id, values, options="", **dargs):
+    """
+    Modifies an existing iothread of the domain using the specified iothread_id
+
+    :param name: domain name
+    :param thread_id: domain iothread ID
+    :param values: the values to be set
+    :param options: options may be live and current
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult instance
+    """
+    cmd = "iothreadset %s %s %s %s" % (name, thread_id, values, options)
+    return command(cmd, **dargs)
+
+
 def domrename(domain, new_name, options="", **dargs):
     """
     Rename an inactive domain.
