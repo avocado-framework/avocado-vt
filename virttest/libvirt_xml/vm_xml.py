@@ -2230,17 +2230,21 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
 
     Elements:
         vcpupins:             list of dict - vcpu, cpuset
+        iothreadscheds:       list of dict - iothreads, scheduler, priority
         emulatorpin:          attribute    - cpuset
         shares:               int
         period:               int
         quota:                int
         emulator_period:      int
         emulator_quota:       int
+        iothread_period:      int
+        iothread_quota:       int
     """
 
     __slots__ = ('vcpupins', 'emulatorpin', 'shares', 'period', 'quota',
                  'emulator_period', 'emulator_quota', 'iothreadpins',
-                 'cachetune', 'memorytune')
+                 'cachetune', 'memorytune', 'iothreadscheds',
+                 'iothread_period', 'iothread_quota')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementList('vcpupins', self, parent_xpath='/',
@@ -2251,9 +2255,12 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
         accessors.XMLElementList('iothreadpins', self, parent_xpath='/',
                                  marshal_from=self.marshal_from_iothreadpins,
                                  marshal_to=self.marshal_to_iothreadpins)
+        accessors.XMLElementList('iothreadscheds', self, parent_xpath='/',
+                                 marshal_from=self.marshal_from_iothreadscheds,
+                                 marshal_to=self.marshal_to_iothreadscheds)
         for slot in self.__all_slots__:
             if slot in ('shares', 'period', 'quota', 'emulator_period',
-                        'emulator_quota'):
+                        'emulator_quota', 'iothread_period', 'iothread_quota'):
                 accessors.XMLElementInt(slot, self, parent_xpath='/',
                                         tag_name=slot)
         super(VMCPUTuneXML, self).__init__(virsh_instance=virsh_instance)
@@ -2371,6 +2378,30 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
         del index
         del libvirtxml
         if tag != 'iothreadpin':
+            return None
+        return dict(attr_dict)
+
+    @staticmethod
+    def marshal_from_iothreadscheds(item, index, libvirtxml):
+        """
+        Convert a dict to iothreadsched tag and attributes.
+        """
+        del index
+        del libvirtxml
+        if not isinstance(item, dict):
+            raise xcepts.LibvirtXMLError("Expected a dictionary of host "
+                                         "attributes, not a %s"
+                                         % str(item))
+        return ('iothreadsched', dict(item))
+
+    @staticmethod
+    def marshal_to_iothreadscheds(tag, attr_dict, index, libvirtxml):
+        """
+        Convert a iothreadsched tag and attributes to a dict.
+        """
+        del index
+        del libvirtxml
+        if tag != 'iothreadsched':
             return None
         return dict(attr_dict)
 
