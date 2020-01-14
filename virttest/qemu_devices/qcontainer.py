@@ -2246,6 +2246,8 @@ class DevContainer(object):
         if backend in ['unix_socket', 'file', 'pipe', 'serial',
                        'tty', 'parallel', 'parport']:
             chardev_param.update({'path': file_name})
+            if (backend == 'pipe' and params.get('auto_create_pipe', 'yes') == "yes"):
+                process.system("mkfifo %s" % file_name)
         elif backend in ['udp', 'tcp_socket']:
             chardev_param.update(
                 {'host': params['chardev_host'],
