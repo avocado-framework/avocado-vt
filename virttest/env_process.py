@@ -908,10 +908,16 @@ def preprocess(test, params, env):
         params["image_raw_device"] = "yes"
 
     if params.get("storage_type") == "lvm":
-        lvmdev = qemu_storage.LVMdev(params, base_dir, "lvm")
-        params["image_name"] = lvmdev.setup()
-        params["image_raw_device"] = "yes"
-        env.register_lvmdev("lvm_%s" % params["main_vm"], lvmdev)
+        for image in params["images"].split():
+            image_params = params.object_params(image)
+            if image_params.get("enable_lvm", "no") == "no":
+                continue
+            lvmdev = qemu_storage.LVMdev(image_params, base_dir, image)
+            lv_name, lv_path = lvmdev.setup()
+            params["image_name_%s" % image] = lv_path
+            params["image_raw_device_%s" % image] = "yes"
+            params["lv_name_%s" % image] = lv_path
+            env.register_lvmdev("lvm_%s" % image, lvmdev)
 
     if params.get("storage_type") == "nfs":
         selinux_local = params.get('set_sebool_local', 'yes') == "yes"
@@ -1636,13 +1642,15 @@ def postprocess(test, params, env):
             logging.error(details)
 
     if params.get("storage_type") == "lvm":
-        try:
-            lvmdev = env.get_lvmdev("lvm_%s" % params["main_vm"])
-            lvmdev.cleanup()
-        except Exception as details:
-            err += "\nLVM cleanup: %s" % str(details).replace('\\n', '\n  ')
-            logging.error(details)
-        env.unregister_lvmdev("lvm_%s" % params["main_vm"])
+        for image in params["images"].split():
+            try:
+                lvmdev = env.get_lvmdev(image)
+                if lvmdev:
+                    lvmdev.cleanup()
+            except Exception as details:
+                err += "\nLVM cleanup: %s" % str(details).replace('\\n', '\n  ')
+                logging.error(details)
+            env.unregister_lvmdev("lvm_%s" % image)
 
     if params.get("storage_type") == "nfs":
         try:

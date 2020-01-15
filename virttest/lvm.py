@@ -377,7 +377,10 @@ class LVM(object):
         Create prefix with image_name;
         """
         black_str = re.compile(r"[-./]")
-        return black_str.sub("_", os.path.basename(params["image_name"]))
+        image_name = params["image_name"]
+        image_format = params.get("image_format", "qcow2")
+        return black_str.sub("_", "%s_%s" % (os.path.basename(image_name),
+                                             image_format))
 
     def __format_params(self, params):
         """
@@ -579,11 +582,11 @@ class LVM(object):
         """
         Main function to setup a lvm environments;
 
-        :return: LogicalVolume path
+        :return: lv name and lv path
         """
         self.rescan()
         lv = self.setup_lv()
-        return lv.get_attr("lv_path")
+        return (lv.get_attr("lv_name"), lv.get_attr("lv_path"))
 
     def cleanup(self):
         """
@@ -688,7 +691,7 @@ class EmulatedLVM(LVM):
         """
         Main function to setup a lvm environments;
 
-        :return: LogicalVolume path
+        :return: lv name and lv path
         """
         self.rescan()
         lv = self.setup_lv()
@@ -696,7 +699,7 @@ class EmulatedLVM(LVM):
             lv.display()
             raise exceptions.TestError("logical volume exists but is not a " +
                                        "emulated logical device")
-        return lv.get_attr("lv_path")
+        return (lv.get_attr("lv_name"), lv.get_attr("lv_path"))
 
     def cleanup(self):
         """
