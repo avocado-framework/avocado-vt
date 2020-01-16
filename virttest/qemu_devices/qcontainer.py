@@ -979,6 +979,11 @@ class DevContainer(object):
         else:
             root_port_type = "ioh3420"
 
+        if self.has_device('pcie-pci-bridge'):
+            pci_bridge_type = 'pcie-pci-bridge'
+        else:
+            pci_bridge_type = 'pci-bridge'
+
         def machine_q35(cmd=False):
             """
             Q35 + ICH9
@@ -1018,6 +1023,28 @@ class DevContainer(object):
                 devices.append(qdevices.QStringDevice('fdc',
                                                       child_bus=qdevices.QOldFloppyBus('floppy'))
                                )
+
+            # add default pcie root port plugging pcie device
+            port_name = '%s-0' % root_port_type
+            port_params = {
+                'type': root_port_type,
+                # reserve slot 0x0 for plugging in  pci bridge
+                'reserved_slots': '0x0'}
+            root_port = self.pcic_by_params(port_name, port_params)
+            if root_port_type == 'pcie-root-port':
+                root_port.set_param('multifunction', 'on')
+            devices.append(root_port)
+
+            # add pci bridge for plugging in legace pci device
+            bridge_name = '%s-0' % pci_bridge_type
+            bridge_parent_bus = {'aobject': root_port.get_qid()}
+            bridge_params = {'type': pci_bridge_type}
+            pci_bridge = self.pcic_by_params(bridge_name,
+                                             bridge_params,
+                                             bridge_parent_bus)
+            pci_bridge.set_param('addr', '0x0')
+            devices.append(pci_bridge)
+
             return devices
 
         def machine_i440FX(cmd=False):
@@ -2372,7 +2399,7 @@ class DevContainer(object):
                                                    "bus_extra_params"),
                                                image_params.get("force_drive_format"))
 
-    def pcic_by_params(self, name, params):
+    def pcic_by_params(self, name, params, parent_bus=None):
         """
         Creates pci controller/switch/... based on params
 
@@ -2389,7 +2416,10 @@ class DevContainer(object):
             bus_type = 'PCIE'
         else:
             bus_type = 'PCI'
-        parent_bus = [{'aobject': params.get('pci_bus', 'pci.0')}]
+        if not parent_bus:
+            parent_bus = [{'aobject': params.get('pci_bus', 'pci.0')}]
+        elif not isinstance(parent_bus, (list, tuple)):
+            parent_bus = [parent_bus]
         if driver == 'x3130':
             bus = qdevices.QPCISwitchBus(
                 name, bus_type, 'xio3130-downstream', name)
@@ -2403,8 +2433,15 @@ class DevContainer(object):
                 bus_length = 20
                 bus_first_port = 1
             elif driver in ('pcie-root-port', 'ioh3420'):
-                bus_length = 1  # multifunction off by default
+                bus_length = 1
                 bus_first_port = 0
+                parent_bus.append({'busid': '_PCI_CHASSIS'})
+            elif driver == 'pcie-pci-bridge':
+                params['reserved_slots'] = '0x0'
+                # Unsupported PCI slot 0 for standard hotplug controller.
+                # Valid slots are between 1 and 31
+                bus_length = 32
+                bus_first_port = 1
             else:   # addr = 0x0-0x1f
                 bus_length = 32
                 bus_first_port = 0
