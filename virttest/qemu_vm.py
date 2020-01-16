@@ -1322,15 +1322,12 @@ class VM(virt_vm.BaseVM):
             if dtype and "%s_pci_bus" % dtype in params:
                 return {"aobject": params["%s_pci_bus" % dtype]}
             if machine_type == "q35" and not pcie:
-                pcic = "pci-bridge"
-                devices = [
-                    d for d in devices if isinstance(
-                        d, QDevice) and d.get_param("driver") == pcic]
-                try:
-                    idx = random.randint(0, (len(devices) - 1))
-                    return {"aobject": devices[idx].get_qid()}
-                except (IndexError, ValueError):
-                    pass
+                # for legace pic devie(eg. rtl8139, e1000)
+                if devices.has_device('pcie-pci-bridge'):
+                    bridge_type = 'pcie-pci-bridge'
+                else:
+                    bridge_type = 'pci-bridge'
+                return {'aobject': '%s-0' % bridge_type}
             return {'aobject': params.get('pci_bus', 'pci.0')}
 
         def add_pci_controllers(devices, params):
