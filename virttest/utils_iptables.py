@@ -7,7 +7,6 @@ from avocado.utils import process
 from avocado.core import exceptions
 
 from virttest import remote
-from virttest.compat_52lts import decode_to_text
 
 
 class Iptables(object):
@@ -44,8 +43,8 @@ class Iptables(object):
                                            "remotely %s" % iptable_check_cmd)
         else:
             try:
-                cmd_output = decode_to_text(process.system_output(iptable_check_cmd,
-                                                                  shell=True))
+                cmd_output = process.run(iptable_check_cmd,
+                                         shell=True).stdout_text
                 exist_rules = cmd_output.strip().split('\n')
             except process.CmdError as info:
                 raise exceptions.TestError("iptables fails for command "
@@ -76,7 +75,7 @@ class Iptables(object):
                     logging.debug("iptable command success %s", command)
             else:
                 try:
-                    cmd_output = decode_to_text(process.system_output(command, shell=True))
+                    cmd_output = process.run(command, shell=True).stdout_text
                     logging.debug("iptable command success %s", command)
                 except process.CmdError as info:
                     raise exceptions.TestError("iptables fails for command "

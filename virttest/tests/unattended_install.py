@@ -34,7 +34,6 @@ from virttest import funcatexit
 from virttest import storage
 from virttest import error_context
 from virttest import qemu_storage
-from virttest.compat_52lts import decode_to_text
 
 
 # Whether to print all shell commands called
@@ -959,18 +958,18 @@ class UnattendedInstallConfig(object):
             kernel_basename = os.path.basename(self.kernel)
             initrd_basename = os.path.basename(self.initrd)
             sha1sum_kernel_cmd = 'sha1sum %s' % kernel_basename
-            sha1sum_kernel_output = decode_to_text(process.system_output(sha1sum_kernel_cmd,
-                                                                         ignore_status=True,
-                                                                         verbose=DEBUG))
+            sha1sum_kernel_output = process.run(sha1sum_kernel_cmd,
+                                                ignore_status=True,
+                                                verbose=DEBUG).stdout_text
             try:
                 sha1sum_kernel = sha1sum_kernel_output.split()[0]
             except IndexError:
                 sha1sum_kernel = ''
 
             sha1sum_initrd_cmd = 'sha1sum %s' % initrd_basename
-            sha1sum_initrd_output = decode_to_text(process.system_output(sha1sum_initrd_cmd,
-                                                                         ignore_status=True,
-                                                                         verbose=DEBUG))
+            sha1sum_initrd_output = process.run(sha1sum_initrd_cmd,
+                                                ignore_status=True,
+                                                verbose=DEBUG).stdout_text
             try:
                 sha1sum_initrd = sha1sum_initrd_output.split()[0]
             except IndexError:

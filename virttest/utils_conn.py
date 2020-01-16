@@ -15,7 +15,6 @@ from virttest import propcan, remote, utils_libvirtd
 from virttest import data_dir
 from virttest import utils_package
 from virttest import libvirt_version
-from virttest.compat_52lts import results_stderr_52lts
 
 
 class ConnectionError(Exception):
@@ -1442,7 +1441,7 @@ def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool",
     cmd = "%s --generate-privkey > %s" % (certtool, clientkey_path)
     CmdResult = process.run(cmd, ignore_status=True, shell=True)
     if CmdResult.exit_status:
-        raise ConnPrivKeyError(clientkey_path, results_stderr_52lts(CmdResult))
+        raise ConnPrivKeyError(clientkey_path, CmdResult.stderr_text)
 
     # prepare a info file to build clientcert.
     clientinfo_file = open(clientinfo_path, "w")
@@ -1461,7 +1460,7 @@ def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool",
             cakey_path, clientinfo_path, clientcert_path))
     CmdResult = process.run(cmd, ignore_status=True)
     if CmdResult.exit_status:
-        raise ConnCertError(clientinfo_path, results_stderr_52lts(CmdResult))
+        raise ConnCertError(clientinfo_path, CmdResult.stderr_text)
 
 
 def build_server_key(tmp_dir, ca_cakey_path=None,
@@ -1505,7 +1504,7 @@ def build_server_key(tmp_dir, ca_cakey_path=None,
     cmd = "%s --generate-privkey > %s" % (certtool, serverkey_path)
     cmd_result = process.run(cmd, ignore_status=True, shell=True)
     if cmd_result.exit_status:
-        raise ConnPrivKeyError(serverkey_path, results_stderr_52lts(cmd_result))
+        raise ConnPrivKeyError(serverkey_path, cmd_result.stderr_text)
 
     # prepare a info file to build servercert and serverkey
     serverinfo_file = open(serverinfo_path, "w")
@@ -1524,7 +1523,7 @@ def build_server_key(tmp_dir, ca_cakey_path=None,
             cakey_path, serverinfo_path, servercert_path))
     CmdResult = process.run(cmd, ignore_status=True)
     if CmdResult.exit_status:
-        raise ConnCertError(serverinfo_path, results_stderr_52lts(CmdResult))
+        raise ConnCertError(serverinfo_path, CmdResult.stderr_text)
 
 
 def build_CA(tmp_dir, cn="AUTOTEST.VIRT", ca_cakey_path=None,
@@ -1558,7 +1557,7 @@ def build_CA(tmp_dir, cn="AUTOTEST.VIRT", ca_cakey_path=None,
         cmd = "%s --generate-privkey > %s " % (certtool, cakey_path)
         cmd_result = process.run(cmd, ignore_status=True, timeout=10, shell=True)
         if cmd_result.exit_status:
-            raise ConnPrivKeyError(cakey_path, results_stderr_52lts(cmd_result))
+            raise ConnPrivKeyError(cakey_path, cmd_result.stderr_text)
     # prepare a info file to build certificate file
     cainfo_file = open(cainfo_path, "w")
     cainfo_file.write("cn = %s\n" % cn)
@@ -1572,7 +1571,7 @@ def build_CA(tmp_dir, cn="AUTOTEST.VIRT", ca_cakey_path=None,
            (certtool, cakey_path, cainfo_path, cacert_path))
     CmdResult = process.run(cmd, ignore_status=True)
     if CmdResult.exit_status:
-        raise ConnCertError(cainfo_path, results_stderr_52lts(CmdResult))
+        raise ConnCertError(cainfo_path, CmdResult.stderr_text)
 
 
 class UNIXConnection(ConnectionBase):

@@ -18,7 +18,6 @@ except ImportError:
 from avocado.utils import process
 
 from virttest import error_context
-from virttest.compat_52lts import decode_to_text
 from virttest.qemu_monitor import Monitor, MonitorError
 
 
@@ -543,7 +542,7 @@ class QemuAgent(Monitor):
 
         if crypted:
             openssl_cmd = "openssl passwd -crypt %s" % password
-            password = decode_to_text(process.system_output(openssl_cmd)).strip('\n')
+            password = process.run(openssl_cmd)).stdout_text.strip('\n')
 
         args = {"crypted": crypted, "username": username,
                 "password": base64.b64encode(password.encode()).decode()}

@@ -24,8 +24,6 @@ from avocado.utils.service import SpecificServiceManager
 
 from virttest import error_context
 from virttest import utils_numeric
-from virttest.compat_52lts import decode_to_text
-from virttest.compat_52lts import results_stdout_52lts
 
 PARTITION_TABLE_TYPE_MBR = "msdos"
 PARTITION_TABLE_TYPE_GPT = "gpt"
@@ -86,7 +84,7 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False,
     if session:
         mount_result = session.cmd_output_safe(mount_list_cmd)
     else:
-        mount_result = decode_to_text(process.system_output(mount_list_cmd, shell=True))
+        mount_result = process.run(mount_list_cmd, shell=True).stdout_text
     if verbose:
         logging.debug("/proc/mounts contents:\n%s", mount_result)
 
@@ -1014,7 +1012,7 @@ def get_parts_list(session=None):
     if session:
         _, parts_out = session.cmd_status_output(parts_cmd)
     else:
-        parts_out = results_stdout_52lts(process.run(parts_cmd))
+        parts_out = process.run(parts_cmd).stdout_text
     parts = []
     if parts_out:
         for line in parts_out.rsplit("\n"):

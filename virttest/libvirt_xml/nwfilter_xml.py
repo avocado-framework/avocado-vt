@@ -5,7 +5,6 @@ http://libvirt.org/formatnwfilter.html
 
 from virttest.libvirt_xml import base, xcepts, accessors
 from virttest.libvirt_xml.nwfilter_protocols import librarian
-from virttest.compat_52lts import results_stdout_52lts
 
 
 class NwfilterRulesProtocol(list):
@@ -310,7 +309,7 @@ class NwfilterXML(NwfilterXMLBase):
         """
         filter_xml = NwfilterXML(virsh_instance=virsh_instance)
         result = virsh_instance.nwfilter_dumpxml(uuid, options=options)
-        filter_xml['xml'] = results_stdout_52lts(result).strip()
+        filter_xml['xml'] = result.stdout_text.strip()
 
         return filter_xml
 

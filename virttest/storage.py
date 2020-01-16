@@ -24,7 +24,6 @@ from virttest import gluster
 from virttest import lvm
 from virttest import ceph
 from virttest import data_dir
-from virttest.compat_52lts import decode_to_text
 
 
 def preprocess_images(bindir, params, env):
@@ -224,8 +223,8 @@ def get_image_filename_filesytem(params, root_dir, basename=False):
     if indirect_image_select:
         re_name = image_name
         indirect_image_select = int(indirect_image_select)
-        matching_images = decode_to_text(process.system_output("ls -1d %s" % re_name,
-                                                               shell=True))
+        matching_images = process.run("ls -1d %s" % re_name,
+                                      shell=True).stdout_text
         matching_images = sorted(matching_images.split('\n'),
                                  key=functools.cmp_to_key(sort_cmp))
         if matching_images[-1] == '':

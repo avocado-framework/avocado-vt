@@ -7,7 +7,6 @@ import six
 
 from virttest import xml_utils
 from virttest.libvirt_xml import base, accessors, xcepts
-from virttest.compat_52lts import results_stdout_52lts
 
 
 class DomCapabilityXML(base.LibvirtXMLBase):
@@ -34,7 +33,7 @@ class DomCapabilityXML(base.LibvirtXMLBase):
                                tag_name='vcpu', attribute='max')
         super(DomCapabilityXML, self).__init__(virsh_instance)
         result = self.__dict_get__('virsh').domcapabilities()
-        self['xml'] = results_stdout_52lts(result).strip()
+        self['xml'] = result.stdout_text.strip()
 
     def get_additional_feature_list(self, cpu_mode_name):
         """

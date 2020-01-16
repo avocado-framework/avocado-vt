@@ -7,7 +7,6 @@ import os
 import unittest
 
 from avocado.utils import process
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 basedir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
@@ -34,8 +33,8 @@ class DocBuildTest(unittest.TestCase):
         doc_dir = os.path.join(basedir, 'docs')
         process.run('make -C %s clean' % doc_dir)
         result = process.run('make -C %s html' % doc_dir)
-        stdout = results_stdout_52lts(result).splitlines()
-        stderr = results_stderr_52lts(result).splitlines()
+        stdout = result.stdout_text.splitlines()
+        stderr = result.stderr_text.splitlines()
         output_lines = stdout + stderr
         for line in output_lines:
             ignore_msg = False

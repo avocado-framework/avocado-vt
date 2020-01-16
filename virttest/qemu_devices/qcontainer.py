@@ -36,7 +36,6 @@ from virttest.qemu_devices import qdevices
 from virttest.qemu_devices.utils import (DeviceError, DeviceHotplugError,
                                          DeviceInsertError, DeviceRemoveError,
                                          DeviceUnplugError, none_or_int)
-from virttest.compat_52lts import results_stdout_52lts, decode_to_text
 from virttest.utils_params import Params
 from virttest.qemu_capabilities import Flags, Capabilities
 from virttest.utils_version import VersionInterval
@@ -82,10 +81,10 @@ class DevContainer(object):
         """
         def get_hmp_cmds(qemu_binary):
             """ :return: list of human monitor commands """
-            _ = decode_to_text(process.system_output("echo -e 'help\nquit' | %s -monitor "
-                                                     "stdio -vnc none -S" % qemu_binary,
-                                                     timeout=10, ignore_status=True,
-                                                     shell=True, verbose=False))
+            _ = process.run("echo -e 'help\nquit' | %s -monitor "
+                            "stdio -vnc none -S" % qemu_binary,
+                            timeout=10, ignore_status=True,
+                            shell=True, verbose=False).stdout_text
             _ = re.findall(r'^([^()\|\[\sA-Z]+\|?\w+)', _, re.M)
             hmp_cmds = []
             for cmd in _:
@@ -100,24 +99,24 @@ class DevContainer(object):
             """ :return: list of qmp commands """
             cmds = None
             if not workaround_qemu_qmp_crash:
-                cmds = decode_to_text(process.system_output('echo -e \''
-                                                            '{ "execute": "qmp_capabilities" }\n'
-                                                            '{ "execute": "query-commands", "id": "RAND91" }\n'
-                                                            '{ "execute": "quit" }\''
-                                                            '| %s -qmp stdio -vnc none -S | grep return |'
-                                                            ' grep RAND91' % qemu_binary, timeout=10,
-                                                            ignore_status=True, shell=True,
-                                                            verbose=False)).splitlines()
+                cmds = process.run('echo -e \''
+                                   '{ "execute": "qmp_capabilities" }\n'
+                                   '{ "execute": "query-commands", "id": "RAND91" }\n'
+                                   '{ "execute": "quit" }\''
+                                   '| %s -qmp stdio -vnc none -S | grep return |'
+                                   ' grep RAND91' % qemu_binary, timeout=10,
+                                   ignore_status=True, shell=True,
+                                   verbose=False).stdout_text.splitlines()
             if not cmds:
                 # Some qemu versions crashes when qmp used too early; add sleep
-                cmds = decode_to_text(process.system_output('echo -e \''
-                                                            '{ "execute": "qmp_capabilities" }\n'
-                                                            '{ "execute": "query-commands", "id": "RAND91" }\n'
-                                                            '{ "execute": "quit" }\' | (sleep 1; cat )'
-                                                            '| %s -qmp stdio -vnc none -S | grep return |'
-                                                            ' grep RAND91' % qemu_binary, timeout=10,
-                                                            ignore_status=True, shell=True,
-                                                            verbose=False)).splitlines()
+                cmds = process.run('echo -e \''
+                                   '{ "execute": "qmp_capabilities" }\n'
+                                   '{ "execute": "query-commands", "id": "RAND91" }\n'
+                                   '{ "execute": "quit" }\' | (sleep 1; cat )'
+                                   '| %s -qmp stdio -vnc none -S | grep return |'
+                                   ' grep RAND91' % qemu_binary, timeout=10,
+                                   ignore_status=True, shell=True,
+                                   verbose=False)stdout_text.splitlines()
             if cmds:
                 cmds = re.findall(r'{\s*"name"\s*:\s*"([^"]+)"\s*}', cmds[0])
             if cmds:    # If no mathes, return None
@@ -144,11 +143,11 @@ class DevContainer(object):
         # escape the '?' otherwise it will fail if we have a single-char
         # filename in cwd
         self.__device_help = self.execute_qemu("-device \? 2>&1", 10)
-        self.__machine_types = decode_to_text(process.system_output("%s -M \?" % qemu_binary,
-                                                                    timeout=10,
-                                                                    ignore_status=True,
-                                                                    shell=True,
-                                                                    verbose=False))
+        self.__machine_types = process.run("%s -M \?" % qemu_binary,
+                                           timeout=10,
+                                           ignore_status=True,
+                                           shell=True,
+                                           verbose=False).stdout_text
         self.__hmp_cmds = get_hmp_cmds(basic_qemu_cmd)
         self.__qmp_cmds = get_qmp_cmds(basic_qemu_cmd,
                                        workaround_qemu_qmp_crash == 'always')
@@ -602,7 +601,7 @@ class DevContainer(object):
                                  ignore_status=True,
                                  shell=True,
                                  verbose=False)
-            self.__execute_qemu_out = results_stdout_52lts(result)
+            self.__execute_qemu_out = result.stdout_text
             self.__execute_qemu_last = options
         return self.__execute_qemu_out
 

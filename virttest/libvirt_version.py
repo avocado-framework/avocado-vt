@@ -6,7 +6,7 @@ import re
 import logging
 
 from avocado.utils import process
-from virttest.compat_52lts import decode_to_text
+from avocado.utils.astring import to_text
 
 
 def version_compare(major, minor, update, session=None):
@@ -36,7 +36,7 @@ def version_compare(major, minor, update, session=None):
     try:
         regex = r'[Uu]sing\s*[Ll]ibrary:\s*[Ll]ibvirt\s*'
         regex += r'(\d+)\.(\d+)\.(\d+)'
-        lines = decode_to_text(func("virsh version")).splitlines()
+        lines = to_text(func("virsh version")).splitlines()
         for line in lines:
             mobj = re.search(regex, line)
             if bool(mobj):

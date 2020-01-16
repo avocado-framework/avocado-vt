@@ -15,7 +15,6 @@ from avocado.utils import process
 
 from virttest import utils_numeric
 from virttest import error_context
-from virttest.compat_52lts import decode_to_text
 
 
 class CephError(Exception):
@@ -109,8 +108,8 @@ def rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name,
     opts = m_opt + ' ' + c_opt
     keyring = '--keyring %s' % keyfile if keyfile else ''
     cmd = cmd.format(opts=opts, pool=rbd_pool_name, keyring=keyring)
-    output = decode_to_text(process.system_output(cmd, ignore_status=True,
-                                                  verbose=True))
+    output = process.run(cmd, ignore_status=True,
+                         verbose=True).stdout_text
 
     logging.debug("Response from rbd ls command is: %s" % output)
 
@@ -167,7 +166,7 @@ def rbd_image_map(ceph_monitor, rbd_pool_name, rbd_image_name):
     """
     cmd = "rbd map %s --pool %s -m %s" % (rbd_image_name, rbd_pool_name,
                                           ceph_monitor)
-    output = decode_to_text(process.system_output(cmd, verbose=True))
+    output = process.system_output(cmd, verbose=True).stdout_text
     if os.path.exist(os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)):
         return os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)
     else:
@@ -183,7 +182,7 @@ def rbd_image_unmap(rbd_pool_name, rbd_image_name):
     :params rbd_image_name: The name of rbd image
     """
     cmd = "rbd unmap /dev/rbd/%s/%s" % (rbd_pool_name, rbd_image_name)
-    output = decode_to_text(process.system_output(cmd, verbose=True))
+    output = process.system_output(cmd, verbose=True).stdout_text
     if os.path.exist(os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)):
         logging.debug("Failed to unmap image from local: %s" % output)
 

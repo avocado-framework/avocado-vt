@@ -21,7 +21,6 @@ from virttest import remote
 from virttest import utils_misc
 from virttest import utils_net
 from virttest import error_context
-from virttest.compat_52lts import decode_to_text
 
 
 class GlusterError(Exception):
@@ -44,12 +43,12 @@ def glusterd_start():
     Check for glusterd status and start it
     """
     cmd = "service glusterd status"
-    output = decode_to_text(process.system_output(cmd, ignore_status=True))
+    output = process.run(cmd, ignore_status=True).stdout_text
     # The blank before 'active' makes a distinction with 'inactive'
     if ' active' not in output or 'running' not in output:
         cmd = "service glusterd start"
         error_context.context("Starting gluster dameon failed")
-        output = decode_to_text(process.system_output(cmd))
+        output = process.run(cmd).stdout_text
 
 
 @error_context.context_aware

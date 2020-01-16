@@ -22,7 +22,6 @@ from avocado.utils import process
 from six.moves import xrange
 
 from virttest import data_dir
-from virttest.compat_52lts import decode_to_text
 
 SOCKET_SIZE = 2048
 
@@ -228,8 +227,8 @@ class GuestWorker(object):
         timeout = 10
         guest_script_src = os.path.join(data_dir.get_shared_dir(), 'scripts',
                                         'virtio_console_guest.py')
-        script_size = decode_to_text(process.system_output("du -b %s | cut -f1" %
-                                                           guest_script_src, shell=True)).strip()
+        script_size = process.run("du -b %s | cut -f1" % guest_script_src,
+                                  shell=True).stdout_text.strip()
         script_size_guest = self.session.cmd_output(cmd_guest_size).strip()
         if (script_size != script_size_guest or
                 self.session.cmd_status(cmd_already_compiled_chck)):

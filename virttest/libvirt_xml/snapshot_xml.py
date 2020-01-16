@@ -7,7 +7,6 @@ from virttest import xml_utils
 from virttest.libvirt_xml import base, accessors
 from virttest.libvirt_xml.devices.disk import Disk
 from virttest.libvirt_xml import xcepts
-from virttest.compat_52lts import results_stdout_52lts
 
 
 class SnapshotXMLBase(base.LibvirtXMLBase):
@@ -83,7 +82,7 @@ class SnapshotXML(SnapshotXMLBase):
         """
         snapshot_xml = SnapshotXML(virsh_instance=virsh_instance)
         result = virsh_instance.snapshot_dumpxml(name, snap_name)
-        snapshot_xml['xml'] = results_stdout_52lts(result).strip()
+        snapshot_xml['xml'] = result.stdout_text.strip()
 
         return snapshot_xml
 

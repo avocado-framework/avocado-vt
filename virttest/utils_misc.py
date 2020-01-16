@@ -53,6 +53,7 @@ from avocado.utils import download
 from avocado.utils import linux_modules
 from avocado.utils import memory
 from avocado.utils.astring import string_safe_encode
+from avocado.utils.astring import to_text
 # Symlink avocado implementation of process functions
 from avocado.utils.process import CmdResult
 from avocado.utils.process import pid_exists  # pylint: disable=W0611
@@ -75,7 +76,7 @@ from virttest import kernel_interface
 from virttest.staging import utils_koji
 from virttest.staging import service
 from virttest.xml_utils import XMLTreeFile
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
+
 
 import six
 from six.moves import xrange
@@ -152,9 +153,11 @@ class InterruptedThread(threading.Thread):
 def cmd_status_output(cmd, shell=False, ignore_status=True, verbose=True,
                       timeout=60, session=None):
     """
-    common wrapper method of `def cmd_status_output()` that could
-    support 52lts in local system and with ShellSession object for
-    VM/remote host
+    common wrapper method of `def cmd_status_output()` with
+    ShellSession object for VM/remote host
+
+    NOTE: this function was previously concerned with 52LTS compatibility,
+    consider its removal.
 
     :param cmd: command line to be run
     :param shell: Whether to run the command on a subshell
@@ -162,7 +165,7 @@ def cmd_status_output(cmd, shell=False, ignore_status=True, verbose=True,
     :param verbose: Whether to log the command run and stdout/stderr
     :param timeout: Time limit in seconds to wait for cmd to complete
     :param session: ShellSession object of VM/remote host
-    :return: command status and output compatible with 52LTS
+    :return: command status and output
     """
     status = None
     stdout = None
@@ -174,10 +177,10 @@ def cmd_status_output(cmd, shell=False, ignore_status=True, verbose=True,
             cmd_obj = process.run(cmd, shell=shell, ignore_status=ignore_status,
                                   verbose=verbose, timeout=timeout)
             status = cmd_obj.exit_status
-            stdout = results_stdout_52lts(cmd_obj).strip()
+            stdout = cmd_obj.stdout_text.strip()
     except Exception as info:
         status = 1
-        stdout = decode_to_text(info)
+        stdout = to_text(info)
     finally:
         return status, stdout
 
@@ -736,7 +739,7 @@ def get_full_pci_id(pci_id):
     """
     cmd = "lspci -D | awk '/%s/ {print $1}'" % pci_id
     try:
-        return decode_to_text(process.system_output(cmd, shell=True))
+        return process.run(cmd, shell=True).stdout_text
     except process.CmdError:
         return None
 
@@ -791,8 +794,8 @@ def get_vendor_from_pci_id(pci_id):
     :param pci_id: PCI ID of a device.
     """
     cmd = "lspci -n | awk '/%s/ {print $3}'" % pci_id
-    return re.sub(":", " ", decode_to_text(process.system_output(cmd, shell=True,
-                                                                 ignore_status=True)))
+    return re.sub(":", " ", process.run(cmd, shell=True,
+                                        ignore_status=True).stdout_text)
 
 
 def get_dev_pts_max_id():
@@ -803,8 +806,8 @@ def get_dev_pts_max_id():
     """
     cmd = "ls /dev/pts/ | grep '^[0-9]*$' | sort -n"
     try:
-        max_id = decode_to_text(process.system_output(cmd, verbose=False,
-                                                      shell=True)).strip().split("\n")[-1]
+        max_id = process.run(cmd, verbose=False,
+                             shell=True).stdout_text.strip().split("\n")[-1]
     except IndexError:
         return None
     pts_file = "/dev/pts/%s" % max_id
@@ -1154,7 +1157,7 @@ def install_host_kernel(job, params):
     else:
         logging.info('Chose %s, using the current kernel for the host',
                      install_type)
-        k_version = decode_to_text(process.system_output('uname -r', ignore_status=True))
+        k_version = process.run('uname -r', ignore_status=True).stdout_text
         write_keyval(job.resultdir,
                      {'software_version_kernel': k_version})
 
@@ -1188,8 +1191,8 @@ def qemu_has_option(option, qemu_path="/usr/bin/qemu-kvm"):
     :param option: Option need check.
     :param qemu_path: Path for qemu-kvm.
     """
-    hlp = decode_to_text(process.system_output("%s -help" % qemu_path, shell=True,
-                                               ignore_status=True, verbose=False))
+    hlp = process.run("%s -help" % qemu_path, shell=True,
+                      ignore_status=True, verbose=False).stdout_text
     return bool(re.search(r"^-%s(\s|$)" % option, hlp, re.MULTILINE))
 
 
@@ -1444,7 +1447,7 @@ def get_node_cpus(i=0):
     :rtype: builtin.list
     """
     cmd = process.run("numactl --hardware")
-    return re.findall("node %s cpus: (.*)" % i, results_stdout_52lts(cmd))[0].split()
+    return re.findall("node %s cpus: (.*)" % i, cmd.stdout_text)[0].split()
 
 
 def cpu_str_to_list(origin_str):
@@ -1488,7 +1491,7 @@ def get_cpu_info(session=None):
     cpu_info = {}
     cmd = "lscpu"
     if session is None:
-        output = decode_to_text(process.system_output(cmd, ignore_status=True)).splitlines()
+        output = process.run(cmd, ignore_status=True).stdout_text.splitlines()
     else:
         try:
             output = session.cmd_output(cmd).splitlines()
@@ -1921,7 +1924,7 @@ def get_support_machine_type(qemu_binary="/usr/libexec/qemu-kvm", remove_alias=F
 
     :return: A tuple (s, c, v) include three lists.
     """
-    o = decode_to_text(process.system_output("%s -M ?" % qemu_binary)).splitlines()
+    o = process.run("%s -M ?" % qemu_binary).stdout_text.splitlines()
     s = []
     c = []
     v = []
@@ -2052,8 +2055,8 @@ def get_qemu_version(params=None):
     if params is None:
         params = {}
     qemu_binary = get_qemu_binary(params)
-    version_raw = decode_to_text(process.system_output("%s -version" % qemu_binary,
-                                                       shell=True)).splitlines()
+    version_raw = process.run("%s -version" % qemu_binary,
+                              shell=True).stdout_text.splitlines()
     for line in version_raw:
         search_result = re.search(regex, line)
         if search_result:
@@ -2376,7 +2379,7 @@ def get_mem_info(session=None, attr='MemTotal'):
     if session:
         output = session.cmd_output(cmd)
     else:
-        output = decode_to_text(process.system_output(cmd, shell=True))
+        output = process.run(cmd, shell=True).stdout_text
     output = re.findall(r"\d+\s\w", output)[0]
     output = float(normalize_data_size(output, order_magnitude="K"))
     return int(output)
@@ -2486,7 +2489,7 @@ def get_uptime(session=None):
         uptime = session.cmd_output(cmd)
     else:
         try:
-            uptime = decode_to_text(process.system_output(cmd, shell=True))
+            uptime = process.run(cmd, shell=True).stdout_text
         except process.CmdError:
             return None
     return float(uptime.split()[0])
@@ -2776,7 +2779,7 @@ def get_image_snapshot(image_file):
             # if it's introduced in qemu-kvm, will need to update it here.
             # The "-U" is to avoid the qemu lock.
             cmd += " -U"
-        snap_info = decode_to_text(process.system_output(cmd, ignore_status=False)).strip()
+        snap_info = process.run(cmd, ignore_status=False).stdout_text.strip()
         snap_list = []
         if snap_info:
             pattern = "(\d+) +\d+ +.*"
@@ -2845,7 +2848,7 @@ def get_image_info(image_file):
             # Currently the qemu lock is introduced in qemu-kvm-rhev/ma,
             # The " -U" is to avoid the qemu lock.
             cmd += " -U"
-        image_info = decode_to_text(process.system_output(cmd, ignore_status=False)).strip()
+        image_info = process.run(cmd, ignore_status=False).stdout_text.strip()
         image_info_dict = {}
         vsize = None
         if image_info:
@@ -3033,8 +3036,8 @@ class KSMController(object):
         except utils_path.CmdNotFoundError:
             raise KSMTunedNotSupportedError
 
-        process_id = decode_to_text(process.system_output("ps -C ksmtuned -o pid=",
-                                                          ignore_status=True))
+        process_id = process.run("ps -C ksmtuned -o pid=",
+                                 ignore_status=True).stdout_text
         if process_id:
             return int(re.findall("\d+", process_id)[0])
         return 0
@@ -3087,9 +3090,9 @@ class KSMController(object):
         Verify whether ksm is running.
         """
         if self.interface == "sysfs":
-            running = decode_to_text(process.system_output("cat %s" % self.ksm_params["run"]))
+            running = process.run("cat %s" % self.ksm_params["run"]).stdout_text
         else:
-            output = decode_to_text(process.system_output("ksmctl info"))
+            output = process.run("ksmctl info").stdout_text
             try:
                 running = re.findall("\d+", output)[0]
             except IndexError:
@@ -3151,9 +3154,9 @@ class KSMController(object):
             feature = self.ksm_params[feature]
 
         if self.interface == "sysfs":
-            return decode_to_text(process.system_output("cat %s" % feature)).strip()
+            return process.run("cat %s" % feature).stdout_text.strip()
         else:
-            output = decode_to_text(process.system_output("ksmctl info"))
+            output = process.run("ksmctl info").stdout_text
             _KSM_PARAMS = ["run", "pages_to_scan", "sleep_millisecs"]
             ksminfos = re.findall("\d+", output)
             if len(ksminfos) != 3:
@@ -3225,7 +3228,7 @@ def verify_dmesg(dmesg_log_file=None, ignore_result=False, level_check=3,
         out = process.run(cmd, timeout=30, ignore_status=True,
                           verbose=False, shell=True)
         status = out.exit_status
-        output = results_stdout_52lts(out)
+        output = out.stdout_text
     if status == 0:
         err = "Found failures in %s dmesg log" % environ
         d_log = "dmesg log:\n%s" % output
@@ -3335,8 +3338,8 @@ def get_pci_devices_in_group(str_flag=""):
 
     :param str_flag: the match string to filter devices.
     """
-    d_lines = decode_to_text(process.system_output("lspci -bDnn | grep \"%s\"" % str_flag,
-                                                   shell=True))
+    d_lines = process.run("lspci -bDnn | grep \"%s\"" % str_flag,
+                          shell=True).stdout_text
 
     devices = {}
     for line in d_lines.splitlines():
@@ -3610,7 +3613,7 @@ class SELinuxBoolean(object):
             cmd = "%s'getenforce'" % self.ssh_cmd
             try:
                 result = process.run(cmd, shell=True)
-                self.rem_selinux_disabled = (results_stdout_52lts(result).strip().lower() ==
+                self.rem_selinux_disabled = (result.stdout_text.strip().lower() ==
                                              "disabled")
             except process.CmdError:
                 self.rem_selinux_disabled = True
@@ -3640,7 +3643,7 @@ class SELinuxBoolean(object):
             self.local_bool_var)
         logging.debug("The command: %s", get_sebool_cmd)
         result = process.run(get_sebool_cmd, shell=True)
-        return results_stdout_52lts(result).strip()
+        return result.stdout_text.strip()
 
     def get_sebool_remote(self):
         """
@@ -3651,7 +3654,7 @@ class SELinuxBoolean(object):
                (get_sebool_cmd + "'| awk -F'-->' '{print $2}''"))
         logging.debug("The command: %s", cmd)
         result = process.run(cmd, shell=True)
-        return results_stdout_52lts(result).strip()
+        return result.stdout_text.strip()
 
     def setup(self):
         """
@@ -3679,7 +3682,7 @@ class SELinuxBoolean(object):
             result = process.run("setsebool %s %s" % (self.local_bool_var,
                                                       self.local_boolean_orig))
             if result.exit_status:
-                raise exceptions.TestError(results_stderr_52lts(result).strip())
+                raise exceptions.TestError(result.stderr_text.strip())
 
         # Recover remote SELinux boolean value
         if self.cleanup_remote and not self.rem_selinux_disabled:
@@ -3687,7 +3690,7 @@ class SELinuxBoolean(object):
                    (self.remote_bool_var, self.remote_boolean_orig))
             result = process.run(cmd)
             if result.exit_status:
-                raise exceptions.TestError(results_stderr_52lts(result).strip())
+                raise exceptions.TestError(result.stderr_text.strip())
 
         # Recover SSH connection
         if self.ssh_obj:
@@ -3709,12 +3712,12 @@ class SELinuxBoolean(object):
         result = process.run("setsebool %s %s" % (self.local_bool_var,
                                                   self.local_bool_value))
         if result.exit_status:
-            raise exceptions.TestSkipError(results_stderr_52lts(result).strip())
+            raise exceptions.TestSkipError(result.stderr_text.strip())
 
         boolean_curr = self.get_sebool_local()
         logging.debug("To check local boolean value: %s", boolean_curr)
         if boolean_curr != self.local_bool_value:
-            raise exceptions.TestFail(results_stderr_52lts(result).strip())
+            raise exceptions.TestFail(result.stderr_text.strip())
 
     def setup_remote(self):
         """
@@ -3732,12 +3735,12 @@ class SELinuxBoolean(object):
 
         result = process.run(set_boolean_cmd)
         if result.exit_status:
-            raise exceptions.TestSkipError(results_stderr_52lts(result).strip())
+            raise exceptions.TestSkipError(result.stderr_text.strip())
 
         boolean_curr = self.get_sebool_remote()
         logging.debug("To check remote boolean value: %s", boolean_curr)
         if boolean_curr != self.remote_bool_value:
-            raise exceptions.TestFail(results_stderr_52lts(result).strip())
+            raise exceptions.TestFail(result.stderr_text.strip())
 
 
 class _NullStream(object):

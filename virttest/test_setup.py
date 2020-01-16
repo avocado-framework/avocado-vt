@@ -37,7 +37,6 @@ from virttest import utils_package
 from virttest import kernel_interface
 from virttest.staging import service
 from virttest.staging import utils_memory
-from virttest.compat_52lts import results_stderr_52lts, decode_to_text
 
 
 ARCH = platform.machine()
@@ -814,8 +813,8 @@ class PrivateBridgeConfig(object):
             self.physical_nic = params.get("physical_nic")
             if self.physical_nic:
                 if self.physical_nic.split(':', 1)[0] == "shell":
-                    self.physical_nic = decode_to_text(process.system_output(
-                        self.physical_nic.split(':', 1)[1], shell=True))
+                    self.physical_nic = process.run(
+                        self.physical_nic.split(':', 1)[1], shell=True).stdout_text
                 if self.physical_nic not in utils_net.get_host_iface():
                     raise exceptions.TestSetupFail("Physical network '%s'"
                                                    "does not exist" %
@@ -1200,7 +1199,7 @@ class PciAssignable(object):
             logging.info("Run command in host: %s" % cmd)
             try:
                 output = None
-                output = decode_to_text(process.system_output(cmd, shell=True, timeout=60))
+                output = process.run(cmd, shell=True, timeout=60).stdout_text
             except Exception:
                 msg = "Command %s fail with output %s" % (cmd, output)
                 logging.error(msg)
@@ -1211,7 +1210,7 @@ class PciAssignable(object):
             logging.info("Run command in host: %s" % cmd)
             try:
                 output = None
-                output = decode_to_text(process.system_output(cmd, shell=True, timeout=60))
+                output = process.run(cmd, shell=True, timeout=60).stdout_text
             except Exception:
                 msg = "Command %s fail with output %s" % (cmd, output)
                 logging.error(msg)
@@ -1239,7 +1238,7 @@ class PciAssignable(object):
         tub_path = os.path.join(base_dir, "drivers/pci-stub")
         vf_res_path = os.path.join(tub_path, "%s/resource*" % vf_id)
         cmd = "lsof %s" % vf_res_path
-        output = decode_to_text(process.system_output(cmd, timeout=60, ignore_status=True))
+        output = process.run(cmd, timeout=60, ignore_status=True).stdout_text
         if 'qemu' in output:
             return True
         else:
@@ -1289,7 +1288,7 @@ class PciAssignable(object):
             pf_info["pf_id"] = full_id
             pf_info["occupied"] = False
             d_link = os.path.join("/sys/bus/pci/devices", full_id)
-            txt = decode_to_text(process.system_output("ls %s" % d_link))
+            txt = process.run("ls %s" % d_link).stdout_text
             re_vfn = "(virtfn\d+)"
             paths = re.findall(re_vfn, txt)
             for path in paths:
@@ -1301,11 +1300,11 @@ class PciAssignable(object):
                 vf_ids.append(vf_info)
             pf_info["vf_ids"] = vf_ids
             pf_vf_dict.append(pf_info)
-        if_out = decode_to_text(process.system_output("ifconfig -a"))
+        if_out = process.run("ifconfig -a").stdout_text
         ethnames = re.findall(self.nic_name_re, if_out)
         for eth in ethnames:
             cmd = "ethtool -i %s | awk '/bus-info/ {print $2}'" % eth
-            pci_id = decode_to_text(process.system_output(cmd, shell=True)).strip()
+            pci_id = process.run(cmd, shell=True).stdout_text.strip()
             if not pci_id:
                 continue
             for pf in pf_vf_dict:
@@ -1410,7 +1409,7 @@ class PciAssignable(object):
         # 'virtual function' belongs to which physical card considering
         # that if the host has more than one 82576 card. PCI_ID?
         cmd = "lspci | grep '%s' | wc -l" % self.vf_filter_re
-        vf_num = int(decode_to_text(process.system_output(cmd, shell=True, verbose=False)))
+        vf_num = int(process.run(cmd, shell=True, verbose=False).stdout_text)
         logging.info("Found %s vf in host", vf_num)
         return vf_num
 
@@ -1427,7 +1426,7 @@ class PciAssignable(object):
         base_dir = "/sys/bus/pci/devices"
         devices_link = os.path.join(base_dir,
                                     "%s/iommu_group/devices/" % pci_id)
-        out = decode_to_text(process.system_output("ls %s" % devices_link))
+        out = process.run("ls %s" % devices_link).stdout_text
 
         if out:
             pci_ids = out.split()
@@ -1438,8 +1437,8 @@ class PciAssignable(object):
         Get the id of PF devices
         """
         cmd = "lspci | grep -v 'Virtual Function' |awk '/%s/ {print $1}'" % self.pf_filter_re
-        PF_devices = [i for i in decode_to_text(process.system_output(
-            cmd, shell=True)).splitlines()]
+        PF_devices = [i for i in process.run(
+            cmd, shell=True).stdout_text.splitlines()]
         if not PF_devices:
             raise exceptions.TestSkipError("No specified pf found in the host!")
         pf_ids = []
@@ -1486,7 +1485,7 @@ class PciAssignable(object):
         """
         try:
             cmd = "lspci | grep '%s'| grep -o '\s[A-Z].*:\s'" % self.pf_filter_re
-            return decode_to_text(process.system_output(cmd, shell=True)).split("\n")[-1].strip().strip(':')
+            return process.run(cmd, shell=True).stdout_text.split("\n")[-1].strip().strip(':')
         except IndexError:
             logging.debug("Unable to fetch the controller details")
             return None
@@ -1517,7 +1516,7 @@ class PciAssignable(object):
         pids = {}
         try:
             cmd = "ls -R /sys/class/infiniband/*/device/sriov/*"
-            dev = decode_to_text(process.system_output(cmd, shell=True))
+            dev = process.run(cmd, shell=True).stdout_text
         except process.CmdError as detail:
             logging.error("No VF's found for set-up, command-failed as: %s",
                           str(detail))
@@ -1620,7 +1619,7 @@ class PciAssignable(object):
                               logging.info)
         if ARCH != 'ppc64le':
             kvm_re_probe = True
-            dmesg = decode_to_text(process.system_output("dmesg", verbose=False))
+            dmesg = process.run("dmesg", verbose=False).stdout_text
             ecap = re.findall("ecap\s+(.\w+)", dmesg)
             if not ecap:
                 logging.error("Fail to check host interrupt remapping support")
@@ -1694,9 +1693,9 @@ class PciAssignable(object):
                 if not self.check_vfs_count():
                     # Even after re-probe there are no VFs created
                     return False
-            dmesg = decode_to_text(process.system_output("dmesg", timeout=60,
-                                                         ignore_status=True,
-                                                         verbose=False))
+            dmesg = process.run("dmesg", timeout=60,
+                                ignore_status=True,
+                                verbose=False).stdout_text
             file_name = "host_dmesg_after_load_%s.txt" % self.driver
             logging.info("Log dmesg after loading '%s' to '%s'.", self.driver,
                          file_name)
@@ -2086,7 +2085,7 @@ class EGDConfig(object):
         tarball = self.__get_tarball()
         extra_cmd = "tar -xzvf %s -C %s" % (tarball, tmp_dir)
         process.system(extra_cmd, ignore_status=True)
-        output = decode_to_text(process.system_output("tar -tzf %s" % tarball))
+        output = process.run("tar -tzf %s" % tarball).stdout_text
         return os.path.join(tmp_dir, output.splitlines()[0])
 
     def startup(self, socket):
@@ -2095,7 +2094,7 @@ class EGDConfig(object):
         """
         if process.system("which egd.pl", ignore_status=True) != 0:
             self.install()
-        prog = decode_to_text(process.system_output("which egd.pl"))
+        prog = process.run("which egd.pl").stdout_text
         pid = self.get_pid(socket)
         try:
             if not pid:
@@ -2133,7 +2132,7 @@ class EGDConfig(object):
             cmd = "lsof -i '@%s'" % socket
 
         def system_output_wrapper():
-            return decode_to_text(process.system_output(cmd, ignore_status=True))
+            return process.run(cmd, ignore_status=True).stdout_text
         output = wait.wait_for(system_output_wrapper, timeout=5)
         if not output:
             return 0
@@ -2277,9 +2276,9 @@ def switch_indep_threads_mode(state="Y", params=None):
         thread_mode = cmd_output[1].strip()
     else:
         try:
-            thread_mode = decode_to_text(process.system_output(cmd, shell=True))
+            thread_mode = process.run(cmd, shell=True).stdout_text
         except process.CmdError as info:
-            thread_mode = results_stderr_52lts(info.result).strip()
+            thread_mode = info.result.stderr_text.strip()
             raise exceptions.TestSetupFail("Unable to get indep_threads_mode "
                                            "for power9 compat mode enablement"
                                            ": %s" % thread_mode)
@@ -2336,9 +2335,9 @@ def switch_smt(state="off", params=None):
                                            % cmd_output[1])
     else:
         try:
-            smt_output = decode_to_text(process.system_output(cmd, shell=True)).strip()
+            smt_output = process.run(cmd, shell=True).stdout_text.strip()
         except process.CmdError as info:
-            smt_output = results_stderr_52lts(info.result).strip()
+            smt_output = info.result.stderr_text.strip()
             if smt_output not in SMT_DISABLED_STRS:
                 raise exceptions.TestSetupFail("Couldn't get SMT of server: %s"
                                                % smt_output)

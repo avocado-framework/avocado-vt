@@ -33,7 +33,6 @@ from virttest import utils_misc
 from virttest import qemu_monitor
 from virttest.qemu_devices import qdevices
 from virttest.staging import utils_memory
-from virttest.compat_52lts import decode_to_text
 
 
 def guest_active(vm):
@@ -89,7 +88,7 @@ def get_nic_vendor(params, cmd):
     expected_nic_vendor = params.get("expected_nic_vendor",
                                      "IB InfiniBand")
     pattern = "(?<=Link layer: ).*"
-    output = decode_to_text(process.system_output(cmd))
+    output = process.run(cmd).stdout_text
     try:
         nic_vendor = re.findall(pattern, output)[0]
     except IndexError:

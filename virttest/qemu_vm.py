@@ -22,6 +22,7 @@ from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils import crypto
 from avocado.utils import linux_modules
+from avocado.utils.astring import to_text
 
 import six
 from six.moves import xrange
@@ -40,7 +41,6 @@ from virttest import storage
 from virttest import error_context
 from virttest import utils_vsock
 from virttest import error_event
-from virttest.compat_52lts import decode_to_text
 from virttest.qemu_devices import qdevices, qcontainer
 from virttest.qemu_devices.utils import DeviceError
 from virttest.qemu_capabilities import Flags
@@ -831,9 +831,8 @@ class VM(virt_vm.BaseVM):
             else:
                 dev = qdevices.QCustomDevice('pcidevice', parent_bus=pci_bus)
             help_cmd = "%s -device %s,\? 2>&1" % (qemu_binary, device_driver)
-            pcidevice_help = decode_to_text(process.system_output(help_cmd,
-                                                                  shell=True,
-                                                                  verbose=False))
+            pcidevice_help = process.run(help_cmd, shell=True,
+                                         verbose=False).stdout_text
             dev.set_param('host', host)
             dev.set_param('id', 'id_%s' % host.replace(":", "."))
             fail_param = []
@@ -1402,15 +1401,15 @@ class VM(virt_vm.BaseVM):
         qemu_binary = utils_misc.get_qemu_binary(params)
 
         self.qemu_binary = qemu_binary
-        self.qemu_version = decode_to_text(process.system_output("%s -version" % qemu_binary,
-                                                                 verbose=False,
-                                                                 ignore_status=True,
-                                                                 shell=True)).split(',')[0]
-        support_cpu_model = decode_to_text(process.system_output("%s -cpu \\?" % qemu_binary,
-                                                                 verbose=False,
-                                                                 ignore_status=True,
-                                                                 shell=True),
-                                           errors='replace')
+        self.qemu_version = process.run("%s -version" % qemu_binary,
+                                        verbose=False,
+                                        ignore_status=True,
+                                        shell=True.stdout_text).split(',')[0]
+        support_cpu_model = to_text(process.run("%s -cpu \\?" % qemu_binary,
+                                                verbose=False,
+                                                ignore_status=True,
+                                                shell=True).stdout,
+                                    errors='replace')
 
         self.last_driver_index = 0
         # init the dict index_in_use
@@ -2578,8 +2577,8 @@ class VM(virt_vm.BaseVM):
                 continue
 
             help_cmd = '%s -device %s,\? 2>&1' % (self.qemu_binary, vga_type)
-            help_info = decode_to_text(process.system_output(help_cmd, shell=True,
-                                                             verbose=False))
+            help_info = process.run(help_cmd, shell=True,
+                                    verbose=False).stdout_Text
             for pro in re.findall(r'%s.(\w+)=' % vga_type, help_info):
                 key = [vga_type.lower(), pro]
                 if migrate:
@@ -2763,9 +2762,9 @@ class VM(virt_vm.BaseVM):
                             pa_type=pa_type)
 
                     if nic_params.get("device_name", "").startswith("shell:"):
-                        name = decode_to_text(process.system_output(
+                        name = process.run(
                             nic_params.get("device_name").split(':', 1)[1],
-                            shell=True))
+                            shell=True).stdout_text
                     else:
                         name = nic_params.get("device_name")
                     # Virtual Functions (VF) assignable devices
@@ -3386,8 +3385,8 @@ class VM(virt_vm.BaseVM):
         """
         try:
             cmd = "ps --ppid=%d -o pid=" % self.process.get_pid()
-            children = decode_to_text(process.system_output(cmd, verbose=False,
-                                                            ignore_status=True)).split()
+            children = process.run(cmd, verbose=False,
+                                   ignore_status=True).stdout_text.split()
             return int(children[0])
         except (TypeError, IndexError, ValueError):
             return None
@@ -3465,8 +3464,8 @@ class VM(virt_vm.BaseVM):
         """
         return [int(_) for _ in re.findall(vhost_thread_pattern %
                                            self.get_pid(),
-                                           decode_to_text(process.system_output("ps aux",
-                                                                                verbose=False)))]
+                                           process.run("ps aux",
+                                                       verbose=False).stdout_text)]
 
     def get_shared_meminfo(self):
         """

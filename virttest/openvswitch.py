@@ -7,7 +7,6 @@ from avocado.utils import path
 from avocado.utils import process
 from avocado.utils import linux_modules
 
-from .compat_52lts import results_stdout_52lts
 from .versionable_class import VersionableClass, Manager, factory
 from . import utils_misc
 
@@ -173,7 +172,7 @@ class OpenVSwitchControl(object):
                                  path.find_command("ovs-vswitchd"))
             pattern = "ovs-vswitchd \(Open vSwitch\) (\d+\.\d+\.\d+).*"
             version = re.search(pattern,
-                                results_stdout_52lts(result)).group(1)
+                                result.stdout_text).group(1)
         except process.CmdError:
             logging.debug("OpenVSwitch is not available in system.")
         return version
@@ -266,7 +265,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
                            ignore_status=ignore_status, verbose=False)
 
     def status(self):
-        return results_stdout_52lts(self.ovs_vsctl(["show"]))
+        return self.ovs_vsctl(["show"]).stdout_text
 
     def add_br(self, br_name):
         self.ovs_vsctl(["add-br", br_name])
@@ -292,7 +291,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         return True
 
     def list_br(self):
-        return results_stdout_52lts(self.ovs_vsctl(["list-br"])).splitlines()
+        return self.ovs_vsctl(["list-br"]).stdout.splitlines()
 
     def add_port(self, br_name, port_name):
         self.ovs_vsctl(["add-port", br_name, port_name])
@@ -316,7 +315,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
 
     def list_ports(self, br_name):
         result = self.ovs_vsctl(["list-ports", br_name])
-        return results_stdout_52lts(result).splitlines()
+        return result.stdout_text.splitlines()
 
     def port_to_br(self, port_name):
         """
@@ -328,7 +327,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         bridge = None
         try:
             result = self.ovs_vsctl(["port-to-br", port_name])
-            bridge = results_stdout_52lts(result).strip()
+            bridge = result.stdout_text.strip()
         except process.CmdError as e:
             if e.result.exit_status == 1:
                 pass

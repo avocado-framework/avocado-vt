@@ -8,7 +8,6 @@ import os
 
 from avocado.utils import process
 from avocado.utils import distro
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 ubuntu = distro.detect().name == 'Ubuntu'
@@ -81,16 +80,16 @@ def get_status(selinux_force=False):
         raise SeCmdError(cmd, "Command not available")
 
     if result.exit_status:
-        raise SeCmdError(cmd, results_stderr_52lts(result))
+        raise SeCmdError(cmd, result.stderr_text)
 
     for status in STATUS_LIST:
-        if results_stdout_52lts(result).lower().count(status):
+        if result.stdout_text.lower().count(status):
             return status
         else:
             continue
 
     raise SelinuxError("result of 'getenforce' (%s)is not expected."
-                       % results_stdout_52lts(result))
+                       % result.stdout_text)
 
 
 def set_status(status, selinux_force=False):
@@ -123,7 +122,7 @@ def set_status(status, selinux_force=False):
             cmd = "setenforce %s" % status
             result = process.run(cmd, ignore_status=True)
             if result.exit_status:
-                raise SeCmdError(cmd, results_stderr_52lts(result))
+                raise SeCmdError(cmd, result.stderr_text)
             else:
                 current_status = get_status(selinux_force)
                 if not status == current_status:
@@ -239,9 +238,9 @@ def get_context_of_file(filename, selinux_force=False):
     cmd = "getfattr --name security.selinux %s" % filename
     result = process.run(cmd, ignore_status=True)
     if result.exit_status:
-        raise SeCmdError(cmd, results_stderr_52lts(result))
+        raise SeCmdError(cmd, result.stderr_text)
 
-    output = results_stdout_52lts(result)
+    output = results.stdout_text
     return get_context_from_str(output)
 
 
@@ -267,7 +266,7 @@ def set_context_of_file(filename, context, selinux_force=False):
            % (context, filename))
     result = process.run(cmd, ignore_status=True)
     if result.exit_status:
-        raise SeCmdError(cmd, results_stdout_52lts(result))
+        raise SeCmdError(cmd, result.stdout_text)
 
     context_result = get_context_of_file(filename)
     if not context == context_result:
@@ -314,7 +313,7 @@ def get_context_of_process(pid):
 
 def _no_semanage(cmdresult):
     if cmdresult.exit_status == 127:
-        if results_stdout_52lts(cmdresult).lower().count('command not found'):
+        if cmdresult.stdout_text.lower().count('command not found'):
             raise SemanageError()
 
 
@@ -336,8 +335,8 @@ def get_defcon(local=False, selinux_force=False):
         result = process.run("semanage fcontext --list", ignore_status=True)
     _no_semanage(result)
     if result.exit_status != 0:
-        raise SeCmdError('semanage', results_stderr_52lts(result))
-    result_list = results_stdout_52lts(result).strip().split('\n')
+        raise SeCmdError('semanage', result.stderr_text)
+    result_list = result.stdout_text.strip().split('\n')
     # Need to process top-down instead of bottom-up
     result_list.reverse()
     first_line = result_list.pop()
@@ -428,7 +427,7 @@ def set_defcon(context_type, pathregex, context_range=None, selinux_force=False)
     result.stderr = result.stderr_text
     _no_semanage(result)
     if result.exit_status != 0:
-        raise SeCmdError(cmd, results_stderr_52lts(result))
+        raise SeCmdError(cmd, result.stderr_text)
 
 
 def del_defcon(context_type, pathregex, selinux_force=False):
@@ -447,11 +446,9 @@ def del_defcon(context_type, pathregex, selinux_force=False):
 
     cmd = ("semanage fcontext --delete -t %s '%s'" % (context_type, pathregex))
     result = process.run(cmd, ignore_status=True)
-    result.stdout = results_stdout_52lts(result)
-    result.stderr = results_stderr_52lts(result)
     _no_semanage(result)
     if result.exit_status != 0:
-        raise SeCmdError(cmd, results_stderr_52lts(result))
+        raise SeCmdError(cmd, result.stderr_text)
 
 # Process pathname/dirdesc in uniform way for all defcon functions + unittests
 
@@ -479,7 +476,7 @@ def _run_restorecon(pathname, dirdesc, readonly=True, force=False, selinux_force
         cmd += 'F'
     cmd += ' "%s"' % pathname
     # Always returns 0, even if contexts wrong
-    return results_stdout_52lts(process.run(cmd)).strip()
+    return process.run(cmd).stdout_text.strip()
 
 
 def verify_defcon(pathname, dirdesc=False, readonly=True, forcedesc=False, selinux_force=False):

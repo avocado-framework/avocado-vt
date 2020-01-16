@@ -48,7 +48,6 @@ from virttest import utils_iptables
 from virttest import utils_package
 from virttest import utils_qemu
 from virttest.utils_version import VersionInterval
-from virttest.compat_52lts import decode_to_text
 from virttest.staging import service
 
 try:
@@ -93,8 +92,8 @@ def _get_qemu_version(qemu_cmd):
 
     :param qemu_cmd: Path to qemu binary
     """
-    version_output = decode_to_text(a_process.system_output(
-        "%s -version" % qemu_cmd, verbose=False))
+    version_output = a_process.run("%s -version" % qemu_cmd,
+                                   verbose=False).stdout_text
     version_line = version_output.split('\n')[0]
     matches = re.match(QEMU_VERSION_RE, version_line)
     if matches:
@@ -1078,8 +1077,8 @@ def preprocess(test, params, env):
 
     if kvm_userspace_ver_cmd:
         try:
-            kvm_userspace_version = decode_to_text(a_process.system_output(
-                kvm_userspace_ver_cmd, shell=True)).strip()
+            kvm_userspace_version = a_process.run(
+                kvm_userspace_ver_cmd, shell=True).stdout_text.strip()
         except a_process.CmdError:
             kvm_userspace_version = "Unknown"
     else:
@@ -1110,8 +1109,8 @@ def preprocess(test, params, env):
     if vm_type == "libvirt":
         libvirt_ver_cmd = params.get("libvirt_ver_cmd", "libvirtd -V|awk -F' ' '{print $3}'")
         try:
-            libvirt_version = decode_to_text(a_process.system_output(
-                libvirt_ver_cmd, shell=True)).strip()
+            libvirt_version = a_process.run(
+                libvirt_ver_cmd, shell=True).stdout_text.strip()
         except a_process.CmdError:
             libvirt_version = "Unknown"
         version_info["libvirt_version"] = str(libvirt_version)

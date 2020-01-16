@@ -9,14 +9,13 @@ import logging
 from avocado.utils import path
 from avocado.utils import process
 from avocado.utils import distro
+from avocado.utils.astring import to_text
 from avocado.core import exceptions
 
 from virttest import utils_misc
 from virttest import test_setup
 from virttest.utils_iptables import Iptables
 from virttest.utils_conn import SSHConnection
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
-from virttest.compat_52lts import decode_to_text
 from virttest.staging import service
 
 
@@ -32,7 +31,7 @@ def nfs_exported(session=None):
     func = process.system_output
     if session:
         func = session.cmd_output
-    exportfs = decode_to_text(func("exportfs -v"))
+    exportfs = to_text(func("exportfs -v"))
     if not exportfs:
         return {}
 
@@ -287,7 +286,7 @@ class NFSClient(object):
         # To Avoid host key verification failure
         ret = process.run("ssh-keygen -R %s" % self.nfs_client_ip,
                           ignore_status=True)
-        stderr = results_stderr_52lts(ret)
+        stderr = ret.stderr_text
         if ret.exit_status and "No such file or directory" not in stderr:
             raise exceptions.TestFail("Failed to update host key: %s" %
                                       stderr)
@@ -387,14 +386,14 @@ class NFSClient(object):
             try:
                 ret = process.run(firewall_cmd, shell=True)
                 if not ret.exit_status:
-                    firewall_services = results_stdout_52lts(ret).split(':')[1].strip().split(' ')
+                    firewall_services = ret.stdout_text.split(':')[1].strip().split(' ')
                     if 'nfs' not in firewall_services:
                         service_cmd = "firewall-cmd --permanent --zone=public "
                         service_cmd += "--add-service=nfs"
                         ret = process.run(service_cmd, shell=True)
                         if ret.exit_status:
                             logging.error("nfs service not added in firewall: "
-                                          "%s", results_stdout_52lts(ret))
+                                          "%s", ret.stdout_text)
                         else:
                             logging.debug("nfs service added to firewall "
                                           "sucessfully")
@@ -418,8 +417,8 @@ class NFSClient(object):
                 nfs_ports.append("LOCKD_TCPPORT=%s" % tcp_port)
                 nfs_ports.append("LOCKD_UDPPORT=%s" % udp_port)
                 nfs_ports.append("MOUNTD_PORT=%s" % mountd_port)
-                cmd_output = decode_to_text(process.system_output(
-                    "cat %s" % nfs_sysconfig, shell=True))
+                cmd_output = process.run("cat %s" % nfs_sysconfig,
+                                         shell=True).stdout_text
                 exist_ports = cmd_output.strip().split('\n')
                 # check if the ports are already configured, if not then add it
                 for each_port in nfs_ports:

@@ -9,7 +9,6 @@ from .. import xml_utils
 from .. import utils_misc
 from ..libvirt_xml import base, accessors, xcepts
 from ..libvirt_xml.devices import librarian
-from ..compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 class VMXMLDevices(list):
@@ -623,7 +622,7 @@ class VMXML(VMXMLBase):
         # TODO: Look up hypervisor_type on incoming XML
         vmxml = VMXML(virsh_instance=virsh_instance)
         result = virsh_instance.dumpxml(vm_name, extra=options)
-        vmxml['xml'] = results_stdout_52lts(result).strip()
+        vmxml['xml'] = result.stdout_text.strip()
         return vmxml
 
     @staticmethod
@@ -668,7 +667,7 @@ class VMXML(VMXMLBase):
         if result.exit_status:
             logging.debug("Define %s failed.\n"
                           "Detail: %s.", self.vm_name,
-                          results_stderr_52lts(result))
+                          result.stderr_text)
             return False
         return True
 

@@ -36,6 +36,7 @@ from avocado.utils import process
 from avocado.utils import stacktrace
 from avocado.utils import linux_modules
 from avocado.utils import distro
+from avocado.utils.astring import to_text
 
 import six
 
@@ -58,7 +59,6 @@ from virttest import utils_iptables
 from virttest.utils_iptables import Iptables
 from virttest.staging import lv_utils
 from virttest.utils_libvirtd import service_libvirtd_control
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 from virttest.libvirt_xml import vm_xml
 from virttest.libvirt_xml import network_xml
 from virttest.libvirt_xml import xcepts
@@ -233,7 +233,7 @@ def clean_up_snapshots(vm_name, snapshot_list=[], domxml=None):
         for snap_name in snapshot_list:
             # Delete useless disk snapshot file if exists
             result = virsh.snapshot_dumpxml(vm_name, snap_name)
-            snap_xml = results_stdout_52lts(result).strip()
+            snap_xml = results.stdout_text.strip()
             xtf_xml = xml_utils.XMLTreeFile(snap_xml)
             disks_path = xtf_xml.findall('disks/disk/source')
             for disk in disks_path:
@@ -292,12 +292,12 @@ def get_all_cells():
     """
     fc_result = virsh.freecell(options="--all", ignore_status=True)
     if fc_result.exit_status:
-        stderr = results_stderr_52lts(fc_result).strip()
+        stderr = fc_result.stderr_text.strip()
         if fc_result.stderr.count(b"NUMA not supported"):
             raise exceptions.TestSkipError(stderr)
         else:
             raise exceptions.TestFail(stderr)
-    output = results_stdout_52lts(fc_result).strip()
+    output = fc_result.stdout_text.strip()
     cell_list = output.splitlines()
     # remove "------------" line
     del cell_list[-2]
@@ -326,8 +326,8 @@ def check_blockjob(vm_name, target, check_point="none", value="0"):
     try:
         cmd_result = virsh.blockjob(
             vm_name, target, "--info", debug=True, ignore_status=True)
-        output = results_stdout_52lts(cmd_result).strip()
-        err = results_stderr_52lts(cmd_result).strip()
+        output = cmd_result.stdout_text.strip()
+        err = cmd_result.stderr_text.strip()
         status = cmd_result.exit_status
     except Exception as e:
         logging.error("Error occurred: %s", e)
@@ -717,7 +717,7 @@ def mk_part(disk, size="100M", fs_type='ext4', session=None):
         run_cmd = session.get_command_output
 
     print_cmd = "parted -s %s print" % disk
-    output = decode_to_text(run_cmd(print_cmd))
+    output = to_text(run_cmd(print_cmd))
     current_label = re.search(r'Partition Table: (\w+)', output).group(1)
     if current_label not in support_lable:
         logging.error('Not support create partition on %s disk', current_label)
@@ -817,7 +817,7 @@ def check_vm_state(vm_name, state='paused', reason=None, uri=None):
     else:
         result = virsh.domstate(vm_name, uri=uri)
         expected_result = state.lower()
-    vm_state = results_stdout_52lts(result).strip()
+    vm_state = results.stdout_text.strip()
     return vm_state.lower() == expected_result
 
 
@@ -1522,8 +1522,8 @@ def check_result(result,
     :param expected_match: a string or list of regex of expected stdout patterns.
                            The check will pass if any of these patterns matches.
     """
-    stderr = results_stderr_52lts(result)
-    stdout = results_stdout_52lts(result)
+    stderr = result.stderr_text
+    stdout = result.stdout_text
     all_msg = '\n'.join([stdout, stderr])
     logging.debug("Command result: %s", all_msg)
 
@@ -1585,10 +1585,10 @@ def check_exit_status(result, expect_error=False):
     """
     if not expect_error:
         if result.exit_status != 0:
-            raise exceptions.TestFail(results_stderr_52lts(result))
+            raise exceptions.TestFail(result.stderr_text)
         else:
             logging.debug("Command output:\n%s",
-                          results_stdout_52lts(result).strip())
+                          results.stdout_text.strip())
     elif expect_error and result.exit_status == 0:
         raise exceptions.TestFail("Run '%s' expect fail, but run "
                                   "successfully." % result.command)
@@ -1601,7 +1601,7 @@ def get_interface_details(vm_name):
     :return: list of all interfaces details
     """
     # Parse the domif-list command output
-    domiflist_out = results_stdout_52lts(virsh.domiflist(vm_name))
+    domiflist_out = virsh.domiflist(vm_name).stdout_text
     # Regular expression for the below output
     #   vnet0    bridge    virbr0   virtio  52:54:00:b2:b3:b4
     rg = re.compile(r"^(\w+|-)\s+(\w+)\s+(\w+)\s+(\S+)\s+"
@@ -1659,7 +1659,7 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
             result = virsh.iface_list(extra, ignore_status=True)
             check_exit_status(result, False)
             output = re.findall(r"(\S+)\ +(\S+)\ +(\S+|\s+)[\ +\n]",
-                                results_stdout_52lts(result))
+                                results.stdout_text)
             if list(filter(lambda x: x[0] == iface_name, output[1:])):
                 list_find = True
             logging.debug("Find '%s' in virsh iface-list output: %s",
@@ -1684,7 +1684,7 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
             result = virsh.iface_list(extra, ignore_status=True)
             check_exit_status(result, False)
             output = re.findall(r"(\S+)\ +(\S+)\ +(\S+|\s+)[\ +\n]",
-                                results_stdout_52lts(result))
+                                results.stdout_text)
             iface_state = filter(lambda x: x[0] == iface_name, output[1:])
             iface_state = list(iface_state)[0][1]
             # active corresponds True, otherwise return False
@@ -2996,7 +2996,7 @@ def create_scsi_disk(scsi_option, scsi_size="2048"):
         # Get the scsi device name
         result = process.run("lsscsi|grep scsi_debug|awk '{print $6}'",
                              shell=True)
-        scsi_disk = results_stdout_52lts(result).strip()
+        scsi_disk = results.stdout_text.strip()
         logging.info("scsi disk: %s" % scsi_disk)
         return scsi_disk
     except Exception as e:
@@ -3547,9 +3547,9 @@ def get_iothreadsinfo(vm_name, options=None):
     ret = virsh.iothreadinfo(vm_name, options,
                              debug=True, ignore_status=True)
     if ret.exit_status:
-        logging.warning(results_stderr_52lts(ret).strip())
+        logging.warning(ret.stderr_text.strip())
         return info_dict
-    info_list = re.findall(r"(\d+) +(\S+)", results_stdout_52lts(ret), re.M)
+    info_list = re.findall(r"(\d+) +(\S+)", ret.stdout_text, re.M)
     for info in info_list:
         info_dict[info[0]] = info[1]
 
@@ -3624,7 +3624,7 @@ def create_secret(params):
     check_exit_status(ret)
     try:
         sec_uuid = re.findall(r".+\S+(\ +\S+)\ +.+\S+",
-                              results_stdout_52lts(ret))[0].lstrip()
+                              ret.stdout_text)[0].lstrip()
     except IndexError:
         raise exceptions.TestError("Fail to get newly created secret uuid")
 
@@ -3877,7 +3877,7 @@ def check_qemu_cmd_line(content, err_ignore=False):
     :return: True if exist, False otherwise
     """
     cmd = 'pgrep -a qemu'
-    qemu_line = results_stdout_52lts(process.run(cmd, shell=True))
+    qemu_line = process.run(cmd, shell=True).stdout_text
     if not re.search(r'%s' % content, qemu_line):
         if err_ignore:
             return False
