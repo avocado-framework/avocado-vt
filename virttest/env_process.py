@@ -32,6 +32,7 @@ from virttest import ppm_utils
 from virttest import test_setup
 from virttest import virt_vm
 from virttest import utils_misc
+from virttest import lvm
 from virttest import cpu
 from virttest import storage
 from virttest import utils_libguestfs
@@ -908,10 +909,17 @@ def preprocess(test, params, env):
         params["image_raw_device"] = "yes"
 
     if params.get("storage_type") == "lvm":
-        lvmdev = qemu_storage.LVMdev(params, base_dir, "lvm")
-        params["image_name"] = lvmdev.setup()
-        params["image_raw_device"] = "yes"
-        env.register_lvmdev("lvm_%s" % params["main_vm"], lvmdev)
+        for vm in params.objects("vms"):
+            vm_params = params.object_params(vm)
+            for image in vm_params.objects("images"):
+                image_params = params.object_params(image)
+                if image_params.get("enable_lvm", "no") == "no":
+                    continue
+                image_params["lv_name"] = lvm.get_lv_name(
+                    image_params["image_name"], image_params["image_format"])
+                lvmdev = qemu_storage.LVMdev(image_params, base_dir, image)
+                lvmdev.setup()
+                env.register_lvmdev("lvm_%s" % image, lvmdev)
 
     if params.get("storage_type") == "nfs":
         selinux_local = params.get('set_sebool_local', 'yes') == "yes"
@@ -1642,13 +1650,18 @@ def postprocess(test, params, env):
             logging.error(details)
 
     if params.get("storage_type") == "lvm":
-        try:
-            lvmdev = env.get_lvmdev("lvm_%s" % params["main_vm"])
-            lvmdev.cleanup()
-        except Exception as details:
-            err += "\nLVM cleanup: %s" % str(details).replace('\\n', '\n  ')
-            logging.error(details)
-        env.unregister_lvmdev("lvm_%s" % params["main_vm"])
+        for vm in params.objects("vms"):
+            vm_params = params.object_params(vm)
+            for image in vm_params.objects("images"):
+                lvmdev = env.get_lvmdev("lvm_%s" % image)
+                if lvmdev:
+                    try:
+                        lvmdev.cleanup()
+                    except Exception as details:
+                        err += "\nLVM cleanup: %s" % \
+                            str(details).replace('\\n', '\n  ')
+                        logging.error(details)
+                    env.unregister_lvmdev("lvm_%s" % image)
 
     if params.get("storage_type") == "nfs":
         try:

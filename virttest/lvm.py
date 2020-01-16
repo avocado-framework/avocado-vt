@@ -31,6 +31,7 @@ import logging
 from avocado.core import exceptions
 from avocado.utils import path
 from avocado.utils import process
+from avocado.utils import lv_utils
 
 from virttest import utils_misc
 from virttest import data_dir
@@ -716,3 +717,25 @@ class EmulatedLVM(LVM):
             cmd = "rm -f %s" % emulate_image_file
             process.system(cmd, ignore_status=True)
             logging.info("remove emulate image file %s", emulate_image_file)
+
+
+def get_lv_name(image_name, image_format):
+    """Get lv name from image name and format."""
+    image_name = os.path.basename(image_name)
+    return re.sub(r'[-./]', '_', "%s_%s" % (image_name, image_format))
+
+
+def lv_exists(lv_name, vg_name):
+    """Check if lv exists."""
+    return lv_name in lv_utils.lv_list(vg_name=vg_name)
+
+
+def lv_remove(lv_name, vg_name):
+    """Remove a logical volume."""
+    # do nothing
+    return
+
+
+def get_image_filename(lv_name, vg_name):
+    """Get logical volume filesystem path."""
+    return "/dev/%s/%s" % (vg_name, lv_name)

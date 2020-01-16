@@ -82,6 +82,13 @@ def file_exists(params, filename_path):
         keyring_conf = params.get("image_ceph_keyring_conf")
         return ceph.rbd_image_exist(ceph_monitor, rbd_pool_name,
                                     rbd_image_name, ceph_conf, keyring_conf)
+
+    if params.get("enable_lvm") == "yes":
+        image_name = params["image_name"]
+        image_format = params.get("image_format", "qcow2")
+        lv_name = lvm.get_lv_name(image_name, image_format)
+        vg_name = params["vg_name"]
+        return lvm.lv_exists(lv_name, vg_name)
     return os.path.exists(filename_path)
 
 
@@ -102,11 +109,18 @@ def file_remove(params, filename_path):
         return ceph.rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name,
                                  ceph_conf, keyring_conf)
 
+    if params.get("enable_lvm") == "yes":
+        image_name = params["image_name"]
+        image_format = params.get("image_format", "qcow2")
+        lv_name = lvm.get_lv_name(image_name, image_format)
+        vg_name = params["vg_name"]
+        return lvm.lv_remove(lv_name, vg_name)
+
     if params.get("gluster_brick"):
         # TODO: Add implementation for gluster_brick
         return
 
-    if params.get('storage_type') in ('iscsi', 'lvm', 'iscsi-direct'):
+    if params.get('storage_type') in ('iscsi', 'iscsi-direct'):
         # TODO: Add implementation for iscsi/lvm
         return
 
@@ -151,6 +165,7 @@ def get_image_filename(params, root_dir, basename=False):
     enable_gluster = params.get("enable_gluster", "no") == "yes"
     enable_ceph = params.get("enable_ceph", "no") == "yes"
     enable_iscsi = params.get("enable_iscsi", "no") == "yes"
+    enable_lvm = params.get("enable_lvm", "no") == "yes"
     image_name = params.get("image_name")
     storage_type = params.get("storage_type")
     if image_name:
@@ -174,6 +189,10 @@ def get_image_filename(params, root_dir, basename=False):
             ceph_monitor = params.get('ceph_monitor')
             return ceph.get_image_filename(ceph_monitor, rbd_pool_name,
                                            rbd_image_name, ceph_conf)
+        if enable_lvm:
+            vg_name = params["vg_name"]
+            lv_name = lvm.get_lv_name(image_name, image_format)
+            return lvm.get_image_filename(lv_name, vg_name)
         return get_image_filename_filesytem(params, root_dir, basename=basename)
     else:
         logging.warn("image_name parameter not set.")
