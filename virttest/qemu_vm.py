@@ -4512,7 +4512,10 @@ class VM(virt_vm.BaseVM):
         """
         self.monitor.cmd("cont")
         if timeout:
-            self.wait_for_status('running', timeout, 0.1)
+            if not self.wait_for_status('running', timeout, step=0.1):
+                raise virt_vm.VMStatusError("Failed to enter running status, "
+                                            "the actual status is %s" %
+                                            self.monitor.get_status())
         else:
             self.verify_status("running")
 
