@@ -693,10 +693,22 @@ class BaseLocalSourceInstaller(BaseInstaller):
         build_helper_name = self.params.get('%s_build_helper' %
                                             self.param_key_prefix,
                                             'gnu_autotools')
+        build_dir = None
+        if self.params.get("explicit_build_dir", None):
+            build_dir = os.path.join(self.test_workdir, self.params.get("explicit_build_dir"))
+            # Create a folder if not available
+            if os.path.exists(build_dir):
+                if not os.path.isdir(build_dir):
+                    raise exceptions.TestError('Existing file present with explicit'
+                                               ' build dir name %s, delete'
+                                               ' the same and re-trigger' % build_dir)
+            else:
+                os.makedirs(build_dir)
+
         if build_helper_name == 'gnu_autotools':
             self.build_helper = build_helper.GnuSourceBuildParamHelper(
                 self.params, self.param_key_prefix,
-                self.source_destination, self.install_prefix)
+                self.source_destination, self.install_prefix, build_dir)
         elif build_helper_name == 'linux_kernel':
             self.build_helper = build_helper.LinuxKernelBuildHelper(
                 self.params, self.param_key_prefix,

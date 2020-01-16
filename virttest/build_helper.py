@@ -823,7 +823,7 @@ class GnuSourceBuildParamHelper(GnuSourceBuildHelper):
     git_repo_foo_configure_options = --enable-feature
     """
 
-    def __init__(self, params, name, destination_dir, install_prefix):
+    def __init__(self, params, name, destination_dir, install_prefix, build_dir=None):
         """
         Instantiates a new GnuSourceBuildParamHelper
         """
@@ -831,6 +831,7 @@ class GnuSourceBuildParamHelper(GnuSourceBuildHelper):
         self.name = name
         self.destination_dir = destination_dir
         self.install_prefix = install_prefix
+        self.build_dir = build_dir
         self._parse_params()
 
     def _parse_params(self):
@@ -851,7 +852,8 @@ class GnuSourceBuildParamHelper(GnuSourceBuildHelper):
                                                         configure_options))
 
         self.source = self.destination_dir
-        self.build_dir = self.destination_dir
+        if not self.build_dir:
+            self.build_dir = self.destination_dir
         self.prefix = self.install_prefix
         self.configure_options = configure_options
         self.include_pkg_config_path()
