@@ -27,9 +27,9 @@ fedora_30_task:
   dry_run_script: &dry_run_scr
     - $PYTHON -m avocado --show all run --dry-run -- boot
 
-rhel_8_task:
+centos_8_1_task:
   container:
-    image: quay.io/avocado-framework/avocado-vt-ci-rhel-8
+    image: quay.io/avocado-framework/avocado-vt-ci-centos-8.1
   env:
     PYTHON: python3
     matrix:

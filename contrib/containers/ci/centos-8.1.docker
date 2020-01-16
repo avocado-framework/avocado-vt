@@ -1,0 +1,4 @@
+FROM centos:8.1.1911
+LABEL description "Centos 8 image used on integration checks, such as cirrus-ci"
+RUN dnf -y install git xz tcpdump nc iproute iputils gcc python3-devel qemu-kvm qemu-img
+RUN dnf -y clean all
