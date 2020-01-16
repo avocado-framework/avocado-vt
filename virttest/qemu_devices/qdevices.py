@@ -2178,9 +2178,9 @@ class QPCIBus(QSparseBus):
         orig_addr = device.get_param('addr')
         if addr[1] or (isinstance(orig_addr, six.string_types) and
                        orig_addr.find('.') != -1):
-            device.set_param('addr', '0x%x.%x' % (addr[0], addr[1]))
+            device.set_param('addr', '%s.%s' % (hex(addr[0]), hex(addr[1])))
         else:
-            device.set_param('addr', '0x%x' % addr[0])
+            device.set_param('addr', '%s' % hex(addr[0]))
 
     def _update_device_props(self, device, addr):
         """ Always set properties """
