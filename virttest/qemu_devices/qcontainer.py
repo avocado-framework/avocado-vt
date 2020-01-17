@@ -2243,6 +2243,7 @@ class DevContainer(object):
         _backend = 'socket' if 'socket' in backend else backend
         # Generate -chardev device
         chardev_param = Params({'backend': _backend, 'id': chardev_id})
+        file_name = '/dev/ttyS0' if backend == 'tty' else file_name
         if backend in ['unix_socket', 'file', 'pipe', 'serial',
                        'tty', 'parallel', 'parport']:
             chardev_param.update({'path': file_name})
