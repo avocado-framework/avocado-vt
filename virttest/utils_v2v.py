@@ -68,7 +68,7 @@ class Uri(object):
         """
         Return xen uri.
         """
-        uri = "xen+ssh://" + self.host + "/"
+        uri = "xen+ssh://root@" + self.host + "/"
         return uri
 
     def _get_esx_uri(self):
@@ -428,7 +428,9 @@ class VMCheck(object):
         self.nic_index = params.get('nic_index', 0)
         self.export_name = params.get('export_name')
         self.delete_vm = 'yes' == params.get('vm_cleanup', 'yes')
-        self.virsh_session_id = params.get("virsh_session_id")
+        self.virsh_session = params.get('virsh_session')
+        self.virsh_session_id = self.virsh_session.get_id(
+            ) if self.virsh_session else params.get('virsh_session_id')
         self.windows_root = params.get("windows_root", r"C:\WINDOWS")
         self.output_method = params.get("output_method")
         # Need create session after create the instance
@@ -453,11 +455,16 @@ class VMCheck(object):
                                               timeout=timeout,
                                               username=self.username,
                                               password=self.password)
+        logging.debug('A new vm session %s was created', self.session)
 
     def cleanup(self):
         """
         Cleanup VM and remove all of storage files about guest
         """
+        if self.session:
+            logging.debug('vm session %s is closing', self.session)
+            self.session.close()
+
         if self.vm.instance and self.vm.is_alive():
             self.vm.destroy(gracefully=False)
             time.sleep(5)
@@ -1047,7 +1054,7 @@ def v2v_cmd(params):
             'libvirtxml',
             'local',
                 'ova'] and not skip_virsh_pre_conn:
-            v2v_virsh = create_virsh_instance(
+            params['_v2v_virsh'] = v2v_virsh = create_virsh_instance(
                 hypervisor, uri, hostname, username, password)
             iface_info = get_all_ifaces_info(vm_name, v2v_virsh)
             # For v2v option '--mac', this is automatically generated.
@@ -1073,6 +1080,7 @@ def v2v_cmd(params):
         """
         Postprocess after running v2v cmd
         """
+        v2v_virsh = params.get('_v2v_virsh')
         close_virsh_instance(v2v_virsh)
 
     if V2V_EXEC is None:
@@ -1102,7 +1110,7 @@ def v2v_cmd(params):
     # source hypervisor, the pre-connection must be skipped.
     skip_virsh_pre_conn = 'yes' == params.get('skip_virsh_pre_conn')
     # virsh instance of remote hypervisor
-    v2v_virsh = None
+    params.update({'_v2v_virsh': None})
 
     uri_obj = Uri(hypervisor)
 
@@ -1372,13 +1380,16 @@ def v2v_setup_ssh_key(
             session.cmd("echo '%s' >> ~/.ssh/authorized_keys; " % public_key)
             session.cmd('chmod 600 ~/.ssh/authorized_keys')
 
-        logging.debug('SSH key setup complete.')
+        logging.debug('SSH key setup complete, session is %s', session)
 
         return public_key, session
     except Exception as err:
+        # auto close session when exception occurs
+        auto_close = True
         raise exceptions.TestFail("SSH key setup failed: '%s'" % err)
     finally:
         if auto_close and session:
+            logging.debug('cleaning session: %s', session)
             session.close()
 
 
@@ -1407,6 +1418,7 @@ def v2v_setup_ssh_key_cleanup(session=None, key=None, server_type=None):
         session.cmd(cmd)
     finally:
         if session:
+            logging.debug('cleaning session: %s', session)
             session.close()
 
 
@@ -1478,8 +1490,10 @@ def create_virsh_instance(
                        'remote_ip': remote_ip,
                        'remote_user': remote_user,
                        'remote_pwd': remote_pwd,
+                       'auto_close': True,
                        'debug': debug}
-        v2v_virsh = virsh.VirshPersistent(**virsh_dargs)
+        v2v_virsh = wait_for(virsh.VirshPersistent, **virsh_dargs)
+    logging.debug('A new virsh persistent session %s was created', v2v_virsh)
     return v2v_virsh
 
 
@@ -1491,6 +1505,7 @@ def close_virsh_instance(virsh_instance=None):
     """
 
     if virsh_instance:
+        logging.debug('Close session_id %s in VT', virsh_instance.session_id)
         virsh_instance.close_session()
 
 
@@ -1501,8 +1516,11 @@ def get_all_ifaces_info(vm_name, virsh_instance):
     :param vm_name: vm's name
     :param v2v_virsh_instance: a virsh instance
     """
-    vmxml = vm_xml.VMXML.new_from_dumpxml(
-        vm_name, virsh_instance=virsh_instance)
+    # virsh can't find guest every time on old XEN server.
+    vmxml = wait_for(
+        vm_xml.VMXML.new_from_dumpxml,
+        vm_name=vm_name,
+        virsh_instance=virsh_instance)
     interfaces = vmxml.get_iface_all()
     if len(interfaces.keys()) == 0:
         raise exceptions.TestError("Not found mac address for vm %s" % vm_name)
@@ -1580,3 +1598,27 @@ def v2v_supported_option(opt_str):
     if re.search(r'%s' % opt_str, result.stdout):
         return True
     return False
+
+
+def wait_for(func, timeout=300, interval=10, *args, **kwargs):
+    """
+    Run a function 'func' until success or timeout
+
+    :param func: the function to be called
+    :param timeout: timeout value(seconds)
+    :param interval: interval values (seconds) for every call
+    :param *args: arguments to be passed to func
+    :param **dwargs: diction arguments to be passed to func
+    """
+    count = 0
+    end_time = time.time() + float(timeout)
+    while time.time() < end_time:
+        try:
+            return func(*args, **kwargs)
+        except Exception:
+            count += 1
+            time.sleep(interval)
+
+    logging.debug("Tried %s times", count)
+    # Run once more, raise exception or success
+    return func(*args, **kwargs)
