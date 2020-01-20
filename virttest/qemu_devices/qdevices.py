@@ -1051,7 +1051,7 @@ class QObject(QCustomDevice):
     def get_children(self):
         """ Device bus should be removed too """
         devices = super(QObject, self).get_children()
-        if self.hook_drive_bus:
+        if getattr(self, 'hook_drive_bus', None):
             devices.append(self.hook_drive_bus)
         return devices
 
@@ -1073,8 +1073,20 @@ class QObject(QCustomDevice):
         return out
 
     def hotplug_qmp(self):
-        """ :return: the hotplug monitor command """
-        return "object-add", self.params
+        """ :return: the object-add command """
+        params = self.params.copy()
+
+        # qom-type and id are mandatory
+        kwargs = {
+            "qom-type": params.pop("backend"),
+            "id": params.pop("id")
+        }
+
+        # props is optional
+        if len(params) > 0:
+            kwargs["props"] = params
+
+        return "object-add", kwargs
 
     def hotplug_hmp_nd(self):
         """ :return: the hotplug monitor command without dynamic parameters"""
@@ -1115,11 +1127,11 @@ class QObject(QCustomDevice):
             raise DeviceError("Device has no qemu_id.")
 
     def verify_unplug(self, out, monitor):
-        raise DeviceError("'verify_unplug' function unimplemented")
+        return len(out) == 0
 
     # pylint: disable=E0202
     def verify_hotplug(self, out, monitor):
-        raise DeviceError("'verify_hotplug' function unimplemented")
+        return len(out) == 0
 
 
 class QIOThread(QObject):
