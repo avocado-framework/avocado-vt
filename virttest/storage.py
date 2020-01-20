@@ -710,10 +710,11 @@ class QemuImg(object):
                     backup_size += os.path.getsize(src)
                 else:
                     # TODO: get the size of block/remote images
-                    backup_size += int(
-                        float(utils_numeric.normalize_data_size(
-                            self.size, order_magnitude="B"))
-                    )
+                    if self.size:
+                        backup_size += int(
+                            float(utils_numeric.normalize_data_size(
+                                self.size, order_magnitude="B"))
+                        )
 
             s = os.statvfs(backup_dir)
             image_dir_free_disk_size = s.f_bavail * s.f_bsize
@@ -776,10 +777,11 @@ class QemuImg(object):
             backup_size = os.path.getsize(src)
         else:
             # TODO: get the size of block/remote images
-            backup_size += int(
-                float(utils_numeric.normalize_data_size(self.size,
-                                                        order_magnitude="B"))
-            )
+            if self.size:
+                backup_size += int(
+                    float(utils_numeric.normalize_data_size(
+                        self.size, order_magnitude="B"))
+                )
         s = os.statvfs(root_dir)
         image_dir_free_disk_size = s.f_bavail * s.f_bsize
         logging.info("Checking disk size on %s.", root_dir)
