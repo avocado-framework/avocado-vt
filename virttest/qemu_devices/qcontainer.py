@@ -2252,6 +2252,8 @@ class DevContainer(object):
                  'port': params['chardev_port'],
                  'ipv4': params.get('chardev_ipv4'),
                  'ipv6': params.get('chardev_ipv6')})
+        if backend == 'tcp_socket':
+            chardev_param.update({'to': params.get('chardev_to')})
         if 'socket' in backend:  # tcp_socket & unix_socket
             chardev_param.update(
                 {'server': params.get('chardev_server', 'yes'),
