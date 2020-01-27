@@ -49,7 +49,7 @@ The base of the definitions come verbatim as follows:
 
 ::
 
-    E = {\\n, #, :, "-", =, +=, <=, ?=, ?+=, ?<=, !, < , del, @, variants, include, only, no, name, value}
+    E = {\\n, #, :, "-", =, +=, <=, ~=, ?=, ?+=, ?<=, !, < , del, @, variants, include, only, no, name, value}
 
     N = {S, DEL, FILTER, FILTER_NAME, FILTER_GROUP, PN_FILTER_GROUP, STAT, VARIANT, VAR-TYPE, VAR-NAME, VAR-NAME-F, VAR, COMMENT, TEXT, DEPS, DEPS-NAME-F, META-DATA, IDENTIFIER}``
 
@@ -72,7 +72,7 @@ The base of the definitions come verbatim as follows:
 
     DEL -> name \\n
 
-    I^n STAT -> I^n name = VALUE | I^n name += VALUE | I^n name <= VALUE
+    I^n STAT -> I^n name = VALUE | I^n name += VALUE | I^n name <= VALUE | I^n name ~= VALUE
     I^n STAT -> I^n name ?= VALUE | I^n name ?+= VALUE | I^n name ?<= VALUE
 
     VALUE -> TEXT \\n | 'TEXT' \\n | "TEXT" \\n
@@ -834,6 +834,15 @@ class LPrepend(LOperators):
             d[self.name] = _substitution(self.value, d) + d.get(self.name, "")
 
 
+class LLazySet(LOperators):
+    __slots__ = []
+    identifier = "~="
+
+    def apply_to_dict(self, d):
+        if self.name not in _reserved_keys and self.name not in d:
+            d[self.name] = _substitution(self.value, d)
+
+
 class LRegExpSet(LOperators):
     __slots__ = []
     identifier = "?="
@@ -960,7 +969,7 @@ class Suffix(LOperators):
 
 
 spec_iden = "_-"
-spec_oper = "+<?"
+spec_oper = "+<?~"
 
 
 tokens_map = {"-": LVariant,
@@ -976,6 +985,7 @@ tokens_map = {"-": LVariant,
 
 
 tokens_oper = {"": LSet,
+               "~": LLazySet,
                "+": LAppend,
                "<": LPrepend,
                "?": LRegExpSet,
@@ -984,7 +994,7 @@ tokens_oper = {"": LSet,
                }
 
 
-tokens_oper_re = [r"\=", r"\+\=", r"\<\=", r"\?\=", r"\?\+\=", r"\?\<\="]
+tokens_oper_re = [r"\=", r"\+\=", r"\<\=", r"\~\=", r"\?\=", r"\?\+\=", r"\?\<\="]
 
 
 _ops_exp = re.compile(r"|".join(tokens_oper_re))
@@ -1084,7 +1094,7 @@ class Lexer(object):
             for pos, char in li:
                 if char.isalnum() or char in spec_iden:    # alfanum+_-
                     chars += char
-                elif char in spec_oper:     # <+?=
+                elif char in spec_oper:     # <+?=~
                     if chars:
                         yield LIdentifier(chars)
                         oper = ""
@@ -1459,7 +1469,7 @@ class Parser(object):
 
         variants_allowed = [LVariant]
 
-        identifier_allowed = [LSet, LAppend, LPrepend,
+        identifier_allowed = [LSet, LAppend, LPrepend, LLazySet,
                               LRegExpSet, LRegExpAppend,
                               LRegExpPrepend, LColon,
                               LEndL]
