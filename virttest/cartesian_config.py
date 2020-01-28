@@ -538,9 +538,63 @@ class Node(object):
 match_substitute = re.compile("\$\{(.+?)\}")
 
 
+def _drop_suffixes(d):
+    """
+    Merge suffixes for same var, or drop off unnecessary suffixes
+
+    This step returns a copy of a suffix flattened dictionary.
+    """
+    # dictionary `d_flat' is going to be the mutated copy of `d`
+    d_flat = d.copy()
+    for key in d:
+        if key in _reserved_keys:
+            continue
+
+        if not isinstance(key, tuple):
+            continue
+
+        try:
+            # This file was invoked through cmdline
+            options.skipdups
+            skipdups = options.skipdups
+        except NameError:
+            # This file was invoked as Python module
+            skipdups = True
+
+        if skipdups:
+            # Drop vars with suffixes matches general var val
+            # Example: if a_x == 1, and a == 1. Drop: a_x, leave a
+            gen_var_name = key[0]
+            if gen_var_name in d and d[gen_var_name] == d[key]:
+                # Drop gen_var_name, use general key with same value
+                d_flat.pop(key)
+                continue
+
+            can_drop_all_suffixes_for_this_key = True
+            for k in d:
+                gen_name = k[0] if isinstance(k, tuple) else k
+                if gen_var_name == gen_name:
+                    if d[key] != d[k]:
+                        can_drop_all_suffixes_for_this_key = False
+                        break
+
+        if skipdups and can_drop_all_suffixes_for_this_key:
+            new_key = key[0]
+        else:
+            # merge suffixes, preserve reverse order of suffixes
+            new_key = key[:1] + key[1:][::-1]
+            new_key = ''.join((map(str, new_key)))
+        d_flat[new_key] = d_flat.pop(key)
+
+    return d_flat
+
+
 def _substitution(value, d):
     """
     Only optimization string Template substitute is quite expensive operation.
+
+    .. todo:: The current substitution is limited to simple cases when it comes
+        to using join and suffix operators.
 
     :param value: String where could be $string for substitution.
     :param d: Dictionary from which should be value substituted to value.
@@ -553,7 +607,8 @@ def _substitution(value, d):
         try:
             match = match_substitute.search(value, start)
             while match:
-                val = eval(match.group(1), None, d)
+                d_flat = _drop_suffixes(d)
+                val = eval(match.group(1), None, d_flat)
                 st += value[start:match.start()] + str(val)
                 start = match.end()
                 match = match_substitute.search(value, start)
@@ -1856,55 +1911,6 @@ class Parser(object):
                                          lexer.line))
             raise
 
-    def drop_suffixes(self, d):
-        """
-        Merge suffixes for same var, or drop off unnecessary suffixes
-
-        This step can be done safely only by the top level generator, before
-        outputting the dictionary to outside world.
-        """
-        # dictionary `d' is going to change, keep its original copy
-        d_orig = d.copy()
-        for key in d_orig:
-            if key in _reserved_keys:
-                continue
-
-            if not isinstance(key, tuple):
-                continue
-
-            try:
-                # This file was invoked through cmdline
-                options.skipdups
-                skipdups = options.skipdups
-            except NameError:
-                # This file was invoked as Python module
-                skipdups = True
-
-            if skipdups:
-                # Drop vars with suffixes matches general var val
-                # Example: if a_x == 1, and a == 1. Drop: a_x, leave a
-                gen_var_name = key[0]
-                if gen_var_name in d_orig and d_orig[gen_var_name] == d_orig[key]:
-                    # Drop gen_var_name, use general key with same value
-                    d.pop(key)
-                    continue
-
-                can_drop_all_suffixes_for_this_key = True
-                for k in d_orig:
-                    gen_name = k[0] if isinstance(k, tuple) else k
-                    if gen_var_name == gen_name:
-                        if d_orig[key] != d_orig[k]:
-                            can_drop_all_suffixes_for_this_key = False
-                            break
-
-            if skipdups and can_drop_all_suffixes_for_this_key:
-                new_key = key[0]
-            else:
-                # merge suffixes, preserve reverse order of suffixes
-                new_key = key[:1] + key[1:][::-1]
-                new_key = ''.join((map(str, new_key)))
-            d[new_key] = d.pop(key)
-
     def get_dicts(self, node=None, ctx=[], content=[], shortname=[], dep=[]):
         """
         Process 'join' entry, unpack join filter for node.
@@ -1957,9 +1963,7 @@ class Parser(object):
         if not joins:
             # Return generator
             for d in self.get_dicts_plain(node, ctx, content, shortname, dep):
-                if parent:
-                    self.drop_suffixes(d)
-                yield d
+                yield _drop_suffixes(d) if parent else d
         else:
             # Rewrite all separate joins in one node as many `only'
             onlys = []
@@ -1972,9 +1976,7 @@ class Parser(object):
             old_content = node.content[:]
             node.content = new_content
             for d in self.multiply_join(onlys, node, ctx, content, shortname, dep):
-                if parent:
-                    self.drop_suffixes(d)
-                yield d
+                yield _drop_suffixes(d) if parent else d
             node.content = old_content[:]
 
     def mk_name(self, n1, n2):
