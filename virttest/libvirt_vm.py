@@ -1443,22 +1443,26 @@ class VM(virt_vm.BaseVM):
         logging.debug("Set root login for %s failed.", device)
         return False
 
-    def set_kernel_console(self, device, speed=None, remove=False):
+    def set_kernel_console(self, device, speed=None, remove=False,
+                           guest_arch_name='x86_64'):
         """
         Set kernel parameter for given console device.
 
         :param device: a console device
         :param speed: speed of serial console
         :param remove: do remove operation
+        :param guest_arch_name: architecture of the guest to update kernel param
         """
         from . import utils_test
         kernel_params = "console=%s" % device
         if speed is not None:
             kernel_params += ",%s" % speed
         if remove:
-            utils_test.update_boot_option(self, args_removed=kernel_params)
+            utils_test.update_boot_option(self, args_removed=kernel_params,
+                                          guest_arch_name=guest_arch_name)
         else:
-            utils_test.update_boot_option(self, args_added=kernel_params)
+            utils_test.update_boot_option(self, args_added=kernel_params,
+                                          guest_arch_name=guest_arch_name)
         logging.debug("Set kernel params for %s is successful", device)
         return True
 
