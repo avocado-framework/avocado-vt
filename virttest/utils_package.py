@@ -16,9 +16,10 @@ PACKAGE_MANAGERS = ['apt-get',
                     'zypper',
                     'dnf']
 
+PKG_MGR_TIMEOUT = 300
+
 
 class RemotePackageMgr(object):
-
     """
     The remote package manage class
     """
@@ -75,7 +76,7 @@ class RemotePackageMgr(object):
 
         :return: True or False
         """
-        return not self.session.cmd_status(self.clean_cmd)
+        return not self.session.cmd_status(self.clean_cmd, timeout=PKG_MGR_TIMEOUT)
 
     def is_installed(self, pkg_name):
         """
@@ -85,7 +86,7 @@ class RemotePackageMgr(object):
         :return: True or False
         """
         cmd = self.query_cmd + pkg_name
-        return not self.session.cmd_status(cmd)
+        return not self.session.cmd_status(cmd, timeout=PKG_MGR_TIMEOUT)
 
     def operate(self, timeout, default_status, internal_timeout=2):
         """
@@ -93,6 +94,7 @@ class RemotePackageMgr(object):
 
         :param timeout: command timeout
         :param default_status: package default installed status
+        :param internal_timeout: internal_timeout to pass to cmd_status
         :return: True of False
         """
         for pkg in self.pkg_list:
@@ -115,7 +117,7 @@ class RemotePackageMgr(object):
                         return False
         return True
 
-    def install(self, timeout=300):
+    def install(self, timeout=PKG_MGR_TIMEOUT):
         """
         Use package manager install packages
 
@@ -125,7 +127,7 @@ class RemotePackageMgr(object):
         self.cmd = self.install_cmd
         return self.operate(timeout, False)
 
-    def remove(self, timeout=300):
+    def remove(self, timeout=PKG_MGR_TIMEOUT):
         """
         Use package manager remove packages
 
@@ -209,7 +211,7 @@ def package_manager(session, pkg):
     return mgr
 
 
-def package_install(pkg, session=None, timeout=300):
+def package_install(pkg, session=None, timeout=PKG_MGR_TIMEOUT):
     """
     Try to install packages on system with package manager.
 
@@ -222,7 +224,7 @@ def package_install(pkg, session=None, timeout=300):
     return utils_misc.wait_for(mgr.install, timeout)
 
 
-def package_remove(pkg, session=None, timeout=300):
+def package_remove(pkg, session=None, timeout=PKG_MGR_TIMEOUT):
     """
     Try to remove packages on system with package manager.
 
