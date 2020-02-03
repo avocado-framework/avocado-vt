@@ -11,6 +11,7 @@ import shutil
 import stat
 
 from avocado.core import data_dir
+from avocado.core.settings import settings
 from avocado.utils import distro
 from avocado.utils import path as utils_path
 
@@ -208,6 +209,10 @@ def get_tmp_dir(public=True):
 
     :param public: If public for all users' access
     """
+    persistent_dir = settings.get_value('vt.common', 'tmp_dir',
+                                        default="")
+    if persistent_dir != "":
+        return persistent_dir
     tmp_dir = None
     # apparmor deny /tmp/* /var/tmp/* and cause failure across tests
     # it is better to handle here
