@@ -1322,15 +1322,12 @@ class VM(virt_vm.BaseVM):
             if dtype and "%s_pci_bus" % dtype in params:
                 return {"aobject": params["%s_pci_bus" % dtype]}
             if machine_type == "q35" and not pcie:
-                pcic = "pci-bridge"
-                devices = [
-                    d for d in devices if isinstance(
-                        d, QDevice) and d.get_param("driver") == pcic]
-                try:
-                    idx = random.randint(0, (len(devices) - 1))
-                    return {"aobject": devices[idx].get_qid()}
-                except (IndexError, ValueError):
-                    pass
+                # for legace pic devie(eg. rtl8139, e1000)
+                if devices.has_device('pcie-pci-bridge'):
+                    bridge_type = 'pcie-pci-bridge'
+                else:
+                    bridge_type = 'pci-bridge'
+                return {'aobject': '%s-0' % bridge_type}
             return {'aobject': params.get('pci_bus', 'pci.0')}
 
         def add_pci_controllers(devices, params):
@@ -2376,21 +2373,31 @@ class VM(virt_vm.BaseVM):
                 if ats:
                     add_virtio_option("ats", ats, devices, device, dev_type)
 
-        # Add extra root_port at the end of the command line only if there is
-        # free slot on pci.0, discarding them otherwise
-        pcie_extra_root_port = int(params.get('pcie_extra_root_port', 0))
-        for num in range(pcie_extra_root_port):
-            try:
-                dev = devices.pcic_by_params(
-                    "pcie_extra_root_port_%s"
-                    % num, {"type": "pcie-root-port"})
-                devices.insert(dev)
-            except DeviceError:
-                logging.warning("No sufficient free slot for extra"
-                                " root port, discarding %d of them"
-                                % (pcie_extra_root_port - num))
-                break
-
+        if params.get('machine_type') == 'q35':
+            # Add extra root_port at the end of the command line only if there is
+            # free slot on pci.0, discarding them otherwise
+            func_0_addr = None
+            pcic_params = {'type': 'pcie-root-port'}
+            extra_port_num = int(params.get('pcie_extra_root_port', 0))
+            for num in range(extra_port_num):
+                try:
+                    # enable multifunction for root port
+                    port_name = "pcie_extra_root_port_%d" % num
+                    root_port = devices.pcic_by_params(port_name, pcic_params)
+                    func_num = num % 8
+                    if func_num == 0:
+                        root_port.set_param('multifunction', 'on')
+                        devices.insert(root_port)
+                        func_0_addr = root_port.get_param('addr')
+                    else:
+                        port_addr = '%s.%s' % (func_0_addr, hex(func_num))
+                        root_port.set_param('addr', port_addr)
+                        devices.insert(root_port)
+                except DeviceError:
+                    logging.warning("No sufficient free slot for extra"
+                                    " root port, discarding %d of them"
+                                    % (extra_port_num - num))
+                    break
         return devices, spice_options
 
     def _del_port_from_bridge(self, nic):
