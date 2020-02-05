@@ -518,12 +518,26 @@ class VMXMLBase(base.LibvirtXMLBase):
 
             self.xmltreefile.write()
 
-    def del_seclabel(self):
+    def del_seclabel(self, by_attr=None):
         """
-        Remove the seclabel tag from a domain
+        Remove seclabel tags from a domain. The set of seclabels for removal
+        can be restricted by matching attributes in by_attr.
+        :param by_attr: List of tuples describing the seclabel to be removed,
+        e.g.
+        1. [('model', 'selinux'), ('relabel', 'yes')] removes selinux seclabel
+         only if relabling is enabled.
+        2. [('type', 'dynamic')] removes all seclables that should get unique
+         security labels by libvirt.
+        3. by_attr=None will remove all seclabel tags.
         """
+        tag = "/seclabel"
         try:
-            self.xmltreefile.remove_by_xpath("/seclabel", remove_all=True)
+            if by_attr:
+                for seclabel in self.xmltreefile.findall(tag):
+                    if all(attr in seclabel.items() for attr in by_attr):
+                        self.xmltreefile.remove(seclabel)
+            else:
+                self.xmltreefile.remove_by_xpath(tag, remove_all=True)
         except (AttributeError, TypeError):
             pass  # Element already doesn't exist
         self.xmltreefile.write()
