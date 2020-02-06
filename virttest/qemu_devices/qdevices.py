@@ -2236,7 +2236,7 @@ class QPCIEBus(QPCIBus):
                         "vhost-vsock-pci", "virtio-net",
                         "virtio-scsi-pci", "virtio-balloon-pci",
                         "virtio-serial-pci", "virtio-rng-pci",
-                        "e1000e", "virtio-gpu-device", "qemu-xhci"]
+                        "e1000e", "virtio-gpu-pci", "qemu-xhci"]
         if device.get_param("driver") in pcie_devices and (
                 device.get_param("pcie_direct_plug", "no") == "no"):
             return False
