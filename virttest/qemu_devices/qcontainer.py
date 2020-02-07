@@ -2180,6 +2180,7 @@ class DevContainer(object):
         """
 
         devices = []
+        bus_params = {}
         if bus_extra_params:
             bus_params = (dict([_.split('=')
                                 for _ in bus_extra_params.split(',') if _]))
