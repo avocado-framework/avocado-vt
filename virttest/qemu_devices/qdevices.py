@@ -2243,6 +2243,22 @@ class QPCIEBus(QPCIBus):
 
         return True
 
+    def _get_port_addr(self, root_port):
+        """
+        Get root port address for function port
+
+        :param root_port: pcie-root-port QDevice object
+        :return string: pcie-root-port address or None if slot is full
+        """
+        slot = root_port.get_param('addr').split('.')[0]
+        full_addrs = set(['%s.%s' % (slot, hex(_)) for _ in range(1, 8)])
+        used_addrs = set(self.__root_ports.keys())
+        try:
+            return sorted(list(full_addrs - used_addrs))[0]
+        except IndexError:
+            pass
+        return None
+
     def add_root_port(self, root_port_type, root_port=None):
         """
         Add pcie root port to the bus and __root_ports list, assign free slot,
@@ -2259,10 +2275,7 @@ class QPCIEBus(QPCIBus):
             root_port.child_bus[0].reserve('0x0')
             self.insert(root_port)
         else:
-            port = root_port.get_param('addr').split('.')[0]
-            full_addrs = set(['%s.%s' % (port, hex(_)) for _ in range(1, 8)])
-            used_addrs = set(self.__root_ports.keys())
-            addr = sorted(list(full_addrs - used_addrs))[0]
+            addr = self._get_port_addr(root_port)
             root_port = self._add_root_port(root_port_type)
             root_port.set_param('addr', addr)
             self.insert(root_port)
@@ -2308,12 +2321,8 @@ class QPCIEBus(QPCIBus):
         if self.is_direct_plug(device):
             return super(QPCIEBus, self)._insert(device, addr)
 
-        added_devices = []
-
-        # get a free root port then plug pcie device to the root port
-        func_port = self.prepare_free_root_port()
-        added_devices.append(func_port)
-        bus = func_port.child_bus[0]
+        added_devices = self.prepare_free_root_ports()
+        bus = added_devices[-1].child_bus[0]
         device['bus'] = bus.busid
         bus.insert(device)
         return added_devices
@@ -2347,24 +2356,26 @@ class QPCIEBus(QPCIBus):
             out.append(root_port)
         return out
 
-    def prepare_free_root_port(self):
+    def prepare_free_root_ports(self):
         """
-        Return a free root port, if not found return a new root port
+        Return root ports for plugin pcie device
 
-        :return: QDevice object
+        :return: list of QDevice object
         """
+        new_ports = []
         root_ports = self.get_root_port_by_params({'multifunction': 'on'})
         # sort root ports to ensure continuity of port addresses
         root_ports = sorted(root_ports, key=lambda x: x.get_param('addr'))
         for root_port in root_ports:
-            port_addr = root_port.get_param('addr')
-            last_addr = '%s.7' % port_addr
-            if not self.__root_ports.get(last_addr):
+            addr = self._get_port_addr(root_port)
+            if addr is not None:
                 break
         else:
             root_port = self.add_root_port(self.__root_port_type)
-        root_port = self.add_root_port(self.__root_port_type, root_port)
-        return root_port
+            new_ports.append(root_port)
+        func_port = self.add_root_port(self.__root_port_type, root_port)
+        new_ports.append(func_port)
+        return new_ports
 
     def get_free_root_port(self):
         """
