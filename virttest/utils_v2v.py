@@ -577,8 +577,11 @@ class LinuxVMCheck(VMCheck):
         """
         Get vm pci list.
         """
-        cmd = "lspci"
-        return self.run_cmd(cmd)[1]
+        cmd_list = ['lspci', 'lshw']
+        for cmd in cmd_list:
+            status, output = self.run_cmd(cmd)
+            if status == 0:
+                return output
 
     def get_vm_rc_local(self):
         """
@@ -696,11 +699,11 @@ class LinuxVMCheck(VMCheck):
         :param flags: A RegexFlag, Please refer RE moudule of python
         :return: True if search result meets expectation, otherwise False
         """
-        cmd = "journalctl"
+        cmd = "journalctl --no-pager"
         if options:
             cmd += " %s" % options
 
-        if self.vm_general_search(cmd, substr, flags, ignore_status=True):
+        if self.vm_general_search(cmd, substr, flags, ignore_status=True, debug=False):
             return True
         return False
 
@@ -1504,8 +1507,8 @@ def close_virsh_instance(virsh_instance=None):
     :param v2v_virsh_instance: a virsh instance
     """
 
-    if virsh_instance:
-        logging.debug('Close session_id %s in VT', virsh_instance.session_id)
+    logging.debug('Closing session (%s) in VT', virsh_instance)
+    if virsh_instance and hasattr(virsh_instance, 'close_session'):
         virsh_instance.close_session()
 
 
