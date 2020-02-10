@@ -4307,11 +4307,19 @@ class VM(virt_vm.BaseVM):
             # If we're doing remote migration and it's completed successfully,
             # self points to a dead VM object
             if not not_wait_for_migration:
-                if self.is_alive() and self.is_paused():
+                if self.is_alive():
                     # For short period of time the status can be "inmigrate"
                     # for example when using external program
                     # (qemu commit fe823b6f87b2ebedd692ca480ceb9693439d816e)
-                    self.resume(60)
+                    # resume vm during "inmigrate" status can't work, wait until
+                    # exit "inmigrate" status and resume vm if needed.
+                    if utils_misc.wait_for(lambda: not self.monitor.verify_status('inmigrate'),
+                                           timeout=120, step=0.1):
+                        if self.is_paused():
+                            self.resume()
+                    else:
+                        raise virt_vm.VMStatusError("vm can't exit 'inmigrate' status"
+                                                    "after 120s")
                 clone.destroy(gracefully=False)
                 if env:
                     env.unregister_vm("%s_clone" % self.name)
@@ -4519,7 +4527,10 @@ class VM(virt_vm.BaseVM):
         """
         self.monitor.cmd("cont")
         if timeout:
-            self.wait_for_status('running', timeout, 0.1)
+            if not self.wait_for_status('running', timeout, step=0.1):
+                raise virt_vm.VMStatusError("Failed to enter running status, "
+                                            "the actual status is %s" %
+                                            self.monitor.get_status())
         else:
             self.verify_status("running")
 
