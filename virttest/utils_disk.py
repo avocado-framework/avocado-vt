@@ -569,7 +569,8 @@ def create_filesyetem_linux(session, partition_name, fstype, timeout=360):
     session.cmd(format_cmd, timeout=timeout)
 
 
-def create_filesystem_windows(session, partition_name, fstype, timeout=360):
+def create_filesystem_windows(session, partition_name, fstype,
+                              timeout=360, quick_format=True):
     """
     create file system in windows guest.
 
@@ -577,10 +578,14 @@ def create_filesystem_windows(session, partition_name, fstype, timeout=360):
     :param partition_name: partition name that to be formatted. e.g. D
     :param fstype: file system type for the disk.
     :param timeout: Timeout for cmd execution in seconds.
+    :param quick_format: Whether use quick format or not.
     """
     disk = "disk_" + ''.join(random.sample(string.ascii_letters + string.digits, 4))
     format_cmd = "echo select volume %s > " + disk
-    format_cmd += " && echo format fs=%s quick >> " + disk
+    format_cmd += " && echo format fs=%s "
+    if quick_format:
+        format_cmd += "quick "
+    format_cmd += ">> " + disk
     format_cmd += " && echo exit >> " + disk
     format_cmd += " && diskpart /s " + disk
     format_cmd += " && del /f " + disk
@@ -823,7 +828,7 @@ def drop_drive_letter(session, drive_letter):
 def configure_empty_windows_disk(session, did, size, start="0M",
                                  n_partitions=1, fstype="ntfs",
                                  labeltype=PARTITION_TABLE_TYPE_MBR,
-                                 timeout=360):
+                                 timeout=360, quick_format=True):
     """
     Create partition on disks in windows guest, format and mount it.
     Only handle an empty disk and will create equal size partitions onto the disk.
@@ -836,6 +841,7 @@ def configure_empty_windows_disk(session, did, size, start="0M",
     :param fstype: filesystem type for the disk.
     :param labeltype: label type for the disk.
     :param timeout: Timeout for cmd execution in seconds.
+    :param quick_format: Whether use quick format or not.
     :return a list: mount point list for all partitions.
     """
     mountpoint = []
@@ -867,7 +873,7 @@ def configure_empty_windows_disk(session, did, size, start="0M",
         if not drive_letter:
             return []
         mountpoint.append(drive_letter)
-        create_filesystem_windows(session, mountpoint[i], fstype, timeout)
+        create_filesystem_windows(session, mountpoint[i], fstype, timeout, quick_format=quick_format)
     return mountpoint
 
 
