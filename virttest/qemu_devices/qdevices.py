@@ -2243,6 +2243,22 @@ class QPCIEBus(QPCIBus):
 
         return True
 
+    def _get_port_addr(self, root_port):
+        """
+        Get root port address for function port
+
+        :param root_port: pcie-root-port QDevice object
+        :return string: pcie-root-port address or None if slot is full
+        """
+        slot = root_port.get_param('addr').split('.')[0]
+        full_addrs = set(['%s.%s' % (slot, hex(_)) for _ in range(1, 8)])
+        used_addrs = set(self.__root_ports.keys())
+        try:
+            return sorted(list(full_addrs - used_addrs))[0]
+        except IndexError:
+            pass
+        return None
+
     def add_root_port(self, root_port_type, root_port=None):
         """
         Add pcie root port to the bus and __root_ports list, assign free slot,
@@ -2255,14 +2271,9 @@ class QPCIEBus(QPCIBus):
         if not root_port:
             root_port = self._add_root_port(root_port_type)
             root_port.set_param('multifunction', 'on')
-            # reserve 0x0 for plug pcie-pci-bridge
-            root_port.child_bus[0].reserve('0x0')
             self.insert(root_port)
         else:
-            port = root_port.get_param('addr').split('.')[0]
-            full_addrs = set(['%s.%s' % (port, hex(_)) for _ in range(1, 8)])
-            used_addrs = set(self.__root_ports.keys())
-            addr = sorted(list(full_addrs - used_addrs))[0]
+            addr = self._get_port_addr(root_port)
             root_port = self._add_root_port(root_port_type)
             root_port.set_param('addr', addr)
             self.insert(root_port)
@@ -2277,10 +2288,11 @@ class QPCIEBus(QPCIBus):
         :return: pcie-root-port QDevice object
         """
         index = self.__last_port_index[0] + 1
+        self.__last_port_index = [index]
         bus_id = "%s-%s" % (root_port_type, index)
         bus = QPCIBus(bus_id, 'PCIE', bus_id, length=1, first_port=0)
         parent_bus = {'busid': '_PCI_CHASSIS'}
-        params = {'id': bus_id}
+        params = {'id': bus_id, 'port': hex(index)}
         root_port = QDevice(root_port_type,
                             params,
                             aobject=bus_id,
@@ -2297,9 +2309,6 @@ class QPCIEBus(QPCIBus):
         :param addr: addr to insert the device
         """
         if device.get_param('driver') == self.__root_port_type:
-            port_index = self.__last_port_index[0] + 1
-            device.set_param('port', hex(port_index))
-            self.__last_port_index[0] = port_index
             key = addr.replace('-', '.')
             self.__root_ports[key] = device
             device.set_param('bus', self.aobject)
@@ -2309,11 +2318,9 @@ class QPCIEBus(QPCIBus):
             return super(QPCIEBus, self)._insert(device, addr)
 
         added_devices = []
-
-        # get a free root port then plug pcie device to the root port
-        func_port = self.prepare_free_root_port()
-        added_devices.append(func_port)
-        bus = func_port.child_bus[0]
+        root_port = self.prepare_free_root_port()
+        added_devices.append(root_port)
+        bus = added_devices[-1].child_bus[0]
         device['bus'] = bus.busid
         bus.insert(device)
         return added_devices
@@ -2349,22 +2356,18 @@ class QPCIEBus(QPCIBus):
 
     def prepare_free_root_port(self):
         """
-        Return a free root port, if not found return a new root port
+        Return pcie root port for plugin a pcie device
 
-        :return: QDevice object
+        :return: QDevice object, pcie-root-port device
         """
         root_ports = self.get_root_port_by_params({'multifunction': 'on'})
         # sort root ports to ensure continuity of port addresses
         root_ports = sorted(root_ports, key=lambda x: x.get_param('addr'))
         for root_port in root_ports:
-            port_addr = root_port.get_param('addr')
-            last_addr = '%s.7' % port_addr
-            if not self.__root_ports.get(last_addr):
-                break
-        else:
-            root_port = self.add_root_port(self.__root_port_type)
-        root_port = self.add_root_port(self.__root_port_type, root_port)
-        return root_port
+            addr = self._get_port_addr(root_port)
+            if addr is not None:
+                return self.add_root_port(self.__root_port_type, root_port)
+        return self.add_root_port(self.__root_port_type)
 
     def get_free_root_port(self):
         """
