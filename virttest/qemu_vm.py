@@ -1756,8 +1756,14 @@ class VM(virt_vm.BaseVM):
                 5000, 5899, len(serials), host)
             reg_count = 0
         for index, serial in enumerate(serials):
-            serial_filename = vm.get_serial_console_filename(serial)
             serial_params = params.object_params(serial)
+            serial_filename = serial_params.get('chardev_path')
+            if serial_filename:
+                serial_dirname = os.path.dirname(serial_filename)
+                if not os.path.isdir(serial_dirname):
+                    os.makedirs(serial_dirname)
+            else:
+                serial_filename = vm.get_serial_console_filename(serial)
             # Workaround for console issue, details:
             # http://lists.gnu.org/archive/html/qemu-ppc/2013-10/msg00129.html
             if 'ppc' in params.get('vm_arch_name', arch.ARCH)\
@@ -1771,9 +1777,11 @@ class VM(virt_vm.BaseVM):
                 serial_params['chardev_host'] = host
                 serial_params['chardev_port'] = free_ports[index]
             prefix = serial_params.get('virtio_port_name_prefix')
-            serial_name = prefix + str(len(self.virtio_ports))\
-                if prefix else serial
-            serial_params['serial_name'] = serial_name
+            serial_name = serial_params.get('serial_name')
+            if not serial_name:
+                serial_name = prefix + str(len(self.virtio_ports))\
+                    if prefix else serial
+                serial_params['serial_name'] = serial_name
             serial_devices = devices.serials_define_by_params(
                 serial, serial_params, serial_filename)
 
