@@ -492,8 +492,21 @@ class VMCheck(object):
     def run_cmd(self, cmd, debug=True):
         """
         Run command in VM
+
+        If cmd is a list or tuple, the run_cmd tries every element of
+        cmd until success.
         """
-        status, output = self.session.cmd_status_output(cmd)
+
+        if isinstance(cmd, str):
+            status, output = self.session.cmd_status_output(cmd)
+        elif isinstance(cmd, list) or isinstance(cmd, tuple):
+            for cmd_i in cmd:
+                status, output = self.session.cmd_status_output(cmd_i)
+                if status == 0:
+                    break
+        else:
+            raise exceptions.TestError("Incorrect cmd: %s" % cmd)
+
         if debug:
             logging.debug("Command return status: %s", status)
             logging.debug("Command output:\n%s", output)
@@ -578,10 +591,7 @@ class LinuxVMCheck(VMCheck):
         Get vm pci list.
         """
         cmd_list = ['lspci', 'lshw']
-        for cmd in cmd_list:
-            status, output = self.run_cmd(cmd)
-            if status == 0:
-                return output
+        return self.run_cmd(cmd_list)[1]
 
     def get_vm_rc_local(self):
         """
