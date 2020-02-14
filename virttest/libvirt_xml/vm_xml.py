@@ -1043,8 +1043,14 @@ class VMXML(VMXMLBase):
         try:
             disk_bus = disk.find("target").get("bus")
             address = disk.find("address")
-            if disk_bus == "virtio":
-                add_type = address.get("type")
+            add_type = address.get("type")
+            logging.info("add_type %s", add_type)
+            if add_type == "ccw":
+                cssid = address.get("cssid")
+                ssid = address.get("ssid")
+                devno = address.get("devno")
+                address_str = "%s:%s.%s.%s" % (add_type, cssid, ssid, devno)
+            elif disk_bus == "virtio":
                 add_domain = address.get("domain")
                 add_bus = address.get("bus")
                 add_slot = address.get("slot")
