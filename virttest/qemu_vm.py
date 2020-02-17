@@ -2383,31 +2383,30 @@ class VM(virt_vm.BaseVM):
                 if ats:
                     add_virtio_option("ats", ats, devices, device, dev_type)
 
-        if params.get('machine_type') == 'q35':
-            # Add extra root_port at the end of the command line only if there is
-            # free slot on pci.0, discarding them otherwise
-            func_0_addr = None
-            pcic_params = {'type': 'pcie-root-port'}
-            extra_port_num = int(params.get('pcie_extra_root_port', 0))
-            for num in range(extra_port_num):
-                try:
-                    # enable multifunction for root port
-                    port_name = "pcie_extra_root_port_%d" % num
-                    root_port = devices.pcic_by_params(port_name, pcic_params)
-                    func_num = num % 8
-                    if func_num == 0:
-                        root_port.set_param('multifunction', 'on')
-                        devices.insert(root_port)
-                        func_0_addr = root_port.get_param('addr')
-                    else:
-                        port_addr = '%s.%s' % (func_0_addr, hex(func_num))
-                        root_port.set_param('addr', port_addr)
-                        devices.insert(root_port)
-                except DeviceError:
-                    logging.warning("No sufficient free slot for extra"
-                                    " root port, discarding %d of them"
-                                    % (extra_port_num - num))
-                    break
+        # Add extra root_port at the end of the command line only if there is
+        # free slot on pci.0, discarding them otherwise
+        func_0_addr = None
+        pcic_params = {'type': 'pcie-root-port'}
+        extra_port_num = int(params.get('pcie_extra_root_port', 0))
+        for num in range(extra_port_num):
+            try:
+                # enable multifunction for root port
+                port_name = "pcie_extra_root_port_%d" % num
+                root_port = devices.pcic_by_params(port_name, pcic_params)
+                func_num = num % 8
+                if func_num == 0:
+                    root_port.set_param('multifunction', 'on')
+                    devices.insert(root_port)
+                    func_0_addr = root_port.get_param('addr')
+                else:
+                    port_addr = '%s.%s' % (func_0_addr, hex(func_num))
+                    root_port.set_param('addr', port_addr)
+                    devices.insert(root_port)
+            except DeviceError:
+                logging.warning("No sufficient free slot for extra"
+                                " root port, discarding %d of them"
+                                % (extra_port_num - num))
+                break
         return devices, spice_options
 
     def _del_port_from_bridge(self, nic):
