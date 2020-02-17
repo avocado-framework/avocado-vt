@@ -3579,7 +3579,7 @@ def create_secret(params):
     sec_name = params.get("sec_name", "secret_name")
     sec_target = params.get("sec_target", "secret_target")
 
-    supporting_usage_types = ['volume', 'ceph', 'iscsi', 'tls']
+    supporting_usage_types = ['volume', 'ceph', 'iscsi', 'tls', 'vtpm']
     if sec_usage_type not in supporting_usage_types:
         raise exceptions.TestError("Supporting secret usage types are: %s" %
                                    supporting_usage_types)
@@ -3599,7 +3599,7 @@ def create_secret(params):
     # set specific attributes for different usage type
     if sec_usage_type in ['volume']:
         sec_xml.volume = sec_volume
-    if sec_usage_type in ['ceph', 'tls']:
+    if sec_usage_type in ['ceph', 'tls', 'vtpm']:
         sec_xml.usage_name = sec_name
     if sec_usage_type in ['iscsi']:
         sec_xml.target = sec_target
