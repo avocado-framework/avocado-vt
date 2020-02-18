@@ -515,8 +515,11 @@ def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False):
         final_result = False
 
     if vm.is_alive() and (not vm.is_paused()) and "live" in option:
+        vcpu_hotplug_timeout = 120  # maximum time to wait for a hotplug event to complete
         # 1.5 Check inside the guest
-        if not check_if_vm_vcpu_match(exp_vcpu['guest_live'], vm):
+        if not utils_misc.wait_for(lambda: check_if_vm_vcpu_match(exp_vcpu['guest_live'],
+                                                                  vm),
+                                   vcpu_hotplug_timeout, text="wait for vcpu online"):
             final_result = False
         # 1.6 Check guest numa
         if not guest_numa_check(vm, exp_vcpu):
