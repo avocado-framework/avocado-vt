@@ -6,24 +6,22 @@ Getting Started
 
 The first step towards using Avocado-VT is, quite obviously, installing it.
 
-Installing Avocado-vt
+Installing Avocado-VT
 =====================
 
-Avocado-vt is an Avocado plugin, therefor you are going to need both in
-order to be able to execute the tests. Usually the packaging mechanism
-should take care of the deps, but when package is not available for
-your distro, you need to start by installing Avocado, steps are
-`described here <http://avocado-framework.readthedocs.org/en/latest/GetStartedGuide.html#installing-avocado>`__.
+Avocado-VT is an Avocado plugin, therefore you are going to need both in
+order to be able to execute the tests.
 
-Fedora and Red Hat Enterprise Linux
------------------------------------
+Both are primarily written in Python, so a standard Python installation is
+possible and often preferable.
 
-Installing Avocado-VT on Fedora or Enterprise Linux is a matter of
-installing the `avocado-plugins-vt` package. Install it with::
+If you just want to use the plugin to run tests you might prefer to use
+packages from your system's package manager if available; this way non-python
+dependencies, esp. Avocado, are also taken care of automatically.
 
-    $ yum install avocado-plugins-vt
+You can find more details about the Avocado installation
+`here <https://avocado-framework.readthedocs.io/en/latest/guides/user/chapters/installing.html>`__.
 
-Which takes care of all the dependencies (python and non-python ones).
 
 Installing via PIP
 ------------------
@@ -32,9 +30,9 @@ Pip is useful when it comes to python dependencies, but it fails
 in non-python ones. List of non-python requirements based on Fedora
 package names is::
 
-    $ dnf install xz tcpdump iproute iputils gcc glibc-headers nc git python-netaddr
+    $ dnf install xz tcpdump iproute iputils gcc glibc-headers nc git python-netaddr python-devel
 
-Then you can get Avocado-vt via pip::
+Then you can get Avocado-VT via pip::
 
     $ pip install git+https://github.com/avocado-framework/avocado-vt
 
@@ -48,12 +46,22 @@ It's recommended to use ``pip`` even for local install as it treats
 requirements differently and the use of ``python setup.py install``
 might fail.
 
-Using Avocado-vt from sources
+Installing via system package manager
+-------------------------------------
+
+Installing Avocado-VT on Fedora or Enterprise Linux is a matter of
+installing the `avocado-plugins-vt` package. Install it with::
+
+    $ yum install avocado-plugins-vt
+
+Which takes care of all the dependencies (python and non-python ones).
+
+Setup Avocado-VT with sources
 -----------------------------
 
-If you intend use avocado from sources, clone it into the same parent dir
-as Avocado sources and use ``make link`` from the Avocado sources dir.
-Details about this can be found `here <http://avocado-framework.readthedocs.io/en/latest/ContributionGuide.html#hacking-and-using-avocado>`__.
+If you intend use avocado from sources, clone it into the same parent directory
+as Avocado sources and use ``make link`` from the Avocado sources directory.
+Details about this can be found `here <https://avocado-framework.readthedocs.io/en/latest/guides/contributor/chapters/environment.html#installing-in-develop-mode>`__.
 
 .. _run_bootstrap:
 
@@ -96,6 +104,11 @@ The output should be similar to::
 
 If there are missing requirements, please install them and re-run `vt-bootstrap`.
 
+.. note:: Recommended programs might be needed for Avocado to correctly
+          recognize test cases for your test backend or for test cases
+          to run correctly.
+
+
 First steps with Avocado-VT
 ===========================
 
@@ -126,6 +139,9 @@ This should list a large amount of tests (over 1900 virt related tests)::
     NOT_A_TEST: 27
     SIMPLE: 3
     VT: 1906
+
+.. note:: If no test cases are listed make sure you installed recommended
+          programs on your system, s. "Bootstrapping Avocado-VT".
 
 Now let's run a virt test::
 

@@ -26,7 +26,7 @@ LOG = logging.getLogger("avocado.app")
 basic_program_requirements = ['xz', 'tcpdump', 'nc', 'ip', 'arping']
 
 recommended_programs = {'qemu': [('qemu-kvm', 'kvm'), ('qemu-img',),
-                                 ('qemu-io',)],
+                                 ('qemu-io',), ('virsh',)],
                         'spice': [('qemu-kvm', 'kvm'), ('qemu-img',),
                                   ('qemu-io',)],
                         'libvirt': [('virsh',), ('virt-install',),

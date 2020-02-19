@@ -11,7 +11,7 @@ Gettings started with Avocado
 First of all, make sure you have Avocado itself installed. You can check
 the Avocado online documentation at:
 
-http://avocado-framework.readthedocs.org/en/latest/GetStartedGuide.html#installing-Avocado
+https://avocado-framework.readthedocs.io/en/latest/guides/user/chapters/installing.html
 
 Getting started with Avocado-VT
 ===============================
