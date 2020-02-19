@@ -732,6 +732,27 @@ def get_cpu_info(session=None):
     else:
         try:
             output = session.cmd_output(cmd).splitlines()
+            for idx, val in enumerate(output):
+                discrepancy = False
+                out = re.match(r"^\s+", val)
+                if out:
+                    # Let's adjust unwanted list item
+                    # created for lines which are
+                    # exceeding console line break.
+                    output.remove(val)
+                    try:
+                        if output[idx-1][len(out[0]) - 1] != ' ':
+                            output[idx-1] += ' '
+                    except Exception as err:
+                        # try max to handle the string with line break
+                        # with space, but let's not fail rather inform user.
+                        discrepancy = True
+                    output[idx-1] += val.strip(" ")
+                    if discrepancy:
+                        discrepancy = False
+                        logging.warning("this line may have missing space(s): %s\n"
+                                        "Unable to handle due to %s", output[idx-1], err)
+
         finally:
             session.close()
     cpu_info = dict(map(lambda x: [i.strip() for i in x.split(":")], output))
