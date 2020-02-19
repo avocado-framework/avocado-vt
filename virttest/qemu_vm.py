@@ -463,12 +463,17 @@ class VM(virt_vm.BaseVM):
                 return " -monitor unix:'%s',server,nowait" % filename
 
             monitor_id = "hmp_id_%s" % monitor_name
-            cmd = " -chardev socket"
-            cmd += _add_option("id", monitor_id)
-            cmd += _add_option("path", filename)
-            cmd += _add_option("server", "NO_EQUAL_STRING")
-            cmd += _add_option("nowait", "NO_EQUAL_STRING")
-            cmd += " -mon chardev=%s" % monitor_id
+            chardev_params = params.object_params(monitor_name)
+            # only support default chardev_backend 'unix_socket' for hmp monitor
+            backend = chardev_params.get('chardev_backend', 'unix_socket')
+            if backend != 'unix_socket':
+                raise NotImplementedError("human monitor don't support backend"
+                                          " %s" % backend)
+            params["monitor_filename_%s" % monitor_name] = filename
+            char_device = devices.chardev_define_by_params(
+                monitor_id, chardev_params, filename)
+            devices.insert(char_device)
+            cmd = " -mon chardev=%s" % monitor_id
             cmd += _add_option("mode", "readline")
             return cmd
 
