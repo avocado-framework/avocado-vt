@@ -1014,7 +1014,7 @@ def preprocess(test, params, env):
     # Destroy and remove VMs that are no longer needed in the environment or
     # leave them untouched if they have to be disregarded only for this test
     requested_vms = params.objects("vms")
-    keep_unrequested_vms = params.get_boolean("keep_env_vms", "no")
+    keep_unrequested_vms = params.get_boolean("keep_env_vms", False)
     for key in list(env.keys()):
         vm = env[key]
         if not isinstance(vm, virt_vm.BaseVM):
