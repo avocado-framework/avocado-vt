@@ -167,7 +167,7 @@ Xunit output, among others.
 
 
 %changelog
-* Mon Sep 30 2019 Plamen Dimitrov <pdimitrov@pevogam.com> - 75.0-1
+* Fri Jan 21 2020 Plamen Dimitrov <pdimitrov@pevogam.com> - 75.0-1
 - Rename package to "avocado_framework_plugin_vt"
 - Complete the use of the sysconfdir variable
 
