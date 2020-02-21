@@ -38,7 +38,7 @@
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 75.0
-Release: 0%{?gitrel}%{?dist}
+Release: 1%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -129,12 +129,12 @@ Xunit output, among others.
 %endif
 
 %install
-%{__mkdir} -p %{buildroot}/etc/avocado/conf.d
+%{__mkdir} -p %{buildroot}%{_sysconfdir}/avocado/conf.d
 %{__python2} setup.py install --root %{buildroot} --skip-build
-%{__mv} %{buildroot}%{python2_sitelib}/avocado_vt/conf.d/* %{buildroot}/etc/avocado/conf.d
+%{__mv} %{buildroot}%{python2_sitelib}/avocado_vt/conf.d/* %{buildroot}%{_sysconfdir}/avocado/conf.d
 %if %{with_python3}
 %{__python3} setup.py install --root %{buildroot} --skip-build
-%{__mv} %{buildroot}%{python3_sitelib}/avocado_vt/conf.d/* %{buildroot}/etc/avocado/conf.d
+%{__mv} %{buildroot}%{python3_sitelib}/avocado_vt/conf.d/* %{buildroot}%{_sysconfdir}/avocado/conf.d
 %endif
 
 %files -n python2-%{name}
@@ -144,7 +144,7 @@ Xunit output, among others.
 %config(noreplace)%{_sysconfdir}/avocado/conf.d/*.conf
 %doc README.rst LICENSE
 %{python2_sitelib}/avocado_vt*
-%{python2_sitelib}/avocado_framework_plugins_vt*
+%{python2_sitelib}/avocado_framework_plugin_vt*
 %{python2_sitelib}/virttest*
 %{_datadir}/avocado-plugins-vt/backends/*
 %{_datadir}/avocado-plugins-vt/shared/*
@@ -153,12 +153,12 @@ Xunit output, among others.
 %if %{with_python3}
 %files -n python3-%{name}
 %defattr(-,root,root,-)
-%dir /etc/avocado
-%dir /etc/avocado/conf.d
+%dir %{_sysconfdir}/avocado
+%dir %{_sysconfdir}/avocado/conf.d
 %config(noreplace)%{_sysconfdir}/avocado/conf.d/*.conf
 %doc README.rst LICENSE
 %{python3_sitelib}/avocado_vt*
-%{python3_sitelib}/avocado_framework_plugins_vt*
+%{python3_sitelib}/avocado_framework_plugin_vt*
 %{python3_sitelib}/virttest*
 %{_datadir}/avocado-plugins-vt/backends/*
 %{_datadir}/avocado-plugins-vt/shared/*
@@ -167,6 +167,10 @@ Xunit output, among others.
 
 
 %changelog
+* Mon Sep 30 2019 Plamen Dimitrov <pdimitrov@pevogam.com> - 75.0-1
+- Rename package to "avocado_framework_plugin_vt"
+- Complete the use of the sysconfdir variable
+
 * Tue Jan 21 2020 Cleber Rosa <cleber@redhat.com> - 75.0-0
 - New release
 

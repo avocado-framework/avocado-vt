@@ -92,7 +92,7 @@ if __name__ == "__main__":
         requirements.append("stevedore>=1.8.0,<=1.10.0")
         requirements.append("avocado-framework>=68.0,<70.0")
 
-    setup(name='avocado-framework-plugins-vt',
+    setup(name='avocado-framework-plugin-vt',
           version=VERSION,
           description='Avocado Plugin for Virtualization Testing',
           author='Avocado Developers',
