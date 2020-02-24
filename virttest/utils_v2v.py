@@ -16,10 +16,11 @@ from avocado.utils import process
 from avocado.core import exceptions
 from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 
-from virttest import ovirt
 from virttest.utils_test import libvirt
 from virttest.libvirt_xml import vm_xml
+from virttest.utils_version import VersionInterval
 from virttest import libvirt_vm as lvirt
+from virttest import ovirt
 from virttest import virsh
 from virttest import ppm_utils
 from virttest import data_dir
@@ -292,7 +293,7 @@ class Target(object):
             return options
 
         supported_mac = v2v_supported_option(
-            r'--mac <mac:network\|bridge:out>')
+            r'--mac <mac:network\|bridge(\|ip)?:out>')
         if supported_mac:
             if self.iface_macs:
                 for mac_i in self.iface_macs.split(';'):
@@ -1299,7 +1300,8 @@ def cleanup_constant_files(params):
                 params.get("local_ca_file_path"),
                 params.get("vpx_passwd_file")]
 
-    map(os.remove, [x for x in tmpfiles if x and os.path.isfile(x)])
+    # Python3 only returns a map object which is different from python2.
+    list(map(os.remove, [x for x in tmpfiles if x and os.path.isfile(x)]))
 
 
 def get_vddk_thumbprint(host, password, uri_type, prompt=r"[\#\$\[\]]"):
@@ -1635,3 +1637,35 @@ def wait_for(func, timeout=300, interval=10, *args, **kwargs):
     logging.debug("Tried %s times", count)
     # Run once more, raise exception or success
     return func(*args, **kwargs)
+
+
+def check_version(version, interval):
+    """
+    Check version against given interval string.
+
+    :param version: The version to be compared
+    :param interval: An interval is a string representation of a
+     mathmetical like interval. See the defination in utils_version.py.
+    :return: True if version satisfied interval, otherwise False.
+    """
+    verison_interval = VersionInterval(interval)
+    return version in verison_interval
+
+
+def compare_version(interval, version=None, cmd=None):
+    """
+    Compare version against given interval string.
+
+    :param interval: An interval is a string representation of a
+     mathmetical like interval. See the defination in utils_version.py.
+    :param version: The version to be compared
+    :param cmd: the command to get the version
+    :return: True if version satisfied interval, otherwise False.
+    """
+    if not version:
+        if not cmd:
+            cmd = 'rpm -q libguestfs'
+        # exit status checking will be done in process.run
+        version = process.run(cmd, shell=True).stdout_text.strip()
+
+    return check_version(version, interval)
