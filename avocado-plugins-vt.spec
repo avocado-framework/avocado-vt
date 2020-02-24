@@ -37,8 +37,8 @@
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 75.0
-Release: 1%{?gitrel}%{?dist}
+Version: 76.0
+Release: 0%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -167,6 +167,9 @@ Xunit output, among others.
 
 
 %changelog
+* Mon Feb 24 2020 Cleber Rosa <cleber@redhat.com> - 76.0-0
+- New release
+
 * Fri Jan 21 2020 Plamen Dimitrov <pdimitrov@pevogam.com> - 75.0-1
 - Rename package to "avocado_framework_plugin_vt"
 - Complete the use of the sysconfdir variable
