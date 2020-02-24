@@ -1832,6 +1832,9 @@ class DevContainer(object):
                 format_cls = qdevices.QBlockdevFormatRaw
             elif imgfmt == 'luks':
                 format_cls = qdevices.QBlockdevFormatLuks
+            elif imgfmt is None:
+                # use RAW type as the default
+                format_cls = qdevices.QBlockdevFormatRaw
 
             format_node = format_cls(name)
             protocol_node = protocol_cls(name)
