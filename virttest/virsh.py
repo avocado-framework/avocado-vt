@@ -2585,7 +2585,11 @@ def nodecpustats(option='', **dargs):
     """
 
     cmd_nodecpustat = "nodecpustats %s" % option
-    return command(cmd_nodecpustat, **dargs)
+    result = command(cmd_nodecpustat, **dargs)
+    if result.splitline() == "":
+        return 1
+    else:
+        return result
 
 
 def nodememstats(option='', **dargs):
