@@ -240,6 +240,12 @@ class VM(object):
     def __init__(self, name):
         self.name = name
 
+    def check_capability(self, flag):
+        return False
+
+    def get_pid(self):
+        return None
+
 
 class Monitor(object):
 
