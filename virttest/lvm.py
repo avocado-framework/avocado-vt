@@ -716,3 +716,8 @@ class EmulatedLVM(LVM):
             cmd = "rm -f %s" % emulate_image_file
             process.system(cmd, ignore_status=True)
             logging.info("remove emulate image file %s", emulate_image_file)
+
+
+def get_image_filename(vg_name, lv_name):
+    """Return logical volume filesystem path."""
+    return "/dev/{vg_name}/{lv_name}".format(vg_name=vg_name, lv_name=lv_name)
