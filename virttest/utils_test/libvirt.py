@@ -81,7 +81,6 @@ from virttest.libvirt_xml.devices import panic
 from virttest.libvirt_xml.devices import vsock
 from virttest.libvirt_xml.devices import rng
 
-
 ping = utils_net.ping
 
 
@@ -1708,10 +1707,16 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
 def create_hostdev_xml(pci_id, boot_order=None, xmlfile=True,
                        dev_type="pci", managed="yes", alias=None):
     """
-    Create a hostdev configuration file.
+    Create a hostdev configuration file; supported hostdev types:
+    a. pci
+    b. usb
+    c. scsi
+    The named parameter "pci_id" now has an overloaded meaning of "device id".
 
-    :param pci_id: such as "0000:03:04.0" for pci and "1d6b:0002:001:002" for
-                   usb (vendor:product:bus:device)
+    :param pci_id: device id on host, naming maintained for compatiblity reasons
+    a. "0000:03:04.0" for pci
+    b. "1d6b:0002:001:002" for usb (vendor:product:bus:device)
+    c. "0:0:0:1" for scsi (scsi_num:bus_num:target_num:unit_num)
     :param boot_order: boot order for hostdev device
     :param xmlfile: Return the file path of xmlfile if True
     :param dev_type: type of hostdev
@@ -1719,17 +1724,6 @@ def create_hostdev_xml(pci_id, boot_order=None, xmlfile=True,
     :param alias: alias name of hostdev
     :return: xml of hostdev device by default
     """
-    # Create attributes dict for device's address element
-    logging.info("pci_id is %s" % pci_id)
-    device_domain = pci_id.split(':')[0]
-    device_domain = "0x%s" % device_domain
-    device_bus = pci_id.split(':')[1]
-    device_bus = "0x%s" % device_bus
-    device_slot = pci_id.split(':')[-1].split('.')[0]
-    device_slot = "0x%s" % device_slot
-    device_function = pci_id.split('.')[-1]
-    device_function = "0x%s" % device_function
-
     hostdev_xml = hostdev.Hostdev()
     hostdev_xml.mode = "subsystem"
     hostdev_xml.managed = managed
@@ -1738,16 +1732,35 @@ def create_hostdev_xml(pci_id, boot_order=None, xmlfile=True,
         hostdev_xml.boot_order = boot_order
     if alias:
         hostdev_xml.alias = dict(name=alias)
-    if dev_type == "pci":
-        attrs = {'domain': device_domain, 'slot': device_slot,
-                 'bus': device_bus, 'function': device_function}
-        hostdev_xml.source = hostdev_xml.new_source(**attrs)
-    if dev_type == "usb":
-        addr_bus = pci_id.split(':')[2]
-        addr_device = pci_id.split(':')[3]
+
+    # Create attributes dict for device's address element
+    logging.info("pci_id/device id is %s" % pci_id)
+
+    if dev_type in ["pci", "usb"]:
+        device_domain = pci_id.split(':')[0]
+        device_domain = "0x%s" % device_domain
+        device_bus = pci_id.split(':')[1]
+        device_bus = "0x%s" % device_bus
+        device_slot = pci_id.split(':')[-1].split('.')[0]
+        device_slot = "0x%s" % device_slot
+        device_function = pci_id.split('.')[-1]
+        device_function = "0x%s" % device_function
+
+        if dev_type == "pci":
+            attrs = {'domain': device_domain, 'slot': device_slot,
+                     'bus': device_bus, 'function': device_function}
+            hostdev_xml.source = hostdev_xml.new_source(**attrs)
+        if dev_type == "usb":
+            addr_bus = pci_id.split(':')[2]
+            addr_device = pci_id.split(':')[3]
+            hostdev_xml.source = hostdev_xml.new_source(
+                **(dict(vendor_id=device_domain, product_id=device_bus,
+                        address_bus=addr_bus, address_device=addr_device)))
+    if dev_type == "scsi":
+        id_parts = pci_id.split(':')
         hostdev_xml.source = hostdev_xml.new_source(
-            **(dict(vendor_id=device_domain, product_id=device_bus,
-                    address_bus=addr_bus, address_device=addr_device)))
+            **(dict(adapter_name="scsi_host%s" % id_parts[0], bus=id_parts[1],
+                    target=id_parts[2], unit=id_parts[3])))
 
     logging.debug("Hostdev XML:\n%s", str(hostdev_xml))
     if not xmlfile:

@@ -621,6 +621,22 @@ def _get_mpoint_fstype_linux(session, partition):
     return mount_info.groups()
 
 
+def get_scsi_info(device_source):
+    """
+    Gets scsi info
+
+    :param device_source: source device path, e.g. /dev/sda
+    :raise TestError: if 'lsscsi' output is unexpected
+    :return: "scsi_num:bus_num:target_num:unit_num"
+    """
+    cmd = "lsscsi | grep %s | awk '{print $1}'" % device_source
+    cmd_result = process.run(cmd, shell=True)
+    scsi_info = re.findall("\d+", str(cmd_result.stdout.strip()))
+    if len(scsi_info) != 4:
+        raise exceptions.TestError("Got wrong scsi info: %s" % scsi_info)
+    return ":".join(scsi_info)
+
+
 def get_partition_attrs_linux(session, partition):
     """
     Get partition attributes in linux guest.
