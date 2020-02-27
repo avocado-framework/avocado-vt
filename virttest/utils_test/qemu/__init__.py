@@ -77,28 +77,6 @@ def get_numa_status(numa_node_info, qemu_pid, debug=True):
     return (qemu_memory, qemu_cpu)
 
 
-def get_nic_vendor(params, cmd):
-    """
-    Get host link layer
-
-    :param params: Dictionary with the test parameters.
-    :param cmd: Command string
-    """
-    utils_path.find_command(cmd)
-
-    expected_nic_vendor = params.get("expected_nic_vendor",
-                                     "IB InfiniBand")
-    pattern = "(?<=Link layer: ).*"
-    output = decode_to_text(process.system_output(cmd))
-    try:
-        nic_vendor = re.findall(pattern, output)[0]
-    except IndexError:
-        raise exceptions.TestError("Cannot get the link layer.")
-    if nic_vendor not in expected_nic_vendor.split():
-        raise exceptions.TestError("The Link layer is not correct, "
-                                   "expected is '%s'" % expected_nic_vendor)
-
-
 def pin_vm_threads(vm, node):
     """
     Pin VM threads to single cpu of a numa node
