@@ -46,9 +46,9 @@ class Libvirtd(object):
                             "utils_libvirtd module will not function normally")
         self.libvirtd = service.Factory.create_service(LIBVIRTD, run=runner)
 
-    def _wait_for_start(self, timeout=60):
+    def _wait_for_start(self, timeout=360):
         """
-        Wait n seconds for libvirt to start. Default is 10 seconds.
+        Wait n seconds for libvirt to start. Default is 360 seconds.
         """
         def _check_start():
             virsh_cmd = "virsh list"
