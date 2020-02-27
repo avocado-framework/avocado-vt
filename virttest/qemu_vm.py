@@ -1840,6 +1840,11 @@ class VM(virt_vm.BaseVM):
             for dev in devices.usbc_by_params(usb_name, usb_params, parent_bus):
                 devices.insert(dev)
 
+        # Add usb devices
+        for usb_dev in params.objects("usb_devices"):
+            usb_dev_params = params.object_params(usb_dev)
+            devices.insert(devices.usb_by_params(usb_dev, usb_dev_params))
+
         # initialize iothread manager
         devices.initialize_iothread_manager(params, self.cpuinfo)
 
@@ -2092,11 +2097,6 @@ class VM(virt_vm.BaseVM):
                     devices.insert(_)
 
         add_floppy(devices, params)
-
-        # Add usb devices
-        for usb_dev in params.objects("usb_devices"):
-            usb_dev_params = params.object_params(usb_dev)
-            devices.insert(devices.usb_by_params(usb_dev, usb_dev_params))
 
         tftp = params.get("tftp")
         if tftp:
