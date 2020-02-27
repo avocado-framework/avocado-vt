@@ -3390,17 +3390,17 @@ def get_ip_address_by_interface(ifname, ip_ver="ipv4", linklocal=False):
         try:
             if linklocal:
                 return [a['addr'] for a in addr
-                        if a['addr'].lower().startswith(linklocal_prefix)][0]
+                        if a['addr'].lower().startswith(linklocal_prefix)][0].split("%")[0]
             else:
                 return [a['addr'] for a in addr
-                        if not a['addr'].lower().startswith(linklocal_prefix)][0]
+                        if not a['addr'].lower().startswith(linklocal_prefix)][0].split("%")[0]
         except IndexError:
             logging.warning("No IP address configured for "
-                            "the network interface %s !", ifname)
+                            "the network interface %s !" % ifname)
             return None
     else:
         logging.warning("No IP address configured for the network interface"
-                        "%s !", ifname)
+                        "%s !" % ifname)
         return None
 
 
@@ -3420,13 +3420,14 @@ def get_host_ip_address(params=None, ip_ver="ipv4", linklocal=False):
     if params:
         host_ip = params.get('host_ip_addr', None)
         if host_ip:
-            logging.debug("Use IP address at config %s=%s", 'host_ip_addr', host_ip)
+            logging.debug("Use IP address at config %s=%s"
+                          % ('host_ip_addr', host_ip))
             return host_ip
         net_dev = params.get("netdst")
     if not net_dev:
         net_dev = get_default_gateway(iface_name=True)
     logging.warning("No IP address of host was provided, using IP address"
-                    " on %s interface", net_dev)
+                    " on %s interface" % net_dev)
     return get_ip_address_by_interface(net_dev, ip_ver, linklocal)
 
 
