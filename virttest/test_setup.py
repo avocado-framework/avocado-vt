@@ -2415,12 +2415,12 @@ class LibvirtdDebugLog(object):
         self.libvirtd_conf["log_level"] = self.log_level
         self.libvirtd_conf["log_outputs"] = '"%s:file:%s"' % (self.log_level,
                                                               self.log_file)
-        self.libvirtd.restart()
+        return self.libvirtd.restart()
 
     def disable(self):
         """ Disable libvirtd debug log """
         os.rename(self.backupfile, self.libvirtd_conf.conf_path)
-        self.libvirtd.restart()
+        return self.libvirtd.restart()
 
 
 class UlimitConfig(Setuper):
