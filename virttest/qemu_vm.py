@@ -1947,8 +1947,11 @@ class VM(virt_vm.BaseVM):
                             tapfds = ":".join(tapfd_list[:tapfds_len])
 
                 # Handle the '-net nic' part
-                virtio = "virtio" in nic_model
-                parent_bus = self._get_pci_bus(nic_params, "nic", virtio)
+                if params.get("machine_type") != "q35":
+                    pcie = False
+                else:
+                    pcie = nic_model not in ['e1000', 'rtl8139']
+                parent_bus = self._get_pci_bus(nic_params, "nic", pcie)
                 add_nic(devices, vlan, nic_model, mac,
                         device_id, netdev_id, nic_extra,
                         nic_params.get("nic_pci_addr"),
