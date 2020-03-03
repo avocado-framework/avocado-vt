@@ -53,7 +53,7 @@ Using Avocado-vt from sources
 
 If you intend use avocado from sources, clone it into the same parent dir
 as Avocado sources and use ``make link`` from the Avocado sources dir.
-Details about this can be found `here <http://avocado-framework.readthedocs.io/en/latest/ContributionGuide.html#hacking-and-using-avocado>`__.
+Details about this can be found `here <https://avocado-framework.readthedocs.io/en/latest/guides/contributor/chapters/environment.html#installing-in-develop-mode>`__.
 
 .. _run_bootstrap:
 
