@@ -1244,7 +1244,7 @@ class VM(virt_vm.BaseVM):
             parent_bus = None
             if device_type and devices.has_device(device_type):
                 if devices.is_pci_device(device_type):
-                    parent_bus = pci_bus
+                    parent_bus = self._get_pci_bus(self.params, None, False)
                 watchdog_devs.append(QDevice(device_type, parent_bus=parent_bus))
             cmd = "-watchdog-action %s" % action
             watchdog_devs.append(StrDev('watchdog_action', cmdline=cmd))
