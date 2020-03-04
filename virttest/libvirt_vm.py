@@ -1352,10 +1352,15 @@ class VM(virt_vm.BaseVM):
 
         # Additional qemu commandline options to virt-install directly
         # helps to test new feature from qemu
-        virtinstall_qemu_cmdline = params.get("virtinstall_qemu_cmdline", "")
-        if virtinstall_qemu_cmdline:
-            if has_option(help_text, "qemu-commandline"):
+        if has_option(help_text, "qemu-commandline"):
+            virtinstall_qemu_cmdline = params.get("virtinstall_qemu_cmdline", "")
+            if virtinstall_qemu_cmdline:
                 virt_install_cmd += ' --qemu-commandline="%s"' % virtinstall_qemu_cmdline
+
+            compat = params.get("qemu_compat")
+            if compat:
+                # TODO: Add a check whether "-compat" is supported
+                virt_install_cmd += ' --qemu-commandline="-compat %s"' % compat
 
         virtinstall_extra_args = params.get("virtinstall_extra_args", "")
         if virtinstall_extra_args:
