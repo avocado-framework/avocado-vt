@@ -903,3 +903,30 @@ class QemuAgent(Monitor):
         """
         cmd = "guest-set-memory-blocks"
         return self._cmd_args_update(cmd, mem_blks=mem_blocks_list)
+
+    def get_host_name(self):
+        """
+        Get host name of vm.
+        """
+        cmd = "guest-get-host-name"
+        self.check_has_command(cmd)
+        return self.cmd(cmd=cmd)
+
+    def get_timezone(self):
+        """
+        Get time zone of vm.
+        :return: a timezone dict includes name and an offset to UTC in seconds.
+        """
+        cmd = "guest-get-timezone"
+        self.check_has_command(cmd)
+        return self.cmd(cmd=cmd)
+
+    def get_users(self):
+        """
+        Get currently active users on the vm.
+        :return: a list of currently active users, includes user name, login
+                 time and domain(windows only).
+        """
+        cmd = "guest-get-users"
+        self.check_has_command(cmd)
+        return self.cmd(cmd=cmd)
