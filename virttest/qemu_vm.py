@@ -1244,7 +1244,7 @@ class VM(virt_vm.BaseVM):
             parent_bus = None
             if device_type and devices.has_device(device_type):
                 if devices.is_pci_device(device_type):
-                    parent_bus = pci_bus
+                    parent_bus = self._get_pci_bus(self.params, None, False)
                 watchdog_devs.append(QDevice(device_type, parent_bus=parent_bus))
             cmd = "-watchdog-action %s" % action
             watchdog_devs.append(StrDev('watchdog_action', cmdline=cmd))
@@ -1318,32 +1318,6 @@ class VM(virt_vm.BaseVM):
             options = devices.execute_qemu("-device %s,?" % dev_type)
             if option in options:
                 dev.set_param(option, value)
-
-        def _get_pci_bus(devices, params, dtype=None, pcie=False):
-            """
-            Get device parent pci bus by dtype
-
-            :param devices: DevContainer object
-            :param params: test params for the device
-            :param dtype: device type like, 'nic', 'disk',
-                          'vio_rng', 'vio_port' or 'cdrom'
-            :param pcie: it's a pcie device or not (bool type)
-
-            :return: return QPCIBus object.
-            """
-            machine_type = params.get("machine_type", "")
-            if "mmio" in machine_type:
-                return None
-            if dtype and "%s_pci_bus" % dtype in params:
-                return {"aobject": params["%s_pci_bus" % dtype]}
-            if machine_type == "q35" and not pcie:
-                # for legace pic devie(eg. rtl8139, e1000)
-                if devices.has_device('pcie-pci-bridge'):
-                    bridge_type = 'pcie-pci-bridge'
-                else:
-                    bridge_type = 'pci-bridge'
-                return {'aobject': '%s-0' % bridge_type}
-            return {'aobject': params.get('pci_bus', 'pci.0')}
 
         def add_pci_controllers(devices, params):
             """
@@ -1705,7 +1679,7 @@ class VM(virt_vm.BaseVM):
         # -soundhw addresses are always the lowest after scsi
         soundhw = params.get("soundcards")
         if soundhw:
-            parent_bus = _get_pci_bus(devices, params, "soundcard")
+            parent_bus = self._get_pci_bus(params, "soundcard")
             if not devices.has_option('device') or soundhw == "all":
                 for sndcard in ('AC97', 'ES1370', 'intel-hda'):
                     # Add all dummy PCI devices and the actuall command below
@@ -1821,13 +1795,13 @@ class VM(virt_vm.BaseVM):
         # Add virtio-rng devices
         for virtio_rng in params.objects("virtio_rngs"):
             rng_params = params.object_params(virtio_rng)
-            parent_bus = _get_pci_bus(devices, rng_params, "vio_rng", True)
+            parent_bus = self._get_pci_bus(rng_params, "vio_rng", True)
             add_virtio_rng(devices, rng_params, parent_bus)
 
         # Add logging
         devices.insert(StrDev('isa-log', cmdline=add_log_seabios(devices)))
         if params.get("anaconda_log", "no") == "yes":
-            parent_bus = _get_pci_bus(devices, params, None, True)
+            parent_bus = self._get_pci_bus(params, None, True)
             add_log_anaconda(devices, parent_bus)
 
         # Add USB controllers
@@ -1836,7 +1810,7 @@ class VM(virt_vm.BaseVM):
             usbs = ("oldusb",)  # Old qemu, add only one controller '-usb'
         for usb_name in usbs:
             usb_params = params.object_params(usb_name)
-            parent_bus = _get_pci_bus(devices, usb_params, "usbc", True)
+            parent_bus = self._get_pci_bus(usb_params, "usbc", True)
             for dev in devices.usbc_by_params(usb_name, usb_params, parent_bus):
                 devices.insert(dev)
 
@@ -1876,9 +1850,9 @@ class VM(virt_vm.BaseVM):
                     self.last_boot_index += 1
             if ("virtio" in image_params.get("drive_format", "") or
                     "virtio" in image_params.get("scsi_hba", "")):
-                parent_bus = _get_pci_bus(devices, image_params, "disk", True)
+                parent_bus = self._get_pci_bus(image_params, "disk", True)
             else:
-                parent_bus = _get_pci_bus(devices, image_params, "disk", False)
+                parent_bus = self._get_pci_bus(image_params, "disk", False)
             devs = devices.images_define_by_params(image_name, image_params,
                                                    'disk', index, image_boot,
                                                    image_bootindex,
@@ -1973,8 +1947,11 @@ class VM(virt_vm.BaseVM):
                             tapfds = ":".join(tapfd_list[:tapfds_len])
 
                 # Handle the '-net nic' part
-                virtio = "virtio" in nic_model
-                parent_bus = _get_pci_bus(devices, nic_params, "nic", virtio)
+                if params.get("machine_type") != "q35":
+                    pcie = False
+                else:
+                    pcie = nic_model not in ['e1000', 'rtl8139']
+                parent_bus = self._get_pci_bus(nic_params, "nic", pcie)
                 add_nic(devices, vlan, nic_model, mac,
                         device_id, netdev_id, nic_extra,
                         nic_params.get("nic_pci_addr"),
@@ -2078,11 +2055,9 @@ class VM(virt_vm.BaseVM):
             if iso or image_params.get("cdrom_without_file") == "yes":
                 if ("virtio" in image_params.get("driver_format", "") or
                         "virtio" in image_params.get("scsi_hba", "")):
-                    parent_bus = _get_pci_bus(
-                        devices, image_params, "cdrom", True)
+                    parent_bus = self._get_pci_bus(image_params, "cdrom", True)
                 else:
-                    parent_bus = _get_pci_bus(
-                        devices, image_params, "cdrom", False)
+                    parent_bus = self._get_pci_bus(image_params, "cdrom", False)
                 devs = devices.cdroms_define_by_params(cdrom, image_params,
                                                        'cdrom', index,
                                                        image_boot,
@@ -2231,7 +2206,7 @@ class VM(virt_vm.BaseVM):
 
             devices.insert(StrDev('fsdev', cmdline=cmd))
 
-            parent_bus = _get_pci_bus(devices, params, 'vio_9p', True)
+            parent_bus = self._get_pci_bus(params, 'vio_9p', True)
             dev = QDevice('virtio-9p-pci', parent_bus=parent_bus)
             dev.set_param('fsdev', 'local1')
             dev.set_param('mount_tag', 'autotest_tag')
@@ -2348,8 +2323,7 @@ class VM(virt_vm.BaseVM):
             use_ofmt = balloon_params.get("balloon_use_old_format",
                                           "no") == "yes"
             if balloon_params.get("balloon_dev_add_bus") == "yes":
-                balloon_bus = _get_pci_bus(
-                    devices, balloon_params, 'balloon', True)
+                balloon_bus = self._get_pci_bus(balloon_params, 'balloon', True)
             options = {}
             deflate_on_oom = balloon_params.get("balloon_opt_deflate_on_oom")
             options["deflate-on-oom"] = deflate_on_oom
@@ -3490,6 +3464,37 @@ class VM(virt_vm.BaseVM):
         """
         return self.spice_options.get(spice_var, None)
 
+    def _get_pci_bus(self, params, dtype=None, pcie=False):
+        """
+        Get device parent pci bus by dtype
+
+        :param params: test params for the device
+        :param dtype: device type like, 'nic', 'disk',
+                      'vio_rng', 'vio_port' or 'cdrom'
+        :param pcie: it's a pcie device or not (bool type)
+
+        :return: return bus spec dict
+        """
+        machine_type = params.get("machine_type", "")
+        if "mmio" in machine_type:
+            return None
+        if dtype and "%s_pci_bus" % dtype in params:
+            return {"aobject": params["%s_pci_bus" % dtype]}
+        if machine_type == "q35" and not pcie:
+            # for legace pic devie(eg. rtl8139, e1000)
+            devices = qcontainer.DevContainer(
+                    self.qemu_binary,
+                    self.name,
+                    self.params.get('strict_mode'),
+                    self.params.get('workaround_qemu_qmp_crash'),
+                    self.params.get('allow_hotplugged_vm'))
+            if devices.has_device('pcie-pci-bridge'):
+                bridge_type = 'pcie-pci-bridge'
+            else:
+                bridge_type = 'pci-bridge'
+            return {'aobject': '%s-0' % bridge_type}
+        return {'aobject': params.get('pci_bus', 'pci.0')}
+
     @error_context.context_aware
     def hotplug_vcpu(self, cpu_id=None, plug_command="", unplug=""):
         """
@@ -3819,10 +3824,16 @@ class VM(virt_vm.BaseVM):
         device_add_cmd += nic.get('nic_extra_params', '')
         if 'romfile' in nic:
             device_add_cmd += ",romfile=%s" % nic.romfile
-        bus = self.devices.get_buses({'aobject': 'pci.0'})[0]
+        if self.params.get('machine_type') != 'q35':
+            pcie = False
+        else:
+            pcie = nic['nic_model'] not in ['e1000', 'rtl8139']
+        nic_params = self.params.object_params(nic.nic_name)
+        bus_spec = self._get_pci_bus(nic_params, 'nic', pcie)
+        bus = self.devices.get_buses(bus_spec)[0]
         nic_dev = qdevices.QDevice(params={'id': device_id,
                                            'driver': nic.nic_model},
-                                   parent_bus=({'aobject': 'pci.0'},))
+                                   parent_bus=(bus_spec,))
         nic_dev.set_aid(nic_dev.get_qid())
         bus.prepare_hotplug(nic_dev)
         qdev_out = self.devices.insert(nic_dev)
