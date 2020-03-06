@@ -317,6 +317,14 @@ class QBaseDevice(object):
         """
         return out
 
+    def is_pcie_device(self):
+        """Check is it a pcie device"""
+        driver = self.get_param("driver", "")
+        if (driver in ("e1000e", "vhost-vsock-pci", "qemu-xhci")
+                or driver.startswith("virtio-")):
+            return True
+        return False
+
 
 class QStringDevice(QBaseDevice):
 
@@ -2232,15 +2240,9 @@ class QPCIEBus(QPCIBus):
         :param device: the QBaseDevice object
         :return: bool value for directly plug or not.
         """
-        pcie_devices = ["virtio-net-pci", "virtio-blk-pci",
-                        "vhost-vsock-pci", "virtio-net",
-                        "virtio-scsi-pci", "virtio-balloon-pci",
-                        "virtio-serial-pci", "virtio-rng-pci",
-                        "e1000e", "virtio-gpu-pci", "qemu-xhci"]
-        if device.get_param("driver") in pcie_devices and (
-                device.get_param("pcie_direct_plug", "no") == "no"):
+        not_direct_plug = device.get_param("pcie_direct_plug", "no") == "no"
+        if not_direct_plug and device.is_pcie_device():
             return False
-
         return True
 
     def _get_port_addr(self, root_port):
