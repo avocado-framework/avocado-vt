@@ -2348,10 +2348,8 @@ class VM(virt_vm.BaseVM):
             add_qemu_option(devices, "k", [attr_info])
 
         # Add disable_legacy and disable_modern options
-        virtio_pci_devices = ["virtio-net-pci", "virtio-blk-pci",
-                              "virtio-scsi-pci", "virtio-balloon-pci",
-                              "virtio-serial-pci", "virtio-rng-pci"]
-        for device in devices:
+        virtio_devices = filter(lambda x: x.get_param('driver', '').startswith('virtio-'), devices)
+        for device in virtio_devices:
             dev_type = device.get_param("driver")
             # Currently virtio1.0 behaviour on latest RHEL.7.2/RHEL.7.3
             # qemu versions is default, we don't need to specify the
@@ -2360,15 +2358,14 @@ class VM(virt_vm.BaseVM):
             disable_modern = params.get("virtio_dev_disable_modern", None)
             iommu_platform = params.get("virtio_dev_iommu_platform", None)
             ats = params.get("virtio_dev_ats", None)
-            if dev_type in virtio_pci_devices:
-                if disable_legacy:
-                    add_virtio_option("disable-legacy", disable_legacy, devices, device, dev_type)
-                if disable_modern:
-                    add_virtio_option("disable-modern", disable_modern, devices, device, dev_type)
-                if iommu_platform:
-                    add_virtio_option("iommu_platform", iommu_platform, devices, device, dev_type)
-                if ats:
-                    add_virtio_option("ats", ats, devices, device, dev_type)
+            if disable_legacy:
+                add_virtio_option("disable-legacy", disable_legacy, devices, device, dev_type)
+            if disable_modern:
+                add_virtio_option("disable-modern", disable_modern, devices, device, dev_type)
+            if iommu_platform:
+                add_virtio_option("iommu_platform", iommu_platform, devices, device, dev_type)
+            if ats:
+                add_virtio_option("ats", ats, devices, device, dev_type)
 
         # Add extra root_port at the end of the command line only if there is
         # free slot on pci.0, discarding them otherwise
