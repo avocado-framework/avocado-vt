@@ -61,9 +61,15 @@ from avocado.utils.process import kill_process_tree as _kill_process_tree
 from avocado.utils.process import kill_process_by_pattern  # pylint: disable=W0611
 from avocado.utils.process import process_in_ptree_is_defunct as process_or_children_is_defunct  # pylint: disable=W0611
 # Symlink avocado implementation of port-related functions
-from avocado.utils.network import is_port_free     # pylint: disable=W0611
-from avocado.utils.network import find_free_port   # pylint: disable=W0611
-from avocado.utils.network import find_free_ports  # pylint: disable=W0611
+
+try:
+    from avocado.utils.network.ports import is_port_free  # pylint: disable=W0611
+    from avocado.utils.network.ports import find_free_port  # pylint: disable=W0611
+    from avocado.utils.network.ports import find_free_ports  # pylint: disable=W0611
+except ImportError:
+    from avocado.utils.network import is_port_free  # pylint: disable=W0611
+    from avocado.utils.network import find_free_port  # pylint: disable=W0611
+    from avocado.utils.network import find_free_ports  # pylint: disable=W0611
 
 from virttest import data_dir
 from virttest import error_context
