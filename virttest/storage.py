@@ -12,6 +12,7 @@ import os
 import shutil
 import re
 import functools
+import collections
 
 from avocado.core import exceptions
 from avocado.utils import process
@@ -305,16 +306,31 @@ class ImageSecret(object):
 
 
 class StorageAuth(object):
-    """Image storage authentication class"""
+    """
+    Image storage authentication class.
+    iscsi auth: initiator + password
+    ceph auth: ceph key
+    """
 
-    def __init__(self, image, data, data_format, auth_type):
-        self.aid = '%s_access_secret' % image
-        self._auth_type = auth_type
+    def __init__(self, image, data, data_format, storage_type, **info):
+        """
+        :param image: image tag name
+        :param data: sensitive data like password
+        :param data_format: raw or base64
+        :param storage_type: ceph, gluster or iscsi-direct
+        :param info: other access information, such as:
+                     iscsi-direct: initiator
+                     gluster: debug, logfile
+        """
+        self.image = image
+        self.aid = '%s_access_secret' % self.image
+        self.storage_type = storage_type
         self.filename = os.path.join(secret_dir, "%s.secret" % self.aid)
 
-        if self._auth_type == 'chap':
+        if self.storage_type == 'iscsi-direct':
             self._chap_passwd = data
-        elif self._auth_type == 'cephx':
+            self.iscsi_initiator = info.get('initiator')
+        elif self.storage_type == 'ceph':
             self._ceph_key = data
         self.data_format = data_format
 
@@ -323,9 +339,9 @@ class StorageAuth(object):
 
     @property
     def data(self):
-        if self._auth_type == 'chap':
+        if self.storage_type == 'iscsi-direct':
             return self._chap_passwd
-        elif self._auth_type == 'cephx':
+        elif self.storage_type == 'ceph':
             return self._ceph_key
         else:
             return None
@@ -336,51 +352,91 @@ class StorageAuth(object):
         with open(self.filename, "w") as fd:
             fd.write(self.data)
 
-
-class ImageAccessInfo(object):
-    """
-    iscsi image access: initiator + StorageAuth(u/p)
-    ceph image access: StorageAuth(u/p)
-    """
-    def __init__(self, image, data, data_format, storage_type, initiator=None):
-        self.image = image
-        self.storage_type = storage_type
-        auth_type = None
-        if self.storage_type == 'iscsi-direct':
-            auth_type = 'chap'
-            self.iscsi_initiator = initiator
-        elif self.storage_type == 'ceph':
-            auth_type = 'cephx'
-        self.auth = StorageAuth(self.image, data, data_format,
-                                auth_type) if data is not None else None
-
     @classmethod
-    def access_info_define_by_params(cls, image, params):
+    def auth_info_define_by_params(cls, image, params):
+        """
+        :param image: image tag name
+        :param params: image specified parmas, i.e. params.object_params(image)
+        """
+        auth = None
+        storage_type = params.get("storage_type")
         enable_ceph = params.get("enable_ceph", "no") == "yes"
         enable_iscsi = params.get("enable_iscsi", "no") == "yes"
-        storage_type = params.get("storage_type")
-        access_info = None
 
         if enable_iscsi:
             if storage_type == 'iscsi-direct':
                 initiator = params.get('initiator')
                 data = params.get('chap_passwd')
-                data_format = params.get("data_format", "raw")
-                access_info = cls(image, data, data_format, storage_type,
-                                  initiator) if data or initiator else None
+                data_format = params.get('data_format', 'raw')
+                auth = cls(image, data, data_format, storage_type,
+                           initiator=initiator) if data or initiator else None
         elif enable_ceph:
             data = params.get('ceph_key')
-            data_format = params.get("data_format", "base64")
-            access_info = cls(image, data, data_format,
-                              storage_type) if data else None
+            data_format = params.get('data_format', 'base64')
+            auth = cls(image, data, data_format,
+                       storage_type) if data else None
+        return auth
+
+
+class ImageAccessInfo(object):
+    """
+    Access info to the logical image, which can include the network
+    storage image only, or the image and its backing images.
+    """
+    def __init__(self, image, image_auth, image_backing_auth):
+        """
+        :param image: image tag name
+        :param image_auth: StorageAuth object to access image itself
+        :param image_backing_auth: a dict({image: StorageAuth object}),
+                                   used for accessing the backing images
+        """
+        self.image = image
+        self.image_auth = image_auth
+        self.image_backing_auth = image_backing_auth
+
+    @classmethod
+    def access_info_define_by_params(cls, image, params):
+        """
+        :param image: image tag name
+        :param params: a dict containing the test parameters
+
+        :return: an ImageAccessInfo object or None
+        """
+        access_info = None
+        info = retrieve_access_info(image, params)
+
+        if info:
+            access = info.pop(image, None)
+            access_info = cls(image, access, info)
+
         return access_info
 
 
 def retrieve_access_info(image, params):
-    """Create image access info object"""
-    img_params = params.object_params(image)
-    # TODO: get all image access info
-    return ImageAccessInfo.access_info_define_by_params(image, img_params)
+    """
+    Create the image and its backing images' access info objects,
+    keep the same order as the images in the image_chain.
+
+    :param image: image tag name
+    :param params: a dict containing the test parameters
+
+    :return: A dict({image: StorageAuth object or None})
+    """
+    access_info = collections.OrderedDict()
+    image_chain = params.objects("image_chain")
+    images = image_chain if image_chain else [image]
+
+    for img in images:
+        auth = StorageAuth.auth_info_define_by_params(
+                       img, params.object_params(img))
+        if auth is not None:
+            access_info[img] = auth
+
+        if img == image:
+            # ignore image's snapshot images
+            break
+
+    return access_info
 
 
 def retrieve_secrets(image, params):
@@ -557,18 +613,8 @@ class QemuImg(object):
                                                               root_dir)
             self.snapshot_format = ss_params.get("image_format")
 
-        self.image_access = retrieve_access_info(self.tag, self.params)
-
-    def _get_access_secret_info(self):
-        access_secret, secret_type = None, None
-        if self.image_access is not None:
-            if self.image_access.auth is not None:
-                if self.image_access.storage_type == 'ceph':
-                    # Only ceph image access requires secret object by
-                    # qemu-img and only 'password-secret' is supported
-                    access_secret = self.image_access.auth
-                    secret_type = 'password'
-        return access_secret, secret_type
+        self.image_access = ImageAccessInfo.access_info_define_by_params(
+                                                   self.tag, self.params)
 
     def check_option(self, option):
         """
@@ -664,8 +710,11 @@ class QemuImg(object):
                     backup_size += os.path.getsize(src)
                 else:
                     # TODO: get the size of block/remote images
-                    backup_size += int(float(utils_numeric.normalize_data_size(
-                                             self.size, order_magnitude="B")))
+                    if self.size:
+                        backup_size += int(
+                            float(utils_numeric.normalize_data_size(
+                                self.size, order_magnitude="B"))
+                        )
 
             s = os.statvfs(backup_dir)
             image_dir_free_disk_size = s.f_bavail * s.f_bsize
@@ -728,8 +777,11 @@ class QemuImg(object):
             backup_size = os.path.getsize(src)
         else:
             # TODO: get the size of block/remote images
-            backup_size += int(float(utils_numeric.normalize_data_size(
-                                     self.size, order_magnitude="B")))
+            if self.size:
+                backup_size += int(
+                    float(utils_numeric.normalize_data_size(
+                        self.size, order_magnitude="B"))
+                )
         s = os.statvfs(root_dir)
         image_dir_free_disk_size = s.f_bavail * s.f_bsize
         logging.info("Checking disk size on %s.", root_dir)

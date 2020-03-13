@@ -1585,8 +1585,39 @@ class DevContainer(object):
         :param num_queues: performace option for virtio-scsi-pci
         :param bus_extra_params: options want to add to virtio-scsi-pci bus
         :param image_encryption: ImageEncryption object for image
-        :param image_access: The remote image access information object
+        :param image_access: The logical image access information object
         """
+        def _get_access_secrets(image_access):
+            """Get all secret objects of the image and its backing images"""
+            secrets = []
+            if image_access is not None:
+                access_info = []
+
+                # backing images's access objects
+                if image_access.image_backing_auth:
+                    access_info.extend(image_access.image_backing_auth.values())
+
+                # image's access object
+                if image_access.image_auth is not None:
+                    access_info.append(image_access.image_auth)
+
+                for access in access_info:
+                    if access.storage_type == 'ceph':
+                        # Now we use 'key-secret' for both -drive and -blockdev,
+                        # but for -drive, 'password-secret' also works, add an
+                        # option in cfg file to enable 'password-secret' in future
+                        if access.data:
+                            secrets.append((access, 'key'))
+                    elif access.storage_type == 'iscsi-direct':
+                        if Flags.BLOCKDEV in self.caps:
+                            # -blockdev: only password-secret is supported
+                            if access.data:
+                                secrets.append((access, 'password'))
+                        else:
+                            # -drive: u/p included in the filename
+                            pass
+            return secrets
+
         def define_hbas(qtype, atype, bus, unit, port, qbus, pci_bus, iothread,
                         addr_spec=None, num_queues=None,
                         bus_extra_params=None):
@@ -1662,25 +1693,31 @@ class DevContainer(object):
             if image_encryption.key_secret:
                 secret_obj = devices[-1]
 
-        iscsi_initiator = None
-        access_secret, secret_type = self._get_access_secret_info(image_access)
         access_secret_obj = None
-        if access_secret is not None:
-            # create and add secret object: -object secret
-            access_secret_obj = qdevices.QObject('secret')
-            access_secret_obj.set_param("id", access_secret.aid)
-            access_secret_obj.set_param('format', access_secret.data_format)
+        access_secret, secret_type = None, None
+        image_secrets = _get_access_secrets(image_access)
+        for sec, sectype in image_secrets:
+            # create and add all secret objects: -object secret
+            devices.append(qdevices.QObject('secret'))
+            devices[-1].set_param("id", sec.aid)
+            devices[-1].set_param('format', sec.data_format)
 
-            if secret_type == 'password':
-                access_secret_obj.set_param("file", access_secret.filename)
-            elif secret_type == 'key':
-                access_secret_obj.set_param("data", access_secret.data)
+            if sectype == 'password':
+                devices[-1].set_param("file", sec.filename)
+            elif sectype == 'key':
+                devices[-1].set_param("data", sec.data)
 
-            devices.append(access_secret_obj)
+            if sec.image == name:
+                # only the top image should be associated
+                # with its secure object
+                access_secret_obj = devices[-1]
+                access_secret, secret_type = sec, sectype
 
-        if image_access is not None:
-            if image_access.storage_type == 'iscsi-direct':
-                iscsi_initiator = image_access.iscsi_initiator
+        iscsi_initiator = None
+        access = image_access.image_auth if image_access else None
+        if access is not None:
+            if access.storage_type == 'iscsi-direct':
+                iscsi_initiator = access.iscsi_initiator
 
         use_device = self.has_option("device")
         if fmt == "scsi":   # fmt=scsi force the old version of devices
@@ -1922,7 +1959,7 @@ class DevContainer(object):
                     devices[-2].set_param('key-secret',
                                           access_secret_obj.get_qid())
 
-            if iscsi_initiator is not None:
+            if iscsi_initiator:
                 devices[-2].set_param('initiator-name', iscsi_initiator)
 
             for dev in (devices[-1], devices[-2]):
@@ -1951,7 +1988,7 @@ class DevContainer(object):
                     devices[-1].set_param('file.key-secret',
                                           access_secret_obj.get_qid())
 
-            if iscsi_initiator is not None:
+            if iscsi_initiator:
                 devices[-1].set_param('file.initiator-name', iscsi_initiator)
 
         if drv_extra_params:
@@ -2071,25 +2108,6 @@ class DevContainer(object):
                 devices[-1].set_param(key, value)
         return devices
 
-    def _get_access_secret_info(self, image_access):
-        access_secret, secret_type = None, None
-        if image_access is not None:
-            if image_access.auth is not None:
-                access_secret = image_access.auth
-                if image_access.storage_type == 'ceph':
-                    # Now we use 'key-secret' for both -drive and -blockdev,
-                    # but for -drive, 'password-secret' also works, add an
-                    # option in cfg file to enable 'password-secret' in future
-                    secret_type = 'key'
-                elif image_access.storage_type == 'iscsi-direct':
-                    if Flags.BLOCKDEV in self.caps:
-                        # -blockdev: only password-secret is supported
-                        secret_type = 'password'
-                    else:
-                        # -drive: u/p included in the filename
-                        access_secret = None
-        return access_secret, secret_type
-
     def images_define_by_params(self, name, image_params, media=None,
                                 index=None, image_boot=None,
                                 image_bootindex=None,
@@ -2122,8 +2140,9 @@ class DevContainer(object):
         image_encryption = storage.ImageEncryption.encryption_define_by_params(
             name, image_params)
 
-        # add storage access secret object for image
-        image_access = storage.retrieve_access_info(name, image_params)
+        # all access information for the logical image
+        image_access = storage.ImageAccessInfo.access_info_define_by_params(
+                                                         name, image_params)
 
         return self.images_define_by_variables(name,
                                                storage.get_image_filename(
