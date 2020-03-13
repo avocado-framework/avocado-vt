@@ -22,6 +22,10 @@ from .compat_52lts import results_stdout_52lts
 
 
 LOG = logging.getLogger("avocado.app")
+if sys.version_info[:2] >= (3, 3):
+    qemu_headers = ['types.h', 'socket.h', 'unistd.h']
+else:
+    qemu_headers = ['Python.h', 'types.h', 'socket.h', 'unistd.h']
 
 basic_program_requirements = ['xz', 'tcpdump', 'nc', 'ip', 'arping']
 
@@ -45,7 +49,7 @@ mandatory_programs = {'qemu': basic_program_requirements + ['gcc'],
                       'v2v': basic_program_requirements,
                       'libguestfs': basic_program_requirements}
 
-mandatory_headers = {'qemu': ['Python.h', 'types.h', 'socket.h', 'unistd.h'],
+mandatory_headers = {'qemu': qemu_headers,
                      'spice': [],
                      'libvirt': [],
                      'openvswitch': [],

@@ -83,6 +83,8 @@ if __name__ == "__main__":
     requirements = ["netifaces", "aexpect", "netaddr", "simplejson", "six"]
     if sys.version_info[:2] >= (3, 0):
         requirements.append("avocado-framework>=68.0")
+        if sys.version_info[:2] >= (3, 3):
+            os.system("rm -rf virttest/passfd*")
     else:
         # Latest py2 supported stevedore is 1.10.0, need to limit it here
         # as older avocado versions were not limiting it.

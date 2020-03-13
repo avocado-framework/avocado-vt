@@ -106,7 +106,7 @@ Xunit output, among others.
 %if %{with_python3}
 %package -n python3-%{name}
 Summary: %{summary}
-Requires: python3, python3-devel, python3-avocado >= 51.0, python3-aexpect
+Requires: python3, python3-avocado >= 51.0, python3-aexpect
 Requires: python3-netaddr, python3-netifaces, python3-simplejson
 %{?python_provide:%python_provide python3-%{srcname}}
 %description -n python3-%{name}
