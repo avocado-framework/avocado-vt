@@ -2276,6 +2276,8 @@ class Stress(object):
         status, output = self.cmd_status_output(self.make_cmds,
                                                 timeout=self.stress_shell_timeout)
         if status != 0:
+            config_log = self.cmd_output_safe('cd %s;cat config.log' % install_path)
+            logging.debug(config_log)
             raise exceptions.TestError(
                 "Installation failed with output:\n %s" % output)
 
