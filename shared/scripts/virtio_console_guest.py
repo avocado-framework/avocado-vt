@@ -21,8 +21,11 @@ import traceback
 import signal
 import time
 import platform
-
-import six
+try:
+    import six
+except ImportError:
+    import subprocess
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "six"])
 from six.moves import xrange
 from six.moves import input
 from distutils.version import LooseVersion  # pylint: disable=W0611,E0611

@@ -225,7 +225,7 @@ class GuestWorker(object):
                                          % guest_script_path)
 
         # Copy, compile and run the worker
-        timeout = 10
+        timeout = 120
         guest_script_src = os.path.join(data_dir.get_shared_dir(), 'scripts',
                                         'virtio_console_guest.py')
         script_size = decode_to_text(process.system_output("du -b %s | cut -f1" %
