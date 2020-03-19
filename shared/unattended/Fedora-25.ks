@@ -1,4 +1,3 @@
-install
 KVM_TEST_MEDIUM
 GRAPHICAL_OR_TEXT
 lang en_US
@@ -18,12 +17,12 @@ clearpart --all --initlabel
 autopart
 
 %packages --ignoremissing
-@standard
 @c-development
 @development-tools
-python
 net-tools
 sg3_utils
+# include avocado: allows using this machine with remote runner
+python3-avocado
 %end
 
 %post
@@ -34,15 +33,17 @@ function ECHO { for TTY in `cat /proc/consoles | awk '{print $NF}'`; do source "
 ECHO "OS install is completed"
 grubby --remove-args="rhgb quiet" --update-kernel=$(grubby --default-kernel)
 dhclient
-chkconfig sshd on
 iptables -F
 systemctl mask tmp.mount
-echo 0 > /selinux/enforce
+selinux --enforcing
 sed -i "/^HWADDR/d" /etc/sysconfig/network-scripts/ifcfg-eth0
-# if package groups were missing from main installation repo
+# if packages were missing from main installation repo
 # try again from installed system
 dnf -y groupinstall c-development development-tools
-# include avocado: allows using this machine with remote runner
-dnf -y install python2-avocado
+dnf -y install net-tools sg3_utils python3-avocado
+systemctl enable sshd
+#From fedora31,root login is disabled by default,we need enable it for our test
+echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+
 ECHO 'Post set up finished'
 %end
