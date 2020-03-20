@@ -1216,8 +1216,6 @@ class BaseVM(object):
                 if serial:
                     break
                 raise
-            except remote.LoginProcessTerminatedError:
-                raise
             except Exception as err:
                 error = err
             not_tried = False
