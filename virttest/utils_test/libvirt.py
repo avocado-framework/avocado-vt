@@ -78,6 +78,7 @@ from virttest.libvirt_xml.devices import seclabel
 from virttest.libvirt_xml.devices import channel
 from virttest.libvirt_xml.devices import interface
 from virttest.libvirt_xml.devices import panic
+from virttest.libvirt_xml.devices import tpm
 from virttest.libvirt_xml.devices import vsock
 from virttest.libvirt_xml.devices import rng
 
@@ -2523,6 +2524,34 @@ def update_memballoon_xml(vmxml, membal_dict):
     vmxml.add_device(memballoon_xml)
     logging.info(memballoon_xml)
     vmxml.sync()
+
+
+def create_tpm_dev(params):
+    """
+    Create tpm device instance
+
+    :param params: tpm parameter dict
+    :return: tpm device
+    """
+    tpm_model = params.get("tpm_model", 'tpm-crb')
+    backend_type = params.get("backend_type")
+    backend_version = params.get("backend_version")
+    encryption_secret = params.get("encryption_secret")
+    device_path = params.get("device_path")
+
+    tpm_dev = tpm.Tpm()
+    tpm_dev.tpm_model = tpm_model
+    if backend_type:
+        tpm_backend = tpm_dev.Backend()
+        tpm_backend.backend_type = backend_type
+        if backend_version:
+            tpm_backend.backend_version = backend_version
+        if encryption_secret:
+            tpm_backend.encryption_secret = encryption_secret
+        if device_path:
+            tpm_backend.device_path = device_path
+        tpm_dev.backend = tpm_backend
+    return tpm_dev
 
 
 def get_vm_device(vmxml, dev_tag, index=0):
