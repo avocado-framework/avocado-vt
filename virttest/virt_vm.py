@@ -1216,8 +1216,11 @@ class BaseVM(object):
                 if serial:
                     break
                 raise
-            except remote.LoginProcessTerminatedError:
-                raise
+            except remote.LoginProcessTerminatedError as err:
+                if not re.match(r".*ssh:.*No route", err.output):
+                    raise
+                else:
+                    error = err
             except Exception as err:
                 error = err
             not_tried = False
