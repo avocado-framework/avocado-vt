@@ -111,6 +111,10 @@ def file_remove(params, filename_path):
         # TODO: Add implementation for iscsi/lvm
         return
 
+    # skip removing raw device
+    if params.get('image_raw_device') == 'yes':
+        return
+
     if os.path.exists(filename_path):
         os.unlink(filename_path)
         return
