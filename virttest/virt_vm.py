@@ -1207,6 +1207,11 @@ class BaseVM(object):
         # try to login if VM bootup really, at least once
         not_tried = True
         end_time = start_time + timeout
+        logger = None
+        if self.params.get("skip_non_error_waiting_for_login", "no") == "yes":
+            logger = logging.getLogger()
+            log_level = logger.level
+            logger.level = logging.ERROR
         while time.time() < end_time or not_tried:
             try:
                 return self.login(nic_index, internal_timeout,
@@ -1217,8 +1222,11 @@ class BaseVM(object):
                     break
                 raise
             except Exception as err:
+                time.sleep(0.5)
                 error = err
             not_tried = False
+        if logger:
+            logger.level = log_level
 
         print_guest_network_info()
         if serial:
