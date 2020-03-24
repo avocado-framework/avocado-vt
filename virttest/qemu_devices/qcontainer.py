@@ -1947,9 +1947,10 @@ class DevContainer(object):
         if not filename:
             cache = None
         if Flags.BLOCKDEV in self.caps:
-            file_opts = qemu_storage.filename_to_file_opts(filename)
-            for key, value in six.iteritems(file_opts):
-                devices[-2].set_param(key, value)
+            if filename:
+                file_opts = qemu_storage.filename_to_file_opts(filename)
+                for key, value in six.iteritems(file_opts):
+                    devices[-2].set_param(key, value)
 
             if access_secret is not None:
                 if secret_type == 'password':
