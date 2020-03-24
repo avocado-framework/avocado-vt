@@ -460,8 +460,11 @@ def gluster_nfs_disable(vol_name, session=None):
 
 def setup_or_cleanup_gluster(is_setup, vol_name, brick_path="", pool_name="",
                              file_path="/etc/glusterfs/glusterd.vol", **kwargs):
+    # pylint: disable=E1121
     """
-    Set up or clean up glusterfs environment on localhost or remote
+    Set up or clean up glusterfs environment on localhost or remote. These actions
+    can be skipped by configuration on remote in case where a static gluster instance
+    is used, s. base.cfg. In this case, only the host ip is returned.
 
     :param is_setup: Boolean value, true for setup, false for cleanup
     :param vol_name: gluster created volume name
@@ -469,6 +472,14 @@ def setup_or_cleanup_gluster(is_setup, vol_name, brick_path="", pool_name="",
     :param kwargs: Other parameters that need to set for gluster
     :return: ip_addr or nothing
     """
+    if kwargs.get("gluster_managed_by_test", "yes") != "yes":
+        if not is_setup:
+            return ""
+        gluster_server_ip = kwargs.get("gluster_server_ip")
+        if not gluster_server_ip:
+            return utils_net.get_host_ip_address()
+        return gluster_server_ip
+
     try:
         utils_path.find_command("gluster")
     except utils_path.CmdNotFoundError:
