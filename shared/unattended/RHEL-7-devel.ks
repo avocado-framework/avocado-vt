@@ -1,6 +1,6 @@
 install
 KVM_TEST_MEDIUM
-text
+GRAPHICAL_OR_TEXT
 poweroff
 lang en_US.UTF-8
 keyboard us
@@ -17,6 +17,8 @@ KVM_TEST_LOGGING
 clearpart --all --initlabel
 autopart
 xconfig --startxonboot
+# Additional repositories could be specified in 'kickstart_extra_repos' parameter
+KVM_TEST_REPOS
 
 %packages --ignoremissing
 @base
