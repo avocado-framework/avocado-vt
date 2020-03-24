@@ -10,6 +10,7 @@ import time
 import glob
 import logging
 import random
+import uuid
 
 from avocado.utils import path
 from avocado.utils import process
@@ -714,7 +715,12 @@ class LinuxVMCheck(VMCheck):
         if options:
             cmd += " %s" % options
 
-        if self.vm_general_search(cmd, substr, flags, ignore_status=True, debug=False):
+        if self.vm_general_search(
+                cmd,
+                substr,
+                flags,
+                ignore_status=True,
+                debug=False):
             return True
         return False
 
@@ -1049,13 +1055,26 @@ class WindowsVMCheck(VMCheck):
         return False
 
 
-def v2v_cmd(params):
+def v2v_cmd(params, auto_clean=True, cmd_only=False):
     """
-    Append 'virt-v2v' and execute it.
+    Create finnal v2v command, execute or only return the command
+
+    Sometimes you need to retouch the v2v command, then execute it later.
+    So you need to preserve the resouces(nfs path, authorized keys, etc.
+
+    When auto_clean is False, the resources created during runtime will
+    not be cleaned up, Users should do that.
+
+    When cmd_only is True, the v2v command will not be executed but be returned.
+    Users can reedit the command as cases requried.
 
     :param params: A dictionary includes all of required parameters such as
                     'target', 'hypervisor' and 'hostname', etc.
-    :return: A CmdResult object
+                   This is a v2v specifc params and not the global params in
+                   run function.
+    :param auto_clean: boolean flag, whether to cleanup runtime resources.
+    :param cmd_only: boolean flag, whether to only return the command line without running
+    :return: A cmd string or CmdResult object
     """
     def _v2v_pre_cmd():
         """
@@ -1074,6 +1093,11 @@ def v2v_cmd(params):
             # For v2v option '--mac', this is automatically generated.
             params['_iface_list'] = iface_info
 
+            # Get disk count
+            disk_count = vm_xml.VMXML.get_disk_count(
+                vm_name, virsh_instance=v2v_virsh)
+            params['_disk_count'] = disk_count
+
             if input_mode == 'vmx':
                 disks_info = get_esx_disk_source_info(vm_name, v2v_virsh)
                 if not disks_info:
@@ -1085,6 +1109,9 @@ def v2v_cmd(params):
                 params['_nfspath'] = list(disks_info[list(disks_info)[0]])[0]
         else:
             params['_iface_list'] = ''
+            # Just set to 1 right now, but it could be improved if requried
+            # in future
+            params['_disk_count'] = 1
             # params['_nfspath'] only be used when composing nfs vmx file path,
             # in the case, vm_name is same as nfs directory name
             if input_mode == 'vmx':
@@ -1099,6 +1126,14 @@ def v2v_cmd(params):
 
     if V2V_EXEC is None:
         raise ValueError('Missing command: virt-v2v')
+
+    global_params = params.get('params', {})
+    if not global_params:
+        # For the back compatibility reason, only report a warning message
+        logging.warning(
+            "The global params in run() need to be passed into v2v_cmd as an"
+            "item of params, like {'params': params}. "
+            "If not, some latest functions may not work as expected.")
 
     target = params.get('target')
     hypervisor = params.get('hypervisor')
@@ -1146,22 +1181,68 @@ def v2v_cmd(params):
             options = options + ' ' + rhv_upload_opts
         if opts_extra:
             options = options + ' ' + opts_extra
+        # Add -oo rhv-disk-uuid if '--no-copy' exists
+        if '-o rhv-upload' in options and '--no-copy' in options and '--oo rhv-disk-uuid' not in options:
+            for i in range(int(params.get('_disk_count', 0))):
+                options += ' -oo rhv-disk-uuid=%s' % str(uuid.uuid4())
 
-        # Construct a final virt-v2v command
-        cmd = '%s %s' % (V2V_EXEC, options)
+        # Construct a final virt-v2v command and remove redundant blanks
+        cmd = ' '.join(('%s %s' % (V2V_EXEC, options)).split())
         # Old v2v version doesn't support '-ip' option
         if not v2v_supported_option("-ip <filename>"):
             cmd = cmd.replace('-ip', '--password-file', 1)
-        cmd_result = process.run(cmd, timeout=v2v_cmd_timeout,
-                                 verbose=True, ignore_status=True)
-    finally:
-        target_obj.cleanup()
+        # Save v2v command to params, then it can be passed to
+        # import_vm_to_ovirt
+        global_params.update({'v2v_command': cmd})
 
-    # Post-process for v2v
-    _v2v_post_cmd()
+        if not cmd_only:
+            cmd_result = process.run(cmd, timeout=v2v_cmd_timeout,
+                                     verbose=True, ignore_status=True)
+    finally:
+        if auto_clean:
+            target_obj.cleanup()
+        else:
+            # Save it into global params and release it by users
+            v2v_dirty_resources = global_params.get('v2v_dirty_resources', [])
+            v2v_dirty_resources.append(target_obj)
+            global_params.update({'v2v_dirty_resources': v2v_dirty_resources})
+        # Post-process for v2v
+        _v2v_post_cmd()
+
+    if cmd_only:
+        return cmd
 
     cmd_result.stdout = results_stdout_52lts(cmd_result)
     cmd_result.stderr = results_stderr_52lts(cmd_result)
+
+    return cmd_result
+
+
+def cmd_run(cmd, obj_be_cleaned=None, auto_clean=True, timeout=18000):
+    """
+    Run v2v command and cleanup resources automatically
+
+    When you preserved the resources in v2v_cmd, the users need to release
+    them. This function can help you do it automatically.
+
+    :param obj_be_cleaned: the resources to be cleaned up
+    :param auto_clean: If true, cleanup obj_be_cleaned automatically
+    :param timeout: the timeout value for the command to run
+    """
+    try:
+        cmd_result = process.run(
+            cmd,
+            timeout=timeout,
+            verbose=True,
+            ignore_status=True)
+    finally:
+        if auto_clean and obj_be_cleaned:
+            logging.debug('Running cleanup for %s', obj_be_cleaned)
+            if isinstance(obj_be_cleaned, list):
+                for obj in obj_be_cleaned:
+                    obj.cleanup()
+            else:
+                obj.cleanup()
 
     return cmd_result
 
@@ -1170,6 +1251,7 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
     """
     Import VM from export domain to oVirt Data Center
     """
+    v2v_cmd = params.get('v2v_command')
     vm_name = params.get('main_vm')
     os_type = params.get('os_type')
     export_name = params.get('export_name')
@@ -1210,8 +1292,13 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
             logging.error("Import %s failed: %s", vm.name, e)
             return False
     try:
-        # Start VM
-        vm.start(wait_for_up=wait_for_up)
+        if not is_option_in_v2v_cmd(v2v_cmd, '--no-copy'):
+            # Start VM
+            vm.start(wait_for_up=wait_for_up)
+        else:
+            logging.debug(
+                'Skip starting VM: --no-copy is in cmdline:\n%s',
+                v2v_cmd)
     except Exception as e:
         logging.error("Start %s failed: %s", vm.name, e)
         return False
@@ -1613,6 +1700,24 @@ def v2v_supported_option(opt_str):
     if re.search(r'%s' % opt_str, result.stdout):
         return True
     return False
+
+
+def is_option_in_v2v_cmd(v2v_cmd, option):
+    """
+    Check if specific v2v option(s) is(are) in v2v command line
+
+    :param v2v_cmd: A v2v command line string
+    :param option: option or option list
+    """
+    if not option or not v2v_cmd:
+        return False
+
+    if isinstance(option, list):
+        return all([opt_i in v2v_cmd for opt_i in option])
+    elif isinstance(option, str):
+        return option in v2v_cmd
+    else:
+        return False
 
 
 def wait_for(func, timeout=300, interval=10, *args, **kwargs):
