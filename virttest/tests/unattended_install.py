@@ -1217,7 +1217,7 @@ def attempt_to_log_useful_files(test, vm):
                             fd_dst.write("Unknown exception while getting "
                                          "content: %s" % details)
                             failures = True
-            for cmd in ["journalctl --no-pager"]:
+            for cmd in ["journalctl --no-pager", "udevadm info --export-db"]:
                 dst = os.path.join(test.outputdir, vm.name, str(i),
                                    astring.string_to_safe_path(cmd))
                 with open(dst, 'w') as fd_dst:
