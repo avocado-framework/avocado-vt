@@ -1231,7 +1231,6 @@ def attempt_to_log_useful_files(test, vm):
                                         "%s", details)
                         fd_dst.write("Unknown exception while getting "
                                      "cmd output: %s" % details)
-                        failures = True
             if not failures:
                 # All commands succeeded, no need to use next session
                 break
