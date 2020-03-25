@@ -14,6 +14,7 @@ except ImportError:
     import ConfigParser
 
 from avocado.core import exceptions
+from avocado.utils import astring
 from avocado.utils import iso9660
 from avocado.utils import process
 from avocado.utils import crypto
@@ -1183,7 +1184,7 @@ def attempt_to_log_useful_files(test, vm):
                 logging.info("Skipping log_useful_files #%s: %s", i, details)
                 continue
             failures = False
-            for path_glob in ["/*.log", "/tmp/*.log", "/var/tmp/*.log"]:
+            for path_glob in ["/*.log", "/tmp/*.log", "/var/tmp/*.log", "/var/log/messages"]:
                 try:
                     status, paths = console.cmd_status_output("ls -1 %s"
                                                               % path_glob)
@@ -1216,6 +1217,21 @@ def attempt_to_log_useful_files(test, vm):
                             fd_dst.write("Unknown exception while getting "
                                          "content: %s" % details)
                             failures = True
+            for cmd in ["journalctl --no-pager"]:
+                dst = os.path.join(test.outputdir, vm.name, str(i),
+                                   astring.string_to_safe_path(cmd))
+                with open(dst, 'w') as fd_dst:
+                    try:
+                        fd_dst.write(console.cmd(cmd))
+                        logging.info('Attached "%s" cmd output at "%s"',
+                                     cmd, dst)
+                    except Exception as details:
+                        logging.warning("Unknown exception while "
+                                        "attempt_to_log_useful_files(): "
+                                        "%s", details)
+                        fd_dst.write("Unknown exception while getting "
+                                     "cmd output: %s" % details)
+                        failures = True
             if not failures:
                 # All commands succeeded, no need to use next session
                 break
