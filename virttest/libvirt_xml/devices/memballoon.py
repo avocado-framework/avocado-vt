@@ -10,12 +10,14 @@ from virttest.libvirt_xml.devices import base
 
 class Memballoon(base.UntypedDeviceBase):
 
-    __slots__ = ('model', 'stats_period')
+    __slots__ = ('model', 'stats_period', 'address')
 
     def __init__(self, virsh_instance=base.base.virsh):
         accessors.XMLAttribute('model', self, parent_xpath='/',
                                tag_name='memballoon', attribute='model')
         accessors.XMLAttribute('stats_period', self, parent_xpath='/',
                                tag_name='stats', attribute='period')
+        accessors.XMLElementDict('address', self, parent_xpath='/',
+                                 tag_name='address')
         super(Memballoon, self).__init__(device_tag='memballoon',
                                          virsh_instance=virsh_instance)
