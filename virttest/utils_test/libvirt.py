@@ -1882,6 +1882,7 @@ def create_disk_xml(params):
     diskxml = disk.Disk(type_name)
     diskxml.device = params.get("device_type", "disk")
     snapshot_attr = params.get('disk_snapshot_attr')
+    slice_in_source = params.get('disk_slice')
     # After libvirt 3.9.0, auth element can be placed in source part.
     # Use auth_in_source to diff whether it is placed in source or disk itself.
     auth_in_source = params.get('auth_in_source')
@@ -1974,6 +1975,8 @@ def create_disk_xml(params):
                 disk_source.auth = diskxml.new_auth(**auth_attrs)
             else:
                 diskxml.auth = diskxml.new_auth(**auth_attrs)
+        if slice_in_source:
+            disk_source.slices = diskxml.new_slices(**slice_in_source)
         diskxml.source = disk_source
         driver_name = params.get("driver_name", "qemu")
         driver_type = params.get("driver_type", "")
