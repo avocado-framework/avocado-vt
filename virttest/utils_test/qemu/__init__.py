@@ -634,14 +634,28 @@ class MemoryHotplugTest(MemoryBaseTest):
     def unplug_memory(self, vm, name):
         """
         Unplug memory device
-        step 1, unplug memory object
-        step 2, unplug dimm device
+        step 1, unplug dimm device
+        step 2, unplug memory object
 
         :param vm: VM object
         :param name: memory device name
         """
         devices = []
+        qid_dimm = "dimm-%s" % name
         qid_mem = "mem-%s" % name
+        try:
+            dimm = vm.devices.get_by_qid(qid_dimm)[0]
+        except IndexError:
+            logging.warn("'%s' is not used by any dimm" % qid_mem)
+        else:
+            step = "Unplug pc-dimm '%s'" % qid_dimm
+            error_context.context(step, logging.info)
+            _, ver_out = vm.devices.simple_unplug(dimm, vm.monitor)
+            if ver_out is False:
+                raise exceptions.TestFail("Verify unplug memory failed")
+            devices.append(dimm)
+            self.update_vm_after_unplug(vm, dimm)
+
         step = "Unplug memory object '%s'" % qid_mem
         error_context.context(step, logging.info)
         try:
@@ -651,18 +665,6 @@ class MemoryHotplugTest(MemoryBaseTest):
             logging.debug("Memory devices: %s" % output)
             msg = "Memory object '%s' not exists" % qid_mem
             raise exceptions.TestError(msg)
-        try:
-            qid_dimm = "dimm-%s" % name
-            dimm = vm.devices.get_by_qid(qid_dimm)[0]
-        except IndexError:
-            logging.warn("'%s' is not used by any dimm" % qid_mem)
-        step = "Unplug pc-dimm '%s'" % qid_dimm
-        error_context.context(step, logging.info)
-        _, ver_out = vm.devices.simple_unplug(dimm, vm.monitor)
-        if ver_out is False:
-            raise exceptions.TestFail("Verify unplug memory failed")
-        devices.append(dimm)
-        self.update_vm_after_unplug(vm, dimm)
         error_context.context(step, logging.info)
         vm.devices.simple_unplug(mem, vm.monitor)
         devices.append(mem)
