@@ -2358,6 +2358,7 @@ class VM(virt_vm.BaseVM):
             disable_modern = params.get("virtio_dev_disable_modern", None)
             iommu_platform = params.get("virtio_dev_iommu_platform", None)
             ats = params.get("virtio_dev_ats", None)
+            hotplug = params.get("virtio_dev_hotplug", None)
             if disable_legacy:
                 add_virtio_option("disable-legacy", disable_legacy, devices, device, dev_type)
             if disable_modern:
@@ -2366,6 +2367,8 @@ class VM(virt_vm.BaseVM):
                 add_virtio_option("iommu_platform", iommu_platform, devices, device, dev_type)
             if ats:
                 add_virtio_option("ats", ats, devices, device, dev_type)
+            if hotplug:
+                add_virtio_option("hotplug", hotplug, devices, device, dev_type)
 
         # Add extra root_port at the end of the command line only if there is
         # free slot on pci.0, discarding them otherwise
