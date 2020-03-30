@@ -1604,7 +1604,7 @@ def get_interface_details(vm_name):
     domiflist_out = results_stdout_52lts(virsh.domiflist(vm_name))
     # Regular expression for the below output
     #   vnet0    bridge    virbr0   virtio  52:54:00:b2:b3:b4
-    rg = re.compile(r"^(\w+|-)\s+(\w+)\s+(\w+)\s+(\S+)\s+"
+    rg = re.compile(r"^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+"
                     "(([a-fA-F0-9]{2}:?){6})")
 
     iface_cmd = {}

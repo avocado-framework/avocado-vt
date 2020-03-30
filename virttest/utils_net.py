@@ -15,6 +15,7 @@ import netaddr
 import platform
 import uuid
 import hashlib
+import shutil
 
 import aexpect
 from avocado.core import exceptions
@@ -30,6 +31,10 @@ from virttest import data_dir
 from virttest import propcan
 from virttest import utils_misc
 from virttest import arch
+from virttest import utils_selinux
+from virttest import utils_package
+
+from virttest.staging import utils_memory
 from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 from virttest.versionable_class import factory
 from virttest.utils_windows import virtio_win
@@ -1187,6 +1192,73 @@ def __init_openvswitch(func):
 
         return func(*args, **kargs)
     return wrap_init
+
+
+def setup_ovs_vhostuser(hp_num, tmpdir, br_name, port_names,
+                        queue_size=None):
+    """
+    Setup vhostuser interface with openvswitch and dpdk
+
+    :param hp_num: hugepage count number
+    :param tmpdir: tmp directory for save openvswitch test files
+    :param br_name: name of bridge
+    :param port_names: list name of port need to add to bridge
+    :param queue_size: size of the multiqueue
+    """
+    clean_ovs_env(selinux_mode="permissive", page_size=hp_num,
+                  clean_ovs=True)
+
+    # Install openvswitch
+    if process.system("yum info openvswitch", ignore_status=True) == 0:
+        utils_package.package_install("openvswitch")
+    if process.system("yum info openvswitch2.11", ignore_status=True) == 0:
+        utils_package.package_install("openvswitch2.11")
+
+    # Init ovs
+    ovs = factory(openvswitch.OpenVSwitch)(tmpdir)
+    ovs.init_new()
+    if not ovs.check():
+        raise Exception("Check of OpenVSwitch failed.")
+
+    # Create bridge and ports
+    ovs.create_bridge(br_name)
+    ovs.add_ports(br_name, port_names)
+
+    # Enable multiqueue size
+    if queue_size:
+        ovs.enable_multiqueue(port_names, int(queue_size))
+
+    return ovs
+
+
+def clean_ovs_env(run_dir="/var/run/openvswitch", selinux_mode=None,
+                  page_size=None, clean_ovs=False):
+    """
+    Cleanup ovs environment
+
+    :param run_dir: openvswitch run dir
+    :param selinux_mode: permissive or enforcing
+    :param page_size: size for setting hugepage
+    :param clean_ovs: clean ovs service or not
+    """
+    # Clean dir
+    if os.path.exists(run_dir):
+        shutil.rmtree(run_dir)
+    os.mkdir(run_dir)
+
+    # Recovery selinux
+    if selinux_mode:
+        utils_selinux.set_status(selinux_mode)
+
+    # Kernel hugepage setting
+    if page_size:
+        utils_memory.drop_caches()
+        utils_memory.set_num_huge_pages(int(page_size))
+
+    # Clean ovs services
+    if clean_ovs:
+        utils_misc.kill_process_by_pattern("ovsdb-server")
+        utils_misc.kill_process_by_pattern("ovs-vswitchd")
 
 
 def if_nametoindex(ifname):

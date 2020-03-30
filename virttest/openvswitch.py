@@ -294,6 +294,9 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
     def list_br(self):
         return results_stdout_52lts(self.ovs_vsctl(["list-br"])).splitlines()
 
+    def list_interface(self):
+        return self.ovs_vsctl(["list", "interface"]).stdout_text.strip()
+
     def add_port(self, br_name, port_name):
         self.ovs_vsctl(["add-port", br_name, port_name])
 
@@ -457,7 +460,7 @@ class OpenVSwitch(OpenVSwitchSystem):
         """
         self.tmpdir = "/%s/openvswitch" % (tmpdir)
         try:
-            os.mkdir(self.tmpdir)
+            os.makedirs(self.tmpdir)
         except OSError as e:
             if e.errno != 17:
                 raise
@@ -469,30 +472,73 @@ class OpenVSwitch(OpenVSwitchSystem):
         process.run('%s %s %s %s %s' %
                     (path.find_command("ovsdb-server"),
                      "--remote=punix:%s" % (self.db_socket),
-                     "--remote=db:Open_vSwitch,manager_options",
+                     "--remote=db:Open_vSwitch,Open_vSwitch,manager_options",
                      "--pidfile=%s" % (self.db_pidfile),
-                     "--detach"))
+                     "--detach --log-file %s") % (self.db_path))
         self.ovs_vsctl(["--no-wait", "init"])
 
     def start_ovs_vswitchd(self):
+        """
+        Start ovs vswitch daemon with only 1 socket
+        """
+        self.ovs_vsctl(["--no-wait", "set", "Open_vSwitch",
+                        ".", "other_config:dpdk-init=true"])
+        self.ovs_vsctl(["--no-wait", "set", "Open_vSwitch",
+                        ".", "other_config:dpdk-socket-mem='1024'"])
+        self.ovs_vsctl(["--no-wait", "set", "Open_vSwitch",
+                        ".", "other_config:dpdk-lcore-mask='0x1'"])
         process.run('%s %s %s %s' %
                     (path.find_command("ovs-vswitchd"),
                      "--detach",
                      "--pidfile=%s" % self.ovs_pidfile,
                      "unix:%s" % self.db_socket))
 
+    def create_bridge(self, br_name):
+        """
+        Create bridge
+
+        :param br_name: name of bridge
+        """
+        self.ovs_vsctl(["add-br", br_name, "-- set bridge", br_name,
+                        "datapath_type=netdev"])
+
+    def add_ports(self, br_name, port_names):
+        """
+        Add ports into bridge
+
+        :param br_name: name of bridge
+        :param port_names: port names split by space
+        """
+        for port_name in port_names.split():
+            self.ovs_vsctl(["add-port", br_name, port_name, "-- set Interface",
+                            port_name, "type=dpdkvhostuser"])
+            process.run('chown qemu:qemu %s/%s' % (self.pid_files_path, port_name),
+                        shell=True)
+
+    def enable_multiqueue(self, port_names, size):
+        """
+        Enable multiqueue
+
+        :param port_names: port names split by space
+        :param size: multiqueue size, type int
+        """
+        for port_name in port_names.split():
+            self.ovs_vsctl(["set", "Interface", port_name,
+                            "options:n_rxq=%s" % size])
+
     def init_new(self):
         """
         Create new dbfile without any configuration.
         """
+        self.pid_files_path = "/var/run/openvswitch"
         self.db_path = os.path.join(self.tmpdir, "conf.db")
-        self.db_socket = os.path.join(self.tmpdir, "db.sock")
-        self.db_pidfile = utils_misc.get_pid_path("ovsdb-server")
-        self.ovs_pidfile = utils_misc.get_pid_path("ovs-vswitchd")
+        self.db_socket = os.path.join(self.pid_files_path, "db.sock")
+        self.db_pidfile = utils_misc.get_pid_path("ovsdb-server", self.pid_files_path)
+        self.ovs_pidfile = utils_misc.get_pid_path("ovs-vswitchd", self.pid_files_path)
         self.dbschema = "/usr/share/openvswitch/vswitch.ovsschema"
 
         self.cleanup = True
-        sm = ServiceManager()
+        sm = factory(ServiceManager)()
         # Stop system openvswitch
         try:
             sm.stop("openvswitch")
