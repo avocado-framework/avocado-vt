@@ -3667,6 +3667,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
     iface_type = iface_dict.get('type')
     iface_mtu = iface_dict.get('mtu')
     iface_alias = iface_dict.get('alias')
+    iface_teaming = iface_dict.get('teaming')
     iface_virtualport_type = iface_dict.get('virtualport_type')
     del_addr = iface_dict.get('del_addr')
     del_rom = iface_dict.get('del_rom')
@@ -3713,6 +3714,8 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
         iface.mtu = eval(iface_mtu)
     if iface_alias:
         iface.alias = eval(iface_alias)
+    if iface_teaming:
+        iface.teaming = eval(iface_teaming)
     if iface_virtualport_type:
         iface.virtualport_type = iface_virtualport_type
     if oper == "update_iface":
