@@ -2259,7 +2259,12 @@ class DevContainer(object):
                                  parent_bus={'busid': bus}))
             devices[-1].set_param('name', serial_name)
         else:  # none virtio type, generate serial device directly
-            devices.append(qdevices.QDevice(serial_type, {"id": serial_id}))
+            if serial_type.startswith("pci"):
+                bus = {'aobject': 'pci.0'}
+            else:
+                bus = None
+            devices.append(qdevices.QDevice(serial_type, {"id": serial_id},
+                                            parent_bus=bus))
             devices[-1].set_param("reg", reg)
         devices[-1].set_param('chardev', chardev_id)
 
