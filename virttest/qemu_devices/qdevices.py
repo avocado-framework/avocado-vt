@@ -12,6 +12,8 @@ import traceback
 from collections import OrderedDict
 from functools import reduce
 
+import aexpect
+
 from virttest import qemu_monitor
 from virttest import utils_misc
 from virttest.qemu_devices.utils import DeviceError
@@ -1565,6 +1567,115 @@ class QCPUDevice(QDevice):
         return out, ver_out
 
 
+class QVirtioFSDev(QBaseDevice):
+    """
+    Virtiofs pseudo device.
+    """
+    def __init__(self, aobject, binary, sock_path, source, extra_options=None):
+        """
+        :param aobject: The aobject of virtiofs daemon.
+        :type aobject: str
+        :param binary: The binary of virtiofs daemon.
+        :type binary: str
+        :param sock_path: The socket path of of virtiofs daemon.
+        :type sock_path: str
+        :param source: The source of virtiofs daemon.
+        :type source: str
+        :param extra_options: The external options of virtiofs daemon.
+        :type extra_options: str
+        """
+        aid = 'virtiofs_%s' % aobject
+        super(QVirtioFSDev, self).__init__('virtiofs', aobject=aobject,
+                                           child_bus=QUnixSocketBus(sock_path, aobject))
+        self.set_aid(aid)
+        self.set_param('binary', binary)
+        self.set_param('sock_path', sock_path)
+        self.set_param('source', source)
+        self.set_param('extra_options', extra_options)
+        self._daemon_process = None
+
+    def _handle_log(self, line):
+        """Handle the log of virtiofs daemon."""
+        try:
+            utils_misc.log_line('%s-virtiofsd.log' % self.get_qid(), line)
+        except Exception as e:
+            logging.warn("Can't log %s-virtiofsd output: '%s'.", self.get_qid(), e)
+
+    def _daemon_alive(self):
+        """Check whether the virtiofs daemon is alive."""
+        return bool(self._daemon_process and self._daemon_process.is_alive())
+
+    def _start_daemon(self):
+        """Start the virtiofs daemon in background."""
+        if self._daemon_alive():
+            return
+
+        fsd_cmd = '%s --socket-path=%s' % (self.get_param('binary'),
+                                           self.get_param('sock_path'))
+        fsd_cmd += ' -o source=%s' % self.get_param('source')
+        fsd_cmd += ' -d'
+
+        if self.get_param('extra_options'):
+            fsd_cmd += self.get_param('extra_options')
+
+        logging.info('Running virtiofs daemon command %s.', fsd_cmd)
+        self._daemon_process = aexpect.run_bg(fsd_cmd, None,
+                                              self._handle_log,
+                                              auto_close=False)
+        status_active = 'Waiting for vhost-user socket connection'
+        self._daemon_process.read_until_any_line_matches(status_active,
+                                                         timeout=5)
+        logging.info("Created virtiofs daemon process with parent PID %d.",
+                     self._daemon_process.get_pid())
+
+    def _stop_daemon(self):
+        """Stop the virtiofs daemon."""
+        if self._daemon_process is not None:
+            try:
+                if not utils_misc.wait_for(lambda: not self._daemon_alive(), 3):
+                    raise DeviceError('The virtiofs daemon is still alive.')
+            finally:
+                self._daemon_process.close()
+                self._daemon_process = None
+
+    def clear(self):
+        """Clear the virtiofs daemon."""
+        try:
+            self._stop_daemon()
+        except DeviceError:
+            pass
+
+    def hotplug(self, monitor):
+        self._start_daemon()
+
+    def verify_hotplug(self, out, monitor):
+        return self._daemon_alive()
+
+    def unplug(self, monitor):
+        self._stop_daemon()
+
+    def verify_unplug(self, out, monitor):
+        """Verify the status of virtiofs daemon."""
+        return not self._daemon_alive()
+
+    def get_qid(self):
+        return self.get_aid()
+
+    def cmdline(self):
+        self._start_daemon()
+        return ''
+
+    def __eq__(self, other):
+        if not isinstance(other, QVirtioFSDev):
+            return False
+        return self.get_param('sock_path') == other.get_param('sock_path')
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    __hash__ = None
+
+
 #
 # Bus representations
 # HDA, I2C, IDE, ISA, PCI, SCSI, System, uhci, ehci, ohci, xhci, ccid,
@@ -2746,4 +2857,18 @@ class QIOThreadBus(QSparseBus):
 
     def _update_device_props(self, device, addr):
         """Always set devie iothread param."""
+        self._set_device_props(device, addr)
+
+
+class QUnixSocketBus(QSparseBus):
+    """
+    Unix Socket pseudo bus.
+    """
+
+    def __init__(self, busid, aobject):
+        super(QUnixSocketBus, self).__init__("path", [[], []], busid,
+                                             "QUnixSocketBus", aobject)
+
+    def _update_device_props(self, device, addr):
+        """Update device properties."""
         self._set_device_props(device, addr)
