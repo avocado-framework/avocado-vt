@@ -10,6 +10,7 @@ disk xml:
       <target dev='sda' bus='scsi'/>
     </disk>
 """
+# pylint: disable=E0611
 import logging
 import os
 import shutil
@@ -18,6 +19,7 @@ from avocado.utils import process
 
 from virttest import utils_config
 from virttest import utils_libvirtd
+from virttest import utils_split_daemons
 
 from virttest.utils_conn import build_server_key, build_CA, build_client_key
 
@@ -75,6 +77,7 @@ class NbdExport(object):
         self.qemu_conf.nbd_tls = True
         self.libvirtd = utils_libvirtd.Libvirtd()
         self.libvirtd.restart()
+        utils_split_daemons.virtqemud_restart()
 
     def setup_certs(self):
         """setup CA and certs"""
@@ -192,6 +195,7 @@ class NbdExport(object):
             self.qemu_conf.restore()
         if self.libvirtd:
             self.libvirtd.restart()
+            utils_split_daemons.virtqemud_restart()
 
     def cleanup(self):
         """clean up environments"""
