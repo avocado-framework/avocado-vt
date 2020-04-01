@@ -3608,11 +3608,12 @@ def virsh_cmd_has_option(cmd, option, raise_skip=True):
         return found
 
 
-def create_secret(params):
+def create_secret(params, remote_args=None):
     """
     Create a secret with 'virsh secret-define'
 
     :param params: Test run params
+    :param remote_args: Parameters for remote host
     :return: UUID of the secret
     """
     sec_usage_type = params.get("sec_usage", "volume")
@@ -3652,11 +3653,24 @@ def create_secret(params):
     logging.debug("The secret xml is: %s" % sec_xml)
 
     # define the secret and get its uuid
-    ret = virsh.secret_define(sec_xml.xml)
+    if remote_args:
+        server_ip = remote_args.get("remote_ip", "")
+        server_user = remote_args.get("remote_user", "")
+        server_pwd = remote_args.get("remote_pwd", "")
+        if not all([server_ip, server_user, server_pwd]):
+            raise exceptions.TestError("remote_[ip|user|pwd] are necessary!")
+        remote_virsh_session = virsh.VirshPersistent(**remote_args)
+        remote.scp_to_remote(server_ip, '22', server_user, server_pwd,
+                             sec_xml.xml, sec_xml.xml, limit="",
+                             log_filename=None, timeout=600, interface=None)
+        ret = remote_virsh_session.secret_define(sec_xml.xml)
+        remote_virsh_session.close_session()
+    else:
+        ret = virsh.secret_define(sec_xml.xml)
     check_exit_status(ret)
     try:
         sec_uuid = re.findall(r".+\S+(\ +\S+)\ +.+\S+",
-                              results_stdout_52lts(ret))[0].lstrip()
+                              ret.stdout_text)[0].lstrip()
     except IndexError:
         raise exceptions.TestError("Fail to get newly created secret uuid")
 
