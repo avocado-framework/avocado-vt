@@ -4228,14 +4228,13 @@ def blkiotune(name, weight=None, device_weights=None, options=None, **dargs):
     return command(cmd, **dargs)
 
 
-def blkdeviotune(name, device=None, options=None,
-                 total_bytes_sec=None, read_bytes_sec=None,
-                 write_bytes_sec=None, total_iops_sec=None,
-                 read_iops_sec=None, write_iops_sec=None, **dargs):
+def blkdeviotune(name, device=None, options=None, params=None, **dargs):
     """
     Set or get a domain's blkio parameters
     :param name: name of domain
+    :param device: device name may be vda, vdb and so on
     :param options: options may be live, config and current
+    :param params: parameters for blkdeviotune
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
@@ -4244,18 +4243,47 @@ def blkdeviotune(name, device=None, options=None,
         cmd += " %s" % options
     if device:
         cmd += " --device %s" % device
-    if total_bytes_sec:
-        cmd += " --total-bytes-sec %s" % total_bytes_sec
-    if read_bytes_sec:
-        cmd += " --read-bytes-sec %s" % read_bytes_sec
-    if write_bytes_sec:
-        cmd += " --write-bytes-sec %s" % write_bytes_sec
-    if total_iops_sec:
-        cmd += " --total-iops-sec %s" % total_iops_sec
-    if read_iops_sec:
-        cmd += " --read-iops-sec %s" % read_iops_sec
-    if write_iops_sec:
-        cmd += " --write-iops-sec %s" % write_iops_sec
+    if params:
+        if params.get("total_iops_sec"):
+            cmd += " --total-iops-sec %s" % params.get("total_iops_sec")
+        if params.get("read_iops_sec"):
+            cmd += " --read-iops-sec %s" % params.get("read_iops_sec")
+        if params.get("write_iops_sec"):
+            cmd += " --write-iops-sec %s" % params.get("write_iops_sec")
+        if params.get("total_iops_sec_max"):
+            cmd += " --total-iops-sec-max %s" % params.get("total_iops_sec_max")
+        if params.get("read_iops_sec_max"):
+            cmd += " --read-iops-sec-max %s" % params.get("read_iops_sec_max")
+        if params.get("write_iops_sec_max"):
+            cmd += " --write-iops-sec-max %s" % params.get("write_iops_sec_max")
+        if params.get("total_iops_sec_max_length"):
+            cmd += " --total-iops-sec-max-length %s" % params.get("total_iops_sec_max_length")
+        if params.get("read_iops_sec_max_length"):
+            cmd += " --read-iops-sec-max-length %s" % params.get("read_iops_sec_max_length")
+        if params.get("write_iops_sec_max_length"):
+            cmd += " --write-iops-sec-max-length %s" % params.get("write_iops_sec_max_length")
+        if params.get("total_bytes_sec"):
+            cmd += " --total-bytes-sec %s" % params.get("total_bytes_sec")
+        if params.get("read_bytes_sec"):
+            cmd += " --read-bytes-sec %s" % params.get("read_bytes_sec")
+        if params.get("write_bytes_sec"):
+            cmd += " --write-bytes-sec %s" % params.get("write_bytes_sec")
+        if params.get("total_bytes_sec_max"):
+            cmd += " --total-bytes-sec-max %s" % params.get("total_bytes_sec_max")
+        if params.get("read_bytes_sec_max"):
+            cmd += " --read-bytes-sec-max %s" % params.get("read_bytes_sec_max")
+        if params.get("write_bytes_sec_max"):
+            cmd += " --write-bytes-sec-max %s" % params.get("write_bytes_sec_max")
+        if params.get("total_bytes_sec_max_length"):
+            cmd += " --total-bytes-sec-max %s" % params.get("total_bytes_sec_max_length")
+        if params.get("read_bytes_sec_max_length"):
+            cmd += " --read-bytes-sec-max-length %s" % params.get("read_bytes_sec_max_length")
+        if params.get("write_bytes_sec_max_length"):
+            cmd += " --write-bytes-sec-max-length %s" % params.get("write_bytes_sec_max_length")
+        if params.get("size_iops_sec"):
+            cmd += " --size-iops-sec %s" % params.get("size_iops_sec")
+        if params.get("group_name"):
+            cmd += " --group-name %s" % params.get("group_name")
     return command(cmd, **dargs)
 
 
