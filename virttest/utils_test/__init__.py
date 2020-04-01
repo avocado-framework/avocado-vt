@@ -975,6 +975,11 @@ class AvocadoGuest(object):
             logging.error("Unable to find python.")
             return False
         self.pip_bin = find_bin(self.session, ['pip', 'pip2', 'pip3'])
+        if self.pip_bin:
+            cmd = "%s install --upgrade pip;" % (self.pip_bin)
+            if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
+                logging.error("Unable to upgrade pip.")
+                return False
         if not utils_misc.make_dirs(self.test_path, session=self.session):
             logging.error("Failed to create test path in guest")
             return False
