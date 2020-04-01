@@ -678,22 +678,39 @@ class QemuAgent(Monitor):
             raise VAgentFreezeStatusError(self.vm.name, status, expected)
 
     @error_context.context_aware
-    def fsfreeze(self, check_status=True, timeout=FSFREEZE_TIMEOUT):
+    def fsfreeze(self, check_status=True, timeout=FSFREEZE_TIMEOUT,
+                 fsfreeze_list=False, mountpoints=None):
         """
-        Freeze File system on guest.
+        Freeze File system on guest, there are two commands,
+        "guest-fsfreeze-freeze" and "guest-fsfreeze-freeze-list".
+        guest-fsfreeze-freeze: Sync and freeze all freezable,
+        local guest filesystems.
+        guest-fsfreeze-freeze-list: Sync and freeze specified guest
+        filesystems
 
         :param check_status: Force this function to check the fsfreeze status
                              before/after sending cmd.
+        :param fsfreeze_list: Bool value, if the value is True
+                              assume guest-fsfreeze-freeze-list command,
+                              else assume guest-fsfreeze-freeze command.
+        :param mountpoints: an array of mountpoints of filesystems,
+                            If omitted, every mounted filesystem is frozen.
         :return: Frozen FS number if cmd succeed, -1 if guest agent doesn't
                  support fsfreeze cmd.
         """
-        error_context.context("Freeze all FS in guest '%s'" % self.vm.name)
+        error_context.context("Freeze FS in guest '%s'" % self.vm.name)
         if check_status:
             self.verify_fsfreeze_status(self.FSFREEZE_STATUS_THAWED)
 
         cmd = "guest-fsfreeze-freeze"
+        args = None
+        if fsfreeze_list:
+            cmd = "guest-fsfreeze-freeze-list"
+            if mountpoints:
+                args = {"mountpoints": mountpoints}
+
         if self.check_has_command(cmd):
-            ret = self.cmd(cmd=cmd, timeout=timeout)
+            ret = self.cmd(cmd=cmd, timeout=timeout, args=args)
             if check_status:
                 try:
                     self.verify_fsfreeze_status(self.FSFREEZE_STATUS_FROZEN)
