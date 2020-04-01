@@ -202,6 +202,15 @@ class Disk(base.TypedDeviceBase):
             setattr(new_one, key, value)
         return new_one
 
+    def new_slices(self, **dargs):
+        """
+        Return a new disk slices instance and set properties from dargs
+        """
+        new_one = self.Slices(virsh_instance=self.virsh)
+        for key, value in list(dargs.items()):
+            setattr(new_one, key, value)
+        return new_one
+
     # For convenience
     Address = librarian.get('address')
 
@@ -218,7 +227,7 @@ class Disk(base.TypedDeviceBase):
         """
 
         __slots__ = ('attrs', 'seclabels', 'hosts', 'encryption', 'auth',
-                     'reservations', 'config_file', 'snapshot_name',)
+                     'reservations', 'slices', 'config_file', 'snapshot_name')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLElementDict('attrs', self, parent_xpath='/',
@@ -241,6 +250,11 @@ class Disk(base.TypedDeviceBase):
             accessors.XMLElementNest('reservations', self, parent_xpath='/',
                                      tag_name='reservations',
                                      subclass=Disk.Reservations,
+                                     subclass_dargs={
+                                         'virsh_instance': virsh_instance})
+            accessors.XMLElementNest('slices', self, parent_xpath='/',
+                                     tag_name='slices',
+                                     subclass=Disk.Slices,
                                      subclass_dargs={
                                          'virsh_instance': virsh_instance})
             accessors.XMLAttribute('config_file', self, parent_xpath='/',
@@ -384,6 +398,36 @@ class Disk(base.TypedDeviceBase):
                                    tag_name='secret', attribute='usage')
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<auth/>'
+
+    class Slices(base.base.LibvirtXMLBase):
+
+        """
+        slices device XML class
+        Typical xml looks like:
+        <slices>
+          <slice type='storage' offset='12345' size='123'/>
+        </slices>
+        Properties:
+
+        slice_type:
+            string, type attribute of slice tag
+        slice_offset:
+            string, offset attribute of slice tag
+        slice_size:
+            string, size attribute of slice tag
+        """
+
+        __slots__ = ('slice_type', 'slice_offset', 'slice_size')
+
+        def __init__(self, virsh_instance=base.base.virsh, auth_user=""):
+            accessors.XMLAttribute('slice_type', self, parent_xpath='/',
+                                   tag_name='slice', attribute='type')
+            accessors.XMLAttribute('slice_offset', self, parent_xpath='/',
+                                   tag_name='slice', attribute='offset')
+            accessors.XMLAttribute('slice_size', self, parent_xpath='/',
+                                   tag_name='slice', attribute='size')
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            self.xml = '<slices/>'
 
     class Reservations(base.base.LibvirtXMLBase):
 
