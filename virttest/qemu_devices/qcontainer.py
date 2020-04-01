@@ -908,6 +908,12 @@ class DevContainer(object):
                 return i
             i += 1
 
+    def cleanup_daemons(self):
+        """Clean up daemons."""
+        for dev in self:
+            if isinstance(dev, qdevices.QVirtioFSDev):
+                dev.clear()
+
     def cmdline(self, dynamic=True):
         """
         Creates cmdline arguments for creating all defined devices
@@ -2621,3 +2627,74 @@ class DevContainer(object):
                                        params=vcpu_params,
                                        parent_bus={"aobject": "vcpu"})
         return vcpu_dev
+
+    def fs_define_by_params(self, name, params, bus=None):
+        """
+        Create filesystem devices by params.
+
+        :param name: Object name of filesystem device.
+        :type name: str
+        :param params: Filesystem device params.
+        :type params: dict
+        :param bus: Parent bus.
+        :type bus: dict
+        :return: List of corresponding filesystem devices.
+        :rtype: list
+        """
+        driver = params["fs_driver"]
+        target = params["fs_target"]
+        fs_type = params.get('fs_source_type', 'mount')
+
+        if fs_type == 'mount':
+            source = params.get("fs_source_dir")
+            base_dir = params.get("fs_source_base_dir", data_dir.get_data_dir())
+            if not os.path.isabs(source):
+                source = os.path.join(base_dir, source)
+
+        machine_type = params.get("machine_type", "")
+        qbus_type = "PCI"
+        if machine_type.startswith("q35") or machine_type.startswith("arm64"):
+            qbus_type = "PCIE"
+
+        devices = []
+        if driver == "virtio-fs":
+            binary = params.get("fs_binary", "/usr/libexec/virtiofsd")
+            extra_options = params.get("fs_binary_extra_options")
+            sock_path = os.path.join(data_dir.get_tmp_dir(),
+                                     '-'.join((self.vmname, name, 'virtiofsd.sock')))
+            vfsd = qdevices.QVirtioFSDev(name, binary, sock_path,
+                                         source, extra_options)
+            devices.append(vfsd)
+
+            char_params = Params()
+            char_params["backend"] = "socket"
+            char_params["id"] = 'char_%s' % vfsd.get_qid()
+            sock_bus = {'busid': sock_path}
+            char = qdevices.CharDevice(char_params, parent_bus=sock_bus)
+            char.set_aid(vfsd.get_aid())
+            devices.append(char)
+
+            qdriver = "vhost-user-fs"
+            if "-mmio:" in machine_type:
+                qdriver += "-device"
+                qbus_type = "virtio-bus"
+            elif machine_type.startswith("s390"):
+                qdriver += "-ccw"
+                qbus_type = "virtio-bus"
+            else:
+                qdriver += "-pci"
+
+            if bus is None:
+                bus = {"type": qbus_type}
+
+            dev_params = {"id": "vufs_%s" % vfsd.get_qid(),
+                          "chardev": char.get_qid(),
+                          "tag": target}
+            fs_driver_props = json.loads(params.get("fs_driver_props", "{}"))
+            dev_params.update(fs_driver_props)
+            vufs = qdevices.QDevice(qdriver, params=dev_params, parent_bus=bus)
+            vufs.set_aid(vfsd.get_aid())
+            devices.append(vufs)
+        else:
+            raise ValueError("unsupported filesystem driver type")
+        return devices
