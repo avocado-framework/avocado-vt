@@ -743,7 +743,6 @@ class TCPConnection(ConnectionBase):
                                             r"[\#\$]\s*$")
             libvirtd_service = utils_libvirtd.Libvirtd(session=session)
             if libvirt_version.version_compare(5, 6, 0, session):
-                libvirtd_service.stop()
                 session.cmd("systemctl stop libvirtd-tcp.socket")
                 libvirtd_service.start()
             else:
@@ -774,19 +773,23 @@ class TCPConnection(ConnectionBase):
         # require a list data type
         sasl_allowed_users = self.sasl_allowed_users
         listen_addr = self.listen_addr
+        pattern_to_repl = {}
+        if not libvirt_version.version_compare(5, 6, 0, server_session):
+            # edit the /etc/sysconfig/libvirtd to add --listen args in libvirtd
+            pattern_to_repl = {r".*LIBVIRTD_ARGS\s*=\s*\"\s*--listen\s*\".*":
+                               "LIBVIRTD_ARGS=\"--listen\""}
+            self.remote_syslibvirtd.sub_else_add(pattern_to_repl)
 
-        # edit the /etc/sysconfig/libvirtd to add --listen args in libvirtd
-        pattern_to_repl = {r".*LIBVIRTD_ARGS\s*=\s*\"\s*--listen\s*\".*":
-                           "LIBVIRTD_ARGS=\"--listen\""}
-        self.remote_syslibvirtd.sub_else_add(pattern_to_repl)
-
-        # edit the /etc/libvirt/libvirtd.conf
-        # listen_tcp=1, tcp_port=$tcp_port, auth_tcp="none"
-        # listen_tcp=1, tcp_port=$tcp_port, auth_tcp=$auth_tcp
-        pattern_to_repl = {r".*listen_tls\s*=.*": 'listen_tls=0',
-                           r".*listen_tcp\s*=.*": 'listen_tcp=1',
-                           r".*tcp_port\s*=.*": 'tcp_port="%s"' % (tcp_port),
-                           r".*auth_tcp\s*=.*": 'auth_tcp="%s"' % (auth_tcp)}
+            # edit the /etc/libvirt/libvirtd.conf
+            # listen_tcp=1, tcp_port=$tcp_port, auth_tcp="none"
+            # listen_tcp=1, tcp_port=$tcp_port, auth_tcp=$auth_tcp
+            pattern_to_repl = {r".*listen_tls\s*=.*": 'listen_tls=0',
+                               r".*listen_tcp\s*=.*": 'listen_tcp=1',
+                               r".*tcp_port\s*=.*": 'tcp_port="%s"' % (tcp_port),
+                               r".*auth_tcp\s*=.*": 'auth_tcp="%s"' % (auth_tcp)}
+        else:
+            # After libvirt 5.6.0, auth_tcp must be set to 'none'
+            pattern_to_repl = {r".*auth_tcp\s*=.*": 'auth_tcp="none"'}
         # a whitelist of allowed SASL usernames, it's a list.
         # If the list is an empty, no client can connect
         if sasl_allowed_users:
@@ -822,11 +825,11 @@ class TCPConnection(ConnectionBase):
             # From libvirt 5.6, libvirtd is using systemd socket activation
             # by default
             if libvirt_version.version_compare(5, 6, 0, session):
-                session.cmd("systemctl stop libvirtd.socket")
+                # Before start libvirtd-tcp.socket, user must stop libvirtd.
+                # After libvirtd-tcp.socket is started, user mustn't start
+                # libvirtd.
                 libvirtd_service.stop()
-                session.cmd("systemctl start libvirtd.socket")
                 session.cmd("systemctl restart libvirtd-tcp.socket")
-                libvirtd_service.start()
             else:
                 libvirtd_service.restart()
         except (remote.LoginError, aexpect.ShellError) as detail:
@@ -1058,7 +1061,6 @@ class TLSConnection(ConnectionBase):
                                             r"[\#\$]\s*$")
             libvirtd_service = utils_libvirtd.Libvirtd(session=session)
             if libvirt_version.version_compare(5, 6, 0, session):
-                libvirtd_service.stop()
                 session.cmd("systemctl stop libvirtd-tls.socket")
                 libvirtd_service.start()
             else:
@@ -1250,14 +1252,19 @@ class TLSConnection(ConnectionBase):
                             "\"/etc/pki/libvirt-chardev\""}
             operate_qemuconf.sub_else_add(pattern2repl)
 
-        # edit the /etc/sysconfig/libvirtd to add --listen args in libvirtd
-        pattern_to_repl = {r".*LIBVIRTD_ARGS\s*=\s*\"\s*--listen\s*\".*":
-                           "LIBVIRTD_ARGS=\"--listen\""}
-        operate_syslibvirtd.sub_else_add(pattern_to_repl)
+        if not libvirt_version.version_compare(5, 6, 0, server_session):
+            # After libvirt 5.6.0, no need to set --listen for libvirt tls.
+            # Instead, libvirt use socket file on target host to handle
+            # the listen port.
+            # Before libvirt 5.6.0, edit the /etc/sysconfig/libvirtd to add
+            # --listen args in libvirtd
+            pattern_to_repl = {r".*LIBVIRTD_ARGS\s*=\s*\"\s*--listen\s*\".*":
+                               "LIBVIRTD_ARGS=\"--listen\""}
+            operate_syslibvirtd.sub_else_add(pattern_to_repl)
 
-        # edit the /etc/libvirt/libvirtd.conf to add listen_tls=1
-        pattern_to_repl = {r".*listen_tls\s*=\s*.*": "listen_tls=1"}
-        operate_libvirtdconf.sub_else_add(pattern_to_repl)
+            # edit the /etc/libvirt/libvirtd.conf to add listen_tls=1
+            pattern_to_repl = {r".*listen_tls\s*=\s*.*": "listen_tls=1"}
+            operate_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add
         # listen_addr=$listen_addr
@@ -1269,6 +1276,9 @@ class TLSConnection(ConnectionBase):
         # edit the /etc/libvirt/libvirtd.conf to add auth_tls=$auth_tls
         if auth_tls != 'none':
             pattern_to_repl = {r".*auth_tls\s*=\s*.*": 'auth_tls="%s"' % auth_tls}
+            operate_libvirtdconf.sub_else_add(pattern_to_repl)
+        elif libvirt_version.version_compare(5, 6, 0, server_session):
+            pattern_to_repl = {r".*auth_tls\s*=\s*.*": 'auth_tls="none"'}
             operate_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add tls_port=$tls_port
@@ -1346,11 +1356,8 @@ class TLSConnection(ConnectionBase):
                     remote_runner.run('iptables -F', ignore_status=True)
                     libvirtd_service = utils_libvirtd.Libvirtd(session=session)
                     if libvirt_version.version_compare(5, 6, 0, session):
-                        session.cmd("systemctl stop libvirtd.socket")
                         libvirtd_service.stop()
-                        session.cmd("systemctl start libvirtd.socket")
                         session.cmd("systemctl restart libvirtd-tls.socket")
-                        libvirtd_service.start()
                     else:
                         libvirtd_service.restart()
                 except (remote.LoginError, aexpect.ShellError) as detail:
@@ -1392,10 +1399,12 @@ class TLSConnection(ConnectionBase):
         client_session = self.client_session
         if self.sasl_type == 'digest-md5':
             utils_package.package_install('cyrus-sasl-md5', session=client_session)
-        cmd = "mkdir -p %s" % self.libvirt_pki_private_dir
-        status, output = client_session.cmd_status_output(cmd)
-        if status:
-            raise ConnMkdirError(self.libvirt_pki_private_dir, output)
+        for target_dir in [self.pki_CA_dir, self.libvirt_pki_private_dir]:
+            if not os.path.exists(target_dir):
+                cmd = "mkdir -p %s" % target_dir
+                status, output = client_session.cmd_status_output(cmd)
+                if status:
+                    raise ConnMkdirError(target_dir, output)
 
         scp_dict = {cacert_path: self.pki_CA_dir,
                     cakey_path: self.pki_CA_dir,
