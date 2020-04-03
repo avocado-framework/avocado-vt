@@ -36,6 +36,7 @@ ECHO "OS install is completed"
 grubby --remove-args="rhgb quiet" --update-kernel=$(grubby --default-kernel)
 dhclient
 chkconfig sshd on
+echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
 iptables -F
 systemctl mask tmp.mount
 echo 0 > /selinux/enforce
