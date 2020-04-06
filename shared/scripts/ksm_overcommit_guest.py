@@ -40,8 +40,8 @@ class MemFill(object):
         :param static_value: Value used to fill all memory.
         """
         if (static_value < 0 or static_value > 255):
-            print ("FAIL: Initialization static value"
-                   "can be only in range (0..255)")
+            print("FAIL: Initialization static value"
+                  "can be only in range (0..255)")
             return
 
         self.tmpdp = tempfile.mkdtemp()
@@ -50,8 +50,8 @@ class MemFill(object):
                              (tmpfs_size, self.tmpdp))
         if ret_code != 0:
             if os.getuid() != 0:
-                print ("FAIL: Unable to mount tmpfs "
-                       "(likely cause: you are not root)")
+                print("FAIL: Unable to mount tmpfs "
+                      "(likely cause: you are not root)")
             else:
                 print("FAIL: Unable to mount tmpfs")
         else:
