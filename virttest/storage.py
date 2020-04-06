@@ -693,18 +693,13 @@ class QemuImg(object):
         backup_dir = params.get("backup_dir", "")
         if not os.path.isabs(backup_dir):
             backup_dir = os.path.join(root_dir, backup_dir)
+        backup_set = get_backup_set(self.image_filename, backup_dir,
+                                    action, good)
         if self.is_remote_image():
-            backup_set = get_backup_set(self.image_filename, backup_dir,
-                                        action, good)
             backup_func = self.copy_data_remote
         elif params.get('image_raw_device') == 'yes':
-            ifmt = params.get("image_format", "qcow2")
-            ifilename = utils_misc.get_path(root_dir, ("raw_device.%s" % ifmt))
-            backup_set = get_backup_set(ifilename, backup_dir, action, good)
             backup_func = self.copy_data_raw
         else:
-            backup_set = get_backup_set(self.image_filename, backup_dir,
-                                        action, good)
             backup_func = self.copy_data_file
 
         if action == 'backup':
@@ -772,8 +767,6 @@ class QemuImg(object):
         if self.is_remote_image():
             backup_func = self.copy_data_remote
         elif params.get('image_raw_device') == 'yes':
-            ifmt = params.get("image_format", "qcow2")
-            src = utils_misc.get_path(root_dir, ("raw_device.%s" % ifmt))
             backup_func = self.copy_data_raw
 
         backup_size = 0
@@ -815,9 +808,7 @@ class QemuImg(object):
     def copy_data_raw(src, dst):
         """Using dd for raw device."""
         if os.path.exists(src):
-            _dst = dst + '.part'
-            process.system("dd if=%s of=%s bs=4k conv=sync" % (src, _dst))
-            os.rename(_dst, dst)
+            process.system("dd if=%s of=%s bs=4k conv=sync" % (src, dst))
         else:
             logging.info("No source %s, skipping dd...", src)
 
