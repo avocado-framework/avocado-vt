@@ -2286,6 +2286,10 @@ class VM(virt_vm.BaseVM):
             devices.insert(StrDev('kvm', cmdline=enable_kvm_option))
             logging.debug("qemu will run in KVM mode")
 
+        compat = params.get("qemu_compat")
+        if compat and devices.has_option("compat"):
+            devices.insert(StrDev('compat', cmdline="-compat %s" % compat))
+
         self.no_shutdown = (devices.has_option("no-shutdown") and
                             params.get("disable_shutdown", "no") == "yes")
         if self.no_shutdown:
