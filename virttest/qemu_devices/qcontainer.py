@@ -22,6 +22,7 @@ from avocado.utils import process
 
 import six
 from six.moves import xrange
+from six.moves import urllib
 
 try:
     from collections.abc import Sequence
@@ -1549,7 +1550,7 @@ class DevContainer(object):
                                    scsi=None, drv_extra_params=None,
                                    num_queues=None, bus_extra_params=None,
                                    force_fmt=None, image_encryption=None,
-                                   image_access=None):
+                                   image_access=None, external_data_file=None):
         """
         Creates related devices by variables
         :note: To skip the argument use None, to disable it use False
@@ -1589,6 +1590,7 @@ class DevContainer(object):
         :param bus_extra_params: options want to add to virtio-scsi-pci bus
         :param image_encryption: ImageEncryption object for image
         :param image_access: The logical image access information object
+        :param external_data_file: external data file for qcow2 image
         """
         def _get_access_secrets(image_access):
             """Get all secret objects of the image and its backing images"""
@@ -1925,6 +1927,18 @@ class DevContainer(object):
                 elif imgfmt == "luks":
                     devices[-1].set_param('key-secret', secret_obj.get_qid())
 
+        if external_data_file:
+            parse_out = urllib.parse.urlparse(external_data_file, scheme="file")
+            ext_driver, ext_filename = parse_out.scheme, parse_out.path
+
+            # check if the data file is a block device
+            if ext_driver == "file":
+                mode = os.stat(ext_filename).st_mode
+                if stat.S_ISBLK(mode):
+                    ext_driver = "host_device"
+            devices[-1].set_param('data-file.driver', ext_driver)
+            devices[-1].set_param('data-file.filename', ext_filename)
+
         if 'aio' in self.get_help_text():
             if aio == 'native' and snapshot == 'yes':
                 logging.warn('snapshot is on, fallback aio to threads.')
@@ -2167,6 +2181,10 @@ class DevContainer(object):
                     sn, sn_params)
             imgfmt = 'qcow2'
 
+        # external data file
+        ext_data_file = storage.QemuImg.external_data_file_defined_by_params(
+            image_params, data_root, name)
+
         return self.images_define_by_variables(name,
                                                image_filename,
                                                pci_bus,
@@ -2223,7 +2241,10 @@ class DevContainer(object):
                                                image_params.get(
                                                    "force_drive_format"),
                                                image_encryption,
-                                               image_access)
+                                               image_access,
+                                               (ext_data_file and
+                                                ext_data_file.image_filename)
+                                               )
 
     def serials_define_by_variables(self, serial_id, serial_type, chardev_id,
                                     bus_type=None, serial_name=None,

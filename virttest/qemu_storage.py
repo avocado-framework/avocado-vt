@@ -313,6 +313,11 @@ class QemuImg(storage.QemuImg):
                     options.append("%s=%s" % (opt_key.replace("_", "-"),
                                               str(opt_val)))
 
+        if self.data_file:
+            options.extend(
+                ("data_file=%s" % self.data_file.image_filename,
+                 "data_file_raw=%s" % params.get("data_file_raw", "off")))
+
         access_secret, secret_type = self._image_access_secret
         if access_secret is not None:
             if secret_type == 'password':

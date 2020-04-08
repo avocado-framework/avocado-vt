@@ -20,6 +20,7 @@ from avocado.utils import process
 from virttest import iscsi
 from virttest import utils_misc
 from virttest import utils_numeric
+from virttest import utils_params
 from virttest import virt_vm
 from virttest import gluster
 from virttest import lvm
@@ -618,7 +619,31 @@ class QemuImg(object):
             self.snapshot_format = ss_params.get("image_format")
 
         self.image_access = ImageAccessInfo.access_info_define_by_params(
-                                                   self.tag, self.params)
+            self.tag, self.params)
+
+        self.data_file = self.external_data_file_defined_by_params(
+            params, root_dir, tag)
+
+    @classmethod
+    def external_data_file_defined_by_params(cls, params, root_dir, tag):
+        """Link image to an external data file."""
+        enable_data_file = params.get("enable_data_file", "no") == "yes"
+        image_format = params.get("image_format", "qcow2")
+        if image_format != "qcow2" or not enable_data_file:
+            return
+
+        image_size = params["image_size"]
+        base_name = os.path.basename(params["image_name"])
+        data_file_path = params.get("data_file_path",
+                                    os.path.join(root_dir, "images",
+                                                 "%s.data_file" % base_name))
+
+        data_file_params = utils_params.Params(
+            {"image_name": data_file_path,
+             "image_format": "raw",
+             "image_size": image_size,
+             "image_raw_device": "yes"})
+        return cls(data_file_params, root_dir, "%s_data_file" % tag)
 
     def check_option(self, option):
         """
@@ -730,6 +755,11 @@ class QemuImg(object):
             for src, dst in bk_set:
                 self.copy_data_file(src, dst)
 
+        # backup external data file
+        if self.data_file:
+            self.data_file.backup_image(self.data_file.params, root_dir,
+                                        action, good, skip_existing)
+
         for src, dst in backup_set:
             if action == 'backup' and skip_existing and os.path.exists(dst):
                 logging.debug("Image backup %s already exists, skipping...",
@@ -741,6 +771,10 @@ class QemuImg(object):
         """
         Remove backup image
         """
+        # remove external data file backup
+        if self.data_file:
+            self.data_file.rm_backup_image()
+
         backup_dir = utils_misc.get_path(self.root_dir,
                                          self.params.get("backup_dir", ""))
         image_name = os.path.join(backup_dir, "%s.backup" %
