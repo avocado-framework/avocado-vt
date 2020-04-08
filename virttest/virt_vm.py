@@ -1221,6 +1221,7 @@ class BaseVM(object):
                     break
                 raise
             except Exception as err:
+                time.sleep(0.5)
                 error = err
             not_tried = False
 
