@@ -2961,7 +2961,7 @@ def device_exists(vm, target_dev):
 
 def create_local_disk(disk_type, path=None,
                       size="10", disk_format="raw",
-                      vgname=None, lvname=None):
+                      vgname=None, lvname=None, extra=''):
     if disk_type != "lvm" and path is None:
         raise exceptions.TestError("Path is needed for creating local disk")
     if path:
@@ -2972,7 +2972,7 @@ def create_local_disk(disk_type, path=None,
         pass
     cmd = ""
     if disk_type == "file":
-        cmd = "qemu-img create -f %s %s %s" % (disk_format, path, size)
+        cmd = "qemu-img create -f %s %s %s %s" % (disk_format, extra, path, size)
     elif disk_type == "floppy":
         cmd = "dd if=/dev/zero of=%s count=1024 bs=1024" % path
     elif disk_type == "iso":
