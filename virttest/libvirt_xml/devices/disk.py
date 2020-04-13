@@ -211,6 +211,15 @@ class Disk(base.TypedDeviceBase):
             setattr(new_one, key, value)
         return new_one
 
+    def new_backingstore(self, **dargs):
+        """
+        Return a new disk backingstore instance and set properties from dargs
+        """
+        new_one = self.BackingStore(virsh_instance=self.virsh)
+        for key, value in list(dargs.items()):
+            setattr(new_one, key, value)
+        return new_one
+
     # For convenience
     Address = librarian.get('address')
 
@@ -496,7 +505,7 @@ class Disk(base.TypedDeviceBase):
                                          'virsh_instance': virsh_instance})
 
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-            self.xml = '<backingStore><backingStore/></backingStore>'
+            self.xml = '<backingStore/>'
 
         def new_source(self, **dargs):
             """
@@ -520,9 +529,11 @@ class Disk(base.TypedDeviceBase):
                 string, attribute of backingStore/source tag
             host:
                 dict, nested xml of backingStore/source tag
+            file:
+                string, attribute of backingStore/source tag
             """
 
-            __slots__ = ('dev', 'protocol', 'name', 'host')
+            __slots__ = ('dev', 'protocol', 'name', 'host', 'file')
 
             def __init__(self, virsh_instance=base.base.virsh):
                 accessors.XMLAttribute('dev', self,
@@ -540,6 +551,10 @@ class Disk(base.TypedDeviceBase):
                 accessors.XMLElementDict('host', self,
                                          parent_xpath='/',
                                          tag_name='host')
+                accessors.XMLAttribute('file', self,
+                                       parent_xpath='/',
+                                       tag_name='source',
+                                       attribute='file')
 
                 super(self.__class__, self).__init__(virsh_instance=virsh_instance)
                 self.xml = '<source/>'
