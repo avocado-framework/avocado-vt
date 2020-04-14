@@ -92,6 +92,35 @@ def filename_to_file_opts(filename):
                 file_opts.update({'server.{i}.{k}'.format(i=i, k=k): v
                                  for i, server in enumerate(servers)
                                  for k, v in six.iteritems(server)})
+    elif re.match(r'nbd(\+\w+)?://', filename):
+        filename_pattern = re.compile(
+            r'nbd(\+(?:.+))?://((?P<host>[^/:?]+)(:(?P<port>\d+))?)?'
+            r'(/(?P<export>[^?]+))?'
+            r'(\?socket=(?P<socket>.+))?'
+        )
+        matches = filename_pattern.match(filename)
+        if matches:
+            server = {}
+            host = matches.group('host')
+            sock = matches.group('socket')
+
+            if host:
+                # 10890 is the default port for tcp connection
+                port = matches.group('port') if matches.group(
+                                                        'port') else '10809'
+                server = {'server.type': 'inet',
+                          'server.host': host,
+                          'server.port': port}
+            elif sock:
+                server = {'server.type': 'unix', 'server.path': sock}
+
+            if server:
+                # server is required
+                file_opts = {'driver': 'nbd'}
+                file_opts.update(server)
+
+                if matches.group('export'):
+                    file_opts['export'] = matches.group('export')
     # FIXME: Judge the host device by the string starts with "/dev/".
     elif filename.startswith('/dev/'):
         file_opts = {'driver': 'host_device', 'filename': filename}
@@ -155,6 +184,12 @@ def _get_image_meta(image, params, root_dir):
             meta['file'].update({'server.{i}.{k}'.format(i=i+1, k=k): v
                                 for i, server in enumerate(peers)
                                 for k, v in six.iteritems(server)})
+        elif auth_info.storage_type == 'nbd':
+            # qemu-img, as a client, accesses nbd storage
+            if auth_info.tls_creds:
+                meta['file']['tls-creds'] = auth_info.aid
+            if auth_info.reconnect_delay:
+                meta['file']['reconnect-delay'] = auth_info.reconnect_delay
 
     return meta
 
@@ -219,6 +254,9 @@ def get_image_repr(image, params, root_dir, representation=None):
                 # debug, logfile and other servers represent in json
                 if auth_info.debug or auth_info.logfile or auth_info.peers:
                     access_needed = True
+            elif auth_info.storage_type == 'nbd':
+                # tls-creds, reconnect_delay represent in json
+                access_needed = True
 
         func = mapping["json"] if image_secret or access_needed else mapping["filename"]
     return func(image, params, root_dir)
@@ -281,6 +319,7 @@ class QemuImg(storage.QemuImg):
         "unsafe": "-u",
         "options": "-o",
         "secret_object": "",
+        "tls_creds_object": "",
         "image_opts": "",
         "check_repair": "-r",
         "output_format": "--output",
@@ -296,16 +335,19 @@ class QemuImg(storage.QemuImg):
         "compare_strict_mode": "-s",
         "compare_second_image_format": "-F"
         }
-    create_cmd = ("create {secret_object} {image_format} {backing_file} "
-                  "{backing_format} {unsafe!b} {options} {image_filename} "
-                  "{image_size}")
-    check_cmd = ("check {secret_object} {image_opts} {image_format} "
+    create_cmd = ("create {secret_object} {tls_creds_object} {image_format} "
+                  "{backing_file} {backing_format} {unsafe!b} {options} "
+                  "{image_filename} {image_size}")
+    check_cmd = ("check {secret_object} {tls_creds_object} "
+                 "{image_opts} {image_format} "
                  "{output_format} {check_repair} {force_share!b} "
                  "{image_filename}")
-    convert_cmd = ("convert {secret_object} {convert_compressed!b} "
+    convert_cmd = ("convert {secret_object} {tls_creds_object} "
+                   "{convert_compressed!b} {skip_target_image_creation} "
                    "{image_format} {cache_mode} {source_cache_mode} "
                    "{target_image_format} {options} {convert_sparse_size} "
-                   "{image_filename} {target_image_filename}")
+                   "{image_filename} {target_image_filename} "
+                   "{target_image_opts}")
     commit_cmd = ("commit {secret_object} {image_format} {cache_mode} "
                   "{backing_file} {commit_drop!b} {image_filename}")
     resize_cmd = ("resize {secret_object} {image_opts} {resize_shrink!b} "
@@ -313,10 +355,10 @@ class QemuImg(storage.QemuImg):
     rebase_cmd = ("rebase {secret_object} {image_format} {cache_mode} "
                   "{source_cache_mode} {unsafe!b} {backing_file} "
                   "{backing_format} {image_filename}")
-    dd_cmd = ("dd {secret_object} {image_format} {target_image_format} "
-              "{block_size} {count} {skip} "
+    dd_cmd = ("dd {secret_object} {tls_creds_object} {image_format} "
+              "{target_image_format} {block_size} {count} {skip} "
               "if={image_filename} of={target_image_filename}")
-    compare_cmd = ("compare {secret_object} {image_format} "
+    compare_cmd = ("compare {secret_object} {tls_creds_object} {image_format} "
                    "{compare_second_image_format} {source_cache_mode} "
                    "{compare_strict_mode!b} {force_share!b} "
                    "{image_filename} {compare_second_image_filename}")
@@ -408,6 +450,30 @@ class QemuImg(storage.QemuImg):
         return needed
 
     @property
+    def _image_access_tls_creds(self):
+        tls_creds = None
+        creds = self.image_access.image_auth if self.image_access else None
+
+        if creds is not None:
+            if creds.storage_type == 'nbd':
+                if creds.tls_creds:
+                    tls_creds = creds
+
+        return tls_creds
+
+    @property
+    def _backing_access_tls_creds(self):
+        tls_creds_list = []
+        creds_list = self.image_access.image_backing_auth.values() if self.image_access else []
+
+        for creds in creds_list:
+            if creds.storage_type == 'nbd':
+                if creds.tls_creds:
+                    tls_creds_list.append(creds)
+
+        return tls_creds_list
+
+    @property
     def _image_access_secret(self):
         """
         Get the access secret object and its type of the image itself,
@@ -453,6 +519,24 @@ class QemuImg(storage.QemuImg):
         secret_objects = self.encryption_config.image_key_secrets
         secret_obj_str = "--object secret,id={s.aid},data={s.data}"
         return [secret_obj_str.format(s=s) for s in secret_objects]
+
+    @property
+    def _image_access_tls_creds_object(self):
+        """Get the tls-creds object str of the image itself."""
+        tls_obj_str = '--object tls-creds-x509,id={s.aid},endpoint=client,dir={s.tls_creds}'
+        creds = self._image_access_tls_creds
+        return tls_obj_str.format(s=creds) if creds else ''
+
+    @property
+    def _backing_access_tls_creds_objects(self):
+        """Get all tls-creds object str of the backing images."""
+        tls_creds = []
+        tls_obj_str = '--object tls-creds-x509,id={s.aid},endpoint=client,dir={s.tls_creds}'
+
+        for creds in self._backing_access_tls_creds:
+            tls_creds.append(tls_obj_str.format(s=creds))
+
+        return tls_creds
 
     @property
     def _image_access_secret_object(self):
@@ -563,6 +647,16 @@ class QemuImg(storage.QemuImg):
             if secret_objects:
                 cmd_dict["secret_object"] = " ".join(secret_objects)
 
+            # tls creds objects of the backing images of the source
+            tls_creds_objects = self._backing_access_tls_creds_objects
+
+            # tls creds object of the source image itself
+            if self._image_access_tls_creds_object:
+                tls_creds_objects.append(self._image_access_tls_creds_object)
+
+            if tls_creds_objects:
+                cmd_dict["tls_creds_object"] = " ".join(tls_creds_objects)
+
             cmd_dict["image_filename"] = self.image_filename
             cmd_dict["image_size"] = self.size
             options = self._parse_options(params)
@@ -602,7 +696,7 @@ class QemuImg(storage.QemuImg):
         return self.image_filename, cmd_result
 
     def convert(self, params, root_dir, cache_mode=None,
-                source_cache_mode=None):
+                source_cache_mode=None, skip_target_creation=False):
         """
         Convert image
 
@@ -613,6 +707,9 @@ class QemuImg(storage.QemuImg):
                            (default), ``writethrough``, ``directsync`` and
                            ``unsafe``.
         :param source_cache_mode: the cache mode used with source image file
+        :param skip_target_creation: qemu-img skips the creation of the target
+                                     volume if True(-n), i.e. the target image
+                                     should be created before image convert
         :note: params should contain:
             convert_target
                 the convert target image tag
@@ -638,11 +735,27 @@ class QemuImg(storage.QemuImg):
             "target_image_filename": convert_image.image_filename,
             "cache_mode": cache_mode,
             "source_cache_mode": source_cache_mode,
+            "skip_target_image_creation": "-n" if skip_target_creation else "",
+            "target_image_opts": ""
         }
 
         options = convert_image._parse_options(convert_params)
         if options:
             cmd_dict["options"] = ",".join(options)
+
+        if skip_target_creation:
+            # -o has no effect when skipping image creation
+            # This will become an error in future QEMU versions
+            if options:
+                cmd_dict.pop("options")
+
+            cmd_dict.pop("target_image_format")
+            cmd_dict["target_image_filename"] = ""
+            cmd_dict["target_image_opts"] = ("--target-image-opts '%s'"
+                                             % get_image_opts(
+                                                 convert_image.tag,
+                                                 convert_image.params,
+                                                 convert_image.root_dir))
 
         if (self.encryption_config.key_secret
                 or self._need_auth_info(self.tag)):
@@ -672,6 +785,21 @@ class QemuImg(storage.QemuImg):
 
         if secret_objects:
             cmd_dict["secret_object"] = " ".join(secret_objects)
+
+        # tls creds objects of the backing images of the source
+        tls_creds_objects = self._backing_access_tls_creds_objects
+
+        # tls creds object of the source image itself
+        if self._image_access_tls_creds_object:
+            tls_creds_objects.append(self._image_access_tls_creds_object)
+
+        # tls creds object of the target image
+        if convert_image._image_access_tls_creds_object:
+            tls_creds_objects.append(
+                convert_image._image_access_tls_creds_object)
+
+        if tls_creds_objects:
+            cmd_dict["tls_creds_object"] = " ".join(tls_creds_objects)
 
         convert_cmd = self.image_cmd + " " + \
             self._cmd_formatter.format(self.convert_cmd, **cmd_dict)
@@ -884,10 +1012,18 @@ class QemuImg(storage.QemuImg):
             # secret object of the image itself
             cmd += " %s" % self._image_access_secret_object
 
+        if self._image_access_tls_creds_object:
+            # tls creds object of the image itself
+            cmd += " %s" % self._image_access_tls_creds_object
+
         if backing_chain == "yes":
             if self._backing_access_secret_objects:
                 # secret objects of the backing images
                 cmd += " %s" % " ".join(self._backing_access_secret_objects)
+
+            if self._backing_access_tls_creds_objects:
+                # tls creds objects of the backing images
+                cmd += " %s" % " ".join(self._backing_access_tls_creds_objects)
 
             if "--backing-chain" in self.help_text:
                 cmd += " --backing-chain"
@@ -1029,6 +1165,26 @@ class QemuImg(storage.QemuImg):
         secret_objects = list(set(secret_objects))
         cmd_dict["secret_object"] = " ".join(secret_objects)
 
+        # tls creds objects of the backing images of the source
+        tls_creds_objects = self._backing_access_tls_creds_objects
+
+        # tls creds object of the source image
+        if self._image_access_tls_creds_object:
+            tls_creds_objects.append(self._image_access_tls_creds_object)
+
+        # tls creds objects of the backing images of the target
+        if target_image._backing_access_tls_creds_objects:
+            tls_creds_objects.extend(
+                target_image._backing_access_tls_creds_objects)
+
+        # tls creds object of the target image
+        if target_image._image_access_tls_creds_object:
+            tls_creds_objects.append(
+                target_image._image_access_tls_creds_object)
+
+        tls_creds_objects = list(set(tls_creds_objects))
+        cmd_dict["tls_creds_object"] = " ".join(tls_creds_objects)
+
         if (self.encryption_config.key_secret
                 or self._need_auth_info(self.tag)):
             cmd_dict["image_filename"] = "'%s'" % \
@@ -1089,6 +1245,16 @@ class QemuImg(storage.QemuImg):
 
         if secret_objects:
             cmd_dict["secret_object"] = " ".join(secret_objects)
+
+        # tls creds objects of the backing images
+        tls_creds_objects = self._backing_access_tls_creds_objects
+
+        # tls creds object of the image itself
+        if self._image_access_tls_creds_object:
+            tls_creds_objects.append(self._image_access_tls_creds_object)
+
+        if tls_creds_objects:
+            cmd_dict["tls_creds_object"] = " ".join(tls_creds_objects)
 
         check_cmd = self.image_cmd + " " + self._cmd_formatter.format(
             self.check_cmd, **cmd_dict)
@@ -1336,6 +1502,16 @@ class QemuImg(storage.QemuImg):
 
         if secret_objects:
             cmd_dict["secret_object"] = " ".join(secret_objects)
+
+        # tls creds objects of the backing images
+        tls_creds_objects = self._backing_access_tls_creds_objects
+
+        # tls creds object of the image itself
+        if self._image_access_tls_creds_object:
+            tls_creds_objects.append(self._image_access_tls_creds_object)
+
+        if tls_creds_objects:
+            cmd_dict["tls_creds_object"] = " ".join(tls_creds_objects)
 
         dd_cmd = self.image_cmd + " " + \
             self._cmd_formatter.format(self.dd_cmd, **cmd_dict)
