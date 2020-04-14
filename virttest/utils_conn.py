@@ -1269,8 +1269,8 @@ class TLSConnection(ConnectionBase):
         # edit the /etc/libvirt/libvirtd.conf to add
         # listen_addr=$listen_addr
         if listen_addr:
-            pattern_to_repl[r".*listen_addr\s*=.*"] = \
-                "listen_addr='%s'" % (listen_addr)
+            pattern_to_repl = {r".*listen_addr\s*=.*":
+                               "listen_addr='%s'" % listen_addr}
             operate_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/libvirt/libvirtd.conf to add auth_tls=$auth_tls
