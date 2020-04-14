@@ -35,6 +35,7 @@ from virttest import utils_net
 from virttest import utils_config
 from virttest import utils_package
 from virttest import kernel_interface
+from virttest import libvirt_version
 from virttest.staging import service
 from virttest.staging import utils_memory
 from virttest.compat_52lts import results_stderr_52lts, decode_to_text
@@ -1887,19 +1888,29 @@ class LibvirtPolkitConfig(object):
         if distro_obj.name.lower().strip() == 'ubuntu':
             self.polkit_name = "polkitd"
         self.polkitd = service.Factory.create_service(self.polkit_name)
-
-        if self.params.get("action_id"):
-            self.action_id = self.params.get("action_id").split()
-        else:
-            self.action_id = []
         self.user = self.params.get("unprivileged_user")
-        if self.params.get("action_lookup"):
-            # The action_lookup string should be separated by space and
-            # each separated string should have ':' which represent key:value
-            # for later use.
-            self.attr = self.params.get("action_lookup").split()
+        # For libvirt-5.6.0 and later, use 'action_matrix' for all rules
+        # required to setup polkit.
+        # For libvirt before 5.6.0, still use 'action_id' and 'action_lookup'
+        # for all rules required to setup polkit.
+        self.action_list = []
+        if (libvirt_version.version_compare(5, 6, 0) and
+                self.params.get("action_matrix")):
+            self.action_list = eval(self.params.get("action_matrix"))
         else:
-            self.attr = []
+            # This is for the versions before libvirt-5.6.0
+            if self.params.get("action_id"):
+                self.action_id = self.params.get("action_id").split()
+            else:
+                self.action_id = []
+
+            if self.params.get("action_lookup"):
+                # The action_lookup string should be separated by space and
+                # each separated string should have ':' which represent key:value
+                # for later use.
+                self.attr = self.params.get("action_lookup").split()
+            else:
+                self.attr = []
 
     def file_replace_append(self, fpath, pat, repl):
         """
@@ -1959,6 +1970,32 @@ class LibvirtPolkitConfig(object):
         Set polkit libvirt ACL rule config file
         """
         # polkit template string
+        def _get_one_rule(action_lookup_list, lookup_oper):
+            """
+            Get one rule.
+            :param action_lookup_list: The list for action lookup, like
+                            ["ss:xx", "ss:xx"]
+            :param lookup_oper: The operator between multiple lookups
+            :return: one rule
+            """
+            action_opt = []
+            rule_tmp = rule.replace('USERNAME', self.user)
+            for i in range(len(action_lookup_list)):
+                attr_tmp = action_lookup_list[i].split(':')
+                action_tmp = action_str.replace('ATTR', attr_tmp[0])
+                action_tmp = action_tmp.replace('VAL', attr_tmp[1])
+                action_opt.append(action_tmp)
+                if i > 0:
+                    action_opt[i] = " %s " % lookup_oper + action_opt[i]
+
+            action_tmp = ""
+            for i in range(len(action_opt)):
+                action_tmp += action_opt[i]
+
+            handle_tmp = handle.replace('ACTION_LOOKUP', action_tmp)
+            rule_tmp = rule_tmp.replace('HANDLE', handle_tmp)
+            return rule_tmp
+
         template = "polkit.addRule(function(action, subject) {\n"
         template += "RULE"
         template += "});"
@@ -1981,32 +2018,30 @@ class LibvirtPolkitConfig(object):
             # replace keys except 'ACTION_ID', these keys will remain same
             # as in different rules
             rule_tmp = rule.replace('USERNAME', self.user)
-
-            # replace HANDLE part in rule
-            action_opt = []
-            if self.attr:
-                for i in range(len(self.attr)):
-                    attr_tmp = self.attr[i].split(':')
-                    action_tmp = action_str.replace('ATTR', attr_tmp[0])
-                    action_tmp = action_tmp.replace('VAL', attr_tmp[1])
-                    action_opt.append(action_tmp)
-                    if i > 0:
-                        action_opt[i] = " && " + action_opt[i]
-
-                action_tmp = ""
-                for i in range(len(action_opt)):
-                    action_tmp += action_opt[i]
-
-                # replace ACTION_LOOKUP with string from self.attr
-                handle_tmp = handle.replace('ACTION_LOOKUP', action_tmp)
-                rule_tmp = rule_tmp.replace('HANDLE', handle_tmp)
-            else:
-                rule_tmp = rule_tmp.replace('HANDLE', "    ")
-
-            # replace 'ACTION_ID' in loop and generate rules
             rules = ""
-            for i in range(len(self.action_id)):
-                rules += rule_tmp.replace('ACTION_ID', self.action_id[i])
+            if libvirt_version.version_compare(5, 6, 0) and self.action_list:
+                # The elem in self.action_list should be like:
+                # {'action_id': 'xxx', 'action_lookup': '["ss:xx", "ss:xx"]',
+                # 'lookup_oper': '&&'}
+                for one_action_dict in self.action_list:
+                    action_id = one_action_dict['action_id']
+                    action_lookup_list = eval(one_action_dict['action_lookup'])
+                    lookup_oper = ""
+                    if 'lookup_oper' in one_action_dict:
+                        lookup_oper = one_action_dict['lookup_oper']
+                    # get one rule with lookups and without action_id
+                    rule_tmp = _get_one_rule(action_lookup_list, lookup_oper)
+                    # replace 'ACTION_ID' and generate rules
+                    rules += rule_tmp.replace('ACTION_ID', action_id)
+            else:
+                if self.attr:
+                    rule_tmp = _get_one_rule(self.attr, '&&')
+                else:
+                    rule_tmp = rule_tmp.replace('HANDLE', "    ")
+
+                # replace 'ACTION_ID' in loop and generate rules
+                for i in range(len(self.action_id)):
+                    rules += rule_tmp.replace('ACTION_ID', self.action_id[i])
 
             # replace 'RULE' with rules in polkit template string
             self.template = template.replace('RULE', rules)
