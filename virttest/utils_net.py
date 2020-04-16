@@ -880,7 +880,7 @@ def raw_ping(command, timeout, session, output_func):
 def ping(dest=None, count=None, interval=None, interface=None,
          packetsize=None, ttl=None, hint=None, adaptive=False,
          broadcast=False, flood=False, timeout=0,
-         output_func=logging.debug, session=None):
+         output_func=logging.debug, session=None, force_ipv4=False):
     """
     Wrapper of ping.
 
@@ -897,6 +897,7 @@ def ping(dest=None, count=None, interval=None, interface=None,
     :param timeout: Timeout for the ping command.
     :param output_func: Function used to log the result of ping.
     :param session: Local executon hint or session to execute the ping command.
+    :param force_ipv4: Whether or not force using IPV4 to ping.
     """
     command = "ping"
     if session and "Windows" in session.cmd_output_safe("echo %OS%"):
@@ -947,6 +948,8 @@ def ping(dest=None, count=None, interval=None, interface=None,
                                                                  command)
             output_func = None
             timeout += 1
+        if force_ipv4:
+            command += ' -4'
 
     return raw_ping(command, timeout, session, output_func)
 
