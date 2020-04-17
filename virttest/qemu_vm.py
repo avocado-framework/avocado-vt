@@ -104,14 +104,21 @@ def qemu_proc_term_handler(vm, monitor_exit_status, exit_status):
     Callback function to detect QEMU process non-zero exit status and
     push VMExitStatusError to background error bus.
 
-    :param vm: VM name.
+    :param vm: VM object.
     :param monitor_exit_status: True to push VMUnexpectedExitError instance
         with calltrace to global error event bus.
     :param exit_status: QEMU process exit status.
     """
+    for snapshot in vm.devices.temporary_image_snapshots:
+        try:
+            os.unlink(snapshot)
+        except OSError:
+            pass
+    vm.devices.temporary_image_snapshots.clear()
+
     if exit_status != 0 and monitor_exit_status:
         try:
-            raise virt_vm.VMUnexpectedExitError(vm, exit_status)
+            raise virt_vm.VMUnexpectedExitError(vm.name, exit_status)
         except virt_vm.VMUnexpectedExitError:
             error_event.error_events_bus.put(sys.exc_info())
 
@@ -2924,7 +2931,7 @@ class VM(virt_vm.BaseVM):
                     params.get("vm_monitor_exit_status", "yes") == "yes"
                 self.process = aexpect.run_tail(
                     qemu_command,
-                    partial(qemu_proc_term_handler, self.name,
+                    partial(qemu_proc_term_handler, self,
                             monitor_exit_status),
                     logging.info, "[qemu output] ",
                     auto_close=False, pass_fds=pass_fds)

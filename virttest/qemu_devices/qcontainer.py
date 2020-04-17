@@ -13,6 +13,7 @@ import logging
 import re
 import os
 import shutil
+import stat
 import json
 
 # Avocado imports
@@ -161,6 +162,7 @@ class DevContainer(object):
         self._probe_capabilities()
         self.__iothread_manager = None
         self.__iothread_supported_devices = set()
+        self.temporary_image_snapshots = set()
 
     def initialize_iothread_manager(self, params, guestcpuinfo):
         """Initialize iothread manager.
@@ -421,7 +423,8 @@ class DevContainer(object):
             if key in ("_DevContainer__devices", "_DevContainer__buses",
                        "_DevContainer__state", "caps", "allow_hotplugged_vm",
                        "_DevContainer__iothread_manager",
-                       "_DevContainer__iothread_supported_devices"):
+                       "_DevContainer__iothread_supported_devices",
+                       "temporary_image_snapshots"):
                 continue
             if key not in qdev2 or qdev2[key] != value:
                 return False
@@ -1889,12 +1892,8 @@ class DevContainer(object):
                 devices.append(qdevices.QOldDrive(name, use_device))
 
         if Flags.BLOCKDEV in self.caps:
-            for opt, val in zip(('snapshot', 'serial', 'boot'),
-                                (snapshot, serial, boot)):
+            for opt, val in zip(('serial', 'boot'), (serial, boot)):
                 if val is not None:
-                    if (opt, val) == ('snapshot', 'yes'):
-                        raise exceptions.TestCancel(
-                            "The snapshot=on is not supported by -blockdev.")
                     logging.warn("The command line option %s is not supported "
                                  "on %s by -blockdev." % (opt, name))
             if media == 'cdrom':
@@ -2145,9 +2144,31 @@ class DevContainer(object):
         image_access = storage.ImageAccessInfo.access_info_define_by_params(
                                                          name, image_params)
 
+        image_filename = storage.get_image_filename(image_params, data_root)
+        imgfmt = image_params.get("image_format")
+        if (Flags.BLOCKDEV in self.caps and
+                image_params.get("image_snapshot") == "yes"):
+            sn_params = Params()
+            for k, v in image_params.items():
+                sn_params['%s_%s' % (k, name)] = v
+            sn = 'vl_%s_%s' % (self.vmname, name)
+            sn_params['image_chain'] = "%s %s" % (name, sn)
+            sn_params['image_name'] = sn
+            sn_params['image_size'] = image_params['image_size']
+            sn_img = qemu_storage.QemuImg(sn_params, data_dir.get_data_dir(), sn)
+            image_filename = sn_img.create(sn_params)[0]
+            os.chmod(image_filename, stat.S_IRUSR | stat.S_IWUSR)
+            logging.info(
+                "'snapshot=on' is not supported by '-blockdev' but "
+                "requested from the image '%s', imitating the behavior "
+                "of '-drive' to keep compatibility", name)
+            self.temporary_image_snapshots.add(image_filename)
+            image_encryption = storage.ImageEncryption.encryption_define_by_params(
+                    sn, sn_params)
+            imgfmt = 'qcow2'
+
         return self.images_define_by_variables(name,
-                                               storage.get_image_filename(
-                                                   image_params, data_root),
+                                               image_filename,
                                                pci_bus,
                                                index,
                                                drive_format,
@@ -2184,8 +2205,7 @@ class DevContainer(object):
                                                image_params.get(
                                                    "strict_mode") == "yes",
                                                media,
-                                               image_params.get(
-                                                   "image_format"),
+                                               imgfmt,
                                                image_params.get(
                                                    "drive_pci_addr"),
                                                scsi_hba,
