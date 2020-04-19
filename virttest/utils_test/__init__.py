@@ -497,7 +497,7 @@ def find_python(session, compat="python3"):
     :param session: A shell session.
     :param compat: preference to compat version
     """
-    binaries = ['python', 'python2', 'python3']
+    binaries = ['python', 'python3']
     compat_bin = find_bin(session, try_binaries=[compat])
     if not compat_bin:
         binaries.remove(compat)
@@ -934,7 +934,7 @@ class AvocadoGuest(object):
                                          "optional_plugins")
         self.prerequisites = {'packages': ['git'],
                               'python': ['python', 'python-pip', 'python-devel'],
-                              'python2': ['python2', 'python2-pip', 'python2-devel']}
+                              'python3': ['python3', 'python3-pip', 'python3-devel']}
         if self.avocado_vt:
             self.vt_type = self.params.get("vt_type", "qemu")
             self.vt_arch = self.params.get("vt_arch", "")
@@ -974,7 +974,7 @@ class AvocadoGuest(object):
         if not self.python:
             logging.error("Unable to find python.")
             return False
-        self.pip_bin = find_bin(self.session, ['pip', 'pip2', 'pip3'])
+        self.pip_bin = find_bin(self.session, ['pip', 'pip3'])
         if not utils_misc.make_dirs(self.test_path, session=self.session):
             logging.error("Failed to create test path in guest")
             return False
