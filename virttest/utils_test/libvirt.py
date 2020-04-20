@@ -91,6 +91,28 @@ class LibvirtNetwork(object):
     Class to create a temporary network for testing.
     """
 
+    def create_network_xml_with_dhcp(self):
+        """
+        Create XML for a network xml with dhcp.
+        """
+        net_xml = NetworkXML()
+        net_xml.name = self.kwargs.get('net_name')
+        ip_version = self.kwargs.get('ip_version')
+        dhcp_start = self.kwargs.get('dhcp_start')
+        dhcp_end = self.kwargs.get('dhcp_end')
+        address = self.kwargs.get('address')
+        ip = None
+        if ip_version == 'ipv6':
+            ip = IPXML(address=address, ipv6=ip_version)
+            ip.prefix = '64'
+        else:
+            ip = IPXML(address=address)
+        ip.family = ip_version
+        ip.dhcp_ranges = {'start': dhcp_start, 'end': dhcp_end}
+        net_xml.ip = ip
+        net_xml.bridge = {'name': self.kwargs.get('br_name'), 'stp': 'on', 'delay': '0'}
+        return net_xml
+
     def create_vnet_xml(self):
         """
         Create XML for a virtual network.
@@ -116,9 +138,10 @@ class LibvirtNetwork(object):
         if not iface:
             raise exceptions.TestError('Create macvtap need iface be set')
         net_xml = NetworkXML()
-        net_xml.name = self.name
+        net_xml.name = self.kwargs.get('net_name')
         net_xml.forward = {'mode': 'bridge', 'dev': iface}
-        ip = utils_net.get_ip_address_by_interface(iface)
+        ip_version = self.kwargs.get('ip_version')
+        ip = utils_net.get_ip_address_by_interface(iface, ip_ver=ip_version)
         return ip, net_xml
 
     def create_bridge_xml(self):
@@ -135,6 +158,28 @@ class LibvirtNetwork(object):
         ip = utils_net.get_ip_address_by_interface(iface)
         return ip, net_xml
 
+    def create_nat_xml(self):
+        """
+        Create XML for a nat network.
+        """
+        address = self.kwargs.get('address')
+        if not address:
+            raise exceptions.TestError("'address' is required to create nat network xml.")
+        net_xml = self.create_network_xml_with_dhcp()
+        net_xml.forward = {'mode': 'nat'}
+        return address, net_xml
+
+    def create_route_xml(self):
+        """
+        Create XML for a route network.
+        """
+        address = self.kwargs.get('address')
+        if not address:
+            raise exceptions.TestError("'address' is required to create route network xml.")
+        net_xml = self.create_network_xml_with_dhcp()
+        net_xml.forward = {'mode': 'route'}
+        return address, net_xml
+
     def __init__(self, net_type, **kwargs):
         self.kwargs = kwargs
         net_name = kwargs.get('net_name')
@@ -150,6 +195,10 @@ class LibvirtNetwork(object):
             self.ip, net_xml = self.create_macvtap_xml()
         elif net_type == 'bridge':
             self.ip, net_xml = self.create_bridge_xml()
+        elif net_type == 'nat':
+            self.ip, net_xml = self.create_nat_xml()
+        elif net_type == 'route':
+            self.ip, net_xml = self.create_route_xml()
         else:
             raise exceptions.TestError(
                 'Unknown libvirt network type %s' % net_type)
@@ -3227,7 +3276,7 @@ def remotely_control_libvirtd(server_ip, server_user, server_pwd,
 def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
                      auth_pwd=None, vm_name="", status_error="no",
                      extra="", log_level='LIBVIRT_DEBUG=3', su_user="",
-                     patterns_virsh_cmd=".*Id\s*Name\s*State\s*.*",
+                     patterns_virsh_cmd=r".*Id\s*Name\s*State\s*.*",
                      patterns_extra_dict=None):
     """
     Connect to libvirt daemon
@@ -3330,7 +3379,7 @@ def get_all_vol_paths():
 
 
 def do_migration(vm_name, uri, extra, auth_pwd, auth_user="root",
-                 options="--verbose", virsh_patterns=".*100\s%.*",
+                 options="--verbose", virsh_patterns=r".*100\s%.*",
                  su_user="", timeout=30, extra_opt=""):
     """
     Migrate VM to target host.
