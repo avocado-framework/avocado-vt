@@ -24,7 +24,7 @@ from .compat import get_opt
 
 LOG = logging.getLogger("avocado.app")
 
-basic_program_requirements = ['xz', 'tcpdump', 'nc', 'ip', 'arping']
+basic_program_requirements = ['xz', 'tcpdump', 'nc', 'ip', 'arping', 'diff']
 
 recommended_programs = {'qemu': [('qemu-kvm', 'kvm'), ('qemu-img',),
                                  ('qemu-io',), ('virsh',)],
