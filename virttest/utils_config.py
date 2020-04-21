@@ -486,3 +486,193 @@ class LibvirtSanLockConfig(LibvirtConfigCommon):
         'user': 'string',
         'group': 'string',
     }
+
+
+class VirtQemudConfig(LibvirtConfigCommon):
+
+    """
+    Class for libvirt virtqemud config file.
+    This is used to represent split daemons changes after libvirt version 5.6.0
+    """
+    conf_path = '/etc/libvirt/virtqemud.conf'
+    # The virtqemud attribue values are quite the same with previous libvirtd.conf except removal of tls,tcp
+    # certificate part group
+    __option_types__ = {
+        'mdns_adv': 'boolean',
+        'mdns_name': 'string',
+
+        'unix_sock_group': 'string',
+        'unix_sock_ro_perms': 'string',
+        'unix_sock_rw_perms': 'string',
+        'unix_sock_admin_perms': 'string',
+        'unix_sock_dir': 'string',
+
+        'auth_unix_ro': 'string',
+        'auth_unix_rw': 'string',
+        'access_drivers': 'list',
+
+        'sasl_allowed_username_list': 'list',
+
+        'max_clients': 'int',
+        'max_queued_clients': 'int',
+        'max_anonymous_clients': 'int',
+        'min_workers': 'int',
+        'max_workers': 'int',
+        'prio_workers': 'int',
+        'max_client_requests': 'int',
+        'admin_min_workers': 'int',
+        'admin_max_workers': 'int',
+        'admin_max_clients': 'int',
+        'admin_max_queued_clients': 'int',
+        'admin_max_client_requests': 'int',
+
+        'log_level': 'int',
+        'log_filters': 'string',
+        'log_outputs': 'string',
+
+        'audit_level': 'int',
+        'audit_logging': 'int',
+        'host_uuid': 'string',
+        'host_uuid_source': 'string',
+
+        'keepalive_interval': 'int',
+        'keepalive_count': 'int',
+        'keepalive_required': 'boolean',
+        'admin_keepalive_required': 'int',
+
+        'ovs_timeout': 'int',
+    }
+
+
+class VirtInterfacedConfig(VirtQemudConfig):
+
+    """
+    Class for libvirt virtinterfaced config file.
+    This is used to represent split daemons changes after libvirt version 5.6.0
+    """
+    conf_path = '/etc/libvirt/virtinterfaced.conf'
+
+
+class VirtLockdConfig(VirtQemudConfig):
+
+    """
+    Class for libvirt virtlock config file.
+    This is used to represent split daemons changes after libvirt version 5.6.0
+    """
+    conf_path = '/etc/libvirt/virtlockd.conf'
+
+
+class VirtLogdConfig(VirtQemudConfig):
+
+    """
+    Class for libvirt virtlogd config file.
+    This is used to represent split daemons changes after libvirt version 5.6.0
+    """
+    conf_path = '/etc/libvirt/virtlogd.conf'
+
+
+class VirtNetworkdConfig(VirtQemudConfig):
+
+    """
+    Class for libvirt virtnetworkd config file.
+    This is used to represent split daemons changes after libvirt version 5.6.0
+    """
+    conf_path = '/etc/libvirt/virtnetworkd.conf'
+
+
+class VirtNodedevdConfig(VirtQemudConfig):
+
+    """
+    Class for libvirt virtnodedevd config file.
+    This is used to represent split daemons changes after libvirt version 5.6.0
+    """
+    conf_path = '/etc/libvirt/virtnodedevd.conf'
+
+
+class VirtNwfilterdConfig(VirtQemudConfig):
+
+    """
+    Class for libvirt virtnwfilterd config file.
+    This is used to represent split daemons changes after libvirt version 5.6.0
+    """
+    conf_path = '/etc/libvirt/virtnwfilterd.conf'
+
+
+class VirtSecretdConfig(VirtQemudConfig):
+
+    """
+    Class for libvirt virtsecretd config file.
+    This is used to represent split daemons changes after libvirt version 5.6.0
+    """
+    conf_path = '/etc/libvirt/virtsecretd.conf'
+
+
+class VirtStoragedConfig(VirtQemudConfig):
+
+    """
+    Class for libvirt virtstoraged config file.
+    This is used to represent split daemons changes after libvirt version 5.6.0
+    """
+    conf_path = '/etc/libvirt/virtstoraged.conf'
+
+
+class VirtProxydConfig(VirtQemudConfig):
+
+    """
+    Class for libvirt virtproxyd config file.
+    This is used to represent split daemons changes after libvirt version 5.6.0
+    """
+    conf_path = '/etc/libvirt/virtproxyd.conf'
+    # The virtproxyd.conf attribue values are quite the same with VirtQemud config with additional tls,tcp
+    # certificate part group
+    __option_types__ = {
+        'listen_tls': 'boolean',
+        'listen_tcp': 'boolean',
+        'tls_port': 'string',
+        'tcp_port': 'string',
+        'listen_addr': 'string',
+
+        'mdns_adv': 'boolean',
+        'mdns_name': 'string',
+
+        'unix_sock_group': 'string',
+        'unix_sock_ro_perms': 'string',
+        'unix_sock_rw_perms': 'string',
+        'unix_sock_admin_perms': 'string',
+        'unix_sock_dir': 'string',
+
+        'auth_unix_ro': 'string',
+        'auth_unix_rw': 'string',
+        'access_drivers': 'list',
+
+        'sasl_allowed_username_list': 'list',
+
+        'max_clients': 'int',
+        'max_queued_clients': 'int',
+        'max_anonymous_clients': 'int',
+        'min_workers': 'int',
+        'max_workers': 'int',
+        'prio_workers': 'int',
+        'max_client_requests': 'int',
+        'admin_min_workers': 'int',
+        'admin_max_workers': 'int',
+        'admin_max_clients': 'int',
+        'admin_max_queued_clients': 'int',
+        'admin_max_client_requests': 'int',
+
+        'log_level': 'int',
+        'log_filters': 'string',
+        'log_outputs': 'string',
+
+        'audit_level': 'int',
+        'audit_logging': 'int',
+        'host_uuid': 'string',
+        'host_uuid_source': 'string',
+
+        'keepalive_interval': 'int',
+        'keepalive_count': 'int',
+        'keepalive_required': 'boolean',
+        'admin_keepalive_required': 'int',
+
+        'ovs_timeout': 'int',
+    }
