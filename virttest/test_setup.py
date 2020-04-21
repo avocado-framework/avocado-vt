@@ -375,10 +375,10 @@ class HugePageConfig(object):
         self.qemu_overhead = int(params.get("hugepages_qemu_overhead", 128))
         self.deallocate = params.get("hugepages_deallocate", "yes") == "yes"
         self.hugepage_path = '/mnt/kvm_hugepage'
-        if os.path.exists('/proc/sys/vm/nr_hugepages'):
-            self.kernel_hp_file = '/proc/sys/vm/nr_hugepages'
-        else:
-            raise exceptions.TestSkipError("System doesn't support hugepages")
+        self.kernel_hp_file = params.get("kernel_hp_file", "/proc/sys/vm/nr_hugepages")
+        if not os.path.exists(self.kernel_hp_file):
+            raise exceptions.TestSkipError("Hugepage config file is not found: "
+                                           "%s" % self.kernel_hp_file)
         self.over_commit_hp = "/proc/sys/vm/nr_overcommit_hugepages"
         self.over_commit = kernel_interface.ProcFS(self.over_commit_hp)
         self.pool_path = "/sys/kernel/mm/hugepages"
