@@ -9,6 +9,8 @@ from avocado.utils import path
 from avocado.utils import process
 from avocado.utils import wait
 
+from virttest import libvirtd_decorator
+
 from . import remote
 from . import utils_misc
 from .staging import service
@@ -62,6 +64,7 @@ class Libvirtd(object):
                 return False
         return utils_misc.wait_for(_check_start, timeout=timeout)
 
+    @libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
     def start(self, reset_failed=True):
         if reset_failed:
             self.libvirtd.reset_failed()
@@ -69,9 +72,11 @@ class Libvirtd(object):
             return False
         return self._wait_for_start()
 
+    @libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
     def stop(self):
         return self.libvirtd.stop()
 
+    @libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
     def restart(self, reset_failed=True):
         if reset_failed:
             self.libvirtd.reset_failed()
@@ -79,6 +84,7 @@ class Libvirtd(object):
             return False
         return self._wait_for_start()
 
+    @libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
     def is_running(self):
         return self.libvirtd.status()
 
@@ -323,30 +329,35 @@ def deprecation_warning():
                     "libvirtd service.")
 
 
+@libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
 def libvirtd_start():
     libvirtd_instance = Libvirtd()
     deprecation_warning()
     return libvirtd_instance.start()
 
 
+@libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
 def libvirtd_is_running():
     libvirtd_instance = Libvirtd()
     deprecation_warning()
     return libvirtd_instance.is_running()
 
 
+@libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
 def libvirtd_stop():
     libvirtd_instance = Libvirtd()
     deprecation_warning()
     return libvirtd_instance.stop()
 
 
+@libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
 def libvirtd_restart():
     libvirtd_instance = Libvirtd()
     deprecation_warning()
     return libvirtd_instance.restart()
 
 
+@libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
 def service_libvirtd_control(action, session=None):
     libvirtd_instance = Libvirtd(session)
     deprecation_warning()
