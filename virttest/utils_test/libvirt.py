@@ -3740,9 +3740,14 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
     """
     vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
     xml_devices = vmxml.devices
-    iface_index = xml_devices.index(
-        xml_devices.by_device_tag("interface")[index])
-    iface = xml_devices[iface_index]
+    iface_type = iface_dict.get('type')
+
+    try:
+        iface_index = xml_devices.index(
+            xml_devices.by_device_tag("interface")[index])
+        iface = xml_devices[iface_index]
+    except IndexError:
+        iface = interface.Interface(iface_type)
 
     iface_driver = iface_dict.get('driver')
     driver_host = iface_dict.get('driver_host')
@@ -3759,7 +3764,6 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
     boot_order = iface_dict.get('boot')
     iface_backend = iface_dict.get('backend')
     iface_mac = iface_dict.get('mac')
-    iface_type = iface_dict.get('type')
     iface_mtu = iface_dict.get('mtu')
     iface_alias = iface_dict.get('alias')
     iface_teaming = iface_dict.get('teaming')
