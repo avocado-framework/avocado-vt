@@ -930,3 +930,14 @@ class QemuAgent(Monitor):
         cmd = "guest-get-users"
         self.check_has_command(cmd)
         return self.cmd(cmd=cmd)
+
+    def get_virtio_device(self):
+        """
+        Get virtio device driver info of windows guest.
+
+        :return: a list of virtio device driver info, such as device-id,
+                 driver-name, driver-version, driver-date and vender-id.
+        """
+        cmd = "guest-get-devices"
+        self.check_has_command(cmd)
+        return self.cmd(cmd=cmd)
