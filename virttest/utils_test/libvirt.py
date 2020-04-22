@@ -29,6 +29,7 @@ import aexpect
 import platform
 import random
 import string
+import signal
 
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
@@ -1551,6 +1552,81 @@ class MigrationTest(object):
             dest_vm_name = vm.name
 
         return utils_misc.wait_for(check_state, timeout)
+
+    def check_parameters(self, params):
+        """
+        Make sure all of parameters are assigned a valid value
+
+        :param params: the parameters to be checked
+
+        :raise: test.cancel if invalid value exists
+        """
+        migrate_dest_host = params.get("migrate_dest_host")
+        migrate_dest_pwd = params.get("migrate_dest_pwd")
+        migrate_source_host = params.get("migrate_source_host")
+        migrate_source_pwd = params.get("migrate_source_pwd")
+
+        args_list = [migrate_dest_host,
+                     migrate_dest_pwd, migrate_source_host,
+                     migrate_source_pwd]
+
+        for arg in args_list:
+            if arg and arg.count("EXAMPLE"):
+                raise exceptions.TestCancel("Please assign a value for %s!" % arg)
+
+    def check_result(self, result, params):
+        """
+        Check if the migration result is as expected
+
+        :param result: the output of migration
+        :param params: the parameters dict
+        :raise: test.fail if test is failed
+        """
+        status_error = params.get("status_error")
+        err_msg = params.get("err_msg")
+        if not result:
+            raise exceptions.TestError("No migration result is returned.")
+
+        logging.info("Migration out: %s", result.stdout_text.strip())
+        logging.info("Migration error: %s", result.stderr_text.strip())
+
+        if status_error:  # Migration should fail
+            if err_msg:   # Special error messages are expected
+                if not re.search(err_msg, result.stderr_text.strip()):
+                    raise exceptions.TestFail("Can not find the expected "
+                                              "patterns '%s' in output '%s'"
+                                              % (err_msg,
+                                                 result.stderr_text.strip()))
+                else:
+                    logging.debug("It is the expected error message")
+            else:
+                if int(result.exit_status) != 0:
+                    logging.debug("Migration failure is expected result")
+                else:
+                    raise exceptions.TestFail("Migration success is unexpected result")
+        else:
+            if int(result.exit_status) != 0:
+                raise exceptions.TestFail(result.stderr_text.strip())
+
+    def do_cancel(self, params):
+        """
+        Kill process during migration.
+
+        :param params: Dictionary with the test parameters.
+                       The function which need to be executed during migration
+                       requires this parameter, so keep it here.
+        :raise: test.error when kill fails
+        """
+        def _get_pid():
+            cmd = "ps aux |grep 'virsh .* migrate' |grep -v grep |awk '{print $2}'"
+            pid = process.run(cmd, shell=True).stdout_text
+            return pid
+
+        pid = utils_misc.wait_for(_get_pid, 30)
+        if utils_misc.safe_kill(pid, signal.SIGINT):
+            logging.info("Succeed to cancel migration: [%s].", pid)
+        else:
+            raise exceptions.TestError("Fail to cancel migration: [%s]" % pid)
 
 
 def check_result(result,
