@@ -25,7 +25,7 @@ fedora_30_task:
   list_script: &list_scr
     - $PYTHON -m avocado list
   dry_run_script: &dry_run_scr
-    - $PYTHON -m avocado --show all run --dry-run -- boot
+    - $PYTHON -m avocado --show all run --dry-run -- io-github-autotest-qemu.boot
 
 centos_8_1_task:
   container:
