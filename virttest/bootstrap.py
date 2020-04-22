@@ -45,7 +45,7 @@ mandatory_programs = {'qemu': basic_program_requirements + ['gcc'],
                       'v2v': basic_program_requirements,
                       'libguestfs': basic_program_requirements}
 
-mandatory_headers = {'qemu': ['Python.h', 'types.h', 'socket.h', 'unistd.h'],
+mandatory_headers = {'qemu': ['types.h', 'socket.h', 'unistd.h'],
                      'spice': [],
                      'libvirt': [],
                      'openvswitch': [],
