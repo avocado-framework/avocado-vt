@@ -563,11 +563,14 @@ class VM(virt_vm.BaseVM):
             smp_pattern = "smp .*n\[,maxcpus=cpus\].*"
             if devices.has_option(smp_pattern):
                 smp_str += ",maxcpus=%d" % self.cpuinfo.maxcpus
-            smp_str += ",cores=%d" % self.cpuinfo.cores
-            smp_str += ",threads=%d" % self.cpuinfo.threads
+            if self.cpuinfo.cores != 0:
+                smp_str += ",cores=%d" % self.cpuinfo.cores
+            if self.cpuinfo.threads != 0:
+                smp_str += ",threads=%d" % self.cpuinfo.threads
             if self.cpuinfo.dies != 0:
                 smp_str += ",dies=%d" % self.cpuinfo.dies
-            smp_str += ",sockets=%d" % self.cpuinfo.sockets
+            if self.cpuinfo.sockets != 0:
+                smp_str += ",sockets=%d" % self.cpuinfo.sockets
             return smp_str
 
         def add_nic(devices, vlan, model=None, mac=None, device_id=None,
@@ -1552,10 +1555,6 @@ class VM(virt_vm.BaseVM):
             elif smp_values.count(0) > 1:
                 if vcpu_maxcpus == 1 and max(smp_values) < 2:
                     vcpu_sockets = vcpu_dies = vcpu_cores = vcpu_threads = 1
-                else:
-                    smp_err = ("Two or more non-zero parameters are missing to"
-                               " calculate the available SMP topology for VM "
-                               "%s" % self.name)
 
             hotpluggable_cpus = len(params.objects("vcpu_devices"))
             if params["machine_type"].startswith("pseries"):
