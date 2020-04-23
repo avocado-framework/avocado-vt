@@ -715,12 +715,13 @@ def verify_virsh_console(session, user, passwd, timeout=10, debug=False):
     return True
 
 
-def pci_label_from_address(address_dict, radix=10):
+def pci_info_from_address(address_dict, radix=10, type="label"):
     """
-    Generate a pci label from a dict of address.
+    Generate a pci label or id from a dict of address.
 
     :param address_dict: A dict contains domain, bus, slot and function.
     :param radix: The radix of your data in address_dict.
+    :param type: label or id
 
     Example:
 
@@ -728,7 +729,7 @@ def pci_label_from_address(address_dict, radix=10):
 
         address_dict = {'domain': '0x0000', 'bus': '0x08', 'slot': '0x10', 'function': '0x0'}
         radix = 16
-        return = pci_0000_08_10_0
+        return = pci_0000_08_10_0 or 0000:08:10.0
     """
     try:
         domain = int(address_dict['domain'], radix)
@@ -737,8 +738,14 @@ def pci_label_from_address(address_dict, radix=10):
         function = int(address_dict['function'], radix)
     except (TypeError, KeyError) as detail:
         raise exceptions.TestError(detail)
-    pci_label = ("pci_%04x_%02x_%02x_%01x" % (domain, bus, slot, function))
-    return pci_label
+    if type == "label":
+        result = ("pci_%04x_%02x_%02x_%01x" % (domain, bus, slot, function))
+    elif type == "id":
+        result = ("%04x:%02x:%02x.%01x" % (domain, bus, slot, function))
+    else:
+        # TODO: for other type
+        result = None
+    return result
 
 
 def mk_label(disk, label="msdos", session=None):
@@ -2187,6 +2194,7 @@ def create_net_xml(net_name, params):
     net_name = params.get("net_name", "default")
     net_bridge = params.get("net_bridge", '{}')
     net_forward = params.get("net_forward", '{}')
+    net_forward_pf = params.get("net_forward_pf", '{}')
     forward_iface = params.get("forward_iface")
     net_dns_forward = params.get("net_dns_forward")
     net_dns_txt = params.get("net_dns_txt")
@@ -2248,6 +2256,9 @@ def create_net_xml(net_name, params):
         forward = ast.literal_eval(net_forward)
         if forward:
             netxml.forward = forward
+        forward_pf = ast.literal_eval(net_forward_pf)
+        if forward_pf:
+            netxml.pf = forward_pf
         if forward_iface:
             interface = [
                 {'dev': x} for x in forward_iface.split()]
