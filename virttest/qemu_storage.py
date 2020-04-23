@@ -735,7 +735,7 @@ class QemuImg(storage.QemuImg):
                                        " parameters")
         cmd += " %s" % self.image_filename
 
-        decode_to_text(process.system_output(cmd))
+        process.system_output(cmd)
 
         return self.snapshot_tag
 
@@ -760,7 +760,7 @@ class QemuImg(storage.QemuImg):
         else:
             cmd += " %s" % self.image_filename
 
-        decode_to_text(process.system_output(cmd))
+        process.system_output(cmd)
 
     def snapshot_list(self):
         """
@@ -786,7 +786,7 @@ class QemuImg(storage.QemuImg):
             raise exceptions.TestError("Can not find the snapshot image"
                                        " parameters")
 
-        decode_to_text(process.system_output(cmd))
+        process.system_output(cmd)
 
     def remove(self):
         """
