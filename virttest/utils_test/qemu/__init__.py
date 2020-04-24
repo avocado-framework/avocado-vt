@@ -103,7 +103,7 @@ def pin_vm_threads(vm, node):
         logging.info("Skip pinning, no enough nodes")
 
 
-def _check_driver_verifier(session, driver, timeout=300):
+def _check_driver_verifier(session, driver, verifier_flags=None, timeout=300):
     """
     Check driver verifier status
 
@@ -114,7 +114,10 @@ def _check_driver_verifier(session, driver, timeout=300):
     logging.info("Check %s driver verifier status" % driver)
     query_cmd = "verifier /querysettings"
     output = session.cmd_output(query_cmd, timeout=timeout)
-    return (driver in output, output)
+    status = driver in output
+    if verifier_flags:
+        status &= bool(re.findall(r"%s" % verifier_flags, output, re.I))
+    return (status, output)
 
 
 @error_context.context_aware
@@ -126,19 +129,24 @@ def setup_win_driver_verifier(session, driver, vm, timeout=300):
     :param vm: VM object.
     :param timeout: Timeout in seconds.
     """
-    verifier_status = _check_driver_verifier(session, driver)[0]
+
+    win_verifier_flags = vm.params.get("windows_verifier_flags")
+    verifier_status = _check_driver_verifier(session, driver,
+                                             win_verifier_flags)[0]
     if not verifier_status:
         error_context.context("Enable %s driver verifier" % driver,
                               logging.info)
-        verifier_setup_cmd = "verifier /standard /driver %s.sys" % driver
-        session.cmd(verifier_setup_cmd,
-                    timeout=timeout,
-                    ignore_all_errors=True)
+        if win_verifier_flags:
+            verifier_setup_cmd = "verifier /flags %s /driver %s.sys" % (
+                                 win_verifier_flags, driver)
+        else:
+            verifier_setup_cmd = "verifier /standard /driver %s.sys" % driver
+        session.cmd(verifier_setup_cmd, timeout=timeout, ignore_all_errors=True)
         session = vm.reboot(session)
-        verifier_status, output = _check_driver_verifier(session, driver)
+        verifier_status, output = _check_driver_verifier(session, driver,
+                                                         win_verifier_flags)
         if not verifier_status:
-            msg = "%s verifier is not enabled, details: %s" % (driver,
-                                                               output)
+            msg = "%s verifier is not enabled, details: %s" % (driver, output)
             raise exceptions.TestFail(msg)
     logging.info("%s verifier is enabled already" % driver)
     return session
