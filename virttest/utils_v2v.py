@@ -212,6 +212,8 @@ class Target(object):
                     'vmx_nfs_src is not set in cfg file, try to guess vmx filename')
                 # some guest's direcotory name ends with '_1',
                 # e.g. esx5.5-win10-x86_64_1/esx5.5-win10-x86_64.vmx
+                #
+                # Note: the pattern order cannot be changed
                 guess_ptn_list = [r'(^.*?(x86_64|i386))_[0-9]+$',
                                   r'(^.*?(x86_64|i386)$)',
                                   r'(^.*?)_[0-9]+$']
