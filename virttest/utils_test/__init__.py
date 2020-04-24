@@ -996,10 +996,10 @@ class AvocadoGuest(object):
             pip_pack = ['setuptools', 'netifaces', 'aexpect', 'netaddr']
             cmd = ""
             for each in pip_pack:
-                cmd += "%s install %s --upgrade;" % (self.pip_bin, each)
-            if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
-                logging.error("Failed to update pip and its packages")
-                return False
+                cmd = "%s install %s --upgrade" % (self.pip_bin, each)
+                if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
+                    logging.error("Failed to update and install package %s" % each)
+                    return False
         if not utils_misc.make_dirs(self.result_path, session=self.session):
             logging.error("Failed to create result path in guest")
             return False
@@ -1015,7 +1015,7 @@ class AvocadoGuest(object):
         if (self.session.cmd_status("which avocado") == 0) and not self.reinstall:
             return True
         if "pip" in self.installtype:
-            pip_install_cmd = "%s install" % self.pip_bin
+            pip_install_cmd = "%s install --ignore-installed" % self.pip_bin
             cmd = "%s avocado-framework" % pip_install_cmd
             status, output = self.session.cmd_status_output(cmd, timeout=self.timeout)
             if status != 0:
