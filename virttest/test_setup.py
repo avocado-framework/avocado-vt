@@ -503,7 +503,7 @@ class HugePageConfig(object):
             with open(self.kernel_hp_file, "r") as hugepage_allocated:
                 available_hugepages = int(hugepage_allocated.read().strip())
             chunk_bottom = int(math.log(self.hugepage_size / utils_memory.getpagesize(), 2))
-            if ARCH == 'ppc64le':
+            if ARCH in ['ppc64le', 's390x']:
                 chunk_info = utils_memory.get_buddy_info(">=%s" % chunk_bottom)
             else:
                 chunk_info = utils_memory.get_buddy_info(">=%s" % chunk_bottom,
