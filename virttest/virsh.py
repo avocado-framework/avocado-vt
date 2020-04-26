@@ -1141,6 +1141,20 @@ def domblkstat(name, device, option, **dargs):
     return command("domblkstat %s %s %s" % (name, device, option), **dargs)
 
 
+def domblkthreshold(name, device, threshold, option="", **dargs):
+    """
+    Set the threshold for block-threshold event for a given block device or it's backing chain element.
+
+    :param name: VM's name.
+    :param device: VM's device.
+    :param threshold: threshold value with unit such as 100M.
+    :param option: command domblkthreshold option.
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult instance
+    """
+    return command("domblkthreshold %s %s %s %s" % (name, device, threshold, option), **dargs)
+
+
 def dumpxml(name, extra="", to_file="", **dargs):
     """
     Return the domain information as an XML dump.
