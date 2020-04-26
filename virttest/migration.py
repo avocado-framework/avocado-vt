@@ -453,13 +453,10 @@ class MigrationTest(object):
             if int(result.exit_status) != 0:
                 raise exceptions.TestFail(result.stderr_text.strip())
 
-    def do_cancel(self, params):
+    def do_cancel(self):
         """
         Kill process during migration.
 
-        :param params: Dictionary with the test parameters.
-                       The function which need to be executed during migration
-                       requires this parameter, so keep it here.
         :raise: test.error when kill fails
         """
         def _get_pid():
