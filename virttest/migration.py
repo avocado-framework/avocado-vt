@@ -297,7 +297,10 @@ class MigrationTest(object):
                         elif func == virsh.migrate_postcopy:
                             func(vm.name, uri=srcuri, debug=True)
                         else:
-                            func(args['func_params'])
+                            if 'func_params' in args:
+                                func(args['func_params'])
+                            else:
+                                func()
                     else:
                         logging.error("Migration failed to start for %s",
                                       vm.name)
@@ -466,6 +469,7 @@ class MigrationTest(object):
 
         pid = utils_misc.wait_for(_get_pid, 30)
         if utils_misc.safe_kill(pid, signal.SIGINT):
-            logging.info("Succeed to cancel migration: [%s].", pid)
+            logging.info("Succeed to cancel migration: [%s].", pid.strip())
         else:
-            raise exceptions.TestError("Fail to cancel migration: [%s]" % pid)
+            raise exceptions.TestError("Fail to cancel migration: [%s]"
+                                       % pid.strip())
