@@ -47,6 +47,7 @@ from virttest import utils_test
 from virttest import utils_iptables
 from virttest import utils_package
 from virttest import utils_qemu
+from virttest import migration
 from virttest.utils_version import VersionInterval
 from virttest.compat_52lts import decode_to_text
 from virttest.staging import service
@@ -996,8 +997,9 @@ def preprocess(test, params, env):
     # migration and if arch is ppc with power8 then switch off smt
     # will be taken care in remote machine for migration to succeed
     if migration_setup:
-        dest_uri = libvirt_vm.complete_uri(params["remote_ip"])
-        migrate_setup = utils_test.libvirt.MigrationTest()
+        dest_uri = libvirt_vm.complete_uri(params.get("server_ip",
+                                                      params.get("remote_ip")))
+        migrate_setup = migration.MigrationTest()
         migrate_setup.migrate_pre_setup(dest_uri, params)
         # Map hostname and IP address of the hosts to avoid virsh
         # to error out of resolving
@@ -1668,7 +1670,7 @@ def postprocess(test, params, env):
     if migration_setup:
         dest_uri = libvirt_vm.complete_uri(params.get("server_ip",
                                                       params.get("remote_ip")))
-        migrate_setup = utils_test.libvirt.MigrationTest()
+        migrate_setup = migration.MigrationTest()
         migrate_setup.migrate_pre_setup(dest_uri, params, cleanup=True)
 
     setup_pb = False
