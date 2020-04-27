@@ -2172,7 +2172,7 @@ class MemoryTuneXML(VMXML):
 
     """Event element of perf"""
 
-    __slots__ = ('vcpus', 'node')
+    __slots__ = ('vcpus', 'node', 'monitor')
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -2239,6 +2239,54 @@ class MemoryTuneXML(VMXML):
     def del_node(self):
         xmltreefile = self.__dict_get__('xml')
         element = xmltreefile.find('/node')
+        if element is not None:
+            xmltreefile.remove(element)
+            xmltreefile.write()
+
+    # Sub-element of MemoryTuneXML
+    class MonitorXML(VMXML):
+
+        """Monitor element of MemoryTuneXML"""
+
+        __slots__ = ('vcpus')
+
+        def __init__(self, virsh_instance=base.virsh):
+            """
+            Create new MonitorXML instance
+            """
+            accessors.XMLAttribute(property_name="vcpus",
+                                   libvirtxml=self,
+                                   forbidden=[],
+                                   parent_xpath='/',
+                                   tag_name='monitor',
+                                   attribute='vcpus')
+
+            super(MemoryTuneXML.MonitorXML, self).__init__(
+                virsh_instance=virsh_instance)
+            self.xml = '<monitor/>'
+
+    def get_monitor(self):
+        xmltreefile = self.__dict_get__('xml')
+        try:
+            monitor_root = xmltreefile.reroot('/monitor')
+        except KeyError as detail:
+            raise xcepts.LibvirtXMLError(detail)
+        monitorxml = MemoryTuneXML.MonitorXML(virsh_instance=self.__dict_get__('virsh'))
+        monitorxml.xmltreefile = monitor_root
+        return monitorxml
+
+    def set_monitor(self, value):
+        if not issubclass(type(value), MemoryTuneXML.MonitorXML):
+            raise xcepts.LibvirtXMLError("value must be a Monitor or subclass")
+        xmltreefile = self.__dict_get__('xml')
+        # MonitorXML root element is whole Monitor element tree
+        root = xmltreefile.getroot()
+        root.append(value.xmltreefile.getroot())
+        xmltreefile.write()
+
+    def del_monitor(self):
+        xmltreefile = self.__dict_get__('xml')
+        element = xmltreefile.find('/monitor')
         if element is not None:
             xmltreefile.remove(element)
             xmltreefile.write()
