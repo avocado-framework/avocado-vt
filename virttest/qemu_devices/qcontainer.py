@@ -2155,6 +2155,14 @@ class DevContainer(object):
             sn_params['image_chain'] = "%s %s" % (name, sn)
             sn_params['image_name'] = sn
             sn_params['image_size'] = image_params['image_size']
+
+            # Use local image as the snapshot image
+            for storage_backend in ('ceph', 'iscsi', 'gluster', 'nbd'):
+                if image_params.get('enable_%s' % storage_backend) == 'yes':
+                    sn_params['enable_%s' % storage_backend] = 'no'
+                    name = sn
+                    break
+
             sn_img = qemu_storage.QemuImg(sn_params, data_dir.get_data_dir(), sn)
             image_filename = sn_img.create(sn_params)[0]
             os.chmod(image_filename, stat.S_IRUSR | stat.S_IWUSR)
@@ -2164,6 +2172,8 @@ class DevContainer(object):
                 "of '-drive' to keep compatibility", name)
             self.temporary_image_snapshots.add(image_filename)
             image_encryption = storage.ImageEncryption.encryption_define_by_params(
+                    sn, sn_params)
+            image_access = storage.ImageAccessInfo.access_info_define_by_params(
                     sn, sn_params)
             imgfmt = 'qcow2'
 
