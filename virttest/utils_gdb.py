@@ -9,6 +9,7 @@ except ImportError:
 
 import aexpect
 
+from enum import Enum
 from virttest import utils_misc
 
 
@@ -388,6 +389,9 @@ class GDB(aexpect.Expect):
         """
         if isinstance(signal_name, str):
             signal_name = getattr(signal, signal_name)
+
+        if isinstance(signal_name, Enum):
+            signal_name = signal_name.value
 
         if isinstance(signal_name, int):
             os.kill(self.pid, signal_name)
