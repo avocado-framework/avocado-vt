@@ -2052,7 +2052,7 @@ def get_qemu_version(params=None):
     :return: A dict contain qemu versoins info as {'major': int, 'minor': int,
     'update': int, 'is_rhev': bool}
     """
-    version = {'major': None, 'minor': None, 'update': None, 'is_rhev': False}
+    version = {'major': None, 'minor': None, 'update': None, 'is_rhev': False, 'module': False}
     regex = r'\s*[Ee]mulator [Vv]ersion\s*(\d+)\.(\d+)\.(\d+)'
 
     if params is None:
@@ -2066,8 +2066,11 @@ def get_qemu_version(params=None):
             version['major'] = int(search_result.group(1))
             version['minor'] = int(search_result.group(2))
             version['update'] = int(search_result.group(3))
-        if "rhev" in str(line).lower():
+        line_l = str(line).lower()
+        if "rhev" in line_l:
             version['is_rhev'] = True
+        if "module" in line_l or "scrmod" in line_l:
+            version['module'] = True
     if None in list(version.values()):
         logging.error("Local install qemu version cannot be detected, "
                       "the version info is: %s" % version_raw)
@@ -2091,6 +2094,8 @@ def compare_qemu_version(major, minor, update, is_rhev=True, params={}):
     if installed_version is None:
         logging.error("Cannot get local qemu version, return False directly.")
         return False
+    if installed_version['module']:
+        is_rhev = False
     if is_rhev != installed_version['is_rhev']:
         return False
     installed_version_value = installed_version['major'] * 1000000 + \
