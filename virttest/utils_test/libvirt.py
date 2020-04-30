@@ -1438,47 +1438,54 @@ def create_hostdev_xml(pci_id, boot_order=None, xmlfile=True,
     return hostdev_xml.xml
 
 
-def create_controller_xml(contr_dict, oper="get_xml", vm_name=None):
+def add_controller(vm_name, contr):
     """
-    Create controller xml or add controller
+    Add a specified controller to the vm xml
+    :param vm_name: The vm name to be added with a controller
+    :param contr: The controller object to be added
+    :raise: exceptions.TestFail if the controller can't be added
+    """
+    vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm_name)
+    org_controllers = vmxml.get_controllers(contr.type)
+    vmxml.add_device(contr)
+    vmxml.sync()
+    vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm_name)
+    updated_controllers = vmxml.get_controllers(contr.type)
+    for one_contr in updated_controllers:
+        if one_contr not in org_controllers:
+            new_added_ctr = one_contr
+    if 'new_added_ctr' not in locals():
+        raise exceptions.TestFail("Fail to get new added controller.")
+
+
+def create_controller_xml(contr_dict):
+    """
+    Create a controller xml
 
     :param contr_dict: The dict params includs controller configurations
-    :param oper: Operation need to do, current we have 2 choice
-                1. "get_xml": controller xml according to dict
-                2. "add_controller": add controller according to dict and
-                updated in vm
-    :param vm_name: name of vm, mandatory for 'add_controller' operation
-    :return: controller xml file if oper is equal to "get_xml";
-             controller object for 'add_controller'.
+    :return: new controller created
     """
     contr_type = contr_dict.get("controller_type", 'scsi')
     contr_model = contr_dict.get("controller_model", "virtio-scsi")
     contr_index = contr_dict.get("controller_index")
     contr_alias = contr_dict.get("contr_alias")
     contr_addr = contr_dict.get("controller_addr")
+    contr_busNr = contr_dict.get("controller_busNr")
+    contr_node = contr_dict.get("controller_node")
     contr = controller.Controller(contr_type)
     contr.model = contr_model
     if contr_index:
         contr.index = contr_index
     if contr_alias:
         contr.alias = dict(name=contr_alias)
+    if contr_busNr:
+        contr.target = dict(busNr=contr_busNr)
+    if contr_node:
+        contr.node = contr_node
     if contr_addr:
         contr.address = contr.new_controller_address(attrs=eval(contr_addr))
-    if oper == "add_controller":
-        vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm_name)
-        org_controllers = vmxml.get_controllers(contr_type)
-        vmxml.add_device(contr)
-        vmxml.sync()
-        vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm_name)
-        updated_controllers = vmxml.get_controllers(contr_type)
-        for contr in updated_controllers:
-            if contr not in org_controllers:
-                new_added_ctr = contr
-        if 'new_added_ctr' not in locals():
-            raise exceptions.TestFail("Fail to get new added controller.")
-        return new_added_ctr
-    elif oper == "get_xml":
-        return contr.xml
+
+    return contr
 
 
 def create_redirdev_xml(redir_type="spicevmc", redir_bus="usb",
@@ -2552,7 +2559,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         contr_dict = {'controller_type': contr_type,
                       'controller_model': contr_model,
                       'controller_index': contr_index}
-        new_added = create_controller_xml(contr_dict, "add_controller", vm.name)
+        new_added = create_controller_xml(contr_dict)
+        add_controller(vm.name, new_added)
         if not contr_index:
             contr_index = new_added.get("index")
         vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
