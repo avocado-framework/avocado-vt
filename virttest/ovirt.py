@@ -8,11 +8,8 @@ oVirt SDK wrapper module.
 import time
 import logging
 
-try:
-    import ovirtsdk4 as sdk
-    import ovirtsdk4.types as types
-except ImportError:
-    logging.warning("ovirtsdk4 module not present, please install it")
+import ovirtsdk4 as sdk
+import ovirtsdk4.types as types
 
 from virttest import virt_vm
 
