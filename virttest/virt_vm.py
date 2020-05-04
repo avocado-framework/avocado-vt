@@ -1187,6 +1187,8 @@ class BaseVM(object):
                     session.close()
 
         error = None
+        if not serial:
+            serial = self.params.get("force_use_serial_login", "no") == "yes"
         logging.debug("Attempting to log into '%s' (timeout %ds)",
                       self.name, timeout)
         start_time = time.time()
