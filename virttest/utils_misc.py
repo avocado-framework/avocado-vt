@@ -3403,6 +3403,22 @@ def get_pci_vendor_device(pci_id):
     return pci_vd
 
 
+def get_pci_path(pci_id, session=None):
+    """
+    Get pci absolute path
+
+    :param pci_id: pci id of a device
+    :param session: The session object to the host
+    :raise: test.fail when fail to get path
+    :return: The absolute path of pci device
+    """
+    cmd = "find /sys/devices/pci* -name %s" % pci_id
+    s_, pci_path = cmd_status_output(cmd, shell=True)
+    if s_ or not pci_path.strip():
+        raise exceptions.TestFail("unable to find full path for %s." % pci_id)
+    return pci_path.strip()
+
+
 def bind_device_driver(pci_id, driver_type):
     """
     Bind device driver.
