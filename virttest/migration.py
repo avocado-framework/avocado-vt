@@ -295,6 +295,7 @@ class MigrationTest(object):
                             except KeyError:
                                 func(args['func_params'])
                         elif func == virsh.migrate_postcopy:
+                            time.sleep(3)  # To avoid of starting postcopy before starting migration
                             func(vm.name, uri=srcuri, debug=True)
                         else:
                             func(args['func_params'])
