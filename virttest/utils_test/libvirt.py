@@ -2555,14 +2555,12 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     if create_controller:
         contr_type = params.get("controller_type", 'scsi')
         contr_model = params.get("controller_model", "virtio-scsi")
-        contr_index = params.get("controller_index")
+        contr_index = params.get("controller_index", "0")
         contr_dict = {'controller_type': contr_type,
                       'controller_model': contr_model,
                       'controller_index': contr_index}
         new_added = create_controller_xml(contr_dict)
         add_controller(vm.name, new_added)
-        if not contr_index:
-            contr_index = new_added.get("index")
         vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
 
     # New disk xml
