@@ -145,6 +145,41 @@ def preprocess_image(test, params, image_name, vm_process_status=None):
         image.create(params)
 
 
+def preprocess_fs_source(test, params, fs_name, vm_process_status=None):
+    """
+    Preprocess a single QEMU filesystem source according to the
+    instructions in params.
+
+    :param test: Autotest test object.
+    :param params: A dict containing filesystem preprocessing parameters.
+    :param fs_name: The filesystem name.
+    :param vm_process_status: This is needed in postprocess_fs_source.
+                              Add it here only for keep it work with
+                              process_fs_sources()
+    """
+    fs_type = params.get('fs_source_type', 'mount')
+    # mount: A host directory to mount in the vm.
+    if fs_type == 'mount':
+        fs_source = params.get('fs_source_dir')
+        base_dir = params.get("fs_source_base_dir", data_dir.get_data_dir())
+        if not os.path.isabs(fs_source):
+            fs_source = os.path.join(base_dir, fs_source)
+
+        create_fs_source = False
+        if params.get("force_create_fs_source") == "yes":
+            create_fs_source = True
+        elif params.get("create_fs_source") == "yes" and not os.path.exists(fs_source):
+            create_fs_source = True
+
+        if create_fs_source:
+            if os.path.exists(fs_source):
+                shutil.rmtree(fs_source, ignore_errors=True)
+            logging.info("Create filesystem source %s." % fs_source)
+            os.makedirs(fs_source)
+    else:
+        test.cancel('Unsupport the type of filesystem "%s"' % fs_type)
+
+
 def preprocess_vm(test, params, env, name):
     """
     Preprocess a single VM object according to the instructions in params.
@@ -488,6 +523,39 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
                 image.remove()
 
 
+def postprocess_fs_source(test, params, fs_name, vm_process_status=None):
+    """
+    Postprocess a single QEMU filesystem source according to the
+    instructions in params.
+
+    The main operation is to remove images if instructions are given.
+
+    :param test: An Autotest test object.
+    :param params: A dict containing filesystem postprocessing parameters.
+    :param fs_name: The filesystem name
+    :param vm_process_status: (optional) vm process status like
+                              running, dead or None for no vm exist.
+    """
+    if vm_process_status == "running":
+        logging.warn("Skipped processing filesystem '%s' since "
+                     "the VM is running!" % fs_name)
+        return
+
+    fs_type = params.get('fs_source_type', 'mount')
+    if fs_type == 'mount':
+        fs_source = params.get('fs_source_dir')
+        base_dir = params.get("fs_source_base_dir", data_dir.get_data_dir())
+        if not os.path.isabs(fs_source):
+            fs_source = os.path.join(base_dir, fs_source)
+
+        if params.get("remove_fs_source") == 'yes':
+            logging.info("Remove filesystem source %s." % fs_source)
+            shutil.rmtree(fs_source, ignore_errors=True)
+    else:
+        logging.info("Skipped processing filesystem '%s' since "
+                     "unsupported type '%s'." % (fs_name, fs_type))
+
+
 def postprocess_vm(test, params, env, name):
     """
     Postprocess a single VM object according to the instructions in params.
@@ -550,6 +618,9 @@ def postprocess_vm(test, params, env, name):
         vm.destroy(gracefully=params.get("kill_vm_gracefully") == "yes")
         if params.get("kill_vm_libvirt") == "yes" and params.get("vm_type") == "libvirt":
             vm.undefine(options=params.get('kill_vm_libvirt_options'))
+
+    if vm.is_dead():
+        vm.devices.cleanup_daemons()
 
     if params.get("enable_strace") == "yes":
         strace = test_setup.StraceQemu(test, params, env)
@@ -630,6 +701,21 @@ def process_images(image_func, test, params, vm_process_status=None):
                                vm_process_status=vm_process_status)
 
 
+def process_fs_sources(fs_source_func, test, params, vm_process_status=None):
+    """
+    Wrapper which chooses the best way to process filesystem sources.
+
+    :param fs_source_func: Process function
+    :param test: An Autotest test object.
+    :param params: A dict containing all VM and filesystem parameters.
+    :param vm_process_status: (optional) vm process status like running, dead
+                              or None for no vm exist.
+    """
+    for filesystem in params.objects("filesystems"):
+        fs_params = params.object_params(filesystem)
+        fs_source_func(test, fs_params, filesystem, vm_process_status)
+
+
 def _process_images_serial(image_func, test, images, params, exit_event=None,
                            vm_process_status=None):
     """
@@ -682,7 +768,7 @@ def _process_images_parallel(image_func, test, params, vm_process_status=None):
     del threads[:]
 
 
-def process(test, params, env, image_func, vm_func, vm_first=False):
+def process(test, params, env, image_func, vm_func, vm_first=False, fs_source_func=None):
     """
     Pre- or post-process VMs and images according to the instructions in params.
     Call image_func for each image listed in params and vm_func for each VM.
@@ -693,6 +779,7 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
     :param image_func: A function to call for each image.
     :param vm_func: A function to call for each VM.
     :param vm_first: Call vm_func first or not.
+    :param fs_source_func: A function to call for each filesystem source.
     """
     def _call_vm_func():
         for vm_name in params.objects("vms"):
@@ -724,6 +811,31 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
                         vm.resume()
         else:
             process_images(image_func, test, params)
+
+    def _call_fs_source_func():
+        if params.get("skip_fs_source_processing") == "yes":
+            return
+
+        if params.objects("vms"):
+            for vm_name in params.objects("vms"):
+                vm_params = params.object_params(vm_name)
+                if not vm_params.get('filesystems'):
+                    continue
+                vm = env.get_vm(vm_name)
+                unpause_vm = False
+                if vm is None or vm.is_dead():
+                    vm_process_status = 'dead'
+                else:
+                    vm_process_status = 'running'
+                if vm is not None and vm.is_alive() and not vm.is_paused():
+                    vm.pause()
+                    unpause_vm = True
+                try:
+                    process_fs_sources(fs_source_func, test, vm_params,
+                                       vm_process_status)
+                finally:
+                    if unpause_vm:
+                        vm.resume()
 
     def _call_check_image_func():
         if params.get("skip_image_processing") == "yes":
@@ -757,6 +869,8 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
     # preprocess
     if not vm_first:
         _call_image_func()
+        if fs_source_func:
+            _call_fs_source_func()
 
     _call_vm_func()
 
@@ -766,6 +880,8 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
             _call_check_image_func()
         finally:
             _call_image_func()
+            if fs_source_func:
+                _call_fs_source_func()
 
 
 @error_context.context_aware
@@ -1222,7 +1338,8 @@ def preprocess(test, params, env):
 
     # Preprocess all VMs and images
     if params.get("not_preprocess", "no") == "no":
-        process(test, params, env, preprocess_image, preprocess_vm)
+        process(test, params, env, preprocess_image, preprocess_vm,
+                fs_source_func=preprocess_fs_source)
 
     # Start the screendump thread
     if params.get("take_regular_screendumps") == "yes":
@@ -1393,8 +1510,8 @@ def postprocess(test, params, env):
                             " or install gcovr package for qemu coverage report")
     # Postprocess all VMs and images
     try:
-        process(test, params, env, postprocess_image, postprocess_vm,
-                vm_first=True)
+        process(test, params, env, postprocess_image,
+                postprocess_vm, True, postprocess_fs_source)
     except Exception as details:
         err += "\nPostprocess: %s" % str(details).replace('\\n', '\n  ')
         logging.error(details)
