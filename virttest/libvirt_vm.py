@@ -2938,6 +2938,15 @@ class VM(virt_vm.BaseVM):
         self.install_package('pm-utils', ignore_status=True, timeout=15)
         self.install_package('qemu-guest-agent')
 
+        self.set_state_guest_agent(start)
+
+    def set_state_guest_agent(self, start):
+        """
+        Starts or stops the guest agent in guest.
+
+        :param start: Start (True) or stop (False) the agent
+        """
+
         session = self.wait_for_login()
 
         def _is_ga_running():
