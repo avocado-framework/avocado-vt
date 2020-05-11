@@ -620,7 +620,8 @@ def postprocess_vm(test, params, env, name):
             vm.undefine(options=params.get('kill_vm_libvirt_options'))
 
     if vm.is_dead():
-        vm.devices.cleanup_daemons()
+        if params.get('vm_type') == 'qemu':
+            vm.devices.cleanup_daemons()
 
     if params.get("enable_strace") == "yes":
         strace = test_setup.StraceQemu(test, params, env)
