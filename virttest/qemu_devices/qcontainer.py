@@ -15,6 +15,7 @@ import os
 import shutil
 import stat
 import json
+import uuid
 
 # Avocado imports
 from avocado.core import exceptions
@@ -2548,9 +2549,19 @@ class DevContainer(object):
         params = params.object_params("dimm")
         dimm_type = "nvdimm" if params.get("nv_backend") else "pc-dimm"
         attrs = qdevices.Dimm.__attributes__[:]
-        params = params.copy_from_keys(attrs)
-        dev = qdevices.Dimm(params=params, dimm_type=dimm_type)
+        dev = qdevices.Dimm(params=params.copy_from_keys(attrs),
+                            dimm_type=dimm_type)
         dev.set_param("id", "%s-%s" % ("dimm", name))
+        if dimm_type == "nvdimm" and params.get("nvdimm_uuid"):
+            try:
+                dev.set_param("uuid", uuid.UUID(params["nvdimm_uuid"]))
+            except ValueError:
+                nvdimm_uuid = params["nvdimm_uuid"]
+                if nvdimm_uuid == "<auto>":
+                    nvdimm_uuid = uuid.uuid5(uuid.NAMESPACE_OID, name)
+                dev.set_param("uuid", nvdimm_uuid)
+        for ext_k, ext_v in params.get_dict("dimm_extra_params").items():
+            dev.set_param(ext_k, ext_v)
         return dev
 
     def memory_define_by_params(self, params, name):
