@@ -621,7 +621,8 @@ def postprocess_vm(test, params, env, name):
 
     if vm.is_dead():
         if params.get('vm_type') == 'qemu':
-            vm.devices.cleanup_daemons()
+            if vm.devices is not None:
+                vm.devices.cleanup_daemons()
 
     if params.get("enable_strace") == "yes":
         strace = test_setup.StraceQemu(test, params, env)
