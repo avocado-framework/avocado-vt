@@ -27,7 +27,7 @@ class RangeList(list):
         for item in iterable:
             if not issubclass(type(item), tuple):
                 raise xcepts.LibvirtXMLError(x_str)
-            if len(item) is not 2:
+            if len(item) != 2:
                 raise xcepts.LibvirtXMLError(x_str)
             # Assume strings will be validated elsewhere
             newone.append(tuple(item))

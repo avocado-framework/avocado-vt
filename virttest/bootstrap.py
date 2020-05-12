@@ -701,7 +701,7 @@ def set_defcon(datadir, imagesdir, isosdir, tmpdir):
     could_be_slow = False
     msg = "Defining default contexts, this could take a few seconds..."
     # Changing default contexts is *slow*, avoid it if not necessary
-    if existing_data is None or existing_data is not 'virt_var_lib_t':
+    if existing_data is None or existing_data != 'virt_var_lib_t':
         # semanage gives errors if don't treat /usr & /usr/local the same
         data_regex = utils_selinux.transmogrify_usr_local(datadir)
         LOG.info(msg)
@@ -710,7 +710,7 @@ def set_defcon(datadir, imagesdir, isosdir, tmpdir):
         utils_selinux.set_defcon('virt_var_lib_t', data_regex)
         made_changes = True
 
-    if existing_images is None or existing_images is not 'virt_image_t':
+    if existing_images is None or existing_images != 'virt_image_t':
         # Applies to imagesdir and everything below
         images_regex = utils_selinux.transmogrify_usr_local(imagesdir)
         images_regex = utils_selinux.transmogrify_sub_dirs(images_regex)
@@ -720,7 +720,7 @@ def set_defcon(datadir, imagesdir, isosdir, tmpdir):
         utils_selinux.set_defcon('virt_image_t', images_regex)
         made_changes = True
 
-    if existing_isos is None or existing_isos is not 'virt_content_t':
+    if existing_isos is None or existing_isos != 'virt_content_t':
         # Applies to isosdir and everything below
         isos_regex = utils_selinux.transmogrify_usr_local(isosdir)
         isos_regex = utils_selinux.transmogrify_sub_dirs(isos_regex)
@@ -730,7 +730,7 @@ def set_defcon(datadir, imagesdir, isosdir, tmpdir):
         utils_selinux.set_defcon('virt_content_t', isos_regex)
         made_changes = True
 
-    if existing_tmp is None or existing_tmp is not 'user_tmp_t':
+    if existing_tmp is None or existing_tmp != 'user_tmp_t':
         tmp_regex = utils_selinux.transmogrify_usr_local(tmpdir)
         tmp_regex = utils_selinux.transmogrify_sub_dirs(tmp_regex)
         if not could_be_slow:

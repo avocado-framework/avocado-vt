@@ -550,7 +550,7 @@ class SSHConnection(ConnectionBase):
         server_user = self.server_user
         server_ip = self.server_ip
         ssh = self.SSH
-        if ssh is '/bin/true':
+        if ssh == '/bin/true':
             raise ConnToolNotFoundError('ssh',
                                         "executable not set or found on path, ")
 
@@ -621,7 +621,7 @@ class SSHConnection(ConnectionBase):
                      'shell': shell}
         for tool_name in tool_dict:
             tool = tool_dict[tool_name]
-            if tool is '/bin/true':
+            if tool == '/bin/true':
                 raise ConnToolNotFoundError(tool_name,
                                             "executable not set or found on path,")
 

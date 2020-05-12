@@ -405,7 +405,7 @@ class GuestWorker(object):
         # This will cause fail in case anything went wrong.
         match, tmp = self._cmd("print('PASS: nothing')", 10, ('^PASS: nothing',
                                                               '^FAIL:'))
-        if match is not 0:
+        if match != 0:
             logging.error("Python is stuck/FAILed after read-out:\n%s", tmp)
             try:
                 self.session.close()
@@ -429,7 +429,7 @@ class GuestWorker(object):
         """
         # Check if python is still alive
         match, tmp = self._cmd("is_alive()", 10)
-        if match is not 0:
+        if match != 0:
             logging.error("Python died/is stuck/have remaining threads")
             logging.debug(tmp)
             try:
@@ -440,7 +440,7 @@ class GuestWorker(object):
                 self.session.close()
                 self.session = self.vm.wait_for_login()
                 # On windows it dies with the connection
-                if match is not 0 and self.os_linux:
+                if match != 0 and self.os_linux:
                     logging.debug(tmp)
                     self.cmd("killall -9 `command -v python python3 | head -1` "
                              "&& echo -n PASS: python killed"
@@ -467,7 +467,7 @@ class GuestWorker(object):
             match, tmp = self._cmd("guest_exit()", 10)
             self.session.close()
             # On windows it dies with the connection
-            if match is not 0 and self.os_linux:
+            if match != 0 and self.os_linux:
                 logging.warn('guest_worker stuck during cleanup:\n%s\n,'
                              ' killing python...', tmp)
                 self.session = self.vm.wait_for_login()
