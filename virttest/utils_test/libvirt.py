@@ -3619,6 +3619,29 @@ def check_qemu_cmd_line(content, err_ignore=False):
     return True
 
 
+def check_cmd_output(cmd, content, err_ignore=False, session=None):
+    """
+    Check the specified content in the output of the cmd
+    :param cmd: the cmd wants to check
+    :param content: the desired string to search
+    :param err_ignore: True to return False when fail
+                       False to raise exception when fail
+    :param session: ShellSession object of VM or remote host
+    :return: True if exist, False otherwise
+    :raise: exceptions.TestFail when content is not found in the output of cmd
+    """
+    if cmd is None:
+        raise exceptions.TestFail("cmd can not be None")
+    s, cmd_output = utils_misc.cmd_status_output(cmd, shell=True,
+                                                 ignore_status=err_ignore, session=session)
+    if not re.search(r'%s' % content, cmd_output):
+        if err_ignore:
+            return False
+        else:
+            raise exceptions.TestFail("Expected '%s' was not found in "
+                                      "output of '%s'" % (content, cmd))
+
+
 def get_disk_alias(vm, source_file=None):
     """
     Get alias name of disk with given source file
