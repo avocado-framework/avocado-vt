@@ -1639,7 +1639,7 @@ def attach_device(domainarg=None, filearg=None,
 
 def detach_device(domainarg=None, filearg=None,
                   domain_opt=None, file_opt=None,
-                  flagstr=None, **dargs):
+                  flagstr=None, wait_remove_event=False, event_timeout=7, **dargs):
     """
     Detach a device using full parameter/argument set.
 
@@ -1648,12 +1648,18 @@ def detach_device(domainarg=None, filearg=None,
     :param domain_opt: Option to --domain parameter
     :param file_opt: Option to --file parameter
     :param flagstr: string of "--force, --persistent, etc."
+    :param wait_remove_event: wait until device_remove event comes
+    :param event_timeout: timeout for virsh event command
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
-    return _adu_device("detach-device", domainarg=domainarg, filearg=filearg,
-                       domain_opt=domain_opt, file_opt=file_opt,
-                       flagstr=flagstr, **dargs)
+    detach_cmd_rv = _adu_device("detach-device", domainarg=domainarg, filearg=filearg,
+                                domain_opt=domain_opt, file_opt=file_opt,
+                                flagstr=flagstr, **dargs)
+    if wait_remove_event:
+        event(domain=domainarg, event='device-removed', event_timeout=event_timeout, **dargs)
+
+    return detach_cmd_rv
 
 
 def update_device(domainarg=None, filearg=None,
@@ -1691,31 +1697,43 @@ def attach_disk(name, source, target, extra="", **dargs):
     return command(cmd, **dargs)
 
 
-def detach_disk(name, target, extra="", **dargs):
+def detach_disk(name, target, extra="", wait_remove_event=False, event_timeout=7, **dargs):
     """
     Detach a disk from VM.
 
     :param name: name of guest
     :param target: target of disk device
+    :param wait_remove_event: wait until device_remove event comes
+    :param event_timeout: timeout for virsh event command
     :param dargs: standardized virsh function API keywords
     :return: CmdResult object
     """
-    cmd = "detach-disk --domain %s --target %s %s" % (name, target, extra)
-    return command(cmd, **dargs)
+    detach_cmd = "detach-disk --domain %s --target %s %s" % (name, target, extra)
+    detach_cmd_rv = command(detach_cmd, **dargs)
+    if wait_remove_event:
+        event(domain=name, event='device-removed', event_timeout=event_timeout, **dargs)
+
+    return detach_cmd_rv
 
 
-def detach_device_alias(name, alias, extra="", **dargs):
+def detach_device_alias(name, alias, extra="", wait_remove_event=False, event_timeout=7, **dargs):
     """
     Detach a device with alias
 
     :param name: name of guest
     :param alias: alias of device
     :param extra: additional arguments to command
+    :param wait_remove_event: wait until device_remove event comes
+    :param event_timeout: timeout for virsh event command
     :param dargs: standardized virsh function API keywords
     :return: CmdResult object
     """
-    cmd = "detach-device-alias --domain %s --alias %s %s" % (name, alias, extra)
-    return command(cmd, **dargs)
+    detach_cmd = "detach-device-alias --domain %s --alias %s %s" % (name, alias, extra)
+    detach_cmd_rv = command(detach_cmd, **dargs)
+    if wait_remove_event:
+        event(domain=name, event='device-removed', event_timeout=event_timeout, **dargs)
+
+    return detach_cmd_rv
 
 
 def attach_interface(name, option="", **dargs):
@@ -1737,23 +1755,23 @@ def attach_interface(name, option="", **dargs):
     return command(cmd, **dargs)
 
 
-def detach_interface(name, option="", **dargs):
+def detach_interface(name, option="", wait_remove_event=False, event_timeout=7, **dargs):
     """
     Detach a NIC to VM.
 
     :param name: name of guest
     :param option: options to pass to command
+    :param wait_remove_event: wait until device_remove event comes
+    :param event_timeout: timeout for virsh event command
     :param dargs: standardized virsh function API keywords
     :return: CmdResult object
     """
-    cmd = "detach-interface "
+    detach_cmd = "detach-interface --domain %s %s" % (name, option)
+    detach_cmd_rv = command(detach_cmd, **dargs)
+    if wait_remove_event:
+        event(domain=name, event='device-removed', event_timeout=event_timeout, **dargs)
 
-    if name:
-        cmd += "--domain %s" % name
-    if option:
-        cmd += " %s" % option
-
-    return command(cmd, **dargs)
+    return detach_cmd_rv
 
 
 def net_dumpxml(name, extra="", to_file="", **dargs):
