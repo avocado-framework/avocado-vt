@@ -456,19 +456,20 @@ class MigrationTest(object):
             if int(result.exit_status) != 0:
                 raise exceptions.TestFail(result.stderr_text.strip())
 
-    def do_cancel(self):
+    def do_cancel(self, sig=signal.SIGKILL):
         """
         Kill process during migration.
 
+        :param sig: The signal to send
         :raise: test.error when kill fails
         """
         def _get_pid():
-            cmd = "ps aux |grep 'virsh .* migrate' |grep -v grep |awk '{print $2}'"
+            cmd = "ps aux |grep 'virsh .*migrate' |grep -v grep |awk '{print $2}'"
             pid = process.run(cmd, shell=True).stdout_text
             return pid
 
         pid = utils_misc.wait_for(_get_pid, 30)
-        if utils_misc.safe_kill(pid, signal.SIGINT):
+        if utils_misc.safe_kill(pid, sig):
             logging.info("Succeed to cancel migration: [%s].", pid.strip())
         else:
             raise exceptions.TestError("Fail to cancel migration: [%s]"
