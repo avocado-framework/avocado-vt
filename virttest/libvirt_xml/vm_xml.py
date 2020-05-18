@@ -1562,7 +1562,7 @@ class VMXML(VMXMLBase):
 
     @staticmethod
     def set_memoryBacking_tag(vm_name, hpgs=True, nosp=False, locked=False,
-                              virsh_instance=base.virsh):
+                              virsh_instance=base.virsh, access_mode=None):
         """
         let the guest using hugepages.
         """
@@ -1573,6 +1573,8 @@ class VMXML(VMXMLBase):
         if hpgs:
             hpgs = VMHugepagesXML()
             mb_xml.hugepages = hpgs
+        if access_mode is not None:
+            mb_xml.access_mode = access_mode
         # Set memoryBacking to the new instance.
         vmxml = VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
         vmxml.mb = mb_xml
