@@ -43,13 +43,17 @@ class Filesystem(base.TypedDeviceBase):
             <lock posix='on' flock='on'/>
         </binary>
         """
-        __slots__ = ('path', 'cache_mode', 'lock_posix', 'flock')
+        __slots__ = ('path', 'xattr', 'cache_mode', 'lock_posix', 'flock')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLAttribute('path', self,
                                    parent_xpath='/',
                                    tag_name='binary',
                                    attribute='path')
+            accessors.XMLAttribute('xattr', self,
+                                   parent_xpath='/',
+                                   tag_name='binary',
+                                   attribute='xattr')
             accessors.XMLAttribute('cache_mode', self,
                                    parent_xpath='/',
                                    tag_name='cache',
