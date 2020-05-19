@@ -763,7 +763,7 @@ class VMXML(VMXMLBase):
     @staticmethod
     def set_vm_vcpus(vm_name, vcpus, current=None, sockets=None, cores=None,
                      threads=None, add_topology=False, topology_correction=False,
-                     update_numa=True, virsh_instance=base.virsh):
+                     update_numa=True, numa_number=None, virsh_instance=base.virsh):
         """
         Convenience method for updating 'vcpu', 'current' and
         'cpu topology' attribute property with of a defined VM
@@ -777,6 +777,7 @@ class VMXML(VMXMLBase):
         :param add_topology: True to add new topology definition if not present
         :param topology_correction: Correct topology if wrong already
         :param update_numa: Update numa
+        :param numa_number: number of numa node
         :parma virsh_instance: virsh instance
         """
         vmxml = VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
@@ -819,15 +820,27 @@ class VMXML(VMXMLBase):
                 vmxml['cpu'] = vmcpu_xml
             try:
                 vmcpu_xml = vmxml['cpu']
-                if update_numa and vmxml.cpu.numa_cell:
+                if (update_numa and vmxml.cpu.numa_cell):
                     no_numa_cell = len(vmxml.cpu.numa_cell)
+                elif numa_number is not None:
+                    numa_number = int(numa_number)
+                    if 0 < int(numa_number) <= vcpus:
+                        no_numa_cell = numa_number
+                    else:
+                        raise xcepts.LibvirtXMLError("The numa number %d "
+                                                     "is larger than vcpus "
+                                                     "number %s or not positive" % (numa_number, vcpus))
+                if no_numa_cell > 0:
                     if vcpus >= no_numa_cell:
                         vcpus_num = vcpus // no_numa_cell
                         vcpu_rem = vcpus % no_numa_cell
                         index = 0
                         nodexml_list = []
                         for node in range(no_numa_cell):
-                            nodexml = vmcpu_xml.numa_cell[node]
+                            if vmxml.cpu.numa_cell:
+                                nodexml = vmcpu_xml.numa_cell[node]
+                            else:
+                                nodexml = {}
                             if vcpus_num > 1:
                                 if (node == no_numa_cell - 1) and vcpu_rem > 0:
                                     nodexml["cpus"] = "%s-%s" % (index, index + vcpus_num + vcpu_rem - 1)
@@ -838,9 +851,16 @@ class VMXML(VMXMLBase):
                                     nodexml["cpus"] = str(index + vcpu_rem)
                                 else:
                                     nodexml["cpus"] = str(index)
+                            if numa_number is not None and numa_number > 0:
+                                nodexml['id'] = str(node)
+                                nodexml['memory'] = str(vmxml.max_mem // numa_number)
                             index = vcpus_num * (node + 1)
                             nodexml_list.append(nodexml)
-                        vmcpu_xml.set_numa_cell(nodexml_list)
+                        if numa_number is not None and numa_number > 0:
+                            vmcpu_xml.xmltreefile.create_by_xpath('/numa')
+                            vmcpu_xml.numa_cell = nodexml_list
+                        else:
+                            vmcpu_xml.set_numa_cell(nodexml_list)
                     else:
                         logging.warning("Guest numa could not be updated, expect "
                                         "failures if guest numa is checked")
