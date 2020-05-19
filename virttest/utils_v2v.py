@@ -594,7 +594,7 @@ class LinuxVMCheck(VMCheck):
         """
         Get vm pci list.
         """
-        cmd_list = ['lspci', 'lshw']
+        cmd_list = ['lspci', 'lshw', 'hwinfo']
         return self.run_cmd(cmd_list)[1]
 
     def get_vm_rc_local(self):
