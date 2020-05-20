@@ -2244,7 +2244,8 @@ class DevContainer(object):
         :param chardev_id: the id of the chardev device
         :param bus_type: bus type of the serial device(optional, virtio only)
         :param serial_name: the name option of serial device(optional)
-        :param bus: the busid of parent bus(optional, virtio only)
+        :param bus: the busid of parent bus(optional, virtio only) or
+               a parameter '<new>' which means one new parent bus
         :param nr: the nr(port) of the parent bus(optional, virtio only)
         :param reg: reg option of isa-serial(optional)
         :param bus_extra_params: extra virtio_serial_pci params
@@ -2256,15 +2257,17 @@ class DevContainer(object):
                             for _ in bus_extra_params.split(',') if _]))
         # For virtio devices, generate controller and create the port device
         if serial_type.startswith('virt'):
-            if not bus:
+            if not bus or bus == '<new>':
                 if bus_type == 'virtio-serial-device':
                     pci_bus = {'type': 'virtio-bus'}
                 else:
                     pci_bus = {'aobject': 'pci.0'}
-                bus = self.get_first_free_bus(
-                    {'type': 'SERIAL', 'atype': bus_type}, [None, nr])
+                if bus != '<new>':
+                    bus = self.get_first_free_bus(
+                        {'type': 'SERIAL', 'atype': bus_type}, [None, nr])
                 #  Multiple virtio console devices can't share a single bus
-                if bus is None or serial_type == 'virtconsole':
+                if bus is None or bus == '<new>' or \
+                        serial_type == 'virtconsole':
                     _hba = bus_type.replace('-', '_') + '%s'
                     bus = self.idx_of_next_named_bus(_hba)
                     bus = self.list_missing_named_buses(
