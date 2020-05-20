@@ -187,7 +187,8 @@ def update_boot_option(vm, args_removed="", args_added="",
         logging.warning(msg)
         return
     login_timeout = int(vm.params.get("login_timeout"))
-    session = vm.wait_for_login(timeout=login_timeout)
+    session = vm.wait_for_serial_login(timeout=login_timeout,
+                                       restart_network=True)
     try:
         # check for args that are really required to be added/removed
         req_args, req_remove_args = check_kernel_cmdline(session,
@@ -223,7 +224,7 @@ def update_boot_option(vm, args_removed="", args_added="",
         # reboot is required only if we really add/remove any args
         if need_reboot and (req_args or req_remove_args):
             logging.info("Rebooting guest ...")
-            session = vm.reboot(session=session, timeout=login_timeout)
+            session = vm.reboot(session=session, timeout=login_timeout, serial=True)
             # check nothing is required to be added/removed by now
             req_args, req_remove_args = check_kernel_cmdline(session,
                                                              remove_args=args_removed,
