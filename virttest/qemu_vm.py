@@ -1777,6 +1777,9 @@ class VM(virt_vm.BaseVM):
                 serial_name = prefix + str(len(self.virtio_ports))\
                     if prefix else serial
                 serial_params['serial_name'] = serial_name
+            if serial_params['serial_type'] == 'pci-serial':
+                serial_params['serial_bus'] = self._get_pci_bus(serial_params,
+                                                                'serial', False)
             serial_devices = devices.serials_define_by_params(
                 serial, serial_params, serial_filename)
 
