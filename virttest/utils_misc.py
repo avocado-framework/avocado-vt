@@ -578,7 +578,7 @@ def format_str_for_message(msg):
         return "\n" + msg
 
 
-def wait_for(func, timeout, first=0.0, step=1.0, text=None):
+def wait_for(func, timeout, first=0.0, step=1.0, text=None, ignore_errors=False):
     """
     Wait until func() evaluates to True.
 
@@ -589,6 +589,7 @@ def wait_for(func, timeout, first=0.0, step=1.0, text=None):
     :param first: Time to sleep before first attempt
     :param steps: Time to sleep between attempts in seconds
     :param text: Text to print while waiting, for debug purposes
+    :param ignore_errors: If True, log any error and retry
     """
     start_time = time.time()
     end_time = time.time() + float(timeout)
@@ -599,7 +600,14 @@ def wait_for(func, timeout, first=0.0, step=1.0, text=None):
         if text:
             logging.debug("%s (%f secs)", text, (time.time() - start_time))
 
-        output = func()
+        try:
+            output = func()
+        except:  # pylint: disable=W0702
+            if not ignore_errors:
+                raise
+            else:
+                logging.debug("Ignoring error '%s'", sys.exc_info())
+                output = None
         if output:
             return output
 
