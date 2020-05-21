@@ -830,7 +830,7 @@ class VMXML(VMXMLBase):
                         raise xcepts.LibvirtXMLError("The numa number %d "
                                                      "is larger than vcpus "
                                                      "number %s or not positive" % (numa_number, vcpus))
-                if no_numa_cell > 0:
+                if 'no_numa_cell' in locals() and no_numa_cell > 0:
                     if vcpus >= no_numa_cell:
                         vcpus_num = vcpus // no_numa_cell
                         vcpu_rem = vcpus % no_numa_cell
