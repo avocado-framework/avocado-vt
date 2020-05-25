@@ -2103,7 +2103,7 @@ def add_panic_device(vm_name, model='isa', addr_type='isa', addr_iobase='0x505')
     """
     vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
     panic_dev = vmxml.xmltreefile.find('devices/panic')
-    if panic_dev:
+    if panic_dev is not None:
         logging.info("Panic device already exists")
         return False
     else:
