@@ -848,7 +848,7 @@ class PrivateBridgeConfig(object):
 
     def _add_bridge(self):
         self.bridge_manager.add_bridge(self.brname)
-        setbr_cmd = ("ip link set name %s type bridge stp_state 1"
+        setbr_cmd = ("ip link set %s type bridge stp_state 1"
                      " forward_delay 400" % self.brname)
         process.system(setbr_cmd)
         ip_fwd_path = "/proc/sys/net/%s/ip_forward" % self.ip_version
