@@ -847,15 +847,18 @@ def get_host_cpu_models():
     if ARCH in ('ppc64', 'ppc64le'):
         return []     # remove -cpu and leave it on qemu to decide
 
-    cpu_types = {"AuthenticAMD": ["EPYC", "Opteron_G5", "Opteron_G4",
-                                  "Opteron_G3", "Opteron_G2", "Opteron_G1"],
-                 "GenuineIntel": ["KnightsMill",
+    cpu_types = {"AuthenticAMD": ["EPYC-Rome", "EPYC", "Opteron_G5",
+                                  "Opteron_G4", "Opteron_G3", "Opteron_G2",
+                                  "Opteron_G1"],
+                 "GenuineIntel": ["KnightsMill", "Icelake-Server",
+                                  "Icelake-Client", "Cascadelake-Server",
                                   "Skylake-Server", "Skylake-Client",
                                   "Broadwell", "Broadwell-noTSX",
                                   "Haswell", "Haswell-noTSX", "IvyBridge",
                                   "SandyBridge", "Westmere", "Nehalem",
                                   "Penryn", "Conroe"]}
-    cpu_type_re = {"EPYC": "avx2,adx,bmi2,sha_ni",
+    cpu_type_re = {"EPYC-Rome": "rdpid,wbnoinvd,stibp,clwb,umip",
+                   "EPYC": "avx2,adx,bmi2,sha_ni",
                    "Opteron_G5": "f16c,fma4,xop,tbm",
                    "Opteron_G4": ("fma4,xop,avx,xsave,aes,sse4.2|sse4_2,"
                                   "sse4.1|sse4_1,cx16,ssse3,sse4a"),
@@ -863,6 +866,12 @@ def get_host_cpu_models():
                    "Opteron_G2": "cx16",
                    "Opteron_G1": "",
                    "KnightsMill": "avx512_4vnniw,avx512pf,avx512er",
+                   "Icelake-Server": "avx512_vnni,la57,clflushopt",
+                   "Icelake-Client": ("avx512_vpopcntdq|avx512-vpopcntdq,"
+                                      "avx512vbmi,avx512_vbmi2|avx512vbmi2,"
+                                      "gfni,vaes,vpclmulqdq,avx512_vnni"),
+                   "Cascadelake-Server": ("avx512f,avx512dq,avx512bw,avx512cd,"
+                                          "avx512vl,clflushopt,avx512_vnni"),
                    "Skylake-Server": "mpx,avx512f,clwb,xgetbv1,pcid",
                    "Skylake-Client": "mpx,xgetbv1,pcid",
                    "Broadwell": "adx,rdseed,3dnowprefetch,hle",
