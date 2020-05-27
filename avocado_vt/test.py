@@ -128,6 +128,7 @@ class VirtTest(test.Test):
         self.resultsdir = self.logdir
         utils_misc.set_log_file_dir(self.logdir)
         self.__status = None
+        self.__exc_info = None
 
     @property
     def params(self):
@@ -254,18 +255,19 @@ class VirtTest(test.Test):
         # This trick will give better reporting of virt tests being executed
         # into avocado (skips, warns and errors will display correctly)
         except exceptions.TestSkipError:
+            self.__exc_info = sys.exc_info()
             raise   # This one has to be raised in setUp
         except:  # nopep8 Old-style exceptions are not inherited from Exception()
-            details = sys.exc_info()[1]
-            self.__status = details
+            self.__exc_info = sys.exc_info()
+            self.__status = self.__exc_info[1]
         finally:
             # Clean libvirtd debug logs if the test is not fail or error
             if self.params.get("libvirtd_log_cleanup", "no") == "yes":
                 if(self.params.get("vm_type") == 'libvirt' and
                    self.params.get("enable_libvirtd_debug_log", "yes") == "yes"):
                     libvirtd_log = self.params["libvirtd_debug_file"]
-                    if("TestFail" not in str(sys.exc_info()[0]) and
-                       "TestError" not in str(sys.exc_info()[0])):
+                    if("TestFail" not in str(self.__exc_info) and
+                       "TestError" not in str(self.__exc_info)):
                         if libvirtd_log and os.path.isfile(libvirtd_log):
                             logging.info("cleaning libvirtd logs...")
                             os.remove(libvirtd_log)
