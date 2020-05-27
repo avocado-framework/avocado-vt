@@ -4,6 +4,7 @@ http://libvirt.org/formatdomain.html
 """
 
 import logging
+import platform
 
 from .. import xml_utils
 from .. import utils_misc
@@ -853,7 +854,12 @@ class VMXML(VMXMLBase):
                                     nodexml["cpus"] = str(index)
                             if numa_number is not None and numa_number > 0:
                                 nodexml['id'] = str(node)
-                                nodexml['memory'] = str(vmxml.max_mem // numa_number)
+                                cell_mem_size = vmxml.max_mem // numa_number
+
+                                # PPC memory size should align to 256M
+                                if 'ppc64le' in platform.machine().lower():
+                                    cell_mem_size = (vmxml.max_mem // numa_number // 262144) * 262144
+                                nodexml['memory'] = str(cell_mem_size)
                             index = vcpus_num * (node + 1)
                             nodexml_list.append(nodexml)
                         if numa_number is not None and numa_number > 0:
