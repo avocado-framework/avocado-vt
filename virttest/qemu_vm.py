@@ -2238,7 +2238,7 @@ class VM(virt_vm.BaseVM):
             if not os.path.exists(params['ovmf_path']):
                 raise exceptions.TestError("The OVMF path is not exist. Maybe you"
                                            " need to install related packages.")
-            current_data_dir = data_dir.get_data_dir()
+            current_data_dir = params.get("images_base_dir", data_dir.get_data_dir())
             ovmf_code_filename = params["ovmf_code_filename"]
             ovmf_code_path = os.path.join(params['ovmf_path'],
                                           ovmf_code_filename)
