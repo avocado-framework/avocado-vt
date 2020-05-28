@@ -978,6 +978,17 @@ class WindowsVMCheck(VMCheck):
         cmd = r"dir %s\Drivers\VirtIO\\viostor.sys" % self.windows_root
         return self.run_cmd(cmd)[1]
 
+    def get_service_info(self, name=None):
+        """
+        Get service info.
+
+        :param name: an optional service name
+        """
+        cmd = r"sc query"
+        if name:
+            cmd += ' ' + name
+        return self.run_cmd(cmd)[1]
+
     def get_driver_info(self, signed=True):
         """
         Get windows signed driver info.
