@@ -872,8 +872,8 @@ def get_host_cpu_models():
                                       "gfni,vaes,vpclmulqdq,avx512_vnni"),
                    "Cascadelake-Server": ("avx512f,avx512dq,avx512bw,avx512cd,"
                                           "avx512vl,clflushopt,avx512_vnni"),
-                   "Skylake-Server": "mpx,avx512f,clwb,xgetbv1,pcid",
-                   "Skylake-Client": "mpx,xgetbv1,pcid",
+                   "Skylake-Server": "avx512f,clwb,xgetbv1,pcid",
+                   "Skylake-Client": "xgetbv1,pcid",
                    "Broadwell": "adx,rdseed,3dnowprefetch,hle",
                    "Broadwell-noTSX": "adx,rdseed,3dnowprefetch",
                    "Haswell": "fma,avx2,movbe,hle",
