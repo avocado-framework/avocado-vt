@@ -1125,10 +1125,11 @@ def preprocess(test, params, env):
         # Map hostname and IP address of the hosts to avoid virsh
         # to error out of resolving
         hostname_ip = {str(virsh.hostname()): params['local_ip']}
-        hostname_ip[str(virsh.hostname(uri=dest_uri))] = params['remote_ip']
+        session = test_setup.remote_session(params)
+        _, remote_hostname = session.cmd_status_output('hostname')
+        hostname_ip[str(remote_hostname.strip())] = params['remote_ip']
         if not utils_net.map_hostname_ipaddress(hostname_ip):
             test.cancel("Failed to map hostname and ipaddress of source host")
-        session = test_setup.remote_session(params)
         if not utils_net.map_hostname_ipaddress(hostname_ip, session=session):
             session.close()
             test.cancel("Failed to map hostname and ipaddress of target host")
