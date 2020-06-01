@@ -1188,6 +1188,28 @@ class AvocadoGuest(object):
             self.session.cmd("rm -rf %s" % self.test_path, timeout=self.timeout)
 
 
+def get_avocadotestlist(params):
+    """
+    Helper function to parse the params for avocado guest tests
+    and build a testlist to be used by run_avocado{_bg}()
+    :param params:  Test params
+    :return: list of tests used for run_avocado{_bg}()
+    """
+    testlist = []
+    avocadotest = params.get("avocadotest", "")
+    if not avocadotest:
+        return testlist
+    avocadomux = params.get("avocadomux", "")
+    for index, item in enumerate(avocadotest.split(',')):
+        try:
+            mux = ''
+            mux = avocadomux.split(',')[index]
+        except IndexError:
+            pass
+        testlist.append((item, mux))
+    return testlist
+
+
 def run_autotest(vm, session, control_path, timeout,
                  outputdir, params, copy_only=False, control_args=None,
                  ignore_session_terminated=False, boottool_update=False):
