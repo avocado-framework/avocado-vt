@@ -2177,7 +2177,7 @@ class QUSBBus(QSparseBus):
 
     def _set_device_props(self, device, addr):
         """ in case this is usb-hub update the child port_prefix """
-        if addr[0] or addr[0] is 0:
+        if addr[0] or addr[0] == 0:
             if self.__port_prefix:
                 addr = ['%s.%s' % (self.__port_prefix, addr[0])]
         self.__hook_child_bus(device, addr)

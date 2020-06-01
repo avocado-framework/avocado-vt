@@ -172,7 +172,7 @@ class PropCanBase(dict, PropCanInternal):
         values = dict(*args, **dargs)
         for key in self.__all_slots__:
             value = values.get(key, "@!@!@!SENTINEL!@!@!@")
-            if value is not "@!@!@!SENTINEL!@!@!@":
+            if value != "@!@!@!SENTINEL!@!@!@":
                 # Call accessor methods if present
                 self[key] = value
         # Let accessor methods know initialization is complete
