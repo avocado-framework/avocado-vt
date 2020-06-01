@@ -85,7 +85,7 @@ def add_or_del_connection(params, session=None, is_del=False):
     if not is_del:
         utils_misc.cmd_status_output(recover_cmd, shell=True, session=session)
         cmd = 'tmux -c "ip link add name {1} type bridge; ip link set {0} up; ' \
-              'ip link set {0} master {1}; ip link set {1} up; pkill dhclient;' \
+              'ip link set {0} master {1}; ip link set {1} up; dhclient -r;' \
               'sleep 5; dhclient {1}"'.format(pf_name, bridge_name)
     else:
         cmd = recover_cmd
