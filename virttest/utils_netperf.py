@@ -124,8 +124,9 @@ class NetperfPackage(remote.Remote_Package):
         build_type = {"aarch64": "aarch64-unknown-linux-gnu"}
         build_arch = self.session.cmd_output("arch", timeout=60).strip()
         np_build = build_type.get(build_arch, build_arch).strip()
-        setup_cmd = "./configure --build=%s %s > /dev/null 2>&1" % (np_build,
-                                                                    compile_option)
+        setup_cmd = "./autogen.sh > /dev/null 2>&1 &&" \
+                    " ./configure --build=%s %s > /dev/null 2>&1" % (np_build,
+                                                                     compile_option)
         setup_cmd += " && make > /dev/null 2>&1"
         self.env_cleanup(clean_all=False)
         cmd = "%s && %s " % (pre_setup_cmd, setup_cmd)
