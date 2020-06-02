@@ -2028,7 +2028,7 @@ def run_avocado_bg(vm, params, test, testlist=[], avocado_vt=False,
                                    avocado_vt=avocado_vt, reinstall=True,
                                    add_args=avocado_testargs,
                                    ignore_result=ignore_status)
-        bt = BackgroundTest(avocado_obj.run_avocado, params)
+        bt = BackgroundTest(avocado_obj.run_avocado, ())
         bt.start()
         return bt
     except Exception as info:
