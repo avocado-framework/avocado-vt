@@ -2288,7 +2288,8 @@ class DevContainer(object):
                                  {"id": serial_id},
                                  parent_bus={'busid': bus}))
             devices[-1].set_param('name', serial_name)
-        elif serial_type == 'pci-serial':  # generate pci serial device with pci bus
+        elif serial_type.startswith('pci'):
+            # plug pci* serial device into pci bus
             devices.append(qdevices.QDevice(serial_type,
                                             {"id": serial_id},
                                             parent_bus=bus))
