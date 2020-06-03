@@ -1255,7 +1255,7 @@ def cmd_run(cmd, obj_be_cleaned=None, auto_clean=True, timeout=18000):
                 for obj in obj_be_cleaned:
                     obj.cleanup()
             else:
-                obj.cleanup()
+                obj_be_cleaned.cleanup()
 
     return cmd_result
 
