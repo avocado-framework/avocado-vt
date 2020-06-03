@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import socket
+import netaddr
 
 from avocado.utils import process
 from avocado.utils import path as utils_path
@@ -264,9 +265,10 @@ def glusterfs_umount(g_uri, mount_point, session=None):
     :type g_uri: str
     :param mount_point: mount point, str
     :session: mount within the session if given
+    :return: if unmounted return True else return False
     """
-    utils_disk.umount(g_uri, mount_point, "fuse.glusterfs", False,
-                      session)
+    return utils_disk.umount(g_uri, mount_point,
+                             "fuse.glusterfs", False, session)
 
 
 @error_context.context_aware
@@ -315,20 +317,23 @@ def create_gluster_vol(params):
 @error_context.context_aware
 def create_gluster_uri(params, stripped=False):
     """
-    Find/create gluster volume
+    Create gluster volume uri when using TCP:
+      stripped: gluster_server:/volume
+      not stripped: gluster[+transport]://gluster_server[:port]/volume
+    Create gluster image uri when using unix socket:
+      gluster+unix:///volume/path?socket=/path/to/socket
     """
     vol_name = params.get("gluster_volume_name")
 
+    # Access gluster server by unix domain socket
+    is_unix_socket = os.path.exists(params.get("gluster_unix_socket", ""))
+
     error_context.context("Host name lookup failed")
-    hostname = socket.gethostname()
     gluster_server = params.get("gluster_server")
-    gluster_port = params.get("gluster_port", "0")
-    if not gluster_server:
-        gluster_server = hostname
+    if not gluster_server or is_unix_socket:
+        gluster_server = socket.gethostname()
     if not gluster_server or gluster_server == "(none)":
-        if_up = utils_net.get_net_if(state="UP")
-        ip_addr = utils_net.get_net_if_addrs(if_up[0])["ipv4"][0]
-        gluster_server = ip_addr
+        gluster_server = utils_net.get_host_ip_address(params)
 
     # Start the gluster dameon, if not started
     # Building gluster uri
@@ -336,8 +341,36 @@ def create_gluster_uri(params, stripped=False):
     if stripped:
         gluster_uri = "%s:/%s" % (gluster_server, vol_name)
     else:
-        gluster_uri = "gluster://%s:%s/%s/" % (gluster_server, gluster_port,
-                                               vol_name)
+        volume = "/%s/" % vol_name
+
+        if is_unix_socket:
+            sock = "?socket=%s" % params["gluster_unix_socket"]
+            img = params.get("image_name").split('/')[-1]
+            fmt = params.get("image_format", "qcow2")
+            image_path = img if params.get_boolean(
+                "image_raw_device") else "%s.%s" % (img, fmt)
+            gluster_uri = "gluster+unix://{v}{p}{s}".format(v=volume,
+                                                            p=image_path,
+                                                            s=sock)
+        else:
+            # Access gluster server by hostname or ip
+            gluster_transport = params.get("gluster_transport")
+            transport = "+%s" % gluster_transport if gluster_transport else ""
+
+            # QEMU will send 0 which will make gluster to use the default port
+            gluster_port = params.get("gluster_port")
+            port = ":%s" % gluster_port if gluster_port else ""
+
+            # [IPv6 address]
+            server = "[%s]" % gluster_server if netaddr.valid_ipv6(
+                                gluster_server) else gluster_server
+
+            host = "%s%s" % (server, port)
+
+            gluster_uri = "gluster{t}://{h}{v}".format(t=transport,
+                                                       h=host,
+                                                       v=volume)
+
     return gluster_uri
 
 
@@ -365,8 +398,7 @@ def file_exists(params, filename_path):
             logging.error("Failed to mount gluster volume %s to"
                           " mount dir %s: %s" % (sg_uri, tmpdir_path, e))
     finally:
-        if utils_misc.umount(sg_uri, tmpdir_path, "glusterfs", False,
-                             "fuse.glusterfs"):
+        if glusterfs_umount(sg_uri, tmpdir_path):
             try:
                 os.rmdir(tmpdir_path)
             except OSError:
@@ -381,14 +413,18 @@ def get_image_filename(params, image_name, image_format):
     """
     Form the image file name using gluster uri
     """
+    filename = ""
+    uri = create_gluster_uri(params)
 
-    img_name = image_name.split('/')[-1]
-    gluster_uri = create_gluster_uri(params)
-    if params.get("image_raw_device") == "yes":
-        image_filename = "%s%s" % (gluster_uri, img_name)
+    if uri.startswith("gluster+unix:"):
+        filename = uri
     else:
-        image_filename = "%s%s.%s" % (gluster_uri, img_name, image_format)
-    return image_filename
+        img_name = image_name.split('/')[-1]
+        image_path = img_name if params.get_boolean(
+            "image_raw_device") else "%s.%s" % (img_name, image_format)
+        filename = "{vol_uri}{path}".format(vol_uri=uri, path=image_path)
+
+    return filename
 
 
 @error_context.context_aware
