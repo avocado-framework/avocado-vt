@@ -22,6 +22,36 @@ getstatusoutput_ok = mock.Mock(return_value=(0, ""))
 @mock.patch.object(utils_kernel_module.os, 'listdir', return_value=[some_module_param])
 @mock.patch.object(utils_kernel_module, 'open', mock.mock_open(read_data=some_module_val + '\n'))
 @mock.patch.object(utils_kernel_module.process, 'getstatusoutput', getstatusoutput_ok)
+class TestUnloadModule(unittest.TestCase):
+    """
+    Tests the reload_module method
+    """
+
+    def tearDown(self):
+        getstatusoutput_ok.reset_mock()
+
+    def assertUnloaded(self):
+        getstatusoutput_ok.assert_called_once()
+
+    def assertNoUnload(self):
+        getstatusoutput_ok.assert_not_called()
+
+    @mock.patch.object(utils_kernel_module.os.path, 'exists', return_value=True)
+    def test_tc1(self, *mocks):
+        self.handler = utils_kernel_module.KernelModuleHandler(some_module_name)
+        self.handler.unload_module()
+        self.assertUnloaded()
+
+    @mock.patch.object(utils_kernel_module.os.path, 'exists', return_value=False)
+    def test_tc2(self, *mocks):
+        self.handler = utils_kernel_module.KernelModuleHandler(some_module_name)
+        self.handler.unload_module()
+        self.assertNoUnload()
+
+
+@mock.patch.object(utils_kernel_module.os, 'listdir', return_value=[some_module_param])
+@mock.patch.object(utils_kernel_module, 'open', mock.mock_open(read_data=some_module_val + '\n'))
+@mock.patch.object(utils_kernel_module.process, 'getstatusoutput', getstatusoutput_ok)
 class TestReloadModule(unittest.TestCase):
     """
     Tests the reload_module method
@@ -132,18 +162,15 @@ class TestRestore(unittest.TestCase):
     def tearDown(self):
         getstatusoutput_ok.reset_mock()
 
-    def assertRestored(self, params):
+    def assertRestored(self, orig_params, cur_params):
         self.assertTrue(getstatusoutput_ok.called)
-        cmd = getstatusoutput_ok.call_args[0][0]
-        self.assertTrue(params in cmd)
+        self.assertEqual(orig_params, cur_params)
 
     def assertNoRestore(self):
-        self.assertFalse(getstatusoutput_ok.called)
+        getstatusoutput_ok.assert_not_called()
 
     def assertUnloaded(self):
-        self.assertTrue(getstatusoutput_ok.called)
-        cmd = getstatusoutput_ok.call_args[0][0]
-        self.assertTrue("modprobe -r" in cmd)
+        getstatusoutput_ok.assert_called_once()
 
     @mock.patch.object(utils_kernel_module.os.path, 'exists', return_value=True)
     def test_tc1(self, *mocks):
@@ -151,7 +178,8 @@ class TestRestore(unittest.TestCase):
         orig_config = self.handler.config_backup
         self.handler.reload_module(True, "key=value")
         self.handler.restore()
-        self.assertRestored(orig_config)
+        cur_config = self.handler.current_config
+        self.assertRestored(orig_config, cur_config)
 
     @mock.patch.object(utils_kernel_module.os.path, 'exists', return_value=True)
     def test_tc1_reload_twice(self, *mocks):
@@ -160,7 +188,8 @@ class TestRestore(unittest.TestCase):
         self.handler.reload_module(True, "key=value")
         self.handler.reload_module(True, "key1=value1")
         self.handler.restore()
-        self.assertRestored(orig_config)
+        cur_config = self.handler.current_config
+        self.assertRestored(orig_config, cur_config)
 
     @mock.patch.object(utils_kernel_module.os.path, 'exists', return_value=True)
     def test_tc2(self, *mocks):
