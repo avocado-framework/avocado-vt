@@ -89,4 +89,9 @@ def get_kvm_module_list():
         host_cpu_type = cpu.get_cpu_vendor_name()
         return ["kvm", "kvm-%s" % host_cpu_type]
     elif ARCH in ('ppc64', 'ppc64le'):
+        # FIXME: Please correct it if anyone still want to use KVM-PR mode
+        return ["kvm", "kvm-hv"]
+    elif ARCH in ('s390', 's390x'):
         return ["kvm"]
+    elif ARCH == "aarch64":
+        return []
