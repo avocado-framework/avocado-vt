@@ -1672,12 +1672,12 @@ class DevContainer(object):
                                                child_bus=qbus(busid=bus_name))
                     if iothread:
                         try:
-                            iothread = self.allocate_iothread(iothread, dev)
+                            _iothread = self.allocate_iothread(iothread, dev)
                         except TypeError:
                             pass
                         else:
-                            if iothread and iothread not in self:
-                                devices.append(iothread)
+                            if _iothread and _iothread not in self:
+                                devices.append(_iothread)
                     devices.append(dev)
                 bus = _hba % bus
             if qbus == qdevices.QAHCIBus and unit is not None:
