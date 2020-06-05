@@ -962,7 +962,7 @@ class DevContainer(object):
         for i in xrange(i // 7):     # Autocreated lsi hba
             if arch.ARCH in ('ppc64', 'ppc64le'):
                 _name = 'spapr-vscsi%s' % i
-                bus = qdevices.QSCSIBus("scsi.0", 'SCSI', [8, 16384],
+                bus = qdevices.QSCSIBus("scsi.0", 'SCSI', [64, 32],
                                         atype='spapr-vscsi')
                 self.insert(qdevices.QStringDevice(_name,
                                                    child_bus=bus))
@@ -1814,7 +1814,7 @@ class DevContainer(object):
                 if arch.ARCH in ('ppc64', 'ppc64le'):
                     _ = define_hbas('SCSI', 'spapr-vscsi', None, None, None,
                                     qdevices.QSCSIBus, None, iothread,
-                                    addr_spec=[8, 16384])
+                                    addr_spec=[64, 32])
                 else:
                     _ = define_hbas('SCSI', 'lsi53c895a', None, None, None,
                                     qdevices.QSCSIBus, pci_bus, iothread,
@@ -1846,7 +1846,7 @@ class DevContainer(object):
                 elif scsi_hba == 'virtio-scsi-ccw':
                     pci_bus = None
             elif scsi_hba == 'spapr-vscsi':
-                addr_spec = [8, 16384]
+                addr_spec = [64, 32]
                 pci_bus = None
             _, bus, dev_parent = define_hbas('SCSI', scsi_hba, bus, unit, port,
                                              qdevices.QSCSIBus, pci_bus,
