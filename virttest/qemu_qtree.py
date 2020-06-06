@@ -4,6 +4,7 @@ Utility classes and functions to handle KVM Qtree parsing and verification.
 :author: Lukas Doktor <ldoktor@redhat.com>
 :copyright: 2012 Red Hat Inc.
 """
+import json
 import logging
 import os
 import re
@@ -209,15 +210,21 @@ class QtreeDisk(QtreeDev):
         return self.block
 
     def generate_params(self):
+        def parse_json(data):
+            return json.loads(data[5:])
+
+        def get_image_name(block_file):
+            if block_file.startswith('json:'):
+                return parse_json(block_file)['file']['filename']
+            return os.path.realpath(block_file)
+
         if not self.qtree or not self.block:
             raise ValueError("Node doesn't have qtree or block info yet.")
         if self.block.get('backing_file'):
             self.params['image_snapshot'] = 'yes'
-            self.params['image_name'] = os.path.realpath(
-                self.block.get('backing_file'))
+            self.params['image_name'] = get_image_name(self.block.get('backing_file'))
         elif self.block.get('file'):
-            self.params['image_name'] = os.path.realpath(
-                self.block.get('file'))
+            self.params['image_name'] = get_image_name(self.block.get('file'))
         else:
             raise ValueError("Missing 'file' or 'backing_file' information "
                              "in self.block.")
