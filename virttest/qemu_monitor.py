@@ -366,7 +366,9 @@ class Monitor(object):
             pass
         self._socket.close()
 
-    def _acquire_lock(self, timeout=ACQUIRE_LOCK_TIMEOUT, lock=None):
+    def _acquire_lock(self, timeout=None, lock=None):
+        if timeout is None:
+            timeout = self.ACQUIRE_LOCK_TIMEOUT
         end_time = time.time() + timeout
         if not lock:
             lock = self._lock
