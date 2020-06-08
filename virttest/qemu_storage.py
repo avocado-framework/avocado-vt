@@ -683,7 +683,7 @@ class QemuImg(storage.QemuImg):
 
         logging.info("Convert image %s from %s to %s", self.image_filename,
                      self.image_format, convert_image.image_format)
-        process.system(convert_cmd)
+        process.run(convert_cmd)
         if convert_image.encryption_config.key_secret:
             convert_image.encryption_config.key_secret.save_to_file()
 
@@ -736,7 +736,7 @@ class QemuImg(storage.QemuImg):
                                                       self.base_image_filename))
         rebase_cmd = self.image_cmd + " " + \
             self._cmd_formatter.format(self.rebase_cmd, **cmd_dict)
-        process.system(rebase_cmd)
+        process.run(rebase_cmd)
 
         return self.base_tag
 
@@ -771,7 +771,7 @@ class QemuImg(storage.QemuImg):
         commit_cmd = self.image_cmd + " " + \
             self._cmd_formatter.format(self.commit_cmd, **cmd_dict)
         logging.info("Commit image %s" % self.image_filename)
-        process.system(commit_cmd)
+        process.run(commit_cmd)
 
         return self.image_filename
 
@@ -791,7 +791,7 @@ class QemuImg(storage.QemuImg):
                                        " parameters")
         cmd += " %s" % self.image_filename
 
-        decode_to_text(process.system_output(cmd))
+        process.run(cmd)
 
         return self.snapshot_tag
 
@@ -816,7 +816,7 @@ class QemuImg(storage.QemuImg):
         else:
             cmd += " %s" % self.image_filename
 
-        decode_to_text(process.system_output(cmd))
+        process.run(cmd)
 
     def snapshot_list(self):
         """
@@ -842,7 +842,7 @@ class QemuImg(storage.QemuImg):
             raise exceptions.TestError("Can not find the snapshot image"
                                        " parameters")
 
-        decode_to_text(process.system_output(cmd))
+        process.run(cmd)
 
     def remove(self):
         """
