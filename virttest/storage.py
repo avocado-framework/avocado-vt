@@ -42,7 +42,7 @@ def preprocess_images(bindir, params, env):
 
 
 def preprocess_image_backend(bindir, params, env):
-    enable_gluster = params.get_boolean("enable_gluster")
+    enable_gluster = params.get("enable_gluster") == "yes"
     gluster_image = params.get("gluster_brick")
     if enable_gluster and gluster_image:
         return gluster.create_gluster_vol(params)
@@ -70,7 +70,7 @@ def file_exists(params, filename_path):
 
     :return: True if image file exists else False
     """
-    if params.get_boolean("enable_gluster"):
+    if params.get("enable_gluster") == "yes":
         return gluster.file_exists(params, filename_path)
 
     if params.get("enable_ceph") == "yes":
