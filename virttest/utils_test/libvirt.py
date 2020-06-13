@@ -1681,11 +1681,14 @@ def create_disk_xml(params):
             else:
                 diskxml.auth = diskxml.new_auth(**auth_attrs)
         if slice_in_source:
-            slice_size_param = process.run("du -b %s" % input_source_file).stdout_text.strip()
-            slice_size = re.findall(r'^[0-9]+', slice_size_param)
-            slice_size = ''.join(slice_size)
-            disk_source.slices = diskxml.new_slices(**{"slice_type": "storage", "slice_offset": "0",
-                                                       "slice_size": slice_size})
+            if slice_in_source.get('slice_size', None):
+                disk_source.slices = diskxml.new_slices(**slice_in_source)
+            else:
+                slice_size_param = process.run("du -b %s" % input_source_file).stdout_text.strip()
+                slice_size = re.findall(r'^[0-9]+', slice_size_param)
+                slice_size = ''.join(slice_size)
+                disk_source.slices = diskxml.new_slices(**{"slice_type": "storage", "slice_offset": "0",
+                                                           "slice_size": slice_size})
         diskxml.source = disk_source
         driver_name = params.get("driver_name", "qemu")
         driver_type = params.get("driver_type", "")
