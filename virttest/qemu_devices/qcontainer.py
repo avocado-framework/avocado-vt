@@ -1660,6 +1660,16 @@ class DevContainer(object):
                         else:
                             # -drive: u/p included in the filename
                             pass
+                    elif access.storage_type == 'curl':
+                        if access.cookie:
+                            secrets.append((access.cookie, 'cookie'))
+
+                        if Flags.BLOCKDEV in self.caps:
+                            # -blockdev requires password-secret while
+                            # -drive includes u/p in the filename
+                            if access.data:
+                                secrets.append((access, 'password'))
+
             return secrets
 
         def define_hbas(qtype, atype, bus, unit, port, qbus, pci_bus, iothread,
@@ -1737,8 +1747,7 @@ class DevContainer(object):
             if image_encryption.key_secret:
                 secret_obj = devices[-1]
 
-        access_secret_obj = None
-        access_secret, secret_type = None, None
+        secret_info = []
         image_secrets = _get_access_secrets(image_access)
         for sec, sectype in image_secrets:
             # create and add all secret objects: -object secret
@@ -1748,14 +1757,13 @@ class DevContainer(object):
 
             if sectype == 'password':
                 devices[-1].set_param("file", sec.filename)
-            elif sectype == 'key':
+            elif sectype == 'key' or sectype == 'cookie':
                 devices[-1].set_param("data", sec.data)
 
             if sec.image == name:
                 # only the top image should be associated
                 # with its secure object
-                access_secret_obj = devices[-1]
-                access_secret, secret_type = sec, sectype
+                secret_info.append((devices[-1], sectype))
 
         tls_creds = None
         tls_creds_obj = None
@@ -1778,6 +1786,9 @@ class DevContainer(object):
         gluster_logfile = None
         gluster_peers = {}
         reconnect_delay = None
+        curl_sslverify = None
+        curl_readahead = None
+        curl_timeout = None
         access = image_access.image_auth if image_access else None
         if access is not None:
             if access.storage_type == 'iscsi-direct':
@@ -1801,6 +1812,10 @@ class DevContainer(object):
                                      for k, v in six.iteritems(server)})
             elif access.storage_type == 'nbd':
                 reconnect_delay = access.reconnect_delay
+            elif access.storage_type == 'curl':
+                curl_sslverify = access.sslverify
+                curl_timeout = access.timeout
+                curl_readahead = access.readahead
 
         use_device = self.has_option("device")
         if fmt == "scsi":   # fmt=scsi force the old version of devices
@@ -1949,6 +1964,14 @@ class DevContainer(object):
                 protocol_cls = qdevices.QBlockdevProtocolNVMe
             elif filename.startswith('ssh:'):
                 protocol_cls = qdevices.QBlockdevProtocolSSH
+            elif filename.startswith('https:'):
+                protocol_cls = qdevices.QBlockdevProtocolHTTPS
+            elif filename.startswith('http:'):
+                protocol_cls = qdevices.QBlockdevProtocolHTTP
+            elif filename.startswith('ftps:'):
+                protocol_cls = qdevices.QBlockdevProtocolFTPS
+            elif filename.startswith('ftp:'):
+                protocol_cls = qdevices.QBlockdevProtocolFTP
             elif fmt in ('scsi-generic', 'scsi-block'):
                 protocol_cls = qdevices.QBlockdevProtocolHostDevice
             elif blkdebug is not None:
@@ -2058,12 +2081,15 @@ class DevContainer(object):
                 for key, value in six.iteritems(file_opts):
                     devices[-2].set_param(key, value)
 
-            if access_secret is not None:
+            for access_secret_obj, secret_type in secret_info:
                 if secret_type == 'password':
                     devices[-2].set_param('password-secret',
                                           access_secret_obj.get_qid())
                 elif secret_type == 'key':
                     devices[-2].set_param('key-secret',
+                                          access_secret_obj.get_qid())
+                elif secret_type == 'cookie':
+                    devices[-2].set_param('cookie-secret',
                                           access_secret_obj.get_qid())
 
             if tls_creds is not None:
@@ -2076,6 +2102,12 @@ class DevContainer(object):
                 devices[-2].set_param('debug', int(gluster_debug))
             if gluster_logfile:
                 devices[-2].set_param('logfile', gluster_logfile)
+            if curl_sslverify:
+                devices[-2].set_param('sslverify', curl_sslverify)
+            if curl_readahead:
+                devices[-2].set_param('readahead', curl_readahead)
+            if curl_timeout:
+                devices[-2].set_param('timeout', curl_timeout)
             for key, value in six.iteritems(gluster_peers):
                 devices[-2].set_param(key, value)
 
@@ -2097,12 +2129,15 @@ class DevContainer(object):
             else:
                 devices[-1].set_param('file', filename)
 
-            if access_secret is not None:
+            for access_secret_obj, secret_type in secret_info:
                 if secret_type == 'password':
                     devices[-1].set_param('file.password-secret',
                                           access_secret_obj.get_qid())
                 elif secret_type == 'key':
                     devices[-1].set_param('file.key-secret',
+                                          access_secret_obj.get_qid())
+                elif secret_type == 'cookie':
+                    devices[-1].set_param('file.cookie-secret',
                                           access_secret_obj.get_qid())
 
             if tls_creds is not None:
@@ -2117,6 +2152,12 @@ class DevContainer(object):
                 devices[-1].set_param('file.debug', int(gluster_debug))
             if gluster_logfile:
                 devices[-1].set_param('file.logfile', gluster_logfile)
+            if curl_sslverify:
+                devices[-1].set_param('file.sslverify', curl_sslverify)
+            if curl_readahead:
+                devices[-1].set_param('file.readahead', curl_readahead)
+            if curl_timeout:
+                devices[-1].set_param('file.timeout', curl_timeout)
 
         if drv_extra_params:
             drv_extra_params = (_.split('=', 1) for _ in
@@ -2560,6 +2601,10 @@ class DevContainer(object):
                 scsi_hba = "virtio-scsi-ccw"
         shared_dir = os.path.join(data_dir.get_data_dir(), "shared")
         cache_mode = image_params.get('image_aio') == 'native' and 'none' or ''
+
+        # iso image can be stored in a network storage, e.g. http server
+        image_access = storage.ImageAccessInfo.access_info_define_by_params(
+            name, image_params)
         return self.images_define_by_variables(name,
                                                storage.get_image_filename(
                                                    image_params,
@@ -2615,7 +2660,8 @@ class DevContainer(object):
                                                None,
                                                image_params.get(
                                                    "bus_extra_params"),
-                                               image_params.get("force_drive_format"))
+                                               image_params.get("force_drive_format"),
+                                               None, image_access)
 
     def pcic_by_params(self, name, params, parent_bus=None):
         """

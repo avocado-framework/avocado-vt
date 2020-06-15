@@ -160,6 +160,26 @@ def filename_to_file_opts(filename):
                             'host-key-check.type': m['type'],
                             'host-key-check.hash': m['hash']
                         })
+    elif re.match(r'(http|https|ftp|ftps)://', filename):
+        filename_pattern = re.compile(
+            r'(?P<protocol>.+?)://((?P<user>.+?)(:(?P<password>.+?))?@)?'
+            r'(?P<server>.+?)/(?P<path>.+)')
+        matches = filename_pattern.match(filename)
+        if matches:
+            matches = matches.groupdict()
+            if all((matches['protocol'], matches['server'], matches['path'])):
+                # required libcurl options, note server can be hostname:port
+                file_opts = {
+                    'driver': matches['protocol'],
+                    'url': '{protocol}://{server}/{path}'.format(
+                        protocol=matches['protocol'],
+                        server=matches['server'],
+                        path=matches['path']
+                    )
+                }
+
+                if matches['user'] is not None:
+                    file_opts['username'] = matches['user']
     # FIXME: Judge the host device by the string starts with "/dev/".
     elif filename.startswith('/dev/'):
         file_opts = {'driver': 'host_device', 'filename': filename}
@@ -229,6 +249,19 @@ def _get_image_meta(image, params, root_dir):
                 meta['file']['tls-creds'] = auth_info.aid
             if auth_info.reconnect_delay:
                 meta['file']['reconnect-delay'] = auth_info.reconnect_delay
+        elif auth_info.storage_type == 'curl':
+            mapping = {
+                'password-secret': (auth_info.data, auth_info.aid),
+                'sslverify': (auth_info.sslverify, auth_info.sslverify),
+                'cookie-secret': (auth_info.cookie,
+                                  auth_info.cookie.aid
+                                  if auth_info.cookie else ''),
+                'readahead': (auth_info.readahead, auth_info.readahead),
+                'timeout': (auth_info.timeout, auth_info.timeout)
+            }
+            meta['file'].update({
+                k: v[1] for k, v in six.iteritems(mapping) if v[0]
+            })
 
     return meta
 
@@ -296,6 +329,12 @@ def get_image_repr(image, params, root_dir, representation=None):
             elif auth_info.storage_type == 'nbd':
                 # tls-creds, reconnect_delay represent in json
                 access_needed = True
+            elif auth_info.storage_type == 'curl':
+                # u/p can be included in url, while the others should be
+                # represented in json
+                if any((auth_info.sslverify, auth_info.cookie,
+                        auth_info.readahead, auth_info.timeout)):
+                    access_needed = True
 
         func = mapping["json"] if image_secret or access_needed else mapping["filename"]
     return func(image, params, root_dir)
@@ -452,12 +491,13 @@ class QemuImg(storage.QemuImg):
                 ("data_file=%s" % self.data_file.image_filename,
                  "data_file_raw=%s" % params.get("image_data_file_raw", "off")))
 
-        access_secret, secret_type = self._image_access_secret
-        if access_secret is not None:
+        for access_secret, secret_type in self._image_access_secret:
             if secret_type == 'password':
                 options.append("password-secret=%s" % access_secret.aid)
             elif secret_type == 'key':
                 options.append("key-secret=%s" % access_secret.aid)
+            elif secret_type == 'cookie':
+                options.append("cookie-secret=%s" % access_secret.aid)
 
         image_extra_params = params.get("image_extra_params")
         if image_extra_params:
@@ -521,21 +561,29 @@ class QemuImg(storage.QemuImg):
     def _image_access_secret(self):
         """
         Get the access secret object and its type of the image itself,
-        the type can be 'key' or 'password'
+        the type can be 'key' or 'password' or 'cookie'
 
-        :return: a tuple, (StorageAuth object, secret type)
+        :return: a list of tuple(StorageAuth object, secret type) or []
+        :note: an image can have more than one secret objects, e.g.
+               access secret object and cookie secret object for libcurl
         """
-        sec, sec_type = None, None
+        secrets = []
         auth = self.image_access.image_auth if self.image_access else None
 
         if auth is not None:
             if auth.storage_type == 'ceph':
-                # Only ceph image access requires secret object by
+                # ceph image access requires secret object by
                 # qemu-img and only 'password-secret' is supported
                 if auth.data:
-                    sec, sec_type = auth, 'password'
+                    secrets.append((auth, 'password'))
+            elif auth.storage_type == 'curl':
+                # a libcurl image can have more than one secret object
+                if auth.data:
+                    secrets.append((auth, 'password'))
+                if auth.cookie:
+                    secrets.append((auth.cookie, 'cookie'))
 
-        return sec, sec_type
+        return secrets
 
     @property
     def _backing_access_secrets(self):
@@ -550,10 +598,15 @@ class QemuImg(storage.QemuImg):
 
         for auth in info:
             if auth.storage_type == 'ceph':
-                # Only ceph image access requires secret object by
+                # ceph image access requires secret object by
                 # qemu-img and only 'password-secret' is supported
                 if auth.data:
                     secrets.append((auth, 'password'))
+            elif auth.storage_type == 'curl':
+                if auth.data:
+                    secrets.append((auth, 'password'))
+                if auth.cookie:
+                    secrets.append((auth.cookie, 'cookie'))
 
         return secrets
 
@@ -585,17 +638,17 @@ class QemuImg(storage.QemuImg):
     @property
     def _image_access_secret_object(self):
         """Get the secret object str of the image itself."""
-        secret_obj_str = ''
-        access_secret, secret_type = self._image_access_secret
+        secrets = []
 
-        if access_secret is not None:
+        for access_secret, secret_type in self._image_access_secret:
+            secret_obj_str = ''
             if secret_type == 'password':
-                secret = '--object secret,id={s.aid},format={s.data_format},file={s.filename}'
-            elif secret_type == 'key':
-                secret = '--object secret,id={s.aid},format={s.data_format},data={s.data}'
-            secret_obj_str = secret.format(s=access_secret)
+                secret_obj_str = '--object secret,id={s.aid},format={s.data_format},file={s.filename}'
+            elif secret_type == 'key' or secret_type == 'cookie':
+                secret_obj_str = '--object secret,id={s.aid},format={s.data_format},data={s.data}'
+            secrets.append(secret_obj_str.format(s=access_secret))
 
-        return secret_obj_str
+        return secrets
 
     @property
     def _backing_access_secret_objects(self):
@@ -606,7 +659,7 @@ class QemuImg(storage.QemuImg):
             secret_obj_str = ''
             if secret_type == 'password':
                 secret_obj_str = "--object secret,id={s.aid},format={s.data_format},file={s.filename}"
-            elif secret_type == 'key':
+            elif secret_type == 'key' or secret_type == 'cookie':
                 secret_obj_str = "--object secret,id={s.aid},format={s.data_format},data={s.data}"
             secrets.append(secret_obj_str.format(s=access_secret))
 
@@ -683,7 +736,7 @@ class QemuImg(storage.QemuImg):
 
             # secret object of the image itself
             if self._image_access_secret_object:
-                secret_objects.append(self._image_access_secret_object)
+                secret_objects.extend(self._image_access_secret_object)
 
             image_secret_objects = self._secret_objects
             if image_secret_objects:
@@ -818,12 +871,12 @@ class QemuImg(storage.QemuImg):
 
         # secret object of the source image itself
         if self._image_access_secret_object:
-            secret_objects.append(self._image_access_secret_object)
+            secret_objects.extend(self._image_access_secret_object)
 
         # target image access secret object
         # target image to be converted never has backing images
         if convert_image._image_access_secret_object:
-            secret_objects.append(convert_image._image_access_secret_object)
+            secret_objects.extend(convert_image._image_access_secret_object)
 
         # target image secret(luks)
         if convert_image.encryption_config.key_secret:
@@ -1062,7 +1115,7 @@ class QemuImg(storage.QemuImg):
 
         if self._image_access_secret_object:
             # secret object of the image itself
-            cmd += " %s" % self._image_access_secret_object
+            cmd += " %s" % " ".join(self._image_access_secret_object)
 
         if self._image_access_tls_creds_object:
             # tls creds object of the image itself
@@ -1202,7 +1255,7 @@ class QemuImg(storage.QemuImg):
 
         # source image access secret object
         if self._image_access_secret_object:
-            secret_objects.append(self._image_access_secret_object)
+            secret_objects.extend(self._image_access_secret_object)
 
         # target image's backing access secret objects
         if target_image._backing_access_secret_objects:
@@ -1210,7 +1263,7 @@ class QemuImg(storage.QemuImg):
 
         # target image access secret object
         if target_image._image_access_secret_object:
-            secret_objects.append(target_image._image_access_secret_object)
+            secret_objects.extend(target_image._image_access_secret_object)
 
         # if compared images are in the same snapshot chain,
         # needs to remove duplicated secrets
@@ -1288,7 +1341,7 @@ class QemuImg(storage.QemuImg):
 
         # access secret object of the image itself
         if self._image_access_secret_object:
-            secret_objects.append(self._image_access_secret_object)
+            secret_objects.extend(self._image_access_secret_object)
 
         # image(e.g. luks image) secret objects
         image_secret_objects = self._secret_objects
@@ -1550,7 +1603,7 @@ class QemuImg(storage.QemuImg):
 
         # access secret object of the image itself
         if self._image_access_secret_object:
-            secret_objects.append(self._image_access_secret_object)
+            secret_objects.extend(self._image_access_secret_object)
 
         if secret_objects:
             cmd_dict["secret_object"] = " ".join(secret_objects)
