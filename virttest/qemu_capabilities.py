@@ -20,6 +20,7 @@ class Flags(object):
 
     BLOCKDEV = _auto_value()
     SMP_DIES = _auto_value()
+    INCOMING_DEFER = _auto_value()
 
 
 class Capabilities(object):
