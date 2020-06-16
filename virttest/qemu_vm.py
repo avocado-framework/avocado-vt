@@ -171,6 +171,7 @@ class VM(virt_vm.BaseVM):
             self.logs = {}
             self.remote_sessions = []
             self.logsessions = {}
+            self.deferral_incoming = False
 
         self.name = name
         self.params = params
@@ -1440,6 +1441,9 @@ class VM(virt_vm.BaseVM):
         if (params.get("qemu_force_use_drive_expression", "no") == "yes" and
                 Flags.BLOCKDEV in devices.caps):
             devices.caps.clear_flag(Flags.BLOCKDEV)
+        if (params.get("qemu_force_use_static_incoming_expression", "no") == "yes" and
+                Flags.INCOMING_DEFER in devices.caps):
+            devices.caps.clear_flag(Flags.INCOMING_DEFER)
 
         devices.insert(StrDev('PREFIX', cmdline=cmd))
         # Add the qemu binary
@@ -2878,13 +2882,21 @@ class VM(virt_vm.BaseVM):
             # Add migration parameters if required
             if migration_mode in ["tcp", "rdma", "x-rdma"]:
                 self.migration_port = utils_misc.find_free_port(5200, 5899)
-                qemu_command += (" -incoming " + migration_mode +
-                                 ":0:%d" % self.migration_port)
+                incoming_val = (" -incoming " + migration_mode +
+                                ":0:%d" % self.migration_port)
+                if Flags.INCOMING_DEFER in self.devices.caps:
+                    incoming_val = ' -incoming defer'
+                    self.deferral_incoming = True
+                qemu_command += incoming_val
             elif migration_mode == "unix":
                 self.migration_file = os.path.join(data_dir.get_tmp_dir(),
                                                    "migration-unix-%s" %
                                                    self.instance)
-                qemu_command += " -incoming unix:%s" % self.migration_file
+                incoming_val = " -incoming unix:%s" % self.migration_file
+                if Flags.INCOMING_DEFER in self.devices.caps:
+                    incoming_val = ' -incoming defer'
+                    self.deferral_incoming = True
+                qemu_command += incoming_val
             elif migration_mode == "exec":
                 if migration_exec_cmd is None:
                     self.migration_port = utils_misc.find_free_port(5200, 5899)
@@ -4270,6 +4282,12 @@ class VM(virt_vm.BaseVM):
                         raise exceptions.TestError(msg)
 
             logging.info("Migrating to %s", uri)
+            if clone.deferral_incoming:
+                _uri = uri
+                if protocol == 'tcp':
+                    _uri = uri.split(':')
+                    _uri = ':[::]:'.join((_uri[0], _uri[-1]))
+                clone.monitor.migrate_incoming(_uri)
             self.monitor.migrate(uri)
 
             if mig_inner_funcs:
