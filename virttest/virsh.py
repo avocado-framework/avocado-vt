@@ -4650,3 +4650,134 @@ def nodedev_event(event=None, event_timeout=None, options="", **dargs):
     if event_timeout:
         cmd += " --timeout %s" % event_timeout
     return command(cmd, **dargs)
+
+
+def backup_begin(name, options="", **dargs):
+    """
+    Begin domain backup
+
+    :param name: name of domain
+    :param options: options of backup-begin command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "backup-begin %s %s" % (name, options)
+    return command(cmd, **dargs)
+
+
+def backup_dumpxml(name, **dargs):
+    """
+    Dump domain backup xml
+
+    :param name: name of domain
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "backup-dumpxml %s" % name
+    return command(cmd, **dargs)
+
+
+def checkpoint_create(name, options="", **dargs):
+    """
+    Create domain checkpoint (with xml input)
+
+    :param name: name of domain
+    :param options: options of checkpoint-create command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "checkpoint-create %s %s" % (name, options)
+    return command(cmd, **dargs)
+
+
+def checkpoint_create_as(name, options="", **dargs):
+    """
+    Create domain checkpoint (with options)
+
+    :param name: name of domain
+    :param options: options of checkpoint-create-as command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "checkpoint-create-as %s %s" % (name, options)
+    return command(cmd, **dargs)
+
+
+def checkpoint_edit(name, checkpoint, **dargs):
+    """
+    Edit domain checkpoint
+
+    :param name: name of domain
+    :param checkpoint: name of checkpoint
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "checkpoint-edit %s %s" % (name, checkpoint)
+    return command(cmd, **dargs)
+
+
+def checkpoint_info(name, checkpoint, **dargs):
+    """
+    Output basic information about the checkpoint
+
+    :param name: name of domain
+    :param checkpoint: name of checkpoint
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "checkpoint-info %s %s" % (name, checkpoint)
+    return command(cmd, **dargs)
+
+
+def checkpoint_list(name, options="", **dargs):
+    """
+    List domain's checkpoint(s)
+
+    :param name: name of domain
+    :param options: options of checkpoint-list command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "checkpoint-list %s %s" % (name, options)
+    return command(cmd, **dargs)
+
+
+def checkpoint_dumpxml(name, checkpoint, options="", **dargs):
+    """
+    Dump domain checkpoint xml
+
+    :param name: name of domain
+    :param checkpoint: name of checkpoint
+    :param options: options of checkpoint-dumpxml command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "checkpoint-dumpxml %s %s %s" % (name, checkpoint, options)
+    return command(cmd, **dargs)
+
+
+def checkpoint_parent(name, checkpoint, **dargs):
+    """
+    Output the name of the parent checkpoint
+
+    :param name: name of domain
+    :param checkpoint: name of checkpoint
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "checkpoint-parent %s %s" % (name, checkpoint)
+    return command(cmd, **dargs)
+
+
+def checkpoint_delete(name, checkpoint, options="", **dargs):
+    """
+    Delete domain checkpoint
+
+    :param name: name of domain
+    :param checkpoint: name of checkpoint
+    :param options: options of checkpoint-delete command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "checkpoint-delete %s %s %s" % (name, checkpoint, options)
+    return command(cmd, **dargs)
