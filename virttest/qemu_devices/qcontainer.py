@@ -264,6 +264,9 @@ class DevContainer(object):
         # -smp dies=?
         if ver in VersionInterval(self.SMP_DIES_VERSION_SCOPE):
             self.caps.set_flag(Flags.SMP_DIES)
+        # -incoming defer
+        if self.has_option('incoming defer'):
+            self.caps.set_flag(Flags.INCOMING_DEFER)
 
     def __getitem__(self, item):
         """
