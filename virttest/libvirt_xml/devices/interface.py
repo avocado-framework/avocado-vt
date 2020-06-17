@@ -15,7 +15,7 @@ class Interface(base.TypedDeviceBase):
     __slots__ = ('source', 'hostdev_address', 'managed', 'mac_address',
                  'bandwidth', 'model', 'coalesce', 'link_state', 'target', 'driver',
                  'address', 'boot', 'rom', 'mtu', 'filterref', 'backend',
-                 'virtualport_type', 'alias', "ips", "teaming")
+                 'virtualport_type', 'alias', "ips", "teaming", "vlan")
 
     def __init__(self, type_name, virsh_instance=base.base.virsh):
         super(Interface, self).__init__(device_tag='interface',
@@ -122,6 +122,12 @@ class Interface(base.TypedDeviceBase):
                                  forbidden=None,
                                  parent_xpath='/',
                                  tag_name='teaming')
+        accessors.XMLElementNest("vlan", self,
+                                 parent_xpath='/',
+                                 tag_name='vlan',
+                                 subclass=self.Vlan,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
 
     # For convenience
     Address = librarian.get('address')
@@ -185,6 +191,19 @@ class Interface(base.TypedDeviceBase):
             setattr(new_one, key, value)
         return new_one
 
+    def new_vlan(self, **dargs):
+        """
+        This defines a new element vlan in the interface xml.
+
+        :param dargs: a dict with keys as "trunk" and "tags",
+        like {'trunk': 'yes', 'tags': [{'id': '42'}, {'id': '123', 'nativeMode': 'untagged'}]}
+        :Return: a new vlan instance from dargs
+        """
+        new_one = self.Vlan(virsh_instance=self.virsh)
+        for key, value in list(dargs.items()):
+            setattr(new_one, key, value)
+        return new_one
+
     class Bandwidth(base.base.LibvirtXMLBase):
 
         """
@@ -232,3 +251,53 @@ class Interface(base.TypedDeviceBase):
                                      tag_name="guest")
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<driver/>'
+
+    class Vlan(base.base.LibvirtXMLBase):
+
+        """
+        Interface vlan xml class.
+
+        Properties:
+
+        trunk:
+            attribute.
+        tags:
+            list. tags element dict list
+         """
+        __slots__ = ("trunk", "tags")
+
+        def __init__(self, virsh_instance=base.base.virsh):
+            accessors.XMLAttribute(property_name="trunk",
+                                   libvirtxml=self,
+                                   forbidden=None,
+                                   parent_xpath='/',
+                                   tag_name='vlan',
+                                   attribute='trunk')
+            accessors.XMLElementList(property_name='tags',
+                                     libvirtxml=self,
+                                     parent_xpath='/',
+                                     marshal_from=self.marshal_from_tag,
+                                     marshal_to=self.marshal_to_tag)
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            self.xml = '<vlan/>'
+
+        @staticmethod
+        def marshal_from_tag(item, index, libvirtxml):
+            """Convert a dictionary into a tag + attributes"""
+            del index  # not used
+            del libvirtxml  # not used
+            if not isinstance(item, dict):
+                raise xcepts.LibvirtXMLError("Expected a dictionary of tag "
+                                             "attributes, not a %s"
+                                             % str(item))
+                # return copy of dict, not reference
+            return ('tag', dict(item))
+
+        @staticmethod
+        def marshal_to_tag(tag, attr_dict, index, libvirtxml):
+            """Convert a tag + attributes into a dictionary"""
+            del index  # not used
+            del libvirtxml  # not used
+            if tag != 'tag':
+                return None  # skip this one
+            return dict(attr_dict)  # return copy of dict, not reference@
