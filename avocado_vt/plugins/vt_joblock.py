@@ -11,20 +11,8 @@ from avocado.core.settings import settings
 from avocado.utils.process import pid_exists
 from avocado.utils.stacktrace import log_exc_info
 
-try:
-    try:
-        # JobPre has become JobPreTests on newer avocado versions
-        from avocado.core.plugin_interfaces import JobPreTests as Pre
-        # JobPost has become JobPostTests on newer avocado versions
-        from avocado.core.plugin_interfaces import JobPostTests as Post
-    # Avocado's plugin interface module has changed location. Let's keep
-    # compatibility with older for at least a new LTS release
-    except ImportError:
-        from avocado.core.plugin_interfaces import JobPre as Pre
-        from avocado.core.plugin_interfaces import JobPost as Post
-except ImportError:
-    from avocado.plugins.base import JobPre as Pre
-    from avocado.plugins.base import JobPost as Post
+from avocado.core.plugin_interfaces import JobPreTests as Pre
+from avocado.core.plugin_interfaces import JobPostTests as Post
 
 from ..test import VirtTest
 

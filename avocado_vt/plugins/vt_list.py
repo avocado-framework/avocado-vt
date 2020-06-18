@@ -21,13 +21,7 @@ import sys
 
 from avocado.core.loader import loader
 from avocado.core.settings import settings
-
-# Avocado's plugin interface module has changed location. Let's keep
-# compatibility with old for at, least, a new LTS release
-try:
-    from avocado.core.plugin_interfaces import CLI
-except ImportError:
-    from avocado.plugins.base import CLI    # pylint: disable=E0401,E0611
+from avocado.core.plugin_interfaces import CLI
 
 from .vt import add_basic_vt_options, add_qemu_bin_vt_option
 from ..loader import VirtTestLoader
