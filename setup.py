@@ -91,6 +91,9 @@ if __name__ == "__main__":
         requirements.append("urllib3<=1.24.3")
         requirements.append("stevedore>=1.8.0,<=1.10.0")
         requirements.append("avocado-framework>=68.0,<70.0")
+        # We need gcc python2-devel redhat-rpm-config to have
+        # python-passfd installed successfully
+        requirements.append("python-passfd")
 
     setup(name='avocado-framework-plugin-vt',
           version=VERSION,

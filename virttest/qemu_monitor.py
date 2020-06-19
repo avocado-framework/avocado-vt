@@ -13,6 +13,7 @@ import select
 import socket
 import threading
 import time
+import sys
 
 import six
 
@@ -22,12 +23,22 @@ except ImportError:
     logging.warning("Could not import json module. "
                     "QMP monitor functionality disabled.")
 
-from . import passfd_setup
 from . import utils_misc
 from . import cartesian_config
 from . import data_dir
 
 from virttest.qemu_capabilities import Flags
+
+if sys.version_info[0] >= 3:
+    import array
+
+    def sendmsg(sock, cmd, fd):
+        return sock.sendmsg([b"%s\n" % cmd.encode()], [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array("i", [fd]))])
+else:
+    import passfd
+
+    def sendmsg(sock, cmd, fd):
+        return passfd.sendfd(sock, fd, b"%s\n" % cmd.encode())
 
 
 class MonitorError(Exception):
@@ -273,7 +284,6 @@ class Monitor(object):
         self.monitor_params = monitor_params
         self._lock = threading.RLock()
         self._log_lock = threading.RLock()
-        self._passfd = None
         self._supported_cmds = []
         self.debug_log = False
         vm_pid = vm.get_pid()
@@ -906,11 +916,9 @@ class HumanMonitor(Monitor):
             # Read any data that might be available
             self._recvall()
             if fd is not None:
-                if self._passfd is None:
-                    self._passfd = passfd_setup.import_passfd()
-                # If command includes a file descriptor, use passfd module
-                self._passfd.sendfd(self._socket, fd, b"%s\n" % cmd.encode())
-                self._log_lines(cmd)
+                # If command includes a file descriptor, use sendmsg
+                sendmsg(self._socket, cmd, fd)
+                self._log_lines(str(cmd))
             else:
                 # Send command
                 if debug:
@@ -1942,11 +1950,8 @@ class QMPMonitor(Monitor):
             if debug:
                 logging.debug("Send command: %s" % cmdobj)
             if fd is not None:
-                if self._passfd is None:
-                    self._passfd = passfd_setup.import_passfd()
-                # If command includes a file descriptor, use passfd module
-                self._passfd.sendfd(
-                    self._socket, fd, json.dumps(cmdobj).encode() + b"\n")
+                # If command includes a file descriptor, use sendmsg
+                sendmsg(self._socket, json.dumps(cmdobj), fd)
                 self._log_lines(str(cmdobj))
             else:
                 self._send(json.dumps(cmdobj).encode() + b"\n")
