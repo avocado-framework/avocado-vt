@@ -431,7 +431,7 @@ class MigrationTest(object):
         :param params: the parameters dict
         :raise: test.fail if test is failed
         """
-        status_error = params.get("status_error")
+        status_error = "yes" == params.get("status_error", "no")
         err_msg = params.get("err_msg")
         if not result:
             raise exceptions.TestError("No migration result is returned.")
