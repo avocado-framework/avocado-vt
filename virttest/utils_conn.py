@@ -743,7 +743,11 @@ class TCPConnection(ConnectionBase):
                                             r"[\#\$]\s*$")
             libvirtd_service = utils_libvirtd.Libvirtd(session=session)
             if libvirt_version.version_compare(5, 6, 0, session):
+                session.cmd("systemctl stop libvirtd.socket")
+                libvirtd_service.stop()
                 session.cmd("systemctl stop libvirtd-tcp.socket")
+                session.cmd("systemctl daemon-reload")
+                session.cmd("systemctl start libvirtd.socket")
                 libvirtd_service.start()
             else:
                 libvirtd_service.restart()
@@ -828,7 +832,9 @@ class TCPConnection(ConnectionBase):
                 # Before start libvirtd-tcp.socket, user must stop libvirtd.
                 # After libvirtd-tcp.socket is started, user mustn't start
                 # libvirtd.
+                session.cmd("systemctl stop libvirtd.socket")
                 libvirtd_service.stop()
+                session.cmd("systemctl daemon-reload")
                 session.cmd("systemctl restart libvirtd-tcp.socket")
             else:
                 libvirtd_service.restart()
