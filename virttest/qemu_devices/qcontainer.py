@@ -2037,7 +2037,10 @@ class DevContainer(object):
                 if Flags.BLOCKDEV in self.caps:
                     if key == 'discard':
                         value = re.sub('on', 'unmap', re.sub('off', 'ignore', value))
-                    devices[-2].set_param(key, value)
+                    if key == 'cache-size':
+                        devices[-2].set_param(key, None)
+                    else:
+                        devices[-2].set_param(key, value)
                 devices[-1].set_param(key, value)
         if not use_device:
             if fmt and fmt.startswith('scsi-'):
@@ -2181,7 +2184,7 @@ class DevContainer(object):
 
         # all access information for the logical image
         image_access = storage.ImageAccessInfo.access_info_define_by_params(
-                                                         name, image_params)
+            name, image_params)
 
         image_filename = storage.get_image_filename(image_params, data_root)
         imgfmt = image_params.get("image_format")
@@ -2203,7 +2206,7 @@ class DevContainer(object):
                 "of '-drive' to keep compatibility", name)
             self.temporary_image_snapshots.add(image_filename)
             image_encryption = storage.ImageEncryption.encryption_define_by_params(
-                    sn, sn_params)
+                sn, sn_params)
             imgfmt = 'qcow2'
 
         return self.images_define_by_variables(name,
