@@ -161,6 +161,7 @@ def get_image_filename(params, root_dir, basename=False):
     enable_gluster = params.get("enable_gluster") == "yes"
     enable_ceph = params.get("enable_ceph") == "yes"
     enable_iscsi = params.get("enable_iscsi") == "yes"
+    enable_nvme = params.get("enable_nvme") == "yes"
     image_name = params.get("image_name")
     storage_type = params.get("storage_type")
     if image_name:
@@ -636,11 +637,7 @@ class QemuImg(object):
         self.image_blkdebug_filename = get_image_blkdebug_filename(params,
                                                                    root_dir)
         self.remote_keywords = params.get("remote_image",
-<<<<<<< HEAD
-                                          "gluster iscsi rbd nbd").split()
-=======
-                                          "gluster iscsi rbd nvme").split()
->>>>>>> storage: Support nvme storage backend
+                                          "gluster iscsi rbd nbd nvme").split()
         self.encryption_config = ImageEncryption.encryption_define_by_params(
             tag, params)
         image_chain = params.get("image_chain")
