@@ -237,6 +237,73 @@ def handle_prompts(session, username, password, prompt, timeout=10,
     return output
 
 
+def handle_v2v_prompts(session, username, password, timeout=10,
+                       debug=False, input_line=None, interval=1.0):
+    """
+    Connect to a virt-v2v conversion session.
+
+    Wait for questions and provide answers.  If timeout expires while
+    waiting for output from the child (e.g. a password prompt or
+    a shell prompt) -- fail.
+
+    :param session: The virt-v2v session instance to operate on
+    :param username: The username to send in reply to a login prompt
+    :param password: The password to send in reply to a password prompt
+    :param timeout: The maximal time duration (in seconds) to wait for each
+            step of the login procedure (i.e. the "Are you sure" prompt, the
+            password prompt, the shell prompt, etc)
+    :param input_line: The string of custom input when certain question appears
+    :param interval: Seconds to wait until start reading output again
+    :raise LoginTimeoutError: If timeout expires
+    :raise LoginProcessTerminatedError: If the client terminates during login
+    :raise LoginError: If some other error occurs
+    :return: If connect succeed return the output text to script for further
+             debug.
+    """
+
+    output = ""
+    while True:
+        time.sleep(interval)
+        if not session.is_alive():
+            if session.get_status() == 0:
+                break
+        try:
+            match, text = session.read_until_last_line_matches(
+                [r"[Ee]nter.*username",
+                 r"[Ee]nter.*password",
+                 r"[Ee]nter.*authentication name",
+                 r"Enter a number between 1 and 2",
+                 r"Enter key or passphrase"],
+                timeout=timeout, internal_timeout=0.5)
+            output += text
+            if match == 1:  # "password:"
+                if debug:
+                    logging.debug("Got password prompt, sending '%s'",
+                                  password)
+                session.sendline(password)
+                continue
+            elif match in [0, 2]:  # "login:"
+                if debug:
+                    logging.debug("Got username prompt; sending '%s'",
+                                  username)
+                session.sendline(username)
+                continue
+            elif match in [3, 4]:  # Wait for custom input
+                if input_line:
+                    logging.debug("Got console '%s', send input list %s", match, input_line)
+                    session.sendline(input_line)
+                else:
+                    logging.warn('No input content provided, send empty line')
+                    session.sendline()
+                break
+        except aexpect.ExpectTimeoutError as e:
+            raise LoginTimeoutError(e.output)
+        except aexpect.ExpectProcessTerminatedError as e:
+            raise LoginProcessTerminatedError(e.status, e.output)
+
+    return output
+
+
 def remote_login(client, host, port, username, password, prompt, linesep="\n",
                  log_filename=None, timeout=10, interface=None, identity_file=None,
                  status_test_command="echo $?", verbose=False, bind_ip=None,
