@@ -1387,6 +1387,17 @@ class HumanMonitor(Monitor):
         """
         return self.cmd("migrate_set_speed %s" % value)
 
+    def migrate_incoming(self, uri):
+        """
+        Start an incoming migration, the qemu must have been started
+        with -incoming defer.
+
+        :param uri: The Uniform Resource Identifier identifying the
+                    source or address to listen on.
+        :type uri: str
+        """
+        return self.cmd("migrate_incoming %s" % uri)
+
     def migrate_set_downtime(self, value):
         """
         Set maximum tolerated downtime (in seconds) for migration.
@@ -2319,6 +2330,17 @@ class QMPMonitor(Monitor):
         value = cartesian_config.convert_data_size(value, "M")
         args = {"value": value}
         return self.cmd("migrate_set_speed", args)
+
+    def migrate_incoming(self, uri):
+        """
+        Start an incoming migration, the qemu must have been started
+        with -incoming defer.
+
+        :param uri: The Uniform Resource Identifier identifying the
+                    source or address to listen on.
+        :type uri: str
+        """
+        return self.cmd("migrate-incoming", {"uri": uri})
 
     def set_link(self, name, up):
         """
