@@ -3433,6 +3433,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
     iface_alias = iface_dict.get('alias')
     iface_teaming = iface_dict.get('teaming')
     iface_virtualport_type = iface_dict.get('virtualport_type')
+    iface_filter_parameters = iface_dict.get('filter_parameters')
     del_addr = iface_dict.get('del_addr')
     del_rom = iface_dict.get('del_rom')
     del_filter = iface_dict.get('del_filter')
@@ -3467,7 +3468,10 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
     if del_filter:
         iface.del_filterref()
     if iface_filter:
-        iface.filterref = iface.new_filterref(name=iface_filter)
+        if iface_filter_parameters:
+            iface.filterref = iface.new_filterref(name=iface_filter, parameters=iface_filter_parameters)
+        else:
+            iface.filterref = iface.new_filterref(name=iface_filter)
     if boot_order:
         iface.boot = boot_order
     if iface_backend:
