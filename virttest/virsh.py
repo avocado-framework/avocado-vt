@@ -3199,14 +3199,30 @@ def cpu_compare(xml_file, **dargs):
 
 def hypervisor_cpu_compare(xml_file, options="", **dargs):
     """
-    Compare CPU provided by hypervisor on the host with a CPU described by an XML file
+    Compare CPU provided by hypervisor on the host with a CPU
+    described by an XML file
 
     :param xml_file: file containing an XML CPU description
     :param options: extra options passed to virsh command
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
-    return command("hypervisor-cpu-compare %s %s" % (xml_file, options), **dargs)
+    return command("hypervisor-cpu-compare %s %s" % (xml_file, options),
+                   **dargs)
+
+
+def hypervisor_cpu_baseline(xml_file, options="", **dargs):
+    """
+    Compute baseline CPU for a set of given CPUs with the CPU the hypervisor
+    is able to provide on the host
+
+    :param xml_file: file containing an XML CPU description.
+    :param options: extra options passed to virsh command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult instance
+    """
+    return command("hypervisor-cpu-baseline %s %s" % (xml_file, options),
+                   **dargs)
 
 
 def cpu_baseline(xml_file, **dargs):
