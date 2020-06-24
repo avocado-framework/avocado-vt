@@ -533,7 +533,7 @@ class Disk(base.TypedDeviceBase):
                 string, attribute of backingStore/source tag
             """
 
-            __slots__ = ('dev', 'protocol', 'name', 'host', 'file')
+            __slots__ = ('dev', 'protocol', 'name', 'host', 'file', 'auth')
 
             def __init__(self, virsh_instance=base.base.virsh):
                 accessors.XMLAttribute('dev', self,
@@ -555,6 +555,12 @@ class Disk(base.TypedDeviceBase):
                                        parent_xpath='/',
                                        tag_name='source',
                                        attribute='file')
+                accessors.XMLElementNest('auth', self,
+                                         parent_xpath='/',
+                                         tag_name='auth',
+                                         subclass=Disk.Auth,
+                                         subclass_dargs={
+                                            'virsh_instance': virsh_instance})
 
                 super(self.__class__, self).__init__(virsh_instance=virsh_instance)
                 self.xml = '<source/>'
