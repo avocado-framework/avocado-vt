@@ -1930,6 +1930,8 @@ class DevContainer(object):
                 protocol_cls = qdevices.QBlockdevProtocolGluster
             elif re.match(r'nbd(\+\w+)?://', filename):
                 protocol_cls = qdevices.QBlockdevProtocolNBD
+            elif filename.startswith('nvme:'):
+                protocol_cls = qdevices.QBlockdevProtocolNVMe
             elif fmt in ('scsi-generic', 'scsi-block'):
                 protocol_cls = qdevices.QBlockdevProtocolHostDevice
             elif blkdebug is not None:
@@ -1941,6 +1943,8 @@ class DevContainer(object):
                 format_cls = qdevices.QBlockdevFormatRaw
             elif imgfmt == 'luks':
                 format_cls = qdevices.QBlockdevFormatLuks
+            elif imgfmt == 'nvme':
+                format_cls = qdevices.QBlockdevFormatRaw
             elif imgfmt is None:
                 # use RAW type as the default
                 format_cls = qdevices.QBlockdevFormatRaw
@@ -2014,6 +2018,9 @@ class DevContainer(object):
         # More info from qemu commit 91a097e74.
         if not filename:
             cache = None
+        if filename.startswith('nvme://'):
+            # NVMe controller doesn't support write cache configuration
+            cache = 'writethrough'
         if Flags.BLOCKDEV in self.caps:
             if filename:
                 file_opts = qemu_storage.filename_to_file_opts(filename)
