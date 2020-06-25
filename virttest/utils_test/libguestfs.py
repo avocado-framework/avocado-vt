@@ -10,7 +10,6 @@ from .. import utils_net, xml_utils
 from .. import utils_libguestfs as lgf
 from .. import qemu_storage
 from ..libvirt_xml import vm_xml, xcepts
-from ..compat_52lts import results_stdout_52lts
 
 
 class VTError(Exception):
@@ -387,7 +386,7 @@ class VirtTools(object):
         if result.exit_status:
             raise exceptions.TestSkipError("Cannot get primary disk"
                                            " filesystem information!")
-        fs_info = results_stdout_52lts(result).strip().splitlines()
+        fs_info = result.stdout_text.strip().splitlines()
         if len(fs_info) <= 1:
             raise exceptions.TestSkipError("No disk filesystem information!")
         try:
@@ -473,7 +472,7 @@ class VirtTools(object):
             return sys_info
         # Analyse output to get information
         try:
-            xmltreefile = xml_utils.XMLTreeFile(results_stdout_52lts(result))
+            xmltreefile = xml_utils.XMLTreeFile(result.stdout_text)
             os_root = xmltreefile.find("operatingsystem")
             if os_root is None:
                 raise VTXMLParseError("operatingsystem", os_root)
@@ -536,7 +535,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         Get root filesystem w/ guestfish
         """
         getroot_result = self.inspect_os()
-        roots_list = results_stdout_52lts(getroot_result).splitlines()
+        roots_list = getroot_result.stdout_text.splitlines()
         if getroot_result.exit_status or not len(roots_list):
             logging.error("Get root failed:%s", getroot_result)
             return (False, getroot_result)
@@ -557,7 +556,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
                         'fedora': "Fedora"}
         for key in release_type:
             if re.search(release_type[key],
-                         results_stdout_52lts(release_result)):
+                         release_result.stdout_text):
                 return (True, key)
 
     def write_file(self, path, content):
@@ -580,7 +579,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         if list_result.exit_status:
             logging.error("List partition info failed:%s", list_result)
             return (False, list_result)
-        list_lines = results_stdout_52lts(list_result.stdout).splitlines()
+        list_lines = list_result.stdout_text.splitlines()
         # This dict is a struct like this: {key:{a dict}, key:{a dict}}
         partitions = {}
         # This dict is a struct of normal dict, for temp value of a partition
@@ -767,14 +766,14 @@ class GuestfishTools(lgf.GuestfishPersistent):
             num = partition.get("num")
             mbr_id_result = self.part_get_mbr_id(device, num)
             if mbr_id_result.exit_status == 0:
-                return (True, results_stdout_52lts(mbr_id_result).strip())
+                return (True, mbr_id_result.stdout_text.strip())
         return (False, partitions)
 
     def get_part_type(self, device="/dev/sda"):
         part_type_result = self.part_get_parttype(device)
         if part_type_result.exit_status:
             return (False, part_type_result)
-        return (True, results_stdout_52lts(part_type_result).strip())
+        return (True, part_type_result.stdout_text.strip())
 
     def get_md5(self, path):
         """
@@ -785,7 +784,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         if md5_result.exit_status:
             logging.error("Check %s's md5 failed:%s", path, md5_result)
             return (False, md5_result)
-        return (True, results_stdout_52lts(md5_result).strip())
+        return (True, md5_result.stdout_text.strip())
 
     def reset_interface(self, iface_mac):
         """

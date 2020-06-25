@@ -9,6 +9,7 @@ try:
 except ImportError:
     import ConfigParser
 
+from avocado.utils import astring
 from avocado.utils import process
 from avocado.utils import genio
 from avocado.utils import crypto
@@ -19,7 +20,6 @@ from six.moves import urllib
 from six import string_types
 
 from virttest import data_dir
-from virttest.compat_52lts import decode_to_text
 
 
 class ConfigLoader:
@@ -488,7 +488,7 @@ def download_file(asset_info, interactive=False, force=False):
         try:
             logging.info("Verifying expected SHA1 sum from %s", sha1_url)
             sha1_file = urllib.request.urlopen(sha1_url)
-            sha1_contents = decode_to_text(sha1_file.read())
+            sha1_contents = astring.to_text(sha1_file.read())
             sha1 = sha1_contents.split(" ")[0]
             logging.info("Expected SHA1 sum: %s", sha1)
         except Exception as e:

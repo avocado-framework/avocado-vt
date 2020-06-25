@@ -39,7 +39,6 @@ from six.moves import urllib
 from virttest import propcan
 from virttest import remote
 from virttest import utils_misc
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 # list of symbol names NOT to wrap as Virsh class methods
@@ -230,8 +229,6 @@ class VirshSession(aexpect.ShellSession):
         stderr = ''  # no way to retrieve this separately
         result = process.CmdResult(cmd, stdout, stderr, exit_status)
 
-        result.stdout = results_stdout_52lts(result)
-        result.stderr = results_stderr_52lts(result)
         if not ignore_status and exit_status:
             raise process.CmdError(cmd, result,
                                    "Virsh Command returned non-zero exit status")
@@ -698,14 +695,12 @@ def command(cmd, **dargs):
                           shell=True)
         # Mark return as not coming from persistent virsh session
         ret.from_session_id = None
-        ret.stdout = results_stdout_52lts(ret)
-        ret.stderr = results_stderr_52lts(ret)
 
     # Always log debug info, if persistent session or not
     if debug:
         logging.debug("status: %s", ret.exit_status)
-        logging.debug("stdout: %s", ret.stdout.strip())
-        logging.debug("stderr: %s", ret.stderr.strip())
+        logging.debug("stdout: %s", ret.stdout_text.strip())
+        logging.debug("stderr: %s", ret.stderr_text.strip())
 
     # Return CmdResult instance when ignore_status is True
     return ret
@@ -905,7 +900,7 @@ def canonical_uri(option='', **dargs):
     :return: standard output from command
     """
     result = command("uri %s" % option, **dargs)
-    return results_stdout_52lts(result).strip()
+    return result.stdout_text.strip()
 
 
 def hostname(option='', **dargs):
@@ -917,7 +912,7 @@ def hostname(option='', **dargs):
     :return: standard output from command
     """
     result = command("hostname %s" % option, **dargs)
-    return results_stdout_52lts(result).strip()
+    return result.stdout_text.strip()
 
 
 def version(option='', **dargs):
@@ -1168,7 +1163,7 @@ def dumpxml(name, extra="", to_file="", **dargs):
     result = command(cmd, **dargs)
     if to_file:
         result_file = open(to_file, 'w')
-        result_file.write(result.stdout.strip())
+        result_file.write(result.stdout_text.strip())
         result_file.close()
     return result
 
@@ -1300,7 +1295,7 @@ def is_dead(name, **dargs):
     """
     dargs['ignore_status'] = False
     try:
-        state = results_stdout_52lts(domstate(name, **dargs)).strip()
+        state = domstate(name, **dargs).stdout_text.strip()
     except process.CmdError:
         return True
     if state not in ('running', 'idle', 'paused', 'in shutdown', 'shut off',
@@ -1845,7 +1840,7 @@ def net_state_dict(only_names=False, virsh_instance=None, **dargs):
     else:
         net_list_result = net_list("--all", **dargs)
     # If command failed, exception would be raised here
-    netlist = results_stdout_52lts(net_list_result).strip().splitlines()
+    netlist = net_list_result.stdout_text.strip().splitlines()
     # First two lines contain table header followed by entries
     # for each network on the host, such as:
     #
@@ -2168,7 +2163,7 @@ def pool_state_dict(only_names=False, **dargs):
     dargs['ignore_status'] = False  # force problem detection
     pool_list_result = pool_list("--all", **dargs)
     # If command failed, exception would be raised here
-    poollist = results_stdout_52lts(pool_list_result).strip().splitlines()
+    poollist = pool_list_result.stdout_text.strip().splitlines()
     # First two lines contain table header followed by entries
     # for each pool on the host, such as:
     #
@@ -2349,7 +2344,7 @@ def pool_dumpxml(name, extra="", to_file="", **dargs):
     if result.exit_status:
         raise process.CmdError(cmd, result,
                                "Virsh dumpxml returned non-zero exit status")
-    return results_stdout_52lts(result).strip()
+    return result.stdout_text.strip()
 
 
 def pool_define(xml_path, **dargs):
@@ -2605,7 +2600,7 @@ def capabilities(option='', to_file=None, **dargs):
         result_file.write(cmd_result.stdout.strip())
         result_file.close()
 
-    return results_stdout_52lts(cmd_result).strip()
+    return cmd_result.stdout_text.strip()
 
 
 def nodecpustats(option='', **dargs):
@@ -2699,7 +2694,7 @@ def help_command_only(options='', cache=False, **dargs):
         VIRSH_COMMAND_CACHE = []
         regx_command_word = re.compile(r"\s+([a-z0-9-]+)\s+")
         result = help(options, **dargs)
-        for line in results_stdout_52lts(result).strip().splitlines():
+        for line in result.stdout_text.strip().splitlines():
             # Get rid of 'keyword' line
             if line.find("keyword") != -1:
                 continue
@@ -2727,7 +2722,7 @@ def help_command_group(options='', cache=False, **dargs):
         VIRSH_COMMAND_GROUP_CACHE = []
         regx_group_word = re.compile(r"[\']([a-zA-Z0-9]+)[\']")
         result = help(options, **dargs)
-        for line in results_stdout_52lts(result).strip().splitlines():
+        for line in result.stdout_text.strip().splitlines():
             # 'keyword' only exists in group line.
             if line.find("keyword") != -1:
                 mojb_group_word = regx_group_word.search(line)
@@ -2762,7 +2757,7 @@ def has_command_help_match(virsh_cmd, regex, **dargs):
     :return: re match object
     """
     result = help(virsh_cmd, **dargs)
-    command_help_output = results_stdout_52lts(result).strip()
+    command_help_output = result.stdout_text.strip()
     return re.search(regex, command_help_output)
 
 
@@ -2977,7 +2972,7 @@ def snapshot_list(name, options=None, **dargs):
             cmd, sc_output, "Failed to get list of snapshots")
 
     data = re.findall("\S* *\d*-\d*-\d* \d*:\d*:\d* [+-]\d* \w*",
-                      results_stdout_52lts(sc_output))
+                      sc_output.stdout_text)
     for rec in data:
         if not rec:
             continue
@@ -3031,7 +3026,7 @@ def snapshot_info(name, snapshot, **dargs):
 
     for val in values:
         data = re.search("(?<=%s:) *(\w.*|\w*)" % val,
-                         results_stdout_52lts(sc_output))
+                         sc_output.stdout_text)
         if data is None:
             continue
         ret[val] = data.group(0).strip()
@@ -3569,7 +3564,7 @@ def iface_dumpxml(iface, extra="", to_file="", **dargs):
     if result.exit_status:
         raise process.CmdError(cmd, result,
                                "Dumpxml returned non-zero exit status")
-    return results_stdout_52lts(result).strip()
+    return result.stdout_text.strip()
 
 
 def iface_name(mac, **dargs):

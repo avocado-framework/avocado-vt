@@ -10,10 +10,9 @@ try:
 except ImportError:
     import ConfigParser
 
+from avocado.utils import astring
 from avocado.utils import path
 from avocado.utils import download
-
-from virttest.compat_52lts import decode_to_text
 
 from six.moves import urllib
 
@@ -522,7 +521,7 @@ class KojiClient(object):
                                        pkg.user,
                                        pkg.task)
         index_parser = KojiDirIndexParser()
-        index_parser.feed(decode_to_text(urllib.request.urlopen(index_url).read()))
+        index_parser.feed(astring.to_text(urllib.request.urlopen(index_url).read()))
 
         if pkg.subpackages:
             for p in pkg.subpackages:

@@ -14,8 +14,8 @@ import uuid
 
 from avocado.utils import path
 from avocado.utils import process
+from avocado.utils.astring import to_text
 from avocado.core import exceptions
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 
 from virttest.utils_test import libvirt
 from virttest.libvirt_xml import vm_xml
@@ -1225,9 +1225,6 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False):
     if cmd_only:
         return cmd
 
-    cmd_result.stdout = results_stdout_52lts(cmd_result)
-    cmd_result.stderr = results_stderr_52lts(cmd_result)
-
     return cmd_result
 
 
@@ -1373,15 +1370,11 @@ def check_exit_status(result, expect_error=False, error_flag='strict'):
     if not expect_error:
         if result.exit_status != 0:
             raise exceptions.TestFail(
-                decode_to_text(
-                    result.stderr,
-                    errors=error_flag))
+                to_text(result.stderr, errors=error_flag))
         else:
             logging.debug(
                 "Command output:\n%s",
-                decode_to_text(
-                    result.stdout,
-                    errors=error_flag).strip())
+                to_text(result.stdout, errors=error_flag).strip())
     elif expect_error and result.exit_status == 0:
         raise exceptions.TestFail("Run '%s' expect fail, but run "
                                   "successfully." % result.command)
@@ -1709,8 +1702,7 @@ def v2v_supported_option(opt_str):
     """
     cmd = 'virt-v2v --help'
     result = process.run(cmd, verbose=True, ignore_status=True)
-    result.stdout = results_stdout_52lts(result)
-    if re.search(r'%s' % opt_str, result.stdout):
+    if re.search(r'%s' % opt_str, result.stdout_text):
         return True
     return False
 

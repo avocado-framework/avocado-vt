@@ -5,7 +5,6 @@ http://libvirt.org/formatsecret.html
 
 from virttest.libvirt_xml import base, accessors
 from virttest.libvirt_xml import xcepts
-from virttest.compat_52lts import results_stdout_52lts
 
 
 class SecretXMLBase(base.LibvirtXMLBase):
@@ -98,7 +97,7 @@ class SecretXML(SecretXMLBase):
         """
         secret_xml = SecretXML(virsh_instance=virsh_instance)
         result = virsh_instance.secret_dumpxml(uuid)
-        secret_xml['xml'] = results_stdout_52lts(result).strip()
+        secret_xml['xml'] = result.stdout_text.strip()
 
         return secret_xml
 

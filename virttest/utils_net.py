@@ -35,7 +35,6 @@ from virttest import utils_selinux
 from virttest import utils_package
 
 from virttest.staging import utils_memory
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 from virttest.versionable_class import factory
 from virttest.utils_windows import virtio_win
 from virttest.utils_windows import system
@@ -1378,12 +1377,12 @@ def find_dnsmasq_listen_address():
     :return: List of ip where dnsmasq is listening.
     """
     cmd = "ps -Af | grep dnsmasq"
-    result = decode_to_text(process.system_output(cmd))
+    result = process.run(cmd).stdout_text
     return re.findall("--listen-address (.+?) ", result, re.MULTILINE)
 
 
 def local_runner(cmd, timeout=None, shell=False):
-    return results_stdout_52lts(process.run(cmd, verbose=False, timeout=timeout, shell=shell))
+    return process.run(cmd, verbose=False, timeout=timeout, shell=shell).stdout_text
 
 
 def local_runner_status(cmd, timeout=None, shell=False):
@@ -1793,7 +1792,7 @@ def create_network_script(iface_name, mac_addr, boot_proto, net_mask,
     else:
         distro = platform.platform().lower()
         if "ubuntu" in distro:
-            if iface_name in decode_to_text(process.system_output(cmd)).strip():
+            if iface_name in process.run(cmd).stdout_text.strip():
                 logging.error("network script file for %s already exists in "
                               "host %s", iface_name, script_file)
                 return
@@ -2357,7 +2356,7 @@ class IPv6Manager(propcan.PropCanBase):
         if result.exit_status:
             raise exceptions.TestSkipError("The '%s' destination is "
                                            "unreachable: %s", server_ipv6,
-                                           results_stderr_52lts(result))
+                                           result.stderr_text)
         else:
             logging.info("The '%s' destination is connectivity!", server_ipv6)
 
@@ -2380,7 +2379,7 @@ class IPv6Manager(propcan.PropCanBase):
         if result.exit_status:
             raise exceptions.TestFail("%s on local host:%s" %
                                       (test_fail_err,
-                                       results_stderr_52lts(result)))
+                                       result.stderr_text))
         else:
             logging.info("%s on the local host", flush_cmd_pass)
 
@@ -3551,7 +3550,7 @@ def get_correspond_ip(remote_ip):
     :param remote_ip: Remote ip
     :return: Local corespond IP.
     """
-    result = decode_to_text(process.system_output("ip route get %s" % (remote_ip)))
+    result = process.run("ip route get %s" % (remote_ip)).stdout_text
     local_ip = re.search("src (.+)", result)
     if local_ip is not None:
         local_ip = local_ip.groups()[0]
@@ -3858,7 +3857,7 @@ def get_default_gateway(iface_name=False, session=None):
             output = session.cmd_output(cmd).strip()
             logging.debug("Guest default gateway is %s" % output)
         else:
-            output = decode_to_text(process.system_output(cmd, shell=True).rstrip())
+            output = process.run(cmd, shell=True).stdout_text.rstrip()
     except (aexpect.ShellError, aexpect.ShellTimeoutError, process.CmdError):
         logging.error("Failed to get the default GateWay")
         return None
@@ -3881,7 +3880,7 @@ def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
                 utils_path.find_command("netstat")
             except utils_path.CmdNotFoundError as details:
                 raise exceptions.TestSkipError(details)
-            output = decode_to_text(process.system_output(cmd, shell=True))
+            output = process.run(cmd, shell=True).stdout_text
         else:
             if not runner(find_netstat_cmd):
                 raise exceptions.TestSkipError("Missing netstat command on "

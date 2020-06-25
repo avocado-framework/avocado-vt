@@ -58,7 +58,6 @@ from virttest import utils_package
 from virttest.utils_iptables import Iptables
 from virttest import data_dir
 from virttest.staging import utils_memory
-from virttest.compat_52lts import results_stdout_52lts, decode_to_text
 
 # Get back to importing submodules
 # This is essential for accessing these submodules directly from
@@ -371,8 +370,7 @@ def get_time(session, time_command, time_filter_re, time_format):
     elif re.findall("hwclock", time_command):
         loc = locale.getlocale(locale.LC_TIME)
         # Get and parse host time
-        host_time_out = results_stdout_52lts(
-            process.run(time_command, shell=True))
+        host_time_out = process.run(time_command, shell=True).stdout_text
         diff = host_time_out.split()[-2]
         host_time_out = " ".join(host_time_out.split()[:-2])
         try:
@@ -732,8 +730,8 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
                     return port.hostfile
 
     def run_host_cmd(host_cmd, timeout=720):
-        return decode_to_text(process.system_output(
-            host_cmd, shell=True, timeout=timeout))
+        return process.run(
+            host_cmd, shell=True, timeout=timeout).stdout_text
 
     def transfer_data(session, host_cmd, guest_cmd, n_time, timeout,
                       md5_check, action):
@@ -1379,8 +1377,7 @@ def run_autotest(vm, session, control_path, timeout,
         status_path = " ".join(status_paths)
 
         try:
-            output = decode_to_text(process.system_output("cat %s" % status_path
-                                                          ))
+            output = process.run("cat %s" % status_path).stdout_text
         except process.CmdError as e:
             logging.error("Error getting guest autotest status file: %s", e)
             return None
@@ -2024,7 +2021,7 @@ def get_date(session=None):
         if session:
             date_info = session.cmd_output(date_cmd).strip()
         else:
-            date_info = results_stdout_52lts(process.run(date_cmd)).strip()
+            date_info = process.run(date_cmd).stdout_text.strip()
         return date_info
     except (process.CmdError, aexpect.ShellError) as detail:
         raise exceptions.TestFail("Get date failed. %s " % detail)
@@ -2782,7 +2779,7 @@ class RemoteDiskManager(object):
             raise exceptions.TestError("Unsupported Disk Type %s" % disk_type)
 
         try:
-            output = results_stdout_52lts(self.runner.run(cmd))
+            output = self.runner.run(cmd).stdout_text
         except exceptions.CmdError as detail:
             logging.debug(output)
             raise exceptions.TestError("Get space failed: %s." % str(detail))
@@ -2823,18 +2820,18 @@ class RemoteDiskManager(object):
         """
         if is_login:
             discovery_cmd = "iscsiadm -m discovery -t sendtargets -p %s" % host
-            output = results_stdout_52lts(self.runner.run
-                                          (discovery_cmd, ignore_status=True))
+            output = self.runner.run(discovery_cmd,
+                                     ignore_status=True).stdout_text
             if target_name not in output:
                 raise exceptions.TestError("Discovery %s on %s failed."
                                            % (target_name, host))
             cmd = "iscsiadm --mode node --login --targetname %s" % target_name
-            output = results_stdout_52lts(self.runner.run(cmd))
+            output = self.runner.run(cmd).stdout_text
             if "successful" not in output:
                 raise exceptions.TestError("Login to %s failed." % target_name)
             else:
                 cmd = "iscsiadm -m session -P 3"
-                output = results_stdout_52lts(self.runner.run(cmd))
+                output = self.runner.run(cmd).stdout_text
                 pattern = r"Target:\s+%s.*?disk\s(\w+)\s+\S+\srunning" % target_name
                 device_name = re.findall(pattern, output, re.S)
                 try:
@@ -2847,8 +2844,8 @@ class RemoteDiskManager(object):
                 cmd = "iscsiadm --mode node --logout -T %s" % target_name
             else:
                 cmd = "iscsiadm --mode node --logout all"
-            output = results_stdout_52lts(self.runner.run
-                                          (cmd, ignore_status=True))
+            output = self.runner.run(cmd,
+                                     ignore_status=True).stdout_text
             if "successful" not in output:
                 logging.error("Logout to %s failed.", target_name)
 
@@ -2947,7 +2944,7 @@ def check_dest_vm_network(vm, vm_ip, remote_host, username, password,
         break
     if ping_failed:
         raise exceptions.TestFail("Failed to ping %s: %s"
-                                  % (vm.name, results_stdout_52lts(result)))
+                                  % (vm.name, result.stdout_text))
 
 
 class RemoteVMManager(object):
@@ -3026,12 +3023,12 @@ class RemoteVMManager(object):
                 continue
             else:
                 vm_net_connectivity = True
-                logging.info(results_stdout_52lts(result))
+                logging.info(result.stdout_text)
                 break
 
         if not vm_net_connectivity:
             raise exceptions.TestFail("Failed to ping %s: %s"
-                                      % (vm_ip, results_stdout_52lts(result)))
+                                      % (vm_ip, result.stdout_text))
 
     def run_command(self, vm_ip, command, vm_user="root", runner=None,
                     ignore_status=False):

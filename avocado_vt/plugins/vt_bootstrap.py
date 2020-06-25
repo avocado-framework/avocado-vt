@@ -28,7 +28,6 @@ except ImportError:
 from virttest import bootstrap
 from virttest import defaults
 from virttest.standalone_test import SUPPORTED_TEST_TYPES
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 class VTBootstrap(CLICmd):
@@ -117,14 +116,12 @@ class VTBootstrap(CLICmd):
             else:
                 logging.error('Bootstrap command failed')
                 logging.error('Command: %s', ce.command)
-                stderr = results_stderr_52lts(ce.result)
-                if stderr:
+                if ce.result.stderr_text:
                     logging.error('stderr output:')
-                    logging.error(stderr)
-                stdout = results_stdout_52lts(ce.result)
-                if stdout:
+                    logging.error(ce.result.stderr_text)
+                if ce.result.stdout_text:
                     logging.error('stdout output:')
-                    logging.error(stdout)
+                    logging.error(ce.result.stdout_text)
             sys.exit(1)
         except KeyboardInterrupt:
             logging.info('Bootstrap interrupted by user')

@@ -11,7 +11,6 @@ from avocado.utils import process
 from .. import data_dir
 from .. import libvirt_storage
 from ..libvirt_xml import base, xcepts, accessors
-from ..compat_52lts import results_stderr_52lts
 from virttest import element_tree as ET
 
 
@@ -323,7 +322,7 @@ class PoolXML(PoolXMLBase):
         if result.exit_status:
             logging.error("Define %s failed.\n"
                           "Detail: %s.", self.name,
-                          results_stderr_52lts(result))
+                          result.stderr_text)
             return False
         return True
 

@@ -18,7 +18,6 @@ from . import cartesian_config
 from . import utils_selinux
 from . import defaults
 from . import arch
-from .compat_52lts import results_stdout_52lts
 
 
 LOG = logging.getLogger("avocado.app")
@@ -288,7 +287,7 @@ def sync_download_dir(interactive):
             if diff_result.exit_status != 0:
                 LOG.debug("%s result:\n %s",
                           diff_result.command,
-                          results_stdout_52lts(diff_result))
+                          diff_result.stdout_text)
                 answer = genio.ask('Download file "%s" differs from "%s". '
                                    'Overwrite?' % (dst_file, src_file),
                                    auto=not interactive)
@@ -604,7 +603,7 @@ def create_config_files(test_dir, shared_dir, interactive, t_type, step=None,
             if diff_result.exit_status != 0:
                 LOG.info("%s result:\n %s",
                          diff_result.command,
-                         results_stdout_52lts(diff_result))
+                         diff_result.stdout_text)
                 answer = genio.ask("Config file  %s differs from %s."
                                    "Overwrite?" % (dst_file, src_file),
                                    auto=force_update or not interactive)

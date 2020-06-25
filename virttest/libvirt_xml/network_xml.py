@@ -9,7 +9,6 @@ import six
 from virttest import xml_utils
 from virttest.libvirt_xml import base, xcepts, accessors
 from virttest.libvirt_xml.devices import librarian
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 class RangeList(list):
@@ -720,7 +719,7 @@ class NetworkXML(NetworkXMLBase):
         for net_name in networks:
             new_copy = new_netxml.copy()
             dump_result = virsh_instance.net_dumpxml(net_name)
-            new_copy.xml = results_stdout_52lts(dump_result).strip()
+            new_copy.xml = dump_result.stdout_text.strip()
             result[net_name] = new_copy
         return result
 
@@ -735,7 +734,7 @@ class NetworkXML(NetworkXMLBase):
         """
         netxml = NetworkXML(virsh_instance=virsh_instance)
         dump_result = virsh_instance.net_dumpxml(network_name, extra)
-        netxml['xml'] = results_stdout_52lts(dump_result).strip()
+        netxml['xml'] = dump_result.stdout_text.strip()
         return netxml
 
     @staticmethod
@@ -808,7 +807,7 @@ class NetworkXML(NetworkXMLBase):
             raise xcepts.LibvirtXMLError("Failed to undefine network %s.\n"
                                          "Detail: %s" %
                                          (self.name,
-                                          results_stderr_52lts(cmd_result)))
+                                          cmd_result.stderr_text))
 
     def define(self):
         """
@@ -819,7 +818,7 @@ class NetworkXML(NetworkXMLBase):
             raise xcepts.LibvirtXMLError("Failed to define network %s.\n"
                                          "Detail: %s" %
                                          (self.name,
-                                          results_stderr_52lts(cmd_result)))
+                                          cmd_result.stderr_text))
 
     def start(self):
         """
@@ -830,7 +829,7 @@ class NetworkXML(NetworkXMLBase):
             raise xcepts.LibvirtXMLError("Failed to start network %s.\n"
                                          "Detail: %s" %
                                          (self.name,
-                                          results_stderr_52lts(cmd_result)))
+                                          cmd_result.stderr_text))
 
     def sync(self, state=None):
         """

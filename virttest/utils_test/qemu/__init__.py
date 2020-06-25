@@ -33,7 +33,6 @@ from virttest import utils_misc
 from virttest import qemu_monitor
 from virttest.qemu_devices import qdevices
 from virttest.staging import utils_memory
-from virttest.compat_52lts import decode_to_text
 
 
 def guest_active(vm):

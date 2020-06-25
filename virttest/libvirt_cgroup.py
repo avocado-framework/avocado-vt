@@ -10,7 +10,6 @@ import re
 from avocado.utils import process
 
 from virttest import virsh
-from virttest.compat_52lts import results_stdout_52lts
 from virttest.staging import utils_cgroup
 
 VIRSH_BLKIOTUNE_OUTPUT_MAPPING = {"weight": "weight",
@@ -273,7 +272,7 @@ class CgroupTest(object):
             logging.error("There is no virsh cmd '%s'", virsh_cmd)
             return None
         result = func(vm_name, ignore_status=True)
-        output = results_stdout_52lts(result).strip()
+        output = result.stdout_text.strip()
         output_list = output.splitlines()
         output_dict = {}
         for output_line in output_list:

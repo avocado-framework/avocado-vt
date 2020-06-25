@@ -7,7 +7,6 @@ from avocado.core import exceptions
 
 from virttest import error_context
 from virttest import utils_test
-from virttest.compat_52lts import decode_to_text
 
 # command `grep --color` may have alias name `grep` in some systems,
 # so get explicit command 'grep' with path
@@ -22,8 +21,7 @@ def get_host_timezone():
     timezone_cmd = 'timedatectl | %s "Time zone"' % grep_binary
     timezone_pattern = '^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$'
     error_context.context("Get host's timezone", logging.info)
-    host_timezone = decode_to_text(
-        process.system_output(timezone_cmd, timeout=240, shell=True))
+    host_timezone = process.run(timezone_cmd, timeout=240, shell=True).stdout_text
     try:
         host_timezone_set = re.match(timezone_pattern, host_timezone).groups()
         return {"timezone_city": host_timezone_set[0],

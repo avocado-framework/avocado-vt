@@ -35,7 +35,6 @@ from avocado.utils import process
 from . import propcan
 from . import remote
 from . import utils_misc
-from .compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 # list of symbol names NOT to wrap as Virtadmin class methods
@@ -228,8 +227,6 @@ class VirtadminSession(aexpect.ShellSession):
         exit_status, stdout = self.cmd_status_output(cmd, timeout=timeout)
         stderr = ''  # no way to retrieve this separately
         result = process.CmdResult(cmd, stdout, stderr, exit_status)
-        result.stdout = results_stdout_52lts(result)
-        result.stderr = results_stderr_52lts(result)
         if not ignore_status and exit_status:
             raise process.CmdError(cmd, result,
                                    "Virtadmin Command returned non-zero exit status")
@@ -691,14 +688,12 @@ def command(cmd, **dargs):
                           shell=True)
         # Mark return as not coming from persistent virtadmin session
         ret.from_session_id = None
-        ret.stdout = results_stdout_52lts(ret)
-        ret.stderr = results_stderr_52lts(ret)
 
     # Always log debug info, if persistent session or not
     if debug:
         logging.debug("status: %s", ret.exit_status)
-        logging.debug("stdout: %s", ret.stdout.strip())
-        logging.debug("stderr: %s", ret.stderr.strip())
+        logging.debug("stdout: %s", ret.stdout_text.strip())
+        logging.debug("stderr: %s", ret.stderr_text.strip())
 
     # Return CmdResult instance when ignore_status is True
     return ret

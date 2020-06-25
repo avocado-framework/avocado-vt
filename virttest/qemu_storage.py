@@ -21,9 +21,6 @@ from virttest import virt_vm
 from virttest import storage
 from virttest import data_dir
 from virttest import error_context
-from virttest.compat_52lts import (results_stdout_52lts,
-                                   results_stderr_52lts,
-                                   decode_to_text)
 
 
 def filename_to_file_opts(filename):
@@ -336,7 +333,7 @@ class QemuImg(storage.QemuImg):
         self.image_cmd = utils_misc.get_qemu_img_binary(params)
         q_result = process.run(self.image_cmd + ' -h', ignore_status=True,
                                shell=True, verbose=False)
-        self.help_text = results_stdout_52lts(q_result)
+        self.help_text = q_result.stdout_text
         self.cap_force_share = '-U' in self.help_text
         self._cmd_formatter = _ParameterAssembler(self.qemu_img_parameters)
 
@@ -602,8 +599,6 @@ class QemuImg(storage.QemuImg):
                                        (self.image_filename, cmd_result))
         if self.encryption_config.key_secret:
             self.encryption_config.key_secret.save_to_file()
-        cmd_result.stdout = results_stdout_52lts(cmd_result)
-        cmd_result.stderr = results_stderr_52lts(cmd_result)
         return self.image_filename, cmd_result
 
     def convert(self, params, root_dir, cache_mode=None,
@@ -825,7 +820,7 @@ class QemuImg(storage.QemuImg):
         cmd = self.image_cmd
         cmd += " snapshot -l %s" % self.image_filename
 
-        return decode_to_text(process.system_output(cmd))
+        return process.run(cmd).stdout_text
 
     def snapshot_apply(self):
         """
@@ -909,7 +904,7 @@ class QemuImg(storage.QemuImg):
                                                      self.root_dir)
         if os.path.exists(image_filename) or self.is_remote_image():
             cmd += " %s --output=%s" % (image_filename, output)
-            output = decode_to_text(process.system_output(cmd, verbose=True))
+            output = process.run(cmd, verbose=True).stdout_text
         else:
             logging.debug("Image file %s not found", image_filename)
             output = None
@@ -972,7 +967,7 @@ class QemuImg(storage.QemuImg):
 
             if verbose:
                 logging.debug("Output from command: %s",
-                              results_stdout_52lts(cmd_result))
+                              cmd_result.stdout_text)
 
             if cmd_result.exit_status == 0:
                 logging.info("Compared images are equal")
@@ -981,8 +976,6 @@ class QemuImg(storage.QemuImg):
             else:
                 raise exceptions.TestError("Error in image comparison")
 
-            cmd_result.stdout = results_stdout_52lts(cmd_result)
-            cmd_result.stderr = results_stderr_52lts(cmd_result)
             return cmd_result
 
     def compare_to(self, target_image, source_cache_mode=None,
@@ -1052,7 +1045,7 @@ class QemuImg(storage.QemuImg):
         result = process.run(compare_cmd, ignore_status=True, shell=True)
 
         if verbose:
-            logging.debug("compare output:\n%s", results_stdout_52lts(result))
+            logging.debug("compare output:\n%s", result.stdout_text)
 
         return result
 
@@ -1134,10 +1127,10 @@ class QemuImg(storage.QemuImg):
             # Error check, large chances of a non-fatal problem.
             # There are chances that bad data was skipped though
             if cmd_result.exit_status == 1:
-                stdout = results_stdout_52lts(cmd_result)
+                stdout = cmd_result.stdout_text
                 for e_line in stdout.splitlines():
                     logging.error("[stdout] %s", e_line)
-                stderr = results_stderr_52lts(cmd_result)
+                stderr = cmd_result.stderr_text
                 for e_line in stderr.splitlines():
                     logging.error("[stderr] %s", e_line)
                 chk = params.get("backup_image_on_check_error", "no")
@@ -1150,10 +1143,10 @@ class QemuImg(storage.QemuImg):
             # Exit status 2 is data corruption for sure,
             # so fail the test
             elif cmd_result.exit_status == 2:
-                stdout = results_stdout_52lts(cmd_result)
+                stdout = cmd_result.stdout_text
                 for e_line in stdout.splitlines():
                     logging.error("[stdout] %s", e_line)
-                stderr = results_stderr_52lts(cmd_result)
+                stderr = cmd_result.stderr_text
                 for e_line in stderr.splitlines():
                     logging.error("[stderr] %s", e_line)
                 chk = params.get("backup_image_on_check_error", "no")
@@ -1229,8 +1222,6 @@ class QemuImg(storage.QemuImg):
         cmd_list.append("-f %s %s" % (self.image_format, self.image_filename))
         logging.info("Amend image %s" % self.image_filename)
         cmd_result = process.run(" ".join(cmd_list), ignore_status=False)
-        cmd_result.stdout = results_stdout_52lts(cmd_result)
-        cmd_result.stderr = results_stderr_52lts(cmd_result)
         return cmd_result
 
     def resize(self, size, shrink=False, preallocation=None):
