@@ -108,6 +108,11 @@ class VirtTestLoader(loader.TestLoader):
         if isinstance(args, dict):
             args = argparse.Namespace(**args)
         super(VirtTestLoader, self).__init__(args, extra_params)
+        # Avocado has renamed "args" to "config" in 84ae9a5d61, lets
+        # keep making the old name available for compatibility with
+        # new and old releases
+        if hasattr(self, 'config'):
+            self.args = self.config
         self._fill_optional_args()
         if vt_extra_params:
             # We don't want to override the original args
