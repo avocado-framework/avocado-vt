@@ -742,16 +742,20 @@ def display_attributes(instance):
             logging.debug("    %s: %s", name, value)
 
 
-def get_full_pci_id(pci_id):
+def get_full_pci_id(pci_id, session=None):
     """
     Get full PCI ID of pci_id.
 
     :param pci_id: PCI ID of a device.
     """
+    func = process.getoutput
+    if session:
+        func = session.cmd_output
     cmd = "lspci -D | awk '/%s/ {print $1}'" % pci_id
     try:
-        return decode_to_text(process.system_output(cmd, shell=True))
-    except process.CmdError:
+        return func(cmd)
+    except Exception as info:
+        logging.error(info)
         return None
 
 
@@ -976,6 +980,18 @@ def check_exists(path, session=None):
     if session:
         return session.cmd_status("ls -l %s" % path) == 0
     return os.path.exists(path)
+
+
+def readlink(path, session=None):
+    """
+    wrapper method to symbolic link of given path in local/remote host/VM
+    :param path: path to get symbolic link
+    :param session: ShellSession object of VM/remote host
+    """
+    if session:
+        cmd = "readlink -f %s" % path
+        return session.cmd_output(cmd)
+    return os.readlink(path)
 
 
 def safe_rmdir(path, timeout=10, session=None):
