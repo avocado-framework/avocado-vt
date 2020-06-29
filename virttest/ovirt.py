@@ -176,6 +176,8 @@ class VMManager(virt_vm.BaseVM):
         """
         Return MAC address of a VM.
         """
+        if not self.instance:
+            self.update_instance()
         vnet_list = self.instance.nics_service().list()
         if net_name != '*':
             vnet_list = [vnet for vnet in vnet_list if vnet.name == net_name]
@@ -377,7 +379,9 @@ class VMManager(virt_vm.BaseVM):
         :param export_name: Export domain name.
         :param storage_name: Storage domain name.
         :param cluster_name: Cluster name.
+        :param timeout: timeout value
         """
+        begin_time = time.time()
         end_time = time.time() + timeout
         vm = self.lookup_by_storagedomains(export_name)
         sds_service = self.connection.system_service().storage_domains_service()
@@ -403,7 +407,8 @@ class VMManager(virt_vm.BaseVM):
             time.sleep(1)
         if not vm_down:
             raise WaitVMStateTimeoutError("DOWN", self.state())
-        logging.info('Import %s successfully', self.name)
+        logging.info('Import %s successfully(time lapse %ds)',
+                     self.name, time.time() - begin_time)
 
     def export_from_export_domain(self, export_name, timeout=300):
         """

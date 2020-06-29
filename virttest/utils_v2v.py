@@ -1181,11 +1181,11 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False):
         vpx_dc = None
     uri = uri_obj.get_uri(hostname, vpx_dc, esxi_host)
 
-    # Pre-process for v2v
-    _v2v_pre_cmd()
-
-    target_obj = Target(target, uri)
     try:
+        # Pre-process for v2v
+        _v2v_pre_cmd()
+
+        target_obj = Target(target, uri)
         # Return virt-v2v command line options based on 'target' and
         # 'hypervisor'
         options = target_obj.get_cmd_options(params)
@@ -1314,6 +1314,9 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
                 v2v_cmd)
     except Exception as e:
         logging.error("Start %s failed: %s", vm.name, e)
+        vm.delete()
+        if output_method != 'rhv_upload':
+            vm.delete_from_export_domain(export_name)
         return False
     return True
 
