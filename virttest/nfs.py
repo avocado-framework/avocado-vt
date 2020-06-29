@@ -13,9 +13,9 @@ from avocado.core import exceptions
 
 from virttest import utils_misc
 from virttest import test_setup
-from virttest.utils_iptables import Iptables
+from virttest import utils_iptables
 from virttest.utils_conn import SSHConnection
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
+from virttest.compat_52lts import results_stderr_52lts
 from virttest.compat_52lts import decode_to_text
 from virttest.staging import service
 
@@ -380,62 +380,53 @@ class NFSClient(object):
         """
         # Check firewall in host permit nfs service to mount from remote server
         try:
-            firewalld = service.Factory.create_service("firewalld")
-            if not firewalld.status():
-                firewalld.start()
-            firewall_cmd = "firewall-cmd --list-all | grep services:"
-            try:
-                ret = process.run(firewall_cmd, shell=True)
-                if not ret.exit_status:
-                    firewall_services = results_stdout_52lts(ret).split(':')[1].strip().split(' ')
-                    if 'nfs' not in firewall_services:
-                        service_cmd = "firewall-cmd --permanent --zone=public "
-                        service_cmd += "--add-service=nfs"
-                        ret = process.run(service_cmd, shell=True)
-                        if ret.exit_status:
-                            logging.error("nfs service not added in firewall: "
-                                          "%s", results_stdout_52lts(ret))
-                        else:
-                            logging.debug("nfs service added to firewall "
-                                          "sucessfully")
-                            firewalld.restart()
-                    else:
-                        logging.debug("nfs service already permitted by firewall")
-            except process.CmdError:
-                # For RHEL 6 based system firewall-cmd is not available
-                logging.debug("Using iptables to permit NFS service")
-                nfs_ports = []
-                rule_list = []
-                nfsd = service.Factory.create_service("nfs")
-                rpcd = service.Factory.create_service("rpcbind")
-                iptables = service.Factory.create_service("iptables")
-                nfs_sysconfig = self.params.get("nfs_sysconfig_path",
-                                                "/etc/sysconfig/nfs")
-                tcp_port = self.params.get("nfs_tcp_port", "32803")
-                udp_port = self.params.get("nfs_udp_port", "32769")
-                mountd_port = self.params.get("nfs_mountd_port", "892")
-                subnet_mask = self.params.get("priv_subnet", "192.168.2.0/24")
-                nfs_ports.append("LOCKD_TCPPORT=%s" % tcp_port)
-                nfs_ports.append("LOCKD_UDPPORT=%s" % udp_port)
-                nfs_ports.append("MOUNTD_PORT=%s" % mountd_port)
-                cmd_output = decode_to_text(process.system_output(
-                    "cat %s" % nfs_sysconfig, shell=True))
-                exist_ports = cmd_output.strip().split('\n')
-                # check if the ports are already configured, if not then add it
-                for each_port in nfs_ports:
-                    if each_port not in exist_ports:
-                        process.run("echo '%s' >> %s" %
-                                    (each_port, nfs_sysconfig), shell=True)
-                rpcd.restart()
-                nfsd.restart()
-                rule_temp = "INPUT -m state --state NEW -p %s -m multiport "
-                rule_temp += "--dport 111,892,2049,%s -s %s -j ACCEPT"
-                rule = rule_temp % ("tcp", tcp_port, subnet_mask)
-                rule_list.append(rule)
-                rule = rule_temp % ("udp", udp_port, subnet_mask)
-                rule_list.append(rule)
-                Iptables.setup_or_cleanup_iptables_rules(rule_list)
-                iptables.restart()
+            # It ensures firewalld package is installed and available
+            firewall_cmd = utils_iptables.Firewall_cmd()
+            if 'nfs' not in firewall_cmd.lists('services'):
+                if not firewall_cmd.add_service('nfs'):
+                    logging.error("nfs service not added in firewall")
+                else:
+                    logging.debug("nfs service added to firewall "
+                                  "sucessfully")
+            else:
+                logging.debug("nfs service already permitted by firewall")
+
+        except process.CmdError:
+            # For RHEL 6 based system firewall-cmd is not available
+            logging.debug("Using iptables to permit NFS service")
+            nfs_ports = []
+            rule_list = []
+            nfsd = service.Factory.create_service("nfs")
+            rpcd = service.Factory.create_service("rpcbind")
+            iptables = service.Factory.create_service("iptables")
+            nfs_sysconfig = self.params.get("nfs_sysconfig_path",
+                                            "/etc/sysconfig/nfs")
+            tcp_port = self.params.get("nfs_tcp_port", "32803")
+            udp_port = self.params.get("nfs_udp_port", "32769")
+            mountd_port = self.params.get("nfs_mountd_port", "892")
+            subnet_mask = self.params.get("priv_subnet", "192.168.2.0/24")
+            nfs_ports.append("LOCKD_TCPPORT=%s" % tcp_port)
+            nfs_ports.append("LOCKD_UDPPORT=%s" % udp_port)
+            nfs_ports.append("MOUNTD_PORT=%s" % mountd_port)
+            cmd_output = decode_to_text(process.system_output(
+                "cat %s" % nfs_sysconfig, shell=True))
+            exist_ports = cmd_output.strip().split('\n')
+            # check if the ports are already configured, if not then add it
+            for each_port in nfs_ports:
+                if each_port not in exist_ports:
+                    process.run("echo '%s' >> %s" %
+                                (each_port, nfs_sysconfig), shell=True)
+            rpcd.restart()
+            nfsd.restart()
+            rule_temp = "INPUT -m state --state NEW -p %s -m multiport "
+            rule_temp += "--dport 111,892,2049,%s -s %s -j ACCEPT"
+            rule = rule_temp % ("tcp", tcp_port, subnet_mask)
+            rule_list.append(rule)
+            rule = rule_temp % ("udp", udp_port, subnet_mask)
+            rule_list.append(rule)
+            utils_iptables.Iptables.setup_or_cleanup_iptables_rules(rule_list)
+            iptables.restart()
+
         except Exception as info:
             logging.error("Firewall setting to add nfs service "
                           "failed: %s", info)
@@ -456,9 +447,8 @@ class NFSClient(object):
                                           (mkdir_cmd, o))
             self.mkdir_mount_remote = True
 
-        if self.params.get("firewall_to_permit_nfs", "yes") == "yes":
-            if distro.detect().name != "Ubuntu":
-                self.firewall_to_permit_nfs()
+        if self.params.get("firewalld_service") == "enable":
+            self.firewall_to_permit_nfs()
 
         self.mount_src = "%s:%s" % (self.nfs_server_ip, self.mount_src)
         logging.debug("Mount %s to %s" % (self.mount_src, self.mount_dir))
