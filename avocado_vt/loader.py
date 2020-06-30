@@ -28,6 +28,7 @@ from virttest import cartesian_config
 from virttest import data_dir
 from virttest import standalone_test
 from virttest import storage
+from virttest.compat import get_opt, set_opt
 
 from .options import VirtTestOptionsProcess
 from .test import VirtTest
@@ -48,7 +49,7 @@ def guest_listing(options):
     """
     List available guest os and info about image availability
     """
-    if options.vt_type == 'lvsb':
+    if get_opt(options, 'vt_type') == 'lvsb':
         raise ValueError("No guest types available for lvsb testing")
     LOG.debug("Using %s for guest images\n",
               os.path.join(data_dir.get_data_dir(), 'images'))
@@ -57,7 +58,8 @@ def guest_listing(options):
     for params in guest_name_parser.get_dicts():
         base_dir = params.get("images_base_dir", data_dir.get_data_dir())
         image_name = storage.get_image_filename(params, base_dir)
-        name = params['name'].replace('.%s' % options.vt_machine_type, '')
+        machine_type = get_opt(options, 'vt_machine_type')
+        name = params['name'].replace('.%s' % machine_type, '')
         if os.path.isfile(image_name):
             out = name
         else:
@@ -71,14 +73,16 @@ def arch_listing(options):
     """
     List available machine/archs for given guest os
     """
-    if options.vt_guest_os:
-        extra = " for guest os \"%s\"" % options.vt_guest_os
+    guest_os = get_opt(options, 'vt_guest_os')
+    if guest_os is not None:
+        extra = " for guest os \"%s\"" % guest_os
     else:
         extra = ""
     LOG.info("Available arch profiles%s", extra)
     guest_name_parser = standalone_test.get_guest_name_parser(options)
+    machine_type = get_opt(options, 'vt_machine_type')
     for params in guest_name_parser.get_dicts():
-        LOG.debug(params['name'].replace('.%s' % options.vt_machine_type, ''))
+        LOG.debug(params['name'].replace('.%s' % machine_type, ''))
     LOG.debug("")
 
 
@@ -117,15 +121,17 @@ class VirtTestLoader(loader.TestLoader):
         if vt_extra_params:
             # We don't want to override the original args
             self.args = copy.deepcopy(self.args)
-            if getattr(self.args, 'vt_extra_params', None) is not None:
-                self.args.vt_extra_params += vt_extra_params
+            extra = get_opt(self.args, 'vt_extra_params')
+            if extra is not None:
+                extra += vt_extra_params
             else:
-                self.args.vt_extra_params = vt_extra_params
+                extra = vt_extra_params
+            set_opt(self.args, 'vt_extra_params', extra)
 
     def _fill_optional_args(self):
         def _add_if_not_exist(arg, value):
-            if not hasattr(self.args, arg):
-                setattr(self.args, arg, value)
+            if not get_opt(self.args, arg):
+                set_opt(self.args, arg, value)
         _add_if_not_exist('vt_config', None)
         _add_if_not_exist('vt_verbose', True)
         _add_if_not_exist('vt_log_level', 'debug')
@@ -164,15 +170,15 @@ class VirtTestLoader(loader.TestLoader):
         return options_processor.get_parser()
 
     def get_extra_listing(self):
-        if self.args.vt_list_guests:
+        if get_opt(self.args, 'vt_list_guests'):
             args = copy.copy(self.args)
-            args.vt_config = None
-            args.vt_guest_os = None
+            set_opt(args, 'vt_config', None)
+            set_opt(args, 'vt_guest_os', None)
             guest_listing(args)
-        if self.args.vt_list_archs:
+        if get_opt(self.args, 'vt_list_archs'):
             args = copy.copy(self.args)
-            args.vt_machine_type = None
-            args.vt_arch = None
+            set_opt(args, 'vt_machine_type', None)
+            set_opt(args, 'vt_arch', None)
             arch_listing(args)
 
     @staticmethod
@@ -217,7 +223,7 @@ class VirtTestLoader(loader.TestLoader):
             # the other test plugins to handle the URL.
             except cartesian_config.ParserError as details:
                 return self._report_bad_discovery(url, details, which_tests)
-        elif which_tests is LOADER_DEFAULT and not self.args.vt_config:
+        elif which_tests is LOADER_DEFAULT and not get_opt(self.args, 'vt_config'):
             # By default don't run anythinig unless vt_config provided
             return []
         # Create test_suite
@@ -225,9 +231,9 @@ class VirtTestLoader(loader.TestLoader):
         for params in (_ for _ in cartesian_parser.get_dicts()):
             # Evaluate the proper avocado-vt test name
             test_name = None
-            if self.args.vt_config:
+            if get_opt(self.args, 'vt_config'):
                 test_name = params.get("shortname")
-            elif self.args.vt_type == "spice":
+            elif get_opt(self.args, 'vt_type') == "spice":
                 short_name_map_file = params.get("_short_name_map_file")
                 if "tests-variants.cfg" in short_name_map_file:
                     test_name = short_name_map_file["tests-variants.cfg"]
