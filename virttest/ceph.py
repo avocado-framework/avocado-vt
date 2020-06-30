@@ -86,7 +86,7 @@ def rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name,
         keyring = '--keyring %s' % keyfile if keyfile else ''
         cmd = cmd.format(opts=opts, pool=rbd_pool_name, image=rbd_image_name,
                          keyring=keyring)
-        process.system(cmd, verbose=True)
+        process.run(cmd, verbose=True)
     else:
         logging.debug("Image not exist, skip to remove it.")
 
@@ -134,7 +134,7 @@ def rbd_image_info(ceph_monitor, rbd_pool_name, rbd_image_name,
     keyring = '--keyring %s' % keyfile if keyfile else ''
     cmd = cmd.format(opts=opts, pool=rbd_pool_name, image=rbd_image_name,
                      keyring=keyring)
-    output = process.system(cmd)
+    output = process.run(cmd).stdout_text
     info_pattern = "rbd image \'%s\':.*?$" % rbd_image_name
 
     rbd_image_info_str = re.findall(info_pattern, output, re.S)[0]
@@ -166,7 +166,7 @@ def rbd_image_map(ceph_monitor, rbd_pool_name, rbd_image_name):
     """
     cmd = "rbd map %s --pool %s -m %s" % (rbd_image_name, rbd_pool_name,
                                           ceph_monitor)
-    output = process.system_output(cmd, verbose=True).stdout_text
+    output = process.run(cmd, verbose=True).stdout_text
     if os.path.exist(os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)):
         return os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)
     else:
@@ -182,7 +182,7 @@ def rbd_image_unmap(rbd_pool_name, rbd_image_name):
     :params rbd_image_name: The name of rbd image
     """
     cmd = "rbd unmap /dev/rbd/%s/%s" % (rbd_pool_name, rbd_image_name)
-    output = process.system_output(cmd, verbose=True).stdout_text
+    output = process.run(cmd, verbose=True).stdout_text
     if os.path.exist(os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)):
         logging.debug("Failed to unmap image from local: %s" % output)
 
