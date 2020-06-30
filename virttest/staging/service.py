@@ -22,7 +22,6 @@ import logging
 from tempfile import mktemp
 
 from avocado.utils import process
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 _COMMAND_TABLE_DOC = """
@@ -98,7 +97,7 @@ def sysvinit_status_parser(cmdResult=None):
     """
     # If service is stopped, exit_status is also not zero.
     # So, we can't use exit_status to check result.
-    result = results_stdout_52lts(cmdResult).lower()
+    result = cmdResult.stdout_text.lower()
     if re.search(r"unrecognized", result):
         return None
     dead_flags = [r"stopped", r"not running", r"dead"]
@@ -119,7 +118,7 @@ def systemd_status_parser(cmdResult=None):
     """
     # If service is stopped, exit_status is also not zero.
     # So, we can't use exit_status to check result.
-    result = results_stdout_52lts(cmdResult)
+    result = cmdResult.stdout_text
     # check for systemctl status XXX.service.
     if not re.search(r"Loaded: loaded", result):
         return None
@@ -149,7 +148,7 @@ def sysvinit_list_parser(cmdResult=None):
     _status_on_target = {}
     # Dict to store the status for service based on xinetd.
     _service2statusOnXinet_dict = {}
-    lines = results_stdout_52lts(cmdResult).strip().splitlines()
+    lines = cmdResult.stdout_text.strip().splitlines()
     for line in lines:
         sublines = line.strip().split()
         if len(sublines) == 8:
@@ -194,7 +193,7 @@ def systemd_list_parser(cmdResult=None):
         raise process.CmdError(cmdResult.command, cmdResult)
     # store service name and status.
     _service2status_dict = {}
-    lines = results_stdout_52lts(cmdResult).strip().splitlines()
+    lines = cmdResult.stdout_text.strip().splitlines()
     for line in lines:
         sublines = line.strip().split()
         if (not len(sublines) == 2) or (not sublines[0].endswith("service")):
@@ -473,8 +472,8 @@ class _SpecificServiceManager(object):
             logging.debug("Setting ignore_status to True.")
             kwargs["ignore_status"] = True
             result = run_func(" ".join(command(service_name)), **kwargs)
-            result.stdout = results_stdout_52lts(result)
-            result.stderr = results_stderr_52lts(result)
+            result.stdout = result.stdout_text
+            result.stderr = result.stderr_text
             return parse_func(result)
         return run
 
@@ -735,7 +734,7 @@ class Factory(object):
             :return: executable name for PID 1, aka init
             :rtype:  str
             """
-            output = results_stdout_52lts(self.run("ps -o comm 1"))
+            output = self.run("ps -o comm 1").stdout_text
             return output.splitlines()[-1].strip()
 
         def get_generic_service_manager_type(self):

@@ -5,7 +5,6 @@ http://libvirt.org/formatstorage.html#StorageVol
 
 from virttest.libvirt_xml import base, accessors
 from virttest.libvirt_xml.xcepts import LibvirtXMLNotFoundError
-from virttest.compat_52lts import results_stdout_52lts
 
 
 class VolXMLBase(base.LibvirtXMLBase):
@@ -121,7 +120,7 @@ class VolXML(VolXMLBase):
         """
         volxml = VolXML(virsh_instance=virsh_instance)
         result = virsh_instance.vol_dumpxml(vol_name, pool_name)
-        volxml['xml'] = results_stdout_52lts(result).strip()
+        volxml['xml'] = result.stdout_text.strip()
         return volxml
 
     @staticmethod

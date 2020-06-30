@@ -11,7 +11,6 @@ from virttest import utils_misc
 from virttest.utils_test import libvirt
 from virttest.libvirt_xml.nodedev_xml import NodedevXML
 from virttest.libvirt_xml.devices import hostdev
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 _FC_HOST_PATH = "/sys/class/fc_host"
@@ -99,16 +98,16 @@ def find_hbas(hba_type="hba", status="online"):
     # so leave it here as a placeholder.
     result = virsh.nodedev_list(cap="scsi_host")
     if result.exit_status:
-        raise exceptions.TestFail(results_stderr_52lts(result))
-    scsi_hosts = results_stdout_52lts(result).strip().splitlines()
+        raise exceptions.TestFail(result.stderr_text)
+    scsi_hosts = result.stdout_text.strip().splitlines()
     online_hbas_list = []
     online_vhbas_list = []
     # go through all scsi hosts, and split hbas/vhbas into lists
     for scsi_host in scsi_hosts:
         result = virsh.nodedev_dumpxml(scsi_host)
-        stdout = results_stdout_52lts(result).strip()
+        stdout = result.stdout_text.strip()
         if result.exit_status:
-            raise exceptions.TestFail(results_stderr_52lts(result))
+            raise exceptions.TestFail(result.stderr_text)
         if (re.search('vport_ops', stdout)
                 and not re.search('<fabric_wwn>ffffffffffffffff</fabric_wwn>', stdout)
                 and not re.search('<fabric_wwn>0</fabric_wwn>', stdout)):
@@ -179,7 +178,7 @@ def nodedev_create_from_xml(params):
     # Remove temprorary file
     os.unlink(vhba_file)
     libvirt.check_exit_status(result, status_error)
-    output = results_stdout_52lts(result)
+    output = result.stdout_text
     logging.info(output)
     for scsi in output.split():
         if scsi.startswith('scsi_host'):
@@ -208,7 +207,7 @@ def nodedev_destroy(scsi_host, params={}):
     libvirt.check_exit_status(result, status_error)
     # Check nodedev value
     if not check_nodedev(scsi_host):
-        logging.info(results_stdout_52lts(result))
+        logging.info(result.stdout_text)
     else:
         raise exceptions.TestFail("The relevant directory still exists"
                                   " or mismatch with result")
@@ -287,7 +286,7 @@ def find_scsi_luns(scsi_host):
         result = process.run(cmd, shell=True)
     except Exception as e:
         raise exceptions.TestError("run 'multipath' failed: %s" % str(e))
-    tmp_list = results_stdout_52lts(result).strip().splitlines()
+    tmp_list = result.stdout_text.strip().splitlines()
     for lun in tmp_list:
         lun = lun.split(":")
         lun_dicts_item = {}
@@ -308,7 +307,7 @@ def find_mpath_devs():
     cmd = "ls -l /dev/mapper/ | grep mpath | awk -F ' ' '{print $9}' \
            | grep -Ev [0-9]$ |sort -d"
     cmd_result = process.run(cmd, shell=True)
-    mpath_devs = results_stdout_52lts(cmd_result).split("\n")
+    mpath_devs = cmd_result.stdout_text.split("\n")
     return mpath_devs
 
 

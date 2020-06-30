@@ -6,7 +6,6 @@ from avocado.utils import process
 from avocado.utils import path
 
 from virttest import remote
-from virttest.compat_52lts import decode_to_text
 
 
 def get_public_key():
@@ -231,7 +230,7 @@ def setup_remote_known_hosts_file(client_ip, server_ip,
         return None
 
     cmd = "%s %s" % (abs_path, client_ip)
-    host_key = decode_to_text(process.system_output(cmd, verbose=False))
+    host_key = process.run(cmd, verbose=False).stdout_text
     remote_known_hosts_file = remote.RemoteFile(
         address=server_ip,
         client='scp',

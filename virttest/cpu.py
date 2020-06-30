@@ -32,7 +32,6 @@ from virttest import virsh
 from virttest import utils_misc
 from virttest import libvirt_xml
 from virttest.libvirt_xml.xcepts import LibvirtXMLNotFoundError
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts, decode_to_text
 from virttest import libvirt_version
 
 
@@ -85,7 +84,7 @@ def hotplug_supported(vm_name, mtype):
         json_result = virsh.qemu_monitor_command(vm_name, cmd, "--pretty",
                                                  debug=False)
         try:
-            result = json.loads(results_stdout_52lts(json_result))
+            result = json.loads(json_result.stdout_text)
         except Exception:
             # Failure to parse json output and default support to False
             # TODO: Handle for failure cases
@@ -115,7 +114,7 @@ def affinity_from_vcpuinfo(vm):
 
     :return: affinity list of VM
     """
-    output = results_stdout_52lts(virsh.vcpuinfo(vm.name)).rstrip()
+    output = virsh.vcpuinfo(vm.name).stdout_text.rstrip()
     affinity = re.findall('CPU Affinity: +[-y]+', output)
     total_affinity = [list(vcpu_affinity.split()[-1].strip())
                       for vcpu_affinity in affinity]
@@ -160,7 +159,7 @@ def affinity_from_vcpupin(vm, vcpu=None, options=None):
     vcpupin_affinity = {}
     host_cpu_count = utils.total_cpus_count()
     result = virsh.vcpupin(vm.name, vcpu=vcpu, options=options, debug=True)
-    for vcpu in results_stdout_52lts(result).strip().split('\n')[2:]:
+    for vcpu in result.stdout_text.strip().split('\n')[2:]:
         # On newer version of libvirt, there is no ':' in
         # vcpupin output anymore
         vcpupin_output[int(vcpu.split()[0].rstrip(':'))] = vcpu.split()[1]
@@ -204,12 +203,12 @@ def get_vcpucount_details(vm, options):
 
     result = virsh.vcpucount(vm.name, options, ignore_status=True,
                              debug=True)
-    if results_stderr_52lts(result):
+    if result.stdout_text:
         logging.debug("vcpu count command failed")
         return (result, vcpucount_details)
 
     if options:
-        stdout = results_stdout_52lts(result).strip()
+        stdout = result.stdout_text.strip()
         if 'guest' in options:
             vcpucount_details['guest_live'] = int(stdout)
         elif 'config' in options:
@@ -223,7 +222,7 @@ def get_vcpucount_details(vm, options):
             else:
                 vcpucount_details['cur_live'] = int(stdout)
     else:
-        output = results_stdout_52lts(result).strip().split('\n')
+        output = result.stdout_text.strip().split('\n')
         for item in output:
             if ('maximum' in item) and ('config' in item):
                 vcpucount_details['max_config'] = int(item.split()[2].strip())
@@ -292,7 +291,7 @@ def check_vcpucount(vm, exp_vcpu, option="", guest_agent=False):
     if option == "--guest" and vm.is_alive() and guest_agent:
         vcpucount_option = "--guest"
     (vcresult, vcpucount_result) = get_vcpucount_details(vm, vcpucount_option)
-    if results_stderr_52lts(vcresult):
+    if vcresult.stderr_text:
         result = False
     if vcpucount_option == "--guest" and guest_agent:
         if vcpucount_result['guest_live'] != exp_vcpu['guest_live']:
@@ -401,9 +400,9 @@ def get_cpustats(vm, cpu=None):
         result = virsh.cpu_stats(vm.name, option)
         if result.exit_status != 0:
             logging.error("cpu stats command failed: %s",
-                          results_stderr_52lts(result))
+                          result.stderr_text)
             return None
-        output = results_stdout_52lts(result).strip().split()
+        output = result.stdout_text.strip().split()
         if re.match("CPU%s" % cpu, output[0]):
             cpustats[cpu] = [float(output[5]),  # vcputime
                              float(output[2]) - float(output[5]),  # emulator
@@ -416,9 +415,9 @@ def get_cpustats(vm, cpu=None):
             result = virsh.cpu_stats(vm.name, option)
             if result.exit_status != 0:
                 logging.error("cpu stats command failed: %s",
-                              results_stderr_52lts(result))
+                              result.stderr_text)
                 return None
-            output = results_stdout_52lts(result).strip().split()
+            output = result.stdout_text.strip().split()
             if re.match("CPU%s" % host_cpu_online[i], output[0]):
                 cpustats[host_cpu_online[i]] = [float(output[5]),
                                                 float(output[2]) - float(output[5]),
@@ -427,9 +426,9 @@ def get_cpustats(vm, cpu=None):
     cpustats["total"] = []
     if result.exit_status != 0:
         logging.error("cpu stats command failed: %s",
-                      results_stderr_52lts(result))
+                      result.stderr_text)
         return None
-    output = results_stdout_52lts(result).strip().split()
+    output = result.stdout_text.strip().split()
     cpustats["total"] = [float(output[2])]  # cputime
     return cpustats
 
@@ -442,7 +441,7 @@ def get_domstats(vm, key):
     :return: value string
     """
     domstats_output = virsh.domstats(vm.name)
-    for item in results_stdout_52lts(domstats_output).strip().split():
+    for item in domstats_output.stdout_text.strip().split():
         if key in item:
             return item.split("=")[1]
 
@@ -646,7 +645,7 @@ def get_thread_cpu(thread):
     :rtype: builtin.list
     """
     cmd = "ps -o cpuid,lwp -eL | grep -w %s$" % thread
-    cpu_thread = decode_to_text(process.system_output(cmd, shell=True))
+    cpu_thread = process.run(cmd, shell=True).stdout_text
     if not cpu_thread:
         return []
     return list(set([_.strip().split()[0] for _ in cpu_thread.splitlines()]))
@@ -662,7 +661,7 @@ def get_pid_cpu(pid):
     :rtype: builtin.list
     """
     cmd = "ps -o cpuid -L -p %s" % pid
-    cpu_pid = decode_to_text(process.system_output(cmd))
+    cpu_pid = process.run(cmd).stdout_text
     if not cpu_pid:
         return []
     return list(set([_.strip() for _ in cpu_pid.splitlines()]))
@@ -678,7 +677,7 @@ def get_cpu_info(session=None):
     cpu_info = {}
     cmd = "lscpu"
     if session is None:
-        output = decode_to_text(process.system_output(cmd, ignore_status=True)).splitlines()
+        output = process.run(cmd, ignore_status=True).stdout_text.splitlines()
     else:
         try:
             output = session.cmd_output(cmd).splitlines()
@@ -812,8 +811,7 @@ def get_recognized_cpuid_flags(qemu_binary="/usr/libexec/qemu-kvm"):
     :param qemu_binary: qemu-kvm binary file path
     :return: flags list
     """
-    out = decode_to_text(process.system_output("%s -cpu ?" % qemu_binary),
-                         errors='replace')
+    out = process.run("%s -cpu ?" % qemu_binary).stdout.decode(errors='replace')
     match = re.search("Recognized CPUID flags:(.*)", out, re.M | re.S)
     try:
         return list(filter(None, re.split('\s', match.group(1))))
@@ -1085,7 +1083,7 @@ def cpu_allowed_list_by_task(pid, tid):
     result = process.run(cmd, ignore_status=True, shell=True)
     if result.exit_status:
         return None
-    return results_stdout_52lts(result).strip()
+    return result.stdout_text.strip()
 
 
 def hotplug_domain_vcpu(vm, count, by_virsh=True, hotplug=True):
@@ -1156,10 +1154,10 @@ def hotplug_domain_vcpu(vm, count, by_virsh=True, hotplug=True):
             result = virsh.qemu_monitor_command(vm.name, cmd, cmd_type,
                                                 debug=True)
             if result.exit_status != 0:
-                raise exceptions.TestFail(results_stderr_52lts(result))
+                raise exceptions.TestFail(result.stderr_text)
             else:
                 logging.debug("Command output:\n%s",
-                              results_stdout_52lts(result).strip())
+                              result.stdout_text.strip())
     return result
 
 
@@ -1218,7 +1216,7 @@ def get_qemu_cpu_models(qemu_binary):
     """
     cmd = qemu_binary + " -cpu '?'"
     result = process.run(cmd, verbose=False)
-    return extract_qemu_cpu_models(results_stdout_52lts(result))
+    return extract_qemu_cpu_models(result.stdout_text)
 
 
 def get_qemu_best_cpu_model(params):

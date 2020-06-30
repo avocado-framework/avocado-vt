@@ -9,7 +9,6 @@ Before this test please set your hostname to something meaningful.
 import logging
 
 from avocado.utils import process
-from virttest.compat_52lts import results_stdout_52lts
 
 
 def run(test, params, env):
@@ -22,4 +21,4 @@ def run(test, params, env):
     """
     result = process.run("hostname")
     logging.info("Output of 'hostname' cmd is '%s'",
-                 results_stdout_52lts(result))
+                 result.stdout_text)

@@ -14,7 +14,6 @@ from avocado.utils import process
 
 from virttest import storage
 from virttest import virsh
-from virttest.compat_52lts import results_stdout_52lts, decode_to_text
 
 
 class QemuImg(storage.QemuImg):
@@ -132,7 +131,7 @@ class StoragePool(object):
         # Allow it raise exception if command has executed failed.
         result = self.virsh_instance.pool_list("--all", ignore_status=False)
         pools = {}
-        lines = results_stdout_52lts(result).strip().splitlines()
+        lines = result.stdout_text.strip().splitlines()
         if len(lines) > 2:
             head = lines[0]
             lines = lines[2:]
@@ -202,7 +201,7 @@ class StoragePool(object):
         except process.CmdError:
             return info
 
-        for line in results_stdout_52lts(result).splitlines():
+        for line in result.stdout_text.splitlines():
             params = line.split(':')
             if len(params) == 2:
                 name = params[0].strip()
@@ -439,7 +438,7 @@ class PoolVolume(object):
             logging.error('List volume failed: %s', detail)
             return volumes
 
-        lines = results_stdout_52lts(result).strip().splitlines()
+        lines = result.stdout_text.strip().splitlines()
         if len(lines) > 2:
             head = lines[0]
             lines = lines[2:]
@@ -473,7 +472,7 @@ class PoolVolume(object):
             logging.error("Get volume information failed: %s", detail)
             return info
 
-        for line in results_stdout_52lts(result).strip().splitlines():
+        for line in result.stdout_text.strip().splitlines():
             attr = line.split(':')[0]
             value = line.split("%s:" % attr)[-1].strip()
             info[attr] = value
@@ -558,10 +557,10 @@ def check_qemu_image_lock_support():
     """
     cmd = "qemu-img"
     try:
-        binary_path = decode_to_text(process.system_output("which %s" % cmd))
+        binary_path = process.run("which %s" % cmd).stdout_text
     except process.CmdError:
         raise process.CmdError(cmd, binary_path,
                                "qemu-img command is not found")
     cmd_result = process.run(binary_path + ' -h', ignore_status=True,
                              shell=True, verbose=False)
-    return '-U' in results_stdout_52lts(cmd_result)
+    return '-U' in cmd_result.stdout_text

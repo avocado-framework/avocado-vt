@@ -17,7 +17,6 @@ import os
 from avocado.utils import process
 
 from virttest import data_dir
-from virttest.compat_52lts import results_stdout_52lts, decode_to_text
 
 _ROOT_PATH = data_dir.get_root_dir()
 RELEASE_VERSION_PATH = os.path.join(_ROOT_PATH, 'RELEASE-VERSION')
@@ -42,8 +41,8 @@ def _execute_git_command(command):
     os.chdir(_ROOT_PATH)
     try:
         try:
-            return decode_to_text(process.system_output(command,
-                                                        shell=True, verbose=False)).strip()
+            return process.run(command,
+                               shell=True, verbose=False).stdout_text.strip()
         finally:
             os.chdir(cwd)
     except process.CmdError:
@@ -119,7 +118,7 @@ def get_version(abbrev=4):
             cmd_result = process.run("rpm -q avocado-plugins-vt "
                                      "--queryformat '%{VERSION}'",
                                      shell=True, verbose=False)
-            return '%s (RPM install)' % results_stdout_52lts(cmd_result)
+            return '%s (RPM install)' % cmd_result.stdout_text
         except process.CmdError:
             return 'unknown'
 

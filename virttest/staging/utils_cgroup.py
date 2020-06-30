@@ -21,7 +21,6 @@ from avocado.utils import software_manager
 from avocado.utils import process
 
 from . import service
-from ..compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 
 class Cgroup(object):
@@ -205,8 +204,8 @@ class Cgroup(object):
         lscgroup_cmd = "lscgroup %s:/" % self.module
         result = process.run(lscgroup_cmd, ignore_status=True)
         if result.exit_status:
-            raise exceptions.TestFail(results_stderr_52lts(result).strip())
-        cgroup_list = results_stdout_52lts(result).strip().splitlines()
+            raise exceptions.TestFail(result.stderr_text.strip())
+        cgroup_list = result.stdout_text.strip().splitlines()
         # Remove root cgroup
         cgroup_list = cgroup_list[1:]
         self.root = get_cgroup_mountpoint(self.module)
@@ -663,7 +662,7 @@ def get_all_controllers():
     """
     try:
         result = process.run("lssubsys", ignore_status=False)
-        controllers_str = results_stdout_52lts(result).strip()
+        controllers_str = result.stdout_text.strip()
         controller_list = []
         for controller in controllers_str.splitlines():
             controller_sub_list = controller.split(",")

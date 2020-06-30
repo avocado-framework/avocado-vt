@@ -2,7 +2,6 @@ import logging
 import imp
 
 from avocado.utils import process
-from virttest.compat_52lts import results_stdout_52lts, results_stderr_52lts
 
 from .. import propcan, xml_utils, virsh
 from ..libvirt_xml import xcepts
@@ -225,8 +224,6 @@ class LibvirtXMLBase(propcan.PropCanBase):
         if schema_name:
             command += ' %s' % schema_name
         cmdresult = process.run(command, ignore_status=True)
-        cmdresult.stdout = results_stdout_52lts(cmdresult)
-        cmdresult.stderr = results_stderr_52lts(cmdresult)
         return cmdresult
 
 
