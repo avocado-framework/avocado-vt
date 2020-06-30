@@ -19,15 +19,9 @@ Avocado VT plugin
 import os
 
 from avocado.core.loader import loader
+from avocado.core.plugin_interfaces import CLI
 from avocado.core.settings import settings
 from avocado.utils import path as utils_path
-
-# Avocado's plugin interface module has changed location. Let's keep
-# compatibility with old for at, least, a new LTS release
-try:
-    from avocado.core.plugin_interfaces import CLI
-except ImportError:
-    from avocado.plugins.base import CLI    # pylint: disable=E0611,E0401
 
 from virttest import data_dir
 from virttest import defaults
