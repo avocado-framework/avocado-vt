@@ -665,7 +665,7 @@ class TCPConnection(ConnectionBase):
     __slots__ = ('tcp_port', 'remote_syslibvirtd', 'sasl_type',
                  'remote_libvirtdconf', 'sasl_allowed_users',
                  'auth_tcp', 'listen_addr', 'remote_saslconf',
-                 'remote_libvirtd_tcp_socket')
+                 'remote_libvirtd_tcp_socket', 'client_hosts')
 
     def __init__(self, *args, **dargs):
         """
@@ -717,6 +717,14 @@ class TCPConnection(ConnectionBase):
             port='22',
             remote_path='/etc/sasl2/libvirt.conf')
 
+        self.client_hosts = remote.RemoteFile(
+            address=self.client_ip,
+            client='scp',
+            username=self.client_user,
+            password=self.client_pwd,
+            port='22',
+            remote_path='/etc/hosts')
+
     def conn_recover(self):
         """
         Clean up for TCP connection.
@@ -734,6 +742,7 @@ class TCPConnection(ConnectionBase):
         del self.remote_libvirtdconf
         del self.remote_saslconf
         del self.remote_libvirtd_tcp_socket
+        del self.client_hosts
 
         # restart libvirtd service on server
         try:
@@ -791,8 +800,7 @@ class TCPConnection(ConnectionBase):
                                r".*tcp_port\s*=.*": 'tcp_port="%s"' % (tcp_port),
                                r".*auth_tcp\s*=.*": 'auth_tcp="%s"' % (auth_tcp)}
         else:
-            # After libvirt 5.6.0, auth_tcp must be set to 'none'
-            pattern_to_repl = {r".*auth_tcp\s*=.*": 'auth_tcp="none"'}
+            pattern_to_repl = {r".*auth_tcp\s*=.*": 'auth_tcp="%s"' % (auth_tcp)}
         # a whitelist of allowed SASL usernames, it's a list.
         # If the list is an empty, no client can connect
         if sasl_allowed_users:
@@ -804,8 +812,14 @@ class TCPConnection(ConnectionBase):
         self.remote_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/sasl2/libvirt.conf to change sasl method
+        # edit the /etc/hosts to add the host
         if self.sasl_type == 'gssapi':
             keytab = "keytab: /etc/libvirt/krb5.tab"
+            if listen_addr:
+                server_runner = remote.RemoteRunner(session=server_session)
+                hostname = server_runner.run('hostname', ignore_status=True).stdout_text.strip()
+                pattern_to_repl = {r".*%s.*" % listen_addr: "%s %s" % (listen_addr, hostname)}
+                self.client_hosts.sub_else_add(pattern_to_repl)
         else:
             keytab = ""
         pattern_to_repl = {r".*mech_list\s*:\s*.*":
@@ -1796,7 +1810,7 @@ class UNIXConnection(ConnectionBase):
             keytab = "keytab: /etc/libvirt/krb5.tab"
             sasldb = ""
             remote_runner = remote.RemoteRunner(session=client_session)
-            hostname = remote_runner.run('hostname', ignore_status=True).stdout.strip()
+            hostname = remote_runner.run('hostname', ignore_status=True).stdout_text.strip()
             pattern_to_repl = {r".*127.0.0.1\s*.*":
                                "127.0.0.1    %s localhost localhost.localdomain "
                                "localhost4 localhost4.localdomain6" % hostname,
