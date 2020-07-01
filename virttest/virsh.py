@@ -695,6 +695,8 @@ def command(cmd, **dargs):
                           shell=True)
         # Mark return as not coming from persistent virsh session
         ret.from_session_id = None
+        ret.stdout = ret.stdout_text
+        ret.stderr = ret.stderr_text
 
     # Always log debug info, if persistent session or not
     if debug:
