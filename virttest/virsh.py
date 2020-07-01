@@ -2655,7 +2655,7 @@ def memtune_get(name, key):
     :param key: memory controller limit for which the value needed
     :return: the memory value of a key in Kbs
     """
-    memtune_output = memtune_list(name).stdout.strip()
+    memtune_output = memtune_list(name).stdout_text.strip()
     logging.info("memtune output is %s" % memtune_output)
     memtune_value = re.findall(r"%s\s*:\s+(\S+)" % key, str(memtune_output))
     if memtune_value:
