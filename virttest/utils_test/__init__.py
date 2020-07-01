@@ -30,6 +30,7 @@ import time
 import subprocess
 import shutil
 import ast
+import functools
 
 import aexpect
 from avocado.core import exceptions
@@ -2153,7 +2154,8 @@ class Stress(object):
         self.dst_path = self.params.get('stress_dst_path', '/home')
         self.cmd_status_output = process.getstatusoutput
         self.cmd_output_safe = process.getoutput
-        self.cmd_status = self.sendline = process.system
+        self.cmd_status = process.system
+        self.cmd = functools.partial(process.run, ignore_status=True)
         self.cmd_launch = os.system
 
     @session_handler
@@ -2187,7 +2189,7 @@ class Stress(object):
         """
 
         def _unload_stress():
-            self.sendline(self.stop_cmd)
+            self.cmd(self.stop_cmd)
             if not self.app_running():
                 return True
             return False
@@ -2390,7 +2392,7 @@ class VMStress(Stress):
         self.session = self.get_session()
         self.cmd_status_output = self.session.cmd_status_output
         self.cmd_status = self.session.cmd_status
-        self.sendline = self.session.sendline
+        self.cmd = functools.partial(self.session.cmd, ignore_all_errors=True)
         self.cmd_output_safe = self.cmd_launch = self.session.cmd_output_safe
 
     def get_session(self):
@@ -2459,7 +2461,7 @@ class HostStress(Stress):
             self.session = self.get_session()
             self.cmd_status_output = self.session.cmd_status_output
             self.cmd_status = self.session.cmd_status
-            self.sendline = self.session.sendline
+            self.cmd = functools.partial(self.session.cmd, ignore_all_errors=True)
             self.cmd_output_safe = self.cmd_launch = self.session.cmd_output_safe
 
     def get_session(self):
