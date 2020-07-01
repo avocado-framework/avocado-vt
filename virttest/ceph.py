@@ -15,6 +15,7 @@ from avocado.utils import process
 
 from virttest import utils_numeric
 from virttest import error_context
+from virttest import utils_misc
 
 
 class CephError(Exception):
@@ -219,3 +220,61 @@ def create_config_file(ceph_monitor):
         with open(ceph_cfg, 'w+') as f:
             f.write('mon_host = %s' % ceph_monitor)
     return ceph_cfg
+
+
+@error_context.context_aware
+def cephfs_mount(ceph_uri, mount_point, options=None, verbose=False, session=None):
+    """
+    Mount ceph volume to mountpoint.
+
+    :param ceph_uri: str to express ceph uri, e.g 10.73.xx.xx:6789:/
+    :param mount_point: mount point, str
+    :param options: mount options, e.g -o name=admin,secret=AQCAgd5cFyMQLhAAHaz6w+WKy5LvmKjmxx
+    :param verbose: enable verbose or not
+    :param session: mount within the session if given
+    """
+    cephfs_umount(ceph_uri, mount_point, verbose, session)
+    mount_cmd = ['mount -t ceph']
+    if options:
+        mount_cmd.extend(['-o', options])
+    mount_cmd.extend([ceph_uri, mount_point])
+    mount_cmd = ' '.join(mount_cmd)
+    if session:
+        create_mount_point = "mkdir -p  %s" % mount_point
+        session.cmd(create_mount_point, ok_status=[0, 1], ignore_all_errors=True)
+        session.cmd(mount_cmd, ok_status=[0, 1], ignore_all_errors=True)
+    else:
+        if not os.path.exists(mount_point):
+            try:
+                utils_misc.make_dirs(mount_point)
+            except OSError as dirError:
+                logging.debug("Creation of the directory:%s failed:%s", mount_point, str(dirError))
+            else:
+                logging.debug("Successfully created the directory %s", mount_point)
+        process.system(mount_cmd, verbose=verbose)
+
+
+@error_context.context_aware
+def cephfs_umount(ceph_uri, mount_point, verbose=False, session=None):
+    """
+    Umount ceph volume from mountpoint.
+
+    :param ceph_uri: str to express ceph uri, e.g 10.73.xx.xx:6789:/
+    :param mount_point: mount point, str
+    :param verbose: enable verbose or not
+    :param session: mount within the session if given
+    """
+    umount_cmd = "umount %s" % mount_point
+    if session:
+        session.cmd(umount_cmd, ok_status=[0, 1], ignore_all_errors=True)
+        rm_mount_point = "rm -rf %s" % mount_point
+        session.cmd(rm_mount_point, ok_status=[0, 1], ignore_all_errors=True)
+    else:
+        process.system(umount_cmd, ignore_status=True, verbose=verbose)
+        if os.path.exists(mount_point):
+            try:
+                utils_misc.safe_rmdir(mount_point)
+            except OSError as dirError:
+                logging.debug("Delete of the directory:%s failed:%s", mount_point, str(dirError))
+            else:
+                logging.debug("Successfully deleted the directory %s", mount_point)
