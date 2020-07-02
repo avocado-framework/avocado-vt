@@ -19,14 +19,13 @@ Avocado VT plugin
 import logging
 import os
 
-from avocado.core.settings import settings
 from avocado.utils import path as utils_path
 
 from virttest import cartesian_config
 from virttest import data_dir
 from virttest import defaults
 from virttest import standalone_test
-from virttest.compat import get_opt, set_opt
+from virttest.compat import get_opt, set_opt, set_opt_from_settings
 from virttest.standalone_test import SUPPORTED_DISK_BUSES
 from virttest.standalone_test import SUPPORTED_IMAGE_TYPES
 from virttest.standalone_test import SUPPORTED_LIBVIRT_DRIVERS
@@ -50,59 +49,70 @@ class VirtTestOptionsProcess(object):
         # Doing this makes things configurable yet the number of options
         # is not overwhelming.
         # setup section
-        set_opt(self.config, 'vt.setup.backup_image_before_test',
-                settings.get_value('vt.setup', 'backup_image_before_test',
-                                   key_type=bool, default=True))
-        set_opt(self.config, 'vt.setup.restore_image_after_test',
-                settings.get_value('vt.setup', 'restore_image_after_test',
-                                   key_type=bool, default=True))
-        set_opt(self.config, 'vt.setup.keep_guest_running',
-                settings.get_value('vt.setup', 'keep_guest_running',
-                                   key_type=bool, default=False))
+        set_opt_from_settings(self.config,
+                              'vt.setup', 'backup_image_before_test',
+                              key_type=bool, default=True)
+        set_opt_from_settings(self.config,
+                              'vt.setup', 'restore_image_after_test',
+                              key_type=bool, default=True)
+        set_opt_from_settings(self.config,
+                              'vt.setup', 'keep_guest_running',
+                              key_type=bool, default=False)
         # common section
-        set_opt(self.config, 'vt.common.data_dir',
-                settings.get_value('vt.common', 'data_dir', default=None))
-        set_opt(self.config, 'vt.common.tmp_dir',
-                settings.get_value('vt.common', 'tmp_dir', default=''))
-        set_opt(self.config, 'vt.common.type_specific',
-                settings.get_value('vt.common', 'type_specific_only',
-                                   key_type=bool, default=False))
-        set_opt(self.config, 'vt.common.mem',
-                settings.get_value('vt.common', 'mem', key_type=int,
-                                   default=None))
-        set_opt(self.config, 'vt.common.nettype',
-                settings.get_value('vt.common', 'nettype', default=None))
-        set_opt(self.config, 'vt.common_netdst',
-                settings.get_value('vt.common', 'netdst', default='virbr0'))
+        set_opt_from_settings(self.config,
+                              'vt.common', 'data_dir',
+                              default=None)
+        set_opt_from_settings(self.config,
+                              'vt.common', 'tmp_dir',
+                              default='')
+        set_opt_from_settings(self.config,
+                              'vt.common', 'type_specific',
+                              key_type=bool, default=False)
+        set_opt_from_settings(self.config,
+                              'vt.common', 'mem',
+                              default=None)
+        set_opt_from_settings(self.config,
+                              'vt.common', 'nettype',
+                              default=None)
+        set_opt_from_settings(self.config,
+                              'vt.common', 'netdst',
+                              default='virbr0')
         # qemu section
-        set_opt(self.config, 'vt.qemu.accel',
-                settings.get_value('vt.qemu', 'accel', default='kvm'))
-        set_opt(self.config, 'vt.qemu.vhost',
-                settings.get_value('vt.qemu', 'vhost', default='off'))
-        set_opt(self.config, 'vt.qemu.monitor',
-                settings.get_value('vt.qemu', 'monitor', default=None))
-        set_opt(self.config, 'vt.qemu.smp',
-                settings.get_value('vt.qemu', 'smp', default='2'))
-        set_opt(self.config, 'vt.qemu.image_type',
-                settings.get_value('vt.qemu', 'image_type',
-                                   default=SUPPORTED_IMAGE_TYPES[0]))
-        set_opt(self.config, 'vt.qemu.nic_model',
-                settings.get_value('vt.qemu', 'nic_model',
-                                   default=SUPPORTED_NIC_MODELS[0]))
-        set_opt(self.config, 'vt.qemu.disk_bus',
-                settings.get_value('vt.qemu', 'disk_bus',
-                                   default=SUPPORTED_DISK_BUSES[0]))
-        set_opt(self.config, 'vt.qemu.sandbox',
-                settings.get_value('vt.qemu', 'sandbox', default='on'))
-        set_opt(self.config, 'vt.qemu.defconfig',
-                settings.get_value('vt.qemu', 'defconfig', default='yes'))
-        set_opt(self.config, 'vt.qemu.malloc_perturb',
-                settings.get_value('vt.qemu', 'malloc_perturb', default='yes'))
+        set_opt_from_settings(self.config,
+                              'vt.qemu', 'accel',
+                              default='kvm')
+        set_opt_from_settings(self.config,
+                              'vt.qemu', 'vhost',
+                              default='off')
+        set_opt_from_settings(self.config,
+                              'vt.qemu', 'monitor',
+                              default=None)
+        set_opt_from_settings(self.config,
+                              'vt.qemu', 'smp',
+                              default='2')
+        set_opt_from_settings(self.config,
+                              'vt.qemu', 'image_type',
+                              default=SUPPORTED_IMAGE_TYPES[0])
+        set_opt_from_settings(self.config,
+                              'vt.qemu', 'nic_model',
+                              default=SUPPORTED_NIC_MODELS[0])
+        set_opt_from_settings(self.config,
+                              'vt.qemu', 'disk_bus',
+                              default=SUPPORTED_DISK_BUSES[0])
+        set_opt_from_settings(self.config,
+                              'vt.qemu', 'sandbox',
+                              default='on')
+        set_opt_from_settings(self.config,
+                              'vt.qemu', 'defconfig',
+                              default='yes')
+        set_opt_from_settings(self.config,
+                              'vt.qemu', 'malloc_perturb',
+                              default='yes')
 
         # debug section
-        set_opt(self.config, 'vt.debug.no_cleanup',
-                settings.get_value('vt.debug', 'no_cleanup',
-                                   key_type=bool, default=False))
+        set_opt_from_settings(self.config,
+                              'vt.debug', 'no_cleanup',
+                              key_type=bool, default=False)
 
         self.cartesian_parser = None
 

@@ -39,6 +39,10 @@ if is_registering_settings_required():
         :param value: the value to be set
         """
         opt[name] = value
+
+    def set_opt_from_settings(opt, section, key, **kwargs):
+        """No-op, default values are set at settings.register_option()."""
+        pass
 else:
     def get_opt(opt, name):
         """
@@ -64,3 +68,9 @@ else:
             setattr(opt, name, value)
         else:
             opt[name] = value
+
+    def set_opt_from_settings(opt, section, key, **kwargs):
+        """Sets option default value from the configuration file."""
+        value = settings.get_value(section, key, **kwargs)
+        namespace = '%s.%s' % (section, key)
+        set_opt(opt, namespace, value)
