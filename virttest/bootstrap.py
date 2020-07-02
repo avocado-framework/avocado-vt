@@ -340,7 +340,7 @@ def create_host_os_cfg(options):
             return forced
         else:
             return detected
-    host_os_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt_type'),
+    host_os_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt.type'),
                                                      'host-os.cfg')
     with open(host_os_cfg_path, 'w') as cfg:
         detected = distro.detect()
@@ -836,14 +836,14 @@ def bootstrap(options, interactive=False):
     if get_opt(options, 'yes_to_all'):
         interactive = False
 
-    vt_type = get_opt(options, 'vt_type')
+    vt_type = get_opt(options, 'vt.type')
     LOG.info("Running bootstrap for %s", vt_type)
     step = 0
 
     LOG.info("")
     step += 1
     LOG.info("%d - Checking the mandatory programs and headers", step)
-    guest_os = get_opt(options, 'vt_guest_os') or defaults.DEFAULT_GUEST_OS
+    guest_os = get_opt(options, 'vt.guest_os') or defaults.DEFAULT_GUEST_OS
     try:
         verify_mandatory_programs(vt_type, guest_os)
     except Exception as details:
