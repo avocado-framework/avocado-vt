@@ -223,13 +223,14 @@ class VirtTestOptionsProcess(object):
             logging.info("Config provided, ignoring %s", smp_setting)
 
     def _process_arch(self):
-        arch_setting = "option --vt-arch or config vt.common.arch"
-        if get_opt(self.config, 'vt.common.arch') is None:
-            pass
-        elif not get_opt(self.config, 'vt.config'):
-            self.cartesian_parser.only_filter(get_opt(self.config, 'vt.common.arch'))
-        else:
+        if get_opt(self.config, 'vt.config'):
+            arch_setting = "option --vt-arch or config vt.common.arch"
             logging.info("Config provided, ignoring %s", arch_setting)
+            return
+
+        arch = get_opt(self.config, 'vt.common.arch')
+        if arch:
+            self.cartesian_parser.only_filter(arch)
 
     def _process_machine_type(self):
         machine_type_setting = ("option --vt-machine-type or config "
