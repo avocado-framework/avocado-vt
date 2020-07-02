@@ -455,6 +455,9 @@ class VMCheck(object):
             raise ValueError("Doesn't support %s target now" % self.target)
 
     def create_session(self, timeout=480):
+        if self.session:
+            logging.debug('vm session %s exists', self.session)
+            return
         self.session = self.vm.wait_for_login(nic_index=self.nic_index,
                                               timeout=timeout,
                                               username=self.username,
@@ -468,6 +471,7 @@ class VMCheck(object):
         if self.session:
             logging.debug('vm session %s is closing', self.session)
             self.session.close()
+            self.session = None
 
         if self.vm.instance and self.vm.is_alive():
             self.vm.destroy(gracefully=False)
