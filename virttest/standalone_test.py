@@ -27,8 +27,8 @@ SUPPORTED_TEST_TYPES = [
 SUPPORTED_LIBVIRT_URIS = ['qemu:///system', 'lxc:///']
 SUPPORTED_LIBVIRT_DRIVERS = ['qemu', 'lxc', 'xen']
 
-SUPPORTED_IMAGE_TYPES = ['raw', 'qcow2', 'qed', 'vmdk']
-SUPPORTED_DISK_BUSES = ['ide', 'scsi', 'virtio_blk',
+SUPPORTED_IMAGE_TYPES = ['qcow2', 'raw', 'qed', 'vmdk']
+SUPPORTED_DISK_BUSES = ['virtio_blk', 'ide', 'scsi',
                         'virtio_scsi', 'lsi_scsi', 'ahci', 'usb2', 'xenblk']
 SUPPORTED_NIC_MODELS = ["virtio_net", "e1000", "rtl8139", "spapr-vlan"]
 SUPPORTED_NET_TYPES = ["bridge", "user", "none"]
