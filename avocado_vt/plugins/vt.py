@@ -117,6 +117,8 @@ def add_qemu_bin_vt_option(parser):
                         % _str_or_none(qemu_bin))
     qemu_dst = get_settings_value('vt.qemu', 'qemu_dst_bin',
                                   default=qemu_bin_path)
+    if qemu_dst is None:
+        qemu_dst = qemu_bin_path
     parser.add_argument("--vt-qemu-dst-bin", action="store",
                         dest="vt.qemu.qemu_dst_bin", default=qemu_dst, help="Path "
                         "to a custom qemu binary to be tested for the "
