@@ -14,6 +14,9 @@ fedora_30_task:
       - AVOCADO_SRC: avocado-framework<70.0
       # Latest Avocado from git
       - AVOCADO_SRC: -e git+https://github.com/avocado-framework/avocado#egg=avocado_framework
+      # Avocado with new settings module - this commit maps to the pull request at
+      # https://github.com/avocado-framework/avocado/pull/3944
+      - AVOCADO_SRC: -e git+https://github.com/beraldoleal/avocado@aa114ee7e45b98a8f01088061ade95dee39adfcb#egg=avocado_framework
     matrix:
       - SETUP: setup.py develop --user
       - SETUP: -m pip install .
