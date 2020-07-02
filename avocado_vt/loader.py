@@ -92,44 +92,48 @@ class VirtTestLoader(loader.TestLoader):
 
     name = 'vt'
 
-    def __init__(self, args, extra_params):
+    def __init__(self, config, extra_params):
         """
         Following extra_params are supported:
          * avocado_vt_extra_params: Will override the "vt_extra_params"
-           of this plugins "self.args" (extends the --vt-extra-params)
+           of this plugins "self.config" (extends the --vt-extra-params)
         """
         vt_extra_params = extra_params.pop("avocado_vt_extra_params", None)
-        super(VirtTestLoader, self).__init__(args, extra_params)
+        super(VirtTestLoader, self).__init__(config, extra_params)
         # Avocado has renamed "args" to "config" in 84ae9a5d61, lets
         # keep making the old name available for compatibility with
         # new and old releases
         if hasattr(self, 'config'):
-            self.args = self.config
+            self.args = self.config   # pylint: disable=E0203
+        # And in case an older Avocado is used, the Loader class will
+        # contain an "args" attribute instead
+        else:
+            self.config = self.args   # pylint: disable=E0203
         if vt_extra_params:
-            # We don't want to override the original args
-            self.args = copy.deepcopy(self.args)
-            extra = get_opt(self.args, 'vt_extra_params')
+            # We don't want to override the original config
+            self.config = copy.deepcopy(self.config)
+            extra = get_opt(self.config, 'vt_extra_params')
             if extra is not None:
                 extra += vt_extra_params
             else:
                 extra = vt_extra_params
-            set_opt(self.args, 'vt_extra_params', extra)
+            set_opt(self.config, 'vt_extra_params', extra)
 
     def _get_parser(self):
-        options_processor = VirtTestOptionsProcess(self.args)
+        options_processor = VirtTestOptionsProcess(self.config)
         return options_processor.get_parser()
 
     def get_extra_listing(self):
-        if get_opt(self.args, 'vt_list_guests'):
-            args = copy.copy(self.args)
-            set_opt(args, 'vt_config', None)
-            set_opt(args, 'vt_guest_os', None)
-            guest_listing(args)
-        if get_opt(self.args, 'vt_list_archs'):
-            args = copy.copy(self.args)
-            set_opt(args, 'vt_machine_type', None)
-            set_opt(args, 'vt_arch', None)
-            arch_listing(args)
+        if get_opt(self.config, 'vt_list_guests'):
+            config = copy.copy(self.config)
+            set_opt(config, 'vt_config', None)
+            set_opt(config, 'vt_guest_os', None)
+            guest_listing(config)
+        if get_opt(self.config, 'vt_list_archs'):
+            config = copy.copy(self.config)
+            set_opt(config, 'vt_machine_type', None)
+            set_opt(config, 'vt_arch', None)
+            arch_listing(config)
 
     @staticmethod
     def get_type_label_mapping():
@@ -174,7 +178,7 @@ class VirtTestLoader(loader.TestLoader):
             except cartesian_config.ParserError as details:
                 return self._report_bad_discovery(url, details, which_tests)
         elif (which_tests is loader.DiscoverMode.DEFAULT and
-              not get_opt(self.args, 'vt_config')):
+              not get_opt(self.config, 'vt_config')):
             # By default don't run anythinig unless vt_config provided
             return []
         # Create test_suite
@@ -182,9 +186,9 @@ class VirtTestLoader(loader.TestLoader):
         for params in (_ for _ in cartesian_parser.get_dicts()):
             # Evaluate the proper avocado-vt test name
             test_name = None
-            if get_opt(self.args, 'vt_config'):
+            if get_opt(self.config, 'vt_config'):
                 test_name = params.get("shortname")
-            elif get_opt(self.args, 'vt_type') == "spice":
+            elif get_opt(self.config, 'vt_type') == "spice":
                 short_name_map_file = params.get("_short_name_map_file")
                 if "tests-variants.cfg" in short_name_map_file:
                     test_name = short_name_map_file["tests-variants.cfg"]

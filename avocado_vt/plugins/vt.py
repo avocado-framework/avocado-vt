@@ -166,10 +166,10 @@ class VTRun(CLI):
                                              default=uri_current,
                                              help=msg)
 
-    def run(self, args):
+    def run(self, config):
         """
         Run test modules or simple tests.
 
-        :param args: Command line args received from the run subparser.
+        :param config: Command line args received from the run subparser.
         """
         loader.register_plugin(VirtTestLoader)
