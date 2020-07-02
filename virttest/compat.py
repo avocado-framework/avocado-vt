@@ -43,6 +43,10 @@ if is_registering_settings_required():
     def set_opt_from_settings(opt, section, key, **kwargs):
         """No-op, default values are set at settings.register_option()."""
         pass
+
+    def get_settings_value(section, key, **kwargs):
+        namespace = '%s.%s' % (section, key)
+        return settings.as_dict().get(namespace)
 else:
     def get_opt(opt, name):
         """
@@ -74,3 +78,6 @@ else:
         value = settings.get_value(section, key, **kwargs)
         namespace = '%s.%s' % (section, key)
         set_opt(opt, namespace, value)
+
+    def get_settings_value(section, key, **kwargs):
+        return settings.get_value(section, key, **kwargs)

@@ -7,7 +7,6 @@ import string
 import sys
 
 from avocado.core import exit_codes
-from avocado.core.settings import settings
 from avocado.utils.process import pid_exists
 from avocado.utils.stacktrace import log_exc_info
 
@@ -15,6 +14,8 @@ from avocado.core.plugin_interfaces import JobPreTests as Pre
 from avocado.core.plugin_interfaces import JobPostTests as Post
 
 from ..test import VirtTest
+
+from virttest.compat import get_settings_value
 
 from six.moves import xrange
 
@@ -41,11 +42,9 @@ class VTJobLock(Pre, Post):
 
     def __init__(self, **kwargs):
         self.log = logging.getLogger("avocado.app")
-        self.lock_dir = os.path.expanduser(settings.get_value(
-            section="plugins.vtjoblock",
-            key="dir",
-            key_type=str,
-            default='/tmp'))
+        lock_dir = get_settings_value("plugins.vtjoblock", "dir",
+                                      key_type=str, default='/tmp')
+        self.lock_dir = os.path.expanduser(lock_dir)
         self.lock_file = None
 
     def _create_self_lock_file(self, job):
