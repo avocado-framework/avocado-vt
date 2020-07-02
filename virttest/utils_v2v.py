@@ -1224,7 +1224,8 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False):
 
     if cmd_only:
         return cmd
-
+    cmd_result.stdout = cmd_result.stdout_text
+    cmd_result.stderr = cmd_result.stderr_text
     return cmd_result
 
 

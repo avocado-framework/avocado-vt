@@ -1346,6 +1346,8 @@ class RemoteRunner(object):
                                          (self.stderr_pipe, self.stderr_pipe))
         cmd_result = process.CmdResult(command=command, exit_status=status,
                                        stdout=output, stderr=errput)
+        cmd_result.stdout = cmd_result.stdout_text
+        cmd_result.stderr = cmd_result.stderr_text
         if status and (not ignore_status):
             raise process.CmdError(command, cmd_result)
         return cmd_result
