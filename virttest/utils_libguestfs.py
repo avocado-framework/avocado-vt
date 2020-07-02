@@ -81,6 +81,8 @@ def lgf_command(cmd, ignore_status=True, debug=False, timeout=60):
         logging.debug("stderr: %s", ret.stderr_text.strip())
 
     # Return CmdResult instance when ignore_status is True
+    ret.stdout = ret.stdout_text
+    ret.stderr = ret.stderr_text
     return ret
 
 
@@ -353,6 +355,8 @@ class GuestfishRemote(object):
         exit_status, stdout = self.cmd_status_output(cmd)
         stderr = ''  # no way to retrieve this separately
         result = process.CmdResult(cmd, stdout, stderr, exit_status)
+        result.stdout = result.stdout_text
+        result.stderr = result.stderr_text
         if not ignore_status and exit_status:
             raise process.CmdError(cmd, result,
                                    "Guestfish Command returned non-zero exit status")
@@ -363,6 +367,8 @@ class GuestfishRemote(object):
         exit_status, stdout = self.cmd_status_output(cmd)
         stderr = ''  # no way to retrieve this separately
         result = process.CmdResult(cmd, stdout, stderr, exit_status)
+        result.stdout = result.stdout_text
+        result.stderr = result.stderr_text
         if not ignore_status and exit_status:
             raise process.CmdError(cmd, result,
                                    "Guestfish Command returned non-zero exit status")

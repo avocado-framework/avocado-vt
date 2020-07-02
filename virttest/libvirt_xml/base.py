@@ -224,6 +224,8 @@ class LibvirtXMLBase(propcan.PropCanBase):
         if schema_name:
             command += ' %s' % schema_name
         cmdresult = process.run(command, ignore_status=True)
+        cmdresult.stdout = cmdresult.stdout_text
+        cmdresult.stderr = cmdresult.stderr_text
         return cmdresult
 
 

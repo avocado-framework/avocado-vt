@@ -599,6 +599,8 @@ class QemuImg(storage.QemuImg):
                                        (self.image_filename, cmd_result))
         if self.encryption_config.key_secret:
             self.encryption_config.key_secret.save_to_file()
+        cmd_result.stdout = cmd_result.stdout_text
+        cmd_result.stderr = cmd_result.stderr_text
         return self.image_filename, cmd_result
 
     def convert(self, params, root_dir, cache_mode=None,
