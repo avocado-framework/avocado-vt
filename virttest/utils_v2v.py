@@ -473,6 +473,10 @@ class VMCheck(object):
             self.session.close()
             self.session = None
 
+        # If VMChecker is instantiated before import_vm_to_ovirt and
+        # the VMChecker.run is skiped, self.vm.instance will be NULL.
+        # The update_instance should be ran before cleaning up.
+        self.vm.update_instance()
         if self.vm.instance and self.vm.is_alive():
             self.vm.destroy(gracefully=False)
             time.sleep(5)
