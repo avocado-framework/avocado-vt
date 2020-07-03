@@ -203,7 +203,7 @@ def get_vcpucount_details(vm, options):
 
     result = virsh.vcpucount(vm.name, options, ignore_status=True,
                              debug=True)
-    if result.stdout_text:
+    if result.exit_status:
         logging.debug("vcpu count command failed")
         return (result, vcpucount_details)
 
