@@ -104,6 +104,70 @@ class VirtProxyd(VirtDaemonCommon):
     daemon_name = 'virtproxyd'
 
 
+class VirtNetworkd(VirtDaemonCommon):
+    """
+    Class for manage virtnetworkd daemon service on host or guest.
+    """
+    # Override daemon name in super class.
+    daemon_name = 'virtnetworkd'
+
+
+class VirtLogd(VirtDaemonCommon):
+    """
+    Class for manage virtlogd daemon service on host or guest.
+    """
+    # Override daemon name in super class.
+    daemon_name = 'virtlogd'
+
+
+class VirtStoraged(VirtDaemonCommon):
+    """
+    Class for manage virtstoraged daemon service on host or guest.
+    """
+    # Override daemon name in super class.
+    daemon_name = 'virtstoraged'
+
+
+class VirtNodedevd(VirtDaemonCommon):
+    """
+    Class for manage virtnodevd daemon service on host or guest.
+    """
+    # Override daemon name in super class.
+    daemon_name = 'virtnodedevd'
+
+
+class VirtNwfilterd(VirtDaemonCommon):
+    """
+    Class for manage virtnwfilterd daemon service on host or guest.
+    """
+    # Override daemon name in super class.
+    daemon_name = 'virtnwfilterd'
+
+
+class VirtSecretd(VirtDaemonCommon):
+    """
+    Class for manage virtsecretd daemon service on host or guest.
+    """
+    # Override daemon name in super class.
+    daemon_name = 'virtsecretd'
+
+
+class VirtInterfaced(VirtDaemonCommon):
+    """
+    Class for manage virtinterfaced daemon service on host or guest.
+    """
+    # Override daemon name in super class.
+    daemon_name = 'virtinterfaced'
+
+
+class VirtLockd(VirtDaemonCommon):
+    """
+    Class for manage virtlockd daemon service on host or guest.
+    """
+    # Override daemon name in super class.
+    daemon_name = 'virtlockd'
+
+
 class VirtQemudSession(object):
 
     """
