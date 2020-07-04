@@ -247,6 +247,7 @@ class VMManager(virt_vm.BaseVM):
                     else:
                         break
                 elif self.state() == types.VmStatus.UP:
+                    vm_up = True
                     break
                 time.sleep(1)
             if not vm_powering_up and not vm_up:
