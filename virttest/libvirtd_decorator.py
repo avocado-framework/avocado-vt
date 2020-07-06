@@ -85,8 +85,17 @@ def get_libvirt_version_compare(major, minor, update, session=None):
     return False
 
 
-LIBVIRTD_SPLIT_ENABLE_BIT = get_libvirtd_split_enable_bit()
-IS_LIBVIRTD_SPLIT_VERSION = get_libvirt_version_compare(5, 6, 0)
+LIBVIRTD_SPLIT_ENABLE_BIT = None
+IS_LIBVIRTD_SPLIT_VERSION = None
+
+
+def check_libvirt_version():
+    global LIBVIRTD_SPLIT_ENABLE_BIT
+    global IS_LIBVIRTD_SPLIT_VERSION
+    if LIBVIRTD_SPLIT_ENABLE_BIT is None:
+        LIBVIRTD_SPLIT_ENABLE_BIT = get_libvirtd_split_enable_bit()
+    if IS_LIBVIRTD_SPLIT_VERSION is None:
+        IS_LIBVIRTD_SPLIT_VERSION = get_libvirt_version_compare(5, 6, 0)
 
 
 def libvirt_version_context_aware_libvirtd_legacy(fn):
@@ -102,6 +111,7 @@ def libvirt_version_context_aware_libvirtd_legacy(fn):
         :param args: function fixed args.
         :param kwargs: function varied args.
         """
+        check_libvirt_version()
         if not IS_LIBVIRTD_SPLIT_VERSION or not LIBVIRTD_SPLIT_ENABLE_BIT:
             logging.warn("legacy start libvirtd daemon NORMALLY with function name: %s" % fn.__name__)
             return fn(*args, **kwargs)
@@ -124,6 +134,7 @@ def libvirt_version_context_aware_libvirtd_split(fn):
         :param args: function fixed args.
         :param kwargs: function varied args.
         """
+        check_libvirt_version()
         if IS_LIBVIRTD_SPLIT_VERSION and LIBVIRTD_SPLIT_ENABLE_BIT:
             logging.warn("Split start libvirtd daemon NORMALLY with function name: %s" % fn.__name__)
             return fn(*args, **kwargs)
