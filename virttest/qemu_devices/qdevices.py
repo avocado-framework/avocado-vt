@@ -916,6 +916,11 @@ class QBlockdevProtocolNBD(QBlockdevProtocol):
     TYPE = 'nbd'
 
 
+class QBlockdevProtocolNVMe(QBlockdevProtocol):
+    """ New a protocol NVMe blockdev node. """
+    TYPE = 'nvme'
+
+
 class QDevice(QCustomDevice):
 
     """

@@ -26,6 +26,7 @@ from virttest import virt_vm
 from virttest import gluster
 from virttest import lvm
 from virttest import ceph
+from virttest import nvme
 from virttest import data_dir
 
 
@@ -83,6 +84,9 @@ def file_exists(params, filename_path):
         keyring_conf = params.get("image_ceph_keyring_conf")
         return ceph.rbd_image_exist(ceph_monitor, rbd_pool_name,
                                     rbd_image_name, ceph_conf, keyring_conf)
+
+    if params.get('enable_nvme') == 'yes':
+        return nvme.file_exists(params, filename_path)
     return os.path.exists(filename_path)
 
 
@@ -157,6 +161,7 @@ def get_image_filename(params, root_dir, basename=False):
     enable_gluster = params.get("enable_gluster") == "yes"
     enable_ceph = params.get("enable_ceph") == "yes"
     enable_iscsi = params.get("enable_iscsi") == "yes"
+    enable_nvme = params.get("enable_nvme") == "yes"
     image_name = params.get("image_name")
     storage_type = params.get("storage_type")
     if image_name:
@@ -182,6 +187,10 @@ def get_image_filename(params, root_dir, basename=False):
             ceph_monitor = params.get('ceph_monitor')
             return ceph.get_image_filename(ceph_monitor, rbd_pool_name,
                                            rbd_image_name, ceph_conf)
+        if enable_nvme:
+            address = params['nvme_pci_address']
+            namespace = params.get('nvme_namespace', 1)
+            return nvme.get_image_filename(address, namespace)
         return get_image_filename_filesytem(params, root_dir, basename=basename)
     else:
         logging.warn("image_name parameter not set.")
@@ -628,7 +637,7 @@ class QemuImg(object):
         self.image_blkdebug_filename = get_image_blkdebug_filename(params,
                                                                    root_dir)
         self.remote_keywords = params.get("remote_image",
-                                          "gluster iscsi rbd nbd").split()
+                                          "gluster iscsi rbd nbd nvme").split()
         self.encryption_config = ImageEncryption.encryption_define_by_params(
             tag, params)
         image_chain = params.get("image_chain")

@@ -19,6 +19,7 @@ from avocado.utils import process
 from virttest import utils_misc
 from virttest import virt_vm
 from virttest import storage
+from virttest import nvme
 from virttest import data_dir
 from virttest import error_context
 
@@ -121,6 +122,9 @@ def filename_to_file_opts(filename):
 
                 if matches.group('export'):
                     file_opts['export'] = matches.group('export')
+    elif filename.startswith('nvme:'):
+        addr, namespace = nvme.parse_uri(filename)
+        file_opts = {'driver': 'nvme', 'device': addr, 'namespace': int(namespace)}
     # FIXME: Judge the host device by the string starts with "/dev/".
     elif filename.startswith('/dev/'):
         file_opts = {'driver': 'host_device', 'filename': filename}
