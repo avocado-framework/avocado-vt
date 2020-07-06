@@ -36,6 +36,7 @@ from virttest import utils_config
 from virttest import utils_package
 from virttest import kernel_interface
 from virttest import libvirt_version
+from virttest import libvirtd_decorator
 from virttest.staging import service
 from virttest.staging import utils_memory
 
@@ -2423,38 +2424,70 @@ class LibvirtdDebugLog(object):
         self.log_level = log_level
         self.log_file = log_file
         self.test = test
-        self.libvirtd = utils_libvirtd.Libvirtd()
-        self.libvirtd_conf = utils_config.LibvirtdConfig()
-        self.backupfile = "%s.backup" % self.libvirtd_conf.conf_path
+        self.daemons_dict = {}
+        self.daemons_dict["libvirtd"] = {
+            "daemon": utils_libvirtd.Libvirtd("virtqemud"),
+            "conf": utils_config.LibvirtdConfig(),
+            "backupfile": "%s.backup" % utils_config.LibvirtdConfig().conf_path}
+        if (libvirt_version.version_compare(5, 6, 0) and
+           libvirtd_decorator.get_libvirtd_split_enable_bit()):
+            self.daemons_dict["libvirtd"]["conf"] = utils_config.VirtQemudConfig()
+            self.daemons_dict["libvirtd"]["backupfile"] = utils_config.VirtQemudConfig().conf_path
+            self.daemons_dict["virtnetworkd"] = {
+                "daemon": utils_libvirtd.Libvirtd("virtnetworkd"),
+                "conf": utils_config.VirtNetworkdConfig(),
+                "backupfile": "%s.backup" % utils_config.VirtNetworkdConfig().conf_path}
+            self.daemons_dict["virtproxyd"] = {
+                "daemon": utils_libvirtd.Libvirtd("virtproxyd"),
+                "conf": utils_config.VirtProxydConfig(),
+                "backupfile": "%s.backup" % utils_config.VirtProxydConfig().conf_path}
+            self.daemons_dict["virtstoraged"] = {
+                "daemon": utils_libvirtd.Libvirtd("virtstoraged"),
+                "conf": utils_config.VirtStoragedConfig(),
+                "backupfile": "%s.backup" % utils_config.VirtStoragedConfig().conf_path}
+            self.daemons_dict["virtinterfaced"] = {
+                "daemon": utils_libvirtd.Libvirtd("virtinterfaced"),
+                "conf": utils_config.VirtInterfacedConfig(),
+                "backupfile": "%s.backup" % utils_config.VirtInterfacedConfig().conf_path}
+            self.daemons_dict["virtnodedevd"] = {
+                "daemon": utils_libvirtd.Libvirtd("virtnodedevd"),
+                "conf": utils_config.VirtNodedevdConfig(),
+                "backupfile": "%s.backup" % utils_config.VirtNodedevdConfig().conf_path}
+            self.daemons_dict["virtnwfilterd"] = {
+                "daemon": utils_libvirtd.Libvirtd("virtnwfilterd"),
+                "conf": utils_config.VirtNwfilterdConfig(),
+                "backupfile": "%s.backup" % utils_config.VirtNwfilterdConfig().conf_path}
 
     def enable(self):
         """ Enable libvirtd debug log """
         if not self.log_file or not os.path.isdir(os.path.dirname(self.log_file)):
             self.log_file = utils_misc.get_path(self.test.debugdir,
                                                 "libvirtd.log")
-        if os.path.isfile(self.backupfile):
-            os.remove(self.backupfile)
-
-        # backup libvirtd conf before restarting libvirtd
-        try:
-            with open(self.backupfile, "w") as fd:
-                fd.write(self.libvirtd_conf.backup_content)
-                fd.close()
-        except IOError as info:
-            self.test.error(info)
-
         # param used during libvirtd cleanup
         self.test.params["libvirtd_debug_file"] = self.log_file
         logging.debug("libvirtd debug log stored in: %s", self.log_file)
-        self.libvirtd_conf["log_level"] = self.log_level
-        self.libvirtd_conf["log_outputs"] = '"%s:file:%s"' % (self.log_level,
-                                                              self.log_file)
-        self.libvirtd.restart()
+
+        for value in self.daemons_dict.values():
+            if os.path.isfile(value.get("backupfile")):
+                os.remove(value.get("backupfile"))
+
+            # backup config files before restarting services
+            try:
+                with open(value.get("backupfile"), "w") as fd:
+                    fd.write(value.get("conf").backup_content)
+            except IOError as info:
+                self.test.error(info)
+
+            value.get("conf")["log_level"] = self.log_level
+            value.get("conf")["log_outputs"] = '"%s:file:%s"' % (self.log_level,
+                                                                 self.log_file)
+            value.get("daemon").restart()
 
     def disable(self):
         """ Disable libvirtd debug log """
-        os.rename(self.backupfile, self.libvirtd_conf.conf_path)
-        self.libvirtd.restart()
+        for value in self.daemons_dict.values():
+            os.rename(value.get("backupfile"), value.get("conf").conf_path)
+            value.get("daemon").restart()
 
 
 class UlimitConfig(Setuper):
