@@ -1616,7 +1616,8 @@ class UNIXConnection(ConnectionBase):
                  'client_ip', 'client_user', 'client_pwd',
                  'client_libvirtdconf', 'restart_libvirtd',
                  'client_saslconf', 'client_hosts', 'sasl_type', 'libvirt_ver',
-                 'sasl_allowed_username_list', 'client_libvirtd_socket')
+                 'sasl_allowed_username_list', 'client_libvirtd_socket',
+                 'traditional_mode')
 
     def __init__(self, *args, **dargs):
         """
@@ -1654,6 +1655,8 @@ class UNIXConnection(ConnectionBase):
             'restart_libvirtd', 'yes')
         init_dict['sasl_allowed_username_list'] = init_dict.get(
             'sasl_allowed_username_list', '["root/admin" ]')
+        init_dict['traditional_mode'] = init_dict.get(
+            'traditional_mode', 'no')
 
         super(UNIXConnection, self).__init__(init_dict)
 
@@ -1701,6 +1704,8 @@ class UNIXConnection(ConnectionBase):
         (1).Delete remote file.
         (2).Restart libvirtd on server.
         """
+        traditional_mode = self.traditional_mode
+
         del self.client_libvirtdconf
         del self.client_saslconf
         del self.client_hosts
@@ -1710,10 +1715,18 @@ class UNIXConnection(ConnectionBase):
         try:
             libvirtd_service = utils_libvirtd.Libvirtd(session=client_session)
             if self.libvirt_ver:
-                process.run("systemctl daemon-reload")
-                process.run("systemctl stop libvirtd.socket")
+                # For traditional mode, need unmask libvirtd*.socket
+                if traditional_mode == 'yes':
+                    process.run("systemctl unmask libvirtd.socket", shell=True)
+                    process.run("systemctl unmask libvirtd-admin.socket", shell=True)
+                    process.run("systemctl unmask libvirtd-ro.socket", shell=True)
+                    process.run("systemctl unmask libvirtd-tcp.socket", shell=True)
+                    process.run("systemctl unmask libvirtd-tls.socket", shell=True)
+                else:
+                    process.run("systemctl daemon-reload", shell=True)
+                    process.run("systemctl stop libvirtd.socket", shell=True)
                 libvirtd_service.stop()
-                process.run("systemctl start libvirtd.socket")
+                process.run("systemctl start libvirtd.socket", shell=True)
                 libvirtd_service.start()
             else:
                 libvirtd_service.restart()
@@ -1743,6 +1756,7 @@ class UNIXConnection(ConnectionBase):
         restart_libvirtd = self.restart_libvirtd
         client_session = self.client_session
         sasl_allowed_username_list = self.sasl_allowed_username_list
+        traditional_mode = self.traditional_mode
 
         # edit the /etc/libvirt/libvirtd.conf to add auth_unix_ro arg
         if auth_unix_ro:
@@ -1792,7 +1806,7 @@ class UNIXConnection(ConnectionBase):
 
         # edit the /etc/libvirt/libvirtd.conf to add unix_sock_rw_perms arg
         if unix_sock_rw_perms:
-            if self.libvirt_ver:
+            if self.libvirt_ver and traditional_mode == 'no':
                 pattern_to_repl = {r".*SocketMode\s*=.*":
                                    'SocketMode=%s' % unix_sock_rw_perms}
                 self.client_libvirtd_socket.sub_else_add(pattern_to_repl)
@@ -1837,10 +1851,25 @@ class UNIXConnection(ConnectionBase):
                 libvirtd_service = utils_libvirtd.Libvirtd(
                     session=client_session)
                 if self.libvirt_ver:
-                    process.run("systemctl stop libvirtd.socket")
-                    libvirtd_service.stop()
-                    process.run("systemctl daemon-reload")
-                    process.run("systemctl start libvirtd.socket")
+                    # For traditional mode, need mask libvirtd*.socket
+                    if traditional_mode == 'yes':
+                        process.run("systemctl stop libvirtd.socket", shell=True)
+                        process.run("systemctl stop libvirtd-admin.socket", shell=True)
+                        process.run("systemctl stop libvirtd-ro.socket", shell=True)
+                        process.run("systemctl stop libvirtd-tcp.socket", shell=True)
+                        process.run("systemctl stop libvirtd-tls.socket", shell=True)
+                        libvirtd_service.stop()
+                        process.run("systemctl mask libvirtd.socket", shell=True)
+                        process.run("systemctl mask libvirtd-admin.socket", shell=True)
+                        process.run("systemctl mask libvirtd-ro.socket", shell=True)
+                        process.run("systemctl mask libvirtd-tcp.socket", shell=True)
+                        process.run("systemctl mask libvirtd-tls.socket", shell=True)
+                        process.run("systemctl daemon-reload", shell=True)
+                    else:
+                        process.run("systemctl stop libvirtd.socket", shell=True)
+                        libvirtd_service.stop()
+                        process.run("systemctl daemon-reload", shell=True)
+                        process.run("systemctl start libvirtd.socket", shell=True)
                     libvirtd_service.start()
                 else:
                     libvirtd_service.restart()
