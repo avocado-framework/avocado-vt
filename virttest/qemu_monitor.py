@@ -2214,7 +2214,12 @@ class QMPMonitor(Monitor):
                     value = "=".join(opt[1:])
                     try:
                         if re.match("^[0-9]+$", value):
-                            value = int(value)
+                            # when force convert type to int,exclude 'fd' as bz
+                            # 1853538. And the int type convert is not absolute
+                            # accurate for other values, if hit problem please
+                            # check the expect type of qemu and update.
+                            if opt[0] != 'fd':
+                                value = int(value)
                         elif re.match("^[0-9]+\.[0-9]*$", value):
                             value = float(value)
                         elif re.findall("true", value, re.I):
