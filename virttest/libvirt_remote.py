@@ -44,3 +44,24 @@ def update_remote_file(params, value,
     except Exception as err:
         raise exceptions.TestFail("Unable to update {}: {}"
                                   .format(file_path, err))
+
+
+def delete_remote_file(file_path, params):
+    """
+    Delete file on remote
+
+    :param file_path: The file to be deleted
+    :param params: Test params
+    :return: True if the removal succeeds
+    """
+    remote_ip = params.get("server_ip", params.get("remote_ip"))
+    remote_pwd = params.get("server_pwd", params.get("remote_pwd"))
+    remote_user = params.get("server_user", params.get("remote_user"))
+    if not all([remote_ip, remote_pwd, remote_user]):
+        raise exceptions.TestError("remote_[ip|user|pwd] are necessary!")
+    remote_session = remote.wait_for_login('ssh', remote_ip, '22',
+                                           remote_user, remote_pwd,
+                                           r"[\#\$]\s*$")
+    result = remote_session.cmd_status("echo y|rm -r %s" % file_path)
+    remote_session.close()
+    return not result
