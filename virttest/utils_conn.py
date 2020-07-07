@@ -1080,7 +1080,11 @@ class TLSConnection(ConnectionBase):
                                             r"[\#\$]\s*$")
             libvirtd_service = utils_libvirtd.Libvirtd(session=session)
             if libvirt_version.version_compare(5, 6, 0, session):
+                session.cmd("systemctl stop libvirtd.socket")
+                libvirtd_service.stop()
                 session.cmd("systemctl stop libvirtd-tls.socket")
+                session.cmd("systemctl daemon-reload")
+                session.cmd("systemctl start libvirtd.socket")
                 libvirtd_service.start()
             else:
                 libvirtd_service.restart()
@@ -1180,7 +1184,7 @@ class TLSConnection(ConnectionBase):
         tmp_dir = self.tmp_dir
         scp_new_cacert = self.scp_new_cacert
         # sometimes, need to reuse previous CA cert
-        if self.ca_cakey_path and scp_new_cacert == 'no':
+        if self.ca_cakey_path:
             cacert_path = os.path.join(self.ca_cakey_path, self.credential_dict['cacert'])
             cakey_path = os.path.join(self.ca_cakey_path, self.credential_dict['cakey'])
         else:
@@ -1229,10 +1233,14 @@ class TLSConnection(ConnectionBase):
         if status:
             raise ConnMkdirError(self.libvirt_pki_private_dir, output)
 
-        scp_dict = {cacert_path: self.pki_CA_dir,
-                    cakey_path: self.pki_CA_dir,
-                    servercert_path: self.libvirt_pki_dir,
-                    serverkey_path: self.libvirt_pki_private_dir}
+        if scp_new_cacert == 'no':
+            scp_dict = {servercert_path: self.libvirt_pki_dir,
+                        serverkey_path: self.libvirt_pki_private_dir}
+        else:
+            scp_dict = {cacert_path: self.pki_CA_dir,
+                        cakey_path: self.pki_CA_dir,
+                        servercert_path: self.libvirt_pki_dir,
+                        serverkey_path: self.libvirt_pki_private_dir}
 
         for key in scp_dict:
             local_path = key
@@ -1266,9 +1274,9 @@ class TLSConnection(ConnectionBase):
                             "chardev_tls = 1"}
             operate_qemuconf.sub_else_add(pattern2repl)
             pattern2repl = {r".*chardev_tls_x509_cert_dir\s*="
-                            "\s*\"\/etc\/pki\/libvirt-chardev\s*\".*":
+                            r"\s*\"\/etc\/pki\/libvirt-chardev\s*\".*":
                             "chardev_tls_x509_cert_dir="
-                            "\"/etc/pki/libvirt-chardev\""}
+                            r"\"/etc/pki/libvirt-chardev\""}
             operate_qemuconf.sub_else_add(pattern2repl)
 
         if not libvirt_version.version_compare(5, 6, 0, server_session):
@@ -1361,6 +1369,7 @@ class TLSConnection(ConnectionBase):
                 if libvirt_version.version_compare(5, 6, 0):
                     process.run("systemctl stop libvirtd.socket")
                     libvirtd_service.stop()
+                    process.run("systemctl daemon-reload")
                     process.run("systemctl start libvirtd.socket")
                     process.run("systemctl restart libvirtd-tls.socket")
                     libvirtd_service.start()
@@ -1371,12 +1380,14 @@ class TLSConnection(ConnectionBase):
                     session = remote.wait_for_login('ssh', server_ip, '22',
                                                     server_user, server_pwd,
                                                     r"[\#\$]\s*$")
-                    remote_runner = remote.RemoteRunner(session=session)
-                    remote_runner.run('iptables -F', ignore_status=True)
                     libvirtd_service = utils_libvirtd.Libvirtd(session=session)
                     if libvirt_version.version_compare(5, 6, 0, session):
+                        session.cmd("systemctl stop libvirtd.socket")
                         libvirtd_service.stop()
+                        session.cmd("systemctl daemon-reload")
+                        session.cmd("systemctl start libvirtd.socket")
                         session.cmd("systemctl restart libvirtd-tls.socket")
+                        libvirtd_service.start()
                     else:
                         libvirtd_service.restart()
                 except (remote.LoginError, aexpect.ShellError) as detail:
