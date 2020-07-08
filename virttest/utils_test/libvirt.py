@@ -3662,7 +3662,7 @@ def check_cmd_output(cmd, content, err_ignore=False, session=None):
     """
     Check the specified content in the output of the cmd
     :param cmd: the cmd wants to check
-    :param content: the desired string to search
+    :param content: the desired string or list to search
     :param err_ignore: True to return False when fail
                        False to raise exception when fail
     :param session: ShellSession object of VM or remote host
@@ -3673,12 +3673,14 @@ def check_cmd_output(cmd, content, err_ignore=False, session=None):
         raise exceptions.TestFail("cmd can not be None")
     s, cmd_output = utils_misc.cmd_status_output(cmd, shell=True,
                                                  ignore_status=err_ignore, session=session)
-    if not re.search(r'%s' % content, cmd_output):
-        if err_ignore:
-            return False
-        else:
-            raise exceptions.TestFail("Expected '%s' was not found in "
-                                      "output of '%s'" % (content, cmd))
+    pattern_list = [content] if not isinstance(content, list) else content
+    for item in pattern_list:
+        if not re.search(r'%s' % item, cmd_output):
+            if err_ignore:
+                return False
+            else:
+                raise exceptions.TestFail("Expected '%s' was not found in "
+                                          "output of '%s'" % (item, cmd))
 
 
 def get_disk_alias(vm, source_file=None):
