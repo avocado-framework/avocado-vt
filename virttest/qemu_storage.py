@@ -125,6 +125,41 @@ def filename_to_file_opts(filename):
     elif filename.startswith('nvme:'):
         addr, namespace = nvme.parse_uri(filename)
         file_opts = {'driver': 'nvme', 'device': addr, 'namespace': int(namespace)}
+    elif filename.startswith('ssh:'):
+        filename_pattern = re.compile(
+            r'ssh://((?P<user>.+)@)?(?P<host>[^/:?]+)(:(?P<port>\d+))?'
+            r'(?P<path>/[^?]+)'
+            r'(\?host_key_check=(?P<host_key_check>.+))?'
+        )
+        matches = filename_pattern.match(filename)
+        if matches:
+            matches = matches.groupdict()
+            if matches['host'] is not None and matches['path'] is not None:
+                # required ssh options
+                file_opts = {
+                    'driver': 'ssh',
+                    'server.host': matches['host'],
+                    'server.port': matches['port'] if matches['port'] else 22,
+                    'path': matches['path']
+                }
+
+                if matches['user'] is not None:
+                    file_opts['user'] = matches['user']
+
+                # options in qemu-kvm are different from uri
+                if matches['host_key_check'] is not None:
+                    if matches['host_key_check'] == 'no':
+                        file_opts['host-key-check.mode'] = 'none'
+                    elif matches['host_key_check'] == 'yes':
+                        file_opts['host-key-check.mode'] = 'known_hosts'
+                    else:
+                        m = re.match(r'(?P<type>md5|sha1):(?P<hash>.+)',
+                                     matches['host_key_check']).groupdict()
+                        file_opts.update({
+                            'host-key-check.mode': 'hash',
+                            'host-key-check.type': m['type'],
+                            'host-key-check.hash': m['hash']
+                        })
     # FIXME: Judge the host device by the string starts with "/dev/".
     elif filename.startswith('/dev/'):
         file_opts = {'driver': 'host_device', 'filename': filename}

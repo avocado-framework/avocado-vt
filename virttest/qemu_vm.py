@@ -2675,6 +2675,8 @@ class VM(virt_vm.BaseVM):
                 continue
             if cdrom_params.get("enable_nvme") == "yes":
                 continue
+            if cdrom_params.get("enable_ssh") == "yes":
+                continue
             iso = cdrom_params.get("cdrom")
             if iso:
                 iso = utils_misc.get_path(data_dir.get_data_dir(), iso)

@@ -18,6 +18,7 @@ import json
 from avocado.core import exceptions
 from avocado.utils import process
 
+from virttest import storage_ssh
 from virttest import nbd
 from virttest import iscsi
 from virttest import utils_misc
@@ -88,6 +89,10 @@ def file_exists(params, filename_path):
 
     if params.get('enable_nvme') == 'yes':
         return nvme.file_exists(params, filename_path)
+
+    if params.get('enable_ssh') == 'yes':
+        return storage_ssh.file_exists(params, filename_path)
+
     return os.path.exists(filename_path)
 
 
@@ -158,6 +163,7 @@ def get_image_filename(params, root_dir, basename=False):
            image_format -- the format of the image (qcow2, raw etc)
     :raise VMDeviceError: When no matching disk found (in indirect method).
     """
+    enable_ssh = params.get("enable_ssh") == "yes"
     enable_nbd = params.get("enable_nbd") == "yes"
     enable_gluster = params.get("enable_gluster") == "yes"
     enable_ceph = params.get("enable_ceph") == "yes"
@@ -192,6 +198,18 @@ def get_image_filename(params, root_dir, basename=False):
             address = params['nvme_pci_address']
             namespace = params.get('nvme_namespace', 1)
             return nvme.get_image_filename(address, namespace)
+        if enable_ssh:
+            # required libssh options
+            server = params['image_ssh_host']
+            ssh_image_path = params['image_ssh_path']
+
+            # optional libssh options
+            user = params.get('image_ssh_user')
+            port = params.get('image_ssh_port')
+            host_key_check = params.get('image_ssh_host_key_check')
+
+            return storage_ssh.get_image_filename(server, ssh_image_path,
+                                                  user, port, host_key_check)
         return get_image_filename_filesytem(params, root_dir, basename=basename)
     else:
         logging.warn("image_name parameter not set.")
