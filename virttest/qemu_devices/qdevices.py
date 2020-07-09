@@ -10,7 +10,6 @@ import logging
 import re
 import traceback
 from collections import OrderedDict
-from functools import reduce
 
 import aexpect
 
@@ -675,20 +674,21 @@ class QBlockdevNode(QCustomDevice):
         :return: Converted args.
         :rtype: dict
         """
-        new_args = {}
-        tmp = {}
-        for key, val in six.iteritems(args):
-            if val in ('on', 'yes'):
-                val = True
-            elif val in ('off', 'no'):
-                val = False
-            if '.' in key:
-                sub_key = key.split('.')
-                reduce(lambda d, k: d.setdefault(
-                    k, {}), sub_key[1:-1], tmp)[sub_key[-1]] = val
-                new_args[sub_key[0]] = tmp
-            else:
-                new_args[key] = val
+        new_args = dict()
+        for key, value in six.iteritems(args):
+            if value in ('on', 'yes'):
+                value = True
+            elif value in ('off', 'no'):
+                value = False
+
+            parts = key.split(".")
+            d = new_args
+            for part in parts[:-1]:
+                if part not in d:
+                    d[part] = dict()
+                d = d[part]
+            d[parts[-1]] = value
+
         return new_args
 
     def hotplug_qmp(self):
@@ -909,6 +909,16 @@ class QBlockdevProtocolGluster(QBlockdevProtocol):
         params['server'] = [servers[i] for i in sorted(servers)]
 
         return "blockdev-add", params
+
+
+class QBlockdevProtocolNBD(QBlockdevProtocol):
+    """ New a protocol nbd blockdev node. """
+    TYPE = 'nbd'
+
+
+class QBlockdevProtocolNVMe(QBlockdevProtocol):
+    """ New a protocol NVMe blockdev node. """
+    TYPE = 'nvme'
 
 
 class QDevice(QCustomDevice):

@@ -2041,6 +2041,13 @@ def get_binary(binary_name, params):
     return binary_path
 
 
+def get_qemu_nbd_binary(params):
+    """
+    Get the path to the qemu-nbd binary currently in use.
+    """
+    return get_binary('qemu-nbd', params)
+
+
 def get_qemu_img_binary(params):
     """
     Get the path to the qemu-img binary currently in use.

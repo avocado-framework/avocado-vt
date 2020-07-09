@@ -446,6 +446,8 @@ def del_defcon(context_type, pathregex, selinux_force=False):
 
     cmd = ("semanage fcontext --delete -t %s '%s'" % (context_type, pathregex))
     result = process.run(cmd, ignore_status=True)
+    result.stdout = result.stdout_text
+    result.stderr = result.stderr_text
     _no_semanage(result)
     if result.exit_status != 0:
         raise SeCmdError(cmd, result.stderr_text)

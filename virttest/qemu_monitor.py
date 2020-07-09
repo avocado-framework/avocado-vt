@@ -2214,7 +2214,12 @@ class QMPMonitor(Monitor):
                     value = "=".join(opt[1:])
                     try:
                         if re.match("^[0-9]+$", value):
-                            value = int(value)
+                            # when force convert type to int,exclude 'fd' as bz
+                            # 1853538. And the int type convert is not absolute
+                            # accurate for other values, if hit problem please
+                            # check the expect type of qemu and update.
+                            if opt[0] != 'fd':
+                                value = int(value)
                         elif re.match("^[0-9]+\.[0-9]*$", value):
                             value = float(value)
                         elif re.findall("true", value, re.I):
@@ -3309,3 +3314,79 @@ class QMPMonitor(Monitor):
             arguments["head"] = int(head)
         arguments["events"] = events
         return self.cmd(cmd, arguments)
+
+    def nbd_server_start(self, server, tls_creds=None, tls_authz=None):
+        """
+        Start an NBD server listening on the given host and port.
+        :param server: {'host': xx, 'port': 'type': 'inet'} or
+                       {'path': xx, 'type': 'unix'}
+        :param tls_creds: ID of the TLS credentials object (since 2.6).
+        :param tls_authz: ID of the QAuthZ authorization object used to
+                          validate the client's x509 distinguished name.
+                          (since 4.0)
+        """
+        cmd = "nbd-server-start"
+        self.verify_supported_cmd(cmd)
+        arguments = {
+            "addr": {
+                "type": server.pop("type"),
+                "data": server
+            }
+        }
+        if tls_creds:
+            arguments["tls-creds"] = tls_creds
+        if tls_authz:
+            arguments["tls-authz"] = tls_authz
+        return self.cmd(cmd, arguments)
+
+    def nbd_server_add(self, device, export_name=None,
+                       writable=None, bitmap=None):
+        """
+        Export a block node to QEMU's embedded NBD server.
+        :param device: The device name or node name to be exported
+        :param export_name: Export name. If unspecified, the device name
+                            is used as the export name.
+        :param writable: Whether clients should be able to write to the
+                         device via the NBD connection, 'yes' or 'no'
+        :param bitmap: Also export the dirty bitmap reachable from device,
+                       so the NBD client can use NBD_OPT_SET_META_CONTEXT
+                       with 'qemu:dirty-bitmap:NAME' to inspect the bitmap.
+                       (since 4.0)
+        """
+        cmd = "nbd-server-add"
+        self.verify_supported_cmd(cmd)
+        arguments = dict()
+        arguments["device"] = device
+        if export_name:
+            arguments["name"] = export_name
+        if writable:
+            arguments["writable"] = writable == "yes"
+        if bitmap:
+            arguments["bitmap"] = bitmap
+        return self.cmd(cmd, arguments)
+
+    def nbd_server_remove(self, export_name, remove_mode=None):
+        """
+        Remove NBD export by name.
+        :param export_name: Export name.
+        :param remove_mode: 'safe': Remove export if there are no existing
+                                    connections, fail otherwise.(default)
+                            'hard': Drop all connections immediately and
+                                    remove export.
+        """
+        cmd = "nbd-server-remove"
+        self.verify_supported_cmd(cmd)
+        arguments = dict()
+        arguments["name"] = export_name
+        if remove_mode:
+            arguments["mode"] = remove_mode
+        return self.cmd(cmd, arguments)
+
+    def nbd_server_stop(self):
+        """
+        Stop QEMU's embedded NBD server, and unregister all devices
+        previously added via nbd-server-add
+        """
+        cmd = "nbd-server-stop"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd)

@@ -1599,6 +1599,23 @@ class DevContainer(object):
         :param image_encryption: ImageEncryption object for image
         :param image_access: The logical image access information object
         """
+        def _get_access_tls_creds(image_access):
+            """Get all tls-creds objects of the image and its backing images"""
+            tls_creds = []
+            if image_access is not None:
+                creds_list = []
+                if image_access.image_backing_auth:
+                    creds_list.extend(image_access.image_backing_auth.values())
+                if image_access.image_auth:
+                    creds_list.append(image_access.image_auth)
+
+                for creds in creds_list:
+                    if creds.storage_type == 'nbd':
+                        if creds.tls_creds:
+                            tls_creds.append(creds)
+
+            return tls_creds
+
         def _get_access_secrets(image_access):
             """Get all secret objects of the image and its backing images"""
             secrets = []
@@ -1725,10 +1742,27 @@ class DevContainer(object):
                 access_secret_obj = devices[-1]
                 access_secret, secret_type = sec, sectype
 
+        tls_creds = None
+        tls_creds_obj = None
+        creds_list = _get_access_tls_creds(image_access)
+        for creds in creds_list:
+            # create and add all tls-creds objects
+            devices.append(qdevices.QObject('tls-creds-x509'))
+            devices[-1].set_param("id", creds.aid)
+            devices[-1].set_param("endpoint", 'client')
+            devices[-1].set_param("dir", creds.tls_creds)
+
+            if creds.image == name:
+                # only the top image should be associated
+                # with its tls-creds object
+                tls_creds_obj = devices[-1]
+                tls_creds = creds
+
         iscsi_initiator = None
         gluster_debug = None
         gluster_logfile = None
         gluster_peers = {}
+        reconnect_delay = None
         access = image_access.image_auth if image_access else None
         if access is not None:
             if access.storage_type == 'iscsi-direct':
@@ -1750,6 +1784,8 @@ class DevContainer(object):
                 gluster_peers.update({'server.{i}.{k}'.format(i=i+1, k=k): v
                                      for i, server in enumerate(peers)
                                      for k, v in six.iteritems(server)})
+            elif access.storage_type == 'nbd':
+                reconnect_delay = access.reconnect_delay
 
         use_device = self.has_option("device")
         if fmt == "scsi":   # fmt=scsi force the old version of devices
@@ -1892,6 +1928,10 @@ class DevContainer(object):
                 protocol_cls = qdevices.QBlockdevProtocolRBD
             elif filename.startswith('gluster'):
                 protocol_cls = qdevices.QBlockdevProtocolGluster
+            elif re.match(r'nbd(\+\w+)?://', filename):
+                protocol_cls = qdevices.QBlockdevProtocolNBD
+            elif filename.startswith('nvme:'):
+                protocol_cls = qdevices.QBlockdevProtocolNVMe
             elif fmt in ('scsi-generic', 'scsi-block'):
                 protocol_cls = qdevices.QBlockdevProtocolHostDevice
             elif blkdebug is not None:
@@ -1903,6 +1943,8 @@ class DevContainer(object):
                 format_cls = qdevices.QBlockdevFormatRaw
             elif imgfmt == 'luks':
                 format_cls = qdevices.QBlockdevFormatLuks
+            elif imgfmt == 'nvme':
+                format_cls = qdevices.QBlockdevFormatRaw
             elif imgfmt is None:
                 # use RAW type as the default
                 format_cls = qdevices.QBlockdevFormatRaw
@@ -1976,6 +2018,9 @@ class DevContainer(object):
         # More info from qemu commit 91a097e74.
         if not filename:
             cache = None
+        if filename.startswith('nvme://'):
+            # NVMe controller doesn't support write cache configuration
+            cache = 'writethrough'
         if Flags.BLOCKDEV in self.caps:
             if filename:
                 file_opts = qemu_storage.filename_to_file_opts(filename)
@@ -1990,6 +2035,10 @@ class DevContainer(object):
                     devices[-2].set_param('key-secret',
                                           access_secret_obj.get_qid())
 
+            if tls_creds is not None:
+                devices[-2].set_param('tls-creds', tls_creds_obj.get_qid())
+            if reconnect_delay is not None:
+                devices[-2].set_param('reconnect-delay', int(reconnect_delay))
             if iscsi_initiator:
                 devices[-2].set_param('initiator-name', iscsi_initiator)
             if gluster_debug:
@@ -2025,6 +2074,12 @@ class DevContainer(object):
                     devices[-1].set_param('file.key-secret',
                                           access_secret_obj.get_qid())
 
+            if tls_creds is not None:
+                devices[-1].set_param('file.tls-creds',
+                                      tls_creds_obj.get_qid())
+            if reconnect_delay is not None:
+                devices[-1].set_param('file.reconnect-delay',
+                                      int(reconnect_delay))
             if iscsi_initiator:
                 devices[-1].set_param('file.initiator-name', iscsi_initiator)
             if gluster_debug:

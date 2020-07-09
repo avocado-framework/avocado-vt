@@ -18,6 +18,7 @@ import json
 from avocado.core import exceptions
 from avocado.utils import process
 
+from virttest import nbd
 from virttest import iscsi
 from virttest import utils_misc
 from virttest import utils_numeric
@@ -25,6 +26,7 @@ from virttest import virt_vm
 from virttest import gluster
 from virttest import lvm
 from virttest import ceph
+from virttest import nvme
 from virttest import data_dir
 
 
@@ -82,6 +84,9 @@ def file_exists(params, filename_path):
         keyring_conf = params.get("image_ceph_keyring_conf")
         return ceph.rbd_image_exist(ceph_monitor, rbd_pool_name,
                                     rbd_image_name, ceph_conf, keyring_conf)
+
+    if params.get('enable_nvme') == 'yes':
+        return nvme.file_exists(params, filename_path)
     return os.path.exists(filename_path)
 
 
@@ -152,13 +157,17 @@ def get_image_filename(params, root_dir, basename=False):
            image_format -- the format of the image (qcow2, raw etc)
     :raise VMDeviceError: When no matching disk found (in indirect method).
     """
-    enable_gluster = params.get("enable_gluster", "no") == "yes"
-    enable_ceph = params.get("enable_ceph", "no") == "yes"
-    enable_iscsi = params.get("enable_iscsi", "no") == "yes"
+    enable_nbd = params.get("enable_nbd") == "yes"
+    enable_gluster = params.get("enable_gluster") == "yes"
+    enable_ceph = params.get("enable_ceph") == "yes"
+    enable_iscsi = params.get("enable_iscsi") == "yes"
+    enable_nvme = params.get("enable_nvme") == "yes"
     image_name = params.get("image_name")
     storage_type = params.get("storage_type")
     if image_name:
         image_format = params.get("image_format", "qcow2")
+        if enable_nbd:
+            return nbd.get_image_filename(params)
         if enable_iscsi:
             if storage_type == 'iscsi-direct':
                 portal = params.get('portal_ip')
@@ -178,6 +187,10 @@ def get_image_filename(params, root_dir, basename=False):
             ceph_monitor = params.get('ceph_monitor')
             return ceph.get_image_filename(ceph_monitor, rbd_pool_name,
                                            rbd_image_name, ceph_conf)
+        if enable_nvme:
+            address = params['nvme_pci_address']
+            namespace = params.get('nvme_namespace', 1)
+            return nvme.get_image_filename(address, namespace)
         return get_image_filename_filesytem(params, root_dir, basename=basename)
     else:
         logging.warn("image_name parameter not set.")
@@ -313,6 +326,7 @@ class StorageAuth(object):
     Image storage authentication class.
     iscsi auth: initiator + password
     ceph auth: ceph key
+    nbd auth: tls creds
     """
 
     def __init__(self, image, data, data_format, storage_type, **info):
@@ -324,9 +338,10 @@ class StorageAuth(object):
         :param info: other access information, such as:
                      iscsi-direct: initiator
                      gluster-direct: debug, logfile, peers
+                     nbd: tls creds path for client access
         """
         self.image = image
-        self.aid = '%s_access_secret' % self.image
+        self.aid = '%s_access' % self.image
         self.storage_type = storage_type
         self.filename = os.path.join(secret_dir, "%s.secret" % self.aid)
         self.data_format = data_format
@@ -343,6 +358,12 @@ class StorageAuth(object):
             # they'll be defined as common options for all backends
             self.debug = info['debug']
             self.logfile = info['logfile']
+        elif self.storage_type == 'nbd':
+            # TODO: now we only support tls-creds-x509, we can add a
+            # param 'nbd_tls_creds_object' to differentiate objects,
+            # e.g. tls-creds-psk
+            self.tls_creds = info['tls_creds']
+            self.reconnect_delay = info['reconnect_delay']
 
         if self.data is not None:
             self.save_to_file()
@@ -370,9 +391,10 @@ class StorageAuth(object):
         """
         auth = None
         storage_type = params.get("storage_type")
-        enable_ceph = params.get("enable_ceph", "no") == "yes"
-        enable_iscsi = params.get("enable_iscsi", "no") == "yes"
-        enable_gluster = params.get("enable_gluster", "no") == "yes"
+        enable_ceph = params.get("enable_ceph") == "yes"
+        enable_iscsi = params.get("enable_iscsi") == "yes"
+        enable_gluster = params.get("enable_gluster") == "yes"
+        enable_nbd = params.get("enable_nbd") == "yes"
 
         if enable_iscsi:
             if storage_type == 'iscsi-direct':
@@ -394,6 +416,16 @@ class StorageAuth(object):
                 auth = cls(image, None, None, storage_type,
                            debug=debug, logfile=logfile,
                            peers=peers) if debug or logfile or peers else None
+        elif enable_nbd:
+            # tls-creds is supported for ip only
+            tls_creds = params.get(
+                'nbd_client_tls_creds') if params.get('nbd_server') else None
+            reconnect_delay = params.get('nbd_reconnect_delay')
+            auth = cls(
+                image, None, None, storage_type,
+                tls_creds=tls_creds, reconnect_delay=reconnect_delay
+            ) if tls_creds or reconnect_delay else None
+
         return auth
 
 
@@ -605,7 +637,7 @@ class QemuImg(object):
         self.image_blkdebug_filename = get_image_blkdebug_filename(params,
                                                                    root_dir)
         self.remote_keywords = params.get("remote_image",
-                                          "gluster iscsi rbd").split()
+                                          "gluster iscsi rbd nbd nvme").split()
         self.encryption_config = ImageEncryption.encryption_define_by_params(
             tag, params)
         image_chain = params.get("image_chain")
