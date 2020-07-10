@@ -45,6 +45,8 @@ class Disk(base.TypedDeviceBase):
             libvirt_xml.devices.Address instance
         boot:
             string, boot order number to use if not using boot in os element
+        loadparm:
+            string, loadparm attribute on disk's boot element
         readonly:
             bool, True/False
         transient:
@@ -68,7 +70,7 @@ class Disk(base.TypedDeviceBase):
    """
 
     __slots__ = ('device', 'rawio', 'sgio', 'snapshot', 'driver', 'target', 'alias',
-                 'address', 'boot', 'readonly', 'transient', 'share', 'model',
+                 'address', 'boot', 'loadparm', 'readonly', 'transient', 'share', 'model',
                  'mirror', 'ready', 'iotune', 'source', 'blockio', 'geometry',
                  'wwn', 'serial', 'vendor', 'product', 'encryption', 'auth',
                  'reservations', 'backingstore')
@@ -108,6 +110,8 @@ class Disk(base.TypedDeviceBase):
                                                  'virsh_instance': virsh_instance})
         accessors.XMLAttribute('boot', self, parent_xpath='/',
                                tag_name='boot', attribute='order')
+        accessors.XMLAttribute('loadparm', self, parent_xpath='/',
+                               tag_name='boot', attribute='loadparm')
         accessors.XMLElementBool('readonly', self, parent_xpath='/',
                                  tag_name='readonly')
         accessors.XMLElementBool('transient', self, parent_xpath='/',
