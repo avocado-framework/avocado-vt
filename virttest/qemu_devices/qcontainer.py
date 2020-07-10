@@ -2641,7 +2641,8 @@ class DevContainer(object):
         'memory-backend-ram'.
         """
         params = params.object_params("mem")
-        attrs = qdevices.Memory.__attributes__[:]
+        backend = params.get("backend_mem", "memory-backend-ram")
+        attrs = qdevices.Memory.__attributes__[backend][:]
         params = params.copy_from_keys(attrs)
         params.setdefault("backend", "memory-backend-ram")
         dev = qdevices.Memory(params["backend"], params)
