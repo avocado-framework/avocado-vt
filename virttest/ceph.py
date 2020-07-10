@@ -231,7 +231,7 @@ def cephfs_mount(ceph_uri, mount_point, options=None, verbose=False, session=Non
     :param mount_point: mount point, str
     :param options: mount options, e.g -o name=admin,secret=AQCAgd5cFyMQLhAAHaz6w+WKy5LvmKjmxx
     :param verbose: enable verbose or not
-    :param session: mount within the session if given
+    :param session: mount within the session if it is given
     """
     cephfs_umount(ceph_uri, mount_point, verbose, session)
     mount_cmd = ['mount -t ceph']
