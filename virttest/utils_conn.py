@@ -1396,8 +1396,10 @@ class TLSConnection(ConnectionBase):
         # edit /etc/hosts on remote host in case of connecting
         # from remote host to local host
         if not on_local:
-            pattern_to_repl = {r".*%s.*" % self.client_cn:
-                               "%s %s" % (self.client_ip, self.client_cn)}
+            client_runner = remote.RemoteRunner(session=self.client_session)
+            hostname = client_runner.run('hostname', ignore_status=True).stdout_text.strip()
+            pattern_to_repl = {r".*%s.*" % self.client_ip:
+                               "%s %s" % (self.client_ip, hostname)}
             self.server_hosts.sub_else_add(pattern_to_repl)
 
     def client_setup(self):
@@ -1452,8 +1454,10 @@ class TLSConnection(ConnectionBase):
                                    client_ip, remote_path, detail)
 
         # edit /etc/hosts on client
-        pattern_to_repl = {r".*%s.*" % self.server_cn:
-                           "%s %s" % (self.server_ip, self.server_cn)}
+        server_runner = remote.RemoteRunner(session=self.server_session)
+        hostname = server_runner.run('hostname', ignore_status=True).stdout_text.strip()
+        pattern_to_repl = {r".*%s.*" % self.server_ip:
+                           "%s %s" % (self.server_ip, hostname)}
         self.client_hosts.sub_else_add(pattern_to_repl)
 
 
