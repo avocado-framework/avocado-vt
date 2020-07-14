@@ -57,3 +57,20 @@ class CheckpointXML(base.LibvirtXMLBase):
         if tag != 'disk':
             return None
         return dict(attr_dict)
+
+    @staticmethod
+    def new_from_checkpoint_dumpxml(name, checkpoint_name, options="",
+                                    virsh_instance=base.virsh):
+        """
+        Return new CheckpointXML instance from virsh checkpoint-dumpxml cmd
+
+        :param name: vm's name
+        :param checkpoint_name: checkpoint name
+        :param options: options passed to checkpoint-dumpxml
+        :param virsh_instance: virsh module or instance to use
+        :return: New initialized CheckpointXML instance
+        """
+        checkpoint_xml = CheckpointXML(virsh_instance=virsh_instance)
+        result = virsh_instance.checkpoint_dumpxml(name, checkpoint_name, options)
+        checkpoint_xml['xml'] = result.stdout_text.strip()
+        return checkpoint_xml
