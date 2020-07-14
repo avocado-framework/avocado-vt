@@ -881,6 +881,7 @@ class TLSConnection(ConnectionBase):
     credential_dict: A dict for required file names in libvirt or qemu style
     qemu_tls: True for qemu native TLS support
     qemu_chardev_tls: True for config chardev tls in qemu conf
+    special_cn: Use special cn in /etc/hosts, default don't use
     """
     __slots__ = ('server_cn', 'client_cn', 'ca_cn', 'CERTTOOL', 'pki_CA_dir',
                  'libvirt_pki_dir', 'libvirt_pki_private_dir', 'client_hosts',
@@ -891,7 +892,8 @@ class TLSConnection(ConnectionBase):
                  'client_libvirtdconf', 'client_syslibvirtd', 'server_hosts',
                  'credential_dict', 'qemu_tls', 'qemu_chardev_tls',
                  'server_saslconf', 'server_qemuconf', 'client_qemuconf',
-                 'server_libvirtd_tls_socket', 'client_libvirtd_tls_socket')
+                 'server_libvirtd_tls_socket', 'client_libvirtd_tls_socket',
+                 'special_cn')
 
     def __init__(self, *args, **dargs):
         """
@@ -918,6 +920,7 @@ class TLSConnection(ConnectionBase):
         init_dict['sasl_type'] = init_dict.get('sasl_type', 'gssapi')
         init_dict['restart_libvirtd'] = init_dict.get(
             'restart_libvirtd', 'yes')
+        init_dict['special_cn'] = init_dict.get('special_cn', 'no')
 
         super(TLSConnection, self).__init__(init_dict)
         # check and set CERTTOOL in slots
@@ -1456,8 +1459,12 @@ class TLSConnection(ConnectionBase):
         # edit /etc/hosts on client
         server_runner = remote.RemoteRunner(session=self.server_session)
         hostname = server_runner.run('hostname', ignore_status=True).stdout_text.strip()
-        pattern_to_repl = {r".*%s.*" % self.server_ip:
-                           "%s %s" % (self.server_ip, hostname)}
+        if self.special_cn == "yes":
+            pattern_to_repl = {r".*%s.*" % self.server_ip:
+                               "%s %s" % (self.server_ip, self.server_cn)}
+        else:
+            pattern_to_repl = {r".*%s.*" % self.server_ip:
+                               "%s %s" % (self.server_ip, hostname)}
         self.client_hosts.sub_else_add(pattern_to_repl)
 
 
