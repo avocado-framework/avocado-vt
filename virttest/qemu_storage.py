@@ -1295,7 +1295,7 @@ class QemuImg(storage.QemuImg):
             except process.CmdError:
                 logging.error("Error getting info from image %s",
                               image_filename)
-            cmd_result = self.check(params, root_dir, force_share=False)
+            cmd_result = self.check(params, root_dir, force_share)
             # Error check, large chances of a non-fatal problem.
             # There are chances that bad data was skipped though
             if cmd_result.exit_status == 1:
