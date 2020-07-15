@@ -276,13 +276,17 @@ class VirtTest(test.Test):
                         logging.info("archiving libvirtd debug logs")
                         from virttest import utils_package
                         if utils_package.package_install("tar"):
-                            archive = os.path.join(libvirtd_log.strip(os.path.basename(libvirtd_log)),
-                                                   "libvirtd.tar.gz")
-                            cmd = ("tar -zcf %s -P %s"
-                                   % (pipes.quote(archive),
-                                      pipes.quote(libvirtd_log)))
-                            if process.system(cmd) == 0:
-                                os.remove(libvirtd_log)
+                            if os.path.isfile(libvirtd_log):
+                                archive = os.path.join(os.path.dirname(
+                                    libvirtd_log), "libvirtd.tar.gz")
+                                cmd = ("tar -zcf %s -P %s"
+                                       % (pipes.quote(archive),
+                                          pipes.quote(libvirtd_log)))
+                                if process.system(cmd) == 0:
+                                    os.remove(libvirtd_log)
+                            else:
+                                logging.error("Unable to find log file: %s",
+                                              libvirtd_log)
                         else:
                             logging.error("Unable to find tar to compress libvirtd "
                                           "logs")
