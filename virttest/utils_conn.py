@@ -1221,7 +1221,7 @@ class TLSConnection(ConnectionBase):
 
         # build a server key.
         build_server_key(tmp_dir, self.ca_cakey_path,
-                         server_cn, self.CERTTOOL,
+                         server_cn, server_ip, self.CERTTOOL,
                          self.credential_dict, on_local)
 
         # scp cacert.pem, servercert.pem and serverkey.pem to server.
@@ -1515,7 +1515,7 @@ def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool",
 
 
 def build_server_key(tmp_dir, ca_cakey_path=None,
-                     server_cn="TLSServer", certtool="certtool",
+                     server_cn="TLSServer", server_ip="SERVER.IP", certtool="certtool",
                      credential_dict=None, on_local=False):
     """
     (1).initialization for variables.
@@ -1561,6 +1561,8 @@ def build_server_key(tmp_dir, ca_cakey_path=None,
     serverinfo_file = open(serverinfo_path, "w")
     serverinfo_file.write("organization = AUTOTEST.VIRT\n")
     serverinfo_file.write("cn = %s\n" % (server_cn))
+    serverinfo_file.write("dns_name = %s\n" % (server_cn))
+    serverinfo_file.write("ip_address = %s\n" % (server_ip))
     serverinfo_file.write("tls_www_server\n")
     serverinfo_file.write("encryption_key\n")
     serverinfo_file.write("signing_key\n")
