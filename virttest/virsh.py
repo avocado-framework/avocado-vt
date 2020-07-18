@@ -4796,3 +4796,14 @@ def checkpoint_delete(name, checkpoint, options="", **dargs):
     """
     cmd = "checkpoint-delete %s %s %s" % (name, checkpoint, options)
     return command(cmd, **dargs)
+
+
+def guestinfo(name, options="", **dargs):
+    """
+    Query information about the guest (via agent)
+
+    :param name: VM name
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object.
+    """
+    return command("guestinfo %s %s" % (name, options), **dargs)
