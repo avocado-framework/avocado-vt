@@ -753,7 +753,7 @@ def get_full_pci_id(pci_id):
     """
     cmd = "lspci -D | awk '/%s/ {print $1}'" % pci_id
     try:
-        return process.run(cmd, shell=True).stdout_text
+        return process.run(cmd, shell=True).stdout_text.strip()
     except process.CmdError:
         return None
 
