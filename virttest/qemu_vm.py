@@ -13,6 +13,7 @@ import re
 import random
 import sys
 import math
+import json
 
 from functools import partial, reduce
 from operator import mul
@@ -4663,10 +4664,21 @@ class VM(virt_vm.BaseVM):
                         iters.append(six.iteritems(v))
                     else:
                         yield k, v
+
+            def parse_json(data):
+                return json.loads(data[5:])
+
+            def is_json_data(data):
+                return isinstance(data, six.string_types) and data.startswith('json:')
+
             for block in blocks_info:
                 matched = True
                 for key, value in six.iteritems(p_dict):
+                    if is_json_data(value):
+                        value = parse_json(value)
                     for (k, v) in traverse_nested_dict(block):
+                        if is_json_data(v):
+                            v = parse_json(v)
                         if k != key:
                             continue
                         if v != value:
