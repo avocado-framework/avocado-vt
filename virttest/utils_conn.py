@@ -882,6 +882,7 @@ class TLSConnection(ConnectionBase):
     qemu_tls: True for qemu native TLS support
     qemu_chardev_tls: True for config chardev tls in qemu conf
     special_cn: Use special cn in /etc/hosts, default don't use
+    server_setup_local: Whether to setup tls server on local host
     """
     __slots__ = ('server_cn', 'client_cn', 'ca_cn', 'CERTTOOL', 'pki_CA_dir',
                  'libvirt_pki_dir', 'libvirt_pki_private_dir', 'client_hosts',
@@ -893,7 +894,7 @@ class TLSConnection(ConnectionBase):
                  'credential_dict', 'qemu_tls', 'qemu_chardev_tls',
                  'server_saslconf', 'server_qemuconf', 'client_qemuconf',
                  'server_libvirtd_tls_socket', 'client_libvirtd_tls_socket',
-                 'special_cn')
+                 'special_cn', 'server_setup_local')
 
     def __init__(self, *args, **dargs):
         """
@@ -921,6 +922,7 @@ class TLSConnection(ConnectionBase):
         init_dict['restart_libvirtd'] = init_dict.get(
             'restart_libvirtd', 'yes')
         init_dict['special_cn'] = init_dict.get('special_cn', 'no')
+        init_dict['server_setup_local'] = init_dict.get('server_setup_local', False)
 
         super(TLSConnection, self).__init__(init_dict)
         # check and set CERTTOOL in slots
@@ -1078,6 +1080,12 @@ class TLSConnection(ConnectionBase):
 
         # restart libvirtd service on server
         try:
+            if self.server_setup_local:
+                libvirtd_service = utils_libvirtd.Libvirtd()
+                if libvirt_version.version_compare(5, 6, 0):
+                    process.run("systemctl stop libvirtd-tls.socket")
+                libvirtd_service.restart()
+
             session = remote.wait_for_login('ssh', server_ip, '22',
                                             server_user, server_pwd,
                                             r"[\#\$]\s*$")
@@ -1136,8 +1144,7 @@ class TLSConnection(ConnectionBase):
         server_session.close()
         logging.debug("TLS certifications recover successfully.")
 
-    def conn_setup(self, server_setup=True, client_setup=True,
-                   server_setup_local=False):
+    def conn_setup(self, server_setup=True, client_setup=True):
         """
         setup a TLS connection between server and client.
         At first check the certtool needed to setup.
@@ -1146,8 +1153,6 @@ class TLSConnection(ConnectionBase):
         :param server_setup: True to setup TLS server on target host,
                              False to not setup
         :param client_setup: True to setup TLS client on source host,
-                             False to not setup
-        :param server_setup_local: True to setup TLS server on source host,
                              False to not setup
         """
         if self.CERTTOOL == '/bin/true':
@@ -1163,7 +1168,7 @@ class TLSConnection(ConnectionBase):
             self.server_setup()
         if client_setup:
             self.client_setup()
-        if server_setup_local:
+        if self.server_setup_local:
             self.server_setup(on_local=True)
 
         self.close_session()
