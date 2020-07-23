@@ -330,7 +330,7 @@ def systemd_command_generator(command):
         command = "status"
 
     def method(service_name):
-        return [command_name, command, "%s.service" % service_name]
+        return [command_name, command, service_name]
     return method
 
 
