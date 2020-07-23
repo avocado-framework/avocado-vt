@@ -1144,6 +1144,29 @@ class DevContainer(object):
                                )
             return devices
 
+        def _get_aavmf_vars(params):
+            """
+            Naive implementation of obtaining the main (first) image name
+            """
+            try:
+                first_image = params.objects('images')[0]
+                image_params = params.object_params(first_image)
+                image_params["backing_chain"] = "no"
+                image_obj = qemu_storage.QemuImg(image_params,
+                                                 data_dir.DATA_DIR,
+                                                 first_image)
+                image_info = json.loads(image_obj.info(True, "json"))
+                image_name = os.path.basename(
+                    image_info.get("full-backing-filename") or
+                    image_info.get("filename"))
+                name = os.path.splitext(image_name)[0]
+                # Force the AAVMF file to be saved under "images" directory
+                return os.path.join(data_dir.DATA_DIR, "images",
+                                    name + "_AAVMF_VARS.fd")
+            except IndexError:
+                raise DeviceError("Unable to map main image name to "
+                                  "AAVMF variables file.")
+
         def machine_arm64_mmio(cmd=False):
             """
             aarch64 (arm64) doesn't support PCI bus, only MMIO transports.
@@ -1151,18 +1174,6 @@ class DevContainer(object):
             :param cmd: If set uses "-M $cmd" to force this machine type
             :return: List of added devices (including default buses)
             """
-            def get_aavmf_vars(params):
-                """
-                Naive implementation of obtaining the main (first) image name
-                """
-                try:
-                    first_image = params.objects('images')[0]
-                    name = params.object_params(first_image).get('image_name')
-                    return os.path.join(data_dir.DATA_DIR,
-                                        name + "_AAVMF_VARS.fd")
-                except IndexError:
-                    raise DeviceError("Unable to map main image name to "
-                                      "AAVMF variables file.")
             logging.warn('Support for aarch64 is highly experimental!')
             devices = []
             # EFI pflash
@@ -1170,7 +1181,7 @@ class DevContainer(object):
                           "if=pflash,format=raw,unit=0,readonly=on")
             devices.append(qdevices.QStringDevice('AAVMF_CODE',
                                                   cmdline=aavmf_code))
-            aavmf_vars = get_aavmf_vars(params)
+            aavmf_vars = _get_aavmf_vars(params)
             force_create = params.get("force_create_image_image1",
                                       params.get("force_create_image"))
             if (force_create == "yes" or not os.path.exists(aavmf_vars)):
@@ -1204,18 +1215,6 @@ class DevContainer(object):
             :param cmd: If set uses "-M $cmd" to force this machine type
             :return: List of added devices (including default buses)
             """
-            def get_aavmf_vars(params):
-                """
-                Naive implementation of obtaining the main (first) image name
-                """
-                try:
-                    first_image = params.objects('images')[0]
-                    name = params.object_params(first_image).get('image_name')
-                    return os.path.join(data_dir.DATA_DIR,
-                                        name + "_AAVMF_VARS.fd")
-                except IndexError:
-                    raise DeviceError("Unable to map main image name to "
-                                      "AAVMF variables file.")
             logging.warn('Support for aarch64 is highly experimental!')
             devices = []
             # EFI pflash
@@ -1223,7 +1222,7 @@ class DevContainer(object):
                           "if=pflash,format=raw,unit=0,readonly=on")
             devices.append(qdevices.QStringDevice('AAVMF_CODE',
                                                   cmdline=aavmf_code))
-            aavmf_vars = get_aavmf_vars(params)
+            aavmf_vars = _get_aavmf_vars(params)
             force_create = params.get("force_create_image_image1",
                                       params.get("force_create_image"))
             if (force_create == "yes" or not os.path.exists(aavmf_vars)):
