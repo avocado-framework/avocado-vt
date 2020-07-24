@@ -1264,7 +1264,8 @@ class Memory(QObject):
                       "memory-backend-file": ["size", "prealloc", "mem-path",
                                               "backend", "policy", "host-nodes",
                                               "share", "merge", "dump", "pmem",
-                                              "discard-data", "align"]}
+                                              "discard-data", "align",
+                                              "prealloc-threads"]}
 
     def __init__(self, backend, params=None):
         super(Memory, self).__init__(backend, params)
@@ -1277,6 +1278,8 @@ class Memory(QObject):
         convert_size = utils_misc.normalize_data_size
         args = (params["size"], "B", 1024)
         params["size"] = int(float(convert_size(*args)))
+        if params.get("prealloc-threads"):
+            params["prealloc-threads"] = int(params["prealloc-threads"])
         if params.get("host-nodes"):
             host_nodes = list(map(int, params["host-nodes"].split()))
             params["host-nodes"] = host_nodes
