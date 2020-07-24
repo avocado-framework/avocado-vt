@@ -2020,7 +2020,7 @@ class DevContainer(object):
         # More info from qemu commit 91a097e74.
         if not filename:
             cache = None
-        if filename.startswith('nvme://'):
+        elif filename.startswith('nvme://'):
             # NVMe controller doesn't support write cache configuration
             cache = 'writethrough'
         if Flags.BLOCKDEV in self.caps:
