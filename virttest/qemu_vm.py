@@ -2399,6 +2399,11 @@ class VM(virt_vm.BaseVM):
                 # enable multifunction for root port
                 port_name = "pcie_extra_root_port_%d" % num
                 root_port = devices.pcic_by_params(port_name, pcic_params)
+                pcie_root_port_params = params.get('pcie_root_port_params')
+                if pcie_root_port_params:
+                    for extra_param in pcie_root_port_params.split(","):
+                        key, value = extra_param.split('=')
+                        root_port.set_param(key, value)
                 func_num = num % 8
                 if func_num == 0:
                     root_port.set_param('multifunction', 'on')

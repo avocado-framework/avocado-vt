@@ -995,6 +995,7 @@ class DevContainer(object):
             pci_bridge_type = 'pcie-pci-bridge'
         else:
             pci_bridge_type = 'pci-bridge'
+        pcie_root_port_params = params.get('pcie_root_port_params')
 
         def machine_q35(cmd=False):
             """
@@ -1005,7 +1006,8 @@ class DevContainer(object):
             logging.warn('Using Q35 machine which is not yet fully tested on '
                          'avocado-vt. False errors might occur.')
             devices = []
-            bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type, 'pci.0'),
+            bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type,
+                                     'pci.0', pcie_root_port_params),
                    qdevices.QStrictCustomBus(None, [['chassis'], [256]], '_PCI_CHASSIS',
                                              first_port=[1]),
                    qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
@@ -1238,7 +1240,8 @@ class DevContainer(object):
             devices.append(qdevices.QStringDevice('AAVMF_VARS',
                                                   cmdline=aavmf_vars))
 
-            bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type, 'pci.0'),
+            bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type,
+                                     'pci.0', pcie_root_port_params),
                    qdevices.QStrictCustomBus(None, [['chassis'], [256]],
                                              '_PCI_CHASSIS', first_port=[1]),
                    qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],

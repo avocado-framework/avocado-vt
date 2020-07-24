@@ -2371,16 +2371,19 @@ class QPCIEBus(QPCIBus):
     device by default.)
     """
 
-    def __init__(self, busid, bus_type, root_port_type, aobject=None):
+    def __init__(self, busid, bus_type, root_port_type,
+                 aobject=None, root_port_params=None):
         """
         :param busid: id of the bus (pcie.0)
         :param bus_type: type of the bus (PCIE)
-        :param aobject: Related autotest object (pci.0)
         :param root_port_type: root port type
+        :param aobject: Related autotest object (pci.0)
+        :param root_port_params: root port params
         """
         super(QPCIEBus, self).__init__(busid, bus_type, aobject)
         self.__root_ports = {}
         self.__root_port_type = root_port_type
+        self.__root_port_params = root_port_params
         self.__last_port_index = [0]
 
     def is_direct_plug(self, device):
@@ -2413,32 +2416,34 @@ class QPCIEBus(QPCIBus):
             pass
         return None
 
-    def add_root_port(self, root_port_type, root_port=None):
+    def add_root_port(self, root_port_type, root_port=None,
+                      root_port_params=None):
         """
         Add pcie root port to the bus and __root_ports list, assign free slot,
         chassis, and addr for it according to current list.
 
         :param root_port_type: root port type
         :param root_port: pcie-root-port QDevice object
+        :param root_port_params: root port params
         :return: pcie-root-port QDevice object
         """
         if not root_port:
-            root_port = self._add_root_port(root_port_type)
+            root_port = self._add_root_port(root_port_type, root_port_params)
             root_port.set_param('multifunction', 'on')
             self.insert(root_port)
         else:
             addr = self._get_port_addr(root_port)
-            root_port = self._add_root_port(root_port_type)
+            root_port = self._add_root_port(root_port_type, root_port_params)
             root_port.set_param('addr', addr)
             self.insert(root_port)
         return root_port
 
-    def _add_root_port(self, root_port_type):
+    def _add_root_port(self, root_port_type, root_port_params=None):
         """
         Generate pcie-root-port QDevice object with certain addr and id
 
-        :param addr: addr to add the root port
         :param root_port_type: root port type
+        :param root_port_params: root port params
         :return: pcie-root-port QDevice object
         """
         index = self.__last_port_index[0] + 1
@@ -2447,6 +2452,10 @@ class QPCIEBus(QPCIBus):
         bus = QPCIBus(bus_id, 'PCIE', bus_id, length=1, first_port=0)
         parent_bus = {'busid': '_PCI_CHASSIS'}
         params = {'id': bus_id, 'port': hex(index)}
+        if root_port_params:
+            for extra_param in root_port_params.split(","):
+                key, value = extra_param.split('=')
+                params[key] = value
         root_port = QDevice(root_port_type,
                             params,
                             aobject=bus_id,
@@ -2520,8 +2529,10 @@ class QPCIEBus(QPCIBus):
         for root_port in root_ports:
             addr = self._get_port_addr(root_port)
             if addr is not None:
-                return self.add_root_port(self.__root_port_type, root_port)
-        return self.add_root_port(self.__root_port_type)
+                return self.add_root_port(self.__root_port_type, root_port,
+                                          self.__root_port_params)
+        return self.add_root_port(self.__root_port_type, None,
+                                  self.__root_port_params)
 
     def get_free_root_port(self):
         """
