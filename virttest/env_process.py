@@ -1002,7 +1002,8 @@ def preprocess(test, params, env):
             libvirtd_debug_log = test_setup.LibvirtdDebugLog(test,
                                                              log_level,
                                                              log_file)
-            libvirtd_debug_log.enable()
+            if not libvirtd_debug_log.enable():
+                raise RuntimeError("Failed to restart libvirt on time")
 
     setup_pb = False
     ovs_pb = False
@@ -1264,7 +1265,8 @@ def preprocess(test, params, env):
         if vm_type == "libvirt":
             if libvirtd_inst is None:
                 libvirtd_inst = utils_libvirtd.Libvirtd()
-            libvirtd_inst.restart()
+            if not libvirtd_inst.restart():
+                raise RuntimeError("Failed to restart libvirt on time")
 
     if params.get("setup_thp") == "yes":
         thp = test_setup.TransparentHugePageConfig(test, params)
@@ -1296,7 +1298,8 @@ def preprocess(test, params, env):
                 logging.error("Unexpected error: '%s'" % str(e))
             if libvirtd_inst is None:
                 libvirtd_inst = utils_libvirtd.Libvirtd()
-            libvirtd_inst.restart()
+            if not libvirtd_inst.restart():
+                raise RuntimeError("Failed to restart libvirt on time")
 
     # Execute any pre_commands
     if params.get("pre_command"):
@@ -1701,7 +1704,8 @@ def postprocess(test, params, env):
             if vm_type == "libvirt":
                 if libvirtd_inst is None:
                     libvirtd_inst = utils_libvirtd.Libvirtd()
-                libvirtd_inst.restart()
+                if not libvirtd_inst.restart():
+                    raise RuntimeError("Failed to restart libvirt on time")
         except Exception as details:
             err += "\nHP cleanup: %s" % str(details).replace('\\n', '\n  ')
             logging.error(details)
@@ -1742,7 +1746,8 @@ def postprocess(test, params, env):
                 pol.cleanup()
                 if libvirtd_inst is None:
                     libvirtd_inst = utils_libvirtd.Libvirtd()
-                libvirtd_inst.restart()
+                if not libvirtd_inst.restart():
+                    raise RuntimeError("Failed to restart libvirt on time")
             except test_setup.PolkitConfigCleanupError as e:
                 err += "\nPolkit cleanup: %s" % str(e).replace('\\n', '\n  ')
                 logging.error(e)
@@ -1752,7 +1757,8 @@ def postprocess(test, params, env):
                 logging.error("Unexpected error: %s" % details)
         if params.get("enable_libvirtd_debug_log", "yes") == "yes":
             libvirtd_debug_log = test_setup.LibvirtdDebugLog(test)
-            libvirtd_debug_log.disable()
+            if not libvirtd_debug_log.disable():
+                raise RuntimeError("Failed to restart libvirt on time")
 
     # Execute any post_commands
     if params.get("post_command"):
