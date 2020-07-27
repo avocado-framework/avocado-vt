@@ -1560,7 +1560,7 @@ class DevContainer(object):
                                    scsi=None, drv_extra_params=None,
                                    num_queues=None, bus_extra_params=None,
                                    force_fmt=None, image_encryption=None,
-                                   image_access=None):
+                                   image_access=None, external_data_file=None):
         """
         Creates related devices by variables
         :note: To skip the argument use None, to disable it use False
@@ -1600,6 +1600,7 @@ class DevContainer(object):
         :param bus_extra_params: options want to add to virtio-scsi-pci bus
         :param image_encryption: ImageEncryption object for image
         :param image_access: The logical image access information object
+        :param external_data_file: external data file for qcow2 image
         """
         def _get_access_tls_creds(image_access):
             """Get all tls-creds objects of the image and its backing images"""
@@ -2000,6 +2001,20 @@ class DevContainer(object):
                 elif imgfmt == "luks":
                     devices[-1].set_param('key-secret', secret_obj.get_qid())
 
+        external_data_file_path = getattr(external_data_file,
+                                          "image_filename", None)
+        if external_data_file_path:
+            # by now we only support local files
+            ext_data_file_driver = "file"
+
+            # check if the data file is a block device
+            if ext_data_file_driver == "file":
+                ext_data_file_mode = os.stat(external_data_file_path).st_mode
+                if stat.S_ISBLK(ext_data_file_mode):
+                    ext_data_file_driver = "host_device"
+            devices[-1].set_param('data-file.driver', ext_data_file_driver)
+            devices[-1].set_param('data-file.filename', external_data_file_path)
+
         if 'aio' in self.get_help_text():
             if aio == 'native' and snapshot == 'yes':
                 logging.warn('snapshot is on, fallback aio to threads.')
@@ -2268,6 +2283,10 @@ class DevContainer(object):
                 sn, sn_params)
             imgfmt = 'qcow2'
 
+        # external data file
+        ext_data_file = storage.QemuImg.external_data_file_defined_by_params(
+            image_params, data_root, name)
+
         return self.images_define_by_variables(name,
                                                image_filename,
                                                pci_bus,
@@ -2324,7 +2343,8 @@ class DevContainer(object):
                                                image_params.get(
                                                    "force_drive_format"),
                                                image_encryption,
-                                               image_access)
+                                               image_access,
+                                               ext_data_file)
 
     def serials_define_by_variables(self, serial_id, serial_type, chardev_id,
                                     bus_type=None, serial_name=None,

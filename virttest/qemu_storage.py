@@ -412,6 +412,11 @@ class QemuImg(storage.QemuImg):
                     options.append("%s=%s" % (opt_key.replace("_", "-"),
                                               str(opt_val)))
 
+        if self.data_file:
+            options.extend(
+                ("data_file=%s" % self.data_file.image_filename,
+                 "data_file_raw=%s" % params.get("image_data_file_raw", "off")))
+
         access_secret, secret_type = self._image_access_secret
         if access_secret is not None:
             if secret_type == 'password':
@@ -979,6 +984,12 @@ class QemuImg(storage.QemuImg):
         """
         logging.debug("Removing image file %s", self.image_filename)
         storage.file_remove(self.params, self.image_filename)
+
+        if self.data_file:
+            logging.debug("Removing external data file of image %s",
+                          self.data_file.image_filename)
+            storage.file_remove(self.data_file.params,
+                                self.data_file.image_filename)
 
         secret_files = []
         if self.encryption_config.key_secret:
