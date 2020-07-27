@@ -15,6 +15,7 @@ from virttest import propcan, remote, utils_libvirtd
 from virttest import data_dir
 from virttest import utils_package
 from virttest import libvirt_version
+from virttest import libvirtd_decorator
 
 
 class ConnectionError(Exception):
@@ -665,7 +666,8 @@ class TCPConnection(ConnectionBase):
     __slots__ = ('tcp_port', 'remote_syslibvirtd', 'sasl_type',
                  'remote_libvirtdconf', 'sasl_allowed_users',
                  'auth_tcp', 'listen_addr', 'remote_saslconf',
-                 'remote_libvirtd_tcp_socket', 'client_hosts')
+                 'remote_libvirtd_tcp_socket', 'client_hosts',
+                 'daemon_conf', 'daemon_socket_conf')
 
     def __init__(self, *args, **dargs):
         """
@@ -685,6 +687,14 @@ class TCPConnection(ConnectionBase):
         init_dict['sasl_allowed_users'] = init_dict.get('sasl_allowed_users')
         super(TCPConnection, self).__init__(init_dict)
 
+        if (libvirtd_decorator.get_libvirt_version_compare(5, 6, 0) and
+           libvirtd_decorator.get_libvirtd_split_enable_bit()):
+            self.daemon_conf = "/etc/libvirt/virtproxyd.conf"
+            self.daemon_socket_conf = "/usr/lib/systemd/system/virtproxyd-tcp.socket"
+        else:
+            self.daemon_conf = "/etc/libvirt/libvirtd.conf"
+            self.daemon_socket_conf = "/usr/lib/systemd/system/libvirtd-tcp.socket"
+
         self.remote_syslibvirtd = remote.RemoteFile(
             address=self.server_ip,
             client='scp',
@@ -699,7 +709,7 @@ class TCPConnection(ConnectionBase):
             username=self.server_user,
             password=self.server_pwd,
             port='22',
-            remote_path='/etc/libvirt/libvirtd.conf')
+            remote_path=self.daemon_conf)
 
         self.remote_libvirtd_tcp_socket = remote.RemoteFile(
             address=self.server_ip,
@@ -707,7 +717,7 @@ class TCPConnection(ConnectionBase):
             username=self.server_user,
             password=self.server_pwd,
             port='22',
-            remote_path='/usr/lib/systemd/system/libvirtd-tcp.socket')
+            remote_path=self.daemon_socket_conf)
 
         self.remote_saslconf = remote.RemoteFile(
             address=self.server_ip,
@@ -749,15 +759,12 @@ class TCPConnection(ConnectionBase):
             session = remote.wait_for_login('ssh', server_ip, '22',
                                             server_user, server_pwd,
                                             r"[\#\$]\s*$")
-            libvirtd_service = utils_libvirtd.Libvirtd(session=session)
             if libvirt_version.version_compare(5, 6, 0, session):
-                session.cmd("systemctl stop libvirtd.socket")
-                libvirtd_service.stop()
-                session.cmd("systemctl stop libvirtd-tcp.socket")
-                session.cmd("systemctl daemon-reload")
-                session.cmd("systemctl start libvirtd.socket")
-                libvirtd_service.start()
+                tcp_socket_service = utils_libvirtd.DaemonSocket(
+                    "virtproxyd-tcp.socket", session=session)
+                tcp_socket_service.stop()
             else:
+                libvirtd_service = utils_libvirtd.Libvirtd(session=session)
                 libvirtd_service.restart()
         except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
@@ -838,18 +845,17 @@ class TCPConnection(ConnectionBase):
                                             r"[\#\$]\s*$")
             remote_runner = remote.RemoteRunner(session=session)
             remote_runner.run('iptables -F', ignore_status=True)
-            libvirtd_service = utils_libvirtd.Libvirtd(session=session)
             # From libvirt 5.6, libvirtd is using systemd socket activation
             # by default
             if libvirt_version.version_compare(5, 6, 0, session):
                 # Before start libvirtd-tcp.socket, user must stop libvirtd.
                 # After libvirtd-tcp.socket is started, user mustn't start
                 # libvirtd.
-                session.cmd("systemctl stop libvirtd.socket")
-                libvirtd_service.stop()
-                session.cmd("systemctl daemon-reload")
-                session.cmd("systemctl restart libvirtd-tcp.socket")
+                tcp_socket_service = utils_libvirtd.DaemonSocket(
+                    "virtproxyd-tcp.socket", session=session)
+                tcp_socket_service.restart()
             else:
+                libvirtd_service = utils_libvirtd.Libvirtd(session=session)
                 libvirtd_service.restart()
         except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
@@ -894,7 +900,8 @@ class TLSConnection(ConnectionBase):
                  'credential_dict', 'qemu_tls', 'qemu_chardev_tls',
                  'server_saslconf', 'server_qemuconf', 'client_qemuconf',
                  'server_libvirtd_tls_socket', 'client_libvirtd_tls_socket',
-                 'special_cn', 'server_setup_local')
+                 'special_cn', 'server_setup_local',
+                 'daemon_conf', 'daemon_socket_conf')
 
     def __init__(self, *args, **dargs):
         """
@@ -1001,13 +1008,21 @@ class TLSConnection(ConnectionBase):
             port='22',
             remote_path='/etc/sysconfig/libvirtd')
 
+        if (libvirtd_decorator.get_libvirt_version_compare(5, 6, 0) and
+           libvirtd_decorator.get_libvirtd_split_enable_bit()):
+            self.daemon_conf = "/etc/libvirt/virtproxyd.conf"
+            self.daemon_socket_conf = "/usr/lib/systemd/system/virtproxyd-tls.socket"
+        else:
+            self.daemon_conf = "/etc/libvirt/libvirtd.conf"
+            self.daemon_socket_conf = "/usr/lib/systemd/system/libvirtd-tls.socket"
+
         self.server_libvirtdconf = remote.RemoteFile(
             address=self.server_ip,
             client='scp',
             username=self.server_user,
             password=self.server_pwd,
             port='22',
-            remote_path='/etc/libvirt/libvirtd.conf')
+            remote_path=self.daemon_conf)
 
         self.server_saslconf = remote.RemoteFile(
             address=self.server_ip,
@@ -1031,7 +1046,7 @@ class TLSConnection(ConnectionBase):
             username=self.client_user,
             password=self.client_pwd,
             port='22',
-            remote_path='/etc/libvirt/libvirtd.conf')
+            remote_path=self.daemon_conf)
 
         self.client_libvirtd_tls_socket = remote.RemoteFile(
             address=self.client_ip,
@@ -1039,7 +1054,7 @@ class TLSConnection(ConnectionBase):
             username=self.client_user,
             password=self.client_pwd,
             port='22',
-            remote_path='/usr/lib/systemd/system/libvirtd-tls.socket')
+            remote_path=self.daemon_socket_conf)
 
         self.server_libvirtd_tls_socket = remote.RemoteFile(
             address=self.server_ip,
@@ -1047,7 +1062,7 @@ class TLSConnection(ConnectionBase):
             username=self.server_user,
             password=self.server_pwd,
             port='22',
-            remote_path='/usr/lib/systemd/system/libvirtd-tls.socket')
+            remote_path=self.daemon_socket_conf)
 
     def conn_recover(self):
         """
@@ -1089,15 +1104,12 @@ class TLSConnection(ConnectionBase):
             session = remote.wait_for_login('ssh', server_ip, '22',
                                             server_user, server_pwd,
                                             r"[\#\$]\s*$")
-            libvirtd_service = utils_libvirtd.Libvirtd(session=session)
             if libvirt_version.version_compare(5, 6, 0, session):
-                session.cmd("systemctl stop libvirtd.socket")
-                libvirtd_service.stop()
-                session.cmd("systemctl stop libvirtd-tls.socket")
-                session.cmd("systemctl daemon-reload")
-                session.cmd("systemctl start libvirtd.socket")
-                libvirtd_service.start()
+                tls_socket_service = utils_libvirtd.DaemonSocket(
+                    "virtproxyd-tls.socket", session=session)
+                tls_socket_service.stop()
             else:
+                libvirtd_service = utils_libvirtd.Libvirtd(session=session)
                 libvirtd_service.restart()
         except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
@@ -1371,32 +1383,27 @@ class TLSConnection(ConnectionBase):
         # restart libvirtd service on server
         if restart_libvirtd == "yes":
             if on_local:
-                libvirtd_service = utils_libvirtd.Libvirtd()
                 # From libvirt 5.6, libvirtd is using systemd socket activation
                 # by default
                 if libvirt_version.version_compare(5, 6, 0):
-                    process.run("systemctl stop libvirtd.socket")
-                    libvirtd_service.stop()
-                    process.run("systemctl daemon-reload")
-                    process.run("systemctl start libvirtd.socket")
-                    process.run("systemctl restart libvirtd-tls.socket")
-                    libvirtd_service.start()
+                    tls_socket_service = utils_libvirtd.DaemonSocket(
+                        "virtproxyd-tls.socket")
+                    tls_socket_service.restart()
                 else:
+                    libvirtd_service = utils_libvirtd.Libvirtd()
                     libvirtd_service.restart()
             else:
                 try:
                     session = remote.wait_for_login('ssh', server_ip, '22',
                                                     server_user, server_pwd,
                                                     r"[\#\$]\s*$")
-                    libvirtd_service = utils_libvirtd.Libvirtd(session=session)
                     if libvirt_version.version_compare(5, 6, 0, session):
-                        session.cmd("systemctl stop libvirtd.socket")
-                        libvirtd_service.stop()
-                        session.cmd("systemctl daemon-reload")
-                        session.cmd("systemctl start libvirtd.socket")
-                        session.cmd("systemctl restart libvirtd-tls.socket")
-                        libvirtd_service.start()
+                        tls_socket_service = utils_libvirtd.DaemonSocket(
+                            "virtproxyd-tls.socket", session=session)
+                        tls_socket_service.restart()
                     else:
+                        libvirtd_service = utils_libvirtd.Libvirtd(
+                            session=session)
                         libvirtd_service.restart()
                 except (remote.LoginError, aexpect.ShellError) as detail:
                     raise ConnServerRestartError(detail)

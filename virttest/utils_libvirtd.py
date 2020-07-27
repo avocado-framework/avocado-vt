@@ -9,6 +9,7 @@ from avocado.utils import path
 from avocado.utils import process
 from avocado.utils import wait
 
+from virttest import libvirt_version
 from virttest import libvirtd_decorator
 
 from . import remote
@@ -29,24 +30,53 @@ class Libvirtd(object):
     Class to manage libvirtd service on host or guest.
     """
 
-    def __init__(self, session=None):
+    def __init__(self, service_name=None, session=None):
         """
         Initialize an service object for libvirtd.
 
+        :params service_name: Service name such as virtqemud or libvirtd.
+            If service_name is None, all sub daemons will be operated when
+            modular daemon environment is enabled. Otherwise,if service_name is
+            a single string, only the given daemon/service will be operated.
         :params session: An session to guest or remote host.
         """
         self.session = session
-
         if self.session:
             self.remote_runner = remote.RemoteRunner(session=self.session)
             runner = self.remote_runner.run
         else:
             runner = process.run
 
+        self.daemons = []
+        self.service_list = []
+
         if LIBVIRTD is None:
             logging.warning("Libvirtd service is not available in host, "
                             "utils_libvirtd module will not function normally")
-        self.libvirtd = service.Factory.create_service(LIBVIRTD, run=runner)
+
+        self.service_name = "libvirtd" if not service_name else service_name
+
+        if libvirt_version.version_compare(5, 6, 0, self.session):
+            if libvirtd_decorator.get_libvirtd_split_enable_bit():
+                if self.service_name in ["libvirtd", "libvirtd.service"]:
+                    self.service_list = ['virtqemud', 'virtproxyd',
+                                         'virtnetworkd', 'virtinterfaced',
+                                         'virtnodedevd', 'virtsecretd',
+                                         'virtstoraged', 'virtnwfilterd']
+                elif self.service_name == "libvirtd.socket":
+                    self.service_name = "virtqemud.socket"
+                elif self.service_name in ["libvirtd-tcp.socket", "libvirtd-tls.socket"]:
+                    self.service_name = re.sub("libvirtd", "virtproxyd",
+                                               self.service_name)
+            else:
+                self.service_name = re.sub("^virt.*d", "libvirtd",
+                                           self.service_name)
+        else:
+            self.service_name = "libvirtd"
+        if not self.service_list:
+            self.service_list = [self.service_name]
+        for serv in self.service_list:
+            self.daemons.append(service.Factory.create_service(serv, run=runner))
 
     def _wait_for_start(self, timeout=60):
         """
@@ -64,29 +94,91 @@ class Libvirtd(object):
                 return False
         return utils_misc.wait_for(_check_start, timeout=timeout)
 
-    @libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
     def start(self, reset_failed=True):
-        if reset_failed:
-            self.libvirtd.reset_failed()
-        if not self.libvirtd.start():
-            return False
-        return self._wait_for_start()
+        result = []
+        for daem_item in self.daemons:
+            if reset_failed:
+                daem_item.reset_failed()
+            if not daem_item.start():
+                return False
+            result.append(self._wait_for_start())
+        return all(result)
 
-    @libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
     def stop(self):
-        return self.libvirtd.stop()
+        result = []
+        for daem_item in self.daemons:
+            result.append(daem_item.stop())
+        return all(result)
 
-    @libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
     def restart(self, reset_failed=True):
-        if reset_failed:
-            self.libvirtd.reset_failed()
-        if not self.libvirtd.restart():
-            return False
-        return self._wait_for_start()
+        result = []
+        for daem_item in self.daemons:
+            if reset_failed:
+                daem_item.reset_failed()
+            if daem_item.restart():
+                return False
+            result.append(self._wait_for_start())
+        return all(result)
 
-    @libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
     def is_running(self):
-        return self.libvirtd.status()
+        result = []
+        for daem_item in self.daemons:
+            result.append(daem_item.status())
+        return all(result)
+
+
+class DaemonSocket(object):
+
+    """
+    Class to manage libvirt/virtproxy tcp/tls socket on host or guest.
+    """
+
+    def __init__(self, daemon_name, session=None):
+        """
+        Initialize an service object for virt daemons.
+
+        :param daemon_name: daemon name such as virtproxyd-tls.socket,
+            libvirtd-tcp.socket,etc,.
+        :param session: An session to guest or remote host.
+        """
+        self.session = session
+        if self.session:
+            self.remote_runner = remote.RemoteRunner(session=self.session)
+            self.runner = self.remote_runner.run
+        else:
+            self.runner = process.run
+
+        self.daemon_name = daemon_name
+        supported_daemon = ["libvirtd-tcp.socket", "libvirtd-tls.socket",
+                            "virtproxyd-tls.socket", "virtproxyd-tcp.socket"]
+        if self.daemon_name not in supported_daemon:
+            raise ValueError("Invalid daemon: %s" % self.daemon_name)
+
+        self.daemon_service_inst = Libvirtd("virtproxyd", session=self.session)
+        self.daemon_inst = Libvirtd(self.daemon_name, session=self.session)
+        self.daemon_socket = Libvirtd("virtproxyd.socket", session=self.session)
+
+    def stop(self):
+        self.daemon_socket.stop()
+        self.daemon_service_inst.stop()
+        self.daemon_inst.stop()
+        self.runner("systemctl daemon-reload")
+        self.daemon_socket.start()
+
+    def start(self):
+        self.daemon_socket.stop()
+        self.daemon_service_inst.stop()
+        self.runner("systemctl daemon-reload")
+        self.daemon_inst.start()
+        self.daemon_service_inst.start()
+
+    def restart(self, reset_failed=True):
+        self.daemon_socket.stop()
+        self.daemon_service_inst.stop()
+        self.runner("systemctl daemon-reload")
+        self.daemon_inst.restart()
+        self.daemon_service_inst.start()
+        self.daemon_inst._wait_for_start()
 
 
 class LibvirtdSession(object):
@@ -329,36 +421,31 @@ def deprecation_warning():
                     "libvirtd service.")
 
 
-@libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
 def libvirtd_start():
     libvirtd_instance = Libvirtd()
     deprecation_warning()
     return libvirtd_instance.start()
 
 
-@libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
 def libvirtd_is_running():
     libvirtd_instance = Libvirtd()
     deprecation_warning()
     return libvirtd_instance.is_running()
 
 
-@libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
 def libvirtd_stop():
     libvirtd_instance = Libvirtd()
     deprecation_warning()
     return libvirtd_instance.stop()
 
 
-@libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
 def libvirtd_restart():
     libvirtd_instance = Libvirtd()
     deprecation_warning()
     return libvirtd_instance.restart()
 
 
-@libvirtd_decorator.libvirt_version_context_aware_libvirtd_legacy
 def service_libvirtd_control(action, session=None):
-    libvirtd_instance = Libvirtd(session)
+    libvirtd_instance = Libvirtd(session=session)
     deprecation_warning()
     getattr(libvirtd_instance, action)()
