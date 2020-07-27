@@ -1876,8 +1876,8 @@ class LibvirtPolkitConfig(object):
         """
         :param params: Dict like object containing parameters for the test.
         """
-        self.libvirtd_path = "/etc/libvirt/libvirtd.conf"
-        self.libvirtd_backup_path = "/etc/libvirt/libvirtd.conf.virttest.backup"
+        self.conf_path = params.get("conf_path", "/etc/libvirt/libvirtd.conf")
+        self.conf_backup_path = self.conf_path + ".virttest.backup"
         self.polkit_rules_path = "/etc/polkit-1/rules.d/"
         self.polkit_rules_path += "500-libvirt-acl-virttest.rules"
         self.polkit_name = "polkit"
@@ -1946,22 +1946,22 @@ class LibvirtPolkitConfig(object):
         Config libvirtd
         """
         # Backup libvirtd.conf
-        shutil.copy(self.libvirtd_path, self.libvirtd_backup_path)
+        shutil.copy(self.conf_path, self.conf_backup_path)
 
         # Set the API access control scheme
         access_str = "access_drivers = [ \"polkit\" ]"
         access_pat = "^ *access_drivers"
-        self.file_replace_append(self.libvirtd_path, access_pat, access_str)
+        self.file_replace_append(self.conf_path, access_pat, access_str)
 
         # Set UNIX socket access controls
         sock_rw_str = "unix_sock_rw_perms = \"0777\""
         sock_rw_pat = "^ *unix_sock_rw_perms"
-        self.file_replace_append(self.libvirtd_path, sock_rw_pat, sock_rw_str)
+        self.file_replace_append(self.conf_path, sock_rw_pat, sock_rw_str)
 
         # Set authentication mechanism
         auth_unix_str = "auth_unix_rw = \"none\""
         auth_unix_pat = "^ *auth_unix_rw"
-        self.file_replace_append(self.libvirtd_path, auth_unix_pat,
+        self.file_replace_append(self.conf_path, auth_unix_pat,
                                  auth_unix_str)
 
     def _set_polkit_conf(self):
@@ -2079,8 +2079,8 @@ class LibvirtPolkitConfig(object):
         try:
             if os.path.exists(self.polkit_rules_path):
                 os.unlink(self.polkit_rules_path)
-            if os.path.exists(self.libvirtd_backup_path):
-                os.rename(self.libvirtd_backup_path, self.libvirtd_path)
+            if os.path.exists(self.conf_backup_path):
+                os.rename(self.conf_backup_path, self.conf_path)
             if self.user.count('EXAMPLE'):
                 self.user = 'testacl'
             if self.params.get('add_polkit_user'):
