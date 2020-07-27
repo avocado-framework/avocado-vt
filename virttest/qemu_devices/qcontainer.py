@@ -1178,9 +1178,15 @@ class DevContainer(object):
             """
             logging.warn('Support for aarch64 is highly experimental!')
             devices = []
+            if os.path.exists("/usr/share/AAVMF/AAVMF_CODE.fd"):
+                aavmf_code_file = "/usr/share/AAVMF/AAVMF_CODE.fd"
+                aavmf_vars_file = "/usr/share/AAVMF/AAVMF_VARS.fd"
+            else:
+                aavmf_code_file = "/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw"
+                aavmf_vars_file = "/usr/share/edk2/aarch64/vars-template-pflash.raw"
             # EFI pflash
-            aavmf_code = ("-drive file=/usr/share/AAVMF/AAVMF_CODE.fd,"
-                          "if=pflash,format=raw,unit=0,readonly=on")
+            aavmf_code = ("-drive file=%s,if=pflash,format=raw,unit=0,readonly=on"
+                          % aavmf_code_file)
             devices.append(qdevices.QStringDevice('AAVMF_CODE',
                                                   cmdline=aavmf_code))
             aavmf_vars = _get_aavmf_vars(params)
@@ -1193,7 +1199,7 @@ class DevContainer(object):
                                  " only happen when you install the machine as"
                                  " there is no default boot in EFI!)",
                                  aavmf_vars)
-                shutil.copy2('/usr/share/AAVMF/AAVMF_VARS.fd', aavmf_vars)
+                shutil.copy2(aavmf_vars_file, aavmf_vars)
             aavmf_vars = ("-drive file=%s,if=pflash,format=raw,unit=1"
                           % aavmf_vars)
             devices.append(qdevices.QStringDevice('AAVMF_VARS',
@@ -1219,9 +1225,15 @@ class DevContainer(object):
             """
             logging.warn('Support for aarch64 is highly experimental!')
             devices = []
+            if os.path.exists("/usr/share/AAVMF/AAVMF_CODE.fd"):
+                aavmf_code_file = "/usr/share/AAVMF/AAVMF_CODE.fd"
+                aavmf_vars_file = "/usr/share/AAVMF/AAVMF_VARS.fd"
+            else:
+                aavmf_code_file = "/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw"
+                aavmf_vars_file = "/usr/share/edk2/aarch64/vars-template-pflash.raw"
             # EFI pflash
-            aavmf_code = ("-drive file=/usr/share/AAVMF/AAVMF_CODE.fd,"
-                          "if=pflash,format=raw,unit=0,readonly=on")
+            aavmf_code = ("-drive file=%s,if=pflash,format=raw,unit=0,readonly=on"
+                          % aavmf_code_file)
             devices.append(qdevices.QStringDevice('AAVMF_CODE',
                                                   cmdline=aavmf_code))
             aavmf_vars = _get_aavmf_vars(params)
@@ -1234,7 +1246,7 @@ class DevContainer(object):
                                  " only happen when you install the machine as"
                                  " there is no default boot in EFI!)",
                                  aavmf_vars)
-                shutil.copy2('/usr/share/AAVMF/AAVMF_VARS.fd', aavmf_vars)
+                shutil.copy2(aavmf_vars_file, aavmf_vars)
             aavmf_vars = ("-drive file=%s,if=pflash,format=raw,unit=1"
                           % aavmf_vars)
             devices.append(qdevices.QStringDevice('AAVMF_VARS',
