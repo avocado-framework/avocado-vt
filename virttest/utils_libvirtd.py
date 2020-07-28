@@ -115,7 +115,7 @@ class Libvirtd(object):
         for daem_item in self.daemons:
             if reset_failed:
                 daem_item.reset_failed()
-            if daem_item.restart():
+            if not daem_item.restart():
                 return False
             result.append(self._wait_for_start())
         return all(result)
