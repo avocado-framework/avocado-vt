@@ -1499,7 +1499,7 @@ class DevContainer(object):
 
     # USB Device related methods
     def usb_by_variables(self, usb_name, usb_type, controller_type, bus=None,
-                         port=None, serial=None):
+                         port=None, serial=None, dev_options=None):
         """
         Creates usb-devices by variables.
         :param usb_name: usb name
@@ -1508,6 +1508,7 @@ class DevContainer(object):
         :param bus: the bus name (my_bus.0, ...)
         :param port: port specification (4, 4.1.2, ...)
         :param serial: serial specification (1234, d1, ...)
+        :param dev_options: device options dict of usb_type
         :return: QDev device
         """
         if not self.has_device(usb_type):
@@ -1519,6 +1520,9 @@ class DevContainer(object):
             device.set_param('bus', bus)
             device.set_param('port', port)
             device.set_param('serial', serial)
+            if dev_options:
+                for opt_name, opt_value in dev_options.items():
+                    device.set_param(opt_name, opt_value)
             device.parent_bus += ({'type': controller_type},)
         else:
             if "tablet" in usb_type:
@@ -1537,12 +1541,26 @@ class DevContainer(object):
         :param params: USB device's params
         :return: QDev device
         """
+        dev_options = {}
+        usb_type = params.get("usb_type")
+        if usb_type == "usb-host":
+            dev_options["hostbus"] = params.get("usbdev_option_hostbus")
+            dev_options["hostaddr"] = params.get("usbdev_option_hostaddr")
+            dev_options["hostport"] = params.get("usbdev_option_hostport")
+            vendorid = params.get("usbdev_option_vendorid")
+            if vendorid:
+                dev_options["vendorid"] = "0x%s" % vendorid
+            productid = params.get("usbdev_option_productid")
+            if productid:
+                dev_options["productid"] = "0x%s" % productid
+
         return self.usb_by_variables(usb_name,
-                                     params.get("usb_type"),
+                                     usb_type,
                                      params.get("usb_controller"),
                                      params.get("bus"),
                                      params.get("port"),
-                                     params.get("usbdev_serial"))
+                                     params.get("usbdev_serial"),
+                                     dev_options)
 
     # Images (disk, cdrom, floppy) device related methods
     def images_define_by_variables(self, name, filename, pci_bus, index=None,
