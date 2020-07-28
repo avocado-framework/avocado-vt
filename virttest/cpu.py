@@ -848,9 +848,12 @@ def get_host_cpu_models():
     cpu_types = {"AuthenticAMD": ["EPYC-Rome", "EPYC", "Opteron_G5",
                                   "Opteron_G4", "Opteron_G3", "Opteron_G2",
                                   "Opteron_G1"],
-                 "GenuineIntel": ["KnightsMill", "Icelake-Server",
-                                  "Icelake-Client", "Cascadelake-Server",
-                                  "Skylake-Server", "Skylake-Client",
+                 "GenuineIntel": ["KnightsMill", "Cooperlake",
+                                  "Icelake-Server", "Icelake-Server-noTSX",
+                                  "Icelake-Client", "Icelake-Client-noTSX",
+                                  "Cascadelake-Server", "Cascadelake-Server-noTSX",
+                                  "Skylake-Server", "Skylake-Server-noTSX-IBRS",
+                                  "Skylake-Client", "Skylake-Client-noTSX-IBRS",
                                   "Broadwell", "Broadwell-noTSX",
                                   "Haswell", "Haswell-noTSX", "IvyBridge",
                                   "SandyBridge", "Westmere", "Nehalem",
@@ -864,17 +867,26 @@ def get_host_cpu_models():
                    "Opteron_G2": "cx16",
                    "Opteron_G1": "",
                    "KnightsMill": "avx512_4vnniw,avx512pf,avx512er",
-                   "Icelake-Server": "avx512_vnni,la57,clflushopt",
+                   "Cooperlake": "avx512_bf16,stibp,arch_capabilities,hle,rtm",
+                   "Icelake-Server": "avx512_vnni,la57,clflushopt,hle,rtm",
+                   "Icelake-Server-noTSX": "avx512_vnni,la57,clflushopt",
                    "Icelake-Client": ("avx512_vpopcntdq|avx512-vpopcntdq,"
-                                      "avx512vbmi,avx512_vbmi2|avx512vbmi2,"
-                                      "gfni,vaes,vpclmulqdq,avx512_vnni"),
+                                      "avx512vbmi,avx512_vbmi2|avx512vbmi2,hle,rtm"
+                                      "gfni,vaes,vpclmulqdq,avx512_vnni,hle,rtm"),
+                   "Icelake-Client-noTSX": ("avx512_vpopcntdq|avx512-vpopcntdq,"
+                                            "avx512vbmi,avx512_vbmi2|avx512vbmi2,"
+                                            "gfni,vaes,vpclmulqdq,avx512_vnni"),
                    "Cascadelake-Server": ("avx512f,avx512dq,avx512bw,avx512cd,"
-                                          "avx512vl,clflushopt,avx512_vnni"),
-                   "Skylake-Server": "avx512f,clwb,xgetbv1,pcid",
-                   "Skylake-Client": "xgetbv1,pcid",
-                   "Broadwell": "adx,rdseed,3dnowprefetch,hle",
+                                          "avx512vl,clflushopt,avx512_vnni,hle,rtm"),
+                   "Cascadelake-Server-noTSX": ("avx512f,avx512dq,avx512bw,avx512cd,"
+                                                "avx512vl,clflushopt,avx512_vnni"),
+                   "Skylake-Server": "avx512f,clwb,xgetbv1,pcid,hle,rtm",
+                   "Skylake-Server-noTSX-IBRS": "avx512f,clwb,xgetbv1,pcid",
+                   "Skylake-Client": "xgetbv1,pcid,hle,rtm",
+                   "Skylake-Client-noTSX-IBRS": "xgetbv1,pcid",
+                   "Broadwell": "adx,rdseed,3dnowprefetch,hle,rtm",
                    "Broadwell-noTSX": "adx,rdseed,3dnowprefetch",
-                   "Haswell": "fma,avx2,movbe,hle",
+                   "Haswell": "fma,avx2,movbe,hle,rtm",
                    "Haswell-noTSX": "fma,avx2,movbe",
                    "IvyBridge": "f16c,fsgsbase,erms",
                    "SandyBridge": ("avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,"
