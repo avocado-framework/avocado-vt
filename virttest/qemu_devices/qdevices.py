@@ -1795,6 +1795,59 @@ class QVirtioFSDev(QDaemonDev):
         return False
 
 
+class QSwtpmDev(QDaemonDev):
+    """
+    Virtual swtpm pseudo device.
+    """
+    def __init__(self, aobject, binary, sock_path, storage_path,
+                 version=None, extra_options=None):
+        """
+        :param aobject: The auto object of swtpm daemon.
+        :type aobject: str
+        :param binary: The binary of swtpm daemon.
+        :type binary: str
+        :param sock_path: The socket path of of swtpm daemon.
+        :type sock_path: str
+        :param storage_path: The path to the directory for tpm state
+        :type storage_path: str
+        :param version: the version of tpm functionality.
+        :type version: str
+        :type storage_path: str
+        :param extra_options: The external options of swtpm daemon.
+        :type extra_options: str
+        """
+        super(QSwtpmDev, self).__init__('vtpm', aobject=aobject,
+                                        child_bus=QUnixSocketBus(sock_path, aobject))
+        self.set_param('binary', binary)
+        self.set_param('sock_path', sock_path)
+        self.set_param('storage_path', storage_path)
+        self.set_param('version', version)
+        self.set_param('extra_options', extra_options)
+
+    def start_daemon(self):
+        tpm_cmd = '%s socket --daemon' % self.get_param('binary')
+        tpm_cmd += ' --ctrl type=unixio,path=%s,mode=0600' % self.get_param('sock_path')
+        tpm_cmd += ' --tpmstate dir=%s,mode=0600' % self.get_param('storage_path')
+
+        if self.get_param('version') in ('2.0', ):
+            tpm_cmd += ' --tpm2'
+
+        log_dir = utils_misc.get_log_file_dir()
+        tpm_cmd += ' --log file=%s' % os.path.join(log_dir, '%s_swtpm.log' % self.get_qid())
+
+        if self.get_param('extra_options'):
+            tpm_cmd += self.get_param('extra_options')
+
+        self.set_param('cmd', tpm_cmd)
+        self.set_param('run_bg_kwargs', {'auto_close': False})
+        super(QSwtpmDev, self).start_daemon()
+
+    def __eq__(self, other):
+        if super(QSwtpmDev, self).__eq__(other):
+            return self.get_param('sock_path') == other.get_param('sock_path')
+        return False
+
+
 #
 # Bus representations
 # HDA, I2C, IDE, ISA, PCI, SCSI, System, uhci, ehci, ohci, xhci, ccid,
