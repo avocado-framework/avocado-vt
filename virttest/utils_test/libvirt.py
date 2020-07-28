@@ -3562,7 +3562,10 @@ def customize_libvirt_config(params,
     :return: utils_config.LibvirtConfigCommon object
     """
 
-    config_list_support = ["libvirtd", "qemu", "sysconfig", "guestconfig"]
+    config_list_support = ["libvirtd", "qemu", "sysconfig", "guestconfig",
+                           "virtqemud", "virtproxyd", "virtnetworkd",
+                           "virtstoraged", "virtinterfaced", "virtnodedevd",
+                           "virtnwfilterd", "libvirt"]
     if config_type not in config_list_support:
         logging.debug("'%s' is not in the support list '%s'",
                       config_type, config_list_support)
@@ -3573,16 +3576,8 @@ def customize_libvirt_config(params,
         # Handle local
         if not params or not isinstance(params, dict):
             return None
+        target_conf = utils_config.get_conf_obj(config_type)
         #if params and isinstance(params, dict):
-        if config_type == "libvirtd":
-            target_conf = utils_config.LibvirtdConfig()
-        elif config_type == "qemu":
-            target_conf = utils_config.LibvirtQemuConfig()
-        elif config_type == "sysconfig":
-            target_conf = utils_config.LibvirtdSysConfig()
-        else:
-            target_conf = utils_config.LibvirtGuestsConfig()
-
         for key, value in params.items():
             target_conf[key] = value
         logging.debug("The '%s' config file is updated with:\n %s",
