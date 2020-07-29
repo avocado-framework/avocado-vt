@@ -935,9 +935,10 @@ def preprocess(test, params, env):
         pvr = float(a_process.system_output(pvr_cmd, shell=True).strip())
         power9_compat = "yes" == params.get("power9_compat", "no")
 
-        if "power8" in cpu_arch:
+        cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_arch
+        if "power8" in cpu_family:
             test_setup.switch_smt(state="off")
-        elif "power9" in cpu_arch and power9_compat and pvr < 2.2:
+        elif "power9" in cpu_family and power9_compat and pvr < 2.2:
             test_setup.switch_indep_threads_mode(state="N")
             test_setup.switch_smt(state="off")
 
@@ -1679,7 +1680,8 @@ def postprocess(test, params, env):
         # Restore SMT changes in the powerpc host is set
         if params.get("restore_smt", "no") == "yes":
             power9_compat = "yes" == params.get("power9_compat", "no")
-            if "power9" in cpu_arch and power9_compat and pvr < 2.2:
+            cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_arch
+            if "power9" in cpu_family and power9_compat and pvr < 2.2:
                 test_setup.switch_indep_threads_mode(state="Y")
                 test_setup.switch_smt(state="on")
 
