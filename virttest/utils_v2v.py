@@ -1221,13 +1221,14 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False):
             cmd_result = process.run(cmd, timeout=v2v_cmd_timeout,
                                      verbose=True, ignore_status=True)
     finally:
-        if auto_clean:
-            target_obj.cleanup()
-        else:
-            # Save it into global params and release it by users
-            v2v_dirty_resources = global_params.get('v2v_dirty_resources', [])
-            v2v_dirty_resources.append(target_obj)
-            global_params.update({'v2v_dirty_resources': v2v_dirty_resources})
+        # Save it into global params and release it by users
+        v2v_dirty_resources = global_params.get('v2v_dirty_resources', [])
+        global_params.update({'v2v_dirty_resources': v2v_dirty_resources})
+        if 'target_obj' in locals():
+            if auto_clean:
+                target_obj.cleanup()
+            else:
+                v2v_dirty_resources.append(target_obj)
         # Post-process for v2v
         _v2v_post_cmd()
 
