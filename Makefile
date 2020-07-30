@@ -67,6 +67,9 @@ unlink:
 		[ -L ../$(AVOCADO_DIRNAME)/$$CONF ] && rm -f ../$(AVOCADO_DIRNAME)/$$CONF || true;\
 	done
 
+spell:
+	pylint --errors-only --disable=all --enable=spelling --spelling-dict=en_US --spelling-private-dict-file=spell.ignore * && echo OK
+
 pypi: clean
 	if test ! -d PYPI_UPLOAD; then mkdir PYPI_UPLOAD; fi
 	$(PYTHON) setup.py bdist_wheel -d PYPI_UPLOAD

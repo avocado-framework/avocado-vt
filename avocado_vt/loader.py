@@ -47,7 +47,7 @@ LOG = logging.getLogger("avocado.app")
 
 def guest_listing(options):
     """
-    List available guest os and info about image availability
+    List available guest operating systems and info about image availability
     """
     if get_opt(options, 'vt_type') == 'lvsb':
         raise ValueError("No guest types available for lvsb testing")
@@ -71,7 +71,7 @@ def guest_listing(options):
 
 def arch_listing(options):
     """
-    List available machine/archs for given guest os
+    List available machine/archs for given guest operating systems
     """
     guest_os = get_opt(options, 'vt_guest_os')
     if guest_os is not None:
@@ -108,7 +108,7 @@ class VirtTestLoader(loader.TestLoader):
            of this plugins "self.args" (extends the --vt-extra-params)
         """
         vt_extra_params = extra_params.pop("avocado_vt_extra_params", None)
-        # Compatibility with nrunner Avocado
+        # Compatibility with more recent Avocado configuration as dictionary
         if isinstance(args, dict):
             args = argparse.Namespace(**args)
         super(VirtTestLoader, self).__init__(args, extra_params)
@@ -186,7 +186,8 @@ class VirtTestLoader(loader.TestLoader):
         """
         Get label mapping for display in test listing.
 
-        :return: Dict {TestClass: 'TEST_LABEL_STRING'}
+        :returns: a dictionary with the test class as key and description
+                  as value.
         """
         return {VirtTest: 'VT', NotAvocadoVTTest: "!VT"}
 
@@ -195,7 +196,8 @@ class VirtTestLoader(loader.TestLoader):
         """
         Get label mapping for display in test listing.
 
-        :return: Dict {TestClass: decorator function}
+        :return: a dictionary with the test class as key and decorator
+                 function as value.
         """
         term_support = output.TermSupport()
         return {VirtTest: term_support.healthy_str,
@@ -224,7 +226,7 @@ class VirtTestLoader(loader.TestLoader):
             except cartesian_config.ParserError as details:
                 return self._report_bad_discovery(url, details, which_tests)
         elif which_tests is LOADER_DEFAULT and not get_opt(self.args, 'vt_config'):
-            # By default don't run anythinig unless vt_config provided
+            # By default don't run anything unless vt_config provided
             return []
         # Create test_suite
         test_suite = []

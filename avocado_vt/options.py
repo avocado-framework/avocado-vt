@@ -46,7 +46,7 @@ class VirtTestOptionsProcess(object):
         """
         Parses options and initializes attributes.
         """
-        # Compatibility with nrunner Avocado
+        # Compatibility with more recent Avocado configuration as dictionary
         if isinstance(options, dict):
             self.options = argparse.Namespace(**options)
         else:
@@ -350,7 +350,7 @@ class VirtTestOptionsProcess(object):
 
     def _process_lvsb_specific_options(self):
         """
-        Calls for processing all options specific to lvsb test
+        Calls for processing all options specific to LVSB test
         """
         set_opt(self.options, 'no_downloads', True)
 
