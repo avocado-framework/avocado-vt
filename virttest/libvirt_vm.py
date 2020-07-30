@@ -946,6 +946,31 @@ class VM(virt_vm.BaseVM):
                 item += 1
             return cputune_str.rstrip(",")
 
+        def add_tpmdevice(help_text, device_path, model=None, type=None):
+            """
+            Add TPM device to guest xml
+            :param help_text: string, virt-install help text
+            :param device_path: path to TPM device
+            :param model: tpm device model to be added
+                          tpm-tis, tpm-crb, tpm-spapr etc
+            :param type: type of device attach
+                         passthrough, emulator
+            :return: string of tpm cmdline for virt-install
+            """
+            result = ""
+            if not has_option(help_text, "tpm"):
+                logging.warning("tpm option is not supported in virt-install")
+                return result
+            if not (device_path and os.path.exists(device_path)):
+                logging.warning("Given TPM device is not valid or not present")
+                return result
+            result = " --tpm path=%s" % device_path
+            if has_sub_option("tpm", "model") and model:
+                result += ",model=%s" % model
+            if has_sub_option("tpm", "type") and type:
+                result += ",type=%s" % type
+            return result
+
         # End of command line option wrappers
 
         if name is None:
@@ -1340,7 +1365,13 @@ class VM(virt_vm.BaseVM):
             virt_install_cmd += " --extra-args '%s'" % kernel_params
 
         virt_install_cmd += " --noautoconsole"
-
+        # Add TPM device
+        tpm_device = params.get("tpm_device_path", None)
+        if tpm_device:
+            tpm_model = params.get("tpm_model", None)
+            tpm_type = params.get("tpm_type", None)
+            virt_install_cmd += add_tpmdevice(help_text, tpm_device, tpm_model,
+                                              tpm_type)
         sec_type = params.get("sec_type", None)
         if sec_type:
             sec_label = params.get("sec_label", None)
