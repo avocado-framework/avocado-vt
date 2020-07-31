@@ -2110,6 +2110,8 @@ class DevContainer(object):
             drv_extra_params = (_.split('=', 1) for _ in
                                 drv_extra_params.split(',') if _)
             for key, value in drv_extra_params:
+                if key == 'cache-size' and imgfmt != 'qcow2':
+                    continue
                 if Flags.BLOCKDEV in self.caps:
                     if key == 'discard':
                         value = re.sub('on', 'unmap', re.sub('off', 'ignore', value))
