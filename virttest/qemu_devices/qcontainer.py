@@ -1935,6 +1935,8 @@ class DevContainer(object):
                 protocol_cls = qdevices.QBlockdevProtocolNBD
             elif filename.startswith('nvme:'):
                 protocol_cls = qdevices.QBlockdevProtocolNVMe
+            elif filename.startswith('ssh:'):
+                protocol_cls = qdevices.QBlockdevProtocolSSH
             elif fmt in ('scsi-generic', 'scsi-block'):
                 protocol_cls = qdevices.QBlockdevProtocolHostDevice
             elif blkdebug is not None:

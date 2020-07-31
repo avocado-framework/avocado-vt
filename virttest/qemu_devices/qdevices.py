@@ -921,6 +921,11 @@ class QBlockdevProtocolNVMe(QBlockdevProtocol):
     TYPE = 'nvme'
 
 
+class QBlockdevProtocolSSH(QBlockdevProtocol):
+    """ New a protocol ssh blockdev node. """
+    TYPE = 'ssh'
+
+
 class QDevice(QCustomDevice):
 
     """
