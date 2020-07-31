@@ -1513,6 +1513,35 @@ def create_controller_xml(contr_dict):
     return contr
 
 
+def create_iface_xml(iface_dict):
+    """
+    Create interface xml file
+
+    :param iface_dict: The dict params includes interfaces' configurations
+
+    :return: the interface object
+    """
+    iface_type = iface_dict.get("iface_type", 'network')
+    iface_source = iface_dict.get("iface_source")
+    iface_model = iface_dict.get("iface_model", 'virtio')
+    iface_target = iface_dict.get("iface_target")
+    iface_mac = iface_dict.get("iface_mac")
+    iface_rom = iface_dict.get("iface_rom")
+
+    iface = interface.Interface(type_name=iface_type)
+    iface.source = eval(iface_source)
+    iface.model = iface_model
+    if iface_target:
+        iface.target = {'dev': iface_target}
+    if iface_mac:
+        iface.mac_address = iface_mac
+    if iface_rom:
+        iface.rom = eval(iface_rom)
+    logging.debug("Create new interface xml: %s", iface)
+
+    return iface
+
+
 def create_redirdev_xml(redir_type="spicevmc", redir_bus="usb",
                         redir_alias=None, redir_params={}):
     """
