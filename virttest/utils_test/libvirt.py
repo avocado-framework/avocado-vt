@@ -1589,8 +1589,11 @@ def create_disk_xml(params):
     # Use auth_in_source to diff whether it is placed in source or disk itself.
     auth_in_source = params.get('auth_in_source')
     input_source_file = params.get("input_source_file")
+    disk_addr = params.get("disk_address")
     if snapshot_attr:
         diskxml.snapshot = snapshot_attr
+    if disk_addr:
+        diskxml.address = diskxml.new_disk_address(attrs=eval(disk_addr))
     source_attrs = {}
     source_host = []
     source_seclabel = []
