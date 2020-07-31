@@ -416,7 +416,7 @@ class VirtTest(test.Test):
         try:
             try:
                 try:
-                    # Preprocess
+                    # Pre-process
                     try:
                         params = env_process.preprocess(self, params, env)
                     finally:
@@ -451,7 +451,7 @@ class VirtTest(test.Test):
                     raise
 
             finally:
-                # Postprocess
+                # Post-process
                 try:
                     try:
                         params['test_passed'] = str(test_passed)
