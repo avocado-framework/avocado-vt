@@ -143,9 +143,8 @@ class Target(object):
         """
         Target dispatcher.
         """
-        opts_func = getattr(self, "_get_%s_options" % self.target)
         self.params = params
-        self.output_method = self.params.get('output_method', 'rhev')
+        self.output_method = self.params.get('output_method', 'rhv')
         self.input_mode = self.params.get('input_mode')
         self.esxi_host = self.params.get(
             'esxi_host', self.params.get('esx_ip'))
@@ -162,9 +161,7 @@ class Target(object):
         self.vm_name = self.params.get('main_vm')
         self.bridge = self.params.get('bridge')
         self.network = self.params.get('network')
-        self.storage = self.params.get('storage')
-        self.storage_name = self.params.get('storage_name')
-        self.format = self.params.get('output_format', 'raw')
+        self.of_format = self.params.get('of_format', 'raw')
         self.input_file = self.params.get('input_file')
         self.new_name = self.params.get('new_name')
         self.username = self.params.get('username', 'root')
@@ -339,7 +336,7 @@ class Target(object):
         elif self.input_transport is None:
             self.net_vm_opts += " %s" % self._vmx_filename_fullpath
 
-        options = opts_func() + _compose_input_transport_options()
+        options = self.get_target_options() + _compose_input_transport_options()
 
         if self.new_name:
             options += ' -on %s' % self.new_name
@@ -355,47 +352,99 @@ class Target(object):
             options = re.sub(r'-ic .*? ', '', options)
         return options
 
+    def _get_os_directory(self):
+        """
+        Prepare a local os directory for v2v conversion.
+
+        Correspond to '-os DIRECTORY'.
+        """
+        os_directory = self.params.get('os_directory')
+
+        if not os_directory:
+            os_directory = os.path.join(
+                data_dir.get_tmp_dir(), 'v2v_os_directory')
+            if not os.path.exists(os_directory):
+                os.makedirs(os_directory)
+        # Pass the json directory to testcase for checking
+        self.params.get('params').update({'os_directory': os_directory})
+
+        logging.debug('The os directory(-os DIRECTORY) is %s.', os_directory)
+        return os_directory
+
     def _get_libvirt_options(self):
         """
-        Return command options.
-        """
-        options = " -ic %s -os %s -of %s" % (self.uri,
-                                             self.storage,
-                                             self.format)
-        options = options + self.net_vm_opts
+        Construct output options for -o libvirt
 
-        return options
-
-    def _get_libvirtxml_options(self):
+        'os_pool' corresponds to '-os POOL'.
         """
-        Return command options.
-        """
-        options = " -os %s" % self.storage
-        options = options + self.net_vm_opts
+        os_pool = self.params.get('os_pool')
+        options = " -os %s" % os_pool
 
         return options
 
     def _get_ovirt_options(self):
         """
-        Return command options.
+        Construct output options for -o ovirt
+
+        'os_storage' corresponds to '-o rhv -os [esd:/path|/path'.
+        'os_storage_name' corresponds to '-o rhv -os STORAGE'.
+        'rhv_upload_opts' includes all '-oo xxx' options.
         """
-        options = " -ic %s -o %s -os %s -of %s" % (
-            self.uri,
-            self.output_method.replace('_', '-'),
-            self.storage if self.output_method != "rhv_upload" else self.storage_name,
-            self.format)
-        options = options + self.net_vm_opts
+        os_storage = self.params.get('os_storage')
+        os_storage_name = self.params.get('os_storage_name')
+        rhv_upload_opts = self.params.get('rhv_upload_opts')
+        output_method = self.output_method
+        options = " -os %s" % (os_storage if output_method != "rhv_upload" else os_storage_name)
+        if rhv_upload_opts:
+            options += ' %s' % rhv_upload_opts
 
         return options
 
     def _get_local_options(self):
         """
+        Construct output options for -o local
+        """
+        os_directory = self._get_os_directory()
+        options = " -os %s" % os_directory
+
+        return options
+
+    def _get_null_options(self):
+        """
+        Construct output options for -o null
+        """
+        return ''
+
+    def _get_json_options(self):
+        """
+        Construct output options for -o json
+
+        'oo_json_disk_pattern' corresponds to '-o json [-oo json-disks-pattern=PATTERN]'
+        """
+        oo_json_disk_pattern = self.params.get('oo_json_disk_pattern')
+        os_directory = self._get_os_directory()
+
+        options = " -os %s" % os_directory
+        if oo_json_disk_pattern:
+            options += " -oo json-disks-pattern=%s" % oo_json_disk_pattern
+
+        return options
+
+    def get_target_options(self):
+        """
         Return command options.
         """
-        options = " -ic %s -o local -os %s -of %s" % (self.uri,
-                                                      self.storage,
-                                                      self.format)
-        options = options + self.net_vm_opts
+        uri = self.uri
+        target = self.target
+        o_fmt = self.of_format
+        _get_target_specific_options = getattr(
+            self, "_get_%s_options" % self.target)
+
+        if target == 'ovirt':
+            target = self.output_method.replace('_', '-')
+
+        options = " -ic %s -o %s -of %s" % (uri, target, o_fmt)
+        options += _get_target_specific_options() + self.net_vm_opts
 
         return options
 
@@ -1138,6 +1187,8 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False):
             # in the case, vm_name is same as nfs directory name
             if input_mode == 'vmx':
                 params['_nfspath'] = vm_name
+        # Pass it to testcase to do subsequent checking
+        global_params.update({'vm_disk_count': params['_disk_count']})
 
     def _v2v_post_cmd():
         """
@@ -1170,7 +1221,6 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False):
     # the value is bigger than the timeout value in CI, so when some timeout
     # really happens, CI will still interrupt the v2v process.
     v2v_cmd_timeout = params.get('v2v_cmd_timeout', 18000)
-    rhv_upload_opts = params.get('rhv_upload_opts')
     # username and password of remote hypervisor server
     username = params.get('username', 'root')
     password = params.get('password')
@@ -1199,8 +1249,6 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False):
         # 'hypervisor'
         options = target_obj.get_cmd_options(params)
 
-        if rhv_upload_opts:
-            options = options + ' ' + rhv_upload_opts
         if opts_extra:
             options = options + ' ' + opts_extra
         # Add -oo rhv-disk-uuid if '--no-copy' exists
