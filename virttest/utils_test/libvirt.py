@@ -1495,7 +1495,7 @@ def create_controller_xml(contr_dict):
     contr_index = contr_dict.get("controller_index")
     contr_alias = contr_dict.get("contr_alias")
     contr_addr = contr_dict.get("controller_addr")
-    contr_busNr = contr_dict.get("controller_busNr")
+    contr_target = contr_dict.get("controller_target")
     contr_node = contr_dict.get("controller_node")
     contr = controller.Controller(contr_type)
     contr.model = contr_model
@@ -1503,8 +1503,8 @@ def create_controller_xml(contr_dict):
         contr.index = contr_index
     if contr_alias:
         contr.alias = dict(name=contr_alias)
-    if contr_busNr:
-        contr.target = dict(busNr=contr_busNr)
+    if contr_target:
+        contr.target = eval(contr_target)
     if contr_node:
         contr.node = contr_node
     if contr_addr:
