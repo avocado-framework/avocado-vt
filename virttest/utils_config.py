@@ -313,6 +313,19 @@ class LibvirtConfigCommon(SectionlessConfig):
             raise LibvirtConfigUnknownKeyError(key)
 
 
+class LibvirtConfig(LibvirtConfigCommon):
+
+    """
+    Class for libvirt config file.
+    """
+    conf_path = '/etc/libvirt/libvirt.conf'
+    __option_types__ = {
+        'uri_aliases': 'list',
+        'uri_default': 'string',
+        'remote_mode': 'string'
+    }
+
+
 class LibvirtdConfig(LibvirtConfigCommon):
 
     """
@@ -676,3 +689,27 @@ class VirtProxydConfig(VirtQemudConfig):
 
         'ovs_timeout': 'int',
     }
+
+
+def get_conf_obj(config_type):
+    """
+    Wrapper method to get the object from the given configuration type
+
+    :param config_type: The configuration type to get
+        For example, "libvirtd" or "virtqemud"
+    :return: utils_config.LibvirtConfigCommon object
+    """
+    return {
+        'libvirt': LibvirtConfig(),
+        'libvirtd': LibvirtdConfig(),
+        'qemu': LibvirtQemuConfig(),
+        'sysconfig': LibvirtdSysConfig(),
+        'guestconfig': LibvirtGuestsConfig(),
+        'virtqemud': VirtQemudConfig(),
+        'virtproxyd': VirtProxydConfig(),
+        'virtnetworkd': VirtNetworkdConfig(),
+        'virtstoraged': VirtStoragedConfig(),
+        'virtinterfaced': VirtInterfacedConfig(),
+        'virtnodedevd': VirtNodedevdConfig(),
+        'virtnwfilterd': VirtNwfilterdConfig(),
+         }.get(config_type)
