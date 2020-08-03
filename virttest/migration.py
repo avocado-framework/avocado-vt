@@ -191,8 +191,9 @@ class MigrationTest(object):
             dest_ip = re.search(r'//.*/', desturi,
                                 re.I).group(0).strip('/').strip()
             source_ip = params.get("migrate_source_host", "").strip()
+            source_cn = params.get("migrate_source_host_cn", "").strip()
             # check whether migrate back to source machine or not
-            if ((desturi == "qemu:///system") or (dest_ip == source_ip)):
+            if ((desturi == "qemu:///system") or (dest_ip == source_ip) or (dest_ip == source_cn)):
                 if use_firewall_cmd:
                     firewall_cmd = utils_iptables.Firewall_cmd()
                     if cleanup:
