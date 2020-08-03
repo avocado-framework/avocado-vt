@@ -90,10 +90,10 @@ class MigrationTest(object):
             server_session = test_setup.remote_session(params)
             # after migration VM would take some time to respond and to
             # avoid the race of framework querying IP address before VM
-            # starts responding, provide timeout for 120 seconds to retry
+            # starts responding, provide timeout for 240 seconds to retry
             # and raise if VM fails to respond
             vm_ip[vm.name] = vm.get_address(session=server_session,
-                                            timeout=120)
+                                            timeout=240)
             logging.info("Check VM network connectivity after migrating")
         else:
             logging.info("Check VM network connectivity before migration")
