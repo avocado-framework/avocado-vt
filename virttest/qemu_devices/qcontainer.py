@@ -917,7 +917,7 @@ class DevContainer(object):
     def cleanup_daemons(self):
         """Clean up daemons."""
         for dev in self:
-            if isinstance(dev, qdevices.QVirtioFSDev):
+            if isinstance(dev, qdevices.QDaemonDev):
                 dev.clear()
 
     def cmdline(self, dynamic=True):
