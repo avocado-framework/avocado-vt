@@ -7,6 +7,8 @@ interact with qemu qdev structure.
 :copyright: 2012-2013 Red Hat Inc.
 """
 import logging
+import os
+import time
 import re
 import traceback
 from collections import OrderedDict
@@ -1634,6 +1636,109 @@ class QCPUDevice(QDevice):
         if ver_out:
             self._enabled = False
         return out, ver_out
+
+
+class QDaemonDev(QBaseDevice):
+    """
+    Virtual daemon device.
+    """
+
+    def __init__(self, name, aobject, child_bus=None):
+        """
+        :param name: The daemon name.
+        :type name: str
+        :param aobject: The aobject of daemon.
+        :type aobject: str
+        :param child_bus: List of buses, which this device provides.
+        :type child_bus: QSparseBus
+        """
+        aid = '%s_%s' % (name, aobject)
+        super(QDaemonDev, self).__init__(name, aobject=aobject, child_bus=child_bus)
+        self.set_aid(aid)
+        self.set_param('name', name)
+        self._daemon_process = None
+
+    def is_daemon_alive(self):
+        """Check whether daemon is alive."""
+        return bool(self._daemon_process and self._daemon_process.is_alive())
+
+    def start_daemon(self):
+        """Start daemon."""
+        cmd = self.get_param('cmd')
+        name = self.get_param('name')
+        run_bg_kwargs = self.get_param('run_bg_kwargs', {})
+        status_active = self.get_param('status_active')
+        read_until_timeout = self.get_param('read_until_timeout', 5)
+        start_until_timeout = self.get_param('start_until_timeout', 1)
+
+        if cmd is None:
+            logging.warn('No provided command to start %s daemon.', name)
+            self._daemon_process = None
+
+        if self.is_daemon_alive():
+            return
+
+        logging.info('Running %s daemon command %s.', name, cmd)
+        self._daemon_process = aexpect.run_bg(cmd, **run_bg_kwargs)
+        if status_active:
+            self._daemon_process.read_until_any_line_matches(
+                    status_active, timeout=read_until_timeout)
+        else:
+            time.sleep(start_until_timeout)
+        logging.info("Created %s daemon process with parent PID %d.",
+                     name, self._daemon_process.get_pid())
+
+    def stop_daemon(self):
+        """Stop daemon."""
+        if self._daemon_process is not None:
+            try:
+                if not utils_misc.wait_for(lambda: not self.is_daemon_alive(),
+                                           self.get_param('stop_timeout', 3)):
+                    raise DeviceError('The %s daemon is still alive.' %
+                                      self.get_param('name'))
+            finally:
+                self._daemon_process.close()
+                self._daemon_process = None
+
+    def clear(self):
+        """Clear daemon."""
+        try:
+            self.stop_daemon()
+        except DeviceError:
+            pass
+
+    def hotplug(self, monitor):
+        """Hot plug daemon."""
+        self.start_daemon()
+
+    def verify_hotplug(self, out, monitor):
+        """Verify daemon after hotplug."""
+        return self.is_daemon_alive()
+
+    def unplug(self, monitor):
+        """Unplug daemon."""
+        self.stop_daemon()
+
+    def verify_unplug(self, out, monitor):
+        """Verify the status of daemon."""
+        return not self.is_daemon_alive()
+
+    def get_qid(self):
+        """Get qid."""
+        return self.get_aid()
+
+    def cmdline(self):
+        """Start daemon command line."""
+        self.start_daemon()
+        return ''
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    __hash__ = None
 
 
 class QVirtioFSDev(QBaseDevice):
