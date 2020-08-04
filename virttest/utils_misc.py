@@ -1680,7 +1680,7 @@ class NumaInfo(object):
             node_meminfo = {}
             numa_sys = kernel_interface.SysFS(meminfo_file % node,
                                               session=self.session)
-            for info in str(numa_sys.sys_fs_value).split("\n"):
+            for info in str(numa_sys.sys_fs_value.strip()).split("\n"):
                 key, value = re.match(r'Node \d+ (\S+):\s+(\d+)', info).groups()
                 node_meminfo[key] = value
             meminfo[node] = node_meminfo
