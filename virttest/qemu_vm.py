@@ -2186,6 +2186,7 @@ class VM(virt_vm.BaseVM):
             boot_opts["once"] = params.get("boot_once")
             boot_opts["strict"] = params.get("boot_strict")
             boot_opts["reboot-timeout"] = params.get("boot_reboot_timeout")
+            boot_opts["splash-time"] = params.get("boot_splash_time")
             cmd = add_boot(devices, boot_opts)
             devices.insert(StrDev('bootmenu', cmdline=cmd))
 
