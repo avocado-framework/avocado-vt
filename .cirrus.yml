@@ -13,7 +13,7 @@ fedora_30_task:
       # Latest LTS release is 69.x
       - AVOCADO_SRC: avocado-framework<70.0
       # Latest Avocado from git
-      - AVOCADO_SRC: -e git+https://github.com/avocado-framework/avocado#egg=avocado_framework
+      - AVOCADO_SRC: git+https://github.com/avocado-framework/avocado#egg=avocado_framework
     matrix:
       - SETUP: setup.py develop --user
       - SETUP: -m pip install .
@@ -39,11 +39,7 @@ centos_8_1_task:
     matrix:
       - AVOCADO_SRC:
       - AVOCADO_SRC: avocado-framework<70.0
-      # When installing from source, pip tries to install at
-      # /usr/local/lib/python3.6/site-packages/ and fails with:
-      # [Errno 2] No such file or directory: '/usr/local/lib/python3.6/site-packages/test-easy-install-78.write-test'
-      # workaround is to add "--prefix /"
-      - AVOCADO_SRC: --prefix / -e git+https://github.com/avocado-framework/avocado#egg=avocado_framework
+      - AVOCADO_SRC: git+https://github.com/avocado-framework/avocado#egg=avocado_framework
     matrix:
       - SETUP: setup.py develop --user
       - SETUP: -m pip install .
