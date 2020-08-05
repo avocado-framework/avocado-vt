@@ -321,7 +321,7 @@ class QBaseDevice(object):
     def is_pcie_device(self):
         """Check is it a pcie device"""
         driver = self.get_param("driver", "")
-        if (driver in ("e1000e", "vhost-vsock-pci", "qemu-xhci")
+        if (driver in ("e1000e", "vhost-vsock-pci", "qemu-xhci", "vfio-pci")
                 or driver.startswith("virtio-")):
             return True
         return False
