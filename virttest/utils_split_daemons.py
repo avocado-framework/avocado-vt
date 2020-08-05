@@ -388,3 +388,21 @@ def virtproxyd_stop():
 def virtproxyd_restart():
     virtproxyd_instance = VirtProxyd()
     return virtproxyd_instance.restart()
+
+
+def is_modular_daemon(session=None):
+    """
+    Check whether modular daemon is enabled
+
+    :params session: An session to guest or remote host
+    :return: True if modular daemon is enabled
+    """
+    daemons = ["virtqemud.socket", "virtinterfaced.socket",
+               "virtnetworkd.socket", "virtnodedevd.socket",
+               "virtnwfilterd.socket", "virtsecretd.socket",
+               "virtstoraged.socket", "virtproxyd.socket"]
+    if session:
+        runner = remote.RemoteRunner(session=session).run
+    else:
+        runner = process.run
+    return any([service.Factory.create_service(d, run=runner).status() for d in daemons])
