@@ -352,7 +352,12 @@ def create_host_os_cfg(options):
         arch = _forced_or_detected(get_opt(options, 'vt_host_distro_arch'),
                                    "Host_arch_%s" % detected.arch)
         vendor = cpu.get_vendor() if hasattr(cpu, 'get_vendor') else cpu.get_cpu_vendor_name()
-        family = cpu.get_family() if hasattr(cpu, 'get_family') else None
+        family = None
+        if hasattr(cpu, 'get_family'):
+            try:
+                family = cpu.get_family()
+            except NotImplementedError:
+                pass
         cpu_version = cpu.get_version() if hasattr(cpu, 'get_version') else None
 
         cfg.write("variants:\n")
@@ -365,10 +370,11 @@ def create_host_os_cfg(options):
         cfg.write("                            - @%s:\n" % release)
         cfg.write("                                variants:\n")
         cfg.write("                                    - @%s:\n" % arch)
-        cfg.write("variants:\n")
-        cfg.write("    - @HostCpuVendor:\n")
-        cfg.write("        variants:\n")
-        cfg.write("            - @%s:\n" % vendor)
+        if vendor:
+            cfg.write("variants:\n")
+            cfg.write("    - @HostCpuVendor:\n")
+            cfg.write("        variants:\n")
+            cfg.write("            - @%s:\n" % vendor)
         if family:
             cfg.write("variants:\n")
             cfg.write("    - @HostCpuFamily:\n")
