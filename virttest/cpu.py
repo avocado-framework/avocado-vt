@@ -613,7 +613,7 @@ def guest_numa_check(vm, exp_vcpu):
     session.close()
     vmxml = libvirt_xml.VMXML.new_from_dumpxml(vm.name)
     try:
-        node_num_xml = len(vmxml.cpu.numa_cell)
+        node_num_xml = len(vmxml.cpu.get_numa_cell())
     except (TypeError, LibvirtXMLNotFoundError):
         # handle if no numa cell in guest xml, bydefault node 0
         node_num_xml = 1
@@ -622,7 +622,8 @@ def guest_numa_check(vm, exp_vcpu):
     status = True
     for node in range(node_num_xml):
         try:
-            node_cpu_xml = vmxml.cpu.numa_cell[node]['cpus']
+            cellxmls = vmxml.cpu.get_numa_cell()
+            node_cpu_xml = cellxmls[node].cpus
             node_cpu_xml = cpus_parser(node_cpu_xml)
         except (TypeError, LibvirtXMLNotFoundError):
             try:
@@ -631,7 +632,8 @@ def guest_numa_check(vm, exp_vcpu):
                 node_cpu_xml = vmxml.vcpu
             node_cpu_xml = list(range(int(node_cpu_xml)))
         try:
-            node_mem_xml = vmxml.cpu.numa_cell[node]['memory']
+            cellxmls = vmxml.cpu.get_numa_cell()
+            node_mem_xml = cellxmls[node].memory
         except (TypeError, LibvirtXMLNotFoundError):
             node_mem_xml = vmxml.memory
         node_mem_guest = int(vm.get_totalmem_sys(node=node))
