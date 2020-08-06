@@ -15,7 +15,7 @@ from virttest import propcan, remote, utils_libvirtd
 from virttest import data_dir
 from virttest import utils_package
 from virttest import libvirt_version
-from virttest import libvirtd_decorator
+from virttest import utils_split_daemons
 
 
 class ConnectionError(Exception):
@@ -687,8 +687,7 @@ class TCPConnection(ConnectionBase):
         init_dict['sasl_allowed_users'] = init_dict.get('sasl_allowed_users')
         super(TCPConnection, self).__init__(init_dict)
 
-        if (libvirtd_decorator.get_libvirt_version_compare(5, 6, 0) and
-           libvirtd_decorator.get_libvirtd_split_enable_bit()):
+        if utils_split_daemons.is_modular_daemon():
             self.daemon_conf = "/etc/libvirt/virtproxyd.conf"
             self.daemon_socket_conf = "/usr/lib/systemd/system/virtproxyd-tcp.socket"
         else:
@@ -1008,8 +1007,7 @@ class TLSConnection(ConnectionBase):
             port='22',
             remote_path='/etc/sysconfig/libvirtd')
 
-        if (libvirtd_decorator.get_libvirt_version_compare(5, 6, 0) and
-           libvirtd_decorator.get_libvirtd_split_enable_bit()):
+        if utils_split_daemons.is_modular_daemon():
             self.daemon_conf = "/etc/libvirt/virtproxyd.conf"
             self.daemon_socket_conf = "/usr/lib/systemd/system/virtproxyd-tls.socket"
         else:

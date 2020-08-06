@@ -37,8 +37,7 @@ from virttest import storage
 from virttest import utils_libguestfs
 from virttest import qemu_storage
 from virttest import utils_libvirtd
-from virttest import libvirtd_decorator
-from virttest import libvirt_version as libvirtd_ver
+from virttest import utils_split_daemons
 from virttest import remote
 from virttest import data_dir
 from virttest import utils_net
@@ -1287,8 +1286,7 @@ def preprocess(test, params, env):
         # work on connect_uri as default behavior.
         os.environ['LIBVIRT_DEFAULT_URI'] = connect_uri
         if params.get("setup_libvirt_polkit") == "yes":
-            if (libvirtd_ver.version_compare(5, 6, 0) and
-               libvirtd_decorator.get_libvirtd_split_enable_bit()):
+            if utils_split_daemons.is_modular_daemon():
                 params.update({"conf_path": "/etc/libvirt/virtqemud.conf"})
             pol = test_setup.LibvirtPolkitConfig(params)
             try:
