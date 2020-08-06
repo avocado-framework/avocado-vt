@@ -36,7 +36,7 @@ from virttest import utils_config
 from virttest import utils_package
 from virttest import kernel_interface
 from virttest import libvirt_version
-from virttest import libvirtd_decorator
+from virttest import utils_split_daemons
 from virttest.staging import service
 from virttest.staging import utils_memory
 
@@ -2429,8 +2429,7 @@ class LibvirtdDebugLog(object):
             "daemon": utils_libvirtd.Libvirtd("virtqemud"),
             "conf": utils_config.LibvirtdConfig(),
             "backupfile": "%s.backup" % utils_config.LibvirtdConfig().conf_path}
-        if (libvirt_version.version_compare(5, 6, 0) and
-           libvirtd_decorator.get_libvirtd_split_enable_bit()):
+        if utils_split_daemons.is_modular_daemon():
             self.daemons_dict["libvirtd"]["conf"] = utils_config.VirtQemudConfig()
             self.daemons_dict["libvirtd"]["backupfile"] = utils_config.VirtQemudConfig().conf_path
             self.daemons_dict["virtnetworkd"] = {

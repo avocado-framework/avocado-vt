@@ -10,7 +10,7 @@ from avocado.utils import process
 from avocado.utils import wait
 
 from virttest import libvirt_version
-from virttest import libvirtd_decorator
+from virttest import utils_split_daemons
 
 from . import remote
 from . import utils_misc
@@ -57,7 +57,7 @@ class Libvirtd(object):
         self.service_name = "libvirtd" if not service_name else service_name
 
         if libvirt_version.version_compare(5, 6, 0, self.session):
-            if libvirtd_decorator.get_libvirtd_split_enable_bit():
+            if utils_split_daemons.is_modular_daemon(session=self.session):
                 if self.service_name in ["libvirtd", "libvirtd.service"]:
                     self.service_list = ['virtqemud', 'virtproxyd',
                                          'virtnetworkd', 'virtinterfaced',
