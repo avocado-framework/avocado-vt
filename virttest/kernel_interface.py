@@ -82,7 +82,7 @@ class ProcFS(FS):
         try:
             return int(self.fs_value)
         except ValueError:
-            return self.fs_value
+            return self.fs_val
 
     @proc_fs_value.setter
     def proc_fs_value(self, value):
@@ -133,9 +133,9 @@ class SysFS(FS):
         if output:
             return str(output.group()).strip()
         try:
-            return int(self.fs_value)
+            return int(self.fs_val)
         except ValueError:
-            return self.fs_value
+            return self.fs_val
 
     @sys_fs_value.setter
     def sys_fs_value(self, value):
