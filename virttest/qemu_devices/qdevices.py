@@ -926,6 +926,26 @@ class QBlockdevProtocolSSH(QBlockdevProtocol):
     TYPE = 'ssh'
 
 
+class QBlockdevProtocolHTTP(QBlockdevProtocol):
+    """ New a protocol http blockdev node. """
+    TYPE = 'http'
+
+
+class QBlockdevProtocolHTTPS(QBlockdevProtocol):
+    """ New a protocol https blockdev node. """
+    TYPE = 'https'
+
+
+class QBlockdevProtocolFTP(QBlockdevProtocol):
+    """ New a protocol ftp blockdev node. """
+    TYPE = 'ftp'
+
+
+class QBlockdevProtocolFTPS(QBlockdevProtocol):
+    """ New a protocol ftps blockdev node. """
+    TYPE = 'ftps'
+
+
 class QDevice(QCustomDevice):
 
     """

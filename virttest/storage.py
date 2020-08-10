@@ -20,6 +20,7 @@ from avocado.utils import process
 
 from virttest import storage_ssh
 from virttest import nbd
+from virttest import curl
 from virttest import iscsi
 from virttest import utils_misc
 from virttest import utils_numeric
@@ -93,6 +94,9 @@ def file_exists(params, filename_path):
     if params.get('enable_ssh') == 'yes':
         return storage_ssh.file_exists(params, filename_path)
 
+    if params.get('enable_curl') == 'yes':
+        return curl.file_exists(params, filename_path)
+
     return os.path.exists(filename_path)
 
 
@@ -164,6 +168,7 @@ def get_image_filename(params, root_dir, basename=False):
     :raise VMDeviceError: When no matching disk found (in indirect method).
     """
     enable_ssh = params.get("enable_ssh") == "yes"
+    enable_curl = params.get("enable_curl") == "yes"
     enable_nbd = params.get("enable_nbd") == "yes"
     enable_gluster = params.get("enable_gluster") == "yes"
     enable_ceph = params.get("enable_ceph") == "yes"
@@ -173,6 +178,18 @@ def get_image_filename(params, root_dir, basename=False):
     storage_type = params.get("storage_type")
     if image_name:
         image_format = params.get("image_format", "qcow2")
+        if enable_curl:
+            # required libcurl params
+            curl_protocol = params['curl_protocol']
+            curl_server = params['curl_server']
+            curl_path = params['curl_path']
+
+            # optional libcurl params
+            curl_user = params.get('curl_username')
+            curl_passwd = params.get('curl_password')
+
+            return curl.get_image_filename(curl_protocol, curl_server,
+                                           curl_path, curl_user, curl_passwd)
         if enable_nbd:
             return nbd.get_image_filename(params)
         if enable_iscsi:
@@ -297,6 +314,36 @@ def get_image_filename_filesytem(params, root_dir, basename=False):
     return image_filename
 
 
+def get_iso_filename(cdrom_params, root_dir, basename=False):
+    """
+    Generate an iso image path from params and root_dir.
+
+    :param cdrom_params: Dictionary containing the test parameters.
+    :param root_dir: Base directory for relative iso image.
+    :param basename: True to use only basename of iso image.
+    :return: iso filename
+    """
+    enable_nvme = cdrom_params.get("enable_nvme") == "yes"
+    enable_nbd = cdrom_params.get("enable_nbd") == "yes"
+    enable_gluster = cdrom_params.get("enable_gluster") == "yes"
+    enable_ceph = cdrom_params.get("enable_ceph") == "yes"
+    enable_iscsi = cdrom_params.get("enable_iscsi") == "yes"
+    enable_curl = cdrom_params.get("enable_curl") == "yes"
+    enable_ssh = cdrom_params.get("enable_ssh") == "yes"
+
+    if enable_nvme:
+        return None
+    elif any((enable_nbd, enable_gluster, enable_ceph,
+              enable_iscsi, enable_curl, enable_ssh)):
+        return get_image_filename(cdrom_params, None, basename)
+    else:
+        iso = cdrom_params.get("cdrom")
+        if iso:
+            iso = os.path.basename(iso) if basename else utils_misc.get_path(
+                                                               root_dir, iso)
+        return iso
+
+
 secret_dir = os.path.join(data_dir.get_data_dir(), "images/secrets")
 
 
@@ -340,12 +387,38 @@ class ImageSecret(object):
             fd.write(self.data)
 
 
+class Cookie(object):
+    """
+    Cookie data stored in secret object
+    """
+
+    def __init__(self, image, cookie_data, cookie_data_format):
+        """
+        :param image: image tag name
+        :param cookie_data: cookie data string
+        :param cookie_data_format: raw or base64
+        """
+        self.image = image
+        self.data = cookie_data
+        self.data_format = cookie_data_format
+        self.aid = '%s_cookie_secret' % self.image
+        self.filename = os.path.join(secret_dir, "%s.secret" % self.aid)
+        self.save_to_file()
+
+    def save_to_file(self):
+        """Save secret data to file."""
+        _make_secret_dir()
+        with open(self.filename, "w") as fd:
+            fd.write(self.data)
+
+
 class StorageAuth(object):
     """
     Image storage authentication class.
     iscsi auth: initiator + password
     ceph auth: ceph key
     nbd auth: tls creds
+    libcurl auth: password sslverify timeout readahead cookie
     """
 
     def __init__(self, image, data, data_format, storage_type, **info):
@@ -353,11 +426,12 @@ class StorageAuth(object):
         :param image: image tag name
         :param data: sensitive data like password
         :param data_format: raw or base64
-        :param storage_type: ceph, glusterfs-direct or iscsi-direct
+        :param storage_type: ceph, glusterfs-direct, iscsi-direct, nbd, curl
         :param info: other access information, such as:
                      iscsi-direct: initiator
                      gluster-direct: debug, logfile, peers
                      nbd: tls creds path for client access
+                     libcurl: password, sslverify, timeout, readahead, cookie
         """
         self.image = image
         self.aid = '%s_access' % self.image
@@ -383,8 +457,15 @@ class StorageAuth(object):
             # e.g. tls-creds-psk
             self.tls_creds = info['tls_creds']
             self.reconnect_delay = info['reconnect_delay']
+        elif self.storage_type == 'curl':
+            self._password = data
+            self.cookie = info['cookie']
+            self.sslverify = info['sslverify']
+            self.readahead = info['readahead']
+            self.timeout = info['timeout']
 
         if self.data is not None:
+            self.filename = os.path.join(secret_dir, "%s.secret" % self.aid)
             self.save_to_file()
 
     @property
@@ -393,6 +474,8 @@ class StorageAuth(object):
             return self._chap_passwd
         elif self.storage_type == 'ceph':
             return self._ceph_key
+        elif self.storage_type == 'curl':
+            return self._password
         else:
             return None
 
@@ -414,6 +497,7 @@ class StorageAuth(object):
         enable_iscsi = params.get("enable_iscsi") == "yes"
         enable_gluster = params.get("enable_gluster") == "yes"
         enable_nbd = params.get("enable_nbd") == "yes"
+        enable_curl = params.get("enable_curl") == "yes"
 
         if enable_iscsi:
             if storage_type == 'iscsi-direct':
@@ -444,6 +528,33 @@ class StorageAuth(object):
                 image, None, None, storage_type,
                 tls_creds=tls_creds, reconnect_delay=reconnect_delay
             ) if tls_creds or reconnect_delay else None
+        elif enable_curl:
+            # cookie data in a secure way, only for http/https
+            cookie = Cookie(
+                image, params['curl_cookie_secret'],
+                params.get('curl_cookie_secret_format', 'raw'),
+            ) if params.get('curl_cookie_secret') else None
+
+            # sslverify, only for https/ftps
+            sslverify = params.get('curl_sslverify')
+
+            # size of the read-ahead cache
+            readahead = int(float(
+                utils_numeric.normalize_data_size(params['curl_readahead'],
+                                                  order_magnitude="B")
+            )) if params.get('curl_readahead') else None
+
+            # timeout for connections in seconds
+            timeout = params.get('curl_timeout')
+
+            # password
+            data = params.get('curl_password')
+            data_format = params.get('curl_password_format', 'raw')
+
+            if any((data, cookie, sslverify, readahead, timeout)):
+                auth = cls(image, data, data_format, storage_type,
+                           cookie=cookie, sslverify=sslverify,
+                           readahead=readahead, timeout=timeout)
 
         return auth
 
@@ -655,8 +766,10 @@ class QemuImg(object):
         self.check_output = params.get("check_output") == "yes"
         self.image_blkdebug_filename = get_image_blkdebug_filename(params,
                                                                    root_dir)
-        self.remote_keywords = params.get("remote_image",
-                                          "gluster iscsi rbd nbd nvme").split()
+        self.remote_keywords = params.get(
+            "remote_image",
+            "gluster iscsi rbd nbd nvme http https ftp ftps"
+        ).split()
         self.encryption_config = ImageEncryption.encryption_define_by_params(
             tag, params)
         image_chain = params.get("image_chain")

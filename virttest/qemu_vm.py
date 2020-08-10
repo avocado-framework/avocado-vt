@@ -2678,11 +2678,13 @@ class VM(virt_vm.BaseVM):
                 continue
             if cdrom_params.get("enable_ssh") == "yes":
                 continue
-            iso = cdrom_params.get("cdrom")
+
+            iso = storage.get_iso_filename(cdrom_params,
+                                           data_dir.get_data_dir())
             if iso:
-                iso = utils_misc.get_path(data_dir.get_data_dir(), iso)
-                if not os.path.exists(iso):
+                if not storage.file_exists(cdrom_params, iso):
                     raise virt_vm.VMImageMissingError(iso)
+
                 compare = False
                 if cdrom_params.get("skip_hash", "no") == "yes":
                     logging.debug("Skipping hash comparison")
