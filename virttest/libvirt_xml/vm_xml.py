@@ -1642,6 +1642,24 @@ class VMXML(VMXMLBase):
                     device.boot = order
         self.set_devices(devices)
 
+    def set_boot_attrs_by_target_dev(self, target, **attrs):
+        """
+        Set boot attributes by target dev
+
+        :param target: The target dev on host
+        :param attrs: Dict of boot attributes
+        """
+        devices = self.get_devices()
+        for device in devices:
+            if device.device_tag == "disk":
+                if device.target.get("dev") == target:
+                    for name, value in list(attrs.items()):
+                        if name == "order":
+                            device.boot = value
+                        elif name == "loadparm":
+                            device.loadparm = value
+        self.set_devices(devices)
+
     def set_os_attrs(self, **attr_dict):
         """
         Set attributes of VMOSXML
