@@ -700,16 +700,16 @@ def get_conf_obj(config_type):
     :return: utils_config.LibvirtConfigCommon object
     """
     return {
-        'libvirt': LibvirtConfig(),
-        'libvirtd': LibvirtdConfig(),
-        'qemu': LibvirtQemuConfig(),
-        'sysconfig': LibvirtdSysConfig(),
-        'guestconfig': LibvirtGuestsConfig(),
-        'virtqemud': VirtQemudConfig(),
-        'virtproxyd': VirtProxydConfig(),
-        'virtnetworkd': VirtNetworkdConfig(),
-        'virtstoraged': VirtStoragedConfig(),
-        'virtinterfaced': VirtInterfacedConfig(),
-        'virtnodedevd': VirtNodedevdConfig(),
-        'virtnwfilterd': VirtNwfilterdConfig(),
-         }.get(config_type)
+        'libvirt': LibvirtConfig,
+        'libvirtd': LibvirtdConfig,
+        'qemu': LibvirtQemuConfig,
+        'sysconfig': LibvirtdSysConfig,
+        'guestconfig': LibvirtGuestsConfig,
+        'virtqemud': VirtQemudConfig,
+        'virtproxyd': VirtProxydConfig,
+        'virtnetworkd': VirtNetworkdConfig,
+        'virtstoraged': VirtStoragedConfig,
+        'virtinterfaced': VirtInterfacedConfig,
+        'virtnodedevd': VirtNodedevdConfig,
+        'virtnwfilterd': VirtNwfilterdConfig
+         }.get(config_type)()
