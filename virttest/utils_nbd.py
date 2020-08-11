@@ -18,6 +18,7 @@ from avocado.utils import process
 
 from virttest import utils_config
 from virttest import utils_libvirtd
+from virttest import utils_net
 
 from virttest.utils_conn import build_server_key, build_CA, build_client_key
 
@@ -85,6 +86,7 @@ class NbdExport(object):
 
         # Get server hostname.
         hostname = process.run('hostname', ignore_status=False, shell=True, verbose=True).stdout_text.strip()
+        server_ip = utils_net.get_host_ip_address()
         # Initialize the CA information.
         cn = hostname
         ca_credential_dict = {}
@@ -118,7 +120,7 @@ class NbdExport(object):
         server_credential_dict['servercert'] = 'server-cert.pem'
         # Build a server key.
         build_server_key(server_cert_dir, tmp_ca_cert_dir,
-                         cn, certtool="certtool",
+                         cn, server_ip, certtool="certtool",
                          credential_dict=server_credential_dict, on_local=True)
 
         server_key_path = os.path.join(server_cert_dir, server_credential_dict['serverkey'])
