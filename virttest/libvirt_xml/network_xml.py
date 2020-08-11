@@ -377,7 +377,7 @@ class NetworkXMLBase(base.LibvirtXMLBase):
                  'bandwidth_inbound', 'bandwidth_outbound', 'portgroup',
                  'dns', 'domain_name', 'nat_port', 'forward_interface',
                  'routes', 'virtualport_type', 'vf_list', 'driver', 'pf',
-                 'mtu', 'connection')
+                 'mtu', 'connection', 'port')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__ + (
         'defined', 'active',
@@ -417,6 +417,8 @@ class NetworkXMLBase(base.LibvirtXMLBase):
         accessors.XMLElementDict('bandwidth_outbound', self,
                                  parent_xpath='/bandwidth',
                                  tag_name='outbound')
+        accessors.XMLElementDict('port', self, parent_xpath='/',
+                                 tag_name='port')
         accessors.XMLAttribute("mtu", self, parent_xpath='/',
                                tag_name='mtu',  attribute='size')
         accessors.XMLAttribute('domain_name', self, parent_xpath='/',

@@ -1770,7 +1770,6 @@ def create_net_xml(net_name, params):
     """
     dns_dict = {}
     host_dict = {}
-    net_name = params.get("net_name", "default")
     net_bridge = params.get("net_bridge", '{}')
     net_forward = params.get("net_forward", '{}')
     net_forward_pf = params.get("net_forward_pf", '{}')
@@ -1803,6 +1802,7 @@ def create_net_xml(net_name, params):
     bootp_file = params.get("bootp_file")
     routes = params.get("routes", "").split()
     pg_name = params.get("portgroup_name", "").split()
+    net_port = params.get('net_port')
     try:
         if not virsh.net_info(net_name, ignore_status=True).exit_status:
             # Edit an existed network
@@ -1854,7 +1854,8 @@ def create_net_xml(net_name, params):
             netxml.bandwidth_outbound = net_outbound
         if net_virtualport:
             netxml.virtualport_type = net_virtualport
-
+        if net_port:
+            netxml.port = ast.literal_eval(net_port)
         if net_ip_family == "ipv6":
             ipxml = network_xml.IPXML()
             ipxml.family = net_ip_family
