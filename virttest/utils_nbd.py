@@ -94,8 +94,8 @@ class NbdExport(object):
         ca_credential_dict['cacert'] = 'ca-cert.pem'
         if not os.path.exists(tmp_ca_cert_dir):
             os.makedirs(tmp_ca_cert_dir)
-        build_CA(tmp_ca_cert_dir, cn, None,
-                 certtool="certtool", credential_dict=ca_credential_dict)
+        build_CA(tmp_ca_cert_dir, cn, certtool="certtool",
+                 credential_dict=ca_credential_dict)
 
         # Create CA folder
         ca_folder = '/etc/pki/CA'
@@ -118,9 +118,10 @@ class NbdExport(object):
         server_credential_dict['cacert'] = 'ca-cert.pem'
         server_credential_dict['serverkey'] = 'server-key.pem'
         server_credential_dict['servercert'] = 'server-cert.pem'
+        server_credential_dict['ca_cakey_path'] = tmp_ca_cert_dir
         # Build a server key.
-        build_server_key(server_cert_dir, tmp_ca_cert_dir,
-                         cn, server_ip, certtool="certtool",
+
+        build_server_key(server_cert_dir, cn, server_ip, certtool="certtool",
                          credential_dict=server_credential_dict, on_local=True)
 
         server_key_path = os.path.join(server_cert_dir, server_credential_dict['serverkey'])
@@ -140,6 +141,7 @@ class NbdExport(object):
         client_credential_dict['cacert'] = 'ca-cert.pem'
         client_credential_dict['clientkey'] = 'client-key.pem'
         client_credential_dict['clientcert'] = 'client-cert.pem'
+        server_credential_dict['ca_cakey_path'] = tmp_ca_cert_dir
 
         # build a client key.
         build_client_key(client_cert_dir,
