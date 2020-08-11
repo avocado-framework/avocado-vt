@@ -614,7 +614,10 @@ class QemuImg(storage.QemuImg):
     def _secret_objects(self):
         """All secret objects str needed for command line."""
         secret_objects = self.encryption_config.image_key_secrets
-        secret_obj_str = "--object secret,id={s.aid},data={s.data}"
+        if self.params.get("image_secret_expression") == "file":
+            secret_obj_str = "--object secret,id={s.aid},file={s.filename}"
+        else:
+            secret_obj_str = "--object secret,id={s.aid},data={s.data}"
         return [secret_obj_str.format(s=s) for s in secret_objects]
 
     @property
@@ -781,6 +784,8 @@ class QemuImg(storage.QemuImg):
                                 "Other errors may ensue")
                 os.makedirs(image_dirname)
 
+        if self.encryption_config.key_secret:
+            self.encryption_config.key_secret.save_to_file()
         msg = "Create image by command: %s" % qemu_img_cmd
         error_context.context(msg, logging.info)
         cmd_result = process.run(
@@ -788,8 +793,6 @@ class QemuImg(storage.QemuImg):
         if cmd_result.exit_status != 0 and not ignore_errors:
             raise exceptions.TestError("Failed to create image %s\n%s" %
                                        (self.image_filename, cmd_result))
-        if self.encryption_config.key_secret:
-            self.encryption_config.key_secret.save_to_file()
         cmd_result.stdout = cmd_result.stdout_text
         cmd_result.stderr = cmd_result.stderr_text
         return self.image_filename, cmd_result
