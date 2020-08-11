@@ -15,7 +15,7 @@ class Interface(base.TypedDeviceBase):
     __slots__ = ('source', 'hostdev_address', 'managed', 'mac_address',
                  'bandwidth', 'model', 'coalesce', 'link_state', 'target', 'driver',
                  'address', 'boot', 'rom', 'mtu', 'filterref', 'backend',
-                 'virtualport_type', 'alias', "ips", "teaming", "vlan")
+                 'virtualport_type', 'alias', "ips", "teaming", "vlan", "port")
 
     def __init__(self, type_name, virsh_instance=base.base.virsh):
         super(Interface, self).__init__(device_tag='interface',
@@ -128,6 +128,11 @@ class Interface(base.TypedDeviceBase):
                                  subclass=self.Vlan,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
+        accessors.XMLElementDict(property_name='port',
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/',
+                                 tag_name='port')
 
     # For convenience
     Address = librarian.get('address')
