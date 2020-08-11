@@ -37,6 +37,57 @@ from virttest import libvirt_version
 
 ARCH = platform.machine()
 
+CPU_TYPES = {"AuthenticAMD": ["EPYC-Rome", "EPYC", "Opteron_G5",
+                              "Opteron_G4", "Opteron_G3", "Opteron_G2",
+                              "Opteron_G1"],
+             "GenuineIntel": ["KnightsMill", "Cooperlake",
+                              "Icelake-Server", "Icelake-Server-noTSX",
+                              "Icelake-Client", "Icelake-Client-noTSX",
+                              "Cascadelake-Server", "Cascadelake-Server-noTSX",
+                              "Skylake-Server", "Skylake-Server-noTSX-IBRS",
+                              "Skylake-Client", "Skylake-Client-noTSX-IBRS",
+                              "Broadwell", "Broadwell-noTSX",
+                              "Haswell", "Haswell-noTSX", "IvyBridge",
+                              "SandyBridge", "Westmere", "Nehalem",
+                              "Penryn", "Conroe"]}
+CPU_TYPES_RE = {"EPYC-Rome": "rdpid,wbnoinvd,stibp,clwb,umip",
+                "EPYC": "avx2,adx,bmi2,sha_ni",
+                "Opteron_G5": "f16c,fma4,xop,tbm",
+                "Opteron_G4": ("fma4,xop,avx,xsave,aes,sse4.2|sse4_2,"
+                               "sse4.1|sse4_1,cx16,ssse3,sse4a"),
+                "Opteron_G3": "cx16,sse4a",
+                "Opteron_G2": "cx16",
+                "Opteron_G1": "",
+                "KnightsMill": "avx512_4vnniw,avx512pf,avx512er",
+                "Cooperlake": "avx512_bf16,stibp,arch_capabilities,hle,rtm",
+                "Icelake-Server": "avx512_vnni,la57,clflushopt,hle,rtm",
+                "Icelake-Server-noTSX": "avx512_vnni,la57,clflushopt",
+                "Icelake-Client": ("avx512_vpopcntdq|avx512-vpopcntdq,"
+                                   "avx512vbmi,avx512_vbmi2|avx512vbmi2,hle,rtm"
+                                   "gfni,vaes,vpclmulqdq,avx512_vnni,hle,rtm"),
+                "Icelake-Client-noTSX": ("avx512_vpopcntdq|avx512-vpopcntdq,"
+                                         "avx512vbmi,avx512_vbmi2|avx512vbmi2,"
+                                         "gfni,vaes,vpclmulqdq,avx512_vnni"),
+                "Cascadelake-Server": ("avx512f,avx512dq,avx512bw,avx512cd,"
+                                       "avx512vl,clflushopt,avx512_vnni,hle,rtm"),
+                "Cascadelake-Server-noTSX": ("avx512f,avx512dq,avx512bw,avx512cd,"
+                                             "avx512vl,clflushopt,avx512_vnni"),
+                "Skylake-Server": "avx512f,clwb,xgetbv1,pcid,hle,rtm",
+                "Skylake-Server-noTSX-IBRS": "avx512f,clwb,xgetbv1,pcid",
+                "Skylake-Client": "xgetbv1,pcid,hle,rtm",
+                "Skylake-Client-noTSX-IBRS": "xgetbv1,pcid",
+                "Broadwell": "adx,rdseed,3dnowprefetch,hle,rtm",
+                "Broadwell-noTSX": "adx,rdseed,3dnowprefetch",
+                "Haswell": "fma,avx2,movbe,hle,rtm",
+                "Haswell-noTSX": "fma,avx2,movbe",
+                "IvyBridge": "f16c,fsgsbase,erms",
+                "SandyBridge": ("avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,"
+                                "cx16,ssse3"),
+                "Westmere": "aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
+                "Nehalem": "sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
+                "Penryn": "sse4.1|sse4_1,cx16,ssse3",
+                "Conroe": "ssse3"}
+
 
 class UnsupportedCPU(exceptions.TestError):
     pass
@@ -845,57 +896,6 @@ def get_host_cpu_models():
     if ARCH in ('ppc64', 'ppc64le'):
         return []     # remove -cpu and leave it on qemu to decide
 
-    cpu_types = {"AuthenticAMD": ["EPYC-Rome", "EPYC", "Opteron_G5",
-                                  "Opteron_G4", "Opteron_G3", "Opteron_G2",
-                                  "Opteron_G1"],
-                 "GenuineIntel": ["KnightsMill", "Cooperlake",
-                                  "Icelake-Server", "Icelake-Server-noTSX",
-                                  "Icelake-Client", "Icelake-Client-noTSX",
-                                  "Cascadelake-Server", "Cascadelake-Server-noTSX",
-                                  "Skylake-Server", "Skylake-Server-noTSX-IBRS",
-                                  "Skylake-Client", "Skylake-Client-noTSX-IBRS",
-                                  "Broadwell", "Broadwell-noTSX",
-                                  "Haswell", "Haswell-noTSX", "IvyBridge",
-                                  "SandyBridge", "Westmere", "Nehalem",
-                                  "Penryn", "Conroe"]}
-    cpu_type_re = {"EPYC-Rome": "rdpid,wbnoinvd,stibp,clwb,umip",
-                   "EPYC": "avx2,adx,bmi2,sha_ni",
-                   "Opteron_G5": "f16c,fma4,xop,tbm",
-                   "Opteron_G4": ("fma4,xop,avx,xsave,aes,sse4.2|sse4_2,"
-                                  "sse4.1|sse4_1,cx16,ssse3,sse4a"),
-                   "Opteron_G3": "cx16,sse4a",
-                   "Opteron_G2": "cx16",
-                   "Opteron_G1": "",
-                   "KnightsMill": "avx512_4vnniw,avx512pf,avx512er",
-                   "Cooperlake": "avx512_bf16,stibp,arch_capabilities,hle,rtm",
-                   "Icelake-Server": "avx512_vnni,la57,clflushopt,hle,rtm",
-                   "Icelake-Server-noTSX": "avx512_vnni,la57,clflushopt",
-                   "Icelake-Client": ("avx512_vpopcntdq|avx512-vpopcntdq,"
-                                      "avx512vbmi,avx512_vbmi2|avx512vbmi2,hle,rtm"
-                                      "gfni,vaes,vpclmulqdq,avx512_vnni,hle,rtm"),
-                   "Icelake-Client-noTSX": ("avx512_vpopcntdq|avx512-vpopcntdq,"
-                                            "avx512vbmi,avx512_vbmi2|avx512vbmi2,"
-                                            "gfni,vaes,vpclmulqdq,avx512_vnni"),
-                   "Cascadelake-Server": ("avx512f,avx512dq,avx512bw,avx512cd,"
-                                          "avx512vl,clflushopt,avx512_vnni,hle,rtm"),
-                   "Cascadelake-Server-noTSX": ("avx512f,avx512dq,avx512bw,avx512cd,"
-                                                "avx512vl,clflushopt,avx512_vnni"),
-                   "Skylake-Server": "avx512f,clwb,xgetbv1,pcid,hle,rtm",
-                   "Skylake-Server-noTSX-IBRS": "avx512f,clwb,xgetbv1,pcid",
-                   "Skylake-Client": "xgetbv1,pcid,hle,rtm",
-                   "Skylake-Client-noTSX-IBRS": "xgetbv1,pcid",
-                   "Broadwell": "adx,rdseed,3dnowprefetch,hle,rtm",
-                   "Broadwell-noTSX": "adx,rdseed,3dnowprefetch",
-                   "Haswell": "fma,avx2,movbe,hle,rtm",
-                   "Haswell-noTSX": "fma,avx2,movbe",
-                   "IvyBridge": "f16c,fsgsbase,erms",
-                   "SandyBridge": ("avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,"
-                                   "cx16,ssse3"),
-                   "Westmere": "aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
-                   "Nehalem": "sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
-                   "Penryn": "sse4.1|sse4_1,cx16,ssse3",
-                   "Conroe": "ssse3"}
-
     fd = open("/proc/cpuinfo")
     cpu_info = fd.read()
     fd.close()
@@ -907,8 +907,8 @@ def get_host_cpu_models():
     cpu_support_model = []
     if cpu_flags:
         cpu_flags = _cpu_flags_sort(cpu_flags)
-        for cpu_type in cpu_types.get(vendor):
-            pattern = _make_up_pattern(cpu_type_re.get(cpu_type))
+        for cpu_type in CPU_TYPES.get(vendor):
+            pattern = _make_up_pattern(CPU_TYPES_RE.get(cpu_type))
             if re.findall(pattern, cpu_flags):
                 cpu_model = cpu_type
                 cpu_support_model.append(cpu_model)
