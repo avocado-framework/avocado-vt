@@ -28,7 +28,6 @@ from virttest import defaults
 from virttest import standalone_test
 from virttest.standalone_test import SUPPORTED_TEST_TYPES
 from virttest.standalone_test import SUPPORTED_LIBVIRT_URIS
-from virttest.standalone_test import SUPPORTED_NET_TYPES
 
 from ..loader import VirtTestLoader
 
@@ -143,10 +142,6 @@ class VTRun(CLI):
         run_subcommand_parser = parser.subcommands.choices.get('run', None)
         if run_subcommand_parser is None:
             return
-
-        qemu_nw_msg = "QEMU network option (%s). " % ", ".join(
-            SUPPORTED_NET_TYPES)
-        qemu_nw_msg += "Default: user"
 
         vt_compat_group_common = run_subcommand_parser.add_argument_group(
             'Virt-Test compat layer - Common options')
