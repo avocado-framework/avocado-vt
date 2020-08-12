@@ -20,9 +20,9 @@ import os
 import sys
 
 from avocado.core.loader import loader
-from avocado.core.settings import settings
 from avocado.core.plugin_interfaces import CLI
 
+from virttest.compat import get_settings_value
 from .vt import add_basic_vt_options, add_qemu_bin_vt_option
 from ..loader import VirtTestLoader
 
@@ -55,7 +55,7 @@ VIRT_TEST_PATH = None
 if 'VIRT_TEST_PATH' in os.environ:
     VIRT_TEST_PATH = os.environ['VIRT_TEST_PATH']
 else:
-    VIRT_TEST_PATH = settings.get_value(section='virt_test',
+    VIRT_TEST_PATH = get_settings_value(section='virt_test',
                                         key='virt_test_path', default=None)
 
 if VIRT_TEST_PATH is not None:
