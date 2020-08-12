@@ -118,6 +118,9 @@ if __name__ == "__main__":
               pre_post_plugin_type(): [
                   'vt-joblock = avocado_vt.plugins.vt_joblock:VTJobLock',
                   ],
+              'avocado.plugins.init': [
+                  'vt-init = avocado_vt.plugins.vt_init:VtInit',
+                  ],
               },
           install_requires=requirements,
           )
