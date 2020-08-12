@@ -40,7 +40,7 @@ def guest_listing(config):
     """
     List available guest operating systems and info about image availability
     """
-    if get_opt(config, 'vt_type') == 'lvsb':
+    if get_opt(config, 'vt.type') == 'lvsb':
         raise ValueError("No guest types available for lvsb testing")
     LOG.debug("Using %s for guest images\n",
               os.path.join(data_dir.get_data_dir(), 'images'))
@@ -49,7 +49,7 @@ def guest_listing(config):
     for params in guest_name_parser.get_dicts():
         base_dir = params.get("images_base_dir", data_dir.get_data_dir())
         image_name = storage.get_image_filename(params, base_dir)
-        machine_type = get_opt(config, 'vt_machine_type')
+        machine_type = get_opt(config, 'vt.common.machine_type')
         name = params['name'].replace('.%s' % machine_type, '')
         if os.path.isfile(image_name):
             out = name
@@ -64,14 +64,14 @@ def arch_listing(config):
     """
     List available machine/archs for given guest operating systems
     """
-    guest_os = get_opt(config, 'vt_guest_os')
+    guest_os = get_opt(config, 'vt.guest_os')
     if guest_os is not None:
         extra = " for guest os \"%s\"" % guest_os
     else:
         extra = ""
     LOG.info("Available arch profiles%s", extra)
     guest_name_parser = standalone_test.get_guest_name_parser(config)
-    machine_type = get_opt(config, 'vt_machine_type')
+    machine_type = get_opt(config, 'vt.common.machine_type')
     for params in guest_name_parser.get_dicts():
         LOG.debug(params['name'].replace('.%s' % machine_type, ''))
     LOG.debug("")
@@ -112,12 +112,12 @@ class VirtTestLoader(loader.TestLoader):
         if vt_extra_params:
             # We don't want to override the original config
             self.config = copy.deepcopy(self.config)
-            extra = get_opt(self.config, 'vt_extra_params')
+            extra = get_opt(self.config, 'vt.extra_params')
             if extra is not None:
                 extra += vt_extra_params
             else:
                 extra = vt_extra_params
-            set_opt(self.config, 'vt_extra_params', extra)
+            set_opt(self.config, 'vt.extra_params', extra)
 
     def _get_parser(self):
         options_processor = VirtTestOptionsProcess(self.config)
@@ -126,13 +126,13 @@ class VirtTestLoader(loader.TestLoader):
     def get_extra_listing(self):
         if get_opt(self.config, 'vt_list_guests'):
             config = copy.copy(self.config)
-            set_opt(config, 'vt_config', None)
-            set_opt(config, 'vt_guest_os', None)
+            set_opt(config, 'vt.config', None)
+            set_opt(config, 'vt.guest_os', None)
             guest_listing(config)
         if get_opt(self.config, 'vt_list_archs'):
             config = copy.copy(self.config)
-            set_opt(config, 'vt_machine_type', None)
-            set_opt(config, 'vt_arch', None)
+            set_opt(config, 'vt.common.machine_type', None)
+            set_opt(config, 'vt.common.arch', None)
             arch_listing(config)
 
     @staticmethod
@@ -180,17 +180,17 @@ class VirtTestLoader(loader.TestLoader):
             except cartesian_config.ParserError as details:
                 return self._report_bad_discovery(url, details, which_tests)
         elif (which_tests is loader.DiscoverMode.DEFAULT and
-              not get_opt(self.config, 'vt_config')):
-            # By default don't run anything unless vt_config provided
+              not get_opt(self.config, 'vt.config')):
+            # By default don't run anything unless vt.config provided
             return []
         # Create test_suite
         test_suite = []
         for params in (_ for _ in cartesian_parser.get_dicts()):
             # Evaluate the proper avocado-vt test name
             test_name = None
-            if get_opt(self.config, 'vt_config'):
+            if get_opt(self.config, 'vt.config'):
                 test_name = params.get("shortname")
-            elif get_opt(self.config, 'vt_type') == "spice":
+            elif get_opt(self.config, 'vt.type') == "spice":
                 short_name_map_file = params.get("_short_name_map_file")
                 if "tests-variants.cfg" in short_name_map_file:
                     test_name = short_name_map_file["tests-variants.cfg"]

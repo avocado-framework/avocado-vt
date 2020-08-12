@@ -110,18 +110,18 @@ def get_cartesian_parser_details(cartesian_parser):
 
 def get_guest_name_parser(options):
     cartesian_parser = cartesian_config.Parser()
-    machines_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt_type'),
+    machines_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt.type'),
                                                       'machines.cfg')
-    guest_os_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt_type'),
+    guest_os_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt.type'),
                                                       'guest-os.cfg')
     cartesian_parser.parse_file(machines_cfg_path)
     cartesian_parser.parse_file(guest_os_cfg_path)
-    if get_opt(options, 'vt_arch'):
-        cartesian_parser.only_filter(get_opt(options, 'vt_arch'))
-    if get_opt(options, 'vt_machine_type'):
-        cartesian_parser.only_filter(get_opt(options, 'vt_machine_type'))
-    if get_opt(options, 'vt_guest_os'):
-        cartesian_parser.only_filter(get_opt(options, 'vt_guest_os'))
+    if get_opt(options, 'vt.common.arch'):
+        cartesian_parser.only_filter(get_opt(options, 'vt.common.arch'))
+    if get_opt(options, 'vt.common.machine_type'):
+        cartesian_parser.only_filter(get_opt(options, 'vt.common.machine_type'))
+    if get_opt(options, 'vt.guest_os'):
+        cartesian_parser.only_filter(get_opt(options, 'vt.guest_os'))
     return cartesian_parser
 
 

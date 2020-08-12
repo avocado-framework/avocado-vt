@@ -46,32 +46,34 @@ def add_basic_vt_options(parser):
     """
     Add basic vt options to parser
     """
-    parser.add_argument("--vt-config", action="store", dest="vt_config",
+    parser.add_argument("--vt-config", action="store", dest="vt.config",
                         help="Explicitly choose a cartesian config. When "
                         "choosing this, some options will be ignored (see "
                         "options below)")
     msg = ("Choose test type (%s). Default: %%(default)s" %
            ", ".join(SUPPORTED_TEST_TYPES))
-    parser.add_argument("--vt-type", action="store", dest="vt_type",
+    parser.add_argument("--vt-type", action="store", dest="vt.type",
                         help=msg, default=SUPPORTED_TEST_TYPES[0])
     arch = settings.get_value('vt.common', 'arch', default=None)
     parser.add_argument("--vt-arch", help="Choose the VM architecture. "
-                        "Default: %(default)s", default=arch)
+                        "Default: %(default)s", default=arch,
+                        dest='vt.common.arch')
     machine = settings.get_value('vt.common', 'machine_type',
                                  default=defaults.DEFAULT_MACHINE_TYPE)
     parser.add_argument("--vt-machine-type", help="Choose the VM machine type."
-                        " Default: %(default)s", default=machine)
+                        " Default: %(default)s", default=machine,
+                        dest='vt.common.machine_type')
     parser.add_argument("--vt-guest-os", action="store",
-                        dest="vt_guest_os", default=defaults.DEFAULT_GUEST_OS,
+                        dest="vt.guest_os", default=defaults.DEFAULT_GUEST_OS,
                         help="Select the guest OS to be used. If --vt-config "
                         "is provided, this will be ignored. Default: "
                         "%(default)s")
-    parser.add_argument("--vt-no-filter", action="store", dest="vt_no_filter",
+    parser.add_argument("--vt-no-filter", action="store", dest="vt.no_filter",
                         default="", help="List of space separated 'no' filters"
                         " to be passed to the config parser.  Default: "
                         "'%(default)s'")
     parser.add_argument("--vt-only-filter", action="store",
-                        dest="vt_only_filter", default="", help="List of space"
+                        dest="vt.only_filter", default="", help="List of space"
                         " separated 'only' filters to be passed to the config "
                         "parser.  Default: '%(default)s'")
     parser.add_argument("--vt-filter-default-filters", nargs='+',
@@ -83,7 +85,7 @@ def add_basic_vt_options(parser):
                         "no_pci_assignable,smallpages,default_bios,bridge,"
                         "image_backend,multihost. This can be used to eg. "
                         "run hugepages tests by filtering 'smallpages' via "
-                        "this option.")
+                        "this option.", dest='vt.filter.default_filters')
 
 
 def add_qemu_bin_vt_option(parser):
@@ -107,7 +109,7 @@ def add_qemu_bin_vt_option(parser):
         qemu_bin = qemu_bin_path
     else:
         default_qemu_bin = qemu_bin
-    parser.add_argument("--vt-qemu-bin", action="store", dest="vt_qemu_bin",
+    parser.add_argument("--vt-qemu-bin", action="store", dest="vt.qemu.qemu_bin",
                         default=default_qemu_bin, help="Path to a custom qemu"
                         " binary to be tested. If --vt-config is provided and"
                         " this flag is omitted, no attempt to set the qemu "
@@ -115,8 +117,8 @@ def add_qemu_bin_vt_option(parser):
                         % _str_or_none(qemu_bin))
     qemu_dst = settings.get_value('vt.qemu', 'qemu_dst_bin',
                                   default=qemu_bin_path)
-    parser.add_argument("--vt-qemu-dst-bin", action="store",
-                        dest="vt_dst_qemu_bin", default=qemu_dst, help="Path "
+    parser.add_argument("--vt-qemu-dst-bin", action="store", default=qemu_dst,
+                        dest="vt.qemu.qemu_dst_bin", help="Path "
                         "to a custom qemu binary to be tested for the "
                         "destination of a migration, overrides --vt-qemu-bin. "
                         "If --vt-config is provided and this flag is omitted, "
@@ -153,6 +155,7 @@ class VTRun(CLI):
         add_basic_vt_options(vt_compat_group_common)
         add_qemu_bin_vt_option(vt_compat_group_qemu)
         vt_compat_group_qemu.add_argument("--vt-extra-params", nargs='*',
+                                          dest="vt.extra_params",
                                           help="List of 'key=value' pairs "
                                           "passed to cartesian parser.")
         supported_uris = ", ".join(SUPPORTED_LIBVIRT_URIS)
@@ -162,7 +165,7 @@ class VTRun(CLI):
                                          default=None)
         vt_compat_group_libvirt.add_argument("--vt-connect-uri",
                                              action="store",
-                                             dest="vt_connect_uri",
+                                             dest="vt.libvirt.connect_uri",
                                              default=uri_current,
                                              help=msg)
 
