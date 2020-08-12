@@ -51,16 +51,6 @@ class VirtTestOptionsProcess(object):
             self.options = argparse.Namespace(**options)
         else:
             self.options = options
-        # There are a few options from the original virt-test runner
-        # that don't quite make sense for avocado (avocado implements a
-        # better version of the virt-test feature).
-        # So let's just inject some values into options.
-        set_opt(self.options, 'vt_verbose', False)
-        set_opt(self.options, 'vt_log_level', logging.DEBUG)
-        set_opt(self.options, 'vt_console_level', logging.DEBUG)
-        set_opt(self.options, 'vt_no_downloads', False)
-        set_opt(self.options, 'vt_selinux_setup', False)
-
         # Here we'll inject values from the config file.
         # Doing this makes things configurable yet the number of options
         # is not overwhelming.
