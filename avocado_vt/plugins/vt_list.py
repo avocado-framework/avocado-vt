@@ -113,5 +113,5 @@ class VTLister(CLI):
         add_basic_vt_options(vt_compat_group_lister)
         add_qemu_bin_vt_option(vt_compat_group_lister)
 
-    def run(self, args):
+    def run(self, config):
         loader.register_plugin(VirtTestLoader)
