@@ -16,7 +16,6 @@
 Avocado VT plugin
 """
 
-import argparse
 import copy
 import logging
 import os
@@ -100,9 +99,6 @@ class VirtTestLoader(loader.TestLoader):
            of this plugins "self.args" (extends the --vt-extra-params)
         """
         vt_extra_params = extra_params.pop("avocado_vt_extra_params", None)
-        # Compatibility with more recent Avocado configuration as dictionary
-        if isinstance(args, dict):
-            args = argparse.Namespace(**args)
         super(VirtTestLoader, self).__init__(args, extra_params)
         # Avocado has renamed "args" to "config" in 84ae9a5d61, lets
         # keep making the old name available for compatibility with
