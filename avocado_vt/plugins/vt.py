@@ -53,7 +53,7 @@ def add_basic_vt_options(parser):
     msg = ("Choose test type (%s). Default: %%(default)s" %
            ", ".join(SUPPORTED_TEST_TYPES))
     parser.add_argument("--vt-type", action="store", dest="vt_type",
-                        help=msg, default='qemu')
+                        help=msg, default=SUPPORTED_TEST_TYPES[0])
     arch = settings.get_value('vt.common', 'arch', default=None)
     parser.add_argument("--vt-arch", help="Choose the VM architecture. "
                         "Default: %(default)s", default=arch)
