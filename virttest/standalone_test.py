@@ -21,14 +21,18 @@ def _variant_only_file(filename):
                       if not _.lstrip().startswith('#')])
 
 
+#: The first entry of these lists will be used as a default value.
+#: Only change the first entry if you intend to change the default
+#: value.  See :func:`avocado_vt.plugins.vt.add_basic_vt_options` and
+#: class:`avocado_vt.options.VirtTestOptionsProcess` for usage examples.
 SUPPORTED_TEST_TYPES = [
     'qemu', 'libvirt', 'libguestfs', 'openvswitch', 'v2v', 'lvsb', 'spice']
 
 SUPPORTED_LIBVIRT_URIS = ['qemu:///system', 'lxc:///']
 SUPPORTED_LIBVIRT_DRIVERS = ['qemu', 'lxc', 'xen']
 
-SUPPORTED_IMAGE_TYPES = ['raw', 'qcow2', 'qed', 'vmdk']
-SUPPORTED_DISK_BUSES = ['ide', 'scsi', 'virtio_blk',
+SUPPORTED_IMAGE_TYPES = ['qcow2', 'raw', 'qed', 'vmdk']
+SUPPORTED_DISK_BUSES = ['virtio_blk', 'ide', 'scsi',
                         'virtio_scsi', 'lsi_scsi', 'ahci', 'usb2', 'xenblk']
 SUPPORTED_NIC_MODELS = ["virtio_net", "e1000", "rtl8139", "spapr-vlan"]
 SUPPORTED_NET_TYPES = ["bridge", "user", "none"]
@@ -106,18 +110,18 @@ def get_cartesian_parser_details(cartesian_parser):
 
 def get_guest_name_parser(options):
     cartesian_parser = cartesian_config.Parser()
-    machines_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt_type'),
+    machines_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt.type'),
                                                       'machines.cfg')
-    guest_os_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt_type'),
+    guest_os_cfg_path = data_dir.get_backend_cfg_path(get_opt(options, 'vt.type'),
                                                       'guest-os.cfg')
     cartesian_parser.parse_file(machines_cfg_path)
     cartesian_parser.parse_file(guest_os_cfg_path)
-    if get_opt(options, 'vt_arch'):
-        cartesian_parser.only_filter(get_opt(options, 'vt_arch'))
-    if get_opt(options, 'vt_machine_type'):
-        cartesian_parser.only_filter(get_opt(options, 'vt_machine_type'))
-    if get_opt(options, 'vt_guest_os'):
-        cartesian_parser.only_filter(get_opt(options, 'vt_guest_os'))
+    if get_opt(options, 'vt.common.arch'):
+        cartesian_parser.only_filter(get_opt(options, 'vt.common.arch'))
+    if get_opt(options, 'vt.common.machine_type'):
+        cartesian_parser.only_filter(get_opt(options, 'vt.common.machine_type'))
+    if get_opt(options, 'vt.guest_os'):
+        cartesian_parser.only_filter(get_opt(options, 'vt.guest_os'))
     return cartesian_parser
 
 

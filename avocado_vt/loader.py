@@ -16,7 +16,6 @@
 Avocado VT plugin
 """
 
-import argparse
 import copy
 import logging
 import os
@@ -34,31 +33,23 @@ from .options import VirtTestOptionsProcess
 from .test import VirtTest
 
 
-if hasattr(loader, "DiscoverMode"):
-    LOADER_DEFAULT = loader.DiscoverMode.DEFAULT
-    LOADER_ALL = loader.DiscoverMode.ALL
-else:
-    LOADER_DEFAULT = loader.DEFAULT
-    LOADER_ALL = loader.ALL
-
-
 LOG = logging.getLogger("avocado.app")
 
 
-def guest_listing(options):
+def guest_listing(config):
     """
     List available guest operating systems and info about image availability
     """
-    if get_opt(options, 'vt_type') == 'lvsb':
+    if get_opt(config, 'vt.type') == 'lvsb':
         raise ValueError("No guest types available for lvsb testing")
     LOG.debug("Using %s for guest images\n",
               os.path.join(data_dir.get_data_dir(), 'images'))
     LOG.info("Available guests in config:")
-    guest_name_parser = standalone_test.get_guest_name_parser(options)
+    guest_name_parser = standalone_test.get_guest_name_parser(config)
     for params in guest_name_parser.get_dicts():
         base_dir = params.get("images_base_dir", data_dir.get_data_dir())
         image_name = storage.get_image_filename(params, base_dir)
-        machine_type = get_opt(options, 'vt_machine_type')
+        machine_type = get_opt(config, 'vt.common.machine_type')
         name = params['name'].replace('.%s' % machine_type, '')
         if os.path.isfile(image_name):
             out = name
@@ -69,18 +60,18 @@ def guest_listing(options):
     LOG.debug("")
 
 
-def arch_listing(options):
+def arch_listing(config):
     """
     List available machine/archs for given guest operating systems
     """
-    guest_os = get_opt(options, 'vt_guest_os')
+    guest_os = get_opt(config, 'vt.guest_os')
     if guest_os is not None:
         extra = " for guest os \"%s\"" % guest_os
     else:
         extra = ""
     LOG.info("Available arch profiles%s", extra)
-    guest_name_parser = standalone_test.get_guest_name_parser(options)
-    machine_type = get_opt(options, 'vt_machine_type')
+    guest_name_parser = standalone_test.get_guest_name_parser(config)
+    machine_type = get_opt(config, 'vt.common.machine_type')
     for params in guest_name_parser.get_dicts():
         LOG.debug(params['name'].replace('.%s' % machine_type, ''))
     LOG.debug("")
@@ -101,85 +92,48 @@ class VirtTestLoader(loader.TestLoader):
 
     name = 'vt'
 
-    def __init__(self, args, extra_params):
+    def __init__(self, config, extra_params):
         """
         Following extra_params are supported:
          * avocado_vt_extra_params: Will override the "vt_extra_params"
-           of this plugins "self.args" (extends the --vt-extra-params)
+           of this plugins "self.config" (extends the --vt-extra-params)
         """
         vt_extra_params = extra_params.pop("avocado_vt_extra_params", None)
-        # Compatibility with more recent Avocado configuration as dictionary
-        if isinstance(args, dict):
-            args = argparse.Namespace(**args)
-        super(VirtTestLoader, self).__init__(args, extra_params)
+        super(VirtTestLoader, self).__init__(config, extra_params)
         # Avocado has renamed "args" to "config" in 84ae9a5d61, lets
         # keep making the old name available for compatibility with
         # new and old releases
         if hasattr(self, 'config'):
-            self.args = self.config
-        self._fill_optional_args()
+            self.args = self.config   # pylint: disable=E0203
+        # And in case an older Avocado is used, the Loader class will
+        # contain an "args" attribute instead
+        else:
+            self.config = self.args   # pylint: disable=E0203
         if vt_extra_params:
-            # We don't want to override the original args
-            self.args = copy.deepcopy(self.args)
-            extra = get_opt(self.args, 'vt_extra_params')
+            # We don't want to override the original config
+            self.config = copy.deepcopy(self.config)
+            extra = get_opt(self.config, 'vt.extra_params')
             if extra is not None:
                 extra += vt_extra_params
             else:
                 extra = vt_extra_params
-            set_opt(self.args, 'vt_extra_params', extra)
-
-    def _fill_optional_args(self):
-        def _add_if_not_exist(arg, value):
-            if not get_opt(self.args, arg):
-                set_opt(self.args, arg, value)
-        _add_if_not_exist('vt_config', None)
-        _add_if_not_exist('vt_verbose', True)
-        _add_if_not_exist('vt_log_level', 'debug')
-        _add_if_not_exist('vt_console_level', 'debug')
-        _add_if_not_exist('vt_datadir', data_dir.get_data_dir())
-        _add_if_not_exist('vt_tmp_dir', '')
-        _add_if_not_exist('vt_config', None)
-        _add_if_not_exist('vt_arch', None)
-        _add_if_not_exist('vt_machine_type', None)
-        _add_if_not_exist('vt_keep_guest_running', False)
-        _add_if_not_exist('vt_backup_image_before_test', True)
-        _add_if_not_exist('vt_restore_image_after_test', True)
-        _add_if_not_exist('vt_mem', 1024)
-        _add_if_not_exist('vt_no_filter', '')
-        _add_if_not_exist('vt_qemu_bin', None)
-        _add_if_not_exist('vt_dst_qemu_bin', None)
-        _add_if_not_exist('vt_nettype', 'user')
-        _add_if_not_exist('vt_only_type_specific', False)
-        _add_if_not_exist('vt_tests', '')
-        _add_if_not_exist('vt_connect_uri', 'qemu:///system')
-        _add_if_not_exist('vt_accel', 'kvm')
-        _add_if_not_exist('vt_monitor', 'human')
-        _add_if_not_exist('vt_smp', 1)
-        _add_if_not_exist('vt_image_type', 'qcow2')
-        _add_if_not_exist('vt_nic_model', 'virtio_net')
-        _add_if_not_exist('vt_disk_bus', 'virtio_blk')
-        _add_if_not_exist('vt_vhost', 'off')
-        _add_if_not_exist('vt_malloc_perturb', 'yes')
-        _add_if_not_exist('vt_qemu_sandbox', 'on')
-        _add_if_not_exist('vt_tests', '')
-        _add_if_not_exist('show_job_log', False)
-        _add_if_not_exist('test_lister', True)
+            set_opt(self.config, 'vt.extra_params', extra)
 
     def _get_parser(self):
-        options_processor = VirtTestOptionsProcess(self.args)
+        options_processor = VirtTestOptionsProcess(self.config)
         return options_processor.get_parser()
 
     def get_extra_listing(self):
-        if get_opt(self.args, 'vt_list_guests'):
-            args = copy.copy(self.args)
-            set_opt(args, 'vt_config', None)
-            set_opt(args, 'vt_guest_os', None)
-            guest_listing(args)
-        if get_opt(self.args, 'vt_list_archs'):
-            args = copy.copy(self.args)
-            set_opt(args, 'vt_machine_type', None)
-            set_opt(args, 'vt_arch', None)
-            arch_listing(args)
+        if get_opt(self.config, 'vt_list_guests'):
+            config = copy.copy(self.config)
+            set_opt(config, 'vt.config', None)
+            set_opt(config, 'vt.guest_os', None)
+            guest_listing(config)
+        if get_opt(self.config, 'vt_list_archs'):
+            config = copy.copy(self.config)
+            set_opt(config, 'vt.common.machine_type', None)
+            set_opt(config, 'vt.common.arch', None)
+            arch_listing(config)
 
     @staticmethod
     def get_type_label_mapping():
@@ -205,12 +159,12 @@ class VirtTestLoader(loader.TestLoader):
 
     @staticmethod
     def _report_bad_discovery(name, reason, which_tests):
-        if which_tests is LOADER_ALL:
+        if which_tests is loader.DiscoverMode.ALL:
             return [(NotAvocadoVTTest, {"name": "%s: %s" % (name, reason)})]
         else:
             return []
 
-    def discover(self, url, which_tests=LOADER_DEFAULT):
+    def discover(self, url, which_tests=loader.DiscoverMode.DEFAULT):
         try:
             cartesian_parser = self._get_parser()
         except Exception as details:
@@ -225,17 +179,18 @@ class VirtTestLoader(loader.TestLoader):
             # the other test plugins to handle the URL.
             except cartesian_config.ParserError as details:
                 return self._report_bad_discovery(url, details, which_tests)
-        elif which_tests is LOADER_DEFAULT and not get_opt(self.args, 'vt_config'):
-            # By default don't run anything unless vt_config provided
+        elif (which_tests is loader.DiscoverMode.DEFAULT and
+              not get_opt(self.config, 'vt.config')):
+            # By default don't run anything unless vt.config provided
             return []
         # Create test_suite
         test_suite = []
         for params in (_ for _ in cartesian_parser.get_dicts()):
             # Evaluate the proper avocado-vt test name
             test_name = None
-            if get_opt(self.args, 'vt_config'):
+            if get_opt(self.config, 'vt.config'):
                 test_name = params.get("shortname")
-            elif get_opt(self.args, 'vt_type') == "spice":
+            elif get_opt(self.config, 'vt.type') == "spice":
                 short_name_map_file = params.get("_short_name_map_file")
                 if "tests-variants.cfg" in short_name_map_file:
                     test_name = short_name_map_file["tests-variants.cfg"]
@@ -249,7 +204,7 @@ class VirtTestLoader(loader.TestLoader):
             test_parameters = {'name': test_name,
                                'vt_params': params}
             test_suite.append((VirtTest, test_parameters))
-        if which_tests is LOADER_ALL and not test_suite:
+        if which_tests is loader.DiscoverMode.ALL and not test_suite:
             return self._report_bad_discovery(url, "No matching tests",
                                               which_tests)
         return test_suite
