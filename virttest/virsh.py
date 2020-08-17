@@ -405,7 +405,8 @@ class Virsh(VirshBase):
         super(Virsh, self).__init__(*args, **dargs)
         # Define the instance callables from the contents of this module
         # to avoid using class methods and hand-written aliases
-        for sym, ref in list(globals().items()):
+        globals_tmp = globals().copy()
+        for sym, ref in globals_tmp.items():
             if sym not in NOCLOSE and callable(ref):
                 # Adding methods, not properties, so avoid special __slots__
                 # handling.  __getattribute__ will still find these.
