@@ -2481,6 +2481,7 @@ class VM(virt_vm.BaseVM):
             if autoconsole:
                 self.create_serial_console()
         else:
+            logging.error("VM fails to start with:%s", result)
             raise virt_vm.VMStartError(self.name,
                                        result.stderr_text.strip())
 
