@@ -4256,10 +4256,18 @@ def vol_upload(name, dfile, options="", **dargs):
     return command(cmd, **dargs)
 
 
-def blkiotune(name, weight=None, device_weights=None, options=None, **dargs):
+def blkiotune(name, weight=None, device_weights=None, device_read_iops_sec=None,
+              device_write_iops_sec=None, device_read_bytes_sec=None,
+              device_write_bytes_sec=None, options=None, **dargs):
     """
     Set or get a domain's blkio parameters
     :param name: name of domain
+    :param weight: overall blkio weight
+    :param device_weights: blkio weight for specific dev
+    :param device_read_iops_sec: read iops for specific dev
+    :param device_write_iops_sec: write iops for specific dev
+    :param device_read_bytes_sec: read bytes per sec for specific dev
+    :param device_write_bytes_sec: write bytes per sec for specific dev
     :param options: options may be live, config and current
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
@@ -4271,6 +4279,14 @@ def blkiotune(name, weight=None, device_weights=None, options=None, **dargs):
         cmd += " --weight %s" % weight
     if device_weights:
         cmd += " --device-weights %s" % device_weights
+    if device_read_iops_sec:
+        cmd += " --device-read-iops-sec %s" % device_read_iops_sec
+    if device_write_iops_sec:
+        cmd += " --device-write-iops-sec %s" % device_write_iops_sec
+    if device_read_bytes_sec:
+        cmd += " --device-read-bytes-sec %s" % device_read_bytes_sec
+    if device_write_bytes_sec:
+        cmd += " --device-write-bytes-sec %s" % device_write_bytes_sec
 
     return command(cmd, **dargs)
 
