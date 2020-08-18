@@ -20,10 +20,42 @@ import os
 import logging
 
 from avocado.utils import process
-from avocado.core import exceptions
 
 
-def reload(module_name, force, params):
+class KernelModuleError(Exception):
+
+    def __init__(self, handler, module_name, reason):
+        self.handler = handler
+        self.module_name = module_name
+        self.reason = reason
+
+    def __str__(self):
+        return "Couldn't %s module %s: %s" % (self.handler, self.module_name,
+                                              self.reason)
+
+
+class KernelModuleUnloadError(KernelModuleError):
+
+    def __init__(self, module_name, reason):
+        super(KernelModuleUnloadError, self).__init__("unload", module_name,
+                                                      reason)
+
+
+class KernelModuleReloadError(KernelModuleError):
+
+    def __init__(self, module_name, reason):
+        super(KernelModuleReloadError, self).__init__("reload", module_name,
+                                                      reason)
+
+
+class KernelModuleRestoreError(KernelModuleError):
+
+    def __init__(self, module_name, reason):
+        super(KernelModuleRestoreError, self).__init__("restore", module_name,
+                                                       reason)
+
+
+def reload(module_name, force, params=""):
     """
     Convenience method that creates a KernelModuleHandler instance
     and reloads the module only if any action will is required.
@@ -48,12 +80,28 @@ class KernelModuleHandler(object):
         """Create kernel module handler"""
 
         self._module_name = module_name
+        self._module_path = os.path.join('/sys/module/',
+                                         self._module_name.replace('-', '_'))
+        self._module_params_path = os.path.join(self._module_path, 'parameters')
+        self._module_holders_path = os.path.join(self._module_path, "holders")
         self._was_loaded = None
-        self._loaded_config = None
         self._config_backup = None
         self._backup_config()
 
-    def reload_module(self, force, params):
+    def unload_module(self):
+        """
+        Unload module and those modules that use it.
+
+        If there are some modules using this module, they are unloaded first.
+        """
+        if os.path.exists(self._module_path):
+            unload_cmd = 'rmmod ' + self._module_name
+            logging.debug("Unloading module: %s", unload_cmd)
+            status, output = process.getstatusoutput(unload_cmd)
+            if status:
+                raise KernelModuleUnloadError(self._module_name, output)
+
+    def reload_module(self, force, params=""):
         """
         Reload module with given parameters.
 
@@ -79,7 +127,7 @@ class KernelModuleHandler(object):
         :param params: parameters to load with, e.g. 'key1=param1 ...'
         """
 
-        current_config = self._get_serialized_config()
+        current_config = self.current_config
         if not force:
             do_not_load = False
             if (current_config and
@@ -97,20 +145,18 @@ class KernelModuleHandler(object):
             if do_not_load:
                 return
 
-        cmds = []
-        if self._was_loaded:
-            # TODO: Handle cases were module cannot be removed
-            cmds.append('modprobe -r --remove-dependencies %s' % self._module_name)
-        cmd = 'modprobe %s %s' % (self._module_name, params)
-        cmds.append(cmd.strip())
-        logging.debug("Loading module: %s", cmds)
-        for cmd in cmds:
-            status, output = process.getstatusoutput(cmd, ignore_status=True)
-            if status:
-                raise exceptions.TestError("Couldn't load module %s: %s" % (
-                    self._module_name, output
-                ))
-        self._loaded_config = params
+        # TODO: Handle cases were module cannot be removed
+        holders = self.module_holders
+        for holder in holders:
+            holder.unload_module()
+        self.unload_module()
+        reload_cmd = 'modprobe %s %s' % (self._module_name, params)
+        logging.debug("Reloading module: %s", reload_cmd)
+        status, output = process.getstatusoutput(reload_cmd.strip())
+        if status:
+            raise KernelModuleReloadError(self._module_name, output)
+        for holder in holders:
+            holder.restore()
 
     def restore(self):
         """
@@ -132,22 +178,22 @@ class KernelModuleHandler(object):
         +-------------------+-+-+-+-+
         """
 
-        if self._loaded_config is not None:
-            cmds = []
+        if self.current_config != self._config_backup:
             # TODO: Handle cases were module cannot be removed
-            cmds.append('modprobe -r --remove-dependencies %s' % self._module_name)
+            holders = self.module_holders
+            for holder in holders:
+                holder.unload_module()
+            self.unload_module()
             if self._was_loaded:
-                cmd = 'modprobe %s %s' % (self._module_name,
-                                          self._config_backup)
-                cmds.append(cmd.strip())
-            logging.debug("Restoring module state: %s", cmds)
-            for cmd in cmds:
-                status, output = process.getstatusoutput(cmd, ignore_status=True)
+                restore_cmd = 'modprobe %s %s' % (self._module_name,
+                                                  self._config_backup)
+                logging.debug("Restoring module state: %s", restore_cmd)
+                status, output = process.getstatusoutput(restore_cmd)
                 if status:
-                    raise exceptions.TestError(
-                        "Couldn't restore module %s. Command '%s'."
-                        " Output '%s'."
-                        % (self._module_name, cmd, output))
+                    raise KernelModuleRestoreError(self._module_name,
+                                                   output)
+            for holder in holders:
+                holder.restore()
 
     def _backup_config(self):
         """
@@ -176,6 +222,12 @@ class KernelModuleHandler(object):
 
         return self._config_backup
 
+    @property
+    def current_config(self):
+        """ Read-only property """
+
+        return self._get_serialized_config()
+
     def _get_serialized_config(self):
         """
         Get current module parameters
@@ -184,13 +236,21 @@ class KernelModuleHandler(object):
          module not loaded
         """
 
-        mod_params_path = '/sys/module/%s/parameters/' % self._module_name
-        if not os.path.exists(mod_params_path):
+        if not os.path.exists(self._module_params_path):
             return None
 
         mod_params = {}
-        params = os.listdir(mod_params_path)
+        params = os.listdir(self._module_params_path)
         for param in params:
-            with open(os.path.join(mod_params_path, param), 'r') as param_file:
+            with open(os.path.join(self._module_params_path,
+                                   param), 'r') as param_file:
                 mod_params[param] = param_file.read().strip()
         return " ".join("%s=%s" % _ for _ in mod_params.items()) if mod_params else ""
+
+    @property
+    def module_holders(self):
+        """Find out which modules use this module."""
+        if os.path.exists(self._module_holders_path):
+            module_used_by = os.listdir(self._module_holders_path)
+            return [KernelModuleHandler(module) for module in module_used_by]
+        return []
