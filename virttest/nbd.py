@@ -55,10 +55,11 @@ def export_image(qemu_nbd, filename, local_image, params):
         "unix_socket": "",
         "filename": "",
         "fork": "--fork",
-        "pid_file": ""
+        "pid_file": "",
+        "bitmap": ""
     }
     export_cmd = ('{secret_object} {tls_creds} '
-                  '{export_format} {persistent} {desc} {port} '
+                  '{export_format} {persistent} {desc} {port} {bitmap} '
                   '{export_name} {fork} {pid_file} {unix_socket} {filename}')
 
     pid_file = utils_misc.generate_tmp_file_name('%s_nbd_server' % local_image,
@@ -104,6 +105,9 @@ def export_image(qemu_nbd, filename, local_image, params):
                 aid='%s_server_tls_creds' % local_image,
                 tls_creds=params['nbd_server_tls_creds']
             )
+
+    if params.get('nbd_export_bitmap'):
+        cmd_dict['bitmap'] = '-B %s' % params['nbd_export_bitmap']
 
     qemu_nbd_pid = None
     cmdline = qemu_nbd + ' ' + string.Formatter().format(export_cmd,
