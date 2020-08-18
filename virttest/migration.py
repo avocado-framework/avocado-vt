@@ -36,6 +36,12 @@ class MigrationTest(object):
         # The CmdResult returned from virsh migrate command
         self.ret = None
 
+    def _reinit(self):
+        """
+        Re-init the instance variables
+        """
+        self.__init__()
+
     def post_migration_check(self, vms, params, uptime, uri=None):
         """
         Validating migration by performing checks in this method
@@ -261,6 +267,9 @@ class MigrationTest(object):
                      for process.run
 
         """
+        # First, re-init the instance variables in case of second migration
+        self._reinit()
+
         for vm in vms:
             vm.connect_uri = args.get("virsh_uri", "qemu:///system")
         if migration_type == "orderly":
