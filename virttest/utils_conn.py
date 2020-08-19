@@ -1293,8 +1293,7 @@ class TLSConnection(ConnectionBase):
             operate_qemuconf.sub_else_add(pattern2repl)
             pattern2repl = {r".*chardev_tls_x509_cert_dir\s*="
                             r"\s*\"\/etc\/pki\/libvirt-chardev\s*\".*":
-                            "chardev_tls_x509_cert_dir="
-                            r"\"/etc/pki/libvirt-chardev\""}
+                            "chardev_tls_x509_cert_dir = \"/etc/pki/libvirt-chardev\""}
             operate_qemuconf.sub_else_add(pattern2repl)
 
         if not libvirt_version.version_compare(5, 6, 0, server_session):
