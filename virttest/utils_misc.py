@@ -41,7 +41,6 @@ except NameError:
 
 from aexpect.utils.genio import _open_log_files
 
-from avocado.core import status
 from avocado.core import exceptions
 from avocado.utils import distro
 from avocado.utils import git
@@ -71,6 +70,11 @@ except ImportError:
     from avocado.utils.network import is_port_free  # pylint: disable=W0611
     from avocado.utils.network import find_free_port  # pylint: disable=W0611
     from avocado.utils.network import find_free_ports  # pylint: disable=W0611
+
+try:
+    from avocado.core import teststatus
+except ImportError:
+    from avocado.core import status as teststatus
 
 from virttest import data_dir
 from virttest import error_context
@@ -724,7 +728,7 @@ def run_tests(parser, job):
                                                  tag=test_tag,
                                                  iterations=test_iterations)
 
-        if not status.mapping[current_status]:
+        if not teststatus.mapping[current_status]:
             failed = True
 
         status_dict[param_dict.get("name")] = current_status
