@@ -3021,12 +3021,14 @@ class VM(virt_vm.BaseVM):
             self.monitors = []
             for m_name in params.objects("monitors"):
                 m_params = params.object_params(m_name)
+                suppress = m_params.get_boolean("monitor_suppress_exceptions")
                 if m_params.get("debugonly", "no") == "yes":
                     continue
                 try:
                     monitor = qemu_monitor.wait_for_create_monitor(self,
                                                                    m_name,
                                                                    m_params,
+                                                                   suppress,
                                                                    timeout)
                 except qemu_monitor.MonitorConnectError as detail:
                     logging.error(detail)
