@@ -3647,16 +3647,23 @@ def check_logfile(search_str, log_file, str_in_log=True,
                                           log_file))
 
 
-def check_qemu_cmd_line(content, err_ignore=False):
+def check_qemu_cmd_line(content, err_ignore=False,
+                        remote_params=None, runner_on_target=None):
     """
     Check the specified content in the qemu command line
     :param content: the desired string to search
     :param err_ignore: True to return False when fail
                        False to raise exception when fail
+    :param remote_params: The params for remote executing
+    :param runner_on_target:  Remote runner
     :return: True if exist, False otherwise
     """
     cmd = 'pgrep -a qemu'
-    qemu_line = process.run(cmd, shell=True).stdout_text
+    if not(remote_params or runner_on_target):
+        qemu_line = process.run(cmd, shell=True).stdout_text
+    else:
+        cmd_result = remote.run_remote_cmd(cmd, remote_params, runner_on_target)
+        qemu_line = cmd_result.stdout
     if not re.search(r'%s' % content, qemu_line):
         if err_ignore:
             return False
