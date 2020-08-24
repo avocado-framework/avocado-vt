@@ -17,12 +17,21 @@ class FS(object):
         :param session: ShellSession object of remote or VM
         """
         self.fs = fs
-        if not os.path.isfile(self.fs):
-            raise AttributeError("%s is not available" % self.fs)
         self.func = process.getstatusoutput
         self.session = session
+        if not self._check_isfile():
+            raise AttributeError("%s is not available" % self.fs)
         if self.session:
             self.func = self.session.cmd_status_output
+
+    def _check_isfile(self):
+        """
+        check whether the fs exist in local/remote host/VM
+        """
+        if self.session:
+            return self.session.cmd_status("cat %s" % self.fs) == 0
+        else:
+            return os.path.isfile(self.fs)
 
     @property
     def fs_value(self):
