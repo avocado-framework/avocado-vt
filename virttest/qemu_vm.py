@@ -958,9 +958,10 @@ class VM(virt_vm.BaseVM):
             params["mem"] = str(int(mem_size_m))
             options.append(params["mem"])
             if devices.has_device("pc-dimm"):
-                if mem_params.get("slots") and mem_params.get("maxmem"):
-                    options.append("slots=%s" % mem_params["slots"])
+                if mem_params.get("maxmem"):
                     options.append("maxmem=%s" % mem_params["maxmem"])
+                    if mem_params.get("slots"):
+                        options.append("slots=%s" % mem_params["slots"])
                 for name in params.objects("mem_devs"):
                     dev = devices.memory_define_by_params(params, name)
                     devs.extend(dev)
