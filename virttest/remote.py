@@ -15,7 +15,7 @@ from avocado.core import exceptions
 from avocado.utils import process
 
 from virttest import data_dir
-from virttest import utils_misc
+from virttest import utils_logfile
 from virttest import rss_client
 from virttest.remote_commander import remote_master
 from virttest.remote_commander import messenger
@@ -308,8 +308,8 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
         session.close()
         raise
     if log_filename:
-        log_file = utils_misc.get_log_filename(log_filename)
-        session.set_output_func(utils_misc.log_line)
+        log_file = utils_logfile.get_log_filename(log_filename)
+        session.set_output_func(utils_logfile.log_line)
         session.set_output_params((log_file,))
         session.set_log_file(os.path.basename(log_file))
     return session
@@ -375,8 +375,8 @@ def remote_commander(client, host, port, username, password, prompt,
         session.close()
         raise
     if log_filename:
-        log_file = utils_misc.get_log_filename(log_filename)
-        session.set_output_func(utils_misc.log_line)
+        log_file = utils_logfile.get_log_filename(log_filename)
+        session.set_output_func(utils_logfile.log_line)
         session.set_output_params((log_file,))
         session.set_log_file(os.path.basename(log_file))
 
@@ -521,7 +521,7 @@ def remote_scp(command, password_list, log_filename=None, transfer_timeout=600,
     logging.debug("Trying to SCP with command '%s', timeout %ss",
                   command, transfer_timeout)
     if log_filename:
-        output_func = utils_misc.log_line
+        output_func = utils_logfile.log_line
         output_params = (log_filename,)
     else:
         output_func = None
