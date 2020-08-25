@@ -15,6 +15,8 @@ from virttest import utils_misc
 from virttest.staging import service
 from virttest.utils_gdb import GDB
 
+IS_MODULAR_DAEMON = {'local': None}
+
 
 class VirtDaemonCommon(object):
 
@@ -397,12 +399,23 @@ def is_modular_daemon(session=None):
     :params session: An session to guest or remote host
     :return: True if modular daemon is enabled
     """
-    daemons = ["virtqemud.socket", "virtinterfaced.socket",
-               "virtnetworkd.socket", "virtnodedevd.socket",
-               "virtnwfilterd.socket", "virtsecretd.socket",
-               "virtstoraged.socket", "virtproxyd.socket"]
     if session:
         runner = remote.RemoteRunner(session=session).run
+        host_key = runner('hostname').stdout_text.strip()
+        if host_key not in IS_MODULAR_DAEMON:
+            IS_MODULAR_DAEMON[host_key] = None
     else:
         runner = process.run
-    return any([service.Factory.create_service(d, run=runner).status() for d in daemons])
+        host_key = "local"
+    if IS_MODULAR_DAEMON[host_key] is None:
+        daemons = ["virtqemud.socket", "virtinterfaced.socket",
+                   "virtnetworkd.socket", "virtnodedevd.socket",
+                   "virtnwfilterd.socket", "virtsecretd.socket",
+                   "virtstoraged.socket", "virtproxyd.socket"]
+
+        if any([service.Factory.create_service(d, run=runner).status()
+           for d in daemons]):
+            IS_MODULAR_DAEMON[host_key] = True
+        else:
+            IS_MODULAR_DAEMON[host_key] = False
+    return IS_MODULAR_DAEMON[host_key]
