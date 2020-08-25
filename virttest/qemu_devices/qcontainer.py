@@ -2333,7 +2333,8 @@ class DevContainer(object):
         image_access = storage.ImageAccessInfo.access_info_define_by_params(
             name, image_params)
 
-        image_filename = storage.get_image_filename(image_params, data_root)
+        image_base_dir = image_params.get("images_base_dir", data_root)
+        image_filename = storage.get_image_filename(image_params, image_base_dir)
         imgfmt = image_params.get("image_format")
         if (Flags.BLOCKDEV in self.caps and
                 image_params.get("image_snapshot") == "yes"):
