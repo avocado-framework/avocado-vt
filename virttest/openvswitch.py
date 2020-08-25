@@ -291,7 +291,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         return True
 
     def list_br(self):
-        return self.ovs_vsctl(["list-br"]).stdout.splitlines()
+        return self.ovs_vsctl(["list-br"]).stdout_text.splitlines()
 
     def list_interface(self):
         return self.ovs_vsctl(["list", "interface"]).stdout_text.strip()
