@@ -1484,6 +1484,22 @@ class VM(virt_vm.BaseVM):
         if params.get("defconfig", "yes") == "no":
             devices.insert(StrDev('nodefconfig', cmdline=" -nodefconfig"))
 
+        # Add device intel-iommu, it must be added before any virtio devices
+        if (params.get('intel_iommu') == 'yes' and
+                devices.has_device('intel-iommu')):
+            iommu_params = {
+                'intremap': params.get('iommu_intremap', 'on'),
+                'device-iotlb': params.get('iommu_device_iotlb', 'on'),
+                'caching-mode': params.get('iommu_caching_mode'),
+                'eim': params.get('iommu_eim'),
+                'x-buggy-eim': params.get('iommu_x_buggy_eim'),
+                'version': params.get('iommu_version'),
+                'x-scalable-mode': params.get('iommu_x_scalable_mode'),
+                'dma-drain': params.get('iommu_dma_drain'),
+                'pt': params.get('iommu_pt'),
+                'aw-bits': params.get('iommu_aw_bits')}
+            devices.insert(QDevice('intel-iommu', iommu_params))
+
         vga = params.get("vga")
         if vga:
             devices.insert(add_vga(devices, vga))
