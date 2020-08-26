@@ -53,6 +53,7 @@ from virttest import test_setup
 from virttest import data_dir
 from virttest import utils_libvirtd
 from virttest import utils_config
+from virttest import utils_split_daemons
 from virttest.staging import lv_utils
 from virttest.utils_libvirtd import service_libvirtd_control
 from virttest.libvirt_xml import vm_xml
@@ -3575,7 +3576,11 @@ def customize_libvirt_config(params,
     :param config_object: an existing utils_config.LibvirtConfigCommon object
     :return: utils_config.LibvirtConfigCommon object
     """
-
+    # Hardcode config_type to virtqemud under modularity daemon mode when config_type="libvirtd"
+    # Otherwise accept config_type as it is.
+    if utils_split_daemons.is_modular_daemon():
+        if config_type in ["libvirtd"]:
+            config_type = "virtqemud"
     config_list_support = ["libvirtd", "qemu", "sysconfig", "guestconfig",
                            "virtqemud", "virtproxyd", "virtnetworkd",
                            "virtstoraged", "virtinterfaced", "virtnodedevd",
