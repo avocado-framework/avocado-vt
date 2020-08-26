@@ -449,3 +449,12 @@ def service_libvirtd_control(action, session=None):
     libvirtd_instance = Libvirtd(session=session)
     deprecation_warning()
     getattr(libvirtd_instance, action)()
+
+
+def unmark_storage_autostarted():
+    """
+    By removing this file libvirt start behavior at boot
+    is simulated.
+    """
+    cmd = "rm -rf /var/run/libvirt/storage/autostarted"
+    process.run(cmd, ignore_status=True, shell=True)
