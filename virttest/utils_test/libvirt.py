@@ -3447,6 +3447,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
     del_rom = iface_dict.get('del_rom')
     del_filter = iface_dict.get('del_filter')
     del_port = iface_dict.get('del_port')
+    del_mac = "yes" == iface_dict.get('del_mac', "no")
     if iface_type:
         iface.type_name = iface_type
     if iface_driver:
@@ -3479,6 +3480,8 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
         iface.del_filterref()
     if del_port:
         iface.del_port()
+    if del_mac:
+        iface.del_mac_address()
     if iface_filter:
         if iface_filter_parameters:
             iface.filterref = iface.new_filterref(name=iface_filter, parameters=iface_filter_parameters)
