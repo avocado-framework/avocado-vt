@@ -21,6 +21,8 @@ import uuid
 from avocado.core import exceptions
 from avocado.utils import process
 
+import aexpect
+
 import six
 from six.moves import xrange
 
@@ -32,6 +34,7 @@ except ImportError:
 # Internal imports
 from virttest import vt_iothread
 from virttest import utils_qemu
+from virttest import utils_misc
 from virttest import arch, storage, data_dir, virt_vm
 from virttest import qemu_storage
 from virttest.qemu_devices import qdevices
@@ -917,7 +920,7 @@ class DevContainer(object):
     def cleanup_daemons(self):
         """Clean up daemons."""
         for dev in self:
-            if isinstance(dev, qdevices.QVirtioFSDev):
+            if isinstance(dev, qdevices.QDaemonDev):
                 dev.clear()
 
     def cmdline(self, dynamic=True):
@@ -2929,4 +2932,94 @@ class DevContainer(object):
             devices.append(vufs)
         else:
             raise ValueError("unsupported filesystem driver type")
+        return devices
+
+    def tpm_define_by_params(self, name, params):
+        """
+        Create TPM devices by params.
+
+        :param name: Object name of TPM device.
+        :type name: str
+        :param params: TPM device params.
+        :type params: dict
+        :return: List of corresponding TPM devices.
+        :rtype: list
+        """
+        tpm_model = params.get("tpm_model")
+        tpm_type = params.get("tpm_type")
+        tpm_version = params.get("tpm_version")
+
+        tmp_dir = data_dir.get_tmp_dir()
+
+        def _handle_log(line):
+            try:
+                utils_misc.log_line('%s_%s_swtpm_setup.log' % (self.vmname, name), line)
+            except Exception as e:
+                logging.warn("Can't log %s_%s_swtpm_setup output: %s.", self.vmname, name, e)
+
+        def _emulator_setup(binary, extra_options=None):
+            setup_cmd = binary
+            if tpm_version in ('2.0',):
+                setup_cmd += ' --tpm2'
+
+            tpm_path = os.path.join(tmp_dir, '%s_%s_tpm_state' % (self.vmname, name))
+            if os.path.exists(tpm_path):
+                shutil.rmtree(tpm_path, ignore_errors=True)
+            os.makedirs(tpm_path)
+            setup_cmd += " --tpm-state %s" % tpm_path
+
+            setup_cmd += (" --createek --create-ek-cert"
+                          " --create-platform-cert"
+                          " --lock-nvram --not-overwrite")
+
+            if extra_options:
+                setup_cmd += extra_options
+
+            logging.info('Running TPM emulator setup command: %s.', setup_cmd)
+            _process = aexpect.run_bg(setup_cmd, None, _handle_log, auto_close=False)
+            status_ending = 'Ending vTPM manufacturing'
+            _process.read_until_any_line_matches(status_ending, timeout=5)
+            return tpm_path
+
+        devices = []
+        if tpm_type == 'emulator':
+            tpm_bin = params.get("tpm_bin", "/usr/bin/swtpm")
+            tpm_setup_bin = params.get("tpm_setup_bin", "/usr/bin/swtpm_setup")
+            tpm_bin_extra_options = params.get("tpm_bin_extra_options")
+            tpm_setup_bin_extra_options = params.get("tpm_setup_bin_extra_options")
+            sock_path = os.path.join(tmp_dir, '_'.join((self.vmname, name, 'swtpm.sock')))
+
+            storage_path = _emulator_setup(tpm_setup_bin, tpm_setup_bin_extra_options)
+            swtpmdev = qdevices.QSwtpmDev(name, tpm_bin, sock_path, storage_path,
+                                          tpm_version, tpm_bin_extra_options)
+            devices.append(swtpmdev)
+
+            char_params = Params()
+            char_params["backend"] = "socket"
+            char_params["id"] = 'char_%s' % swtpmdev.get_qid()
+            sock_bus = {'busid': sock_path}
+            char = qdevices.CharDevice(char_params, parent_bus=sock_bus)
+            char.set_aid(swtpmdev.get_aid())
+            devices.append(char)
+            tpm_params = {'chardev': char.get_qid()}
+            tpm_id = swtpmdev.get_qid()
+        elif tpm_type == 'passthrough':
+            tpm_params = {'path': params.get("tpm_device_path")}
+            tpm_id = 'tpm_%s' % name
+        else:
+            raise ValueError("Unsupported TPM backend type.")
+
+        tpm_params['id'] = '%s_%s' % (tpm_type, tpm_id)
+        tpm_params['backend'] = tpm_type
+        tpm_dev = qdevices.QCustomDevice('tpmdev', tpm_params,
+                                         name, backend='backend')
+        devices.append(tpm_dev)
+
+        tpm_model_params = {"id": "%s_%s" % (tpm_model, tpm_id),
+                            "tpmdev": tpm_dev.get_qid()}
+        tpm_model_params.update(json.loads(params.get("tpm_model_props", "{}")))
+        tpm_model_dev = qdevices.QDevice(tpm_model, tpm_model_params)
+        tpm_model_dev.set_aid(tpm_id)
+        devices.append(tpm_model_dev)
+
         return devices

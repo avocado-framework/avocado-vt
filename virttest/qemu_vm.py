@@ -2288,6 +2288,11 @@ class VM(virt_vm.BaseVM):
                 devs.append(qdevices.QStringDevice('machine_sysfw', cmdline=cmd))
             devices.insert(devs)
 
+        # Add TPM devices
+        for tpm in params.objects("tpms"):
+            tpm_params = params.object_params(tpm)
+            devices.insert(devices.tpm_define_by_params(tpm, tpm_params))
+
         disable_kvm_option = ""
         if (devices.has_option("no-kvm")):
             disable_kvm_option = "-no-kvm"

@@ -7,6 +7,8 @@ interact with qemu qdev structure.
 :copyright: 2012-2013 Red Hat Inc.
 """
 import logging
+import os
+import time
 import re
 import traceback
 from collections import OrderedDict
@@ -1636,7 +1638,110 @@ class QCPUDevice(QDevice):
         return out, ver_out
 
 
-class QVirtioFSDev(QBaseDevice):
+class QDaemonDev(QBaseDevice):
+    """
+    Virtual daemon device.
+    """
+
+    def __init__(self, name, aobject, child_bus=None):
+        """
+        :param name: The daemon name.
+        :type name: str
+        :param aobject: The aobject of daemon.
+        :type aobject: str
+        :param child_bus: List of buses, which this device provides.
+        :type child_bus: QSparseBus
+        """
+        aid = '%s_%s' % (name, aobject)
+        super(QDaemonDev, self).__init__(name, aobject=aobject, child_bus=child_bus)
+        self.set_aid(aid)
+        self.set_param('name', name)
+        self._daemon_process = None
+
+    def is_daemon_alive(self):
+        """Check whether daemon is alive."""
+        return bool(self._daemon_process and self._daemon_process.is_alive())
+
+    def start_daemon(self):
+        """Start daemon."""
+        cmd = self.get_param('cmd')
+        name = self.get_param('name')
+        run_bg_kwargs = self.get_param('run_bg_kwargs', {})
+        status_active = self.get_param('status_active')
+        read_until_timeout = self.get_param('read_until_timeout', 5)
+        start_until_timeout = self.get_param('start_until_timeout', 1)
+
+        if cmd is None:
+            logging.warn('No provided command to start %s daemon.', name)
+            self._daemon_process = None
+
+        if self.is_daemon_alive():
+            return
+
+        logging.info('Running %s daemon command %s.', name, cmd)
+        self._daemon_process = aexpect.run_bg(cmd, **run_bg_kwargs)
+        if status_active:
+            self._daemon_process.read_until_any_line_matches(
+                    status_active, timeout=read_until_timeout)
+        else:
+            time.sleep(start_until_timeout)
+        logging.info("Created %s daemon process with parent PID %d.",
+                     name, self._daemon_process.get_pid())
+
+    def stop_daemon(self):
+        """Stop daemon."""
+        if self._daemon_process is not None:
+            try:
+                if not utils_misc.wait_for(lambda: not self.is_daemon_alive(),
+                                           self.get_param('stop_timeout', 3)):
+                    raise DeviceError('The %s daemon is still alive.' %
+                                      self.get_param('name'))
+            finally:
+                self._daemon_process.close()
+                self._daemon_process = None
+
+    def clear(self):
+        """Clear daemon."""
+        try:
+            self.stop_daemon()
+        except DeviceError:
+            pass
+
+    def hotplug(self, monitor):
+        """Hot plug daemon."""
+        self.start_daemon()
+
+    def verify_hotplug(self, out, monitor):
+        """Verify daemon after hotplug."""
+        return self.is_daemon_alive()
+
+    def unplug(self, monitor):
+        """Unplug daemon."""
+        self.stop_daemon()
+
+    def verify_unplug(self, out, monitor):
+        """Verify the status of daemon."""
+        return not self.is_daemon_alive()
+
+    def get_qid(self):
+        """Get qid."""
+        return self.get_aid()
+
+    def cmdline(self):
+        """Start daemon command line."""
+        self.start_daemon()
+        return ''
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    __hash__ = None
+
+
+class QVirtioFSDev(QDaemonDev):
     """
     Virtiofs pseudo device.
     """
@@ -1653,32 +1758,23 @@ class QVirtioFSDev(QBaseDevice):
         :param extra_options: The external options of virtiofs daemon.
         :type extra_options: str
         """
-        aid = 'virtiofs_%s' % aobject
         super(QVirtioFSDev, self).__init__('virtiofs', aobject=aobject,
                                            child_bus=QUnixSocketBus(sock_path, aobject))
-        self.set_aid(aid)
         self.set_param('binary', binary)
         self.set_param('sock_path', sock_path)
         self.set_param('source', source)
         self.set_param('extra_options', extra_options)
-        self._daemon_process = None
 
     def _handle_log(self, line):
         """Handle the log of virtiofs daemon."""
+        name = self.get_param('name')
         try:
-            utils_misc.log_line('%s-virtiofsd.log' % self.get_qid(), line)
+            utils_misc.log_line('%s-%s.log' % (self.get_qid(), name), line)
         except Exception as e:
-            logging.warn("Can't log %s-virtiofsd output: '%s'.", self.get_qid(), e)
+            logging.warn("Can't log %s-%s, output: '%s'.", self.get_qid(), name, e)
 
-    def _daemon_alive(self):
-        """Check whether the virtiofs daemon is alive."""
-        return bool(self._daemon_process and self._daemon_process.is_alive())
-
-    def _start_daemon(self):
+    def start_daemon(self):
         """Start the virtiofs daemon in background."""
-        if self._daemon_alive():
-            return
-
         fsd_cmd = '%s --socket-path=%s' % (self.get_param('binary'),
                                            self.get_param('sock_path'))
         fsd_cmd += ' -o source=%s' % self.get_param('source')
@@ -1687,62 +1783,69 @@ class QVirtioFSDev(QBaseDevice):
         if self.get_param('extra_options'):
             fsd_cmd += self.get_param('extra_options')
 
-        logging.info('Running virtiofs daemon command %s.', fsd_cmd)
-        self._daemon_process = aexpect.run_bg(fsd_cmd, None,
-                                              self._handle_log,
-                                              auto_close=False)
-        status_active = 'Waiting for vhost-user socket connection'
-        self._daemon_process.read_until_any_line_matches(status_active,
-                                                         timeout=5)
-        logging.info("Created virtiofs daemon process with parent PID %d.",
-                     self._daemon_process.get_pid())
-
-    def _stop_daemon(self):
-        """Stop the virtiofs daemon."""
-        if self._daemon_process is not None:
-            try:
-                if not utils_misc.wait_for(lambda: not self._daemon_alive(), 3):
-                    raise DeviceError('The virtiofs daemon is still alive.')
-            finally:
-                self._daemon_process.close()
-                self._daemon_process = None
-
-    def clear(self):
-        """Clear the virtiofs daemon."""
-        try:
-            self._stop_daemon()
-        except DeviceError:
-            pass
-
-    def hotplug(self, monitor):
-        self._start_daemon()
-
-    def verify_hotplug(self, out, monitor):
-        return self._daemon_alive()
-
-    def unplug(self, monitor):
-        self._stop_daemon()
-
-    def verify_unplug(self, out, monitor):
-        """Verify the status of virtiofs daemon."""
-        return not self._daemon_alive()
-
-    def get_qid(self):
-        return self.get_aid()
-
-    def cmdline(self):
-        self._start_daemon()
-        return ''
+        self.set_param('cmd', fsd_cmd)
+        self.set_param('run_bg_kwargs', {'output_func': self._handle_log,
+                                         'auto_close': False})
+        self.set_param('status_active', 'Waiting for vhost-user socket connection')
+        super(QVirtioFSDev, self).start_daemon()
 
     def __eq__(self, other):
-        if not isinstance(other, QVirtioFSDev):
-            return False
-        return self.get_param('sock_path') == other.get_param('sock_path')
+        if super(QVirtioFSDev, self).__eq__(other):
+            return self.get_param('sock_path') == other.get_param('sock_path')
+        return False
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
 
-    __hash__ = None
+class QSwtpmDev(QDaemonDev):
+    """
+    Virtual swtpm pseudo device.
+    """
+    def __init__(self, aobject, binary, sock_path, storage_path,
+                 version=None, extra_options=None):
+        """
+        :param aobject: The auto object of swtpm daemon.
+        :type aobject: str
+        :param binary: The binary of swtpm daemon.
+        :type binary: str
+        :param sock_path: The socket path of of swtpm daemon.
+        :type sock_path: str
+        :param storage_path: The path to the directory for tpm state
+        :type storage_path: str
+        :param version: the version of tpm functionality.
+        :type version: str
+        :type storage_path: str
+        :param extra_options: The external options of swtpm daemon.
+        :type extra_options: str
+        """
+        super(QSwtpmDev, self).__init__('vtpm', aobject=aobject,
+                                        child_bus=QUnixSocketBus(sock_path, aobject))
+        self.set_param('binary', binary)
+        self.set_param('sock_path', sock_path)
+        self.set_param('storage_path', storage_path)
+        self.set_param('version', version)
+        self.set_param('extra_options', extra_options)
+
+    def start_daemon(self):
+        tpm_cmd = '%s socket --daemon' % self.get_param('binary')
+        tpm_cmd += ' --ctrl type=unixio,path=%s,mode=0600' % self.get_param('sock_path')
+        tpm_cmd += ' --tpmstate dir=%s,mode=0600' % self.get_param('storage_path')
+
+        if self.get_param('version') in ('2.0', ):
+            tpm_cmd += ' --tpm2'
+
+        log_dir = utils_misc.get_log_file_dir()
+        tpm_cmd += ' --log file=%s' % os.path.join(log_dir, '%s_swtpm.log' % self.get_qid())
+
+        if self.get_param('extra_options'):
+            tpm_cmd += self.get_param('extra_options')
+
+        self.set_param('cmd', tpm_cmd)
+        self.set_param('run_bg_kwargs', {'auto_close': False})
+        super(QSwtpmDev, self).start_daemon()
+
+    def __eq__(self, other):
+        if super(QSwtpmDev, self).__eq__(other):
+            return self.get_param('sock_path') == other.get_param('sock_path')
+        return False
 
 
 #
