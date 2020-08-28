@@ -803,10 +803,10 @@ class HumanMonitor(Monitor):
                 self.on_str, self.off_str = "on", "off"
 
         except MonitorError as e:
-            self._close_sock()
             if suppress_exceptions:
                 logging.warn(e)
             else:
+                self._close_sock()
                 raise
 
     # Private methods
@@ -1741,10 +1741,10 @@ class QMPMonitor(Monitor):
             self._get_supported_hmp_cmds()
 
         except MonitorError as e:
-            self._close_sock()
             if suppress_exceptions:
                 logging.warn(e)
             else:
+                self._close_sock()
                 raise
 
     # Private methods
