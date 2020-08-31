@@ -37,6 +37,7 @@ from virttest import utils_qemu
 from virttest import utils_misc
 from virttest import arch, storage, data_dir, virt_vm
 from virttest import qemu_storage
+from virttest.qemu_devices.qdevices import QThrottleGroup
 from virttest.qemu_devices import qdevices
 from virttest.qemu_devices.utils import (DeviceError, DeviceHotplugError,
                                          DeviceInsertError, DeviceRemoveError,
@@ -844,17 +845,26 @@ class DevContainer(object):
             drive = device.get_param("drive")
             if drive:
                 if Flags.BLOCKDEV in self.caps:
-                    format_node = self[drive]
-                    nodes = [format_node]
-                    nodes.extend((n for n in format_node.get_child_nodes()))
+                    # top node
+                    node = self[drive]
+                    nodes = [node]
+
+                    # Build the full nodes list
                     for node in nodes:
-                        if not node.verify_unplug(node.unplug(monitor), monitor):
+                        child_nodes = node.get_child_nodes()
+                        nodes.extend(child_nodes)
+
+                    for node in nodes:
+                        parent_node = node.get_parent_node()
+                        child_nodes = node.get_child_nodes()
+                        if not node.verify_unplug(node.unplug(monitor),
+                                                  monitor):
                             raise DeviceUnplugError(
                                 node, "Failed to unplug blockdev node.", self)
-                        self.remove(node, True if isinstance(
-                            node, qdevices.QBlockdevFormatNode) else False)
-                        if not isinstance(node, qdevices.QBlockdevFormatNode):
-                            format_node.del_child_node(node)
+                        self.remove(node,
+                                    True if len(child_nodes) > 0 else False)
+                        if parent_node:
+                            parent_node.del_child_node(node)
                 else:
                     self.remove(drive)
             self.remove(device, True)
@@ -1593,7 +1603,8 @@ class DevContainer(object):
                                    scsi=None, drv_extra_params=None,
                                    num_queues=None, bus_extra_params=None,
                                    force_fmt=None, image_encryption=None,
-                                   image_access=None, external_data_file=None):
+                                   image_access=None, external_data_file=None,
+                                   image_throttle_group=None):
         """
         Creates related devices by variables
         :note: To skip the argument use None, to disable it use False
@@ -1634,6 +1645,7 @@ class DevContainer(object):
         :param image_encryption: ImageEncryption object for image
         :param image_access: The logical image access information object
         :param external_data_file: external data file for qcow2 image
+        :param image_throttle_group: The throttle group for image
         """
         def _get_access_tls_creds(image_access):
             """Get all tls-creds objects of the image and its backing images"""
@@ -2015,6 +2027,14 @@ class DevContainer(object):
             format_node.add_child_node(protocol_node)
             devices.append(protocol_node)
             devices.append(format_node)
+            # Add filter node
+            if image_throttle_group:
+                filter_node = qdevices.QBlockdevFilterThrottle(name,
+                                                               image_throttle_group)
+                filter_node.add_child_node(format_node)
+                devices.append(filter_node)
+                filter_node.set_param('file', format_node.get_qid())
+                format_node.set_param('file', protocol_node.get_qid())
         else:
             if self.has_hmp_cmd('__com.redhat_drive_add') and use_device:
                 devices.append(qdevices.QRHDrive(name))
@@ -2032,16 +2052,16 @@ class DevContainer(object):
                                  "on %s by -blockdev." % (opt, name))
             if media == 'cdrom':
                 readonly = 'on'
-            devices[-2].set_param('read-only', readonly, bool)
-            devices[-1].set_param('read-only', readonly, bool)
+            protocol_node.set_param('read-only', readonly, bool)
+            format_node.set_param('read-only', readonly, bool)
             if secret_obj:
-                if isinstance(devices[-1], qdevices.QBlockdevFormatQcow2):
-                    devices[-1].set_param('encrypt.format',
+                if isinstance(format_node, qdevices.QBlockdevFormatQcow2):
+                    format_node.set_param('encrypt.format',
                                           image_encryption.format)
-                    devices[-1].set_param('encrypt.key-secret',
+                    format_node.set_param('encrypt.key-secret',
                                           secret_obj.get_qid())
-                elif isinstance(devices[-1], qdevices.QBlockdevFormatLuks):
-                    devices[-1].set_param('key-secret', secret_obj.get_qid())
+                elif isinstance(format_node, qdevices.QBlockdevFormatLuks):
+                    format_node.set_param('key-secret', secret_obj.get_qid())
         else:
             devices[-1].set_param('if', 'none')
             devices[-1].set_param('rerror', rerror)
@@ -2078,10 +2098,10 @@ class DevContainer(object):
                 logging.warn('snapshot is on, fallback aio to threads.')
                 aio = 'threads'
             if Flags.BLOCKDEV in self.caps:
-                if isinstance(devices[-2], (qdevices.QBlockdevProtocolFile,
-                                            qdevices.QBlockdevProtocolHostDevice,
-                                            qdevices.QBlockdevProtocolHostCdrom)):
-                    devices[-2].set_param('aio', aio)
+                if isinstance(protocol_node, (qdevices.QBlockdevProtocolFile,
+                                              qdevices.QBlockdevProtocolHostDevice,
+                                              qdevices.QBlockdevProtocolHostCdrom)):
+                    protocol_node.set_param('aio', aio)
             else:
                 devices[-1].set_param('aio', aio)
             if aio == 'native':
@@ -2100,39 +2120,39 @@ class DevContainer(object):
             if filename:
                 file_opts = qemu_storage.filename_to_file_opts(filename)
                 for key, value in six.iteritems(file_opts):
-                    devices[-2].set_param(key, value)
+                    protocol_node.set_param(key, value)
 
             for access_secret_obj, secret_type in secret_info:
                 if secret_type == 'password':
-                    devices[-2].set_param('password-secret',
-                                          access_secret_obj.get_qid())
+                    protocol_node.set_param('password-secret',
+                                            access_secret_obj.get_qid())
                 elif secret_type == 'key':
-                    devices[-2].set_param('key-secret',
-                                          access_secret_obj.get_qid())
+                    protocol_node.set_param('key-secret',
+                                            access_secret_obj.get_qid())
                 elif secret_type == 'cookie':
-                    devices[-2].set_param('cookie-secret',
-                                          access_secret_obj.get_qid())
+                    protocol_node.set_param('cookie-secret',
+                                            access_secret_obj.get_qid())
 
             if tls_creds is not None:
-                devices[-2].set_param('tls-creds', tls_creds_obj.get_qid())
+                protocol_node.set_param('tls-creds', tls_creds_obj.get_qid())
             if reconnect_delay is not None:
-                devices[-2].set_param('reconnect-delay', int(reconnect_delay))
+                protocol_node.set_param('reconnect-delay', int(reconnect_delay))
             if iscsi_initiator:
-                devices[-2].set_param('initiator-name', iscsi_initiator)
+                protocol_node.set_param('initiator-name', iscsi_initiator)
             if gluster_debug:
-                devices[-2].set_param('debug', int(gluster_debug))
+                protocol_node.set_param('debug', int(gluster_debug))
             if gluster_logfile:
-                devices[-2].set_param('logfile', gluster_logfile)
+                protocol_node.set_param('logfile', gluster_logfile)
             if curl_sslverify:
-                devices[-2].set_param('sslverify', curl_sslverify)
+                protocol_node.set_param('sslverify', curl_sslverify)
             if curl_readahead:
-                devices[-2].set_param('readahead', curl_readahead)
+                protocol_node.set_param('readahead', curl_readahead)
             if curl_timeout:
-                devices[-2].set_param('timeout', curl_timeout)
+                protocol_node.set_param('timeout', curl_timeout)
             for key, value in six.iteritems(gluster_peers):
-                devices[-2].set_param(key, value)
+                protocol_node.set_param(key, value)
 
-            for dev in (devices[-1], devices[-2]):
+            for dev in (format_node, protocol_node):
                 if not cache:
                     direct, no_flush = (None, None)
                 else:
@@ -2140,7 +2160,7 @@ class DevContainer(object):
                                         self.cache_map[cache]['cache.no-flush'])
                 dev.set_param('cache.direct', direct)
                 dev.set_param('cache.no-flush', no_flush)
-            devices[-1].set_param('file', devices[-2].get_qid())
+            format_node.set_param('file', protocol_node.get_qid())
         else:
             devices[-1].set_param('cache', cache)
             devices[-1].set_param('media', media)
@@ -2188,10 +2208,12 @@ class DevContainer(object):
                     if key == 'discard':
                         value = re.sub('on', 'unmap', re.sub('off', 'ignore', value))
                     if key == 'cache-size':
-                        devices[-2].set_param(key, None)
+                        protocol_node.set_param(key, None)
                     else:
-                        devices[-2].set_param(key, value)
-                devices[-1].set_param(key, value)
+                        protocol_node.set_param(key, value)
+                    format_node.set_param(key, value)
+                else:
+                    devices[-1].set_param(key, value)
         if not use_device:
             if fmt and fmt.startswith('scsi-'):
                 if scsi_hba == 'lsi53c895a' or scsi_hba == 'spapr-vscsi':
@@ -2420,8 +2442,9 @@ class DevContainer(object):
                                                image_params.get(
                                                    "force_drive_format"),
                                                image_encryption,
-                                               image_access,
-                                               ext_data_file)
+                                               image_access, ext_data_file,
+                                               image_params.get(
+                                                   "image_throttle_group"))
 
     def serials_define_by_variables(self, serial_id, serial_type, chardev_id,
                                     bus_type=None, serial_name=None,
@@ -2738,6 +2761,10 @@ class DevContainer(object):
         return qdevices.QDevice(driver, pcic_params, aobject=name,
                                 parent_bus=parent_bus,
                                 child_bus=bus)
+
+    def throttle_group_define_by_params(self, group_params, name):
+        props = json.loads(group_params.get("throttle_group_parameters", "{}"))
+        return QThrottleGroup(name, props)
 
     def memory_object_define_by_params(self, params, name):
         """

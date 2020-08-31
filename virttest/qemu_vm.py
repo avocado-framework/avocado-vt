@@ -1900,6 +1900,12 @@ class VM(virt_vm.BaseVM):
         # initialize iothread manager
         devices.initialize_iothread_manager(params, self.cpuinfo)
 
+        # Add object throttle group
+        for group in params.objects("throttle_groups"):
+            group_params = params.object_params(group)
+            dev = devices.throttle_group_define_by_params(group_params, group)
+            devices.insert(dev)
+
         # Add images (harddrives)
         for image_name in params.objects("images"):
             # FIXME: Use qemu_devices for handling indexes
