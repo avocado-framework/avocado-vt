@@ -11,7 +11,7 @@ from virttest.libvirt_xml.devices import librarian
 class Memory(base.UntypedDeviceBase):
 
     __slots__ = ('mem_model', 'target', 'source', 'address', 'mem_discard',
-                 'mem_access', 'alias')
+                 'mem_access', 'alias', 'uuid')
 
     def __init__(self, virsh_instance=base.base.virsh):
         accessors.XMLAttribute('mem_model', self,
@@ -26,6 +26,9 @@ class Memory(base.UntypedDeviceBase):
                                parent_xpath='/',
                                tag_name='memory',
                                attribute='access')
+        accessors.XMLElementText("uuid", self,
+                                 parent_xpath='/',
+                                 tag_name='uuid')
         accessors.XMLElementNest('target', self, parent_xpath='/',
                                  tag_name='target', subclass=self.Target,
                                  subclass_dargs={
