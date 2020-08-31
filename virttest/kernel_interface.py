@@ -17,12 +17,21 @@ class FS(object):
         :param session: ShellSession object of remote or VM
         """
         self.fs = fs
-        if not os.path.isfile(self.fs):
-            raise AttributeError("%s is not available" % self.fs)
         self.func = process.getstatusoutput
         self.session = session
+        if not self._check_isfile():
+            raise AttributeError("%s is not available" % self.fs)
         if self.session:
             self.func = self.session.cmd_status_output
+
+    def _check_isfile(self):
+        """
+        check whether the fs exist in local/remote host/VM
+        """
+        if self.session:
+            return self.session.cmd_status("cat %s" % self.fs) == 0
+        else:
+            return os.path.isfile(self.fs)
 
     @property
     def fs_value(self):
@@ -82,7 +91,7 @@ class ProcFS(FS):
         try:
             return int(self.fs_value)
         except ValueError:
-            return self.fs_value
+            return self.fs_val
 
     @proc_fs_value.setter
     def proc_fs_value(self, value):
@@ -133,9 +142,9 @@ class SysFS(FS):
         if output:
             return str(output.group()).strip()
         try:
-            return int(self.fs_value)
+            return int(self.fs_val)
         except ValueError:
-            return self.fs_value
+            return self.fs_val
 
     @sys_fs_value.setter
     def sys_fs_value(self, value):
