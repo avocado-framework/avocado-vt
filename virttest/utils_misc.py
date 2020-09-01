@@ -4375,3 +4375,17 @@ def get_sosreport(path=None, session=None, remote_ip=None, remote_pwd=None,
         if session:
             session.close()
         return host_path
+
+
+def asterisk_passwd(passwd):
+    """
+    Proctect plain password to be printed in log files
+
+    In order to debug, Keep the 1st and last charactor.
+
+    :param passwd: a password string
+    :return: a string replaced with asterisk
+    """
+    if not passwd:
+        return '*' * 8
+    return passwd[0] + '*' * 6 + passwd[-1]

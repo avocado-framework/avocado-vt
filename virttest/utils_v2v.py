@@ -4,6 +4,8 @@ Virt-v2v test utility functions.
 :copyright: 2008-2012 Red Hat Inc.
 """
 
+from __future__ import print_function
+
 import os
 import re
 import time
@@ -11,15 +13,13 @@ import glob
 import logging
 import random
 import uuid
+import aexpect
 
 from avocado.utils import path
 from avocado.utils import process
 from avocado.utils.astring import to_text
 from avocado.core import exceptions
 
-from virttest.utils_test import libvirt
-from virttest.libvirt_xml import vm_xml
-from virttest.utils_version import VersionInterval
 from virttest import libvirt_vm as lvirt
 from virttest import ovirt
 from virttest import virsh
@@ -28,6 +28,10 @@ from virttest import data_dir
 from virttest import remote
 from virttest import utils_misc
 from virttest import ssh_key
+from virttest.utils_test import libvirt
+from virttest.libvirt_xml import vm_xml
+from virttest.utils_version import VersionInterval
+from virttest.utils_misc import asterisk_passwd
 
 try:
     V2V_EXEC = path.find_command('virt-v2v')
@@ -394,7 +398,8 @@ class Target(object):
         os_storage_name = self.params.get('os_storage_name')
         rhv_upload_opts = self.params.get('rhv_upload_opts')
         output_method = self.output_method
-        options = " -os %s" % (os_storage if output_method != "rhv_upload" else os_storage_name)
+        options = " -os %s" % (os_storage if output_method !=
+                               "rhv_upload" else os_storage_name)
         if rhv_upload_opts:
             options += ' %s' % rhv_upload_opts
 
@@ -1126,7 +1131,7 @@ class WindowsVMCheck(VMCheck):
         return False
 
 
-def v2v_cmd(params, auto_clean=True, cmd_only=False):
+def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
     """
     Create finnal v2v command, execute or only return the command
 
@@ -1145,6 +1150,7 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False):
                    run function.
     :param auto_clean: boolean flag, whether to cleanup runtime resources.
     :param cmd_only: boolean flag, whether to only return the command line without running
+    :param interaction: boolean flag, If need to interact with v2v
     :return: A cmd string or CmdResult object
     """
     def _v2v_pre_cmd():
@@ -1226,6 +1232,7 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False):
     password = params.get('password')
     vm_name = params.get('main_vm')
     input_mode = params.get('input_mode')
+    cmd_has_ip = params.get('cmd_has_ip', True)
     # A switch controls a virsh pre-connection to source hypervisor,
     # but some testing envrionments(like, gating in OSP) don't have
     # source hypervisor, the pre-connection must be skipped.
@@ -1261,13 +1268,28 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False):
         # Old v2v version doesn't support '-ip' option
         if not v2v_supported_option("-ip <filename>"):
             cmd = cmd.replace('-ip', '--password-file', 1)
+
+        # update -ip option
+        if not cmd_has_ip:
+            ip_ptn = [r'-ip \S+\s*', r'--password-file \S+\s*']
+            cmd = cmd_remove_option(cmd, ip_ptn)
         # Save v2v command to params, then it can be passed to
         # import_vm_to_ovirt
         global_params.update({'v2v_command': cmd})
 
         if not cmd_only:
-            cmd_result = process.run(cmd, timeout=v2v_cmd_timeout,
-                                     verbose=True, ignore_status=True)
+            if not interaction:
+                cmd_result = process.run(
+                    cmd,
+                    timeout=v2v_cmd_timeout,
+                    verbose=True,
+                    ignore_status=True)
+            else:
+                cmd_result = interactive_run(
+                    params,
+                    timeout=v2v_cmd_timeout,
+                    command=cmd,
+                    output_func=lambda x: print(x, end=''))
     finally:
         # Save it into global params and release it by users
         v2v_dirty_resources = global_params.get('v2v_dirty_resources', [])
@@ -1433,10 +1455,6 @@ def check_exit_status(result, expect_error=False, error_flag='strict'):
         if result.exit_status != 0:
             raise exceptions.TestFail(
                 to_text(result.stderr, errors=error_flag))
-        else:
-            logging.debug(
-                "Command output:\n%s",
-                to_text(result.stdout, errors=error_flag).strip())
     elif expect_error and result.exit_status == 0:
         raise exceptions.TestFail("Run '%s' expect fail, but run "
                                   "successfully." % result.command)
@@ -1763,7 +1781,7 @@ def v2v_supported_option(opt_str):
     :param opt_str: option string for checking
     """
     cmd = 'virt-v2v --help'
-    result = process.run(cmd, verbose=True, ignore_status=True)
+    result = process.run(cmd, verbose=False, ignore_status=True)
     if re.search(r'%s' % opt_str, result.stdout_text):
         return True
     return False
@@ -1870,3 +1888,184 @@ def multiple_versions_compare(interval):
             return False
 
     return True
+
+
+def to_list(value):
+    """
+    Convert a string to list
+
+    :param value: A string or list object
+    """
+    if not value:
+        return []
+    elif isinstance(value, list):
+        return value
+    elif isinstance(value, str):
+        return [value]
+
+
+def cmd_remove_option(cmd, opt_pattern):
+    """
+    Remove an option from cmd
+
+    :param cmd: the cmd
+    :param opt_pattern: a pattern stands for the option
+    """
+    for pattern in to_list(opt_pattern):
+        for item in re.findall(pattern, cmd):
+            cmd = cmd.replace(item, '').strip()
+    return cmd
+
+
+def params_get(params, name, default=None):
+    """
+    A convient function for v2v to get value of a variant from params.
+
+    The main advantange is all variants don't need to be passed to
+    utils_v2v any more, this function will get it from the standard
+    'params' if 'params' was passed to utils_v2v.
+
+    This requires all variants have same name in the whole test life.
+
+    :param params: A dictionary includes all of required parameters.
+    :param name: A variant name
+    :param default: The default value of a variant
+    """
+    return params.get(name) or (params.get('params').get(
+        name, default) if 'params' in params else params.get(name, default))
+
+
+def interactive_run(params, timeout=300, *args, **kwargs):
+    """
+    Run v2v command interactively.
+
+    :param params: A dictionary includes all of required parameters.
+    :param timeout: The max command running time.
+    """
+    username = params_get(params, 'username', 'root')
+    password = params_get(params, 'password')
+    luks_password = params_get(params, 'luks_password')
+    choices = params_get(params, 'custom_inputs')
+    cmd_result = process.CmdResult()
+
+    # For last line matching
+    LAST_LINE_PROMPTS = [r"[Ee]nter.*username",
+                         r"[Ee]nter.*authentication name",
+                         r"[Ee]nter root.*? password",
+                         r"[Ee]nter host password",
+                         r"[Ee]nter.*password",
+                         r"password:",
+                         r"Enter a number between 1 and 2",
+                         r"Enter key or passphrase",
+                         r"Finishing off",
+                         r"Converting .*? to run on"]
+
+    # Interaction Done
+    FREE_RUNNING_PROMPTS = [r"Converting .*? to run on"]
+
+    def handle_prompts(session, timeout=300, interval=1.0):
+        """
+        Interact with v2v when specific patterns are matched.
+
+        :param session: An Expect or ShellSession instance to operate on
+        :param timeout: The max command running time.
+        :param interval: Seconds to wait until start reading output again
+        """
+
+        free_running = False
+        last_line = ''
+        # v2v running timeout, it is set when interaction finished.
+        # This value gives v2v enough time to execute.
+        # If '-v -x' not enabled, it should be greater than 7200s.
+        running_timeout = timeout
+        # interactive timeout
+        # when debug enabled in v2v, lots of logs keep outputing to stdout,
+        # the timeout value can be smaller. If debug is off, the timeout
+        # should be big enough to avoid unexpected timeout.
+        timeout = 120 if '-v -x' in session.command else 300
+        while True:
+            time.sleep(interval)
+            if not session.is_alive() or session.is_defunct():
+                break
+
+            try:
+                match, _ = session.read_until_last_line_matches(
+                    LAST_LINE_PROMPTS, timeout=timeout, internal_timeout=0.5)
+                if match in [0, 1]:  # "username:"
+                    logging.debug(
+                        "Got username prompt; sending '%s'", username)
+                    session.sendline(username)
+                elif match in [2, 3, 4, 5]:
+                    logging.debug(
+                        "Got password prompt, sending '%s'",
+                        asterisk_passwd(password))
+                    session.sendline(password)
+                elif match == 6:  # Wait for custom input
+                    logging.debug(
+                        "Got console '%s', send input list %s", match, choices)
+                    session.sendline(choices)
+                elif match == 7:  # LUKS password
+                    logging.debug(
+                        "Got password prompt, sending '%s'",
+                        asterisk_passwd(luks_password))
+                    session.sendline(luks_password)
+                elif match == 8:  # Done
+                    break
+                elif match == 9:  # Interaction Finish
+                    timeout = running_timeout
+            except aexpect.ExpectTimeoutError:
+                # when free_running is true and timeout happens, it means
+                # the command doesn't have any response, may be dead or
+                # performance is quite poor.
+                logging.debug("timeout happens")
+                if free_running:
+                    raise
+
+                # If timeout happens two times and the last line are same,
+                # it means v2v may be dead or performance is quite poor.
+                cont = session.get_output()
+                new_last_line = ''
+                nonempty_lines = [
+                    l for l in cont.splitlines()[-10:] if l.strip()]
+                if nonempty_lines:
+                    new_last_line = nonempty_lines[-1]
+                if last_line and last_line == new_last_line:
+                    logging.debug(
+                        'v2v command may be dead or have bad performance')
+                    raise
+                last_line = new_last_line
+
+                # Set a big timeout value when interaction finishes
+                for pattern in FREE_RUNNING_PROMPTS:
+                    if re.search(pattern, cont):
+                        logging.debug(
+                            "interaction finished and begin running freely")
+                        free_running = True
+                        timeout = running_timeout
+                        break
+
+    try:
+        subproc = aexpect.Expect(*args, **kwargs)
+        logging.debug('Running command: %s', subproc.command)
+        handle_prompts(subproc, timeout)
+    except aexpect.ExpectProcessTerminatedError:
+        # v2v cmd is dead or finished
+        pass
+    except Exception:
+        # aexpect.ExpectTimeoutError or other exceptions
+        # send 'ctrl+c' to v2v process to interrupt running quickly
+        subproc.sendcontrol('c')
+        raise
+    finally:
+        logging.debug(
+            "Command '%s' finished with status %s",
+            subproc.command,
+            subproc.get_status())
+        # Set command result
+        cmd_result.command = subproc.command
+        cmd_result.exit_status = subproc.get_status()
+        cmd_result.stdout = subproc.get_output()
+        # Close the expect session
+        subproc.close()
+
+    return cmd_result
