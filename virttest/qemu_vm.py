@@ -1526,6 +1526,25 @@ class VM(virt_vm.BaseVM):
         add_memorys(devices, params)
         mem = int(params.get("mem", 0))
 
+        # Get cpu model, before add smp, to determine cpu topology
+        cpu_model = params.get("cpu_model", "")
+        use_default_cpu_model = True
+        if cpu_model:
+            use_default_cpu_model = False
+            for model in re.split(",", cpu_model):
+                model = model.strip()
+                if model not in support_cpu_model:
+                    continue
+                cpu_model = model
+                break
+            else:
+                cpu_model = model
+                logging.error("Non existing CPU model %s will be passed "
+                              "to qemu (wrong config or negative test)", model)
+
+        if use_default_cpu_model:
+            cpu_model = params.get("default_cpu_model", "")
+
         # Add smp
         smp = params.get_numeric('smp')
         vcpu_maxcpus = params.get_numeric("vcpu_maxcpus")
@@ -1550,10 +1569,11 @@ class VM(virt_vm.BaseVM):
         if not amd_vendor_string:
             amd_vendor_string = "AuthenticAMD"
         if amd_vendor_string == cpu.get_cpu_vendor():
-            # AMD cpu do not support multi threads.
-            if params.get("test_negative_thread", "no") != "yes":
+            # AMD cpu do not support multi threads besides EPYC
+            if (params.get("test_negative_thread", "no") != "yes" and
+                    not cpu_model.startswith('EPYC')):
                 vcpu_threads = 1
-                txt = "Set vcpu_threads to 1 for AMD cpu."
+                txt = "Set vcpu_threads to 1 for AMD non-EPYC cpu."
                 logging.warn(txt)
 
         smp_err = ""
@@ -1652,24 +1672,6 @@ class VM(virt_vm.BaseVM):
                                             " smp and memory cfg.")
 
         # Add cpu model
-        cpu_model = params.get("cpu_model")
-        use_default_cpu_model = True
-        if cpu_model:
-            use_default_cpu_model = False
-            for model in re.split(",", cpu_model):
-                model = model.strip()
-                if model not in support_cpu_model:
-                    continue
-                cpu_model = model
-                break
-            else:
-                cpu_model = model
-                logging.error("Non existing CPU model %s will be passed "
-                              "to qemu (wrong config or negative test)", model)
-
-        if use_default_cpu_model:
-            cpu_model = params.get("default_cpu_model")
-
         if cpu_model:
             family = params.get("cpu_family", "")
             flags = params.get("cpu_model_flags", "")
