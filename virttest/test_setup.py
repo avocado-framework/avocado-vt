@@ -816,7 +816,8 @@ class PrivateBridgeConfig(object):
             if self.physical_nic:
                 if self.physical_nic.split(':', 1)[0] == "shell":
                     self.physical_nic = process.run(
-                        self.physical_nic.split(':', 1)[1], shell=True).stdout_text
+                        self.physical_nic.split(':', 1)[1], shell=True
+                        ).stdout_text.strip()
                 if self.physical_nic not in utils_net.get_host_iface():
                     raise exceptions.TestSetupFail("Physical network '%s'"
                                                    "does not exist" %
