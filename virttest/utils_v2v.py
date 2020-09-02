@@ -313,7 +313,7 @@ class Target(object):
                 for mac, _ in self._iface_list:
                     # Randomly cover both 'bridge' and 'network' even thought there is no
                     # difference.
-                    if random.choice(['bridge', 'network']) is 'network':
+                    if random.choice(['bridge', 'network']) == 'network':
                         self.net_vm_opts += " --mac %s:%s:%s" % (
                             mac, 'network', self.network)
                     else:
