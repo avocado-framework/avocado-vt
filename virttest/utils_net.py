@@ -4247,3 +4247,63 @@ def get_netkvm_param_value(vm, param):
         return value
     finally:
         session.close()
+
+
+def create_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
+    """
+    Create ovs bridge via tmux command on local or remote
+
+    :param ovs_bridge_name: The ovs bridge
+    :param session: The remote session
+    :param ignore_status: Whether to raise an exception when command fails
+    :return: The command status and output
+    """
+    runner = local_runner
+    if session:
+        runner = session.cmd
+    iface_name = get_net_if(runner=runner, state="UP")[0]
+    if not utils_package.package_install("tmux", session):
+        raise exceptions.TestError("Failed to install the tmux packages.")
+
+    res = utils_misc.cmd_status_output("which ovs-vsctl", shell=True,
+                                       ignore_status=False, session=session)[0]
+    if res == 1:
+        raise exceptions.TestError("ovs-vsctl: command not found, please make "
+                                   "sure the openvswitch or openvswitch2 pkg "
+                                   "is installed.")
+    cmd = "ovs-vsctl add-br {0};ovs-vsctl add-port {0} {1};dhclient -r;"\
+          "sleep 5 ;dhclient {0}".format(ovs_bridge_name, iface_name)
+    tmux_cmd = 'tmux -c "{}"'.format(cmd)
+    return utils_misc.cmd_status_output(tmux_cmd, shell=True, verbose=True,
+                                        ignore_status=ignore_status,
+                                        session=session)
+
+
+def delete_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
+    """
+    Delete ovs bridge via tmux command on local or remote
+
+    :param ovs_bridge_name: The ovs bridge
+    :param session: The remote session
+    :param ignore_status: Whether to raise an exception when command fails
+    :return: The command status and output
+    """
+    runner = local_runner
+    if session:
+        runner = session.cmd
+    iface_name = get_net_if(runner=runner, state="UP")[0]
+    if not utils_package.package_install("tmux", session):
+        raise exceptions.TestError("Failed to install the tmux packages.")
+
+    res = utils_misc.cmd_status_output("which ovs-vsctl", shell=True,
+                                       ignore_status=False, session=session)[0]
+    if res == 1:
+        raise exceptions.TestError("ovs-vsctl: command not found, please make "
+                                   "sure the openvswitch or openvswitch2 pkg "
+                                   "is installed.")
+    cmd = "ovs-vsctl del-port {0} {1};ovs-vsctl del-br {0};dhclient -r;"\
+          "sleep 5 ;dhclient {1}".format(ovs_bridge_name, iface_name)
+    tmux_cmd = 'tmux -c "{}"'.format(cmd)
+    return utils_misc.cmd_status_output(tmux_cmd, shell=True, verbose=True,
+                                        ignore_status=ignore_status,
+                                        session=session)
