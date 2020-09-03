@@ -3390,3 +3390,17 @@ class QMPMonitor(Monitor):
         cmd = "nbd-server-stop"
         self.verify_supported_cmd(cmd)
         return self.cmd(cmd)
+
+    def set_numa_node(self, option_type, **kwargs):
+        """
+        Run "set-numa-node" command and return the response
+
+        :params option_type: the type to be set, such as 'dist', 'node', 'cpu',
+                             'hmat-lb' and 'hmat-cache'
+        :params kwargs: keyword arguments for the specified type
+        """
+        cmd = "set-numa-node"
+        self.verify_supported_cmd(cmd)
+        args = {'type': option_type}
+        args.update(self._build_args(**kwargs))
+        return self.cmd(cmd, args)
