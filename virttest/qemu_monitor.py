@@ -1014,6 +1014,12 @@ class HumanMonitor(Monitor):
         """
         return self.cmd("info %s" % what, debug=debug)
 
+    def exit_preconfig(self):
+        """
+        Send "exit_preconfig" and return the response
+        """
+        return self.cmd(cmd="exit_preconfig")
+
     def query(self, what):
         """
         Alias for info.
@@ -2068,6 +2074,16 @@ class QMPMonitor(Monitor):
         if o['status'] == status:
             return True
         return False
+
+    def exit_preconfig(self):
+        """
+        Send "(x-)exit-preconfig" and return the response
+        """
+        feature = pick_supported_x_feature("exit-preconfig",
+                                           self._supported_cmds,
+                                           disable_auto_x_evaluation=False,
+                                           error_on_missing=True)
+        return self.cmd(cmd=feature)
 
     def get_events(self):
         """
