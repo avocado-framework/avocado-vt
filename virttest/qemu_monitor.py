@@ -1738,7 +1738,6 @@ class QMPMonitor(Monitor):
             self.cmd("qmp_capabilities")
 
             self._get_supported_cmds()
-            self._get_supported_hmp_cmds()
 
         except MonitorError as e:
             self._close_sock()
@@ -1858,6 +1857,8 @@ class QMPMonitor(Monitor):
 
         :return: True if cmd is supported, False if not supported.
         """
+        if not self._supported_hmp_cmds:
+            self._get_supported_hmp_cmds()
         if cmd and cmd in self._supported_hmp_cmds:
             return True
         return False
