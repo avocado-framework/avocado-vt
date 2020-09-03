@@ -156,7 +156,8 @@ def handle_prompts(session, username, password, prompt, timeout=10,
                  r"[Pp]lease wait", r"[Ww]arning", r"[Ee]nter.*username",
                  r"[Ee]nter.*password", r"[Cc]onnection timed out", prompt,
                  r"Escape character is.*",
-                 r"Command>"],
+                 r"Command>",
+                 r"[Ll]ost connection"],
                 timeout=timeout, internal_timeout=0.5)
             output += text
             if match == 0:  # "Are you sure you want to continue connecting"
@@ -189,18 +190,20 @@ def handle_prompts(session, username, password, prompt, timeout=10,
                     else:
                         msg = "Got username prompt after password prompt"
                     raise LoginAuthenticationError(msg, text)
-            elif match == 5:  # "Connection closed"
+            elif match == 5:   # "Connection closed"
                 raise LoginError("Client said 'connection closed'", text)
-            elif match == 6:  # "Connection refused"
+            elif match == 6:   # "Connection refused"
                 raise LoginError("Client said 'connection refused'", text)
             elif match == 11:  # Connection timeout
                 raise LoginError("Client said 'connection timeout'", text)
-            elif match == 7:  # "Please wait"
+            elif match == 15:  # Connection lost
+                raise LoginError("Disconnected to vm on remote host", text)
+            elif match == 7:   # "Please wait"
                 if debug:
                     logging.debug("Got 'Please wait'")
                 timeout = 30
                 continue
-            elif match == 8:  # "Warning added RSA"
+            elif match == 8:   # "Warning added RSA"
                 if debug:
                     logging.debug("Got 'Warning added RSA to known host list")
                 continue
@@ -1351,3 +1354,91 @@ class RemoteRunner(object):
         if status and (not ignore_status):
             raise process.CmdError(command, cmd_result)
         return cmd_result
+
+
+class VMManager(object):
+    """Manage VM on remote host"""
+
+    def __init__(self, params):
+        self.remote_host = params.get("server_ip")
+        self.remote_user = params.get("server_user")
+        self.remote_pwd = params.get("server_pwd")
+        self.runner = RemoteRunner(host=self.remote_host,
+                                   username=self.remote_user,
+                                   password=self.remote_pwd)
+
+    def setup_ssh_auth(self, vm_ip, vm_pwd, vm_user="root",
+                       port=22, timeout=20):
+        """
+        Setup SSH passwordless access between remote host
+        and VM, which is on the remote host.
+        """
+        pri_key = '~/.ssh/id_rsa'
+        pub_key = '~/.ssh/id_rsa.pub'
+        # Check the private key and public key file on remote host.
+        cmd = "ls %s %s" % (pri_key, pub_key)
+        result = self.runner.run(cmd, ignore_status=True)
+        if result.exit_status:
+            logging.debug("Create new SSH key pair")
+            self.runner.run("ssh-keygen -t rsa -q -N '' -f %s" % pri_key)
+        else:
+            logging.info("SSH key pair already exist")
+        session = self.runner.session
+        # To avoid the host key checking
+        ssh_options = "%s %s" % ("-o UserKnownHostsFile=/dev/null",
+                                 "-o StrictHostKeyChecking=no")
+        session.sendline("ssh-copy-id %s -i %s root@%s"
+                         % (ssh_options, pub_key, vm_ip))
+
+        handle_prompts(session, vm_user, vm_pwd, r"[\#\$]\s*$", debug=True)
+
+    def check_network(self, vm_ip, count=5, timeout=60):
+        """
+        Check VM network connectivity
+        """
+        logging.debug("Check VM network connectivity...")
+        vm_net_connectivity = False
+        sleep_time = 5
+        result = ""
+        cmd = "ping -c %s %s" % (count, vm_ip)
+        while timeout > 0:
+            result = self.runner.run(cmd, ignore_status=True)
+            if result.exit_status:
+                time.sleep(sleep_time)
+                timeout -= sleep_time
+                continue
+            else:
+                vm_net_connectivity = True
+                logging.info(result.stdout_text)
+                break
+
+        if not vm_net_connectivity:
+            raise exceptions.TestFail("Failed to ping %s: %s"
+                                      % (vm_ip, result.stdout_text))
+
+    def run_command(self, vm_ip, command, vm_user="root", runner=None,
+                    ignore_status=False):
+        """
+        Run command in the VM.
+
+        :param vm_ip: The IP address of the VM
+        :param command: The command to be executed in the VM
+        :param vm_user: The logon user to the VM
+        :param runner: The runner to execute the command
+        :param ignore_status: True, not raise an exception and
+            will return CmdResult object. False, raise an exception.
+
+        :raise: exceptions.TestFail, if the command fails
+        :return: CmdResult object
+        """
+        ssh_options = "%s %s" % ("-o UserKnownHostsFile=/dev/null",
+                                 "-o StrictHostKeyChecking=no")
+        cmd = 'ssh %s %s@%s "%s"' % (ssh_options, vm_user, vm_ip, command)
+        ret = None
+        try:
+            ret = self.runner.run(cmd, ignore_status=ignore_status)
+        except process.CmdError as detail:
+            logging.debug("Failed to run '%s' in the VM: %s", cmd, detail)
+            raise exceptions.TestFail("Failed to run '%s' in the VM: %s",
+                                      cmd, detail)
+        return ret
