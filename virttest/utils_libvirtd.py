@@ -184,25 +184,36 @@ class DaemonSocket(object):
 class LibvirtdSession(object):
 
     """
-    Interaction libvirt daemon session by directly call the libvirtd command.
+    Interaction daemon session by directly call the command.
     With gdb debugging feature can be optionally started.
+    It is recommended to use the service in the modular daemons for
+    initialization, because Libvirtd() class will switch to the
+    corresponding service according to the environment,
+    eg. If the value of "service_name" is "virtqemud",
+    it will take "virtqemud" if the modular daemon is enabled
+    and "libvirtd" if it's disabled.
     """
 
     def __init__(self, gdb=False,
                  logging_handler=None,
                  logging_params=(),
-                 logging_pattern=r'.*'):
+                 logging_pattern=r'.*',
+                 service_name=None):
         """
         :param gdb: Whether call the session with gdb debugging support
         :param logging_handler: Callback function to handle logging
         :param logging_pattern: Regex for filtering specific log lines
+        :param service_name: Service name such as virtqemud or libvirtd
         """
         self.gdb = None
         self.tail = None
         self.running = False
         self.pid = None
+        self.service_name = service_name
         self.bundle = {"stop-info": None}
-        self.libvirtd_service = Libvirtd()
+        self.libvirtd_service = Libvirtd(service_name=self.service_name)
+        # Get an executable program to debug by GDB
+        self.service_exec = self.libvirtd_service.service_list[0]
         self.was_running = self.libvirtd_service.is_running()
         if self.was_running:
             logging.debug('Stopping libvirtd service')
@@ -213,7 +224,7 @@ class LibvirtdSession(object):
         self.logging_pattern = logging_pattern
 
         if gdb:
-            self.gdb = GDB(LIBVIRTD)
+            self.gdb = GDB(self.service_exec)
             self.gdb.set_callback('stop', self._stop_callback, self.bundle)
             self.gdb.set_callback('start', self._start_callback, self.bundle)
             self.gdb.set_callback('termination', self._termination_callback)
@@ -287,7 +298,7 @@ class LibvirtdSession(object):
             self.pid = self.gdb.pid
         else:
             self.tail = aexpect.Tail(
-                "%s %s" % (LIBVIRTD, arg_str),
+                "%s %s" % (self.service_exec, arg_str),
                 output_func=self._output_handler,
                 termination_func=self._termination_handler,
             )
