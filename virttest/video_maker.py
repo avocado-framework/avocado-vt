@@ -125,9 +125,9 @@ class GiEncoder(object):
             image_size = (800, 600)
         else:
             if image_size[0] < 640:
-                image_size = 640
+                image_size[0] = 640
             if image_size[1] < 480:     # is list pylint: disable=E1136
-                image_size = 480
+                image_size[1] = 480
 
         if self.verbose:
             logging.debug('Normalizing image files to size: %s' % (image_size,))
