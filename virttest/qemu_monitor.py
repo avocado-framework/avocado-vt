@@ -792,16 +792,6 @@ class HumanMonitor(Monitor):
 
             self._get_supported_cmds()
 
-            # set_link in RHEL5 host use "up|down" instead of "on|off" which is
-            # used in RHEL6 host and Fedora host. So here find out the string
-            # this monitor accept.
-            o = self.cmd("help set_link")
-            try:
-                self.on_str, self.off_str = re.findall("(\w+)\|(\w+)", o)[0]
-            except IndexError:
-                # take a default value if can't get on/off string from monitor.
-                self.on_str, self.off_str = "on", "off"
-
         except MonitorError as e:
             self._close_sock()
             if suppress_exceptions:
@@ -1053,9 +1043,7 @@ class HumanMonitor(Monitor):
         :param up: Bool value, True=set up this link, False=Set down this link
         :return: The response to the command
         """
-        status = self.off_str
-        if up:
-            status = self.on_str
+        status = "on" if up else "off"
         return self.cmd("set_link %s %s" % (name, status))
 
     def live_snapshot(self, device, snapshot_file, **kwargs):
