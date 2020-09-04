@@ -1296,6 +1296,22 @@ class VM(virt_vm.BaseVM):
                 numa_cmd += ",nodeid=%s" % nodeid
             return numa_cmd
 
+        def add_numa_cpu(devices, node_id, socket_id=None, die_id=None,
+                         core_id=None, thread_id=None):
+            """
+            This function is used to add numa cpu to guest command line
+            node-id=node[,socket-id=x][,die-id=y],[core-id=y][,thread-id=z]
+            """
+            if not devices.has_option("numa cpu,.*"):
+                return ""
+            numa_cpu_cmd = " -numa cpu,node-id=%s" % node_id
+            options = {"socket-id": socket_id, "die-id": die_id,
+                       "core-id": core_id, "thread-id": thread_id}
+            for key, value in options.items():
+                if value is not None:
+                    numa_cpu_cmd += ",%s=%s" % (key, value)
+            return numa_cpu_cmd
+
         def add_balloon(devices, devid=None, bus=None,
                         use_old_format=None, options={}):
             """
@@ -1659,6 +1675,18 @@ class VM(virt_vm.BaseVM):
             cmdline = add_numa_node(devices, numa_memdev,
                                     numa_mem, numa_cpus, numa_nodeid)
             devices.insert(StrDev('numa', cmdline=cmdline))
+
+        for numa_cpu in params.objects("guest_numa_cpus"):
+            numa_cpu_params = params.object_params(numa_cpu)
+            numa_cpu_nodeid = numa_cpu_params.get("numa_cpu_nodeid")
+            numa_cpu_socketid = numa_cpu_params.get("numa_cpu_socketid")
+            numa_cpu_dieid = numa_cpu_params.get("numa_cpu_dieid")
+            numa_cpu_coreid = numa_cpu_params.get("numa_cpu_coreid")
+            numa_cpu_threadid = numa_cpu_params.get("numa_cpu_threadid")
+            cmdline = add_numa_cpu(devices, numa_cpu_nodeid, numa_cpu_socketid,
+                                   numa_cpu_dieid, numa_cpu_coreid,
+                                   numa_cpu_threadid)
+            devices.insert(StrDev('numa_cpu', cmdline=cmdline))
 
         if params.get("numa_consistency_check_cpu_mem", "no") == "yes":
             if (numa_total_cpus > vcpu_maxcpus or numa_total_mem > int(mem) or
