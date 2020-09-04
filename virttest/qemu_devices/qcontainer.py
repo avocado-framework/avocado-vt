@@ -133,15 +133,18 @@ class DevContainer(object):
         self.__execute_qemu_last = None
         self.__execute_qemu_out = ""
         # Check whether we need to add machine_type
-        cmd = "%s -device \? 2>&1" % qemu_binary
+        cmd = ("echo -e 'quit' | %s -monitor stdio -nodefaults -nographic -S"
+               % qemu_binary)
         result = process.run(cmd, timeout=10,
                              ignore_status=True,
+                             allow_output_check="combined",
                              shell=True,
                              verbose=False)
         # Some architectures (arm) require machine type to be always set
-        if result.exit_status and b"machine specified" in result.stdout:
+        failed_pattern = r'(?:kvm_init_vcpu failed)|(?:machine specified)'
+        if result.exit_status and re.search(failed_pattern, result.stdout_text):
             self.__workaround_machine_type = True
-            basic_qemu_cmd = "%s -machine virt" % qemu_binary
+            basic_qemu_cmd = "%s -machine none" % qemu_binary
         else:
             self.__workaround_machine_type = False
             basic_qemu_cmd = qemu_binary
@@ -604,7 +607,7 @@ class DevContainer(object):
         """
         if self.__execute_qemu_last != options:
             if self.__workaround_machine_type:
-                cmd = "%s -machine virt %s 2>&1" % (self.__qemu_binary,
+                cmd = "%s -machine none %s 2>&1" % (self.__qemu_binary,
                                                     options)
             else:
                 cmd = "%s %s 2>&1" % (self.__qemu_binary, options)
