@@ -166,7 +166,6 @@ class VM(virt_vm.BaseVM):
             self.virtio_ports = []      # virtio_console / virtio_serialport
             self.pci_assignable = None
             self.uuid = None
-            self.vcpu_threads = []
             self.vhost_threads = []
             self.devices = None
             self.logs = {}
@@ -203,6 +202,10 @@ class VM(virt_vm.BaseVM):
         self.start_monotonic_time = 0.0
         self.last_boot_index = 0
         self.last_driver_index = 0
+
+    @property
+    def vcpu_threads(self):
+        return self.get_vcpu_pids(debug=False)
 
     def check_capability(self, capability):
         """
@@ -257,6 +260,18 @@ class VM(virt_vm.BaseVM):
             return False
         try:
             self.verify_status("paused")
+            return True
+        except virt_vm.VMStatusError:
+            return False
+
+    def is_preconfig(self):
+        """
+        Return True if the qemu process is in preconfig status
+        """
+        if self.is_dead():
+            return False
+        try:
+            self.verify_status("preconfig")
             return True
         except virt_vm.VMStatusError:
             return False
@@ -1468,6 +1483,9 @@ class VM(virt_vm.BaseVM):
         qemu_stop = params.get("qemu_stop", "on")
         if qemu_stop == "on":
             devices.insert(StrDev('-S', cmdline="-S"))
+        qemu_preconfig = params.get_boolean("qemu_preconfig")
+        if qemu_preconfig:
+            devices.insert(StrDev('preconfig', cmdline="--preconfig"))
         # Add the VM's name
         devices.insert(StrDev('vmname', cmdline=add_name(name)))
 
@@ -3105,8 +3123,9 @@ class VM(virt_vm.BaseVM):
                 raise e
 
             logging.debug("VM appears to be alive with PID %s", self.get_pid())
-            self.vcpu_threads = self.get_vcpu_pids(debug=True)
-
+            # Record vcpu infos in debug log
+            if not self.is_preconfig():
+                self.get_vcpu_pids(debug=True)
             vhost_thread_pattern = params.get("vhost_thread_pattern",
                                               r"\w+\s+(\d+)\s.*\[vhost-%s\]")
             self.vhost_threads = self.get_vhost_threads(vhost_thread_pattern)
@@ -3125,6 +3144,9 @@ class VM(virt_vm.BaseVM):
             # Wait for IO channels setting up completely,
             # such as serial console.
             time.sleep(1)
+
+            if self.is_preconfig():
+                return
 
             if params.get("paused_after_start_vm") != "yes":
                 # start guest
@@ -3629,7 +3651,6 @@ class VM(virt_vm.BaseVM):
         except qemu_monitor.QMPCmdError as e:
             return (False, str(e))
 
-        self.vcpu_threads = self.get_vcpu_pids()
         # Will hotplug/unplug more than one vcpu.
         add_remove_count = int(self.params.get("vcpu_threads", 1))
         if unplug == "yes":
@@ -4182,6 +4203,10 @@ class VM(virt_vm.BaseVM):
                 'qemu_binary'] = utils_misc.get_qemu_dst_binary(self.params)
         if env:
             env.register_vm("%s_clone" % clone.name, clone)
+
+        # "preconfig" is meaningless for dest, remove it whatever the value is
+        if "qemu_preconfig" in clone.params:
+            del clone.params["qemu_preconfig"]
 
         try:
             if (local and not (migration_exec_cmd_src and

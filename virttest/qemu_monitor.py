@@ -792,16 +792,6 @@ class HumanMonitor(Monitor):
 
             self._get_supported_cmds()
 
-            # set_link in RHEL5 host use "up|down" instead of "on|off" which is
-            # used in RHEL6 host and Fedora host. So here find out the string
-            # this monitor accept.
-            o = self.cmd("help set_link")
-            try:
-                self.on_str, self.off_str = re.findall("(\w+)\|(\w+)", o)[0]
-            except IndexError:
-                # take a default value if can't get on/off string from monitor.
-                self.on_str, self.off_str = "on", "off"
-
         except MonitorError as e:
             self._close_sock()
             if suppress_exceptions:
@@ -1024,6 +1014,12 @@ class HumanMonitor(Monitor):
         """
         return self.cmd("info %s" % what, debug=debug)
 
+    def exit_preconfig(self):
+        """
+        Send "exit_preconfig" and return the response
+        """
+        return self.cmd(cmd="exit_preconfig")
+
     def query(self, what):
         """
         Alias for info.
@@ -1053,9 +1049,7 @@ class HumanMonitor(Monitor):
         :param up: Bool value, True=set up this link, False=Set down this link
         :return: The response to the command
         """
-        status = self.off_str
-        if up:
-            status = self.on_str
+        status = "on" if up else "off"
         return self.cmd("set_link %s %s" % (name, status))
 
     def live_snapshot(self, device, snapshot_file, **kwargs):
@@ -1738,7 +1732,6 @@ class QMPMonitor(Monitor):
             self.cmd("qmp_capabilities")
 
             self._get_supported_cmds()
-            self._get_supported_hmp_cmds()
 
         except MonitorError as e:
             self._close_sock()
@@ -1858,6 +1851,8 @@ class QMPMonitor(Monitor):
 
         :return: True if cmd is supported, False if not supported.
         """
+        if not self._supported_hmp_cmds:
+            self._get_supported_hmp_cmds()
         if cmd and cmd in self._supported_hmp_cmds:
             return True
         return False
@@ -2079,6 +2074,16 @@ class QMPMonitor(Monitor):
         if o['status'] == status:
             return True
         return False
+
+    def exit_preconfig(self):
+        """
+        Send "(x-)exit-preconfig" and return the response
+        """
+        feature = pick_supported_x_feature("exit-preconfig",
+                                           self._supported_cmds,
+                                           disable_auto_x_evaluation=False,
+                                           error_on_missing=True)
+        return self.cmd(cmd=feature)
 
     def get_events(self):
         """
