@@ -86,3 +86,27 @@ def shrink_volume(session, vol_id, size):
     shrink_cmd += 'echo shrink desired=%s >> {0} ' % size
     shrink_cmd += '&& diskpart /s {0}'
     session.cmd(shrink_cmd.format(script_path))
+
+
+def get_disk_props_by_serial_number(session, serial_number, props):
+    """
+    Get disk drive value of properties by serial number in windows guest.
+
+    :param session: Windows VM session.
+    :type session: aexpect.ShellSession
+    :param serial_number: The serial number of disk drive.
+    :type serial_number: str
+    :param props: The list of properties to be get.
+                  e.g: ['DeviceID', 'Index', 'Name']
+    :type props: list
+    :return: The mapping between properties and values.
+    :rtype: dict
+    """
+    cond = "SerialNumber like '%s'" % serial_number
+    cmd = wmic.make_query('diskdrive', cond, props=props, get_swch=wmic.FMT_TYPE_LIST)
+    mapping = utils_misc.wait_for(
+            lambda: wmic.parse_list(session.cmd(cmd, timeout=120)), 240)[-1]
+
+    if isinstance(mapping, str):
+        return {props[0]: mapping}
+    return mapping
