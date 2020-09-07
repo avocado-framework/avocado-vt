@@ -1557,6 +1557,7 @@ class DevContainer(object):
         :return: QDev device
         """
         dev_options = {}
+        char_device = None
         usb_type = params.get("usb_type")
         if usb_type == "usb-host":
             dev_options["hostbus"] = params.get("usbdev_option_hostbus")
@@ -1568,14 +1569,23 @@ class DevContainer(object):
             productid = params.get("usbdev_option_productid")
             if productid:
                 dev_options["productid"] = "0x%s" % productid
+        elif usb_type == "usb-redir":
+            # Add usb-redir device chardev backend
+            chardev_id = params.get("chardev_id", "chardev_%s" % usb_name)
+            char_device = self.chardev_define_by_params(chardev_id, params)
+            dev_options["chardev"] = chardev_id
+            dev_options["filter"] = params.get("usbdev_option_filter")
+            dev_options["bootindex"] = params.get("usbdev_option_bootindex")
 
-        return self.usb_by_variables(usb_name,
-                                     usb_type,
-                                     params.get("usb_controller"),
-                                     params.get("bus"),
-                                     params.get("port"),
-                                     params.get("usbdev_serial"),
-                                     dev_options)
+        usb_device = self.usb_by_variables(usb_name,
+                                           usb_type,
+                                           params.get("usb_controller"),
+                                           params.get("bus"),
+                                           params.get("port"),
+                                           params.get("usbdev_serial"),
+                                           dev_options)
+
+        return [char_device, usb_device] if char_device else usb_device
 
     # Images (disk, cdrom, floppy) device related methods
     def images_define_by_variables(self, name, filename, pci_bus, index=None,
