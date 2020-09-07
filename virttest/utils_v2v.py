@@ -1836,8 +1836,37 @@ def compare_version(interval, version=None, cmd=None):
     """
     if not version:
         if not cmd:
-            cmd = 'rpm -q libguestfs'
+            cmd = 'rpm -q virt-v2v'
         # exit status checking will be done in process.run
         version = process.run(cmd, shell=True).stdout_text.strip()
 
     return check_version(version, interval)
+
+
+def multiple_versions_compare(interval):
+    """
+    Mutiple pkgs can be specified by ';', e.g.
+    "[libguestfs-1.40,);[nbkdit-1.17.4,)"
+
+    If interval is '', it means no version limitation and return True.
+    If interval is not '', return True for compareing success and False
+    for Failure.
+
+    :param interval: An interval is a string representation of a
+    """
+    re_pkg_name = r'(.*?)-(?=\d+\.?)+'
+    versions = interval.split(';')
+    # ';' is used to split mutiple pkgs.
+    for ver_i in versions:
+        ver = ver_i.strip('[]()')
+        if not ver:
+            continue
+        if not re.search(re_pkg_name, ver):
+            return False
+
+        pkg_name = re.search(re_pkg_name, ver).group(1)
+        cmd = 'rpm -q %s' % pkg_name
+        if not compare_version(ver_i, cmd=cmd):
+            return False
+
+    return True
