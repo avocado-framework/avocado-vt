@@ -5,6 +5,7 @@ Specializations of base.AccessorBase for particular XML manipulation types
 import logging
 
 from virttest import xml_utils
+from virttest import element_tree
 from virttest.propcan import PropCanBase
 from virttest.libvirt_xml import xcepts, base
 
@@ -696,7 +697,8 @@ class XMLElementList(AccessorGeneratorBase):
     required_dargs = ('parent_xpath', 'tag_name', 'marshal_from', 'marshal_to')
 
     def __init__(self, property_name, libvirtxml, forbidden=None,
-                 parent_xpath=None, marshal_from=None, marshal_to=None):
+                 parent_xpath=None, marshal_from=None, marshal_to=None,
+                 has_subclass=None):
         """
         Create undefined accessors on libvirt instance
 
@@ -719,7 +721,8 @@ class XMLElementList(AccessorGeneratorBase):
                                              forbidden,
                                              parent_xpath=parent_xpath,
                                              marshal_from=marshal_from,
-                                             marshal_to=marshal_to)
+                                             marshal_to=marshal_to,
+                                             has_subclass=has_subclass)
 
     class Getter(AccessorBase):
 
@@ -727,7 +730,7 @@ class XMLElementList(AccessorGeneratorBase):
         Retrieve list of values as returned by the marshal_to callable
         """
 
-        __slots__ = add_to_slots('parent_xpath', 'marshal_to')
+        __slots__ = add_to_slots('parent_xpath', 'marshal_to', 'has_subclass')
 
         def __call__(self):
             # Parent structure cannot be pre-determined as in other classes
@@ -747,14 +750,23 @@ class XMLElementList(AccessorGeneratorBase):
             for child in parent.getchildren():
                 # Call user-defined helper to translate Element
                 # into simple pre-defined format.
-                try:
-                    # To support an optional text parameter, compatible
-                    # with no text parameter.
-                    item = self.marshal_to(child.tag, dict(list(child.items())),
-                                           index, self.libvirtxml, child.text)
-                except TypeError:
-                    item = self.marshal_to(child.tag, dict(list(child.items())),
+
+                # To support converting xml elements directly to a list of
+                # xml objects, first create xmltreefile for new object
+                if self.has_subclass:
+                    new_xmltreefile = xml_utils.XMLTreeFile(
+                        element_tree.tostring(child))
+                    item = self.marshal_to(child.tag, new_xmltreefile,
                                            index, self.libvirtxml)
+                else:
+                    try:
+                        # To support an optional text parameter, compatible
+                        # with no text parameter.
+                        item = self.marshal_to(child.tag, dict(list(child.items())),
+                                               index, self.libvirtxml, child.text)
+                    except TypeError:
+                        item = self.marshal_to(child.tag, dict(list(child.items())),
+                                               index, self.libvirtxml)
                 if item is not None:
                     result.append(item)
                 # Always use absolute index (even if item was None)
@@ -767,7 +779,7 @@ class XMLElementList(AccessorGeneratorBase):
         Set child elements as returned by the marshal_to callable
         """
 
-        __slots__ = add_to_slots('parent_xpath', 'marshal_from')
+        __slots__ = add_to_slots('parent_xpath', 'marshal_from', 'has_subclass')
 
         def __call__(self, value):
             type_check('value', value, list)
@@ -800,6 +812,12 @@ class XMLElementList(AccessorGeneratorBase):
                                                 index,
                                                 str(item)))
                     raise xcepts.LibvirtXMLAccessorError(msg)
+
+                # Handle xml sub-element items
+                if self.has_subclass:
+                    parent.append(element_tuple[1].xmltreefile.getroot())
+                    self.xmltreefile().write()
+                    continue
 
                 # Handle element text values in element_tuple[1].
                 text = None
@@ -838,7 +856,7 @@ class XMLElementList(AccessorGeneratorBase):
         Remove ALL child elements for which marshal_to does NOT return None
         """
 
-        __slots__ = add_to_slots('parent_xpath', 'marshal_to')
+        __slots__ = add_to_slots('parent_xpath', 'marshal_to', 'has_subclass')
 
         def __call__(self):
             parent = self.xmltreefile().find(self.parent_xpath)
@@ -849,14 +867,22 @@ class XMLElementList(AccessorGeneratorBase):
             todel = []
             index = 0
             for child in parent.getchildren():
-                try:
-                    # To support an optional text parameter, compatible
-                    # with no text parameter.
-                    item = self.marshal_to(child.tag, dict(list(child.items())),
-                                           index, self.libvirtxml, child.text)
-                except TypeError:
-                    item = self.marshal_to(child.tag, dict(list(child.items())),
+                # To support directly deleting xml elements xml objects,
+                # first create xmltreefile for new object
+                if self.has_subclass:
+                    new_xmltreefile = xml_utils.XMLTreeFile(
+                        element_tree.tostring(child))
+                    item = self.marshal_to(child.tag, new_xmltreefile,
                                            index, self.libvirtxml)
+                else:
+                    try:
+                        # To support an optional text parameter, compatible
+                        # with no text parameter.
+                        item = self.marshal_to(child.tag, dict(list(child.items())),
+                                               index, self.libvirtxml, child.text)
+                    except TypeError:
+                        item = self.marshal_to(child.tag, dict(list(child.items())),
+                                               index, self.libvirtxml)
                 # Always use absolute index (even if item was None)
                 index += 1
                 # Account for case where child elements are mixed in

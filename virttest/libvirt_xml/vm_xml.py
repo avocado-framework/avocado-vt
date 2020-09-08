@@ -1770,8 +1770,9 @@ class VMCPUXML(base.LibvirtXMLBase):
         accessors.XMLElementList(property_name="numa_cell",
                                  libvirtxml=self,
                                  parent_xpath='numa',
-                                 marshal_from=self.marshal_from_cell,
-                                 marshal_to=self.marshal_to_cell)
+                                 marshal_from=self.marshal_from_cells,
+                                 marshal_to=self.marshal_to_cells,
+                                 has_subclass=True)
         accessors.XMLElementDict(property_name="cache",
                                  libvirtxml=self,
                                  forbidden=[],
@@ -1784,28 +1785,26 @@ class VMCPUXML(base.LibvirtXMLBase):
         self.xml = '<cpu/>'
 
     @staticmethod
-    def marshal_from_cell(item, index, libvirtxml):
+    def marshal_from_cells(item, index, libvirtxml):
         """
-        Convert a dict to cell tag and attributes.
+        Convert an xml object to cache tag and xml element.
         """
-        del index
-        del libvirtxml
-        if not isinstance(item, dict):
-            raise xcepts.LibvirtXMLError("Expected a dictionary of cell "
-                                         "attributes, not a %s"
-                                         % str(item))
-        return ('cell', dict(item))
+        if isinstance(item, NumaCellXML):
+            return 'cell', item
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of numa cell "
+                                         "instances, not a %s" % str(item))
 
     @staticmethod
-    def marshal_to_cell(tag, attr_dict, index, libvirtxml):
+    def marshal_to_cells(tag, new_treefile, index, libvirtxml):
         """
-        Convert a cell tag and attributes to a dict.
+        Convert a cache tag xml element to an object of CellCacheXML.
         """
-        del index
-        del libvirtxml
         if tag != 'cell':
-            return None
-        return dict(attr_dict)
+            return None     # Don't convert this item
+        newone = NumaCellXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
     def get_feature_list(self):
         """
@@ -1906,6 +1905,30 @@ class VMCPUXML(base.LibvirtXMLBase):
             feature_node.update({'policy': policy})
         xml_utils.ElementTree.SubElement(node, 'feature', feature_node)
 
+    @staticmethod
+    def dicts_to_cells(cell_list):
+        """
+        Convert a list of dict-type numa cell attrs to a list of numa cells
+        Only support str of int type of attr value, not support xml sub elements
+
+        :param cell_list: a list of attrs of numa cells
+        :return: a list of numa cells
+        """
+        # Attributes of numa cells should be dict-type.
+        if not all([isinstance(attr, dict) for attr in cell_list]):
+            raise TypeError('Attributes of numa cells should be dict-type.')
+
+        # Attributes values should be str-type of int-type.
+        attr_values = [val for cell_val in cell_list for val in cell_val.values()]
+        if not all([isinstance(val, str) or isinstance(val, int) for val in attr_values]):
+            raise TypeError('Attributes values should be str-type of int-type.')
+
+        # Convert list of attrs to list of NumaCellXML objects
+        cells = [(NumaCellXML(), attrs) for attrs in cell_list]
+        [x[0].update(x[1]) for x in cells]
+        numa_cells = [x[0] for x in cells]
+        return numa_cells
+
     def remove_numa_cells(self):
         """
         Remove numa cells from xml
@@ -1933,6 +1956,110 @@ class VMCPUXML(base.LibvirtXMLBase):
             cpu_xml.add_feature(feature_name)
 
         return cpu_xml
+
+
+# Sub-element of cpu/numa
+class NumaCellXML(base.LibvirtXMLBase):
+
+    """cell element of numa"""
+
+    __slots__ = ('id', 'cpus', 'memory', 'unit', 'discard', 'memAccess',
+                 'caches')
+
+    def __init__(self, virsh_instance=base.virsh):
+        """
+        Create new Numa_CellXML instance
+        """
+        accessors.XMLAttribute(property_name="id",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='cell',
+                               attribute='id')
+        accessors.XMLAttribute(property_name="cpus",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='cell',
+                               attribute='cpus')
+        accessors.XMLAttribute(property_name="memory",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='cell',
+                               attribute='memory')
+        accessors.XMLAttribute(property_name="unit",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='cell',
+                               attribute='unit')
+        accessors.XMLAttribute(property_name="discard",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='cell',
+                               attribute='discard')
+        accessors.XMLAttribute(property_name="memAccess",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='cell',
+                               attribute='memAccess')
+        accessors.XMLElementList(property_name="caches",
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 marshal_from=self.marshal_from_caches,
+                                 marshal_to=self.marshal_to_caches,
+                                 has_subclass=True)
+        super(NumaCellXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<cell/>'
+
+    @staticmethod
+    def marshal_from_caches(item, index, libvirtxml):
+        """
+        Convert an xml object to cache tag and xml element.
+        """
+        if isinstance(item, CellCacheXML):
+            return 'cache', item
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of cell cache "
+                                         "instances, not a %s" % str(item))
+
+    @staticmethod
+    def marshal_to_caches(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a cache tag xml element to an object of CellCacheXML.
+        """
+        if tag != 'cache':
+            return None     # Don't convert this item
+        newone = CellCacheXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
+
+
+class CellCacheXML(base.LibvirtXMLBase):
+
+    """Cell element of cache"""
+
+    __slots__ = ('attrs', 'size_attrs', 'line_attrs')
+
+    def __init__(self, virsh_instance=base.virsh):
+        """
+        Create new CellCacheXML instance
+        """
+        accessors.XMLElementDict('attrs', self,
+                                 parent_xpath='/',
+                                 tag_name='cache')
+        accessors.XMLElementDict('size_attrs', self,
+                                 parent_xpath='/',
+                                 tag_name='size')
+        accessors.XMLElementDict('line_attrs', self,
+                                 parent_xpath='/',
+                                 tag_name='line')
+        super(CellCacheXML, self).__init__(
+            virsh_instance=virsh_instance)
+        self.xml = '<cache/>'
 
 
 class VMClockXML(VMXML):
