@@ -456,6 +456,14 @@ class Monitor(object):
         finally:
             self._log_lock.release()
 
+    @staticmethod
+    def _build_args(**kargs):
+        """
+        Build args used in cmd.
+        """
+        return {k.replace("_", "-"): v
+                for k, v in kargs.items() if v is not None}
+
     def get_workable_cmd(self, cmd):
         """
         Automatic conversion "-" and "_" in commands if the translate command
@@ -1668,6 +1676,28 @@ class HumanMonitor(Monitor):
         self.verify_supported_cmd(cmd)
         return self.cmd(cmd)
 
+    def netdev_add(self, backend, name, **kwargs):
+        """
+        Add a network backend.
+
+        :param backend: Type of network backend.
+        :param name: Netdev ID.
+        """
+        kwargs = self._build_args(**kwargs)
+        extra_args = "".join([",%s=%s" % (k, v if not isinstance(v, bool) else
+                              "on" if v else "off") for k, v in kwargs.items()])
+        netdev_cmd = "netdev_add type=%s,id=%s%s" % (backend, name, extra_args)
+        return self.cmd(netdev_cmd)
+
+    def netdev_del(self, name):
+        """
+        Remove a network backend.
+
+        :param name: Netdev ID
+        """
+        netdev_cmd = "netdev_del %s" % name
+        return self.cmd(netdev_cmd)
+
 
 class QMPMonitor(Monitor):
     """
@@ -1973,14 +2003,6 @@ class QMPMonitor(Monitor):
 
         finally:
             self._lock.release()
-
-    @staticmethod
-    def _build_args(**kargs):
-        """
-        Build args used in cmd.
-        """
-        return {k.replace("_", "-"): v
-                for k, v in kargs.items() if v is not None}
 
     def cmd_raw(self, data, timeout=CMD_TIMEOUT):
         """
@@ -2361,7 +2383,7 @@ class QMPMonitor(Monitor):
 
         :return: The response to the command
         """
-        return self.send_args_cmd("set_link name=%s,up=%s" % (name, str(up)))
+        return self.cmd("set_link", {"name": name, "up": up})
 
     def migrate_set_downtime(self, value):
         """
@@ -3409,3 +3431,22 @@ class QMPMonitor(Monitor):
         args = {'type': option_type}
         args.update(self._build_args(**kwargs))
         return self.cmd(cmd, args)
+
+    def netdev_add(self, backend, name, **kwargs):
+        """
+        Add a network backend.
+
+        :param backend: Type of network backend.
+        :param name: Netdev ID.
+        """
+        args = {"type": backend, "id": name}
+        args.update(self._build_args(**kwargs))
+        return self.cmd("netdev_add", args)
+
+    def netdev_del(self, name):
+        """
+        Remove a network backend.
+
+        :param name: Netdev ID.
+        """
+        return self.cmd("netdev_del", {"id": name})
