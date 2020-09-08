@@ -790,6 +790,36 @@ def get_disk_size(session, os_type, did):
         return get_disk_size_windows(session, did)
 
 
+def get_drive_letters(session, did):
+    """
+    Get drive letters of specified disk in windows guest.
+
+    :param session: Windows VM session.
+    :type session: aexpect.ShellSession
+    :param did: The disk index.
+    :type did: str
+    :return: The drive letters.
+    :rtype: list
+    """
+    disk_script = "disk_" + ''.join(
+        random.sample(string.ascii_letters + string.digits, 4))
+    select_cmd = "echo select disk %s > %s " % (did, disk_script)
+    detail_cmd = "echo detail disk >> %s" % disk_script
+    diskpart_cmd = "diskpart /s %s" % disk_script
+    cmd = ' && '.join((select_cmd, detail_cmd, diskpart_cmd))
+    output = session.cmd(cmd)
+
+    letter_offset = 0
+    searched_ret = re.search(r"(.*Volume\s+.*Ltr.*)", output, re.I | re.M)
+    if searched_ret:
+        letter_offset = searched_ret.group(1).index('Ltr') + 1
+
+    if letter_offset:
+        vol_details = re.findall(r"(.*Volume\s+\d+.*Partition.*)", output, re.I | re.M)
+        return [_[letter_offset] for _ in vol_details if _[letter_offset].isalpha()]
+    return []
+
+
 def set_drive_letter(session, did, partition_no=1):
     """
     set drive letter for partition in windows guest.
