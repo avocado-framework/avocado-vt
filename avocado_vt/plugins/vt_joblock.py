@@ -111,6 +111,13 @@ class VTJobLock(Pre, Post):
                     except OSError:
                         self.log.warn("Unable to remove stale lock: %s", path)
 
+    @staticmethod
+    def _get_klass_or_none(test_factory):
+        try:
+            return test_factory[0]
+        except TypeError:
+            return None
+
     def pre_tests(self, job):
         try:
             if job.test_suite is not None:
@@ -118,7 +125,7 @@ class VTJobLock(Pre, Post):
                     tests = job.test_suite.tests
                 else:
                     tests = job.test_suite
-                if any(test_factory[0] is VirtTest
+                if any(self._get_klass_or_none(test_factory) is VirtTest
                        for test_factory in tests):
                     self._lock(job)
         except Exception as detail:
