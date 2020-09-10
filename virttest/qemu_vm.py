@@ -14,6 +14,7 @@ import random
 import sys
 import math
 import json
+import ast
 
 from functools import partial, reduce
 from operator import mul
@@ -1693,6 +1694,19 @@ class VM(virt_vm.BaseVM):
             cmdline = add_numa_node(devices, numa_memdev,
                                     numa_mem, numa_cpus, numa_nodeid)
             devices.insert(StrDev('numa', cmdline=cmdline))
+
+        # add '-numa dist'
+        if devices.has_option("numa dist,.*"):
+            for numa_node in params.objects("guest_numa_nodes"):
+                numa_params = params.object_params(numa_node)
+                numa_nodeid = numa_params.get("numa_nodeid")
+                numa_dist = ast.literal_eval(numa_params.get("numa_dist", "[]"))
+                if numa_nodeid is None or not numa_dist:
+                    continue
+                for dst_distance in numa_dist:
+                    cmd = " -numa dist,src=%s,dst=%s,val=%s"
+                    cmd = cmd % (numa_nodeid, dst_distance[0], dst_distance[1])
+                    devices.insert(StrDev('numa_dist', cmdline=cmd))
 
         for numa_cpu in params.objects("guest_numa_cpus"):
             numa_cpu_params = params.object_params(numa_cpu)
