@@ -822,13 +822,14 @@ def get_drive_letters(session, did):
     return []
 
 
-def set_drive_letter(session, did, partition_no=1):
+def set_drive_letter(session, did, partition_no=1, target_letter=None):
     """
     set drive letter for partition in windows guest.
 
     :param session: session object to guest.
     :param did: disk index
     :param partition_no: partition number
+    :param target_letter: target drive letter
     :return drive_letter: drive letter has been set
     """
     drive_letter = ""
@@ -839,6 +840,8 @@ def set_drive_letter(session, did, partition_no=1):
         if re.search("Reserved", line, re.I | re.M):
             partition_no += int(line.split()[1])
     assign_letter_cmd = ' echo select partition %s ; echo assign '
+    if target_letter:
+        assign_letter_cmd += 'letter=%s' % target_letter
     assign_letter_cmd = _wrap_windows_cmd(assign_letter_cmd)
     session.cmd(assign_letter_cmd % (did, partition_no))
     detail_cmd = ' echo detail disk '
@@ -850,6 +853,9 @@ def set_drive_letter(session, did, partition_no=1):
             drive_letter = line.split()[2]
             break
     if len(drive_letter) == 1 and drive_letter.isalpha():
+        if target_letter:
+            if target_letter != drive_letter:
+                return None
         return drive_letter
     else:
         return None
