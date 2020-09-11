@@ -315,8 +315,8 @@ def preprocess_vm(test, params, env, name):
                 params["ker_remove_similar_pci"] = "yes"
             else:
                 kernel_extra_params_remove += " pci=nomsi"
-        if (params.get("enable_guest_iommu") and
-                cpu_utils.get_vendor() == 'intel'):
+        vendor = cpu_utils.get_vendor() if hasattr(cpu_utils, 'get_vendor') else cpu_utils.get_cpu_vendor_name()
+        if (params.get("enable_guest_iommu") and vendor == 'intel'):
             enable_guest_iommu = params.get("enable_guest_iommu")
             if enable_guest_iommu == "yes":
                 kernel_extra_params_add += " intel_iommu=on"
@@ -928,7 +928,7 @@ def preprocess(test, params, env):
     # done as root, here we do a check whether
     # we satisfy that condition, if not try to make it off
     # otherwise throw TestError with respective error message
-    cpu_family = cpu_utils.get_family()
+    cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_utils.get_cpu_arch()
     migration_setup = params.get("migration_setup", "no") == "yes"
     if "power" in cpu_family:
         pvr_cmd = "grep revision /proc/cpuinfo | awk '{print $3}' | head -n 1"
@@ -1511,7 +1511,8 @@ def postprocess(test, params, env):
             os.makedirs(gcov_qemu_dir)
             os.chdir(qemu_builddir)
             collect_cmd_opts = params.get("gcov_qemu_collect_cmd_opts", "--html")
-            collect_cmd = "gcovr -j %s -o %s -s %s ." % (cpu_utils.online_count(),
+            online_count = cpu_utils.online_count() if hasattr(cpu_utils, 'online_count') else cpu_utils.online_cpus_count()
+            collect_cmd = "gcovr -j %s -o %s -s %s ." % (online_count,
                                                          os.path.join(gcov_qemu_dir, "gcov.html"),
                                                          collect_cmd_opts)
             a_process.system(collect_cmd, shell=True)
@@ -1679,7 +1680,7 @@ def postprocess(test, params, env):
     libvirtd_inst = None
     vm_type = params.get("vm_type")
 
-    cpu_family = cpu_utils.get_family()
+    cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_utils.get_cpu_arch()
     if "power" in cpu_family:
         pvr_cmd = "grep revision /proc/cpuinfo | awk '{print $3}' | head -n 1"
         pvr = float(a_process.system_output(pvr_cmd, shell=True).strip())
