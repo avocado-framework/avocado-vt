@@ -928,7 +928,10 @@ def preprocess(test, params, env):
     # done as root, here we do a check whether
     # we satisfy that condition, if not try to make it off
     # otherwise throw TestError with respective error message
-    cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_utils.get_cpu_arch()
+    try:
+        cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_utils.get_cpu_arch()
+    except NotImplementedError:
+        cpu_family = "unknown"
     migration_setup = params.get("migration_setup", "no") == "yes"
     if "power" in cpu_family:
         pvr_cmd = "grep revision /proc/cpuinfo | awk '{print $3}' | head -n 1"
@@ -1679,8 +1682,10 @@ def postprocess(test, params, env):
 
     libvirtd_inst = None
     vm_type = params.get("vm_type")
-
-    cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_utils.get_cpu_arch()
+    try:
+        cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_utils.get_cpu_arch()
+    except NotImplementedError:
+        cpu_family = "unknown"
     if "power" in cpu_family:
         pvr_cmd = "grep revision /proc/cpuinfo | awk '{print $3}' | head -n 1"
         pvr = float(a_process.system_output(pvr_cmd, shell=True).strip())
