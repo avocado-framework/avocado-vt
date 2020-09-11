@@ -181,7 +181,7 @@ def affinity_from_xml(vm):
 
     :return: dict of affinity of VM
     """
-    host_cpu_count = utils.total_count()
+    host_cpu_count = utils.total_cpus_count()
     xml_affinity_list = []
     xml_affinity = {}
     try:
@@ -208,7 +208,7 @@ def affinity_from_vcpupin(vm, vcpu=None, options=None):
     """
     vcpupin_output = {}
     vcpupin_affinity = {}
-    host_cpu_count = utils.total_count()
+    host_cpu_count = utils.total_cpus_count()
     result = virsh.vcpupin(vm.name, vcpu=vcpu, options=options, debug=True)
     for vcpu in result.stdout_text.strip().split('\n')[2:]:
         # On newer version of libvirt, there is no ':' in
@@ -230,7 +230,7 @@ def affinity_from_proc(vm):
     pid = vm.get_pid()
     proc_affinity = {}
     vcpu_pids = []
-    host_cpu_count = utils.total_count()
+    host_cpu_count = utils.total_cpus_count()
     vcpu_pids = vm.get_vcpus_pid()
     for vcpu in range(len(vcpu_pids)):
         output = cpu_allowed_list_by_task(pid, vcpu_pids[vcpu])
@@ -298,7 +298,7 @@ def check_affinity(vm, expect_vcpupin):
     :return: True if affinity matches from different virsh API outputs,
              False if not
     """
-    host_cpu_count = utils.total_count()
+    host_cpu_count = utils.total_cpus_count()
     affinity_xml = affinity_from_xml(vm)
     affinity_vcpupin = affinity_from_vcpupin(vm)
     affinity_vcpuinfo = affinity_from_vcpuinfo(vm)
@@ -443,7 +443,7 @@ def get_cpustats(vm, cpu=None):
     ..
     'total':[cputime]}
      """
-    host_cpu_online = utils.online_list()
+    host_cpu_online = utils.cpu_online_list()
     cpustats = {}
     if cpu:
         cpustats[cpu] = []
