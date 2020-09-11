@@ -19,7 +19,7 @@ class VMStressEvents():
         """
         :param params: test param
         """
-        self.host_cpu_list = cpu.cpu_online_list()
+        self.host_cpu_list = cpu.online_list()
         self.iterations = int(params.get("stress_itrs", 1))
         self.host_iterations = int(params.get("host_event_itrs", 10))
         self.event_sleep_time = int(params.get("event_sleep_time", 10))
@@ -179,17 +179,17 @@ class VMStressEvents():
         """
         for itr in range(self.host_iterations):
             if "cpu_freq_governor" in event:
-                cpu.set_cpufreq_governor()
-                logging.debug("Current governor: %s", cpu.get_cpufreq_governor())
+                cpu.set_freq_governor()
+                logging.debug("Current governor: %s", cpu.get_freq_governor())
                 time.sleep(self.event_sleep_time)
             elif "cpu_idle" in event:
-                idlestate = cpu.get_cpuidle_state()
-                cpu.set_cpuidle_state()
+                idlestate = cpu.get_idle_state()
+                cpu.set_idle_state()
                 time.sleep(self.event_sleep_time)
-                cpu.set_cpuidle_state(setstate=idlestate)
+                cpu.set_idle_state(setstate=idlestate)
                 time.sleep(self.event_sleep_time)
             elif "cpuoffline" in event:
-                processor = self.host_cpu_list[random.randint(0, cpu.online_cpus_count()-1)]
+                processor = self.host_cpu_list[random.randint(0, cpu.online_count()-1)]
                 cpu.offline(processor)
                 time.sleep(self.event_sleep_time)
                 cpu.online(processor)
