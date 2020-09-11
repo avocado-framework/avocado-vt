@@ -1348,6 +1348,17 @@ class VM(virt_vm.BaseVM):
             else:
                 virt_install_cmd += " --boot emulator=%s" % emulator_path
 
+        bios_path = params.get("bios_path", None)
+        if bios_path:
+            if not has_sub_option('boot', 'loader'):
+                logging.warning("bios option not supported by virt-install")
+            else:
+                if "--boot" in virt_install_cmd:
+                    virt_install_cmd += ","
+                else:
+                    virt_install_cmd += " --boot "
+                virt_install_cmd += "loader=%s" % bios_path
+
         kernel = params.get("kernel", None)
         initrd = params.get("initrd", None)
         kernel_args = params.get("kernel_args", None)
