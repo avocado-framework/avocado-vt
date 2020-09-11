@@ -606,7 +606,7 @@ class VirtadminConnectBack(VirtadminPersistent):
             bool(remote_ip.count("127.")),
             # uri checks
             uri is None,
-            uri is "",
+            uri == "",
             bool(uri.count("default")),
             bool(uri.count(':///')),
             bool(uri.count("localhost")),
