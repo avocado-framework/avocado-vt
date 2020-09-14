@@ -24,6 +24,7 @@ from avocado.utils.service import SpecificServiceManager
 
 from virttest import error_context
 from virttest import utils_numeric
+from virttest import remote
 
 PARTITION_TABLE_TYPE_MBR = "msdos"
 PARTITION_TABLE_TYPE_GPT = "gpt"
@@ -156,7 +157,8 @@ def umount(src, dst, fstype=None, verbose=False, session=None):
         fuser_cmd = "fuser -km %s" % dst
         umount_cmd = "umount %s" % dst
         if session:
-            session.cmd_output_safe(fuser_cmd)
+            if not isinstance(session, remote.VMManager):
+                session.cmd_output_safe(fuser_cmd)
             return session.cmd_status(umount_cmd, safe=True) == 0
         process.system(fuser_cmd, ignore_status=True, verbose=True, shell=True)
         return process.system(umount_cmd, ignore_status=True, verbose=True) == 0
@@ -1044,6 +1046,22 @@ def get_disk_by_serial(serial_str, session=None):
         if not status:
             logging.debug("Disk %s has serial %s", disk, serial_str)
             return disk
+
+
+def check_remote_vm_disks(params):
+    """
+    Check disks in remote vm are working well with I/O.
+
+    :param params: the dict used for parameters
+    """
+    remote_vm_obj = remote.VMManager(params)
+    remote_vm_obj.check_network()
+    remote_vm_obj.setup_ssh_auth()
+    disks = get_linux_disks(remote_vm_obj, False)
+    logging.debug("Get disks in remote VM: %s", disks)
+
+    for disk in disks.keys():
+        linux_disk_check(remote_vm_obj, disk)
 
 
 class Disk(object):

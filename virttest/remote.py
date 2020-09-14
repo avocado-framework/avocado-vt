@@ -1359,16 +1359,28 @@ class RemoteRunner(object):
 class VMManager(object):
     """Manage VM on remote host"""
 
+    CMD_TIMEOUT = 240
+
     def __init__(self, params):
         self.remote_host = params.get("server_ip")
         self.remote_user = params.get("server_user")
         self.remote_pwd = params.get("server_pwd")
+        self.vm_ip = params.get("vm_ip")
+        self.vm_pwd = params.get("vm_pwd")
+        self.vm_user = params.get("vm_user", 'root')
+        self.port = params.get("port", 22)
+        if not all([self.remote_host, self.remote_user, self.remote_pwd,
+                   self.vm_ip, self.vm_pwd]):
+            raise exceptions.TestError("At least one of [remote_host|"
+                                       "remote_user|remote_pwd|vm_ip|"
+                                       "vm_pwd] is invalid!")
         self.runner = RemoteRunner(host=self.remote_host,
                                    username=self.remote_user,
                                    password=self.remote_pwd)
+        self.cmd_output = self.cmd_output_safe
+        self.cmd = self.cmd_output_safe
 
-    def setup_ssh_auth(self, vm_ip, vm_pwd, vm_user="root",
-                       port=22, timeout=20):
+    def setup_ssh_auth(self):
         """
         Setup SSH passwordless access between remote host
         and VM, which is on the remote host.
@@ -1388,19 +1400,23 @@ class VMManager(object):
         ssh_options = "%s %s" % ("-o UserKnownHostsFile=/dev/null",
                                  "-o StrictHostKeyChecking=no")
         session.sendline("ssh-copy-id %s -i %s root@%s"
-                         % (ssh_options, pub_key, vm_ip))
+                         % (ssh_options, pub_key, self.vm_ip))
 
-        handle_prompts(session, vm_user, vm_pwd, r"[\#\$]\s*$", debug=True)
+        handle_prompts(session, self.vm_user, self.vm_pwd,
+                       r"[\#\$]\s*$", debug=True)
 
-    def check_network(self, vm_ip, count=5, timeout=60):
+    def check_network(self, count=5, timeout=60):
         """
         Check VM network connectivity
+
+        :param count: counter to ping
+        :param timeout: seconds to wait for
         """
         logging.debug("Check VM network connectivity...")
         vm_net_connectivity = False
         sleep_time = 5
         result = ""
-        cmd = "ping -c %s %s" % (count, vm_ip)
+        cmd = "ping -c %s %s" % (count, self.vm_ip)
         while timeout > 0:
             result = self.runner.run(cmd, ignore_status=True)
             if result.exit_status:
@@ -1414,31 +1430,60 @@ class VMManager(object):
 
         if not vm_net_connectivity:
             raise exceptions.TestFail("Failed to ping %s: %s"
-                                      % (vm_ip, result.stdout_text))
+                                      % (self.vm_ip, result.stdout_text))
 
-    def run_command(self, vm_ip, command, vm_user="root", runner=None,
-                    ignore_status=False):
+    def run_command(self, command, runner=None, ignore_status=False, timeout=CMD_TIMEOUT):
         """
         Run command in the VM.
 
-        :param vm_ip: The IP address of the VM
         :param command: The command to be executed in the VM
-        :param vm_user: The logon user to the VM
         :param runner: The runner to execute the command
         :param ignore_status: True, not raise an exception and
-            will return CmdResult object. False, raise an exception.
-
+            will return CmdResult object. False, raise an exception
+        :param timeout: Total time to wait for command return
         :raise: exceptions.TestFail, if the command fails
         :return: CmdResult object
         """
         ssh_options = "%s %s" % ("-o UserKnownHostsFile=/dev/null",
                                  "-o StrictHostKeyChecking=no")
-        cmd = 'ssh %s %s@%s "%s"' % (ssh_options, vm_user, vm_ip, command)
+        cmd = 'ssh %s %s@%s "%s"' % (ssh_options, self.vm_user,
+                                     self.vm_ip, command)
         ret = None
         try:
-            ret = self.runner.run(cmd, ignore_status=ignore_status)
+            ret = self.runner.run(cmd, timeout=timeout, ignore_status=ignore_status)
         except process.CmdError as detail:
             logging.debug("Failed to run '%s' in the VM: %s", cmd, detail)
             raise exceptions.TestFail("Failed to run '%s' in the VM: %s",
                                       cmd, detail)
         return ret
+
+    def cmd_output_safe(self, cmd, timeout=CMD_TIMEOUT):
+        """
+        Unify the interface for session.cmd_output_safe()
+
+        :param cmd: The command to execute
+        :param timeout: Total time duration to wait for command return
+        :return: cmd_result.stdout_text
+        """
+        return self.run_command(cmd, timeout=timeout).stdout_text.strip()
+
+    def cmd_status(self, cmd, safe=True):
+        """
+        Unify the interface for session.cmd_status()
+
+        :param cmd: The command to be executed
+        :param safe: Ignored so far
+        :return: cmd_result.exit_status
+        """
+        return self.run_command(cmd).exit_status
+
+    def cmd_status_output(self, cmd, timeout=CMD_TIMEOUT):
+        """
+        Unify the interface for session.cmd_status_output()
+
+        :param cmd: The command to be executed
+        :param timeout: Total time duration to wait for command return
+        :return: cmd_result.exit_status and cmd_result.stdout
+        """
+        ret = self.run_command(cmd, timeout=timeout)
+        return (ret.exit_status, ret.stdout_text.strip())
