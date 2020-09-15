@@ -936,10 +936,12 @@ def preprocess(test, params, env):
     cpu_family = "unknown"
     try:
         cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_utils.get_cpu_arch()
+        if not cpu_family:
+            cpu_family = "unknown"
     except Exception:
         logging.warning("Could not get host cpu family")
     migration_setup = params.get("migration_setup", "no") == "yes"
-    if cpu_family is not None and "power" in cpu_family:
+    if "power" in cpu_family:
         pvr_cmd = "grep revision /proc/cpuinfo | awk '{print $3}' | head -n 1"
         pvr = float(a_process.system_output(pvr_cmd, shell=True).strip())
         power9_compat = "yes" == params.get("power9_compat", "no")
@@ -1691,9 +1693,11 @@ def postprocess(test, params, env):
     cpu_family = "unknown"
     try:
         cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_utils.get_cpu_arch()
+        if not cpu_family:
+            cpu_family = "unknown"
     except Exception:
         logging.warning("Could not get host cpu family")
-    if cpu_family is not None and "power" in cpu_family:
+    if "power" in cpu_family:
         pvr_cmd = "grep revision /proc/cpuinfo | awk '{print $3}' | head -n 1"
         pvr = float(a_process.system_output(pvr_cmd, shell=True).strip())
         # Restore SMT changes in the powerpc host is set
