@@ -24,7 +24,7 @@ from virttest.libvirt_xml.devices import memory
 def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
                    pg_unit="KiB", tg_node=0, node_mask=0, mem_model="dimm",
                    mem_discard=None, alias=None, lb_size=None,
-                   lb_sizeunit="Kib", mem_access=None):
+                   lb_sizeunit="Kib", mem_access=None, uuid=None):
     """
     Create memory device xml.
     Parameters:
@@ -40,6 +40,7 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
     :param lb_size: Label size in Target
     :param lb_sizeunit: Label size unit, Default=KiB
     :param mem_access: Value of attrib 'access' of memory
+    :param uuid: Value of attrib 'uuid' of memory
     :return: Returns a copy of Memory Hotplug xml instance.
     """
     mem_xml = memory.Memory()
@@ -72,6 +73,8 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
         mem_xml.mem_access = mem_access
     if alias:
         mem_xml.alias = dict(name=alias)
+    if uuid:
+        mem_xml.uuid = uuid
 
     logging.debug("Memory device xml: %s", mem_xml)
     return mem_xml.copy()
