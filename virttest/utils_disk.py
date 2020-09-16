@@ -1094,6 +1094,22 @@ def check_remote_vm_disks(params):
         linux_disk_check(remote_vm_obj, disk)
 
 
+def dd_data_to_vm_disk(session, disk, bs='1M', seek='0', count='100'):
+    """
+    Generate some random data to a vm disk
+
+    :param session: The vm session we'll use
+    :param disk: The disk of the vm we'll use
+    :param bs: The 'bs' param of the 'dd' command
+    :param seek: The 'seek' param of the 'dd' command
+    :param count: The 'count' param of the 'dd' command
+    """
+    dd_cmd = "dd if=/dev/urandom of=%s bs=%s seek=%s count=%s; sync"
+    dd_cmd %= (disk, bs, seek, count)
+    output = session.cmd_output(dd_cmd).strip()
+    logging.debug("Using dd to generate data to %s: %s", disk, output)
+
+
 class Disk(object):
 
     """
