@@ -85,7 +85,7 @@ class MigrationTest(object):
         func = exceptions.TestError
         if uri and uri != "qemu:///system":
             func = exceptions.TestFail
-            src_uri = "qemu:///system"
+            uri_backup = vm.connect_uri
             vm.connect_uri = uri
             server_session = test_setup.remote_session(params)
             # after migration VM would take some time to respond and to
@@ -107,8 +107,8 @@ class MigrationTest(object):
                                         output_func=logging.debug,
                                         session=server_session)
         logging.info(o_ping)
-        if uri:
-            vm.connect_uri = src_uri
+        if uri and uri != 'qemu:///system':
+            vm.connect_uri = uri_backup
             if server_session:
                 server_session.close()
         if s_ping != 0:
