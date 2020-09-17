@@ -930,6 +930,7 @@ def preprocess(test, params, env):
     # otherwise throw TestError with respective error message
     try:
         cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_utils.get_cpu_arch()
+        cpu_family = "unknown" if not cpu_family else cpu_family
     except NotImplementedError:
         cpu_family = "unknown"
     migration_setup = params.get("migration_setup", "no") == "yes"
@@ -1684,6 +1685,7 @@ def postprocess(test, params, env):
     vm_type = params.get("vm_type")
     try:
         cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_utils.get_cpu_arch()
+        cpu_family = "unknown" if not cpu_family else cpu_family
     except NotImplementedError:
         cpu_family = "unknown"
     if "power" in cpu_family:
