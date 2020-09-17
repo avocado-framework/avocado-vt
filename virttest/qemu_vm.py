@@ -3972,7 +3972,7 @@ class VM(virt_vm.BaseVM):
 
         try:
             out, ver_out = self.devices.simple_hotplug(nic_dev, self.monitor)
-        except self.devices.DeviceHotplugError as err:
+        except qcontainer.DeviceHotplugError as err:
             out, ver_out = str(err), False
         if not ver_out:
             raise virt_vm.VMAddNicError("Device %s was not plugged into qdev"
@@ -3995,7 +3995,7 @@ class VM(virt_vm.BaseVM):
         try:
             out, ver_out = self.devices.simple_unplug(nic_dev, self.monitor,
                                                       wait)
-        except self.devices.DeviceUnplugError as err:
+        except qcontainer.DeviceUnplugError as err:
             out, ver_out = str(err), False
         if not ver_out:
             raise virt_vm.VMDelNicError("Device %s is not unplugged by "
