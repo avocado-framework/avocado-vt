@@ -211,12 +211,13 @@ class LibvirtdSession(object):
         self.pid = None
         self.service_name = service_name
         self.bundle = {"stop-info": None}
-        self.libvirtd_service = Libvirtd(service_name=self.service_name)
         # Get an executable program to debug by GDB
-        self.service_exec = self.libvirtd_service.service_list[0]
+        self.service_exec = Libvirtd(
+            service_name=self.service_name).service_list[0]
+        self.libvirtd_service = Libvirtd(service_name=self.service_exec)
         self.was_running = self.libvirtd_service.is_running()
         if self.was_running:
-            logging.debug('Stopping libvirtd service')
+            logging.debug('Stopping %s service', self.service_exec)
             self.libvirtd_service.stop()
 
         self.logging_handler = logging_handler
@@ -332,7 +333,7 @@ class LibvirtdSession(object):
         :param arg_str: Argument passing to the session
         :param wait_for_working: Whether wait for libvirtd finish loading
         """
-        logging.debug("Restarting libvirtd session")
+        logging.debug("Restarting %s session", self.service_exec)
         self.kill()
         self.start(arg_str=arg_str, wait_for_working=wait_for_working)
 
@@ -342,7 +343,7 @@ class LibvirtdSession(object):
 
         :param timeout: Max wait time
         """
-        logging.debug('Waiting for libvirtd to work')
+        logging.debug('Waiting for %s to work', self.service_exec)
         return utils_misc.wait_for(
             self.is_working,
             timeout=timeout,
@@ -386,7 +387,7 @@ class LibvirtdSession(object):
         :param timeout: Max wait time
         :param step: Checking interval
         """
-        logging.debug('Waiting for libvirtd to stop')
+        logging.debug('Waiting for %s to stop', self.service_exec)
         if self.gdb:
             return self.gdb.wait_for_stop(timeout=timeout)
         else:
@@ -402,7 +403,7 @@ class LibvirtdSession(object):
 
         :param timeout: Max wait time
         """
-        logging.debug('Waiting for libvirtd to terminate')
+        logging.debug('Waiting for %s to terminate', self.service_exec)
         if self.gdb:
             return self.gdb.wait_for_termination(timeout=timeout)
         else:
