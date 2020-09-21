@@ -28,11 +28,11 @@ else:
 
 if (os.path.isdir(_DEFAULT_SHARED_PATH) and
         len(os.listdir(_DEFAULT_SHARED_PATH)) > 0):
-    _ROOT_PATH = os.path.dirname(_DEFAULT_SHARED_PATH)
+    ROOT_DIR = os.path.abspath(os.path.dirname(_DEFAULT_SHARED_PATH))
 else:
-    _ROOT_PATH = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
+    ROOT_DIR = os.path.join(os.path.realpath(os.path.dirname(os.path.dirname(__file__))),
+                            "usr", "share", "avocado-plugins-vt")
 
-ROOT_DIR = os.path.abspath(_ROOT_PATH)
 BASE_BACKEND_DIR = os.path.join(ROOT_DIR, 'backends')
 DATA_DIR = os.path.join(data_dir.get_data_dir(), 'avocado-vt')
 SHARED_DIR = os.path.join(ROOT_DIR, 'shared')
