@@ -357,7 +357,7 @@ def create_host_os_cfg(options):
         if hasattr(cpu, 'get_family'):
             try:
                 family = cpu.get_family()
-            except NotImplementedError:
+            except Exception:
                 pass
         cpu_version = cpu.get_version() if hasattr(cpu, 'get_version') else None
 
