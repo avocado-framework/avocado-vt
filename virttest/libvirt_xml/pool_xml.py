@@ -251,6 +251,81 @@ class PoolXMLBase(base.LibvirtXMLBase):
         xmltreefile.write()
 
 
+class PoolcapabilityXML(base.LibvirtXMLBase):
+
+    """
+    Handler of libvirt pool-capabilities.
+
+    """
+
+    # TODO: Add more __slots__ and accessors to get some useful stats
+    # e.g. guest_count etc.
+
+    __schema_name__ = "poolcapabilities"
+
+    def __init__(self, virsh_instance=base.virsh):
+        super(PoolcapabilityXML, self).__init__(virsh_instance)
+        # calls set_xml accessor method
+        self['xml'] = self.__dict_get__('virsh').pool_capabilities()
+
+    def get_pool_capabilities(self):
+        """
+        Accessor method for pool-type property (in __slots__).
+        Return a pool info dict in following schema:
+        {<pool_type>:{<pool_default_format>:[<pool_value>,...],
+         <vol_default_format>:[<vol_value>,...]}}
+        """
+        pool_cal = {}
+        pool_default_format_name = ''
+        vol_default_format_name = ''
+        poolxmltreefile = self.__dict_get__('xml')
+        for pooltype in poolxmltreefile.findall('pool'):
+            pool_type = pooltype.get('type')
+            pool_type_info = pool_cal.get(pool_type, {})
+            if pooltype.find('poolOptions') is not None:
+                pool_options = pooltype.find('poolOptions')
+                pool_enum = pool_options.find('enum')
+                for default_pool_format in pool_options.findall('defaultFormat'):
+                    pool_default_format_name = default_pool_format.get('type')
+                pool_list = []
+                for pool_value in pool_enum.findall('value'):
+                    pool_value_name = pool_value.text
+                    pool_list.append(pool_value_name)
+                pool_type_info[pool_default_format_name] = pool_list
+                if pooltype.find('volOptions') is not None:
+                    vol_options = pooltype.find('volOptions')
+                    enum_name = vol_options.find('enum')
+                    for default_vol_format in vol_options.findall('defaultFormat'):
+                        vol_default_format_name = default_vol_format.get('type')
+                    vol_list = []
+                    for vol_value in enum_name.findall('value'):
+                        vol_value_name = vol_value.text
+                        vol_list.append(vol_value_name)
+                    pool_type_info[vol_default_format_name] = vol_list
+                else:
+                    pool_type_info['vol_default_format_name'] = []
+                pool_cal[pool_type] = pool_type_info
+            else:
+                pool_type_info['pool_default_format_name'] = []
+                vol_list = []
+                if pooltype.find('volOptions') is not None:
+                    vol_options = pooltype.find('volOptions')
+                    enum_name = vol_options.find('enum')
+                    for default_vol_format in vol_options.findall('defaultFormat'):
+                        vol_default_format_name = default_vol_format.get('type')
+                        if pool_type == 'rbd':
+                            vol_list.append()
+                        else:
+                            for vol_value in enum_name.findall('value'):
+                                vol_value_name = vol_value.text
+                                vol_list.append(vol_value_name)
+                            pool_type_info[vol_default_format_name] = vol_list
+                else:
+                    pool_type_info['vol_default_format_name'] = []
+                pool_cal[pool_type] = pool_type_info
+        return pool_cal
+
+
 class PoolXML(PoolXMLBase):
 
     """

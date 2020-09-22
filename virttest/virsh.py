@@ -2608,6 +2608,22 @@ def capabilities(option='', to_file=None, **dargs):
     return cmd_result.stdout_text.strip()
 
 
+def pool_capabilities(option='', to_file=None, **dargs):
+    """
+    Return output from virsh pool-capabilities command
+
+    :param option: additional options (takes none)
+    :param to_file: file path for store capabilities' xml
+    :param dargs: standardized virsh function API keywords
+    """
+    cmd_result = command('pool-capabilities %s' % option, **dargs)
+    if to_file is not None:
+        result_file = open(to_file, 'w')
+        result_file.write(cmd_result.stdout.strip())
+        result_file.close()
+    return cmd_result.stdout_text.strip()
+
+
 def nodecpustats(option='', **dargs):
     """
     Returns basic information about the node CPU statistics
