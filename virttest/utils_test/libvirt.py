@@ -2418,6 +2418,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     sec_model = params.get('sec_model')
     relabel = params.get('relabel')
     sec_label = params.get('sec_label')
+    image_owner_group = params.get('image_owner_group')
     pool_name = params.get("pool_name", "set-vm-disk-pool")
     disk_src_mode = params.get('disk_src_mode', 'host')
     auth_user = params.get("auth_user")
@@ -2553,6 +2554,12 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                     (src_disk_format, disk_format,
                      blk_source, exp_path, dist_img))
         process.run(disk_cmd, ignore_status=False)
+
+        # Change image ownership
+        if image_owner_group:
+            update_owner_cmd = ("chown %s %s/%s" %
+                                (image_owner_group, exp_path, dist_img))
+            process.run(update_owner_cmd, ignore_status=False)
 
         src_file_path = "%s/%s" % (mnt_path, dist_img)
         if params.get("change_file_uid") and params.get("change_file_gid"):
