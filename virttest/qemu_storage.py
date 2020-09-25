@@ -48,7 +48,9 @@ def filename_to_file_opts(filename):
                     file_opts['user'] = matches.group('user')
     elif filename.startswith('rbd:'):
         filename_pattern = re.compile(
-            r'rbd:(?P<pool>.+?)/(?P<image>[^:]+)(:conf=(?P<conf>.+))?')
+            r'rbd:(?P<pool>.+?)/(?P<namespace>.+?(?=/))?/?(?P<image>[^:]+)'
+            r'(:conf=(?P<conf>.+))?'
+        )
         matches = filename_pattern.match(filename)
         if matches:
             if (matches.group('pool') is not None
@@ -60,6 +62,9 @@ def filename_to_file_opts(filename):
                 if matches.group('conf') is not None:
                     # optional option
                     file_opts['conf'] = matches.group('conf')
+                if matches.group('namespace') is not None:
+                    # optional option
+                    file_opts['namespace'] = matches.group('namespace')
     elif filename.startswith('gluster'):
         filename_pattern = re.compile(
             r'gluster\+?(?P<type>.+)?://((?P<host>[^/]+?)(:(?P<port>\d+))?)?/'

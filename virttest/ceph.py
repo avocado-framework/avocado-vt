@@ -2,6 +2,7 @@
 CEPH Support
 This file has the functions that helps
 * To create rbd pool
+* To create rbd namespace
 * To map/unmap rbd pool
 * To mount/umount cephfs to localhost
 * To return rbd uri which can be used as disk image file path.
@@ -24,12 +25,13 @@ class CephError(Exception):
 
 @error_context.context_aware
 def rbd_image_create(ceph_monitor, rbd_pool_name, rbd_image_name,
-                     rbd_image_size, force_create=False,
-                     ceph_conf=None, keyfile=None):
+                     rbd_image_size, force_create=False, ceph_conf=None,
+                     keyfile=None, rbd_namespace_name=None):
     """
     Create a rbd image.
     :params ceph_monitor: The specified monitor to connect to
     :params rbd_pool_name: The name of rbd pool
+    :params rbd_namespace_name: The name of rbd namespace
     :params rbd_image_name: The name of rbd image
     :params rbd_image_size: The size of rbd image
     :params force_create: Force create the image or not
@@ -44,23 +46,25 @@ def rbd_image_create(ceph_monitor, rbd_pool_name, rbd_image_name,
         compare_str = utils_numeric.normalize_data_size(rbd_image_size, 'M')
 
     if rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name,
-                       ceph_conf, keyfile):
+                       ceph_conf, keyfile, rbd_namespace_name):
         create_image = False
         image_info = rbd_image_info(ceph_monitor, rbd_pool_name,
-                                    rbd_image_name, ceph_conf, keyfile)
+                                    rbd_image_name, ceph_conf, keyfile,
+                                    rbd_namespace_name)
         if image_info['size'] != compare_str or force_create:
             rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name,
-                         ceph_conf, keyfile)
+                         ceph_conf, keyfile, rbd_namespace_name)
             create_image = True
 
     if create_image:
-        cmd = "rbd {opts} create {pool}/{image} {size} {keyring}"
+        cmd = "rbd {opts} create {pool}/{namespace}{image} {size} {keyring}"
         c_opt = '-c %s' % ceph_conf if ceph_conf else ''
         m_opt = '-m %s' % ceph_monitor if ceph_monitor else ''
         opts = m_opt + ' ' + c_opt
+        namespace = '%s/' % rbd_namespace_name if rbd_namespace_name else ''
         size = '-s %d' % utils_numeric.align_value(compare_str, 1)
         keyring = '--keyring %s' % keyfile if keyfile else ''
-        cmd = cmd.format(opts=opts, pool=rbd_pool_name,
+        cmd = cmd.format(opts=opts, pool=rbd_pool_name, namespace=namespace,
                          image=rbd_image_name, size=size, keyring=keyring)
         process.system(cmd, verbose=True)
     else:
@@ -69,46 +73,53 @@ def rbd_image_create(ceph_monitor, rbd_pool_name, rbd_image_name,
 
 @error_context.context_aware
 def rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name,
-                 ceph_conf=None, keyfile=None):
+                 ceph_conf=None, keyfile=None, rbd_namespace_name=None):
     """
     Remove a rbd image
     :params ceph_monitor: The specified monitor to connect to
     :params rbd_pool_name: The name of rbd pool
+    :params rbd_namespace_name: The namespace of rbd image
     :params rbd_image_name: The name of rbd image
     :params ceph_conf: The path to the ceph configuration file
     :params keyfile: The path to the ceph keyring configuration file
     """
-    if rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name,
-                       ceph_conf, keyfile):
-        cmd = "rbd {opts} rm {pool}/{image} {keyring}"
+    if rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name, ceph_conf,
+                       keyfile, rbd_namespace_name):
+        cmd = "rbd {opts} rm {pool}/{namespace}{image} {keyring}"
         c_opt = '-c %s' % ceph_conf if ceph_conf else ''
         m_opt = '-m %s' % ceph_monitor if ceph_monitor else ''
         opts = m_opt + ' ' + c_opt
+        namespace = '%s/' % rbd_namespace_name if rbd_namespace_name else ''
         keyring = '--keyring %s' % keyfile if keyfile else ''
-        cmd = cmd.format(opts=opts, pool=rbd_pool_name, image=rbd_image_name,
-                         keyring=keyring)
+        cmd = cmd.format(opts=opts, pool=rbd_pool_name, namespace=namespace,
+                         image=rbd_image_name, keyring=keyring)
         process.run(cmd, verbose=True)
     else:
         logging.debug("Image not exist, skip to remove it.")
 
 
 @error_context.context_aware
-def rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name,
-                    ceph_conf=None, keyfile=None):
+def rbd_image_exist(ceph_monitor, rbd_pool_name,
+                    rbd_image_name, ceph_conf=None, keyfile=None,
+                    rbd_namespace_name=None):
     """
     Check if rbd image is exist
     :params ceph_monitor: The specified monitor to connect to
     :params rbd_pool_name: The name of rbd pool
+    :params rbd_namespace_name: The name of rbd namespace
     :params rbd_image_name: The name of rbd image
     :params ceph_conf: The path to the ceph configuration file
     :params keyfile: The path to the ceph keyring configuration file
     """
-    cmd = "rbd {opts} ls {pool} {keyring}"
+    cmd = "rbd {opts} ls {pool}{namespace} {keyring}"
     c_opt = '-c %s' % ceph_conf if ceph_conf else ''
     m_opt = '-m %s' % ceph_monitor if ceph_monitor else ''
     opts = m_opt + ' ' + c_opt
     keyring = '--keyring %s' % keyfile if keyfile else ''
-    cmd = cmd.format(opts=opts, pool=rbd_pool_name, keyring=keyring)
+    namespace = '/%s' % rbd_namespace_name if rbd_namespace_name else ''
+    cmd = cmd.format(opts=opts, pool=rbd_pool_name, keyring=keyring,
+                     namespace=namespace)
+
     output = process.run(cmd, ignore_status=True,
                          verbose=True).stdout_text
 
@@ -119,25 +130,26 @@ def rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name,
 
 @error_context.context_aware
 def rbd_image_info(ceph_monitor, rbd_pool_name, rbd_image_name,
-                   ceph_conf=None, keyfile=None):
+                   ceph_conf=None, keyfile=None, rbd_namespace_name=None):
     """
     Get information of a rbd image
     :params ceph_monitor: The specified monitor to connect to
     :params rbd_pool_name: The name of rbd pool
+    :params rbd_namespace_name: The name of rbd namespace
     :params rbd_image_name: The name of rbd image
     :params ceph_conf: The path to the ceph configuration file
     :params keyfile: The path to the ceph keyring configuration file
     """
-    cmd = "rbd {opts} info {pool}/{image} {keyring}"
+    cmd = "rbd {opts} info {pool}/{namespace}{image} {keyring}"
     c_opt = '-c %s' % ceph_conf if ceph_conf else ''
     m_opt = '-m %s' % ceph_monitor if ceph_monitor else ''
     opts = m_opt + ' ' + c_opt
+    namespace = '%s/' % rbd_namespace_name if rbd_namespace_name else ''
     keyring = '--keyring %s' % keyfile if keyfile else ''
     cmd = cmd.format(opts=opts, pool=rbd_pool_name, image=rbd_image_name,
-                     keyring=keyring)
+                     namespace=namespace, keyring=keyring)
     output = process.run(cmd).stdout_text
     info_pattern = "rbd image \'%s\':.*?$" % rbd_image_name
-
     rbd_image_info_str = re.findall(info_pattern, output, re.S)[0]
 
     rbd_image_info = {}
@@ -190,20 +202,24 @@ def rbd_image_unmap(rbd_pool_name, rbd_image_name):
 
 @error_context.context_aware
 def get_image_filename(ceph_monitor, rbd_pool_name, rbd_image_name,
-                       ceph_conf=None):
+                       ceph_conf=None, rbd_namespace_name=None):
     """
     Configuration has already been configured in the conf file
     Return the rbd image file name
     :params ceph_monitor: The specified monitor to connect to
     :params rbd_pool_name: The name of rbd pool
+    :params rbd_namespace_name: The name of rbd namespace
     :params rbd_image_name: The name of rbd image
     :params ceph_conf: The path to the ceph configuration file
     """
-    uri = 'rbd:{pool}/{image}{opts}'
+    uri = 'rbd:{pool}/{namespace}{image}{opts}'
     conf_opt = ':conf=%s' % ceph_conf if ceph_conf else ''
     mon_opt = ':mon_host=%s' % ceph_monitor if ceph_monitor else ''
     opts = conf_opt + mon_opt
-    return uri.format(pool=rbd_pool_name, image=rbd_image_name, opts=opts)
+    namespace = '%s/' % rbd_namespace_name if rbd_namespace_name else ''
+
+    return uri.format(pool=rbd_pool_name, namespace=namespace,
+                      image=rbd_image_name, opts=opts)
 
 
 @error_context.context_aware
