@@ -2554,6 +2554,15 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         process.run(disk_cmd, ignore_status=False)
 
         src_file_path = "%s/%s" % (mnt_path, dist_img)
+        if params.get("change_file_uid") and params.get("change_file_gid"):
+            logging.debug("Changing the ownership of {} to {}.{}."
+                          .format(src_file_path, params["change_file_uid"],
+                                  params["change_file_gid"]))
+            os.chown(src_file_path, params["change_file_uid"],
+                     params["change_file_gid"])
+            res = os.stat(src_file_path)
+            logging.debug("The ownership of {} is updated, uid: {}, gid: {}."
+                          .format(src_file_path, res.st_uid, res.st_gid))
         disk_params_src = {'source_file': src_file_path}
         params["source_file"] = src_file_path
         src_file_list.append(src_file_path)
