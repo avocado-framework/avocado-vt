@@ -2317,54 +2317,6 @@ class VM(virt_vm.BaseVM):
         if bios_path:
             devices.insert(StrDev('bios', cmdline="-bios %s" % bios_path))
 
-        if params.get('ovmf_path'):
-            if not os.path.exists(params['ovmf_path']):
-                raise exceptions.TestError("The OVMF path is not exist. Maybe you"
-                                           " need to install related packages.")
-            current_data_dir = params.get("images_base_dir", data_dir.get_data_dir())
-            ovmf_code_filename = params["ovmf_code_filename"]
-            ovmf_code_path = os.path.join(params['ovmf_path'],
-                                          ovmf_code_filename)
-            ovmf_vars_filename = params["ovmf_vars_filename"]
-            ovmf_vars_src_path = os.path.join(params['ovmf_path'],
-                                              ovmf_vars_filename)
-            # To ignore the influence from backends
-            path = storage.get_image_filename_filesytem(params,
-                                                        current_data_dir)
-            ovmf_vars_path = "%s.fd" % path
-            devs = []
-            pflash0, pflash1 = ('ovmf_code', 'ovmf_vars')
-            if Flags.BLOCKDEV in devices.caps:
-                devs.append(qdevices.QBlockdevProtocolFile(pflash0))
-                devs[-1].set_param("read-only", "on")
-                devs[-1].set_param("filename", ovmf_code_path)
-            else:
-                devs.append(qdevices.QDrive(pflash0, use_device=False))
-                devs[-1].set_param("if", "pflash")
-                devs[-1].set_param("format", "raw")
-                devs[-1].set_param("readonly", "on")
-                devs[-1].set_param("file", ovmf_code_path)
-            if (not os.path.exists(ovmf_vars_path) or
-                    params.get("restore_ovmf_vars") == "yes"):
-                cp_cmd = "cp -f %s %s" % (ovmf_vars_src_path, ovmf_vars_path)
-                process.system(cp_cmd)
-            if Flags.BLOCKDEV in devices.caps:
-                devs.append(qdevices.QBlockdevProtocolFile(pflash1))
-                devs[-1].set_param("filename", ovmf_vars_path)
-            else:
-                devs.append(qdevices.QDrive(pflash1, use_device=False))
-                devs[-1].set_param("if", "pflash")
-                devs[-1].set_param("format", "raw")
-                devs[-1].set_param("file", ovmf_vars_path)
-            if Flags.BLOCKDEV in devices.caps:
-                machine_vals = []
-                for flash, dev in zip(['pflash0', 'pflash1'], devs):
-                    machine_vals.append(
-                        '{}={}'.format(flash, dev.get_param('node-name')))
-                cmd = "-machine %s" % ','.join(machine_vals)
-                devs.append(qdevices.QStringDevice('machine_sysfw', cmdline=cmd))
-            devices.insert(devs)
-
         # Add TPM devices
         for tpm in params.objects("tpms"):
             tpm_params = params.object_params(tpm)
