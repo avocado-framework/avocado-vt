@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 '''
 Created on Dec 6, 2013
 
@@ -24,16 +22,13 @@ import shutil
 import signal
 import tempfile
 
-if __name__ == '__main__':
-    remote_interface = importlib.import_module('remote_interface')
-    ms = importlib.import_module('messenger')
-else:
-    from virttest.remote_commander import remote_interface
-    from virttest.remote_commander import messenger as ms
-
 
 from six.moves import input
 
+
+if __name__ == '__main__':
+    remote_interface = importlib.import_module('remote_interface')
+    ms = importlib.import_module('messenger')
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -841,9 +836,16 @@ def remote_agent(in_stream_cls, out_stream_cls):
         # traceback.print_exc()
 
 
-if __name__ == '__main__':
+def main():
     if len(sys.argv) > 1:
         if sys.argv[1] == "agent":
             remote_agent(ms.StdIOWrapperIn, ms.StdIOWrapperOut)
         elif sys.argv[1] == "agent_base64":
             remote_agent(ms.StdIOWrapperInBase64, ms.StdIOWrapperOutBase64)
+
+
+if __name__ == '__main__':
+    main()
+else:
+    from virttest.remote_commander import remote_interface
+    from virttest.remote_commander import messenger as ms

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 '''
 A boottool clone, but written in python and relying mostly on grubby[1].
 
@@ -2200,9 +2198,13 @@ class BoottoolApp(object):
         return self.grubby.set_default_by_index(self.opts.set_default)
 
 
-if __name__ == '__main__':
+def main():
     app = BoottoolApp()
     app.run()
+
+
+if __name__ == '__main__':
+    main()
 else:
     logging.basicConfig(level=logging.INFO,
                         format=LOGGING_FORMAT)

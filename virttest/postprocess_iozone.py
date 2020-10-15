@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 Postprocessing module for IOzone. It is capable to pick results from an
 IOzone run, calculate the geometric mean for all throughput results for
@@ -465,7 +464,7 @@ class IOzonePlotter(object):
             self.plot_3d_graphs()
 
 
-if __name__ == "__main__":
+def main():
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     parser = optparse.OptionParser("usage: %prog [options] [filenames]")
     options, args = parser.parse_args()
@@ -489,3 +488,7 @@ if __name__ == "__main__":
     a.analyze()
     p = IOzonePlotter(results_file=filenames[0], output_dir=o)
     p.plot_all()
+
+
+if __name__ == "__main__":
+    main()

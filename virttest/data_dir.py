@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 Library used to provide the appropriate data dir for virt test.
 """
@@ -270,10 +269,14 @@ def clean_tmp_files():
             shutil.rmtree(path, ignore_errors=True)
 
 
-if __name__ == '__main__':
+def main():
     print("root dir:         " + ROOT_DIR)
     print("tmp dir:          " + get_tmp_dir())
     print("data dir:         " + DATA_DIR)
     print("deps dir:         " + DEPS_DIR)
     print("backing data dir: " + BACKING_DATA_DIR)
     print("test providers dir: " + TEST_PROVIDERS_DIR)
+
+
+if __name__ == '__main__':
+    main()

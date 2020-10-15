@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 Based on work from Douglas Creager <dcreager@dcreager.net>
 
@@ -139,5 +138,9 @@ def get_pretty_version_info():
     return version_str
 
 
-if __name__ == "__main__":
+def main():
     print(get_pretty_version_info())
+
+
+if __name__ == "__main__":
+    main()
