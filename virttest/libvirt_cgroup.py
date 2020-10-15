@@ -201,7 +201,10 @@ class CgroupTest(object):
             iomax_file_name = CGROUP_V2_BLKIO_FILE_MAPPING["wiops"]
             path_to_weight = os.path.join(cgroup_path, weight_file_name)
             with open(path_to_weight, 'r') as weight_file:
-                standardized_cgroup_info["weight"] = weight_file.read().strip()
+                weight_value = re.search(r'\d+', weight_file.read())
+                if weight_value:
+                    weight_value = weight_value.group()
+                standardized_cgroup_info["weight"] = weight_value
             path_to_iomax = os.path.join(cgroup_path, iomax_file_name)
             with open(path_to_iomax, 'r') as iomax_file:
                 iomax_info = iomax_file.readlines()
