@@ -20,6 +20,8 @@ from functools import partial, reduce
 from operator import mul
 
 import aexpect
+from aexpect import remote
+
 from avocado.core import exceptions
 from avocado.utils import process
 from avocado.utils import crypto
@@ -35,7 +37,6 @@ from virttest import virt_vm
 from virttest import test_setup
 from virttest import qemu_monitor
 from virttest import qemu_virtio_port
-from virttest import remote
 from virttest import data_dir
 from virttest import utils_net
 from virttest import arch

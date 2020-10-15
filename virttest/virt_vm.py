@@ -8,8 +8,10 @@ import socket
 import traceback
 import functools
 
+from aexpect import remote
 from aexpect.exceptions import ShellError
 from aexpect.exceptions import ExpectError
+
 from avocado.core import exceptions
 
 import six
@@ -17,7 +19,7 @@ from six.moves import xrange
 
 from virttest import utils_misc
 from virttest import utils_net
-from virttest import remote
+from virttest import remote as remote_old
 from virttest import ppm_utils
 from virttest import data_dir
 from virttest import error_context
@@ -1141,9 +1143,9 @@ class BaseVM(object):
         self.copy_files_to(f_path, commander_path)
 
         # start remote commander
-        cmd = remote.remote_commander(client, address, port, username,
-                                      password, prompt, linesep, log_filename,
-                                      timeout, commander_path)
+        cmd = remote_old.remote_commander(client, address, port, username,
+                                          password, prompt, linesep, log_filename,
+                                          timeout, commander_path)
         self.remote_sessions.append(cmd)
         return cmd
 

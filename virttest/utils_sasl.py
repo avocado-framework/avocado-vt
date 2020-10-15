@@ -5,12 +5,13 @@ tools to manage sasl.
 import logging
 
 import aexpect
+from aexpect import remote
+
 from avocado.core import exceptions
 from avocado.utils import path
 from avocado.utils import process
 
 from virttest import propcan
-from virttest import remote
 from virttest import virsh
 
 

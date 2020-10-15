@@ -29,7 +29,9 @@ import time
 import select
 import locale
 import base64
+
 import aexpect
+from aexpect import remote
 
 from avocado.utils import path
 from avocado.utils import process
@@ -37,7 +39,6 @@ from avocado.utils import process
 from six.moves import urllib
 
 from virttest import propcan
-from virttest import remote
 from virttest import utils_misc
 
 

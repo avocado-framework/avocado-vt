@@ -18,6 +18,8 @@ import hashlib
 import shutil
 
 import aexpect
+from aexpect import remote
+
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
 from avocado.utils import process
@@ -26,7 +28,6 @@ import six
 from six.moves import xrange
 
 from virttest import openvswitch
-from virttest import remote
 from virttest import data_dir
 from virttest import propcan
 from virttest import utils_misc

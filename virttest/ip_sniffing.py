@@ -8,11 +8,11 @@ import re
 from collections import Iterable
 
 import aexpect
+from aexpect.remote import handle_prompts
 from avocado.utils import path as utils_path
 
 import six
 
-from virttest.remote import handle_prompts
 from virttest.utils_misc import log_line
 
 
