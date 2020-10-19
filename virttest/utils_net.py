@@ -35,7 +35,9 @@ from virttest import arch
 from virttest import utils_selinux
 from virttest import utils_package
 
+from virttest.remote import RemoteRunner
 from virttest.staging import utils_memory
+from virttest.staging import service
 from virttest.versionable_class import factory
 from virttest.utils_windows import virtio_win
 from virttest.utils_windows import system
@@ -4259,6 +4261,12 @@ def create_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
     :param ignore_status: Whether to raise an exception when command fails
     :return: The command status and output
     """
+    runner = process.run
+    if session:
+        runner = RemoteRunner(session=session).run
+    openvswitch_serv = service.Factory.create_service("openvswitch", runner)
+    if not openvswitch_serv.status():
+        openvswitch_serv.start()
     runner = local_runner
     if session:
         runner = session.cmd
@@ -4289,6 +4297,12 @@ def delete_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
     :param ignore_status: Whether to raise an exception when command fails
     :return: The command status and output
     """
+    runner = process.run
+    if session:
+        runner = RemoteRunner(session=session).run
+    openvswitch_serv = service.Factory.create_service("openvswitch", runner)
+    if not openvswitch_serv.status():
+        openvswitch_serv.start()
     runner = local_runner
     if session:
         runner = session.cmd
