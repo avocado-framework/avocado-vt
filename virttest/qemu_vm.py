@@ -580,7 +580,7 @@ class VM(virt_vm.BaseVM):
         def add_smp(devices):
             smp_str = " -smp %d" % self.cpuinfo.smp
             smp_pattern = "smp .*n\[,maxcpus=cpus\].*"
-            if devices.has_option(smp_pattern):
+            if devices.has_option(smp_pattern) and self.cpuinfo.maxcpus != 0:
                 smp_str += ",maxcpus=%d" % self.cpuinfo.maxcpus
             if self.cpuinfo.cores != 0:
                 smp_str += ",cores=%d" % self.cpuinfo.cores
@@ -1612,63 +1612,72 @@ class VM(virt_vm.BaseVM):
                 txt = "Set vcpu_threads to 1 for AMD non-EPYC cpu."
                 logging.warn(txt)
 
+        # Correct smp topology unless 'enforce_smp_topology' is set to 'yes'
+        enforce_smp_topology = params.get('enforce_smp_topology') == 'yes'
         smp_err = ""
-        if vcpu_maxcpus != 0:
-            smp_values = [vcpu_sockets, vcpu_dies, vcpu_cores, vcpu_threads]
-            if smp_values.count(0) == 1:
-                smp_values.remove(0)
-                topology_product = reduce(mul, smp_values)
-                if vcpu_maxcpus < topology_product:
-                    smp_err = ("maxcpus(%d) must be equal to or greater than "
-                               "topological product(%d)" % (vcpu_maxcpus,
-                                                            topology_product))
-                else:
-                    missing_value, cpu_mod = divmod(vcpu_maxcpus, topology_product)
-                    vcpu_maxcpus -= cpu_mod
-                    vcpu_sockets = vcpu_sockets or missing_value
-                    vcpu_dies = vcpu_dies or missing_value
-                    vcpu_cores = vcpu_cores or missing_value
-                    vcpu_threads = vcpu_threads or missing_value
-            elif smp_values.count(0) > 1:
-                if vcpu_maxcpus == 1 and max(smp_values) < 2:
-                    vcpu_sockets = vcpu_dies = vcpu_cores = vcpu_threads = 1
+        if not enforce_smp_topology:
+            if vcpu_maxcpus != 0:
+                smp_values = [vcpu_sockets, vcpu_dies, vcpu_cores, vcpu_threads]
+                if smp_values.count(0) == 1:
+                    smp_values.remove(0)
+                    topology_product = reduce(mul, smp_values)
+                    if vcpu_maxcpus < topology_product:
+                        smp_err = ("maxcpus(%d) must be equal to or greater "
+                                   "than topological product(%d)" %
+                                   (vcpu_maxcpus, topology_product))
+                    else:
+                        missing_value, cpu_mod = divmod(vcpu_maxcpus,
+                                                        topology_product)
+                        vcpu_maxcpus -= cpu_mod
+                        vcpu_sockets = vcpu_sockets or missing_value
+                        vcpu_dies = vcpu_dies or missing_value
+                        vcpu_cores = vcpu_cores or missing_value
+                        vcpu_threads = vcpu_threads or missing_value
+                elif smp_values.count(0) > 1:
+                    if vcpu_maxcpus == 1 and max(smp_values) < 2:
+                        vcpu_sockets = vcpu_dies = vcpu_cores = vcpu_threads = 1
 
-            hotpluggable_cpus = len(params.objects("vcpu_devices"))
-            if params["machine_type"].startswith("pseries"):
-                hotpluggable_cpus *= vcpu_threads
-            smp = smp or vcpu_maxcpus - hotpluggable_cpus
-        else:
-            if smp == 0 or vcpu_sockets == 0:
-                vcpu_dies = vcpu_dies or 1
-                vcpu_cores = vcpu_cores or 1
-                vcpu_threads = vcpu_threads or 1
-                if smp == 0:
-                    vcpu_sockets = vcpu_sockets or 1
-                    smp = vcpu_cores * vcpu_threads * vcpu_dies * vcpu_sockets
-                else:
-                    vcpu_sockets = smp // (vcpu_cores * vcpu_threads * vcpu_dies) or 1
-            elif vcpu_dies == 0:
-                vcpu_cores = vcpu_cores or 1
-                vcpu_threads = vcpu_threads or 1
-                vcpu_dies = smp // (vcpu_sockets * vcpu_cores * vcpu_threads) or 1
-            elif vcpu_cores == 0:
-                vcpu_threads = vcpu_threads or 1
-                vcpu_cores = smp // (vcpu_sockets * vcpu_threads * vcpu_dies) or 1
+                hotpluggable_cpus = len(params.objects("vcpu_devices"))
+                if params["machine_type"].startswith("pseries"):
+                    hotpluggable_cpus *= vcpu_threads
+                smp = smp or vcpu_maxcpus - hotpluggable_cpus
             else:
-                vcpu_threads = smp // (vcpu_cores * vcpu_sockets * vcpu_dies) or 1
+                if smp == 0 or vcpu_sockets == 0:
+                    vcpu_dies = vcpu_dies or 1
+                    vcpu_cores = vcpu_cores or 1
+                    vcpu_threads = vcpu_threads or 1
+                    if smp == 0:
+                        vcpu_sockets = vcpu_sockets or 1
+                        smp = (vcpu_cores * vcpu_threads *
+                               vcpu_dies * vcpu_sockets)
+                    else:
+                        vcpu_sockets = smp // (
+                                vcpu_cores * vcpu_threads * vcpu_dies) or 1
+                elif vcpu_dies == 0:
+                    vcpu_cores = vcpu_cores or 1
+                    vcpu_threads = vcpu_threads or 1
+                    vcpu_dies = smp // (
+                            vcpu_sockets * vcpu_cores * vcpu_threads) or 1
+                elif vcpu_cores == 0:
+                    vcpu_threads = vcpu_threads or 1
+                    vcpu_cores = smp // (
+                            vcpu_sockets * vcpu_threads * vcpu_dies) or 1
+                else:
+                    vcpu_threads = smp // (
+                            vcpu_cores * vcpu_sockets * vcpu_dies) or 1
 
-            hotpluggable_cpus = len(params.objects("vcpu_devices"))
-            if params["machine_type"].startswith("pseries"):
-                hotpluggable_cpus *= vcpu_threads
-            vcpu_maxcpus = smp
-            smp -= hotpluggable_cpus
+                hotpluggable_cpus = len(params.objects("vcpu_devices"))
+                if params["machine_type"].startswith("pseries"):
+                    hotpluggable_cpus *= vcpu_threads
+                vcpu_maxcpus = smp
+                smp -= hotpluggable_cpus
 
-        if smp <= 0:
-            smp_err = ("Number of hotpluggable vCPUs(%d) is greater "
-                       "than or equal to the maxcpus(%d)."
-                       % (hotpluggable_cpus, vcpu_maxcpus))
-        if smp_err:
-            raise virt_vm.VMSMPTopologyInvalidError(smp_err)
+            if smp <= 0:
+                smp_err = ("Number of hotpluggable vCPUs(%d) is greater "
+                           "than or equal to the maxcpus(%d)."
+                           % (hotpluggable_cpus, vcpu_maxcpus))
+            if smp_err:
+                raise virt_vm.VMSMPTopologyInvalidError(smp_err)
 
         self.cpuinfo.smp = smp
         self.cpuinfo.maxcpus = vcpu_maxcpus
