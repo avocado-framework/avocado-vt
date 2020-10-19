@@ -22,7 +22,8 @@ from virttest.remote_commander import messenger
 
 
 def ssh_login_to_migrate(client, host, port, username, password, prompt, linesep="\n",
-                         log_filename=None, timeout=10, interface=None, identity_file=None,
+                         log_filename=None, log_function=None, timeout=10,
+                         interface=None, identity_file=None,
                          status_test_command="echo $?", verbose=False, bind_ip=None,
                          preferred_authenticaton='password',
                          user_known_hosts_file='/dev/null'):
@@ -42,6 +43,7 @@ def ssh_login_to_migrate(client, host, port, username, password, prompt, linesep
     :param linesep: The line separator to use when sending lines
             (e.g. '\\n' or '\\r\\n')
     :param log_filename: If specified, log all output to this file
+    :param log_function: If specified, log all output using this function
     :param timeout: The maximal time duration (in seconds) to wait for
             each step of the login procedure (i.e. the "Are you sure" prompt
             or the password prompt)
@@ -64,13 +66,12 @@ def ssh_login_to_migrate(client, host, port, username, password, prompt, linesep
     """
     if client != "ssh":
         return remote_login(client, host, port, username, password, prompt,
-                            linesep, log_filename, None, timeout,
+                            linesep, log_filename, log_function, timeout,
                             interface, identity_file, status_test_command,
                             verbose, bind_ip)
-
     cmd = ("ssh %s -o UserKnownHostsFile=%s "
            "-o StrictHostKeyChecking=no -p %s" %
-           (verbose, user_known_hosts_file, port))
+           ("-vv" if verbose else "", user_known_hosts_file, port))
     if bind_ip:
         cmd += (" -b %s" % bind_ip)
     if identity_file:
@@ -513,7 +514,8 @@ class RemoteRunner(object):
     def __init__(self, client="ssh", host=None, port="22", username="root",
                  password=None, prompt=r"[\#\$]\s*$", linesep="\n",
                  log_filename=None, timeout=240, internal_timeout=10,
-                 session=None, preferred_authenticaton='password'):
+                 session=None, preferred_authenticaton='password',
+                 log_function=None):
         """
         Initialization of RemoteRunner. Init a session login to remote host or
         guest.
@@ -533,6 +535,7 @@ class RemoteRunner(object):
                 prompt or the password prompt)
         :param session: An existing session
         :param preferred_authenticaton: The preferred authentication of SSH connection
+        :param log_function: If specified, log all output using this function
         :see: wait_for_login()
         :raise: Whatever wait_for_login() raises
         """
@@ -542,7 +545,8 @@ class RemoteRunner(object):
                     "Neither host, nor session was defined!")
             self.session = wait_for_ssh_login_to_migrate(client, host, port, username,
                                                          password, prompt, linesep,
-                                                         log_filename, timeout,
+                                                         log_filename, log_function,
+                                                         timeout,
                                                          internal_timeout,
                                                          preferred_authenticaton)
         else:
