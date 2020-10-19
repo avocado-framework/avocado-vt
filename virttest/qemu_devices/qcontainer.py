@@ -1407,6 +1407,8 @@ class DevContainer(object):
                 bus = None
             if fmt == 'usb1':
                 dev_parent = {'type': 'uhci'}
+                if arch.ARCH in ('ppc64', 'ppc64le'):
+                    dev_parent = {'type': 'ohci'}
             elif fmt == 'usb2':
                 dev_parent = {'type': 'ehci'}
             elif fmt == 'usb3':
