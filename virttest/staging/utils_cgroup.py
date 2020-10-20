@@ -614,21 +614,23 @@ def get_load_per_cpu(_stats=None):
     """
     Gather load per cpu from /proc/stat
     :param _stats: previous values
-    :return: list of diff/absolute values of CPU times [SUM, CPU1, CPU2, ...]
+    :return: list of diff/absolute values of different CPU times for every cpu:
+             [[user, nice, system, ...],[user, nice, system, ...], ...]
     """
     stats = []
-    f_stat = open('/proc/stat', 'r')
+    with open('/proc/stat', 'r') as f:
+        f_stat = f.readlines()
+
     if _stats:
-        for i in range(len(_stats)):
-            stats.append(int(f_stat.readline().split()[1]) - _stats[i])
+        for line in range(len(_stats)):
+            l_stat = []
+            for i in range(1, len(_stats[line])):
+                l_stat.append(int(f_stat[line].split()[i+1]) - _stats[line][i])
+            stats.append(l_stat)
     else:
-        line = f_stat.readline()
-        while line:
+        for line in f_stat:
             if line.startswith('cpu'):
-                stats.append(int(line.split()[1]))
-            else:
-                break
-            line = f_stat.readline()
+                stats.append([int(v) for v in line.split()[1:]])
     return stats
 
 
