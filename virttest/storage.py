@@ -82,11 +82,12 @@ def file_exists(params, filename_path):
         image_format = params.get("image_format", "qcow2")
         ceph_monitor = params.get("ceph_monitor")
         rbd_pool_name = params["rbd_pool_name"]
+        rbd_namespace_name = params.get("rbd_namespace_name")
         rbd_image_name = "%s.%s" % (image_name.split("/")[-1], image_format)
         ceph_conf = params.get("ceph_conf")
         keyring_conf = params.get("image_ceph_keyring_conf")
-        return ceph.rbd_image_exist(ceph_monitor, rbd_pool_name,
-                                    rbd_image_name, ceph_conf, keyring_conf)
+        return ceph.rbd_image_exist(ceph_monitor, rbd_pool_name, rbd_image_name,
+                                    ceph_conf, keyring_conf, rbd_namespace_name)
 
     if params.get('enable_nvme') == 'yes':
         return nvme.file_exists(params, filename_path)
@@ -111,11 +112,12 @@ def file_remove(params, filename_path):
         image_format = params.get("image_format", "qcow2")
         ceph_monitor = params.get("ceph_monitor")
         rbd_pool_name = params["rbd_pool_name"]
+        rbd_namespace_name = params.get("rbd_namespace_name")
         rbd_image_name = "%s.%s" % (image_name.split("/")[-1], image_format)
         ceph_conf = params.get("ceph_conf")
         keyring_conf = params.get("image_ceph_keyring_conf")
         return ceph.rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name,
-                                 ceph_conf, keyring_conf)
+                                 ceph_conf, keyring_conf, rbd_namespace_name)
 
     if params.get("gluster_brick"):
         # TODO: Add implementation for gluster_brick
@@ -205,12 +207,14 @@ def get_image_filename(params, root_dir, basename=False):
             return gluster.get_image_filename(params, image_name, image_format)
         if enable_ceph:
             rbd_pool_name = params["rbd_pool_name"]
+            rbd_namespace_name = params.get("rbd_namespace_name")
             rbd_image_name = "%s.%s" % (image_name.split("/")[-1],
                                         image_format)
             ceph_conf = params.get('ceph_conf')
             ceph_monitor = params.get('ceph_monitor')
             return ceph.get_image_filename(ceph_monitor, rbd_pool_name,
-                                           rbd_image_name, ceph_conf)
+                                           rbd_image_name, ceph_conf,
+                                           rbd_namespace_name)
         if enable_nvme:
             address = params['nvme_pci_address']
             namespace = params.get('nvme_namespace', 1)
