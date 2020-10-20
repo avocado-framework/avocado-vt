@@ -729,7 +729,7 @@ class TCPConnection(ConnectionBase):
             port='22',
             remote_path='/etc/sasl2/libvirt.conf')
 
-        self.client_hosts = remote.RemoteFile(
+        self.client_hosts = remote_old.RemoteFile(
             address=self.client_ip,
             client='scp',
             username=self.client_user,
@@ -1050,7 +1050,7 @@ class TLSConnection(ConnectionBase):
             port='22',
             remote_path=self.daemon_conf)
 
-        self.client_libvirtd_tls_socket = remote.RemoteFile(
+        self.client_libvirtd_tls_socket = remote_old.RemoteFile(
             address=self.client_ip,
             client='scp',
             username=self.client_user,
@@ -1058,7 +1058,7 @@ class TLSConnection(ConnectionBase):
             port='22',
             remote_path=self.daemon_socket_conf)
 
-        self.server_libvirtd_tls_socket = remote.RemoteFile(
+        self.server_libvirtd_tls_socket = remote_old.RemoteFile(
             address=self.server_ip,
             client='scp',
             username=self.server_user,
