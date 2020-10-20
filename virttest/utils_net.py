@@ -3352,7 +3352,7 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
         regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex), re.I)
         arping_bin = utils_path.find_command("arping")
         if session:
-            arping_bin = func("which arping", timeout=timeout, **dargs)
+            arping_bin = func("which arping", timeout=timeout, **dargs).strip()
         cmd = "%s --help" % arping_bin
         if "-C count" in func(cmd, timeout=timeout, **dargs):
             regex = re.compile(r"\b%s\b.*\b(%s)" % (mac_regex, ip), re.I)
@@ -3391,7 +3391,7 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
         # Get the name of the bridge device for ip route cache
         ip_cmd = utils_path.find_command("ip")
         if session:
-            ip_cmd = func("which ip", timeout=timeout, **dargs)
+            ip_cmd = func("which ip", timeout=timeout, **dargs).strip()
         ip_cmd = "%s route get %s; %s -%d route | grep default" % (
             ip_cmd, ip, ip_cmd, ip_ver)
         output = func(ip_cmd, timeout=timeout, **dargs)
