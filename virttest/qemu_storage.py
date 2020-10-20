@@ -1554,11 +1554,33 @@ class QemuImg(storage.QemuImg):
         """
         cmd_list = [self.image_cmd, "measure", ("--output=%s" % output),
                     ("-O %s" % target_fmt)]
+
+        if target_fmt == "luks":
+            target_image = self.params.get("image_measure_target", "tgt")
+            target_image_secret = self.params.get("image_secret_%s" %
+                                                  target_image, "measure")
+            target_image_params = self.params.object_params(target_image)
+            target_image_params["image_format"] = "luks"
+            target_image_params["image_secret"] = target_image_secret
+            target_image_object = QemuImg(
+                    target_image_params, self.root_dir, target_image)
+            cmd_list.append(target_image_object._secret_objects[-1])
+            cmd_list.append('-o key-secret=%s' %
+                            target_image_object.encryption_config.key_secret.aid)
+
         if size:
             cmd_list.append(("--size %s" % size))
         else:
-            cmd_list.extend([("-f %s" % self.image_format),
-                             self.image_filename])
+            if self.encryption_config.key_secret:
+                cmd_list.append(self._secret_objects[-1])
+                image_json_str = get_image_json(self.tag,
+                                                self.params,
+                                                self.root_dir)
+                cmd_list.append("'%s'" % image_json_str)
+            else:
+                cmd_list.extend([("-f %s" % self.image_format),
+                                self.image_filename])
+
         cmd_result = process.run(" ".join(cmd_list), ignore_status=True)
         return cmd_result
 
