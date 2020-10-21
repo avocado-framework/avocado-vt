@@ -102,6 +102,8 @@ def create_backup_disk_xml(backup_disk_params):
     enable_backup = backup_disk_params.get("enable_backup")
     exportname = backup_disk_params.get("exportname")
     exportbitmap = backup_disk_params.get("exportbitmap")
+    backupmode = backup_disk_params.get("backupmode")
+    incremental = backup_disk_params.get("incremental")
     backup_target = backup_disk_params.get("backup_target")  # dict
     backup_driver = backup_disk_params.get("backup_driver")  # dict
     backup_scratch = backup_disk_params.get("backup_scratch")  # dict
@@ -116,6 +118,10 @@ def create_backup_disk_xml(backup_disk_params):
         backup_disk_xml.exportname = exportname
     if exportbitmap:
         backup_disk_xml.exportbitmap = exportbitmap
+    if backupmode:
+        backup_disk_xml.backupmode = backupmode
+    if incremental:
+        backup_disk_xml.incremental = incremental
     if backup_target:
         if not isinstance(backup_target, dict):
             raise exceptions.TestError("disk target tag should be defined by a dict.")
