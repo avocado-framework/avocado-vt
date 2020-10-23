@@ -29,6 +29,8 @@ import math
 import select
 import aexpect
 
+from hashlib import md5
+
 try:
     from io import BytesIO
 except ImportError:
@@ -4389,3 +4391,25 @@ def asterisk_passwd(passwd):
     if not passwd:
         return '*' * 8
     return passwd[0] + '*' * 6 + passwd[-1]
+
+
+def compare_md5(file_a, file_b):
+    """
+    Compare two file's md5, return True if they are same.
+
+    :param file_a: a file
+    :param file_b: a file
+    """
+    def _md5(fd):
+        m = md5()
+        buf = fd.read()
+        m.update(buf)
+        return m.hexdigest()
+
+    if not os.path.exists(file_a) or not os.path.exists(file_b):
+        return False
+
+    with open(file_a, 'rb') as fd_a, open(file_b, 'rb') as fd_b:
+        if _md5(fd_a) == _md5(fd_b):
+            return True
+    return False

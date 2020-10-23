@@ -14,6 +14,7 @@ import logging
 import random
 import uuid
 import aexpect
+import shutil
 
 from aexpect import remote
 
@@ -34,6 +35,7 @@ from virttest.utils_test import libvirt
 from virttest.libvirt_xml import vm_xml
 from virttest.utils_version import VersionInterval
 from virttest.utils_misc import asterisk_passwd
+from virttest.utils_misc import compare_md5
 
 try:
     V2V_EXEC = path.find_command('virt-v2v')
@@ -254,11 +256,48 @@ class Target(object):
                         raise exceptions.TestError(
                             "VDDK library directory or NFS mount point must be set")
 
+                    vddk_lib_prefix = 'vddklib_'
+                    # General vddk directory
+                    vddk_lib_rootdir = '/var/tmp/vddk_libdir'
+                    vddk_libdir = '%s/latest' % vddk_lib_rootdir
+                    check_list = ['FILES',
+                                  'lib64/libgvmomi.so',
+                                  'bin64/vmware-vdiskmanager']
+
                     mount_point = v2v_mount(
                         self.vddk_libdir_src, 'vddk_libdir')
-                    self.vddk_libdir = mount_point
-                    self.mount_records[len(self.mount_records)] = (
-                        self.vddk_libdir_src, self.vddk_libdir, None)
+
+                    logging.info('Preparing vddklib on local server')
+                    if os.path.exists(vddk_lib_rootdir):
+                        if os.path.exists(vddk_libdir):
+                            os.unlink(vddk_libdir)
+
+                        vddklib_count = len(
+                            glob.glob(
+                                '%s/%s*' %
+                                (vddk_lib_rootdir, vddk_lib_prefix)))
+                        for i in range(1, vddklib_count + 1):
+                            vddk_lib = '%s/%s' % (vddk_lib_rootdir,
+                                                  vddk_lib_prefix + str(i))
+                            if all(compare_md5(os.path.join(mount_point, file_i), os.path.join(
+                                    vddk_lib, file_i)) for file_i in check_list):
+                                os.symlink(vddk_lib, vddk_libdir, True)
+                                break
+
+                        if not os.path.exists(vddk_libdir):
+                            vddk_lib = '%s/%s' % (vddk_lib_rootdir,
+                                                  vddk_lib_prefix + str(vddklib_count + 1))
+                            shutil.copytree(mount_point, vddk_lib)
+                            os.symlink(vddk_lib, vddk_libdir, True)
+                    else:
+                        vddk_lib = '%s/%s' % (vddk_lib_rootdir,
+                                              vddk_lib_prefix + '1')
+                        shutil.copytree(mount_point, vddk_lib)
+                        os.symlink(vddk_lib, vddk_libdir, True)
+
+                    logging.info('vddklib on local server is %s', vddk_lib)
+                    self.vddk_libdir = vddk_libdir
+                    utils_misc.umount(self.vddk_libdir_src, mount_point, None)
 
                 # Invalid vddk thumbprint if no ':'
                 if self.vddk_thumbprint is None or ':' not in self.vddk_thumbprint:
