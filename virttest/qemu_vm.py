@@ -1356,14 +1356,6 @@ class VM(virt_vm.BaseVM):
                 dev.set_param(key, value)
             devices.insert(dev)
 
-        def add_virtio_option(option, value, devices, dev, dev_type):
-            """
-            This function is used to add given option for virtio pci device
-            """
-            options = devices.execute_qemu("-device %s,?" % dev_type)
-            if option in options:
-                dev.set_param(option, value)
-
         def add_pci_controllers(devices, params):
             """
             Insert pci controllers into qcontainer by order.
@@ -2461,25 +2453,25 @@ class VM(virt_vm.BaseVM):
             attr_info = [None, params["keyboard_layout"], None]
             add_qemu_option(devices, "k", [attr_info])
 
-        # Add disable_legacy and disable_modern options
-        virtio_devices = filter(lambda x: x.get_param('driver', '').startswith('virtio-'), devices)
+        # Add options for all virtio devices
+        virtio_devices = filter(lambda x: re.search(r"(?:^virtio-)|(?:^vhost-)",
+                                                    x.get_param('driver', '')),
+                                devices)
         for device in virtio_devices:
             dev_type = device.get_param("driver")
             # Currently virtio1.0 behaviour on latest RHEL.7.2/RHEL.7.3
             # qemu versions is default, we don't need to specify the
             # disable-legacy and disable-modern options explicitly.
-            disable_legacy = params.get("virtio_dev_disable_legacy", None)
-            disable_modern = params.get("virtio_dev_disable_modern", None)
-            iommu_platform = params.get("virtio_dev_iommu_platform", None)
-            ats = params.get("virtio_dev_ats", None)
-            if disable_legacy:
-                add_virtio_option("disable-legacy", disable_legacy, devices, device, dev_type)
-            if disable_modern:
-                add_virtio_option("disable-modern", disable_modern, devices, device, dev_type)
-            if iommu_platform:
-                add_virtio_option("iommu_platform", iommu_platform, devices, device, dev_type)
-            if ats:
-                add_virtio_option("ats", ats, devices, device, dev_type)
+            dev_info = devices.execute_qemu("-device %s,help" % dev_type)
+            dev_properties = re.findall(r"([a-zA-Z0-9_-]+)=\S+", dev_info)
+            properties_to_be_set = {
+                "disable-legacy": params.get("virtio_dev_disable_legacy"),
+                "disable-modern": params.get("virtio_dev_disable_modern"),
+                "iommu_platform": params.get("virtio_dev_iommu_platform"),
+                "ats": params.get("virtio_dev_ats")}
+            for key, value in properties_to_be_set.items():
+                if key in dev_properties:
+                    device.set_param(key, value)
 
         # Add extra root_port at the end of the command line only if there is
         # free slot on pci.0, discarding them otherwise
