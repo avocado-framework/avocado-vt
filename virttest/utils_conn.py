@@ -1516,6 +1516,9 @@ def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool",
 
     # make a private key.
     cmd = "%s --generate-privkey > %s" % (certtool, clientkey_path)
+    private_key_password = credential_dict.get('clientprivatekeypass', None)
+    if private_key_password:
+        cmd = "%s --generate-privkey --password %s > %s" % (certtool, private_key_password, clientkey_path)
     CmdResult = process.run(cmd, ignore_status=True, shell=True)
     if CmdResult.exit_status:
         raise ConnPrivKeyError(clientkey_path, CmdResult.stderr_text)
@@ -1535,6 +1538,15 @@ def build_client_key(tmp_dir, client_cn="TLSClient", certtool="certtool",
            --template %s --outfile %s" %
            (certtool, clientkey_path, cacert_path,
             cakey_path, clientinfo_path, clientcert_path))
+    if private_key_password:
+        cmd = ("%s --generate-certificate --load-privkey %s \
+               --load-ca-certificate %s --load-ca-privkey %s \
+               --password %s \
+               --template %s --outfile %s" %
+               (certtool, clientkey_path, cacert_path,
+                cakey_path, private_key_password, clientinfo_path, clientcert_path))
+        # Avoid issue similar to:https://www.mail-archive.com/gnutls-help@lists.gnutls.org/msg01601.html
+        os.environ['GNUTLS_PIN'] = '1234'
     CmdResult = process.run(cmd, ignore_status=True)
     if CmdResult.exit_status:
         raise ConnCertError(clientinfo_path, CmdResult.stderr_text)
