@@ -33,7 +33,8 @@ class NbdExport(object):
     3) nbd.cleanup()
     """
 
-    def __init__(self, image, image_format="raw", image_size="1G", port="10001", export_name=None, tls=False, deleteExisted=True):
+    def __init__(self, image, image_format="raw", image_size="1G", port="10001", export_name=None, tls=False, deleteExisted=True,
+                 private_key_encrypt_passphrase=None, secret_uuid=None):
         """Create a new NbdExport instance
 
         :param image: instance of image created
@@ -43,6 +44,8 @@ class NbdExport(object):
         :param export_name: exported alias name
         :param tls: whether use tls for encryption communication
         :param deleteExisted: whether delete currently existed image file
+        :param private_key_encrypt_passphrase: password which is used to encrypt private key
+        :param secret_uuid: secret id that need written into qemu.conf
         """
         # Input
         self.image = image
@@ -54,6 +57,8 @@ class NbdExport(object):
         if self.tls:
             self.qemu_conf = None
             self.libvirtd = None
+            self.private_key_encrypt_passphrase = private_key_encrypt_passphrase
+            self.secret_uuid = secret_uuid
         self.deleteExisted = deleteExisted
 
     def _create_img(self):
@@ -74,6 +79,8 @@ class NbdExport(object):
         client_cert_dir = "/etc/pki/libvirt-nbd"
         self.qemu_conf.nbd_tls_x509_cert_dir = "%s" % client_cert_dir
         self.qemu_conf.nbd_tls = True
+        if self.secret_uuid:
+            self.qemu_conf.nbd_tls_x509_secret_uuid = "%s" % self.secret_uuid
         self.libvirtd = utils_libvirtd.Libvirtd()
         self.libvirtd.restart()
 
@@ -141,6 +148,8 @@ class NbdExport(object):
         client_credential_dict['cacert'] = 'ca-cert.pem'
         client_credential_dict['clientkey'] = 'client-key.pem'
         client_credential_dict['clientcert'] = 'client-cert.pem'
+        if self.private_key_encrypt_passphrase:
+            client_credential_dict['clientprivatekeypass'] = self.private_key_encrypt_passphrase
         server_credential_dict['ca_cakey_path'] = tmp_ca_cert_dir
 
         # build a client key.
