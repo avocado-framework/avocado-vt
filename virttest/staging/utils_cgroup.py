@@ -624,7 +624,7 @@ def get_load_per_cpu(_stats=None):
     if _stats:
         for line in range(len(_stats)):
             l_stat = []
-            for i in range(1, len(_stats[line])):
+            for i in range(len(_stats[line])):
                 l_stat.append(int(f_stat[line].split()[i+1]) - _stats[line][i])
             stats.append(l_stat)
     else:
