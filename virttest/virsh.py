@@ -23,6 +23,7 @@ for non-existant keys.
 
 import signal
 import logging
+import os
 import re
 import weakref
 import time
@@ -40,6 +41,7 @@ from six.moves import urllib
 
 from virttest import propcan
 from virttest import utils_misc
+from virttest import data_dir
 
 
 # list of symbol names NOT to wrap as Virsh class methods
@@ -3794,7 +3796,7 @@ def secret_get_value(uuid, options=None, **dargs):
     return command(cmd, **dargs)
 
 
-def secret_set_value(uuid, password, options=None, encode=False, **dargs):
+def secret_set_value(uuid, password, options=None, encode=False, use_file=False, **dargs):
     """
     Set a secret value
 
@@ -3802,14 +3804,22 @@ def secret_set_value(uuid, password, options=None, encode=False, **dargs):
     :param password: secret value
     :param encode: if False, that means you've already provided a base64-encoded
                    password. if True, will base64-encode password before use it.
+    :param use_file: allow choose new --file option, but default is false
     :return: CmdResult object.
     """
     cmd = "secret-set-value --secret %s" % uuid
     if password:
         if encode:
             encoding = locale.getpreferredencoding()
-            cmd += (" --base64 %s"
-                    % base64.b64encode(password.encode(encoding)).decode(encoding))
+            password = base64.b64encode(password.encode(encoding)).decode(encoding)
+        # as per https://bugzilla.redhat.com/show_bug.cgi?id=1826636,
+        # virsh secret-set-value will throw error if pass secret value by --base64 option
+        # Read the secret from a file is right choice.
+        if use_file:
+            secret_file = os.path.join(data_dir.get_tmp_dir(), "secret_file")
+            with open(secret_file, 'a+') as fd:
+                fd.write(password)
+            cmd += " --file %s" % secret_file
         else:
             cmd += " --base64 %s" % password
     if options:
