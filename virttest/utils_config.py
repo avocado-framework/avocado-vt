@@ -480,6 +480,7 @@ class LibvirtQemuConfig(LibvirtConfigCommon):
         'swtpm_user': 'string',
         'swtpm_group': 'string',
         'capability_filters': 'list',
+        'nbd_tls_x509_secret_uuid': 'string',
     }
 
 
