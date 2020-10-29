@@ -1800,6 +1800,7 @@ def create_net_xml(net_name, params):
     net_ip_netmask = params.get("net_ip_netmask", "255.255.255.0")
     net_ipv6_address = params.get("net_ipv6_address")
     net_ipv6_prefix = params.get("net_ipv6_prefix", "64")
+    nat_attrs = params.get('nat_attrs')
     nat_port = params.get("nat_port")
     guest_name = params.get("guest_name")
     guest_ipv4 = params.get("guest_ipv4")
@@ -1853,6 +1854,9 @@ def create_net_xml(net_name, params):
             interface = [
                 {'dev': x} for x in forward_iface.split()]
             netxml.forward_interface = interface
+        nat_attrs = ast.literal_eval(nat_attrs)
+        if nat_attrs:
+            netxml.nat_attrs = nat_attrs
         if nat_port:
             netxml.nat_port = ast.literal_eval(nat_port)
         if net_domain:
