@@ -22,55 +22,6 @@ from setuptools import setup, find_packages
 VERSION = open('VERSION', 'r').read().strip()
 
 
-def __is_virtual_env():
-    return (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and
-                                            sys.base_prefix != sys.prefix))
-
-
-def get_dir(system_path=None, virtual_path=None):
-    """
-    Retrieve VIRTUAL_ENV friendly path
-    :param system_path: Relative system path
-    :param virtual_path: Overrides system_path for virtual_env only
-    :return: VIRTUAL_ENV friendly path
-    """
-    if virtual_path is None:
-        virtual_path = system_path
-    if __is_virtual_env():
-        if virtual_path is None:
-            virtual_path = []
-        return os.path.join(*virtual_path)
-    else:
-        if system_path is None:
-            system_path = []
-        return os.path.join(*(['/'] + system_path))
-
-
-def get_data_files():
-    def add_files(level=[]):
-        installed_location = ['usr', 'share', 'avocado-plugins-vt']
-        installed_location += level
-        level_str = '/'.join(level)
-        if level_str:
-            level_str += '/'
-        file_glob = '%s*' % level_str
-        files_found = [path for path in glob.glob(file_glob) if
-                       os.path.isfile(path)]
-        return [((get_dir(installed_location, level)), files_found)]
-
-    data_files = add_files(["test-providers.d"])
-    data_files_dirs = ['backends', 'shared']
-
-    for data_file_dir in data_files_dirs:
-        for root, dirs, files in os.walk(data_file_dir):
-            for subdir in dirs:
-                rt = root.split('/')
-                rt.append(subdir)
-                data_files += add_files(rt)
-
-    return data_files
-
-
 def pre_post_plugin_type():
     try:
         from avocado.core.plugin_interfaces import JobPreTests as Pre
@@ -101,8 +52,6 @@ if __name__ == "__main__":
           author_email='avocado-devel@redhat.com',
           url='http://github.com/avocado-framework/avocado-vt',
           packages=find_packages(exclude=('selftests*',)),
-          package_data={"virttest": ["*.*"]},
-          data_files=get_data_files(),
           include_package_data=True,
           entry_points={
               'avocado.plugins.settings': [

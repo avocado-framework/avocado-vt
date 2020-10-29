@@ -305,8 +305,7 @@ def sync_download_dir(interactive):
 
 
 def create_guest_os_cfg(t_type):
-    root_dir = data_dir.get_root_dir()
-    guest_os_cfg_dir = os.path.join(root_dir, 'shared', 'cfg', 'guest-os')
+    guest_os_cfg_dir = os.path.join(data_dir.get_shared_dir(), 'cfg', 'guest-os')
     guest_os_cfg_path = data_dir.get_backend_cfg_path(t_type, 'guest-os.cfg')
     guest_os_cfg_file = open(guest_os_cfg_path, 'w')
     get_directory_structure(guest_os_cfg_dir, guest_os_cfg_file, "Guest")
