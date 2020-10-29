@@ -2,9 +2,9 @@ env:
   CIRRUS_CLONE_DEPTH: 1
   VT_TYPE: qemu
 
-fedora_30_task:
+fedora_33_task:
   container:
-    image: quay.io/avocado-framework/avocado-vt-ci-fedora-30
+    image: quay.io/avocado-framework/avocado-vt-ci-fedora-33
   env:
     PYTHON: python3
     matrix:
