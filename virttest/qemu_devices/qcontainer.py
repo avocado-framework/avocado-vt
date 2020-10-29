@@ -2057,7 +2057,6 @@ class DevContainer(object):
                                  "on %s by -blockdev." % (opt, name))
             if media == 'cdrom':
                 readonly = 'on'
-            protocol_node.set_param('read-only', readonly, bool)
             format_node.set_param('read-only', readonly, bool)
             if secret_obj:
                 if isinstance(format_node, qdevices.QBlockdevFormatQcow2):
