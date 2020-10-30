@@ -481,6 +481,9 @@ class LibvirtQemuConfig(LibvirtConfigCommon):
         'swtpm_group': 'string',
         'capability_filters': 'list',
         'nbd_tls_x509_secret_uuid': 'string',
+        'backup_tls_x509_cert_dir': 'string',
+        'backup_tls_x509_verify': 'boolean',
+        'backup_tls_x509_secret_uuid': 'string',
     }
 
 
