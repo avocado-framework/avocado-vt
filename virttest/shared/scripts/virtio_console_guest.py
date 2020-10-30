@@ -113,7 +113,7 @@ class VirtioGuest:
         """
         raise NotImplementedError
 
-    def async(self, port, mode=True, exp_val=0):
+    def asynchronous(self, port, mode=True, exp_val=0):
         """
         Set port function mode async/sync.
 
@@ -731,7 +731,7 @@ class VirtioGuestPosix(VirtioGuest):
         self.catch_signal = None
         return ret
 
-    def async(self, port, mode=True, exp_val=0):
+    def asynchronous(self, port, mode=True, exp_val=0):
         """
         Set port function mode async/sync.
 
