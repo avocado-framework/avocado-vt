@@ -1013,6 +1013,83 @@ class DevContainer(object):
             pci_bridge_type = 'pci-bridge'
         pcie_root_port_params = params.get('pcie_root_port_params')
 
+        def pflash_handler(firmware_name, cmd):
+            """
+            Add pflash firmware for EFI boot
+            """
+            machine_cmd = cmd
+            devs = []
+            firmware_path = params.get(firmware_name + "_path")
+            if firmware_path:
+                if not os.path.exists(firmware_path):
+                    raise exceptions.TestError("The firmware path is not exist."
+                                               " Maybe you need to install "
+                                               "related packages.")
+                current_data_dir = params.get("images_base_dir",
+                                              data_dir.get_data_dir())
+                pflash_code_filename = params[firmware_name + "_code_filename"]
+                pflash_code_path = os.path.join(firmware_path,
+                                                pflash_code_filename)
+                pflash_vars_filename = params[firmware_name + "_vars_filename"]
+                pflash_vars_src_path = os.path.join(firmware_path,
+                                                    pflash_vars_filename)
+
+                # To ignore the influence from backends
+                first_image = params.objects('images')[0]
+                img_params = params.object_params(first_image)
+                path = storage.get_image_filename_filesytem(img_params,
+                                                            current_data_dir)
+                img_info = json.loads(qemu_storage.QemuImg(img_params,
+                                                           data_dir.DATA_DIR,
+                                                           path).info(True, "json"))
+                img_name = os.path.basename(img_info.get("full-backing-filename")
+                                            or img_info.get("filename"))
+                pflash_vars_path = img_name + "_VARS.fd"
+                pflash0, pflash1 = (firmware_name + '_code',
+                                    firmware_name + '_vars')
+                if Flags.BLOCKDEV in self.caps:
+                    protocol_pflash0 = qdevices.QBlockdevProtocolFile(pflash0)
+                    format_pflash0 = qdevices.QBlockdevFormatRaw(pflash0)
+                    format_pflash0.add_child_node(protocol_pflash0)
+                    protocol_pflash0.set_param("driver", "file")
+                    protocol_pflash0.set_param("filename", pflash_code_path)
+                    protocol_pflash0.set_param("auto-read-only", "on")
+                    protocol_pflash0.set_param("discard", "unmap")
+                    format_pflash0.set_param("read-only", "on")
+                    format_pflash0.set_param("file", protocol_pflash0.get_qid())
+                    devs.extend([protocol_pflash0, format_pflash0])
+                    machine_cmd += ',%s=%s' % ('pflash0',
+                                               format_pflash0.params['node-name'])
+                else:
+                    devs.append(qdevices.QDrive(pflash0, use_device=False))
+                    devs[-1].set_param("if", "pflash")
+                    devs[-1].set_param("format", "raw")
+                    devs[-1].set_param("readonly", "on")
+                    devs[-1].set_param("file", pflash_code_path)
+                if (not os.path.exists(pflash_vars_path) or
+                        params.get("restore_%s_vars" % firmware_name) == "yes"):
+                    shutil.copy2(pflash_vars_src_path, pflash_vars_path)
+                if Flags.BLOCKDEV in self.caps:
+                    protocol_pflash1 = qdevices.QBlockdevProtocolFile(pflash1)
+                    format_pflash1 = qdevices.QBlockdevFormatRaw(pflash1)
+                    format_pflash1.add_child_node(protocol_pflash1)
+                    protocol_pflash1.set_param("driver", "file")
+                    protocol_pflash1.set_param("filename", pflash_vars_path)
+                    protocol_pflash1.set_param("auto-read-only", "on")
+                    protocol_pflash1.set_param("discard", "unmap")
+                    format_pflash1.set_param("read-only", "off")
+                    format_pflash1.set_param("file", protocol_pflash1.get_qid())
+                    devs.extend([protocol_pflash1, format_pflash1])
+                    machine_cmd += ',%s=%s' % ('pflash1',
+                                               format_pflash1.params['node-name'])
+                else:
+                    devs.append(qdevices.QDrive(pflash1, use_device=False))
+                    devs[-1].set_param("if", "pflash")
+                    devs[-1].set_param("format", "raw")
+                    devs[-1].set_param("file", pflash_vars_path)
+
+            return devs, machine_cmd
+
         def machine_q35(cmd=False):
             """
             Q35 + ICH9
@@ -1030,6 +1107,8 @@ class DevContainer(object):
                                              '_PCI_CHASSIS_NR', first_port=[1]),
                    qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
                                     "vcpu"))
+            pflash_devices, cmd = pflash_handler("ovmf", cmd)
+            devices.extend(pflash_devices)
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
                                                   child_bus=bus,
                                                   aobject="pci.0"))
@@ -1162,29 +1241,6 @@ class DevContainer(object):
                                )
             return devices
 
-        def _get_aavmf_vars(params):
-            """
-            Naive implementation of obtaining the main (first) image name
-            """
-            try:
-                first_image = params.objects('images')[0]
-                image_params = params.object_params(first_image)
-                image_params["backing_chain"] = "no"
-                image_obj = qemu_storage.QemuImg(image_params,
-                                                 data_dir.DATA_DIR,
-                                                 first_image)
-                image_info = json.loads(image_obj.info(True, "json"))
-                image_name = os.path.basename(
-                    image_info.get("full-backing-filename") or
-                    image_info.get("filename"))
-                name = os.path.splitext(image_name)[0]
-                # Force the AAVMF file to be saved under "images" directory
-                return os.path.join(data_dir.DATA_DIR, "images",
-                                    name + "_AAVMF_VARS.fd")
-            except IndexError:
-                raise DeviceError("Unable to map main image name to "
-                                  "AAVMF variables file.")
-
         def machine_arm64_mmio(cmd=False):
             """
             aarch64 (arm64) doesn't support PCI bus, only MMIO transports.
@@ -1194,32 +1250,6 @@ class DevContainer(object):
             """
             logging.warn('Support for aarch64 is highly experimental!')
             devices = []
-            if os.path.exists("/usr/share/AAVMF/AAVMF_CODE.fd"):
-                aavmf_code_file = "/usr/share/AAVMF/AAVMF_CODE.fd"
-                aavmf_vars_file = "/usr/share/AAVMF/AAVMF_VARS.fd"
-            else:
-                aavmf_code_file = "/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw"
-                aavmf_vars_file = "/usr/share/edk2/aarch64/vars-template-pflash.raw"
-            # EFI pflash
-            aavmf_code = ("-drive file=%s,if=pflash,format=raw,unit=0,readonly=on"
-                          % aavmf_code_file)
-            devices.append(qdevices.QStringDevice('AAVMF_CODE',
-                                                  cmdline=aavmf_code))
-            aavmf_vars = _get_aavmf_vars(params)
-            force_create = params.get("force_create_image_image1",
-                                      params.get("force_create_image"))
-            if (force_create == "yes" or not os.path.exists(aavmf_vars)):
-                if force_create != "yes":
-                    logging.warn("AAVMF variables file '%s' doesn't exist, "
-                                 "recreating it from the template (this should"
-                                 " only happen when you install the machine as"
-                                 " there is no default boot in EFI!)",
-                                 aavmf_vars)
-                shutil.copy2(aavmf_vars_file, aavmf_vars)
-            aavmf_vars = ("-drive file=%s,if=pflash,format=raw,unit=1"
-                          % aavmf_vars)
-            devices.append(qdevices.QStringDevice('AAVMF_VARS',
-                                                  cmdline=aavmf_vars))
             # Add virtio-bus
             # TODO: Currently this uses QNoAddrCustomBus and does not
             # set the device's properties. This means that the qemu qtree
@@ -1228,6 +1258,8 @@ class DevContainer(object):
             bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
                                             'virtio-mmio-bus', 'virtio-bus',
                                             'virtio-mmio-bus')
+            pflash_devices, cmd = pflash_handler("aavmf", cmd)
+            devices.extend(pflash_devices)
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
                                                   child_bus=bus,
                                                   aobject="virtio-mmio-bus"))
@@ -1241,32 +1273,6 @@ class DevContainer(object):
             """
             logging.warn('Support for aarch64 is highly experimental!')
             devices = []
-            if os.path.exists("/usr/share/AAVMF/AAVMF_CODE.fd"):
-                aavmf_code_file = "/usr/share/AAVMF/AAVMF_CODE.fd"
-                aavmf_vars_file = "/usr/share/AAVMF/AAVMF_VARS.fd"
-            else:
-                aavmf_code_file = "/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw"
-                aavmf_vars_file = "/usr/share/edk2/aarch64/vars-template-pflash.raw"
-            # EFI pflash
-            aavmf_code = ("-drive file=%s,if=pflash,format=raw,unit=0,readonly=on"
-                          % aavmf_code_file)
-            devices.append(qdevices.QStringDevice('AAVMF_CODE',
-                                                  cmdline=aavmf_code))
-            aavmf_vars = _get_aavmf_vars(params)
-            force_create = params.get("force_create_image_image1",
-                                      params.get("force_create_image"))
-            if (force_create == "yes" or not os.path.exists(aavmf_vars)):
-                if force_create != "yes":
-                    logging.warn("AAVMF variables file '%s' doesn't exist, "
-                                 "recreating it from the template (this should"
-                                 " only happen when you install the machine as"
-                                 " there is no default boot in EFI!)",
-                                 aavmf_vars)
-                shutil.copy2(aavmf_vars_file, aavmf_vars)
-            aavmf_vars = ("-drive file=%s,if=pflash,format=raw,unit=1"
-                          % aavmf_vars)
-            devices.append(qdevices.QStringDevice('AAVMF_VARS',
-                                                  cmdline=aavmf_vars))
 
             bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type,
                                      'pci.0', pcie_root_port_params),
@@ -1274,6 +1280,8 @@ class DevContainer(object):
                                              '_PCI_CHASSIS', first_port=[1]),
                    qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
                                              '_PCI_CHASSIS_NR', first_port=[1]))
+            pflash_devices, cmd = pflash_handler("aavmf", cmd)
+            devices.extend(pflash_devices)
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
                                                   child_bus=bus,
                                                   aobject="pci.0"))
