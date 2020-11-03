@@ -55,6 +55,7 @@ from virttest import data_dir
 from virttest import utils_libvirtd
 from virttest import utils_config
 from virttest import utils_split_daemons
+from virttest import remote as remote_old
 from virttest.staging import lv_utils
 from virttest.utils_libvirtd import service_libvirtd_control
 from virttest.libvirt_xml import vm_xml
@@ -3679,7 +3680,7 @@ def check_logfile(search_str, log_file, str_in_log=True,
     if not (cmd_parms and runner_on_target):
         cmdRes = process.run(cmd, shell=True, ignore_status=True)
     else:
-        cmdRes = remote.run_remote_cmd(cmd, cmd_parms, runner_on_target)
+        cmdRes = remote_old.run_remote_cmd(cmd, cmd_parms, runner_on_target)
     if str_in_log == bool(int(cmdRes.exit_status)):
         raise exceptions.TestFail("The string '{}' {} included in {}"
                                   .format(search_str, "is not" if str_in_log else "is",
@@ -3701,7 +3702,7 @@ def check_qemu_cmd_line(content, err_ignore=False,
     if not(remote_params or runner_on_target):
         qemu_line = process.run(cmd, shell=True).stdout_text
     else:
-        cmd_result = remote.run_remote_cmd(cmd, remote_params, runner_on_target)
+        cmd_result = remote_old.run_remote_cmd(cmd, remote_params, runner_on_target)
         qemu_line = cmd_result.stdout
     if not re.search(r'%s' % content, qemu_line):
         if err_ignore:
