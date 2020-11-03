@@ -499,7 +499,7 @@ def find_python(session, compat="python3"):
     :param session: A shell session.
     :param compat: preference to compat version
     """
-    binaries = ['python', 'python2', 'python3']
+    binaries = ['python3', 'python2', 'python']
     compat_bin = find_bin(session, try_binaries=[compat])
     if not compat_bin:
         binaries.remove(compat)
@@ -936,7 +936,8 @@ class AvocadoGuest(object):
                                          "optional_plugins")
         self.prerequisites = {'packages': ['git'],
                               'python': ['python', 'python-pip', 'python-devel'],
-                              'python2': ['python2', 'python2-pip', 'python2-devel']}
+                              'python2': ['python2', 'python2-pip', 'python2-devel'],
+                              'python3': ['python3', 'python3-pip', 'python3-devel']}
         if self.avocado_vt:
             self.vt_type = self.params.get("vt_type", "qemu")
             self.vt_arch = self.params.get("vt_arch", "")
@@ -976,7 +977,7 @@ class AvocadoGuest(object):
         if not self.python:
             logging.error("Unable to find python.")
             return False
-        self.pip_bin = find_bin(self.session, ['pip', 'pip2', 'pip3'])
+        self.pip_bin = find_bin(self.session, ['pip3', 'pip2', 'pip'])
         if self.pip_bin:
             cmd = "%s install --upgrade pip;" % (self.pip_bin)
             if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
@@ -1024,7 +1025,14 @@ class AvocadoGuest(object):
                 logging.error("Avocado pip installation failed:\n%s", output)
                 return False
             for plugin in self.plugins[self.installtype]:
-                cmd = "%s %s" % (pip_install_cmd, plugin)
+                if self.pip_bin != "pip3":
+                    message_off = "export PYTHONWARNINGS='ignore: DEPRECATION'"
+                    avocado_cmd = "%s; %s list | awk '/avocado-framework/ {print $2}' | tail -c 5" % (
+                                                                             message_off, self.pip_bin)
+                    _, av_version = self.session.cmd_status_output(avocado_cmd)
+                    cmd = "%s %s==%s" % (pip_install_cmd, plugin, av_version)
+                else:
+                    cmd = "%s %s" % (pip_install_cmd, plugin)
                 status, output = self.session.cmd_status_output(cmd, timeout=self.timeout)
                 if status != 0:
                     logging.error("Avocado plugin %s pip "
