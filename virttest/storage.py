@@ -1069,8 +1069,12 @@ class QemuImg(object):
                 force_clone = params.get("force_image_clone", "no")
                 if not os.path.exists(image_fn) or force_clone == "yes":
                     logging.info("Clone master image for vms.")
-                    process.run(params.get("image_clone_command") %
-                                (m_image_fn, image_fn))
+                    if params.get("images_with_backingfile", "no") == "yes":
+                        process.run(params.get("qemu_img_command") %
+                                    (m_image_fn, image_fn))
+                    else:
+                        process.run(params.get("image_clone_command") %
+                                    (m_image_fn, image_fn))
             params["image_name_%s" % vm_name] = vm_image_name
             params["image_name_%s_%s" % (image_name, vm_name)] = vm_image_name
 
