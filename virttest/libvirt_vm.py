@@ -1826,8 +1826,8 @@ class VM(virt_vm.BaseVM):
             try:
                 # Only configurate RHEL5 and below
                 regex = "gettys are handled by"
-                # As of RHEL7 systemd message is displayed
-                regex += "|inittab is no longer used when using systemd"
+                # As of RHEL7/8 systemd message is displayed
+                regex += "|inittab is no longer used"
                 output = session.cmd_output("cat /etc/inittab")
                 if re.search(regex, output):
                     logging.debug("Skip setting inittab for %s", device)
