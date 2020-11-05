@@ -1620,9 +1620,9 @@ class QemuImg(storage.QemuImg):
             if raw_copy:
                 # drop image secret from meta
                 for key in ['encrypt.key-secret', 'key-secret']:
-                    if key in meta:
+                    if key in meta:     # pylint: disable=E1135
                         meta.pop(key)
-            meta['driver'] = cmd_dict.pop("image_format")
+            meta['driver'] = cmd_dict.pop("image_format")   # pylint: disable=E1137
             cmd_dict["image_filename"] = "'json:%s'" % json.dumps(meta)
 
         # access secret objects of the backing images
