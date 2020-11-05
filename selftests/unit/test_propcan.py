@@ -273,8 +273,8 @@ class TestPropCan(unittest.TestCase):
         testcan = FooBar()
         self.assertEqual(len(testcan), 0)
         try:
-            tmp_long = 12345L
-        except SyntaxError:
+            tmp_long = long(12345)
+        except NameError:
             tmp_long = 12345
         for value in ('foobar', u'foobar', 1, 1.1, tmp_long, ):
             setattr(testcan, 'bar', value)
