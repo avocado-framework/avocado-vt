@@ -86,7 +86,7 @@ class BaseConsole(object):
     SCROLL_FORWARD = 1
     SCROLL_BACKWARD = -1
 
-    _pointer_pos = None
+    _pointer_pos = []
 
     def __init__(self, vm, logfile=None):
         self._vm = vm
