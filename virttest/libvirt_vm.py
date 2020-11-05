@@ -281,6 +281,123 @@ class VM(virt_vm.BaseVM):
         except process.CmdError:
             return False
 
+    def set_state(self, state, shutoff_method="destroy", pm_target="mem"):
+        """
+        Set VM state.
+        The supported target states are listed in the method local variable "target_states"
+        Return True if the VM state is set to target state. Otherwise return False.
+
+        param state, the target state of VM
+        param shutoff_method: The method to convert VM state to shutoff. Supported methods
+            are listed in the local variable "shutoff_methods"
+        param pm_target: The targets for pmsuspended. Supported targets are listed in the local
+            variable "pm_targets"
+        """
+        target_states = ["running", "os-booted", "paused", "pmsuspended", "shutoff"]
+        abnormal_states = ["no state", "idle", "crashed"]
+        shutoff_methods = ["shutdown", "destroy"]
+        pm_targets = ["mem", "disk", "hybrid"]
+        cur_state = self.state()
+        if cur_state == "running" and self.wait_for_login():
+            cur_state = "os-booted"
+
+        if cur_state == "in shutdown":
+            if utils_misc.wait_for(lambda: self.state() == "shutoff", timeout=360, first=10.0,
+                                   step=5.0, text="Waiting for VM shutdown",
+                                   ignore_errors=False) is None:
+                raise AssertionError("VM %s keeps in '%s' state for more than 6 minutes"
+                                     % (self.name, cur_state))
+
+        if cur_state in abnormal_states:
+            raise AssertionError("The VM %s's state %s is abnormal" % (self.name, cur_state))
+
+        if state not in target_states:
+            raise AssertionError("Unable to set VM %s's state from %s to %s: the target state is not"
+                                 "one of %s" % (self.name, cur_state, state, target_states))
+
+        if shutoff_method not in shutoff_methods:
+            raise AssertionError("Invalid shutoff method %s: it should be one of %s"
+                                 % (shutoff_method, shutoff_methods))
+
+        if pm_target not in pm_targets:
+            raise AssertionError("Invalid pmsuspend target %s: it should be one of %s"
+                                 % (pm_target, pm_targets))
+
+        if cur_state == state or (cur_state == "os-booted" and state == "running"):
+            logging.info("Current VM %s's state %s is the same with the target state",
+                         self.name, cur_state)
+            return True
+
+        if (cur_state == "running" and state == "os-booted"):
+            logging.error("Unable to set the state of VM %s from %s to %s",
+                          self.name, cur_state, state)
+            return False
+
+        if cur_state in ["os-booted", "running"]:
+            if state == "paused":
+                self.pause()
+            elif state == "shutoff":
+                if shutoff_method == "shutdown":
+                    self.shutdown()
+                else:
+                    self.destroy()
+            elif state == "pmsuspended":
+                self.pmsuspend(target=pm_target)
+        elif cur_state == "paused":
+            if state == "running":
+                self.resume()
+            elif state == "os-booted":
+                self.resume()
+                if self.wait_for_login():
+                    return True
+                else:
+                    logging.error("Fail to login %s when set VM state from %s to %s",
+                                  self.name, cur_state, state)
+                    return False
+            elif state == "shutoff":
+                self.destroy()
+            elif state == "pmsuspended":
+                self.resume()
+                self.pmsuspend(target=pm_target)
+        elif cur_state == "shutoff":
+            if state == "running":
+                self.start()
+            elif state == "os-booted":
+                self.start()
+                if self.wait_for_login():
+                    return True
+                else:
+                    logging.error("Fail to login %s when set VM state from %s to %s",
+                                  self.name, cur_state, state)
+                    return False
+            elif state == "paused":
+                self.start()
+            elif state == "pmsuspended":
+                self.start()
+                self.pmsuspend(target=pm_target)
+        elif cur_state == "pmsuspended":
+            if state == "running":
+                self.pmwakeup()
+            elif state == "os-booted":
+                self.pmwakeup()
+                if self.wait_for_login():
+                    return True
+                else:
+                    logging.error("Fail to login %s when set VM state from %s to %s",
+                                  self.name, cur_state, state)
+                    return False
+            elif state == "paused":
+                self.pmwakeup()
+                self.pause()
+            elif state == "shutoff":
+                self.destroy()
+
+        # All the branch of state "os-booted" returns above. No need to ensure the "os-booted" here
+        if (self.state() != state):
+            return False
+
+        return True
+
     def exists(self):
         """
         Return True if VM exists.
