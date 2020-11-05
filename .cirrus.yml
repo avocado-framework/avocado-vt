@@ -2,9 +2,9 @@ env:
   CIRRUS_CLONE_DEPTH: 1
   VT_TYPE: qemu
 
-fedora_30_task:
+fedora_33_task:
   container:
-    image: quay.io/avocado-framework/avocado-vt-ci-fedora-30
+    image: quay.io/avocado-framework/avocado-vt-ci-fedora-33
   env:
     PYTHON: python3
     matrix:
@@ -17,9 +17,12 @@ fedora_30_task:
     matrix:
       - SETUP: setup.py develop --user
       - SETUP: -m pip install .
+      - SETUP: -m pip install PYPI_UPLOAD/*.whl
     matrix:
       - VT_TYPE: qemu
       - VT_TYPE: libvirt
+  build_script:
+    - (echo $SETUP | grep -v PYPI_UPLOAD) || make pypi
   setup_script: &setup_scr
     - $PYTHON --version
     - test -z $AVOCADO_SRC || $PYTHON -m pip install $AVOCADO_SRC
