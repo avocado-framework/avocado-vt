@@ -1446,7 +1446,7 @@ class Parser(object):
         :param variant: String with the variant name.
         """
         string = "no %s" % variant
-        self.only_filters.append(string)
+        self.no_filters.append(string)
         self.parse_string(string)
 
     def assign(self, key, value):
