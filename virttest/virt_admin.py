@@ -34,8 +34,10 @@ from aexpect import remote
 from avocado.utils import path
 from avocado.utils import process
 
-from . import propcan
-from . import utils_misc
+from virttest import propcan
+from virttest import utils_misc
+from virttest import utils_split_daemons
+from virttest import utils_config
 
 
 # list of symbol names NOT to wrap as Virtadmin class methods
@@ -700,6 +702,32 @@ def command(cmd, **dargs):
 
     # Return CmdResult instance when ignore_status is True
     return ret
+
+
+def check_server_name(server_name="virtproxyd"):
+    """
+    Determine the server name under different daemon mode.
+
+    :param server_name: name of the managed server
+    :return: name of the managed server
+    """
+    if not utils_split_daemons.is_modular_daemon():
+        server_name = "libvirtd"
+    return server_name
+
+
+def managed_daemon_config(conf_type="virtproxyd"):
+    """
+    Determine different daemon config under different daemon mode.
+
+    :param conf_type: The configuration type to get
+        For example, "libvirtd" or "virtqemud"
+    :return: utils_config.LibvirtConfigCommon object
+    """
+    if not utils_split_daemons.is_modular_daemon():
+        conf_type = "libvirtd"
+    config = utils_config.get_conf_obj(conf_type)
+    return config
 
 
 def cd(dir_path, options="", **dargs):
