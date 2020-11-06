@@ -50,6 +50,9 @@ def add_basic_vt_options(parser):
                         help="Explicitly choose a cartesian config. When "
                         "choosing this, some options will be ignored (see "
                         "options below)")
+    parser.add_argument("--vt-save-config", action="store",
+                        dest="vt.save_config",
+                        help="Save the resulting cartesian config to a file")
     msg = ("Choose test type (%s). Default: %%(default)s" %
            ", ".join(SUPPORTED_TEST_TYPES))
     parser.add_argument("--vt-type", action="store", dest="vt.type",
