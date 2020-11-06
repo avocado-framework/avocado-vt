@@ -1439,7 +1439,7 @@ class Parser(object):
 
     def no_filter(self, variant):
         """
-        Apply a only filter programatically and keep track of it.
+        Apply a no filter programatically and keep track of it.
 
         Equivalent to parse a "no variant" line.
 
@@ -1451,7 +1451,7 @@ class Parser(object):
 
     def assign(self, key, value):
         """
-        Apply a only filter programatically and keep track of it.
+        Apply an assigment programatically and keep track of it.
 
         Equivalent to parse a "key = value" line.
 
