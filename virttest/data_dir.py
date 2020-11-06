@@ -226,7 +226,9 @@ def get_download_dir():
     return DOWNLOAD_DIR
 
 
-TEST_PROVIDERS_DOWNLOAD_DIR = os.path.join(get_data_dir(), 'test-providers.d',
+TEST_PROVIDERS_DOWNLOAD_DIR = os.path.join(get_data_dir(),
+                                           'virttest',
+                                           'test-providers.d',
                                            'downloads')
 
 
