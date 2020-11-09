@@ -906,7 +906,7 @@ class MultihostMigrationFd(MultihostMigration):
                 sock.connect((host, port))
                 break
             except socket.error as err:
-                (code, _) = err
+                code = err.errno
                 if (code != errno.ECONNREFUSED):
                     raise
                 time.sleep(1)

@@ -352,15 +352,16 @@ def lv_revert(vg_name, lv_name, lv_snapshot_name):
     except exceptions.TestError as ex:
         # detect if merge of snapshot was postponed
         # and attempt to reactivate the volume.
-        if (('Snapshot could not be found' in ex and
+        ex_str = str(ex)
+        if (('Snapshot could not be found' in ex_str and
              re.search(re.escape(lv_snapshot_name + " [active]"),
                        process.run("lvdisplay").stdout_text)) or
-                ("The logical volume %s is still active" % lv_name) in ex):
+                ("The logical volume %s is still active" % lv_name) in ex_str):
             logging.warning(("Logical volume %s is still active! " +
                              "Attempting to deactivate..."), lv_name)
             lv_reactivate(vg_name, lv_name)
             result = "Continuing after reactivation"
-        elif 'Snapshot could not be found' in ex:
+        elif 'Snapshot could not be found' in ex_str:
             logging.error(ex)
             result = "Could not revert to snapshot"
         else:
