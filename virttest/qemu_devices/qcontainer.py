@@ -1615,7 +1615,9 @@ class DevContainer(object):
                                    num_queues=None, bus_extra_params=None,
                                    force_fmt=None, image_encryption=None,
                                    image_access=None, external_data_file=None,
-                                   image_throttle_group=None):
+                                   image_throttle_group=None,
+                                   image_auto_readonly=None,
+                                   image_discard=None):
         """
         Creates related devices by variables
         :note: To skip the argument use None, to disable it use False
@@ -1657,6 +1659,8 @@ class DevContainer(object):
         :param image_access: The logical image access information object
         :param external_data_file: external data file for qcow2 image
         :param image_throttle_group: The throttle group for image
+        :param image_auto_readonly: auto-read-only option in BlockdevOptions
+        :param image_discard: discard option in BlockdevOptions
         """
         def _get_access_tls_creds(image_access):
             """Get all tls-creds objects of the image and its backing images"""
@@ -2065,8 +2069,12 @@ class DevContainer(object):
                                  "on %s by -blockdev." % (opt, name))
             if media == 'cdrom':
                 readonly = 'on'
-            protocol_node.set_param('read-only', readonly, bool)
             format_node.set_param('read-only', readonly, bool)
+
+            protocol_node.set_param('auto-read-only',
+                                    image_auto_readonly, bool)
+            protocol_node.set_param('discard', image_discard)
+
             if secret_obj:
                 if isinstance(format_node, qdevices.QBlockdevFormatQcow2):
                     format_node.set_param('encrypt.format',
@@ -2457,7 +2465,11 @@ class DevContainer(object):
                                                image_encryption,
                                                image_access, ext_data_file,
                                                image_params.get(
-                                                   "image_throttle_group"))
+                                                   "image_throttle_group"),
+                                               image_params.get(
+                                                   "image_auto_readonly"),
+                                               image_params.get(
+                                                   "image_discard"))
 
     def serials_define_by_variables(self, serial_id, serial_type, chardev_id,
                                     bus_type=None, serial_name=None,
@@ -2719,7 +2731,12 @@ class DevContainer(object):
                                                image_params.get(
                                                    "bus_extra_params"),
                                                image_params.get("force_drive_format"),
-                                               None, image_access)
+                                               None, image_access,
+                                               None, None,
+                                               image_params.get(
+                                                   "image_auto_readonly"),
+                                               image_params.get(
+                                                   "image_discard"))
 
     def pcic_by_params(self, name, params, parent_bus=None):
         """
