@@ -65,7 +65,7 @@ if hasattr(plugin_interfaces, 'Init'):
                         'and test provider specific files')
             settings.register_option(section, 'mem',
                                      help_msg=help_msg,
-                                     default='')
+                                     default=None)
 
             help_msg = 'Architecture under test'
             settings.register_option(section, 'arch',
