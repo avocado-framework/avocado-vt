@@ -2,6 +2,7 @@
 Functions and classes used for logging into guests and transferring files.
 """
 from __future__ import division
+from six import PY3
 import logging
 import time
 import re
@@ -99,7 +100,8 @@ def ssh_login_to_migrate(client, host, port, username, password, prompt, linesep
 
 def wait_for_ssh_login_to_migrate(client, host, port, username, password, prompt,
                                   linesep="\n", log_filename=None, log_function=None,
-                                  timeout=240, internal_timeout=10, interface=None):
+                                  timeout=240, internal_timeout=10, interface=None,
+                                  preferred_authenticaton='password'):
     """
     Make multiple attempts to log into a guest until one succeeds or timeouts.
 
@@ -121,15 +123,26 @@ def wait_for_ssh_login_to_migrate(client, host, port, username, password, prompt
         try:
             return ssh_login_to_migrate(client, host, port, username, password, prompt,
                                         linesep, log_filename, log_function,
-                                        internal_timeout, interface, verbose=verbose)
+                                        internal_timeout, interface, verbose=verbose,
+                                        preferred_authenticaton=preferred_authenticaton)
         except LoginError as error:
             logging.debug(error)
             verbose = True
         time.sleep(2)
     # Timeout expired; try one more time but don't catch exceptions
-    return remote_login(client, host, port, username, password, prompt,
-                        linesep, log_filename, log_function,
-                        internal_timeout, interface)
+    if PY3:
+        # 'preferred_authenticaton' is introduced in aexpect 1.6.1. In travis CI for python2.7,
+        # it still uses aexpect 1.6.0 due to python2 compatibility problem, so E1123 will
+        # be reported.
+        # pylint: disable=E1123
+        return remote_login(client, host, port, username, password, prompt,
+                            linesep, log_filename, log_function,
+                            internal_timeout, interface,
+                            preferred_authenticaton=preferred_authenticaton)
+    else:
+        return remote_login(client, host, port, username, password, prompt,
+                            linesep, log_filename, log_function,
+                            internal_timeout, interface)
 
 
 class AexpectIOWrapperOut(messenger.StdIOWrapperOutBase64):
@@ -548,7 +561,7 @@ class RemoteRunner(object):
                                                          log_filename, log_function,
                                                          timeout,
                                                          internal_timeout,
-                                                         preferred_authenticaton)
+                                                         preferred_authenticaton=preferred_authenticaton)
         else:
             self.session = session
         # Init stdout pipe and stderr pipe.
