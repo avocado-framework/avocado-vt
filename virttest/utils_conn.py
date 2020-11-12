@@ -1680,7 +1680,7 @@ class UNIXConnection(ConnectionBase):
                  'client_libvirtdconf', 'restart_libvirtd',
                  'client_saslconf', 'client_hosts', 'sasl_type', 'libvirt_ver',
                  'sasl_allowed_username_list', 'client_libvirtd_socket',
-                 'traditional_mode')
+                 'traditional_mode', 'daemon_conf', 'daemon_socket_conf')
 
     def __init__(self, *args, **dargs):
         """
@@ -1723,6 +1723,13 @@ class UNIXConnection(ConnectionBase):
 
         super(UNIXConnection, self).__init__(init_dict)
 
+        if utils_split_daemons.is_modular_daemon():
+            self.daemon_conf = "/etc/libvirt/virtproxyd.conf"
+            self.daemon_socket_conf = "/usr/lib/systemd/system/virtproxyd.socket"
+        else:
+            self.daemon_conf = "/etc/libvirt/libvirtd.conf"
+            self.daemon_socket_conf = "/usr/lib/systemd/system/libvirtd.socket"
+
         # Unable to get libvirt verion via libvirt_version.version_compare
         # once UNIX connection is setup, so set the value here.
         client_session = self.client_session
@@ -1734,7 +1741,7 @@ class UNIXConnection(ConnectionBase):
             username=self.client_user,
             password=self.client_pwd,
             port='22',
-            remote_path='/etc/libvirt/libvirtd.conf')
+            remote_path=self.daemon_conf)
 
         self.client_libvirtd_socket = remote_old.RemoteFile(
             address=self.client_ip,
@@ -1742,7 +1749,7 @@ class UNIXConnection(ConnectionBase):
             username=self.client_user,
             password=self.client_pwd,
             port='22',
-            remote_path='/usr/lib/systemd/system/libvirtd.socket')
+            remote_path=self.daemon_socket_conf)
 
         self.client_saslconf = remote_old.RemoteFile(
             address=self.client_ip,
@@ -1778,19 +1785,24 @@ class UNIXConnection(ConnectionBase):
         try:
             libvirtd_service = utils_libvirtd.Libvirtd(session=client_session)
             if self.libvirt_ver:
-                # For traditional mode, need unmask libvirtd*.socket
-                if traditional_mode == 'yes':
-                    process.run("systemctl unmask libvirtd.socket", shell=True)
-                    process.run("systemctl unmask libvirtd-admin.socket", shell=True)
-                    process.run("systemctl unmask libvirtd-ro.socket", shell=True)
-                    process.run("systemctl unmask libvirtd-tcp.socket", shell=True)
-                    process.run("systemctl unmask libvirtd-tls.socket", shell=True)
+                if not utils_split_daemons.is_modular_daemon():
+                    # For traditional mode, need unmask libvirtd*.socket
+                    if traditional_mode == 'yes':
+                        process.run("systemctl unmask libvirtd.socket", shell=True)
+                        process.run("systemctl unmask libvirtd-admin.socket", shell=True)
+                        process.run("systemctl unmask libvirtd-ro.socket", shell=True)
+                        process.run("systemctl unmask libvirtd-tcp.socket", shell=True)
+                        process.run("systemctl unmask libvirtd-tls.socket", shell=True)
+                    else:
+                        process.run("systemctl daemon-reload", shell=True)
+                        process.run("systemctl stop libvirtd.socket", shell=True)
+                    libvirtd_service.stop()
+                    process.run("systemctl start libvirtd.socket", shell=True)
+                    libvirtd_service.start()
                 else:
-                    process.run("systemctl daemon-reload", shell=True)
-                    process.run("systemctl stop libvirtd.socket", shell=True)
-                libvirtd_service.stop()
-                process.run("systemctl start libvirtd.socket", shell=True)
-                libvirtd_service.start()
+                    unix_socket_service = utils_libvirtd.DaemonSocket(
+                        "virtproxyd.socket", session=client_session)
+                    unix_socket_service.restart()
             else:
                 libvirtd_service.restart()
         except (remote.LoginError, aexpect.ShellError,
@@ -1914,26 +1926,30 @@ class UNIXConnection(ConnectionBase):
                 libvirtd_service = utils_libvirtd.Libvirtd(
                     session=client_session)
                 if self.libvirt_ver:
-                    # For traditional mode, need mask libvirtd*.socket
-                    if traditional_mode == 'yes':
-                        process.run("systemctl stop libvirtd.socket", shell=True)
-                        process.run("systemctl stop libvirtd-admin.socket", shell=True)
-                        process.run("systemctl stop libvirtd-ro.socket", shell=True)
-                        process.run("systemctl stop libvirtd-tcp.socket", shell=True)
-                        process.run("systemctl stop libvirtd-tls.socket", shell=True)
-                        libvirtd_service.stop()
-                        process.run("systemctl mask libvirtd.socket", shell=True)
-                        process.run("systemctl mask libvirtd-admin.socket", shell=True)
-                        process.run("systemctl mask libvirtd-ro.socket", shell=True)
-                        process.run("systemctl mask libvirtd-tcp.socket", shell=True)
-                        process.run("systemctl mask libvirtd-tls.socket", shell=True)
-                        process.run("systemctl daemon-reload", shell=True)
+                    if not utils_split_daemons.is_modular_daemon():
+                        # For traditional mode, need mask libvirtd*.socket
+                        if traditional_mode == 'yes':
+                            process.run("systemctl stop libvirtd.socket", shell=True)
+                            process.run("systemctl stop libvirtd-admin.socket", shell=True)
+                            process.run("systemctl stop libvirtd-ro.socket", shell=True)
+                            process.run("systemctl stop libvirtd-tcp.socket", shell=True)
+                            process.run("systemctl stop libvirtd-tls.socket", shell=True)
+                            libvirtd_service.stop()
+                            process.run("systemctl mask libvirtd.socket", shell=True)
+                            process.run("systemctl mask libvirtd-admin.socket", shell=True)
+                            process.run("systemctl mask libvirtd-ro.socket", shell=True)
+                            process.run("systemctl mask libvirtd-tcp.socket", shell=True)
+                            process.run("systemctl mask libvirtd-tls.socket", shell=True)
+                            process.run("systemctl daemon-reload", shell=True)
+                            libvirtd_service.start()
+                        else:
+                            unix_socket_service = utils_libvirtd.DaemonSocket(
+                                "libvirtd.socket", session=client_session)
+                            unix_socket_service.restart()
                     else:
-                        process.run("systemctl stop libvirtd.socket", shell=True)
-                        libvirtd_service.stop()
-                        process.run("systemctl daemon-reload", shell=True)
-                        process.run("systemctl start libvirtd.socket", shell=True)
-                    libvirtd_service.start()
+                        unix_socket_service = utils_libvirtd.DaemonSocket(
+                            "virtproxyd.socket", session=client_session)
+                        unix_socket_service.restart()
                 else:
                     libvirtd_service.restart()
             except (remote.LoginError, aexpect.ShellError,

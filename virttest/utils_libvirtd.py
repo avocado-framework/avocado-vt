@@ -150,30 +150,30 @@ class DaemonSocket(object):
 
         self.daemon_name = daemon_name
         supported_daemon = ["libvirtd-tcp.socket", "libvirtd-tls.socket",
-                            "virtproxyd-tls.socket", "virtproxyd-tcp.socket"]
+                            "libvirtd.socket", "virtproxyd-tls.socket",
+                            "virtproxyd-tcp.socket", "virtproxyd.socket"]
         if self.daemon_name not in supported_daemon:
             raise ValueError("Invalid daemon: %s" % self.daemon_name)
-
-        self.daemon_service_inst = Libvirtd("virtproxyd", session=self.session)
+        if "virtproxyd" in daemon_name:
+            self.daemon_service_inst = Libvirtd("virtproxyd",
+                                                session=self.session)
+        elif "libvirtd" in daemon_name:
+            self.daemon_service_inst = Libvirtd("libvirtd",
+                                                session=self.session)
         self.daemon_inst = Libvirtd(self.daemon_name, session=self.session)
-        self.daemon_socket = Libvirtd("virtproxyd.socket", session=self.session)
 
     def stop(self):
-        self.daemon_socket.stop()
         self.daemon_service_inst.stop()
         self.daemon_inst.stop()
         self.runner("systemctl daemon-reload")
-        self.daemon_socket.start()
 
     def start(self):
-        self.daemon_socket.stop()
         self.daemon_service_inst.stop()
         self.runner("systemctl daemon-reload")
         self.daemon_inst.start()
         self.daemon_service_inst.start()
 
     def restart(self, reset_failed=True):
-        self.daemon_socket.stop()
         self.daemon_service_inst.stop()
         self.runner("systemctl daemon-reload")
         self.daemon_inst.restart()
