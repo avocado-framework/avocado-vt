@@ -1439,19 +1439,19 @@ class Parser(object):
 
     def no_filter(self, variant):
         """
-        Apply a only filter programatically and keep track of it.
+        Apply a no filter programatically and keep track of it.
 
         Equivalent to parse a "no variant" line.
 
         :param variant: String with the variant name.
         """
         string = "no %s" % variant
-        self.only_filters.append(string)
+        self.no_filters.append(string)
         self.parse_string(string)
 
     def assign(self, key, value):
         """
-        Apply a only filter programatically and keep track of it.
+        Apply an assigment programatically and keep track of it.
 
         Equivalent to parse a "key = value" line.
 

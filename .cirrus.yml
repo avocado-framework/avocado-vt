@@ -30,7 +30,11 @@ fedora_33_task:
   bootstrap_script: &bootstrap_scr
     - $PYTHON -m avocado vt-bootstrap --vt-type=$VT_TYPE --vt-skip-verify-download-assets --yes-to-all
   list_script: &list_scr
-    - $PYTHON -m avocado list --vt-type=$VT_TYPE
+    - $PYTHON -m avocado list --vt-save-config=/tmp/config --vt-type=$VT_TYPE -- boot | tee /tmp/list
+    - test $VT_TYPE == "qemu" || test $(wc -l < /tmp/list) -gt 50
+    - test $VT_TYPE == "libvirt" || test $(wc -l < /tmp/list) -eq 1
+    - $PYTHON -m avocado list --vt-config=/tmp/config --vt-type=$VT_TYPE -- boot | tee /tmp/list_from_config
+    - diff /tmp/list /tmp/list_from_config
   dry_run_script: &dry_run_scr
     - $PYTHON -m avocado --show all run --vt-type=$VT_TYPE --dry-run -- io-github-autotest-qemu.boot
 

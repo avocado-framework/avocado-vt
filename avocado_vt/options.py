@@ -466,6 +466,21 @@ class VirtTestOptionsProcess(object):
         self._process_bridge_mode()
         self._process_only_type_specific()
 
+    def _process_backend_specific_options(self, vt_type):
+        """
+        Calls for processing of backend specific options
+        """
+        backend_specific_options = {
+            'qemu': self._process_qemu_specific_options,
+            'lvsb': self._process_lvsb_specific_options,
+            'openvswitch': self._process_qemu_specific_options,
+            'libvirt': self._process_libvirt_specific_options,
+            'spice': self._process_spice_specific_options,
+            }
+        specific_opts = backend_specific_options.get(vt_type, None)
+        if specific_opts is not None:
+            specific_opts()
+
     def _process_spice_specific_options(self):
         """
         Calls for processing all options specific to spice test
@@ -521,17 +536,7 @@ class VirtTestOptionsProcess(object):
         if vt_type != 'lvsb':
             self._process_general_options()
 
-        if vt_type == 'qemu':
-            self._process_qemu_specific_options()
-        elif vt_type == 'lvsb':
-            self._process_lvsb_specific_options()
-        elif vt_type == 'openvswitch':
-            self._process_qemu_specific_options()
-        elif vt_type == 'libvirt':
-            self._process_libvirt_specific_options()
-        elif vt_type == 'spice':
-            self._process_spice_specific_options()
-
+        self._process_backend_specific_options(vt_type)
         self._process_extra_params()
 
     def get_parser(self):

@@ -123,6 +123,16 @@ class VirtTestLoader(loader.TestLoader):
         options_processor = VirtTestOptionsProcess(self.config)
         return options_processor.get_parser()
 
+    def _save_parser_cartesian_config(self, parser):
+        path = get_opt(self.config, 'vt.save_config')
+        if path is None:
+            return
+        with open(path, 'w') as cartesian_config:
+            cartesian_config.write("include %s\n" % parser.filename)
+            for statement in (parser.only_filters + parser.no_filters +
+                              parser.assignments):
+                cartesian_config.write("%s\n" % statement)
+
     def get_extra_listing(self):
         if get_opt(self.config, 'vt_list_guests'):
             config = copy.copy(self.config)
@@ -167,6 +177,7 @@ class VirtTestLoader(loader.TestLoader):
     def discover(self, url, which_tests=loader.DiscoverMode.DEFAULT):
         try:
             cartesian_parser = self._get_parser()
+            self._save_parser_cartesian_config(cartesian_parser)
         except Exception as details:
             return self._report_bad_discovery(url, details, which_tests)
         if url is not None:
@@ -188,9 +199,7 @@ class VirtTestLoader(loader.TestLoader):
         for params in (_ for _ in cartesian_parser.get_dicts()):
             # Evaluate the proper avocado-vt test name
             test_name = None
-            if get_opt(self.config, 'vt.config'):
-                test_name = params.get("shortname")
-            elif get_opt(self.config, 'vt.type') == "spice":
+            if get_opt(self.config, 'vt.type') == "spice":
                 short_name_map_file = params.get("_short_name_map_file")
                 if "tests-variants.cfg" in short_name_map_file:
                     test_name = short_name_map_file["tests-variants.cfg"]
