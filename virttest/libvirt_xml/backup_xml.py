@@ -83,6 +83,10 @@ class BackupXML(base.LibvirtXMLBase):
                 string (file/block/network), describe the type of the disk,
                 'network' is not vaild for now due to bz:
                 https://bugzilla.redhat.com/show_bug.cgi?id=1812100
+            backupmode:
+                string, indicate if the disk will do full or incremental backup
+            incremental:
+                string, indicate the incremental backup is from which checkpoint
             target:
                 dict, keys: dev, file. The backup destination
             driver:
@@ -94,7 +98,8 @@ class BackupXML(base.LibvirtXMLBase):
         """
 
         __slots__ = ('name', 'backup', 'exportname', 'exportbitmap',
-                     'type', 'target', 'driver', 'scratch')
+                     'type', 'backupmode', 'incremental', 'target',
+                     'driver', 'scratch')
 
         def __init__(self, virsh_instance=base.virsh):
             accessors.XMLAttribute('name', self, parent_xpath='/',
@@ -107,6 +112,10 @@ class BackupXML(base.LibvirtXMLBase):
                                    tag_name='disk', attribute='exportbitmap')
             accessors.XMLAttribute('type', self, parent_xpath='/',
                                    tag_name='disk', attribute='type')
+            accessors.XMLAttribute('backupmode', self, parent_xpath='/',
+                                   tag_name='disk', attribute='backupmode')
+            accessors.XMLAttribute('incremental', self, parent_xpath='/',
+                                   tag_name='disk', attribute='incremental')
             accessors.XMLElementDict('target', self, parent_xpath='/',
                                      tag_name='target')
             accessors.XMLElementDict('driver', self, parent_xpath='/',
