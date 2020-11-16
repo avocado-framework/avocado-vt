@@ -35,6 +35,20 @@ class BackupBeginError(BackupError):
         return "Backup failed: %s" % self.error_info
 
 
+class BackupTLSError(BackupError):
+
+    """
+    Class of backup TLS exception
+    """
+
+    def __init__(self, error_info):
+        BackupError.__init__(self, error_info)
+        self.error_info = error_info
+
+    def __str__(self):
+        return "Backup TLS failure: %s" % self.error_info
+
+
 def create_checkpoint_xml(cp_params, disk_param_list=None):
     """
     Create a checkpoint xml
@@ -151,53 +165,93 @@ def pull_incremental_backup_to_file(nbd_params, target_path,
     :param file_size: The size of the target file to be preapred
     """
     nbd_protocol = nbd_params.get("nbd_protocol", "tcp")
+    nbd_export = nbd_params.get("nbd_export", "vdb")
+    tls_dir = nbd_params.get("tls_dir")
     cmd = "qemu-img create -f qcow2 %s %s" % (target_path, file_size)
     logging.debug(process.run(cmd, shell=True).stdout_text)
     map_from = "--image-opts driver=nbd,export=%s,server.type=%s"
     map_from += ",%s"
     map_from += ",x-dirty-bitmap=qemu:dirty-bitmap:%s"
-    nbd_export = nbd_params.get("nbd_export", "vdb")
     if nbd_protocol == "tcp":
-        nbd_host = nbd_params.get("nbd_host", "127.0.0.1")
+        nbd_hostname = nbd_params.get("nbd_hostname", "127.0.0.1")
         nbd_tcp_port = nbd_params.get("nbd_tcp_port", "10809")
         nbd_type = "inet"
-        nbd_server = "server.host=%s,server.port=%s" % (nbd_host, nbd_tcp_port)
-        nbd_image_path = "nbd://%s:%s/%s" % (nbd_host, nbd_tcp_port, nbd_export)
+        nbd_server = "server.host=%s,server.port=%s" % (nbd_hostname, nbd_tcp_port)
+        nbd_image_path = "nbd://%s:%s/%s" % (nbd_hostname, nbd_tcp_port, nbd_export)
+        if tls_dir:
+            qemu_rebase_cmd = """qemu-img rebase -u -f qcow2 -F raw \
+                    -b 'json:{"file":{"driver":"nbd", \
+                    "server":{"host":"'%s'", \
+                    "port":'%s', "type":"inet"}, \
+                    "export":"'%s'", \
+                    "tls-creds":"tls0"}}' %s"""
+            qemu_rebase_cmd %= (nbd_hostname, nbd_tcp_port, nbd_export, target_path)
+            map_from += ",tls-creds=tls0"
+            map_from %= (nbd_export, nbd_type, nbd_server, bitmap_name)
+            qemu_map_cmd = "qemu-img map --object "\
+                           "tls-creds-x509,id=tls0,endpoint=client,dir=%s "\
+                           "--output=json %s -U" % (tls_dir, map_from)
+        else:
+            qemu_rebase_cmd = "qemu-img rebase -u -f qcow2 -F raw -b %s %s"
+            qemu_rebase_cmd %= (nbd_image_path, target_path)
+            map_from %= (nbd_export, nbd_type, nbd_server, bitmap_name)
+            qemu_map_cmd = "qemu-img map --output=json %s -U" % map_from
     elif nbd_protocol == "unix":
         nbd_type = "unix"
         nbd_socket = nbd_params.get("nbd_socket", "/tmp/pull_backup.socket")
         nbd_server = "server.path=%s" % nbd_socket
         nbd_image_path = "nbd+unix:///%s?socket=%s" % (nbd_export, nbd_socket)
-    map_from %= (nbd_export, nbd_type, nbd_server, bitmap_name)
+        qemu_rebase_cmd = "qemu-img rebase -u -f qcow2 -F raw -b %s %s"
+        qemu_rebase_cmd %= (nbd_image_path, target_path)
+        map_from %= (nbd_export, nbd_type, nbd_server, bitmap_name)
+        qemu_map_cmd = "qemu-img map --output=json %s -U" % map_from
     # Rebase backup file to nbd image
-    rebase_cmd = "qemu-img rebase -u -f qcow2 -F raw -b %s %s"
-    rebase_cmd %= (nbd_image_path, target_path)
-    process.run(rebase_cmd, shell=True)
-    # Remove backing chain of the backup file
-    qemu_map_cmd = "qemu-img map --output=json %s -U" % map_from
+    process.run(qemu_rebase_cmd, shell=True)
+    # Get the nbd export's data map
     result = process.run(qemu_map_cmd, shell=True).stdout_text
     json_data = json.loads(result)
+    # Dump backup data to target image
     for entry in json_data:
         if not entry["data"]:
             qemu_io_cmd = "qemu-io -C -c \"r %s %s\" -f qcow2 %s"
             qemu_io_cmd %= (entry["start"], entry["length"], target_path)
+            if tls_dir:
+                qemu_io_cmd += " --object tls-creds-x509,id=tls0,"\
+                               "endpoint=client,dir=%s" % tls_dir
             process.run(qemu_io_cmd, shell=True)
     # remove the backing file info for the target image
-    rebase_cmd = "qemu-img rebase -u -f qcow2 -b '' %s" % target_path
-    process.run(rebase_cmd, shell=True)
+    qemu_rebase_cmd = "qemu-img rebase -u -f qcow2 -b '' %s" % target_path
+    process.run(qemu_rebase_cmd, shell=True)
 
 
-def pull_full_backup_to_file(nbd_export, target_path):
+def pull_full_backup_to_file(nbd_params, target_path):
     """
     Dump pull-mode full backup data to a file
 
     :param nbd_export: The nbd export info of the backup job
     :param target_path: The path of the file to dump the data
     """
-    cmd = "qemu-img convert -f raw %s -O qcow2 %s" % (nbd_export,
-                                                      target_path)
-    logging.debug("Execute command %s: %s", cmd,
-                  process.run(cmd, shell=True).stdout_text)
+    protocol = nbd_params.get("nbd_protocol")
+    hostname = nbd_params.get("nbd_hostname")
+    port = nbd_params.get("nbd_tcp_port")
+    export = nbd_params.get("nbd_export")
+    tls_dir = nbd_params.get("tls_dir")
+    socket = nbd_params.get("nbd_socket")
+    if protocol == "tcp":
+        if not tls_dir:
+            cmd = "qemu-img convert -f raw nbd://%s:%s/%s " \
+                  "-O qcow2 %s" % (hostname, port, export, target_path)
+        else:
+            json_input = ("'json:{\"file\":{\"driver\":\"nbd\","
+                          "\"server\":{\"host\":\"%s\",\"port\":%s,"
+                          "\"type\":\"inet\"},\"export\":\"%s\","
+                          "\"tls-creds\":\"tls0\"}}'") % (hostname, port, export)
+            cmd = ("qemu-img convert -O qcow2 --object tls-creds-x509,id=tls0,"
+                   "endpoint=client,dir=%s %s %s") % (tls_dir, json_input, target_path)
+    elif protocol == "unix":
+        cmd = "qemu-img convert -f raw nbd+unix:///%s?socket=%s " \
+              "-O qcow2 %s" % (export, socket, target_path)
+    process.run(cmd, shell=True)
 
 
 def get_img_data_size(img_path, driver='qcow2'):
