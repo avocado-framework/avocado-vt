@@ -1,7 +1,7 @@
 import logging
 import functools
 
-from enum import Enum, IntFlag
+from enum import Enum
 
 from six import itervalues, iteritems, string_types
 
@@ -23,16 +23,15 @@ from virttest.utils_libvirt.libvirt_config import remove_key_for_modular_daemon
 
 
 # Migration flags
-class flag(IntFlag):
-    VIR_MIGRATE_LIVE = 1
-    VIR_MIGRATE_PEER2PEER = 2
-    VIR_MIGRATE_TUNNELLED = 4
-    VIR_MIGRATE_COMPRESSED = 8
-    VIR_MIGRATE_AUTO_CONVERGE = 16
-    VIR_MIGRATE_POSTCOPY = 32
-    VIR_MIGRATE_TLS = 64
-    VIR_MIGRATE_PERSIST_DEST = 128
-    VIR_MIGRATE_UNDEFINE_SOURCE = 256
+VIR_MIGRATE_LIVE = 1
+VIR_MIGRATE_PEER2PEER = 2
+VIR_MIGRATE_TUNNELLED = 4
+VIR_MIGRATE_COMPRESSED = 8
+VIR_MIGRATE_AUTO_CONVERGE = 16
+VIR_MIGRATE_POSTCOPY = 32
+VIR_MIGRATE_TLS = 64
+VIR_MIGRATE_PERSIST_DEST = 128
+VIR_MIGRATE_UNDEFINE_SOURCE = 256
 
 
 # Phase of the migration test
@@ -331,7 +330,7 @@ class MigrationTemplate(object):
             self.obj_migration.cleanup_dest_vm(vm, self.src_uri, self.dest_uri)
 
         # Setup qemu tls env for native encrypted migration
-        if self.migrate_flags & flag.VIR_MIGRATE_TLS:
+        if self.migrate_flags & VIR_MIGRATE_TLS:
             self._setup_qemu_tls()
 
         # Set vm disk in vm xml
@@ -390,7 +389,7 @@ class MigrationTemplate(object):
             self.uptime[vm.name] = vm.uptime(connect_uri=vm.connect_uri)
 
         # Do postcopy/precopy related operations/setting
-        if self.migrate_flags & flag.VIR_MIGRATE_POSTCOPY:
+        if self.migrate_flags & VIR_MIGRATE_POSTCOPY:
             # Set migration speed to low value in case it finished too early
             # before postcopy mode starts
             for vm in self.vms:
@@ -426,7 +425,7 @@ class MigrationTemplate(object):
         self.obj_migration.check_result(self.obj_migration.ret, self.params)
 
         # Check "suspended post-copy" event after postcopy migration
-        if self.migrate_flags & flag.VIR_MIGRATE_POSTCOPY:
+        if self.migrate_flags & VIR_MIGRATE_POSTCOPY:
             logging.debug("Check event after postcopy migration")
             virsh_session.send_ctrl("^c")
             events_output = virsh_session.get_stripped_output()
@@ -499,25 +498,26 @@ class MigrationTemplate(object):
 
         logging.info("Generate extra virsh migrate options")
 
-        options = ""
+        options = self.virsh_migrate_options
+        extra_options = ""
 
-        if self.tunnelled:
-            options += " --tunnelled"
-        if self.compressed:
-            options += " --compressed"
-        if self.auto_converge:
-            options += " --auto-converge"
-        if self.postcopy:
-            options += " --postcopy"
-        if self.native_tls:
-            options += " --tls"
-        if self.persistdest:
-            options += " --persistent"
-        if self.undefinesource:
-            options += " --undefinesource"
+        if self.tunnelled and "--tunnelled" not in options:
+            extra_options += " --tunnelled"
+        if self.compressed and "--compressed" not in options:
+            extra_options += " --compressed"
+        if self.auto_converge and "--auto-converge" not in options:
+            extra_options += " --auto-converge"
+        if self.postcopy and "--postcopy" not in options:
+            extra_options += " --postcopy"
+        if self.native_tls and "--tls" not in options:
+            extra_options += " --tls"
+        if self.persistdest and "--persistent" not in options:
+            extra_options += " --persistent"
+        if self.undefinesource and "--undefinesource" not in options:
+            extra_options += " --undefinesource"
 
-        logging.debug("Extra migrate options is: %s", options)
-        return options
+        logging.debug("Extra migrate options is: %s", extra_options)
+        return extra_options
 
     def _migrate_flags(self):
         """
@@ -530,24 +530,24 @@ class MigrationTemplate(object):
 
         flags = 0
 
-        if self.virsh_migrate_options.count("--live"):
-            flags |= flag.VIR_MIGRATE_LIVE
-        if self.virsh_migrate_options.count("--p2p"):
-            flags |= flag.VIR_MIGRATE_PEER2PEER
-        if self.virsh_migrate_options.count("--tunnelled"):
-            flags |= flag.VIR_MIGRATE_TUNNELLED
-        if self.virsh_migrate_options.count("--compressed"):
-            flags |= flag.VIR_MIGRATE_COMPRESSED
-        if self.virsh_migrate_options.count("--auto-converge"):
-            flags |= flag.VIR_MIGRATE_AUTO_CONVERGE_
-        if self.virsh_migrate_options.count("--postcopy"):
-            flags |= flag.VIR_MIGRATE_POSTCOPY
-        if self.virsh_migrate_options.count("--tls"):
-            flags |= flag.VIR_MIGRATE_TLS
-        if self.virsh_migrate_options.count("--persistent"):
-            flags |= flag.VIR_MIGRATE_PERSIST_DEST
-        if self.virsh_migrate_options.count("--undefinesource"):
-            flags |= flag.VIR_MIGRATE_UNDEFINE_SOURCE
+        if "--live" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_LIVE
+        if "--p2p" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_PEER2PEER
+        if "--tunnelled" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_TUNNELLED
+        if "--compressed" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_COMPRESSED
+        if "--auto-converge" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_AUTO_CONVERGE
+        if "--postcopy" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_POSTCOPY
+        if "--tls" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_TLS
+        if "--persistent" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_PERSIST_DEST
+        if "--undefinesource" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_UNDEFINE_SOURCE
 
         logging.debug("Migrate flags is: %s", flags)
         return flags
