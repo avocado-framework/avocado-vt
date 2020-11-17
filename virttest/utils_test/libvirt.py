@@ -3587,7 +3587,7 @@ def check_machine_type_arch(machine_type):
 
 
 def customize_libvirt_config(params,
-                             config_type="libvirtd",
+                             config_type="virtqemud",
                              remote_host=False,
                              extra_params=None,
                              is_recover=False,
@@ -3611,18 +3611,26 @@ def customize_libvirt_config(params,
     :return: utils_config.LibvirtConfigCommon object
     """
     # Hardcode config_type to virtqemud under modularity daemon mode when config_type="libvirtd"
+    # On the contrary, hardcode it to "libvirtd" when config_type="virt*d".
     # Otherwise accept config_type as it is.
     if utils_split_daemons.is_modular_daemon():
         if config_type in ["libvirtd"]:
             config_type = "virtqemud"
+    else:
+        if config_type in ["virtqemud", "virtproxyd", "virtnetworkd",
+                           "virtstoraged", "virtinterfaced", "virtnodedevd",
+                           "virtnwfilterd", "virtsecretd"]:
+            config_type = "libvirtd"
     config_list_support = ["libvirtd", "qemu", "sysconfig", "guestconfig",
                            "virtqemud", "virtproxyd", "virtnetworkd",
                            "virtstoraged", "virtinterfaced", "virtnodedevd",
-                           "virtnwfilterd", "libvirt"]
+                           "virtnwfilterd", "virtsecretd", "libvirt"]
     if config_type not in config_list_support:
         logging.debug("'%s' is not in the support list '%s'",
                       config_type, config_list_support)
         return None
+    else:
+        logging.debug("The '%s' config file will be updated.", config_type)
 
     if not is_recover:
         target_conf = None

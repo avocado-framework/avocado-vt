@@ -749,6 +749,7 @@ def get_conf_obj(config_type):
         'virtproxyd': VirtProxydConfig,
         'virtnetworkd': VirtNetworkdConfig,
         'virtstoraged': VirtStoragedConfig,
+        'virtsecretd': VirtSecretdConfig,
         'virtinterfaced': VirtInterfacedConfig,
         'virtnodedevd': VirtNodedevdConfig,
         'virtnwfilterd': VirtNwfilterdConfig
