@@ -37,8 +37,8 @@
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 82.0
-Release: 2%{?gitrel}%{?dist}
+Version: 83.0
+Release: 1%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -161,6 +161,9 @@ Xunit output, among others.
 
 
 %changelog
+* Tue Nov 17 2020 Cleber Rosa <cleber@redhat.com> - 83.0-1
+- New release
+
 * Fri Oct 30 2020 Cleber Rosa <cleber@redhat.com> - 82.0-2
 - Use data files from Python's standard location
 
