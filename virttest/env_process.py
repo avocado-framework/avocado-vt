@@ -303,6 +303,7 @@ def preprocess_vm(test, params, env, name):
                           migration_exec_cmd=params.get("migration_exec_cmd_dst"))
 
         # Update kernel param
+        serial_login = params.get_boolean("kernel_extra_params_serial_login")
         kernel_extra_params_add = params.get("kernel_extra_params_add", "")
         kernel_extra_params_remove = params.get("kernel_extra_params_remove", "")
         if params.get("disable_pci_msi"):
@@ -329,7 +330,8 @@ def preprocess_vm(test, params, env, name):
         if kernel_extra_params_add or kernel_extra_params_remove:
             utils_test.update_boot_option(vm,
                                           args_added=kernel_extra_params_add,
-                                          args_removed=kernel_extra_params_remove)
+                                          args_removed=kernel_extra_params_remove,
+                                          serial_login=serial_login)
 
     elif not vm.is_alive():    # VM is dead and won't be started, update params
         vm.devices = None
@@ -574,6 +576,7 @@ def postprocess_vm(test, params, env, name):
 
     if params.get("start_vm") == "yes":
         # recover the changes done to kernel params in postprocess
+        serial_login = params.get_boolean("kernel_extra_params_serial_login")
         kernel_extra_params_add = params.get("kernel_extra_params_add", "")
         kernel_extra_params_remove = params.get("kernel_extra_params_remove", "")
 
@@ -592,7 +595,8 @@ def postprocess_vm(test, params, env, name):
                     vm.create(params=params)
                 utils_test.update_boot_option(vm,
                                               args_added=kernel_extra_params_remove,
-                                              args_removed=kernel_extra_params_add)
+                                              args_removed=kernel_extra_params_add,
+                                              serial_login=serial_login)
 
     # Close all SSH sessions that might be active to this VM
     for s in vm.remote_sessions[:]:
