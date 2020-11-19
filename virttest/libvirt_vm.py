@@ -1285,7 +1285,7 @@ class VM(virt_vm.BaseVM):
                             "Using --cdrom instead of --disk for install")
                         logging.debug("Skipping CDROM:%s:%s", cdrom, iso)
                         continue
-                if params.get("medium") == 'cdrom_no_kernel_initrd':
+                if params.get("medium") == 'cdrom':
                     if iso == params.get("cdrom_cd1"):
                         logging.debug("Using cdrom or url for install")
                         logging.debug("Skipping CDROM: %s", iso)
