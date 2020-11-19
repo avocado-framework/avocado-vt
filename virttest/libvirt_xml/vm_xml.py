@@ -162,13 +162,14 @@ class VMXMLBase(base.LibvirtXMLBase):
     """
 
     # Additional names of attributes and dictionary-keys instances may contain
-    __slots__ = ('hypervisor_type', 'vm_name', 'uuid', 'title', 'vcpu', 'max_mem',
-                 'current_mem', 'dumpcore', 'numa_memory', 'numa_memnode',
-                 'devices', 'seclabel', 'cputune', 'placement', 'cpuset',
-                 'current_vcpu', 'vcpus', 'os', 'cpu', 'pm', 'on_poweroff',
-                 'on_reboot', 'on_crash', 'features', 'mb', 'max_mem_unit',
-                 'current_mem_unit', 'memtune', 'max_mem_rt', 'max_mem_rt_unit',
-                 'max_mem_rt_slots', 'iothreads', 'iothreadids', 'memory', 'perf')
+    __slots__ = ('hypervisor_type', 'vm_name', 'uuid', 'title', 'vcpu',
+                 'max_mem', 'current_mem', 'dumpcore', 'numa_memory',
+                 'numa_memnode', 'devices', 'seclabel', 'cputune', 'placement',
+                 'cpuset', 'current_vcpu', 'vcpus', 'os', 'cpu', 'pm',
+                 'on_poweroff', 'on_reboot', 'on_crash', 'features', 'mb',
+                 'max_mem_unit', 'current_mem_unit', 'memtune', 'max_mem_rt',
+                 'max_mem_rt_unit', 'max_mem_rt_slots', 'iothreads',
+                 'iothreadids', 'memory', 'perf', 'kewyrap')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -347,6 +348,13 @@ class VMXMLBase(base.LibvirtXMLBase):
                                  parent_xpath='/',
                                  tag_name='features',
                                  subclass=VMFeaturesXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
+        accessors.XMLElementNest(property_name='keywrap',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='keywrap',
+                                 subclass=VMKeywrapXML,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
         accessors.XMLElementNest(property_name='mb',
@@ -3325,3 +3333,48 @@ class VMFeaturesHptXML(base.LibvirtXMLBase):
                                attribute='unit')
         super(VMFeaturesHptXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<hpt/>'
+
+
+class VMKeywrapXML(base.LibvirtXMLBase):
+    """
+    Keywrap class for s390x ciphers on QEMU
+    xpath: /domain/keywrap
+
+    Example:
+
+        vmxml = VMXML.new_from_dumpxml(vm_name)
+        kw = VMKeywrapXML()
+        kw.set_cipher("aes", "off")
+        vmxml.set_keywrap(kw)
+    """
+    def __init__(self, virsh_instance=base.virsh):
+        super(VMKeywrapXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<keywrap/>'
+
+    def get_cipher(self, name):
+        """
+        Gets cipher 'name' if it exists, else None
+
+        :param name: aes or dea
+        :return: cipher element if it exists, else None
+        """
+        root = self.__dict_get__('xml').getroot()
+        for cipher in root.findall('cipher'):
+            if cipher.name == name:
+                return cipher
+        return None
+
+    def set_cipher(self, name, state):
+        """
+        Sets cipher state for name; adds a new cipher if it doesn't exist yet.
+
+        :param name: aes or dea
+        :param state: on or off
+        :return: None
+        """
+        root = self.__dict_get__('xml').getroot()
+        cipher = self.get_cipher('name')
+        if cipher is not None:
+            root.remove(cipher)
+        xml_utils.ElementTree.SubElement(root, 'cipher',
+                                         {'name': name, 'state': state})
