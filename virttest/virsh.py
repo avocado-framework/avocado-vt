@@ -3817,7 +3817,7 @@ def secret_set_value(uuid, password, options=None, encode=False, use_file=False,
         # Read the secret from a file is right choice.
         if use_file:
             secret_file = os.path.join(data_dir.get_tmp_dir(), "secret_file")
-            with open(secret_file, 'a+') as fd:
+            with open(secret_file, 'w+') as fd:
                 fd.write(password)
             cmd += " --file %s" % secret_file
         else:
