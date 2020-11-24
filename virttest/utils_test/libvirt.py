@@ -1601,6 +1601,7 @@ def create_disk_xml(params):
     # Use auth_in_source to diff whether it is placed in source or disk itself.
     auth_in_source = params.get('auth_in_source')
     input_source_file = params.get("input_source_file")
+    source_encryption_dict = params.get("source_encryption_dict")
     if snapshot_attr:
         diskxml.snapshot = snapshot_attr
     source_attrs = {}
@@ -1701,6 +1702,8 @@ def create_disk_xml(params):
                 slice_size = ''.join(slice_size)
                 disk_source.slices = diskxml.new_slices(**{"slice_type": "storage", "slice_offset": "0",
                                                            "slice_size": slice_size})
+        if source_encryption_dict:
+            disk_source.encryption = diskxml.new_encryption(**source_encryption_dict)
         diskxml.source = disk_source
         driver_name = params.get("driver_name", "qemu")
         driver_type = params.get("driver_type", "")
