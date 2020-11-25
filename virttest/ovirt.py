@@ -49,17 +49,11 @@ def connect(params):
     url = params.get('ovirt_engine_url')
     username = params.get('ovirt_engine_user')
     password = params.get('ovirt_engine_password')
-    version = params.get('ovirt_engine_version')
 
     if not all([url, username, password]):
         logging.error('ovirt_engine[url|user|password] are necessary!!')
 
-    if version is None:
-        version = types.Version(major='4', minor='2')
-    else:
-        version = types.Version(version)
-
-    global connection, _connected
+    global connection, _connected, version
 
     try:
         # Try to connect oVirt API if connection doesn't exist,
@@ -71,6 +65,7 @@ def connect(params):
                 password=password,
                 insecure=True
             )
+            version = connection.system_service().get().product_info.version
             _connected = True
             return connection, version
         else:
