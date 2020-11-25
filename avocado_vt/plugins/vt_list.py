@@ -19,8 +19,10 @@ Avocado plugin that augments 'avocado list' with avocado-virt related options.
 import os
 import sys
 
+from avocado.core import plugin_interfaces
 from avocado.core.loader import loader
 from avocado.core.plugin_interfaces import CLI
+from avocado.core.settings import settings, Settings
 
 from virttest.compat import get_settings_value
 from .vt import add_basic_vt_options, add_qemu_bin_vt_option
@@ -96,22 +98,44 @@ class VTLister(CLI):
 
         vt_compat_group_lister = list_subcommand_parser.add_argument_group(
             'Virt-Test compat layer - Lister options')
-        vt_compat_group_lister.add_argument("--vt-list-guests",
-                                            action="store_true",
-                                            default=False,
-                                            help="Also list the available "
-                                            "guests (this option ignores the "
-                                            "--vt-config and --vt-guest-os)")
-        vt_compat_group_lister.add_argument("--vt-list-archs", default=False,
-                                            action="store_true",
-                                            help="Also list the available "
-                                            "arch/machines for the given "
-                                            "guest OS. (Use \"--vt-guest-os "
-                                            "''\" to see all combinations; "
-                                            "--vt-config --vt-machine-type "
-                                            "and --vt-arch args are ignored)")
+
+        help_list_guests = ("Also list the available guests (this option "
+                            "ignores the --vt-config and --vt-guest-os)")
+        help_list_archs = ("Also list the available arch/machines for the "
+                           "given guest OS. (Use \"--vt-guest-os ''\" to see "
+                           "all combinations; --vt-config --vt-machine-type "
+                           "and --vt-arch args are ignored)")
+        if hasattr(Settings, 'register_option'):
+            settings.register_option(
+                section='vt',
+                key='list_guests',
+                action='store_true',
+                long_arg='--vt-list-guests',
+                key_type=bool,
+                default=False,
+                parser=vt_compat_group_lister,
+                help_msg=help_list_guests)
+
+            settings.register_option(
+                section='vt',
+                key='list_archs',
+                action='store_true',
+                long_arg='--vt-list-archs',
+                key_type=bool,
+                default=False,
+                parser=vt_compat_group_lister,
+                help_msg=help_list_archs)
+        else:
+            vt_compat_group_lister.add_argument("--vt-list-guests",
+                                                action="store_true",
+                                                default=False,
+                                                help=help_list_guests)
+            vt_compat_group_lister.add_argument("--vt-list-archs", default=False,
+                                                action="store_true",
+                                                help=help_list_archs)
         add_basic_vt_options(vt_compat_group_lister)
         add_qemu_bin_vt_option(vt_compat_group_lister)
 
     def run(self, config):
-        loader.register_plugin(VirtTestLoader)
+        if not hasattr(plugin_interfaces, 'Init'):
+            loader.register_plugin(VirtTestLoader)

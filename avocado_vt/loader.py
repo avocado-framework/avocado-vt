@@ -134,12 +134,12 @@ class VirtTestLoader(loader.TestLoader):
                 cartesian_config.write("%s\n" % statement)
 
     def get_extra_listing(self):
-        if get_opt(self.config, 'vt_list_guests'):
+        if get_opt(self.config, 'vt.list_guests'):
             config = copy.copy(self.config)
             set_opt(config, 'vt.config', None)
             set_opt(config, 'vt.guest_os', None)
             guest_listing(config)
-        if get_opt(self.config, 'vt_list_archs'):
+        if get_opt(self.config, 'vt.list_archs'):
             config = copy.copy(self.config)
             set_opt(config, 'vt.common.machine_type', None)
             set_opt(config, 'vt.common.arch', None)

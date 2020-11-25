@@ -1,12 +1,20 @@
+import importlib
+
 from avocado.core import plugin_interfaces
+from avocado.core.loader import loader
 from avocado.core.settings import settings
 from avocado.utils import path as utils_path
-from virttest.compat import is_registering_settings_required
-from virttest.defaults import DEFAULT_MACHINE_TYPE
+
+from virttest.compat import (get_settings_value,
+                             is_registering_settings_required)
+from virttest.defaults import (DEFAULT_GUEST_OS,
+                               DEFAULT_MACHINE_TYPE)
 from virttest.standalone_test import (SUPPORTED_DISK_BUSES,
                                       SUPPORTED_IMAGE_TYPES,
                                       SUPPORTED_NIC_MODELS,
+                                      SUPPORTED_TEST_TYPES,
                                       find_default_qemu_paths)
+
 
 if hasattr(plugin_interfaces, 'Init'):
     class VtInit(plugin_interfaces.Init):
@@ -18,8 +26,49 @@ if hasattr(plugin_interfaces, 'Init'):
             if not is_registering_settings_required():
                 return
 
+            # [vt] section
+            section = 'vt'
+
+            help_msg = ('Explicitly choose a cartesian config. When choosing '
+                        'this, some options will be ignored (see options '
+                        'below)')
+            settings.register_option(section, key='config', default=None,
+                                     help_msg=help_msg)
+
+            help_msg = 'Save the resulting cartesian config to a file'
+            settings.register_option(section, key='save_config', default=None,
+                                     help_msg=help_msg)
+
+            help_msg = ("Choose test type (%s). Default: %%(default)s" %
+                        ", ".join(SUPPORTED_TEST_TYPES))
+            settings.register_option(section, key='type',
+                                     default=SUPPORTED_TEST_TYPES[0],
+                                     help_msg=help_msg)
+
+            help_msg = ("Select the guest OS to be used. If --vt-config is "
+                        "provided, this will be ignored. Default: %s" %
+                        DEFAULT_GUEST_OS)
+            settings.register_option(section, key='guest_os',
+                                     default=DEFAULT_GUEST_OS,
+                                     help_msg=help_msg)
+
+            help_msg = ("List of space separated 'no' filters to be passed to "
+                        "the config parser.")
+            settings.register_option(section, key='no_filter', default='',
+                                     help_msg=help_msg)
+
+            help_msg = ("List of space separated 'only' filters to be passed "
+                        "to the config  parser.")
+            settings.register_option(section, key='only_filter', default='',
+                                     help_msg=help_msg)
+
+            help_msg = "List of 'key=value' pairs passed to cartesian parser."
+            settings.register_option(section, key='extra_params', nargs='*',
+                                     default=None, help_msg=help_msg)
+
             # [vt.setup] section
             section = 'vt.setup'
+
             help_msg = 'Backup image before testing (if not already backed up)'
             settings.register_option(section, 'backup_image_before_test',
                                      help_msg=help_msg, key_type=bool,
@@ -94,10 +143,15 @@ if hasattr(plugin_interfaces, 'Init'):
                 default_qemu_bin_path = find_default_qemu_paths()[0]
             except (RuntimeError, utils_path.CmdNotFoundError):
                 default_qemu_bin_path = None
+            qemu_bin = get_settings_value(section, 'qemu_bin', default=None)
+            if qemu_bin is None:  # Allow default to be None when not set in setting
+                default_qemu_bin = None
+            else:
+                default_qemu_bin = qemu_bin
             help_msg = 'Path to a custom qemu binary to be tested'
             settings.register_option(section, 'qemu_bin',
                                      help_msg=help_msg,
-                                     default=default_qemu_bin_path)
+                                     default=default_qemu_bin)
 
             help_msg = ('Path to a custom qemu binary to be tested for the '
                         'destination of a migration, overrides qemu_bin for '
@@ -164,11 +218,14 @@ if hasattr(plugin_interfaces, 'Init'):
                                      default='yes')
 
             # [vt.libvirt] section
+            section = 'vt.libvirt'
+
+            uri_current = get_settings_value(section, 'connect_uri',
+                                             default=None)
             help_msg = ('Test connect URI for libvirt (qemu:///system, '
                         'lxc:///)')
-            settings.register_option('vt.libvirt', 'connect_uri',
-                                     help_msg=help_msg,
-                                     default='qemu:///session')
+            settings.register_option(section, 'connect_uri',
+                                     help_msg=help_msg, default=uri_current)
 
             # [vt.debug] section
             help_msg = ('Do not clean up tmp files or VM processes at the end '
@@ -177,8 +234,26 @@ if hasattr(plugin_interfaces, 'Init'):
                                      help_msg=help_msg, key_type=bool,
                                      default=False)
 
+            # [vt.filter] section
+            help_msg = ("Allows to selectively skip certain default filters. "
+                        "This uses directly 'tests-shared.cfg' and instead of "
+                        "'$provider/tests.cfg' and applies following lists of "
+                        "default filters, unless they are specified as "
+                        "arguments: no_9p_export,no_virtio_rng,"
+                        "no_pci_assignable,smallpages,default_bios,ridge,"
+                        "image_backend,multihost. This can be used to eg. run "
+                        "hugepages tests by filtering 'smallpages' via this "
+                        "option.")
+            settings.register_option('vt.filter', key='default_filters',
+                                     nargs='+', default=None,
+                                     help_msg=help_msg)
+
             # [plugins.vtjoblock] section
             help_msg = 'Directory in which to write the lock file'
             settings.register_option('plugins.vtjoblock', 'dir',
                                      help_msg=help_msg,
                                      default='/tmp')
+
+            virt_loader = getattr(importlib.import_module('avocado_vt.loader'),
+                                  'VirtTestLoader')
+            loader.register_plugin(virt_loader)
