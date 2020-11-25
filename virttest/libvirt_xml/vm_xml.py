@@ -169,7 +169,7 @@ class VMXMLBase(base.LibvirtXMLBase):
                  'on_poweroff', 'on_reboot', 'on_crash', 'features', 'mb',
                  'max_mem_unit', 'current_mem_unit', 'memtune', 'max_mem_rt',
                  'max_mem_rt_unit', 'max_mem_rt_slots', 'iothreads',
-                 'iothreadids', 'memory', 'perf', 'kewyrap')
+                 'iothreadids', 'memory', 'perf', 'keywrap', 'sysinfo')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -376,6 +376,13 @@ class VMXMLBase(base.LibvirtXMLBase):
                                  parent_xpath='/',
                                  tag_name='iothreadids',
                                  subclass=VMIothreadidsXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
+        accessors.XMLElementNest(property_name='sysinfo',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='sysinfo',
+                                 subclass=VMSysinfoXML,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
         super(VMXMLBase, self).__init__(virsh_instance=virsh_instance)
@@ -3378,3 +3385,34 @@ class VMKeywrapXML(base.LibvirtXMLBase):
             root.remove(cipher)
         xml_utils.ElementTree.SubElement(root, 'cipher',
                                          {'name': name, 'state': state})
+
+
+class VMSysinfoXML(VMXML):
+
+    """
+    Class to access <sysinfo> tag of domain XML
+
+    Elements:
+        sysinfo:    list attribute - type
+        entry:      text attribute
+                    list attributes - entry_name, entry_file
+    Example:
+        <sysinfo type='fwcfg'>
+          <entry name='opt/com.example/name'>example value</entry>
+          <entry name='opt/com.example/config' file='/tmp/provision.ign'/>
+        </sysinfo>
+    """
+
+    __slots__ = ('type', 'entry', 'entry_name', 'entry_file')
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLAttribute('type', self, parent_xpath='/',
+                               tag_name='sysinfo', attribute='type')
+        accessors.XMLElementText('entry', self, parent_xpath='/',
+                                 tag_name='entry')
+        accessors.XMLAttribute('entry_name', self, parent_xpath='/',
+                               tag_name='entry', attribute='name')
+        accessors.XMLAttribute('entry_file', self, parent_xpath='/',
+                               tag_name='entry', attribute='file')
+        super(VMSysinfoXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<sysinfo/>'
