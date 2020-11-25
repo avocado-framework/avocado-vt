@@ -1884,7 +1884,8 @@ class VM(virt_vm.BaseVM):
             add_virtio_rng(devices, rng_params, parent_bus)
 
         # Add logging
-        devices.insert(StrDev('isa-log', cmdline=add_log_seabios(devices)))
+        if params.get("enable_debugcon") == "yes":
+            devices.insert(StrDev('isa-log', cmdline=add_log_seabios(devices)))
         if params.get("anaconda_log", "no") == "yes":
             parent_bus = self._get_pci_bus(params, None, True)
             add_log_anaconda(devices, parent_bus)
