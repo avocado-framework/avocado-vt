@@ -11,13 +11,15 @@ class Hostdev(base.TypedDeviceBase):
 
     __slots__ = ('type', 'mode', 'managed', 'sgio', 'rawio',
                  'source', 'boot_order', 'readonly', 'shareable',
-                 'alias')
+                 'alias', 'model')
 
     def __init__(self, type_name="hostdev", virsh_instance=base.base.virsh):
         accessors.XMLAttribute('type', self, parent_xpath='/',
                                tag_name='hostdev', attribute='type')
         accessors.XMLAttribute('mode', self, parent_xpath='/',
                                tag_name='hostdev', attribute='mode')
+        accessors.XMLAttribute('model', self, parent_xpath='/',
+                               tag_name='hostdev', attribute='model')
         accessors.XMLAttribute('managed', self, parent_xpath='/',
                                tag_name='hostdev', attribute='managed')
         accessors.XMLAttribute('sgio', self, parent_xpath='/',
@@ -127,7 +129,7 @@ class Hostdev(base.TypedDeviceBase):
         class UntypedAddress(base.UntypedDeviceBase):
 
             __slots__ = ('device', 'domain', 'bus', 'slot', 'function',
-                         'target', 'unit')
+                         'target', 'unit', 'uuid')
 
             def __init__(self, virsh_instance=base.base.virsh):
                 accessors.XMLAttribute('domain', self, parent_xpath='/',
@@ -144,6 +146,8 @@ class Hostdev(base.TypedDeviceBase):
                                        tag_name='address', attribute='target')
                 accessors.XMLAttribute('unit', self, parent_xpath='/',
                                        tag_name='address', attribute='unit')
+                accessors.XMLAttribute('uuid', self, parent_xpath='/',
+                                       tag_name='address', attribute='uuid')
                 super(self.__class__, self).__init__(
                     "address", virsh_instance=virsh_instance)
                 self.xml = "<address/>"
