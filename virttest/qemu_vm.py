@@ -1174,14 +1174,14 @@ class VM(virt_vm.BaseVM):
             # Pay attention that rtc-td-hack is for early version
             # if "rtc " in help:
             if devices.has_option("rtc"):
-                cmd = " -rtc base=%s" % params.get("rtc_base", "utc")
-                cmd += _add_option("clock", params.get("rtc_clock", "host"))
-                cmd += _add_option("driftfix", params.get("rtc_drift", None))
-                return cmd
+                cmd = _add_option("base", params.get("rtc_base"))
+                cmd += _add_option("clock", params.get("rtc_clock"))
+                cmd += _add_option("driftfix", params.get("rtc_drift"))
+                if cmd:
+                    return " -rtc %s" % cmd.lstrip(",")
             elif devices.has_option("rtc-td-hack"):
                 return " -rtc-td-hack"
-            else:
-                return ""
+            return ""
 
         def add_kernel_cmdline(cmdline):
             return " -append '%s'" % cmdline
