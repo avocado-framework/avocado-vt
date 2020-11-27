@@ -1158,6 +1158,7 @@ class AvocadoGuest(object):
                       "under %s", guest_results_dir)
         # result info tarball to host result dir
         results_tarball = os.path.join(self.test_path, "results.tgz")
+        utils_package.package_install('tar', session=self.session)
         compress_cmd = "cd %s && " % self.result_path
         compress_cmd += "tar cjvf %s" % results_tarball
         compress_cmd += " --exclude=*core*"
@@ -1350,6 +1351,7 @@ def run_autotest(vm, session, control_path, timeout,
         os.mkdir(guest_results_dir)
         # result info tarball to host result dir
         session = vm.wait_for_login(timeout=360)
+        utils_package.package_install('tar', session=session)
         results_dir = "%s/results/default" % base_results_dir
         results_tarball = os.path.join(data_dir.get_tmp_dir(), "results.tgz")
         compress_cmd = "cd %s && " % results_dir
