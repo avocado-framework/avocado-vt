@@ -258,7 +258,7 @@ class Target(object):
 
                     vddk_lib_prefix = 'vddklib_'
                     # General vddk directory
-                    vddk_lib_rootdir = '/var/tmp/vddk_libdir'
+                    vddk_lib_rootdir = os.path.expanduser('~/vddk_libdir')
                     vddk_libdir = '%s/latest' % vddk_lib_rootdir
                     check_list = ['FILES',
                                   'lib64/libgvmomi.so',
