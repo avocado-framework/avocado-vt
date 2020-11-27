@@ -1483,7 +1483,7 @@ class VMXML(VMXMLBase):
         :param virsh_instance: virsh instance
         """
         vmxml = VMXML.new_from_inactive_dumpxml(
-                vm_name, virsh_instance=virsh_instance)
+            vm_name, virsh_instance=virsh_instance)
         graphic = vmxml.xmltreefile.find('devices').findall('graphics')
         for key in attr:
             logging.debug("Set %s='%s'" % (key, attr[key]))
@@ -3354,6 +3354,7 @@ class VMKeywrapXML(base.LibvirtXMLBase):
         kw.set_cipher("aes", "off")
         vmxml.set_keywrap(kw)
     """
+
     def __init__(self, virsh_instance=base.virsh):
         super(VMKeywrapXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<keywrap/>'

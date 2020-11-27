@@ -811,6 +811,7 @@ class QBlockdevNode(QCustomDevice):
 
 class QBlockdevFormatNode(QBlockdevNode):
     """ New a format type blockdev node. """
+
     def __init__(self, aobject):
         child_bus = QDriveBus('drive_%s' % aobject, aobject)
         super(QBlockdevFormatNode, self).__init__(aobject, child_bus)
@@ -867,6 +868,7 @@ class QBlockdevFormatLuks(QBlockdevFormatNode):
 
 class QBlockdevProtocol(QBlockdevNode):
     """ New a protocol blockdev node. """
+
     def __init__(self, aobject):
         super(QBlockdevProtocol, self).__init__(aobject, None, False)
 
@@ -1778,7 +1780,7 @@ class QDaemonDev(QBaseDevice):
         self._daemon_process = aexpect.run_bg(cmd, **run_bg_kwargs)
         if status_active:
             self._daemon_process.read_until_any_line_matches(
-                    status_active, timeout=read_until_timeout)
+                status_active, timeout=read_until_timeout)
         else:
             time.sleep(start_until_timeout)
         logging.info("Created %s daemon process with parent PID %d.",
@@ -1841,6 +1843,7 @@ class QVirtioFSDev(QDaemonDev):
     """
     Virtiofs pseudo device.
     """
+
     def __init__(self, aobject, binary, sock_path, source, extra_options=None):
         """
         :param aobject: The aobject of virtiofs daemon.
@@ -1895,6 +1898,7 @@ class QSwtpmDev(QDaemonDev):
     """
     Virtual swtpm pseudo device.
     """
+
     def __init__(self, aobject, binary, sock_path, storage_path,
                  version=None, extra_options=None):
         """

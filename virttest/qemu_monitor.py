@@ -1685,7 +1685,7 @@ class HumanMonitor(Monitor):
         """
         kwargs = self._build_args(**kwargs)
         extra_args = "".join([",%s=%s" % (k, v if not isinstance(v, bool) else
-                              "on" if v else "off") for k, v in kwargs.items()])
+                                          "on" if v else "off") for k, v in kwargs.items()])
         netdev_cmd = "netdev_add type=%s,id=%s%s" % (backend, name, extra_args)
         return self.cmd(netdev_cmd)
 

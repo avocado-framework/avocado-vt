@@ -344,7 +344,7 @@ def get_iso_filename(cdrom_params, root_dir, basename=False):
         iso = cdrom_params.get("cdrom")
         if iso:
             iso = os.path.basename(iso) if basename else utils_misc.get_path(
-                                                               root_dir, iso)
+                root_dir, iso)
         return iso
 
 
@@ -568,6 +568,7 @@ class ImageAccessInfo(object):
     Access info to the logical image, which can include the network
     storage image only, or the image and its backing images.
     """
+
     def __init__(self, image, image_auth, image_backing_auth):
         """
         :param image: image tag name
@@ -613,7 +614,7 @@ def retrieve_access_info(image, params):
 
     for img in images:
         auth = StorageAuth.auth_info_define_by_params(
-                       img, params.object_params(img))
+            img, params.object_params(img))
         if auth is not None:
             access_info[img] = auth
 
@@ -801,7 +802,7 @@ class QemuImg(object):
             self.snapshot_format = ss_params.get("image_format")
 
         self.image_access = ImageAccessInfo.access_info_define_by_params(
-                                                   self.tag, self.params)
+            self.tag, self.params)
 
         self.data_file = self.external_data_file_defined_by_params(
             params, root_dir, tag)

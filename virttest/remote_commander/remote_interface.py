@@ -132,6 +132,7 @@ class StdErr(StdStream):
 class CmdQuery(object):
     """Command-msg-request from VM to avocado-vt test.
     """
+
     def __init__(self, *args, **kargs):
         """
         Command for asking from VM to avocado-vt.
@@ -146,6 +147,7 @@ class CmdQuery(object):
 class CmdRespond(object):
     """Command-msg-answer from avocado-test to VM.
     """
+
     def __init__(self, respond):
         """
         Command for answering avocado-vt to VM.

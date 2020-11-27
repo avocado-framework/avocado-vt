@@ -96,8 +96,8 @@ def filename_to_file_opts(filename):
                              'volume': matches.group('volume'),
                              'path': matches.group('path')}
                 file_opts.update({'server.{i}.{k}'.format(i=i, k=k): v
-                                 for i, server in enumerate(servers)
-                                 for k, v in six.iteritems(server)})
+                                  for i, server in enumerate(servers)
+                                  for k, v in six.iteritems(server)})
     elif re.match(r'nbd(\+\w+)?://', filename):
         filename_pattern = re.compile(
             r'nbd(\+(?:.+))?://((?P<host>[^/:?]+)(:(?P<port>\d+))?)?'
@@ -113,7 +113,7 @@ def filename_to_file_opts(filename):
             if host:
                 # 10890 is the default port for tcp connection
                 port = matches.group('port') if matches.group(
-                                                        'port') else '10809'
+                    'port') else '10809'
                 server = {'server.type': 'inet',
                           'server.host': host,
                           'server.port': port}
@@ -245,9 +245,9 @@ def _get_image_meta(image, params, root_dir):
                     peers.append({'host': peer['host'],
                                   'type': peer.get('type', 'inet'),
                                   'port': '%s' % peer.get('port', '0')})
-            meta['file'].update({'server.{i}.{k}'.format(i=i+1, k=k): v
-                                for i, server in enumerate(peers)
-                                for k, v in six.iteritems(server)})
+            meta['file'].update({'server.{i}.{k}'.format(i=i + 1, k=k): v
+                                 for i, server in enumerate(peers)
+                                 for k, v in six.iteritems(server)})
         elif auth_info.storage_type == 'nbd':
             # qemu-img, as a client, accesses nbd storage
             if auth_info.tls_creds:
@@ -312,7 +312,7 @@ def get_image_repr(image, params, root_dir, representation=None):
     func = mapping.get(representation, None)
     if func is None:
         image_secret = storage.ImageSecret.image_secret_define_by_params(
-                                                           image, params)
+            image, params)
 
         access_needed = False
         auth_info = storage.StorageAuth.auth_info_define_by_params(image,
@@ -417,7 +417,7 @@ class QemuImg(storage.QemuImg):
         "commit_drop": "-d",
         "compare_strict_mode": "-s",
         "compare_second_image_format": "-F"
-        }
+    }
     create_cmd = ("create {secret_object} {tls_creds_object} {image_format} "
                   "{backing_file} {backing_format} {unsafe!b} {options} "
                   "{image_filename} {image_size}")
@@ -1515,7 +1515,7 @@ class QemuImg(storage.QemuImg):
             "resize_preallocation": preallocation,
             "image_filename": self.image_filename,
             "image_size": size,
-            }
+        }
         if self.encryption_config.key_secret:
             cmd_dict["image_filename"] = "'%s'" % get_image_json(
                 self.tag, self.params, self.root_dir)
@@ -1563,7 +1563,7 @@ class QemuImg(storage.QemuImg):
             target_image_params["image_format"] = "luks"
             target_image_params["image_secret"] = target_image_secret
             target_image_object = QemuImg(
-                    target_image_params, self.root_dir, target_image)
+                target_image_params, self.root_dir, target_image)
             cmd_list.append(target_image_object._secret_objects[-1])
             cmd_list.append('-o key-secret=%s' %
                             target_image_object.encryption_config.key_secret.aid)
@@ -1579,7 +1579,7 @@ class QemuImg(storage.QemuImg):
                 cmd_list.append("'%s'" % image_json_str)
             else:
                 cmd_list.extend([("-f %s" % self.image_format),
-                                self.image_filename])
+                                 self.image_filename])
 
         cmd_result = process.run(" ".join(cmd_list), ignore_status=True)
         return cmd_result
