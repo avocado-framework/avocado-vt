@@ -2334,12 +2334,13 @@ class VM(virt_vm.BaseVM):
         if (params.get("disable_kvm", "no") == "yes"):
             params["enable_kvm"] = "no"
 
-        if (params.get("enable_kvm", "yes") == "no"):
-            devices.insert(StrDev('nokvm', cmdline=disable_kvm_option))
-            logging.debug("qemu will run in TCG mode")
-        else:
-            devices.insert(StrDev('kvm', cmdline=enable_kvm_option))
-            logging.debug("qemu will run in KVM mode")
+        if not params.get("vm_accelerator"):
+            if (params.get("enable_kvm", "yes") == "no"):
+                devices.insert(StrDev('nokvm', cmdline=disable_kvm_option))
+                logging.debug("qemu will run in TCG mode")
+            else:
+                devices.insert(StrDev('kvm', cmdline=enable_kvm_option))
+                logging.debug("qemu will run in KVM mode")
 
         compat = params.get("qemu_compat")
         if compat and devices.has_option("compat"):
