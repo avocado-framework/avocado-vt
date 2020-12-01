@@ -324,3 +324,20 @@ def cmp_backup_data(original_file, backup_file,
     dump_data_to_file(data_map, backup_file, backup_file_dump, backup_file_driver)
     if filecmp.cmp(original_file_dump, backup_file_dump):
         return True
+
+
+def get_img_bitmaps(image_path):
+    """
+    Get the bitmap names of a image
+
+    :param image_path: Path to the image
+    :return: a list of bitmap names
+    """
+    bitmap_list = []
+    cmd = "qemu-img info {} --output json".format(image_path)
+    stdout = process.run(cmd, shell=True).stdout_text
+    json_output = json.loads(stdout)
+    bitmaps = json_output['format-specific']['data']['bitmaps']
+    for bitmap in bitmaps:
+        bitmap_list.append(bitmap['name'])
+    return bitmap_list
