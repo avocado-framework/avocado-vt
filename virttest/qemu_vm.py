@@ -1174,14 +1174,14 @@ class VM(virt_vm.BaseVM):
             # Pay attention that rtc-td-hack is for early version
             # if "rtc " in help:
             if devices.has_option("rtc"):
-                cmd = " -rtc base=%s" % params.get("rtc_base", "utc")
-                cmd += _add_option("clock", params.get("rtc_clock", "host"))
-                cmd += _add_option("driftfix", params.get("rtc_drift", None))
-                return cmd
+                cmd = _add_option("base", params.get("rtc_base"))
+                cmd += _add_option("clock", params.get("rtc_clock"))
+                cmd += _add_option("driftfix", params.get("rtc_drift"))
+                if cmd:
+                    return " -rtc %s" % cmd.lstrip(",")
             elif devices.has_option("rtc-td-hack"):
                 return " -rtc-td-hack"
-            else:
-                return ""
+            return ""
 
         def add_kernel_cmdline(cmdline):
             return " -append '%s'" % cmdline
@@ -1884,7 +1884,8 @@ class VM(virt_vm.BaseVM):
             add_virtio_rng(devices, rng_params, parent_bus)
 
         # Add logging
-        devices.insert(StrDev('isa-log', cmdline=add_log_seabios(devices)))
+        if params.get("enable_debugcon") == "yes":
+            devices.insert(StrDev('isa-log', cmdline=add_log_seabios(devices)))
         if params.get("anaconda_log", "no") == "yes":
             parent_bus = self._get_pci_bus(params, None, True)
             add_log_anaconda(devices, parent_bus)
@@ -2333,12 +2334,13 @@ class VM(virt_vm.BaseVM):
         if (params.get("disable_kvm", "no") == "yes"):
             params["enable_kvm"] = "no"
 
-        if (params.get("enable_kvm", "yes") == "no"):
-            devices.insert(StrDev('nokvm', cmdline=disable_kvm_option))
-            logging.debug("qemu will run in TCG mode")
-        else:
-            devices.insert(StrDev('kvm', cmdline=enable_kvm_option))
-            logging.debug("qemu will run in KVM mode")
+        if not params.get("vm_accelerator"):
+            if (params.get("enable_kvm", "yes") == "no"):
+                devices.insert(StrDev('nokvm', cmdline=disable_kvm_option))
+                logging.debug("qemu will run in TCG mode")
+            else:
+                devices.insert(StrDev('kvm', cmdline=enable_kvm_option))
+                logging.debug("qemu will run in KVM mode")
 
         compat = params.get("qemu_compat")
         if compat and devices.has_option("compat"):

@@ -1375,6 +1375,7 @@ class DevContainer(object):
             return devices
 
         machine_type = params.get('machine_type')
+        machine_accel = params.get('vm_accelerator')
         machine_type_extra_params = params.get('machine_type_extra_params')
         if machine_type:
             split_machine_type = machine_type.split(':', 1)
@@ -1389,6 +1390,8 @@ class DevContainer(object):
             if machine_type in m_types:
                 if (self.has_option('M') or self.has_option('machine')):
                     cmd = "-machine %s" % machine_type
+                    if machine_accel:
+                        cmd += ",accel=%s" % machine_accel
                     if machine_type_extra_params:
                         cmd += ",%s" % machine_type_extra_params.strip(',')
                 else:
@@ -1418,20 +1421,26 @@ class DevContainer(object):
                                                (machine_type))
         else:
             devices = None
+            machine_opts = []
+            if machine_accel:
+                machine_opts.append('accel=%s' % machine_accel)
+            cmd = False
+            if machine_opts:
+                cmd = '-machine %s' % ','.join(machine_opts)
             for _ in self.__machine_types.splitlines()[1:]:
                 if 'default' in _:
                     if 'q35' in machine_type:   # Q35 + ICH9
-                        devices = machine_q35(False)
+                        devices = machine_q35(cmd)
                     elif 'isapc' not in machine_type:   # i440FX
-                        devices = machine_i440FX(False)
+                        devices = machine_i440FX(cmd)
                     else:   # isapc (or other)
                         logging.warn('Machine isa/unknown is not supported by '
                                      'avocado-vt. False errors might occur')
-                        devices = machine_other(False)
+                        devices = machine_other(cmd)
             if not devices:
                 logging.warn('Unable to find the default machine type, using '
                              'i440FX')
-                devices = machine_i440FX(False)
+                devices = machine_i440FX(cmd)
 
         if params.get("vm_pci_hole64_fix"):
             if machine_type.startswith('pc'):
