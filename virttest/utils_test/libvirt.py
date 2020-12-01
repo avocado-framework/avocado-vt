@@ -3431,7 +3431,7 @@ def create_secret(params, remote_args=None):
     return sec_uuid
 
 
-def modify_vm_iface(vm_name, oper, iface_dict, index=0):
+def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
     """
     Modify interface xml and do operations
 
@@ -3442,8 +3442,11 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
     :param iface_dict: The dict restore need updated items like iface_driver,
                        driver_host, driver_guest and so on
     :param index: interface index in xml
+    :param virsh_instance: virsh instance object. To modify remote vm's iface
+                           via remote virsh instance, propose to set "oper"
+                           as "get_xml" and scp xml to remote, then sync up it
     """
-    vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
+    vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
     xml_devices = vmxml.devices
     iface_type = iface_dict.get('type')
 
