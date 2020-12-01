@@ -2,6 +2,7 @@
 QEMU related utility functions.
 """
 import re
+import json
 
 from avocado.utils import process
 
@@ -139,12 +140,19 @@ def get_maxcpus_hard_limit(bin_path, machine_type):
     :raise ValueError: If unable to get that
     :return: Maximum value of vCPU
     """
-    invalid_maximum = 0x7fffffff
-    output = _get_info(bin_path, r"-machine %s -smp maxcpus=%d"
-                       % (machine_type, invalid_maximum),
-                       allow_output_check="combined")
-    searches = re.search(r"'%s.*' is (\d+)" % machine_type, output)
-    if searches is None:
+    # TODO: Extract the process of executing QMP as a separate method
+    output = process.run('echo -e \''
+                         '{ "execute": "qmp_capabilities" }\n'
+                         '{ "execute": "query-machines", "id": "TEMP-INST" }\n'
+                         '{ "execute": "quit" }\''
+                         '| %s -M none -nodefaults -nographic -S -qmp stdio '
+                         '| grep return | grep TEMP-INST' % bin_path,
+                         ignore_status=True, shell=True,
+                         verbose=False).stdout_text
+    machines = json.loads(output)["return"]
+    try:
+        machines_info = {machine.pop("name"): machine for machine in machines}
+        return machines_info[machine_type]["cpu-max"]
+    except KeyError:
         raise ValueError("Could not get the maximum limit CPUs supported by "
                          "this machine '%s'" % machine_type)
-    return int(searches.group(1))
