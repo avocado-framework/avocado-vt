@@ -1506,10 +1506,10 @@ class VM(virt_vm.BaseVM):
             kernel_params += ",%s" % speed
         if remove:
             utils_test.update_boot_option(self, args_removed=kernel_params,
-                                          guest_arch_name=guest_arch_name)
+                                          guest_arch_name=guest_arch_name, serial=False)
         else:
             utils_test.update_boot_option(self, args_added=kernel_params,
-                                          guest_arch_name=guest_arch_name)
+                                          guest_arch_name=guest_arch_name, serial=False)
         logging.debug("Set kernel params for %s is successful", device)
         return True
 
