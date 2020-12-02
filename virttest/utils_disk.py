@@ -227,7 +227,7 @@ def get_linux_disks(session, partition=False):
     return disks_dict
 
 
-def get_windows_disks_index(session, image_size):
+def get_windows_disks_index(session, image_size, timeout=60):
     """
     Get all disks index which show in 'diskpart list disk'.
     except for system disk.
@@ -236,6 +236,7 @@ def get_windows_disks_index(session, image_size):
 
     :param session: session object to guest.
     :param image_size: image size. e.g. 40M
+    :param timeout: timeout for getting disks index.
     :return: a list with all disks index except for system disk.
     """
     disk = "disk_" + ''.join(random.sample(string.ascii_letters + string.digits, 4))
@@ -244,7 +245,7 @@ def get_windows_disks_index(session, image_size):
     list_disk_cmd += " && echo exit >> " + disk
     list_disk_cmd += " && diskpart /s " + disk
     list_disk_cmd += " && del /f " + disk
-    disks = session.cmd_output(list_disk_cmd)
+    disks = session.cmd_output(list_disk_cmd, timeout)
     size_type = image_size[-1] + "B"
     if size_type == "MB":
         disk_size = image_size[:-1] + " MB"
