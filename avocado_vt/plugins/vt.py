@@ -22,12 +22,10 @@ from avocado.core.loader import loader
 from avocado.core.plugin_interfaces import CLI
 from avocado.utils import path as utils_path
 
-from virttest import data_dir
-from virttest import defaults
-from virttest import standalone_test
+from virttest import data_dir, defaults, standalone_test
 from virttest.compat import get_settings_value, add_option
-from virttest.standalone_test import SUPPORTED_TEST_TYPES
-from virttest.standalone_test import SUPPORTED_LIBVIRT_URIS
+from virttest.standalone_test import (SUPPORTED_LIBVIRT_URIS,
+                                      SUPPORTED_TEST_TYPES)
 
 from ..loader import VirtTestLoader
 
