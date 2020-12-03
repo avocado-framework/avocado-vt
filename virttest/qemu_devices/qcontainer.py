@@ -1037,16 +1037,22 @@ class DevContainer(object):
                 # To ignore the influence from backends
                 first_image = params.objects('images')[0]
                 img_params = params.object_params(first_image)
-                img_params["backing_chain"] = "yes"
+                img_params["backing_chain"] = "no"
                 path = storage.get_image_filename_filesytem(img_params,
                                                             current_data_dir)
                 img_info = json.loads(qemu_storage.QemuImg(img_params,
                                                            data_dir.DATA_DIR,
                                                            path).info(True, "json"))
-                img_name = os.path.basename(img_info[-1].get("filename"))
+                img_name = os.path.basename(img_info.get("filename"))
+
+                pflash_vars_name = "%s_%s_VARS.fd" % (self.vmname, img_name)
                 # Force the image file to be saved under "images" directory
                 pflash_vars_path = os.path.join(data_dir.DATA_DIR, "images",
-                                                img_name) + "_VARS.fd"
+                                                pflash_vars_name)
+                # When image has backing files, treat it as a temporary image
+                if "backing-filename" in img_info:
+                    self.temporary_image_snapshots.add(pflash_vars_path)
+
                 pflash0, pflash1 = (firmware_name + '_code',
                                     firmware_name + '_vars')
                 if Flags.BLOCKDEV in self.caps:
