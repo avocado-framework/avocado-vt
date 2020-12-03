@@ -49,13 +49,14 @@ def verify_timezone_linux(session):
 
 
 @error_context.context_aware
-def sync_timezone_linux(vm):
+def sync_timezone_linux(vm, login_timeout=360):
     """
     Sync linux guest's timezone
 
     :param vm: Virtual machine object
+    :param login_timeout: Time (seconds) to keep trying to log in.
     """
-    session = vm.wait_for_login(serial=True)
+    session = vm.wait_for_login(timeout=login_timeout, serial=True)
     error_context.context("Sync guest's timezone", logging.info)
     set_timezone_cmd = "timedatectl set-timezone %s"
     if not verify_timezone_linux(session):
@@ -117,13 +118,14 @@ def verify_timezone_win(session):
 
 
 @error_context.context_aware
-def sync_timezone_win(vm):
+def sync_timezone_win(vm, login_timeout=360):
     """
     Verify and sync windows guest's timezone
 
     :param vm: Virtual machine object
+    :param login_timeout: Time (seconds) to keep trying to log in
     """
-    session = vm.wait_for_login(serial=True)
+    session = vm.wait_for_login(timeout=login_timeout, serial=True)
     set_timezone_cmd = 'tzutil /s "%s"'
     (ver_result, output) = verify_timezone_win(session)
 
