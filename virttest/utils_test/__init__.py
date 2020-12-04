@@ -166,7 +166,8 @@ def __run_cmd_and_handle_error(msg, cmd, session, test_fail_msg):
 
 
 def update_boot_option(vm, args_removed="", args_added="",
-                       need_reboot=True, guest_arch_name='x86_64'):
+                       need_reboot=True, guest_arch_name='x86_64',
+                       serial_login=False):
     """
     Update guest default kernel option.
 
@@ -175,6 +176,7 @@ def update_boot_option(vm, args_removed="", args_added="",
     :param args_added: Kernel options want to add.
     :param need_reboot: Whether need reboot VM or not.
     :param guest_arch_name: Guest architecture, e.g. x86_64, s390x
+    :param serial_login: Login guest via serial session
     :raise exceptions.TestError: Raised if fail to update guest kernel cmdline.
 
     """
@@ -189,8 +191,8 @@ def update_boot_option(vm, args_removed="", args_added="",
         logging.warning(msg)
         return
     login_timeout = int(vm.params.get("login_timeout"))
-    session = vm.wait_for_serial_login(timeout=login_timeout,
-                                       restart_network=True)
+    session = vm.wait_for_login(timeout=login_timeout, serial=serial_login,
+                                restart_network=True)
     try:
         # check for args that are really required to be added/removed
         req_args, req_remove_args = check_kernel_cmdline(session,
@@ -226,7 +228,8 @@ def update_boot_option(vm, args_removed="", args_added="",
         # reboot is required only if we really add/remove any args
         if need_reboot and (req_args or req_remove_args):
             logging.info("Rebooting guest ...")
-            session = vm.reboot(session=session, timeout=login_timeout, serial=True)
+            session = vm.reboot(session=session, timeout=login_timeout,
+                                serial=serial_login)
             # check nothing is required to be added/removed by now
             req_args, req_remove_args = check_kernel_cmdline(session,
                                                              remove_args=args_removed,
