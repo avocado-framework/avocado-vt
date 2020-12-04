@@ -4,7 +4,7 @@ Module to contain logic testing protected key module 'pkey'
 import logging
 import os
 
-from virttest.utils_misc import cmd_status_output
+from avocado.utils import process
 
 
 class ProtectedKeyHelper(object):
@@ -22,7 +22,8 @@ class ProtectedKeyHelper(object):
 
         :return: If there were errors loading the module
         """
-        error, output = cmd_status_output("modprobe %s" % self.module_name)
+        error, output = cmd_status_output(cmd="modprobe %s" % self.module_name,
+                                          session=self.session)
         if error:
             logging.debug("Error loading module 'pkey': %s", output)
             return False
@@ -36,8 +37,29 @@ class ProtectedKeyHelper(object):
         """
         some_key_attribute = "protkey_aes_128"
         attr_path = os.path.join(self.sysfs, some_key_attribute)
-        error, output = cmd_status_output("cat %s" % attr_path)
+        error, output = cmd_status_output(cmd="cat %s" % attr_path,
+                                          session=self.session)
         if error:
             logging.debug("Error reading from %s: %s", attr_path, output)
             return None
         return output
+
+
+def cmd_status_output(cmd, session=None, timeout=60):
+    """
+    Function to unify usage of process and ShellSession"
+
+    :param cmd: Command to issue.
+    :param session: Guest session. If empty, command is exeucted on host.
+    """
+
+    status = None
+    stdout = None
+    if session:
+        status, stdout = session.cmd_status_output(cmd, timeout=timeout)
+    else:
+        result = process.run(cmd, shell=False, ignore_status=True,
+                             verbose=True, timeout=timeout)
+        status = result.exit_status
+        stdout = result.stdout
+    return status, stdout
