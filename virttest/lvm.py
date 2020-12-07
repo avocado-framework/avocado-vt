@@ -652,8 +652,8 @@ class EmulatedLVM(LVM):
         :return: loop back device name;
         """
         cmd = "losetup %s --show --find %s" % (extra_args, img_file)
-        pv_name = process.run(cmd).stdout_text
-        self.params["pv_name"] = pv_name.strip()
+        pv_name = process.run(cmd).stdout_text.strip()
+        self.params["pv_name"] = pv_name
         return pv_name
 
     def setup_pv(self, vg):
@@ -676,6 +676,7 @@ class EmulatedLVM(LVM):
             pv = PhysicalVolume(pv_name, pv_size)
             pv.create()
             self.register(pv)
+            self.pvs.append(pv)
         else:
             logging.warn("PhysicalVolume(%s) really exists" % pv_name +
                          "skip to create it")
