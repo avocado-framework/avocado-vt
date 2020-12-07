@@ -3091,3 +3091,73 @@ class DevContainer(object):
         devices.append(tpm_model_dev)
 
         return devices
+
+    def numa_hmat_lb_define_by_params(self, nodeid, initiator, params):
+        """
+        Create numa hmat-lb by params
+
+        :param nodeid: The target node id of the hmat-lb
+        :param initiator: The initiator of the hmat-lb
+        :param params: The params for hmat-lb
+        :return: The qdevices.QCustomDevice of hmat-lb
+        """
+        aobject = '%s_hmat_lb' % nodeid
+        hmat_lb_params = {'target': nodeid, 'initiator': initiator,
+                          'hierarchy': params['numa_hmat_lb_hierarchy'],
+                          'hmat_type': 'hmat-lb'}
+        data_type = params['numa_hmat_lb_data_type']
+        hmat_lb_params.update({'data-type': data_type})
+        if 'latency' in data_type:
+            hmat_lb_params.update(
+                {'latency': params['numa_hmat_lb_latency']})
+            aobject += '_latency'
+        elif 'bandwidth' in data_type:
+            hmat_lb_params.update(
+                {'bandwidth': params['numa_hmat_lb_bandwidth']})
+            aobject += '_bandwidth'
+        return qdevices.QCustomDevice('numa', params=hmat_lb_params,
+                                      aobject=aobject, backend='hmat_type')
+
+    def numa_hmat_cache_define_by_params(self, nodeid, params):
+        """
+        Create numa hmat-cache by params
+
+        :param nodeid: The target node id of the hmat-cache
+        :param params: The numa params for hmat-caches
+        :return: The list of qdevices.QCustomDevice, including all hmat-caches
+        targeted on the nodeid given
+        """
+        numa_hmat_caches = params.objects('numa_hmat_caches')
+        if numa_hmat_caches:
+            if (not self.get_by_properties(
+                    {'aobject': '%s_hmat_lb_bandwidth' % nodeid}) or
+                    not self.get_by_properties(
+                        {'aobject': '%s_hmat_lb_bandwidth' % nodeid})):
+                raise exceptions.TestError(
+                    'Please make sure both hmat-lb bandwidth and '
+                    'hmat-lb latency are defined when define hmat-cache.')
+
+        hmat_cache_devs = []
+        aobject = '%s_hmat_cache' % nodeid
+        for hmat_cache in numa_hmat_caches:
+            hmat_cache_params = params.object_params(hmat_cache)
+            level = hmat_cache_params.get_numeric('numa_hmat_caches_level')
+            size = utils_misc.normalize_data_size(
+                hmat_cache_params['numa_hmat_caches_size'], 'K')
+            hc_params = {
+                'node-id': nodeid, 'level': level,
+                'hmat_type': 'hmat-cache',
+                'size': str(int(float(size))) + 'K',
+                'associativity': hmat_cache_params.get(
+                     'numa_hmat_caches_associativity'),
+                'policy': hmat_cache_params.get(
+                    'numa_hmat_caches_policy'),
+                'line': hmat_cache_params.get('numa_hmat_caches_line')
+            }
+            aobject += '_level_%s' % level
+            hmat_cache_devs.append(
+                qdevices.QCustomDevice(
+                    'numa', hc_params,
+                    aobject=aobject, backend='hmat_type'))
+
+        return hmat_cache_devs
