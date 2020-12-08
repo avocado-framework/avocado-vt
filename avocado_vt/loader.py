@@ -61,7 +61,7 @@ def guest_listing(config, guest_name_parser=None):
     LOG.debug("")
 
 
-def arch_listing(config):
+def arch_listing(config, guest_name_parser=None):
     """
     List available machine/archs for given guest operating systems
     """
@@ -71,7 +71,8 @@ def arch_listing(config):
     else:
         extra = ""
     LOG.info("Available arch profiles%s", extra)
-    guest_name_parser = standalone_test.get_guest_name_parser(config)
+    if guest_name_parser is None:
+        guest_name_parser = standalone_test.get_guest_name_parser(config)
     machine_type = get_opt(config, 'vt.common.machine_type')
     for params in guest_name_parser.get_dicts():
         LOG.debug(params['name'].replace('.%s' % machine_type, ''))
