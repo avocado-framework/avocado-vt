@@ -47,6 +47,16 @@ if is_registering_settings_required():
     def get_settings_value(section, key, **kwargs):
         namespace = '%s.%s' % (section, key)
         return settings.as_dict().get(namespace)
+
+    def add_option(parser, arg, **kwargs):
+        """Add a command-line argument parser to an existing option."""
+        settings.add_argparser_to_option(
+            namespace=kwargs.get('dest'),
+            action=kwargs.get('action', 'store'),
+            parser=parser,
+            allow_multiple=True,
+            long_arg=arg)
+
 else:
     def get_opt(opt, name):
         """
@@ -81,3 +91,7 @@ else:
 
     def get_settings_value(section, key, **kwargs):
         return settings.get_value(section, key, **kwargs)
+
+    def add_option(parser, arg, **kwargs):
+        """Adds new command-line argument option to the parser"""
+        parser.add_argument(arg, **kwargs)

@@ -22,12 +22,10 @@ from avocado.core.loader import loader
 from avocado.core.plugin_interfaces import CLI
 from avocado.utils import path as utils_path
 
-from virttest import data_dir
-from virttest import defaults
-from virttest import standalone_test
-from virttest.compat import get_settings_value
-from virttest.standalone_test import SUPPORTED_TEST_TYPES
-from virttest.standalone_test import SUPPORTED_LIBVIRT_URIS
+from virttest import data_dir, defaults, standalone_test
+from virttest.compat import get_settings_value, add_option
+from virttest.standalone_test import (SUPPORTED_LIBVIRT_URIS,
+                                      SUPPORTED_TEST_TYPES)
 
 from ..loader import VirtTestLoader
 
@@ -46,55 +44,87 @@ def add_basic_vt_options(parser):
     """
     Add basic vt options to parser
     """
-    parser.add_argument("--vt-config", action="store", dest="vt.config",
-                        help="Explicitly choose a cartesian config. When "
-                        "choosing this, some options will be ignored (see "
-                        "options below)")
-    parser.add_argument("--vt-save-config", action="store",
-                        dest="vt.save_config",
-                        help="Save the resulting cartesian config to a file")
-    msg = ("Choose test type (%s). Default: %%(default)s" %
-           ", ".join(SUPPORTED_TEST_TYPES))
-    parser.add_argument("--vt-type", action="store", dest="vt.type",
-                        help=msg, default=SUPPORTED_TEST_TYPES[0])
+
+    help_msg = ("Explicitly choose a cartesian config. When choosing this, "
+                "some options will be ignored (see options below)")
+    add_option(parser,
+               dest='vt.config',
+               arg='--vt-config',
+               help=help_msg)
+
+    help_msg = "Save the resulting cartesian config to a file"
+    add_option(parser,
+               dest='vt.save_config',
+               arg='--vt-save-config',
+               help=help_msg)
+    help_msg = ("Choose test type (%s). Default: %%(default)s" %
+                ", ".join(SUPPORTED_TEST_TYPES))
+    add_option(parser,
+               dest='vt.type',
+               arg='--vt-type',
+               help=help_msg)
+
     arch = get_settings_value('vt.common', 'arch', default=None)
-    parser.add_argument("--vt-arch", help="Choose the VM architecture. "
-                        "Default: %(default)s", default=arch,
-                        dest='vt.common.arch')
+    help_msg = "Choose the VM architecture. Default: %(default)s"
+    add_option(parser,
+               dest='vt.common.arch',
+               arg='--vt-arch',
+               default=arch,
+               help=help_msg)
+
     machine = get_settings_value('vt.common', 'machine_type',
                                  default=defaults.DEFAULT_MACHINE_TYPE)
-    parser.add_argument("--vt-machine-type", help="Choose the VM machine type."
-                        " Default: %(default)s", default=machine,
-                        dest='vt.common.machine_type')
-    parser.add_argument("--vt-guest-os", action="store",
-                        dest="vt.guest_os", default=defaults.DEFAULT_GUEST_OS,
-                        help="Select the guest OS to be used. If --vt-config "
-                        "is provided, this will be ignored. Default: "
-                        "%(default)s")
-    parser.add_argument("--vt-no-filter", action="store", dest="vt.no_filter",
-                        default="", help="List of space separated 'no' filters"
-                        " to be passed to the config parser.  Default: "
-                        "'%(default)s'")
-    parser.add_argument("--vt-only-filter", action="store",
-                        dest="vt.only_filter", default="", help="List of space"
-                        " separated 'only' filters to be passed to the config "
-                        "parser.  Default: '%(default)s'")
-    parser.add_argument("--vt-filter-default-filters", nargs='+',
-                        help="Allows to selectively skip certain default "
-                        "filters. This uses directly 'tests-shared.cfg' and "
-                        "instead of '$provider/tests.cfg' and applies "
-                        "following lists of default filters, unless they are "
-                        "specified as arguments: no_9p_export,no_virtio_rng,"
-                        "no_pci_assignable,smallpages,default_bios,bridge,"
-                        "image_backend,multihost. This can be used to eg. "
-                        "run hugepages tests by filtering 'smallpages' via "
-                        "this option.", dest='vt.filter.default_filters')
+    help_msg = "Choose the VM machine type. Default: %(default)s"
+    add_option(parser,
+               dest='vt.common.machine_type',
+               arg='--vt-machine-type',
+               default=machine,
+               help=help_msg)
+
+    help_msg = ("Select the guest OS to be used. If --vt-config is provided, "
+                "this will be ignored. Default: %(default)s")
+    add_option(parser,
+               dest='vt.guest_os',
+               arg='--vt-guest-os',
+               default=defaults.DEFAULT_GUEST_OS,
+               help=help_msg)
+
+    help_msg = ("List of space separated 'no' filters to be passed to the "
+                "config parser.  Default: '%(default)s'")
+    add_option(parser,
+               dest='vt.no_filter',
+               arg='--vt-no-filter',
+               default="",
+               help=help_msg)
+
+    help_msg = ("List of space separated 'only' filters to be passed to the "
+                "config parser.  Default: '%(default)s'")
+    add_option(parser,
+               dest='vt.only_filter',
+               arg='--vt-only-filter',
+               default="",
+               help=help_msg)
+
+    help_msg = ("Allows to selectively skip certain default filters. This uses "
+                "directly 'tests-shared.cfg' and instead of "
+                "'$provider/tests.cfg' and applies following lists of default "
+                "filters, unless they are specified as arguments: "
+                "no_9p_export,no_virtio_rng,no_pci_assignable,smallpages,"
+                "default_bios,bridge,image_backend,multihost. This can be used"
+                " to eg. run hugepages tests by filtering 'smallpages' via "
+                "this option.")
+    add_option(parser,
+               dest='vt.filter.default_filters',
+               arg='--vt-filter-default-filters',
+               nargs='+',
+               help=help_msg)
 
 
 def add_qemu_bin_vt_option(parser):
     """
     Add qemu-bin vt option to parser
     """
+
     def _str_or_none(arg):
         if arg is None:
             return "Could not find one"
@@ -107,26 +137,33 @@ def add_qemu_bin_vt_option(parser):
         qemu_bin_path = None
     qemu_bin = get_settings_value('vt.qemu', 'qemu_bin',
                                   default=None)
-    if qemu_bin is None:    # Allow default to be None when not set in setting
+    if qemu_bin is None:  # Allow default to be None when not set in setting
         default_qemu_bin = None
         qemu_bin = qemu_bin_path
     else:
         default_qemu_bin = qemu_bin
-    parser.add_argument("--vt-qemu-bin", action="store", dest="vt.qemu.qemu_bin",
-                        default=default_qemu_bin, help="Path to a custom qemu"
-                        " binary to be tested. If --vt-config is provided and"
-                        " this flag is omitted, no attempt to set the qemu "
-                        "binaries will be made. Current: %s"
-                        % _str_or_none(qemu_bin))
+
+    help_msg = ("Path to a custom qemu binary to be tested. If --vt-config is "
+                "provided and this flag is omitted, no attempt to set the "
+                "qemu binaries will be made. Current: %s" %
+                _str_or_none(qemu_bin))
+    add_option(parser,
+               dest='vt.qemu.qemu_bin',
+               arg='--vt-qemu-bin',
+               default=default_qemu_bin,
+               help=help_msg)
+
     qemu_dst = get_settings_value('vt.qemu', 'qemu_dst_bin',
                                   default=qemu_bin_path)
-    parser.add_argument("--vt-qemu-dst-bin", action="store",
-                        dest="vt.qemu.qemu_dst_bin", default=qemu_dst, help="Path "
-                        "to a custom qemu binary to be tested for the "
-                        "destination of a migration, overrides --vt-qemu-bin. "
-                        "If --vt-config is provided and this flag is omitted, "
-                        "no attempt to set the qemu binaries will be made. "
-                        "Current: %s" % _str_or_none(qemu_dst))
+    help_msg = ("Path to a custom qemu binary to be tested for the destination"
+                " of a migration, overrides --vt-qemu-bin. If --vt-config is "
+                "provided and this flag is omitted, no attempt to set the qemu"
+                " binaries will be made. Current: %s" % _str_or_none(qemu_dst))
+    add_option(parser,
+               dest='vt.qemu.qemu_dst_bin',
+               arg='--vt-qemu-dst-bin',
+               default=qemu_dst,
+               help=help_msg)
 
 
 class VTRun(CLI):
@@ -157,25 +194,28 @@ class VTRun(CLI):
 
         add_basic_vt_options(vt_compat_group_common)
         add_qemu_bin_vt_option(vt_compat_group_qemu)
-        vt_compat_group_qemu.add_argument("--vt-extra-params", nargs='*',
-                                          dest="vt.extra_params",
-                                          help="List of 'key=value' pairs "
-                                          "passed to cartesian parser.")
+
+        help_msg = "List of 'key=value' pairs passed to cartesian parser."
+        add_option(parser=vt_compat_group_qemu,
+                   dest='vt.extra_params',
+                   arg='--vt-extra-params',
+                   nargs='*',
+                   help=help_msg)
+
         supported_uris = ", ".join(SUPPORTED_LIBVIRT_URIS)
-        msg = ("Choose test connect uri for libvirt (E.g: %s). "
-               "Current: %%(default)s" % supported_uris)
+        help_msg = ("Choose test connect uri for libvirt (E.g: %s). Current: "
+                    "%%(default)s" % supported_uris)
         uri_current = get_settings_value('vt.libvirt', 'connect_uri',
                                          default=None)
-        vt_compat_group_libvirt.add_argument("--vt-connect-uri",
-                                             action="store",
-                                             dest="vt.libvirt.connect_uri",
-                                             default=uri_current,
-                                             help=msg)
+        add_option(parser=vt_compat_group_libvirt,
+                   dest='vt.libvirt.connect_uri',
+                   arg='--vt-connect-uri',
+                   default=uri_current,
+                   help=help_msg)
 
     def run(self, config):
         """
         Run test modules or simple tests.
-
         :param config: Command line args received from the run subparser.
         """
         loader.register_plugin(VirtTestLoader)
