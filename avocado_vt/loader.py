@@ -36,7 +36,7 @@ from .test import VirtTest
 LOG = logging.getLogger("avocado.app")
 
 
-def guest_listing(config):
+def guest_listing(config, guest_name_parser=None):
     """
     List available guest operating systems and info about image availability
     """
@@ -45,7 +45,8 @@ def guest_listing(config):
     LOG.debug("Using %s for guest images\n",
               os.path.join(data_dir.get_data_dir(), 'images'))
     LOG.info("Available guests in config:")
-    guest_name_parser = standalone_test.get_guest_name_parser(config)
+    if guest_name_parser is None:
+        guest_name_parser = standalone_test.get_guest_name_parser(config)
     for params in guest_name_parser.get_dicts():
         base_dir = params.get("images_base_dir", data_dir.get_data_dir())
         image_name = storage.get_image_filename(params, base_dir)
