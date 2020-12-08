@@ -63,6 +63,7 @@ if __name__ == "__main__":
                   ],
               'avocado.plugins.cli.cmd': [
                   'vt-bootstrap = avocado_vt.plugins.vt_bootstrap:VTBootstrap',
+                  'vt-list-guests = avocado_vt.plugins.vt_list_guests:VTListGuests',
                   ],
               pre_post_plugin_type(): [
                   'vt-joblock = avocado_vt.plugins.vt_joblock:VTJobLock',
