@@ -139,7 +139,11 @@ def create_backup_disk_xml(backup_disk_params):
     if backup_target:
         if not isinstance(backup_target, dict):
             raise exceptions.TestError("disk target tag should be defined by a dict.")
-        backup_disk_xml.target = backup_target
+        disk_target = BackupXML.DiskXML.DiskTarget()
+        disk_target.attrs = backup_target["attrs"]
+        if "encryption" in list(backup_target.keys()):
+            disk_target.encryption = disk_target.new_encryption(**backup_target["encryption"])
+        backup_disk_xml.target = disk_target
     if backup_driver:
         if not isinstance(backup_driver, dict):
             raise exceptions.TestError("disk driver tag should be defined by a dict.")
@@ -147,7 +151,11 @@ def create_backup_disk_xml(backup_disk_params):
     if backup_scratch:
         if not isinstance(backup_scratch, dict):
             raise exceptions.TestError("disk scratch tag should be defined by a dict.")
-        backup_disk_xml.scratch = backup_scratch
+        disk_scratch = BackupXML.DiskXML.DiskScratch()
+        disk_scratch.attrs = backup_scratch["attrs"]
+        if "encryption" in list(backup_scratch.keys()):
+            disk_scratch.encryption = disk_scratch.new_encryption(**backup_scratch["encryption"])
+        backup_disk_xml.scratch = disk_scratch
     backup_disk_xml.xmltreefile.write()
 
     utils_misc.wait_for(lambda: os.path.exists(backup_disk_xml.xml), 5)
