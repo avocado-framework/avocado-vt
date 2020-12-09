@@ -54,3 +54,25 @@ def find_subtest_dirs(other_subtests_dirs, bindir, ignore_files=None):
         subtest_dirs += data_dir.SubdirList(subtestdir,
                                             ignore_files)
     return subtest_dirs
+
+
+def find_generic_specific_subtest_dirs(vm_type, ignore_files=None):
+    """Find generic and specific directories containing subtests.
+
+    This verifies if we have the correspondent source file.
+
+    :param vm_type: type of test provider and thus VM (qemu, libvirt, etc)
+    :type vm_type: string
+    :param ignore_files: files/dirs to ignore as possible candidates
+    :type ignore_files: list or None
+    """
+    subtest_dirs = []
+    generic_subdirs = asset.get_test_provider_subdirs('generic')
+    for generic_subdir in generic_subdirs:
+        subtest_dirs += data_dir.SubdirList(generic_subdir,
+                                            ignore_files)
+    specific_subdirs = asset.get_test_provider_subdirs(vm_type)
+    for specific_subdir in specific_subdirs:
+        subtest_dirs += data_dir.SubdirList(specific_subdir,
+                                            ignore_files)
+    return subtest_dirs

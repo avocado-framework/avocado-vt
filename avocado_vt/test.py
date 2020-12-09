@@ -340,18 +340,8 @@ class VirtTest(test.Test):
         provider = params.get("provider", None)
 
         if provider is None:
-            # Verify if we have the correspondent source file for
-            # it
-            generic_subdirs = asset.get_test_provider_subdirs(
-                'generic')
-            for generic_subdir in generic_subdirs:
-                subtest_dirs += data_dir.SubdirList(generic_subdir,
-                                                    test_filter)
-            specific_subdirs = asset.get_test_provider_subdirs(
-                params.get("vm_type"))
-            for specific_subdir in specific_subdirs:
-                subtest_dirs += data_dir.SubdirList(
-                    specific_subdir, bootstrap.test_filter)
+            subtest_dirs += utils.find_generic_specific_subtest_dirs(
+                params.get("vm_type"), test_filter)
         else:
             provider_info = asset.get_test_provider_info(provider)
             for key in provider_info['backends']:
