@@ -12,6 +12,8 @@
 # Copyright: Red Hat Inc. 2020
 # Author: Cleber Rosa <crosa@redhat.com>
 
+import imp
+import logging
 import os
 import sys
 
@@ -94,3 +96,31 @@ def find_provider_subtest_dirs(provider, ignore_files=None):
             provider_info['backends'][key]['path'],
             ignore_files)
     return subtests_dirs
+
+
+def find_test_modules(test_types, subtest_dirs):
+    """Find the test modules for given test type and dirs.
+
+    :param test_types: the types of tests a given test sets as supported
+    :type test_types: list
+    :param subtests_dirs: directories possibly containing tests modules
+    :type subtests_dirs: list
+    """
+    test_modules = {}
+    for test_type in test_types:
+        for d in subtest_dirs:
+            module_path = os.path.join(d, "%s.py" % test_type)
+            if os.path.isfile(module_path):
+                logging.debug("Found subtest module %s",
+                              module_path)
+                subtest_dir = d
+                break
+        if subtest_dir is None:
+            msg = ("Could not find test file %s.py on test"
+                   "dirs %s" % (test_type, subtest_dirs))
+            raise exceptions.TestError(msg)
+        # Load the test module
+        f, p, d = imp.find_module(test_type, [subtest_dir])
+        test_modules[test_type] = imp.load_module(test_type, f, p, d)
+        f.close()
+    return test_modules

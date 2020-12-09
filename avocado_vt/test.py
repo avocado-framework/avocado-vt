@@ -358,23 +358,7 @@ class VirtTest(test.Test):
 
         utils.insert_dirs_to_path(subtest_dirs)
 
-        test_modules = {}
-        for t_type in t_types:
-            for d in subtest_dirs:
-                module_path = os.path.join(d, "%s.py" % t_type)
-                if os.path.isfile(module_path):
-                    logging.debug("Found subtest module %s",
-                                  module_path)
-                    subtest_dir = d
-                    break
-            if subtest_dir is None:
-                msg = ("Could not find test file %s.py on test"
-                       "dirs %s" % (t_type, subtest_dirs))
-                raise exceptions.TestError(msg)
-            # Load the test module
-            f, p, d = imp.find_module(t_type, [subtest_dir])
-            test_modules[t_type] = imp.load_module(t_type, f, p, d)
-            f.close()
+        test_modules = utils.find_test_modules(t_types, subtest_dirs)
 
         # Open the environment file
         env_filename = os.path.join(data_dir.get_tmp_dir(),
