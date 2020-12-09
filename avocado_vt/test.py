@@ -41,6 +41,9 @@ from virttest import utils_params
 from virttest import utils_misc
 from virttest import version
 
+from avocado_vt import utils
+
+
 # avocado-vt no longer needs autotest for the majority of its functionality,
 # except by:
 # 1) Run autotest on VMs
@@ -378,10 +381,8 @@ class VirtTest(test.Test):
                       params.get("provider", None))
 
         t_types = params.get("type").split()
-        # Make sure we can load provider_lib in tests
-        for s in subtest_dirs:
-            if os.path.dirname(s) not in sys.path:
-                sys.path.insert(0, os.path.dirname(s))
+
+        utils.insert_dirs_to_path(subtest_dirs)
 
         test_modules = {}
         for t_type in t_types:
