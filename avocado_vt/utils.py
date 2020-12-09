@@ -17,6 +17,7 @@ import sys
 
 from avocado.core import exceptions
 
+from virttest import asset
 from virttest import data_dir
 
 
@@ -76,3 +77,20 @@ def find_generic_specific_subtest_dirs(vm_type, ignore_files=None):
         subtest_dirs += data_dir.SubdirList(specific_subdir,
                                             ignore_files)
     return subtest_dirs
+
+
+def find_provider_subtest_dirs(provider, ignore_files=None):
+    """Find directories containing subtests for specific providers.
+
+    :param provider: provider name
+    :type vm_type: string
+    :param ignore_files: files/dirs to ignore as possible candidates
+    :type ignore_files: list or None
+    """
+    subtests_dirs = []
+    provider_info = asset.get_test_provider_info(provider)
+    for key in provider_info['backends']:
+        subtests_dirs += data_dir.SubdirList(
+            provider_info['backends'][key]['path'],
+            ignore_files)
+    return subtests_dirs

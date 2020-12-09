@@ -30,7 +30,6 @@ from avocado.utils import stacktrace
 from avocado.utils import process
 from avocado.utils import genio
 
-from virttest import asset
 from virttest import error_event
 from virttest import bootstrap
 from virttest import data_dir
@@ -343,12 +342,8 @@ class VirtTest(test.Test):
             subtest_dirs += utils.find_generic_specific_subtest_dirs(
                 params.get("vm_type"), test_filter)
         else:
-            provider_info = asset.get_test_provider_info(provider)
-            for key in provider_info['backends']:
-                subtest_dirs += data_dir.SubdirList(
-                    provider_info['backends'][key]['path'],
-                    bootstrap.test_filter)
-
+            subtest_dirs += utils.find_provider_subtest_dirs(provider,
+                                                             test_filter)
         subtest_dir = None
 
         # Get the test routine corresponding to the specified
