@@ -891,6 +891,7 @@ class TLSConnection(ConnectionBase):
     qemu_chardev_tls: True for config chardev tls in qemu conf
     special_cn: Use special cn in /etc/hosts, default don't use
     server_setup_local: Whether to setup tls server on local host
+    server_info_ip: Use a specific IP address in server.info
     """
     __slots__ = ('server_cn', 'client_cn', 'ca_cn', 'CERTTOOL', 'pki_CA_dir',
                  'libvirt_pki_dir', 'libvirt_pki_private_dir', 'client_hosts',
@@ -902,7 +903,7 @@ class TLSConnection(ConnectionBase):
                  'credential_dict', 'qemu_tls', 'qemu_chardev_tls',
                  'server_saslconf', 'server_qemuconf', 'client_qemuconf',
                  'server_libvirtd_tls_socket', 'client_libvirtd_tls_socket',
-                 'special_cn', 'server_setup_local',
+                 'special_cn', 'server_setup_local', 'server_info_ip',
                  'daemon_conf', 'daemon_socket_conf')
 
     def __init__(self, *args, **dargs):
@@ -932,6 +933,7 @@ class TLSConnection(ConnectionBase):
             'restart_libvirtd', 'yes')
         init_dict['special_cn'] = init_dict.get('special_cn', 'no')
         init_dict['server_setup_local'] = init_dict.get('server_setup_local', False)
+        init_dict['server_info_ip'] = init_dict.get("server_info_ip")
 
         super(TLSConnection, self).__init__(init_dict)
         # check and set CERTTOOL in slots
@@ -1237,8 +1239,11 @@ class TLSConnection(ConnectionBase):
         tls_verify_cert = self.tls_verify_cert
         tls_sanity_cert = self.tls_sanity_cert
 
+        ip_addr = server_ip
+        if self.server_info_ip:
+            ip_addr = self.server_info_ip
         # build a server key.
-        build_server_key(tmp_dir, server_cn, server_ip, self.CERTTOOL,
+        build_server_key(tmp_dir, server_cn, ip_addr, self.CERTTOOL,
                          self.credential_dict, on_local)
 
         # scp cacert.pem, servercert.pem and serverkey.pem to server.
