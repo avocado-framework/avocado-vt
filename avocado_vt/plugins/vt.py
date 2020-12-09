@@ -57,6 +57,13 @@ def add_basic_vt_options(parser):
                dest='vt.save_config',
                arg='--vt-save-config',
                help=help_msg)
+
+    help_msg = "Enable short names as test names when using a config file"
+    add_option(parser,
+               dest='vt.short_names_when_config',
+               arg='--vt-short-names-when-config',
+               help=help_msg)
+
     help_msg = ("Choose test type (%s). Default: %%(default)s" %
                 ", ".join(SUPPORTED_TEST_TYPES))
     add_option(parser,
