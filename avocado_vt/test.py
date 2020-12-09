@@ -333,21 +333,10 @@ class VirtTest(test.Test):
                             "as root may produce unexpected results!!!")
             logging.warning("")
 
-        # Find the test
-        subtest_dirs = []
         test_filter = bootstrap.test_filter
-
-        other_subtests_dirs = params.get("other_tests_dirs", "")
-        for d in other_subtests_dirs.split():
-            # If d starts with a "/" an absolute path will be assumed
-            # else the relative path will be searched in the bin_dir
-            subtestdir = os.path.join(self.bindir, d, "tests")
-            if not os.path.isdir(subtestdir):
-                raise exceptions.TestError("Directory %s does not "
-                                           "exist" % subtestdir)
-            subtest_dirs += data_dir.SubdirList(subtestdir,
-                                                test_filter)
-
+        subtest_dirs = utils.find_subtest_dirs(params.get("other_tests_dirs", ""),
+                                               self.bindir,
+                                               test_filter)
         provider = params.get("provider", None)
 
         if provider is None:

@@ -15,6 +15,10 @@
 import os
 import sys
 
+from avocado.core import exceptions
+
+from virttest import data_dir
+
 
 def insert_dirs_to_path(dirs):
     """Insert directories into the Python path.
@@ -27,3 +31,26 @@ def insert_dirs_to_path(dirs):
     for directory in dirs:
         if os.path.dirname(directory) not in sys.path:
             sys.path.insert(0, os.path.dirname(directory))
+
+
+def find_subtest_dirs(other_subtests_dirs, bindir, ignore_files=None):
+    """Find directories containining subtests.
+
+    :param other_subtests_dirs: space separate list of directories
+    :type other_subtests_dirs: string
+    :param bindir: the test's "binary directory"
+    :type bindir: str
+    :param ignore_files: files/dirs to ignore as possible candidates
+    :type ignore_files: list or None
+    """
+    subtest_dirs = []
+    for d in other_subtests_dirs.split():
+        # If d starts with a "/" an absolute path will be assumed
+        # else the relative path will be searched in the bin_dir
+        subtestdir = os.path.join(bindir, d, "tests")
+        if not os.path.isdir(subtestdir):
+            raise exceptions.TestError("Directory %s does not "
+                                       "exist" % subtestdir)
+        subtest_dirs += data_dir.SubdirList(subtestdir,
+                                            ignore_files)
+    return subtest_dirs
