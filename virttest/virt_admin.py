@@ -823,6 +823,17 @@ def srv_clients_info(server_name, **dargs):
     return command(cmd, **dargs)
 
 
+def server_update_tls(server_name, **dargs):
+    """
+    Run server-update-tls in virt-admin session
+    :param server_name: name of the server
+    :param dargs: standardized virt-admin function API keywords.
+    :return: CmdResult object
+    """
+    cmd = "server-update-tls %s " % server_name
+    return command(cmd, **dargs)
+
+
 def srv_clients_list(server_name, **dargs):
     """
     Run srv-clients-list in virt-admin session
