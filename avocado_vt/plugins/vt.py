@@ -62,6 +62,7 @@ def add_basic_vt_options(parser):
     add_option(parser,
                dest='vt.type',
                arg='--vt-type',
+               default=SUPPORTED_TEST_TYPES[0],
                help=help_msg)
 
     arch = get_settings_value('vt.common', 'arch', default=None)
