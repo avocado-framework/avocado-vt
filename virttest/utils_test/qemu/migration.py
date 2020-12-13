@@ -33,7 +33,7 @@ from virttest import utils_test
 from virttest import utils_misc
 from virttest import env_process
 from virttest import error_context as error
-
+from virttest import qemu_migration
 
 try:
     import aexpect
@@ -1491,7 +1491,7 @@ class MigrationBase(object):
         if self.is_src:
             error.context("Set cache size to %s." % value, logging.info)
             vm = self.env.get_vm(self.params["main_vm"])
-            vm.monitor.set_migrate_cache_size(value)
+            qemu_migration.set_cache_size(vm, value)
 
     @error.context_aware
     def get_migration_parameter(self, index=0):
@@ -1547,7 +1547,7 @@ class MigrationBase(object):
         if self.is_src:
             error.context("Set migration speed to %s." % value, logging.info)
             vm = self.env.get_vm(self.params["main_vm"])
-            vm.monitor.migrate_set_speed("%sB" % value)
+            qemu_migration.set_speed(vm, "%sB" % value)
 
     @error.context_aware
     def set_migration_downtime(self, value):
@@ -1561,7 +1561,7 @@ class MigrationBase(object):
         if self.is_src:
             error.context("Set downtime to %s." % value, logging.info)
             vm = self.env.get_vm(self.params["main_vm"])
-            vm.monitor.migrate_set_downtime(value)
+            qemu_migration.set_downtime(vm, value)
 
     @error.context_aware
     def set_migration_cancel(self):

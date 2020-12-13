@@ -43,7 +43,7 @@ from virttest.qemu_devices.utils import (DeviceError, DeviceHotplugError,
                                          DeviceInsertError, DeviceRemoveError,
                                          DeviceUnplugError, none_or_int)
 from virttest.utils_params import Params
-from virttest.qemu_capabilities import Flags, Capabilities
+from virttest.qemu_capabilities import Flags, Capabilities, MigrationParams
 from virttest.utils_version import VersionInterval
 
 #
@@ -77,6 +77,10 @@ class DevContainer(object):
 
     BLOCKDEV_VERSION_SCOPE = '[2.12.0, )'
     SMP_DIES_VERSION_SCOPE = '[4.1.0, )'
+
+    MIGRATION_DOWNTIME_LIMTT_VERSION_SCOPE = '[5.1.0, )'
+    MIGRATION_MAX_BANDWIDTH_VERSION_SCOPE = '[5.1.0, )'
+    MIGRATION_XBZRLE_CACHE_SIZE_VERSION_SCOPE = '[5.1.0, )'
 
     def __init__(self, qemu_binary, vmname, strict_mode="no",
                  workaround_qemu_qmp_crash="no", allow_hotplugged_vm="yes"):
@@ -165,8 +169,11 @@ class DevContainer(object):
         self.__devices = []
         self.__buses = []
         self.allow_hotplugged_vm = allow_hotplugged_vm == 'yes'
+        self.__qemu_ver = utils_qemu.get_qemu_version(self.__qemu_binary)[0]
         self.caps = Capabilities()
+        self.mig_params = Capabilities()
         self._probe_capabilities()
+        self._probe_migration_parameters()
         self.__iothread_manager = None
         self.__iothread_supported_devices = set()
         self.temporary_image_snapshots = set()
@@ -261,18 +268,32 @@ class DevContainer(object):
 
     def _probe_capabilities(self):
         """ Probe capabilities. """
-        ver = utils_qemu.get_qemu_version(self.__qemu_binary)[0]
-
         # -blockdev
         if (self.has_option('blockdev') and
-                ver in VersionInterval(self.BLOCKDEV_VERSION_SCOPE)):
+                self.__qemu_ver in VersionInterval(self.BLOCKDEV_VERSION_SCOPE)):
             self.caps.set_flag(Flags.BLOCKDEV)
         # -smp dies=?
-        if ver in VersionInterval(self.SMP_DIES_VERSION_SCOPE):
+        if self.__qemu_ver in VersionInterval(self.SMP_DIES_VERSION_SCOPE):
             self.caps.set_flag(Flags.SMP_DIES)
         # -incoming defer
         if self.has_option('incoming defer'):
             self.caps.set_flag(Flags.INCOMING_DEFER)
+
+        if (self.has_qmp_cmd('migrate-set-parameters') and
+                self.has_hmp_cmd('migrate_set_parameter')):
+            self.caps.set_flag(Flags.MIGRATION_PARAMS)
+
+    def _probe_migration_parameters(self):
+        """Probe migration parameters."""
+        mig_params_mapping = {
+            MigrationParams.DOWNTIME_LIMIT: self.MIGRATION_DOWNTIME_LIMTT_VERSION_SCOPE,
+            MigrationParams.MAX_BANDWIDTH: self.MIGRATION_MAX_BANDWIDTH_VERSION_SCOPE,
+            MigrationParams.XBZRLE_CACHE_SIZE: self.MIGRATION_XBZRLE_CACHE_SIZE_VERSION_SCOPE,
+        }
+
+        for mig_param, ver_scope in mig_params_mapping.items():
+            if self.__qemu_ver in VersionInterval(ver_scope):
+                self.mig_params.set_flag(mig_param)
 
     def __getitem__(self, item):
         """
