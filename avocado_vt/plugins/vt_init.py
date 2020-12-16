@@ -38,6 +38,12 @@ if hasattr(plugin_interfaces, 'Init'):
             settings.register_option(section, key='save_config', default=None,
                                      help_msg=help_msg)
 
+            help_msg = ("Enable short names as test names when using a config "
+                        "file")
+            settings.register_option(section, key='short_names_when_config',
+                                     key_type=bool, default=False,
+                                     help_msg=help_msg)
+
             help_msg = ("Choose test type (%s). Default: %%(default)s" %
                         ", ".join(SUPPORTED_TEST_TYPES))
             settings.register_option(section, key='type',
