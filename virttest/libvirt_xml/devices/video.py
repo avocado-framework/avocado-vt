@@ -12,7 +12,7 @@ class Video(base.UntypedDeviceBase):
 
     __slots__ = ('model_type', 'model_ram', 'model_vram', 'model_heads',
                  'model_vgamem', 'model_vram64',
-                 'primary', 'acceleration', 'address')
+                 'primary', 'acceleration', 'address', 'driver_packed')
 
     def __init__(self, virsh_instance=base.base.virsh):
         accessors.XMLAttribute('model_type', self,
@@ -49,5 +49,9 @@ class Video(base.UntypedDeviceBase):
         accessors.XMLElementDict('address', self,
                                  parent_xpath='/',
                                  tag_name='address')
+        accessors.XMLAttribute('driver_packed', self,
+                               parent_xpath='/',
+                               tag_name='driver',
+                               attribute='packed')
         super(Video, self).__init__(device_tag='video',
                                     virsh_instance=virsh_instance)
