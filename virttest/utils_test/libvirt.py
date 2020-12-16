@@ -1710,6 +1710,7 @@ def create_disk_xml(params):
         driver_cache = params.get("driver_cache", "")
         driver_discard = params.get("driver_discard", "")
         driver_model = params.get("model")
+        driver_packed = params.get("driver_packed", "")
         if driver_name:
             driver_attrs['name'] = driver_name
         if driver_type:
@@ -1718,6 +1719,8 @@ def create_disk_xml(params):
             driver_attrs['cache'] = driver_cache
         if driver_discard:
             driver_attrs['discard'] = driver_discard
+        if driver_packed:
+            driver_attrs['packed'] = driver_packed
         if driver_attrs:
             diskxml.driver = driver_attrs
         if driver_model:
