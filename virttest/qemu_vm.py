@@ -4014,6 +4014,9 @@ class VM(virt_vm.BaseVM):
         if ret is False:
             return ret
         o = self.monitor.info("migrate")
+        if self._mig_pre_switchover(o):
+            self.monitor.migrate_continue('pre-switchover')
+            return False
         ret = (self._mig_none(o) or
                self._mig_succeeded(o) or
                self._mig_failed(o) or
@@ -4058,6 +4061,12 @@ class VM(virt_vm.BaseVM):
             raise virt_vm.VMMigrateFailedError("Migration failed")
         o = self.monitor.info("migrate")
         return self._mig_cancelled(o)
+
+    def _mig_pre_switchover(self, out):
+        return self._is_mig_status(out, "pre-switchover")
+
+    def mig_pre_switchover(self):
+        return self._mig_pre_switchover(self.monitor.info("migrate"))
 
     def wait_for_migration(self, timeout):
         if not utils_misc.wait_for(self.mig_finished, timeout, 2, 2,
@@ -4116,6 +4125,18 @@ class VM(virt_vm.BaseVM):
                 and  for target migrate parameters dict {'x-multifd-channels': 8}
                 migrate_parameters = (source migrate parameters, target migrate parameters).
         """
+        def _set_migrate_capability(vm, capability, value, is_src_vm=True):
+            state = value == "on"
+            vm.monitor.set_migrate_capability(state, capability,
+                                              vm.DISABLE_AUTO_X_MIG_OPTS)
+            s = vm.monitor.get_migrate_capability(capability,
+                                                  vm.DISABLE_AUTO_X_MIG_OPTS)
+            if s != state:
+                msg = ("Migrate capability '%s' should be '%s', "
+                       "but actual result is '%s' on '%s' guest." %
+                       (capability, state, s, 'source' if is_src_vm else 'destination'))
+                raise exceptions.TestError(msg)
+
         if protocol not in self.MIGRATION_PROTOS:
             raise virt_vm.VMMigrateProtoUnknownError(protocol)
 
@@ -4224,28 +4245,22 @@ class VM(virt_vm.BaseVM):
             if offline is True:
                 self.monitor.cmd("stop")
 
+            if (local and not (migration_exec_cmd_src and
+                               "gzip" in migration_exec_cmd_src)):
+                error_context.context("Set migrate capabilities.", logging.info)
+                # XXX: Sync with migration workflow of libvirt by the latest
+                # version, since almost no longer use the older version, but
+                # will fix it if there are requirements testing still need
+                # older version.
+                _set_migrate_capability(self, 'pause-before-switchover', 'on', True)
+                _set_migrate_capability(clone, 'late-block-activate', 'on', False)
+
             if migrate_capabilities:
                 error_context.context(
                     "Set migrate capabilities.", logging.info)
                 for key, value in list(migrate_capabilities.items()):
-                    state = value == "on"
-                    self.monitor.set_migrate_capability(state, key,
-                                                        self.DISABLE_AUTO_X_MIG_OPTS)
-                    s = self.monitor.get_migrate_capability(key,
-                                                            self.DISABLE_AUTO_X_MIG_OPTS)
-                    if s != state:
-                        msg = ("Migrate capability '%s' should be '%s', "
-                               "but actual result is '%s'" % (key, state, s))
-                        raise exceptions.TestError(msg)
-                    clone.monitor.set_migrate_capability(state, key,
-                                                         self.DISABLE_AUTO_X_MIG_OPTS)
-                    s = clone.monitor.get_migrate_capability(key,
-                                                             self.DISABLE_AUTO_X_MIG_OPTS)
-                    if s != state:
-                        msg = ("Migrate capability '%s' should be '%s', "
-                               "but actual result is '%s' on destination guest"
-                               % (key, state, s))
-                        raise exceptions.TestError(msg)
+                    _set_migrate_capability(self, key, value, True)
+                    _set_migrate_capability(clone, key, value, False)
 
             # source qemu migration parameters dict
             if migrate_parameters[0]:
@@ -4324,6 +4339,15 @@ class VM(virt_vm.BaseVM):
                         # the 1st pass
                         self.monitor.wait_for_migrate_progress(random.randrange(param))
                         self.monitor.migrate_start_postcopy()
+                    elif func == 'continue_pre_switchover':
+                        # trigger a continue pre-switchover after the status of
+                        # migration is "pre-switchover"
+                        if not utils_misc.wait_for(self.mig_pre_switchover,
+                                                   timeout=param, first=2, step=1):
+                            err = ("Timeout for waiting status of migration "
+                                   "to be pre-switchover")
+                            raise virt_vm.VMMigrateTimeoutError(err)
+                        self.monitor.migrate_continue('pre-switchover')
                     else:
                         msg = ("Unknown migration inner function '%s'" % func)
                         raise exceptions.TestError(msg)

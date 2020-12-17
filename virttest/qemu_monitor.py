@@ -1380,6 +1380,15 @@ class HumanMonitor(Monitor):
         cmd += " %s" % uri
         return self.cmd(cmd)
 
+    def migrate_continue(self, state):
+        """
+        Continue migration when it's in a paused state.
+
+        :param state: The state the migration is currently expected to be in.
+        :return: The command's output.
+        """
+        return self.cmd("migrate_continue %s" % state)
+
     def migrate_set_speed(self, value):
         """
         Set maximum speed (in bytes/sec) for migrations.
@@ -2351,6 +2360,16 @@ class QMPMonitor(Monitor):
                     "Migrate socket connection still initializing...")
             else:
                 raise e
+
+    def migrate_continue(self, state):
+        """
+        Continue migration when it's in a paused state.
+
+        :param state: The state the migration is currently expected to be in.
+        :return: The response to the command.
+        """
+        args = {"state": state}
+        return self.cmd("migrate-continue", args)
 
     def migrate_set_speed(self, value):
         """
