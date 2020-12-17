@@ -7,6 +7,7 @@ from avocado.utils import process
 from avocado.core import exceptions
 
 from virttest import utils_misc
+from virttest import virsh
 from virttest.libvirt_xml.backup_xml import BackupXML
 from virttest.libvirt_xml.checkpoint_xml import CheckpointXML
 
@@ -341,3 +342,44 @@ def get_img_bitmaps(image_path):
     for bitmap in bitmaps:
         bitmap_list.append(bitmap['name'])
     return bitmap_list
+
+
+def get_checkpoints(vm_name):
+    """
+    Get the checkpoints of the vm
+
+    :param vm_name: vm's name
+    :return: list of checkpoints
+    """
+    checkpoint_list = virsh.checkpoint_list(vm_name).stdout_text.strip().splitlines()
+    # First two lines contain table header followed by entries, such as:
+    #
+    # Name   Creation Time
+    # -----------------------------------
+    #  cp0    2020-12-17 04:52:46 -0500
+    checkpoint_list = checkpoint_list[2:]
+    checkpoints = []
+    if checkpoint_list:
+        for line in checkpoint_list:
+            linesplit = line.split(None, 1)
+            checkpoints.append(linesplit[0])
+    return checkpoints
+
+
+def clean_checkpoints(vm_name, clean_metadata=True, ignore_status=True):
+    """
+    clean all checkpoints of a vm
+
+    :param vm_name: vm's name
+    :param clean_metadata: only delete the checkpoints' metadata or not
+    :param ignore_status: ignore the checkpoint-delete result or not
+    """
+    checkpoints = get_checkpoints(vm_name)
+    if checkpoints:
+        for checkpoint in checkpoints:
+            if clean_metadata:
+                virsh.checkpoint_delete(vm_name, checkpoint, "--metadata",
+                                        ignore_status=ignore_status)
+            else:
+                virsh.checkpoint_delete(vm_name, checkpoint,
+                                        ignore_status=ignore_status)
