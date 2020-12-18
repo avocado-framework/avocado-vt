@@ -2927,7 +2927,7 @@ def attach_disks(vm, path, vgname, params):
             set_controller_multifunction(vm.name, disk_target)
 
         disk_params = {}
-        disk_params['type_name'] = disk_type
+        disk_params['type_name'] = disk_type if not disk_type == 'lvm' else 'block'
         disk_params['target_dev'] = target_dev
         disk_params['target_bus'] = disk_target
         disk_params['device_type'] = params.get("device_type", "disk")
