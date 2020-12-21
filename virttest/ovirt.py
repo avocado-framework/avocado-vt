@@ -5,6 +5,7 @@ oVirt SDK wrapper module.
 """
 
 
+import os
 import time
 import logging
 
@@ -585,12 +586,16 @@ class VMManager(virt_vm.BaseVM):
         :raise VMIPAddressMissingError: If no IP address is found for the the
                 NIC's MAC address
         """
+        def is_ip_reachable(ipaddr):
+            res = os.system("ping -c 3 -w2 " + ipaddr + " > /dev/null 2>&1")
+            return res == 0
+
         nic = self.virtnet[index]
         if nic.nettype == 'bridge':
             mac = self.get_mac_address()
             for mac_i in mac:
                 ip = self.address_cache.get(mac_i)
-                if ip:
+                if ip and is_ip_reachable(ip):
                     return ip
             # TODO: Verify MAC-IP address mapping on remote ovirt node
             raise virt_vm.VMIPAddressMissingError(mac)
