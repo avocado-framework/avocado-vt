@@ -414,6 +414,7 @@ class QemuImg(storage.QemuImg):
         "source_cache_mode": "-T",
         "target_image_format": "-O",
         "convert_sparse_size": "-S",
+        "rate_limit": "-r",
         "commit_drop": "-d",
         "compare_strict_mode": "-s",
         "compare_second_image_format": "-F"
@@ -429,10 +430,12 @@ class QemuImg(storage.QemuImg):
                    "{convert_compressed!b} {skip_target_image_creation} "
                    "{image_format} {cache_mode} {source_cache_mode} "
                    "{target_image_format} {options} {convert_sparse_size} "
+                   "{rate_limit} "
                    "{image_filename} {target_image_filename} "
                    "{target_image_opts}")
     commit_cmd = ("commit {secret_object} {image_format} {cache_mode} "
-                  "{backing_file} {commit_drop!b} {image_filename}")
+                  "{backing_file} {commit_drop!b} {image_filename} "
+                  "{rate_limit}")
     resize_cmd = ("resize {secret_object} {image_opts} {resize_shrink!b} "
                   "{resize_preallocation} {image_filename} {image_size}")
     rebase_cmd = ("rebase {secret_object} {image_format} {cache_mode} "
@@ -822,6 +825,9 @@ class QemuImg(storage.QemuImg):
             sparse_size
                 indicate the consecutive number of bytes contains zeros to
                 create sparse image during conversion
+            rate_limit
+                indicate rate limit for the convert process,
+                the unit is bytes per second
         """
         convert_target = params["convert_target"]
         convert_params = params.object_params(convert_target)
@@ -829,10 +835,12 @@ class QemuImg(storage.QemuImg):
 
         convert_compressed = convert_params.get("convert_compressed")
         sparse_size = convert_params.get("sparse_size")
+        rate_limit = convert_params.get("rate_limit")
 
         cmd_dict = {
             "convert_compressed": convert_compressed == "yes",
             "convert_sparse_size": sparse_size,
+            "rate_limit": rate_limit,
             "image_filename": self.image_filename,
             "image_format": self.image_format,
             "target_image_format": convert_image.image_format,
@@ -977,9 +985,12 @@ class QemuImg(storage.QemuImg):
         :param base: the backing file into which the changes will be committed
         :param drop: drop image after commit
         """
+        rate_limit = self.params.get("rate_limit")
         cmd_dict = {"image_format": self.image_format,
                     "image_filename": self.image_filename,
-                    "cache_mode": cache_mode, "commit_drop": drop}
+                    "cache_mode": cache_mode,
+                    "commit_drop": drop,
+                    "rate_limit": rate_limit}
         secret_objects = self._secret_objects
         if secret_objects:
             cmd_dict["secret_object"] = " ".join(secret_objects)
