@@ -359,6 +359,8 @@ def create_host_os_cfg(options):
             except Exception:
                 pass
         cpu_version = cpu.get_version() if hasattr(cpu, 'get_version') else None
+        # Replace special chars with _ to avoid bootstrap failure
+        cpu_version = re.sub(r'[^\w-]', '_', cpu_version) if cpu_version else cpu_version
 
         cfg.write("variants:\n")
         cfg.write("    - @Host:\n")
