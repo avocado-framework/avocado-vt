@@ -1084,7 +1084,7 @@ class PoolVolumeTest(object):
             extra += " --source-host %s  --source-dev %s" % (ip_addr,
                                                              iscsi_target)
             if pool_type == "iscsi-direct":
-                extra += " --source-iqn %s" % iscsi_initiator
+                extra += " --source-initiator %s" % iscsi_initiator
 
         elif pool_type == "scsi":
             scsi_xml_file = self.params.get("scsi_xml_file", "")
