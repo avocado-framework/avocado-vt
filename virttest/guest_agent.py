@@ -885,6 +885,43 @@ class QemuAgent(Monitor):
         self.check_has_command(cmd)
         return self.cmd(cmd)
 
+    def ssh_add_authorized_keys(self, username, *keys, **kwargs):
+        """
+        Add ssh public keys into guest-agent.
+
+        :param username: username of host
+        :param keys: value of public keys
+        :param kwargs: optional keyword arguments
+        :return: command handle
+        """
+        cmd = "guest-ssh-add-authorized-keys"
+        keys = list(keys)
+        reset = kwargs.get('reset')
+        return self.cmd_args_update(cmd, username=username,
+                                    keys=keys, reset=reset)
+
+    def ssh_remove_authorized_keys(self, username, *keys):
+        """
+        Remove ssh public keys from guest-agent.
+
+        :param username: usrename of host
+        :param keys: value of public keys
+        :return: command handle
+        """
+        cmd = "guest-ssh-remove-authorized-keys"
+        keys = list(keys)
+        return self._cmd_args_update(cmd, username=username, keys=keys)
+
+    def ssh_get_authorized_keys(self, username):
+        """
+        Get ssh public keys from guest-agent.
+
+        :param username: usrename of host
+        :return: command handle
+        """
+        cmd = "guest-ssh-get-authorized-keys"
+        return self._cmd_args_update(cmd, username=username)
+
     def get_fsinfo(self):
         """
         Send "guest-get-fsinfo", return file system info of guest.
