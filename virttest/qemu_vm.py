@@ -1294,7 +1294,7 @@ class VM(virt_vm.BaseVM):
             return sc_cmd
 
         def add_numa_node(devices, memdev=None, mem=None,
-                          cpus=None, nodeid=None):
+                          cpus=None, nodeid=None, initiator=None):
             """
             This function is used to add numa node to guest command line
             """
@@ -1311,6 +1311,8 @@ class VM(virt_vm.BaseVM):
                 numa_cmd += ",%s" % cpus
             if nodeid is not None:
                 numa_cmd += ",nodeid=%s" % nodeid
+            if initiator is not None:
+                numa_cmd += ",initiator=%s" % initiator
             return numa_cmd
 
         def add_numa_cpu(devices, node_id, socket_id=None, die_id=None,
@@ -1680,12 +1682,13 @@ class VM(virt_vm.BaseVM):
             numa_cpus = numa_params.get("numa_cpus")
             numa_nodeid = numa_params.get("numa_nodeid")
             numa_memdev = numa_params.get("numa_memdev")
+            numa_initiator = numa_params.get("numa_initiator")
             if numa_mem is not None:
                 numa_total_mem += int(numa_mem)
             if numa_cpus is not None:
                 numa_total_cpus += len(utils_misc.cpu_str_to_list(numa_cpus))
-            cmdline = add_numa_node(devices, numa_memdev,
-                                    numa_mem, numa_cpus, numa_nodeid)
+            cmdline = add_numa_node(devices, numa_memdev, numa_mem,
+                                    numa_cpus, numa_nodeid, numa_initiator)
             devices.insert(StrDev('numa', cmdline=cmdline))
 
         # add '-numa dist'
@@ -1723,6 +1726,20 @@ class VM(virt_vm.BaseVM):
                                        vcpu_maxcpus, mem))
                 raise virt_vm.VMDeviceError("The numa node cfg can not fit"
                                             " smp and memory cfg.")
+
+        # Add '-numa hmat-lb' and '-numa hmat-cache'
+        if devices.has_option('numa hmat-lb,.*'):
+            for numa_node in params.objects('guest_numa_nodes'):
+                numa_params = params.object_params(numa_node)
+                nodeid = numa_params['numa_nodeid']
+                initiator = numa_params.get('numa_initiator', nodeid)
+                for hmat_lb in numa_params.objects('numa_hmat_lb'):
+                    devices.insert(
+                        devices.numa_hmat_lb_define_by_params(
+                            nodeid, initiator, params.object_params(hmat_lb)))
+                devices.insert(
+                    devices.numa_hmat_cache_define_by_params(nodeid,
+                                                             numa_params))
 
         # Add cpu model
         if cpu_model:
