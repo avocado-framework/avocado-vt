@@ -159,6 +159,11 @@ class VMXMLBase(base.LibvirtXMLBase):
             get: return VMMemTuneXML instance for the domain.
             set: Define memtune tag from a VMCPUTuneXML instance.
             del: remove memtune tag
+        https://libvirt.org/formatdomain.html#elementsDevices since 0.1.3
+        emulator: string, emulator string for vm
+            get: return text value of emulator tag
+            set: set text value for emualtor tag
+            del: remove emulator tag
     """
 
     # Additional names of attributes and dictionary-keys instances may contain
@@ -169,7 +174,7 @@ class VMXMLBase(base.LibvirtXMLBase):
                  'on_poweroff', 'on_reboot', 'on_crash', 'features', 'mb',
                  'max_mem_unit', 'current_mem_unit', 'memtune', 'max_mem_rt',
                  'max_mem_rt_unit', 'max_mem_rt_slots', 'iothreads',
-                 'iothreadids', 'memory', 'perf', 'keywrap', 'sysinfo')
+                 'iothreadids', 'memory', 'perf', 'keywrap', 'sysinfo', 'emulator')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -385,6 +390,11 @@ class VMXMLBase(base.LibvirtXMLBase):
                                  subclass=VMSysinfoXML,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
+        accessors.XMLElementText(property_name="emulator",
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/devices',
+                                 tag_name='emulator')
         super(VMXMLBase, self).__init__(virsh_instance=virsh_instance)
 
     @staticmethod
