@@ -7,6 +7,7 @@ import os
 import glob
 import shutil
 import stat
+import platform
 import random
 import string
 import tempfile
@@ -207,7 +208,10 @@ def get_linux_disks(session, partition=False):
     """
     disks_dict = {}
     parent_disks = set()
-    block_info = session.cmd('ls /sys/dev/block -l | grep "/pci"')
+    driver = "pci"
+    if platform.machine() == "s390x":
+        driver = "css0"
+    block_info = session.cmd('ls /sys/dev/block -l | grep "/%s"' % driver)
     for matched in re.finditer(r'/block/(\S+)\s^', block_info, re.M):
         knames = matched.group(1).split('/')
         if len(knames) == 2:
@@ -379,7 +383,11 @@ def create_partition_linux(session, did, size, start,
     :return: The kname of partition created.
     """
     def _list_disk_partitions():
-        o = session.cmd('ls /sys/dev/block -l | grep "/pci" | grep "%s"' % did)
+        driver = "pci"
+        if platform.machine() == "s390x":
+            driver = "css0"
+        o = session.cmd('ls /sys/dev/block -l | grep "/%s" | grep "%s"' %
+                        (driver, did))
         return set(o.splitlines())
 
     size = utils_numeric.normalize_data_size(size, order_magnitude="M") + "M"
@@ -449,7 +457,10 @@ def delete_partition_linux(session, partition_name, timeout=360):
     :param partition_name: partition name. e.g. sdb1
     :param timeout: Timeout for cmd execution in seconds.
     """
-    ls_block_cmd = 'ls /sys/dev/block -l | grep "/pci"'
+    driver = "pci"
+    if platform.machine() == "s390x":
+        driver = "css0"
+    ls_block_cmd = 'ls /sys/dev/block -l | grep "/%s"' % driver
     regex = r'/block/(\S+)/%s\s^' % partition_name
     kname = re.search(regex, session.cmd(ls_block_cmd), re.M).group(1)
     list_disk_cmd = "lsblk -o KNAME,MOUNTPOINT"
@@ -536,7 +547,11 @@ def clean_partition_linux(session, did, timeout=360):
             session.cmd(rm_cmd % (did, number))
         session.cmd("partprobe /dev/%s" % did, timeout=timeout)
         regex = r'/block/%s/\S+\s^' % did
-        ls_block_cmd = 'ls /sys/dev/block -l | grep "/pci" | grep "%s"' % did
+        driver = "pci"
+        if platform.machine() == "s390x":
+            driver = "css0"
+        ls_block_cmd = ('ls /sys/dev/block -l | grep "/%s" | grep "%s"' %
+                        (driver, did))
         if not wait.wait_for(lambda: not re.search(
                 regex, session.cmd(ls_block_cmd), re.M), step=0.5, timeout=30):
             raise exceptions.TestError('Failed to clean the all partitions.')
