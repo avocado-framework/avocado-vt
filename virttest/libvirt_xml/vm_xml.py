@@ -1730,7 +1730,7 @@ class VMCPUXML(base.LibvirtXMLBase):
     # Must copy these here or there will be descriptor problems
     __slots__ = ('model', 'vendor', 'feature_list', 'mode', 'match',
                  'fallback', 'topology', 'numa_cell', 'check',
-                 'cache', 'vendor_id')
+                 'cache', 'vendor_id', 'interconnects')
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -1793,11 +1793,90 @@ class VMCPUXML(base.LibvirtXMLBase):
                                  forbidden=[],
                                  parent_xpath='/',
                                  tag_name='cache')
+        accessors.XMLElementNest(property_name='interconnects',
+                                 libvirtxml=self,
+                                 parent_xpath='numa',
+                                 tag_name='interconnects',
+                                 subclass=VMCPUXML.InterconnectsXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
         # This will skip self.get_feature_list() defined below
         accessors.AllForbidden(property_name="feature_list",
                                libvirtxml=self)
         super(VMCPUXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<cpu/>'
+
+    # Sub-element of cpu
+    class InterconnectsXML(base.LibvirtXMLBase):
+
+        """Interconnects element of numa"""
+
+        __slots__ = ('latency', 'bandwidth')
+
+        def __init__(self, virsh_instance=base.virsh):
+            """
+            Create new Interconnects instance
+            """
+            accessors.XMLElementList(property_name="latency",
+                                     libvirtxml=self,
+                                     parent_xpath='/',
+                                     marshal_from=self.marshal_from_latency,
+                                     marshal_to=self.marshal_to_latency)
+            accessors.XMLElementList(property_name="bandwidth",
+                                     libvirtxml=self,
+                                     parent_xpath='/',
+                                     marshal_from=self.marshal_from_bandwidth,
+                                     marshal_to=self.marshal_to_bandwidth)
+            super(VMCPUXML.InterconnectsXML, self).__init__(virsh_instance=virsh_instance)
+            self.xml = '<interconnects/>'
+
+        @staticmethod
+        def marshal_from_latency(item, index, libvirtxml):
+            """
+            Convert a dict to latency tag and attributes.
+            """
+            del index
+            del libvirtxml
+            if not isinstance(item, dict):
+                raise xcepts.LibvirtXMLError("Expected a dictionary of latency "
+                                             "attributes, not a %s"
+                                             % str(item))
+            return ('latency', dict(item))
+
+        @staticmethod
+        def marshal_to_latency(tag, attr_dict, index, libvirtxml):
+            """
+            Convert a latency tag and attributes to a dict.
+            """
+            del index
+            del libvirtxml
+            if tag != 'latency':
+                return None
+            return dict(attr_dict)
+
+        @staticmethod
+        def marshal_from_bandwidth(item, index, libvirtxml):
+            """
+            Convert a dict to bandwidth tag and attributes.
+            """
+            del index
+            del libvirtxml
+            if not isinstance(item, dict):
+                raise xcepts.LibvirtXMLError("Expected a dictionary of bandwidth "
+                                             "attributes, not a %s"
+                                             % str(item))
+            return ('bandwidth', dict(item))
+
+        @staticmethod
+        def marshal_to_bandwidth(tag, attr_dict, index, libvirtxml):
+            """
+            Convert a bandwidth tag and attributes to a dict.
+            """
+            del index
+            del libvirtxml
+            if tag != 'bandwidth':
+                return None
+            return dict(attr_dict)
 
     @staticmethod
     def marshal_from_cells(item, index, libvirtxml):
@@ -1976,10 +2055,12 @@ class VMCPUXML(base.LibvirtXMLBase):
 # Sub-element of cpu/numa
 class NumaCellXML(base.LibvirtXMLBase):
 
-    """cell element of numa"""
+    """
+    Cell element of numa
+    """
 
     __slots__ = ('id', 'cpus', 'memory', 'unit', 'discard', 'memAccess',
-                 'caches')
+                 'caches', 'distances')
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -2027,8 +2108,57 @@ class NumaCellXML(base.LibvirtXMLBase):
                                  marshal_from=self.marshal_from_caches,
                                  marshal_to=self.marshal_to_caches,
                                  has_subclass=True)
+        accessors.XMLElementNest(property_name='distances',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='distances',
+                                 subclass=NumaCellXML.CellDistancesXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
         super(NumaCellXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<cell/>'
+
+    class CellDistancesXML(base.LibvirtXMLBase):
+        """
+        Distances of cell
+        """
+
+        __slots__ = ('sibling')
+
+        def __init__(self, virsh_instance=base.virsh):
+            """
+            Create new CellDistancesXML instance
+            """
+            accessors.XMLElementList(property_name="sibling",
+                                     libvirtxml=self,
+                                     parent_xpath='/',
+                                     marshal_from=self.marshal_from_sibling,
+                                     marshal_to=self.marshal_to_sibling)
+            super(NumaCellXML.CellDistancesXML, self).__init__(virsh_instance=virsh_instance)
+            self.xml = '<distances/>'
+
+        @staticmethod
+        def marshal_from_sibling(item, index, libvirtxml):
+            """
+            Convert a dict to sibling tag and attributes
+            """
+            del index
+            del libvirtxml
+            if not isinstance(item, dict):
+                raise xcepts.LibvirtXMLError("Expected a dictionary of sibling "
+                                             "attributes, not a %s" % str(item))
+            return ('sibling', dict(item))
+
+        @staticmethod
+        def marshal_to_sibling(tag, attr_dict, index, libvirtxml):
+            """
+            Convert a sibling tag and attributes to a dict
+            """
+            del index
+            del libvirtxml
+            if tag != 'sibling':
+                return None
+            return dict(attr_dict)
 
     @staticmethod
     def marshal_from_caches(item, index, libvirtxml):
@@ -2055,23 +2185,59 @@ class NumaCellXML(base.LibvirtXMLBase):
 
 class CellCacheXML(base.LibvirtXMLBase):
 
-    """Cell element of cache"""
+    """
+    Cache of cell
+    """
 
-    __slots__ = ('attrs', 'size_attrs', 'line_attrs')
+    __slots__ = ('level', 'associativity', 'policy',
+                 'size_value', 'size_unit', 'line_value', 'line_unit')
 
     def __init__(self, virsh_instance=base.virsh):
         """
         Create new CellCacheXML instance
         """
-        accessors.XMLElementDict('attrs', self,
-                                 parent_xpath='/',
-                                 tag_name='cache')
-        accessors.XMLElementDict('size_attrs', self,
-                                 parent_xpath='/',
-                                 tag_name='size')
-        accessors.XMLElementDict('line_attrs', self,
-                                 parent_xpath='/',
-                                 tag_name='line')
+        accessors.XMLAttribute(property_name="level",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='cache',
+                               attribute='level')
+        accessors.XMLAttribute(property_name="associativity",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='cache',
+                               attribute='associativity')
+        accessors.XMLAttribute(property_name="policy",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='cache',
+                               attribute='policy')
+        accessors.XMLAttribute(property_name="size_value",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='size',
+                               attribute='value')
+        accessors.XMLAttribute(property_name="size_unit",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='size',
+                               attribute='unit')
+        accessors.XMLAttribute(property_name="line_value",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='line',
+                               attribute='value')
+        accessors.XMLAttribute(property_name="line_unit",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='line',
+                               attribute='unit')
         super(CellCacheXML, self).__init__(
             virsh_instance=virsh_instance)
         self.xml = '<cache/>'
