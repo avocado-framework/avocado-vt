@@ -877,6 +877,14 @@ class QemuAgent(Monitor):
         cmd = "guest-exec-status"
         return self._cmd_args_update(cmd, pid=pid)
 
+    def get_disks(self):
+        """
+        Send "guest-get-disks", return disks info of guest.
+        """
+        cmd = "guest-get-disks"
+        self.check_has_command(cmd)
+        return self.cmd(cmd)
+
     def get_fsinfo(self):
         """
         Send "guest-get-fsinfo", return file system info of guest.
