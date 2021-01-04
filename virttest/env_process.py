@@ -488,8 +488,9 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
 
     restored, removed = (False, False)
     clone_master = params.get("clone_master", None)
-    base_dir = data_dir.get_data_dir()
+    base_dir = params.get("images_base_dir", data_dir.get_data_dir())
     image = qemu_storage.QemuImg(params, base_dir, image_name)
+
     if params.get("img_check_failed") == "yes":
         if params.get("restore_image_on_check_error", "no") == "yes":
             image.backup_image(params, base_dir, "restore", True)
