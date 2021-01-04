@@ -1380,6 +1380,7 @@ class BaseVM(object):
             eg. during reboot or pause)
         :return: ConsoleSession instance.
         """
+        time.sleep(60) # Guest needs more time to start sometimes.
         logging.debug("Attempting to log into '%s' via serial console "
                       "(timeout %ds)", self.name, timeout)
         end_time = time.time() + timeout
