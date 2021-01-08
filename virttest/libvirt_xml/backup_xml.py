@@ -9,7 +9,39 @@ from virttest.libvirt_xml import base, accessors, xcepts
 
 class BackupXML(base.LibvirtXMLBase):
     """
-    Domain backup XML class
+    Domain backup XML class. Following are 2 samples for push mode backup xml
+    and pull mode backup xml.
+    Push mode:
+    <domainbackup mode="push">
+      <incremental>checkpoint_0</incremental>
+        <disks>
+            <disk name='vda' backup='no'/>
+            <disk name='vdb' type='file'>
+                <driver type=’qcow2’/>
+                <target file='/tmp/push_inc_backup.img'>
+                    <encryption format='luks'>
+                        <secret type='passphrase' usage='/luks/img'/>
+                    </encryption>
+                </target>
+            </disk>
+        </disks>
+    </domainbackup>
+    Pull mode:
+    <domainbackup mode='pull'>
+        <incremental>checkpoint_0</incremental>
+        <server transport='tcp' name='localhost' port='10809' tls="yes"/>
+        <disks>
+            <disk name='vda' backup='no'/>
+            <disk name='vdb' backup='yes' type='file'>
+                <driver type='qcow2'/>
+                <scratch file='/tmp/scratch_file'>
+                    <encryption format='luks'>
+                        <secret type='passphrase' usage='/luks/img'/>
+                    </encryption>
+                </scratch>
+            </disk>
+        </disks>
+    </domainbackup>
 
     Properties:
         mode:
@@ -88,13 +120,12 @@ class BackupXML(base.LibvirtXMLBase):
             incremental:
                 string, indicate the incremental backup is from which checkpoint
             target:
-                dict, keys: dev, file. The backup destination
+                libvirt_xml.backup_xml.DiskXML.DiskTarget instance
             driver:
                 dict, keys: type. Value of type could be qcow2/raw or
                 other format
             scratch:
-                dict, keys: file, dev. The scratch file/dev used when do
-                pull-mode backup
+                libvirt_xml.backup_xml.DiskXML.DiskScratch instance
         """
 
         __slots__ = ('name', 'backup', 'exportname', 'exportbitmap',
@@ -116,11 +147,96 @@ class BackupXML(base.LibvirtXMLBase):
                                    tag_name='disk', attribute='backupmode')
             accessors.XMLAttribute('incremental', self, parent_xpath='/',
                                    tag_name='disk', attribute='incremental')
-            accessors.XMLElementDict('target', self, parent_xpath='/',
-                                     tag_name='target')
+            accessors.XMLElementNest('target', self, parent_xpath='/',
+                                     tag_name='target',
+                                     subclass=self.DiskTarget,
+                                     subclass_dargs={
+                                         'virsh_instance': virsh_instance})
             accessors.XMLElementDict('driver', self, parent_xpath='/',
                                      tag_name='driver')
-            accessors.XMLElementDict('scratch', self, parent_xpath='/',
-                                     tag_name='scratch')
+            accessors.XMLElementNest('scratch', self, parent_xpath='/',
+                                     tag_name='scratch',
+                                     subclass=self.DiskScratch,
+                                     subclass_dargs={
+                                         'virsh_instance': virsh_instance})
+
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = "<disk/>"
+
+        class DiskTarget(base.LibvirtXMLBase):
+            """
+            Backup disk target XML class
+
+            Properties:
+
+            attrs: Dictionary of attributes
+            encryption: libvirt_xml.backup_xml.Disk.DiskTarget.Encryption instances
+            """
+
+            __slots__ = ('attrs', 'encryption')
+
+            def __init__(self, virsh_instance=base.virsh):
+                accessors.XMLElementDict('attrs', self, parent_xpath='/',
+                                         tag_name='target')
+                accessors.XMLElementNest('encryption', self, parent_xpath='/',
+                                         tag_name='encryption',
+                                         subclass=self.Encryption,
+                                         subclass_dargs={
+                                             'virsh_instance': virsh_instance})
+                super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+                self.xml = '<target/>'
+
+            def new_encryption(self, **dargs):
+                """
+                Return a new encryption instance and set properties from dargs
+                """
+                new_one = self.Encryption(virsh_instance=self.virsh)
+                for key, value in list(dargs.items()):
+                    setattr(new_one, key, value)
+                return new_one
+
+            class Encryption(base.LibvirtXMLBase):
+                """
+                Backup disk encryption XML class
+
+                Properties:
+                    encryption:
+                        string.
+                    secret:
+                        dict, keys: type, usage, uuid
+                """
+
+                __slots__ = ('encryption', 'secret')
+
+                def __init__(self, virsh_instance=base.virsh):
+                    accessors.XMLAttribute('encryption', self, parent_xpath='/',
+                                           tag_name='encryption', attribute='format')
+                    accessors.XMLElementDict('secret', self, parent_xpath='/',
+                                             tag_name='secret')
+                    super(self.__class__, self).__init__(
+                        virsh_instance=virsh_instance)
+                    self.xml = '<encryption/>'
+
+        class DiskScratch(DiskTarget):
+            """
+            Backup disk scratch XML class, this is only used in pull-mode
+            backup, and its structure is samilar as DiskTarget class
+
+            Properties:
+
+            attrs: Dictionary of attributes
+            encryption: libvirt_xml.backup_xml.Disk.DiskTarget.Encryption instances
+            """
+
+            __slots__ = ('attrs', 'encryption')
+
+            def __init__(self, virsh_instance=base.virsh):
+                accessors.XMLElementDict('attrs', self, parent_xpath='/',
+                                         tag_name='scratch')
+                accessors.XMLElementNest('encryption', self, parent_xpath='/',
+                                         tag_name='encryption',
+                                         subclass=self.Encryption,
+                                         subclass_dargs={
+                                             'virsh_instance': virsh_instance})
+                base.LibvirtXMLBase.__init__(self, virsh_instance=virsh_instance)
+                self.xml = '<scratch/>'
