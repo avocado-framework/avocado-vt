@@ -681,7 +681,7 @@ class VMXML(VMXMLBase):
         """Define VM with virsh from this instance"""
         result = virsh_instance.define(self.xml)
         if result.exit_status:
-            logging.debug("Define %s failed.\n"
+            logging.error("Define %s failed.\n"
                           "Detail: %s.", self.vm_name,
                           result.stderr_text)
             return False
@@ -699,11 +699,15 @@ class VMXML(VMXMLBase):
         if not self.undefine(options, virsh_instance=virsh_instance):
             raise xcepts.LibvirtXMLError("Failed to undefine %s."
                                          % self.vm_name)
-        if not self.define(virsh_instance=virsh_instance):
+        result_define = virsh_instance.define(self.xml)
+        # Vm define failed
+        if result_define.exit_status:
             if backup:
                 backup.define(virsh_instance=virsh_instance)
-            raise xcepts.LibvirtXMLError("Failed to define %s from xml:\n%s"
-                                         % (self.vm_name, self.xmltreefile))
+            logging.error("Failed to define %s from xml:\n%s"
+                          % (self.vm_name, self.xmltreefile))
+            raise xcepts.LibvirtXMLError("Failed to define %s for reason:\n%s"
+                                         % (self.vm_name, result_define.stderr_text))
 
     @staticmethod
     def vm_rename(vm, new_name, uuid=None, virsh_instance=base.virsh):
