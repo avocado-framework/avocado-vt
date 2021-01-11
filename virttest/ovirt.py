@@ -5,7 +5,6 @@ oVirt SDK wrapper module.
 """
 
 
-import os
 import time
 import logging
 
@@ -13,6 +12,7 @@ import ovirtsdk4 as sdk
 import ovirtsdk4.types as types
 
 from virttest import virt_vm
+from virttest.utils_net import ping
 
 
 _api = None
@@ -587,7 +587,7 @@ class VMManager(virt_vm.BaseVM):
                 NIC's MAC address
         """
         def is_ip_reachable(ipaddr):
-            res = os.system("ping -c 3 -w2 " + ipaddr + " > /dev/null 2>&1")
+            res, _ = ping(ipaddr, timeout=5)
             return res == 0
 
         nic = self.virtnet[index]
