@@ -277,10 +277,11 @@ class VolumeGroup(object):
 
 class LogicalVolume(Volume):
 
-    def __init__(self, name, size, vg):
+    def __init__(self, name, size, vg, lv_extra_options=None):
         super(LogicalVolume, self).__init__(name, size)
         self.vg = vg
         self.path = os.path.join("/dev", vg.name, name)
+        self.lv_extra_options = lv_extra_options
 
     def create(self):
         """
@@ -293,6 +294,8 @@ class LogicalVolume(Volume):
                                                  UNIT,
                                                  self.name,
                                                  vg_name)
+        if self.lv_extra_options:
+            cmd += " %s" % self.lv_extra_options
         process.system(cmd)
         logging.info("create logical volume %s", self.path)
         return self.get_attr("lv_path")
@@ -555,12 +558,13 @@ class LVM(object):
         """
         lv_name = self.params["lv_name"]
         lv_size = self.params["lv_size"]
+        lv_extra_options = self.params.get("lv_extra_options")
         lv = self.get_vol(lv_name, "lvs")
         # Check is it a exist lv if exist return the volume object
         # else then create it;
         if lv is None:
             vg = self.setup_vg(lv)
-            lv = LogicalVolume(lv_name, lv_size, vg)
+            lv = LogicalVolume(lv_name, lv_size, vg, lv_extra_options)
             lv.create()
             self.register(lv)
             self.lvs.append(lv)
