@@ -216,6 +216,28 @@ class LibvirtNetwork(object):
             virsh.net_undefine(self.name)
 
 
+class TempStr(str):
+    """
+    String class for new_xml_with_object.
+    """
+    pass
+
+
+def new_xml_with_object(xml, obj):
+    """
+    Add the xml object reference to the function return value
+    to avoid triggering the GC and deleting the xml file
+    after calling the create xml function.
+
+    :param xml: xml path string
+    :param obj: xml object reference
+    :return: xml path string
+    """
+    _temp = TempStr(xml)
+    _temp.obj = obj
+    return _temp
+
+
 def create_macvtap_vmxml(iface, params):
     """
     Method to create Macvtap interface xml for VM
@@ -1472,7 +1494,7 @@ def create_hostdev_xml(pci_id, boot_order=None, xmlfile=True,
     logging.debug("Hostdev XML:\n%s", str(hostdev_xml))
     if not xmlfile:
         return hostdev_xml
-    return hostdev_xml.xml
+    return new_xml_with_object(hostdev_xml.xml, hostdev_xml)
 
 
 def add_controller(vm_name, contr):
@@ -1549,7 +1571,7 @@ def create_redirdev_xml(redir_type="spicevmc", redir_bus="usb",
     if redir_protocol:
         redir.protocol = eval(redir_protocol)
 
-    return redir.xml
+    return new_xml_with_object(redir.xml, redir)
 
 
 def alter_boot_order(vm_name, pci_id, boot_order=0):
@@ -1742,14 +1764,7 @@ def create_disk_xml(params):
         logging.error("Fail to create disk XML:\n%s", detail)
     logging.debug("Disk XML %s:\n%s", diskxml.xml, str(diskxml))
 
-    # Wait for file completed
-    def file_exists():
-        if not process.run("ls %s" % diskxml.xml,
-                           ignore_status=True).exit_status:
-            return True
-    utils_misc.wait_for(file_exists, 5)
-
-    return diskxml.xml
+    return new_xml_with_object(diskxml.xml, diskxml)
 
 
 def set_disk_attr(vmxml, target, tag, attr):
@@ -3547,7 +3562,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0):
         vmxml.sync()
     elif oper == "get_xml":
         logging.info("iface xml is %s", iface)
-        return iface.xml
+        return new_xml_with_object(iface.xml, iface)
 
 
 def change_boot_order(vm_name, device_tag, boot_order, index=0):
