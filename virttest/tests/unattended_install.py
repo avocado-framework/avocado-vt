@@ -399,6 +399,11 @@ class UnattendedInstallConfig(object):
             raise ValueError("Unexpected installation medium %s" % self.url)
         contents = re.sub(dummy_medium_re, content, contents)
 
+        dummy_rh_virt_qga_re = r'\bRH_VIRT_QGA\b'
+        if re.search(dummy_rh_virt_qga_re, contents):
+            rh_virt_qga = self.params.get("rh_virt_qga", "")
+            contents = re.sub(dummy_rh_virt_qga_re, rh_virt_qga, contents)
+
         dummy_rh_system_stream_id_re = r'\bRH_SYSTEM_STREAM_ID\b'
         if re.search(dummy_rh_system_stream_id_re, contents):
             rh_system_stream_id = self.params.get("rh_system_stream_id", "")
