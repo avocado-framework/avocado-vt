@@ -1019,8 +1019,10 @@ class DevContainer(object):
             """
             machine_cmd = cmd
             devs = []
+            images = params.objects('images')
+
             firmware_path = params.get(firmware_name + "_path")
-            if firmware_path:
+            if firmware_path and images:
                 if not os.path.exists(firmware_path):
                     raise exceptions.TestError("The firmware path is not exist."
                                                " Maybe you need to install "
@@ -1035,7 +1037,7 @@ class DevContainer(object):
                                                     pflash_vars_filename)
 
                 # To ignore the influence from backends
-                first_image = params.objects('images')[0]
+                first_image = images[0]
                 img_params = params.object_params(first_image)
                 img_params["backing_chain"] = "no"
                 path = storage.get_image_filename_filesytem(img_params,
