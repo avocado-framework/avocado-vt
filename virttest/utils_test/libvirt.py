@@ -1749,6 +1749,12 @@ def create_disk_xml(params):
             return True
     utils_misc.wait_for(file_exists, 5)
 
+    # Wait for file write over with '</disk>' keyword at the file end
+    def file_write_over():
+        if not process.run("grep '</disk>' %s" % diskxml.xml,
+                           ignore_status=True).exit_status:
+            return True
+    utils_misc.wait_for(file_write_over, 10)
     return diskxml.xml
 
 
