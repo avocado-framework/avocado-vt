@@ -76,6 +76,7 @@ def add_cpu_settings(vmxml, params):
     else:
         cells = eval(params.get("cpuxml_numa_cell", "[]"))
         cpu_xml_new.numa_cell = vm_xml.VMCPUXML.dicts_to_cells(cells)
+        vmxml.cpu = cpu_xml_new
 
         # Update the vcpu and memory values to match the cell config
         # otherwise, the vm may fail to define
@@ -83,7 +84,6 @@ def add_cpu_settings(vmxml, params):
                     if k.startswith('setvm_')}
         logging.debug(vm_attrs)
         libvirt_vmxml.set_vm_attrs(vmxml, vm_attrs)
-    vmxml.cpu = cpu_xml_new
     vmxml.xmltreefile.write()
     vmxml.sync()
 

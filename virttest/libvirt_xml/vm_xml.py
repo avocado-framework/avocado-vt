@@ -2127,13 +2127,13 @@ class NumaCellXML(base.LibvirtXMLBase):
         Distances of cell
         """
 
-        __slots__ = ('sibling')
+        __slots__ = ('sibling',)
 
         def __init__(self, virsh_instance=base.virsh):
             """
             Create new CellDistancesXML instance
             """
-            accessors.XMLElementList(property_name="sibling",
+            accessors.XMLElementList(property_name='sibling',
                                      libvirtxml=self,
                                      parent_xpath='/',
                                      marshal_from=self.marshal_from_sibling,
