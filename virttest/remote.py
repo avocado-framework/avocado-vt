@@ -612,7 +612,7 @@ class VMManager(object):
         self.vm_user = params.get("vm_user", 'root')
         self.port = params.get("port", 22)
         if not all([self.remote_host, self.remote_user, self.remote_pwd,
-                   self.vm_ip, self.vm_pwd]):
+                    self.vm_ip, self.vm_pwd]):
             raise exceptions.TestError("At least one of [remote_host|"
                                        "remote_user|remote_pwd|vm_ip|"
                                        "vm_pwd] is invalid!")

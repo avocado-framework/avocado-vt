@@ -11,6 +11,7 @@ class ProtectedKeyHelper(object):
     """
     Helper class to test for protected key support on s390x
     """
+
     def __init__(self, session=None):
         self.session = session
         self.sysfs = "/sys/devices/virtual/misc/pkey/protkey"

@@ -1874,9 +1874,9 @@ class DevContainer(object):
                         peers.append({'host': peer['host'],
                                       'type': peer.get('type', 'inet'),
                                       'port': '%s' % peer.get('port', '0')})
-                gluster_peers.update({'server.{i}.{k}'.format(i=i+1, k=k): v
-                                     for i, server in enumerate(peers)
-                                     for k, v in six.iteritems(server)})
+                gluster_peers.update({'server.{i}.{k}'.format(i=i + 1, k=k): v
+                                      for i, server in enumerate(peers)
+                                      for k, v in six.iteritems(server)})
             elif access.storage_type == 'nbd':
                 reconnect_delay = access.reconnect_delay
             elif access.storage_type == 'curl':

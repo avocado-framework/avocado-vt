@@ -89,6 +89,7 @@ class Firewall_cmd(object):
     """
     class handles firewall-cmd methods
     """
+
     def __init__(self, session=None):
         """
         initialises the firewall cmd objects

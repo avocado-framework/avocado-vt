@@ -2518,7 +2518,7 @@ def get_winutils_vol(session, label="WIN_UTILS"):
     :return: volume ID.
     """
     return wait_for(lambda: get_win_disk_vol(session,
-                    condition="VolumeName='%s'" % label), 240)
+                                             condition="VolumeName='%s'" % label), 240)
 
 
 def set_winutils_letter(session, cmd, label="WIN_UTILS"):

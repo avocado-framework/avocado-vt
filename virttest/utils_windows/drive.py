@@ -10,7 +10,7 @@ def _logical_disks(session, cond=None, props=None):
     cmd = wmic.make_query("LogicalDisk", cond, props,
                           get_swch=wmic.FMT_TYPE_LIST)
     out = utils_misc.wait_for(lambda: wmic.parse_list(session.cmd(cmd,
-                              timeout=120)), 240)
+                                                                  timeout=120)), 240)
     return out if out else []
 
 

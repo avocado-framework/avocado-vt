@@ -533,7 +533,7 @@ def diff_defcon(pathname, dirdesc=False, selinux_force=False):
     :return: List of tuple(pathname, from context, to context)
     """
     return _format_changes(_run_restorecon(pathname, dirdesc,
-                           selinux_force=selinux_force))
+                                           selinux_force=selinux_force))
 
 
 def apply_defcon(pathname, dirdesc=False, selinux_force=False):

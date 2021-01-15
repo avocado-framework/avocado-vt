@@ -414,7 +414,7 @@ def is_modular_daemon(session=None):
                    "virtstoraged.socket", "virtproxyd.socket"]
 
         if any([service.Factory.create_service(d, run=runner).status()
-           for d in daemons]):
+                for d in daemons]):
             IS_MODULAR_DAEMON[host_key] = True
         else:
             IS_MODULAR_DAEMON[host_key] = False

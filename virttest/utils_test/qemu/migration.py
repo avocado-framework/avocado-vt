@@ -1225,7 +1225,6 @@ class MigrationBase(object):
     """Class that provides some general functions for multi-host migration."""
 
     def __setup__(self, test, params, env, srchost, dsthost):
-
         """initialize some public params
         """
 
@@ -1276,7 +1275,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def run_pre_sub_test(self):
-
         """
         run sub test on src before migration
         """
@@ -1293,7 +1291,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def run_post_sub_test(self):
-
         """
         run sub test on dst after migration
         """
@@ -1306,7 +1303,6 @@ class MigrationBase(object):
                                              self.env, self.post_sub_test)
 
     def prepare_vm(self, vm_name):
-
         """
         Prepare, start vm and return vm.
         :param vm_name: vm name to be started.
@@ -1327,7 +1323,6 @@ class MigrationBase(object):
         return vm
 
     def start_worker(self):
-
         """
         run background command on src before migration
         """
@@ -1344,7 +1339,6 @@ class MigrationBase(object):
             time.sleep(5)
 
     def check_worker(self):
-
         """
         check background command on dst after migration
         """
@@ -1368,7 +1362,6 @@ class MigrationBase(object):
 
     def ping_pong_migrate(self, mig_type, sync, start_work=None,
                           check_work=None):
-
         """
         ping pong migration test
 
@@ -1389,7 +1382,7 @@ class MigrationBase(object):
             vm = self.env.get_vm(self.params["main_vm"])
             if vm.is_dead():
                 self.stop_migrate = True
-            elif self.migrate_count-1 == 0:
+            elif self.migrate_count - 1 == 0:
                 self.stop_migrate = True
             else:
                 self.dsthost, self.srchost = self.srchost, self.dsthost
@@ -1398,7 +1391,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def get_migration_info(self, vm):
-
         """
         get info after migration, focus on if keys in returned disc.
 
@@ -1421,7 +1413,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def get_migration_capability(self, index=0):
-
         """
         Get the state of migrate-capability.
 
@@ -1445,7 +1436,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def set_migration_capability(self, state, capability):
-
         """
         Set the capability of migrate to state.
 
@@ -1461,7 +1451,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def get_migration_cache_size(self, index=0):
-
         """
         Get the xbzrle cache size.
 
@@ -1481,7 +1470,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def set_migration_cache_size(self, value):
-
         """
         Set the cache size of migrate to value.
 
@@ -1495,7 +1483,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def get_migration_parameter(self, index=0):
-
         """
         Get the value of parameter.
 
@@ -1519,7 +1506,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def set_migration_parameter(self, index=0):
-
         """
         Set the value of parameter.
 
@@ -1537,7 +1523,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def set_migration_speed(self, value):
-
         """
         Set maximum speed (in bytes/sec) for migrations.
 
@@ -1551,7 +1536,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def set_migration_downtime(self, value):
-
         """
         Set maximum tolerated downtime (in seconds) for migration.
 
@@ -1565,7 +1549,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def set_migration_cancel(self):
-
         """
         Cancel migration after it is beginning
         """
@@ -1577,7 +1560,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def get_migration_cancelled(self):
-
         """
         check the migration cancelled
         """
@@ -1594,7 +1576,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def clean_up(self, kill_bg_cmd, vm):
-
         """
         kill background cmd on dst after migration
 
@@ -1626,7 +1607,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def start_stress(self):
-
         """
         start stress test on src before migration
         """
@@ -1652,7 +1632,6 @@ class MigrationBase(object):
 
     @error.context_aware
     def install_stressapptest(self):
-
         """
         install stressapptest
         """

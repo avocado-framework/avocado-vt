@@ -818,7 +818,7 @@ class PrivateBridgeConfig(object):
                 if self.physical_nic.split(':', 1)[0] == "shell":
                     self.physical_nic = process.run(
                         self.physical_nic.split(':', 1)[1], shell=True
-                        ).stdout_text.strip()
+                    ).stdout_text.strip()
                 if self.physical_nic not in utils_net.get_host_iface():
                     raise exceptions.TestSetupFail("Physical network '%s'"
                                                    "does not exist" %
@@ -1538,7 +1538,7 @@ class PciAssignable(object):
             logging.info("The key %s corresponds to %s", key, pids[key])
             for subkey in pids[key].keys():
                 status = process.system("echo %s > %s" % (pids[key][subkey],
-                                        os.path.join(key, subkey)), shell=True)
+                                                          os.path.join(key, subkey)), shell=True)
                 if status != 0:
                     return False
         return True

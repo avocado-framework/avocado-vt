@@ -36,7 +36,7 @@ def check_domjobinfo(vm, params, option="", remote_virsh_dargs=None):
                 groups = re.findall(r'[0-9.]+', item.strip())
                 logging.debug("In '%s' search '%s'\n", item, groups[0])
                 if (math.fabs(float(groups[0]) - float(compare_to_value)) //
-                   float(compare_to_value) > diff_rate):
+                        float(compare_to_value) > diff_rate):
                     err_msg = ("{} {} has too much difference from "
                                "{}".format(jobinfo_item,
                                            groups[0],

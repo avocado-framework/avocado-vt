@@ -9,6 +9,7 @@ class FS(object):
     """
     Base class for proc/sys FS set and get
     """
+
     def __init__(self, fs, session=None):
         """
         Initializes path, session and func to trigger cmd
@@ -116,6 +117,7 @@ class SysFS(FS):
     >>> obj.sys_fs_value # To get the value
     >>> obj.sys_fs_value = "never" # To set the value
     """
+
     def __init__(self, sys_fs, session=None, regex=r"\[%s\]"):
         """
         Initializes path, session and func to trigger cmd
