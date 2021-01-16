@@ -35,6 +35,7 @@ from virttest import utils_misc
 from virttest import cpu
 from virttest import virt_vm
 from virttest import test_setup
+from virttest import qemu_migration
 from virttest import qemu_monitor
 from virttest import qemu_virtio_port
 from virttest import data_dir
@@ -214,12 +215,25 @@ class VM(virt_vm.BaseVM):
         Check whether the given capability is set in the vm capabilities.
 
         :param capability: the given capability
-        :rtype capability: qemu_capabilities.Flags
+        :type capability: qemu_capabilities.Flags
         """
         if self.devices is None:
             raise virt_vm.VMStatusError('Using capabilities before '
                                         'VM being defined')
         return capability in self.devices.caps
+
+    def check_migration_parameter(self, parameter):
+        """
+        Check whether the given migration parameter is set in the vm migration
+        parameters.
+
+        :param parameter: the given migration parameter
+        :type parameter: qemu_capabilities.MigrationParams
+        """
+        if self.devices is None:
+            raise virt_vm.VMStatusError('Using migration parameters before '
+                                        'VM being defined')
+        return parameter in self.devices.mig_params
 
     def verify_alive(self):
         """
@@ -1472,6 +1486,9 @@ class VM(virt_vm.BaseVM):
         if (params.get("qemu_force_use_static_incoming_expression", "no") == "yes" and
                 Flags.INCOMING_DEFER in devices.caps):
             devices.caps.clear_flag(Flags.INCOMING_DEFER)
+        if (params.get("qemu_force_disable_migration_parameter", "no") == "yes" and
+                Flags.MIGRATION_PARAMS in devices.caps):
+            devices.caps.clear_flag(Flags.MIGRATION_PARAMS)
 
         devices.insert(StrDev('PREFIX', cmdline=cmd))
         # Add the qemu binary
@@ -4607,8 +4624,8 @@ class VM(virt_vm.BaseVM):
         """
         self.verify_status('paused')  # Throws exception if not
         # Set high speed 1TB/S
-        self.monitor.migrate_set_speed(str(2 << 39))
-        self.monitor.migrate_set_downtime(self.MIGRATE_TIMEOUT)
+        qemu_migration.set_speed(self, str(2 << 39))
+        qemu_migration.set_downtime(self, self.MIGRATE_TIMEOUT)
         logging.debug("Saving VM %s to %s" % (self.name, path))
         # Can only check status if background migration
         self.monitor.migrate("exec:cat>%s" % path, wait=False)
@@ -4620,8 +4637,8 @@ class VM(virt_vm.BaseVM):
             self.MIGRATE_TIMEOUT, 2, 2,
             "Waiting for save to %s to complete" % path)
         # Restore the speed and downtime to default values
-        self.monitor.migrate_set_speed(str(32 << 20))
-        self.monitor.migrate_set_downtime(0.03)
+        qemu_migration.set_speed(self, str(32 << 20))
+        qemu_migration.monitor.set_downtime(self, 0.03)
         # Base class defines VM must be off after a save
         self.monitor.cmd("system_reset")
         self.verify_status('paused')  # Throws exception if not

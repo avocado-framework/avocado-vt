@@ -21,6 +21,14 @@ class Flags(object):
     BLOCKDEV = _auto_value()
     SMP_DIES = _auto_value()
     INCOMING_DEFER = _auto_value()
+    MIGRATION_PARAMS = _auto_value()
+
+
+class MigrationParams(object):
+    """Enumerate migration parameters."""
+    DOWNTIME_LIMIT = _auto_value()
+    MAX_BANDWIDTH = _auto_value()
+    XBZRLE_CACHE_SIZE = _auto_value()
 
 
 class Capabilities(object):
