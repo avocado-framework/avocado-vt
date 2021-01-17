@@ -1653,7 +1653,7 @@ def run_autotest(vm, session, control_path, timeout,
                                                   kwargs=kwargs)
                 bg.start()
 
-                while bg.isAlive():
+                while bg.is_alive():
                     logging.info("Autotest job did not end, start a round of "
                                  "migration")
                     vm.migrate(timeout=mig_timeout, protocol=mig_protocol)
@@ -2006,7 +2006,7 @@ class BackgroundTest(object):
         """
         Check whether the test is still alive.
         """
-        return self.thread.isAlive()
+        return self.thread.is_alive()
 
 
 def get_image_info(image_file):
