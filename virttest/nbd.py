@@ -41,7 +41,15 @@ def export_image(qemu_nbd, filename, local_image, params):
     :param filename: image path for raw/qcow2 image or image json
                      representation string for luks image
     :param local_image: image tag defined in parameter images
-    :param params: local image specified params
+    :param params: local image specified params, params may contain:
+        nbd_export_format: block driver format (-f)
+        nbd_allocation_exported: 'yes' exports allocation depth map (-A)
+        nbd_export_name: NBD volume export name (-x)
+        nbd_export_description: NBD volume export description (-D)
+        nbd_unix_socket: Use a unix socket (-k)
+        nbd_port: TCP port to listen on as a server (-p)
+        nbd_server_tls_creds: path to TLS credentials
+        nbd_export_bitmaps: bitmap names seperated by space, e.g. 'bm1 bm2'
     :return: pid of qemu-nbd server or None
     """
     cmd_dict = {
@@ -56,9 +64,10 @@ def export_image(qemu_nbd, filename, local_image, params):
         "filename": "",
         "fork": "--fork",
         "pid_file": "",
-        "bitmap": ""
+        "bitmap": "",
+        "allocation_depth": ""
     }
-    export_cmd = ('{secret_object} {tls_creds} '
+    export_cmd = ('{secret_object} {tls_creds} {allocation_depth} '
                   '{export_format} {persistent} {desc} {port} {bitmap} '
                   '{export_name} {fork} {pid_file} {unix_socket} {filename}')
 
@@ -84,6 +93,10 @@ def export_image(qemu_nbd, filename, local_image, params):
                 'filename': "'%s'" % filename
             })
 
+    # expose allocation depth information via the qemu:allocation-depth
+    if params.get('nbd_allocation_exported') == 'yes':
+        cmd_dict['allocation_depth'] = '-A'
+
     if params.get('nbd_export_name'):
         cmd_dict['export_name'] = '-x %s' % params['nbd_export_name']
 
@@ -106,8 +119,11 @@ def export_image(qemu_nbd, filename, local_image, params):
                 tls_creds=params['nbd_server_tls_creds']
             )
 
-    if params.get('nbd_export_bitmap'):
-        cmd_dict['bitmap'] = '-B %s' % params['nbd_export_bitmap']
+    # multiple bitmaps can be exported
+    if params.get('nbd_export_bitmaps'):
+        cmd_dict['bitmap'] = "".join(
+            [" -B %s" % _ for _ in params['nbd_export_bitmaps'].split()]
+        )
 
     qemu_nbd_pid = None
     cmdline = qemu_nbd + ' ' + string.Formatter().format(export_cmd,
