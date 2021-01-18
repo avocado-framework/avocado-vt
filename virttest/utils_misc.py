@@ -4060,8 +4060,8 @@ class AsyncJob(BgJob):
         # Make sure we've got stdout and stderr
         self.stdout_thread.join(1)
         self.stderr_thread.join(1)
-        assert not self.stdout_thread.isAlive()
-        assert not self.stderr_thread.isAlive()
+        assert not self.stdout_thread.is_alive()
+        assert not self.stderr_thread.is_alive()
 
         super(AsyncJob, self).cleanup()
 

@@ -310,7 +310,7 @@ class MigrationTest(object):
                 logging.debug("start_time:%d, eclipse_time:%d", stime, eclipse_time)
                 if eclipse_time < thread_timeout:
                     migration_thread.join(thread_timeout - eclipse_time)
-                if migration_thread.isAlive():
+                if migration_thread.is_alive():
                     logging.error("Migrate %s timeout.", migration_thread)
                     self.RET_LOCK.acquire()
                     self.RET_MIGRATION = False
@@ -330,7 +330,7 @@ class MigrationTest(object):
                 thread1.join(thread_timeout)
                 thread2.join(thread_timeout)
                 vm_remote = vm
-                if thread1.isAlive() or thread1.isAlive():
+                if thread1.is_alive() or thread1.is_alive():
                     logging.error("Cross migrate timeout.")
                     self.RET_LOCK.acquire()
                     self.RET_MIGRATION = False
@@ -350,7 +350,7 @@ class MigrationTest(object):
             # listen threads until they end
             for thread in migration_threads:
                 thread.join(thread_timeout)
-                if thread.isAlive():
+                if thread.is_alive():
                     logging.error("Migrate %s timeout.", thread)
                     self.RET_LOCK.acquire()
                     self.RET_MIGRATION = False
