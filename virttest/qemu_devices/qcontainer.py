@@ -145,7 +145,7 @@ class DevContainer(object):
                              shell=True,
                              verbose=False)
         # Some architectures (arm) require machine type to be always set
-        failed_pattern = r'(?:kvm_init_vcpu failed)|(?:machine specified)'
+        failed_pattern = r'(?:kvm_init_vcpu.*failed)|(?:machine specified)'
         if result.exit_status and re.search(failed_pattern, result.stdout_text):
             self.__workaround_machine_type = True
             basic_qemu_cmd = "%s -machine none" % qemu_binary
