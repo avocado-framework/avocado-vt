@@ -44,13 +44,31 @@ class RangeList(list):
             element.append(xml_utils.ElementTree.Element('range', serange))
 
 
+# Sub-element of ip/dhcp
+class RangeXML(base.LibvirtXMLBase):
+    """IP range xml, optionally containing lease information"""
+    __slots__ = ('attrs', 'lease_attrs')
+
+    def __init__(self, virsh_instance=base.virsh):
+        """Create new RangeXML instance"""
+        accessors.XMLElementDict('attrs', self,
+                                 parent_xpath='/',
+                                 tag_name='range')
+        accessors.XMLElementDict('lease_attrs', self,
+                                 parent_xpath='/',
+                                 tag_name='lease')
+        super(RangeXML, self).__init__(
+            virsh_instance=virsh_instance)
+        self.xml = '<range/>'
+
+
 class IPXML(base.LibvirtXMLBase):
 
     """
     IP address block, optionally containing DHCP range information
 
     Properties:
-        dhcp_ranges: Dict. keys: start, end
+        dhcp_ranges: class
         host_attr: host mac, name and ip information
         address: string IP address
         netmask: string IP's netmask
@@ -82,12 +100,13 @@ class IPXML(base.LibvirtXMLBase):
         accessors.XMLAttribute(
             'dhcp_bootp', self, parent_xpath='/dhcp', tag_name='bootp',
             attribute='file')
-        accessors.XMLElementDict('dhcp_ranges', self,
-                                 parent_xpath='/dhcp',
-                                 tag_name='range')
+        accessors.XMLElementNest('dhcp_ranges', self, parent_xpath='/dhcp',
+                                 tag_name='range', subclass=RangeXML,
+                                 subclass_dargs={'virsh_instance': virsh_instance})
         accessors.XMLElementList('hosts', self, parent_xpath='/dhcp',
-                                 marshal_from=self.marshal_from_host,
-                                 marshal_to=self.marshal_to_host)
+                                 marshal_from=self.marshal_from_hosts,
+                                 marshal_to=self.marshal_to_hosts,
+                                 has_subclass=True)
         super(IPXML, self).__init__(virsh_instance=virsh_instance)
         if ipv6:
             self.xml = u"<ip address='%s'></ip>" % address
@@ -95,24 +114,46 @@ class IPXML(base.LibvirtXMLBase):
             self.xml = u"<ip address='%s' netmask='%s'></ip>" % (address, netmask)
 
     @staticmethod
-    def marshal_from_host(item, index, libvirtxml):
-        """Convert a dictionary into a tag + attributes"""
-        del index           # not used
-        del libvirtxml      # not used
-        if not isinstance(item, dict):
-            raise xcepts.LibvirtXMLError("Expected a dictionary of host "
-                                         "attributes, not a %s"
-                                         % str(item))
-        return ('host', dict(item))  # return copy of dict, not reference
+    def marshal_from_hosts(item, index, libvirtxml):
+        """
+        Convert an xml object to host tag and xml element
+        """
+        if isinstance(item, DhcpHostXML):
+            return 'host', item
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of ip dhcp host "
+                                         "instances, not a %s" % str(item))
 
     @staticmethod
-    def marshal_to_host(tag, attr_dict, index, libvirtxml):
-        """Convert a tag + attributes into a dictionary"""
-        del index                    # not used
-        del libvirtxml               # not used
+    def marshal_to_hosts(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a host tag xml element to an object of DhcpHostXML.
+        """
         if tag != 'host':
-            return None              # skip this one
-        return dict(attr_dict)       # return copy of dict, not reference
+            return None              # Don't convert this item
+        newone = DhcpHostXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
+
+
+# Sub-element of ip/dhcp
+class DhcpHostXML(base.LibvirtXMLBase):
+    """host element of in ip/dhcp"""
+    __slots__ = ('attrs', 'lease_attrs')
+
+    def __init__(self, virsh_instance=base.virsh):
+        """
+        Create new DhcpHost XML instance
+        """
+        accessors.XMLElementDict('attrs', self,
+                                 parent_xpath='/',
+                                 tag_name='host')
+        accessors.XMLElementDict('lease_attrs', self,
+                                 parent_xpath='/',
+                                 tag_name='lease')
+        super(DhcpHostXML, self).__init__(
+            virsh_instance=virsh_instance)
+        self.xml = '<host/>'
 
 
 class DNSXML(base.LibvirtXMLBase):
