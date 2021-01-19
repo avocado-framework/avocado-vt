@@ -882,9 +882,9 @@ class VMXML(VMXMLBase):
                             nodexml_list.append(nodexml)
                         if numa_number is not None and numa_number > 0:
                             vmcpu_xml.xmltreefile.create_by_xpath('/numa')
-                            vmcpu_xml.numa_cell = vmcpu_xml.dicts_to_cells(nodexml_list)
+                            vmcpu_xml.numa_cell = nodexml_list
                         else:
-                            vmcpu_xml.set_numa_cell(vmcpu_xml.dicts_to_cells(nodexml_list))
+                            vmcpu_xml.set_numa_cell(nodexml_list)
                     else:
                         logging.warning("Guest numa could not be updated, expect "
                                         "failures if guest numa is checked")
