@@ -476,3 +476,29 @@ class MigrationTest(object):
         else:
             raise exceptions.TestError("Fail to cancel migration: [%s]"
                                        % pid.strip())
+
+    def set_migratepostcopy(self, vm_name, uri=None):
+        """
+        Switch to postcopy during migration.
+
+        :param vm_name: vm's name
+        :param uri: target virsh uri
+        :raise: test.error when command fails
+        """
+        cmd = "event --loop --all"
+        virsh_event_session = virsh.VirshSession(virsh_exec=virsh.VIRSH_EXEC,
+                                                 auto_close=True,
+                                                 uri=uri)
+        virsh_event_session.sendline(cmd)
+
+        if not utils_misc.wait_for(
+           lambda: not virsh.migrate_postcopy(vm_name, uri=uri,
+                                              debug=True).exit_status, 10):
+            raise exceptions.TestError("Failed to set migration postcopy.")
+
+        exp_str = "Suspended Post-copy"
+        if not utils_misc.wait_for(
+           lambda: re.findall(exp_str,
+                              virsh_event_session.get_stripped_output()), 30):
+            raise exceptions.TestError("Unalbe to find event {}"
+                                       .format(exp_str))
