@@ -2992,10 +2992,11 @@ class DevContainer(object):
         if driver == "virtio-fs":
             binary = params.get("fs_binary", "/usr/libexec/virtiofsd")
             extra_options = params.get("fs_binary_extra_options")
+            enable_debug_mode = params.get('fs_enable_debug_mode', 'no') == "yes"
             sock_path = os.path.join(data_dir.get_tmp_dir(),
                                      '-'.join((self.vmname, name, 'virtiofsd.sock')))
             vfsd = qdevices.QVirtioFSDev(name, binary, sock_path,
-                                         source, extra_options)
+                                         source, extra_options, enable_debug_mode)
             devices.append(vfsd)
 
             char_params = Params()

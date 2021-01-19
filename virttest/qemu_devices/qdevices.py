@@ -1844,7 +1844,8 @@ class QVirtioFSDev(QDaemonDev):
     Virtiofs pseudo device.
     """
 
-    def __init__(self, aobject, binary, sock_path, source, extra_options=None):
+    def __init__(self, aobject, binary, sock_path, source, extra_options=None,
+                 enable_debug_mode=False):
         """
         :param aobject: The aobject of virtiofs daemon.
         :type aobject: str
@@ -1856,6 +1857,8 @@ class QVirtioFSDev(QDaemonDev):
         :type source: str
         :param extra_options: The external options of virtiofs daemon.
         :type extra_options: str
+        :param enable_debug_mode: Enable debug mode of virtiofs daemon.
+        :type enable_debug_mode: bool
         """
         super(QVirtioFSDev, self).__init__('virtiofs', aobject=aobject,
                                            child_bus=QUnixSocketBus(sock_path, aobject))
@@ -1863,6 +1866,7 @@ class QVirtioFSDev(QDaemonDev):
         self.set_param('sock_path', sock_path)
         self.set_param('source', source)
         self.set_param('extra_options', extra_options)
+        self.set_param('enable_debug_mode', enable_debug_mode)
 
     def _handle_log(self, line):
         """Handle the log of virtiofs daemon."""
@@ -1877,7 +1881,10 @@ class QVirtioFSDev(QDaemonDev):
         fsd_cmd = '%s --socket-path=%s' % (self.get_param('binary'),
                                            self.get_param('sock_path'))
         fsd_cmd += ' -o source=%s' % self.get_param('source')
-        fsd_cmd += ' -d'
+        if self.get_param('enable_debug_mode') == "on":
+            fsd_cmd += ' -d'
+            self.set_param('status_active',
+                           'Waiting for vhost-user socket connection')
 
         if self.get_param('extra_options'):
             fsd_cmd += self.get_param('extra_options')
@@ -1885,7 +1892,6 @@ class QVirtioFSDev(QDaemonDev):
         self.set_param('cmd', fsd_cmd)
         self.set_param('run_bg_kwargs', {'output_func': self._handle_log,
                                          'auto_close': False})
-        self.set_param('status_active', 'Waiting for vhost-user socket connection')
         super(QVirtioFSDev, self).start_daemon()
 
     def __eq__(self, other):
