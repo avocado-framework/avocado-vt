@@ -346,7 +346,8 @@ class CgroupTest(object):
                     # no need to check scheduler type, it's fixed for qemu
                     continue
                 if "quota" in schedinfo_item:
-                    if schedinfo_value in ["-1", "18446744073709551"]:
+                    if schedinfo_value in ["-1", "18446744073709551",
+                                           "17592186044415"]:
                         standardized_virsh_output_info[schedinfo_item] = "max"
                         continue
                 standardized_virsh_output_info[schedinfo_item] = schedinfo_value
