@@ -2253,12 +2253,7 @@ class VM(virt_vm.BaseVM):
 
     def remove(self):
         self.destroy(gracefully=True, free_mac_addresses=False)
-        # If the current machine contains nvram, we have to set --nvram
-        if self.params.get("vir_domain_undefine_nvram") == "yes":
-            options = "--nvram"
-        else:
-            options = None
-        if not self.undefine(options):
+        if not self.undefine():
             raise virt_vm.VMRemoveError("VM '%s' undefine error" % self.name)
         self.destroy(gracefully=False, free_mac_addresses=True)
         logging.debug("VM '%s' was removed", self.name)
