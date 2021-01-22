@@ -1748,6 +1748,8 @@ class VM(virt_vm.BaseVM):
         if devices.has_option('numa hmat-lb,.*'):
             for numa_node in params.objects('guest_numa_nodes'):
                 numa_params = params.object_params(numa_node)
+                if not numa_params.get('numa_hmat_lb'):
+                    continue
                 nodeid = numa_params['numa_nodeid']
                 initiator = numa_params.get('numa_initiator', nodeid)
                 for hmat_lb in numa_params.objects('numa_hmat_lb'):
