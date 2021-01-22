@@ -107,7 +107,9 @@ class LibvirtNetwork(object):
         else:
             ip = IPXML(address=address)
         ip.family = ip_version
-        ip.dhcp_ranges = {'start': dhcp_start, 'end': dhcp_end}
+        ran = network_xml.RangeXML()
+        ran.attrs = {'start': dhcp_start, 'end': dhcp_end}
+        ip.dhcp_ranges = ran
         net_xml.ip = ip
         net_xml.bridge = {'name': self.kwargs.get('br_name'), 'stp': 'on', 'delay': '0'}
         return net_xml
@@ -125,7 +127,9 @@ class LibvirtNetwork(object):
         dhcp_start = self.kwargs.get('dhcp_start')
         dhcp_end = self.kwargs.get('dhcp_end')
         if all([dhcp_start, dhcp_end]):
-            ip.dhcp_ranges = {'start': dhcp_start, 'end': dhcp_end}
+            ran = network_xml.RangeXML()
+            ran.attrs = {'start': dhcp_start, 'end': dhcp_end}
+            ip.dhcp_ranges = ran
         net_xml.ip = ip
         return address, net_xml
 
@@ -1892,26 +1896,34 @@ def create_net_xml(net_name, params):
             if net_ipv6_address:
                 ipxml.address = net_ipv6_address
             if dhcp_start_ipv6 and dhcp_end_ipv6:
-                ipxml.dhcp_ranges = {"start": dhcp_start_ipv6,
-                                     "end": dhcp_end_ipv6}
+                range_6 = network_xml.RangeXML()
+                range_6.attrs = {"start": dhcp_start_ipv6,
+                                 "end": dhcp_end_ipv6}
+                ipxml.dhcp_ranges = range_6
             if guest_name and guest_ipv6 and guest_mac:
-                ipxml.hosts = [{"name": guest_name,
-                                "ip": guest_ipv6}]
+                host_xml_6 = network_xml.DhcpHostXML()
+                host_xml_6.attrs = {"name": guest_name,
+                                    "ip": guest_ipv6}
+                ipxml.hosts = [host_xml_6]
             netxml.set_ip(ipxml)
         if net_ip_address:
             ipxml = network_xml.IPXML(net_ip_address,
                                       net_ip_netmask)
             if dhcp_start_ipv4 and dhcp_end_ipv4:
-                ipxml.dhcp_ranges = {"start": dhcp_start_ipv4,
-                                     "end": dhcp_end_ipv4}
+                range_4 = network_xml.RangeXML()
+                range_4.attrs = {"start": dhcp_start_ipv4,
+                                 "end": dhcp_end_ipv4}
+                ipxml.dhcp_ranges = range_4
             if tftp_root:
                 ipxml.tftp_root = tftp_root
             if bootp_file:
                 ipxml.dhcp_bootp = bootp_file
             if guest_name and guest_ipv4 and guest_mac:
-                ipxml.hosts = [{"mac": guest_mac,
-                                "name": guest_name,
-                                "ip": guest_ipv4}]
+                host_xml_4 = network_xml.DhcpHostXML()
+                host_xml_4.attrs = {"name": guest_name,
+                                    "ip": guest_ipv4,
+                                    "mac": guest_mac}
+                ipxml.hosts = [host_xml_4]
             netxml.set_ip(ipxml)
         if routes:
             netxml.routes = [ast.literal_eval(x) for x in routes]
