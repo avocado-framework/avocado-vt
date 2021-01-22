@@ -897,8 +897,8 @@ class QemuAgent(Monitor):
         cmd = "guest-ssh-add-authorized-keys"
         keys = list(keys)
         reset = kwargs.get('reset')
-        return self.cmd_args_update(cmd, username=username,
-                                    keys=keys, reset=reset)
+        return self._cmd_args_update(cmd, username=username,
+                                     keys=keys, reset=reset)
 
     def ssh_remove_authorized_keys(self, username, *keys):
         """
