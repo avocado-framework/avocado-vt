@@ -10,10 +10,12 @@ from collections import Iterable
 import aexpect
 from aexpect.remote import handle_prompts
 from avocado.utils import path as utils_path
+from avocado.utils import process
 
 import six
 
 from virttest.utils_misc import log_line
+from virttest.utils_version import VersionInterval
 
 
 class AddrCache(object):
@@ -280,16 +282,37 @@ class TcpdumpSniffer(Sniffer):
 class TSharkSniffer(Sniffer):
 
     """
-    TShark sniffer class.
+    TShark sniffer base class.
     """
 
     command = "tshark"
-    options = ("-npi any -T fields -E separator=/s -E occurrence=f "
-               "-E header=y -e ip.src -e ip.dst -e bootp.type -e bootp.id "
-               "-e bootp.hw.mac_addr -e bootp.ip.your -e bootp.option.dhcp "
-               "-e ipv6.src -e ipv6.dst "
-               # Positional arguments must be the last arguments
-               "'port 68 or port 546'")
+    # Supported versions by the class
+    supported_versions = ()
+    # Regexp to get the version
+    _re_version = re.compile(r"TShark \(Wireshark\) (\d+\.\d+\.\d+)")
+
+    @classmethod
+    def is_supported(cls, session=None):
+        supported = super(TSharkSniffer, cls).is_supported(session)
+        if not supported:
+            return False
+        version = cls._get_version(session)
+        if not version:
+            logging.warning("Couldn't get the version of '%s'", cls.command)
+            return False
+        return version in cls.supported_versions
+
+    @classmethod
+    def _get_version(cls, session):
+        cmd = "%s --version" % cls.command
+        if session:
+            out = session.cmd_output(cmd)
+        else:
+            out = process.system_output(cmd, verbose=False,
+                                        ignore_status=True).decode()
+        matches = cls._re_version.search(out)
+        if matches:
+            return matches.group(1)
 
     def _output_handler(self, line):
         packet = line.lstrip().split()
@@ -323,5 +346,35 @@ class TSharkSniffer(Sniffer):
             return True
 
 
+class TShark1To2(TSharkSniffer):
+
+    """
+    TShark sniffer class for version 1.0.0 - 2.x.x.
+    """
+
+    options = ("-npi any -T fields -E separator=/s -E occurrence=f "
+               "-E header=y -e ip.src -e ip.dst -e bootp.type -e bootp.id "
+               "-e bootp.hw.mac_addr -e bootp.ip.your -e bootp.option.dhcp "
+               "-e ipv6.src -e ipv6.dst "
+               # Positional arguments must be the last arguments
+               "'port 68 or port 546'")
+    supported_versions = VersionInterval("[1.0.0, 3.0.0)")
+
+
+class TShark3ToLatest(TSharkSniffer):
+
+    """
+    TShark sniffer class for version 3.0.0 - latest.
+    """
+
+    options = ("-npi any -T fields -E separator=/s -E occurrence=f "
+               "-E header=y -e ip.src -e ip.dst -e dhcp.type -e dhcp.id "
+               "-e dhcp.hw.mac_addr -e dhcp.ip.your -e dhcp.option.dhcp "
+               "-e ipv6.src -e ipv6.dst "
+               # Positional arguments must be the last arguments
+               "'port 68 or port 546'")
+    supported_versions = VersionInterval("[3.0.0,)")
+
+
 #: All the defined sniffers
-Sniffers = (TSharkSniffer, TcpdumpSniffer)
+Sniffers = (TShark3ToLatest, TShark1To2, TcpdumpSniffer)
