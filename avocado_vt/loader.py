@@ -29,6 +29,7 @@ from virttest import standalone_test
 from virttest import storage
 from virttest.compat import get_opt, set_opt
 
+from .discovery import DiscoveryMixIn
 from .options import VirtTestOptionsProcess
 from .test import VirtTest
 
@@ -86,7 +87,7 @@ class NotAvocadoVTTest(object):
     """
 
 
-class VirtTestLoader(loader.TestLoader):
+class VirtTestLoader(loader.TestLoader, DiscoveryMixIn):
 
     """
     Avocado loader plugin to load avocado-vt tests
@@ -120,20 +121,6 @@ class VirtTestLoader(loader.TestLoader):
             else:
                 extra = vt_extra_params
             set_opt(self.config, 'vt.extra_params', extra)
-
-    def _get_parser(self):
-        options_processor = VirtTestOptionsProcess(self.config)
-        return options_processor.get_parser()
-
-    def _save_parser_cartesian_config(self, parser):
-        path = get_opt(self.config, 'vt.save_config')
-        if path is None:
-            return
-        with open(path, 'w') as cartesian_config:
-            cartesian_config.write("include %s\n" % parser.filename)
-            for statement in (parser.only_filters + parser.no_filters +
-                              parser.assignments):
-                cartesian_config.write("%s\n" % statement)
 
     def get_extra_listing(self):
         if get_opt(self.config, 'vt.list_guests'):
@@ -199,25 +186,7 @@ class VirtTestLoader(loader.TestLoader):
         # Create test_suite
         test_suite = []
         for params in (_ for _ in cartesian_parser.get_dicts()):
-            # Evaluate the proper avocado-vt test name
-            test_name = None
-            if (get_opt(self.config, 'vt.config')
-                    and get_opt(self.config, 'vt.short_names_when_config')):
-                test_name = params.get("shortname")
-            elif get_opt(self.config, 'vt.type') == "spice":
-                short_name_map_file = params.get("_short_name_map_file")
-                if "tests-variants.cfg" in short_name_map_file:
-                    test_name = short_name_map_file["tests-variants.cfg"]
-            if test_name is None:
-                test_name = params.get("_short_name_map_file")["subtests.cfg"]
-            # We want avocado to inject params coming from its multiplexer into
-            # the test params. This will allow users to access avocado params
-            # from inside virt tests. This feature would only work if the virt
-            # test in question is executed from inside avocado.
-            params['id'] = test_name
-            test_parameters = {'name': test_name,
-                               'vt_params': params}
-            test_suite.append((VirtTest, test_parameters))
+            test_suite.append((VirtTest, self.convert_parameters(params)))
         if which_tests is loader.DiscoverMode.ALL and not test_suite:
             return self._report_bad_discovery(url, "No matching tests",
                                               which_tests)
