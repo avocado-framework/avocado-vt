@@ -32,7 +32,7 @@
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 88.0
-Release: 1%{?gitrel}%{?dist}
+Release: 2%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -100,9 +100,13 @@ Xunit output, among others.
 %{python3_sitelib}/avocado_vt*
 %{python3_sitelib}/avocado_framework_plugin_vt*
 %{python3_sitelib}/virttest*
+%{_bindir}/avocado-runner-avocado-vt
 
 
 %changelog
+* Thu May 24 2021 Jan Richter <jarichte@redhat.com> - 88.0-2
+- Experimental runner implementation for the nrunner architecture
+
 * Tue May 18 2021 Cleber Rosa <cleber@redhat.com> - 88.0-1
 - New release
 
