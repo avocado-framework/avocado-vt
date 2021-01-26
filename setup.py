@@ -54,6 +54,12 @@ if __name__ == "__main__":
               'avocado.plugins.init': [
                   'vt-init = avocado_vt.plugins.vt_init:VtInit',
                   ],
+              'avocado.plugins.resolver': [
+                  'avocado-vt = avocado_vt.plugins.vt_resolver:VTResolver'
+                  ],
+              'avocado.plugins.discoverer': [
+                  'avocado-vt = avocado_vt.plugins.vt_resolver:VTDiscoverer'
+                  ],
               },
           install_requires=["netifaces", "simplejson", "six", "netaddr",
                             "aexpect", "avocado-framework>=68.0"]
