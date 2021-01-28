@@ -2555,8 +2555,17 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                                                               dist_img)
 
         # Mount the gluster disk and create the image.
-        process.run("mount -t glusterfs %s:%s /mnt; %s; umount /mnt"
-                    % (host_ip, vol_name, disk_cmd), shell=True)
+        #process.run("mount -t glusterfs %s:%s /mnt; %s; umount /mnt"
+        #            % (host_ip, vol_name, disk_cmd), shell=True)
+        ret = process.run("mount -t glusterfs %s:%s /mnt; %s"
+                          % (host_ip, vol_name, disk_cmd), shell=True, ignore_status=True)
+        if ret.exit_status:
+            os.remove("/mnt/%s" % dist_img)
+            os.system("umount /mnt")
+            raise exceptions.TestFail("Fail to execute command %s with output: %s" % (disk_cmd, ret))
+        else:
+            logging.debug("Umount /mnt")
+            os.system("umount /mnt")
 
         disk_params_src = {'source_protocol': disk_src_protocol,
                            'source_name': "%s/%s" % (vol_name, dist_img),
