@@ -2772,7 +2772,8 @@ class DevContainer(object):
                                                    "bus_extra_params"),
                                                image_params.get("force_drive_format"),
                                                None, image_access,
-                                               None, None,
+                                               None, image_params.get(
+                                                   "image_throttle_group"),
                                                image_params.get(
                                                    "image_auto_readonly"),
                                                image_params.get(
