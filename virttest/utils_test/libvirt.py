@@ -2483,7 +2483,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     # gluster only params
     vol_name = params.get("vol_name")
     transport = params.get("transport", "")
-    brick_path = os.path.join(tmp_dir, pool_name)
+    brick_path = os.path.join("/var/tmp/", pool_name)
     image_convert = "yes" == params.get("image_convert", 'yes')
 
     if vm.is_alive():
@@ -2551,8 +2551,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
                         (src_disk_format, disk_format, blk_source, dist_img))
         else:
             # create another disk without convert
-            disk_cmd = "qemu-img create -f %s /mnt/%s 10M" % (src_disk_format,
-                                                              dist_img)
+            disk_cmd = "qemu-img create -f %s -o preallocation=full /mnt/%s 10M" % (src_disk_format,
+                                                                                    dist_img)
 
         # Mount the gluster disk and create the image.
         process.run("mount -t glusterfs %s:%s /mnt; %s; umount /mnt"
