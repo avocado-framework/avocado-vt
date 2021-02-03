@@ -3,11 +3,16 @@ import os
 import json
 import filecmp
 
+import xml.etree.ElementTree as ET
+
 from avocado.utils import process
 from avocado.core import exceptions
 
 from virttest import utils_misc
 from virttest import virsh
+from virttest import libvirt_version
+from virttest import data_dir
+from virttest.libvirt_xml import vm_xml
 from virttest.libvirt_xml.backup_xml import BackupXML
 from virttest.libvirt_xml.checkpoint_xml import CheckpointXML
 
@@ -391,3 +396,42 @@ def clean_checkpoints(vm_name, clean_metadata=True, ignore_status=True):
             else:
                 virsh.checkpoint_delete(vm_name, checkpoint,
                                         ignore_status=ignore_status)
+
+
+def enable_inc_backup_for_vm(vm, libvirt_ver=(99,99,99)):
+    """
+    For now, libvirt doesn't enable incremental backup by default. We
+    need to edit vm's xml to make sure it's supported.
+
+    :param vm: The vm to be operated
+    :param libvirt_ver: Since which libvirt version, we don't need to edit xml.
+    :return: The updated xml
+    """
+
+    # TODO: We need to track bz1799015 and update the default libvirt_ver=(99,99,99).
+    # If it's fixed in libvirt-9.0.1, we'll use libvirt_ver=(9,0,1).
+
+    vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
+    if libvirt_version.version_compare(*libvirt_ver):
+        logging.debug("Incremental backup is enabled by default "
+                      "in current libvirt version, no need to "
+                      "update vm xml.")
+        return vmxml
+    logging.debug("We need to redefine and start the vm to enable "
+                  "incremental backup, please confirm if this effects your "
+                  "other verification points.")
+    tree = ET.parse(vmxml.xml)
+    root = tree.getroot()
+    for elem in root.iter('domain'):
+        elem.set('xmlns:qemu', 'http://libvirt.org/schemas/domain/qemu/1.0')
+        qemu_cap = ET.Element("qemu:capabilities")
+        elem.insert(-1, qemu_cap)
+        incbackup_cap = ET.Element("qemu:add")
+        incbackup_cap.set('capability', 'incremental-backup')
+        qemu_cap.insert(1, incbackup_cap)
+    vmxml.undefine()
+    tmp_vm_xml = os.path.join(data_dir.get_tmp_dir(), "tmp_vm.xml")
+    tree.write(tmp_vm_xml)
+    virsh.define(tmp_vm_xml)
+    vmxml_updated = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
+    return vmxml_updated
