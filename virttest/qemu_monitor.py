@@ -29,6 +29,8 @@ from . import data_dir
 
 from virttest.qemu_capabilities import Flags
 
+from virttest import utils_rpc_proxy
+
 
 class MonitorError(Exception):
     pass
@@ -110,7 +112,7 @@ class QMPEventError(MonitorError):
                 % (self.qmp_event, self.cmd, self.vm_name, self.name))
 
 
-def get_monitor_filename(vm, monitor_name):
+def get_monitor_filename(vm, monitor_name, proxy_uri=None):
     """
     Return the filename corresponding to a given monitor name.
 
@@ -118,8 +120,14 @@ def get_monitor_filename(vm, monitor_name):
     :param monitor_name: The monitor name.
     :return: The string of socket file name for qemu monitor.
     """
-    return os.path.join(data_dir.get_tmp_dir(),
-                        "monitor-%s-%s" % (monitor_name, vm.instance))
+    if proxy_uri:
+        proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+        return proxy.os.path.join(
+            proxy.avocado_vt.virttest.data_dir.get_tmp_dir(),
+            "monitor-%s-%s" % (monitor_name, vm.instance))
+    else:
+        return os.path.join(data_dir.get_tmp_dir(),
+                            "monitor-%s-%s" % (monitor_name, vm.instance))
 
 
 def get_monitor_filenames(vm):
@@ -271,6 +279,12 @@ class Monitor(object):
         self._enable_blockdev = vm.check_capability(Flags.BLOCKDEV)
         self.name = name
         self.monitor_params = monitor_params
+        self.proxy_uri = None
+        if hasattr(vm, 'migration_server_proxy_uri'):
+            self.proxy_uri = vm.migration_server_proxy_uri
+        if self.proxy_uri:
+            proxy = utils_rpc_proxy.get_remote_proxy(self.proxy_uri,
+                                                     use_builtin_types=True)
         self._lock = threading.RLock()
         self._log_lock = threading.RLock()
         self._passfd = None
@@ -294,11 +308,20 @@ class Monitor(object):
                 port = int(monitor_params['chardev_port'])
                 self._socket.connect((host, port))
             elif backend == 'unix_socket':
-                self._socket = socket.socket(
-                    socket.AF_UNIX, socket.SOCK_STREAM)
-                self._socket.settimeout(self.CONNECT_TIMEOUT)
-                file_name = monitor_params.get("monitor_filename")
-                self._socket.connect(file_name)
+                if self.proxy_uri:
+                    self.remote_socket_name = '%s_%s_%s' % (name, vm.name, vm_pid)
+                    proxy.avocado_vt.virttest.utils_socket.create_socket(self.remote_socket_name)
+                    proxy.avocado_vt.virttest.utils_socket.settimeout(
+                        self.remote_socket_name, self.CONNECT_TIMEOUT)
+                    file_name = monitor_params.get("monitor_filename")
+                    proxy.avocado_vt.virttest.utils_socket.connect(
+                        self.remote_socket_name, file_name)
+                else:
+                    self._socket = socket.socket(
+                        socket.AF_UNIX, socket.SOCK_STREAM)
+                    self._socket.settimeout(self.CONNECT_TIMEOUT)
+                    file_name = monitor_params.get("monitor_filename")
+                    self._socket.connect(file_name)
             else:
                 raise NotImplementedError("Do not support the chardev backend %s."
                                           % backend)
@@ -361,10 +384,19 @@ class Monitor(object):
 
     def _close_sock(self):
         try:
-            self._socket.shutdown(socket.SHUT_RDWR)
+            if self.proxy_uri:
+                proxy = utils_rpc_proxy.get_remote_proxy(self.proxy_uri, use_builtin_types=True)
+                proxy.avocado_vt.virttest.utils_socket.shutdown(
+                    self.remote_socket_name)
+            else:
+                self._socket.shutdown(socket.SHUT_RDWR)
         except socket.error:
             pass
-        self._socket.close()
+        if self.proxy_uri:
+            proxy.avocado_vt.virttest.utils_socket.close(
+                     self.remote_socket_name)
+        else:
+            self._socket.close()
 
     def _acquire_lock(self, timeout=ACQUIRE_LOCK_TIMEOUT, lock=None):
         end_time = time.time() + timeout
@@ -381,7 +413,12 @@ class Monitor(object):
             return False
         timeout = max(0, timeout)
         try:
-            return bool(select.select([self._socket], [], [], timeout)[0])
+            if self.proxy_uri:
+                proxy = utils_rpc_proxy.get_remote_proxy(self.proxy_uri, use_builtin_types=True)
+                return proxy.avocado_vt.virttest.utils_socket.select_select(
+                        self.remote_socket_name, timeout)
+            else:
+                return bool(select.select([self._socket], [], [], timeout)[0])
         except socket.error as e:
             raise MonitorSocketError("Verifying data on monitor socket", e)
 
@@ -394,7 +431,13 @@ class Monitor(object):
         s = b""
         while self._data_available():
             try:
-                data = self._socket.recv(1024)
+                if self.proxy_uri:
+                    proxy = utils_rpc_proxy.get_remote_proxy(self.proxy_uri,
+                                                             use_builtin_types=True)
+                    data = proxy.avocado_vt.virttest.utils_socket.recv(
+                            self.remote_socket_name, 1024)
+                else:
+                    data = self._socket.recv(1024)
             except socket.error as e:
                 raise MonitorSocketError("Could not receive data from monitor",
                                          e)
@@ -846,7 +889,13 @@ class HumanMonitor(Monitor):
                                    "monitor command '%s'" % cmd)
         try:
             try:
-                self._socket.sendall(cmd + b"\n")
+                if self.proxy_uri:
+                    proxy = utils_rpc_proxy.get_remote_proxy(self.proxy_uri,
+                                                             use_builtin_types=True)
+                    proxy.avocado_vt.virttest.utils_socket.sendall(
+                            self.remote_socket_name, cmd + b"\n")
+                else:
+                    self._socket.sendall(cmd + b"\n")
                 self._log_lines(cmd.decode(errors="replace"))
             except socket.error as e:
                 raise MonitorSocketError("Could not send monitor command %r" %
@@ -1835,7 +1884,13 @@ class QMPMonitor(Monitor):
         :raise MonitorSocketError: Raised if a socket error occurs
         """
         try:
-            self._socket.sendall(data)
+            if self.proxy_uri:
+                proxy = utils_rpc_proxy.get_remote_proxy(self.proxy_uri,
+                                                         use_builtin_types=True)
+                proxy.avocado_vt.virttest.utils_socket.sendall(
+                        self.remote_socket_name, data)
+            else:
+                self._socket.sendall(data)
             self._log_lines(data.decode(errors="replace"))
         except socket.error as e:
             raise MonitorSocketError("Could not send data: %r" % data, e)

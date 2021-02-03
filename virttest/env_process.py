@@ -9,6 +9,7 @@ import shutil
 import sys
 import copy
 import multiprocessing
+import xmlrpc
 try:
     from urllib.request import ProxyHandler, build_opener, install_opener
 except ImportError:
@@ -54,6 +55,7 @@ from virttest import utils_kernel_module
 from virttest import arch
 from virttest.utils_version import VersionInterval
 from virttest.staging import service
+from virttest import utils_rpc_proxy
 
 try:
     import PIL.Image
@@ -1547,6 +1549,22 @@ def postprocess(test, params, env):
         _screendump_thread.join(10)
         _screendump_thread = None
 
+    # copy screendump files from destination host
+    proxy_uri = params.get('migration_server_proxy_uri')
+    if proxy_uri:
+        proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+        dir_rex = "(screendump\S*_[0-9]+_iter%s)" % test.iteration
+        try:
+            for screendump_dir in re.findall(dir_rex, str(proxy.os.listdir(test.debugdir))):
+                screendump_dir = os.path.join(test.debugdir, screendump_dir)
+                username = params.get("username")
+                password = params.get("hostpassword")
+                remote_ip = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})', proxy_uri)[0]
+                remote.scp_from_remote(remote_ip, 22, username, password,
+                                       screendump_dir, screendump_dir)
+        except xmlrpc.client.Fault:
+            pass
+
     # Encode an HTML 5 compatible video from the screenshots produced
     dir_rex = "(screendump\S*_[0-9]+_iter%s)" % test.iteration
     for screendump_dir in re.findall(dir_rex, str(os.listdir(test.debugdir))):
@@ -1896,13 +1914,23 @@ def postprocess_on_error(test, params, env):
 
 
 def _take_screendumps(test, params, env):
+    for vm in env.get_all_vms():
+        if hasattr(vm, "migration_server_proxy_uri"):
+            proxy_uri = vm.migration_server_proxy_uri
+            if proxy_uri:
+                proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+
     global _screendump_thread_termination_event
     temp_dir = test.debugdir
     if params.get("screendump_temp_dir"):
         temp_dir = utils_misc.get_path(test.bindir,
                                        params.get("screendump_temp_dir"))
         try:
-            os.makedirs(temp_dir)
+            for vm in env.get_all_vms():
+                if hasattr(vm, "migration_server_proxy_uri"):
+                    proxy.os.makedirs(temp_dir, 0o777, True)
+            else:
+                os.makedirs(temp_dir)
         except OSError:
             pass
     random_id = utils_misc.generate_random_string(6)
@@ -1919,11 +1947,20 @@ def _take_screendumps(test, params, env):
 
     while True:
         for vm in env.get_all_vms():
+            if hasattr(vm, "migration_server_proxy_uri"):
+                proxy_uri = vm.migration_server_proxy_uri
+                if proxy_uri:
+                    proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+
             if vm.instance not in list(counter.keys()):
                 counter[vm.instance] = 0
             if vm.instance not in list(inactivity.keys()):
                 inactivity[vm.instance] = time.time()
-            if not vm.is_alive():
+            try:
+                if not vm.is_alive():
+                    continue
+            except xmlrpc.client.Fault as e:
+                logging.warn(e)
                 continue
             vm_pid = vm.get_pid()
             try:
@@ -1934,25 +1971,45 @@ def _take_screendumps(test, params, env):
             except AttributeError as e:
                 logging.warn(e)
                 continue
-            if not os.path.exists(temp_filename):
+            except xmlrpc.client.Fault as e:
+                logging.warn(e)
+                continue
+            if hasattr(vm, "migration_server_proxy_uri"):
+                exists_screendump_filename = proxy.os.path.exists(temp_filename)
+            else:
+                exists_screendump_filename = os.path.exists(temp_filename)
+            if not exists_screendump_filename:
                 logging.warn("VM '%s' failed to produce a screendump", vm.name)
                 continue
-            if not ppm_utils.image_verify_ppm_file(temp_filename):
+            if hasattr(vm, "migration_server_proxy_uri"):
+                verify_ppm_file = proxy.avocado_vt.virttest.ppm_utils.image_verify_ppm_file(temp_filename)
+            else:
+                verify_ppm_file = ppm_utils.image_verify_ppm_file(temp_filename)
+            if not verify_ppm_file:
                 logging.warn("VM '%s' produced an invalid screendump", vm.name)
-                os.unlink(temp_filename)
+                if hasattr(vm, "migration_server_proxy_uri"):
+                    proxy.os.unlink(temp_filename)
+                else:
+                    os.unlink(temp_filename)
                 continue
             screendump_dir = "screendumps_%s_%s_iter%s" % (vm.name, vm_pid,
                                                            test.iteration)
             screendump_dir = os.path.join(test.debugdir, screendump_dir)
             try:
-                os.makedirs(screendump_dir)
+                if hasattr(vm, "migration_server_proxy_uri"):
+                    proxy.os.makedirs(screendump_dir, 0o777, True)
+                else:
+                    os.makedirs(screendump_dir)
             except OSError:
                 pass
             counter[vm.instance] += 1
             filename = "%04d.jpg" % counter[vm.instance]
             screendump_filename = os.path.join(screendump_dir, filename)
             vm.verify_bsod(screendump_filename)
-            image_hash = crypto.hash_file(temp_filename)
+            if hasattr(vm, "migration_server_proxy_uri"):
+                image_hash = proxy.avocado.utils.crypto.hash_file(temp_filename)
+            else:
+                image_hash = crypto.hash_file(temp_filename)
             if image_hash in cache:
                 time_inactive = time.time() - inactivity[vm.instance]
                 if time_inactive > inactivity_treshold:
@@ -1975,11 +2032,15 @@ def _take_screendumps(test, params, env):
             cache[image_hash] = screendump_filename
             try:
                 try:
-                    timestamp = os.stat(temp_filename).st_ctime
-                    image = PIL.Image.open(temp_filename)
-                    image = ppm_utils.add_timestamp(image, timestamp)
-                    image.save(screendump_filename, format="JPEG",
-                               quality=quality)
+                    if hasattr(vm, "migration_server_proxy_uri"):
+                        proxy.avocado_vt.virttest.utils_env_process.pil_image_save(
+                                temp_filename, screendump_filename, quality)
+                    else:
+                        timestamp = os.stat(temp_filename).st_ctime
+                        image = PIL.Image.open(temp_filename)
+                        image = ppm_utils.add_timestamp(image, timestamp)
+                        image.save(screendump_filename, format="JPEG",
+                                   quality=quality)
                 except (IOError, OSError) as error_detail:
                     logging.warning("VM '%s' failed to produce a "
                                     "screendump: %s", vm.name, error_detail)
@@ -1988,7 +2049,10 @@ def _take_screendumps(test, params, env):
                     counter[vm.instance] -= 1
             except NameError:
                 pass
-            os.unlink(temp_filename)
+            if hasattr(vm, "migration_server_proxy_uri"):
+                proxy.os.unlink(temp_filename)
+            else:
+                os.unlink(temp_filename)
 
         if _screendump_thread_termination_event is not None:
             if _screendump_thread_termination_event.isSet():
@@ -2026,6 +2090,9 @@ def store_vm_info(vm, log_filename, info_cmd='registers',
             logging.warn(err)
             return False
         except AttributeError as err:
+            logging.warn(err)
+            return False
+        except xmlrpc.client.Fault as err:
             logging.warn(err)
             return False
     elif vmtype == "libvirt":
@@ -2075,8 +2142,11 @@ def _store_vm_info(test, params, env):
             for vm in env.get_all_vms():
                 if vm.instance not in cmd_details[cmd]['vm_info_error_count']:
                     cmd_details[cmd]['vm_info_error_count'][vm.instance] = 0
-
-                if not vm.is_alive():
+                try:
+                    is_alive = vm.is_alive()
+                except xmlrpc.client.Fault:
+                    is_alive = False
+                if not is_alive:
                     if cmd_details[cmd]['vm_info_error_count'][vm.instance] < 1:
                         logging.warning(
                             "%s is not alive. Can't query the %s status", cmd, vm.name)

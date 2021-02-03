@@ -41,7 +41,7 @@ from virttest.staging import service
 from virttest.versionable_class import factory
 from virttest.utils_windows import virtio_win
 from virttest.utils_windows import system
-
+from virttest import utils_rpc_proxy
 
 try:
     unicode
@@ -1052,10 +1052,14 @@ def create_and_open_macvtap(ifname, mode="vepa", queues=1, base_if=None,
 
 class Bridge(object):
 
-    def get_structure(self):
+    def get_structure(self, proxy_uri=None):
         """
         Get bridge list.
         """
+        if proxy_uri:
+            proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+            return proxy.get_structure()
+
         sysfs_path = "/sys/class/net"
         result = dict()
         for br_iface in os.listdir(sysfs_path):
@@ -1082,24 +1086,24 @@ class Bridge(object):
             result[br_iface]["iface"] = os.listdir(brif_path)
         return result
 
-    def list_br(self):
-        return list(self.get_structure().keys())
+    def list_br(self, proxy_uri=None):
+        return list(self.get_structure(proxy_uri).keys())
 
-    def list_iface(self, br=None):
+    def list_iface(self, br=None, proxy_uri=None):
         """
         Return all interfaces used by bridge.
 
         :param br: Name of bridge
         """
         if br:
-            return self.get_structure()[br]['iface']
+            return self.get_structure(proxy_uri)[br]['iface']
         interface_list = []
-        for br in self.list_br():
-            for (value) in self.get_structure()[br]['iface']:
+        for br in self.list_br(proxy_uri):
+            for (value) in self.get_structure(proxy_uri)[br]['iface']:
                 interface_list.append(value)
         return interface_list
 
-    def port_to_br(self, port_name):
+    def port_to_br(self, port_name, proxy_uri=None):
         """
         Return bridge which contain port.
 
@@ -1107,12 +1111,16 @@ class Bridge(object):
         :return: Bridge name or None if there is no bridge which contain port.
         """
         bridge = None
-        for br in self.list_br():
-            if port_name in self.get_structure()[br]['iface']:
+        for br in self.list_br(proxy_uri):
+            if port_name in self.get_structure(proxy_uri)[br]['iface']:
                 bridge = br
         return bridge
 
-    def _br_ioctl(self, io_cmd, brname, ifname):
+    def _br_ioctl(self, io_cmd, brname, ifname, proxy_uri=None):
+        if proxy_uri:
+            proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+            return proxy.br_ioctl(io_cmd, brname, ifname)
+
         ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
         index = if_nametoindex(ifname)
         if index == 0:
@@ -1121,7 +1129,7 @@ class Bridge(object):
         _ = fcntl.ioctl(ctrl_sock, io_cmd, ifr)
         ctrl_sock.close()
 
-    def add_port(self, brname, ifname):
+    def add_port(self, brname, ifname, proxy_uri=None):
         """
         Add a device to bridge
 
@@ -1129,11 +1137,11 @@ class Bridge(object):
         :param brname: Name of the bridge
         """
         try:
-            self._br_ioctl(arch.SIOCBRADDIF, brname, ifname)
+            self._br_ioctl(arch.SIOCBRADDIF, brname, ifname, proxy_uri)
         except IOError as details:
             raise BRAddIfError(ifname, brname, details)
 
-    def del_port(self, brname, ifname):
+    def del_port(self, brname, ifname, proxy_uri=None):
         """
         Remove a TAP device from bridge
 
@@ -1141,35 +1149,43 @@ class Bridge(object):
         :param brname: Name of the bridge
         """
         try:
-            self._br_ioctl(arch.SIOCBRDELIF, brname, ifname)
+            self._br_ioctl(arch.SIOCBRDELIF, brname, ifname, proxy_uri)
         except IOError as details:
             # Avoid failing the test when port not present in br
-            if ifname in self.list_iface(brname):
+            if ifname in self.list_iface(brname, proxy_uri):
                 raise BRDelIfError(ifname, brname, details)
 
-    def add_bridge(self, brname):
+    def add_bridge(self, brname, proxy_uri=None):
         """
         Add a bridge in host
         """
+        if proxy_uri:
+            proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+            return proxy.add_bridge(brname, proxy_uri)
+
         ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
         fcntl.ioctl(ctrl_sock, arch.SIOCBRADDBR, brname)
         ctrl_sock.close()
 
-    def del_bridge(self, brname):
+    def del_bridge(self, brname, proxy_uri=None):
         """
         Delete a bridge in host
         """
+        if proxy_uri:
+            proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+            return proxy.del_bridge(brname, proxy_uri)
+
         ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
         fcntl.ioctl(ctrl_sock, arch.SIOCBRDELBR, brname)
         ctrl_sock.close()
 
-    def get_stp_status(self, brname):
+    def get_stp_status(self, brname, proxy_uri=None):
         """
         get STP status
         """
         bridge_stp = None
         try:
-            bridge_stp = self.get_structure()[brname]['stp']
+            bridge_stp = self.get_structure(proxy_uri)[brname]['stp']
         except KeyError:
             logging.error("Not find bridge %s", brname)
         return bridge_stp
@@ -1319,7 +1335,7 @@ def vnet_hdr_probe(tapfd):
         return False
 
 
-def open_tap(devname, ifname, queues=1, vnet_hdr=True):
+def open_tap(devname, ifname, queues=1, vnet_hdr=True, proxy_uri=None):
     """
     Open a tap device and returns its file descriptors which are used by
     fds=<fd1:fd2:..> parameter of qemu
@@ -1332,6 +1348,11 @@ def open_tap(devname, ifname, queues=1, vnet_hdr=True):
     :param queues: Queue number
     :param vnet_hdr: Whether enable the vnet header
     """
+    if proxy_uri:
+        proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+        tapfds = proxy.avocado_vt.virttest.utils_net.open_tap(devname, ifname, queues, vnet_hdr)
+        return tapfds
+
     tapfds = []
 
     for i in range(int(queues)):
@@ -2091,7 +2112,7 @@ def del_ovs_bridge(brname, ovs=None):
 
 
 @__init_openvswitch
-def add_to_bridge(ifname, brname, ovs=None):
+def add_to_bridge(ifname, brname, ovs=None, proxy_uri=None):
     """
     Add a TAP device to bridge
 
@@ -2108,9 +2129,9 @@ def add_to_bridge(ifname, brname, ovs=None):
     elif issubclass(type(ifname), VirtIface):
         _ifname = ifname.ifname
 
-    if brname in __bridge.list_br():
+    if brname in __bridge.list_br(proxy_uri):
         # Try add port to standard bridge or openvswitch in compatible mode.
-        __bridge.add_port(brname, _ifname)
+        __bridge.add_port(brname, _ifname, proxy_uri)
         return
 
     if ovs is None:
@@ -2173,12 +2194,19 @@ def openflow_manager(br_name, command, flow_options=None, ovs=None):
     return process.run(manager_cmd)
 
 
-def bring_up_ifname(ifname):
+def bring_up_ifname(ifname, proxy_uri=None):
     """
     Bring up an interface
 
     :param ifname: Name of the interface
     """
+    if proxy_uri:
+        proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+        o = proxy.avocado_vt.virttest.utils_net.bring_up_ifname(ifname)
+        if not o:
+            raise OSError('Failed to calling remote bring_up_ifname')
+        return
+
     ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
     ifr = struct.pack("16sh", ifname.encode(), arch.IFF_UP)
     try:
@@ -2188,12 +2216,16 @@ def bring_up_ifname(ifname):
     ctrl_sock.close()
 
 
-def bring_down_ifname(ifname):
+def bring_down_ifname(ifname, proxy_uri=None):
     """
     Bring down an interface
 
     :param ifname: Name of the interface
     """
+    if proxy_uri:
+        proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+        return proxy.avocado_vt.virttest.utils_net.bring_down_ifname(ifname)
+
     ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
     ifr = struct.pack("16sh", ifname.encode(), 0)
     try:
@@ -3325,7 +3357,7 @@ def parse_arp(session=None, timeout=60.0, **dargs):
 
 
 def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
-                                session=None):
+                                session=None, proxy_uri=None):
     """
     Make sure a given IP address belongs to one of the given
     MAC addresses.
@@ -3352,11 +3384,21 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
 
         mac_regex = "|".join("(%s)" % mac for mac in macs)
         regex = re.compile(r"\b%s\b.*\b(%s)\b" % (ip, mac_regex), re.I)
-        arping_bin = utils_path.find_command("arping")
+
+        if proxy_uri:
+            arping_bin = proxy.avocado.utils.path.find_command("arping")
+        else:
+            arping_bin = utils_path.find_command("arping")
         if session:
             arping_bin = func("which arping", timeout=timeout, **dargs).strip()
         cmd = "%s --help" % arping_bin
-        if "-C count" in func(cmd, timeout=timeout, **dargs):
+        if proxy_uri:
+            help_output = proxy.avocado.utils.process.getoutput(
+                    cmd, timeout, False, True, 'combined', True,
+                    None, False, dargs["ignore_bg_processes"])
+        else:
+            help_output = func(cmd, timeout=timeout, **dargs)
+        if "-C count" in help_output:
             regex = re.compile(r"\b%s\b.*\b(%s)" % (mac_regex, ip), re.I)
             arping_cmd = "%s -C1 -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
                                                        dev, ip)
@@ -3364,7 +3406,12 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
             arping_cmd = "%s -f -c3 -w%d -I %s %s" % (arping_bin, int(timeout),
                                                       dev, ip)
         try:
-            o = func(arping_cmd, **dargs)
+            if proxy_uri:
+                o = proxy.avocado.utils.process.getoutput(
+                    arping_cmd, timeout, False, True, 'combined', True,
+                    None, False, dargs["ignore_bg_processes"])
+            else:
+                o = func(arping_cmd, **dargs)
         except (process.CmdError, aexpect.ShellError):
             return False
         return bool(regex.search(o))
@@ -3382,6 +3429,9 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
 
     ip_ver = netaddr.IPAddress(ip).version
 
+    if proxy_uri:
+        proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+
     func = process.getoutput
     dargs = dict()
     if session:
@@ -3391,12 +3441,20 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
         dargs["ignore_bg_processes"] = True
     if not devs:
         # Get the name of the bridge device for ip route cache
-        ip_cmd = utils_path.find_command("ip")
+        if proxy_uri:
+            ip_cmd = proxy.avocado.utils.path.find_command("ip")
+        else:
+            ip_cmd = utils_path.find_command("ip")
         if session:
             ip_cmd = func("which ip", timeout=timeout, **dargs).strip()
         ip_cmd = "%s route get %s; %s -%d route | grep default" % (
             ip_cmd, ip, ip_cmd, ip_ver)
-        output = func(ip_cmd, timeout=timeout, **dargs)
+        if proxy_uri:
+            output = proxy.avocado.utils.process.getoutput(
+                    ip_cmd, timeout, False, True, 'combined', True,
+                    None, False, dargs["ignore_bg_processes"])
+        else:
+            output = func(ip_cmd, timeout=timeout, **dargs)
         devs = set(re.findall(r"dev\s+(\S+)", output, re.I))
     if not devs:
         logging.debug("No path to %s in route table: %s" % (ip, output))
@@ -3447,7 +3505,7 @@ def gen_ipv4_addr(network_num="10.0.0.0", network_prefix="24", exclude_ips=[]):
             yield str(ip_address)
 
 
-def get_ip_address_by_interface(ifname, ip_ver="ipv4", linklocal=False):
+def get_ip_address_by_interface(ifname, ip_ver="ipv4", linklocal=False, proxy_uri=None):
     """
     returns ip address by interface
     :param ifname: interface name
@@ -3461,7 +3519,11 @@ def get_ip_address_by_interface(ifname, ip_ver="ipv4", linklocal=False):
     else:
         ver = netifaces.AF_INET
         linklocal_prefix = "169.254"
-    addr = netifaces.ifaddresses(ifname).get(ver)
+    if proxy_uri:
+        proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+        addr = proxy.utils_netifaces.get_ifaddresses(ifname, ver)
+    else:
+        addr = netifaces.ifaddresses(ifname).get(ver)
 
     if addr is not None:
         try:
@@ -3481,7 +3543,7 @@ def get_ip_address_by_interface(ifname, ip_ver="ipv4", linklocal=False):
         return None
 
 
-def get_host_ip_address(params=None, ip_ver="ipv4", linklocal=False):
+def get_host_ip_address(params=None, ip_ver="ipv4", linklocal=False, proxy_uri=None):
     """
     Returns ip address of host specified in host_ip_addr parameter if provided.
     Otherwise ip address on interface specified in netdst parameter is returned.
@@ -3501,10 +3563,10 @@ def get_host_ip_address(params=None, ip_ver="ipv4", linklocal=False):
             return host_ip
         net_dev = params.get("netdst")
     if not net_dev:
-        net_dev = get_default_gateway(iface_name=True)
+        net_dev = get_default_gateway(iface_name=True, proxy_uri=proxy_uri)
     logging.warning("No IP address of host was provided, using IP address"
                     " on %s interface", net_dev)
-    return get_ip_address_by_interface(net_dev, ip_ver, linklocal)
+    return get_ip_address_by_interface(net_dev, ip_ver, linklocal, proxy_uri=proxy_uri)
 
 
 def get_all_ips():
@@ -3842,7 +3904,7 @@ def get_host_iface():
     return [_.strip() for _ in re.findall("(.*):", host_iface_info)]
 
 
-def get_default_gateway(iface_name=False, session=None):
+def get_default_gateway(iface_name=False, session=None, proxy_uri=None):
     """
     Get the Default Gateway or Interface of host or guest.
 
@@ -3860,7 +3922,12 @@ def get_default_gateway(iface_name=False, session=None):
             output = session.cmd_output(cmd).strip()
             logging.debug("Guest default gateway is %s" % output)
         else:
-            output = process.run(cmd, shell=True).stdout_text.rstrip()
+            if proxy_uri:
+                proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+                output = proxy.avocado.utils.process.run_stdout_text(
+                        cmd, None, True, False, None, False).rstrip()
+            else:
+                output = process.run(cmd, shell=True).stdout_text.rstrip()
     except (aexpect.ShellError, aexpect.ShellTimeoutError, process.CmdError):
         logging.error("Failed to get the default GateWay")
         return None

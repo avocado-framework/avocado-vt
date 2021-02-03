@@ -47,6 +47,7 @@ from virttest import error_event
 from virttest.qemu_devices import qdevices, qcontainer
 from virttest.qemu_devices.utils import DeviceError
 from virttest.qemu_capabilities import Flags
+from virttest import utils_rpc_proxy
 
 
 class QemuSegFaultError(virt_vm.VMError):
@@ -372,8 +373,15 @@ class VM(virt_vm.BaseVM):
         :param name: The serial port name.
         """
         if name:
-            return os.path.join(data_dir.get_tmp_dir(),
-                                "serial-%s-%s" % (name, self.instance))
+            if hasattr(self, 'migration_server_proxy_uri'):
+                proxy = utils_rpc_proxy.get_remote_proxy(self.migration_server_proxy_uri)
+                self.dest_serial_console_filename = proxy.os.path.join(
+                        proxy.avocado_vt.virttest.data_dir.get_tmp_dir(),
+                        "serial-%s-%s" % (name, self.instance))
+                return self.dest_serial_console_filename
+            else:
+                return os.path.join(data_dir.get_tmp_dir(),
+                                    "serial-%s-%s" % (name, self.instance))
         return os.path.join(data_dir.get_tmp_dir(),
                             "serial-%s" % self.instance)
 
@@ -537,8 +545,14 @@ class VM(virt_vm.BaseVM):
                 return ""
 
             default_id = "seabioslog_id_%s" % self.instance
-            filename = os.path.join(data_dir.get_tmp_dir(),
-                                    "seabios-%s" % self.instance)
+
+            if hasattr(self, 'migration_server_proxy_uri'):
+                filename = proxy.os.path.join(
+                        proxy.avocado_vt.virttest.data_dir.get_tmp_dir(),
+                        "seabios-%s" % self.instance)
+            else:
+                filename = os.path.join(data_dir.get_tmp_dir(),
+                                        "seabios-%s" % self.instance)
             self.logs["seabios"] = filename
             cmd = " -chardev socket"
             cmd += _add_option("id", default_id)
@@ -553,8 +567,14 @@ class VM(virt_vm.BaseVM):
         def add_log_anaconda(devices, pci_bus='pci.0'):
             chardev_id = "anacondalog_chardev_%s" % self.instance
             vioser_id = "anacondalog_vioser_%s" % self.instance
-            filename = os.path.join(data_dir.get_tmp_dir(),
-                                    "anaconda-%s" % self.instance)
+
+            if hasattr(self, 'dest_host'):
+                filename = proxy.os.path.join(
+                        proxy.avocado_vt.virttest.data_dir.get_tmp_dir(),
+                        "anaconda-%s" % self.instance)
+            else:
+                filename = os.path.join(data_dir.get_tmp_dir(),
+                                        "anaconda-%s" % self.instance)
             self.logs["anaconda"] = filename
             dev = qdevices.QCustomDevice('chardev', backend='backend')
             dev.set_param('backend', 'socket')
@@ -1385,6 +1405,9 @@ class VM(virt_vm.BaseVM):
         # End of command line option wrappers
 
         # If nothing changed and devices exists, return immediately
+        if hasattr(self, 'migration_server_proxy_uri'):
+            proxy = utils_rpc_proxy.get_remote_proxy(self.migration_server_proxy_uri)
+
         if (name is None and params is None and root_dir is None and
                 self.devices is not None):
             return self.devices, self.spice_options
@@ -1790,8 +1813,10 @@ class VM(virt_vm.BaseVM):
                 params["monitors"] += " %s" % catch_monitor
         for monitor_name in params.objects("monitors"):
             monitor_params = params.object_params(monitor_name)
-            monitor_filename = qemu_monitor.get_monitor_filename(vm,
-                                                                 monitor_name)
+            proxy_uri = None
+            if hasattr(self, 'migration_server_proxy_uri'):
+                proxy_uri = self.migration_server_proxy_uri
+            monitor_filename = qemu_monitor.get_monitor_filename(vm, monitor_name, proxy_uri)
             if monitor_params.get("monitor_type") == "qmp":
                 cmd = add_qmp_monitor(devices, monitor_name,
                                       monitor_filename)
@@ -1835,6 +1860,8 @@ class VM(virt_vm.BaseVM):
                     os.makedirs(serial_dirname)
             else:
                 serial_filename = vm.get_serial_console_filename(serial)
+                if hasattr(self, 'migration_server_proxy_uri'):
+                    self.dest_serial_console_filename = serial_filename
             # Workaround for console issue, details:
             # http://lists.gnu.org/archive/html/qemu-ppc/2013-10/msg00129.html
             if 'ppc' in params.get('vm_arch_name', arch.ARCH)\
@@ -2464,6 +2491,10 @@ class VM(virt_vm.BaseVM):
             br_mgr.del_port(nic.netdst, nic.ifname)
 
     def _nic_tap_add_helper(self, nic):
+        proxy_uri = None
+        if hasattr(self, "migration_server_proxy_uri"):
+            proxy_uri = self.migration_server_proxy_uri
+
         if nic.nettype == 'macvtap':
             macvtap_mode = self.params.get("macvtap_mode", "vepa")
             nic.tapfds = utils_net.create_and_open_macvtap(nic.ifname,
@@ -2473,12 +2504,13 @@ class VM(virt_vm.BaseVM):
                                                            nic.mac)
         else:
             nic.tapfds = utils_net.open_tap("/dev/net/tun", nic.ifname,
-                                            queues=nic.queues, vnet_hdr=True)
+                                            queues=nic.queues, vnet_hdr=True,
+                                            proxy_uri=proxy_uri)
             logging.debug("Adding VM %s NIC ifname %s to bridge %s",
                           self.name, nic.ifname, nic.netdst)
             if nic.nettype == 'bridge':
-                utils_net.add_to_bridge(nic.ifname, nic.netdst)
-        utils_net.bring_up_ifname(nic.ifname)
+                utils_net.add_to_bridge(nic.ifname, nic.netdst, proxy_uri=proxy_uri)
+        utils_net.bring_up_ifname(nic.ifname, proxy_uri=proxy_uri)
 
     def _nic_tap_remove_helper(self, nic):
         try:
@@ -2510,23 +2542,44 @@ class VM(virt_vm.BaseVM):
         Let's consider the first serial port as serial console.
         Note: requires a version of netcat that supports -U
         """
+        proxy_uri = None
+        if hasattr(self, 'migration_server_proxy_uri'):
+            proxy_uri = self.migration_server_proxy_uri
         if self.serial_session_device is None:
             logging.warning("No serial ports defined!")
             return
         log_name = "serial-%s-%s.log" % (
             self.serial_session_device, self.name)
-        self.serial_console_log = os.path.join(utils_misc.get_log_file_dir(),
-                                               log_name)
-        file_name = self.get_serial_console_filename(
-            self.serial_session_device)
-        self.serial_console = aexpect.ShellSession(
-            "nc -U %s" % file_name,
-            auto_close=False,
-            output_func=utils_misc.log_line,
-            output_params=(log_name,),
-            prompt=self.params.get("shell_prompt", "[\#\$]"),
-            status_test_command=self.params.get("status_test_command",
-                                                "echo $?"))
+        if proxy_uri:
+            proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+            self.serial_console_log = proxy.os.path.join(
+                    proxy.avocado_vt.virttest.utils_misc.get_log_file_dir(), log_name)
+        else:
+            self.serial_console_log = os.path.join(utils_misc.get_log_file_dir(),
+                                                   log_name)
+
+        if proxy_uri:
+            file_name = self.dest_serial_console_filename
+            self.serial_console = aexpect.ShellSession(
+                "nc -U %s" % file_name,
+                auto_close=False,
+                output_func=utils_misc.log_line,
+                output_params=(log_name,),
+                prompt=self.params.get("shell_prompt", "[\#\$]"),
+                status_test_command=self.params.get("status_test_command",
+                                                    "echo $?"),
+                proxy_uri=proxy_uri)
+        else:
+            file_name = self.get_serial_console_filename(
+                self.serial_session_device)
+            self.serial_console = aexpect.ShellSession(
+                "nc -U %s" % file_name,
+                auto_close=False,
+                output_func=utils_misc.log_line,
+                output_params=(log_name,),
+                prompt=self.params.get("shell_prompt", "[\#\$]"),
+                status_test_command=self.params.get("status_test_command",
+                                                    "echo $?"))
 
     def update_system_dependent_devs(self):
         # Networking
@@ -2683,6 +2736,11 @@ class VM(virt_vm.BaseVM):
         """
         error_context.context("creating '%s'" % self.name)
         self.destroy(free_mac_addresses=False)
+        proxy_uri = None
+        if hasattr(self, 'migration_server_proxy_uri'):
+            proxy_uri = self.migration_server_proxy_uri
+        if proxy_uri:
+            proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
 
         if name is not None:
             self.name = name
@@ -2857,8 +2915,16 @@ class VM(virt_vm.BaseVM):
                             (nic_params.get("enable_vhostfd", "yes") == "yes")):
                         vhostfds = []
                         for i in xrange(int(nic.queues)):
-                            vhostfds.append(str(os.open("/dev/vhost-net",
-                                                        os.O_RDWR)))
+                            if proxy_uri:
+                                remote_vhostfd = proxy.os.open("/dev/vhost-net", os.O_RDWR)
+                                if remote_vhostfd:
+                                    vhostfds.append(str(remote_vhostfd))
+                                else:
+                                    logging.info("Can not get remote vhostfd")
+                                    raise OSError()
+                            else:
+                                vhostfds.append(str(os.open("/dev/vhost-net",
+                                                            os.O_RDWR)))
                         nic.vhostfds = ':'.join(vhostfds)
                         for fd in vhostfds:
                             pass_fds.append(int(fd))
@@ -2999,15 +3065,28 @@ class VM(virt_vm.BaseVM):
                 self.qemu_command = qemu_command
                 monitor_exit_status = \
                     params.get("vm_monitor_exit_status", "yes") == "yes"
-                self.process = aexpect.run_tail(
-                    qemu_command,
-                    partial(qemu_proc_term_handler, self,
-                            monitor_exit_status),
-                    logging.info, "[qemu output] ",
-                    auto_close=False, pass_fds=pass_fds)
 
-            logging.info("Created qemu process with parent PID %d",
-                         self.process.get_pid())
+                if proxy_uri:
+                    self.process = aexpect.run_tail(
+                        qemu_command,
+                        partial(qemu_proc_term_handler, self,
+                                monitor_exit_status),
+                        logging.info, "[dest qemu output] ",
+                        auto_close=False, pass_fds=pass_fds,
+                        proxy_uri=proxy_uri)
+                else:
+                    self.process = aexpect.run_tail(
+                        qemu_command,
+                        partial(qemu_proc_term_handler, self,
+                                monitor_exit_status),
+                        logging.info, "[qemu output] ",
+                        auto_close=False, pass_fds=pass_fds)
+            if proxy_uri:
+                logging.info("Created destination qemu process with parent PID %d",
+                             self.process.get_pid())
+            else:
+                logging.info("Created qemu process with parent PID %d",
+                             self.process.get_pid())
             self.start_time = time.time()
             self.start_monotonic_time = utils_misc.monotonic_time()
 
@@ -3016,7 +3095,10 @@ class VM(virt_vm.BaseVM):
                 if 'tapfds' in nic:  # implies bridge/tap
                     try:
                         for i in nic.tapfds.split(':'):
-                            os.close(int(i))
+                            if proxy_uri:
+                                proxy.os.close(int(i))
+                            else:
+                                os.close(int(i))
                         # qemu process retains access via open file
                         # remove this attribute from virtnet because
                         # fd numbers are not always predictable and
@@ -3028,7 +3110,10 @@ class VM(virt_vm.BaseVM):
                 if 'vhostfds' in nic:
                     try:
                         for i in nic.vhostfds.split(':'):
-                            os.close(int(i))
+                            if proxy_uri:
+                                proxy.os.close(int(i))
+                            else:
+                                os.close(int(i))
                         del nic['vhostfds']
                     except OSError:
                         pass
@@ -3089,7 +3174,11 @@ class VM(virt_vm.BaseVM):
                 self.destroy()
                 raise e
 
-            logging.debug("VM appears to be alive with PID %s", self.get_pid())
+            if proxy_uri:
+                logging.debug("Destination VM appears to be alive with PID %s",
+                              self.get_pid())
+            else:
+                logging.debug("VM appears to be alive with PID %s", self.get_pid())
             # Record vcpu infos in debug log
             if not self.is_preconfig():
                 self.get_vcpu_pids(debug=True)
@@ -3101,12 +3190,21 @@ class VM(virt_vm.BaseVM):
 
             for key, value in list(self.logs.items()):
                 outfile = "%s-%s.log" % (key, name)
-                self.logsessions[key] = aexpect.Tail(
-                    "nc -U %s" % value,
-                    auto_close=False,
-                    output_func=utils_misc.log_line,
-                    output_params=(outfile,))
-                self.logsessions[key].set_log_file(outfile)
+                if proxy_uri:
+                    self.logsessions[key] = aexpect.Tail(
+                            "nc -U %s" % value,
+                            auto_close=False,
+                            output_func=utils_misc.log_line,
+                            output_params=(outfile,),
+                            proxy_uri=proxy_uri)
+                    self.logsessions[key].set_log_file(outfile)
+                else:
+                    self.logsessions[key] = aexpect.Tail(
+                        "nc -U %s" % value,
+                        auto_close=False,
+                        output_func=utils_misc.log_line,
+                        output_params=(outfile,))
+                    self.logsessions[key].set_log_file(outfile)
 
             # Wait for IO channels setting up completely,
             # such as serial console.
@@ -3208,7 +3306,10 @@ class VM(virt_vm.BaseVM):
             logging.debug("Shutting down VM %s (shell)", self.name)
             try:
                 if len(self.virtnet) > 0:
-                    session = self.login()
+                    try:
+                        session = self.login()
+                    except remote.LoginProcessTerminatedError as e:
+                        session = self.serial_login()
                 else:
                     session = self.serial_login()
             except (IndexError) as e:
@@ -3311,8 +3412,15 @@ class VM(virt_vm.BaseVM):
             if self.is_dead():
                 return
 
-            logging.debug("Destroying VM %s (PID %s)", self.name,
-                          self.get_pid())
+            proxy_uri = None
+            if hasattr(self, 'migration_server_proxy_uri'):
+                proxy_uri = self.migration_server_proxy_uri
+            if proxy_uri:
+                logging.debug("Destroying Destination VM %s (PID %s)", self.name,
+                              self.get_pid())
+            else:
+                logging.debug("Destroying VM %s (PID %s)", self.name,
+                              self.get_pid())
 
             kill_timeout = int(self.params.get("kill_timeout", "60"))
 
@@ -3345,12 +3453,22 @@ class VM(virt_vm.BaseVM):
                                       self.name)
 
             # If the VM isn't dead yet...
-            pid = self.process.get_pid()
-            logging.debug("Ending VM %s process (killing PID %s)",
-                          self.name, pid)
+            if proxy_uri:
+                pid = self.process.get_pid(proxy_uri)
+                logging.debug("Ending Destination VM %s process (killing PID %s)",
+                              self.name, pid)
+            else:
+                pid = self.process.get_pid()
+                logging.debug("Ending VM %s process (killing PID %s)",
+                              self.name, pid)
             try:
-                utils_misc.kill_process_tree(pid, 9, timeout=60)
-                logging.debug("VM %s down (process killed)", self.name)
+                if proxy_uri:
+                    proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+                    proxy.utils_misc.kill_process_tree(pid, 9, True, 0)
+                    logging.debug("Dest VM %s down (process killed)", self.name)
+                else:
+                    utils_misc.kill_process_tree(pid, 9, timeout=60)
+                    logging.debug("VM %s down (process killed)", self.name)
             except RuntimeError:
                 # If all else fails, we've got a zombie...
                 logging.error("VM %s (PID %s) is a zombie!", self.name,
@@ -3442,8 +3560,13 @@ class VM(virt_vm.BaseVM):
         """
         try:
             cmd = "ps --ppid=%d -o pid=" % self.process.get_pid()
-            children = process.run(cmd, verbose=False,
-                                   ignore_status=True).stdout_text.split()
+            if hasattr(self, 'migration_server_proxy_uri'):
+                proxy_uri = self.migration_server_proxy_uri
+                proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+                children = proxy.avocado.utils.process.run_stdout_text(cmd, None, False, True).split()
+            else:
+                children = process.run(cmd, verbose=False,
+                                       ignore_status=True).stdout_text.split()
             return int(children[0])
         except (TypeError, IndexError, ValueError):
             return None
@@ -4143,6 +4266,7 @@ class VM(virt_vm.BaseVM):
         error_context.base_context("migrating '%s'" % self.name)
 
         local = dest_host == "localhost"
+        localhost_ip = utils_net.get_host_ip_address(self.params)
         mig_fd_name = None
 
         if protocol == "fd":
@@ -4155,6 +4279,20 @@ class VM(virt_vm.BaseVM):
             os.close(fd_src)
 
         clone = self.clone()
+        _clone = None
+        if not local:
+            # for ping-pong migration
+            if dest_host == localhost_ip:
+                # remove prefix string "dest-"
+                clone.name = clone.name.replace('dest-', '')
+            else:
+                # dest host is a remote host, not localhost
+                clone.name = 'dest-' + clone.name
+                # add new attribute to clone vm for migration
+                clone.migration_server_proxy_uri = self.params.get('migration_server_proxy_uri')
+                if clone.migration_server_proxy_uri is None:
+                    raise OSError("Migration Server Proxy URI is None")
+            _clone = clone
         if self.params.get('qemu_dst_binary', None) is not None:
             clone.params[
                 'qemu_binary'] = utils_misc.get_qemu_dst_binary(self.params)
@@ -4180,6 +4318,23 @@ class VM(virt_vm.BaseVM):
                 if fd_dst:
                     os.close(fd_dst)
                 error_context.context()
+
+            if (not local and not fd_dst and not (
+                    migration_exec_cmd_src and "gzip" in migration_exec_cmd_src) and
+                    protocol in ["tcp", "rdma", "x-rdma"]):
+                # for ping-pong migration situation
+                if dest_host == localhost_ip:
+                    logging.info("creating source VM on localhost: %s", dest_host)
+                else:
+                    logging.info("creating destination VM on remote host: %s", dest_host)
+                if stable_check:
+                    # Pause the dest vm after creation
+                    extra_params = clone.params.get("extra_params", "") + " -S"
+                    clone.params["extra_params"] = extra_params
+
+                clone.create(migration_mode=protocol, mac_source=self,
+                             migration_fd=fd_dst,
+                             migration_exec_cmd=migration_exec_cmd_dst)
 
             if (self.params["display"] == "spice" and local and
                 not (protocol == "exec" and
@@ -4228,7 +4383,11 @@ class VM(virt_vm.BaseVM):
                 if local:
                     uri = protocol + ":localhost:%d" % clone.migration_port
                 else:
-                    uri = protocol + ":%s:%d" % (dest_host, remote_port)
+                    if hasattr(clone, 'migration_port'):
+                        migration_port = clone.migration_port
+                    if remote_port:
+                        migration_port = remote_port
+                    uri = protocol + ":%s:%d" % (dest_host, migration_port)
             elif protocol == "unix":
                 uri = "unix:%s" % clone.migration_file
             elif protocol == "exec":
@@ -4365,13 +4524,54 @@ class VM(virt_vm.BaseVM):
                                            "cancellation"):
                     raise virt_vm.VMMigrateCancelError(
                         "Cannot cancel migration")
-                return
+                return self
 
             self.wait_for_migration(timeout)
+
+            if (not local and (migration_exec_cmd_src and
+                               "gzip" in migration_exec_cmd_src)):
+                # workaround pick up target filename
+                gzip_target_filename = migration_exec_cmd_src.split('>')[-1]
+                gzip_target_filename = gzip_target_filename.strip().strip("'").strip("\"")
+                # copy gzip target file from source host to dest host.
+                dirname = os.path.dirname(gzip_target_filename)
+                username = self.params.get("username")
+                password = self.params.get("hostpassword")
+                # for ping-pong migration situation
+                if dest_host == localhost_ip:
+                    logging.info(
+                        "Copying exec file from destination host to source localhost.")
+                    os.makedirs(dirname, 0o777, True)
+                    proxy_uri = self.params.get('migration_server_proxy_uri')
+                    _dest_host = utils_net.get_host_ip_address(self.params, proxy_uri)
+                    remote.scp_from_remote(_dest_host, 22, username, password,
+                                           gzip_target_filename, gzip_target_filename)
+                else:
+                    logging.info(
+                        "Copying exec file from source localhost to destination host.")
+                    proxy = utils_rpc_proxy.get_remote_proxy(clone.migration_server_proxy_uri)
+                    proxy.os.makedirs(dirname, 0o777, True)
+                    remote.scp_to_remote(dest_host, 22, username, password,
+                                         gzip_target_filename, gzip_target_filename)
 
             if (local and (migration_exec_cmd_src and
                            "gzip" in migration_exec_cmd_src)):
                 error_context.context("creating destination VM")
+                if stable_check:
+                    # Pause the dest vm after creation
+                    extra_params = clone.params.get("extra_params", "") + " -S"
+                    clone.params["extra_params"] = extra_params
+                clone.create(migration_mode=protocol, mac_source=self,
+                             migration_fd=fd_dst,
+                             migration_exec_cmd=migration_exec_cmd_dst)
+
+            if (not local and (migration_exec_cmd_src and
+                               "gzip" in migration_exec_cmd_src)):
+                # for ping-pong migration situation
+                if dest_host == localhost_ip:
+                    logging.info("creating source VM on localhost: %s", dest_host)
+                else:
+                    logging.info("creating destination VM on remote host: %s", dest_host)
                 if stable_check:
                     # Pause the dest vm after creation
                     extra_params = clone.params.get("extra_params", "") + " -S"
@@ -4419,6 +4619,7 @@ class VM(virt_vm.BaseVM):
             self.destroy(gracefully=False)      # self is the source dead vm
             self.__dict__ = clone.__dict__      # self becomes the dst vm
             clone = temp    # for cleanup purposes keep clone
+            return self
 
         finally:
             # If we're doing remote migration and it's completed successfully,
@@ -4439,7 +4640,10 @@ class VM(virt_vm.BaseVM):
                                                     "after 120s")
                 clone.destroy(gracefully=False)
                 if env:
-                    env.unregister_vm("%s_clone" % self.name)
+                    if _clone:
+                        env.unregister_vm("%s_clone" % _clone.name)
+                    else:
+                        env.unregister_vm("%s_clone" % self.name)
 
     @error_context.context_aware
     def reboot(self, session=None, method="shell", nic_index=0,

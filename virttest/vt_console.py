@@ -145,6 +145,11 @@ class ConsoleSession(object):
         return self.__manager.proxy_call(self.cmd.__name__,
                                          *args, **kwargs)
 
+    def is_alive(self, *args, **kwargs):
+        self.__verify_session_status()
+        return self.__manager.proxy_call(self.is_alive.__name__,
+                                         *args, **kwargs)
+
     def close(self):
         self.__verify_session_status()
         self.__closed = True

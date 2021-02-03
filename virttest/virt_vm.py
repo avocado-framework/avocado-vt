@@ -24,6 +24,7 @@ from virttest import ppm_utils
 from virttest import data_dir
 from virttest import error_context
 from virttest import vt_console
+from virttest import utils_rpc_proxy
 
 
 class VMError(Exception):
@@ -804,12 +805,22 @@ class BaseVM(object):
                 be verified
         """
         nic = self.virtnet[index]
+        proxy_uri = None
+        if hasattr(self, 'migration_server_proxy_uri'):
+            proxy_uri = self.migration_server_proxy_uri
+        if proxy_uri:
+            proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
 
         # TODO: Determine port redirection in use w/o checking nettype
         if nic.nettype not in ['bridge', 'macvtap']:
-            hostname = socket.gethostname()
+            if proxy_uri:
+                hostname = proxy.socket.gethostname()
+            else:
+                hostname = socket.gethostname()
             if session:
                 hostname = session.cmd_output("hostname -f", timeout=timeout)
+            if proxy_uri:
+                return proxy.socket.gethostbyname(hostname)
             return socket.gethostbyname(hostname)
 
         mac = self.get_mac_address(index).lower()
@@ -827,7 +838,8 @@ class BaseVM(object):
         if not utils_net.verify_ip_address_ownership(ip_addr, [mac],
                                                      devs=devs,
                                                      session=session,
-                                                     timeout=timeout):
+                                                     timeout=timeout,
+                                                     proxy_uri=proxy_uri):
             nic_params = self.params.object_params(nic.nic_name)
             pci_assignable = nic_params.get("pci_assignable") != "no"
 
@@ -1029,7 +1041,13 @@ class BaseVM(object):
                                          "shared", "deps",
                                          "bsod_img")
             ref_img = utils_misc.get_path(bsod_base_dir, ref_img_path)
-            if ppm_utils.have_similar_img(scrdump_file, ref_img):
+            if hasattr(self, 'migration_server_proxy_uri'):
+                proxy_uri = self.migration_server_proxy_uri
+                proxy = utils_rpc_proxy.get_remote_proxy(proxy_uri)
+                have_similar_img = proxy.avocado_vt.virttest.ppm_utils.have_similar_img(scrdump_file, ref_img)
+            else:
+                have_similar_img = ppm_utils.have_similar_img(scrdump_file, ref_img)
+            if have_similar_img:
                 err_msg = "Windows Guest appears to have suffered a BSOD,"
                 err_msg += " please check %s against %s." % (
                     scrdump_file, ref_img)
