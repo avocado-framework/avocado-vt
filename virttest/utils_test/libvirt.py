@@ -3604,7 +3604,8 @@ def check_machine_type_arch(machine_type):
         return
     arch_machine_map = {'x86_64': ['pc', 'q35'],
                         'ppc64le': ['pseries'],
-                        's390x': ['s390-ccw-virtio']}
+                        's390x': ['s390-ccw-virtio'],
+                        'aarch64': ['arm64-mmio:virt', 'arm64-pci:virt']}
     arch = platform.machine()
     if machine_type not in arch_machine_map[arch]:
         raise exceptions.TestSkipError("This machine type '%s' is not "
