@@ -4717,6 +4717,10 @@ class VM(virt_vm.BaseVM):
 
         :return: Matched block device name, None when not find any device.
         """
+
+        if not p_dict:
+            return None
+
         if isinstance(blocks_info, six.string_types):
             for block in blocks_info.splitlines():
                 match = True
@@ -4766,7 +4770,9 @@ class VM(virt_vm.BaseVM):
                             continue
                         if v != value:
                             matched = False
-                            break
+                        break
+                    else:
+                        matched = False
                 if matched:
                     if self.check_capability(Flags.BLOCKDEV):
                         return block['inserted']['node-name']
@@ -4784,6 +4790,10 @@ class VM(virt_vm.BaseVM):
         """
         block_list = []
         block_entry = []
+
+        if not isinstance(blocks_info, (str, bytes)):
+            return block_list
+
         for block in blocks_info.splitlines():
             if block:
                 block_entry.append(block.strip())
@@ -4804,6 +4814,9 @@ class VM(virt_vm.BaseVM):
 
         :return: Matched block device name, None when not find any device.
         """
+        if not p_dict:
+            return None
+
         blocks_info = self.monitor.info("block")
         block = self.get_block_old(blocks_info, p_dict)
         if block:
