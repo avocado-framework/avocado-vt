@@ -290,13 +290,13 @@ class MigrationTest(object):
 
                     if migration_started:
                         logging.info("Migration started for %s", vm.name)
+                        time.sleep(3)  # To avoid executing the command lines before starting migration
                         if func == process.run:
                             try:
                                 func(args['func_params'], shell=args['shell'])
                             except KeyError:
                                 func(args['func_params'])
                         elif func == virsh.migrate_postcopy:
-                            time.sleep(3)  # To avoid of starting postcopy before starting migration
                             func(vm.name, uri=srcuri, debug=True)
                         else:
                             if 'func_params' in args:
