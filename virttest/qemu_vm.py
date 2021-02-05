@@ -2460,7 +2460,7 @@ class VM(virt_vm.BaseVM):
                 "iommu_platform": params.get("virtio_dev_iommu_platform"),
                 "ats": params.get("virtio_dev_ats")}
             for key, value in properties_to_be_set.items():
-                if key in dev_properties:
+                if value and key in dev_properties:
                     device.set_param(key, value)
 
         # Add extra root_port at the end of the command line only if there is
