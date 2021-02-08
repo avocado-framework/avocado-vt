@@ -3479,3 +3479,78 @@ class QMPMonitor(Monitor):
         cmd = "x-blockdev-reopen"
         self.verify_supported_cmd(cmd)
         return self.cmd(cmd, props)
+
+    def block_export_add(self, uid, export_type, node_name,
+                         iothread=None, fixed_iothread=None,
+                         writable=None, writethrough=None, **kwargs):
+        """
+        Create a new block export. (since 5.2)
+
+        :param uid: A unique identifier for the block export
+                    (across all export types)
+        :param export_type: Name of block export types, such as 'nbd',
+                            'vhost-user-blk' (since 5.2), 'fuse' (since 6.0)
+                            (please refer to BlockExportType)
+        :param node_name: The node name of the block node to be exported
+        :param iothread: The name of the iothread object where the export
+                         runs. The default is to use the thread currently
+                         associated with the block node.
+        :param fixed_iothread: True prevents the block node from being moved
+                               to another thread while the export is active.
+                               If true and iothread is given, export creation
+                               fails if the block node cannot be moved to the
+                               iothread. (default false)
+        :param writable: True if clients should be able to write to the export
+                         (default false)
+        :param writethrough: True makes caches flushed after every write to the
+                             export before completion is signalled.
+                             (default: false)
+        :params kwargs: keyword arguments for the specified export_type
+                        (please refer to BlockExportOptions)
+        """
+        cmd = "block-export-add"
+        self.verify_supported_cmd(cmd)
+        arguments = {'type': export_type, 'id': uid, 'node-name': node_name}
+        if writable is not None:
+            arguments["writable"] = writable
+        if writethrough is not None:
+            arguments["writethrough"] = writethrough
+        if iothread is not None:
+            arguments["iothread"] = iothread
+        if fixed_iothread is not None:
+            arguments["fixed-iothread"] = fixed_iothread
+        arguments.update(self._build_args(**kwargs))
+        return self.cmd(cmd, arguments)
+
+    def block_export_del(self, uid, mode=None):
+        """
+        Request to remove a block export. (Since 5.2)
+
+        This drops the user's reference to the export, but the export may
+        still stay around after this command returns until the shutdown of
+        the export has completed.
+        Note that BLOCK_EXPORT_DELETED will be emitted when a block export
+        is removed and its id can be reused.
+        :param uid: Block export id
+        :param mode: Mode for removing a block export,
+                     'safe': Remove export if there are no existing
+                             connections, fail otherwise (default)
+                     'hard': Drop all connections immediately and remove export
+                     (please refer to BlockExportRemoveMode)
+        """
+        cmd = "block-export-del"
+        self.verify_supported_cmd(cmd)
+        arguments = {'id': uid}
+        if mode:
+            arguments['mode'] = mode
+        return self.cmd(cmd, arguments)
+
+    def query_block_exports(self):
+        """
+        Query all block exports. (Since 5.2)
+
+        :return: A list of BlockExportInfo describing all block exports
+        """
+        cmd = "query-block-exports"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd)
