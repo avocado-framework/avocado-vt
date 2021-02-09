@@ -1061,17 +1061,13 @@ class DevContainer(object):
                 first_image = images[0]
                 img_params = params.object_params(first_image)
                 img_params["backing_chain"] = "no"
-                path = storage.get_image_filename_filesytem(img_params,
-                                                            current_data_dir)
                 img_info = json.loads(qemu_storage.QemuImg(img_params,
-                                                           data_dir.DATA_DIR,
-                                                           path).info(True, "json"))
-                img_name = os.path.basename(img_info.get("filename"))
+                                                           current_data_dir,
+                                                           first_image).info(True, "json"))
+                img_path, img_name = os.path.split(img_info.get("filename"))
 
                 pflash_vars_name = "%s_%s_VARS.fd" % (self.vmname, img_name)
-                # Force the image file to be saved under "images" directory
-                pflash_vars_path = os.path.join(data_dir.DATA_DIR, "images",
-                                                pflash_vars_name)
+                pflash_vars_path = os.path.join(img_path, pflash_vars_name)
                 # When image has backing files, treat it as a temporary image
                 if "backing-filename" in img_info:
                     self.temporary_image_snapshots.add(pflash_vars_path)
@@ -1202,6 +1198,8 @@ class DevContainer(object):
                                              '_PCI_CHASSIS_NR', first_port=[1]),
                    qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
                                     "vcpu"))
+            pflash_devices, cmd = pflash_handler("ovmf", cmd)
+            devices.extend(pflash_devices)
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
                                                   child_bus=bus,
                                                   aobject="pci.0"))
