@@ -229,6 +229,19 @@ def load_vfio_ap():
         raise RuntimeError("Couldn't load vfio_ap: %s" % out)
 
 
+def unload_vfio_ap():
+    """
+    Unloads the passthrough module
+
+    :return: None
+    """
+    err, out = process.getstatusoutput("rmmod vfio_ap",
+                                       timeout=CMD_TIMEOUT,
+                                       verbose=VERBOSE)
+    if err:
+        raise RuntimeError("Couldn't unload vfio_ap: %s" % out)
+
+
 # sysfs paths controlling device availability (s. kernel doc)
 APMASK_SYSFS = "/sys/bus/ap/apmask"
 AQMASK_SYSFS = "/sys/bus/ap/aqmask"
