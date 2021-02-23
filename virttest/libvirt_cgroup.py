@@ -134,6 +134,20 @@ class CgroupTest(object):
                           the blkio related cgroup info will be returned
         :return: A dict containing the cgroup info
         """
+
+        def __get_cg_file_path(cg_key, cg_path, cg_file_name):
+            """
+            Get the path to a cgroup param file
+
+            :param cg_key: The cgroup param name used in libvirt
+            :param cgroup_path: The cgroup root path
+            :param cg_file_name: The file name of the cgroup param
+            :return: The path to the cgroup param file
+            """
+            if cg_key in ["weight", "cpu_shares"] and "libvirt" in cg_path:
+                return os.path.join(cg_path.split("libvirt")[0], cg_file_name)
+            return os.path.join(cg_path, cg_file_name)
+
         standardized_cgroup_info = {}
         if virsh_cmd == "blkiotune":
             cgroup_path = self.get_cgroup_path("blkio")
@@ -141,7 +155,8 @@ class CgroupTest(object):
                              "wiops": "max"}
             dev_list = []
             for cg_key, cg_file_name in list(CGROUP_V1_BLKIO_FILE_MAPPING.items()):
-                with open(os.path.join(cgroup_path, cg_file_name), 'r') as cg_file:
+                cg_file_path = __get_cg_file_path(cg_key, cgroup_path, cg_file_name)
+                with open(cg_file_path, 'r') as cg_file:
                     if cg_key in ["weight"]:
                         standardized_cgroup_info[cg_key] = cg_file.read().strip()
                     if cg_key in ["rbps", "wbps", "riops", "wiops"]:
@@ -175,7 +190,8 @@ class CgroupTest(object):
                         cg_file_name = cg_file_name.replace("<iothreadX>", iothread_dirs[0])
                     else:
                         continue
-                with open(os.path.join(cgroup_path, cg_file_name), 'r') as cg_file:
+                cg_file_path = __get_cg_file_path(cg_key, cgroup_path, cg_file_name)
+                with open(cg_file_path, 'r') as cg_file:
                     cg_file_value = cg_file.read().strip()
                     if cg_file_value == max_cpu_value:
                         cg_file_value = "max"
