@@ -79,6 +79,34 @@ def arch_listing(config, guest_name_parser=None):
     LOG.debug("")
 
 
+def get_vt_test_tags(vt_params):
+    """
+    Get the test categories based on a `tags` VT parameter.
+
+    :param vt_params: currently parsed VT parameters
+    :type vt_params: dict
+    :returns: test categories based on a `tags` vt param
+    :type: dict
+    """
+    result = {}
+    # XXX: Using whitespace as the delimiter is not a standard
+    #      implementation of Avocado's tags facility, this can
+    #      function properly until whitespace being considered
+    #      as a valid character for the tag identifier.
+    for tag in vt_params.get('tags', '').split():
+        if not tag:
+            continue
+        if ':' in tag:
+            key, val = tag.split(':', 1)
+            if key in result:
+                result[key].add(val)
+            else:
+                result[key] = set([val])
+        else:
+            result[tag] = set()
+    return result
+
+
 class NotAvocadoVTTest(object):
 
     """
@@ -217,6 +245,9 @@ class VirtTestLoader(loader.TestLoader):
             params['id'] = test_name
             test_parameters = {'name': test_name,
                                'vt_params': params}
+            tags = get_vt_test_tags(params)
+            if tags:
+                test_parameters['tags'] = tags
             test_suite.append((VirtTest, test_parameters))
         if which_tests is loader.DiscoverMode.ALL and not test_suite:
             return self._report_bad_discovery(url, "No matching tests",
