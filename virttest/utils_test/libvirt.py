@@ -1168,6 +1168,9 @@ class PoolVolumeTest(object):
         xml_str = virsh.pool_dumpxml(pool_name)
         logging.debug("New prepared pool XML: %s", xml_str)
 
+        logging.info("Refreshing pool")
+        virsh.pool_refresh(pool_name)
+
     def pre_vol(self, vol_name, vol_format, capacity, allocation, pool_name):
         """
         Preapare the specific type volume in pool
