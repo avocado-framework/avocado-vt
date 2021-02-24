@@ -67,13 +67,15 @@ class Disk(base.TypedDeviceBase):
             libvirt_xml.devices.Disk.Auth instance.
         reservations:
             libvirt_xml.devices.Disk.Reservations instance.
+        drivermetadata:
+            libvirt_xml.devices.Disk.DriverMetadata instance.
    """
 
     __slots__ = ('device', 'rawio', 'sgio', 'snapshot', 'driver', 'target', 'alias',
                  'address', 'boot', 'loadparm', 'readonly', 'transient', 'share', 'model',
                  'mirror', 'ready', 'iotune', 'source', 'blockio', 'geometry',
                  'wwn', 'serial', 'vendor', 'product', 'encryption', 'auth',
-                 'reservations', 'backingstore')
+                 'reservations', 'backingstore', 'drivermetadata')
 
     def __init__(self, type_name='file', virsh_instance=base.base.virsh):
         accessors.XMLAttribute('device', self, parent_xpath='/',
@@ -149,6 +151,11 @@ class Disk(base.TypedDeviceBase):
                                  subclass=self.BackingStore,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
+        accessors.XMLElementNest('drivermetadata', self, parent_xpath='/',
+                                 tag_name='driver',
+                                 subclass=self.DriverMetadata,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
         super(Disk, self).__init__(device_tag='disk', type_name=type_name,
                                    virsh_instance=virsh_instance)
 
@@ -220,6 +227,15 @@ class Disk(base.TypedDeviceBase):
         Return a new disk backingstore instance and set properties from dargs
         """
         new_one = self.BackingStore(virsh_instance=self.virsh)
+        for key, value in list(dargs.items()):
+            setattr(new_one, key, value)
+        return new_one
+
+    def new_drivermetadata(self, **dargs):
+        """
+        Return a new DriverMetadata instance and set properties from dargs
+        """
+        new_one = self.DriverMetadata(virsh_instance=self.virsh)
         for key, value in list(dargs.items()):
             setattr(new_one, key, value)
         return new_one
@@ -568,3 +584,84 @@ class Disk(base.TypedDeviceBase):
 
                 super(self.__class__, self).__init__(virsh_instance=virsh_instance)
                 self.xml = '<source/>'
+
+    class DriverMetadata(base.base.LibvirtXMLBase):
+
+        """
+        DriverMetaData XML class
+
+        <driver name='qemu' type='qcow2'>
+         <metadata_cache>
+           <max_size unit='bytes'>10</max_size>
+         </metadata_cache>
+        </driver>
+
+        Properties:
+
+        attrs: Dictionary of attributes, qualifying the driver name and type,etc.
+        metadata_cache: embedded class to describe metadata attributes
+        usages:
+            custom_disk = Disk(type_name='disk')
+            driver_dict = {"name": "qemu","type": "qcow2"}
+            new_one = custom_disk.new_drivermetadata(**{"attrs": driver_dict})
+
+            metadata_cache_dict = {"max_size": "10", "max_size_unit": "bytes"}
+
+            new_one.metadata_cache = custom_disk.DriverMetadata().new_metadatacache(**metadata_cache_dict)
+
+            custom_disk.drivermetadata = new_one
+        """
+
+        __slots__ = ('attrs', 'metadata_cache')
+
+        def __init__(self, virsh_instance=base.base.virsh):
+            accessors.XMLElementDict('attrs', self, parent_xpath='/',
+                                     tag_name='driver')
+            accessors.XMLElementNest('metadata_cache', self, parent_xpath='/',
+                                     tag_name='metadata_cache',
+                                     subclass=self.MetadataCache,
+                                     subclass_dargs={
+                                         'virsh_instance': virsh_instance})
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            self.xml = '<driver/>'
+
+        def new_metadatacache(self, **dargs):
+            """
+            Create new MetadataCache for DriverMetadata
+
+            """
+            new_one = self.MetadataCache(virsh_instance=self.virsh)
+            for key, value in list(dargs.items()):
+                setattr(new_one, key, value)
+            return new_one
+
+        def __eq__(self, other):
+            return super(DriverMetadata, obj).__eq__(other)
+
+        class MetadataCache(base.base.LibvirtXMLBase):
+            """
+            Source of MetadataCache xml class
+
+            max_size:
+                string, attribute of MetadataCache max size
+            max_size_unit:
+                string, attribute of MetadataCache max size unit
+            """
+
+            __slots__ = ('max_size', 'max_size_unit')
+
+            def __init__(self, virsh_instance=base.base.virsh):
+                accessors.XMLElementText(property_name='max_size',
+                                         libvirtxml=self,
+                                         parent_xpath='/',
+                                         tag_name='max_size')
+                accessors.XMLAttribute(property_name="max_size_unit",
+                                       libvirtxml=self,
+                                       parent_xpath='/',
+                                       tag_name='max_size',
+                                       attribute='unit')
+                super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+                self.xml = '<metadata_cache/>'
+
+            def __eq__(self, other):
+                return super(MetadataCache, obj).__eq__(other)
