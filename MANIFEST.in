@@ -6,3 +6,4 @@ recursive-include avocado_vt/conf.d *
 recursive-include virttest/test-providers.d *
 recursive-include virttest/backends *
 recursive-include virttest/shared *
+recursive-exclude virttest/shared/scripts/pmsocat *
