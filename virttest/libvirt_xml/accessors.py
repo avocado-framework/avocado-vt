@@ -786,7 +786,12 @@ class XMLElementList(AccessorGeneratorBase):
             # Allow other classes to generate parent structure
             parent = self.xmltreefile().find(self.parent_xpath)
             if parent is None:
-                raise xcepts.LibvirtXMLNotFoundError
+                # Create parent xpath if not exists
+                self.xmltreefile().create_by_xpath(self.parent_xpath)
+                parent = self.xmltreefile().find(self.parent_xpath)
+                if parent is None:
+                    raise xcepts.LibvirtXMLNotFoundError(
+                        'Parent xpath %s not found.' % self.parent_xpath)
             # Remove existing by calling accessor method, allowing
             # any "untouchable" or "filtered" elements (by marshal)
             # to be ignored and left as-is.
