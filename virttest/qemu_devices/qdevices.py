@@ -1380,7 +1380,7 @@ class Memory(QObject):
     """
     QOM memory object, support for pinning memory on host NUMA nodes.
     The existing options in __attributes__ are subsumed by the QOM objects
-    'memory-backend-ram', and 'memory-backend-file'.
+    'memory-backend-ram', 'memory-backend-file', 'memory-backend-memfd'.
     """
 
     __attributes__ = {"memory-backend-ram": ["size", "prealloc", "backend",
@@ -1390,7 +1390,11 @@ class Memory(QObject):
                                               "backend", "policy", "host-nodes",
                                               "share", "merge", "dump", "pmem",
                                               "discard-data", "align",
-                                              "prealloc-threads"]}
+                                              "prealloc-threads"],
+                      "memory-backend-memfd": ["size", "prealloc", "backend",
+                                               "seal", "policy", "host-nodes",
+                                               "share", "merge", "dump",
+                                               "hugetlb", "hugetlbsize"]}
 
     def __init__(self, backend, params=None):
         super(Memory, self).__init__(backend, params)
