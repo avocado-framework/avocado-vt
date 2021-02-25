@@ -913,7 +913,7 @@ class PoolVolumeTest(object):
                         vols = pv.list_volumes()
                         for vol in vols:
                             # Ignore failed deletion here for deleting pool
-                            pv.delete_volume(vol)
+                            pv.delete_volume(repr(vol))
                 if not sp.delete_pool(pool_name):
                     raise exceptions.TestFail(
                         "Delete pool %s failed" % pool_name)
