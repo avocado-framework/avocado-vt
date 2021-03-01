@@ -1792,7 +1792,7 @@ def get_esx_disk_source_info(vm_name, virsh_instance):
     :param v2v_virsh_instance: a virsh instance
     """
     def _parse_file_info(path):
-        res = re.search(r'\[(.*)\] (.*?)/(.*\.vmdk)', path)
+        res = re.search(r'\[(.*)\] (.*)/(.*\.vmdk)', path)
         if not res:
             return []
         return [res.group(i) for i in range(1, 4)]
