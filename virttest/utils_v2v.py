@@ -1304,8 +1304,17 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
             for i in range(int(params.get('_disk_count', 0))):
                 options += ' -oo rhv-disk-uuid=%s' % str(uuid.uuid4())
 
+        # Protect the blanks in original guest name
+        safe_vm_name = ''
+        BLANK_REPLACEMENT = '%20'
+        if ' ' in vm_name and vm_name in options:
+            safe_vm_name = vm_name.replace(' ', BLANK_REPLACEMENT)
+            options = options.replace(vm_name, safe_vm_name)
         # Construct a final virt-v2v command and remove redundant blanks
         cmd = ' '.join(('%s %s' % (V2V_EXEC, options)).split())
+        # Restore the real original guest name
+        if safe_vm_name:
+            cmd = cmd.replace(safe_vm_name, vm_name)
         # Old v2v version doesn't support '-ip' option
         if not v2v_supported_option("-ip <filename>"):
             cmd = cmd.replace('-ip', '--password-file', 1)
