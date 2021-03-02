@@ -4271,8 +4271,8 @@ def create_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
     if session:
         runner = session.cmd
     iface_name = get_net_if(runner=runner, state="UP")[0]
-    if not utils_package.package_install("tmux", session):
-        raise exceptions.TestError("Failed to install the tmux packages.")
+    if not utils_package.package_install(["tmux", "dhcp-client"], session):
+        raise exceptions.TestError("Failed to install the required packages.")
 
     res = utils_misc.cmd_status_output("which ovs-vsctl", shell=True,
                                        ignore_status=False, session=session)[0]
@@ -4307,8 +4307,8 @@ def delete_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
     if session:
         runner = session.cmd
     iface_name = get_net_if(runner=runner, state="UP")[0]
-    if not utils_package.package_install("tmux", session):
-        raise exceptions.TestError("Failed to install the tmux packages.")
+    if not utils_package.package_install(["tmux", "dhcp-client"], session):
+        raise exceptions.TestError("Failed to install the required packages.")
 
     res = utils_misc.cmd_status_output("which ovs-vsctl", shell=True,
                                        ignore_status=False, session=session)[0]
