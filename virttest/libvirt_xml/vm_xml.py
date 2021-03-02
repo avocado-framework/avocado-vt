@@ -5,6 +5,7 @@ http://libvirt.org/formatdomain.html
 
 import logging
 import platform
+import re
 
 from .. import xml_utils
 from .. import utils_misc
@@ -926,12 +927,64 @@ class VMXML(VMXMLBase):
     def get_disk_all(self):
         """
         Return VM's disk from XML definition, None if not set
+
+        There is an issue that when the disks have different bus type and same
+        target dev value, the previous disk will be overwirten by the last one.
+        In order to avoid this problem, you could use get_disk_all_by_expr to
+        select all disks by their disk attribute.
+
+        This xml will not return all disks by default paramenters:
+        <disk type='file' device='disk'>
+          <source file='[esx6.7-matrix] xxx/xxx-xxx.vmdk'/>
+          <target dev='sda' bus='scsi'/>
+          <address type='drive' controller='0' bus='0' target='0' unit='0'/>
+        </disk>
+        <disk type='file' device='cdrom'>
+          <target dev='sda' bus='sata'/>
+          <address type='drive' controller='0' bus='0' target='0' unit='0'/>
+        </disk>
+
         """
         disk_nodes = self.xmltreefile.find('devices').findall('disk')
         disks = {}
         for node in disk_nodes:
             dev = node.find('target').get('dev')
             disks[dev] = node
+        return disks
+
+    def get_disk_all_by_expr(self, *args):
+        """
+        Return VM's disk from XML definition by attribute and value
+        expression, None if the expression is invalid or no disks are
+        found.
+
+        Usage examples:
+        1. get_disk_all_by_expr('type==file', 'device!=cdrom')
+        2. get_disk_all_by_expr('device==cdrom')
+
+        :param args: attribute and value expression for disks.
+                     e.g. device==cdrom, type!=network
+        """
+        disk_nodes = self.xmltreefile.find('devices').findall('disk')
+        disks = {}
+        EXPR_PARSER = r'\s*(\w+)\s*(!=|==)\s*(\w+)\s*'
+        for node in disk_nodes:
+            matched = False
+            for expr in args:
+                attr_expr = re.search(EXPR_PARSER, expr)
+                if not attr_expr:
+                    logging.error("invalid expression: %s", expr)
+                    return disks
+                attr_name, operator, attr_val = [
+                    attr_expr.group(i) for i in range(1, 4)]
+                if eval('node.get(attr_name) %s attr_val' % operator):
+                    matched = True
+                else:
+                    matched = False
+                    break
+            if matched:
+                dev = node.find('target').get('dev')
+                disks[dev] = node
         return disks
 
     @staticmethod
