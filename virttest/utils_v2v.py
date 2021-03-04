@@ -1905,8 +1905,10 @@ def compare_version(interval, version=None, cmd=None):
     if not version:
         if not cmd:
             cmd = 'rpm -q virt-v2v'
-        # exit status checking will be done in process.run
-        version = process.run(cmd, shell=True).stdout_text.strip()
+        res = process.run(cmd, shell=True, ignore_status=True)
+        if res.exit_status != 0:
+            return False
+        version = res.stdout_text.strip()
 
     return check_version(version, interval)
 
