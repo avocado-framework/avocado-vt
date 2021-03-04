@@ -270,6 +270,8 @@ if hasattr(plugin_interfaces, 'Init'):
                                      help_msg=help_msg,
                                      default='/tmp')
 
+            settings.merge_with_configs()
+
             virt_loader = getattr(importlib.import_module('avocado_vt.loader'),
                                   'VirtTestLoader')
             loader.register_plugin(virt_loader)
