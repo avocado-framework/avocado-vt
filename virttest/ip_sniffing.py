@@ -289,7 +289,7 @@ class TSharkSniffer(Sniffer):
     # Supported versions by the class
     supported_versions = ()
     # Regexp to get the version
-    _re_version = re.compile(r"TShark \(Wireshark\) (\d+\.\d+\.\d+)")
+    _re_version = re.compile(r"TShark(?: \(Wireshark\))? (\d+\.\d+\.\d+)")
 
     @classmethod
     def is_supported(cls, session=None):
@@ -304,7 +304,7 @@ class TSharkSniffer(Sniffer):
 
     @classmethod
     def _get_version(cls, session):
-        cmd = "%s --version" % cls.command
+        cmd = "%s -v" % cls.command
         if session:
             out = session.cmd_output(cmd)
         else:
