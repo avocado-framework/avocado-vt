@@ -734,7 +734,7 @@ def get_cpu_info(session=None):
             output = session.cmd_output(cmd).splitlines()
         finally:
             session.close()
-    cpu_info = dict(map(lambda x: [i.strip() for i in x.split(":")], output))
+    cpu_info = dict(map(lambda x: [i.strip() for i in x.split(":", 1)], output))
     return cpu_info
 
 
