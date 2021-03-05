@@ -38,7 +38,7 @@ def add_cpu_settings(vmxml, params):
     else:
         cpu_xml = vm_xml.VMCPUXML()
 
-    if cpu_xml.xmltreefile.find('mode'):
+    if cpu_xml.xmltreefile.getroot().get('mode'):
         cpu_mode = cpu_xml.mode
     else:
         cpu_mode = params.get("cpuxml_cpu_mode", "host-model")
