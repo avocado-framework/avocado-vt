@@ -15,6 +15,7 @@ from virttest import utils_misc
 from virttest import test_setup
 from virttest import utils_net
 from virttest import utils_iptables
+from virttest import utils_test
 from virttest.utils_test import libvirt
 
 
@@ -502,3 +503,18 @@ class MigrationTest(object):
                               virsh_event_session.get_stripped_output()), 30):
             raise exceptions.TestError("Unalbe to find event {}"
                                        .format(exp_str))
+
+    def run_stress_in_vm(self, vm, params):
+        """
+        Load stress in VM.
+
+        :param vm: VM object
+        :param params: Test dict params
+        :raise: exceptions.TestError if it fails to run stress tool
+        """
+        stress_package = params.get("stress_package", "stress")
+        try:
+            vm_stress = utils_test.VMStress(vm, stress_package, params)
+            vm_stress.load_stress_tool()
+        except utils_test.StressError as info:
+            raise exceptions.TestError(info)
