@@ -2733,6 +2733,8 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
         quota:                int
         emulator_period:      int
         emulator_quota:       int
+        global_period:        int
+        global_quota:         int
         iothread_period:      int
         iothread_quota:       int
     """
@@ -2740,7 +2742,8 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
     __slots__ = ('vcpupins', 'emulatorpin', 'shares', 'period', 'quota',
                  'emulator_period', 'emulator_quota', 'iothreadpins',
                  'cachetune', 'memorytune', 'iothreadscheds',
-                 'iothread_period', 'iothread_quota')
+                 'iothread_period', 'iothread_quota', 'global_period',
+                 'global_quota')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementList('vcpupins', self, parent_xpath='/',
@@ -2756,7 +2759,8 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
                                  marshal_to=self.marshal_to_iothreadscheds)
         for slot in self.__all_slots__:
             if slot in ('shares', 'period', 'quota', 'emulator_period',
-                        'emulator_quota', 'iothread_period', 'iothread_quota'):
+                        'emulator_quota', 'iothread_period', 'iothread_quota',
+                        'global_quota', 'global_period'):
                 accessors.XMLElementInt(slot, self, parent_xpath='/',
                                         tag_name=slot)
         super(VMCPUTuneXML, self).__init__(virsh_instance=virsh_instance)
