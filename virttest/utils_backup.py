@@ -398,19 +398,17 @@ def clean_checkpoints(vm_name, clean_metadata=True, ignore_status=True):
                                         ignore_status=ignore_status)
 
 
-def enable_inc_backup_for_vm(vm, libvirt_ver=(99,99,99)):
+def enable_inc_backup_for_vm(vm, libvirt_ver=(7,0,0)):
     """
     For now, libvirt doesn't enable incremental backup by default. We
     need to edit vm's xml to make sure it's supported.
 
     :param vm: The vm to be operated
     :param libvirt_ver: Since which libvirt version, we don't need to edit xml.
+    Libvirt enables incremental backup function by default since
+    libvirt-7.0.0-6.el8, which is tracked by bz1799015.
     :return: The updated xml
     """
-
-    # TODO: We need to track bz1799015 and update the default libvirt_ver=(99,99,99).
-    # If it's fixed in libvirt-9.0.1, we'll use libvirt_ver=(9,0,1).
-
     vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
     if libvirt_version.version_compare(*libvirt_ver):
         logging.debug("Incremental backup is enabled by default "
