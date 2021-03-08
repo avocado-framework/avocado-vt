@@ -57,7 +57,7 @@ class MigrationTest(object):
                                           "state at destination" % vm_state)
             logging.info("Guest state is '%s' at destination is as expected",
                          vm_state)
-            if "offline" not in params.get("migrate_options"):
+            if "offline" not in params.get("migrate_options", ""):
                 vm_uptime = vm.uptime(connect_uri=uri)
                 logging.info("uptime of migrated VM %s: %s", vm.name,
                              vm_uptime)
