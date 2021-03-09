@@ -112,13 +112,13 @@ class NetperfPackage(remote_old.Remote_Package):
                                            status_test_command=status_test_command)
 
     def env_cleanup(self, clean_all=True):
-        clean_cmd = ""
         if self.netperf_dir:
             clean_cmd = "rm -rf %s" % self.netperf_dir
+            self.session.cmd(clean_cmd, ignore_all_errors=True)
         if clean_all:
-            clean_cmd += " rm -rf %s" % os.path.join(self.remote_path,
-                                                     self.netperf_file)
-        self.session.cmd(clean_cmd, ignore_all_errors=True)
+            clean_cmd = "rm -f %s" % os.path.join(self.remote_path,
+                                                  self.netperf_file)
+            self.session.cmd(clean_cmd, ignore_all_errors=True)
 
     def pack_compile(self, compile_option=""):
         pre_setup_cmd = "cd %s " % self.netperf_base_dir
