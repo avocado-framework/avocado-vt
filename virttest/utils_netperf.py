@@ -104,12 +104,29 @@ class NetperfPackage(remote_old.Remote_Package):
             self.netperf_path = os.path.join(self.netperf_base_dir,
                                              self.netperf_file)
 
-        LOG.debug("Create remote session")
-        self.session = remote.remote_login(self.client, self.address,
-                                           self.port, self.username,
-                                           self.password, prompt,
-                                           linesep, timeout=360,
-                                           status_test_command=status_test_command)
+        self._session = None
+        self._session_attrs = (prompt, linesep, status_test_command)
+
+    @property
+    def session(self):
+        self._acquire_session()
+        return self._session
+
+    def _acquire_session(self):
+        if self._session is not None:
+            return
+        prompt, linesep, status_test_command = self._session_attrs
+        self._session = remote.remote_login(self.client, self.address,
+                                            self.port, self.username,
+                                            self.password, prompt,
+                                            linesep, timeout=360,
+                                            status_test_command=status_test_command)
+
+    def _release_session(self):
+        if self._session is None:
+            return
+        self._session.close()
+        self._session = None
 
     def env_cleanup(self, clean_all=True):
         if self.netperf_dir:
@@ -119,6 +136,7 @@ class NetperfPackage(remote_old.Remote_Package):
             clean_cmd = "rm -f %s" % os.path.join(self.remote_path,
                                                   self.netperf_file)
             self.session.cmd(clean_cmd, ignore_all_errors=True)
+        self._release_session()
 
     def pack_compile(self, compile_option=""):
         pre_setup_cmd = "cd %s " % self.netperf_base_dir
@@ -244,7 +262,10 @@ class Netperf(object):
         :param clean_all: True to delete both netperf binary and source tarball
                           and False to delete only binary.
         """
-        self.package.env_cleanup(clean_all=clean_all)
+        try:
+            self.package.env_cleanup(clean_all=clean_all)
+        finally:
+            self.session.close()
 
 
 class NetperfServer(Netperf):
