@@ -635,9 +635,6 @@ class Disk(base.TypedDeviceBase):
                 setattr(new_one, key, value)
             return new_one
 
-        def __eq__(self, other):
-            return super(DriverMetadata, obj).__eq__(other)
-
         class MetadataCache(base.base.LibvirtXMLBase):
             """
             Source of MetadataCache xml class
@@ -662,6 +659,3 @@ class Disk(base.TypedDeviceBase):
                                        attribute='unit')
                 super(self.__class__, self).__init__(virsh_instance=virsh_instance)
                 self.xml = '<metadata_cache/>'
-
-            def __eq__(self, other):
-                return super(MetadataCache, obj).__eq__(other)
