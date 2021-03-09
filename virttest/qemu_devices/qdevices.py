@@ -1935,7 +1935,7 @@ class QSwtpmDev(QDaemonDev):
         self.set_param('extra_options', extra_options)
 
     def start_daemon(self):
-        tpm_cmd = '%s socket --daemon' % self.get_param('binary')
+        tpm_cmd = '%s socket' % self.get_param('binary')
         tpm_cmd += ' --ctrl type=unixio,path=%s,mode=0600' % self.get_param('sock_path')
         tpm_cmd += ' --tpmstate dir=%s,mode=0600' % self.get_param('storage_path')
 
