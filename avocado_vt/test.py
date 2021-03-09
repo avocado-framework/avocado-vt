@@ -84,17 +84,20 @@ class VirtTest(test.Test):
 
     env_version = utils_env.get_env_version()
 
-    def __init__(self, methodName='runTest', name=None, params=None,
-                 base_logdir=None, job=None, runner_queue=None,
-                 vt_params=None):
+    def __init__(self, **kwargs):
         """
-        :note: methodName, name, base_logdir, job and runner_queue params
-               are inherited from test.Test
+        :note: methodName, name, base_logdir, job/config and runner_queue
+               params are inherited from test.Test
+               From the avocado 86 the test.Test uses config instead of job
+               instance. Because of the compatibility with avocado 82.0 LTS we
+               can't remove the job instance. For avocado < 86 job instance is
+               used and for avocado=>86 config is used.
         :param params: avocado/multiplexer params stored as
                        `self.avocado_params`.
         :param vt_params: avocado-vt/cartesian_config params stored as
                           `self.params`.
         """
+        vt_params = kwargs.pop("vt_params", None)
         self.__params_vt = None
         self.__avocado_params = None
         self.bindir = data_dir.get_root_dir()
@@ -110,10 +113,11 @@ class VirtTest(test.Test):
         self.background_errors = error_event.error_events_bus
         # clear existing error events
         self.background_errors.clear()
-        super(VirtTest, self).__init__(methodName=methodName, name=name,
-                                       params=params,
-                                       base_logdir=base_logdir, job=job,
-                                       runner_queue=runner_queue)
+
+        if "methodName" not in kwargs:
+            kwargs["methodName"] = 'runTest'
+        super(VirtTest, self).__init__(**kwargs)
+
         self.builddir = os.path.join(self.workdir, 'backends',
                                      vt_params.get("vm_type", ""))
         self.tmpdir = os.path.dirname(self.workdir)
