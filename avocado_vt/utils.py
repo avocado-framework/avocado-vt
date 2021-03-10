@@ -115,7 +115,7 @@ def find_test_modules(test_types, subtest_dirs):
                               module_path)
                 subtest_dir = d
                 break
-        if subtest_dir is None:
+        else:
             msg = ("Could not find test file %s.py on test"
                    "dirs %s" % (test_type, subtest_dirs))
             raise exceptions.TestError(msg)
