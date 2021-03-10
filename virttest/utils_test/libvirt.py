@@ -3721,6 +3721,8 @@ def check_logfile(search_str, log_file, str_in_log=True,
         raise exceptions.TestFail("The string '{}' {} included in {}"
                                   .format(search_str, "is not" if str_in_log else "is",
                                           log_file))
+    else:
+        logging.debug('Log check for "%s" PASS', search_str)
 
 
 def check_qemu_cmd_line(content, err_ignore=False,
