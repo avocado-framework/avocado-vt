@@ -1273,7 +1273,7 @@ class TLSConnection(ConnectionBase):
         tls_sanity_cert = self.tls_sanity_cert
 
         ip_addr = server_ip
-        if self.server_info_ip:
+        if self.server_info_ip is not None:
             ip_addr = self.server_info_ip
         # build a server key.
         build_server_key(tmp_dir, server_cn, ip_addr, self.CERTTOOL,
