@@ -3189,20 +3189,26 @@ def cpu_stats(name, options, **dargs):
     return command(cmd, **dargs)
 
 
-def change_media(name, device, options, **dargs):
+def change_media(name, device, options, wait_change_event=False, event_timeout=7, **dargs):
     """
     Change media of CD or floppy drive.
 
     :param name: VM's name.
     :param path: Fully-qualified path or target of disk device
     :param options: command change_media options.
+    :param wait_change_event: wait until device_change event comes
+    :param event_timeout: timeout for virsh event command
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
     cmd = "change-media %s %s " % (name, device)
     if options:
         cmd += " %s " % options
-    return command(cmd, **dargs)
+    change_media_result = command(cmd, **dargs)
+    if wait_change_event:
+        event(domain=name, event='tray-change', event_timeout=event_timeout, **dargs)
+
+    return change_media_result
 
 
 def cpu_compare(xml_file, **dargs):
