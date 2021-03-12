@@ -97,16 +97,15 @@ class VirtTest(test.Test):
         :param vt_params: avocado-vt/cartesian_config params stored as
                           `self.params`.
         """
-        vt_params = kwargs.pop("vt_params", None)
-        self.__params_vt = None
+        self.__vt_params = None
         self.__avocado_params = None
         self.bindir = data_dir.get_root_dir()
         self.virtdir = os.path.join(self.bindir, 'shared')
-        # self.__params_vt must be initialized after super
-        params_vt = utils_params.Params(vt_params)
+        # self.__vt_params must be initialized after super
+        vt_params = utils_params.Params(kwargs.pop("vt_params", None))
         # for timeout use Avocado-vt timeout as default but allow
         # overriding from Avocado params (varianter)
-        self.timeout = params_vt.get("test_timeout", self.timeout)
+        self.timeout = vt_params.get("test_timeout", self.timeout)
 
         self.iteration = 0
         self.resultsdir = None
@@ -129,7 +128,7 @@ class VirtTest(test.Test):
             # 36LTS set's `self.params` instead of having it as a property
             # which stores the avocado params in `self.__params`
             self.__avocado_params = self.__params
-        self.__params_vt = params_vt
+        self.__vt_params = vt_params
         self.debugdir = self.logdir
         self.resultsdir = self.logdir
         utils_misc.set_log_file_dir(self.logdir)
@@ -145,8 +144,8 @@ class VirtTest(test.Test):
         once the Avocado-vt params are set it reports those instead. This
         is necessary to complete the `avocado.Test.__init__` phase
         """
-        if self.__params_vt is not None:
-            return self.__params_vt
+        if self.__vt_params is not None:
+            return self.__vt_params
         else:
             # The `self.__params` is set after the `avocado.test.__init__`,
             # but in newer Avocado `self.params` is used during `__init__`
@@ -158,7 +157,7 @@ class VirtTest(test.Test):
         """
         For compatibility with 36lts we need to support setter on params
         """
-        self.__params_vt = value
+        self.__vt_params = value
 
     @property
     def avocado_params(self):
@@ -196,7 +195,7 @@ class VirtTest(test.Test):
         TODO: Remove when 52LTS is deprecated.
         """
         state = super(VirtTest, self).get_state()
-        if state["params"] == self.__params_vt:
+        if state["params"] == self.__vt_params:
             state["params"] = self.avocado_params
         return state
 
