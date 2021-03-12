@@ -140,7 +140,7 @@ import re
 import sys
 
 _reserved_keys = set(("name", "shortname", "dep", "_short_name_map_file", "_name_map_file"))
-
+options = None
 num_failed_cases = 5
 
 
@@ -544,6 +544,13 @@ def _drop_suffixes(d):
 
     This step returns a copy of a suffix flattened dictionary.
     """
+    if options is not None:
+        # This file was invoked through cmdline
+        skipdups = options.skipdups
+    else:
+        # This file was invoked as Python module
+        skipdups = True
+
     # dictionary `d_flat' is going to be the mutated copy of `d`
     d_flat = d.copy()
     for key in d:
@@ -552,14 +559,6 @@ def _drop_suffixes(d):
 
         if not isinstance(key, tuple):
             continue
-
-        try:
-            # This file was invoked through cmdline
-            options.skipdups
-            skipdups = options.skipdups
-        except NameError:
-            # This file was invoked as Python module
-            skipdups = True
 
         if skipdups:
             # Drop vars with suffixes matches general var val
