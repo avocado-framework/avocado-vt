@@ -37,8 +37,8 @@
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 85.0
-Release: 2%{?gitrel}%{?dist}
+Version: 86.0
+Release: 1%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -161,6 +161,9 @@ Xunit output, among others.
 
 
 %changelog
+* Tue Mar 16 2021 Cleber Rosa <cleber@redhat.com> - 86.0-1
+- New release
+
 * Tue Feb 16 2021 Plamen Dimitrov <pdimitrov@pevogam.com> - 85.0-2
 - Python 2 subpackage is now optional
 
