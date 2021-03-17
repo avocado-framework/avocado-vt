@@ -826,6 +826,121 @@ class CartesianConfigTest(unittest.TestCase):
                              cartesian_config.Label("aaa")]]],
                           "Failed to parse filter.")
 
+    def testJoinSubstitution(self):
+        self._checkStringDump("""
+            key0 = "Baz"
+            variants:
+                - one:
+                    key1 = "Hello"
+                    key2 = "Foo"
+
+                    test01 = "${key1}"
+                    # the following substitutions are still not supported
+                    #test02 = "${key1_v1}"
+                    #test03 = "${key1_v2}"
+
+                    suffix _v1
+                - two:
+                    key1 = "Bye"
+                    key3 = "Bar"
+
+                    test04 = "${key1}"
+                    # the following substitutions are still not supported
+                    #test05 = "${key1_v1}"
+                    #test06 = "${key1_v2}"
+
+                    suffix _v2
+            variants:
+                - alpha:
+                    # the following substitutions are still not supported
+                    #test07 = "${key1}"
+                    #test08 = "${key1_v1}"
+                    #test09 = "${key1_v2}"
+                    #test10 = "${key2}"
+                    #test11 = "${key3}"
+
+                    key1 = "Alpha"
+                    test12 = "${key1}"
+
+                    join one two
+                - beta:
+                    # the following substitutions are still not supported
+                    #test13 = "${key1}"
+                    #test14 = "${key1_v1}"
+                    #test15 = "${key1_v2}"
+                    #test16 = "${key2}"
+                    #test17 = "${key3}"
+
+                    join one two
+
+            test100 = "${key0}"
+            # the following substitutions are still not supported
+            #test18 = "${key1}"
+            #test19 = "${key1_v1}"
+            #test20 = "${key1_v2}"
+            #test21 = "${key2}"
+            #test22 = "${key3}"
+            """,
+                              [
+                                  {'_name_map_file': {'<string>': 'alpha.two'},
+                                   '_short_name_map_file': {'<string>': 'alpha.two'},
+                                   'dep': [],
+                                   'key0': 'Baz',
+                                   'key1': 'Alpha',
+                                   'key1_v1': 'Hello',
+                                   'key1_v2': 'Bye',
+                                   'key2': 'Foo',
+                                   'key3': 'Bar',
+                                   'name': 'alpha.one.two',
+                                   'shortname': 'alpha.one.two',
+                                   'test01': 'Hello',
+                                   #'test02': '${key1_v1}',
+                                   #'test03': '${key1_v2}',
+                                   'test04': 'Bye',
+                                   #'test05': '${key1_v1}',
+                                   #'test06': '${key1_v2}',
+                                   #'test07': 'Bye',
+                                   #'test08': '${key1_v1}',
+                                   #'test09': '${key1_v2}',
+                                   #'test10': '${key2}',
+                                   #'test11': 'Bar',
+                                   'test12': 'Alpha',
+                                   #'test18': 'Alpha',
+                                   #'test19': '${key1_v1}',
+                                   #'test20': 'Bye',
+                                   #'test21': '${key2}',
+                                   #'test22': 'Bar',
+                                   'test100': 'Baz'},
+                                  {'_name_map_file': {'<string>': 'beta.two'},
+                                   '_short_name_map_file': {'<string>': 'beta.two'},
+                                   'dep': [],
+                                   'key0': 'Baz',
+                                   'key1_v1': 'Hello',
+                                   'key1_v2': 'Bye',
+                                   'key2': 'Foo',
+                                   'key3': 'Bar',
+                                   'name': 'beta.one.two',
+                                   'shortname': 'beta.one.two',
+                                   'test01': 'Hello',
+                                   #'test02': '${key1_v1}',
+                                   #'test03': '${key1_v2}',
+                                   'test04': 'Bye',
+                                   #'test05': '${key1_v1}',
+                                   #'test06': '${key1_v2}',
+                                   #'test13': 'Bye',
+                                   #'test14': '${key1_v1}',
+                                   #'test15': '${key1_v2}',
+                                   #'test16': '${key2}',
+                                   #'test17': 'Bar',
+                                   #'test18': 'Bye',
+                                   #'test19': '${key1_v1}',
+                                   #'test20': '${key1_v2}',
+                                   #'test21': '${key2}',
+                                   #'test22': 'Bar',
+                                   'test100': 'Baz'},
+                              ],
+                              True)
+
     def testHugeTest1(self):
         self._checkConfigDump('testcfg.huge/test1.cfg',
                               'testcfg.huge/test1.cfg.repr.gz')
