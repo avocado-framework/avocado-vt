@@ -37,10 +37,10 @@ from virttest import libvirt_version
 
 ARCH = platform.machine()
 
-CPU_TYPES = {"AuthenticAMD": ["EPYC-Rome", "EPYC", "Opteron_G5",
+CPU_TYPES = {"AuthenticAMD": ["EPYC-Milan", "EPYC-Rome", "EPYC", "Opteron_G5",
                               "Opteron_G4", "Opteron_G3", "Opteron_G2",
                               "Opteron_G1"],
-             "GenuineIntel": ["KnightsMill", "Cooperlake",
+             "GenuineIntel": ["Cooperlake",
                               "Icelake-Server", "Icelake-Server-noTSX",
                               "Icelake-Client", "Icelake-Client-noTSX",
                               "Cascadelake-Server", "Cascadelake-Server-noTSX",
@@ -50,7 +50,8 @@ CPU_TYPES = {"AuthenticAMD": ["EPYC-Rome", "EPYC", "Opteron_G5",
                               "Haswell", "Haswell-noTSX", "IvyBridge",
                               "SandyBridge", "Westmere", "Nehalem",
                               "Penryn", "Conroe"]}
-CPU_TYPES_RE = {"EPYC-Rome": "rdpid,wbnoinvd,stibp,clwb,umip",
+CPU_TYPES_RE = {"EPYC-Milan": "ibrs,pcid,ssbd,erms,fsrm,invpcid,pku",
+                "EPYC-Rome": "rdpid,wbnoinvd,stibp,clwb,umip",
                 "EPYC": "avx2,adx,bmi2,sha_ni",
                 "Opteron_G5": "f16c,fma4,xop,tbm",
                 "Opteron_G4": ("fma4,xop,avx,xsave,aes,sse4.2|sse4_2,"
@@ -58,7 +59,6 @@ CPU_TYPES_RE = {"EPYC-Rome": "rdpid,wbnoinvd,stibp,clwb,umip",
                 "Opteron_G3": "cx16,sse4a",
                 "Opteron_G2": "cx16",
                 "Opteron_G1": "",
-                "KnightsMill": "avx512_4vnniw,avx512pf,avx512er",
                 "Cooperlake": "avx512_bf16,stibp,arch_capabilities,hle,rtm",
                 "Icelake-Server": "avx512_vnni,la57,clflushopt,hle,rtm",
                 "Icelake-Server-noTSX": "avx512_vnni,la57,clflushopt",
