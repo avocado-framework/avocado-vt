@@ -56,3 +56,28 @@ def create_or_del_network(net_dict, is_del=False, remote_args=None):
                                        debug=True, ignore_status=True)
     if remote_virsh_session:
         remote_virsh_session.close_session()
+
+
+def check_established(params):
+    """
+    Parses netstat output for established connection on remote
+
+    :param params: the parameters used
+    """
+    port_to_check = params.get("port_to_check", "4915")
+
+    ipv6_config = "yes" == params.get("ipv6_config", "no")
+    if ipv6_config:
+        server_ip = params.get("ipv6_addr_des", "")[:17]
+        client_ip = params.get("ipv6_addr_src", "")[:17]
+    else:
+        server_ip = params.get("server_ip")
+        client_ip = params.get("client_ip")
+
+    cmd = "netstat -tunap|grep %s" % port_to_check
+    exp_msg = r".*%s:%s.*%s.*ESTABLISHED.*qemu-kvm.*" % (server_ip,
+                                                         port_to_check,
+                                                         client_ip)
+
+    cmdRes = remote.run_remote_cmd(cmd, params)
+    libvirt.check_result(cmdRes, expected_match=exp_msg)
