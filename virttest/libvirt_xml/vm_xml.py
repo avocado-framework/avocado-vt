@@ -170,7 +170,8 @@ class VMXMLBase(base.LibvirtXMLBase):
                  'on_poweroff', 'on_reboot', 'on_crash', 'features', 'mb',
                  'max_mem_unit', 'current_mem_unit', 'memtune', 'max_mem_rt',
                  'max_mem_rt_unit', 'max_mem_rt_slots', 'iothreads',
-                 'iothreadids', 'memory', 'perf', 'keywrap', 'sysinfo')
+                 'iothreadids', 'memory', 'memory_unit', 'perf', 'keywrap',
+                 'sysinfo')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
