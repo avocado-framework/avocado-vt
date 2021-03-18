@@ -28,3 +28,26 @@ def get_max_contr_indexes(vm_xml, cntlr_type, cntlr_model, cntl_num=1):
                                                          cntlr_model,
                                                          usable_indexes[:cntl_num]))
     return usable_indexes[:cntl_num]
+
+
+def get_free_pci_slot(vm_xml, max_slot=31):
+    """
+    Get a free slot on pcie-root controller
+
+    :param vm_xml The guest xml
+    :param max_slot: the maximum of slot to be selected
+
+    :return: str,the first free slot or None
+    """
+    used_slot = []
+    pci_devices = vmxml.xmltreefile.find('devices').getchildren()
+    for dev in pci_devices:
+        address = dev.find('address')
+        if (address is not None and address.get('bus') == '0x00'):
+            used_slot.append(address.get('slot'))
+    logging.debug("Collect used slot:%s", used_slot)
+    for slot_index in range(1, max_slot + 1):
+        slot = "%0#4x" % slot_index
+        if slot not in used_slot:
+            return slot
+    return None
