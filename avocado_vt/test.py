@@ -153,13 +153,6 @@ class VirtTest(test.Test):
             # Report the parent's value in such case.
             return super(VirtTest, self).params
 
-    @params.setter
-    def params(self, value):
-        """
-        For compatibility with 36lts we need to support setter on params
-        """
-        self.__params_vt = value
-
     @property
     def avocado_params(self):
         """
