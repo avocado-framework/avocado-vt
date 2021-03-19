@@ -188,18 +188,6 @@ class VirtTest(test.Test):
         """
         return None
 
-    def get_state(self):
-        """
-        Pre Avocado-60.0 used to override self.__params attribute and
-        requires special handling while reporting the state.
-
-        TODO: Remove when 52LTS is deprecated.
-        """
-        state = super(VirtTest, self).get_state()
-        if state["params"] == self.__params_vt:
-            state["params"] = self.avocado_params
-        return state
-
     def write_test_keyval(self, d):
         self.whiteboard = str(d)
 
