@@ -315,11 +315,6 @@ class VirtTest(test.Test):
     def _runTest(self):
         params = self.params
 
-        # If a dependency test prior to this test has failed, let's fail
-        # it right away as TestNA.
-        if params.get("dependency_failed") == 'yes':
-            raise exceptions.TestSkipError("Test dependency failed")
-
         # Report virt test version
         logging.info(version.get_pretty_version_info())
         # Report the parameters we've received and write them as keyvals
