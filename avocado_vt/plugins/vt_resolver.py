@@ -1,3 +1,5 @@
+import warnings
+
 from avocado.core.nrunner import Runnable
 from avocado.core.plugin_interfaces import Discoverer, Resolver
 from avocado.core.resolver import (ReferenceResolution,
@@ -38,6 +40,11 @@ class VTResolverUtils(DiscoveryMixIn):
         runnables = [self._parameters_to_runnable(d) for d in
                      cartesian_parser.get_dicts()]
         if runnables:
+            warnings.warn("The VT NextRunner is experimental and doesn't have "
+                          "current Avocado VT features")
+            if self.config.get("nrunner.max_parallel_tasks", 1) != 1:
+                warnings.warn("The VT NextRunner can be run only with "
+                              "nrunner-max-parallel-tasks set to 1")
             return ReferenceResolution(reference,
                                        ReferenceResolutionResult.SUCCESS,
                                        runnables)
