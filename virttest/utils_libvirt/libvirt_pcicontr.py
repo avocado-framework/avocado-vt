@@ -40,7 +40,7 @@ def get_free_pci_slot(vm_xml, max_slot=31):
     :return: str,the first free slot or None
     """
     used_slot = []
-    pci_devices = vmxml.xmltreefile.find('devices').getchildren()
+    pci_devices = vm_xml.xmltreefile.find('devices').getchildren()
     for dev in pci_devices:
         address = dev.find('address')
         if (address is not None and address.get('bus') == '0x00'):
