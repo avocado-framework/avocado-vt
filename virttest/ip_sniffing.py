@@ -5,7 +5,11 @@ IP sniffing facilities
 import threading
 import logging
 import re
-from collections import Iterable
+
+try:
+    from collections import Iterable
+except ImportError:
+    from collections.abc import Iterable
 
 import aexpect
 from aexpect.remote import handle_prompts

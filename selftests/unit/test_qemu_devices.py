@@ -793,6 +793,7 @@ fdc
 
         # Remove some devices
         # Remove based on aid
+        # pylint: disable=E1111
         out = qdev.remove('__6')
         self.assertEqual(out, None, 'Failed to remove device:\n%s\nRepr:\n%s'
                          % ('hba1__0', qdev.str_long()))
@@ -802,6 +803,7 @@ fdc
                           False)
 
         # Remove device which contains other devices (recursive)
+        # pylint: disable=E1111
         out = qdev.remove('hba1')
         self.assertEqual(out, None, 'Failed to remove device:\n%s\nRepr:\n%s'
                          % ('hba1', qdev.str_long()))

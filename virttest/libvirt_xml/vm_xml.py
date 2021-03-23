@@ -2737,7 +2737,7 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
         iothread_period:      int
         iothread_quota:       int
         global_period:        int
-        global_quota:         int       
+        global_quota:         int
     """
 
     __slots__ = ('vcpupins', 'emulatorpin', 'shares', 'period', 'quota',
@@ -2758,6 +2758,7 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
         accessors.XMLElementList('iothreadscheds', self, parent_xpath='/',
                                  marshal_from=self.marshal_from_iothreadscheds,
                                  marshal_to=self.marshal_to_iothreadscheds)
+        # pylint: disable=E1133
         for slot in self.__all_slots__:
             if slot in ('shares', 'period', 'quota', 'emulator_period',
                         'emulator_quota', 'iothread_period', 'iothread_quota',

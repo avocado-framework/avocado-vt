@@ -961,6 +961,7 @@ class iterparse(object):
 
     try:
         iter
+        # pylint: disable=E0301
 
         def __iter__(self):
             return self

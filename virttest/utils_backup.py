@@ -398,7 +398,7 @@ def clean_checkpoints(vm_name, clean_metadata=True, ignore_status=True):
                                         ignore_status=ignore_status)
 
 
-def enable_inc_backup_for_vm(vm, libvirt_ver=(7,0,0)):
+def enable_inc_backup_for_vm(vm, libvirt_ver=(7, 0, 0)):
     """
     For now, libvirt doesn't enable incremental backup by default. We
     need to edit vm's xml to make sure it's supported.

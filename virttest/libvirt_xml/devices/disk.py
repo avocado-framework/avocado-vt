@@ -364,6 +364,7 @@ class Disk(base.TypedDeviceBase):
                      'total_iops_sec', 'read_iops_sec', 'write_iops_sec')
 
         def __init__(self, virsh_instance=base.base.virsh):
+            # pylint: disable=E1133
             for slot in self.__all_slots__:
                 if slot in base.base.LibvirtXMLBase.__all_slots__:
                     continue    # don't add these
