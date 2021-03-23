@@ -415,6 +415,8 @@ class QemuImg(storage.QemuImg):
         "target_image_format": "-O",
         "convert_sparse_size": "-S",
         "rate_limit": "-r",
+        "convert_target_is_zero": "--target-is-zero",
+        "convert_backing_file": "-B",
         "commit_drop": "-d",
         "compare_strict_mode": "-s",
         "compare_second_image_format": "-F"
@@ -430,7 +432,8 @@ class QemuImg(storage.QemuImg):
                    "{convert_compressed!b} {skip_target_image_creation} "
                    "{image_format} {cache_mode} {source_cache_mode} "
                    "{target_image_format} {options} {convert_sparse_size} "
-                   "{rate_limit} "
+                   "{rate_limit} {convert_target_is_zero!b} "
+                   "{convert_backing_file} "
                    "{image_filename} {target_image_filename} "
                    "{target_image_opts}")
     commit_cmd = ("commit {secret_object} {image_format} {cache_mode} "
@@ -828,6 +831,11 @@ class QemuImg(storage.QemuImg):
             rate_limit
                 indicate rate limit for the convert process,
                 the unit is bytes per second
+            convert_target_is_zero
+                indicate that an existing target device will return
+                zeros for all reads
+            convert_backing_file
+                indicate that setting backing file to target image
         """
         convert_target = params["convert_target"]
         convert_params = params.object_params(convert_target)
@@ -836,6 +844,9 @@ class QemuImg(storage.QemuImg):
         convert_compressed = convert_params.get("convert_compressed")
         sparse_size = convert_params.get("sparse_size")
         rate_limit = convert_params.get("rate_limit")
+        convert_target_is_zero = convert_params.get_boolean(
+                "convert_target_is_zero")
+        convert_backing_file = convert_params.get("convert_backing_file")
 
         cmd_dict = {
             "convert_compressed": convert_compressed == "yes",
@@ -848,6 +859,8 @@ class QemuImg(storage.QemuImg):
             "cache_mode": cache_mode,
             "source_cache_mode": source_cache_mode,
             "skip_target_image_creation": "-n" if skip_target_creation else "",
+            "convert_target_is_zero": convert_target_is_zero,
+            "convert_backing_file": convert_backing_file,
             "target_image_opts": ""
         }
 
