@@ -352,15 +352,15 @@ class CmdSlave(object):
             self.basecmd._finished = True
             self.finish(commander)
         elif self.asynchronous:  # start command in new process
-            self.basecmd.results = self.__call_async__(commander)
+            self.basecmd.results = self.__call_async__(commander)  # pylint: disable=E1111
             self.basecmd._async = True
         elif self.nohup:   # start command in new daemon process
             if self.basecmd.cmd_hash is None:
                 self.basecmd.cmd_hash = gen_tmp_dir("/tmp")
-            self.basecmd.results = self.__call_nohup__(commander)
+            self.basecmd.results = self.__call_nohup__(commander)  # pylint: disable=E1111
             self.basecmd._async = True
         else:  # start command in new process but wait for input.
-            self.basecmd.results = self.__call_async__(commander)
+            self.basecmd.results = self.__call_async__(commander)  # pylint: disable=E1111
 
     def __call_async__(self, commander):
         (self.pid, self.r_pipe, self.w_pipe, self.stdin_pipe,
