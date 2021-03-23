@@ -2537,6 +2537,8 @@ class DevContainer(object):
             if not bus or bus == '<new>':
                 if bus_type == 'virtio-serial-device':
                     pci_bus = {'type': 'virtio-bus'}
+                elif bus_type == 'virtio-serial-ccw':
+                    pci_bus = None
                 else:
                     pci_bus = {'aobject': 'pci.0'}
                 if bus != '<new>':
