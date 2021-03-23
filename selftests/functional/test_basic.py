@@ -13,19 +13,12 @@ BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 BASE_DIR = os.path.abspath(BASE_DIR)
 
 TEST_STATUSES_PY = """from avocado.core import exceptions
-from autotest.client.shared import error
 import logging
 
 def run(test, params, env):
     result_param = params.get("result_param")
 
-    if result_param == "autotest_skip":
-        raise error.TestNAError("my skip")
-    elif result_param == "autotest_fail":
-        raise error.TestFail("my fail")
-    elif result_param == "autotest_error":
-        raise error.TestError("my error")
-    elif result_param == "other exception":
+    if result_param == "other exception":
         raise Exception("asefsadf")
     elif 'skip' in result_param:
         raise exceptions.TestSkipError("Test Skip")
@@ -55,14 +48,6 @@ TEST_STATUSES_CFG = """variants:
                 result_param = 'fail'
             - error:
                 result_param = 'error'
-            - autotest_skip:
-                result_param = 'autotest_skip'
-            - autotest_pass:
-                result_param = 'autotest_pass'
-            - autotest_fail:
-                result_param = 'autotest_fail'
-            - autotest_error:
-                result_param = 'autotest_error'
             - other_exception:
                 result_param = "other exception"
 
@@ -100,16 +85,11 @@ class BasicTests(unittest.TestCase):
         status = json.load(open(os.path.join(self.tmpdir, "latest",
                                              "results.json")))
         act_statuses = [_["status"] for _ in status["tests"]]
-        statuses_master = ["SKIP", "PASS", "FAIL", "ERROR", "CANCEL", "PASS",
-                           "FAIL", "ERROR", "ERROR"]
-        statuses_36lts = ["SKIP", "PASS", "FAIL", "ERROR", "SKIP", "PASS",
-                          "FAIL", "ERROR", "ERROR"]
-        if not (act_statuses == statuses_master or
-                act_statuses == statuses_36lts):
+        statuses_master = ["SKIP", "PASS", "FAIL", "ERROR", "ERROR"]
+        if not (act_statuses == statuses_master):
             self.fail("Test statuses does not match any of expected results:"
-                      "\nmaster: %s\n36lts: %s\nactual: %s\n\noutput:\n%s"
-                      % (statuses_master, statuses_36lts, act_statuses,
-                         result))
+                      "\nmaster: %s\nactual: %s\n\noutput:\n%s"
+                      % (statuses_master, act_statuses, result))
 
     def tearDown(self):
         for path in self.rm_files:
