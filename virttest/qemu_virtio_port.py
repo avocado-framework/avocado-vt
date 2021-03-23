@@ -61,7 +61,7 @@ class _VirtioPort(object):
         """
         Convert to text.
         """
-        return ("%s,%s,%s,%s,%d" % ("Socket", self.name, self.is_console,
+        return ("%s,%s,%s,%s,%s" % ("Socket", self.name, self.is_console,
                                     self.hostfile, self.is_open()))
 
     def __getstate__(self):

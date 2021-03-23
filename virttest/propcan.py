@@ -289,6 +289,7 @@ class PropCan(PropCanBase):
 
     def __len__(self):
         length = 0
+        # pylint: disable=E1133
         for key in self.__all_slots__:
             # special None/False value handling
             if self.__contains__(key):
@@ -314,6 +315,7 @@ class PropCan(PropCanBase):
 
     def keys(self):
         # special None/False value handling
+        # pylint: disable=E1133
         return [key for key in self.__all_slots__
                 if self.__contains__(key)]
 
