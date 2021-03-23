@@ -16,7 +16,6 @@
 Avocado VT plugin
 """
 
-import imp
 import logging
 import os
 import sys
@@ -37,28 +36,6 @@ from virttest import utils_misc
 from virttest import version
 
 from avocado_vt import utils
-
-
-# avocado-vt no longer needs autotest for the majority of its functionality,
-# except by:
-# 1) Run autotest on VMs
-# 2) Multi host migration
-# 3) Proper avocado-vt test status handling
-# As in those cases we might want to use autotest, let's have a way for
-# users to specify their autotest from a git clone location.
-AUTOTEST_PATH = None
-
-if 'AUTOTEST_PATH' in os.environ:
-    AUTOTEST_PATH = os.path.expanduser(os.environ['AUTOTEST_PATH'])
-    CLIENT_DIR = os.path.join(os.path.abspath(AUTOTEST_PATH), 'client')
-    SETUP_MODULES_PATH = os.path.join(CLIENT_DIR, 'setup_modules.py')
-    if not os.path.exists(SETUP_MODULES_PATH):
-        raise EnvironmentError("Although AUTOTEST_PATH has been declared, "
-                               "%s missing." % SETUP_MODULES_PATH)
-    SETUP_MODULES = imp.load_source('autotest_setup_modules',
-                                    SETUP_MODULES_PATH)
-    SETUP_MODULES.setup(base_path=CLIENT_DIR,
-                        root_module_name="autotest.client")
 
 
 def cleanup_env(env_filename, env_version):

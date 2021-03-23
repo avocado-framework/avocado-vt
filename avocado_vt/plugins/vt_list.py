@@ -27,25 +27,6 @@ from .vt import add_basic_vt_options, add_qemu_bin_vt_option
 from ..loader import VirtTestLoader
 
 
-# The original virt-test runner supports using autotest from a git checkout,
-# so we'll have to support that as well. The code below will pick up the
-# environment variable $AUTOTEST_PATH and do the import magic needed to make
-# the autotest library available in the system.
-AUTOTEST_PATH = None
-
-if 'AUTOTEST_PATH' in os.environ:
-    AUTOTEST_PATH = os.path.expanduser(os.environ['AUTOTEST_PATH'])
-    CLIENT_DIR = os.path.join(os.path.abspath(AUTOTEST_PATH), 'client')
-    SETUP_MODULES_PATH = os.path.join(CLIENT_DIR, 'setup_modules.py')
-    if not os.path.exists(SETUP_MODULES_PATH):
-        raise EnvironmentError("Although AUTOTEST_PATH has been declared, "
-                               "%s missing." % SETUP_MODULES_PATH)
-    import imp
-    SETUP_MODULES = imp.load_source('autotest_setup_modules',
-                                    SETUP_MODULES_PATH)
-    SETUP_MODULES.setup(base_path=CLIENT_DIR,
-                        root_module_name="autotest.client")
-
 # The code below is used by this plugin to find the virt test directory,
 # so that it can load the virttest python lib, used by the plugin code.
 # If the user doesn't provide the proper configuration, the plugin will
