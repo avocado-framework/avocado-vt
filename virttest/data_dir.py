@@ -201,7 +201,7 @@ def get_tmp_dir(public=True):
                                         default="")
     if persistent_dir != "":
         return persistent_dir
-    tmp_dir = None
+    tmp_dir = '/var/tmp'
     # apparmor deny /tmp/* /var/tmp/* and cause failure across tests
     # it is better to handle here
     if distro.detect().name == 'Ubuntu':
