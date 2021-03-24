@@ -489,6 +489,9 @@ class Monitor(object):
         """
         Return True if the monitor is responsive.
         """
+        if self._socket.fileno() < 0:
+            logging.warning("Monitor socket is already closed")
+            return False
         try:
             self.verify_responsive()
             return True
