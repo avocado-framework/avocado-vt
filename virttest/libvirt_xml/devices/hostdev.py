@@ -70,6 +70,10 @@ class Hostdev(base.TypedDeviceBase):
             if auth_args['auth_user']:
                 new_auth = new_one.new_auth(**auth_args)
                 new_one.auth = new_auth
+            initiator_args = {'iqn_id': dargs.pop('iqn_id', None)}
+            if initiator_args['iqn_id']:
+                new_initiator = new_one.new_initiator(**initiator_args)
+                new_one.initiator = new_initiator
         if dargs:
             new_address = new_one.new_untyped_address(**dargs)
             new_one.untyped_address = new_address
@@ -80,7 +84,7 @@ class Hostdev(base.TypedDeviceBase):
         __slots__ = ('untyped_address', 'vendor_id', 'product_id',
                      'adapter_name', 'protocol', 'source_name',
                      'host_name', 'host_port', 'auth', 'address_bus',
-                     'address_device')
+                     'address_device', 'initiator')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLAttribute('vendor_id', self, parent_xpath='/',
@@ -109,6 +113,10 @@ class Hostdev(base.TypedDeviceBase):
                                      tag_name='auth', subclass=self.Auth,
                                      subclass_dargs={
                                          'virsh_instance': virsh_instance})
+            accessors.XMLElementNest('initiator', self, parent_xpath='/',
+                                     tag_name='initiator', subclass=self.Initiator,
+                                     subclass_dargs={
+                                         'virsh_instance': virsh_instance})
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<source/>'
 
@@ -121,6 +129,13 @@ class Hostdev(base.TypedDeviceBase):
 
         def new_auth(self, **dargs):
             new_one = self.Auth(virsh_instance=self.virsh)
+            for key, value in list(dargs.items()):
+                if value:
+                    setattr(new_one, key, value)
+            return new_one
+
+        def new_initiator(self, **dargs):
+            new_one = self.Initiator(virsh_instance=self.virsh)
             for key, value in list(dargs.items()):
                 if value:
                     setattr(new_one, key, value)
@@ -167,3 +182,13 @@ class Hostdev(base.TypedDeviceBase):
                                        tag_name='secret', attribute='usage')
                 super(self.__class__, self).__init__(virsh_instance=virsh_instance)
                 self.xml = "<auth/>"
+
+        class Initiator(base.base.LibvirtXMLBase):
+
+            __slots__ = ('iqn_id',)
+
+            def __init__(self, virsh_instance=base.base.virsh, auth_user=""):
+                accessors.XMLAttribute('iqn_id', self, parent_xpath='/',
+                                       tag_name='iqn', attribute='name')
+                super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+                self.xml = "<initiator/>"
