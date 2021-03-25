@@ -2855,7 +2855,7 @@ class RemoteDiskManager(object):
                     return "/dev/%s" % device_name[0]
                 except IndexError:
                     raise exceptions.TestError("Can not find target '%s' after login."
-                                               % self.target)
+                                               % target_name)
         else:
             if target_name:
                 cmd = "iscsiadm --mode node --logout -T %s" % target_name
