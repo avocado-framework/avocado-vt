@@ -2831,6 +2831,20 @@ class RemoteDiskManager(object):
         return self.create_image(disk_type, occupied_path, occupied_size,
                                  vgname, "occupied", False, timeout)
 
+    def get_device_name(self, target_name):
+        """
+        Get device name from the target name.
+        """
+        cmd = "iscsiadm -m session -P 3"
+        output = self.runner.run(cmd).stdout_text
+        pattern = r"Target:\s+%s.*?disk\s(\w+)\s+\S+\srunning" % target_name
+        device_name = re.findall(pattern, output, re.S)
+        try:
+            return "/dev/%s" % device_name[0]
+        except IndexError:
+            raise exceptions.TestError("Can not find target '%s' after login."
+                                        % target_name)
+
     def iscsi_login_setup(self, host, target_name, is_login=True):
         """
         Login or logout to a target on remote host.
@@ -2847,15 +2861,7 @@ class RemoteDiskManager(object):
             if "successful" not in output:
                 raise exceptions.TestError("Login to %s failed." % target_name)
             else:
-                cmd = "iscsiadm -m session -P 3"
-                output = self.runner.run(cmd).stdout_text
-                pattern = r"Target:\s+%s.*?disk\s(\w+)\s+\S+\srunning" % target_name
-                device_name = re.findall(pattern, output, re.S)
-                try:
-                    return "/dev/%s" % device_name[0]
-                except IndexError:
-                    raise exceptions.TestError("Can not find target '%s' after login."
-                                               % target_name)
+                return self.get_device_name(target_name)
         else:
             if target_name:
                 cmd = "iscsiadm --mode node --logout -T %s" % target_name
