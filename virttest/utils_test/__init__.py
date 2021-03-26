@@ -2773,6 +2773,7 @@ class NetperfStressload(ServerClientStress):
 
 class RemoteDiskManager(object):
     """Control images on remote host"""
+    target = ""
 
     def __init__(self, params):
         remote_host = params.get("remote_ip")
@@ -2831,19 +2832,18 @@ class RemoteDiskManager(object):
         return self.create_image(disk_type, occupied_path, occupied_size,
                                  vgname, "occupied", False, timeout)
 
-    def get_device_name(self, target_name):
+    def get_device_name(self):
         """
         Get device name from the target name.
         """
         cmd = "iscsiadm -m session -P 3"
         output = self.runner.run(cmd).stdout_text
-        pattern = r"Target:\s+%s.*?disk\s(\w+)\s+\S+\srunning" % target_name
+        pattern = r"Target:\s+%s.*?disk\s(\w+)\s+\S+\srunning" % self.target
         device_name = re.findall(pattern, output, re.S)
         try:
             return "/dev/%s" % device_name[0]
         except IndexError:
-            raise exceptions.TestError("Can not find target '%s' after login."
-                                        % target_name)
+            logging.error("Can not find target '%s' after login." % self.target)
 
     def iscsi_login_setup(self, host, target_name, is_login=True):
         """
@@ -2861,7 +2861,13 @@ class RemoteDiskManager(object):
             if "successful" not in output:
                 raise exceptions.TestError("Login to %s failed." % target_name)
             else:
-                return self.get_device_name(target_name)
+                self.target = target_name
+                device_name = utils_misc.wait_for(self.get_device_name, 5)
+                if device_name:
+                    return device_name
+                else:
+                    raise exceptions.TestError("Can not find target '%s' after login."
+                                               % target_name)
         else:
             if target_name:
                 cmd = "iscsiadm --mode node --logout -T %s" % target_name
