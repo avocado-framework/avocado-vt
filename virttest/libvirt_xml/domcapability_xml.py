@@ -35,7 +35,8 @@ class DomCapabilityXML(base.LibvirtXMLBase):
         result = self.__dict_get__('virsh').domcapabilities()
         self['xml'] = result.stdout_text.strip()
 
-    def get_additional_feature_list(self, cpu_mode_name):
+    def get_additional_feature_list(self, cpu_mode_name,
+                                    ignore_features=("invtsc",)):
         """
         Get additional CPU features which explicitly specified by <feature>
         tag in cpu/mode[@name='host-model'] part of virsh domcapabilities.
@@ -65,6 +66,7 @@ class DomCapabilityXML(base.LibvirtXMLBase):
         </mode>
 
         :param cpu_mode_name: cpu mode name, must be 'host-model' since libvirt3.9
+        :param ignore_features: features that need to be ignored
         :return: list of features, feature is dict-like, feature name is set to dict key,
                  feature policy is set to dict value.
                  returen is like [{'ss': 'require'}, {'pdpe1gb', 'require'}]
@@ -78,9 +80,9 @@ class DomCapabilityXML(base.LibvirtXMLBase):
                     for feature in mode_node.findall('feature'):
                         item = {}
                         item[feature.get('name')] = feature.get('policy')
-                        # Feature invtsc doesn't support migration, so not add it to feature list
-                        if 'invtsc' not in item:
-                            feature_list.append(item)
+                        if ignore_features and item in ignore_features:
+                            continue
+                        feature_list.append(item)
         except AttributeError as elem_attr:
             logging.warn("Failed to find attribute %s" % elem_attr)
             feature_list = []

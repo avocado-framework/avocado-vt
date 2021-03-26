@@ -2101,7 +2101,8 @@ class VMCPUXML(base.LibvirtXMLBase):
         """
         cpu_xml = VMCPUXML()
         cpu_xml['model'] = domcaps_xml.get_hostmodel_name()
-        features = domcaps_xml.get_additional_feature_list('host-model')
+        features = domcaps_xml.get_additional_feature_list(
+                'host-model', ignore_features=None)
         feature_names = [name for f_list in [list(d.keys()) for d in features]
                          for name in f_list]
         for feature_name in feature_names:
