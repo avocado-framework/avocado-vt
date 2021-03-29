@@ -3544,6 +3544,21 @@ class VM(virt_vm.BaseVM):
         """
         return self.spice_options.get(spice_var, None)
 
+    def _get_bus(self, params, dtype=None, pcie=False):
+        """
+        Deal with different buses for multi-arch
+        """
+        if self.params.get("machine_type").startswith('s390'):
+            return self._get_ccw_bus()
+        else:
+            return self._get_pci_bus(params, dtype, pcie)
+
+    def _get_ccw_bus(self):
+        """
+        Get device parent bus for s390x
+        """
+        return {'aobject': 'virtual-css'}
+
     def _get_pci_bus(self, params, dtype=None, pcie=False):
         """
         Get device parent pci bus by dtype
@@ -3895,7 +3910,7 @@ class VM(virt_vm.BaseVM):
             pcie = False
         else:
             pcie = nic['nic_model'] not in ['e1000', 'rtl8139']
-        bus_spec = self._get_pci_bus(nic_params, 'nic', pcie)
+        bus_spec = self._get_bus(nic_params, 'nic', pcie)
         dev_params = {'id': device_id, "driver": nic.nic_model,
                       "netdev": nic.netdev_id}
         nic_dev = qdevices.QDevice(params=dev_params, parent_bus=(bus_spec,))

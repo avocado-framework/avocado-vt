@@ -1328,6 +1328,9 @@ class DevContainer(object):
             bus = (qdevices.QNoAddrCustomBus('bus', [['addr'], [64]],
                                              'virtio-blk-ccw', 'virtio-bus',
                                              'virtio-blk-ccw'),
+                   qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
+                                             'virtual-css', 'virtual-css',
+                                             'virtual-css'),
                    qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
                                     "vcpu"))
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
