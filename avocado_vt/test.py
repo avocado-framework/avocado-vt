@@ -152,13 +152,6 @@ class VirtTest(test.Test):
             # Report the parent's value in such case.
             return super(VirtTest, self).params
 
-    @params.setter
-    def params(self, value):
-        """
-        For compatibility with 36lts we need to support setter on params
-        """
-        self.__vt_params = value
-
     @property
     def avocado_params(self):
         """
@@ -186,18 +179,6 @@ class VirtTest(test.Test):
         individual VT tests do not map 1:1 to a file.
         """
         return None
-
-    def get_state(self):
-        """
-        Pre Avocado-60.0 used to override self.__params attribute and
-        requires special handling while reporting the state.
-
-        TODO: Remove when 52LTS is deprecated.
-        """
-        state = super(VirtTest, self).get_state()
-        if state["params"] == self.__vt_params:
-            state["params"] = self.avocado_params
-        return state
 
     def write_test_keyval(self, d):
         self.whiteboard = str(d)
