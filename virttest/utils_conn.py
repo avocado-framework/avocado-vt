@@ -2117,19 +2117,20 @@ class UNIXSocketConnection(ConnectionBase):
         for port_to_del in [self.desturi_port, self.migrateuri_port, self.disks_uri_port]:
             firewall_cmd.remove_port(port_to_del, 'tcp')
 
-    def install_qemu_kvm_pp(self, session, qemu_kvm_pp_path):
+    def install_qemu_kvm_pp(self, session, qemu_kvm_pp_path, timeout=240):
         """
         Install qemu-kvm module by semodule
 
         :param session: Session object
         :param qemu_kvm_pp_path: Path of qemu-kvm.pp file
+        :param timeout: Timeout to execute command lines
         """
         cmd = "semodule -l|grep qemu-kvm"
         status, output = session.cmd_status_output(cmd)
         if status:
             logging.debug("Active qemu-kvm policy.")
             cmd = "semodule -i %s" % qemu_kvm_pp_path
-            status, output = session.cmd_status_output(cmd)
+            status, output = session.cmd_status_output(cmd, timeout=timeout)
             if status:
                 logging.error("Unable to active SELinux policy module - "
                               "qemu-kvm! cmd: {} output: {}"
@@ -2137,17 +2138,18 @@ class UNIXSocketConnection(ConnectionBase):
             else:
                 self.remove_qemu_kvm_policy = True
 
-    def uninstall_qemu_kvm_pp(self, session):
+    def uninstall_qemu_kvm_pp(self, session, timeout=240):
         """
         Uninstall qemu-kvm module by semodule
 
         :param session: Session object
         :param qemu_kvm_pp_path: Path of qemu-kvm.pp file
+        :param timeout: Timeout to execute command lines
         """
         if self.remove_qemu_kvm_policy:
             logging.debug("Remove qemu-kvm policy.")
             cmd = "semodule -r qemu-kvm"
-            status, output = session.cmd_status_output(cmd)
+            status, output = session.cmd_status_output(cmd, timeout=timeout)
             if status:
                 raise ConnCmdClientError(cmd, output)
 
