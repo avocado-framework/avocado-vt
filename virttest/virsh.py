@@ -30,6 +30,9 @@ import time
 import select
 import locale
 import base64
+import inspect
+
+from functools import wraps
 
 import aexpect
 from aexpect import remote
@@ -619,6 +622,110 @@ class VirshConnectBack(VirshPersistent):
             bool(uri.count("127."))
         ]
         return True not in all_false
+
+
+class EventNotFoundError(Exception):
+    """
+    Error when certain event cannot be found.
+    """
+
+    def __init__(self, details=''):
+        self.details = details
+
+    def __str__(self):
+        return str(self.details)
+
+
+class EventTracker(object):
+
+    @staticmethod
+    def start_get_event(vm_name):
+        """
+        Use a virsh session with subcommand 'event' to catch events
+
+        :param vm_name: name of the vm to be catched
+        :return: the virsh session with 'event'
+        """
+        virsh_session = aexpect.ShellSession(VIRSH_EXEC)
+        event_cmd = 'event %s --all --loop' % vm_name
+        logging.info('Sending "%s" to virsh shell', event_cmd)
+        virsh_session.sendline(event_cmd)
+
+        return virsh_session
+
+    @staticmethod
+    def finish_get_event(virsh_session):
+        """
+        Stop virsh session and return the event output
+
+        Usage:
+        virsh_session = start_get_event(vm_name)
+        ####
+        virsh commands or other operations
+        ####
+        event_output = finish_get_event(virsh_session)
+
+        :param virsh_session: virsh session to catch events
+        :return: actual event output catched
+        """
+        virsh_session.send_ctrl("^C")
+        time.sleep(5)
+        event_output = virsh_session.get_stripped_output()
+        virsh_session.close()
+        logging.debug('Event output is %s:', event_output)
+
+        return event_output
+
+    @staticmethod
+    def wait_event(func):
+        """
+        Decorator aiming to return until certain type of virsh event defined
+        by func was found
+
+        Usage:
+        @EventTracker.wait_event
+        def func(xx, xx, ... wait_for_event=False,
+                 event_type='tray-change', event_timeout=7)
+
+        """
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+
+            def _get_arg_value(arg):
+                return kwargs.get(arg) if arg in kwargs else \
+                    inspect.signature(func).parameters[arg].default
+
+            def _get_event_output(session):
+                output = session.get_stripped_output()
+                logging.debug(output)
+                return output
+
+            wait_for_event = _get_arg_value('wait_for_event')
+            event_type = _get_arg_value('event_type')
+            event_timeout = _get_arg_value('event_timeout')
+
+            if wait_for_event is True and event_type is not None:
+                virsh_session = EventTracker.start_get_event(str(args[0]))
+                ret = func(*args, **kwargs)
+
+                if ret.exit_status:
+                    logging.error('Command execution failed. Skip waiting for event')
+                    virsh_session.close()
+                    return ret
+
+                if not utils_misc.wait_for(
+                        lambda: re.search(
+                            event_type,
+                            _get_event_output(virsh_session)
+                        ), event_timeout):
+                    raise EventNotFoundError('Not found event %s after %s seconds' %
+                                             (event_type, event_timeout))
+                virsh_session.close()
+                return ret
+            else:
+                return func(*args, **kwargs)
+
+        return wrapper
 
 
 # virsh module functions follow (See module docstring for API) #####
@@ -3189,14 +3296,17 @@ def cpu_stats(name, options, **dargs):
     return command(cmd, **dargs)
 
 
-def change_media(name, device, options, wait_change_event=False, event_timeout=7, **dargs):
+@EventTracker.wait_event
+def change_media(name, device, options, wait_for_event=False,
+                 event_type='tray-change', event_timeout=7, **dargs):
     """
     Change media of CD or floppy drive.
 
     :param name: VM's name.
     :param path: Fully-qualified path or target of disk device
     :param options: command change_media options.
-    :param wait_change_event: wait until device_change event comes
+    :param wait_for_event: wait until device_change event comes
+    :param event_type: type of the event
     :param event_timeout: timeout for virsh event command
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
@@ -3205,8 +3315,6 @@ def change_media(name, device, options, wait_change_event=False, event_timeout=7
     if options:
         cmd += " %s " % options
     change_media_result = command(cmd, **dargs)
-    if wait_change_event:
-        event(domain=name, event='tray-change', event_timeout=event_timeout, **dargs)
 
     return change_media_result
 
