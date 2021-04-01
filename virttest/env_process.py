@@ -790,43 +790,74 @@ def process(test, params, env, image_func, vm_func, vm_first=False, fs_source_fu
     :param vm_first: Call vm_func first or not.
     :param fs_source_func: A function to call for each filesystem source.
     """
+    err_message = "Error occurred during the postprocessing"
+    err_scopes = []
+
     def _call_vm_func():
+        scope = "vm"
         for vm_name in params.objects("vms"):
-            vm_params = params.object_params(vm_name)
-            vm_func(test, vm_params, env, vm_name)
+            try:
+                vm_params = params.object_params(vm_name)
+                vm_func(test, vm_params, env, vm_name)
+            except Exception:
+                if vm_first:    # postprocess
+                    logging.exception("%s of %s %s",
+                                      err_message, scope, vm_name)
+                    if scope not in err_scopes:
+                        err_scopes.append(scope)
+                else:           # preprocess
+                    raise
 
     def _call_image_func():
+        scope = "image"
         if params.get("skip_image_processing") == "yes":
             return
 
         if params.objects("vms"):
             for vm_name in params.objects("vms"):
-                vm_params = params.object_params(vm_name)
-                vm = env.get_vm(vm_name)
-                unpause_vm = False
-                if vm is None or vm.is_dead():
-                    vm_process_status = 'dead'
-                else:
-                    vm_process_status = 'running'
-                if vm is not None and vm.is_alive() and not vm.is_paused():
-                    vm.pause()
-                    unpause_vm = True
-                    vm_params['skip_cluster_leak_warn'] = "yes"
                 try:
-                    process_images(image_func, test, vm_params,
-                                   vm_process_status)
-                finally:
-                    if unpause_vm:
-                        vm.resume()
+                    vm_params = params.object_params(vm_name)
+                    vm = env.get_vm(vm_name)
+                    unpause_vm = False
+                    if vm is None or vm.is_dead():
+                        vm_process_status = 'dead'
+                    else:
+                        vm_process_status = 'running'
+                    if vm is not None and vm.is_alive() and not vm.is_paused():
+                        vm.pause()
+                        unpause_vm = True
+                        vm_params['skip_cluster_leak_warn'] = "yes"
+                    try:
+                        process_images(image_func, test, vm_params,
+                                       vm_process_status)
+                    finally:
+                        if unpause_vm:
+                            vm.resume()
+                except Exception:
+                    if vm_first:    # postprocess
+                        logging.exception("%s of %s (%s)",
+                                          err_message, scope, vm_name)
+                        if scope not in err_scopes:
+                            err_scopes.append(scope)
+                    else:           # preprocess
+                        raise
         else:
-            process_images(image_func, test, params)
+            try:
+                process_images(image_func, test, params)
+            except Exception:
+                if vm_first:    # postprocess
+                    logging.exception("%s of %s", err_message, scope)
+                    err_scopes.append(scope)
+                else:           # preprocess
+                    raise
 
     def _call_fs_source_func():
+        scope = "filesystem"
         if params.get("skip_fs_source_processing") == "yes":
             return
 
-        if params.objects("vms"):
-            for vm_name in params.objects("vms"):
+        for vm_name in params.objects("vms"):
+            try:
                 vm_params = params.object_params(vm_name)
                 if not vm_params.get('filesystems'):
                     continue
@@ -845,35 +876,60 @@ def process(test, params, env, image_func, vm_func, vm_first=False, fs_source_fu
                 finally:
                     if unpause_vm:
                         vm.resume()
+            except Exception:
+                if vm_first:    # postprocess
+                    logging.exception("%s of %s (%s)",
+                                      err_message, scope, vm_name)
+                    if scope not in err_scopes:
+                        err_scopes.append(scope)
+                else:           # preprocess
+                    raise
 
     def _call_check_image_func():
+        scope = "image check"
         if params.get("skip_image_processing") == "yes":
             return
 
         if params.objects("vms"):
             for vm_name in params.objects("vms"):
-                vm_params = params.object_params(vm_name)
-                vm = env.get_vm(vm_name)
-                unpause_vm = False
-                if vm is None or vm.is_dead():
-                    vm_process_status = 'dead'
-                else:
-                    vm_process_status = 'running'
-                if vm is not None and vm.is_alive() and not vm.is_paused():
-                    vm.pause()
-                    unpause_vm = True
-                    vm_params['skip_cluster_leak_warn'] = "yes"
                 try:
-                    images = params.objects("images")
-                    _process_images_serial(
-                        check_image, test, images, vm_params,
-                        vm_process_status=vm_process_status)
-                finally:
-                    if unpause_vm:
-                        vm.resume()
+                    vm_params = params.object_params(vm_name)
+                    vm = env.get_vm(vm_name)
+                    unpause_vm = False
+                    if vm is None or vm.is_dead():
+                        vm_process_status = 'dead'
+                    else:
+                        vm_process_status = 'running'
+                    if vm is not None and vm.is_alive() and not vm.is_paused():
+                        vm.pause()
+                        unpause_vm = True
+                        vm_params['skip_cluster_leak_warn'] = "yes"
+                    try:
+                        images = params.objects("images")
+                        _process_images_serial(
+                            check_image, test, images, vm_params,
+                            vm_process_status=vm_process_status)
+                    finally:
+                        if unpause_vm:
+                            vm.resume()
+                except Exception:
+                    if vm_first:    # postprocess
+                        logging.exception("%s of %s (%s)",
+                                          err_message, scope, vm_name)
+                        if scope not in err_scopes:
+                            err_scopes.append(scope)
+                    else:           # preprocess
+                        raise
         else:
-            images = params.objects("images")
-            _process_images_serial(check_image, test, images, params)
+            try:
+                images = params.objects("images")
+                _process_images_serial(check_image, test, images, params)
+            except Exception:
+                if vm_first:    # postprocess
+                    logging.exception("%s of %s", err_message, scope)
+                    err_scopes.append(scope)
+                else:           # preprocess
+                    raise
 
     # preprocess
     if not vm_first:
@@ -891,6 +947,9 @@ def process(test, params, env, image_func, vm_func, vm_first=False, fs_source_fu
             _call_image_func()
             if fs_source_func:
                 _call_fs_source_func()
+
+    if err_scopes:
+        raise RuntimeError("%s %s", err_message, ", ".join(err_scopes))
 
 
 @error_context.context_aware
