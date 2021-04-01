@@ -731,7 +731,9 @@ def get_cpu_info(session=None):
         output = process.run(cmd, ignore_status=True).stdout_text.splitlines()
     else:
         try:
-            output = session.cmd_output(cmd).splitlines()
+            output_raw = session.cmd_output(cmd)
+            output = re.sub('\n[\s]+', '', output_raw).splitlines()
+            logging.info("output is %s" % output)
         finally:
             session.close()
     cpu_info = dict(map(lambda x: [i.strip() for i in x.split(":", 1)], output))
