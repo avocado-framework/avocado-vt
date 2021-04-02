@@ -1418,7 +1418,7 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
     return check_pass
 
 
-def create_hostdev_xml(pci_id, boot_order=None, xmlfile=True,
+def create_hostdev_xml(pci_id, boot_order=None,
                        dev_type="pci", managed="yes", alias=None):
     """
     Create a hostdev configuration file; supported hostdev types:
@@ -1432,11 +1432,10 @@ def create_hostdev_xml(pci_id, boot_order=None, xmlfile=True,
     b. "1d6b:0002:001:002" for usb (vendor:product:bus:device)
     c. "0:0:0:1" for scsi (scsi_num:bus_num:target_num:unit_num)
     :param boot_order: boot order for hostdev device
-    :param xmlfile: Return the file path of xmlfile if True
     :param dev_type: type of hostdev
     :param managed: managed of hostdev
     :param alias: alias name of hostdev
-    :return: xml of hostdev device by default
+    :return: hostdev device object
     """
     hostdev_xml = hostdev.Hostdev()
     hostdev_xml.mode = "subsystem"
@@ -1477,9 +1476,8 @@ def create_hostdev_xml(pci_id, boot_order=None, xmlfile=True,
                     target=id_parts[2], unit=id_parts[3])))
 
     logging.debug("Hostdev XML:\n%s", str(hostdev_xml))
-    if not xmlfile:
-        return hostdev_xml
-    return hostdev_xml.xml
+
+    return hostdev_xml
 
 
 def add_controller(vm_name, contr):
@@ -1541,7 +1539,7 @@ def create_redirdev_xml(redir_type="spicevmc", redir_bus="usb",
     :param redir_bus: redirdev bus type
     :param redir_alias: redirdev alias name
     :param redir_params: others redir xml parameters
-    :return redirdev xml file
+    :return redirdev object
     """
     redir = redirdev.Redirdev(redir_type)
     redir.type = redir_type
@@ -1556,7 +1554,7 @@ def create_redirdev_xml(redir_type="spicevmc", redir_bus="usb",
     if redir_protocol:
         redir.protocol = eval(redir_protocol)
 
-    return redir.xml
+    return redir
 
 
 def alter_boot_order(vm_name, pci_id, boot_order=0):
