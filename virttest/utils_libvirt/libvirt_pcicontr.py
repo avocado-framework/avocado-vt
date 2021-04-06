@@ -6,6 +6,9 @@ Accommodate libvirt pci controller utility functions.
 
 import logging
 
+from virttest.utils_test import libvirt
+from virttest.libvirt_xml import vm_xml
+
 
 def get_max_contr_indexes(vm_xml, cntlr_type, cntlr_model, cntl_num=1):
     """
@@ -51,3 +54,30 @@ def get_free_pci_slot(vm_xml, max_slot=31):
         if slot not in used_slot:
             return slot
     return None
+
+
+def reset_pci_num(vm_name, num=15):
+    """
+    Reset the number of guest pci, add 15 by default
+
+    :param vm_name: VM name
+    :param num: The number of expected pci
+    """
+    vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
+    # This func only works on aarch64 and x86/q35 machine
+    if 'aarch64' in vmxml.os.arch \
+            or 'q35' in vmxml.os.machine:
+        # Default pcie setting
+        pcie_root_port = {'controller_model': 'pcie-root-port', 'controller_type': 'pci'}
+        ret_indexes = get_max_contr_indexes(vmxml, 'pci', 'pcie-root-port')
+        cur_pci_num = int(ret_indexes[0])
+        logging.debug("The current maximum PCI controller index is %d", cur_pci_num)
+        if cur_pci_num < num:
+            for i in list(range(cur_pci_num + 1, num)):
+                pcie_root_port.update({'controller_index': "%d" % i})
+                vmxml.add_device(libvirt.create_controller_xml(pcie_root_port))
+        else:
+            logging.info("Current pci number is greater than expected")
+
+    # synchronize XML
+    vmxml.sync()
