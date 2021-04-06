@@ -8,11 +8,10 @@ import sys
 _args = None
 
 
-@asyncio.coroutine
-def forward(reader, writer, prefix):
+async def forward(reader, writer, prefix):
     total = 0
     while True:
-        data = yield from reader.read(_args.blocksize)
+        data = await reader.read(_args.blocksize)
         if not data:
             break
         new_tot = total + len(data)
@@ -21,32 +20,30 @@ def forward(reader, writer, prefix):
         if _args.output:
             print(data.decode(encoding='ascii', errors='replace'))
         writer.write(data)
-        yield from writer.drain()
+        await writer.drain()
     print(f'{ prefix } close')
     writer.close()
 
 
-@asyncio.coroutine
-def handle_tcp_conn(reader1, writer1):
+async def handle_tcp_conn(reader1, writer1):
     """
     Call back function of tcp2unix
     """
     loop = asyncio.get_event_loop()
-    reader2, writer2 = yield from asyncio.open_unix_connection(_args.socket_path,
-                                                               loop=loop)
+    reader2, writer2 = await asyncio.open_unix_connection(_args.socket_path,
+                                                          loop=loop)
     loop.create_task(forward(reader1, writer2, '>'))
     loop.create_task(forward(reader2, writer1, '<'))
 
 
-@asyncio.coroutine
-def handle_unix_conn(reader1, writer1):
+async def handle_unix_conn(reader1, writer1):
     """
     Call back function of unix2tcp
     """
     loop = asyncio.get_event_loop()
-    reader2, writer2 = yield from asyncio.open_connection(_args.host,
-                                                          _args.port,
-                                                          loop=asyncio.get_event_loop())
+    reader2, writer2 = await asyncio.open_connection(_args.host,
+                                                     _args.port,
+                                                     loop=asyncio.get_event_loop())
     loop.create_task(forward(reader1, writer2, '>'))
     loop.create_task(forward(reader2, writer1, '<'))
 
