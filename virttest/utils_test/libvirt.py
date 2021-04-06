@@ -472,11 +472,11 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
     result = {}
     ubuntu = distro.detect().name == 'Ubuntu'
 
-    tmpdir = data_dir.get_tmp_dir()
+    base_dir = data_dir.get_data_dir()
     if not os.path.isabs(export_dir):
-        export_dir = os.path.join(tmpdir, export_dir)
+        export_dir = os.path.join(base_dir, export_dir)
     if not os.path.isabs(mount_dir):
-        mount_dir = os.path.join(tmpdir, mount_dir)
+        mount_dir = os.path.join(base_dir, mount_dir)
     result["export_dir"] = export_dir
     result["mount_dir"] = mount_dir
     result["selinux_status_bak"] = None
@@ -892,7 +892,7 @@ class PoolVolumeTest(object):
     """Test class for storage pool or volume"""
 
     def __init__(self, test, params):
-        self.tmpdir = data_dir.get_tmp_dir()
+        self.tmpdir = data_dir.get_data_dir()
         self.params = params
         self.selinux_bak = ""
 
