@@ -16,6 +16,7 @@ import platform
 import uuid
 import hashlib
 import shutil
+import json
 
 import aexpect
 from aexpect import remote
@@ -3703,6 +3704,34 @@ def get_linux_ifname(session, mac_address=""):
     # If we came empty handed, let's raise an error
     raise exceptions.TestError("Failed to determine interface name with "
                                "mac %s" % mac_address)
+
+
+def get_linux_iface_info(mac, session=None):
+    """
+    Get host/guest info of certain interface with given mac address.
+
+    :param mac: string type, mac address of given interface
+    :param session: session of given vm, default to None
+    :return: dict-type info of interface, None if not get any
+    """
+    ip_cmd = 'ip -json a'
+
+    try:
+        if session:
+            ip_output_str = session.cmd_output(ip_cmd).strip()
+        else:
+            ip_output_str = process.run(ip_cmd).stdout_text.strip()
+        ip_info = json.loads(ip_output_str)
+        logging.debug('interfaces inside vm:\n %s', ip_info)
+    except Exception as why:
+        logging.error('Failed to get interfaces inside vm. Reason: %s',
+                      str(why))
+        return None
+
+    for iface in ip_info:
+        if iface.get('address') == mac:
+            return iface
+    return None
 
 
 def update_mac_ip_address(vm, timeout=240):
