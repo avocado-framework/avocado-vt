@@ -2091,6 +2091,20 @@ class VMCPUXML(base.LibvirtXMLBase):
             pass  # Element already doesn't exist
         self.xmltreefile.write()
 
+    def remove_elem_by_xpath(self, xpath_to_remove, remove_all=True):
+        """
+        Remove a specified sub element from cpu configuration
+
+        :param xpath_to_remove:  str, like '/model' '/numa'
+        :param remove_all: bool, True to remove all findings,
+                                 False to remove only one finding
+        """
+        try:
+            self.xmltreefile.remove_by_xpath(xpath_to_remove, remove_all)
+        except (AttributeError, TypeError):
+            logging.info("Element '%s' already doesn't exist", xpath_to_remove)
+        self.xmltreefile.write()
+
     @staticmethod
     def from_domcapabilities(domcaps_xml):
         """
