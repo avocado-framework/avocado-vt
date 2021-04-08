@@ -557,8 +557,8 @@ class VM(virt_vm.BaseVM):
             cmd = " -chardev socket"
             cmd += _add_option("id", default_id)
             cmd += _add_option("path", filename)
-            cmd += _add_option("server", "NO_EQUAL_STRING")
-            cmd += _add_option("nowait", "NO_EQUAL_STRING")
+            cmd += _add_option("server", "on")
+            cmd += _add_option("wait", "off")
             cmd += " -device isa-debugcon"
             cmd += _add_option("chardev", default_id)
             cmd += _add_option("iobase", "0x402")
@@ -574,8 +574,8 @@ class VM(virt_vm.BaseVM):
             dev.set_param('backend', 'socket')
             dev.set_param('id', chardev_id)
             dev.set_param("path", filename)
-            dev.set_param("server", 'NO_EQUAL_STRING')
-            dev.set_param("nowait", 'NO_EQUAL_STRING')
+            dev.set_param("server", 'on')
+            dev.set_param("wait", 'off')
             devices.insert(dev)
             if '-mmio:' in params.get('machine_type'):
                 dev = QDevice('virtio-serial-device')
@@ -1043,13 +1043,14 @@ class VM(virt_vm.BaseVM):
             elif optget("spice_port") != "no":
                 set_value("port=%s", "spice_port")
 
-            set_value("password=%s", "spice_password", "disable-ticketing")
+            set_value("password=%s", "spice_password", "disable-ticketing=on")
             ip_ver = optget("listening_addr")
             if ip_ver:
                 host_ip = utils_net.get_host_ip_address(self.params, ip_ver)
                 spice_options['spice_addr'] = host_ip
-            set_yes_no_value(
-                "disable_copy_paste", yes_value="disable-copy-paste")
+            set_yes_no_value("disable_copy_paste",
+                             yes_value="disable-copy-paste=on",
+                             no_value="disable-copy-paste=off")
             set_value("addr=%s", "spice_addr")
 
             if optget("spice_ssl") == "yes":
@@ -1119,8 +1120,10 @@ class VM(virt_vm.BaseVM):
             set_value("agent-mouse=%s", "spice_agent_mouse")
             set_value("playback-compression=%s", "spice_playback_compression")
 
-            set_yes_no_value("spice_ipv4", yes_value="ipv4")
-            set_yes_no_value("spice_ipv6", yes_value="ipv6")
+            set_yes_no_value("spice_ipv4",
+                             yes_value="ipv4=on", no_value="ipv4=off")
+            set_yes_no_value("spice_ipv6",
+                             yes_value="ipv6=on", no_value="ipv6=off")
 
             return " -spice %s" % (",".join(spice_opts))
 
