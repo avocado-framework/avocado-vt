@@ -736,7 +736,12 @@ def get_cpu_info(session=None):
             logging.info("output is %s" % output)
         finally:
             session.close()
-    cpu_info = dict(map(lambda x: [i.strip() for i in x.split(":", 1)], output))
+    for line in output:
+        try:
+            key, value = line.split(':')
+            cpu_info[key.strip()] = value.strip()
+        except ValueError:
+            logging.debug('LINE: {} cannot be split.'.format(line))
     return cpu_info
 
 
