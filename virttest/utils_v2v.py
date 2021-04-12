@@ -6,18 +6,19 @@ Virt-v2v test utility functions.
 
 from __future__ import print_function
 
-import os
-import re
-import time
 import glob
 import logging
+import os
+import pwd
 import random
 import uuid
-import aexpect
+import re
 import shutil
+import time
+
+import aexpect
 
 from aexpect import remote
-
 from avocado.utils import path
 from avocado.utils import process
 from avocado.utils.astring import to_text
@@ -152,6 +153,8 @@ class Target(object):
         Target dispatcher.
         """
         self.params = params
+        self.unprivileged_user = params_get(params, 'unprivileged_user')
+        self.os_directory = params_get(params, 'os_directory')
         self.output_method = self.params.get('output_method', 'rhv')
         self.input_mode = self.params.get('input_mode')
         self.esxi_host = self.params.get(
@@ -258,7 +261,11 @@ class Target(object):
 
                     vddk_lib_prefix = 'vddklib_'
                     # General vddk directory
-                    vddk_lib_rootdir = os.path.expanduser('~/vddk_libdir')
+                    if self.unprivileged_user:
+                        home = pwd.getpwnam(self.unprivileged_user).pw_dir
+                        vddk_lib_rootdir = os.path.join(home, 'vddk_libdir')
+                    else:
+                        vddk_lib_rootdir = os.path.expanduser('~/vddk_libdir')
                     vddk_libdir = '%s/latest' % vddk_lib_rootdir
                     check_list = ['FILES',
                                   'lib64/libgvmomi.so',
@@ -403,18 +410,18 @@ class Target(object):
 
         Correspond to '-os DIRECTORY'.
         """
-        os_directory = self.params.get('os_directory')
-
-        if not os_directory:
-            os_directory = os.path.join(
+        if not self.os_directory:
+            self.os_directory = os.path.join(
                 data_dir.get_tmp_dir(), 'v2v_os_directory')
-            if not os.path.exists(os_directory):
-                os.makedirs(os_directory)
+            if not os.path.exists(self.os_directory):
+                os.makedirs(self.os_directory)
         # Pass the json directory to testcase for checking
-        self.params.get('params').update({'os_directory': os_directory})
+        self.params.get('params').update({'os_directory': self.os_directory})
 
-        logging.debug('The os directory(-os DIRECTORY) is %s.', os_directory)
-        return os_directory
+        logging.debug(
+            'The os directory(-os DIRECTORY) is %s.',
+            self.os_directory)
+        return self.os_directory
 
     def _get_libvirt_options(self):
         """
@@ -1255,6 +1262,14 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
             "item of params, like {'params': params}. "
             "If not, some latest functions may not work as expected.")
 
+    env_settings = params_get(params, 'env_settings')
+    unprivileged_user = params_get(params, 'unprivileged_user')
+    if unprivileged_user:
+        try:
+            pwd.getpwnam(unprivileged_user)
+        except KeyError:
+            process.system("useradd %s" % unprivileged_user)
+
     target = params.get('target')
     hypervisor = params.get('hypervisor')
     # vpx:// or esx://
@@ -1323,6 +1338,12 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
         if not cmd_has_ip:
             ip_ptn = [r'-ip \S+\s*', r'--password-file \S+\s*']
             cmd = cmd_remove_option(cmd, ip_ptn)
+
+        # For ENV settings
+        if env_settings:
+            cmd = env_settings + ' ' + cmd
+        if unprivileged_user:
+            cmd = "su - %s -c '%s'" % (unprivileged_user, cmd)
         # Save v2v command to params, then it can be passed to
         # import_vm_to_ovirt
         global_params.update({'v2v_command': cmd})
