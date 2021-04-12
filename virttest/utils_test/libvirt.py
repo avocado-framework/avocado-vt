@@ -1592,6 +1592,22 @@ def alter_boot_order(vm_name, pci_id, boot_order=0):
     vmxml.sync()
 
 
+def wait_for_file_over(patt, xml_file, timeout=10):
+    """
+    Wait for file write over with pattern
+
+    :param patt: pattern for grep in file to wait, eg '</disk>'
+    :param xml_file: file for writing xml
+    :param timeout: wait_for timeout
+    """
+
+    def file_write_over():
+        if not process.run("grep %s %s" % (patt, xml_file),
+                           ignore_status=True).exit_status:
+            return True
+    utils_misc.wait_for(file_write_over, timeout)
+
+
 def create_disk_xml(params):
     """
     Create a disk configuration file.
@@ -1757,11 +1773,7 @@ def create_disk_xml(params):
     utils_misc.wait_for(file_exists, 5)
 
     # Wait for file write over with '</disk>' keyword at the file end
-    def file_write_over():
-        if not process.run("grep '</disk>' %s" % diskxml.xml,
-                           ignore_status=True).exit_status:
-            return True
-    utils_misc.wait_for(file_write_over, 10)
+    wait_for_file_over('</disk>', diskxml.xml)
     return diskxml.xml
 
 
@@ -2074,6 +2086,7 @@ def create_nwfilter_xml(params):
 
         filterxml.xmltreefile.write()
         logging.info("The network filter xml is:\n%s" % filterxml)
+        wait_for_file_over('</filter>', filterxml.xml)
         return filterxml
 
     except Exception as detail:
@@ -3571,6 +3584,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
         vmxml.sync()
     elif oper == "get_xml":
         logging.info("iface xml is %s", iface)
+        wait_for_file_over('</interface>', iface.xml)
         return iface.xml
 
 
