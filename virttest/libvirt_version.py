@@ -5,6 +5,7 @@ Shared code for tests that need to get the libvirt version
 import re
 import logging
 
+from avocado.core import exceptions
 from avocado.utils import path
 from avocado.utils import process
 from avocado.utils.astring import to_text
@@ -64,3 +65,38 @@ def version_compare(major, minor, update, session=None):
     elif LIBVIRT_LIB_VERSION >= compare_version:
         return True
     return False
+
+
+def is_libvirt_feature_supported(params, ignore_error=False):
+    """
+    Check whether the function is supported in this libvirt version by comparing
+    the installed libvirt version
+
+    :param params: Dictionary with the test parameters
+    :param ignore_error: Whether to raise an exception
+    :raise: When ignore_error is set False, raise TestCancel if the feature is
+        not supported
+    :return: True if the feature is supported;
+        False if the feature is not supported when ignore_error is set to True
+
+    Example:
+    ::
+    params={'func_supported_since_libvirt_ver':'(6,8,0)'}
+
+    NOTE: The value of 'func_supported_since_libvirt_ver' is a string of
+        libvirt's (major, minor, update) version.
+    """
+    func_supported_since_libvirt_ver = eval(
+        params.get("func_supported_since_libvirt_ver", '()'))
+    unspported_err_msg = params.get("unspported_err_msg",
+                                    "This libvirt version doesn't support "
+                                    "this function.")
+
+    if func_supported_since_libvirt_ver:
+        if not version_compare(*func_supported_since_libvirt_ver):
+            if ignore_error:
+                logging.error(unspported_err_msg)
+                return False
+            else:
+                raise exceptions.TestCancel(unspported_err_msg)
+    return True
