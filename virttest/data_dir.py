@@ -144,6 +144,26 @@ def get_backend_cfg_path(backend_type, cfg_basename):
     return os.path.join(get_backend_dir(backend_type), 'cfg', cfg_basename)
 
 
+def get_fs_type(abs_path):
+    """
+    Determines the file system type for an existing
+    absolute path inspecting /proc/mounts
+    """
+    res = None
+    dev = os.lstat(abs_path).st_dev
+    with open("/proc/mounts", "r") as f:
+        for line in f:
+            # lines are device, mountpoint, filesystem, <rest>
+            line = [s for s in line.split()[:3]]
+            try:
+                if dev == os.lstat(line[1]).st_dev:
+                    res = line[2]
+                    break
+            except OSError as err:
+                continue
+    return res
+
+
 def get_deps_dir(target=None):
     """
     For a given test provider, report the appropriate deps dir.
@@ -194,6 +214,8 @@ def get_deps_dir(target=None):
 def get_tmp_dir(public=True):
     """
     Get the most appropriate tmp dir location.
+    For heavy usages like test images or requiring direct access
+    please consider using some path below data_dir instead.
 
     :param public: If public for all users' access
     """
@@ -215,6 +237,11 @@ def get_tmp_dir(public=True):
         tmp_dir_st = os.stat(tmp_dir)
         os.chmod(tmp_dir, tmp_dir_st.st_mode | stat.S_IXUSR |
                  stat.S_IXGRP | stat.S_IXOTH | stat.S_IRGRP | stat.S_IROTH)
+    if "tmpfs" == get_fs_type(tmp_dir):
+        logging.warning("tmp_dir is type tmpfs. This might lead to issues"
+                        " e.g. when requiring direct access. Please, consider"
+                        " using data_dir or configuring another path in vt.common")
+
     return tmp_dir
 
 
