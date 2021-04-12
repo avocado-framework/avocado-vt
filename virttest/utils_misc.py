@@ -2320,6 +2320,28 @@ def get_free_mem(session, os_type):
     return int(free)
 
 
+def get_cache_mem(session, os_type):
+    """
+    Get cache memory for given OS.
+
+    :param session: shell Object.
+    :param os_type: os type (eg. linux or windows)
+
+    :return: memory cache M-bytes
+    """
+    if os_type == "windows":
+        cmd_get_cache = 'powershell -command "get-ciminstance -classname'
+        cmd_get_cache += ' win32_perfrawdata_perfos_memory |select CacheBytes"'
+        output = session.cmd_output(cmd_get_cache)
+        cache = re.findall("\d+", output)[0]
+    else:
+        cache = (get_mem_info(session, 'Cached') +
+                 get_mem_info(session, 'Buffers'))
+        cache = "%s kB" % cache
+    cache = int(normalize_data_size(cache, order_magnitude="M"))
+    return cache
+
+
 def get_mem_info(session=None, attr='MemTotal'):
     """
     Get memory information attributes in host/guest
