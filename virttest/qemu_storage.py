@@ -1505,6 +1505,17 @@ class QemuImg(storage.QemuImg):
                    Default is "off"
                amend_refcount_bits
                    width of a reference count entry in bits
+               amend_keyslot
+                   keyslot for the password, allowed values: between 0 and 7
+               amend_state
+                   the state for the keyslot,
+                   allowed values: active and inactive
+               amend_new-secret
+                   the new secret object for the password,
+                   used for adding a new password
+               amend_old-secret
+                   the old secret object for the password,
+                   used for erasing an existing password
                amend_extra_params
                    additional options, used for extending amend
 
@@ -1512,16 +1523,31 @@ class QemuImg(storage.QemuImg):
                 command
         """
         cmd_list = [self.image_cmd, 'amend']
-        options = ["%s=%s" % (key[6:], val) for key, val in six.iteritems(params)
-                   if key.startswith('amend_')]
+        secret_objects = self._secret_objects
+        if secret_objects:
+            # add a secret object, use for adding and erasing password
+            sec_id = params["amend_secret_id"]
+            sec_data = params["amend_secret_data"]
+            secret_obj_str = "--object secret,id=%s,data=%s" % (sec_id, sec_data)
+            secret_objects.append(secret_obj_str)
+            cmd_list.append(" ".join(secret_objects))
+        options = []
+        for key, val in six.iteritems(params):
+            if key.startswith('amend_') and \
+                    key not in ["amend_secret_id", "amend_secret_data"]:
+                options.append("%s=%s" % (key[6:], val))
         if cache_mode:
             cmd_list.append("-t %s" % cache_mode)
         if options:
             cmd_list.append("-o %s" %
                             ",".join(options).replace("extra_params=", ""))
-        cmd_list.append("-f %s %s" % (self.image_format, self.image_filename))
+        if self.encryption_config.key_secret:
+            cmd_list.append("'%s'" % get_image_json(self.tag,
+                                                    self.params, self.root_dir))
+        else:
+            cmd_list.append("-f %s %s" % (self.image_format, self.image_filename))
         logging.info("Amend image %s" % self.image_filename)
-        cmd_result = process.run(" ".join(cmd_list), ignore_status=False)
+        cmd_result = process.run(" ".join(cmd_list), ignore_status=ignore_status)
         return cmd_result
 
     def resize(self, size, shrink=False, preallocation=None):
