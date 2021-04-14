@@ -2338,8 +2338,8 @@ def get_cache_mem(session, os_type):
         cache = (get_mem_info(session, 'Cached') +
                  get_mem_info(session, 'Buffers'))
         cache = "%s kB" % cache
-    cache = int(normalize_data_size(cache, order_magnitude="M"))
-    return cache
+    cache = float(normalize_data_size(cache, order_magnitude="M"))
+    return int(cache)
 
 
 def get_mem_info(session=None, attr='MemTotal'):
