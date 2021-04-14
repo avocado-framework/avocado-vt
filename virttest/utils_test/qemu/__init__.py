@@ -512,6 +512,22 @@ class MemoryBaseTest(object):
         finally:
             session.close()
 
+    @classmethod
+    def get_guest_cache_mem(cls, vm):
+        """
+        Guest OS reported cache memory size in MB.
+
+        :param vm: VM Object
+        :return: memory cache report by guest OS in MB
+        """
+        os_type = vm.params.get("os_type")
+        timeout = float(vm.params.get("login_timeout", 600))
+        try:
+            session = vm.wait_for_login(timeout=timeout)
+            return utils_misc.get_cache_mem(session, os_type)
+        finally:
+            session.close()
+
     def get_session(self, vm):
         """
         Get connection to VM.
