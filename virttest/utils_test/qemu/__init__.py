@@ -107,13 +107,19 @@ def _check_driver_verifier(session, driver, verifier_flags=None, timeout=300):
     Check driver verifier status
 
     :param session: VM session.
-    :param driver: The driver need to query
+    :param driver: The driver need to query,
+                   you can check one or more drivers.
     :param timeout: Timeout in seconds
     """
+
     logging.info("Check %s driver verifier status" % driver)
     query_cmd = "verifier /querysettings"
     output = session.cmd_output(query_cmd, timeout=timeout)
-    status = driver in output
+    status = True
+    for drv in driver.split():
+        if (drv + ".sys") not in output:
+            status = False
+            break
     if verifier_flags:
         status &= bool(re.findall(r"%s" % verifier_flags, output, re.I))
     return (status, output)
@@ -124,7 +130,8 @@ def setup_win_driver_verifier(session, driver, vm, timeout=300):
     """
     Enable driver verifier for windows guest.
 
-    :param driver: The driver which needs enable the verifier.
+    :param driver: The driver which needs enable the verifier,
+                   you can enable one or more driver files verifier.
     :param vm: VM object.
     :param timeout: Timeout in seconds.
     """
@@ -137,9 +144,10 @@ def setup_win_driver_verifier(session, driver, vm, timeout=300):
                               logging.info)
         if win_verifier_flags:
             verifier_setup_cmd = "verifier /flags %s /driver %s.sys" % (
-                                 win_verifier_flags, driver)
+                                 win_verifier_flags, ".sys ".join(driver.split()))
         else:
-            verifier_setup_cmd = "verifier /standard /driver %s.sys" % driver
+            verifier_setup_cmd = "verifier /standard /driver %s.sys" % (
+                                 ".sys ".join(driver.split()))
         session.cmd(verifier_setup_cmd, timeout=timeout, ignore_all_errors=True)
         session = vm.reboot(session)
         verifier_status, output = _check_driver_verifier(session, driver,
@@ -194,12 +202,13 @@ def windrv_verify_running(session, test, driver, timeout=300):
             return True
         return False
 
-    error_context.context("Check %s driver state." % driver, logging.info)
-    driver_check_cmd = (r'wmic sysdriver where PathName="C:\\Windows\\System32'
-                        r'\\drivers\\%s.sys" get State /value') % driver
+    for drv in driver.split():
+        error_context.context("Check %s driver state." % drv, logging.info)
+        driver_check_cmd = (r'wmic sysdriver where PathName="C:\\Windows\\System32'
+                            r'\\drivers\\%s.sys" get State /value') % drv
 
-    if not utils_misc.wait_for(_check_driver_stat, timeout, 0, 5):
-        test.error("%s driver is not running" % driver)
+        if not utils_misc.wait_for(_check_driver_stat, timeout, 0, 5):
+            test.error("%s driver is not running" % drv)
 
 
 @error_context.context_aware
