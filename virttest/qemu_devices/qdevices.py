@@ -1560,7 +1560,7 @@ class CharDevice(QCustomDevice):
             special_opts.append("signal")
 
         elif backend in ["socket"]:
-            common_opts += ["server", "nowait", "reconnect"]
+            common_opts += ["server", "wait", "reconnect"]
             special_opts = ["host", "port", "to", "ipv4",
                             "ipv6", "nodelay", "path"]
 
@@ -1580,17 +1580,12 @@ class CharDevice(QCustomDevice):
         :param params: chardev test params.
         :return dict: formated params only include suppprt options.
         """
-        for opt in ["server", "telnet", "nowait",
-                    "ipv4", "ipv6", "nodelay"]:
-            if params.get(opt) in ["yes", "on", True]:
-                params[opt] = "NO_EQUAL_STRING"
-            elif opt in params:
-                del params[opt]
-        for opt in ["mux", "signal"]:
-            if params.get(opt) in ["yes", "on", True]:
-                params[opt] = True
-            elif params.get(opt) in ["no", "off", False]:
-                params[opt] = False
+        for opt in ["server", "telnet", "wait",
+                    "ipv4", "ipv6", "nodelay", "mux", "signal"]:
+            if params.get(opt) in ["yes", "on"]:
+                params[opt] = "on"
+            elif params.get(opt) in ["no", "off"]:
+                params[opt] = 'off'
             elif opt in params:
                 del params[opt]
 
@@ -1618,15 +1613,12 @@ class CharDevice(QCustomDevice):
             if addr_type == "inet":
                 sock_params = ["telnet", "ipv4", "ipv6", "nodelay"]
             else:
-                sock_params = ["server", "nowait"]
+                sock_params = ["server", "wait"]
 
             for param in sock_params:
                 if self.get_param(param) is None:
                     continue
                 value = True if self.get_param(param) else False
-                if param == "nowait":
-                    value = not value
-                    param = "wait"
                 args["backend"]["data"][param] = value
             return args
 

@@ -2596,7 +2596,7 @@ class DevContainer(object):
 
         # Arm lists "isa-serial" as supported but can't use it,
         # fallback to "-serial"
-        legacy_cmd = " -serial unix:'%s',server,nowait" % file_name
+        legacy_cmd = " -serial unix:'%s',server=on,wait=off" % file_name
         legacy_dev = qdevices.QStringDevice('SER-%s' % serial_id,
                                             cmdline=legacy_cmd)
         arm_serial = (serial_type == 'isa-serial'
@@ -2652,8 +2652,8 @@ class DevContainer(object):
             chardev_param.update({'to': params.get('chardev_to')})
         if 'socket' in backend:  # tcp_socket & unix_socket
             chardev_param.update(
-                {'server': params.get('chardev_server', 'yes'),
-                 'nowait': params.get('chardev_nowait', 'yes')})
+                {'server': params.get('chardev_server', 'on'),
+                 'wait': params.get('chardev_wait', 'off')})
         elif backend in ['spicevmc', 'spiceport']:
             chardev_param.update(
                 {'debug': params.get('chardev_debug'),
