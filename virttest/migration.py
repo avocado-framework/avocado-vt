@@ -359,6 +359,9 @@ class MigrationTest(object):
         if not self.RET_MIGRATION and not ignore_status:
             raise exceptions.TestFail()
 
+        logging.info("Checking migration result...")
+        self.check_result(self.ret, args)
+
     def cleanup_dest_vm(self, vm, srcuri, desturi):
         """
         Cleanup migrated vm on remote host.
@@ -373,6 +376,20 @@ class MigrationTest(object):
                 vm.destroy(gracefully=False)
         # Set connect uri back to local uri
         vm.connect_uri = srcuri
+
+    def cleanup_vm(self, vm, desturi):
+        """
+        Cleanup migrated vm on remote host and local host
+
+        :param vm: vm object
+        :param desturi: uri for remote access
+        """
+        try:
+            self.cleanup_dest_vm(vm, vm.connect_uri, desturi)
+        except Exception as err:
+            logging.error(err)
+        if vm.is_alive():
+            vm.destroy(gracefully=False)
 
     def wait_for_migration_start(self, vm, state='paused', uri=None,
                                  migrate_options='', timeout=60):
@@ -424,6 +441,28 @@ class MigrationTest(object):
         for arg in args_list:
             if arg and arg.count("EXAMPLE"):
                 raise exceptions.TestCancel("Please assign a value for %s!" % arg)
+
+    def update_virsh_migrate_extra_args(self, params):
+        """
+        Update extra arguments for the function executed during migration
+
+        :param params: the parameters used
+        :return: the updated extra arguments
+        """
+        func_params_exists = "yes" == params.get(
+            "action_during_mig_params_exists", "no")
+
+        extra_args = {}
+        if func_params_exists:
+            if params.get("action_during_mig_params"):
+                extra_args.update({'func_params': eval(
+                    params.get("action_during_mig_params"))})
+            else:
+                extra_args.update({'func_params': params})
+
+        extra_args.update({'status_error': params.get("status_error", "no")})
+        extra_args.update({'err_msg': params.get("err_msg")})
+        return extra_args
 
     def check_result(self, result, params):
         """
