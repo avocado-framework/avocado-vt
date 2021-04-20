@@ -1063,16 +1063,23 @@ class DevContainer(object):
                 first_image = images[0]
                 img_params = params.object_params(first_image)
                 img_params["backing_chain"] = "no"
-                img_info = json.loads(qemu_storage.QemuImg(img_params,
-                                                           current_data_dir,
-                                                           first_image).info(True, "json"))
-                img_path, img_name = os.path.split(img_info.get("filename"))
+                img_obj = qemu_storage.QemuImg(img_params,
+                                               current_data_dir, first_image)
+                img_info = json.loads(img_obj.info(True, "json"))
+                if img_obj.is_remote_image():
+                    pflash_vars_name = "%s_%s_%s_%s_VARS.fd" % \
+                        (self.vmname, params['guest_name'],
+                         params['image_backend'], img_info.get("format"))
+                    pflash_vars_path = os.path.join(current_data_dir,
+                                                    pflash_vars_name)
+                else:
+                    img_path, img_name = os.path.split(img_info.get("filename"))
 
-                pflash_vars_name = "%s_%s_VARS.fd" % (self.vmname, img_name)
-                pflash_vars_path = os.path.join(img_path, pflash_vars_name)
-                # When image has backing files, treat it as a temporary image
-                if "backing-filename" in img_info:
-                    self.temporary_image_snapshots.add(pflash_vars_path)
+                    pflash_vars_name = "%s_%s_VARS.fd" % (self.vmname, img_name)
+                    pflash_vars_path = os.path.join(img_path, pflash_vars_name)
+                    # When image has backing files, treat it as a temporary image
+                    if "backing-filename" in img_info:
+                        self.temporary_image_snapshots.add(pflash_vars_path)
 
                 pflash0, pflash1 = (firmware_name + '_code',
                                     firmware_name + '_vars')
