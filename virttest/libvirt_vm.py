@@ -2955,7 +2955,8 @@ class VM(virt_vm.BaseVM):
             logging.error("Removal of package %s failed", name)
         session.close()
 
-    def prepare_guest_agent(self, prepare_xml=True, channel=True, start=True):
+    def prepare_guest_agent(self, prepare_xml=True, channel=True, start=True,
+                            source_path=None, target_name='org.qemu.guest_agent.0'):
         """
         Prepare qemu guest agent on the VM.
 
@@ -2963,15 +2964,31 @@ class VM(virt_vm.BaseVM):
         :param channel: Whether add agent channel in VM. Only valid if
                         prepare_xml is True
         :param start: Whether install and start the qemu-ga service
+        :param source_path: Source path of the guest agent channel
+        :param target_name: Target name of the guest agent channel
         """
         if prepare_xml:
+            if self.is_alive():
+                self.destroy()
             vmxml = libvirt_xml.VMXML.new_from_inactive_dumpxml(self.name)
-            # Check if we need to change XML of VM.
-            if channel != bool(vmxml.get_agent_channels()):
-                if self.is_alive():
-                    self.destroy()
+            # Check if we need to change XML of VM by checking
+            # whether the agent is existing.
+            is_existing = False
+            ga_channels = vmxml.get_agent_channels()
+            for chnl in ga_channels:
+                name = chnl.find('./target').get('name')
+                try:
+                    path = chnl.find('./source').get('path')
+                except AttributeError:
+                    path = None
+                if (name == target_name and path == source_path):
+                    is_existing = True
+                break
+
+            if channel != is_existing:
                 if channel:
-                    vmxml.set_agent_channel()
+                    vmxml.set_agent_channel(src_path=source_path,
+                                            tgt_name=target_name)
                 else:
                     vmxml.remove_agent_channels()
                 vmxml.sync()
