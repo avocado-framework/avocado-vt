@@ -55,6 +55,19 @@ class BackupTLSError(BackupError):
         return "Backup TLS failure: %s" % self.error_info
 
 
+class BackupCanceledError(BackupError):
+
+    """
+    Class of backup canceled exception
+    """
+
+    def __init__(self):
+        BackupError.__init__(self)
+
+    def __str__(self):
+        return "Backup job canceled"
+
+
 def create_checkpoint_xml(cp_params, disk_param_list=None):
     """
     Create a checkpoint xml
@@ -433,3 +446,20 @@ def enable_inc_backup_for_vm(vm, libvirt_ver=(7, 0, 0)):
     virsh.define(tmp_vm_xml)
     vmxml_updated = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
     return vmxml_updated
+
+
+def is_backup_canceled(vm_name):
+    """
+    Check if a backup job canceled.
+
+    :param vm_name: vm's name
+    :return: True means a backup job is ccanceled, False means not.
+    """
+    virsh_output = virsh.domjobinfo(vm_name,
+                                    extra="--completed",
+                                    debug=True).stdout_text
+    if virsh_output:
+        virsh_output = virsh_output.lower()
+        if "backup" in virsh_output and "cancel" in virsh_output:
+            return True
+    return False
