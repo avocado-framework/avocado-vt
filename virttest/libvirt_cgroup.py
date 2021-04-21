@@ -195,6 +195,11 @@ class CgroupTest(object):
                     cg_file_value = cg_file.read().strip()
                     if cg_file_value == max_cpu_value:
                         cg_file_value = "max"
+                    if "quota" in cg_key:
+                        if cg_file_value in ["-1", "18446744073709551",
+                                             "17592186044415"]:
+                            standardized_cgroup_info[cg_key] = "max"
+                            continue
                     standardized_cgroup_info[cg_key] = cg_file_value
         else:
             logging.error("You've provided a wrong virsh cmd: %s", virsh_cmd)
@@ -291,6 +296,19 @@ class CgroupTest(object):
             logging.error("There is no virsh cmd '%s'", virsh_cmd)
             return None
         result = func(vm_name, ignore_status=True)
+        return self.convert_virsh_output_to_dict(result)
+
+    def convert_virsh_output_to_dict(self, result):
+        """
+        Convert virsh command output to a dict.
+        This method is only applicable to the virsh command
+        with ':' in the output for now.
+
+        :param result: Virsh command's result.
+            For example, the result of virsh schedinfo, blkiotune, memtune.
+
+        :return: The virsh cmd output, as a dict.
+        """
         output = result.stdout_text.strip()
         output_list = output.splitlines()
         output_dict = {}
