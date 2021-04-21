@@ -534,7 +534,7 @@ def setup_or_cleanup_iscsi(is_setup, is_login=True,
     :param chap_passwd: CHAP authentication password
     :return: iscsi device name or iscsi target
     """
-    tmpdir = data_dir.get_tmp_dir()
+    tmpdir = data_dir.get_data_dir()
     emulated_path = os.path.join(tmpdir, emulated_image)
     emulated_target = ("iqn.%s.com.virttest:%s.target" %
                        (time.strftime("%Y-%m"), emulated_image))
@@ -2492,7 +2492,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     if disk_model:
         disk_params['model'] = disk_model
     if not tmp_dir:
-        tmp_dir = data_dir.get_tmp_dir()
+        tmp_dir = data_dir.get_data_dir()
 
     # gluster only params
     vol_name = params.get("vol_name")
@@ -2567,7 +2567,6 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
             # create another disk without convert
             disk_cmd = "qemu-img create -f %s /mnt/%s 10M" % (src_disk_format,
                                                               dist_img)
-
         # Mount the gluster disk and create the image.
         process.run("mount -t glusterfs %s:%s /mnt; %s; umount /mnt"
                     % (host_ip, vol_name, disk_cmd), shell=True)
