@@ -80,3 +80,42 @@ def create_primitive_disk_xml(type_name, disk_device, device_target, device_bus,
         disk_xml.auth = disk_xml.new_auth(**disk_auth_dict)
     logging.debug("new disk xml in create_primitive_disk is: %s", disk_xml)
     return disk_xml
+
+
+def create_custom_metadata_disk(disk_path, disk_format,
+                                disk_device, device_target, device_bus, max_size, disk_inst=None):
+    """
+    Create another disk for a given path,customize driver metadata attribute
+
+    :param disk_path: the path of disk
+    :param disk_format: the format to disk image
+    :param disk_device: the disk device type
+    :param device_target: the target of disk
+    :param device_bus: device bus
+    :param max_size: metadata_cache max size
+    :param disk_inst: disk instance
+    :return: disk object if created or updated successfully
+    """
+    if disk_inst:
+        custom_disk = disk_inst
+    else:
+        custom_disk = Disk(type_name='file')
+    if disk_device:
+        custom_disk.device = disk_device
+    source_dict = {}
+    if disk_path:
+        source_dict.update({'file': disk_path})
+    custom_disk.source = custom_disk.new_disk_source(
+        **{"attrs": source_dict})
+    if device_target:
+        target_dict = {"dev": device_target, "bus": device_bus}
+        custom_disk.target = target_dict
+    driver_dict = {"name": "qemu", 'type': disk_format}
+    # Create drivermetadata object
+    new_one_drivermetadata = custom_disk.new_drivermetadata(**{"attrs": driver_dict})
+    metadata_cache_dict = {"max_size": max_size, "max_size_unit": "bytes"}
+    # Attach metadatacache into drivermetadata object
+    new_one_drivermetadata.metadata_cache = custom_disk.DriverMetadata().new_metadatacache(**metadata_cache_dict)
+    custom_disk.drivermetadata = new_one_drivermetadata
+    logging.debug("disk xml in create_custom_metadata_disk: %s\n", custom_disk)
+    return custom_disk
