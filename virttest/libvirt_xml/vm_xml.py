@@ -1321,8 +1321,10 @@ class VMXML(VMXMLBase):
                 features['target'] = interface.find('target').attrib
             features['model'] = interface.find('model').get('type')
             if interface.find('bandwidth') is not None:
-                features['outbound'] = interface.find('bandwidth/outbound').attrib
-                features['inbound'] = interface.find('bandwidth/inbound').attrib
+                if interface.find('bandwidth/outbound') is not None:
+                    features['outbound'] = interface.find('bandwidth/outbound').attrib
+                if interface.find('bandwidth/inbound') is not None:
+                    features['inbound'] = interface.find('bandwidth/inbound').attrib
             if interface.find('backend') is not None:
                 features['backend'] = interface.find('backend').attrib
             if interface.find('rom') is not None:
@@ -1333,8 +1335,10 @@ class VMXML(VMXMLBase):
                 features['link'] = interface.find('link').get('state')
             if interface.find('driver') is not None:
                 features['driver'] = interface.find('driver').attrib
-                features['driver_host'] = interface.find('driver/host').attrib
-                features['driver_guest'] = interface.find('driver/guest').attrib
+                if interface.find('driver/host') is not None:
+                    features['driver_host'] = interface.find('driver/host').attrib
+                if interface.find('driver/guest') is not None:
+                    features['driver_guest'] = interface.find('driver/guest').attrib
             if interface.find('alias') is not None:
                 features['alias'] = interface.find('alias').attrib
             return features
