@@ -534,7 +534,7 @@ def setup_or_cleanup_iscsi(is_setup, is_login=True,
     :param chap_passwd: CHAP authentication password
     :return: iscsi device name or iscsi target
     """
-    tmpdir = data_dir.get_tmp_dir()
+    tmpdir = data_dir.get_data_dir()
     emulated_path = os.path.join(tmpdir, emulated_image)
     emulated_target = ("iqn.%s.com.virttest:%s.target" %
                        (time.strftime("%Y-%m"), emulated_image))
