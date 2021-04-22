@@ -262,7 +262,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         return process.run('%s --db=unix:%s %s' %
                            (path.find_command("ovs-vsctl"),
                             self.db_socket, " ".join(params)), timeout=10,
-                           ignore_status=ignore_status, verbose=False)
+                           ignore_status=ignore_status, verbose=True)
 
     def status(self):
         return self.ovs_vsctl(["show"]).stdout_text
@@ -501,18 +501,26 @@ class OpenVSwitch(OpenVSwitchSystem):
         self.ovs_vsctl(["add-br", br_name, "-- set bridge", br_name,
                         "datapath_type=netdev"])
 
-    def add_ports(self, br_name, port_names):
+    def add_ports(self, br_name, port_names, port_type="dpdkvhostuser",
+                  port_options=None):
         """
         Add ports into bridge
 
         :param br_name: name of bridge
         :param port_names: port names split by space
+        :param port_type: ovs add port type
+        :param port_options: ovs add port options
         """
         for port_name in port_names.split():
-            self.ovs_vsctl(["add-port", br_name, port_name, "-- set Interface",
-                            port_name, "type=dpdkvhostuser"])
-            process.run('chown qemu:qemu %s/%s' % (self.pid_files_path, port_name),
-                        shell=True)
+            port_list = ["add-port", br_name, port_name, "-- set Interface",
+                         port_name, "type=%s" % port_type]
+            if port_options:
+                port_list.extend(["options:%s" % port_options])
+            self.ovs_vsctl(port_list)
+
+            if port_type == "dpdkvhostuser":
+                process.run('chown qemu:qemu %s/%s' % (self.pid_files_path, port_name),
+                            shell=True)
 
     def enable_multiqueue(self, port_names, size):
         """
