@@ -180,6 +180,11 @@ class DevContainer(object):
         self.__iothread_supported_devices = set()
         self.temporary_image_snapshots = set()
 
+    @property
+    def qemu_version(self):
+        """:return: qemu version, e.g. 5.2.0"""
+        return self.__qemu_ver
+
     def initialize_iothread_manager(self, params, guestcpuinfo):
         """Initialize iothread manager.
         :param params: vt params
@@ -827,7 +832,7 @@ class DevContainer(object):
             raise DeviceHotplugError(device, 'According to qemu_device: %s'
                                      % exc, self)
         else:
-            out = device.hotplug(monitor)
+            out = device.hotplug(monitor, self.qemu_version)
             ver_out = device.verify_hotplug(out, monitor)
             if ver_out is False:
                 self.remove(device)

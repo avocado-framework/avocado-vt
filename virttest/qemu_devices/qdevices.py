@@ -19,6 +19,7 @@ from virttest import qemu_monitor
 from virttest import utils_misc
 from virttest.qemu_devices.utils import DeviceError
 from virttest.qemu_devices.utils import none_or_int
+from virttest.utils_version import VersionInterval
 
 import six
 from six.moves import xrange
@@ -251,12 +252,22 @@ class QBaseDevice(object):
         """
         return self.cmdline()
 
-    # pylint: disable=E0202
-    def hotplug(self, monitor):
+    def _hotplug_qmp_mapping(self, qemu_version):
+        """
+        hotplug qmp command might change in new qemu release,
+        this function is used to get the correct hotplug_qmp
+        function object as per qemu version.
+
+        :param qemu_version: The qemu versoin, e.g. 5.0.0
+        :return: The hotplug_qmp function object
+        """
+        return self.hotplug_qmp
+
+    def hotplug(self, monitor, qemu_version):
         """ :return: the output of monitor.cmd() hotplug command """
         if isinstance(monitor, qemu_monitor.QMPMonitor):
             try:
-                cmd, args = self.hotplug_qmp()
+                cmd, args = self._hotplug_qmp_mapping(qemu_version)()
                 return monitor.cmd(cmd, args)
             except DeviceError:     # qmp command not supported
                 return monitor.human_monitor_cmd(self.hotplug_hmp())
@@ -1150,6 +1161,8 @@ class QObject(QCustomDevice):
     Representation of the '-object backend' qemu object.
     """
 
+    QMP_PROPS_VERSION_SCOPE = '(, 6.0.0)'
+
     def __init__(self, backend, params=None):
         kwargs = {'dev_type': 'object',
                   'params': params,
@@ -1181,8 +1194,37 @@ class QObject(QCustomDevice):
             out = "object_add %s" % _convert_args(self.params)
         return out
 
+    def _refresh_hotplug_props(self, params):
+        """
+        Refresh hotplug optional props as per params.
+
+        :return: A dict containing hotplug optional props.
+        """
+        return params
+
+    def _hotplug_qmp_mapping(self, qemu_version):
+        return self.hotplug_qmp_lt_600 if qemu_version in VersionInterval(
+            self.QMP_PROPS_VERSION_SCOPE) else self.hotplug_qmp
+
     def hotplug_qmp(self):
-        """ :return: the object-add command """
+        """ :return: the object-add command (since 6.0.0)"""
+        params = self.params.copy()
+
+        # qom-type and id are mandatory
+        kwargs = {
+            "qom-type": params.pop("backend"),
+            "id": params.pop("id")
+        }
+
+        # optional params
+        params = self._refresh_hotplug_props(params)
+        if len(params) > 0:
+            kwargs.update(params)
+
+        return "object-add", kwargs
+
+    def hotplug_qmp_lt_600(self):
+        """ :return: the object-add command (before 6.0.0)"""
         params = self.params.copy()
 
         # qom-type and id are mandatory
@@ -1192,6 +1234,7 @@ class QObject(QCustomDevice):
         }
 
         # props is optional
+        params = self._refresh_hotplug_props(params)
         if len(params) > 0:
             kwargs["props"] = params
 
@@ -1290,14 +1333,6 @@ class QIOThread(QObject):
         for device in self.iothread_bus:
             device.set_param(self.get_qid())
 
-    def hotplug_qmp(self):
-        """Return hotplug qmp command string."""
-        params = dict(self.params)
-        backend = params.pop("backend")
-        iothread_id = params.pop("id")
-        kwargs = {"qom-type": backend, "id": iothread_id, "props": params}
-        return "object-add", kwargs
-
     def _is_attached_to_qemu(self, monitor):
         """Check if iothread is in use by QEMU."""
         out = QIOThread._query(monitor)
@@ -1346,14 +1381,9 @@ class QThrottleGroup(QObject):
         """Update raw throttle group properties."""
         self._raw_limits.update(props)
 
-    def hotplug_qmp(self):
-        """Return hotplug qmp command string."""
-        params = dict(self.params)
-        backend = params.pop("backend")
-        throttle_group_id = params.pop("id")
-        kwargs = {"qom-type": backend, "id": throttle_group_id,
-                  "props": {"limits": self.raw_limits}}
-        return "object-add", kwargs
+    def _refresh_hotplug_props(self, params):
+        params["limits"] = self.raw_limits
+        return params
 
     def _query(self, monitor):
         """Check if throttle is in use by QEMU."""
@@ -1400,10 +1430,7 @@ class Memory(QObject):
         super(Memory, self).__init__(backend, params)
         self.hook_drive_bus = None
 
-    def hotplug_qmp(self):
-        """ :return: the hotplug monitor command """
-        params = self.params.copy()
-        backend = params.pop("backend")
+    def _refresh_hotplug_props(self, params):
         convert_size = utils_misc.normalize_data_size
         args = (params["size"], "B", 1024)
         params["size"] = int(float(convert_size(*args)))
@@ -1415,10 +1442,7 @@ class Memory(QObject):
         for k in params:
             params[k] = True if params[k] == "yes" else params[k]
             params[k] = False if params[k] == "no" else params[k]
-        kwargs = {"qom-type": backend,
-                  "id": params.pop("id"),
-                  "props": dict(params)}
-        return "object-add", kwargs
+        return params
 
     def verify_unplug(self, out, monitor):
         """
@@ -1717,7 +1741,8 @@ class QCPUDevice(QDevice):
 
     def enable(self, monitor):
         """Alias for hotplug"""
-        out = self.hotplug(monitor)
+        # False positive issue caused E1121, disable it
+        out = self.hotplug(monitor, None)  # pylint: disable=E1121
         ver_out = not bool(out)
         if ver_out:
             self._enabled = True
@@ -1801,7 +1826,7 @@ class QDaemonDev(QBaseDevice):
         except DeviceError:
             pass
 
-    def hotplug(self, monitor):
+    def hotplug(self, monitor, qemu_version):
         """Hot plug daemon."""
         self.start_daemon()
 
