@@ -263,59 +263,71 @@ class MigrationTest(object):
                      for process.run
 
         """
+        @virsh.EventTracker.wait_event
+        def _do_orderly_migration(vm_name, vm, srcuri, desturi, options=None,
+                                  thread_timeout=60, ignore_status=False,
+                                  func=None, virsh_opt="",
+                                  extra_opts="", **args):
+            migration_thread = threading.Thread(target=self.thread_func_migration,
+                                                args=(vm, desturi, options,
+                                                      ignore_status, virsh_opt,
+                                                      extra_opts))
+            migration_thread.start()
+            eclipse_time = 0
+            stime = int(time.time())
+            if func:
+                # Execute command once the migration is started
+                migrate_start_state = args.get("migrate_start_state", "paused")
+
+                # Wait for migration to start
+                migrate_options = ""
+                if options:
+                    migrate_options = str(options)
+                if extra_opts:
+                    migrate_options += " %s" % extra_opts
+
+                migration_started = self.wait_for_migration_start(
+                    vm, state=migrate_start_state,
+                    uri=desturi,
+                    migrate_options=migrate_options.strip())
+
+                if migration_started:
+                    logging.info("Migration started for %s", vm.name)
+                    time.sleep(3)  # To avoid executing the command lines before starting migration
+                    if func == process.run:
+                        try:
+                            func(args['func_params'], shell=args['shell'])
+                        except KeyError:
+                            func(args['func_params'])
+                    elif func == virsh.migrate_postcopy:
+                        func(vm.name, uri=srcuri, debug=True)
+                    else:
+                        if 'func_params' in args:
+                            func(args['func_params'])
+                        else:
+                            func()
+                else:
+                    logging.error("Migration failed to start for %s", vm.name)
+            eclipse_time = int(time.time()) - stime
+            logging.debug("start_time:%d, eclipse_time:%d", stime, eclipse_time)
+            if eclipse_time < thread_timeout:
+                migration_thread.join(thread_timeout - eclipse_time)
+            if migration_thread.is_alive():
+                logging.error("Migrate %s timeout.", migration_thread)
+                self.RET_LOCK.acquire()
+                self.RET_MIGRATION = False
+                self.RET_LOCK.release()
+
         for vm in vms:
             vm.connect_uri = args.get("virsh_uri", "qemu:///system")
         if migration_type == "orderly":
             for vm in vms:
-                migration_thread = threading.Thread(target=self.thread_func_migration,
-                                                    args=(vm, desturi, options,
-                                                          ignore_status, virsh_opt,
-                                                          extra_opts))
-                migration_thread.start()
-                eclipse_time = 0
-                stime = int(time.time())
-                if func:
-                    # Execute command once the migration is started
-                    migrate_start_state = args.get("migrate_start_state", "paused")
-
-                    # Wait for migration to start
-                    migrate_options = ""
-                    if options:
-                        migrate_options = str(options)
-                    if extra_opts:
-                        migrate_options += " %s" % extra_opts
-
-                    migration_started = self.wait_for_migration_start(vm, state=migrate_start_state,
-                                                                      uri=desturi,
-                                                                      migrate_options=migrate_options.strip())
-
-                    if migration_started:
-                        logging.info("Migration started for %s", vm.name)
-                        time.sleep(3)  # To avoid executing the command lines before starting migration
-                        if func == process.run:
-                            try:
-                                func(args['func_params'], shell=args['shell'])
-                            except KeyError:
-                                func(args['func_params'])
-                        elif func == virsh.migrate_postcopy:
-                            func(vm.name, uri=srcuri, debug=True)
-                        else:
-                            if 'func_params' in args:
-                                func(args['func_params'])
-                            else:
-                                func()
-                    else:
-                        logging.error("Migration failed to start for %s",
-                                      vm.name)
-                eclipse_time = int(time.time()) - stime
-                logging.debug("start_time:%d, eclipse_time:%d", stime, eclipse_time)
-                if eclipse_time < thread_timeout:
-                    migration_thread.join(thread_timeout - eclipse_time)
-                if migration_thread.is_alive():
-                    logging.error("Migrate %s timeout.", migration_thread)
-                    self.RET_LOCK.acquire()
-                    self.RET_MIGRATION = False
-                    self.RET_LOCK.release()
+                _do_orderly_migration(vm.name, vm, srcuri, desturi,
+                                      options=options,
+                                      thread_timeout=thread_timeout,
+                                      ignore_status=ignore_status, func=func,
+                                      virsh_opt=virsh_opt,
+                                      extra_opts=extra_opts, **args)
         elif migration_type == "cross":
             # Migrate a vm to remote first,
             # then migrate another to remote with the first vm back
@@ -451,6 +463,9 @@ class MigrationTest(object):
         """
         func_params_exists = "yes" == params.get(
             "action_during_mig_params_exists", "no")
+        wait_for_event = eval(params.get("wait_for_event", "False"))
+        event_type = params.get("event_type", None)
+        event_timeout = eval(params.get("event_timeout", "7"))
 
         extra_args = {}
         if func_params_exists:
@@ -459,6 +474,11 @@ class MigrationTest(object):
                     params.get("action_during_mig_params"))})
             else:
                 extra_args.update({'func_params': params})
+
+        # Update parameters for postcopy migration
+        extra_args.update({'wait_for_event': wait_for_event})
+        extra_args.update({'event_type': event_type})
+        extra_args.update({'event_timeout': event_timeout})
 
         extra_args.update({'status_error': params.get("status_error", "no")})
         extra_args.update({'err_msg': params.get("err_msg")})
