@@ -1337,6 +1337,8 @@ class VMXML(VMXMLBase):
                 features['driver_guest'] = interface.find('driver/guest').attrib
             if interface.find('alias') is not None:
                 features['alias'] = interface.find('alias').attrib
+            if interface.find('coalesce') is not None:
+                features['coalesce'] = interface.find('coalesce/rx/frames').attrib
             return features
         else:
             return None
