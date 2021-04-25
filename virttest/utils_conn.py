@@ -1299,6 +1299,10 @@ class TLSConnection(ConnectionBase):
                         cakey_path: self.pki_CA_dir,
                         servercert_path: self.libvirt_pki_dir,
                         serverkey_path: self.libvirt_pki_private_dir}
+            cmd = "mkdir -p {0}".format(self.pki_CA_dir)
+            status, output = server_session.cmd_status_output(cmd)
+            if status:
+                raise ConnMkdirError(self.pki_CA_dir, output)
 
         for key in scp_dict:
             local_path = key
