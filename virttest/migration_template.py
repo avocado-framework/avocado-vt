@@ -1,5 +1,6 @@
 import logging
 import functools
+import os
 
 from enum import Enum
 
@@ -9,7 +10,7 @@ from avocado.utils import distro
 from avocado.utils import path as utils_path
 
 from virttest import virsh, migration, remote
-from virttest import utils_iptables, utils_selinux
+from virttest import utils_iptables, utils_selinux, utils_misc
 
 from virttest.libvirt_xml import vm_xml
 
@@ -19,19 +20,28 @@ from virttest.utils_conn import TLSConnection, TCPConnection, SSHConnection
 
 from virttest.utils_test import libvirt
 
+from virttest.utils_libvirt import libvirt_disk
+
 from virttest.utils_libvirt.libvirt_config import remove_key_for_modular_daemon
 
 
 # Migration flags
-VIR_MIGRATE_LIVE = 1
-VIR_MIGRATE_PEER2PEER = 2
-VIR_MIGRATE_TUNNELLED = 4
-VIR_MIGRATE_COMPRESSED = 8
-VIR_MIGRATE_AUTO_CONVERGE = 16
-VIR_MIGRATE_POSTCOPY = 32
-VIR_MIGRATE_TLS = 64
-VIR_MIGRATE_PERSIST_DEST = 128
-VIR_MIGRATE_UNDEFINE_SOURCE = 256
+VIR_MIGRATE_LIVE = (1 << 0)
+VIR_MIGRATE_PEER2PEER = (1 << 1)
+VIR_MIGRATE_TUNNELLED = (1 << 2)
+VIR_MIGRATE_COMPRESSED = (1 << 3)
+VIR_MIGRATE_AUTO_CONVERGE = (1 << 4)
+VIR_MIGRATE_POSTCOPY = (1 << 5)
+VIR_MIGRATE_TLS = (1 << 6)
+VIR_MIGRATE_PERSIST_DEST = (1 << 7)
+VIR_MIGRATE_UNDEFINE_SOURCE = (1 << 8)
+VIR_MIGRATE_PAUSED = (1 << 9)
+VIR_MIGRATE_NON_SHARED_DISK = (1 << 10)
+VIR_MIGRATE_NON_SHARED_INC = (1 << 11)
+VIR_MIGRATE_ABORT_ON_ERROR = (1 << 12)
+VIR_MIGRATE_PARALLEL = (1 << 13)
+VIR_MIGRATE_PERSIST_DEST_XML = (1 << 14)
+VIR_MIGRATE_DEST_XML = (1 << 15)
 
 
 # Phase of the migration test
@@ -77,22 +87,60 @@ class MigrationTemplate(object):
     :param migrate_desturi_proto: protocol in desturi, default to "tcp"
     :param virsh_migrate_options: virsh options for migration,
          default to "--p2p --live"
-    :param tunnelled: whether to do tunnelled migration, default to False
-    :param compressed: whether to do compressed migration, default to False
-    :param auto_converge: whether to do auto_converge migration,
-         default to False
-    :parma postcopy: whether to do postcopy migration, default to False
-    :param native_tls: whether to do encrypted migration, default to False
-    :param persistdest: whether to define vm on dest host during migration,
-         default to False
-    :param undefinesource: whether to undefine vm on src host during migration,
-         default to False
+    :param persistdest: whether to add extra migrate option "--persistent",
+         bool type, default to False
+    :param undefinesource: whether to add extra migrate option "--undefinesource"
+         bool type, default to False
+    :param suspend: whether to add extra migrate option "--suspend"
+         bool type, default to False
+    :param copy_storage_all: whether to add extra migrate option "--copy-storage-all"
+         bool type, default to False
+    :param copy_storage_inc: whether to add extra migrate option "--copy-storage-inc"
+         bool type, default to False
+    :param compressed: whether to add extra migrate option "--compressed"
+         bool type, default to False
+    :param compressed_methods: extra migrate option "--comp-methods"
+         string type, comma separated, e.g. "mt,xbzrle"
+    :param compressed_mt_level: extra migrate option "--comp-mt-level"
+         int type
+    :param compressed_mt_threads: extra migrate option "--comp-mt-threads"
+         int type
+    :param compressed_mt_dthreads: extra migrate option "--comp-mt-dthreads"
+         int type
+    :param compressed_xbzrle: extra migrate option "--comp-xbzrle-cache"
+         int type, unit in byte
+    :param abort_on_error: whether to add extra migrate option "--abort-on-error",
+         bool type, default to False
+    :param auto_converge: whether to add extra migrate option "--auto-converge"
+         bool type, default to False
+    :param auto_converge_initial: extra migrate option "--auto-converge-initial"
+         int type
+    :param auto_converge_inc: extra migrate option "--auto-converge-increment"
+         int type
+    :param postcopy: whether to do postcopy migration,
+         bool type, default to False
+    :param native_tls: whether to add extra migrate option "--tls",
+         bool type, default to False
+    :param parallel: whether to add extra migrate option "--parallel",
+         bool type, default to False
+    :param parallel_conn: extra migrate option "--parallel-connections",
+         int type
+    :param migrateuri: extra migrate option "--migrateuri",
+         string type
+    :param listenaddress: extra migrate option "--listen-address",
+         string type
+    :param dest_xml: whether to add extra migrate option "--xml",
+         bool type, default to False
+    :param dest_persist_xml: whether to add extra migrate option "--persistent-xml"
+         bool type, default to False
     :param migrate_thread_timeout: migration thread timeout, default to 900s
     :param migrate_vm_back: whether to migrate vm back to src
     :param migrate_main_vm: main vm for migration,
          default to "avocado-vt-vm1"
     :param migrate_vms': additional vms for migration, default to ""
-    :param storage_type: vm disk storage type
+    :param storage_type: vm disk storage type, currently supported type:
+         1) nfs
+         2) None(it means storage_type isn't set, vm disk source won't be changed)
     :param nfs_mount_dir: mount dir if storage type is nfs
     :param local_ip: local host ip address
     :param remote_ip: remote host ip address
@@ -149,13 +197,30 @@ class MigrationTemplate(object):
         self.migrate_desturi_proto = params.get("migrate_desturi_proto", "tcp")
         self.virsh_migrate_options = params.get("virsh_migrate_options",
                                                 "--live --p2p")
-        self.tunnelled = params.get("tunnelled", False)
-        self.compressed = params.get("compressed", False)
-        self.auto_converge = params.get("auto_converge", False)
-        self.postcopy = params.get("postcopy", False)
-        self.native_tls = params.get("native_tls", False)
-        self.persistdest = params.get("persistdest", False)
-        self.undefinesource = params.get("undefinesource", False)
+        self.persistdest = params.get("persistdest")
+        self.undefinesource = params.get("undefinesource")
+        self.suspend = params.get("suspend")
+        self.copy_storage_all = params.get("copy_storage_all")
+        self.copy_storage_inc = params.get("copy_storage_inc")
+        self.compressed = params.get("compressed")
+        self.compressed_methods = params.get("compressed_methods")
+        self.compressed_mt_level = params.get("compressed_mt_level")
+        self.compressed_mt_threads = params.get("compressed_mt_threads")
+        self.compressed_mt_dthreads = params.get("compressed_mt_dthreads")
+        self.compressed_xbzrle_cache = params.get("compressed_xbzrle_cache")
+        self.abort_on_error = params.get("abort_on_error")
+        self.auto_converge = params.get("auto_converge")
+        self.auto_converge_initial = params.get("auto_converge_initial")
+        self.auto_converge_inc = params.get("auto_converge_inc")
+        self.postcopy = params.get("postcopy")
+        self.native_tls = params.get("native_tls")
+        self.parallel = params.get("parallel")
+        self.parallel_conn = params.get("parallel_conn")
+        self.migrateuri = params.get("migrateuri")
+        self.listenaddress = params.get("listenaddress")
+        self.dest_xml = params.get("dest_xml")
+        self.dest_persist_xml = params.get("dest_persist_xml")
+
         self.migrate_thread_timeout = int(
                 params.get("migrate_thread_timeout", "900")
                 )
@@ -334,7 +399,8 @@ class MigrationTemplate(object):
             self._setup_qemu_tls()
 
         # Set vm disk in vm xml
-        self._set_vm_disk()
+        if self.storage_type:
+            self._set_vm_disk()
 
     def _pre_start_vm(self):
         """
@@ -365,16 +431,25 @@ class MigrationTemplate(object):
 
     def _migrate(self):
         """
-        1.Set selinux state
-        2.Record vm uptime
-        3.For postcopy migration:
+        0.Create disk image on dest host
+        1.Set --xml and --persistent-xml in migrate options
+        2.Set selinux state
+        3.Record vm uptime
+        4.For postcopy migration:
             1) Set migration speed to low value
             2) Monitor postcopy event
-        4.Do live migration
-        5.Check migration result: succeed or fail with expected error
-        6.For postcopy migration: check postcopy event
-        7.Do post migration check: check vm state, uptime, network
+        5.Do live migration
+        6.Check migration result: succeed or fail with expected error
+        7.For postcopy migration: check postcopy event
+        8.Do post migration check: check vm state, uptime, network
         """
+        # Create disk image on dest host if --copy-storage-all/inc is used
+        if self.migrate_flags & (VIR_MIGRATE_NON_SHARED_DISK | VIR_MIGRATE_NON_SHARED_INC):
+            self._create_disk_image_on_dest()
+
+        # Set xml file path for --xml and --persistent-xml in migrate options
+        self._update_xmlfile_path_in_migrate_options()
+
         # Set selinux state before migration
         # NOTE: if selinux state is set too early, it may be changed
         # in other methods unexpectedly, so set it just before migration
@@ -501,23 +576,77 @@ class MigrationTemplate(object):
         options = self.virsh_migrate_options
         extra_options = ""
 
-        if self.tunnelled and "--tunnelled" not in options:
-            extra_options += " --tunnelled"
-        if self.compressed and "--compressed" not in options:
-            extra_options += " --compressed"
-        if self.auto_converge and "--auto-converge" not in options:
-            extra_options += " --auto-converge"
-        if self.postcopy and "--postcopy" not in options:
-            extra_options += " --postcopy"
-        if self.native_tls and "--tls" not in options:
-            extra_options += " --tls"
         if self.persistdest and "--persistent" not in options:
             extra_options += " --persistent"
         if self.undefinesource and "--undefinesource" not in options:
             extra_options += " --undefinesource"
+        if self.suspend and "--suspend" not in options:
+            extra_options += " --suspend"
+        if self.copy_storage_all and "--copy-storage-all" not in options:
+            extra_options += " --copy-storage-all"
+        if self.copy_storage_inc and "--copy-storage-inc" not in options:
+            extra_options += " --copy-storage-inc"
+        if self.compressed and "--compressed" not in options:
+            extra_options += " --compressed"
+        if self.compressed_methods and "--comp-methods" not in options:
+            extra_options += " --comp-methods %s" % self.compressed_methods
+        if self.compressed_mt_level and "--comp-mt-level" not in options:
+            extra_options += " --comp-mt-level %s" % self.compressed_mt_level
+        if self.compressed_mt_threads and "--comp-mt-threads" not in options:
+            extra_options += " --comp-mt-threads %s" % self.compressed_mt_threads
+        if self.compressed_mt_dthreads and "--comp-mt-dthreads" not in options:
+            extra_options += " --comp-mt-dthreads %s" % self.compressed_mt_dthreads
+        if self.compressed_xbzrle_cache and "--comp-xbzrle-cache" not in options:
+            extra_options += " --comp-xbzrle-cache %s" % self.compressed_xbzrle_cache
+        if self.abort_on_error and "--abort-on-error" not in options:
+            extra_options += " --abort-on-error"
+        if self.auto_converge and "--auto-converge" not in options:
+            extra_options += " --auto-converge"
+        if self.auto_converge_initial and "--auto-converge-initial" not in options:
+            extra_options += " --auto-converge-initial %s" % self.auto_converge_initial
+        if self.auto_converge_inc and "--auto-converge-increment" not in options:
+            extra_options += " --auto-converge-increment %s" % self.auto_converge_inc
+        if self.postcopy and "--postcopy" not in options:
+            extra_options += " --postcopy"
+        if self.native_tls and "--tls" not in options:
+            extra_options += " --tls"
+        if self.parallel and "--parallel" not in options:
+            extra_options += " --parallel"
+        if self.parallel_conn and "--parallel-connections" not in options:
+            extra_options += " --parallel-connections %s" % self.parallel_conn
+        if self.migrateuri and "--migrateuri" not in options:
+            extra_options += " --migrateuri %s" % self.migrateuri
+        if self.listenaddress and "--listen-address" not in options:
+            extra_options += " --listen-address %s" % self.listenaddress
+        if self.dest_xml and "--xml" not in options:
+            extra_options += " --xml DEST_XML"
+        if self.dest_persist_xml and "--persistent-xml" not in options:
+            extra_options += " --persistent-xml DEST_PERSIST_XML"
 
         logging.debug("Extra migrate options is: %s", extra_options)
         return extra_options
+
+    def _update_xmlfile_path_in_migrate_options(self):
+        """
+        Generate and replace the xml file path for --xml and/or --persistent-xml
+
+        """
+        logging.info("Generate and replace xml file path for --xml and/or --persistent-xml")
+
+        old_options = self.virsh_migrate_options
+        new_options = ""
+
+        if self.migrate_flags & VIR_MIGRATE_DEST_XML:
+            vmxml_path = vm_xml.VMXML.new_from_dumpxml(self.main_vm.name,
+                                                       "--security-info --migratable")
+            new_options = old_options.replace("DEST_XML", vmxml_path)
+
+        if self.migrate_flags & VIR_MIGRATE_PERSIST_DEST_XML:
+            vmxml_path = vm_xml.VMXML.new_from_dumpxml(self.main_vm.name,
+                                                       "--security-info --migratable")
+            new_options = old_options.replace("DEST_PERSIST_XML", vmxml_path)
+
+        self.virsh_migrate_options = new_options
 
     def _migrate_flags(self):
         """
@@ -534,20 +663,32 @@ class MigrationTemplate(object):
             flags |= VIR_MIGRATE_LIVE
         if "--p2p" in self.virsh_migrate_options:
             flags |= VIR_MIGRATE_PEER2PEER
-        if "--tunnelled" in self.virsh_migrate_options:
-            flags |= VIR_MIGRATE_TUNNELLED
+        if "--persistent" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_PERSIST_DEST
+        if "--undefinesource" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_UNDEFINE_SOURCE
+        if "--suspend" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_PAUSED
+        if "--copy-storage-all" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_NON_SHARED_DISK
+        if "--copy-storage-inc" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_NON_SHARED_INC
         if "--compressed" in self.virsh_migrate_options:
             flags |= VIR_MIGRATE_COMPRESSED
+        if "--abort-on-error" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_ABORT_ON_ERROR
         if "--auto-converge" in self.virsh_migrate_options:
             flags |= VIR_MIGRATE_AUTO_CONVERGE
         if "--postcopy" in self.virsh_migrate_options:
             flags |= VIR_MIGRATE_POSTCOPY
         if "--tls" in self.virsh_migrate_options:
             flags |= VIR_MIGRATE_TLS
-        if "--persistent" in self.virsh_migrate_options:
-            flags |= VIR_MIGRATE_PERSIST_DEST
-        if "--undefinesource" in self.virsh_migrate_options:
-            flags |= VIR_MIGRATE_UNDEFINE_SOURCE
+        if "--parallel" in self.virsh_migrate_options:
+            flags |= VIR_MIGRATE_PARALLEL
+        if self.dest_xml:
+            flags |= VIR_MIGRATE_DEST_XML
+        if self.dest_persist_xml:
+            flags |= VIR_MIGRATE_PERSIST_DEST_XML
 
         logging.debug("Migrate flags is: %s", flags)
         return flags
@@ -586,17 +727,40 @@ class MigrationTemplate(object):
         :param cache: vm disk cache mode
         """
         logging.debug("Prepare shared disk in vm xml for live migration")
-        if self.storage_type:
-            if self.storage_type == 'nfs':
-                logging.debug("Prepare nfs backed disk in vm xml")
-                for vm in self.vms:
-                    libvirt.update_vm_disk_source(vm.name,
-                                                  self.nfs_mount_dir)
-                    libvirt.update_vm_disk_driver_cache(vm.name,
-                                                        driver_cache=cache)
-            else:
-                # TODO:other storage types
-                self.test.cancel("Only nfs storage is supported for now")
+        if self.storage_type == 'nfs':
+            logging.debug("Prepare nfs backed disk in vm xml")
+            for vm in self.vms:
+                libvirt.update_vm_disk_source(vm.name,
+                                              self.nfs_mount_dir)
+                libvirt.update_vm_disk_driver_cache(vm.name,
+                                                    driver_cache=cache)
+        else:
+            # TODO:other storage types
+            self.test.cancel("Only nfs storage is supported for now")
+
+    def _create_disk_image_on_dest(self):
+        """
+        Create disk image on dest host before migration
+        Used for live vm migration with disk copy
+
+        Note:
+        This method doesn't handle the backing chain setup. So you need to setup
+        the disk image backing chain by yourself if --copy-storage-inc is used
+
+        """
+        logging.debug("Create disk image on dest host before migration")
+        all_vm_disks = self.main_vm.get_blk_devices()
+        for disk in list(itervalues(all_vm_disks)):
+            disk_type = disk.get("type")
+            disk_path = disk.get("source")
+            image_info = utils_misc.get_image_info(disk_path)
+            disk_size = image_info.get("vsize")
+            disk_format = image_info.get("format")
+            utils_misc.make_dirs(os.path.dirname(disk_path),
+                                 self.remote_session)
+            libvirt_disk.create_disk(disk_type, path=disk_path,
+                                     size=disk_size, disk_format=disk_format,
+                                     session=self.remote_session)
 
     def _setup_libvirtd_remote_access(self):
         """
