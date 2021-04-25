@@ -4351,3 +4351,60 @@ def delete_ovs_bridge(ovs_bridge_name, session=None, ignore_status=False):
     return utils_misc.cmd_status_output(tmux_cmd, shell=True, verbose=True,
                                         ignore_status=ignore_status,
                                         session=session)
+
+
+def get_channel_info(session, interface):
+    """
+    Get channel parameters of interface in vm.
+
+    :param session: the guest session
+    :param interface: the interface name shows on the guest, for example: eth0
+    :return: 2 dictionaries, one is the maximum values for hardware, the other is current value,
+    in format as {"RX": "n/a", "TX": "n/a", "Other": "n/a", "Combined": "1"}
+    """
+    cmd = "ethtool -l %s" % interface
+    s, o = session.cmd_status_output(cmd)
+    if s:
+        logging.error("Get channel parameters for vm failed:%s" % o)
+        return {}, {}
+    maximum = {}
+    current = {}
+    # Just for temp
+    settings = {}
+    for line in o.splitlines():
+        if line.count("maximums"):
+            settings = maximum
+        elif line.count("Current"):
+            settings = current
+        parameter = line.split(':')[0].strip()
+        if parameter in ["RX", "TX", "Other", "Combined"]:
+            settings[parameter] = line.split(':')[1].strip()
+    return maximum, current
+
+
+def set_channel(session, interface, parameter, value):
+    """
+    Set channel parameters for interface, then check if it is set successfully
+
+    :param session: the session for the vm
+    :param interface: the interface name shows on the guest, for example: eth0
+    :param parameter: the parameter to be set, it can be: "rx", "tx", "other" or "combined"
+    :param value: the value will be set for the parameter
+    :return: False or True to indicate if the the parameter is set successfully
+    """
+    cmd = "ethtool -L %s %s %s" % (interface, parameter, value)
+    logging.debug("The cmd to set the channel info '%s'" % cmd)
+    s, o = session.cmd_status_output(cmd)
+    if s:
+        logging.error("Setting %s to %s failed:%s", parameter, value, o)
+        return False
+    _, current = get_channel_info(session, interface)
+    logging.debug("After set, the current value is %s" % current)
+    try:
+        if int(current['Combined']) == int(value):
+            return True
+        else:
+            logging.error("Setting passed, but checking failed:%s", current)
+    except KeyError:
+        logging.error("No 'Combined' found in the channel info")
+    return False
