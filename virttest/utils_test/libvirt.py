@@ -3543,6 +3543,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
     if iface_link:
         iface.link_state = iface_link
     if iface_source:
+        iface.del_source()
         iface.source = eval(iface_source)
     if iface_target:
         iface.target = eval(iface_target)
@@ -3582,12 +3583,12 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
         iface.port = eval(iface_port)
     if iface_coalesce:
         iface.coalesce = eval(iface_coalesce)
+    logging.info("iface xml is %s", iface)
     if oper == "update_iface":
         vmxml.devices = xml_devices
         vmxml.xmltreefile.write()
         vmxml.sync()
     elif oper == "get_xml":
-        logging.info("iface xml is %s", iface)
         wait_for_file_over('</interface>', iface.xml)
         return iface.xml
 
