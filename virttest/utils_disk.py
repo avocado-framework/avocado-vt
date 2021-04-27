@@ -1102,6 +1102,23 @@ def get_parts_list(session=None):
     return parts
 
 
+def get_first_disk(session=None):
+    """
+    Get the first disk device on host or guest
+
+    :param session: the vm session
+    :return: str, the disk device, like 'vda' or 'sda'
+    """
+    first_disk = ""
+    disks = get_parts_list(session=session)
+    for disk in disks:
+        pattern = re.compile('[0-9]+')
+        if not pattern.findall(disk):
+            first_disk = disk
+            break
+    return first_disk
+
+
 def get_disk_by_serial(serial_str, session=None):
     """
     Get disk by serial in VM or host
