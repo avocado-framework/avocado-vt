@@ -9,6 +9,7 @@ import re
 
 from avocado.utils import process
 
+from virttest import utils_disk
 from virttest import virsh
 from virttest.staging import utils_cgroup
 
@@ -154,12 +155,15 @@ class CgroupTest(object):
             dev_init_dict = {"rbps": "max", "wbps": "max", "riops": "max",
                              "wiops": "max"}
             dev_list = []
+            if not self.is_bfq():
+                CGROUP_V1_BLKIO_FILE_MAPPING['weight'] = 'blkio.weight'
+                CGROUP_V1_BLKIO_FILE_MAPPING['weight_device'] = 'blkio.weight_device'
             for cg_key, cg_file_name in list(CGROUP_V1_BLKIO_FILE_MAPPING.items()):
                 cg_file_path = __get_cg_file_path(cg_key, cgroup_path, cg_file_name)
                 with open(cg_file_path, 'r') as cg_file:
                     if cg_key in ["weight"]:
                         standardized_cgroup_info[cg_key] = cg_file.read().strip()
-                    if cg_key in ["rbps", "wbps", "riops", "wiops"]:
+                    if cg_key in ["rbps", "wbps", "riops", "wiops", "weight_device"]:
                         for line in cg_file.readlines():
                             dev_info = line.strip().split()
                             dev_num = dev_info[0]
@@ -390,6 +394,21 @@ class CgroupTest(object):
                           virsh_cmd)
             return None
         return standardized_virsh_output_info
+
+    def is_bfq(self):
+        """
+        Judge which scheduler is used, 'bfq' or 'cfq'
+
+        :return: bool, True if bfq is used, False if cfq is used
+        """
+
+        first_blk = utils_disk.get_first_disk()
+        schedulerfd = "/sys/block/%s/queue/scheduler" % first_blk
+        bfq_scheduler = False
+        with open(schedulerfd, 'r') as iosche:
+            if 'bfq' in iosche.readline():
+                bfq_scheduler = True
+        return bfq_scheduler
 
     def get_standardized_virsh_output_by_name(self, vm_name=None, virsh_cmd=None):
         """
