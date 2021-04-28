@@ -4408,3 +4408,61 @@ def set_channel(session, interface, parameter, value):
     except KeyError:
         logging.error("No 'Combined' found in the channel info")
     return False
+
+
+def create_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=False):
+    """
+    Create linux bridge and connect a physical interface to the bridge via tmux command on local host.
+    Note: If iface_name is specified, it should be the one in current connection. Or you will break current
+    connection as this function will bring up the bridge and switch the network traffic to this bridge which
+    share the same mac with iface_name.
+    1. use tmux to avoid the network broken;
+    2. add a physical interface to the bridge, and set the bridge up;
+
+    :param linux_bridge_name: The linux bridge
+    :param iface_name: the physical interface to be attached to the bridge, if None, no need to add physical
+    interface to the bridge
+    :param ignore_status: Whether to raise an exception when command fails
+    :return: bridge created or raise exception
+    """
+    # Create bridge
+    br_path = "/sys/class/net/%s" % linux_bridge_name
+    if not utils_package.package_install(['tmux', 'dhcp-client', 'net-tools']):
+        raise exceptions.TestError("Failed to install the required packages.")
+    if os.path.exists(br_path):
+        s, o = delete_linux_bridge_tmux(linux_bridge_name, iface_name)
+        if s:
+            raise exceptions.TestError("Create bridge fail as there is already interface named '%s' on the host "
+                                       "and can not delete with error: %s" % (linux_bridge_name, o))
+    if iface_name:
+        cmd = 'tmux -c "ip link add name {0} type bridge; ip link set {1} up;' \
+              ' ip link set {1} master {0}; ip link set {0} up;' \
+              ' pkill dhclient; sleep 6; dhclient {0}; ifconfig {1} 0"'.format(linux_bridge_name, iface_name)
+    else:
+        cmd = 'ip link add %s type bridge' % linux_bridge_name
+    return utils_misc.cmd_status_output(cmd, shell=True, verbose=True, ignore_status=ignore_status)
+
+
+def delete_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=False):
+    """
+    Delete the linux bridge on the host, and recover the network on the physical interface
+
+    :param linux_bridge_name: The linux bridge
+    :param iface_name: the physical interface has been attached to the bridge, if None, it means no interface
+    is attached to the bridge
+    :param ignore_status: Whether to raise an exception when command fails
+    :return: bridge deleted or raise exception
+    """
+    # Delete the linux bridge
+    br_path = "/sys/class/net/%s" % linux_bridge_name
+    if not utils_package.package_install(['tmux', 'dhcp-client', 'procps-ng', 'net-tools']):
+        raise exceptions.TestError("Failed to install the required packages.")
+    if not os.path.exists(br_path):
+        logging.info("There is no bridge named '%s' on the host" % linux_bridge_name)
+        return
+    if iface_name:
+        cmd = 'tmux -c "ip link set {1} nomaster; ip link delete {0}; pkill dhclient; ' \
+              'sleep 5; dhclient {1}"'.format(linux_bridge_name, iface_name)
+    else:
+        cmd = 'ip link delete %s' % linux_bridge_name
+    return utils_misc.cmd_status_output(cmd, shell=True, verbose=True, ignore_status=ignore_status)
