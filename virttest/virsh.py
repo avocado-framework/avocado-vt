@@ -693,7 +693,8 @@ class EventTracker(object):
 
             def _get_arg_value(arg):
                 return kwargs.get(arg) if arg in kwargs else \
-                    inspect.signature(func).parameters[arg].default
+                    inspect.signature(func).parameters[arg].default if \
+                    arg in inspect.signature(func).parameters else None
 
             def _get_event_output(session):
                 output = session.get_stripped_output()
@@ -708,7 +709,7 @@ class EventTracker(object):
                 virsh_session = EventTracker.start_get_event(str(args[0]))
                 ret = func(*args, **kwargs)
 
-                if ret.exit_status:
+                if ret and ret.exit_status:
                     logging.error('Command execution failed. Skip waiting for event')
                     virsh_session.close()
                     return ret
