@@ -386,8 +386,8 @@ def create_partition_linux(session, did, size, start,
         driver = "pci"
         if platform.machine() == "s390x":
             driver = "css0"
-        o = session.cmd('ls /sys/dev/block -l | grep "/%s" | grep "%s"' %
-                        (driver, did))
+        o = session.cmd('ls /sys/dev/block -l | grep "/%s" | grep "%s" '
+                        '--color=never' % (driver, did))
         return set(o.splitlines())
 
     size = utils_numeric.normalize_data_size(size, order_magnitude="M") + "M"

@@ -11,6 +11,7 @@ from avocado.core import exceptions
 
 from virttest import remote
 from virttest import virsh
+from virttest import utils_disk
 from virttest import utils_misc
 from virttest import test_setup
 from virttest import utils_net
@@ -37,12 +38,15 @@ class MigrationTest(object):
         # The CmdResult returned from virsh migrate command
         self.ret = None
 
-    def post_migration_check(self, vms, params, uptime, uri=None):
+    def post_migration_check(self, vms, params, uptime=None, uri=None):
         """
         Validating migration by performing checks in this method
+        * check vm state after migration
         * uptime of the migrated vm > uptime of vm before migration
         * ping vm from target host
-        * check vm state after migration
+            by setting "check_network_accessibility_after_mig" to "yes"
+        * check disk operations on the migrated VM
+            by setting "check_disk_after_mig" to "yes"
 
         :param vms: VM objects of migrating vms
         :param uptime: uptime dict of vms before migration
@@ -50,24 +54,35 @@ class MigrationTest(object):
         :return: updated dict of uptime
         """
         vm_state = params.get("virsh_migrated_state", "running")
-        ping_count = int(params.get("ping_count", 10))
         for vm in vms:
             if not libvirt.check_vm_state(vm.name, vm_state, uri=uri):
                 raise exceptions.TestFail("Migrated VMs failed to be in %s "
                                           "state at destination" % vm_state)
             logging.info("Guest state is '%s' at destination is as expected",
                          vm_state)
-            if "offline" not in params.get("migrate_options", ""):
-                vm_uptime = vm.uptime(connect_uri=uri)
-                logging.info("uptime of migrated VM %s: %s", vm.name,
-                             vm_uptime)
-                if vm_uptime < uptime[vm.name]:
-                    raise exceptions.TestFail("vm went for a reboot during "
-                                              "migration")
-                self.ping_vm(vm, params, uri=uri, ping_count=ping_count)
-                # update vm uptime to check when migrating back
-                uptime[vm.name] = vm_uptime
-                vm.verify_dmesg(connect_uri=uri)
+            if "offline" not in params.get("migrate_options", params.get("virsh_migrate_options", "")):
+                if uptime:
+                    vm_uptime = vm.uptime(connect_uri=uri)
+                    logging.info("uptime of migrated VM %s: %s", vm.name,
+                                 vm_uptime)
+                    if vm_uptime < uptime[vm.name]:
+                        raise exceptions.TestFail("vm went for a reboot during "
+                                                  "migration")
+
+                    # update vm uptime to check when migrating back
+                    uptime[vm.name] = vm_uptime
+                    vm.verify_dmesg(connect_uri=uri)
+                if params.get("check_network_accessibility_after_mig", "no") == "yes":
+                    ping_count = int(params.get("ping_count", 10))
+                    self.ping_vm(vm, params, uri=uri, ping_count=ping_count)
+                if params.get("check_disk_after_mig", "no") == "yes":
+                    disk_kname = params.get("check_disk_kname_after_mig", "vdb")
+                    backup_uri, vm.connect_uri = vm.connect_uri, uri
+                    vm.create_serial_console()
+                    vm_session_after_mig = vm.wait_for_serial_login(timeout=360)
+                    utils_disk.linux_disk_check(vm_session_after_mig, disk_kname)
+                    vm_session_after_mig.close()
+                    vm.connect_uri = backup_uri
         return uptime
 
     def ping_vm(self, vm, params, uri=None, ping_count=10,
