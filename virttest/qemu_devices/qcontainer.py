@@ -3201,3 +3201,28 @@ class DevContainer(object):
                     aobject=aobject, backend='hmat_type'))
 
         return hmat_cache_devs
+
+    def secret_object_define_by_varibles(self, secret_id, data,
+                                         secret_format=None, inline=True):
+        """
+        Generate secret object device with given data, will create a new file
+        when inline is False
+
+        :param secret_id: the id of the secret object
+        :param data: password, in raw or base64 format
+        :param secret_format: raw or base64, by default not specify it
+        :param inline: append data=xxx if True and file=xxx if False
+        :return: the secret object device QObject
+        """
+        params = {'id': secret_id}
+        if secret_format:
+            params.update({'format': secret_format})
+        if not inline:
+            secret_file = os.path.join(
+                data_dir.get_tmp_dir(), '%s.secret' % secret_id)
+            with open(secret_file, 'w') as f:
+                f.write(data)
+            params.update({'file': secret_file})
+        else:
+            params.update({'data': data})
+        return qdevices.QObject('secret', params=params)

@@ -1043,7 +1043,19 @@ class VM(virt_vm.BaseVM):
             elif optget("spice_port") != "no":
                 set_value("port=%s", "spice_port")
 
-            set_value("password=%s", "spice_password", "disable-ticketing=on")
+            password = optget("spice_password")
+            secret_cmdline = ''
+            if password:
+                if ("password-secret" not in
+                        devices.execute_qemu("-spice help")):
+                    spice_opts.append('password=%s' % password)
+                else:
+                    secret_id = 'spice_sec0'
+                    secret_cmdline = devices.secret_object_define_by_varibles(
+                        secret_id, data=password).cmdline()
+                    spice_opts.append('password-secret=%s' % secret_id)
+            else:
+                spice_opts.append("disable-ticketing=on")
             ip_ver = optget("listening_addr")
             if ip_ver:
                 host_ip = utils_net.get_host_ip_address(self.params, ip_ver)
@@ -1125,7 +1137,7 @@ class VM(virt_vm.BaseVM):
             set_yes_no_value("spice_ipv6",
                              yes_value="ipv6=on", no_value="ipv6=off")
 
-            return " -spice %s" % (",".join(spice_opts))
+            return secret_cmdline + " -spice %s" % (",".join(spice_opts))
 
         def add_qxl(qxl_nr, base_addr=29):
             """
