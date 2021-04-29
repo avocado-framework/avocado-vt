@@ -457,7 +457,7 @@ class DevContainer(object):
                        "_DevContainer__state", "caps", "allow_hotplugged_vm",
                        "_DevContainer__iothread_manager",
                        "_DevContainer__iothread_supported_devices",
-                       "temporary_image_snapshots"):
+                       "temporary_image_snapshots", "mig_params"):
                 continue
             if key not in qdev2 or qdev2[key] != value:
                 return False
