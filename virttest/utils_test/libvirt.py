@@ -1636,6 +1636,9 @@ def create_disk_xml(params):
             source_attrs = {'file': source_file}
             if slice_in_source:
                 source_attrs = {'file': input_source_file}
+        elif type_name == "vhostuser":
+            source_file = params.get("source_file", "")
+            source_attrs = {'type': 'unix', 'path': source_file}
         elif type_name == "block":
             source_file = params.get("source_file", "")
             source_attrs = {'dev': source_file}
