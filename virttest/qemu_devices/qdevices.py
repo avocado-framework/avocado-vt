@@ -1618,7 +1618,7 @@ class CharDevice(QCustomDevice):
             for param in sock_params:
                 if self.get_param(param) is None:
                     continue
-                value = True if self.get_param(param) else False
+                value = True if self.get_param(param) == 'on' else False
                 args["backend"]["data"][param] = value
             return args
 
