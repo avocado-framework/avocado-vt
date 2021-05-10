@@ -1859,8 +1859,11 @@ class VM(virt_vm.BaseVM):
             else:
                 pvpanic_params = {"backend": "pvpanic"}
                 ioport = params.get("ioport_pvpanic")
+                events = params.get("events_pvpanic")
                 if ioport:
                     pvpanic_params["ioport"] = ioport
+                if events:
+                    pvpanic_params["events"] = events
                 pvpanic_dev = qdevices.QCustomDevice("device",
                                                      params=pvpanic_params,
                                                      backend="backend")
