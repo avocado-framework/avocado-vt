@@ -1,5 +1,6 @@
 import time
 import threading
+import types
 import logging
 import re
 import signal
@@ -37,6 +38,9 @@ class MigrationTest(object):
         self.mig_time = {}
         # The CmdResult returned from virsh migrate command
         self.ret = None
+        # The return values for those functions invoked during migration
+        # The format is: <func_object, func_return>
+        self.func_ret = {}
 
     def post_migration_check(self, vms, params, uptime=None, uri=None):
         """
@@ -45,6 +49,7 @@ class MigrationTest(object):
         * uptime of the migrated vm > uptime of vm before migration
         * ping vm from target host
             by setting "check_network_accessibility_after_mig" to "yes"
+        * As default, check system disk on the migrated vm
         * check disk operations on the migrated VM
             by setting "check_disk_after_mig" to "yes"
 
@@ -75,6 +80,13 @@ class MigrationTest(object):
                 if params.get("check_network_accessibility_after_mig", "no") == "yes":
                     ping_count = int(params.get("ping_count", 10))
                     self.ping_vm(vm, params, uri=uri, ping_count=ping_count)
+                if params.get("simple_disk_check_after_mig", 'yes') == "yes":
+                    backup_uri, vm.connect_uri = vm.connect_uri, uri
+                    vm.create_serial_console()
+                    vm_session_after_mig = vm.wait_for_serial_login(timeout=360)
+                    vm_session_after_mig.cmd("echo libvirt_simple_disk_check >> /tmp/libvirt_simple_disk_check")
+                    vm_session_after_mig.close()
+                    vm.connect_uri = backup_uri
                 if params.get("check_disk_after_mig", "no") == "yes":
                     disk_kname = params.get("check_disk_kname_after_mig", "vdb")
                     backup_uri, vm.connect_uri = vm.connect_uri, uri
@@ -257,9 +269,9 @@ class MigrationTest(object):
             pass
 
     def do_migration(self, vms, srcuri, desturi, migration_type,
-                     options=None, thread_timeout=60,
-                     ignore_status=False, func=None, virsh_opt="",
-                     extra_opts="", **args):
+                     options=None, thread_timeout=60, ignore_status=False,
+                     func=None, multi_funcs=None, virsh_opt="", extra_opts="",
+                     **args):
         """
         Migrate vms.
 
@@ -271,18 +283,186 @@ class MigrationTest(object):
         :param thread_timeout: time out seconds for the migration thread running
         :param ignore_status: determine if an exception is raised for errors
         :param func: the function executed during migration thread is running
+        :param multi_funcs: list of functions executed during migration
+                     thread is running. The func and multi_funcs should not be
+                     provided at same time. For example,
+                     multi_funcs = [{"func": <function check_established at 0x7f5833687510>,
+                                     "after_event": "iteration: '1'",
+                                     "before_event": "Suspended Migrated",
+                                     "before_pause": "yes", "func_param": params},
+                                    {"func": <function domjobabort at 0x7f5835cd08c8>,
+                                     "before_pause": "no"}
+                                   ]
         :param args: dictionary used by func,
-                     'func_param' is mandatory if no real func_param, none is
-                     requested.
+                     'func_param' is mandatory for func parameter.
+                     If no real func_param, none is requested.
                      'shell' is optional, where shell=True(bool) can be used
                      for process.run
-
         """
+
+        def _run_collect_event_cmd():
+            """
+            To execute virsh event command to collect the domain events
+
+            :return: VirshSession to retrieve the events
+            """
+            cmd = "event --loop --all"
+            virsh_event_session = virsh.VirshSession(virsh_exec=virsh.VIRSH_EXEC,
+                                                     auto_close=True,
+                                                     uri=srcuri)
+            virsh_event_session.sendline(cmd)
+            logging.debug("Begin to collect domain events...")
+            return virsh_event_session
+
+        def _need_collect_events(funcs_to_run):
+            """
+            Check if there is a need to run a command to collect domain events.
+            This function will return True as long as one of functions to run
+            has at least after_event or before_event defined.
+
+            :param funcs_to_run: the functions to be run. It can be a list
+                                 or a single function. When it is a list, its
+                                 element must be a dict.
+                For example,
+                funcs_to_run = [{"func": <function check_established at 0x7f5833687510>,
+                                 "after_event": "iteration: '1'",
+                                 "before_event": "Suspended Migrated",
+                                 "before_pause": "yes", "func_name": params},
+                                {"func": <function domjobabort at 0x7f5835cd08c8>,
+                                 "before_pause": "no"}
+                               ]
+            :return: boolean, True to collect events, otherwise False
+            :raises: exceptions.TestError when the parameter is invalid
+            """
+            if not funcs_to_run:
+                return False
+            if isinstance(funcs_to_run, list):
+                for one_func in funcs_to_run:
+                    if isinstance(one_func, dict):
+                        after_event = one_func.get('after_event')
+                        before_event = one_func.get('before_event')
+                        if any([after_event, before_event]):
+                            return True
+                    else:
+                        raise exceptions.TestError("Only a dict element is "
+                                                   "supported in funcs_to_run")
+            elif isinstance(funcs_to_run, types.FunctionType):
+                return False
+            return False
+
+        def _run_simple_func(vm, one_func):
+            """
+            Run single function
+
+            :param vm: the VM object
+            :param one_func: the function object to execute
+            """
+            if one_func == process.run:
+                try:
+                    one_func(args['func_params'], shell=args['shell'])
+                except KeyError:
+                    one_func(args['func_params'])
+            elif one_func == virsh.migrate_postcopy:
+                one_func(vm.name, uri=srcuri, debug=True)
+            else:
+                if 'func_params' in args:
+                    logging.debug("Run function {} with parameters".format(one_func))
+                    one_func(args['func_params'])
+                else:
+                    logging.debug("Run function {}".format(one_func))
+                    one_func()
+
+        def _run_complex_func(vm, one_func, virsh_event_session=None):
+            """
+            Run a function based on a dict definition
+
+            :param vm: the VM object
+            :param one_func: the function to be executed
+            :param virsh_event_session: VirshSession to collect domain events
+            :raises: exceptions.TestError if any error happens
+            """
+
+            logging.debug("Handle function invoking:%s", one_func)
+            before_vm_pause = 'yes' == one_func.get('before_pause', 'no')
+            after_event = one_func.get('after_event')
+            before_event = one_func.get('before_event')
+            func = one_func.get('func')
+            if after_event and not virsh_event_session:
+                raise exceptions.TestError("virsh session for collecting domain "
+                                           "events is not provided")
+
+            if after_event:
+                logging.debug("Below events are received:"
+                              "%s", virsh_event_session.get_stripped_output())
+                if not utils_misc.wait_for(
+                        lambda: re.findall(after_event,
+                                           virsh_event_session.get_stripped_output()), 30):
+                    raise exceptions.TestError("Unable to find "
+                                               "event {}".format(after_event))
+                logging.debug("Receive the event '{}'".format(after_event))
+            # If 'before_event' is provided, then 'after_event' must be provided
+            if before_event and re.findall(before_event,
+                                           virsh_event_session.get_stripped_output()):
+                raise exceptions.TestError("The function '{}' should "
+                                           "be run before the event "
+                                           "'{}', but the event has "
+                                           "been received".format(func,
+                                                                  before_event))
+            # Check if VM state is paused
+            if before_vm_pause and libvirt.check_vm_state(vm.name,
+                                                          'paused',
+                                                          uri=desturi):
+                raise exceptions.TestError("The function '{}' should "
+                                           "be run before VM is paused, "
+                                           "but VM is already "
+                                           "paused".format(func))
+
+            func_param = one_func.get("func_param")
+            if func_param:
+                #one_param_dict = args['multi_func_params'][func]
+                logging.debug("Run function {} with "
+                              "parameters '{}'".format(func, func_param))
+                self.func_ret.update({func: func(func_param)})
+            else:
+                logging.debug("Run function {}".format(func))
+                self.func_ret.update({func: func()})
+
+        def _run_funcs(vm, funcs_to_run, before_pause, virsh_event_session=None):
+            """
+            Execute the functions during migration
+
+            :param vm: the VM object
+            :param funcs_to_run: the function or list of functions
+            :param before_pause: True to run functions before guest is
+                                 paused on source host, otherwise, False
+            :param virsh_event_session: VirshSession to collect domain events
+            :raises: exceptions.TestError if any test error happens
+            """
+            for one_func in funcs_to_run:
+                if isinstance(one_func, types.FunctionType):
+                    if not before_pause:
+                        _run_simple_func(vm, one_func)
+                    else:
+                        logging.error("Only support to run the function "
+                                      "after guest is paused")
+                elif isinstance(one_func, dict):
+                    before_vm_pause = 'yes' == one_func.get('before_pause', 'no')
+                    if before_vm_pause == before_pause:
+                        _run_complex_func(vm, one_func, virsh_event_session)
+                else:
+                    raise exceptions.TestError("Only dict or FunctionType "
+                                               "is supported. No function will be run")
+
         @virsh.EventTracker.wait_event
         def _do_orderly_migration(vm_name, vm, srcuri, desturi, options=None,
                                   thread_timeout=60, ignore_status=False,
-                                  func=None, virsh_opt="",
+                                  func=None, multi_funcs=None, virsh_opt="",
                                   extra_opts="", **args):
+
+            virsh_event_session = None
+            if _need_collect_events(multi_funcs):
+                virsh_event_session = _run_collect_event_cmd()
+
             migration_thread = threading.Thread(target=self.thread_func_migration,
                                                 args=(vm, desturi, options,
                                                       ignore_status, virsh_opt,
@@ -290,7 +470,9 @@ class MigrationTest(object):
             migration_thread.start()
             eclipse_time = 0
             stime = int(time.time())
-            if func:
+            funcs_to_run = [func] if func else multi_funcs
+
+            if funcs_to_run:
                 # Execute command once the migration is started
                 migrate_start_state = args.get("migrate_start_state", "paused")
 
@@ -301,6 +483,9 @@ class MigrationTest(object):
                 if extra_opts:
                     migrate_options += " %s" % extra_opts
 
+                _run_funcs(vm, funcs_to_run, before_pause=True,
+                           virsh_event_session=virsh_event_session)
+
                 migration_started = self.wait_for_migration_start(
                     vm, state=migrate_start_state,
                     uri=desturi,
@@ -309,18 +494,8 @@ class MigrationTest(object):
                 if migration_started:
                     logging.info("Migration started for %s", vm.name)
                     time.sleep(3)  # To avoid executing the command lines before starting migration
-                    if func == process.run:
-                        try:
-                            func(args['func_params'], shell=args['shell'])
-                        except KeyError:
-                            func(args['func_params'])
-                    elif func == virsh.migrate_postcopy:
-                        func(vm.name, uri=srcuri, debug=True)
-                    else:
-                        if 'func_params' in args:
-                            func(args['func_params'])
-                        else:
-                            func()
+                    _run_funcs(vm, funcs_to_run, before_pause=False,
+                               virsh_event_session=virsh_event_session)
                 else:
                     logging.error("Migration failed to start for %s", vm.name)
             eclipse_time = int(time.time()) - stime
@@ -337,12 +512,19 @@ class MigrationTest(object):
             vm.connect_uri = args.get("virsh_uri", "qemu:///system")
         if migration_type == "orderly":
             for vm in vms:
+                if func and multi_funcs:
+                    raise exceptions.TestError("Only one parameter between "
+                                               "func and multi_funcs is "
+                                               "supported at a time")
                 _do_orderly_migration(vm.name, vm, srcuri, desturi,
                                       options=options,
                                       thread_timeout=thread_timeout,
-                                      ignore_status=ignore_status, func=func,
+                                      ignore_status=ignore_status,
+                                      func=func,
+                                      multi_funcs=multi_funcs,
                                       virsh_opt=virsh_opt,
-                                      extra_opts=extra_opts, **args)
+                                      extra_opts=extra_opts,
+                                      **args)
         elif migration_type == "cross":
             # Migrate a vm to remote first,
             # then migrate another to remote with the first vm back
