@@ -60,23 +60,3 @@ centos_8_1_task:
     *list_scr
   dry_run_script:
     *dry_run_scr
-
-centos_7_task:
-  env:
-    PYTHON: python2
-    matrix:
-      - AVOCADO_SRC:
-      - AVOCADO_SRC: avocado-framework<70.0
-    matrix:
-      - SETUP: setup.py develop --user
-      - SETUP: -m pip install .
-  container:
-    image: quay.io/avocado-framework/avocado-vt-ci-centos-7
-  setup_script:
-    *setup_scr
-  bootstrap_script:
-    *bootstrap_scr
-  list_script:
-    *list_scr
-  dry_run_script:
-    *dry_run_scr
