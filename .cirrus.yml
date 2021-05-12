@@ -10,8 +10,8 @@ fedora_33_task:
     matrix:
       # Get deps from setup.py (therefor pip version of avocado)
       - AVOCADO_SRC:
-      # Latest LTS release is 69.x
-      - AVOCADO_SRC: avocado-framework<70.0
+      # Latest LTS release is 82.x
+      - AVOCADO_SRC: avocado-framework<83.0
       # Latest Avocado from git
       - AVOCADO_SRC: git+https://github.com/avocado-framework/avocado#egg=avocado_framework
     matrix:
