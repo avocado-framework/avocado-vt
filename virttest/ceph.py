@@ -234,7 +234,7 @@ def create_config_file(ceph_monitor):
         os.makedirs(ceph_dir)
     if not os.path.exists(ceph_cfg):
         with open(ceph_cfg, 'w+') as f:
-            f.write('mon_host = %s' % ceph_monitor)
+            f.write('mon_host = %s\n' % ceph_monitor)
     return ceph_cfg
 
 
