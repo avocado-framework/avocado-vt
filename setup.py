@@ -12,8 +12,6 @@
 # Copyright: Red Hat Inc. 2013-2014
 # Author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 
-import sys
-
 # pylint: disable=E0611
 from setuptools import setup, find_packages
 
@@ -29,22 +27,6 @@ def pre_post_plugin_type():
 
 
 if __name__ == "__main__":
-    requirements = ["netifaces", "simplejson", "six"]
-    if sys.version_info[:2] >= (3, 0):
-        requirements.append("avocado-framework>=68.0")
-        requirements.append("netaddr")
-        requirements.append("aexpect")
-    else:
-        # Latest py2 supported stevedore is 1.10.0, need to limit it here
-        # as older avocado versions were not limiting it.
-        # Note: Avocado 70+ doesn't require stevedore and older Avocado
-        # can use whatever version of stevedore on py3
-        requirements.append("aexpect<=1.6.0")
-        requirements.append("urllib3<=1.24.3")
-        requirements.append("stevedore>=1.8.0,<=1.10.0")
-        requirements.append("avocado-framework>=68.0,<70.0")
-        requirements.append("netaddr<=0.7.19")
-
     setup(name='avocado-framework-plugin-vt',
           version=VERSION,
           description='Avocado Plugin for Virtualization Testing',
@@ -73,5 +55,6 @@ if __name__ == "__main__":
                   'vt-init = avocado_vt.plugins.vt_init:VtInit',
                   ],
               },
-          install_requires=requirements,
+          install_requires=["netifaces", "simplejson", "six", "netaddr",
+                            "aexpect", "avocado-framework>=68.0"]
           )

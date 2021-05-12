@@ -20,12 +20,6 @@
     %global gittar          %{srcname}-%{shortcommit}.tar.gz
 %endif
 
-%if 0%{?rhel}
-    %global with_python2 1
-%else
-    %global with_python2 0
-%endif
-
 # The Python dependencies are already tracked by the python2
 # or python3 "Requires".  This filters out the python binaries
 # from the RPM automatic requires/provides scanner.
@@ -38,7 +32,7 @@
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 87.0
-Release: 1%{?gitrel}%{?dist}
+Release: 2%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -48,10 +42,6 @@ Source0: https://github.com/avocado-framework/%{srcname}/archive/%{version}.tar.
 Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}.tar.gz#/%{gittar}
 # old way of retrieving snapshot sources
 #Source0: https://github.com/avocado-framework/%{srcname}/archive/%{commit}/%{srcname}-%{version}-%{shortcommit}.tar.gz
-%endif
-%if %{with_python2}
-BuildRequires: python2-devel, python2-setuptools, python-six
-Requires: python-six
 %endif
 BuildRequires: python3-devel, python3-setuptools, python3-six
 Requires: python3-six
@@ -64,9 +54,6 @@ Requires: policycoreutils-python
 Requires: policycoreutils-python-utils
 %endif
 
-%if %{with_python2}
-Requires: python2-imaging
-%endif
 Requires: python3-imaging
 %if 0%{?el6}
 Requires: gstreamer-python, gstreamer-plugins-good
@@ -78,32 +65,6 @@ Requires: pygobject2, gstreamer1-plugins-good
 Avocado Virt Test is a plugin that lets you execute virt-tests
 with all the avocado convenience features, such as HTML report,
 Xunit output, among others.
-
-%if %{with_python2}
-%package -n python2-%{name}
-Summary: %{summary}
-Requires: python2, python2-devel, python2-avocado >= 51.0, python2-aexpect
-Requires: python2-simplejson
-%if 0%{?rhel} == 7
-Requires: python-netaddr, python-netifaces
-%else
-Requires: python2-netaddr, python2-netifaces
-%endif
-
-# For compatibility reasons, let's mark this package as one that
-# provides the same functionality as the old package name and also
-# one that obsoletes the old package name, so that the new name is
-# favored.  These could (and should) be removed in the future.
-# These changes are backed by the following guidelines:
-# https://fedoraproject.org/wiki/Upgrade_paths_%E2%80%94_renaming_or_splitting_packages
-Obsoletes: %{name} <= 67.0-1
-Provides: %{name} = %{version}-%{release}
-%{?python_provide:%python_provide python2-%{srcname}}
-%description -n python2-%{name}
-Avocado Virt Test is a plugin that lets you execute virt-tests
-with all the avocado convenience features, such as HTML report,
-Xunit output, among others.
-%endif
 
 %package -n python3-%{name}
 Summary: %{summary}
@@ -123,31 +84,12 @@ Xunit output, among others.
 %endif
 
 %build
-%if %{with_python2}
-%{__python2} setup.py build
-%endif
 %{__python3} setup.py build
 
 %install
 %{__mkdir} -p %{buildroot}%{_sysconfdir}/avocado/conf.d
-%if %{with_python2}
-%{__python2} setup.py install --root %{buildroot} --skip-build
-%{__mv} %{buildroot}%{python2_sitelib}/avocado_vt/conf.d/* %{buildroot}%{_sysconfdir}/avocado/conf.d
-%endif
 %{__python3} setup.py install --root %{buildroot} --skip-build
 %{__mv} %{buildroot}%{python3_sitelib}/avocado_vt/conf.d/* %{buildroot}%{_sysconfdir}/avocado/conf.d
-
-%if %{with_python2}
-%files -n python2-%{name}
-%defattr(-,root,root,-)
-%dir %{_sysconfdir}/avocado
-%dir %{_sysconfdir}/avocado/conf.d
-%config(noreplace)%{_sysconfdir}/avocado/conf.d/*.conf
-%doc README.rst LICENSE
-%{python2_sitelib}/avocado_vt*
-%{python2_sitelib}/avocado_framework_plugin_vt*
-%{python2_sitelib}/virttest*
-%endif
 
 %files -n python3-%{name}
 %defattr(-,root,root,-)
@@ -161,6 +103,9 @@ Xunit output, among others.
 
 
 %changelog
+* Mon May 10 2021 Cleber Rosa <cleber@redhat.com> - 87.0-2
+- Remove Python 2 packages
+
 * Wed Apr 14 2021 Cleber Rosa <cleber@redhat.com> - 87.0-1
 - New release
 
