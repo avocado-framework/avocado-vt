@@ -1419,7 +1419,8 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
 
 
 def create_hostdev_xml(pci_id, boot_order=None,
-                       dev_type="pci", managed="yes", alias=None):
+                       dev_type="pci", managed="yes", alias=None,
+                       teaming=None):
     """
     Create a hostdev configuration file; supported hostdev types:
     a. pci
@@ -1435,6 +1436,7 @@ def create_hostdev_xml(pci_id, boot_order=None,
     :param dev_type: type of hostdev
     :param managed: managed of hostdev
     :param alias: alias name of hostdev
+    :param teaming: teaming setting of hostdev
     :return: hostdev device object
     """
     hostdev_xml = hostdev.Hostdev()
@@ -1445,6 +1447,8 @@ def create_hostdev_xml(pci_id, boot_order=None,
         hostdev_xml.boot_order = boot_order
     if alias:
         hostdev_xml.alias = dict(name=alias)
+    if teaming:
+        hostdev_xml.teaming = eval(teaming)
 
     # Create attributes dict for device's address element
     logging.info("pci_id/device id is %s" % pci_id)
