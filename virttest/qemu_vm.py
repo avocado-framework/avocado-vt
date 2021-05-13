@@ -609,7 +609,7 @@ class VM(virt_vm.BaseVM):
         def add_nic(devices, vlan, model=None, mac=None, device_id=None,
                     netdev_id=None, nic_extra_params=None, pci_addr=None,
                     bootindex=None, queues=1, vectors=None, pci_bus='pci.0',
-                    ctrl_mac_addr=None, mq=None):
+                    ctrl_mac_addr=None, mq=None, failover=None):
             if model == 'none':
                 return
             if devices.has_option("device"):
@@ -661,6 +661,8 @@ class VM(virt_vm.BaseVM):
                     dev.set_param('mq', mq)
                 if vectors:
                     dev.set_param('vectors', vectors)
+                if failover:
+                    dev.set_param('failover', failover)
             if devices.has_option("netdev"):
                 dev.set_param('netdev', netdev_id)
             else:
@@ -878,6 +880,7 @@ class VM(virt_vm.BaseVM):
                                          verbose=False).stdout_text
             dev.set_param('host', host)
             dev.set_param('id', 'id_%s' % host.replace(":", "."))
+            dev.set_param('failover_pair_id', failover_pair_id)
             fail_param = []
             for param in params.get("pci-assign_params", "").split():
                 value = params.get(param)
@@ -2113,7 +2116,8 @@ class VM(virt_vm.BaseVM):
                         nic_params.get("nic_pci_addr"),
                         bootindex, queues, vectors, parent_bus,
                         nic_params.get("ctrl_mac_addr"),
-                        nic_params.get("mq"))
+                        nic_params.get("mq"),
+                        nic_params.get("failover"))
 
                 # Handle the '-net tap' or '-net user' or '-netdev' part
                 cmd, cmd_nd = add_net(devices, vlan, nettype, ifname, tftp,
@@ -2145,6 +2149,7 @@ class VM(virt_vm.BaseVM):
                                       params=net_params, cmdline_nd=cmd_nd))
             else:
                 device_driver = nic_params.get("device_driver", "pci-assign")
+                failover_pair_id = nic_params.get("failover_pair_id")
                 pci_id = vm.pa_pci_ids[iov]
                 # On Power architecture using short id would result in
                 # pci device lookup failure while writing vendor id to
@@ -3828,7 +3833,7 @@ class VM(virt_vm.BaseVM):
         nic = self.virtnet[nic_index_or_name]
         error_context.context("removing netdev info from nic %s from vm %s" % (
             nic, self.name))
-        for propertea in ['netdev_id', 'ifname', 'queues',
+        for propertea in ['netdev_id', 'ifname', 'queues', 'failover',
                           'tapfds', 'tapfd_ids', 'vectors']:
             if propertea in nic:
                 del nic[propertea]
