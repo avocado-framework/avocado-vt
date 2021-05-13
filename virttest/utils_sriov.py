@@ -77,6 +77,30 @@ def set_vf_mac(ethname, mac_addr, vf_idx=0, session=None):
             cmd, shell=True, verbose=True, session=session)
 
 
+def get_vf_pci_id(pf_pci, vf_index=0, session=None):
+    """
+    Get pci_id of VF
+
+    :param pf_pci: The pci id of PF
+    :param vf_index: VF's index
+    :param session: The session object to the host
+    :return: VF's pci id
+    """
+    cmd = "ls /sys/bus/pci/devices/{}/virtfn{}/net".format(pf_pci, vf_index)
+    status, vf_name = utils_misc.cmd_status_output(
+        cmd, shell=True, verbose=True, session=session)
+    if status or not vf_name:
+        raise exceptions.TestError("Unable to get VF. status: %s, stdout: %s."
+                                   % (status, vf_name))
+    cmd = "ethtool -i %s | awk '/bus-info/ {print $NF}'" % vf_name.strip()
+    status, vf_pci = utils_misc.cmd_status_output(
+        cmd, shell=True, verbose=True, session=session)
+    if status:
+        raise exceptions.TestError("Unable to get VF's pci. status: %s, "
+                                   "stdout: %s." % (status, vf_pci))
+    return vf_pci
+
+
 def add_or_del_connection(params, session=None, is_del=False):
     """
     Add/Delete connections
