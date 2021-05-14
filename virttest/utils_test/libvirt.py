@@ -3071,10 +3071,16 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
         match_list = [patterns_yes_no, patterns_auth_name_comm,
                       patterns_auth_name_xen, patterns_auth_pwd,
                       patterns_virsh_cmd]
+        second_pass = None
         if patterns_extra_dict:
             match_list = match_list + list(patterns_extra_dict.keys())
+            # Check if there is any second password in extra dict:
+            for key in patterns_extra_dict:
+                if re.search(patterns_auth_pwd, key):
+                    # save a value of the second password
+                    second_pass = patterns_extra_dict[key]
         patterns_list_len = len(match_list)
-
+        match_dict_item = False
         while True:
             match, text = session.read_until_any_line_matches(match_list,
                                                               timeout=30,
@@ -3089,18 +3095,25 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
                 continue
             elif match == -patterns_list_len + 3:
                 logging.info("Matched 'password', details: <%s>", text)
-                session.sendline(auth_pwd)
+                if match_dict_item and second_pass:
+                    logging.info('Prompt for a password when there is a '
+                                 'password in extra dict, trying that '
+                                 'one:{}.'.format(second_pass))
+                    session.sendline(second_pass)
+                else:
+                    session.sendline(auth_pwd)
                 continue
             elif match == -patterns_list_len + 4:
                 logging.info("Expected output of virsh command: <%s>", text)
                 break
-            if (patterns_list_len > 5):
+            if patterns_list_len > 5:
                 extra_len = len(patterns_extra_dict)
                 index_in_extra_dict = match + extra_len
                 key = list(patterns_extra_dict.keys())[index_in_extra_dict]
                 value = patterns_extra_dict.get(key, "")
                 logging.info("Matched '%s', details:<%s>", key, text)
                 session.sendline(value)
+                match_dict_item = True
                 continue
             else:
                 logging.error("The real prompt text: <%s>", text)
