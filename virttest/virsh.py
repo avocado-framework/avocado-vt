@@ -4857,3 +4857,28 @@ def guestinfo(name, options="", **dargs):
     :return: CmdResult object.
     """
     return command("guestinfo %s %s" % (name, options), **dargs)
+
+
+def get_user_sshkeys(name, user, **dargs):
+    """
+    list authorized SSH keys for given user (via agent)
+
+    :param name: VM name
+    :param user: user to list authorized keys for
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object.
+    """
+    return command("get-user-sshkeys %s %s" % (name, user), **dargs)
+
+
+def set_user_sshkeys(name, user, options="", **dargs):
+    """
+    manipulate authorized SSH keys file for given user (via agent)
+
+    :param name: VM name
+    :param user: user to set authorized keys for
+    :param options: options of set-user-sshkeys command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object.
+    """
+    return command("set-user-sshkeys %s %s %s" % (name, user, options), **dargs)
