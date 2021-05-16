@@ -10,10 +10,10 @@
     %global gittar          %{srcname}-%{version}.tar.gz
 %else
     %if ! 0%{?commit:1}
-        %global commit      de0996188033f2f9143c4c7df1d9920d50514b6a
+        %global commit      44524d32dba73942e6c44c00ac8fb80bb414c73a
     %endif
     %if ! 0%{?commit_date:1}
-        %global commit_date 20210215
+        %global commit_date 20210518
     %endif
     %global shortcommit     %(c=%{commit};echo ${c:0:8})
     %global gitrel          .%{commit_date}git%{shortcommit}
@@ -31,8 +31,8 @@
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 87.0
-Release: 2%{?gitrel}%{?dist}
+Version: 88.0
+Release: 1%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -103,6 +103,9 @@ Xunit output, among others.
 
 
 %changelog
+* Tue May 18 2021 Cleber Rosa <cleber@redhat.com> - 88.0-1
+- New release
+
 * Mon May 10 2021 Cleber Rosa <cleber@redhat.com> - 87.0-2
 - Remove Python 2 packages
 
