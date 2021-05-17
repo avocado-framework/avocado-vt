@@ -11,7 +11,7 @@ class Hostdev(base.TypedDeviceBase):
 
     __slots__ = ('type', 'mode', 'managed', 'sgio', 'rawio',
                  'source', 'boot_order', 'readonly', 'shareable',
-                 'alias', 'model')
+                 'alias', 'model', 'teaming')
 
     def __init__(self, type_name="hostdev", virsh_instance=base.base.virsh):
         accessors.XMLAttribute('type', self, parent_xpath='/',
@@ -38,6 +38,8 @@ class Hostdev(base.TypedDeviceBase):
                                  tag_name='shareable')
         accessors.XMLElementDict('alias', self, parent_xpath='/',
                                  tag_name='alias')
+        accessors.XMLElementDict("teaming", self, parent_xpath='/',
+                                 tag_name='teaming')
         super(self.__class__, self).__init__(device_tag='hostdev',
                                              type_name=type_name,
                                              virsh_instance=virsh_instance)
