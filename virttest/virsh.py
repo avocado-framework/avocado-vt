@@ -1295,15 +1295,16 @@ def domifstat(name, interface, **dargs):
     return command("domifstat %s %s" % (name, interface), **dargs)
 
 
-def domjobinfo(name, **dargs):
+def domjobinfo(name, extra="", **dargs):
     """
     Get domain job information.
 
     :param name: VM name
+    :param extra: extra options to pass to command
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
     """
-    return command("domjobinfo %s" % name, **dargs)
+    return command("domjobinfo %s %s" % (name, extra), **dargs)
 
 
 def edit(options, **dargs):
