@@ -28,6 +28,7 @@ import aexpect
 import platform
 import random
 import string
+import shutil
 
 from aexpect import remote
 
@@ -2727,7 +2728,9 @@ def attach_additional_device(vm_name, targetdev, disk_path, params, config=True)
     params['target_dev'] = targetdev
 
     # Create a file of device
-    xmlfile = create_disk_xml(params)
+    xmlfile = os.path.join(data_dir.get_tmp_dir(), "xml_file")
+    tmpfile = create_disk_xml(params)
+    shutil.copyfile(tmpfile, xmlfile)
 
     # To confirm attached device do not exist.
     if config:
