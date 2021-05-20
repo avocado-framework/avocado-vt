@@ -4,6 +4,7 @@ Virsh net* command related utility functions
 """
 import re
 import logging
+import ast
 
 from avocado.core import exceptions
 from avocado.utils import process
@@ -104,3 +105,62 @@ def check_established(params):
             raise exceptions.TestFail("Pattern '%s' is not matched in "
                                       "'%s'" % (pat_str,
                                                 cmdRes.stdout_text.strip()))
+
+
+def modify_network_xml(net_dict, testnet_xml):
+    """
+    modify the network's xml
+
+    :param testnet_xml: the network xml object to be modified
+    :param net_dict: The dict restore need updated items like mac, bandwidth, forward
+    :return: the updated network xml
+    """
+    del_nat = net_dict.get('del_nat')
+    del_ip = net_dict.get('del_ip')
+    dns_txt = net_dict.get('dns_txt')
+    domain = net_dict.get('domain')
+    bridge = net_dict.get('bridge')
+    forward = net_dict.get('forward')
+    # get the params about forward interface
+    interface_dev = net_dict.get('interface_dev')
+    virtualport = net_dict.get('virtualport')
+    # bandwidth to be set if any
+    net_bandwidth_outbound = net_dict.get('net_bandwidth_outbound')
+    net_bandwidth_inbound = net_dict.get('net_bandwidth_inbound')
+    mac = net_dict.get("mac")
+
+    # delete the <bridge/> and <mac/> elements as they can be
+    # generated automatically if needed
+    testnet_xml.del_bridge()
+    testnet_xml.del_mac()
+    if del_nat:
+        testnet_xml.del_nat_attrs()
+    if del_ip:
+        testnet_xml.del_ip()
+    if dns_txt:
+        dns_dict = {"txt": ast.literal_eval(dns_txt)}
+        dns_obj = testnet_xml.new_dns(**dns_dict)
+        testnet_xml.dns = dns_obj
+    if mac:
+        testnet_xml.mac = mac
+    if domain:
+        testnet_xml.domain_name = domain
+    if bridge:
+        testnet_xml.del_bridge()
+        testnet_xml.bridge = {"name": bridge}
+    if forward:
+        testnet_xml.del_forward()
+
+        testnet_xml.forward = eval(forward)
+        logging.debug("current mode is %s" % testnet_xml.forward)
+    if interface_dev:
+        testnet_xml.forward_interface = [{'dev': interface_dev}]
+    if virtualport:
+        testnet_xml.virtualport_type = "openvswitch"
+    if net_bandwidth_inbound:
+        net_inbound = ast.literal_eval(net_bandwidth_inbound)
+        testnet_xml.bandwidth_inbound = net_inbound
+    if net_bandwidth_outbound:
+        net_outbound = ast.literal_eval(net_bandwidth_outbound)
+        testnet_xml.bandwidth_outbound = net_outbound
+    return testnet_xml
