@@ -1676,16 +1676,17 @@ def postprocess(test, params, env):
         logging.info("Sosreport for remote host: %s", sosreport_path)
     living_vms = [vm for vm in env.get_all_vms() if vm.is_alive()]
     # Close all monitor socket connections of living vm.
-    for vm in living_vms:
-        if hasattr(vm, "monitors"):
-            for m in vm.monitors:
-                try:
-                    m.close()
-                except Exception:
-                    pass
-        # Close the serial console session, as it'll help
-        # keeping the number of filedescriptors used by avocado-vt honest.
-        vm.cleanup_serial_console()
+    if not params.get_boolean("keep_env_vms", False):
+        for vm in living_vms:
+            if hasattr(vm, "monitors"):
+                for m in vm.monitors:
+                    try:
+                        m.close()
+                    except Exception:
+                        pass
+            # Close the serial console session, as it'll help
+            # keeping the number of filedescriptors used by avocado-vt honest.
+            vm.cleanup_serial_console()
 
     libvirtd_inst = None
     vm_type = params.get("vm_type")
