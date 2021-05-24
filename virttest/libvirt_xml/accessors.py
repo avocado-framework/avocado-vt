@@ -90,13 +90,15 @@ class AccessorBase(PropCanBase):
         """
         return self.libvirtxml.xmltreefile
 
-    def element_by_parent(self, parent_xpath, tag_name, create=True):
+    def element_by_parent(self, parent_xpath, tag_name, create=True,
+                          nested=False):
         """
         Retrieve/create an element instance at parent_xpath/tag_name
 
         :param parent_xpath: xpath of parent element
         :param tag_name: name of element under parent to retrieve/create
         :param create: True to create new element if not exist
+        :param nested: True if target element is supposed to be sub-element
         :return: ElementTree.Element instance
         :raise: LibvirtXMLError: If element not exist & create=False
         """
@@ -104,7 +106,7 @@ class AccessorBase(PropCanBase):
         type_check('tag_name', tag_name, str)
         parent_element = self.xmltreefile().find(parent_xpath)
         if (parent_element == self.xmltreefile().getroot() and
-                parent_element.tag == tag_name):
+                parent_element.tag == tag_name) and nested is False:
             return parent_element
         excpt_str = ('Exception thrown from %s for property "%s" while'
                      ' looking for element tag "%s", on parent at xpath'
@@ -645,7 +647,8 @@ class XMLElementNest(AccessorGeneratorBase):
             # Don't re-invent XPath generation method/behavior
             nested_root_element = self.element_by_parent(self.parent_xpath,
                                                          self.tag_name,
-                                                         create=False)
+                                                         create=False,
+                                                         nested=True)
             nested_root_xpath = xmltreefile.get_xpath(nested_root_element)
             # Try to make XMLTreeFile copy, rooted at nested_root_xpath
             # with copies of any/all child elements also
@@ -672,7 +675,8 @@ class XMLElementNest(AccessorGeneratorBase):
             # Will overwrite if exists
             existing_element = self.element_by_parent(self.parent_xpath,
                                                       self.tag_name,
-                                                      create=True)
+                                                      create=True,
+                                                      nested=True)
             existing_parent = self.xmltreefile().get_parent(existing_element)
             self.xmltreefile().remove(existing_element)
             existing_parent.append(value.xmltreefile.getroot())

@@ -240,6 +240,30 @@ class Disk(base.TypedDeviceBase):
             setattr(new_one, key, value)
         return new_one
 
+    def get_all_backingstore(self):
+        """
+        Get all backingstore of a Disk object
+
+        :return: an ordered list of backingstore items
+        """
+
+        def _get_next_backingstore(elem):
+            """
+            Recursively get backingstore object
+
+            :param elem: root element to get backingstore object
+            """
+            if elem.xmltreefile.find('/backingStore') is None:
+                return
+            bs = elem.backingstore
+            backingstore_list.append(bs)
+            _get_next_backingstore(bs)
+
+        backingstore_list = []
+        _get_next_backingstore(self)
+
+        return backingstore_list
+
     # For convenience
     Address = librarian.get('address')
 
@@ -504,7 +528,7 @@ class Disk(base.TypedDeviceBase):
         source:
             nested xml of backingStore tag
         """
-        __slots__ = ('type', 'index', 'format', 'source')
+        __slots__ = ('type', 'index', 'format', 'source', 'backingstore')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLAttribute('type', self,
@@ -522,6 +546,11 @@ class Disk(base.TypedDeviceBase):
                                      parent_xpath='/',
                                      tag_name='source',
                                      subclass=self.Source,
+                                     subclass_dargs={
+                                         'virsh_instance': virsh_instance})
+            accessors.XMLElementNest('backingstore', self, parent_xpath='/',
+                                     tag_name='backingStore',
+                                     subclass=Disk.BackingStore,
                                      subclass_dargs={
                                          'virsh_instance': virsh_instance})
 
@@ -554,9 +583,12 @@ class Disk(base.TypedDeviceBase):
                 string, attribute of backingStore/source tag
             """
 
-            __slots__ = ('dev', 'protocol', 'name', 'host', 'file', 'auth')
+            __slots__ = ('attrs', 'dev', 'protocol', 'name', 'host', 'file', 'auth')
 
             def __init__(self, virsh_instance=base.base.virsh):
+                accessors.XMLElementDict('attrs', self,
+                                         parent_xpath='/',
+                                         tag_name='source')
                 accessors.XMLAttribute('dev', self,
                                        parent_xpath='/',
                                        tag_name='source',
