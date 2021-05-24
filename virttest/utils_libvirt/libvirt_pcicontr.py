@@ -23,7 +23,7 @@ def get_max_contr_indexes(vm_xml, cntlr_type, cntlr_model, cntl_num=1):
     usable_indexes = []
     for elem in vm_xml.devices.by_device_tag('controller'):
         if (cntlr_type == elem.type and cntlr_model == elem.model):
-            usable_indexes.append(elem.index)
+            usable_indexes.append(int(elem.index))
     usable_indexes = sorted(usable_indexes, reverse=True)
 
     logging.debug("The indexes returned for controller type '{}' and "
