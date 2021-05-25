@@ -10,6 +10,7 @@ import tempfile
 import aexpect
 from aexpect import remote
 
+from avocado.core import exceptions
 from avocado.utils import path
 from avocado.utils import process
 
@@ -925,6 +926,8 @@ class TLSConnection(ConnectionBase):
     special_cn: Use special cn in /etc/hosts, default don't use
     server_setup_local: Whether to setup tls server on local host
     server_info_ip: Use a specific IP address in server.info
+    scp_list_server: the file list to be scped to the server
+    scp_list_client: the file list to be scped to the client
     """
     __slots__ = ('server_cn', 'client_cn', 'ca_cn', 'CERTTOOL', 'pki_CA_dir',
                  'libvirt_pki_dir', 'libvirt_pki_private_dir', 'client_hosts',
@@ -937,7 +940,8 @@ class TLSConnection(ConnectionBase):
                  'server_saslconf', 'server_qemuconf', 'client_qemuconf',
                  'server_libvirtd_tls_socket', 'client_libvirtd_tls_socket',
                  'special_cn', 'server_setup_local', 'server_info_ip',
-                 'daemon_conf', 'daemon_socket_conf')
+                 'daemon_conf', 'daemon_socket_conf', 'scp_list_server',
+                 'scp_list_client')
 
     def __init__(self, *args, **dargs):
         """
@@ -967,6 +971,12 @@ class TLSConnection(ConnectionBase):
         init_dict['special_cn'] = init_dict.get('special_cn', 'no')
         init_dict['server_setup_local'] = init_dict.get('server_setup_local', False)
         init_dict['server_info_ip'] = init_dict.get("server_info_ip")
+        init_dict['scp_list_server'] = init_dict.get("scp_list_server",
+                                                     'cacert,cakey,'
+                                                     'servercert,serverkey')
+        init_dict['scp_list_client'] = init_dict.get("scp_list_client",
+                                                     'cacert,cakey,'
+                                                     'clientcert,clientkey')
 
         super(TLSConnection, self).__init__(init_dict)
         # check and set CERTTOOL in slots
@@ -1292,17 +1302,18 @@ class TLSConnection(ConnectionBase):
             raise ConnMkdirError(self.libvirt_pki_private_dir, output)
 
         if scp_new_cacert == 'no':
-            scp_dict = {servercert_path: self.libvirt_pki_dir,
-                        serverkey_path: self.libvirt_pki_private_dir}
+            params_scp = {'serverkey': serverkey_path,
+                          'servercert': servercert_path}
         else:
-            scp_dict = {cacert_path: self.pki_CA_dir,
-                        cakey_path: self.pki_CA_dir,
-                        servercert_path: self.libvirt_pki_dir,
-                        serverkey_path: self.libvirt_pki_private_dir}
             cmd = "mkdir -p {0}".format(self.pki_CA_dir)
             status, output = server_session.cmd_status_output(cmd)
             if status:
                 raise ConnMkdirError(self.pki_CA_dir, output)
+            params_scp = {'cacert': cacert_path,
+                          'cakey': cakey_path,
+                          'serverkey': serverkey_path,
+                          'servercert': servercert_path}
+        scp_dict = self._update_scp_list(self.scp_list_server, params_scp)
 
         for key in scp_dict:
             local_path = key
@@ -1458,6 +1469,42 @@ class TLSConnection(ConnectionBase):
                                "%s %s" % (self.client_ip, hostname)}
             self.server_hosts.sub_else_add(pattern_to_repl)
 
+    def _update_scp_list(self, scp_list, params):
+        """
+        Update the scp file list to remote host
+
+        :param scp_list: str, the file key list
+        :param params: dict, the required parameters are like:
+                       {'cacert': cacert_path, 'serverkey': serverkey_path}
+        :return: dict, the scp file path and directory mapping
+        """
+
+        fname_key_map = {'cacert': params.get('cacert'),
+                         'cakey': params.get('cakey'),
+                         'servercert': params.get('servercert'),
+                         'serverkey': params.get('serverkey'),
+                         'clientcert': params.get('clientcert'),
+                         'clientkey': params.get('clientkey')}
+        fname_dir_map = {'cacert': self.pki_CA_dir,
+                         'cakey': self.pki_CA_dir,
+                         'servercert': self.libvirt_pki_dir,
+                         'serverkey': self.libvirt_pki_private_dir,
+                         'clientcert': self.libvirt_pki_dir,
+                         'clientkey': self.libvirt_pki_private_dir}
+
+        scp_dict = {}
+
+        for one_fname in scp_list.split(','):
+            if one_fname not in fname_key_map:
+                raise exceptions.TestError("Valid keys are 'cacert,cakey,"
+                                           "servercert,serverkey,"
+                                           "clientcert,clientkey'")
+            file_path = fname_key_map[one_fname]
+            if file_path:
+                scp_dict.update({file_path: fname_dir_map[one_fname]})
+
+        return scp_dict
+
     def client_setup(self):
         """
         setup private key and certificate file for client.
@@ -1501,13 +1548,14 @@ class TLSConnection(ConnectionBase):
                     raise ConnMkdirError(target_dir, output)
 
         if scp_new_cacert == 'no':
-            scp_dict = {clientcert_path: self.libvirt_pki_dir,
-                        clientkey_path: self.libvirt_pki_private_dir}
+            params_scp = {'clientkey': clientkey_path,
+                          'clientcert': clientcert_path}
         else:
-            scp_dict = {cacert_path: self.pki_CA_dir,
-                        cakey_path: self.pki_CA_dir,
-                        clientcert_path: self.libvirt_pki_dir,
-                        clientkey_path: self.libvirt_pki_private_dir}
+            params_scp = {'cacert': cacert_path,
+                          'cakey': cakey_path,
+                          'clientkey': clientkey_path,
+                          'clientcert': clientcert_path}
+        scp_dict = self._update_scp_list(self.scp_list_client, params_scp)
 
         for key in scp_dict:
             local_path = key
