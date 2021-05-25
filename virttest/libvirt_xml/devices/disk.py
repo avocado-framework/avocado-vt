@@ -231,6 +231,20 @@ class Disk(base.TypedDeviceBase):
             setattr(new_one, key, value)
         return new_one
 
+    def get_backingstore_list(self):
+        """
+        Usage: get source file attribute from backingStore
+            test_disk = Disk()
+            backingstore_list = test_disk.get_backingstore_list()
+            source_file_list = [elem.find('source').get('file') or elem.find('source').get('name') for elem in backingstore_list]
+
+        :return: a disk backingstore list where each element is primitive virttest.element_tree._ElementInterface object
+        """
+        backingstore_list = []
+        for elem in self.xmltreefile.getiterator('backingStore'):
+            backingstore_list.append(elem)
+        return backingstore_list
+
     def new_drivermetadata(self, **dargs):
         """
         Return a new DriverMetadata instance and set properties from dargs
