@@ -1192,6 +1192,9 @@ class BaseVM(object):
         logging.debug("Attempting to log into '%s' (timeout %ds)",
                       self.name, timeout)
         start_time = time.time()
+        if self.params.get('machine_type').startswith("s390"):
+            return self.wait_for_serial_login(timeout, internal_timeout,
+                                              False, username, password)
         try:
             self.wait_for_get_address(nic_index,
                                       timeout=timeout,
