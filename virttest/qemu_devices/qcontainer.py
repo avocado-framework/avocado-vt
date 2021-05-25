@@ -2043,7 +2043,7 @@ class DevContainer(object):
         elif fmt == 'virtio-blk-device':
             dev_parent = {'type': 'virtio-bus'}
         elif fmt == 'virtio-blk-ccw':   # For IBM s390 platform
-            dev_parent = {'type': 'virtio-bus'}
+            dev_parent = {'type': 'virtual-css'}
         else:
             dev_parent = {'type': fmt}
 
