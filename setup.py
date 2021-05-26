@@ -36,6 +36,9 @@ if __name__ == "__main__":
           packages=find_packages(exclude=('selftests*',)),
           include_package_data=True,
           entry_points={
+              'console_scripts': [
+                  'avocado-runner-avocado-vt = avocado_vt.plugins.vt_runner:main',
+                  ],
               'avocado.plugins.settings': [
                   'vt-settings = avocado_vt.plugins.vt_settings:VTSettings',
                   ],
@@ -53,6 +56,15 @@ if __name__ == "__main__":
                   ],
               'avocado.plugins.init': [
                   'vt-init = avocado_vt.plugins.vt_init:VtInit',
+                  ],
+              'avocado.plugins.resolver': [
+                  'avocado-vt = avocado_vt.plugins.vt_resolver:VTResolver'
+                  ],
+              'avocado.plugins.discoverer': [
+                  'avocado-vt = avocado_vt.plugins.vt_resolver:VTDiscoverer'
+                  ],
+              'avocado.plugins.runnable.runner': [
+                  'avocado-vt = avocado_vt.plugins.vt_runner:VTTestRunner',
                   ],
               },
           install_requires=["netifaces", "simplejson", "six", "netaddr",

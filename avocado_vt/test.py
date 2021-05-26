@@ -20,18 +20,14 @@ import imp
 import logging
 import os
 import sys
-import pickle
 import pipes
-import traceback
 
 from avocado.core import exceptions
 from avocado.core import test
 from avocado.utils import stacktrace
 from avocado.utils import process
-from avocado.utils import genio
 
 from virttest import error_event
-from virttest import bootstrap
 from virttest import data_dir
 from virttest import env_process
 from virttest import funcatexit
@@ -65,9 +61,6 @@ if 'AUTOTEST_PATH' in os.environ:
                         root_module_name="autotest.client")
 
 
-BG_ERR_FILE = "background-error.log"
-
-
 def cleanup_env(env_filename, env_version):
     """
     Pickable function to initialize and destroy the virttest env
@@ -76,7 +69,7 @@ def cleanup_env(env_filename, env_version):
     env.destroy()
 
 
-class VirtTest(test.Test):
+class VirtTest(test.Test, utils.TestUtils):
 
     """
     Minimal test class used to run a virt test.
@@ -180,51 +173,17 @@ class VirtTest(test.Test):
         """
         return None
 
-    def write_test_keyval(self, d):
-        self.whiteboard = str(d)
+    def get_state(self):
+        """
+        Pre Avocado-60.0 used to override self.__params attribute and
+        requires special handling while reporting the state.
 
-    def verify_background_errors(self):
+        TODO: Remove when 52LTS is deprecated.
         """
-        Verify if there are any errors that happened on background threads.
-        Logs all errors in the background_errors into background-error.log and
-        error the test.
-        """
-        err_file_path = os.path.join(self.logdir, BG_ERR_FILE)
-        bg_errors = self.background_errors.get_all()
-        error_messages = ["BACKGROUND ERROR LIST:"]
-        for index, error in enumerate(bg_errors):
-            error_messages.append(
-                "- ERROR #%d -\n%s" % (index, "".join(
-                    traceback.format_exception(*error)
-                    )))
-        genio.write_file(err_file_path, '\n'.join(error_messages))
-        if bg_errors:
-            msg = ["Background error"]
-            msg.append("s are" if len(bg_errors) > 1 else " is")
-            msg.append((" detected, please refer to file: "
-                        "'%s' for more details.") % BG_ERR_FILE)
-            self.error(''.join(msg))
-
-    def __safe_env_save(self, env):
-        """
-        Treat "env.save()" exception as warnings
-
-        :param env: The virttest env object
-        :return: True on failure
-        """
-        try:
-            env.save()
-        except Exception as details:
-            try:
-                pickle.dumps(env.data)
-            except Exception:
-                self.log.warn("Unable to save environment: %s",
-                              stacktrace.str_unpickable_object(env.data))
-            else:
-                self.log.warn("Unable to save environment: %s (%s)", details,
-                              env.data)
-            return True
-        return False
+        state = super(VirtTest, self).get_state()
+        if state["params"] == self.__vt_params:
+            state["params"] = self.avocado_params
+        return state
 
     def setUp(self):
         """
@@ -297,12 +256,7 @@ class VirtTest(test.Test):
 
         # Report virt test version
         logging.info(version.get_pretty_version_info())
-        # Report the parameters we've received and write them as keyvals
-        logging.debug("Test parameters:")
-        keys = list(params.keys())
-        keys.sort()
-        for key in keys:
-            logging.debug("    %s = %s", key, params[key])
+        self._log_parameters()
 
         # Warn of this special condition in related location in output & logs
         if os.getuid() == 0 and params.get('nettype', 'user') == 'user':
@@ -311,19 +265,7 @@ class VirtTest(test.Test):
                             "as root may produce unexpected results!!!")
             logging.warning("")
 
-        test_filter = bootstrap.test_filter
-        subtest_dirs = utils.find_subtest_dirs(params.get("other_tests_dirs", ""),
-                                               self.bindir,
-                                               test_filter)
-        provider = params.get("provider", None)
-
-        if provider is None:
-            subtest_dirs += utils.find_generic_specific_subtest_dirs(
-                params.get("vm_type"), test_filter)
-        else:
-            subtest_dirs += utils.find_provider_subtest_dirs(provider,
-                                                             test_filter)
-        subtest_dir = None
+        subtest_dirs = self._get_subtest_dirs()
 
         # Get the test routine corresponding to the specified
         # test type
@@ -358,7 +300,7 @@ class VirtTest(test.Test):
                     try:
                         params = env_process.preprocess(self, params, env)
                     finally:
-                        self.__safe_env_save(env)
+                        self._safe_env_save(env)
 
                     # Run the test function
                     for t_type in t_types:
@@ -369,7 +311,7 @@ class VirtTest(test.Test):
                             run_func(self, params, env)
                             self.verify_background_errors()
                         finally:
-                            self.__safe_env_save(env)
+                            self._safe_env_save(env)
                     test_passed = True
                     error_message = funcatexit.run_exitfuncs(env, t_type)
                     if error_message:
@@ -385,7 +327,7 @@ class VirtTest(test.Test):
                     try:
                         env_process.postprocess_on_error(self, params, env)
                     finally:
-                        self.__safe_env_save(env)
+                        self._safe_env_save(env)
                     raise
 
             finally:
@@ -404,7 +346,7 @@ class VirtTest(test.Test):
                                       "postprocessing: %s",
                                       sys.exc_info()[1])
                 finally:
-                    if self.__safe_env_save(env) or params.get("env_cleanup", "no") == "yes":
+                    if self._safe_env_save(env) or params.get("env_cleanup", "no") == "yes":
                         env.destroy()   # Force-clean as it can't be stored
 
         except Exception as e:

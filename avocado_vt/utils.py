@@ -15,12 +15,17 @@
 import imp
 import logging
 import os
+import pickle
 import sys
+import traceback
 
 from avocado.core import exceptions
+from avocado.utils import genio, stacktrace
 
-from virttest import asset
+from virttest import asset, bootstrap
 from virttest import data_dir
+
+BG_ERR_FILE = "background-error.log"
 
 
 def insert_dirs_to_path(dirs):
@@ -124,3 +129,82 @@ def find_test_modules(test_types, subtest_dirs):
         test_modules[test_type] = imp.load_module(test_type, f, p, d)
         f.close()
     return test_modules
+
+
+class TestUtils:
+
+    BG_ERR_FILE = "background-error.log"
+
+    def _safe_env_save(self, env):
+        """
+        Treat "env.save()" exception as warnings
+
+        :param env: The virttest env object
+        :return: True on failure
+        """
+        try:
+            env.save()
+        except Exception as details:
+            try:
+                pickle.dumps(env.data)
+            except Exception:
+                self.log.warn("Unable to save environment: %s",
+                              stacktrace.str_unpickable_object(env.data))
+            else:
+                self.log.warn("Unable to save environment: %s (%s)", details,
+                              env.data)
+            return True
+        return False
+
+    def _log_parameters(self):
+        """
+        Report the parameters we've received and write them as keyvals
+        """
+        self.log.debug("Test parameters:")
+        keys = list(self.params.keys())
+        keys.sort()
+        for key in keys:
+            self.log.debug("    %s = %s", key, self.params[key])
+
+    def _get_subtest_dirs(self):
+        """
+        Get list of directories containining subtests.
+        """
+        test_filter = bootstrap.test_filter
+        subtest_dirs = find_subtest_dirs(self.params.get("other_tests_dirs",
+                                                         ""),
+                                         self.bindir,
+                                         test_filter)
+        provider = self.params.get("provider", None)
+
+        if provider is None:
+            subtest_dirs += find_generic_specific_subtest_dirs(
+                self.params.get("vm_type"), test_filter)
+        else:
+            subtest_dirs += find_provider_subtest_dirs(provider, test_filter)
+        return subtest_dirs
+
+    def write_test_keyval(self, d):
+        self.whiteboard = str(d)
+
+    def verify_background_errors(self):
+        """
+        Verify if there are any errors that happened on background threads.
+        Logs all errors in the background_errors into background-error.log and
+        error the test.
+        """
+        err_file_path = os.path.join(self.logdir, BG_ERR_FILE)
+        bg_errors = self.background_errors.get_all()
+        error_messages = ["BACKGROUND ERROR LIST:"]
+        for index, error in enumerate(bg_errors):
+            error_messages.append(
+                "- ERROR #%d -\n%s" % (index, "".join(
+                    traceback.format_exception(*error)
+                    )))
+        genio.write_file(err_file_path, '\n'.join(error_messages))
+        if bg_errors:
+            msg = ["Background error"]
+            msg.append("s are" if len(bg_errors) > 1 else " is")
+            msg.append((" detected, please refer to file: "
+                        "'%s' for more details.") % BG_ERR_FILE)
+            self.error(''.join(msg))
