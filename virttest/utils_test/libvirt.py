@@ -2597,13 +2597,15 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         exp_path = res["export_dir"]
         mnt_path = res["mount_dir"]
         params["selinux_status_bak"] = res["selinux_status_bak"]
-        dist_img = params.get("source_dist_img", "nfs-img")
+        dist_img = os.path.basename(blk_source)
+        if image_convert:
+            dist_img = params.get("source_dist_img", "nfs-img")
 
-        # Convert first disk to gluster disk path
-        disk_cmd = ("qemu-img convert -f %s -O %s %s %s/%s" %
-                    (src_disk_format, disk_format,
-                     blk_source, exp_path, dist_img))
-        process.run(disk_cmd, ignore_status=False)
+            # Convert first disk to nfs disk path
+            disk_cmd = ("qemu-img convert -f %s -O %s %s %s/%s" %
+                        (src_disk_format, disk_format,
+                         blk_source, exp_path, dist_img))
+            process.run(disk_cmd, ignore_status=False)
 
         # Change image ownership
         if image_owner_group:
@@ -2624,7 +2626,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         disk_params_src = {'source_file': src_file_path}
         params["source_file"] = src_file_path
         src_file_list.append(src_file_path)
-        params["source_file_list"] = src_file_list
+        if image_convert:
+            params["source_file_list"] = src_file_list
     elif disk_src_protocol == 'rbd':
         mon_host = params.get("mon_host")
         if image_convert:
