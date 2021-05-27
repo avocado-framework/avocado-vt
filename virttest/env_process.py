@@ -1281,6 +1281,8 @@ def preprocess(test, params, env):
         suggest_mem = h.setup()
         if suggest_mem is not None:
             params['mem'] = suggest_mem
+        if not params.get("hugepage_path"):
+            params["hugepage_path"] = h.hugepage_path
         if vm_type == "libvirt":
             if libvirtd_inst is None:
                 libvirtd_inst = utils_libvirtd.Libvirtd()
