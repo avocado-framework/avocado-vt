@@ -9,6 +9,7 @@ from avocado.utils import path as utils_path
 from avocado.utils import distro
 from avocado.core import exceptions
 
+from virttest import libvirt_version
 from virttest import remote
 from virttest import virsh
 from virttest import utils_disk
@@ -577,6 +578,53 @@ class MigrationTest(object):
                               virsh_event_session.get_stripped_output()), 30):
             raise exceptions.TestError("Unalbe to find event {}"
                                        .format(exp_str))
+
+    def control_migrate_speed(self, vm_name, to_speed=1, mode="precopy"):
+        """
+        Set migration speed to control the migration duration
+
+        :param vm_name: vm name
+        :param to_speed: the speed value in Mbps to be set for migration
+        :param mode: one of ['postcopy', 'precopy', 'both']
+        """
+        def _set_speed(extra_option=''):
+            """
+            Inner function to set migration speed
+
+            :param extra_option: str, it might include '--postcopy' or not
+            """
+            virsh_args = {"ignore_status": False}
+            old_speed = virsh.migrate_getspeed(vm_name,
+                                               extra=extra_option,
+                                               **virsh_args)
+            logging.debug("Current %s migration speed is %s "
+                          "MiB/s\n", extra_option, old_speed.stdout_text.strip())
+            logging.debug("Set %s migration speed to %d "
+                          "MiB/s\n", extra_option, to_speed)
+            virsh.migrate_setspeed(vm_name, to_speed,
+                                   extra=extra_option,
+                                   **virsh_args)
+
+        if mode not in ['postcopy', 'precopy', 'both']:
+            raise exceptions.TestError("'mode' only supports "
+                                       "'postcopy', 'precopy', 'both'")
+        warning_msg = "libvirt version should be larger than or equal to " \
+                      "'5.0.0' when setting postcopy migration speed."
+
+        if not libvirt_version.version_compare(5, 0, 0):
+            if mode == 'both':
+                logging.warning("%s Only precopy speed is set.", warning_msg)
+                mode = 'precopy'
+            if mode == 'postcopy':
+                logging.warning("%s Skipping", warning_msg)
+                return
+        if mode == 'both':
+            _set_speed()
+            _set_speed(extra_option='--postcopy')
+        elif mode == 'postcopy':
+            _set_speed(extra_option='--postcopy')
+        else:
+            _set_speed()
 
     def run_stress_in_vm(self, vm, params):
         """
