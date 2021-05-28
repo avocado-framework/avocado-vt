@@ -700,11 +700,12 @@ class MigrationTest(object):
 
         if status_error:  # Migration should fail
             if err_msg:   # Special error messages are expected
-                if not re.search(err_msg, result.stderr_text.strip()):
-                    raise exceptions.TestFail("Can not find the expected "
-                                              "patterns '%s' in output '%s'"
-                                              % (err_msg,
-                                                 result.stderr_text.strip()))
+                err_msg_list = err_msg.split('|')
+                if not any(re.search(patt.strip(), result.stderr_text.strip())
+                           for patt in err_msg_list):
+                    raise exceptions.TestFail("Expect to match with one of %s,"
+                                              "but failed with output: %s" %
+                                              (err_msg_list, result.stderr_text.strip()))
                 else:
                     logging.debug("It is the expected error message")
             else:
