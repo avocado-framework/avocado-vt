@@ -2,8 +2,11 @@
 """
 Virsh net* command related utility functions
 """
+import re
+import logging
 
 from avocado.core import exceptions
+from avocado.utils import process
 
 from virttest import virsh
 from virttest import remote
@@ -60,24 +63,44 @@ def create_or_del_network(net_dict, is_del=False, remote_args=None):
 
 def check_established(params):
     """
-    Parses netstat output for established connection on remote
+    Parses netstat output for established connection
+    on remote or local
 
     :param params: the parameters used
+    :return: str, the port used
+    :raises: exceptions.TestFail if no match
     """
     port_to_check = params.get("port_to_check", "4915")
-
+    check_local = 'yes' == params.get("check_local_port", "no")
     ipv6_config = "yes" == params.get("ipv6_config", "no")
     if ipv6_config:
         server_ip = params.get("ipv6_addr_des", "")[:17]
-        client_ip = params.get("ipv6_addr_src", "")[:17]
     else:
-        server_ip = params.get("server_ip")
-        client_ip = params.get("client_ip")
+        server_ip = params.get("server_ip", params.get("remote_ip"))
 
     cmd = "netstat -tunap|grep %s" % port_to_check
-    exp_msg = r".*%s:%s.*%s.*ESTABLISHED.*qemu-kvm.*" % (server_ip,
-                                                         port_to_check,
-                                                         client_ip)
+    if check_local:
+        cmdRes = process.run(cmd, shell=True)
+    else:
+        cmdRes = remote.run_remote_cmd(cmd, params)
 
-    cmdRes = remote.run_remote_cmd(cmd, params)
-    libvirt.check_result(cmdRes, expected_match=exp_msg)
+    if port_to_check != '4915':
+        pat_str = r'.*%s:%s.*ESTABLISHED.*qemu-kvm.*' % (server_ip,
+                                                         port_to_check)
+        search = re.search(pat_str, cmdRes.stdout_text.strip())
+        if not search:
+            raise exceptions.TestFail("Pattern '%s' is not matched in "
+                                      "'%s'" % (pat_str,
+                                                cmdRes.stdout_text.strip()))
+        else:
+            return port_to_check
+    else:
+        pat_str = r'.*%s:(\d*).*ESTABLISHED.*qemu-kvm.*' % server_ip
+        search = re.search(pat_str, cmdRes.stdout_text.strip())
+        if search:
+            logging.debug("Get the port used:%s", search.group(1))
+            return search.group(1)
+        else:
+            raise exceptions.TestFail("Pattern '%s' is not matched in "
+                                      "'%s'" % (pat_str,
+                                                cmdRes.stdout_text.strip()))
