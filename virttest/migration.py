@@ -142,7 +142,7 @@ class MigrationTest(object):
                 server_session.close()
         if s_ping != 0:
             if uri:
-                if "offline" in params.get("migrate_options"):
+                if "offline" in params.get("migrate_options", ""):
                     logging.info("Offline Migration: %s will not responded to "
                                  "ping as expected", vm.name)
                     return
