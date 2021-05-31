@@ -10,6 +10,7 @@ import re
 from avocado.utils import process
 
 
+# TODO: check function in avocado.utils after the next LTS
 def check_dmesg_output(pattern, expect=True, session=None):
     """
     Check whether certain pattern exists in dmesg.
