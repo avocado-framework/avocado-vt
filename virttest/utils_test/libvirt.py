@@ -3652,7 +3652,8 @@ def customize_libvirt_config(params,
                              remote_host=False,
                              extra_params=None,
                              is_recover=False,
-                             config_object=None):
+                             config_object=None,
+                             restart_libvirt=True):
     """
     Customize configuration files for libvirt
     on local and remote host if needed
@@ -3669,6 +3670,9 @@ def customize_libvirt_config(params,
                                config_object should be provided
                        False for configuring specified libvirt configuration
     :param config_object: an existing utils_config.LibvirtConfigCommon object
+    :param restart_libvirt: can disable the restart of the libvirt after
+                            applying config changes, default is True for
+                            providing restart
     :return: utils_config.LibvirtConfigCommon object
     """
     # Hardcode config_type to virtqemud under modularity daemon mode when config_type="libvirtd"
@@ -3704,17 +3708,18 @@ def customize_libvirt_config(params,
             target_conf[key] = value
         logging.debug("The '%s' config file is updated with:\n %s",
                       target_conf.conf_path, params)
-
-        libvirtd = utils_libvirtd.Libvirtd()
-        libvirtd.restart()
+        if restart_libvirt:
+            libvirtd = utils_libvirtd.Libvirtd()
+            libvirtd.restart()
         obj_conf = target_conf
     else:
         if not isinstance(config_object, utils_config.LibvirtConfigCommon):
             return None
         # Handle local libvirtd
         config_object.restore()
-        libvirtd = utils_libvirtd.Libvirtd()
-        libvirtd.restart()
+        if restart_libvirt:
+            libvirtd = utils_libvirtd.Libvirtd()
+            libvirtd.restart()
         obj_conf = config_object
 
     if remote_host:
@@ -3725,9 +3730,9 @@ def customize_libvirt_config(params,
         remote.scp_to_remote(server_ip, '22', server_user, server_pwd,
                              local_path, local_path, limit="",
                              log_filename=None, timeout=600, interface=None)
-        remotely_control_libvirtd(server_ip, server_user,
-                                  server_pwd, action='restart',
-                                  status_error='no')
+        if restart_libvirt:
+            remotely_control_libvirtd(server_ip, server_user, server_pwd,
+                                      action='restart', status_error='no')
 
     return obj_conf
 
