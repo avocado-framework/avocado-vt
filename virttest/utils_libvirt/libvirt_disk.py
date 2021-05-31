@@ -11,6 +11,7 @@ from avocado.utils import process
 
 from virttest import libvirt_storage
 from virttest import utils_misc
+from virttest import utils_disk
 from virttest import virsh
 
 from virttest.libvirt_xml import vm_xml
@@ -431,3 +432,81 @@ def get_mirror_part_in_xml(vm, disk_target):
         job_details.append(disk_mirror.get('ready'))
         job_details.append(disk_mirror.find('type'))
     return job_details
+
+
+def create_mbxml(mb_params):
+    """
+    Create memoryBacking xml
+
+    :param mb_params: dict containing memory backing attributes
+    :return memoryBacking xml
+    """
+    mb_xml = vm_xml.VMMemBackingXML()
+    for attr_key in mb_params:
+        setattr(mb_xml, attr_key,
+                mb_params[attr_key])
+    logging.debug(mb_xml)
+    return mb_xml.copy()
+
+
+def check_in_vm(vm, target, old_parts, is_equal=False):
+    """
+    Check mount/read/write disk in VM.
+
+    :param vm: VM guest.
+    :param target: Disk dev in VM.
+    :param old_parts: old part partitions
+    :param is_equal: whether two are equals
+    :return: True if check successfully.
+    """
+    try:
+        session = vm.wait_for_login()
+        rpm_stat, out_put = session.cmd_status_output("rpm -q parted || "
+                                                      "yum install -y parted", 300)
+        if rpm_stat != 0:
+            raise exceptions.TestFail("Failed to query/install parted:\n%s", out_put)
+
+        new_parts = utils_disk.get_parts_list(session)
+        added_parts = list(set(new_parts).difference(set(old_parts)))
+        logging.info("Added parts:%s", added_parts)
+        if is_equal:
+            if len(added_parts) != 0:
+                logging.error("new added parts are not equal the old one")
+                return False
+            else:
+                return True
+        if len(added_parts) != 1:
+            logging.error("The number of new partitions is invalid in VM")
+            return False
+
+        added_part = None
+        if target.startswith("vd"):
+            if added_parts[0].startswith("vd"):
+                added_part = added_parts[0]
+        elif target.startswith("hd"):
+            if added_parts[0].startswith("sd"):
+                added_part = added_parts[0]
+
+        if not added_part:
+            logging.error("Can't see added partition in VM")
+            return False
+
+        device_source = os.path.join(os.sep, 'dev', added_part)
+        libvirt.mk_label(device_source, session=session)
+        libvirt.mk_part(device_source, size="10M", session=session)
+        # Run partprobe to make the change take effect.
+        process.run("partprobe", ignore_status=True, shell=True)
+        libvirt.mkfs("/dev/%s1" % added_part, "ext3", session=session)
+
+        cmd = ("mount /dev/%s1 /mnt && echo '123' > /mnt/testfile"
+               " && cat /mnt/testfile && umount /mnt" % added_part)
+        s, o = session.cmd_status_output(cmd)
+        logging.info("Check disk operation in VM:\n%s", o)
+        session.close()
+        if s != 0:
+            logging.error("error happened when execute command:\n%s", cmd)
+            return False
+        return True
+    except Exception as e:
+        logging.error(str(e))
+        return False
