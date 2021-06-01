@@ -62,6 +62,21 @@ def set_vf(pci_addr, vf_no=4, session=None):
     return not s
 
 
+def set_vf_mac(ethname, mac_addr, vf_idx=0, session=None):
+    """
+    Set mac address for VF
+
+    :param ethname: The name of the network interface
+    :param mac_addr: The mac address to be set
+    :param vf_idx: The index of VF
+    :param session: The session object to the host
+    :return: The command status and output
+    """
+    cmd = "ip link set {0} vf {1} mac {2}".format(ethname, vf_idx, mac_addr)
+    return utils_misc.cmd_status_output(
+            cmd, shell=True, verbose=True, session=session)
+
+
 def add_or_del_connection(params, session=None, is_del=False):
     """
     Add/Delete connections
