@@ -150,7 +150,6 @@ def modify_network_xml(net_dict, testnet_xml):
         testnet_xml.bridge = {"name": bridge}
     if forward:
         testnet_xml.del_forward()
-
         testnet_xml.forward = eval(forward)
         logging.debug("current mode is %s" % testnet_xml.forward)
     if interface_dev:
