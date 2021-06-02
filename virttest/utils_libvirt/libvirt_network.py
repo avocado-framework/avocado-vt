@@ -110,12 +110,12 @@ def check_established(params):
 def modify_network_xml(net_dict, testnet_xml):
     """
     modify the network's xml
-    
+
     :param net_dict: The dict restore need updated items like mac, bandwidth, forward
     :param testnet_xml: the network xml object to be modified
     :return: the updated network xml
     """
-    del_nat = net_dict.get('del_nat')
+    del_nat = net_dict.get('del_nat_attrs')
     del_ip = net_dict.get('del_ip')
     dns_txt = net_dict.get('dns_txt')
     domain = net_dict.get('domain')
@@ -133,7 +133,7 @@ def modify_network_xml(net_dict, testnet_xml):
     # generated automatically if needed
     testnet_xml.del_bridge()
     testnet_xml.del_mac()
-    if del_nat:
+    if del_nat is True:
         testnet_xml.del_nat_attrs()
     if del_ip:
         testnet_xml.del_ip()
@@ -155,7 +155,7 @@ def modify_network_xml(net_dict, testnet_xml):
     if interface_dev:
         testnet_xml.forward_interface = [{'dev': interface_dev}]
     if virtualport:
-        testnet_xml.virtualport_type = "openvswitch"
+        testnet_xml.virtualport_type = net_dict.get('virtualport_type', 'openvswitch')
     if net_bandwidth_inbound:
         net_inbound = ast.literal_eval(net_bandwidth_inbound)
         testnet_xml.bandwidth_inbound = net_inbound
