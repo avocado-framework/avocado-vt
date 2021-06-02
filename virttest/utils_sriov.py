@@ -91,17 +91,17 @@ def add_or_del_connection(params, session=None, is_del=False):
     if not all([bridge_name, pf_name]):
         return
 
-    if not utils_package.package_install(["tmux"], session):
-        logging.error("Failed to install required package - tmux!")
+    if not utils_package.package_install(["tmux", "dhcp-client"], session):
+        logging.error("Failed to install the required package")
     recover_cmd = 'tmux -c "ip link set {0} nomaster; ip link delete {1}; ' \
-                  'pkill dhclient; sleep 5; dhclient {0}"'.format(pf_name,
-                                                                  bridge_name)
+                  'pkill dhclient; sleep 5; dhclient"'.format(
+                      pf_name, bridge_name)
 
     if not is_del:
         utils_misc.cmd_status_output(recover_cmd, shell=True, session=session)
         cmd = 'tmux -c "ip link add name {1} type bridge; ip link set {0} up; ' \
               'ip link set {0} master {1}; ip link set {1} up; dhclient -r;' \
-              'sleep 5; dhclient {1}"'.format(pf_name, bridge_name)
+              'sleep 5; dhclient"'.format(pf_name, bridge_name)
     else:
         cmd = recover_cmd
 
