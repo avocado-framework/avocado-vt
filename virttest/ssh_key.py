@@ -10,17 +10,30 @@ from avocado.utils import path
 from virttest import remote as remote_old
 
 
-def get_public_key():
+def get_public_key(client_user=None):
     """
     Return a valid string ssh public key for the user executing autoserv or
     autotest. If there's no DSA or RSA public key, create a RSA keypair with
     ssh-keygen and return it.
 
+    :param client_user: genenrate the ssh_key for which client
+                        user to login into the server
+    :type client_user: str
     :returns: a ssh public key
     :rtype: str
     """
 
-    ssh_conf_path = os.path.expanduser('~/.ssh')
+    if client_user:
+        if os.environ.get('USER') not in ('root', client_user):
+            raise RuntimeError("Can not set ssh-key for OTHER user using"
+                               "non-root account. Permission Denied.")
+        if client_user == 'root':
+            ssh_conf_path = '/root/.ssh'
+        else:
+            ssh_conf_path = '/home/%s/.ssh' % client_user
+    else:
+        ssh_conf_path = os.path.expanduser('~/.ssh')
+        client_user = os.environ.get('USER')
 
     dsa_public_key_path = os.path.join(ssh_conf_path, 'id_dsa.pub')
     dsa_private_key_path = os.path.join(ssh_conf_path, 'id_dsa')
@@ -43,8 +56,12 @@ def get_public_key():
 
     else:
         logging.info('Neither RSA nor DSA keypair found, creating RSA ssh key pair')
-        process.system('ssh-keygen -t rsa -q -N "" -f %s' %
-                       rsa_private_key_path)
+        if os.environ.get('USER') != 'root':
+            process.system('ssh-keygen -t rsa -q -N \"\" -f %s' %
+                           rsa_private_key_path, shell=True)
+        else:
+            process.system("su - %s -c 'ssh-keygen -t rsa -q -N \"\" -f %s'" %
+                           (client_user, rsa_private_key_path), shell=True)
         public_key_path = rsa_public_key_path
 
     public_key = open(public_key_path, 'r')
@@ -104,7 +121,7 @@ def get_remote_public_key(session, public_key="rsa"):
     return session.cmd_output("cat %s" % public_key_path)
 
 
-def setup_ssh_key(hostname, user, password, port=22):
+def setup_ssh_key(hostname, user, password, port=22, client_user=None):
     """
     Setup up remote login in another server by using public key
 
@@ -116,6 +133,9 @@ def setup_ssh_key(hostname, user, password, port=22):
     :type password: str
     :param port: port number
     :type port: int
+    :param client_user: genenrate the ssh_key for which client
+                        user to login into the server
+    :type client_user: str
     """
     logging.debug('Performing SSH key setup on %s:%d as %s.' %
                   (hostname, port, user))
@@ -124,7 +144,7 @@ def setup_ssh_key(hostname, user, password, port=22):
         session = remote.remote_login(client='ssh', host=hostname,
                                       username=user, port=port,
                                       password=password, prompt=r'[$#%]')
-        public_key = get_public_key()
+        public_key = get_public_key(client_user)
 
         session.cmd('mkdir -p ~/.ssh')
         session.cmd('chmod 700 ~/.ssh')
