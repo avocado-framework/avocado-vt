@@ -110,9 +110,9 @@ def check_established(params):
 def modify_network_xml(net_dict, testnet_xml):
     """
     modify the network's xml
-
-    :param testnet_xml: the network xml object to be modified
+    
     :param net_dict: The dict restore need updated items like mac, bandwidth, forward
+    :param testnet_xml: the network xml object to be modified
     :return: the updated network xml
     """
     del_nat = net_dict.get('del_nat')
