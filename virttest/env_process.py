@@ -160,24 +160,26 @@ def preprocess_fs_source(test, params, fs_name, vm_process_status=None):
                               process_fs_sources()
     """
     fs_type = params.get('fs_source_type', 'mount')
+    fs_source_user_config = params.get('fs_source_user_config', 'no')
     # mount: A host directory to mount in the vm.
     if fs_type == 'mount':
-        fs_source = params.get('fs_source_dir')
-        base_dir = params.get("fs_source_base_dir", data_dir.get_data_dir())
-        if not os.path.isabs(fs_source):
-            fs_source = os.path.join(base_dir, fs_source)
+        if fs_source_user_config == "no":
+            fs_source = params.get('fs_source_dir')
+            base_dir = params.get("fs_source_base_dir", data_dir.get_data_dir())
+            if not os.path.isabs(fs_source):
+                fs_source = os.path.join(base_dir, fs_source)
 
-        create_fs_source = False
-        if params.get("force_create_fs_source") == "yes":
-            create_fs_source = True
-        elif params.get("create_fs_source") == "yes" and not os.path.exists(fs_source):
-            create_fs_source = True
+            create_fs_source = False
+            if params.get("force_create_fs_source") == "yes":
+                create_fs_source = True
+            elif params.get("create_fs_source") == "yes" and not os.path.exists(fs_source):
+                create_fs_source = True
 
-        if create_fs_source:
-            if os.path.exists(fs_source):
-                shutil.rmtree(fs_source, ignore_errors=True)
-            logging.info("Create filesystem source %s." % fs_source)
-            os.makedirs(fs_source)
+            if create_fs_source:
+                if os.path.exists(fs_source):
+                    shutil.rmtree(fs_source, ignore_errors=True)
+                logging.info("Create filesystem source %s." % fs_source)
+                os.makedirs(fs_source)
     else:
         test.cancel('Unsupport the type of filesystem "%s"' % fs_type)
 
