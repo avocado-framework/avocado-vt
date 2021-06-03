@@ -267,6 +267,29 @@ class CgroupTest(object):
             logging.error("You've provided a wrong virsh cmd: %s", virsh_cmd)
         return standardized_cgroup_info
 
+    def get_cgroup_file_mapping(self, virsh_cmd):
+        """
+        Get the cgroup file mapping
+
+        :param virsh_cmd: The virsh cmd used. This is to judge which cgroup
+                          info to get
+        :return: A dict of file mapping
+        """
+        if self.is_cgroup_v2_enabled():
+            if virsh_cmd == "memtune":
+                return CGROUP_V2_MEM_FILE_MAPPING
+            elif virsh_cmd == "blkiotune":
+                return CGROUP_V2_BLKIO_FILE_MAPPING
+            elif virsh_cmd == "schedinfo":
+                return CGROUP_V2_SCHEDINFO_FILE_MAPPING
+        else:
+            if virsh_cmd == "memtune":
+                return CGROUP_V1_MEM_FILE_MAPPING
+            elif virsh_cmd == "blkiotune":
+                return CGROUP_V1_BLKIO_FILE_MAPPING
+            elif virsh_cmd == "schedinfo":
+                return CGROUP_V1_SCHEDINFO_FILE_MAPPING
+
     def get_standardized_cgroup_info(self, virsh_cmd=None):
         """
         Get the cgroup info and standardize it to a dict
