@@ -633,18 +633,17 @@ class MigrationTemplate(object):
         """
         logging.info("Generate and replace xml file path for --xml and/or --persistent-xml")
 
-        old_options = self.virsh_migrate_options
-        new_options = ""
+        new_options = self.virsh_migrate_options
 
         if self.migrate_flags & VIR_MIGRATE_DEST_XML:
             vmxml_path = vm_xml.VMXML.new_from_dumpxml(self.main_vm.name,
                                                        "--security-info --migratable")
-            new_options = old_options.replace("DEST_XML", vmxml_path)
+            new_options = new_options.replace("DEST_XML", vmxml_path)
 
         if self.migrate_flags & VIR_MIGRATE_PERSIST_DEST_XML:
             vmxml_path = vm_xml.VMXML.new_from_dumpxml(self.main_vm.name,
                                                        "--security-info --migratable")
-            new_options = old_options.replace("DEST_PERSIST_XML", vmxml_path)
+            new_options = new_options.replace("DEST_PERSIST_XML", vmxml_path)
 
         self.virsh_migrate_options = new_options
 
