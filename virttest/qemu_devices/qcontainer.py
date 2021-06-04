@@ -1438,6 +1438,12 @@ class DevContainer(object):
                         cmd += ",accel=%s" % machine_accel
                     if machine_type_extra_params:
                         cmd += ",%s" % machine_type_extra_params.strip(',')
+                    machine_help = self.execute_qemu("-M %s,?" % machine_type)
+                    opt = "memory-backend"
+                    backend_id = "machine_mem"
+                    if re.search(r"%s=" % opt, machine_help, re.MULTILINE) \
+                            and not params.get("guest_numa_nodes"):
+                        cmd += ",memory-backend=mem-%s" % backend_id
                 else:
                     cmd = ""
                 if 'q35' in machine_type:   # Q35 + ICH9
