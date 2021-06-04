@@ -171,7 +171,7 @@ class VMXMLBase(base.LibvirtXMLBase):
                  'max_mem_unit', 'current_mem_unit', 'memtune', 'max_mem_rt',
                  'max_mem_rt_unit', 'max_mem_rt_slots', 'iothreads',
                  'iothreadids', 'memory', 'memory_unit', 'perf', 'keywrap',
-                 'sysinfo')
+                 'sysinfo', 'mem_backing')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -385,6 +385,13 @@ class VMXMLBase(base.LibvirtXMLBase):
                                  parent_xpath='/',
                                  tag_name='sysinfo',
                                  subclass=VMSysinfoXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
+        accessors.XMLElementNest(property_name='mem_backing',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='memoryBacking',
+                                 subclass=VMMemBackingXML,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
         super(VMXMLBase, self).__init__(virsh_instance=virsh_instance)
