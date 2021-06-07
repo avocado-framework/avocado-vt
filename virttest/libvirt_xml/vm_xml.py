@@ -1002,6 +1002,25 @@ class VMXML(VMXMLBase):
         return list(disks.values())
 
     @staticmethod
+    def get_disk_source_by_expr(vm_name, exprs, option="", virsh_instance=base.virsh):
+        """
+        Get block device  of a defined VM's disks.
+
+        :param vm_name: Name of defined vm.
+        :param option: extra option.
+        :param exprs: a string of disk attr and value expressions, multiple expressions are delimited
+            by ',', or a list
+        """
+        vmxml = VMXML.new_from_dumpxml(vm_name, option,
+                                       virsh_instance=virsh_instance)
+        if isinstance(exprs, str):
+            exprs = exprs.split(',')
+        if not isinstance(exprs, list):
+            raise TypeError('exprs must be a string or a list')
+        disks = vmxml.get_disk_all_by_expr(*exprs)
+        return list(disks.values())
+
+    @staticmethod
     def get_disk_blk(vm_name, virsh_instance=base.virsh):
         """
         Get block device  of a defined VM's disks.
