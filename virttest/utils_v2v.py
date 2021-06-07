@@ -1219,8 +1219,8 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
             params['_iface_list'] = iface_info
 
             # Get disk count
-            disk_count = vm_xml.VMXML.get_disk_count(
-                vm_name, virsh_instance=v2v_virsh)
+            disk_count = vm_xml.VMXML.get_disk_count_by_expr(
+                vm_name, 'device!=cdrom', virsh_instance=v2v_virsh)
             params['_disk_count'] = disk_count
 
             if input_mode == 'vmx':

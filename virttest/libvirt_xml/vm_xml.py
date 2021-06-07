@@ -1026,6 +1026,26 @@ class VMXML(VMXMLBase):
         return 0
 
     @staticmethod
+    def get_disk_count_by_expr(vm_name, exprs, virsh_instance=base.virsh):
+        """
+        Get count of VM's disks.
+
+        :param vm_name: Name of defined vm.
+        :param exprs: A list or string of attribute and value expression for disks.
+            if it's a string, the expression must be delimited by ','.
+            e.g. device==cdrom, type!=network
+        """
+        vmxml = VMXML.new_from_dumpxml(vm_name, virsh_instance=virsh_instance)
+        if isinstance(exprs, str):
+            exprs = exprs.split(',')
+        if not isinstance(exprs, list):
+            raise TypeError('exprs must be a string or a list')
+        disks = vmxml.get_disk_all_by_expr(*exprs)
+        if disks is not None:
+            return len(disks)
+        return 0
+
+    @staticmethod
     def get_disk_attr(vm_name, target, tag, attr, virsh_instance=base.virsh):
         """
         Get value of disk tag attribute for a given target dev.
