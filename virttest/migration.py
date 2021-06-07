@@ -347,7 +347,7 @@ class MigrationTest(object):
                     else:
                         raise exceptions.TestError("Only a dict element is "
                                                    "supported in funcs_to_run")
-            elif isinstance(funcs_to_run, types.FunctionType):
+            elif isinstance(funcs_to_run, (types.FunctionType, types.MethodType)):
                 return False
             return False
 
@@ -440,7 +440,7 @@ class MigrationTest(object):
             :raises: exceptions.TestError if any test error happens
             """
             for one_func in funcs_to_run:
-                if isinstance(one_func, types.FunctionType):
+                if isinstance(one_func, (types.FunctionType, types.MethodType)):
                     if not before_pause:
                         _run_simple_func(vm, one_func)
                     else:
@@ -451,8 +451,9 @@ class MigrationTest(object):
                     if before_vm_pause == before_pause:
                         _run_complex_func(vm, one_func, virsh_event_session)
                 else:
-                    raise exceptions.TestError("Only dict or FunctionType "
-                                               "is supported. No function will be run")
+                    raise exceptions.TestError("Only dict, FunctionType "
+                                               "and MethodType are supported. "
+                                               "No function will be run")
 
         @virsh.EventTracker.wait_event
         def _do_orderly_migration(vm_name, vm, srcuri, desturi, options=None,
