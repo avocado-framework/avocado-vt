@@ -2317,6 +2317,7 @@ def create_tpm_dev(params):
     tpm_model = params.get("tpm_model", 'tpm-crb')
     backend_type = params.get("backend_type")
     backend_version = params.get("backend_version")
+    persistent_state = params.get("persistent_state")
     encryption_secret = params.get("encryption_secret")
     device_path = params.get("device_path")
 
@@ -2327,6 +2328,8 @@ def create_tpm_dev(params):
         tpm_backend.backend_type = backend_type
         if backend_version:
             tpm_backend.backend_version = backend_version
+        if persistent_state:
+            tpm_backend.persistent_state = persistent_state
         if encryption_secret:
             tpm_backend.encryption_secret = encryption_secret
         if device_path:
