@@ -77,6 +77,25 @@ def set_vf_mac(ethname, mac_addr, vf_idx=0, session=None):
             cmd, shell=True, verbose=True, session=session)
 
 
+def get_vf_mac(ethname, vf_idx=0, session=None):
+    """
+    Get admin mac address for VF via 'ip' command.
+
+    :param ethname: The name of the network interface
+    :param vf_idx: The index of VF
+    :param session: The session object to the host
+    :return: VF's admin mac
+    """
+    cmd = "ip link show %s |awk '/vf %d/ {print $4}'" % (ethname, vf_idx)
+    status, vf_mac = utils_misc.cmd_status_output(
+            cmd, shell=True, verbose=True, session=session)
+
+    if status or not vf_mac:
+        raise exceptions.TestError("Unable to get VF's mac address. status: %s,"
+                                   "stdout: %s." % (status, vf_mac))
+    return vf_mac.strip()
+
+
 def get_vf_pci_id(pf_pci, vf_index=0, session=None):
     """
     Get pci_id of VF
