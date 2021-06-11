@@ -224,7 +224,8 @@ class CgroupTest(object):
         if virsh_cmd == "blkiotune":
             weight_file_name = CGROUP_V2_BLKIO_FILE_MAPPING["weight"]
             iomax_file_name = CGROUP_V2_BLKIO_FILE_MAPPING["wiops"]
-            path_to_weight = os.path.join(cgroup_path, weight_file_name)
+            path_to_weight = os.path.join(cgroup_path.split("libvirt")[0],
+                                          weight_file_name)
             with open(path_to_weight, 'r') as weight_file:
                 weight_value = re.search(r'\d+', weight_file.read())
                 if weight_value:
@@ -257,7 +258,10 @@ class CgroupTest(object):
                         cg_file_name = cg_file_name.replace("<iothreadX>", iothread_dirs[0])
                     else:
                         continue
-                with open(os.path.join(cgroup_path, cg_file_name), 'r') as cg_file:
+                cg_dir = cgroup_path
+                if cg_key == "cpu_shares":
+                    cg_dir = cgroup_path.split("libvirt")[0]
+                with open(os.path.join(cg_dir, cg_file_name), 'r') as cg_file:
                     list_index = 0
                     cg_file_values = cg_file.read().strip().split()
                     if "period" in cg_key:
