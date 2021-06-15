@@ -207,7 +207,7 @@ class VTRun(CLI):
         add_option(parser=vt_compat_group_qemu,
                    dest='vt.extra_params',
                    arg='--vt-extra-params',
-                   nargs='*',
+                   action='append',
                    help=help_msg)
 
         supported_uris = ", ".join(SUPPORTED_LIBVIRT_URIS)
