@@ -2749,7 +2749,10 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
     Elements:
         vcpupins:             list of dict - vcpu, cpuset
         iothreadscheds:       list of dict - iothreads, scheduler, priority
+        vcpuscheds:           list of dict - vcpus, scheduler
+        iothreadpins:         list of dict - iothread, cpuset
         emulatorpin:          attribute    - cpuset
+        emulatorsched:        attribute    - scheduler
         shares:               int
         period:               int
         quota:                int
@@ -2761,16 +2764,22 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
         global_quota:         int
     """
 
-    __slots__ = ('vcpupins', 'emulatorpin', 'shares', 'period', 'quota',
-                 'emulator_period', 'emulator_quota', 'iothreadpins',
-                 'cachetune', 'memorytune', 'iothreadscheds',
-                 'iothread_period', 'iothread_quota', 'global_period',
-                 'global_quota')
+    __slots__ = ('vcpupins', 'iothreadscheds', 'vcpuscheds', 'iothreadpins',
+                 'emulatorpin', 'emulatorsched', 'shares', 'period', 'quota',
+                 'emulator_period', 'emulator_quota',
+                 'iothread_period', 'iothread_quota',
+                 'global_period', 'global_quota',
+                 'cachetune', 'memorytune')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementList('vcpupins', self, parent_xpath='/',
                                  marshal_from=self.marshal_from_vcpupins,
                                  marshal_to=self.marshal_to_vcpupins)
+        accessors.XMLElementList('vcpuscheds', self, parent_xpath='/',
+                                 marshal_from=self.marshal_from_vcpuscheds,
+                                 marshal_to=self.marshal_to_vcpuscheds)
+        accessors.XMLAttribute('emulatorsched', self, parent_xpath='/',
+                               tag_name='emulatorsched', attribute='scheduler')
         accessors.XMLAttribute('emulatorpin', self, parent_xpath='/',
                                tag_name='emulatorpin', attribute='cpuset')
         accessors.XMLElementList('iothreadpins', self, parent_xpath='/',
@@ -2877,6 +2886,30 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
         del index
         del libvirtxml
         if tag != 'vcpupin':
+            return None
+        return dict(attr_dict)
+
+    @staticmethod
+    def marshal_from_vcpuscheds(item, index, libvirtxml):
+        """
+        Convert a dict to vcpusched tag and attributes.
+        """
+        del index
+        del libvirtxml
+        if not isinstance(item, dict):
+            raise xcepts.LibvirtXMLError("Expected a dictionary of given "
+                                         "attributes, not a %s"
+                                         % str(item))
+        return ('vcpusched', dict(item))
+
+    @staticmethod
+    def marshal_to_vcpuscheds(tag, attr_dict, index, libvirtxml):
+        """
+        Convert a vcpusched tag and attributes to a dict.
+        """
+        del index
+        del libvirtxml
+        if tag != 'vcpusched':
             return None
         return dict(attr_dict)
 
