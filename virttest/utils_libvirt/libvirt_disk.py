@@ -10,6 +10,7 @@ from avocado.core import exceptions
 from avocado.utils import process
 
 from virttest import libvirt_storage
+from virttest import remote as remote_old
 from virttest import utils_misc
 from virttest import utils_disk
 from virttest import virsh
@@ -34,7 +35,6 @@ def create_disk(disk_type, path=None, size="500M", disk_format="raw", extra='',
     :return: The path of disk
     :raise: TestError if the disk can't be created
     """
-
     if session:
         if disk_type == "file":
             disk_cmd = ("qemu-img create -f %s %s %s %s"
@@ -510,3 +510,31 @@ def check_in_vm(vm, target, old_parts, is_equal=False):
     except Exception as e:
         logging.error(str(e))
         return False
+
+
+def create_remote_disk_by_same_metadata(vm, params):
+    """
+    Create an empty file image on remote host using same name/vsize/path/format
+    as the first disk of the vm on local host
+
+    :param vm:  the VM object
+    :param params:  dict, parameters used
+    :return:  str, the path of newly created image
+    """
+    disk_format = params.get("disk_format", "qcow2")
+    server_ip = params.get('server_ip', params.get('migrate_dest_host'))
+    server_user = params.get('server_user', params.get('remote_user'))
+    server_pwd = params.get('server_pwd', params.get('migrate_dest_pwd'))
+
+    blk_source = get_first_disk_source(vm)
+    vsize = utils_misc.get_image_info(blk_source).get("vsize")
+    remote_session = remote_old.remote_login("ssh", server_ip, "22",
+                                             server_user, server_pwd,
+                                             r'[$#%]')
+    utils_misc.make_dirs(os.path.dirname(blk_source), remote_session)
+    create_disk('file', path=blk_source, size=vsize,
+                disk_format=disk_format, extra='',
+                session=remote_session)
+
+    remote_session.close()
+    return blk_source
