@@ -68,8 +68,9 @@ if hasattr(plugin_interfaces, 'Init'):
                                      help_msg=help_msg)
 
             help_msg = "List of 'key=value' pairs passed to cartesian parser."
-            settings.register_option(section, key='extra_params', nargs='*',
-                                     default=None, help_msg=help_msg)
+            settings.register_option(section, key='extra_params', nargs='+',
+                                     key_type=list, default=[],
+                                     help_msg=help_msg)
 
             help_msg = ("Also list the available guests (this option ignores "
                         "the --vt-config and --vt-guest-os)")
