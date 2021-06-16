@@ -153,6 +153,7 @@ class Target(object):
         Target dispatcher.
         """
         self.params = params
+        self.pub_key = params_get(params, 'pub_key')
         self.unprivileged_user = params_get(params, 'unprivileged_user')
         self.os_directory = params_get(params, 'os_directory')
         self.output_method = self.params.get('output_method', 'rhv')
@@ -286,8 +287,11 @@ class Target(object):
                         for i in range(1, vddklib_count + 1):
                             vddk_lib = '%s/%s' % (vddk_lib_rootdir,
                                                   vddk_lib_prefix + str(i))
-                            if all(compare_md5(os.path.join(mount_point, file_i), os.path.join(
-                                    vddk_lib, file_i)) for file_i in check_list):
+                            if all(
+                                compare_md5(
+                                    os.path.join(
+                                        mount_point, file_i), os.path.join(
+                                        vddk_lib, file_i)) for file_i in check_list):
                                 os.symlink(vddk_lib, vddk_libdir, True)
                                 break
 
@@ -321,7 +325,7 @@ class Target(object):
             # -it ssh
             if self.input_transport == 'ssh':
                 pub_key, session = v2v_setup_ssh_key(
-                    self.esxi_host, self.username, self.esxi_password, server_type='esx', auto_close=False)
+                    self.esxi_host, self.username, self.esxi_password, server_type='esx', public_key=self.pub_key, auto_close=False)
                 self.authorized_keys.append(
                     (session, pub_key.split()[1].split('/')[0], 'esx'))
                 utils_misc.add_identities_into_ssh_agent()
@@ -1583,7 +1587,9 @@ def v2v_setup_ssh_key(
         server_type=None,
         auto_close=True,
         preferred_authenticaton=None,
-        user_known_hosts_file=None):
+        user_known_hosts_file=None,
+        unprivileged_user=None,
+        public_key=None):
     """
     Setup up remote login in another server by using public key
 
@@ -1627,7 +1633,9 @@ def v2v_setup_ssh_key(
             user_known_hosts_file=user_known_hosts_file)
 
         # Add rstrip to avoid blank lines in authorized_keys on remote server
-        public_key = ssh_key.get_public_key().rstrip()
+        default_public_key = ssh_key.get_public_key().rstrip()
+        if not public_key:
+            public_key = default_public_key
 
         if server_type == 'esx':
             session.cmd(
@@ -1828,8 +1836,10 @@ def get_esx_disk_source_info(vm_name, virsh_instance):
         return [res.group(i) for i in range(1, 4)]
 
     disks_info = {}
-    disks = vm_xml.VMXML.get_disk_source(
-        vm_name, virsh_instance=virsh_instance)
+    disks = vm_xml.VMXML.get_disk_source_by_expr(
+        vm_name,
+        exprs=['type==file', 'device!=cdrom'],
+        virsh_instance=virsh_instance)
     for disk in disks:
         attr_value = disk.find('source').get('file')
         file_info = _parse_file_info(attr_value)
