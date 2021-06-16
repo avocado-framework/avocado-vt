@@ -3714,6 +3714,8 @@ def customize_libvirt_config(params,
         obj_conf = target_conf
     else:
         if not isinstance(config_object, utils_config.LibvirtConfigCommon):
+            logging.error("LibvirtConfigCommon object is required. "
+                          "Skipping recovery")
             return None
         # Handle local libvirtd
         config_object.restore()

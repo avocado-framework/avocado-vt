@@ -64,6 +64,42 @@ def remove_key_in_conf(value_list, conf_type="libvirtd",
         return target_conf
 
 
+def remove_key_by_mode(value_list, conf_type="libvirtd",
+                       remote_params=None, restart_libvirt=False,
+                       mode='local'):
+    """
+    Remove settings in configuration file on local or remote by mode
+    and restart libvirtd if needed
+
+    :param value_list: A list of settings to delete,
+                      like ["log_level", "log_outputs"]
+    :param conf_type: The configuration type to update on localhost,
+                      eg, "libvirt", "virtqemud"
+    :param remote_params: The params for remote access
+    :param restart_libvirt: True to restart libvirtd
+    :param mode: str, 'local', 'remote', and 'both' are supported
+    :return: tuple, (LibvirtConfigCommon object, RemoteFile object)
+    :raises: exceptions.TestError if an error happens
+    """
+    if mode not in ['local', 'remote', 'both']:
+        raise exceptions.TestError("local|remote|both for 'mode' are necessary")
+    remote_file = None
+    updated_conf = None
+    if mode in ['remote', 'both']:
+        if not remote_params or not isinstance(remote_params, dict):
+            raise exceptions.TestError("Dict 'remote_params' is required for "
+                                       "'remote' and 'both' modes!")
+        remote_file = remove_key_in_conf(value_list, conf_type=conf_type,
+                                         remote_params=remote_params,
+                                         restart_libvirt=restart_libvirt)
+
+    if mode in ['local', 'both']:
+        updated_conf = remove_key_in_conf(value_list, conf_type=conf_type,
+                                          remote_params=None,
+                                          restart_libvirt=restart_libvirt)
+    return (updated_conf, remote_file)
+
+
 def remove_key_for_modular_daemon(params, remote_dargs=None):
     """
     Remove some configuration keys if the modular daemon is enabled.
