@@ -1219,6 +1219,8 @@ def setup_ovs_vhostuser(hp_num, tmpdir, br_name, port_names,
         utils_package.package_install("openvswitch")
     if process.system("yum info openvswitch2.11", ignore_status=True) == 0:
         utils_package.package_install("openvswitch2.11")
+    if process.system("yum info openvswitch2.15", ignore_status=True) == 0:
+        utils_package.package_install("openvswitch2.15")
 
     # Init ovs
     ovs = factory(openvswitch.OpenVSwitch)(tmpdir)
