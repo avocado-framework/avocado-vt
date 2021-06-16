@@ -137,7 +137,3 @@ class VTJobLock(Pre, Post):
     def post_tests(self, job):
         if self.lock_file is not None:
             os.unlink(self.lock_file)
-
-    # compatibility with older versions, including 36.0 LTS
-    pre = pre_tests
-    post = post_tests
