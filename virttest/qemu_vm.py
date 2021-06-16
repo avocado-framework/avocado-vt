@@ -281,18 +281,6 @@ class VM(virt_vm.BaseVM):
         except virt_vm.VMStatusError:
             return False
 
-    def is_preconfig(self):
-        """
-        Return True if the qemu process is in preconfig status
-        """
-        if self.is_dead():
-            return False
-        try:
-            self.verify_status("preconfig")
-            return True
-        except virt_vm.VMStatusError:
-            return False
-
     def is_panicked(self):
         """
         Return True if the qemu process is panicked
@@ -3171,7 +3159,8 @@ class VM(virt_vm.BaseVM):
 
             logging.debug("VM appears to be alive with PID %s", self.get_pid())
             # Record vcpu infos in debug log
-            if not self.is_preconfig():
+            is_preconfig = params.get_boolean("qemu_preconfig")
+            if not is_preconfig:
                 self.get_vcpu_pids(debug=True)
             vhost_thread_pattern = params.get("vhost_thread_pattern",
                                               r"\w+\s+(\d+)\s.*\[vhost-%s\]")
@@ -3192,7 +3181,7 @@ class VM(virt_vm.BaseVM):
             # such as serial console.
             time.sleep(1)
 
-            if self.is_preconfig():
+            if is_preconfig:
                 return
 
             if params.get("paused_after_start_vm") != "yes":
