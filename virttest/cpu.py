@@ -727,9 +727,10 @@ def get_cpu_info(session=None):
     :return: A dirt of cpu information
     """
     cpu_info = {}
-    cmd = "lscpu"
+    cmd = "lscpu | tee"
     if session is None:
-        output = process.run(cmd, ignore_status=True).stdout_text.splitlines()
+        output = process.run(cmd, shell=True,
+                             ignore_status=True).stdout_text.splitlines()
     else:
         try:
             output_raw = session.cmd_output(cmd)
