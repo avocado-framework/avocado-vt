@@ -1215,13 +1215,7 @@ def setup_ovs_vhostuser(hp_num, tmpdir, br_name, port_names,
                   clean_ovs=True)
 
     # Install openvswitch
-    if process.system("yum info openvswitch", ignore_status=True) == 0:
-        utils_package.package_install("openvswitch")
-    if process.system("yum info openvswitch2.11", ignore_status=True) == 0:
-        utils_package.package_install("openvswitch2.11")
-    if process.system("yum info openvswitch2.15", ignore_status=True) == 0:
-        utils_package.package_install("openvswitch2.15")
-
+    install_openvswitch()
     # Init ovs
     ovs = factory(openvswitch.OpenVSwitch)(tmpdir)
     ovs.init_new()
@@ -1267,6 +1261,24 @@ def clean_ovs_env(run_dir="/var/run/openvswitch", selinux_mode=None,
     if clean_ovs:
         utils_misc.kill_process_by_pattern("ovsdb-server")
         utils_misc.kill_process_by_pattern("ovs-vswitchd")
+
+
+def install_openvswitch():
+    """
+    Install openvswtich package
+
+    :return: True or False
+    """
+    if process.system("yum info openvswitch", ignore_status=True) == 0:
+        utils_package.package_install("openvswitch")
+    elif process.system("yum info openvswitch2.11", ignore_status=True) == 0:
+        utils_package.package_install("openvswitch2.11")
+    elif process.system("yum info openvswitch2.15", ignore_status=True) == 0:
+        utils_package.package_install("openvswitch2.15")
+    else:
+        logging.error("Fail to install openvswtich package!")
+        return False
+    return True
 
 
 def if_nametoindex(ifname):
