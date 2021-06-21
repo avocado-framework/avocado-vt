@@ -137,8 +137,12 @@ def setup_win_driver_verifier(session, driver, vm, timeout=300):
     """
 
     win_verifier_flags = vm.params.get("windows_verifier_flags")
+    extra_verifier = vm.params.get("extra_verifier")
     verifier_status = _check_driver_verifier(session, driver,
                                              win_verifier_flags)[0]
+
+    if extra_verifier:
+        driver = driver + " " + extra_verifier
     if not verifier_status:
         error_context.context("Enable %s driver verifier" % driver,
                               logging.info)
