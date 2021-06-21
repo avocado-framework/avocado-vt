@@ -10,10 +10,10 @@
     %global gittar          %{srcname}-%{version}.tar.gz
 %else
     %if ! 0%{?commit:1}
-        %global commit      44524d32dba73942e6c44c00ac8fb80bb414c73a
+        %global commit      a3cc2d1d24ca85d85a18cb4d078e33ea18ff4737
     %endif
     %if ! 0%{?commit_date:1}
-        %global commit_date 20210518
+        %global commit_date 20210621
     %endif
     %global shortcommit     %(c=%{commit};echo ${c:0:8})
     %global gitrel          .%{commit_date}git%{shortcommit}
@@ -31,8 +31,8 @@
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 88.0
-Release: 2%{?gitrel}%{?dist}
+Version: 89.0
+Release: 1%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -104,6 +104,9 @@ Xunit output, among others.
 
 
 %changelog
+* Mon Jun 21 2021 Cleber Rosa <cleber@redhat.com> - 89.0-1
+- New release
+
 * Thu May 24 2021 Jan Richter <jarichte@redhat.com> - 88.0-2
 - Experimental runner implementation for the nrunner architecture
 
