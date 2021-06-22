@@ -1420,7 +1420,7 @@ class Memory(QObject):
                                               "backend", "policy", "host-nodes",
                                               "share", "merge", "dump", "pmem",
                                               "discard-data", "align",
-                                              "prealloc-threads"],
+                                              "prealloc-threads", "readonly"],
                       "memory-backend-memfd": ["size", "prealloc", "backend",
                                                "seal", "policy", "host-nodes",
                                                "share", "merge", "dump",
@@ -1496,7 +1496,7 @@ class Dimm(QDevice):
     the QOM objects 'memory-backend-ram' and 'memory-backend-file'
     """
 
-    __attributes__ = ["memdev", "slot", "addr", "node"]
+    __attributes__ = ["memdev", "slot", "addr", "node", "unarmed"]
 
     def __init__(self, params=None, dimm_type='pc-dimm'):
         kwargs = {'driver': dimm_type,
