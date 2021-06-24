@@ -14,8 +14,9 @@ from virttest import (data_dir, env_process, error_event, utils_env, utils_misc,
                       utils_params, version, funcatexit)
 
 
-def _send_message(msg, queue, message_type):
-    status = {'type': message_type, 'log': msg}
+def _send_message(msg, queue, message_type, encoding='utf-8'):
+    status = {'type': message_type, 'log': msg.encode(encoding),
+              'encoding': encoding}
     queue.put(status)
 
 
