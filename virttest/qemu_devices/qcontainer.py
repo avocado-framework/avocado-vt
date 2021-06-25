@@ -3000,6 +3000,7 @@ class DevContainer(object):
         driver = params["fs_driver"]
         target = params["fs_target"]
         fs_type = params.get('fs_source_type', 'mount')
+        fs_source_user_config = params.get('fs_source_user_config', 'no')
 
         if fs_type == 'mount':
             source = params.get("fs_source_dir")
@@ -3014,13 +3015,18 @@ class DevContainer(object):
 
         devices = []
         if driver == "virtio-fs":
-            binary = params.get("fs_binary", "/usr/libexec/virtiofsd")
-            extra_options = params.get("fs_binary_extra_options")
-            enable_debug_mode = params.get('fs_enable_debug_mode', 'no') == "yes"
-            sock_path = os.path.join(data_dir.get_tmp_dir(),
-                                     '-'.join((self.vmname, name, 'virtiofsd.sock')))
-            vfsd = qdevices.QVirtioFSDev(name, binary, sock_path,
-                                         source, extra_options, enable_debug_mode)
+            if fs_source_user_config == "yes":
+                sock_path = params.get("fs_source_user_sock_path")
+                vfsd = qdevices.QDaemonDev('virtiofs', aobject=name,
+                                           child_bus=qdevices.QUnixSocketBus(sock_path, name))
+            else:
+                binary = params.get("fs_binary", "/usr/libexec/virtiofsd")
+                extra_options = params.get("fs_binary_extra_options")
+                enable_debug_mode = params.get('fs_enable_debug_mode', 'no') == "yes"
+                sock_path = os.path.join(data_dir.get_tmp_dir(),
+                                         '-'.join((self.vmname, name, 'virtiofsd.sock')))
+                vfsd = qdevices.QVirtioFSDev(name, binary, sock_path,
+                                             source, extra_options, enable_debug_mode)
             devices.append(vfsd)
 
             char_params = Params()
