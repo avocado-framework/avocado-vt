@@ -353,7 +353,8 @@ class NodedevXMLBase(base.LibvirtXMLBase):
 
     __slots__ = ('name', 'parent', 'cap_type', 'cap',
                  'sysfs_main_path', 'host', 'fc_type',
-                 'wwnn', 'wwpn', 'fabric_wwn', 'max_count', 'path')
+                 'wwnn', 'wwpn', 'fabric_wwn', 'max_count', 'path',
+                 'driver_name')
 
     __schema_name__ = "nodedev"
 
@@ -392,6 +393,9 @@ class NodedevXMLBase(base.LibvirtXMLBase):
                                  tag_name='fabric_wwn')
         accessors.XMLElementText('path', self, parent_xpath='/',
                                  tag_name='path')
+        accessors.XMLElementText('driver_name', self,
+                                 parent_xpath='/driver',
+                                 tag_name='name')
         super(NodedevXMLBase, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<device></device>'
 
