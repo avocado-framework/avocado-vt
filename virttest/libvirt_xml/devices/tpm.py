@@ -35,12 +35,14 @@ class Tpm(base.UntypedDeviceBase):
             string. backend type
         version:
             string. backend version
+        persistent_state:
+            string. backend persistent_state
         path:
             string. device path
         secret:
             string. encryption secret
         """
-        __slots__ = ('backend_type', 'backend_version', 'device_path', 'encryption_secret')
+        __slots__ = ('backend_type', 'backend_version', 'persistent_state', 'device_path', 'encryption_secret')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLAttribute(property_name="backend_type",
@@ -53,6 +55,11 @@ class Tpm(base.UntypedDeviceBase):
                                    parent_xpath='/',
                                    tag_name='backend',
                                    attribute='version')
+            accessors.XMLAttribute(property_name="persistent_state",
+                                   libvirtxml=self,
+                                   parent_xpath='/',
+                                   tag_name='backend',
+                                   attribute='persistent_state')
             accessors.XMLAttribute(property_name="device_path",
                                    libvirtxml=self,
                                    parent_xpath='/',
