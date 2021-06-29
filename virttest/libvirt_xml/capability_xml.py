@@ -26,7 +26,7 @@ class CapabilityXML(base.LibvirtXMLBase):
 
     __slots__ = ('uuid', 'guest_capabilities', 'cpu_count', 'arch', 'model',
                  'vendor', 'feature_list', 'power_management_list',
-                 'cpu_topology', 'cells_topology')
+                 'cpu_topology', 'cells_topology', 'iommu')
     __schema_name__ = "capability"
 
     def __init__(self, virsh_instance=base.virsh):
@@ -62,6 +62,11 @@ class CapabilityXML(base.LibvirtXMLBase):
                                  forbidden=['del'],
                                  parent_xpath='/host/cpu',
                                  tag_name='topology')
+        accessors.XMLElementDict(property_name="iommu",
+                                 libvirtxml=self,
+                                 forbidden=['del'],
+                                 parent_xpath='/host',
+                                 tag_name='iommu')
         accessors.XMLElementNest(property_name='cells_topology',
                                  libvirtxml=self,
                                  parent_xpath='/host',
