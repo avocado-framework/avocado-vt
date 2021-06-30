@@ -1299,6 +1299,8 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
     skip_virsh_pre_conn = 'yes' == params.get('skip_virsh_pre_conn')
     # virsh instance of remote hypervisor
     params.update({'_v2v_virsh': None})
+    # if 'has_rhv_disk_uuid' is 'yes', will append rhv-disk-uuid automatically.
+    has_rhv_disk_uuid = params_get(params, 'has_rhv_disk_uuid')
 
     uri_obj = Uri(hypervisor)
 
@@ -1318,8 +1320,8 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
 
         if opts_extra:
             options = options + ' ' + opts_extra
-        # Add -oo rhv-disk-uuid if '--no-copy' exists
-        if '-o rhv-upload' in options and '--no-copy' in options and '--oo rhv-disk-uuid' not in options:
+        # Add -oo rhv-disk-uuid
+        if '-o rhv-upload' in options and has_rhv_disk_uuid == 'yes' and '-oo rhv-disk-uuid' not in options:
             for i in range(int(params.get('_disk_count', 0))):
                 options += ' -oo rhv-disk-uuid=%s' % str(uuid.uuid4())
 
