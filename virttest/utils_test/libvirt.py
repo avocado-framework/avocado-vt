@@ -2296,12 +2296,15 @@ def update_memballoon_xml(vmxml, membal_dict):
     """
     membal_model = membal_dict.get("membal_model")
     membal_stats_period = membal_dict.get("membal_stats_period")
+    membal_alias_name = membal_dict.get("membal_alias_name")
     vmxml.del_device('memballoon', by_tag=True)
     memballoon_xml = vmxml.get_device_class('memballoon')()
     if membal_model:
         memballoon_xml.model = membal_model
     if membal_stats_period:
         memballoon_xml.stats_period = membal_stats_period
+    if membal_alias_name:
+        memballoon_xml.alias_name = membal_alias_name
     vmxml.add_device(memballoon_xml)
     logging.info(memballoon_xml)
     vmxml.sync()
