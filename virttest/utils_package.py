@@ -106,14 +106,21 @@ class RemotePackageMgr(object):
                 need = True
             if need:
                 cmd = self.cmd + pkg
-                if self.session.cmd_status(cmd, timeout, internal_timeout):
+                status, output = self.session.cmd_status_output(cmd,
+                                                                timeout,
+                                                                internal_timeout)
+                if status:
+                    logging.error("'%s' execution failed "
+                                  "with %s", cmd, output)
                     # Try to clean the repo db and re-try installation
                     if not self.clean():
                         logging.error("Package %s was broken",
                                       self.package_manager)
                         return False
-                    if self.session.cmd_status(cmd, timeout):
-                        logging.error("Operate %s with %s failed", pkg, cmd)
+                    status, output = self.session.cmd_status_output(cmd, timeout)
+                    if status:
+                        logging.error("'%s' execution failed "
+                                      "with %s", cmd, output)
                         return False
         return True
 
