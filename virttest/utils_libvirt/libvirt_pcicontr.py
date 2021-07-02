@@ -70,7 +70,10 @@ def reset_pci_num(vm_name, num=15):
         # Default pcie setting
         pcie_root_port = {'controller_model': 'pcie-root-port', 'controller_type': 'pci'}
         ret_indexes = get_max_contr_indexes(vmxml, 'pci', 'pcie-root-port')
-        cur_pci_num = int(ret_indexes[0])
+        pcie_to_pci_brg_indexes = get_max_contr_indexes(
+            vmxml, 'pci', 'pcie-to-pci-bridge')
+        cur_pci_num = ret_indexes[0] if not pcie_to_pci_brg_indexes else \
+            max(ret_indexes[0], pcie_to_pci_brg_indexes[0])
         logging.debug("The current maximum PCI controller index is %d", cur_pci_num)
         if cur_pci_num < num:
             for i in list(range(cur_pci_num + 1, num)):
