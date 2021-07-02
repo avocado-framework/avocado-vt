@@ -409,6 +409,17 @@ class UnattendedInstallConfig(object):
             rh_system_stream_id = self.params.get("rh_system_stream_id", "")
             contents = re.sub(dummy_rh_system_stream_id_re, rh_system_stream_id, contents)
 
+        dummy_rh_guest_compose_meta_re = r'\bRH_GUEST_COMPOSE_META\b'
+        if re.search(dummy_rh_guest_compose_meta_re, contents):
+            rh_guest_compose_meta = ""
+            cdrom_meta_cd1 = self.params.get("cdrom_meta_cd1", "")
+            if cdrom_meta_cd1:
+                cdrom_meta_cd1 = os.path.join(data_dir.get_data_dir(),
+                                              cdrom_meta_cd1)
+                with open(cdrom_meta_cd1, 'r') as f:
+                    rh_guest_compose_meta = f.read()
+            contents = re.sub(dummy_rh_guest_compose_meta_re, rh_guest_compose_meta, contents)
+
         dummy_repos_re = r'\bKVM_TEST_REPOS\b'
         if re.search(dummy_repos_re, contents):
             repo_list = self.params.get("kickstart_extra_repos", "").split()
