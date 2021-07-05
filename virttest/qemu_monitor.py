@@ -3557,3 +3557,15 @@ class QMPMonitor(Monitor):
         cmd = "query-block-exports"
         self.verify_supported_cmd(cmd)
         return self.cmd(cmd)
+
+    def query_cpu_model_expansion(self, cpu_model):
+        """
+        Query all properties with the provided CPU model.
+
+        :param cpu_model: CPU model supported by qemu
+        :return: A list of all properties
+        """
+        cmd = "query-cpu-model-expansion"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd, {"type": "full",
+                              "model": {"name": cpu_model}})["model"]["props"]
