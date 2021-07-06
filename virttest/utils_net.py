@@ -10,6 +10,7 @@ import math
 import time
 import shelve
 import signal
+import sys
 import netifaces
 import netaddr
 import platform
@@ -24,6 +25,7 @@ from aexpect import remote
 from avocado.core import exceptions
 from avocado.utils import path as utils_path
 from avocado.utils import process
+from avocado.utils import stacktrace
 
 import six
 from six.moves import xrange
@@ -4468,3 +4470,96 @@ def delete_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=F
     else:
         cmd = 'ip link delete %s' % linux_bridge_name
     return utils_misc.cmd_status_output(cmd, shell=True, verbose=True, ignore_status=ignore_status)
+
+
+def check_filter_rules(ifname, bandwidth, expect_none=False):
+    """
+    Check bandwidth settings via 'tc filter' output
+
+    :param ifname: the interface name
+    :param bandwidth: the settings in the xml
+    :param expect_none: whether or not expect nothing in output,
+                        default to be False
+    :return: return True if get expected result, else return False
+    """
+    cmd = "tc -d filter show dev %s parent ffff:" % ifname
+    filter_output = process.run(cmd, shell=True).stdout_text
+    logging.debug("Bandwidth filter output: %s", filter_output)
+    if expect_none:
+        return not filter_output.strip()
+    if not filter_output.count("filter protocol all pref"):
+        logging.error("Can't find 'protocol all' settings in filter rules")
+        return False
+    filter_pattern = r".*police.*rate (\d+)(K?M?)bit burst (\d+)(K?M?)b.*"
+    tc_police = re.search(r"%s" % filter_pattern, filter_output, re.M)
+    if not tc_police:
+        logging.error("Can't find any filter policy")
+        return False
+    logging.debug("bandwidth from tc output:%s" % str(tc_police.groups()))
+    logging.debug("bandwidth from setting:%s" % str(bandwidth))
+    try:
+        if "average" in bandwidth:
+            if tc_police.group(2) == 'M':
+                tc_average = int(tc_police.group(1)) * 1000
+            else:
+                tc_average = int(tc_police.group(1))
+            assert tc_average == int(bandwidth["average"]) * 8
+        if "burst" in bandwidth:
+            if tc_police.group(4) == 'M':
+                tc_burst = int(tc_police.group(3)) * 1024
+            else:
+                tc_burst = int(tc_police.group(3))
+            assert tc_burst == int(bandwidth["burst"])
+    except AssertionError:
+        stacktrace.log_exc_info(sys.exc_info())
+        return False
+    return True
+
+
+def check_class_rules(ifname, rule_id, bandwidth):
+    """
+    Check bandwidth outbound settings via 'tc class' output
+
+    :param ifname: the interface name
+    :param rule_id: child class id
+    :param bandwidth: the settings in the xml
+    :return: return True if get expected result, else return False
+    """
+    cmd = "tc class show dev %s" % ifname
+    class_output = process.run(cmd, shell=True).stdout_text
+    logging.debug("Bandwidth class output: %s", class_output)
+    class_pattern = (r"class htb %s.*rate (\d+)(K?M?)bit ceil (\d+)(K?M?)bit burst (\d+)(K?M?)b.*" % rule_id)
+    tc_htb = re.search(class_pattern, class_output, re.M)
+    if not tc_htb:
+        logging.error("Can't find outbound setting for htb %s", rule_id)
+        return False
+    logging.debug("bandwidth from tc output:%s" % str(tc_htb.groups()))
+    logging.debug("bandwidth from seting: %s" % str(bandwidth))
+    rate = None
+    if "floor" in bandwidth:
+        rate = int(bandwidth["floor"]) * 8
+    elif "average" in bandwidth:
+        rate = int(bandwidth["average"]) * 8
+    try:
+        if rate:
+            if tc_htb.group(2) == 'M':
+                rate_check = int(tc_htb.group(1)) * 1000
+            else:
+                rate_check = int(tc_htb.group(1))
+            assert rate_check == rate
+        if "peak" in bandwidth:
+            if tc_htb.group(4) == 'M':
+                ceil_check = int(tc_htb.group(3)) * 1000
+            else:
+                ceil_check = int(tc_htb.group(3))
+            assert ceil_check == int(bandwidth["peak"]) * 8
+        if "burst" in bandwidth:
+            if tc_htb.group(6) == 'M':
+                tc_burst = int(tc_htb.group(5)) * 1024
+            else:
+                tc_burst = int(tc_htb.group(5))
+            assert tc_burst == int(bandwidth["burst"])
+    except AssertionError:
+        stacktrace.log_exc_info(sys.exc_info())
+        return False
+    return True
