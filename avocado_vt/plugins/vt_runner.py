@@ -172,23 +172,28 @@ class VTTestRunner(nrunner.BaseRunner):
 
     def run(self):
         yield messages.StartedMessage.get()
-        try:
-            queue = multiprocessing.SimpleQueue()
-            vt_test = VirtTest(queue, self.runnable)
-            process = multiprocessing.Process(target=vt_test.run_test)
-            process.start()
-            while True:
-                time.sleep(nrunner.RUNNER_RUN_CHECK_INTERVAL)
-                if queue.empty():
-                    yield messages.RunningMessage.get()
-                else:
-                    message = queue.get()
-                    yield message
-                    if message.get('status') == 'finished':
-                        break
-        except Exception:
-            yield messages.StderrMessage.get(traceback.format_exc())
-            yield messages.FinishedMessage.get('error')
+        if self.runnable.config.get("nrunner.max_parallel_tasks", 1) != 1:
+            yield messages.FinishedMessage.get('cancel',
+                                               fail_reason="parallel run is not"
+                                               " allowed for vt tests")
+        else:
+            try:
+                queue = multiprocessing.SimpleQueue()
+                vt_test = VirtTest(queue, self.runnable)
+                process = multiprocessing.Process(target=vt_test.run_test)
+                process.start()
+                while True:
+                    time.sleep(nrunner.RUNNER_RUN_CHECK_INTERVAL)
+                    if queue.empty():
+                        yield messages.RunningMessage.get()
+                    else:
+                        message = queue.get()
+                        yield message
+                        if message.get('status') == 'finished':
+                            break
+            except Exception:
+                yield messages.StderrMessage.get(traceback.format_exc())
+                yield messages.FinishedMessage.get('error')
 
 
 class RunnerApp(nrunner.BaseRunnerApp):
