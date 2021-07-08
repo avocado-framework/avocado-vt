@@ -3052,7 +3052,10 @@ def snapshot_create_as(name, options="", **dargs):
     if options is not None:
         cmd += " %s" % options
 
-    return command(cmd, **dargs)
+    # Avoid snapshot-create-as cmd hang on
+    timeout = dargs.get('timeout', 300)
+
+    return command(cmd, timeout=timeout, **dargs)
 
 
 def snapshot_parent(name, options, **dargs):
