@@ -1099,10 +1099,12 @@ class BaseVM(object):
         log_filename = ("session-%s-%s-%s.log" %
                         (self.name, time.strftime("%m-%d-%H-%M-%S"),
                          utils_misc.generate_random_string(4)))
+        log_filename = utils_misc.get_log_filename(log_filename)
+        log_function = utils_misc.log_line
         session = remote.remote_login(client, address, port, username,
                                       password, prompt, linesep,
-                                      log_filename, timeout,
-                                      interface=neigh_attach_if)
+                                      log_filename, log_function,
+                                      timeout, interface=neigh_attach_if)
         session.set_status_test_command(self.params.get("status_test_command",
                                                         ""))
         self.remote_sessions.append(session)
