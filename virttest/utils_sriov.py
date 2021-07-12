@@ -3,6 +3,7 @@ SRIOV related utility functions
 """
 
 import logging
+import re
 
 from avocado.core import exceptions
 
@@ -44,6 +45,45 @@ def find_pf(driver, session=None):
     if not pf_tmp:
         raise exceptions.TestError("NO available pf found.")
     return pf_tmp
+
+
+def get_pf_info(session=None):
+    """
+    Get PFs infomation
+
+    :param session: The session object to the host
+    :raise: exceptions.TestError when command fails
+    :return: dict, pfs' info.
+        eg. {'3b:00.0': {'driver': 'ixgbe', 'pci_id': '0000:3b:00.0',
+                         'iface': 'ens1f0', 'status': 'up'},
+             '3b:00.1': {'driver': 'ixgbe', 'pci_id': '0000:3b:00.1',
+                         'iface': 'ens1f1', 'status': 'down'}}
+
+    """
+    pf_info = {}
+    status, output = utils_misc.cmd_status_output(
+        "lspci |awk '/Ethernet/ {print $1}'", shell=True)
+    if status or not output:
+        raise exceptions.TestError("Unable to get Ethernet controllers. status: %s,"
+                                   "stdout: %s." % (status, output))
+    for pci in output.split():
+        _, output = utils_misc.cmd_status_output("lspci -v -s %s" % pci,
+                                                 shell=True)
+        if re.search("SR-IOV", output):
+            pf_driver = re.search('driver in use: (.*)', output)[1]
+            tmp_info = {'driver': pf_driver, 'pci_id': '0000:%s' % pci}
+
+            cmd = "ls /sys/bus/pci/drivers/%s/0000:%s/net" % (pf_driver, pci)
+            s_, iface_name = utils_misc.cmd_status_output(cmd, shell=True,
+                                                          ignore_status=False,
+                                                          session=session)
+            runner = None if not session else session.cmd
+            tmp_info.update({'iface': iface_name.strip(),
+                             'status': utils_net.get_net_if_operstate(
+                                          iface_name.strip(), runner=runner)})
+            pf_info.update({pci: tmp_info})
+
+    return pf_info
 
 
 def set_vf(pci_addr, vf_no=4, session=None):
