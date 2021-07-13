@@ -7,6 +7,7 @@ import time
 import traceback
 
 from avocado.core import exceptions, nrunner, output
+from avocado.core.runners.utils import messages
 from avocado.utils import stacktrace, path
 
 from avocado_vt import utils
@@ -14,58 +15,12 @@ from virttest import (data_dir, env_process, error_event, utils_env, utils_misc,
                       utils_params, version, funcatexit)
 
 
-def _send_message(msg, queue, message_type, encoding='utf-8'):
-    status = {'type': message_type, 'log': msg.encode(encoding),
-              'encoding': encoding}
-    queue.put(status)
-
-
-class RunnerLogHandler(logging.Handler):
-
-    def __init__(self, queue, message_type):
-        """
-        Runner logger which will put every log message to the runner queue
-
-        :param queue: queue for the runner messages
-        :type queue: :class: multiprocessing.SimpleQueue
-        :param message_type: type of the log message
-        :type message_type: string with possible values: {stdout, stderr, log}
-        """
-        super().__init__()
-        self.queue = queue
-        self.message_type = message_type
-
-    def emit(self, record):
-        msg = self.format(record)
-        _send_message(msg, self.queue, self.message_type)
-
-
-class StreamToQueue:
-
-    def __init__(self, queue, message_type):
-        """
-        Runner Stream which will transfer every message to the runner queue
-
-        :param queue: queue for the runner messages
-        :type queue: multiprocessing.SimpleQueue
-        :param message_type: type of the log
-        :type message_type: string
-        """
-        self.queue = queue
-        self.message_type = message_type
-
-    def write(self, buf):
-        _send_message(buf, self.queue, self.message_type)
-
-    def flush(self):
-        pass
-
-
 class VirtTest(utils.TestUtils):
 
     def __init__(self, queue, runnable):
         self.__vt_params = utils_params.Params(runnable.kwargs)
         self.queue = queue
+        self.config = runnable.config
         self.tmpdir = tempfile.mkdtemp()
         self.logdir = os.path.join(self.tmpdir, 'results')
         path.init_dir(self.logdir)
@@ -86,33 +41,10 @@ class VirtTest(utils.TestUtils):
     def params(self):
         return self.__vt_params
 
-    def _start_logging(self):
-        """Simple helper for adding a file logger to the root logger."""
-        file_handler = logging.FileHandler(filename=self.logfile)
-        log_handler = RunnerLogHandler(self.queue, 'log')
-
-        fmt = ('%(asctime)s %(module)-16.16s L%(lineno)-.4d %('
-               'levelname)-5.5s| %(message)s')
-        formatter = logging.Formatter(fmt=fmt)
-
-        file_handler.setFormatter(formatter)
-        log_handler.setFormatter(formatter)
-        self.log.setLevel(self.log_level)
-        self.log.addHandler(file_handler)
-        self.log.addHandler(log_handler)
-        self.log.propagate = False
-        logging.root.addHandler(file_handler)
-        logging.root.addHandler(log_handler)
-        logging.root.setLevel(self.log_level)
-        output.LOG_UI.addHandler(RunnerLogHandler(self.queue, 'stdout'))
-
-        sys.stdout = StreamToQueue(self.queue, "stdout")
-        sys.stderr = StreamToQueue(self.queue, "stderr")
-
     def run_test(self):
         params = self.params
         try:
-            self._start_logging()
+            messages.start_logging(self.config, self.queue)
 
             # Report virt test version
             self.log.info(version.get_pretty_version_info())
@@ -219,10 +151,9 @@ class VirtTest(utils.TestUtils):
                                      "\n%s", vm.make_create_command())
                     raise exceptions.JobError("Abort requested (%s)" % e)
             finally:
-                self.queue.put({'type': 'stderr',
-                                'log': traceback.format_exc().encode('utf-8')})
-                self.queue.put({'status': 'finished', 'result': 'error'})
-        self.queue.put({'status': 'finished', 'result': 'pass'})
+                self.queue.put(messages.StderrMessage.get(traceback.format_exc()))
+                self.queue.put(messages.FinishedMessage.get('error'))
+        self.queue.put(messages.FinishedMessage.get('pass'))
 
 
 class VTTestRunner(nrunner.BaseRunner):
@@ -240,7 +171,7 @@ class VTTestRunner(nrunner.BaseRunner):
     DEFAULT_TIMEOUT = 86400
 
     def run(self):
-        yield self.prepare_status('started')
+        yield messages.StartedMessage.get()
         try:
             queue = multiprocessing.SimpleQueue()
             vt_test = VirtTest(queue, self.runnable)
@@ -249,20 +180,15 @@ class VTTestRunner(nrunner.BaseRunner):
             while True:
                 time.sleep(nrunner.RUNNER_RUN_CHECK_INTERVAL)
                 if queue.empty():
-                    yield self.prepare_status('running',)
+                    yield messages.RunningMessage.get()
                 else:
                     message = queue.get()
+                    yield message
                     if message.get('status') == 'finished':
-                        yield self.prepare_status('finished', message)
                         break
-                    else:
-                        yield self.prepare_status('running', message)
         except Exception:
-            yield self.prepare_status('running',
-                                      {'type': 'stderr',
-                                       'log': traceback.format_exc().encode(
-                                           'utf-8')})
-            yield self.prepare_status('finished', {'result': 'error'})
+            yield messages.StderrMessage.get(traceback.format_exc())
+            yield messages.FinishedMessage.get('error')
 
 
 class RunnerApp(nrunner.BaseRunnerApp):
