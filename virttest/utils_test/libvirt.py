@@ -3542,6 +3542,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
     iface_backend = iface_dict.get('backend')
     iface_mac = iface_dict.get('mac')
     iface_mtu = iface_dict.get('mtu')
+    iface_managed = iface_dict.get('managed')
     iface_alias = iface_dict.get('alias')
     iface_teaming = iface_dict.get('teaming')
     iface_virtualport_type = iface_dict.get('virtualport_type')
@@ -3603,6 +3604,8 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
         iface.mac_address = iface_mac
     if iface_mtu:
         iface.mtu = eval(iface_mtu)
+    if iface_managed:
+        iface.managed = iface_managed
     if iface_alias:
         iface.alias = eval(iface_alias)
     if iface_teaming:
