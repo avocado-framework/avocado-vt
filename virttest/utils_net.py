@@ -2552,6 +2552,7 @@ class VirtIface(propcan.PropCan, object):
 
     def __getstate__(self):
         state = {}
+        # pylint: disable=E1133
         for key in self.__class__.__all_slots__:
             if key in self:
                 state[key] = self[key]
