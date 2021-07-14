@@ -1037,7 +1037,7 @@ def preprocess(test, params, env):
         brcfg.setup()
 
     base_dir = data_dir.get_data_dir()
-    if params.get("storage_type") == "iscsi":
+    if params.get("storage_type") == "iscsi" and vm_type != "libvirt":
         iscsidev = qemu_storage.Iscsidev(params, base_dir, "iscsi")
         params["image_name"] = iscsidev.setup()
         params["image_raw_device"] = "yes"
@@ -1796,7 +1796,7 @@ def postprocess(test, params, env):
                                                                       '\n  ')
             logging.error(details)
 
-    if params.get("storage_type") == "iscsi":
+    if params.get("storage_type") == "iscsi" and vm_type != "libvirt":
         try:
             iscsidev = qemu_storage.Iscsidev(params, base_dir, "iscsi")
             iscsidev.cleanup()
