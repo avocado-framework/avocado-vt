@@ -1853,6 +1853,7 @@ def create_net_xml(net_name, params):
     routes = params.get("routes", "").split()
     pg_name = params.get("portgroup_name", "").split()
     net_port = params.get('net_port')
+    vf_list_attrs = params.get('vf_list_attrs', '[]')
     try:
         if not virsh.net_info(net_name, ignore_status=True).exit_status:
             # Edit an existed network
@@ -1974,6 +1975,11 @@ def create_net_xml(net_name, params):
                 if len(pg_vlan) > i:
                     pgxml.vlan_tag = ast.literal_eval(pg_vlan[i])
                 netxml.set_portgroup(pgxml)
+
+        vf_list = ast.literal_eval(vf_list_attrs)
+        if vf_list:
+            netxml.vf_list = [netxml.new_vf_address(**{'attrs': attr})
+                              for attr in vf_list]
         logging.debug("New network xml file: %s", netxml)
         netxml.xmltreefile.write()
         return netxml
