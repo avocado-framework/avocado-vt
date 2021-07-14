@@ -174,7 +174,14 @@ class CgroupTest(object):
                             dev_list.append(dev_num)
         elif virsh_cmd == "memtune":
             cgroup_path = self.get_cgroup_path("memory")
-            max_mem_value = "9223372036854771712"
+            cmd = "getconf PAGE_SIZE"
+            page_size = process.run(cmd, ignore_status=True, shell=True).stdout_text.strip()
+            logging.debug("page_size is %d" % int(page_size))
+            if int(page_size) == 65536:
+                max_mem_value = "9223372036854710272"
+            else:
+                max_mem_value = "9223372036854771712"
+            logging.debug("max_mem_value is %s" % max_mem_value)
             for cg_key, cg_file_name in list(CGROUP_V1_MEM_FILE_MAPPING.items()):
                 with open(os.path.join(cgroup_path, cg_file_name), 'r') as cg_file:
                     cg_file_value = cg_file.read().strip()
