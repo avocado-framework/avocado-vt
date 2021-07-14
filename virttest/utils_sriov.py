@@ -86,6 +86,41 @@ def get_pf_info(session=None):
     return pf_info
 
 
+def get_pf_pci(session=None):
+    """
+    Get the pci id of the available(status='up') PF
+
+    :param session: The session object to the host
+    :return: pf's pci id, eg. 0000:05:10.1
+    """
+    pf_info = get_pf_info(session=session)
+    for pci_info in pf_info.values():
+        if pci_info.get("status", "") == "up":
+            return pci_info.get('pci_id')
+
+
+def pci_to_addr(pci_id):
+    """
+    Get address dict according to pci_id
+
+    :param pci_id: PCI ID of a device(eg. 0000:05:10.1)
+    :return: address dict
+    """
+    pci_list = ["0x%s" % x for x in re.split('[.:]', pci_id)]
+    return dict(zip(
+        ['domain', 'bus', 'slot', 'function', 'type'], pci_list + ['pci']))
+
+
+def get_device_name(pci_id):
+    """
+    Get device name from pci_id
+
+    :param pci_id: PCI ID of a device(eg. 0000:05:10.1)
+    :return: Name of a device(eg. pci_0000_05_00_1)
+    """
+    return '_'.join(['pci']+re.split('[.:]', pci_id))
+
+
 def set_vf(pci_addr, vf_no=4, session=None):
     """
     Enable VFs for PF
