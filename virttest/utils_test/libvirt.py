@@ -3548,6 +3548,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
     iface_filter_parameters = iface_dict.get('filter_parameters')
     iface_port = iface_dict.get('port')
     iface_coalesce = iface_dict.get('coalesce')
+    hostdev_addr = iface_dict.get('hostdev_addr')
     del_addr = iface_dict.get('del_addr')
     del_rom = iface_dict.get('del_rom')
     del_filter = iface_dict.get('del_filter')
@@ -3580,6 +3581,9 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
     if iface_addr:
         iface.address = iface.new_iface_address(
             **{"attrs": eval(iface_addr)})
+    if hostdev_addr:
+        iface.hostdev_address = iface.new_iface_address(
+            **{"attrs": eval(hostdev_addr)})
     if del_addr:
         iface.del_address()
     if del_filter:
