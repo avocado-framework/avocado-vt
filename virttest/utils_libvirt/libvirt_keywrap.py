@@ -38,7 +38,7 @@ class ProtectedKeyHelper(object):
         """
         some_key_attribute = "protkey_aes_128"
         attr_path = os.path.join(self.sysfs, some_key_attribute)
-        error, output = cmd_status_output(cmd="cat %s" % attr_path,
+        error, output = cmd_status_output(cmd="hexdump %s" % attr_path,
                                           session=self.session)
         if error:
             logging.debug("Error reading from %s: %s", attr_path, output)
