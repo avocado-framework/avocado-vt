@@ -2552,8 +2552,7 @@ class VirtIface(propcan.PropCan, object):
 
     def __getstate__(self):
         state = {}
-        # pylint: disable=E1133
-        for key in self.__class__.__all_slots__:
+        for key in self.__class__.__all_slots__:  # pylint: disable=E1133
             if key in self:
                 state[key] = self[key]
         return state
@@ -3459,6 +3458,7 @@ def get_ip_address_by_interface(ifname, ip_ver="ipv4", linklocal=False):
     :param linklocal: Whether ip address is local or remote
     :raise NetError: When failed to fetch IP address (ioctl raised IOError.).
     """
+    # pylint: disable=I1101
     if ip_ver == "ipv6":
         ver = netifaces.AF_INET6
         linklocal_prefix = "fe80"
