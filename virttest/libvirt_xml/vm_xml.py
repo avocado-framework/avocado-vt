@@ -1833,7 +1833,7 @@ class VMCPUXML(base.LibvirtXMLBase):
     # Must copy these here or there will be descriptor problems
     __slots__ = ('model', 'vendor', 'feature_list', 'mode', 'match',
                  'fallback', 'topology', 'numa_cell', 'check',
-                 'cache', 'vendor_id', 'interconnects')
+                 'cache', 'vendor_id', 'interconnects', 'migratable')
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -1903,6 +1903,12 @@ class VMCPUXML(base.LibvirtXMLBase):
                                  subclass=VMCPUXML.InterconnectsXML,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
+        accessors.XMLAttribute(property_name="migratable",
+                               libvirtxml=self,
+                               forbidden=[],
+                               parent_xpath='/',
+                               tag_name='cpu',
+                               attribute='migratable')
         # This will skip self.get_feature_list() defined below
         accessors.AllForbidden(property_name="feature_list",
                                libvirtxml=self)
@@ -2012,6 +2018,19 @@ class VMCPUXML(base.LibvirtXMLBase):
         for feature_node in xmltreefile.findall('/feature'):
             feature_list.append(feature_node)
         return feature_list
+
+    def get_feature_index(self, name):
+        """
+        Get the feature's index in the feature list by given name
+
+        :param name: str, the feature's name
+        :return: int, the index of this feature in the feature list
+        """
+        try:
+            return [ftr.get('name') for ftr in self.get_feature_list()].index(name)
+        except ValueError as detail:
+            raise xcepts.LibvirtXMLError("Invalid feature "
+                                         "name '%s':%s " % (name, detail))
 
     def get_feature(self, num):
         """
