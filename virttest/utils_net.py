@@ -1215,12 +1215,10 @@ def setup_ovs_vhostuser(hp_num, tmpdir, br_name, port_names,
                   clean_ovs=True)
 
     # Install openvswitch
-    if process.system("yum info openvswitch", ignore_status=True) == 0:
-        utils_package.package_install("openvswitch")
-    if process.system("yum info openvswitch2.11", ignore_status=True) == 0:
-        utils_package.package_install("openvswitch2.11")
-    if process.system("yum info openvswitch2.15", ignore_status=True) == 0:
-        utils_package.package_install("openvswitch2.15")
+    for pkg in ["openvswitch2.15", "openvswitch2.11", "openvswitch"]:
+        if process.system("yum info %s" % pkg, ignore_status=True) == 0:
+            utils_package.package_install(pkg)
+            break
 
     # Init ovs
     ovs = factory(openvswitch.OpenVSwitch)(tmpdir)
