@@ -1864,19 +1864,28 @@ class VM(virt_vm.BaseVM):
 
         # Add pvpanic device
         if params.get("enable_pvpanic") == "yes":
-            if not devices.has_device("pvpanic"):
-                logging.warn("pvpanic device is not supportted")
+            if 'aarch64' in params.get('vm_arch_name', arch.ARCH):
+                pvpanic = 'pvpanic-pci'
             else:
-                pvpanic_params = {"backend": "pvpanic"}
-                ioport = params.get("ioport_pvpanic")
-                events = params.get("events_pvpanic")
-                if ioport:
-                    pvpanic_params["ioport"] = ioport
-                if events:
-                    pvpanic_params["events"] = events
-                pvpanic_dev = qdevices.QCustomDevice("device",
-                                                     params=pvpanic_params,
-                                                     backend="backend")
+                pvpanic = 'pvpanic'
+            if not devices.has_device(pvpanic):
+                logging.warn("%s device is not supported", pvpanic)
+            else:
+                if pvpanic == 'pvpanic-pci':
+                    pvpanic_dev = qdevices.QDevice(pvpanic,
+                                                   parent_bus=self._get_pci_bus(
+                                                       params, None, True))
+                else:
+                    pvpanic_params = {"backend": pvpanic}
+                    ioport = params.get("ioport_pvpanic")
+                    events = params.get("events_pvpanic")
+                    if ioport:
+                        pvpanic_params["ioport"] = ioport
+                    if events:
+                        pvpanic_params["events"] = events
+                    pvpanic_dev = qdevices.QCustomDevice("device",
+                                                         params=pvpanic_params,
+                                                         backend="backend")
                 pvpanic_dev.set_param("id", utils_misc.generate_random_id(),
                                       dynamic=True)
                 devices.insert(pvpanic_dev)
