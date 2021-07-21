@@ -18,6 +18,8 @@ class Disk(base.TypedDeviceBase):
             string, how exposted to guest
         rawio:
             string (yes/no), disk needs rawio capability
+        sharebacking:
+            string (yes/no), support share base image of transient disk
         sgio:
             string, "filtered" or "unfiltered"
         snapshot:
@@ -75,7 +77,7 @@ class Disk(base.TypedDeviceBase):
                  'address', 'boot', 'loadparm', 'readonly', 'transient', 'share', 'model',
                  'mirror', 'ready', 'iotune', 'source', 'blockio', 'geometry',
                  'wwn', 'serial', 'vendor', 'product', 'encryption', 'auth',
-                 'reservations', 'backingstore', 'drivermetadata')
+                 'reservations', 'backingstore', 'drivermetadata', 'sharebacking')
 
     def __init__(self, type_name='file', virsh_instance=base.base.virsh):
         accessors.XMLAttribute('device', self, parent_xpath='/',
@@ -84,6 +86,8 @@ class Disk(base.TypedDeviceBase):
                                tag_name='disk', attribute='model')
         accessors.XMLAttribute('rawio', self, parent_xpath='/',
                                tag_name='disk', attribute='rawio')
+        accessors.XMLAttribute('sharebacking', self, parent_xpath='/',
+                               tag_name='transient', attribute='shareBacking')
         accessors.XMLAttribute('sgio', self, parent_xpath='/',
                                tag_name='disk', attribute='sgio')
         accessors.XMLAttribute('snapshot', self, parent_xpath='/',
