@@ -3562,6 +3562,8 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
     del_port = iface_dict.get('del_port')
     del_mac = iface_dict.get('del_mac')
     del_coalesce = iface_dict.get('del_coalesce')
+    del_alias = iface_dict.get('del_alias')
+    del_target = iface_dict.get('del_target')
     if iface_type:
         iface.type_name = iface_type
     if iface_driver:
@@ -3601,6 +3603,10 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
         iface.del_mac_address()
     if del_coalesce:
         iface.xmltreefile.remove_by_xpath('coalesce')
+    if del_alias:
+        iface.del_alias()
+    if del_target:
+        iface.del_target()
     if iface_filter:
         if iface_filter_parameters:
             iface.filterref = iface.new_filterref(name=iface_filter, parameters=iface_filter_parameters)
