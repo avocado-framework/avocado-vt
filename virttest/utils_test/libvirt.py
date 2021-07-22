@@ -1619,6 +1619,7 @@ def create_disk_xml(params):
     type_name = params.get("type_name", "file")
     target_dev = params.get("target_dev", "vdb")
     target_bus = params.get("target_bus", "virtio")
+    target_rotation = params.get("target_rotation")
     diskxml = disk.Disk(type_name)
     diskxml.device = params.get("device_type", "disk")
     snapshot_attr = params.get('disk_snapshot_attr')
@@ -1757,6 +1758,8 @@ def create_disk_xml(params):
         diskxml.readonly = "yes" == params.get("readonly", "no")
         diskxml.share = "yes" == params.get("shareable", "no")
         diskxml.target = {'dev': target_dev, 'bus': target_bus}
+        if target_rotation:
+            diskxml.target = dict(diskxml.target, **{'rotation_rate': target_rotation})
         alias = params.get('alias')
         if alias:
             diskxml.alias = {'name': alias}
@@ -2458,6 +2461,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     disk_type = params.get("disk_type", "file")
     disk_target = params.get("disk_target", 'vda')
     disk_target_bus = params.get("disk_target_bus", "virtio")
+    disk_target_rotation = params.get("target_rotation")
     disk_model = params.get("disk_model")
     disk_src_protocol = params.get("disk_source_protocol")
     disk_src_name = params.get("disk_source_name")
@@ -2695,6 +2699,8 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     new_disk = disk.Disk(type_name=disk_type)
     new_disk.new_disk_source(attrs={'file': blk_source})
     disk_params.update(disk_params_src)
+    if disk_target_rotation:
+        disk_params.update({'target_rotation': disk_target_rotation})
     disk_xml = create_disk_xml(disk_params)
     new_disk.xml = disk_xml
     # Add new disk xml and redefine vm
