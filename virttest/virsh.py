@@ -31,6 +31,7 @@ import select
 import locale
 import base64
 import inspect
+import platform
 
 from functools import wraps
 
@@ -1556,6 +1557,10 @@ def undefine(name, options=None, **dargs):
     cmd = "undefine %s" % name
     if options is not None:
         cmd += " %s" % options
+
+    if platform.machine() == "aarch64":
+        if options is None or "--nvram" not in options:
+            cmd += " --nvram"
 
     logging.debug("Undefine VM %s", name)
     return command(cmd, **dargs)
