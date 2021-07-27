@@ -5,7 +5,11 @@ http://libvirt.org/formatdomain.html
 
 
 import logging
+import re
 
+from avocado.core import exceptions
+
+from virttest import virsh
 from virttest.libvirt_xml import vm_xml
 
 
@@ -23,6 +27,26 @@ def set_vm_attrs(vmxml, vm_attrs):
     vmxml.xmltreefile.write()
     vmxml.sync()
     return vmxml
+
+
+def check_guest_xml(vm_name, pat_in_dumpxml, option='', status_error=False):
+    """
+    Check the given pattern in the vm dumpxml
+
+    :param vm_name: vm name
+    :param pat_in_dumpxml:  str, the pattern to search in dumpxml
+    :param status_error: True if expect not existing, otherwise False
+    :raises: TestFail if the result is not expected
+    """
+    ret_stdout = virsh.dumpxml(vm_name, extra=option).stdout.strip()
+    match = re.search(pat_in_dumpxml, ret_stdout)
+    found = True if match else False
+    prefix_found = '' if found else 'not '
+    msg = "The pattern '%s' is %sfound in the vm dumpxml" % (pat_in_dumpxml, prefix_found)
+    if found ^ status_error:
+        logging.debug(msg)
+    else:
+        raise exceptions.TestFail(msg)
 
 
 def remove_vm_devices_by_type(vm, device_type):
