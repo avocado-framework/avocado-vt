@@ -2480,6 +2480,10 @@ class VM(virt_vm.BaseVM):
             else:
                 attr_info = ["mlock", params["realtime_mlock"], bool]
                 add_qemu_option(devices, "realtime", [attr_info])
+        if params.get("cpu-pm"):
+            if devices.has_option("overcommit"):
+                attr_info = ["cpu-pm", params["cpu-pm"], bool]
+                add_qemu_option(devices, "overcommit", [attr_info])
         if params.get("keyboard_layout"):
             attr_info = [None, params["keyboard_layout"], None]
             add_qemu_option(devices, "k", [attr_info])
