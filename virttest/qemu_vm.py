@@ -2503,7 +2503,8 @@ class VM(virt_vm.BaseVM):
                 "disable-legacy": params.get("virtio_dev_disable_legacy"),
                 "disable-modern": params.get("virtio_dev_disable_modern"),
                 "iommu_platform": params.get("virtio_dev_iommu_platform"),
-                "ats": params.get("virtio_dev_ats")}
+                "ats": params.get("virtio_dev_ats"),
+                "aer": params.get("virtio_dev_aer")}
             for key, value in properties_to_be_set.items():
                 if value and key in dev_properties:
                     device.set_param(key, value)
