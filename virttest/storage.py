@@ -1086,8 +1086,7 @@ class QemuImg(object):
         :param root_dir: Base directory for relative filenames.
         """
         if params.get("image_name_%s_%s" % (image_name, vm_name)):
-            m_image_name = params.get("image_name", "image")
-            vm_image_name = "%s_%s" % (m_image_name, vm_name)
+            vm_image_name = params.get("image_name", "image")
             if params.get("clone_master", "yes") == "yes":
                 image_params = params.object_params(image_name)
                 image_params["image_name"] = vm_image_name

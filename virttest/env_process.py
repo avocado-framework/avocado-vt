@@ -525,7 +525,9 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
             image.remove()
         elif clone_master == "yes":
             if image_name in params.get("master_images_clone").split():
-                image.remove()
+                vm_name = params["main_vm"]
+                image_obj = qemu_storage.QemuImg(params, base_dir, image_name)
+                image_obj.rm_cloned_image(params, vm_name, image_name, base_dir)
 
 
 def postprocess_fs_source(test, params, fs_name, vm_process_status=None):
