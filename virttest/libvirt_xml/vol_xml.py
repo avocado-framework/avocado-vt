@@ -27,11 +27,13 @@ class VolXMLBase(base.LibvirtXMLBase):
         lazy_refcounts: bool, True/False
         encryption: VolXMLBase.Encryption instance.
         capacity_unit: string, operates on unit attribute of capacity tag
+        clusterSize: integer, operates on clusterSize attribute of clusterSize tag
+        clusterSize_unit: string, operates on unit attribute of clusterSize tag
     """
 
     __slots__ = ('name', 'key', 'capacity', 'allocation', 'format', 'path',
                  'owner', 'group', 'mode', 'label', 'compat', 'lazy_refcounts',
-                 'encryption', "capacity_unit")
+                 'encryption', 'capacity_unit', 'clusterSize', 'clusterSize_unit')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -73,6 +75,10 @@ class VolXMLBase(base.LibvirtXMLBase):
         accessors.XMLElementBool('lazy_refcounts', self,
                                  parent_xpath='/target/features',
                                  tag_name='lazy_refcounts')
+        accessors.XMLElementInt('clusterSize', self, parent_xpath='/target',
+                                tag_name='clusterSize')
+        accessors.XMLAttribute('clusterSize_unit', self, parent_xpath='/target',
+                               tag_name='clusterSize', attribute='unit')
         super(VolXMLBase, self).__init__(virsh_instance=virsh_instance)
 
 
