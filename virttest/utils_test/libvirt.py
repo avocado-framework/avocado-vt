@@ -3531,6 +3531,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
         iface = xml_devices[iface_index]
     except IndexError:
         iface = interface.Interface(iface_type)
+        xml_devices.append(iface)
 
     iface_driver = iface_dict.get('driver')
     driver_host = iface_dict.get('driver_host')
