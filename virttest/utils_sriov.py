@@ -82,7 +82,7 @@ def get_pf_info(session=None):
                              'status': utils_net.get_net_if_operstate(
                                           iface_name.strip(), runner=runner)})
             pf_info.update({pci: tmp_info})
-
+    logging.debug("PF info: %s.", pf_info)
     return pf_info
 
 
@@ -97,6 +97,23 @@ def get_pf_pci(session=None):
     for pci_info in pf_info.values():
         if pci_info.get("status", "") == "up":
             return pci_info.get('pci_id')
+
+
+def get_pf_info_by_pci(pci_id, session=None):
+    """
+    Get the pci info by the given pci id
+
+    :param pci_id: PF's pci id, eg. 0000:3b:00.0
+    :param session: The session object to the host
+    :return: Dict, pf's info,
+        eg. {'driver': 'ixgbe', 'pci_id': '0000:3b:00.0',
+             'iface': 'ens1f0', 'status': 'up'}
+    """
+    pf_info = get_pf_info(session=session)
+    for pf in pf_info.values():
+        if pf.get('pci_id') == pci_id:
+            logging.debug("PF %s details: %s.", pci_id, pf)
+            return pf
 
 
 def pci_to_addr(pci_id):
