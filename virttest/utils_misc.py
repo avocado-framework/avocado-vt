@@ -926,9 +926,9 @@ def safe_rmdir(path, timeout=10, session=None):
                 raise
             time.sleep(step)
         except (aexpect.ShellTimeoutError, aexpect.ShellError) as info:
-            raise exceptions.TestSetupError("Failed to remove directory "
-                                            "%s from remote machine: %s "
-                                            % (path, info))
+            raise exceptions.TestSetupFail("Failed to remove directory "
+                                           "%s from remote machine: %s "
+                                           % (path, info))
 
     if not success:
         raise OSError(39,
