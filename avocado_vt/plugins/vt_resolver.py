@@ -12,9 +12,8 @@ from ..discovery import DiscoveryMixIn
 
 class VTResolverUtils(DiscoveryMixIn):
 
-    def __init__(self):
-
-        self.config = settings.as_dict()
+    def __init__(self, config):
+        self.config = config or settings.as_dict()
         self.cartesian_parser = self._get_parser()
         self._save_parser_cartesian_config(self.cartesian_parser)
 
@@ -51,7 +50,7 @@ class VTResolverUtils(DiscoveryMixIn):
                                        ReferenceResolutionResult.NOTFOUND)
 
 
-class VTResolver(Resolver, VTResolverUtils):
+class VTResolver(VTResolverUtils, Resolver):
 
     name = 'vt'
     description = 'Test resolver for Avocado-VT tests'
