@@ -1170,26 +1170,6 @@ def preprocess(test, params, env):
                 vm.destroy()
                 del env[key]
 
-    if (params.get("auto_cpu_model") == "yes" and
-            vm_type == "qemu"):
-        if not env.get("cpu_model"):
-            env["cpu_model"] = cpu.get_qemu_best_cpu_model(params)
-        params["cpu_model"] = env.get("cpu_model")
-
-    if vm_type == "qemu":
-        qemu_path = utils_misc.get_qemu_binary(params)
-        if (utils_qemu.has_device_category(qemu_path, "CPU")
-                and params.get("cpu_driver") is None):
-            cpu_model = params.get("cpu_model")
-            if cpu_model:
-                search_pattern = r"%s-\w+-cpu" % cpu_model
-                cpu_driver = utils_qemu.find_supported_devices(qemu_path,
-                                                               search_pattern,
-                                                               "CPU")
-                if cpu_driver:
-                    env["cpu_driver"] = cpu_driver[0]
-                    params["cpu_driver"] = env.get("cpu_driver")
-
     global KVM_MODULE_HANDLERS
     kvm_modules = arch.get_kvm_module_list()
     for module in reversed(kvm_modules):
@@ -1369,6 +1349,42 @@ def preprocess(test, params, env):
                 image_obj.clone_image(vm_params, vm_name, image, base_dir)
             params["image_name_%s" % vm_name] = vm_params["image_name_%s" % vm_name]
             params["image_name_%s_%s" % (image, vm_name)] = vm_params["image_name_%s_%s" % (image, vm_name)]
+
+    if params.get("auto_cpu_model") == "yes" and vm_type == "qemu":
+        policy_map = {"libvirt_host_model": cpu.get_cpu_info_from_virsh,
+                      "virttest": cpu.get_qemu_best_cpu_info}
+        auto_cpu_policy = params.get("auto_cpu_policy", "virttest").split()
+        for policy in auto_cpu_policy:
+            try:
+                cpu_info = policy_map[policy](params)
+                if cpu_info:
+                    break
+            except Exception as err:
+                logging.error("Failed to get cpu info with policy %s: %s"
+                              % (policy, err))
+                continue
+        else:
+            raise exceptions.TestCancel("Failed to get cpu info with "
+                                        "policy %s" % auto_cpu_policy)
+        params["cpu_model"] = cpu_info["model"]
+        if cpu_info["flags"]:
+            cpu_flags = params.get("cpu_model_flags")
+            params["cpu_model_flags"] = cpu.recombine_qemu_cpu_flags(cpu_info["flags"],
+                                                                     cpu_flags)
+
+    if vm_type == "qemu":
+        qemu_path = utils_misc.get_qemu_binary(params)
+        if (utils_qemu.has_device_category(qemu_path, "CPU")
+                and params.get("cpu_driver") is None):
+            cpu_model = params.get("cpu_model")
+            if cpu_model:
+                search_pattern = r"%s-\w+-cpu" % cpu_model
+                cpu_driver = utils_qemu.find_supported_devices(qemu_path,
+                                                               search_pattern,
+                                                               "CPU")
+                if cpu_driver:
+                    env["cpu_driver"] = cpu_driver[0]
+                    params["cpu_driver"] = env.get("cpu_driver")
 
     # Preprocess all VMs and images
     if params.get("not_preprocess", "no") == "no":
