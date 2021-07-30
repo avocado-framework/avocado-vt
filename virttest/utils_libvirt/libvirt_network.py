@@ -163,3 +163,18 @@ def modify_network_xml(net_dict, testnet_xml):
         net_outbound = ast.literal_eval(net_bandwidth_outbound)
         testnet_xml.bandwidth_outbound = net_outbound
     return testnet_xml
+
+
+def ensure_default_network():
+    """
+    Ensure the default network exists on the host and in active status
+    :return: None
+    """
+    net_state = virsh.net_state_dict()
+    if 'default' not in net_state:
+        # define and start the default network
+        virsh.net_define("/usr/share/libvirt/networks/default.xml",
+                         debug=True, ignore_status=False)
+    if not net_state["default"].get("active"):
+        virsh.net_start("default", debug=True, ignore_status=False)
+        virsh.net_autostart("default", debug=True, ignore_status=False)
