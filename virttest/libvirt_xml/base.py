@@ -72,12 +72,14 @@ class LibvirtXMLBase(propcan.PropCanBase):
             try:
                 dict_1[slot] = getattr(self, slot)
             except (xcepts.LibvirtXMLNotFoundError,
-                    xcepts.LibvirtXMLAccessorError):
+                    xcepts.LibvirtXMLAccessorError,
+                    AttributeError):
                 pass  # Unset virtual values won't have keys
             try:
                 dict_2[slot] = getattr(other, slot)
             except (xcepts.LibvirtXMLNotFoundError,
-                    xcepts.LibvirtXMLAccessorError):
+                    xcepts.LibvirtXMLAccessorError,
+                    AttributeError):
                 pass  # Unset virtual values won't have keys
         return dict_1 == dict_2
 
