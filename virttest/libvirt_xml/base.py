@@ -233,6 +233,93 @@ class LibvirtXMLBase(propcan.PropCanBase):
         cmdresult.stderr = cmdresult.stderr_text
         return cmdresult
 
+    def setup_attrs(self, **attrs):
+        """
+        Setup attributes of an xml object
+
+        :param attrs: dict-type attributes to be set
+
+        Example:
+            dimm_device_attrs = {
+                'mem_model': 'dimm',
+                'target': {'size': 524288, 'size_unit': 'KiB', 'node': 0},
+                'alias': {'name': 'dimm2'},
+                'address': {'attrs': {'type': 'dimm', 'slot': '2', 'base': '0x120000000'}}
+            }
+
+            dimm_device = memory.Memory()
+            dimm_device.setup_attrs(**dimm_device_attrs)
+
+        The content of dimm_device would be:
+            <?xml version='1.0' encoding='UTF-8'?>
+            <memory model="dimm">
+                <target>
+                    <size unit="KiB">524288</size><node>0</node>
+                </target>
+                <alias name="dimm2" />
+                <address base="0x120000000" slot="2" type="dimm" />
+            </memory>
+
+        Then update the above xml with:
+            updated_attrs = {'target': {'size': 1024, 'size_unit': 'KiB'}}
+        We updated 'size', removed the key 'node', but we didn't set
+        'reset_all', the updated xml would be:
+
+            <memory model="dimm">
+            <target>
+                <size unit="KiB">1024</size><node>0</node>
+            </target>
+            <alias name="dimm2" />
+            <address base="0x120000000" slot="2" type="dimm" />
+            </memory>
+        The 'node' is not removed, because we didn't 'reset_all'
+
+        Then test with 'reset_all':
+            updated_attrs = {'target': {'size': 2048, 'size_unit': 'KiB', 'reset_all': True}}
+
+        The xml would be:
+            <memory model="dimm">
+            <target>
+                <size unit="KiB">2048</size>
+            </target>
+            <alias name="dimm2" />
+            <address base="0x120000000" slot="2" type="dimm" />
+            </memory>
+
+        'node' is removed.
+        """
+
+        for key, value in attrs.items():
+            if key not in self.__all_slots__:
+                raise AttributeError('Cannot set attribute "%s" to %s object.'
+                                     'There is no such attribute.'
+                                     % (key, self.__class__))
+            get_func = eval('self.get_%s' % key)
+
+            # Is XMLElementNest or not
+            subclass = get_func.get('subclass')
+            if subclass is None:
+                setattr(self, key, value)
+            else:
+                # Whether to keep the sub-xml instance and modify it
+                # or completely re-create one
+                reset_all = value.get('reset_all') is True
+                if 'reset_all' in value:
+                    value.pop('reset_all')
+                # If Element tag is not found, we need to create a new instance
+                # to set the attributes.
+                # If reset_all, it means we will discard the exising instance
+                # of current sub-xml and create a new one to replace it.
+                if reset_all or not self.xmltreefile.find(key):
+                    # Get args to create an instance of subclass
+                    subclass_dargs = get_func.get('subclass_dargs')
+                    # Create an instance of subclass with given args
+                    target_obj = subclass(**subclass_dargs)
+                else:
+                    target_obj = get_func()
+                target_obj.setup_attrs(**value)
+                setattr(self, key, target_obj)
+
 
 def load_xml_module(path, name, type_list):
     """
