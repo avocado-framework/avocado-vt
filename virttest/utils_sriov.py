@@ -73,10 +73,7 @@ def get_pf_info(session=None):
             pf_driver = re.search('driver in use: (.*)', output)[1]
             tmp_info = {'driver': pf_driver, 'pci_id': '0000:%s' % pci}
 
-            cmd = "ls /sys/bus/pci/drivers/%s/0000:%s/net" % (pf_driver, pci)
-            s_, iface_name = utils_misc.cmd_status_output(cmd, shell=True,
-                                                          ignore_status=False,
-                                                          session=session)
+            iface_name = get_iface_name('0000:%s' % pci, session=session)
             runner = None if not session else session.cmd
             tmp_info.update({'iface': iface_name.strip(),
                              'status': utils_net.get_net_if_operstate(
@@ -138,6 +135,22 @@ def get_device_name(pci_id):
     return '_'.join(['pci']+re.split('[.:]', pci_id))
 
 
+def get_iface_name(pci_id, session=None):
+    """
+    Get iface by the given pci
+
+    :param pci_id: PCI ID of a device(eg. 0000:05:10.1)
+    :param session: The session object to the host
+    :return: The iface(eg. enp5s0f0)
+    """
+    cmd = "ls /sys/bus/pci/devices/%s/net" % pci_id
+    status, iface_name = utils_misc.cmd_status_output(cmd, shell=True,
+                                                      session=session)
+    if status:
+        raise exceptions.TestError("Unable to get iface name of %s." % pci_id)
+    return iface_name
+
+
 def set_vf(pci_addr, vf_no=4, session=None):
     """
     Enable VFs for PF
@@ -169,16 +182,24 @@ def set_vf_mac(ethname, mac_addr, vf_idx=0, session=None):
             cmd, shell=True, verbose=True, session=session)
 
 
-def get_vf_mac(ethname, vf_idx=0, session=None):
+def get_vf_mac(ethname, vf_idx=0, session=None, is_admin=True):
     """
-    Get admin mac address for VF via 'ip' command.
+    Get mac address for VF via 'ip' command.
 
     :param ethname: The name of the network interface
     :param vf_idx: The index of VF
     :param session: The session object to the host
-    :return: VF's admin mac
+    :param is_admin: Whether get admin mac address
+    :return: VF's (admin) mac
     """
-    cmd = "ip link show %s |awk '/vf %d/ {print $4}'" % (ethname, vf_idx)
+    if is_admin:
+        cmd = "ip link show %s |awk '/vf %d/ {print $4}'" % (ethname, vf_idx)
+    else:
+        pf_pci = get_pci_from_iface(ethname, session)
+        vf_pci = get_vf_pci_id(pf_pci, vf_index=vf_idx, session=session)
+        vf_iface = get_iface_name(vf_pci, session=session)
+        cmd = "ip link show %s |awk '/link\/ether/ {print $2}'" % vf_iface
+
     status, vf_mac = utils_misc.cmd_status_output(
             cmd, shell=True, verbose=True, session=session)
 
@@ -203,13 +224,24 @@ def get_vf_pci_id(pf_pci, vf_index=0, session=None):
     if status or not vf_name:
         raise exceptions.TestError("Unable to get VF. status: %s, stdout: %s."
                                    % (status, vf_name))
-    cmd = "ethtool -i %s | awk '/bus-info/ {print $NF}'" % vf_name.strip()
-    status, vf_pci = utils_misc.cmd_status_output(
+    return get_pci_from_iface(vf_name, session=session)
+
+
+def get_pci_from_iface(iface, session=None):
+    """
+    Get pci by the given iface
+
+    :param iface: The name of the network interface
+    :param session: The session object to the host
+    :return: Device's pci(eg. 0000:05:00.0)
+    """
+    cmd = "ethtool -i %s | awk '/bus-info/ {print $NF}'" % iface.strip()
+    status, pci = utils_misc.cmd_status_output(
         cmd, shell=True, verbose=True, session=session)
     if status:
-        raise exceptions.TestError("Unable to get VF's pci. status: %s, "
-                                   "stdout: %s." % (status, vf_pci))
-    return vf_pci
+        raise exceptions.TestError("Unable to get device's pci. status: %s, "
+                                   "stdout: %s." % (status, pci))
+    return pci
 
 
 def add_or_del_connection(params, session=None, is_del=False):
