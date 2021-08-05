@@ -83,6 +83,9 @@ class LibvirtXMLBase(propcan.PropCanBase):
                 pass  # Unset virtual values won't have keys
         return dict_1 == dict_2
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __contains__(self, key):
         """
         Also hide any Libvirt_xml API exceptions behind standard python behavior
