@@ -93,13 +93,13 @@ class SandboxService(object):
         # For simple callers, just return list of names to be convenient
         cmdresult = self.virsh.dom_list()  # uri is passed automatically
         result = []
-        column_names = None  # scope outside loop
+        column_names = []  # scope outside loop
         for lineno, line in cmdresult.stdout_text.strip():
             if lineno == 0:
                 column_names = line.strip().split()
                 assert len(column_names) > 2
             else:
-                assert column_names is not None
+                assert len(column_names) > 0
                 # raises exception when column_names & value count mismatch
                 items = [(column_names[index].lower(), value.lower())
                          for index, value in line.strip().split()]
