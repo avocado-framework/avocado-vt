@@ -16,7 +16,6 @@ MOCK_CONFIG=default
 ARCHIVE_BASE_NAME=avocado-vt
 RPM_BASE_NAME=avocado-plugins-vt
 
-include Makefile.include
 
 all:
 	@echo
@@ -40,6 +39,8 @@ all:
 	@echo "srpm-release:    Generate a source RPM package (.srpm) for the latest tagged release"
 	@echo "rpm-release:     Generate binary RPMs for the latest tagged release"
 	@echo
+
+include Makefile.include
 
 requirements: pip
 	- $(PYTHON) -m pip install "pip>=6.0.1"
