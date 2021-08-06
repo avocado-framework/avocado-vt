@@ -3825,11 +3825,13 @@ def check_qemu_cmd_line(content, err_ignore=False,
     else:
         cmd_result = remote_old.run_remote_cmd(cmd, remote_params, runner_on_target)
         qemu_line = cmd_result.stdout
-    if not re.search(r'%s' % content, qemu_line):
+    if re.search(r'%s' % content, qemu_line):
+        logging.info("Expected '%s' was found in qemu command line" % content)
+    else:
         if err_ignore:
             return False
         else:
-            raise exceptions.TestFail("Expected '%s' was not found in "
+            raise exceptions.TestFail("Expected '%s' was NOT found in "
                                       "qemu command line" % content)
     return True
 
