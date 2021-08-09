@@ -938,13 +938,17 @@ def vcpupin(name, vcpu=None, cpu_list=None, options=None, **dargs):
     return command(cmd, **dargs)
 
 
-def vcpuinfo(name, **dargs):
+def vcpuinfo(name, options=None, **dargs):
     """
     :param name: name of domain
+    :param options: --pretty so far
     :param dargs: standardized virsh function API keywords
     :return: CmdResult object
     """
-    return command("vcpuinfo %s" % name, **dargs)
+    cmd = "vcpuinfo %s" % name
+    if options is not None:
+        cmd += " %s" % options
+    return command(cmd, **dargs)
 
 
 def freecell(cellno=None, options="", **dargs):
