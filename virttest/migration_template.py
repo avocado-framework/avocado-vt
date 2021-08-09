@@ -10,6 +10,7 @@ from avocado.utils import distro
 from avocado.utils import path as utils_path
 
 from virttest import virsh, migration, remote
+from virttest import libvirt_version
 from virttest import utils_iptables, utils_selinux, utils_misc
 
 from virttest.libvirt_xml import vm_xml
@@ -917,15 +918,45 @@ class MigrationTemplate(object):
         """
         Cleanup env
         """
-        logging.debug("Start to clean up env")
-        # Shutdown vms
-        for vm in self.vms:
-            vm.destroy()
+        logging.info("Start to clean up env")
 
-        # Recover source vm definition (just in case).
+        undef_opts = "--managed-save --snapshots-metadata"
+        if libvirt_version.version_compare(7, 5, 0):
+            undef_opts += " --checkpoints-metadata"
+
+        # Destroy vms on src host(if vm is migrated back)\
+        # or dest host(if vm is not migrated back)
+        logging.info("Remove vms on src or dest host")
+        for vm in self.vms:
+            try:
+                vm.remove(undef_opts=undef_opts)
+            except Exception as detail:
+                logging.warning("Failed to remove vm %s, detail: %s",
+                                vm.name, detail)
+                continue
+            logging.debug("Vm %s is removed", vm.name)
+
+        # Need to undefine vms on src host(if vm is not migrated back)
+        logging.info("Undefine vms on src host")
+        for backup in self.vm_xml_backup:
+            try:
+                backup.undefine(options=undef_opts)
+            except Exception as detail:
+                logging.warning("Failed to undefine vm %s, detail: %s",
+                                backup.vm_name, detail)
+                continue
+            logging.debug("Vm %s is undefined", backup.vm_name)
+
+        # Recover vm definition on src host
         logging.info("Recover vm definition on source")
         for backup in self.vm_xml_backup:
-            backup.define()
+            try:
+                backup.define()
+            except Exception as detail:
+                logging.warning("Failed to define vm %s, detail: %s",
+                                backup.vm_name, detail)
+                continue
+            logging.debug("Vm %s is restored", backup.vm_name)
 
         # Clean up ssh, tcp, tls test env
         if self.objs_list and len(self.objs_list) > 0:
