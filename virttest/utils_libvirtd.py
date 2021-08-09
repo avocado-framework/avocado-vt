@@ -240,7 +240,7 @@ class LibvirtdSession(object):
 
     def _termination_handler(self, status):
         """
-        Helper aexpect terminaltion handler
+        Helper aexpect termination handler
         """
         self.running = False
         self.exit_status = status

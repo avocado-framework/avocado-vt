@@ -31,7 +31,7 @@ def make_sandboxes(params, env, extra_ns=None):
         namespace.update(extra_ns)  # copy in additional symbols
     names = list(namespace.keys())
     # Test may require more than one sandbox agregator class
-    pobs = params.objects('lvsb_testsandboxes')  # manditory parameter
+    pobs = params.objects('lvsb_testsandboxes')  # mandatory parameter
     # filter out non-TestSandboxes subclasses
     for name in names:
         try:
@@ -79,7 +79,7 @@ class TestBaseSandboxes(lvsb_base.TestSandboxes):
 
     def results(self, each_timeout=5):
         """
-        Run sandboxe(s), allowing each_timeout to complete, return output list
+        Run sandboxes, allowing each_timeout to complete, return output list
         """
         # Sandboxes run asynchronously, prevent them from running forever
         start = datetime.datetime.now()

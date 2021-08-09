@@ -706,7 +706,7 @@ class MemoryHotplugTest(MemoryBaseTest):
     @error_context.context_aware
     def check_memory(self, vm=None):
         """
-        Check is guest memory is really match assgined to VM.
+        Check is guest memory is really match assigned to VM.
 
         :param vm: VM object, get VM object from env if vm is None.
         """

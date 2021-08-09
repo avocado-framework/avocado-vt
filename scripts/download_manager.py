@@ -13,7 +13,7 @@ Downloads blobs defined in assets. Assets are .ini files that contain the
         (TEST_SUITE_ROOT/shared/data)
     destination_uncompressed (optional) = Location of the uncompressed file
         relative to the data directory (TEST_SUITE_ROOT/shared/data)
-    uncompress_cmd (optionl) = Command that needs to be executed with the
+    uncompress_cmd (optional) = Command that needs to be executed with the
         compressed file as a parameter
 
 :copyright: Red Hat 2012

@@ -184,7 +184,7 @@ class TestVirtIface(unittest.TestCase):
         apendex_set.update(props)
         apendex_set.update(more_props)
         virtiface = self.VirtIface(apendex_set)
-        # str(props) guarantees apendex set wasn't incorporated
+        # str(props) guarantees appendix set wasn't incorporated
         self.loop_assert(virtiface, list(props.keys()), what_func)
 
     def test_mac_completer(self):
@@ -630,7 +630,7 @@ class TestVmNetSubclasses(unittest.TestCase):
 
     def test_07_VirtNet(self):
         """
-        Release mac from beginning, midle, and end, re-generate + verify value
+        Release mac from beginning, middle, and end, re-generate + verify value
         """
         self.zero_counter(1)
         beginning_params = utils_params.Params({

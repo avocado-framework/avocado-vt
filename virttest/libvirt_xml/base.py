@@ -134,7 +134,7 @@ class LibvirtXMLBase(propcan.PropCanBase):
         Return the xmltreefile object backing this instance
         """
         try:
-            # don't call get_xml() recursivly
+            # don't call get_xml() recursively
             xml = self.__dict_get__('xml')
             if xml is None:
                 raise KeyError

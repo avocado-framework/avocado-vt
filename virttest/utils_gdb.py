@@ -282,7 +282,7 @@ class GDB(aexpect.Expect):
 
     def _callback(self, callback_type, info):
         """
-        General callback function to call specific type of callback funtions.
+        General callback function to call specific type of callback functions.
 
         :param callback_type: Could be one of "stop", "start", "termination",
                               "break" or "signal"

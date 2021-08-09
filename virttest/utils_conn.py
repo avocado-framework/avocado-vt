@@ -1718,7 +1718,7 @@ def build_CA(tmp_dir, cn="AUTOTEST.VIRT", certtool="certtool",
     (2).make a private key with certtool command.
     (3).prepare a info file.
     (4).make a certificate file with certtool command.
-    :param tmp_dir: temp directory to store credentail files in
+    :param tmp_dir: temp directory to store credential files in
     :param cn: cn for CA info
     :param certtool: cert command
     :param credential_dict: A dict for credential files' names
@@ -1830,7 +1830,7 @@ class UNIXConnection(ConnectionBase):
                           .format(session_ip))
             self.run_on_remote = False
 
-        # Unable to get libvirt verion via libvirt_version.version_compare
+        # Unable to get libvirt version via libvirt_version.version_compare
         # once UNIX connection is setup, so set the value here.
         client_session = self.client_session
         self.libvirt_ver = libvirt_version.version_compare(5, 6, 0, client_session)
@@ -2106,7 +2106,7 @@ class UNIXSocketConnection(ConnectionBase):
     migrateuri_sock: migrateuri socket path to listen on or connect to
     disks_uri_sock: disks-uri socket path to listen on or connect to
     desturi_sock_conn: desturi socket path to connect to
-    remove_qemu_kvm_policy: wheather to remove qemu-kvm policy
+    remove_qemu_kvm_policy: whether to remove qemu-kvm policy
     pmsocat_path: pmsocat script path
     remote_pmsocat_path: pmsocat script path on remote
     qemu_kvm_pp_path: qemu-kmv.pp file path

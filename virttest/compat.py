@@ -62,7 +62,7 @@ else:
         """
         Compatibility handler for options in either argparse.Namespace or dict
 
-        :param opt: either an argpase.Namespace instance or a dict
+        :param opt: either an argparse.Namespace instance or a dict
         :param name: the name of the attribute or key
         """
         if isinstance(opt, argparse.Namespace):
@@ -74,7 +74,7 @@ else:
         """
         Compatibility handler for options in either argparse.Namespace or dict
 
-        :param opt: either an argpase.Namespace instance or a dict
+        :param opt: either an argparse.Namespace instance or a dict
         :param name: the name of the attribute or key
         :param value: the value to be set
         """

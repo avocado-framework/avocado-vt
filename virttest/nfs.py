@@ -153,7 +153,7 @@ class Nfs(object):
 
     """
     Nfs class for handle nfs mount and umount. If a local nfs service is
-    required, it will configure a local nfs server accroding the params.
+    required, it will configure a local nfs server according the params.
     """
 
     def __init__(self, params):

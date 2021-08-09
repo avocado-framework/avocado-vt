@@ -1,6 +1,6 @@
 #
 # library for hotplug(cpu) related helper functions
-# can be extended to memory related helper functions aswell
+# can be extended to memory related helper functions as well
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

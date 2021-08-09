@@ -168,7 +168,7 @@ class DNSXML(base.LibvirtXMLBase):
             List
         srv:
             Dict. keys: service, protocol, domain,
-            tartget, port, priority, weight
+            target, port, priority, weight
         hosts:
             List of host name
     """

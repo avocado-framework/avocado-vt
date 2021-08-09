@@ -326,7 +326,7 @@ class test_templatized_xml(xml_test_data):
 
     def test_TemplateXMLTreeBuilder_nosub(self):
         txtb = xml_utils.TemplateXMLTreeBuilder()
-        # elementree pukes on identifiers starting with $
+        # elementtree pukes on identifiers starting with $
         txtb.feed(self.RESULTCHECK)
         et = txtb.close()
         result = ElementTree.tostring(et)

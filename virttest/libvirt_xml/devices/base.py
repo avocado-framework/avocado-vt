@@ -246,7 +246,7 @@ class StubDeviceMeta(type):
                 """
                 Initialize stub typed device instance
                 """
-                # issue warning only when some code instantiats
+                # issue warning only when some code instantiates
                 # object from generated class
                 issue_warning()
                 # Created class __init__ still needs to call superclass

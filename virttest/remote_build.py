@@ -171,7 +171,7 @@ class Builder(object):
             """
             def visit(arg, dir_name, file_names):
                 """
-                Callback function list alla directories
+                Callback function list all directories
                 :param arg: Tuple with base path and the list that will contain
                             the results.
                 :param dir_name: Current directory

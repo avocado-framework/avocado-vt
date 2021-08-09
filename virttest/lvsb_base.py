@@ -324,7 +324,7 @@ class SandboxCommandBase(SandboxBase):
     @staticmethod
     def flaten_options(options):
         """
-        Convert a list of tuples into space-seperated options+argument string
+        Convert a list of tuples into space-separated options+argument string
         """
         result_list = []
         for option, argument in options:
@@ -415,7 +415,7 @@ class SandboxCommandBase(SandboxBase):
 
 
 # Instances are similar to a list-of-lists- multiple kinds (classes) of
-# multiple sandobx executions.
+# multiple sandbox executions.
 class TestSandboxes(object):
 
     """

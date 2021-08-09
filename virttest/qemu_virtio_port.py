@@ -241,7 +241,7 @@ class GuestWorker(object):
             # Copy virtio_console_guest.py into guests
             self.vm.copy_files_to(guest_script_src, guest_script_path)
 
-            # set echo off (self.cmd() musn't contain C:)
+            # set echo off (self.cmd() mustn't contain C:)
             self.session.sendline("echo off")
             # Compile worker
             logging.debug("Compile %s on guest %s", guest_script_py,
@@ -256,7 +256,7 @@ class GuestWorker(object):
                 raise
             self.session.sendline()
 
-        # set echo off (self.cmd() musn't contain C:)
+        # set echo off (self.cmd() mustn't contain C:)
         self.session.sendline("echo off")
         logging.debug("Starting %so on guest %s", guest_script_py,
                       self.vm.name)
@@ -714,7 +714,7 @@ class ThRecvCheck(Thread):
         self.sendlen = sendlen + 1  # >=
         self.ret_code = 1    # sets to 0 when finish properly
         self.debug = debug      # see the self.run_* docstrings for details
-        # self.sendidx is the maxiaml number of skipped/duplicated values
+        # self.sendidx is the maximal number of skipped/duplicated values
         # 1) autoreload when the host socket is reconnected. In this case
         #    it waits <30s for migrate_event and reloads sendidx to sendlen
         # 2) manual write to this value (eg. before you reconnect guest port).

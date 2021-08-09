@@ -205,7 +205,7 @@ class LibvirtXMLTestBase(unittest.TestCase):
 
     def setUp(self):
         self.dummy_virsh = FakeVirshFactory()
-        # make a tmp_dir to store informations.
+        # make a tmp_dir to store information.
         LibvirtXMLTestBase.__doms_dir__ = os.path.join(data_dir.get_tmp_dir(),
                                                        'domains')
         if not os.path.isdir(LibvirtXMLTestBase.__doms_dir__):
@@ -878,14 +878,14 @@ class testSerialXML(LibvirtXMLTestBase):
         self.assertFalse(serial1 == serial2)
         serial1.update_target(0, port="1")
         self.assertEqual(serial1, serial2)
-        # Exercize bind mode
+        # Exercise bind mode
         self.assertEqual(serial3.type_name, 'tcp')
         source_connect = serial3.sources[0]
         self.assertEqual(source_connect, {'mode': "connect", 'host': '1.2.3.4',
                                           'service': '2445'})
         self.assertEqual(serial3.protocol_type, 'raw')
         self.assertEqual(serial3.targets[0]['port'], '2')
-        # Exercize udp type
+        # Exercise udp type
         self.assertEqual(serial4.type_name, 'udp')
         source_bind = serial4.sources[0]
         source_connect = serial4.sources[1]

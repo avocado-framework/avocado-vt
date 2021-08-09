@@ -258,7 +258,7 @@ class QBaseDevice(object):
         this function is used to get the correct hotplug_qmp
         function object as per qemu version.
 
-        :param qemu_version: The qemu versoin, e.g. 5.0.0
+        :param qemu_version: The qemu version, e.g. 5.0.0
         :return: The hotplug_qmp function object
         """
         return self.hotplug_qmp
@@ -1602,7 +1602,7 @@ class CharDevice(QCustomDevice):
         Format params by support options type
 
         :param params: chardev test params.
-        :return dict: formated params only include suppprt options.
+        :return dict: formatted params only include support options.
         """
         for opt in ["server", "telnet", "wait",
                     "ipv4", "ipv6", "nodelay", "mux", "signal"]:
@@ -1617,9 +1617,9 @@ class CharDevice(QCustomDevice):
 
     def get_qmp_args(self):
         """
-        Get chardev hotplug requried args by backend type
+        Get chardev hotplug required args by backend type
 
-        :return dict: dict include chardev-add requried args.
+        :return dict: dict include chardev-add required args.
         """
         args = {"id": self.get_qid(),
                 "backend": {"type": self.params.get("backend"),
@@ -2184,7 +2184,7 @@ class QSparseBus(object):
 
     def _set_first_addr(self, addr_pattern):
         """
-        :param addr_pattern: Address pattern (full qualified or with Nones)
+        :param addr_pattern: Address pattern (full qualified or with None)
         :return: first valid address based on addr_pattern
         """
         use_reserved = True
@@ -2203,7 +2203,7 @@ class QSparseBus(object):
         """
         Finds unoccupied address
 
-        :param addr_pattern: Address pattern (full qualified or with Nones)
+        :param addr_pattern: Address pattern (full qualified or with None)
         :return: First free address when found, (free or reserved for this dev)
                  None when no free address is found, (all occupied)
                  False in case of incorrect address (oor)
@@ -2456,7 +2456,7 @@ class QUSBBus(QSparseBus):
         value = device.get_param('port')
         if value is None:
             addr = [None]
-        # this part allows to speicfy the port of usb devices on the root bus
+        # this part allows to specify the port of usb devices on the root bus
         elif not self.__port_prefix:
             addr = [int(value)]
         else:
@@ -2898,7 +2898,7 @@ class QSCSIBus(QSparseBus):
     def _increment_addr(self, addr, last_addr=None):
         """
         Qemu doesn't increment lun automatically so don't use it when
-        it's not explicitelly specified.
+        it's not explicitly specified.
         """
         if addr[1] is None:
             addr[1] = 0
@@ -2915,15 +2915,15 @@ class QBusUnitBus(QDenseBus):
         :type busid: str
         :param bus_type: type of the bus (ahci)
         :type bus_type: str
-        :param lenghts: lenghts of [buses, units]
-        :type lenghts: builtin.list
+        :param lengths: lengths of [buses, units]
+        :type lengths: builtin.list
         :param aobject: Related autotest object (image1)
         :type aobject: str
         :param atype: Autotest bus type
         :type atype: str
         """
         if len(lengths) != 2:
-            raise ValueError("len(lenghts) have to be 2 (%s)" % self)
+            raise ValueError("len(lengths) have to be 2 (%s)" % self)
         super(QBusUnitBus, self).__init__('bus', [['bus', unit_spec], lengths],
                                           busid, bus_type, aobject, atype)
         self.unit_spec = unit_spec
@@ -3189,7 +3189,7 @@ class QIOThreadBus(QSparseBus):
         device.set_param(self.bus_item, self.get_device().get_qid())
 
     def _update_device_props(self, device, addr):
-        """Always set devie iothread param."""
+        """Always set device iothread param."""
         self._set_device_props(device, addr)
 
 

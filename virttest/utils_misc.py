@@ -1160,7 +1160,7 @@ def strip_console_codes(output, custom_codes=None):
     :param custom_codes: The codes added to the console codes which is not
                          covered in the default codes
     :type output: string
-    :return: the string wihout any special codes
+    :return: the string without any special codes
     :rtype: string
     """
     if "\x1b" not in output:
@@ -1390,7 +1390,7 @@ def cpu_str_to_list(origin_str):
                     cpu_list.append(cpu_id)
                 except ValueError:
                     logging.error("Illegimate string in cpu "
-                                  "informations: %s" % cpu)
+                                  "information: %s" % cpu)
                     cpu_list = []
                     break
         cpu_list.sort()
@@ -1862,7 +1862,7 @@ def get_support_machine_type(qemu_binary="/usr/libexec/qemu-kvm", remove_alias=F
     Get all of the machine type the host support.
 
     :param qemu_binary: qemu-kvm binary file path
-    :param remove_alias: True or Flase, whether remove alias or not
+    :param remove_alias: True or False, whether remove alias or not
 
     :return: A tuple (s, c, v) include three lists.
     """
@@ -1995,7 +1995,7 @@ def get_qemu_version(params=None):
     Get the qemu-kvm(-rhev) version info.
 
     :param params: Passed to get_qemu_binary, can set to {} if not needed.
-    :return: A dict contain qemu versoins info as {'major': int, 'minor': int,
+    :return: A dict contain qemu versions info as {'major': int, 'minor': int,
     'update': int, 'is_rhev': bool}
     """
     version = {'major': None, 'minor': None, 'update': None, 'is_rhev': False, 'module': False}
@@ -2272,7 +2272,7 @@ def normalize_data_size(value_str, order_magnitude="M", factor="1024"):
     to_index = __get_unit_index(order_magnitude)
     scale = int(factor) ** (to_index - from_index)
     data_size = float(value) / scale
-    # Control precision to avoid scientific notaion
+    # Control precision to avoid scientific notation
     if data_size.is_integer():
         return "%.1f" % data_size
     else:
@@ -2563,7 +2563,7 @@ def format_windows_disk(session, did, mountpoint=None, size=None, fstype="ntfs",
                 session.cmd(set_rw_cmd)
 
             if re.search(r"Volume.*%s" % fstype, details, re.I | re.M) and not force:
-                logging.info("Disk%s has been formated, cancel format" % did)
+                logging.info("Disk%s has been formatted, cancel format" % did)
                 continue
 
             if not size:
@@ -2683,7 +2683,7 @@ def get_linux_drive_path(session, did, timeout=120):
     cmd += 'echo `udevadm info -q property -p $dev_path`; done'
     status, output = session.cmd_status_output(cmd, timeout=timeout)
     if status != 0:
-        logging.error("Can not get drive infomation:\n%s" % output)
+        logging.error("Can not get drive information:\n%s" % output)
         return ""
     p = r"DEVNAME=([^\s]+)\s.*(?:ID_SERIAL|ID_SERIAL_SHORT|ID_WWN)=%s" % did
     dev = re.search(p, output, re.M)
@@ -2713,8 +2713,8 @@ def valued_option_dict(options, split_pattern, start_count=0, dict_split=None):
     Divide the valued options into key and value
 
     :param options: the valued options get from cfg
-    :param split_pattern: patten used to split options
-    :param dict_split: patten used to split sub options and insert into dict
+    :param split_pattern: pattern used to split options
+    :param dict_split: pattern used to split sub options and insert into dict
     :param start_count: the start_count to insert option_dict
     :return: dict include option and its value
     """
@@ -2866,7 +2866,7 @@ def is_qemu_capability_supported(capability):
     :param capability: the qemu capability to be queried
     :type capability: str
 
-    :return: True if the capabilitity is found, otherwise False
+    :return: True if the capability is found, otherwise False
     :rtype: Boolean
     :raise: exceptions.TestError: if no capability file or no directory
     """
@@ -3076,7 +3076,7 @@ class KSMController(object):
         """
         Set ksm features.
 
-        :param feature_args: a dict include features and their's value.
+        :param feature_args: a dict include features and their value.
         """
         for key in list(feature_args.keys()):
             if key not in self.get_writable_features():
@@ -3290,7 +3290,7 @@ def check_module(module_name, submodules=[]):
 
 def get_pci_devices_in_group(str_flag=""):
     """
-    Get PCI Devices. Classify pci devices accroding its bus
+    Get PCI Devices. Classify pci devices according its bus
     and slot, devices with same bus and slot will be put together.
     The format will be {'domain:bus:slot': 'device_function',...}
 
@@ -3463,7 +3463,7 @@ class VFIOController(object):
 
     def __init__(self, load_modules=True, allow_unsafe_interrupts=True):
         """
-        Initalize prerequisites for enabling VFIO.
+        Initialize prerequisites for enabling VFIO.
 
         """
         # Step1: Check whether kernel add parameter of iommu
@@ -3903,7 +3903,7 @@ class AsyncJob(BgJob):
                     f.write(tmp)
             finally:
                 release()
-        # Don't close writeable_objs, the callee will close
+        # Don't close writeable_objs, the caller will close
 
     def output_prepare(self, stdout_file=None, stderr_file=None):
         raise NotImplementedError("This object automatically prepares its own "
@@ -4283,7 +4283,7 @@ def asterisk_passwd(passwd):
     """
     Proctect plain password to be printed in log files
 
-    In order to debug, Keep the 1st and last charactor.
+    In order to debug, Keep the 1st and last character.
 
     :param passwd: a password string
     :return: a string replaced with asterisk

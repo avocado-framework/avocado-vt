@@ -366,10 +366,10 @@ def get_all_cells():
 
 def check_blockjob(vm_name, target, check_point="none", value="0"):
     """
-    Run blookjob command to check block job progress, bandwidth, ect.
+    Run blockjob command to check block job progress, bandwidth, ect.
 
     :param vm_name: Domain name
-    :param target: Domian disk target dev
+    :param target: Domain disk target dev
     :param check_point: Job progrss, bandwidth or none(no job)
     :param value: Value of progress, bandwidth(with unit) or 0(no job)
     :return: Boolean value, true for pass, false for fail
@@ -400,7 +400,7 @@ def check_blockjob(vm_name, target, check_point="none", value="0"):
         if re.search(progress, err):
             return True
         return False
-    # Since 1.3.3-1, libvirt support bytes and scaled integers for bandwith,
+    # Since 1.3.3-1, libvirt support bytes and scaled integers for bandwidth,
     # and the output of blockjob may looks like:
     # # virsh blockjob avocado-vt-vm1 vda --info
     # Block Copy: [100 %]    Bandwidth limit: 9223372036853727232 bytes/s (8.000 EiB/s)
@@ -1174,7 +1174,7 @@ class PoolVolumeTest(object):
 
     def pre_vol(self, vol_name, vol_format, capacity, allocation, pool_name):
         """
-        Preapare the specific type volume in pool
+        Prepare the specific type volume in pool
         """
         pv = libvirt_storage.PoolVolume(pool_name)
         if not pv.create_volume(vol_name, capacity, allocation, vol_format):
@@ -1429,7 +1429,7 @@ def create_hostdev_xml(pci_id, boot_order=None,
     c. scsi
     The named parameter "pci_id" now has an overloaded meaning of "device id".
 
-    :param pci_id: device id on host, naming maintained for compatiblity reasons
+    :param pci_id: device id on host, naming maintained for compatibility reasons
     a. "0000:03:04.0" for pci
     b. "1d6b:0002:001:002" for usb (vendor:product:bus:device)
     c. "0:0:0:1" for scsi (scsi_num:bus_num:target_num:unit_num)
@@ -2260,7 +2260,7 @@ def create_rng_xml(dparams):
     """
     Modify interface xml options
 
-    :param dparams: Rng device paramter dict
+    :param dparams: Rng device parameter dict
     """
     rng_model = dparams.get("rng_model", "virtio")
     rng_rate = dparams.get("rng_rate")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Script to fetch test status info from sqlit data base. Before use this
-script, avocado We must be lanuch with '--journal' option.
+script, avocado We must be launch with '--journal' option.
 """
 
 from __future__ import division
@@ -53,7 +53,7 @@ def fetch_data(db_file=".journal.sqlite"):
         cur = con.cursor()
         cur.execute("select tag, time, action, status  from test_journal")
         while True:
-            # First record contation start info, second contain end info
+            # First record contains start info, second contains end info
             # merged start info and end info into one record.
             data = cur.fetchmany(2)
             if not data:
@@ -81,7 +81,7 @@ def fetch_data(db_file=".journal.sqlite"):
 
 
 def print_data(records, skip_timestamp=False):
-    """ Print formated tests status info"""
+    """ Print formatted tests status info"""
     if not records:
         return
     if not skip_timestamp:

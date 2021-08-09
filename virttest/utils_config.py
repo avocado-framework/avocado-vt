@@ -217,7 +217,7 @@ class LibvirtConfigCommon(SectionlessConfig):
     in a property's way.
 
     Variables "__option_types__" and "conf_path" must be setup in the
-    inherented classes before use.
+    inherited classes before use.
 
     "__option_types__" is a dict contains every possible option as keys and
     their type ("boolean", "int", "string", "float" or "list") as values.
@@ -548,7 +548,7 @@ class VirtQemudConfig(LibvirtConfigCommon):
     This is used to represent split daemons changes after libvirt version 5.6.0
     """
     conf_path = '/etc/libvirt/virtqemud.conf'
-    # The virtqemud attribue values are quite the same with previous libvirtd.conf except removal of tls,tcp
+    # The virtqemud attribute values are quite the same with previous libvirtd.conf except removal of tls,tcp
     # certificate part group
     __option_types__ = {
         'mdns_adv': 'boolean',
@@ -676,7 +676,7 @@ class VirtProxydConfig(VirtQemudConfig):
     This is used to represent split daemons changes after libvirt version 5.6.0
     """
     conf_path = '/etc/libvirt/virtproxyd.conf'
-    # The virtproxyd.conf attribue values are quite the same with VirtQemud config with additional tls,tcp
+    # The virtproxyd.conf attribute values are quite the same with VirtQemud config with additional tls,tcp
     # certificate part group
     __option_types__ = {
         'listen_tls': 'boolean',

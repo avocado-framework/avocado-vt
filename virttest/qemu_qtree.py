@@ -171,7 +171,7 @@ class QtreeDev(QtreeNode):
     def guess_type(self):
         guess = {True: QtreeDisk, False: QtreeDev}
         is_disk = ('drive' in self.qtree)
-        # HOOK when usb-storage-containter is detected as disk
+        # HOOK when usb-storage-container is detected as disk
         non_disk_type = ('usb-storage', 'spapr-nvram', 'cfi.pflash01')
         is_disk = (is_disk and (self.qtree['type'] not in non_disk_type))
         return guess[is_disk]
@@ -277,7 +277,7 @@ class QtreeContainer(object):
             usb-storage device.
             """
             # We're looking for scsi disk with grand-grand parent of
-            # usb sorage type
+            # usb storage type
             if not isinstance(node, QtreeDisk):
                 return  # Not a disk
             if not node.get_qtree().get('type').startswith('scsi'):
@@ -387,7 +387,7 @@ class QtreeDisksContainer(object):
     """
     Container for QtreeDisks verification.
     It's necessary because some information can be verified only from
-    informations about all disks, not only from single disk.
+    information about all disks, not only from single disk.
     """
 
     def __init__(self, nodes):

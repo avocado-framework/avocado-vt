@@ -75,7 +75,7 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False,
     :param src: source device or directory
     :param dst: mountpoint, if None will skip to check
     :param fstype: file system type, if None will skip to check
-    :param options: mount options should be seperated by ","
+    :param options: mount options should be separated by ","
     :param session: check within the session if given
 
     :return: True if mounted, else return False
@@ -1335,7 +1335,7 @@ class CdromDisk(Disk):
 
         1) If cdrom is available, mount the cdrom containing the virtio drivers
            and copy its contents to the root of the install cdrom
-        2) If floppy is availabe while cdrom is not, mount the floppy and copy
+        2) If floppy is available while cdrom is not, mount the floppy and copy
            its contents to the root of the install cdrom
         """
         if cdrom_virtio:
