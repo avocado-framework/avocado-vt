@@ -51,8 +51,6 @@ check:
 
 clean:
 	$(PYTHON) setup.py clean
-	rm -rf build/ MANIFEST BUILD BUILDROOT SPECS RPMS SRPMS SOURCES PYPI_UPLOAD
-	find . -name '*.pyc' -delete
 
 develop:
 	$(PYTHON) setup.py develop $(PYTHON_DEVELOP_ARGS)
