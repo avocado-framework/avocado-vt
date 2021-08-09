@@ -14,6 +14,7 @@ from virttest import remote as remote_old
 from virttest import utils_misc
 from virttest import utils_disk
 from virttest import virsh
+from virttest import utils_package
 
 from virttest.libvirt_xml import vm_xml
 from virttest.utils_test import libvirt
@@ -538,3 +539,33 @@ def create_remote_disk_by_same_metadata(vm, params):
 
     remote_session.close()
     return blk_source
+
+
+def fill_null_in_vm(vm, target, size_value=500):
+    """
+    File sth in the disk of VM
+
+    :param vm: VM guest
+    :param target: disk dev in VM
+    :param size_value: number in MiB
+    """
+    try:
+        session = vm.wait_for_login()
+        if not utils_package.package_install(["parted"], session, timeout=300):
+            logging.error("Failed to install the required 'parted' package")
+        device_source = os.path.join(os.sep, 'dev', target)
+        libvirt.mk_label(device_source, session=session)
+        libvirt.mk_part(device_source, size="%sM" % size_value, session=session)
+        # Run partprobe to make the change take effect.
+        process.run("partprobe", ignore_status=True, shell=True)
+        libvirt.mkfs("/dev/%s1" % target, "ext3", session=session)
+        count_number = size_value - 100
+        cmd = ("mount /dev/%s1 /mnt && dd if=/dev/zero of=/mnt/testfile bs=1024 count=1024x%s "
+               " && umount /mnt" % (target, count_number))
+        s, o = session.cmd_status_output(cmd)
+        logging.info("Check disk operation in VM:\n%s", o)
+        session.close()
+        if s != 0:
+            raise exceptions.TestError("Error happened when executing command:\n%s" % cmd)
+    except Exception as e:
+        raise exceptions.TestError(str(e))
