@@ -24,6 +24,7 @@ class EmbeddedQemuSession(object):
     """
     Interaction embeddedQemu session can start a qemu process.
     """
+
     def __init__(self,
                  logging_handler=None,
                  logging_params=(),

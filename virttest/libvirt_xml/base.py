@@ -308,7 +308,7 @@ class LibvirtXMLBase(propcan.PropCanBase):
                     value.pop('reset_all')
                 # If Element tag is not found, we need to create a new instance
                 # to set the attributes.
-                # If reset_all, it means we will discard the exising instance
+                # If reset_all, it means we will discard the existing instance
                 # of current sub-xml and create a new one to replace it.
                 if reset_all or not self.xmltreefile.find(key):
                     # Get args to create an instance of subclass
