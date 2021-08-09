@@ -330,7 +330,7 @@ class QemuAgent(Monitor):
 
     def check_has_command(self, cmd):
         """
-        Check wheter guest agent support 'cmd'.
+        Check whether guest agent support 'cmd'.
 
         :param cmd: command string which will be checked.
 
@@ -351,7 +351,7 @@ class QemuAgent(Monitor):
 
     def _log_command(self, cmd, debug=True, extra_str=""):
         """
-        Print log message beening sent.
+        Print log message being sent.
 
         :param cmd: Command string.
         :param debug: Whether to print the commands.
@@ -395,7 +395,7 @@ class QemuAgent(Monitor):
 
         if self.debug_log or debug:
             logging.debug("(vagent %s) Response to '%s' "
-                          "(re-formated)", self.name, cmd)
+                          "(re-formatted)", self.name, cmd)
             if isinstance(resp, dict):
                 _dump_dict(resp)
             elif isinstance(resp, list):
@@ -504,7 +504,7 @@ class QemuAgent(Monitor):
         """
         Send "guest-shutdown", this cmd would not return any response.
 
-        :param mode: Speicfy shutdown mode, now qemu guest agent supports
+        :param mode: Specify shutdown mode, now qemu guest agent supports
                      'powerdown', 'reboot', 'halt' 3 modes.
         :return: True if shutdown cmd is sent successfully, False if
                  'shutdown' is unsupported.
@@ -551,7 +551,7 @@ class QemuAgent(Monitor):
     @error_context.context_aware
     def get_vcpus(self):
         """
-        Get the vcpus infomation
+        Get the vcpus information
         """
         cmd = "guest-get-vcpus"
         self.check_has_command(cmd)

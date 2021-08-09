@@ -51,7 +51,7 @@ def cmd_status_output(cmd, session=None, timeout=60):
     Function to unify usage of process and ShellSession"
 
     :param cmd: Command to issue.
-    :param session: Guest session. If empty, command is exeucted on host.
+    :param session: Guest session. If empty, command is executed on host.
     """
 
     status = None

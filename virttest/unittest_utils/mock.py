@@ -373,7 +373,7 @@ class mock_god(object):
         """
         Given an object (class instance or module) and a registration
         name, then replace all its methods with mock function objects
-        (passing the orignal functions to the mock functions).
+        (passing the original functions to the mock functions).
         """
         for symbol in dir(obj):
             if symbol.startswith("__"):

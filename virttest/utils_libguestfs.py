@@ -147,7 +147,7 @@ class LibguestfsBase(propcan.PropCanBase):
         """
         Accessor method for 'uri' property that must exist
         """
-        # self.get() would call get_uri() recursivly
+        # self.get() would call get_uri() recursively
         try:
             return self.__dict_get__('uri')
         except KeyError:
@@ -155,7 +155,7 @@ class LibguestfsBase(propcan.PropCanBase):
 
 
 # There are two ways to call guestfish:
-# 1.Guestfish classies provided below(shell session)
+# 1.Guestfish classes provided below(shell session)
 # 2.guestfs module provided in system libguestfs package
 
 class Guestfish(LibguestfsBase):
@@ -685,9 +685,9 @@ class GuestfishPersistent(Guestfish):
 
     def do_mount(self, mountpoint):
         """
-        do_mount - Automaticly mount
+        do_mount - Automatically mount
 
-        Mount a lvm or physical partation to '/'
+        Mount a lvm or physical partition to '/'
         """
         partition_type = self.params.get("partition_type")
         if partition_type == "lvm":

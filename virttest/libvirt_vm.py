@@ -562,7 +562,7 @@ class VM(virt_vm.BaseVM):
                     vcpus = int(vcpu_max_cpus)
                 if maxmemory:
                     max_mem = int(maxmemory) * 1024
-                # we need atleast 1 vcpu for 1 numa node
+                # we need at least 1 vcpu for 1 numa node
                 if numa_nodes > vcpus:
                     numa_nodes = vcpus
                     params['numa_nodes'] = vcpus
@@ -2391,7 +2391,7 @@ class VM(virt_vm.BaseVM):
 
         filename = "/proc/%d/statm" % self.get_pid()
         shm = int(open(filename).read().split()[2])
-        # statm stores informations in pages, translate it to MB
+        # statm stores information in pages, translate it to MB
         return shm * 4.0 / 1024
 
     def get_cpu_topology_in_cmdline(self):
@@ -2852,7 +2852,7 @@ class VM(virt_vm.BaseVM):
 
     def get_pci_devices(self, device_str=None):
         """
-        Get PCI devices in vm accroding to given device character.
+        Get PCI devices in vm according to given device character.
 
         :param device_str: a string to identify device.
         """

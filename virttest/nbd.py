@@ -49,7 +49,7 @@ def export_image(qemu_nbd, filename, local_image, params):
         nbd_unix_socket: Use a unix socket (-k)
         nbd_port: TCP port to listen on as a server (-p)
         nbd_server_tls_creds: path to TLS credentials
-        nbd_export_bitmaps: bitmap names seperated by space, e.g. 'bm1 bm2'
+        nbd_export_bitmaps: bitmap names separated by space, e.g. 'bm1 bm2'
     :return: pid of qemu-nbd server or None
     """
     cmd_dict = {
@@ -106,7 +106,7 @@ def export_image(qemu_nbd, filename, local_image, params):
     if params.get('nbd_unix_socket'):
         cmd_dict['unix_socket'] = '-k %s' % params['nbd_unix_socket']
     else:
-        # 10809 is used by defalut if port is not set
+        # 10809 is used by default if port is not set
         if params.get('nbd_port'):
             cmd_dict['port'] = '-p %s' % params['nbd_port']
 

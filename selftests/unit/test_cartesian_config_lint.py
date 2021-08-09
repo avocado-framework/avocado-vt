@@ -26,7 +26,7 @@ class CartesianCfgLint(unittest.TestCase):
         By putting the content of file within a "variants:" context.
 
         Optionally (default) also drops all instances of "only" statements,
-        and optional assigments, ie:
+        and optional assignments, ie:
 
         section_name:
            foo = bar

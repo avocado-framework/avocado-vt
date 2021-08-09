@@ -91,7 +91,7 @@ class VirtadminBase(propcan.PropCanBase):
         """
         Accessor method for 'uri' property that must exist
         """
-        # self.get() would call get_uri() recursivly
+        # self.get() would call get_uri() recursively
         try:
             return self.__dict_get__('uri')
         except KeyError:

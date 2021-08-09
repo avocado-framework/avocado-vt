@@ -430,7 +430,7 @@ class PatchParamHelper(PatchHelper):
     """
     Helps to deal with patches specified in cartersian config files
 
-    This class attempts to make it simple to patch source coude, by using a
+    This class attempts to make it simple to patch source code, by using a
     naming standard that follows this basic syntax:
 
     [<git_repo>|<local_src>|<local_tar>|<remote_tar>]_<name>_patches
@@ -811,7 +811,7 @@ class GnuSourceBuildParamHelper(GnuSourceBuildHelper):
     """
     Helps to deal with gnu_autotools build helper in cartersian config files
 
-    This class attempts to make it simple to build source coude, by using a
+    This class attempts to make it simple to build source code, by using a
     naming standard that follows this basic syntax:
 
     [<git_repo>|<local_src>]_<name>_<option> = value

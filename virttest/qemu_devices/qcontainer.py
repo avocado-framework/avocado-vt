@@ -845,7 +845,7 @@ class DevContainer(object):
         Function unplug device to devices representation. If verification is
         supported by unplugged device and result of verification is True
         then it calls set_clean. Otherwise it don't call set_clean because
-        devices representatio don't know if device is added correctly.
+        devices representation don't know if device is added correctly.
 
         :param device: Device which should be unplugged.
         :type device: string, qdevices.QDevice.
@@ -1185,7 +1185,7 @@ class DevContainer(object):
                 root_port.set_param('multifunction', 'on')
             devices.append(root_port)
 
-            # add pci bridge for plugging in legace pci device
+            # add pci bridge for plugging in legacy pci device
             bridge_name = '%s-0' % pci_bridge_type
             bridge_parent_bus = {'aobject': root_port.get_qid()}
             bridge_params = {'type': pci_bridge_type}
@@ -1296,7 +1296,7 @@ class DevContainer(object):
             # Add virtio-bus
             # TODO: Currently this uses QNoAddrCustomBus and does not
             # set the device's properties. This means that the qemu qtree
-            # and autotest's representations are completelly different and
+            # and autotest's representations are completely different and
             # can't be used.
             bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
                                             'virtio-mmio-bus', 'virtio-bus',
@@ -1343,7 +1343,7 @@ class DevContainer(object):
                 root_port.set_param('multifunction', 'on')
             devices.append(root_port)
 
-            # add pci bridge for plugging in legace pci device
+            # add pci bridge for plugging in legacy pci device
             bridge_name = '%s-0' % pci_bridge_type
             bridge_parent_bus = {'aobject': root_port.get_qid()}
             bridge_params = {'type': pci_bridge_type}
@@ -1365,7 +1365,7 @@ class DevContainer(object):
             # Add virtio-bus
             # TODO: Currently this uses QNoAddrCustomBus and does not
             # set the device's properties. This means that the qemu qtree
-            # and autotest's representations are completelly different and
+            # and autotest's representations are completely different and
             # can't be used.
             logging.warn('Support for s390x is highly experimental!')
             bus = (qdevices.QNoAddrCustomBus('bus', [['addr'], [64]],
@@ -1395,7 +1395,7 @@ class DevContainer(object):
             # Add virtio-bus
             # TODO: Currently this uses QNoAddrCustomBus and does not
             # set the device's properties. This means that the qemu qtree
-            # and autotest's representations are completelly different and
+            # and autotest's representations are completely different and
             # can't be used.
             bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
                                             'virtio-mmio-bus', 'virtio-bus',
@@ -1714,7 +1714,7 @@ class DevContainer(object):
         :param pci_addr: drive pci address ($int)
         :param iothread: iothread specified
         :param scsi_hba: Custom scsi HBA
-        :param num_queues: performace option for virtio-scsi-pci
+        :param num_queues: performance option for virtio-scsi-pci
         :param bus_extra_params: options want to add to virtio-scsi-pci bus
         :param image_encryption: ImageEncryption object for image
         :param image_access: The logical image access information object
@@ -1746,7 +1746,7 @@ class DevContainer(object):
             if image_access is not None:
                 access_info = []
 
-                # backing images's access objects
+                # backing images' access objects
                 if image_access.image_backing_auth:
                     access_info.extend(image_access.image_backing_auth.values())
 

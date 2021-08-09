@@ -24,7 +24,7 @@ class MessengerError(Exception):
 class CommanderError(MessengerError):
 
     """
-    Represent error in Commnader
+    Represent error in Commander
     """
 
     def __init__(self, msg):
@@ -160,7 +160,7 @@ class CmdRespond(object):
 class BaseCmd(CmdMessage):
 
     """
-    Class used for moveing information about commands between master and slave.
+    Class used for moving information about commands between master and slave.
     """
     __slots__ = ["func", "args", "kargs", "results", "_async", "_finished",
                  "nh_stdin", "nh_stdout", "nh_stderr", "cmd_hash"]

@@ -107,7 +107,7 @@ class CapabilityXML(base.LibvirtXMLBase):
                 # TODO: maxcpus differs for machine in a given arch.
                 # Right now takes first machine as default for the given
                 # arch and assigns maxcpu for the arch, ideally below machine
-                # list to get popluated with maxcpu for each machine
+                # list to get populated with maxcpu for each machine
                 # not modifying as no requirement for now and as it would break
                 # other places where machine list is used.
                 arch_prop['maxcpus'] = arch.findall('machine')[0].get('maxCpus')

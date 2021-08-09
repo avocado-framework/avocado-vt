@@ -63,11 +63,11 @@ class VMXMLBase(base.LibvirtXMLBase):
         hypervisor_type: string, hypervisor type name
             get: return domain's type attribute value
             set: change domain type attribute value
-            del: raise xcepts.LibvirtXMLError
+            del: raise excepts.LibvirtXMLError
         vm_name: string, name of the vm
             get: return text value of name tag
             set: set text value of name tag
-            del: raise xcepts.LibvirtXMLError
+            del: raise excepts.LibvirtXMLError
         uuid: string, uuid string for vm
             get: return text value of uuid tag
             set: set text value for (new) uuid tag (unvalidated)
@@ -475,7 +475,7 @@ class VMXMLBase(base.LibvirtXMLBase):
         Return seclabel + child attribute dict list or raise LibvirtXML error
 
         :return: None if no seclabel in xml,
-                 list contains dict of seclabel's attributs and children.
+                 list contains dict of seclabel's attributes and children.
         """
         __children_list__ = ['label', 'baselabel', 'imagelabel']
 
@@ -796,7 +796,7 @@ class VMXML(VMXMLBase):
         Convenience method for updating 'vcpu', 'current' and
         'cpu topology' attribute property with of a defined VM
 
-        :param vm_name: Name of defined vm to change vcpu elemnet data
+        :param vm_name: Name of defined vm to change vcpu element data
         :param vcpus: New vcpus count, None to delete.
         :param current: New current value, None will not change current value
         :param sockets: number of socket, default None
@@ -937,11 +937,11 @@ class VMXML(VMXMLBase):
         Return VM's disk from XML definition, None if not set
 
         There is an issue that when the disks have different bus type and same
-        target dev value, the previous disk will be overwirten by the last one.
+        target dev value, the previous disk will be overwritten by the last one.
         In order to avoid this problem, you could use get_disk_all_by_expr to
         select all disks by their disk attribute.
 
-        This xml will not return all disks by default paramenters:
+        This xml will not return all disks by default parameters:
         <disk type='file' device='disk'>
           <source file='[esx6.7-matrix] xxx/xxx-xxx.vmdk'/>
           <target dev='sda' bus='scsi'/>
@@ -1093,7 +1093,7 @@ class VMXML(VMXMLBase):
         Check if given disk exist in VM.
 
         :param vm_name: Domain name.
-        :param disk_src: Domian disk source path or darget dev.
+        :param disk_src: Domain disk source path or darget dev.
         :return: True/False
         """
         found = False

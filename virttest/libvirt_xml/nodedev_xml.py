@@ -16,7 +16,7 @@ class CAPXML(base.LibvirtXMLBase):
 
     def get_sysfs_sub_path(self):
         """
-        return the sub path store the info of capibility.
+        return the sub path store the info of capability.
         """
         raise NotImplementedError('get_sysfs_sub_path is not implemented.')
 

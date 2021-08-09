@@ -48,7 +48,7 @@ def glusterd_start():
     # The blank before 'active' makes a distinction with 'inactive'
     if ' active' not in output or 'running' not in output:
         cmd = "service glusterd start"
-        error_context.context("Starting gluster dameon failed")
+        error_context.context("Starting gluster daemon failed")
         output = process.run(cmd).stdout_text
 
 
@@ -304,7 +304,7 @@ def create_gluster_vol(params):
                 break
         hostname = ip_addr
 
-    # Start the gluster dameon, if not started
+    # Start the gluster daemon, if not started
     glusterd_start()
     # Check for the volume is already present, if not create one.
     if not is_gluster_vol_avail(vol_name) or force:
@@ -334,7 +334,7 @@ def create_gluster_uri(params, stripped=False):
     if not gluster_server or gluster_server == "(none)":
         gluster_server = utils_net.get_host_ip_address(params)
 
-    # Start the gluster dameon, if not started
+    # Start the gluster daemon, if not started
     # Building gluster uri
     gluster_uri = None
     if stripped:

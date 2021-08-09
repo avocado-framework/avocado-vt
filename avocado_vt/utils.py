@@ -42,7 +42,7 @@ def insert_dirs_to_path(dirs):
 
 
 def find_subtest_dirs(other_subtests_dirs, bindir, ignore_files=None):
-    """Find directories containining subtests.
+    """Find directories containing subtests.
 
     :param other_subtests_dirs: space separate list of directories
     :type other_subtests_dirs: string
@@ -168,7 +168,7 @@ class TestUtils:
 
     def _get_subtest_dirs(self):
         """
-        Get list of directories containining subtests.
+        Get list of directories containing subtests.
         """
         test_filter = bootstrap.test_filter
         subtest_dirs = find_subtest_dirs(self.params.get("other_tests_dirs",

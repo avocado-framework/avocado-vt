@@ -32,7 +32,7 @@ else:
 class IOWrapper(object):
 
     """
-    Class encaptulates io opearation to be more consist in different
+    Class encaptulates io operation to be more consist in different
     implementations. (stdio, sockets, etc..)
     """
 
@@ -61,7 +61,7 @@ class IOWrapper(object):
 
     def write(self, data):
         """
-        Write funciton should be implemented for object uded for writing.
+        Write function should be implemented for object uded for writing.
 
         :param data: Data to write.
         :type data: str.
@@ -247,7 +247,7 @@ class Messenger(object):
 
     def write_msg(self, data):
         """
-        Write formated message to communication interface.
+        Write formatted message to communication interface.
         """
         self.stdout.write(self.format_msg(data))
 

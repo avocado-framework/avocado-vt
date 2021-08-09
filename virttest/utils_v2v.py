@@ -180,7 +180,7 @@ class Target(object):
         self.vmx_nfs_src = self.params.get('vmx_nfs_src')
         self.has_genid = self.params.get('has_genid')
         # --mac arguments with format as v2v, multiple macs can be
-        # sperated by ';'.
+        # separated by ';'.
         self.iface_macs = self.params.get('iface_macs')
         # '_iface_list' is set automatically, Users should not use it.
         self._iface_list = self.params.get('_iface_list')
@@ -219,7 +219,7 @@ class Target(object):
                 # v2v will report an error.
                 logging.info(
                     'vmx_nfs_src is not set in cfg file, try to guess vmx filename')
-                # some guest's direcotory name ends with '_1',
+                # some guest's directory name ends with '_1',
                 # e.g. esx5.5-win10-x86_64_1/esx5.5-win10-x86_64.vmx
                 #
                 # Note: the pattern order cannot be changed
@@ -825,7 +825,7 @@ class LinuxVMCheck(VMCheck):
 
         :param substr: The expected string.
         :param options: the journalctl options
-        :param flags: A RegexFlag, Please refer RE moudule of python
+        :param flags: A RegexFlag, Please refer RE module of python
         :return: True if search result meets expectation, otherwise False
         """
         cmd = "journalctl --no-pager"
@@ -851,9 +851,9 @@ class LinuxVMCheck(VMCheck):
         """
         Search a string by running a command on vm
 
-        :param cmd: A command to be excuted
+        :param cmd: A command to be executed
         :param substr: The expected string in output of cmd.
-        :param flags: A RegexFlag, Please refer RE moudule of python
+        :param flags: A RegexFlag, Please refer RE module of python
         :param ignore_status: If True, will not check command return status.
         :param debug: If True, will print cmd output.
         :return: True if search result meets expectation, otherwise False
@@ -879,7 +879,7 @@ class LinuxVMCheck(VMCheck):
 
     def is_disk_virtio(self):
         """
-        Check whether disk is virtio after convertion.
+        Check whether disk is virtio after conversion.
 
         Note: If kernel supports virtio_blk, v2v will always convert disks
         to virtio_blk in copying mode. That means all disk have /dev/vdx
@@ -1185,20 +1185,20 @@ class WindowsVMCheck(VMCheck):
 
 def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
     """
-    Create finnal v2v command, execute or only return the command
+    Create final v2v command, execute or only return the command
 
     Sometimes you need to retouch the v2v command, then execute it later.
-    So you need to preserve the resouces(nfs path, authorized keys, etc.
+    So you need to preserve the resources (nfs path, authorized keys, etc.)
 
     When auto_clean is False, the resources created during runtime will
     not be cleaned up, Users should do that.
 
     When cmd_only is True, the v2v command will not be executed but be returned.
-    Users can reedit the command as cases requried.
+    Users can reedit the command as cases required.
 
     :param params: A dictionary includes all of required parameters such as
                     'target', 'hypervisor' and 'hostname', etc.
-                   This is a v2v specifc params and not the global params in
+                   This is a v2v specific params and not the global params in
                    run function.
     :param auto_clean: boolean flag, whether to cleanup runtime resources.
     :param cmd_only: boolean flag, whether to only return the command line without running
@@ -1207,7 +1207,7 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
     """
     def _v2v_pre_cmd():
         """
-        Preprocess before running v2v cmd, such as starting VM for warm convertion,
+        Preprocess before running v2v cmd, such as starting VM for warm conversion,
         create virsh instance, etc.
         """
         # Cannot get mac address in 'ova', 'libvirtxml', etc.
@@ -1238,7 +1238,7 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
                 params['_nfspath'] = list(disks_info[list(disks_info)[0]])[0]
         else:
             params['_iface_list'] = ''
-            # Just set to 1 right now, but it could be improved if requried
+            # Just set to 1 right now, but it could be improved if required
             # in future
             params['_disk_count'] = 1
             # params['_nfspath'] only be used when composing nfs vmx file path,
@@ -1294,7 +1294,7 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
     input_mode = params.get('input_mode')
     cmd_has_ip = params.get('cmd_has_ip', True)
     # A switch controls a virsh pre-connection to source hypervisor,
-    # but some testing envrionments(like, gating in OSP) don't have
+    # but some testing environments(like, gating in OSP) don't have
     # source hypervisor, the pre-connection must be skipped.
     skip_virsh_pre_conn = 'yes' == params.get('skip_virsh_pre_conn')
     # virsh instance of remote hypervisor
@@ -1918,7 +1918,7 @@ def check_version(version, interval):
 
     :param version: The version to be compared
     :param interval: An interval is a string representation of a
-     mathmetical like interval. See the defination in utils_version.py.
+     mathematical like interval. See the definition in utils_version.py.
     :return: True if version satisfied interval, otherwise False.
     """
     verison_interval = VersionInterval(interval)
@@ -1930,7 +1930,7 @@ def compare_version(interval, version=None, cmd=None):
     Compare version against given interval string.
 
     :param interval: An interval is a string representation of a
-     mathmetical like interval. See the defination in utils_version.py.
+     mathematical like interval. See the definition in utils_version.py.
     :param version: The version to be compared
     :param cmd: the command to get the version
     :return: True if version satisfied interval, otherwise False.
@@ -1948,18 +1948,18 @@ def compare_version(interval, version=None, cmd=None):
 
 def multiple_versions_compare(interval):
     """
-    Mutiple pkgs can be specified by ';', e.g.
+    Multiple pkgs can be specified by ';', e.g.
     "[libguestfs-1.40,);[nbkdit-1.17.4,)"
 
     If interval is '', it means no version limitation and return True.
-    If interval is not '', return True for compareing success and False
+    If interval is not '', return True for comparing success and False
     for Failure.
 
     :param interval: An interval is a string representation of a
     """
     re_pkg_name = r'(.*?)-(?=\d+\.?)+'
     versions = interval.split(';')
-    # ';' is used to split mutiple pkgs.
+    # ';' is used to split multiple pkgs.
     for ver_i in versions:
         ver = ver_i.strip('[]()')
         if not ver:
@@ -2004,9 +2004,9 @@ def cmd_remove_option(cmd, opt_pattern):
 
 def params_get(params, name, default=None):
     """
-    A convient function for v2v to get value of a variant from params.
+    A convenient function for v2v to get value of a variant from params.
 
-    The main advantange is all variants don't need to be passed to
+    The main advantage is all variants don't need to be passed to
     utils_v2v any more, this function will get it from the standard
     'params' if 'params' was passed to utils_v2v.
 

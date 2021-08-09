@@ -63,7 +63,7 @@ class NwfilterBinding(base.LibvirtXMLBase):
 
     def new_filterref(self, **dargs):
         """
-        Return a new interafce filterref instance from dargs
+        Return a new interface filterref instance from dargs
         """
         new_one = Filterref(virsh_instance=self.virsh)
         for key, value in list(dargs.items()):
@@ -72,7 +72,7 @@ class NwfilterBinding(base.LibvirtXMLBase):
 
     def new_owner(self, name, uuid):
         """
-        Return a new interafce Owner instance from name and uuid
+        Return a new interface Owner instance from name and uuid
         """
         new_one = self.Owner(virsh_instance=self.virsh)
         new_one.name = name

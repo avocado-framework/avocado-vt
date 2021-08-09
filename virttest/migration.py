@@ -278,7 +278,7 @@ class MigrationTest(object):
 
         :param vms: migrated vms.
         :param srcuri: local uri, used when migrate vm from remote to local
-        :param descuri: remote uri, used when migrate vm from local to remote
+        :param desturi: remote uri, used when migrate vm from local to remote
         :param migration_type: do orderly for simultaneous migration
         :param options: migration options
         :param thread_timeout: time out seconds for the migration thread running

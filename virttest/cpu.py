@@ -668,7 +668,7 @@ def guest_numa_check(vm, exp_vcpu):
 def get_load_per(session=None, iterations=2, interval=10.0):
     """
     Get the percentage of load in Guest/Host
-    :param session: Guest Sesssion
+    :param session: Guest Session
     :param iterations: iterations
     :param interval: interval between load calculation
     :return: load of system in percentage
@@ -861,7 +861,7 @@ def get_cpu_vendor(cpu_info="", verbose=True):
 
 def get_recognized_cpuid_flags(qemu_binary="/usr/libexec/qemu-kvm"):
     """
-    Get qemu recongnized CPUID flags
+    Get qemu recognized CPUID flags
 
     :param qemu_binary: qemu-kvm binary file path
     :return: flags list
@@ -1034,7 +1034,7 @@ def get_model_features(model_name):
         logging.warn("No attribute %s in file %s" % (str(elem_attr), conf))
         raise
     except Exception:
-        # Other excptions like IOError when open/read configuration file,
+        # Other exceptions like IOError when open/read configuration file,
         # capture here
         logging.warn("Some other exceptions, like configuration file is not "
                      "found or not file: %s" % conf)
@@ -1104,7 +1104,7 @@ def cpu_allowed_list_by_task(pid, tid):
 
 def hotplug_domain_vcpu(vm, count, by_virsh=True, hotplug=True):
     """
-    Hot-plug/Hot-unplug vcpu for domian
+    Hot-plug/Hot-unplug vcpu for domain
 
     :param vm:   VM object
     :param count:    to setvcpus it's the current vcpus number,

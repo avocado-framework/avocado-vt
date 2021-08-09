@@ -8,7 +8,7 @@ def create_fs_xml(fsdev_dict):
     """
     Create filesystem device xml
 
-    :param fsdev_dict: filesystem device paramter dict
+    :param fsdev_dict: filesystem device parameter dict
     :return: filesystem device
     """
     accessmode = fsdev_dict.get("accessmode", "passthrough")

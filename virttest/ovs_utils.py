@@ -34,7 +34,7 @@ class Machine(object):
 
     def cmd(self, cmd, timeout=60):
         """
-        Return outpu of command.
+        Return output of command.
         """
         return self.runner(cmd, timeout=timeout)
 

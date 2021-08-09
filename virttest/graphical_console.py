@@ -260,7 +260,7 @@ class BaseConsole(object):
 
         :param seq_str: key str, if have '-', seprate them by '-' sign,
                         and return them separately. if have not '-',
-                        return orginal str.
+                        return original str.
         :param interval: the interval between return two value.
         """
         seq_str += _STR_DASH
@@ -286,7 +286,7 @@ class BaseConsole(object):
         Key Convert.
 
         The method convert key name that defined in KEY_MAP_FILE.
-        file to correct console excuteble code.
+        file to correct console executable code.
 
         :param key: key name.
         """

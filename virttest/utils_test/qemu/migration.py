@@ -1416,7 +1416,7 @@ class MigrationBase(object):
         """
         Get the state of migrate-capability.
 
-        :param index: the index of capabilitys list.
+        :param index: the index of capabilities list.
         """
 
         if self.is_src:

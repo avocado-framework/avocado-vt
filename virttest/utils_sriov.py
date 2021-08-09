@@ -49,7 +49,7 @@ def find_pf(driver, session=None):
 
 def get_pf_info(session=None):
     """
-    Get PFs infomation
+    Get PFs information
 
     :param session: The session object to the host
     :raise: exceptions.TestError when command fails

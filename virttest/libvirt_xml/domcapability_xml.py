@@ -44,14 +44,14 @@ class DomCapabilityXML(base.LibvirtXMLBase):
         In libvirt 3.9 and above, domcapabilities give the overall features supported
         by current host/qemu/kvm via CPU model and a bunch of additional features. CPU
         model is one set of features defined by libvirt in '/usr/share/libvirt/cpu_map.xml'
-        Specific features described in domcapabilities are addtional features, the valid
+        Specific features described in domcapabilities are additional features, the valid
         policy values are 'require' and 'disable', 'require' means the feature can be emulated
         by host/qemu/kvm, 'disable' which means feature is disabled by current system due to
         host CPU doesn't support or qemu/kvm has no ability to emulate it or some other
         reasons like the feature block migration and so on.
 
         Below is one snipped CPU host-model part output of domcapabilities.
-        <feature> tag specify addtional feature policy for one certain feature type.
+        <feature> tag specify additional feature policy for one certain feature type.
 
         virsh domcapabilities  | xmllint -xpath "/domainCapabilities/cpu/mode[@name='host-model']" -
         <mode name="host-model" supported="yes">
@@ -97,14 +97,14 @@ class DomCapabilityXML(base.LibvirtXMLBase):
         In libvirt 3.9 and above, domcapabilities give the overall features supported
         by current host/qemu/kvm via CPU model and a bunch of additional features. CPU
         model is one set of features defined by libvirt in '/usr/share/libvirt/cpu_map.xml'
-        Specific features described in domcapabilities are addtional features, the valid
+        Specific features described in domcapabilities are additional features, the valid
         policy values are 'require' and 'disable', 'require' means the feature can be emulated
         by host/qemu/kvm, 'disable' which means feature is disabled by current system due to
         host CPU doesn't support or qemu/kvm has no ability to emulate it or some other
         reasons like the feature block migration and so on.
 
         Below is one snipped CPU host-model part output of domcapabilities.
-        <feature> tag specify addtional feature policy for one certain feature type.
+        <feature> tag specify additional feature policy for one certain feature type.
 
         virsh domcapabilities  | xmllint -xpath "/domainCapabilities/cpu/mode[@name='host-model']" -
         <mode name="host-model" supported="yes">
@@ -118,7 +118,7 @@ class DomCapabilityXML(base.LibvirtXMLBase):
             <feature policy="require" name="invtsc"/>
         </mode>
         Below is one snipped CPU host-model part output of domcapabilities.
-        feature tag spcific policy for one specific feature type.
+        feature tag specific policy for one specific feature type.
 
         virsh domcapabilities  | xmllint -xpath "/domainCapabilities/cpu/mode[@name='host-model']" -
         <mode name="host-model" supported="yes">

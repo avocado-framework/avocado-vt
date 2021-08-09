@@ -271,7 +271,7 @@ class VM(virt_vm.BaseVM):
 
     def is_paused(self):
         """
-        Return True if the qemu process is paused ('stop'ed)
+        Return True if the qemu process is paused (stopped)
         """
         if self.is_dead():
             return False
@@ -1091,7 +1091,7 @@ class VM(virt_vm.BaseVM):
                         (optget("spice_gen_x509") == "yes")):
                     # Generate spice_x509_* is not always necessary,
                     # Regenerate them will make your existing VM
-                    # not longer accessiable via encrypted spice.
+                    # not longer accessible via encrypted spice.
                     c_subj = optget("spice_x509_cacert_subj")
                     s_subj = optget("spice_x509_server_subj")
                     # If CN is not specified, add IP of host
@@ -1825,7 +1825,7 @@ class VM(virt_vm.BaseVM):
             parent_bus = self._get_pci_bus(params, "soundcard")
             if not devices.has_option('device') or soundhw == "all":
                 for sndcard in ('AC97', 'ES1370', 'intel-hda'):
-                    # Add all dummy PCI devices and the actuall command below
+                    # Add all dummy PCI devices and the actual command below
                     devices.insert(StrDev("SND-%s" % sndcard,
                                           parent_bus=parent_bus))
                 devices.insert(StrDev('SoundHW',
@@ -2917,7 +2917,7 @@ class VM(virt_vm.BaseVM):
 
                     if mac_source:
                         # Will raise exception if source doesn't
-                        # have cooresponding nic
+                        # have corresponding nic
                         logging.debug("Copying mac for nic %s from VM %s"
                                       % (nic.nic_name, mac_source.name))
                         nic.mac = mac_source.get_mac_address(nic.nic_name)
@@ -3481,7 +3481,7 @@ class VM(virt_vm.BaseVM):
 
     def get_peer(self, netid):
         """
-        Return the peer of netdev or network deivce.
+        Return the peer of netdev or network device.
 
         :param netid: id of netdev or device
         :return: id of the peer device otherwise None
@@ -3619,7 +3619,7 @@ class VM(virt_vm.BaseVM):
 
         filename = "/proc/%d/statm" % self.get_pid()
         shm = int(open(filename).read().split()[2])
-        # statm stores informations in pages, translate it to MB
+        # statm stores information in pages, translate it to MB
         return shm * 4.0 / 1024
 
     def get_spice_var(self, spice_var):
@@ -3661,7 +3661,7 @@ class VM(virt_vm.BaseVM):
         if dtype and "%s_pci_bus" % dtype in params:
             return {"aobject": params["%s_pci_bus" % dtype]}
         if machine_type == "q35" and not pcie:
-            # for legace pic devie(eg. rtl8139, e1000)
+            # for legacy pic device(eg. rtl8139, e1000)
             devices = qcontainer.DevContainer(
                     self.qemu_binary,
                     self.name,
@@ -4074,7 +4074,7 @@ class VM(virt_vm.BaseVM):
     @error_context.context_aware
     def del_nic(self, nic_index_or_name):
         """
-        Undefine nic prameters, reverses what add_nic did.
+        Undefine nic parameters, reverses what add_nic did.
 
         :param nic_index_or_name: name or index number for existing NIC
         :param wait: Time test will wait for the guest to unplug the device

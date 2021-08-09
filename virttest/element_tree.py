@@ -1056,7 +1056,7 @@ class TreeBuilder(object):
         self._factory = element_factory
 
     #
-    # Flushes the parser buffers, and returns the toplevel documen
+    # Flushes the parser buffers, and returns the toplevel document
     # element.
     #
     # :return: An Element instance.

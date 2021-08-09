@@ -22,7 +22,7 @@ class Address(base.TypedDeviceBase):
 
     @classmethod
     def new_from_dict(cls, attributes, virsh_instance=base.base.virsh):
-        # type_name is manditory, throw exception if doesn't exist
+        # type_name is mandatory, throw exception if doesn't exist
         try:
             # pop() so don't process again in loop below
             instance = cls(type_name=attributes.pop('type_name'),

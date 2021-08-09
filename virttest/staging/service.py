@@ -389,7 +389,7 @@ class _ServiceResultParser(_ServiceCommTool):
     @staticmethod
     def default_method(cmdResult):
         """
-        Parse result for the command, which neithor 'list' nor 'status'.
+        Parse result for the command, which neither 'list' nor 'status'.
 
         return True if command was executed successfully.
         """
@@ -717,7 +717,7 @@ class Factory(object):
             """
             Init a helper to create service manager.
 
-            :param run: Funtion to run command.
+            :param run: Function to run command.
             :type: process.run-like function.
             """
             result = run("true")

@@ -115,7 +115,7 @@ class VirtioPortTest(object):
     def get_vm_with_single_port(self, port_type='serialport'):
         """
         Wrapper which returns vm, guest_worker and virtio_ports with at lest
-        one port of the type specified by fction parameter.
+        one port of the type specified by function parameter.
 
         :param port_type: type of the desired virtio port.
         :return: tuple (vm object with at least 1 port of the port_type,

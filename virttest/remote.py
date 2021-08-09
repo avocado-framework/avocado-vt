@@ -267,9 +267,9 @@ class Remote_Package(object):
         :param address: Address of remote host(guest)
         :param client: The client to use ('ssh', 'telnet' or 'nc')
         :param username: Username (if required)
-        :param password: Password (if requried)
+        :param password: Password (if required)
         :param port: Port to connect to
-        :param remote_path: Rmote package path
+        :param remote_path: Remote package path
         """
         self.address = address
         self.client = client
@@ -323,7 +323,7 @@ class RemoteFile(object):
         :param address: Address of remote host(guest)
         :param client: Type of transfer client
         :param username: Username (if required)
-        :param password: Password (if requried)
+        :param password: Password (if required)
         :param remote_path: Path of file which we want to edit on remote.
         :param limit: Speed limit of file transfer.
         :param log_filename: If specified, log all output to this
@@ -579,7 +579,7 @@ class RemoteRunner(object):
                               Else, raise CmdError if exit code of command is
                               not zero.
         """
-        # Redirect the stdout and stderr to file, Deviding error message
+        # Redirect the stdout and stderr to file, Deciding error message
         # from output, and taking off the color of output. To return the same
         # result with utils.run() function.
         command = "%s 1>%s 2>%s" % (

@@ -942,7 +942,7 @@ class BaseVM(object):
         if 'mac' not in nic:  # generate random mac
             logging.debug("Generating random mac address for nic")
             self.virtnet.generate_mac_address(nic_name)
-        # mac of '' or invaid format results in not setting a mac
+        # mac of '' or invalid format results in not setting a mac
         if 'ip' in nic and 'mac' in nic:
             self.address_cache[nic.mac] = nic.ip
         return nic

@@ -243,7 +243,7 @@ class Filter(object):
         return False
 
     def might_match(self, ctx, ctx_set, descendant_labels):
-        # There is some posibility to match in children blocks.
+        # There is some possibility to match in children blocks.
         for word in self.filter:
             for block in word:
                 if not _might_match_adjacent(block, ctx, ctx_set,
@@ -1505,7 +1505,7 @@ class Parser(object):
 
     def assign(self, key, value):
         """
-        Apply an assigment programatically and keep track of it.
+        Apply an assignment programatically and keep track of it.
 
         Equivalent to parse a "key = value" line.
 
@@ -2238,7 +2238,7 @@ def compare_string(str1, str2):
     :param str1: The first string
     :param str2: The second string
 
-    :Return: Rteurn -1, when str1<  str2
+    :Return: Return -1, when str1<  str2
                      0, when str1 = str2
                      1, when str1>  str2
     """

@@ -337,7 +337,7 @@ class Monitor(object):
         Unsafe way to allow pickling of this object
 
         The monitor compounds of several unpickable objects like locks,
-        sockets and files. During unpickling this makes the Montior object
+        sockets and files. During unpickling this makes the Monitor object
         to re-connect and create new locks, which only works well when
         the original object (pickled one) was already destroyed. If not
         than this new object won't be able to connect to the already opened
@@ -387,7 +387,7 @@ class Monitor(object):
 
     def _recvall(self):
         """
-        Receive btyes from socket.recv().
+        Receive bytes from socket.recv().
 
         return s type: bytes
         """
@@ -406,7 +406,7 @@ class Monitor(object):
 
     def _has_command(self, cmd):
         """
-        Check wheter kvm monitor support 'cmd'.
+        Check whether kvm monitor support 'cmd'.
 
         :param cmd: command string which will be checked.
 
@@ -418,7 +418,7 @@ class Monitor(object):
 
     def _log_command(self, cmd, debug=True, extra_str=""):
         """
-        Print log message beening sent.
+        Print log message being sent.
 
         :param cmd: Command string.
         :param debug: Whether to print the commands.
@@ -742,7 +742,7 @@ class Monitor(object):
         :param capability: migrate capability
         :param disable_auto_x_evaluation: Whether to automatically choose
                                           feature with/without "x-" prefix
-        :return: migrate paramter that is hopefully supported
+        :return: migrate parameter that is hopefully supported
         """
         return pick_supported_x_feature(capability,
                                         self._supported_migrate_capabilities,
@@ -757,7 +757,7 @@ class Monitor(object):
         :param parameter: migrate parameter
         :param disable_auto_x_evaluation: Whether to automatically choose
                                           param with/without "x-" prefix
-        :return: migrate paramter that is hopefully supported
+        :return: migrate parameter that is hopefully supported
         """
         return pick_supported_x_feature(parameter,
                                         self._supported_migrate_parameters,
@@ -1086,7 +1086,7 @@ class HumanMonitor(Monitor):
         Start block-stream job;
 
         :param device: device ID
-        :param speed: int type, lmited speed(B/s)
+        :param speed: int type, limited speed(B/s)
         :param base: base file
         :param correct: auto correct command, correct by default
 
@@ -1131,7 +1131,7 @@ class HumanMonitor(Monitor):
     def set_block_job_speed(self, device, speed=0,
                             cmd="block_job_set_speed", correct=True):
         """
-        Set limited speed for runnig job on the device
+        Set limited speed for running job on the device
 
         :param device: device ID
         :param speed: int type, limited speed(B/s)
@@ -1887,7 +1887,7 @@ class QMPMonitor(Monitor):
 
     def _has_hmp_command(self, cmd):
         """
-        Check wheter monitor support hmp 'cmd'.
+        Check whether monitor support hmp 'cmd'.
 
         :param cmd: command string which will be checked.
 
@@ -1944,7 +1944,7 @@ class QMPMonitor(Monitor):
 
         if self.debug_log or debug:
             logging.debug("(monitor %s.%s) Response to '%s' "
-                          "(re-formated)", self.vm.name, self.name, cmd)
+                          "(re-formatted)", self.vm.name, self.name, cmd)
             if isinstance(resp, dict):
                 _dump_dict(resp)
             elif isinstance(resp, list):
@@ -2494,7 +2494,7 @@ class QMPMonitor(Monitor):
     def set_block_job_speed(self, device, speed=0,
                             cmd="block-job-set-speed", correct=True):
         """
-        Set limited speed for runnig job on the device
+        Set limited speed for running job on the device
 
         :param device: device ID
         :param speed: int type, limited speed(B/s)
@@ -3324,7 +3324,7 @@ class QMPMonitor(Monitor):
         :param down: a boolean value indicated whether the key should be
             pressed down or released. If down is True, the key will be kept
             pressing down until an call to this function with down=False
-            is made, or when the VM is rebooted or destoryed.
+            is made, or when the VM is rebooted or destroyed.
         :return: the result of the command 'input-send-event'
         """
         cmd = "input-send-event"

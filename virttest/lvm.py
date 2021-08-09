@@ -11,7 +11,7 @@ it will destroy data on your device and it's not recommended;
 Required params:
     lv_name:
         lv_name like /dev/vg/lv; If not params["vg_name"]
-        is requried and if lv_name not set, use guest_name as
+        is required and if lv_name not set, use guest_name as
         lv_name; device mapper path (eg, /dev/mapper/vg-lv)
         doesn't support it now;
     lv_size
@@ -68,11 +68,11 @@ class Volume(object):
 
     def get_attr(self, cmd, attr, res="[\w/]+"):
         """
-        Get attribue of volume, if not found return None;
+        Get attribute of volume, if not found return None;
 
         :param cmd: command used to display volume info;
-        :param attr: attribue name of the volume;
-        :param res: regular expression to reading the attribue;
+        :param attr: attribute name of the volume;
+        :param res: regular expression to reading the attribute;
         :return: string or None
         """
         if attr:
@@ -110,7 +110,7 @@ class PhysicalVolume(Volume):
         """
         Create physical volume on specify physical volume;
 
-        :param extra_args: extra argurments for pvcreate command;
+        :param extra_args: extra arguments for pvcreate command;
         :raise: CmdError or TestError;
         :return: physical volume abspath
         """
@@ -126,7 +126,7 @@ class PhysicalVolume(Volume):
         """
         Remove a physical volume
 
-        :param extra_args: extra argurments for ``pvremove`` command
+        :param extra_args: extra arguments for ``pvremove`` command
         :raise: CmdError
         """
         cmd = "lvm pvremove %s %s" % (extra_args, self.name)
@@ -138,7 +138,7 @@ class PhysicalVolume(Volume):
         Resize a physical volume;
 
         :param size: new size of the physical volume device;
-        :param extra_args: extra argurments for pvresize command;
+        :param extra_args: extra arguments for pvresize command;
         """
         size = int(math.ceil(normalize_data_size(size)))
         cmd = "lvm pvresize %s --setphysicalvolumesize=%s%s %s" % (extra_args,
@@ -151,7 +151,7 @@ class PhysicalVolume(Volume):
 
     def display(self):
         """
-        Show physical volume detials
+        Show physical volume details
 
         :raise: CmdError
         """
@@ -160,9 +160,9 @@ class PhysicalVolume(Volume):
 
     def get_attr(self, attr):
         """
-        Get attribue of physical volume, if not found return None;
+        Get attribute of physical volume, if not found return None;
 
-        :param attr: attribue name of the volume;
+        :param attr: attribute name of the volume;
         :return: string or None
         """
         cmd = "lvm pvs -o %s %s %s" % (attr, COMMON_OPTS, self.name)
@@ -190,7 +190,7 @@ class VolumeGroup(object):
         """
         Create volume group with specify physical volumes;
 
-        :param extra_args: extra argurments for lvm command;
+        :param extra_args: extra arguments for lvm command;
         :raise: CmdError or TestError;
         :return: volume group name;
         """
@@ -210,7 +210,7 @@ class VolumeGroup(object):
         """
         Remove the VolumeGroup;
 
-        :param extra_args: extra argurments for lvm command;
+        :param extra_args: extra arguments for lvm command;
         """
         cmd = "lvm vgremove %s %s" % (extra_args, self.name)
         process.system(cmd)
@@ -218,9 +218,9 @@ class VolumeGroup(object):
 
     def get_attr(self, attr):
         """
-        Get VolumeGroup attribue;
+        Get VolumeGroup attribute;
 
-        :param attr: attribue name;
+        :param attr: attribute name;
         :return: string or None;
         """
         cmd = "lvm vgs -o %s %s %s" % (attr, COMMON_OPTS, self.name)
@@ -241,7 +241,7 @@ class VolumeGroup(object):
         Reduce a PhysicalVolume from VolumeGroup;
 
         :param pv: PhysicalVolume object;
-        :param extra_args: extra argurments pass to lvm command;
+        :param extra_args: extra arguments pass to lvm command;
         """
         if not isinstance(pv, PhysicalVolume):
             raise TypeError("Need a PhysicalVolume object")
@@ -256,7 +256,7 @@ class VolumeGroup(object):
         Add PhysicalVolume into VolumeGroup;
 
         :param pv: PhysicalVolume object
-        :param extra_args: extra argurments used for vgextend command
+        :param extra_args: extra arguments used for vgextend command
         """
         if not isinstance(pv, PhysicalVolume):
             raise TypeError("Need a PhysicalVolume object")
@@ -304,7 +304,7 @@ class LogicalVolume(Volume):
         """
         Remove LogicalVolume device;
 
-        :param extra_args: extra argurments pass to lvm command;
+        :param extra_args: extra arguments pass to lvm command;
         :param timeout: timeout in seconds;
         """
         end_time = time.time() + timeout
@@ -323,7 +323,7 @@ class LogicalVolume(Volume):
         Resize LogicalVolume to new size;
 
         :param size: new size of logical volume;
-        :param extra_args: extra argurments pass to lvm command;
+        :param extra_args: extra arguments pass to lvm command;
         :return: size of logical volume;
         """
         path = self.get_attr("lv_path")
@@ -343,9 +343,9 @@ class LogicalVolume(Volume):
 
     def display(self, extra_args=""):
         """
-        Shown logical volume detials, warper of lvm command lvdisplay;
+        Shown logical volume details, warper of lvm command lvdisplay;
 
-        :extra_args: extra argurments pass to lvdisplay command;
+        :extra_args: extra arguments pass to lvdisplay command;
         :raise: CmdError when command exit code not equal 0;
         """
         path = self.get_attr("lv_path")
@@ -354,10 +354,10 @@ class LogicalVolume(Volume):
 
     def get_attr(self, attr):
         """
-        Get logical volume attribues if not found return None;
+        Get logical volume attributes if not found return None;
 
-        :param attr: attribue name;
-        :return: attribue value string or None;
+        :param attr: attribute name;
+        :return: attribute value string or None;
         :raise: CmdError when command exit code not equal 0;
         """
         cmd = "lvm lvs -o %s %s %s" % (attr, COMMON_OPTS, self.path)
@@ -574,7 +574,7 @@ class LVM(object):
         if lv.size != lv_size:
             lv.display()
             logging.warn("lv size(%s) mismath," % lv.size +
-                         "requried size %s;" % lv_size)
+                         "required size %s;" % lv_size)
             lv.resize(lv_size)
         return lv
 

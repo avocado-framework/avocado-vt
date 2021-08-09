@@ -7,7 +7,7 @@ class VersionInterval(object):
     """
     A class for a Version Interval object.
 
-    An interval is a string representation of a mathmetical like interval.
+    An interval is a string representation of a mathematical like interval.
     e.g: "(3,4]", "[3.10.0,)"
     A verison is a version string.
 

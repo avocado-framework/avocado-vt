@@ -149,7 +149,7 @@ def sync_timezone_win(vm, login_timeout=360):
 def execute(cmd, timeout=360, session=None):
     """
     Execute command in guest or host, if session is not None return
-    command output in guest else return command ouput in host
+    command output in guest else return command output in host
 
     :param cmd: Shell commands
     :param timeout: Timeout to execute command
