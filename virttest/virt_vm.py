@@ -1152,9 +1152,9 @@ class BaseVM(object):
         return cmd
 
     def wait_for_login(self, nic_index=0, timeout=LOGIN_WAIT_TIMEOUT,
-                       internal_timeout=LOGIN_TIMEOUT,
-                       serial=False, restart_network=False,
-                       username=None, password=None, status_check=True):
+                       internal_timeout=LOGIN_TIMEOUT, serial=False,
+                       restart_network=False, username=None, password=None,
+                       status_check=True, set_dumb_terminal=True):
         """
         Make multiple attempts to log into the guest via SSH/Telnet/Netcat.
 
@@ -1168,6 +1168,9 @@ class BaseVM(object):
         :param status_check: Whether to call verify_alive to detect bad
             VM state early. Disable this when VM status might be unreliable,
             eg. during reboot or pause)
+        :param set_dumb_terminal: Wether to set TERM=dumb in order to avoid
+            control sequences/unprintable characters being written to the
+            session which can cause failures in regular expression matching
         :return: A ShellSession object.
         """
         def print_guest_network_info():
@@ -1209,6 +1212,8 @@ class BaseVM(object):
                                                  restart_network, username,
                                                  password, False)
             if serial:
+                if set_dumb_terminal:
+                    session.cmd("export TERM=dumb")
                 return session
             session.close()
 
@@ -1217,8 +1222,11 @@ class BaseVM(object):
         end_time = start_time + timeout
         while time.time() < end_time or not_tried:
             try:
-                return self.login(nic_index, internal_timeout,
-                                  username, password)
+                session = self.login(nic_index, internal_timeout,
+                                     username, password)
+                if set_dumb_terminal:
+                    session.cmd("export TERM=dumb")
+                return session
             except (remote.LoginAuthenticationError,
                     remote.LoginBadClientError):
                 if serial:
@@ -1231,8 +1239,11 @@ class BaseVM(object):
 
         print_guest_network_info()
         if serial:
-            return self.wait_for_serial_login(timeout, internal_timeout,
-                                              False, username, password)
+            session = self.wait_for_serial_login(timeout, internal_timeout,
+                                                 False, username, password)
+            if set_dumb_terminal:
+                session.cmd("export TERM=dumb")
+            return session
 
         raise remote.LoginTimeoutError("exceeded %s s timeout, last "
                                        "failure: %s" % (timeout, error))
