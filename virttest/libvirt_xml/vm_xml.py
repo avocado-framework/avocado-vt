@@ -171,7 +171,7 @@ class VMXMLBase(base.LibvirtXMLBase):
                  'max_mem_unit', 'current_mem_unit', 'memtune', 'max_mem_rt',
                  'max_mem_rt_unit', 'max_mem_rt_slots', 'iothreads',
                  'iothreadids', 'memory', 'memory_unit', 'perf', 'keywrap',
-                 'sysinfo')
+                 'sysinfo', 'idmap')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -385,6 +385,13 @@ class VMXMLBase(base.LibvirtXMLBase):
                                  parent_xpath='/',
                                  tag_name='sysinfo',
                                  subclass=VMSysinfoXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
+        accessors.XMLElementNest(property_name='idmap',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='idmap',
+                                 subclass=VMIDMapXML,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
         super(VMXMLBase, self).__init__(virsh_instance=virsh_instance)
@@ -3734,7 +3741,7 @@ class VMKeywrapXML(base.LibvirtXMLBase):
                                          {'name': name, 'state': state})
 
 
-class VMSysinfoXML(VMXML):
+class VMSysinfoXML(base.LibvirtXMLBase):
 
     """
     Class to access <sysinfo> tag of domain XML
@@ -3750,7 +3757,7 @@ class VMSysinfoXML(VMXML):
         </sysinfo>
     """
 
-    __slots__ = ('type', 'entry', 'entry_name', 'entry_file')
+    __slots__ = ('type', 'entry', 'entry_name', 'entry_file', 'bios')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLAttribute('type', self, parent_xpath='/',
@@ -3761,5 +3768,61 @@ class VMSysinfoXML(VMXML):
                                tag_name='entry', attribute='name')
         accessors.XMLAttribute('entry_file', self, parent_xpath='/',
                                tag_name='entry', attribute='file')
+        accessors.XMLElementNest(property_name='bios',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='bios',
+                                 subclass=SysinfoBiosXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
         super(VMSysinfoXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<sysinfo/>'
+
+
+class SysinfoBiosXML(base.LibvirtXMLBase):
+    """
+    bios xml of sysinfo tag
+
+    Example:
+        <bios>
+          <entry name='vendor'>LENOVO</entry>
+        </bios>
+    """
+
+    __slots__ = ('entry', 'entry_name')
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLElementText('entry', self, parent_xpath='/',
+                                 tag_name='entry')
+        accessors.XMLAttribute('entry_name', self, parent_xpath='/',
+                               tag_name='entry', attribute='name')
+        super(SysinfoBiosXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<bios/>'
+
+
+class VMIDMapXML(base.LibvirtXMLBase):
+    """
+    idmap xml class of vmxml
+
+    Example:
+      <idmap>
+        <uid start='0' target='1000' count='10'/>
+        <gid start='0' target='1000' count='10'/>
+      </idmap>
+    """
+
+    __slots__ = ('uid', 'gid')
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLElementDict(property_name="uid",
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/',
+                                 tag_name='uid')
+        accessors.XMLElementDict(property_name="gid",
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/',
+                                 tag_name='gid')
+        super(VMIDMapXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<idmap/>'
