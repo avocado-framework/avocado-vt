@@ -739,8 +739,7 @@ class QemuImg(storage.QemuImg):
                                        self.root_dir)
                 else:
                     cmd_dict["backing_file"] = self.base_image_filename
-                    if self.base_format:
-                        cmd_dict["backing_format"] = self.base_format
+                cmd_dict["backing_format"] = self.base_format
 
             # secret objects of the backing images
             secret_objects = self._backing_access_secret_objects
@@ -975,7 +974,7 @@ class QemuImg(storage.QemuImg):
                         base_image.tag, base_image.params, base_image.root_dir)
                 else:
                     cmd_dict["backing_file"] = base_image.image_filename
-                    cmd_dict["backing_format"] = base_image.image_format
+                cmd_dict["backing_format"] = base_image.image_format
         else:
             raise exceptions.TestError("Can not find the image parameters need"
                                        " for rebase.")
