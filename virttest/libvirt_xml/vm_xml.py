@@ -2001,6 +2001,10 @@ class VMCPUXML(base.LibvirtXMLBase):
         """
         if isinstance(item, NumaCellXML):
             return 'cell', item
+        elif isinstance(item, dict):
+            cell = NumaCellXML()
+            cell.setup_attrs(**item)
+            return 'cell', cell
         else:
             raise xcepts.LibvirtXMLError("Expected a list of numa cell "
                                          "instances, not a %s" % str(item))
