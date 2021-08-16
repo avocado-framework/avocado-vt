@@ -34,6 +34,9 @@ from virttest.standalone_test import SUPPORTED_NIC_MODELS
 from virttest.standalone_test import SUPPORTED_TEST_TYPES
 
 
+LOG = logging.getLogger('avocado.vt.options')
+
+
 class VirtTestOptionsProcess(object):
 
     """
@@ -124,8 +127,8 @@ class VirtTestOptionsProcess(object):
                             'config vt.qemu.qemu_bin')
         if (get_opt(self.config, 'vt.config') and
                 get_opt(self.config, 'vt.qemu.qemu_bin') is None):
-            logging.info("Config provided and no %s set. Not trying "
-                         "to automatically set qemu bin.", qemu_bin_setting)
+            LOG.info("Config provided and no %s set. Not trying "
+                     "to automatically set qemu bin.", qemu_bin_setting)
         else:
             (qemu_bin_path, qemu_img_path, qemu_io_path,
              qemu_dst_bin_path) = standalone_test.find_default_qemu_paths(
@@ -146,8 +149,8 @@ class VirtTestOptionsProcess(object):
                             'config vt.qemu.qemu_img')
         if (get_opt(self.config, 'vt.config') and
                 get_opt(self.config, 'vt.qemu.bin') is None):
-            logging.info("Config provided and no %s set. Not trying "
-                         "to automatically set qemu bin", qemu_img_setting)
+            LOG.info("Config provided and no %s set. Not trying "
+                     "to automatically set qemu bin", qemu_img_setting)
         else:
             (_, qemu_img_path,
              _, _) = standalone_test.find_default_qemu_paths(
@@ -191,7 +194,7 @@ class VirtTestOptionsProcess(object):
             elif get_opt(self.config, 'vt.common.nettype') == 'user':
                 self.cartesian_parser.assign("nettype", "user")
         else:
-            logging.info("Config provided, ignoring %s", nettype_setting)
+            LOG.info("Config provided, ignoring %s", nettype_setting)
 
     def _process_monitor(self):
         if not get_opt(self.config, 'vt.config'):
@@ -202,7 +205,7 @@ class VirtTestOptionsProcess(object):
             elif get_opt(self.config, 'vt.qemu.monitor') == 'human':
                 self.cartesian_parser.assign("monitor_type", "human")
         else:
-            logging.info("Config provided, ignoring monitor setting")
+            LOG.info("Config provided, ignoring monitor setting")
 
     def _process_smp(self):
         smp_setting = 'config vt.qemu.smp'
@@ -220,12 +223,12 @@ class VirtTestOptionsProcess(object):
                     raise ValueError("Invalid %s '%s'. Valid value: (1, 2, "
                                      "or integer)" % get_opt(self.config, 'vt.qemu.smp'))
         else:
-            logging.info("Config provided, ignoring %s", smp_setting)
+            LOG.info("Config provided, ignoring %s", smp_setting)
 
     def _process_arch(self):
         if get_opt(self.config, 'vt.config'):
             arch_setting = "option --vt-arch or config vt.common.arch"
-            logging.info("Config provided, ignoring %s", arch_setting)
+            LOG.info("Config provided, ignoring %s", arch_setting)
             return
 
         arch = get_opt(self.config, 'vt.common.arch')
@@ -247,7 +250,7 @@ class VirtTestOptionsProcess(object):
                 self.cartesian_parser.only_filter(get_opt(self.config,
                                                           'vt.common.machine_type'))
         else:
-            logging.info("Config provided, ignoring %s", machine_type_setting)
+            LOG.info("Config provided, ignoring %s", machine_type_setting)
 
     def _process_image_type(self):
         image_type_setting = 'config vt.qemu.image_type'
@@ -260,7 +263,7 @@ class VirtTestOptionsProcess(object):
                 self.cartesian_parser.assign("image_format",
                                              get_opt(self.config, 'vt.qemu.image_type'))
         else:
-            logging.info("Config provided, ignoring %s", image_type_setting)
+            LOG.info("Config provided, ignoring %s", image_type_setting)
 
     def _process_nic_model(self):
         nic_model_setting = 'config vt.qemu.nic_model'
@@ -272,7 +275,7 @@ class VirtTestOptionsProcess(object):
                 self.cartesian_parser.assign(
                     "nic_model", get_opt(self.config, 'vt.qemu.nic_model'))
         else:
-            logging.info("Config provided, ignoring %s", nic_model_setting)
+            LOG.info("Config provided, ignoring %s", nic_model_setting)
 
     def _process_disk_buses(self):
         disk_bus_setting = 'config vt.qemu.disk_bus'
@@ -285,7 +288,7 @@ class VirtTestOptionsProcess(object):
                                   get_opt(self.config, 'vt.qemu.disk_bus'),
                                   SUPPORTED_DISK_BUSES))
         else:
-            logging.info("Config provided, ignoring %s", disk_bus_setting)
+            LOG.info("Config provided, ignoring %s", disk_bus_setting)
 
     def _process_vhost(self):
         nettype_setting = 'config vt.qemu.nettype'
@@ -306,7 +309,7 @@ class VirtTestOptionsProcess(object):
                                         vhost_setting,
                                         get_opt(self.config, 'vt.qemu.vhost')))
         else:
-            logging.info("Config provided, ignoring %s", vhost_setting)
+            LOG.info("Config provided, ignoring %s", vhost_setting)
 
     def _process_qemu_sandbox(self):
         sandbox_setting = 'config vt.qemu.sandbox'
@@ -314,7 +317,7 @@ class VirtTestOptionsProcess(object):
             if get_opt(self.config, 'vt.qemu.sandbox') == "off":
                 self.cartesian_parser.assign("qemu_sandbox", "off")
         else:
-            logging.info("Config provided, ignoring %s", sandbox_setting)
+            LOG.info("Config provided, ignoring %s", sandbox_setting)
 
     def _process_qemu_defconfig(self):
         defconfig_setting = 'config vt.qemu.sandbox'
@@ -322,7 +325,7 @@ class VirtTestOptionsProcess(object):
             if get_opt(self.config, 'vt.qemu.defconfig') == "no":
                 self.cartesian_parser.assign("defconfig", "no")
         else:
-            logging.info("Config provided, ignoring %s", defconfig_setting)
+            LOG.info("Config provided, ignoring %s", defconfig_setting)
 
     def _process_malloc_perturb(self):
         self.cartesian_parser.assign("malloc_perturb",
@@ -375,7 +378,7 @@ class VirtTestOptionsProcess(object):
         guest_os_setting = 'option --vt-guest-os'
 
         if get_opt(self.config, 'vt.type') == 'spice':
-            logging.info("Ignoring predefined OS: %s", guest_os_setting)
+            LOG.info("Ignoring predefined OS: %s", guest_os_setting)
             return
 
         if not get_opt(self.config, 'vt.config'):
@@ -390,7 +393,7 @@ class VirtTestOptionsProcess(object):
             self.cartesian_parser.only_filter(
                 get_opt(self.config, 'vt.guest_os') or defaults.DEFAULT_GUEST_OS)
         else:
-            logging.info("Config provided, ignoring %s", guest_os_setting)
+            LOG.info("Config provided, ignoring %s", guest_os_setting)
 
     def _process_restart_vm(self):
         if not get_opt(self.config, 'vt.config'):
