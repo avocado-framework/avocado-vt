@@ -40,7 +40,7 @@ class ProtectedKeyHelper(object):
         attr_path = os.path.join(self.sysfs, some_key_attribute)
         error, output = cmd_status_output(cmd="hexdump %s" % attr_path,
                                           session=self.session)
-        if error:
+        if error or "No such device" in output:
             logging.debug("Error reading from %s: %s", attr_path, output)
             return None
         return output
