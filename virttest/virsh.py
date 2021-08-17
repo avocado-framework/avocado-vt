@@ -4997,3 +4997,16 @@ def set_user_sshkeys(name, user, options="", **dargs):
     :return: CmdResult object.
     """
     return command("set-user-sshkeys %s %s %s" % (name, user, options), **dargs)
+
+
+def domdirtyrate_calc(name, options="", **dargs):
+    """
+    Calaulte vm's dirty page rate
+
+    :param name: VM name
+    :param options: options of domdirtyrate_calc command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object.
+    """
+
+    return command("domdirtyrate-calc %s %s" % (name, options), **dargs)
