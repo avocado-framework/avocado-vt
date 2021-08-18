@@ -2315,6 +2315,10 @@ class NumaCellXML(base.LibvirtXMLBase):
         """
         if isinstance(item, CellCacheXML):
             return 'cache', item
+        elif isinstance(item, dict):
+            cache = CellCacheXML()
+            cache.setup_attrs(**item)
+            return 'cache', cache
         else:
             raise xcepts.LibvirtXMLError("Expected a list of cell cache "
                                          "instances, not a %s" % str(item))

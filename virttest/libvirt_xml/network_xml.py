@@ -120,6 +120,10 @@ class IPXML(base.LibvirtXMLBase):
         """
         if isinstance(item, DhcpHostXML):
             return 'host', item
+        elif isinstance(item, dict):
+            host = DhcpHostXML()
+            host.setup_attrs(**item)
+            return 'host', host
         else:
             raise xcepts.LibvirtXMLError("Expected a list of ip dhcp host "
                                          "instances, not a %s" % str(item))
