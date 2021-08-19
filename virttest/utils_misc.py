@@ -1870,7 +1870,7 @@ def get_support_machine_type(qemu_binary="/usr/libexec/qemu-kvm", remove_alias=F
     s = []
     c = []
     v = []
-    split_pattern = re.compile(r'^(\S+)\s+(.*?)(?: (\((?:alias|default).*))?$')
+    split_pattern = re.compile(r'^(\S+)\s+(.*?)(?: (\((?:alias|default|deprecated).*))?$')
     for item in o[1:]:
         if remove_alias and "alias" in item:
             continue
