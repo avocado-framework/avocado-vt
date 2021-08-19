@@ -52,6 +52,7 @@ from virttest import utils_qemu
 from virttest import migration
 from virttest import utils_kernel_module
 from virttest import arch
+from virttest.utils_conn import SSHConnection
 from virttest.utils_version import VersionInterval
 from virttest.staging import service
 
@@ -1147,6 +1148,11 @@ def preprocess(test, params, env):
             session.close()
             test.cancel("Failed to map hostname and ipaddress of target host")
         session.close()
+        if params.get("setup_ssh") == "yes":
+            ssh_conn_obj = SSHConnection(params)
+            ssh_conn_obj.conn_setup()
+            ssh_conn_obj.auto_recover = True
+            params.update({"ssh_conn_obj": ssh_conn_obj})
 
     # Destroy and remove VMs that are no longer needed in the environment or
     # leave them untouched if they have to be disregarded only for this test
@@ -1833,6 +1839,8 @@ def postprocess(test, params, env):
                                                       params.get("remote_ip")))
         migrate_setup = migration.MigrationTest()
         migrate_setup.migrate_pre_setup(dest_uri, params, cleanup=True)
+        if params.get("setup_ssh") == "yes" and params.get("ssh_conn_obj"):
+            del params["ssh_conn_obj"]
 
     setup_pb = False
     ovs_pb = False

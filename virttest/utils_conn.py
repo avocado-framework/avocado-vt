@@ -576,6 +576,9 @@ class SSHConnection(ConnectionBase):
                                                             port='22',
                                                             remote_path='/root/.ssh/authorized_keys')
 
+    def __getstate__(self):
+        pass
+
     def conn_check(self):
         """
         Check the SSH connection.
