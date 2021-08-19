@@ -793,7 +793,7 @@ class Helper(object):
 def remote_agent(in_stream_cls, out_stream_cls):
     """
     Connect file descriptors to right pipe and start slave command loop.
-    When something happend it raise exception which could be caught by cmd
+    When something happened it raise exception which could be caught by cmd
     master.
 
     :params in_stream_cls: Class encapsulated input stream.

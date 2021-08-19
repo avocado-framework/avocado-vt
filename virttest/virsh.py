@@ -99,7 +99,7 @@ class VirshBase(propcan.PropCanBase):
         """
         Accessor method for 'uri' property that must exist
         """
-        # self.get() would call get_uri() recursivly
+        # self.get() would call get_uri() recursively
         try:
             return self.__dict_get__('uri')
         except KeyError:
@@ -1361,7 +1361,7 @@ def domxml_from_native(info_format, native_file, options=None, **dargs):
     """
     Convert native guest configuration format to domain XML format.
 
-    :param info_format:The command's options. For exmple:qemu-argv.
+    :param info_format:The command's options. For example:qemu-argv.
     :param native_file:Native information file.
     :param options:extra param.
     :param dargs: standardized virsh function API keywords.
@@ -1479,7 +1479,7 @@ def save(name, path, options="", **dargs):
     """
     Store state of VM into named file.
 
-    :param name: VM'name, id or uuid.
+    :param name: VM name, id or uuid.
     :param path: absolute path to state file
     :param options: command's options.
     :param dargs: standardized virsh function API keywords
@@ -2506,7 +2506,7 @@ def vol_create_as(volume_name, pool_name, capacity,
     :param name: Name of the volume to be created
     :param pool_name: Name of the pool to be used
     :param capacity: Size of the volume
-    :param allocaltion: Size of the volume to be pre-allocated
+    :param allocation: Size of the volume to be pre-allocated
     :param frmt: volume formats(e.g. raw, qed, qcow2)
     :param extra: Free-form string of options
     :param dargs: standardized virsh function API keywords
@@ -3659,7 +3659,7 @@ def iface_list(extra="", **dargs):
     List physical host interfaces.
 
     :param extra: Free-form string of options
-    :param dargs: Standardized virsh functiont API keywords
+    :param dargs: Standardized virsh function API keywords
     :return: CmdResult object
     """
     return command("iface-list %s" % extra, **dargs)
@@ -3772,7 +3772,7 @@ def iface_bridge(iface, bridge, extra="", **dargs):
     :param iface: Interface name or MAC address
     :param bridge: New bridge device name
     :param extra: Free-form string of options
-    :param dargs: Standardized virsh functiont API keywords
+    :param dargs: Standardized virsh function API keywords
     :return: CmdResult object
     """
     return command("iface-bridge %s %s %s" % (iface, bridge, extra), **dargs)
@@ -3784,7 +3784,7 @@ def iface_unbridge(bridge, extra="", **dargs):
 
     :param bridge: Current bridge device name
     :param extra: Free-form string of options
-    :param dargs: Standardized virsh functiont API keywords
+    :param dargs: Standardized virsh function API keywords
     :return: CmdResult object
     """
     return command("iface-unbridge %s %s" % (bridge, extra), **dargs)
@@ -4509,7 +4509,7 @@ def perf(domain, options="", events="", other_opt="", **dargs):
 
     :param domain: Domain name, id
     :param options: --enable | --disable
-    :param events: perf event names seperated by comma
+    :param events: perf event names separated by comma
     :param other_opt: --config | --live | --current
     :param dargs: Standardized virsh function API keywords
     :return: CmdResult instance

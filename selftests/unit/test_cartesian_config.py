@@ -38,7 +38,7 @@ class CartesianConfigTest(unittest.TestCase):
         else:
             df = open(dumppath, 'r')
         # we could have used pickle, but repr()-based dumps are easier to
-        # enerate, debug, and edit
+        # generate, debug, and edit
         dumpdata = eval(df.read())
 
         p = cartesian_config.Parser(configpath)

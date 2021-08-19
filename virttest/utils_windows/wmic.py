@@ -54,7 +54,7 @@ def parse_list(data):
 
     :param data: The given WMIC data.
 
-    :return: Formated data.
+    :return: Formatted data.
     """
     out = []
     if not is_noinstance(data):

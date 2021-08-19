@@ -1600,7 +1600,7 @@ def run_autotest(vm, session, control_path, timeout,
 
     if boottool_update:
         # Copy Avocado-VT's own version of boottool into Autotest's
-        # directory.  Warning: the latest version requires aditional
+        # directory.  Warning: the latest version requires additional
         # Python modules, such as "six", which may not be present in
         # the guest system
         boottool_path = os.path.join(data_dir.get_root_dir(),

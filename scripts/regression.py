@@ -231,7 +231,7 @@ Please check sysinfo directory in autotest result to get more details.
         ret = []
         s1 = self._process_files(fs_dict1, self._get_list_self, merge=False)
         s2 = self._process_files(fs_dict2, self._get_list_self, merge=False)
-        # s*[line][col] contians items (line*col) of all sample files
+        # s*[line][col] contains items (line*col) of all sample files
 
         for line in range(len(s1)):
             tmp = []

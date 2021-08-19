@@ -105,7 +105,7 @@ class OpenVSwitchControl(object):
         Makes initialization of OpenVSwitch.
 
         :param tmpdir: Tmp directory for save openvswitch test files.
-        :param db_path: Path of OVS databimpoty ase.
+        :param db_path: Path of OVS databimpoty.
         :param db_socket: Path of OVS db socket.
         :param db_pidfile: Path of OVS db ovsdb-server pid.
         :param ovs_pidfile: Path of OVS ovs-vswitchd pid.

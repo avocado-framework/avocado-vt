@@ -218,7 +218,7 @@ class CommanderMaster(messenger.Messenger):
 
     def set_responder(self, responder):
         """
-        :warning: Users's helper becomes a part of a remote_commander.
+        :warning: Users' helper becomes a part of a remote_commander.
             remote_commander is treated as a session. All sessions are part of
             BaseVM object. If you provide unpickable helper then your BaseVM
             also becomes unpickable. You can catch something like::

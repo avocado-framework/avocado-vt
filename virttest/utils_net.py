@@ -1490,7 +1490,7 @@ def get_net_if_addrs_win(session, mac_addr):
     """
     Try to get windows guest nic address by serial session
 
-    :param session: serial sesssion
+    :param session: serial session
     :param mac_addr:  guest nic mac address
     :return: List ip addresses of network interface.
     """
@@ -1521,7 +1521,7 @@ def get_guest_ip_addr(session, mac_addr, os_type="linux", ip_version="ipv4",
     :param mac_addr: nic mac address of the nic that you want get
     :param os_type: guest os type, windows or linux
     :param ip_version: guest ip version, ipv4 or ipv6
-    :param linklocal: Wether ip address is local or remote
+    :param linklocal: Whether ip address is local or remote
     :param timeout: Timeout for get ip addr
     :return: ip addresses of network interface.
     """
@@ -1878,7 +1878,7 @@ def refresh_neigh_table(interface_name=None, neigh_address="ff02::1",
 def get_neighbours_info(neigh_address="", interface_name=None, session=None,
                         timeout=60.0, **dargs):
     """
-    Get the neighbours infomation
+    Get the neighbours information
     """
     refresh_neigh_table(interface_name, neigh_address, session=session,
                         timeout=timeout, **dargs)
@@ -3170,7 +3170,7 @@ class VirtNet(DbNet, ParamsNet):
         self.update_db()
 
     # Delegating get/setstate() details more to ancestor classes
-    # doesn't play well with multi-inheritence.  While possibly
+    # doesn't play well with multi-inheritance.  While possibly
     # more difficult to maintain, hard-coding important property
     # names for pickling works. The possibility also remains open
     # for extensions via style-class updates.
@@ -3288,7 +3288,7 @@ class VirtNet(DbNet, ParamsNet):
         nic_index = self.nic_name_index(self[nic_index_or_name].nic_name)
         prefix = "t%d-" % nic_index
         postfix = utils_misc.generate_random_string(6)
-        # Ensure interface name doesn't excede 11 characters
+        # Ensure interface name doesn't exceed 11 characters
         self[nic_index_or_name].ifname = (prefix + postfix)[-11:]
         self.update_db()
         return self[nic_index_or_name].ifname
@@ -4096,9 +4096,9 @@ def _prepare_traceview_windows(params, session, timeout=360):
 
 def _get_msis_queues_from_traceview_output(output):
     """
-    Extract MSIs&queues infomation from traceview log file output
+    Extract MSIs&queues information from traceview log file output
 
-    :param output: the content of traceview processed log infomation
+    :param output: the content of traceview processed log information
     :return: a tuple of (msis, queues)
     """
     info_str = "Start checking dump content for MSIs&queues info"
@@ -4120,7 +4120,7 @@ def _get_msis_queues_from_traceview_output(output):
 
 def _wait_for_traceview_dump_finished(session, dump_file_path, timeout=100):
     """
-    Check the dump file size periodically, untill the file size doesn't change,
+    Check the dump file size periodically, until the file size doesn't change,
     considered the dump process has finished. Then kill the idled progress.
 
     :param session: a session to send command
@@ -4213,7 +4213,7 @@ def dump_traceview_log_windows(params, vm, timeout=360):
 
 def get_msis_and_queues_windows(params, vm, timeout=360):
     """
-    Get MSIs&queues' infomation of current windows guest.
+    Get MSIs&queues' information of current windows guest.
     First start a traceview session, then restart the nic interface
     to trigger logging. By analyzing the dumped output, the MSIs&queues
     info is acquired.
@@ -4230,7 +4230,7 @@ def get_msis_and_queues_windows(params, vm, timeout=360):
 def set_netkvm_param_value(vm, param, value):
     """
     Set the value of certain 'param' in netkvm driver to 'value'
-    This funcion will restart the first nic, so all the sessions
+    This function will restart the first nic, so all the sessions
     opened before this function need close before this function is called.
 
     param vm: the target vm

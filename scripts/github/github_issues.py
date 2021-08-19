@@ -736,7 +736,7 @@ class MutableIssue(dict):
 
     def del_labels(self):
         """
-        Remove all lbels from an issue
+        Remove all labels from an issue
         """
         self._github_issue['github_issue'].delete_labels()
         # Force retrieval of changed item

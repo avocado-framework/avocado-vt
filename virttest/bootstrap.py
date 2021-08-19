@@ -684,7 +684,7 @@ def haz_defcon(datadir, imagesdir, isosdir, tmpdir):
         tmp_type = utils_selinux.get_context_of_file(tmpdir)
     tmp_type = utils_selinux.get_type_from_context(tmp_type)
 
-    # hard-coded values b/c only four of them and widly-used
+    # hard-coded values b/c only four of them and wildly-used
     if data_type == 'virt_var_lib_t':
         if images_type == 'virt_image_t':
             if isos_type == 'virt_content_t':
@@ -703,7 +703,7 @@ def set_defcon(datadir, imagesdir, isosdir, tmpdir):
         # between on-disk and defaults.  Only interested in top-level
         # object [0] and the context it would change to [2]
         data_type = utils_selinux.diff_defcon(datadir, False)[0][2]
-        # Extrach only the type
+        # Extract only the type
         existing_data = utils_selinux.get_type_from_context(data_type)
     except IndexError:
         existing_data = None

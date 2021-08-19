@@ -2,7 +2,7 @@
 Class which allows property and dict-like access to a fixed set of instance
 attributes.  Attributes are locked by __slots__, however accessor methods
 may be created/removed on instances, or defined by the subclass.  An
-INITIALIZED attribute is provided to signel completion of __init__()
+INITIALIZED attribute is provided to signal completion of __init__()
 for use by accessor methods (i.e. so they know when __init__ may be
 setting values).
 

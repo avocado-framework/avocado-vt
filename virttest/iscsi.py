@@ -483,7 +483,7 @@ class IscsiTGT(_IscsiComm):
         else:
             emulated_image_size = os.path.getsize(self.emulated_image) // 1024
             if emulated_image_size != self.emulated_expect_size:
-                # No need to remvoe, rebuild is fine
+                # No need to remove, rebuild is fine
                 process.system(self.create_cmd)
         cmd = "tgtadm --lld iscsi --mode target --op show"
         try:
@@ -692,7 +692,7 @@ class IscsiLIO(_IscsiComm):
         else:
             emulated_image_size = os.path.getsize(self.emulated_image) // 1024
             if emulated_image_size != self.emulated_expect_size:
-                # No need to remvoe, rebuild is fine
+                # No need to remove, rebuild is fine
                 process.system(self.create_cmd)
 
         # confirm if the target exists and create iSCSI target

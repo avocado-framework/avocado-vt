@@ -175,7 +175,7 @@ def nodedev_create_from_xml(params):
     result = virsh.nodedev_create(vhba_file,
                                   debug=True,
                                   )
-    # Remove temprorary file
+    # Remove temporary file
     os.unlink(vhba_file)
     libvirt.check_exit_status(result, status_error)
     output = result.stdout_text
@@ -327,8 +327,8 @@ def is_mpath_devs_added(old_mpath_devs):
 
 def restart_multipathd(mpath_dev="", expect_exist=False):
     """
-    Restart the multipath deamon, and check if mpath_dev still exists
-    after deamon restarted, as expected.
+    Restart the multipath daemon, and check if mpath_dev still exists
+    after daemon restarted, as expected.
     """
     cmd_status = process.system('service multipathd restart', verbose=True)
     if cmd_status:
@@ -349,7 +349,7 @@ def prepare_multipath_conf(conf_path="/etc/multipath.conf", conf_content="",
 
     :param conf_path: Path to the conf file.
     :param conf_content: Content of the conf file.
-    :param replace_existing: True means to replace exsiting conf file.
+    :param replace_existing: True means to replace existing conf file.
     :param restart_multipathd: True means to restart multipathd.
     :return: The content of original conf, can be used to recover env.
     """

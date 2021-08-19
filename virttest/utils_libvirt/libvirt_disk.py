@@ -543,7 +543,7 @@ def create_remote_disk_by_same_metadata(vm, params):
 
 def fill_null_in_vm(vm, target, size_value=500):
     """
-    File sth in the disk of VM
+    File something in the disk of VM
 
     :param vm: VM guest
     :param target: disk dev in VM

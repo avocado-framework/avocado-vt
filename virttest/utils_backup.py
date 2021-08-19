@@ -453,7 +453,7 @@ def is_backup_canceled(vm_name):
     Check if a backup job canceled.
 
     :param vm_name: vm's name
-    :return: True means a backup job is ccanceled, False means not.
+    :return: True means a backup job is canceled, False means not.
     """
     virsh_output = virsh.domjobinfo(vm_name,
                                     extra="--completed",

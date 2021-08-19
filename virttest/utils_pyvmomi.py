@@ -174,7 +174,7 @@ class VSphere(object):
     """
     The VShpere class is used to do interactive with vshpere server.
 
-    It's a convient class for testing, Users don't have to spend much
+    It's a convenient class for testing, Users don't have to spend much
     time on pyVmomi.
 
     By this class, you can query basic information of a VM, do power
@@ -224,9 +224,9 @@ class VSphere(object):
         """
         Initialize the service instance to the VSphere server
         """
-        # Check if an valid connection has already been establised.
+        # Check if an valid connection has already been established.
         # If yes, just refresh the connection to keep it alive.
-        # If not, close the old connection and establise a new one.
+        # If not, close the old connection and establishes a new one.
         if self.is_conn_dead():
             self.close()
         else:
@@ -281,10 +281,10 @@ class VSphere(object):
     # pylint: disable=E0213
     def vm_picker(f):
         """
-        A decoractor function is used to determine if which VM object
+        A decorator function is used to determine if which VM object
         should be used.
 
-        Users can specifiy an vshpere vm object to 'vm_obj', or a vm
+        Users can specify an vshpere vm object to 'vm_obj', or a vm
         name to 'vm_name'. This function can help to find the vm by its
         name.
 
@@ -357,7 +357,7 @@ class VSphere(object):
 
         :param name: a vm's name
         """
-        # For vm recovery if faied
+        # For vm recovery if failed
         tmp_vm = self._target_vm
         # Clean up old VM
         self._target_vm = None

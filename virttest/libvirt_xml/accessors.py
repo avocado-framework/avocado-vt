@@ -488,7 +488,7 @@ class XMLAttribute(AccessorGeneratorBase):
         :param forbidden: Optional list of 'Getter', 'Setter', 'Delter'
         :param parent_xpath: XPath string of parent element
         :param tag_name: element tag name to manipulate text attribute on.
-        :param attribute: Attribute name to manupulate
+        :param attribute: Attribute name to manipulate
         """
         super(XMLAttribute, self).__init__(property_name, libvirtxml,
                                            forbidden, parent_xpath=parent_xpath,
@@ -897,7 +897,7 @@ class XMLElementList(AccessorGeneratorBase):
                 # Account for case where child elements are mixed in
                 # with other elements not supported by this class.
                 # Also permits marshal functions to do element filtering
-                # if the class should only address specificly attributed
+                # if the class should only address specifically attributed
                 # elements.
                 if item is not None:
                     todel.append(child)

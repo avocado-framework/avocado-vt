@@ -162,7 +162,7 @@ class Interface(base.TypedDeviceBase):
 
     def new_bandwidth(self, **dargs):
         """
-        Return a new interafce banwidth instance from dargs
+        Return a new interface bandwidth instance from dargs
         """
         new_one = self.Bandwidth(virsh_instance=self.virsh)
         for key, value in list(dargs.items()):
@@ -171,7 +171,7 @@ class Interface(base.TypedDeviceBase):
 
     def new_driver(self, **dargs):
         """
-        Return a new interafce driver instance from dargs
+        Return a new interface driver instance from dargs
         """
         new_one = self.Driver(virsh_instance=self.virsh)
         for key, value in list(dargs.items()):
@@ -189,7 +189,7 @@ class Interface(base.TypedDeviceBase):
 
     def new_filterref(self, **dargs):
         """
-        Return a new interafce filterref instance from dargs
+        Return a new interface filterref instance from dargs
         """
         new_one = self.Filterref(virsh_instance=self.virsh)
         for key, value in list(dargs.items()):

@@ -642,7 +642,7 @@ def get_cgroup_mountpoint(controller, mount_file="/proc/mounts"):
     :param mount_file: Name of file contains mounting information, in most
                        cases this are not need to be set.
     :return: controller's mountpoint
-    :raise: TestError when contoller doesn't exist in mount table
+    :raise: TestError when controller doesn't exist in mount table
     """
     f_cgcon = open(mount_file, "rU")
     cgconf_txt = f_cgcon.read()

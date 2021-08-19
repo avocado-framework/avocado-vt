@@ -64,7 +64,7 @@ class DeviceUnplugError(DeviceHotplugError):
 # Utilities
 #
 def none_or_int(value):
-    """ Helper fction which returns None or int() """
+    """ Helper function which returns None or int() """
     if isinstance(value, int):
         return value
     elif not value:   # "", None, False

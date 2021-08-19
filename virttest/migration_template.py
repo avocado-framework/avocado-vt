@@ -922,8 +922,8 @@ class MigrationTemplate(object):
         for vm in self.vms:
             vm.destroy()
 
-        # Recover source vm defination (just in case).
-        logging.info("Recover vm defination on source")
+        # Recover source vm definition (just in case).
+        logging.info("Recover vm definition on source")
         for backup in self.vm_xml_backup:
             backup.define()
 
@@ -964,9 +964,9 @@ class MigrationTemplate(object):
 
 def vm_session_handler(func):
     """
-    Decorator method to handle sesssion for vm
+    Decorator method to handle session for vm
 
-    :param func: func to be decorated, it must has VM object as first paramter
+    :param func: func to be decorated, it must has VM object as first parameter
     """
     @functools.wraps(func)
     def manage_session(vm, *args, **kwargs):
