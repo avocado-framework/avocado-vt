@@ -59,10 +59,10 @@ from virttest.staging import service
 try:
     import PIL.Image
 except ImportError:
-    logging.warning('No python imaging library installed. PPM image '
-                    'conversion to JPEG disabled. In order to enable it, '
-                    'please install python-imaging or the equivalent for your '
-                    'distro.')
+    logging.getLogger('avocado.app').warning(
+        'No python imaging library installed. PPM image conversion to JPEG '
+        'disabled. In order to enable it, please install python-imaging or the '
+        'equivalent for your distro.')
 
 _screendump_thread = None
 _screendump_thread_termination_event = None

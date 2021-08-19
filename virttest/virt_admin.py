@@ -62,8 +62,9 @@ VIRTADMIN_COMMAND_GROUP_CACHE_NO_DETAIL = False
 try:
     VIRTADMIN_EXEC = path.find_command("virt-admin")
 except path.CmdNotFoundError:
-    logging.warning("virt-admin executable not set or found on path, "
-                    "virtadmin-admin module will not function normally")
+    logging.getLogger('avocado.app').warning(
+        "virt-admin executable not set or found on path, virtadmin-admin module"
+        " will not function normally")
     VIRTADMIN_EXEC = '/bin/true'
 
 

@@ -70,8 +70,9 @@ VIRSH_COMMAND_GROUP_CACHE_NO_DETAIL = False
 try:
     VIRSH_EXEC = path.find_command("virsh")
 except path.CmdNotFoundError:
-    logging.warning("Virsh executable not set or found on path, "
-                    "virsh module will not function normally")
+    logging.getLogger('avocado.app').warning(
+        "Virsh executable not set or found on path, virsh module will not "
+        "function normally")
     VIRSH_EXEC = '/bin/true'
 
 

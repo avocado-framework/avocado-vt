@@ -19,8 +19,8 @@ import six
 try:
     import json
 except ImportError:
-    logging.warning("Could not import json module. "
-                    "QMP monitor functionality disabled.")
+    logging.getLogger('avocado.app').warning(
+        "Could not import json module. QMP monitor functionality disabled.")
 
 from . import passfd_setup
 from . import utils_misc
