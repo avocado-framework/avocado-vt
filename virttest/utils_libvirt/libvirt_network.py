@@ -178,3 +178,29 @@ def ensure_default_network():
     if not net_state["default"].get("active"):
         virsh.net_start("default", debug=True, ignore_status=False)
         virsh.net_autostart("default", debug=True, ignore_status=False)
+
+
+def check_tap_connected(tap_name, estate, br_name):
+    """
+    Check if the tap device is connected to a bridge
+    :param tap_name: the tap device name on the host
+    :param estate: True or False, True for expected connected.
+    :param br_name: the bridge which the tap device attach or detach
+    :return: True or False. If get expected result, return True, or return False
+    """
+    cmd = "bridge link | grep master | grep %s" % br_name
+    outputs = process.run(cmd, shell=True, ignore_status=True).stdout_text
+    logging.debug("The interface attached to the bridge is:\n%s", outputs)
+    if tap_name in outputs:
+        if estate:
+            logging.debug("The tap is attached to bridge as expected!")
+        else:
+            logging.error("The tap isn't detached from bridge!")
+            return False
+    else:
+        if estate:
+            logging.error("The tap is not attached to bridge!")
+            return False
+        else:
+            logging.debug("The tap isn't attached to bridge as expected!")
+    return True
