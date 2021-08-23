@@ -42,11 +42,11 @@ all:
 	@echo
 
 requirements: pip
-	- $(PYTHON) -m pip install "pip>=6.0.1"
 	- $(PYTHON) -m pip install -r requirements.txt
 
 check:
-	inspekt checkall --disable-lint W,R,C,E1002,E1101,E1103,E1120,F0401,I0011,E1003 --no-license-check
+	inspekt checkall --disable-lint W,R,C,E1002,E1101,E1103,E1120,F0401,I0011,E1003,W605 --disable-style W605,W606,E501,E265,W601,E402,E722,E741 --exclude avocado-libs,scripts/github --no-license-check
+	pylint --errors-only --disable=all --enable=spelling --spelling-dict=en_US --spelling-private-dict-file=spell.ignore *
 
 clean:
 	$(PYTHON) setup.py clean
@@ -66,9 +66,6 @@ unlink:
 		[ -L ../$(AVOCADO_DIRNAME)/avocado/$$CONF ] && rm -f ../$(AVOCADO_DIRNAME)/avocado/$$CONF || true;\
 		[ -L ../$(AVOCADO_DIRNAME)/$$CONF ] && rm -f ../$(AVOCADO_DIRNAME)/$$CONF || true;\
 	done
-
-spell:
-	pylint --errors-only --disable=all --enable=spelling --spelling-dict=en_US --spelling-private-dict-file=spell.ignore * && echo OK
 
 pypi: clean
 	if test ! -d PYPI_UPLOAD; then mkdir PYPI_UPLOAD; fi

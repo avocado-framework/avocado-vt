@@ -6,3 +6,4 @@ aexpect==1.6.0
 simplejson==3.8.0
 netaddr==0.7.19
 netifaces>=0.10.5
+pyenchant
