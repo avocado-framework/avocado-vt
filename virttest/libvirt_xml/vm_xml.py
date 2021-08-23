@@ -3055,6 +3055,7 @@ class VMOSXML(base.LibvirtXMLBase):
         initrd:       text
         cmdline:      text
         dtb:          text
+        firmware:     list attribute - feature
     TODO:
         initargs:     list
     """
@@ -3063,7 +3064,8 @@ class VMOSXML(base.LibvirtXMLBase):
                  'smbios_mode', 'bios_useserial', 'bios_reboot_timeout', 'init',
                  'bootloader', 'bootloader_args', 'kernel', 'initrd', 'cmdline',
                  'dtb', 'initargs', 'loader_readonly', 'loader_type', 'nvram',
-                 'nvram_template', 'secure', 'bootmenu_timeout', 'os_firmware')
+                 'nvram_template', 'secure', 'bootmenu_timeout', 'os_firmware',
+                 'firmware')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementText('type', self, parent_xpath='/',
@@ -3113,6 +3115,10 @@ class VMOSXML(base.LibvirtXMLBase):
                                tag_name='loader', attribute='secure')
         accessors.XMLAttribute('os_firmware', self, parent_xpath='/',
                                tag_name='os', attribute='firmware')
+        accessors.XMLElementNest('firmware', self, parent_xpath='/',
+                                 tag_name='firmware',
+                                 subclass=VMOSFWXML,
+                                 subclass_dargs={'virsh_instance': virsh_instance})
         super(VMOSXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<os/>'
 
@@ -3834,3 +3840,74 @@ class VMIDMapXML(base.LibvirtXMLBase):
                                  tag_name='gid')
         super(VMIDMapXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<idmap/>'
+
+
+# Sub-element of OS XML
+class VMOSFWXML(base.LibvirtXMLBase):
+    """
+    Firmware tag XML class of OS tag
+    Elements:
+        feature: list of dict - enabled, name
+    Example:
+        <firmware>
+        <feature enabled='yes' name='enrolled-keys'/>
+        <feature enabled='yes' name='secure-boot'/>
+        </firmware>
+    """
+
+    __slots__ = ('feature',)
+
+    def __init__(self, virsh_instance=base.virsh):
+        """
+        Create new VMOSFWXML instance
+        """
+        accessors.XMLElementList("feature", self, parent_xpath='/',
+                                 marshal_from=self.marshal_from_feature,
+                                 marshal_to=self.marshal_to_feature,
+                                 has_subclass=True)
+        super(VMOSFWXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<firmware/>'
+
+    @staticmethod
+    def marshal_from_feature(item, index, libvirtxml):
+        """
+        Convert a FeatureXML instance into tag and attributes of firmware
+        """
+        if isinstance(item, FeatureXML):
+            return 'feature', item
+        elif isinstance(item, dict):
+            feature = FeatureXML()
+            feature.setup_attrs(**item)
+            return 'feature', feature
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of feature "
+                                         "instance, not a %s" % str(item))
+
+    @staticmethod
+    def marshal_to_feature(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a tag and attributes to a FeatureXML instance
+        """
+        if tag != 'feature':
+            return None
+        newone = FeatureXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
+
+
+# Sub-element of os firmware
+class FeatureXML(base.LibvirtXMLBase):
+    """Feature element of os firmware"""
+
+    __slots__ = ('enabled', 'name')
+
+    def __init__(self, virsh_instance=base.virsh):
+        """
+        Create a new FeatureXML instance
+        """
+        accessors.XMLAttribute("enabled", self, parent_xpath='/',
+                               tag_name='feature', attribute='enabled')
+        accessors.XMLAttribute("name", self, parent_xpath='/',
+                               tag_name='feature', attribute='name')
+        super(FeatureXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = '<feature/>'
