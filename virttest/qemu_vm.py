@@ -48,7 +48,6 @@ from virttest import error_event
 from virttest.qemu_devices import qdevices, qcontainer
 from virttest.qemu_devices.utils import DeviceError
 from virttest.qemu_capabilities import Flags
-from virttest.utils_params import Params
 
 
 class QemuSegFaultError(virt_vm.VMError):
@@ -993,13 +992,12 @@ class VM(virt_vm.BaseVM):
             output = re.findall(r",memory-backend=mem-([\w|-]+)", machine_cmd)
             if output:
                 name = output[0]
-                backend_options = {}
+                backend_options = params.object_params(name)
                 backend_options["size"] = "%sM" % params["mem"]
                 if params.get("hugepage_path"):
                     backend_options["backend"] = "memory-backend-file"
                     backend_options["mem-path"] = params["hugepage_path"]
-                backend_param = Params(backend_options)
-                dev = devices.memory_object_define_by_params(backend_param,
+                dev = devices.memory_object_define_by_params(backend_options,
                                                              name)
                 devs.append(dev)
             elif params.get("hugepage_path"):
