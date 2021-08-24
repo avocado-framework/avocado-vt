@@ -16,7 +16,6 @@ MOCK_CONFIG=default
 ARCHIVE_BASE_NAME=avocado-vt
 RPM_BASE_NAME=avocado-plugins-vt
 
-include Makefile.include
 
 all:
 	@echo
@@ -41,6 +40,8 @@ all:
 	@echo "rpm-release:     Generate binary RPMs for the latest tagged release"
 	@echo
 
+include Makefile.include
+
 requirements: pip
 	- $(PYTHON) -m pip install -r requirements.txt
 
@@ -50,8 +51,6 @@ check:
 
 clean:
 	$(PYTHON) setup.py clean
-	rm -rf build/ MANIFEST BUILD BUILDROOT SPECS RPMS SRPMS SOURCES PYPI_UPLOAD
-	find . -name '*.pyc' -delete
 
 develop:
 	$(PYTHON) setup.py develop $(PYTHON_DEVELOP_ARGS)
