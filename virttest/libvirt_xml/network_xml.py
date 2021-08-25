@@ -163,27 +163,34 @@ class DhcpHostXML(base.LibvirtXMLBase):
 class DNSXML(base.LibvirtXMLBase):
 
     """
-    IP address block, optionally containing DHCP range information
+    DNS block, contains configuration information for the network's DNS server
 
     Properties:
+        enable:
+            String, 'yes' or 'no'. Set to "no", then no DNS server
+            will be set by libvirt for this network
         txt:
             Dict. keys: name, value
-        forwarder:
+        forwarders:
             List
+        dns_forward:
+            String, 'yes' or 'no'
         srv:
             Dict. keys: service, protocol, domain,
             target, port, priority, weight
-        hosts:
+        host:
             List of host name
     """
 
-    __slots__ = ('dns_forward', 'txt', 'forwarders', 'srv',
+    __slots__ = ('enable', 'dns_forward', 'txt', 'forwarders', 'srv',
                  'host')
 
     def __init__(self, virsh_instance=base.virsh):
         """
         Create new IPXML instance based on address/mask
         """
+        accessors.XMLAttribute('enable', self, parent_xpath='/',
+                               tag_name='dns', attribute='enable')
         accessors.XMLElementDict('txt', self,
                                  parent_xpath='/',
                                  tag_name='txt')

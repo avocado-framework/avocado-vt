@@ -1821,6 +1821,8 @@ def create_net_xml(net_name, params):
     Create a new network or update an existed network xml
     """
     dns_dict = {}
+    disable_dns = 'yes' == params.get("disable_dns", "no")
+    disable_dhcp = 'yes' == params.get("disable_dhcp", "no")
     host_dict = {}
     net_bridge = params.get("net_bridge", '{}')
     net_forward = params.get("net_forward", '{}')
@@ -1864,6 +1866,8 @@ def create_net_xml(net_name, params):
             netxml.del_ip()
         else:
             netxml = network_xml.NetworkXML(net_name)
+        if disable_dns:
+            dns_dict['enable'] = "no"
         if net_dns_forward:
             dns_dict["dns_forward"] = net_dns_forward
         if net_dns_txt:
@@ -1934,10 +1938,11 @@ def create_net_xml(net_name, params):
         if net_ip_address:
             ipxml = network_xml.IPXML(net_ip_address,
                                       net_ip_netmask)
-            if dhcp_start_ipv4 and dhcp_end_ipv4:
-                range_4 = network_xml.RangeXML()
-                range_4.attrs = {"start": dhcp_start_ipv4,
-                                 "end": dhcp_end_ipv4}
+            if not disable_dhcp:
+                if dhcp_start_ipv4 and dhcp_end_ipv4:
+                    range_4 = network_xml.RangeXML()
+                    range_4.attrs = {"start": dhcp_start_ipv4,
+                                     "end": dhcp_end_ipv4}
                 ipxml.dhcp_ranges = range_4
             if tftp_root:
                 ipxml.tftp_root = tftp_root
