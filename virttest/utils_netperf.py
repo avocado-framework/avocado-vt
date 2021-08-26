@@ -217,7 +217,7 @@ class Netperf(object):
         if self.client == "nc":
             list_cmd = "wmic process where name='%s' list" % target
         try:
-            output = self.session.cmd_output_safe(list_cmd, timeout=120)
+            output = self.session.cmd_output(list_cmd, timeout=120)
             check_reg = re.compile(r"%s" % target, re.I | re.M)
             return bool(check_reg.findall(output))
         except Exception as err:
