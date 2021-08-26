@@ -20,7 +20,7 @@ For more information, see one of the R. Stevens' books:
 '''
 
 #
-# Copyright (C) 2010 Martin Ferrari <martin.ferrari@gmail.com>
+# Copyright (C) 2010 Martina Ferrari <tina@tina.pm>
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the Free
