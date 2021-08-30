@@ -3794,7 +3794,7 @@ def check_logfile(search_str, log_file, str_in_log=True,
 
     :param search_str: the string to be searched
     :param log_file: the given file
-    :param str_in_log: Ture if the file should include the given string,
+    :param str_in_log: True if the file should include the given string,
                         otherwise, False
     :param cmd_parms: The parms for remote executing
     :param runner_on_target:  Remote runner

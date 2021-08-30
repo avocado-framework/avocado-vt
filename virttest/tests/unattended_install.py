@@ -293,7 +293,7 @@ class UnattendedInstallConfig(object):
         """
         Get windows driver's hardware id from inf files.
 
-        :param dirver: Configurable driver name.
+        :param driver: Configurable driver name.
         :param run_cmd:  Use hardware id in windows cmd command or not.
         :return: Windows driver's hardware id
         """
@@ -792,7 +792,7 @@ class UnattendedInstallConfig(object):
                 if '%s=' % self.unattended_file_kernel_param_name in kernel_params:
                     # Reading ks from floppy directly doesn't work in some OS,
                     # options 'ks=hd:/dev/fd0' can reading ks from mounted
-                    # floppy, so skip repace it;
+                    # floppy, so skip replace it;
                     if not re.search("fd\d+", kernel_params):
                         kernel_params = re.sub('%s=[\w\d\-:\./]+' %
                                                (self.unattended_file_kernel_param_name),

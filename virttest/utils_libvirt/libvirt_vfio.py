@@ -24,7 +24,7 @@ def check_vfio_pci(pci_id, status_error=False, ignore_error=False):
            "| awk -F '/' '{print $NF}'" % pci_id)
     output = process.run(cmd, shell=True, verbose=True).stdout_text.strip()
     if (output == "vfio-pci") == status_error:
-        err_msg = ("Get incorrect dirver {}, it should{} be vfio-pci."
+        err_msg = ("Get incorrect driver {}, it should{} be vfio-pci."
                    .format(output, ' not' if status_error else ''))
         if ignore_error:
             logging.error(err_msg)

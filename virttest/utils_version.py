@@ -26,7 +26,7 @@ class VersionInterval(object):
         interval_rex = r"^(\[|\()(.*?)\s*,\s*(.*?)(\]|\))$"
         match = re.search(interval_rex, interval)
         if match is None:
-            raise ValueError("Invaild string representation of an interval")
+            raise ValueError("Invalid string representation of an interval")
         self.opening, lower, upper, self.closing = match.groups()
 
         self.lower_bound = LooseVersion(lower) if lower else None
@@ -41,7 +41,7 @@ class VersionInterval(object):
         if (self.lower_bound == self.upper_bound and self.opening == '[' and
                 self.closing == ']'):
             return
-        raise ValueError("Invaild interval")
+        raise ValueError("Invalid interval")
 
     def __repr__(self):
         return '<version interval %s%s, %s%s>' % (self.opening,

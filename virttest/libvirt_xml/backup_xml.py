@@ -113,7 +113,7 @@ class BackupXML(base.LibvirtXMLBase):
                 string, export bitmap name, only valid for pull-mode backup
             type:
                 string (file/block/network), describe the type of the disk,
-                'network' is not vaild for now due to bz:
+                'network' is not valid for now due to bz:
                 https://bugzilla.redhat.com/show_bug.cgi?id=1812100
             backupmode:
                 string, indicate if the disk will do full or incremental backup
