@@ -5005,7 +5005,7 @@ def set_user_sshkeys(name, user, options="", **dargs):
 
 def domdirtyrate_calc(name, options="", **dargs):
     """
-    Calaulte vm's dirty page rate
+    Calculate vm's dirty page rate
 
     :param name: VM name
     :param options: options of domdirtyrate_calc command

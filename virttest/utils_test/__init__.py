@@ -907,7 +907,7 @@ class AvocadoGuest(object):
         :param testrepo: test repository default is avocado-misc-tests
         :param installtype: how to install avocado, supported types
                             pip, package, git
-        :param reinstall: flag to reinstall incase of avocado present inside guest
+        :param reinstall: flag to reinstall in case of avocado present inside guest
         :param add_args: additional arguments to be passed to the avocado cmdline
         :param ignore_result: True or False
         :return: Bool result status
@@ -1758,7 +1758,7 @@ def get_loss_ratio(output):
     try:
         return float(re.findall(r'(\d*\.?\d+)%.*loss', output)[0])
     except IndexError:
-        logging.warn("Invaild output of ping command: %s" % output)
+        logging.warn("Invalid output of ping command: %s" % output)
     return -1
 
 
@@ -1932,7 +1932,7 @@ def get_driver_hardware_id(driver_path,
     """
     Get windows driver's hardware id from inf files.
 
-    :param dirver: Configurable driver name.
+    :param driver: Configurable driver name.
     :param mount_point: Mount point for the driver storage
     :param storage_path: The path of the virtio driver storage
     :param re_hw_id: the pattern for getting hardware id from inf files

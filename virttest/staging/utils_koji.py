@@ -581,7 +581,7 @@ class KojiPkgSpec(object):
     format or by using the actual parameters for tag, build, package and sub-
     packages. The textual format is useful for command line interfaces and
     configuration files, while using parameters is better for using this in
-    a programatic fashion.
+    a programmatic fashion.
 
     The following sets of examples are interchangeable. Specifying all packages
     part of build number 1000:
@@ -851,7 +851,7 @@ class KojiScratchPkgSpec(object):
     New objects can be created either by providing information in the textual
     format or by using the actual parameters for user, task and subpackages.
     The textual format is useful for command line interfaces and configuration
-    files, while using parameters is better for using this in a programatic
+    files, while using parameters is better for using this in a programmatic
     fashion.
 
     This package definition has a special behaviour: if no subpackages are

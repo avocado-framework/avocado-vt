@@ -643,7 +643,7 @@ class CommanderSlaveCmds(CommanderSlave):
 
     def shell(self, cmd):
         """
-        Starts shell process. Stdout is automatically copyed to basecmd.stdout
+        Starts shell process. Stdout is automatically copied to basecmd.stdout
 
         :param cmd: Command which should be started.
         :return: basecmd with return code of cmd.

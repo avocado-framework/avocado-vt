@@ -2409,7 +2409,7 @@ def switch_smt(state="off", params=None):
 
 class LibvirtdDebugLog(object):
     """
-    Enable libvirtd log for testcase incase
+    Enable libvirtd log for testcase in case
     with the use of param "enable_libvirtd_debug_log",
     with additional params log level("libvirtd_debug_level")
     and log file path("libvirtd_debug_file") can be controlled.

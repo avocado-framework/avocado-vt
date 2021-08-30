@@ -952,7 +952,7 @@ class WindowsVMCheck(VMCheck):
 
     def click_install_driver(self):
         """
-        Move mouse and click button to install dirver for new
+        Move mouse and click button to install driver for new
         device(Ethernet controller)
         """
         # Get window focus by click left button
@@ -2064,7 +2064,7 @@ def interactive_run(params, timeout=300, *args, **kwargs):
         # If '-v -x' not enabled, it should be greater than 7200s.
         running_timeout = timeout
         # interactive timeout
-        # when debug enabled in v2v, lots of logs keep outputing to stdout,
+        # when debug enabled in v2v, lots of logs keep outputting to stdout,
         # the timeout value can be smaller. If debug is off, the timeout
         # should be big enough to avoid unexpected timeout.
         timeout = 120 if '-v -x' in session.command else 300

@@ -432,7 +432,7 @@ class GuestfishPersistent(Guestfish):
                     # try nicely first
                     existing.close()
                     if existing.is_alive():
-                        # Be mean, incase it's hung
+                        # Be mean, in case it's hung
                         existing.close(sig=signal.SIGTERM)
                     # Keep count:
                     self.__class__.SESSION_COUNTER -= 1
