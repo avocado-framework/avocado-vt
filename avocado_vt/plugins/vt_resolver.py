@@ -65,7 +65,7 @@ class VTResolver(VTResolverUtils, Resolver):
         return self._get_reference_resolution(reference)
 
 
-class VTDiscoverer(Discoverer, VTResolverUtils):
+class VTDiscoverer(VTResolverUtils, Discoverer):
 
     name = 'vt-discoverer'
     description = 'Test discoverer for Avocado-VT tests'
