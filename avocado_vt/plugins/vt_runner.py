@@ -6,7 +6,7 @@ import tempfile
 import time
 import traceback
 
-from avocado.core import exceptions, nrunner, output
+from avocado.core import exceptions, nrunner, output, teststatus
 from avocado.core.runners.utils import messages
 from avocado.utils import stacktrace, path
 
@@ -42,42 +42,59 @@ class VirtTest(utils.TestUtils):
         return self.__vt_params
 
     def run_test(self):
-        params = self.params
+        status = "ERROR"
         try:
             messages.start_logging(self.config, self.queue)
+            self._run_test()
+            status = "PASS"
+        except exceptions.TestBaseException:
+            exc_info = sys.exc_info()
+            status = exc_info[0].status
+            if status == "ERROR" or status not in teststatus.STATUSES:
+                status = "ERROR"
+                self.queue.put(messages.StderrMessage.get(traceback.format_exc()))
+        except Exception:
+            status = "ERROR"
+            self.queue.put(messages.StderrMessage.get(traceback.format_exc()))
+        finally:
+            self.queue.put(messages.FinishedMessage.get(status))
 
-            # Report virt test version
-            self.log.info(version.get_pretty_version_info())
-            self._log_parameters()
+    def _run_test(self):
+        params = self.params
 
-            # Warn of this special condition in related location in output & logs
-            if os.getuid() == 0 and params.get('nettype', 'user') == 'user':
-                self.log.warning("")
-                self.log.warning("Testing with nettype='user' while running "
-                                 "as root may produce unexpected results!!!")
-                self.log.warning("")
+        # Report virt test version
+        self.log.info(version.get_pretty_version_info())
+        self._log_parameters()
 
-            subtest_dirs = self._get_subtest_dirs()
+        # Warn of this special condition in related location in output & logs
+        if os.getuid() == 0 and params.get('nettype', 'user') == 'user':
+            self.log.warning("")
+            self.log.warning("Testing with nettype='user' while running "
+                             "as root may produce unexpected results!!!")
+            self.log.warning("")
 
-            # Get the test routine corresponding to the specified
-            # test type
-            self.log.debug("Searching for test modules that match 'type = %s' "
-                           "and 'provider = %s' on this cartesian dict",
-                           params.get("type"),
-                           params.get("provider", None))
+        subtest_dirs = self._get_subtest_dirs()
 
-            t_types = params.get("type").split()
-            utils.insert_dirs_to_path(subtest_dirs)
-            test_modules = utils.find_test_modules(t_types, subtest_dirs)
+        # Get the test routine corresponding to the specified
+        # test type
+        self.log.debug("Searching for test modules that match 'type = %s' "
+                       "and 'provider = %s' on this cartesian dict",
+                       params.get("type"),
+                       params.get("provider", None))
 
-            # Open the environment file
-            env_filename = os.path.join(data_dir.get_tmp_dir(),
-                                        params.get("env", "env"))
-            env = utils_env.Env(env_filename, self.env_version)
+        t_types = params.get("type").split()
+        utils.insert_dirs_to_path(subtest_dirs)
+        test_modules = utils.find_test_modules(t_types, subtest_dirs)
 
-            test_passed = False
-            t_type = None
+        # Open the environment file
+        env_filename = os.path.join(data_dir.get_tmp_dir(),
+                                    params.get("env", "env"))
+        env = utils_env.Env(env_filename, self.env_version)
 
+        test_passed = False
+        t_type = None
+
+        try:
             try:
                 try:
                     # Pre-process
@@ -134,26 +151,21 @@ class VirtTest(utils.TestUtils):
                         env.destroy()  # Force-clean as it can't be stored
 
         except Exception as e:
-            try:
-                if params.get("abort_on_error") != "yes":
-                    raise
-                # Abort on error
-                logging.info("Aborting job (%s)", e)
-                if params.get("vm_type") == "qemu":
-                    for vm in env.get_all_vms():
-                        if vm.is_dead():
-                            continue
-                        logging.info("VM '%s' is alive.", vm.name)
-                        for m in vm.monitors:
-                            logging.info("It has a %s monitor unix socket at:"
-                                         " %s", m.protocol, m.filename)
-                        logging.info("The command line used to start it was:"
-                                     "\n%s", vm.make_create_command())
-                    raise exceptions.JobError("Abort requested (%s)" % e)
-            finally:
-                self.queue.put(messages.StderrMessage.get(traceback.format_exc()))
-                self.queue.put(messages.FinishedMessage.get('error'))
-        self.queue.put(messages.FinishedMessage.get('pass'))
+            if params.get("abort_on_error") != "yes":
+                raise
+            # Abort on error
+            logging.info("Aborting job (%s)", e)
+            if params.get("vm_type") == "qemu":
+                for vm in env.get_all_vms():
+                    if vm.is_dead():
+                        continue
+                    logging.info("VM '%s' is alive.", vm.name)
+                    for m in vm.monitors:
+                        logging.info("It has a %s monitor unix socket at:"
+                                     " %s", m.protocol, m.filename)
+                    logging.info("The command line used to start it was:"
+                                 "\n%s", vm.make_create_command())
+                raise exceptions.JobError("Abort requested (%s)" % e)
 
 
 class VTTestRunner(nrunner.BaseRunner):
