@@ -189,6 +189,7 @@ OVS
 PID
 QDevice
 symlink
+TestCancel
 TestError
 VFs
 Koji
