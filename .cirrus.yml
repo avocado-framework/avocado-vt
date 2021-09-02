@@ -38,7 +38,7 @@ fedora_34_task:
     - python3 -m avocado vt-list-guests --vt-type=$VT_TYPE
     - python3 -m avocado vt-list-archs --vt-type=$VT_TYPE
   dry_run_script: &dry_run_scr
-    - python3 -m avocado --show all run --vt-type=$VT_TYPE --dry-run -- io-github-autotest-qemu.boot
+    - PATH=~/.local/bin:$PATH python3 -m avocado --show all run --vt-type=$VT_TYPE --dry-run -- io-github-autotest-qemu.boot
   run_boot_script: &run_boot_scr
     - test $VT_TYPE == "libvirt" || PATH=$HOME/.local/bin:$PATH python3 -m avocado --show all run --vt-type=$VT_TYPE --vt-extra-params nettype=user -- io-github-autotest-qemu.boot
 
