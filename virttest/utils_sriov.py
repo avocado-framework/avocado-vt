@@ -151,18 +151,19 @@ def get_iface_name(pci_id, session=None):
     return iface_name
 
 
-def set_vf(pci_addr, vf_no=4, session=None):
+def set_vf(pci_addr, vf_no=4, session=None, timeout=60):
     """
     Enable VFs for PF
 
     :param pci_addr: The pci address
     :param vf_no: The value to be set
     :param session: The session object to the host
+    :param timeout: Time limit in seconds to wait for cmd to complete
     :return: True if successful
     """
     logging.debug("pci_addr is %s", pci_addr)
     cmd = "echo %s > %s/sriov_numvfs" % (vf_no, pci_addr)
-    s, o = utils_misc.cmd_status_output(cmd, shell=True,
+    s, o = utils_misc.cmd_status_output(cmd, shell=True, timeout=timeout,
                                         verbose=True, session=session)
     return not s
 
