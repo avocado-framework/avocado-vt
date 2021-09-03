@@ -53,6 +53,11 @@ class TestMemoryXML(unittest.TestCase):
         cmp_device.xml = XML.strip()
         self.assertEqual(dimm_device, cmp_device)
 
+    def test_fetch_attrs_memory_default(self):
+        dimm_device = memory.Memory()
+        dimm_device.xml = XML.strip()
+        self.assertEqual(dimm_device_attrs, dimm_device.fetch_attrs())
+
 
 if __name__ == '__main__':
     unittest.main()

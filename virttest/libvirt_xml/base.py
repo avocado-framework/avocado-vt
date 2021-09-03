@@ -320,6 +320,70 @@ class LibvirtXMLBase(propcan.PropCanBase):
                 target_obj.setup_attrs(**value)
                 setattr(self, key, target_obj)
 
+    def fetch_attrs(self):
+        """
+        Fetch attributes of xml object
+
+        :return: dict-type attributes, keys were pre-defined in xml classes
+
+        Example:
+        A dimm device 'dimm_xml' has xml like this:
+            <memory model="dimm">
+                <target>
+                    <size unit="KiB">524288</size><node>0</node>
+                </target>
+                <alias name="dimm2" />
+                <address base="0x120000000" slot="2" type="dimm" />
+            </memory>
+
+        dimm_xml.fetch_attrs()
+
+        Output should be:
+            {
+                'target': {
+                    'node': 0, 'size': 524288, 'size_unit': 'KiB'
+                    },
+                'alias': {'name': 'dimm2'},
+                'address': {
+                    'attrs': {
+                        'base': '0x120000000', 'slot': '2', 'type': 'dimm'
+                        },
+                    'type_name': 'dimm'
+                    },
+                'mem_model': 'dimm'
+            }
+
+        """
+        attrs = {}
+        slots = set(self.__all_slots__) - set(self.__uncompareable__) - {'device_tag'}
+        for key in slots:
+            try:
+                # Try to get values of each attribute, slot by slot
+                value = self[key]
+            except (xcepts.LibvirtXMLAccessorError,
+                    xcepts.LibvirtXMLNotFoundError,
+                    AttributeError,
+                    KeyError):
+                continue
+            else:
+                # Got value and check the type of value. If it's an nested xml
+                # instance, keep fetching attributes of it.
+                if isinstance(value, LibvirtXMLBase):
+                    value = value.fetch_attrs()
+                # If it's a list, return the list if the elements of the list
+                # are not xml instances
+                elif isinstance(value, list):
+                    if not value:
+                        continue
+                    # If the elements are xml instances, keep fetching
+                    # attributes of each xml instance and assign a list
+                    # of dict-type attrs to target slot
+                    elif isinstance(value[0], LibvirtXMLBase):
+                        value = [v.fetch_attrs() for v in value]
+                attrs[key] = value
+
+        return attrs
+
 
 def load_xml_module(path, name, type_list):
     """

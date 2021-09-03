@@ -14,10 +14,11 @@ class Controller(base.TypedDeviceBase):
                  'address', 'pcihole64', 'target', 'alias', 'model_name',
                  'node')
 
-    def __init__(self, type_name, virsh_instance=base.base.virsh):
+    def __init__(self, type_name='pci', virsh_instance=base.base.virsh):
         super(Controller, self).__init__(device_tag='controller',
                                          type_name=type_name,
                                          virsh_instance=virsh_instance)
+        # TODO: Remove 'type' since it's duplicated with 'type_name'
         accessors.XMLAttribute('type', self, parent_xpath='/',
                                tag_name='controller', attribute='type')
         accessors.XMLAttribute('index', self, parent_xpath='/',
