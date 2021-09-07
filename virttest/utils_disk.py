@@ -1102,6 +1102,20 @@ def get_parts_list(session=None):
     return parts
 
 
+def get_added_parts(session, old_parts):
+    """
+    Get newly added partition list comparing to old parts
+
+    :param session: the vm session
+    :param old_parts: list, the old partition list
+    :return: list, the newly added partition list
+    """
+    new_parts = get_parts_list(session)
+    added_parts = list(set(new_parts).difference(set(old_parts)))
+    logging.info("Added parts:%s", added_parts)
+    return added_parts
+
+
 def get_first_disk(session=None):
     """
     Get the first disk device on host or guest

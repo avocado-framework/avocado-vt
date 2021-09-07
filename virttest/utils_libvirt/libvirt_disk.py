@@ -467,9 +467,7 @@ def check_in_vm(vm, target, old_parts, is_equal=False):
         if rpm_stat != 0:
             raise exceptions.TestFail("Failed to query/install parted:\n%s", out_put)
 
-        new_parts = utils_disk.get_parts_list(session)
-        added_parts = list(set(new_parts).difference(set(old_parts)))
-        logging.info("Added parts:%s", added_parts)
+        added_parts = utils_disk.get_added_parts(session, old_parts)
         if is_equal:
             if len(added_parts) != 0:
                 logging.error("new added parts are not equal the old one")
