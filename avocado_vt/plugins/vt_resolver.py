@@ -14,8 +14,6 @@ class VTResolverUtils(DiscoveryMixIn):
 
     def __init__(self, config):
         self.config = config or settings.as_dict()
-        self.cartesian_parser = self._get_parser()
-        self._save_parser_cartesian_config(self.cartesian_parser)
 
     def _parameters_to_runnable(self, params):
         params = self.convert_parameters(params)
@@ -31,11 +29,14 @@ class VTResolverUtils(DiscoveryMixIn):
         return Runnable('avocado-vt', uri, **vt_params)
 
     def _get_reference_resolution(self, reference):
+        cartesian_parser = self._get_parser()
+        self._save_parser_cartesian_config(cartesian_parser)
+
         if reference != '':
-            self.cartesian_parser.only_filter(reference)
+            cartesian_parser.only_filter(reference)
 
         runnables = [self._parameters_to_runnable(d) for d in
-                     self.cartesian_parser.get_dicts()]
+                     cartesian_parser.get_dicts()]
         if runnables:
             warnings.warn("The VT NextRunner is experimental and doesn't have "
                           "current Avocado VT features")
