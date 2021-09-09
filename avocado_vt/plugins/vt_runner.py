@@ -37,6 +37,7 @@ class VirtTest(utils.TestUtils):
         self.outputdir = path.init_dir(self.logdir, 'data')
         self.bindir = data_dir.get_root_dir()
         self.virtdir = os.path.join(self.bindir, 'shared')
+        utils_misc.set_log_file_dir(self.logdir)
 
     @property
     def params(self):
@@ -58,7 +59,27 @@ class VirtTest(utils.TestUtils):
             status = "ERROR"
             self.queue.put(messages.StderrMessage.get(traceback.format_exc()))
         finally:
+            self.save_log_dir()
             self.queue.put(messages.FinishedMessage.get(status))
+
+    def save_log_dir(self):
+        """
+        Sends the content of vt logdir to avocado logdir
+        """
+        for root, _, files in os.walk(self.logdir, topdown=False):
+            basedir = os.path.relpath(root, start=self.logdir)
+            for file in files:
+                file_path = os.path.join(root, file)
+                with open(file_path, 'rb') as f:
+                    base_path = os.path.join(basedir, file)
+                    while True:
+                        # Read data in manageable chunks rather than
+                        # all at once.
+                        in_data = f.read(200000)
+                        if not in_data:
+                            break
+                        self.queue.put(messages.FileMessage.get(in_data,
+                                                                base_path))
 
     def _run_test(self):
         params = self.params
