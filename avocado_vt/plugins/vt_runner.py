@@ -34,6 +34,7 @@ class VirtTest(utils.TestUtils):
         # clear existing error events
         self.background_errors.clear()
         self.debugdir = self.logdir
+        self.outputdir = path.init_dir(self.logdir, 'data')
         self.bindir = data_dir.get_root_dir()
         self.virtdir = os.path.join(self.bindir, 'shared')
 
