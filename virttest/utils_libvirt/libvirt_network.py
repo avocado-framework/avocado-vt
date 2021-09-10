@@ -11,6 +11,8 @@ from avocado.utils import process
 
 from virttest import virsh
 from virttest import remote
+
+from virttest.libvirt_xml import NetworkXML
 from virttest.utils_test import libvirt
 
 
@@ -204,3 +206,20 @@ def check_tap_connected(tap_name, estate, br_name):
         else:
             logging.debug("The tap isn't attached to bridge as expected!")
     return True
+
+
+def check_network_connection(net_name, expected_conn=0):
+    """
+    Check network connections in network xml
+
+    :param net_name: The network to be checked
+    :param expected_conn: The expected value
+    :raise: exceptions.TestFail when no match
+    """
+    netxml = NetworkXML(network_name=net_name).new_from_net_dumpxml(net_name)
+    net_conn = int(netxml.xmltreefile.getroot().get('connections', '0'))
+    logging.debug("Network connection is %d.", net_conn)
+    if expected_conn != net_conn:
+        raise exceptions.TestFail("Unable to get the expected connection "
+                                  "number. Expected: %d, Actual: %d."
+                                  % (expected_conn, net_conn))
