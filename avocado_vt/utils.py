@@ -207,4 +207,4 @@ class TestUtils:
             msg.append("s are" if len(bg_errors) > 1 else " is")
             msg.append((" detected, please refer to file: "
                         "'%s' for more details.") % BG_ERR_FILE)
-            self.error(''.join(msg))
+            self.log.error(''.join(msg))
