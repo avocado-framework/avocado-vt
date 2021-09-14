@@ -1888,6 +1888,14 @@ class VM(virt_vm.BaseVM):
                                       dynamic=True)
                 devices.insert(pvpanic_dev)
 
+        # Add vmcoreinfo device
+        if params.get("vmcoreinfo") == "yes":
+            if not devices.has_device("vmcoreinfo"):
+                logging.warn("vmcoreinfo device is not supported")
+            else:
+                vmcoreinfo_dev = qdevices.QDevice("vmcoreinfo")
+                devices.insert(vmcoreinfo_dev)
+
         # Add serial console redirection
         self.virtio_ports = []
         serials = params.objects('serials')
