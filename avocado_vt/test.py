@@ -134,27 +134,6 @@ class VirtTest(test.Test, utils.TestUtils):
             # Report the parent's value in such case.
             return super(VirtTest, self).params
 
-    @property
-    def datadir(self):
-        """
-        Returns the path to the directory that contains test data files
-
-        For VT tests, this always returns None. The reason is that
-        individual VT tests do not map 1:1 to a file and do not provide
-        the concept of a datadir.
-        """
-        return None
-
-    @property
-    def filename(self):
-        """
-        Returns the name of the file (path) that holds the current test
-
-        For VT tests, this always returns None. The reason is that
-        individual VT tests do not map 1:1 to a file.
-        """
-        return None
-
     def setUp(self):
         """
         Avocado-vt uses custom setUp/test/tearDown handling and unlike
