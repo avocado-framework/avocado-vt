@@ -12,8 +12,8 @@ import base64
 try:
     import json
 except ImportError:
-    logging.warning("Could not import json module. "
-                    "virt agent functionality disabled.")
+    logging.getLogger('avocado.app').warning(
+        "Could not import json module. virt agent functionality disabled.")
 
 from avocado.utils import process
 

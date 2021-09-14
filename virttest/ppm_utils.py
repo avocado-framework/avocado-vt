@@ -22,10 +22,10 @@ try:
     from PIL import ImageFont
 except ImportError:
     Image = None
-    logging.warning('No python imaging library installed. Screendump '
-                    'and Windows guest BSOD detection are disabled. '
-                    'In order to enable it, please install python-imaging or '
-                    'the equivalent for your distro.')
+    logging.getLogger('avocado.app').warning(
+        'No python imaging library installed. Screendump and Windows guest BSOD'
+        ' detection are disabled. In order to enable it, please install '
+        'python-imaging or the equivalent for your distro.')
 # Prevent logs pollution
 if Image is not None:
     for _logger_name in logging.root.manager.loggerDict:
