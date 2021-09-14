@@ -155,18 +155,6 @@ class VirtTest(test.Test, utils.TestUtils):
         """
         return None
 
-    def get_state(self):
-        """
-        Pre Avocado-60.0 used to override self.__params attribute and
-        requires special handling while reporting the state.
-
-        TODO: Remove when 52LTS is deprecated.
-        """
-        state = super(VirtTest, self).get_state()
-        if state["params"] == self.__vt_params:
-            state["params"] = self.avocado_params
-        return state
-
     def setUp(self):
         """
         Avocado-vt uses custom setUp/test/tearDown handling and unlike
