@@ -8,7 +8,7 @@ import traceback
 
 from avocado.core import exceptions, nrunner, output, teststatus
 from avocado.core.runners.utils import messages
-from avocado.utils import stacktrace, path
+from avocado.utils import astring, path, stacktrace
 
 from avocado_vt import utils
 from virttest import (data_dir, env_process, error_event, utils_env, utils_misc,
@@ -43,21 +43,29 @@ class VirtTest(utils.TestUtils):
 
     def run_test(self):
         status = "ERROR"
+        fail_reason = ""
         try:
             messages.start_logging(self.config, self.queue)
             self._run_test()
             status = "PASS"
-        except exceptions.TestBaseException:
-            exc_info = sys.exc_info()
-            status = exc_info[0].status
+        except exceptions.TestBaseException as detail:
+            status = detail.status
+            fail_reason = (astring.to_text(detail))
             if status == "ERROR" or status not in teststatus.STATUSES:
                 status = "ERROR"
                 self.queue.put(messages.StderrMessage.get(traceback.format_exc()))
-        except Exception:
+            else:
+                self.queue.put(messages.LogMessage.get(traceback.format_exc()))
+        except Exception as detail:
             status = "ERROR"
+            try:
+                fail_reason = (astring.to_text(detail))
+            except TypeError:
+                fail_reason = ("Unable to get exception, check the traceback "
+                               "in `debug.log` for details.")
             self.queue.put(messages.StderrMessage.get(traceback.format_exc()))
         finally:
-            self.queue.put(messages.FinishedMessage.get(status))
+            self.queue.put(messages.FinishedMessage.get(status, fail_reason))
 
     def _run_test(self):
         params = self.params
