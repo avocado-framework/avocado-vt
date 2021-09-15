@@ -1586,7 +1586,8 @@ class CharDevice(QCustomDevice):
         elif backend in ["socket"]:
             common_opts += ["server", "wait", "reconnect"]
             special_opts = ["host", "port", "to", "ipv4",
-                            "ipv6", "nodelay", "path"]
+                            "ipv6", "nodelay", "path",
+                            "abstract", "tight"]
 
         elif backend == 'udp':
             special_opts = ["host", "port", "localaddr",
