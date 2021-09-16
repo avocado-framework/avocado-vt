@@ -17,7 +17,7 @@ class Interface(base.TypedDeviceBase):
                  'address', 'boot', 'rom', 'mtu', 'filterref', 'backend',
                  'virtualport_type', 'alias', "ips", "teaming", "vlan", "port")
 
-    def __init__(self, type_name, virsh_instance=base.base.virsh):
+    def __init__(self, type_name='network', virsh_instance=base.base.virsh):
         super(Interface, self).__init__(device_tag='interface',
                                         type_name=type_name,
                                         virsh_instance=virsh_instance)
