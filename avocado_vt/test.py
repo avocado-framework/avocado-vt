@@ -85,13 +85,10 @@ class VirtTest(test.Test, utils.TestUtils):
                instance. Because of the compatibility with avocado 82.0 LTS we
                can't remove the job instance. For avocado < 86 job instance is
                used and for avocado=>86 config is used.
-        :param params: avocado/multiplexer params stored as
-                       `self.avocado_params`.
         :param vt_params: avocado-vt/cartesian_config params stored as
                           `self.params`.
         """
         self.__vt_params = None
-        self.__avocado_params = None
         self.bindir = data_dir.get_root_dir()
         self.virtdir = os.path.join(self.bindir, 'shared')
         # self.__vt_params must be initialized after super
@@ -113,14 +110,6 @@ class VirtTest(test.Test, utils.TestUtils):
         self.builddir = os.path.join(self.workdir, 'backends',
                                      vt_params.get("vm_type", ""))
         self.tmpdir = os.path.dirname(self.workdir)
-        # Move self.params to self.avocado_params and initialize virttest
-        # (cartesian_config) params
-        try:
-            self.__avocado_params = super(VirtTest, self).params
-        except AttributeError:
-            # 36LTS set's `self.params` instead of having it as a property
-            # which stores the avocado params in `self.__params`
-            self.__avocado_params = self.__params
         self.__vt_params = vt_params
         self.debugdir = self.logdir
         self.resultsdir = self.logdir
@@ -144,46 +133,6 @@ class VirtTest(test.Test, utils.TestUtils):
             # but in newer Avocado `self.params` is used during `__init__`
             # Report the parent's value in such case.
             return super(VirtTest, self).params
-
-    @property
-    def avocado_params(self):
-        """
-        Original Avocado (multiplexer/varianter) params
-        """
-        return self.__avocado_params
-
-    @property
-    def datadir(self):
-        """
-        Returns the path to the directory that contains test data files
-
-        For VT tests, this always returns None. The reason is that
-        individual VT tests do not map 1:1 to a file and do not provide
-        the concept of a datadir.
-        """
-        return None
-
-    @property
-    def filename(self):
-        """
-        Returns the name of the file (path) that holds the current test
-
-        For VT tests, this always returns None. The reason is that
-        individual VT tests do not map 1:1 to a file.
-        """
-        return None
-
-    def get_state(self):
-        """
-        Pre Avocado-60.0 used to override self.__params attribute and
-        requires special handling while reporting the state.
-
-        TODO: Remove when 52LTS is deprecated.
-        """
-        state = super(VirtTest, self).get_state()
-        if state["params"] == self.__vt_params:
-            state["params"] = self.avocado_params
-        return state
 
     def setUp(self):
         """
