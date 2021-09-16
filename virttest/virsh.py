@@ -3326,9 +3326,7 @@ def change_media(name, device, options, wait_for_event=False,
     cmd = "change-media %s %s " % (name, device)
     if options:
         cmd += " %s " % options
-    change_media_result = command(cmd, **dargs)
-
-    return change_media_result
+    return command(cmd, **dargs)
 
 
 def cpu_compare(xml_file, **dargs):
