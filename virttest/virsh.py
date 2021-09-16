@@ -1759,9 +1759,11 @@ def attach_device(domainarg=None, filearg=None,
                        flagstr=flagstr, **dargs)
 
 
+@EventTracker.wait_event
 def detach_device(domainarg=None, filearg=None,
                   domain_opt=None, file_opt=None,
-                  flagstr=None, wait_remove_event=False, event_timeout=7, **dargs):
+                  flagstr=None, wait_for_event=False,
+                  event_type='device-removed', event_timeout=7, **dargs):
     """
     Detach a device using full parameter/argument set.
 
@@ -1770,7 +1772,8 @@ def detach_device(domainarg=None, filearg=None,
     :param domain_opt: Option to --domain parameter
     :param file_opt: Option to --file parameter
     :param flagstr: string of "--force, --persistent, etc."
-    :param wait_remove_event: wait until device_remove event comes
+    :param wait_for_event: wait until device_remove event comes
+    :param event_type: type of the event
     :param event_timeout: timeout for virsh event command
     :param dargs: standardized virsh function API keywords
     :return: CmdResult instance
@@ -1778,9 +1781,6 @@ def detach_device(domainarg=None, filearg=None,
     detach_cmd_rv = _adu_device("detach-device", domainarg=domainarg, filearg=filearg,
                                 domain_opt=domain_opt, file_opt=file_opt,
                                 flagstr=flagstr, **dargs)
-    if wait_remove_event:
-        event(domain=domainarg, event='device-removed', event_timeout=event_timeout, **dargs)
-
     return detach_cmd_rv
 
 
@@ -1838,23 +1838,23 @@ def detach_disk(name, target, extra="", wait_remove_event=False, event_timeout=7
     return detach_cmd_rv
 
 
-def detach_device_alias(name, alias, extra="", wait_remove_event=False, event_timeout=7, **dargs):
+@EventTracker.wait_event
+def detach_device_alias(name, alias, extra="", wait_for_event=False,
+                        event_type='device-removed', event_timeout=7, **dargs):
     """
     Detach a device with alias
 
     :param name: name of guest
     :param alias: alias of device
     :param extra: additional arguments to command
-    :param wait_remove_event: wait until device_remove event comes
+    :param wait_for_event: wait until device_remove event comes
+    :param event_type: type of the event
     :param event_timeout: timeout for virsh event command
     :param dargs: standardized virsh function API keywords
     :return: CmdResult object
     """
     detach_cmd = "detach-device-alias --domain %s --alias %s %s" % (name, alias, extra)
     detach_cmd_rv = command(detach_cmd, **dargs)
-    if wait_remove_event:
-        event(domain=name, event='device-removed', event_timeout=event_timeout, **dargs)
-
     return detach_cmd_rv
 
 
