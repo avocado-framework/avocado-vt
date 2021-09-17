@@ -1944,28 +1944,46 @@ class LibvirtPolkitConfig(object):
             raise PolkitWriteLibvirtdConfigError("Failed to update file '%s'."
                                                  % fpath)
 
-    def _setup_libvirtd(self):
+    def _setup_config_file(self, conf_path, conf_backup_path):
         """
-        Config libvirtd
+        Enable polkit in config file
+        :param conf_path: path of the config file
+        :param conf_backup_path: path of the backup config file
         """
         # Backup libvirtd.conf
-        shutil.copy(self.conf_path, self.conf_backup_path)
+        shutil.copy(conf_path, conf_backup_path)
 
         # Set the API access control scheme
         access_str = "access_drivers = [ \"polkit\" ]"
         access_pat = "^ *access_drivers"
-        self.file_replace_append(self.conf_path, access_pat, access_str)
+        self.file_replace_append(conf_path, access_pat, access_str)
 
         # Set UNIX socket access controls
         sock_rw_str = "unix_sock_rw_perms = \"0777\""
         sock_rw_pat = "^ *unix_sock_rw_perms"
-        self.file_replace_append(self.conf_path, sock_rw_pat, sock_rw_str)
+        self.file_replace_append(conf_path, sock_rw_pat, sock_rw_str)
 
         # Set authentication mechanism
         auth_unix_str = "auth_unix_rw = \"none\""
         auth_unix_pat = "^ *auth_unix_rw"
-        self.file_replace_append(self.conf_path, auth_unix_pat,
+        self.file_replace_append(conf_path, auth_unix_pat,
                                  auth_unix_str)
+
+    def _setup_libvirtd(self):
+        """
+        Config libvirtd or split daemon config file, as when enable polkit
+        access control with the modular daemons it needs to be enabled on
+        all of them at once.
+        """
+        if not utils_split_daemons.is_modular_daemon():
+            self._setup_config_file(self.conf_path, self.conf_backup_path)
+        else:
+            for drv in ['virtqemud', 'virtnetworkd', 'virtnodedevd',
+                        'virtnwfilterd', 'virtsecretd',
+                        'virtstoraged', 'virtinterfaced']:
+                conf_path = utils_config.get_conf_obj(drv).conf_path
+                conf_backup_path = conf_path + ".virttest.backup"
+                self._setup_config_file(conf_path, conf_backup_path)
 
     def _set_polkit_conf(self):
         """
@@ -2059,6 +2077,9 @@ class LibvirtPolkitConfig(object):
         Enable polkit libvirt access driver and setup polkit ACL rules.
         """
         self._setup_libvirtd()
+        # restart libvirtd or split daemon after the setup
+        libvirtd = utils_libvirtd.Libvirtd()
+        libvirtd.restart()
         # Use 'testacl' if unprivileged_user in cfg contains string 'EXAMPLE',
         # and if user 'testacl' is not exist on host, create it for test.
         if self.user.count('EXAMPLE'):
@@ -2082,8 +2103,13 @@ class LibvirtPolkitConfig(object):
         try:
             if os.path.exists(self.polkit_rules_path):
                 os.unlink(self.polkit_rules_path)
-            if os.path.exists(self.conf_backup_path):
-                os.rename(self.conf_backup_path, self.conf_path)
+            for drv in ['virtqemud', 'virtnetworkd', 'virtnodedevd',
+                        'virtnwfilterd', 'virtsecretd',
+                        'virtstoraged', 'virtinterfaced', 'libvirtd']:
+                conf_path = utils_config.get_conf_obj(drv).conf_path
+                conf_backup_path = conf_path + ".virttest.backup"
+                if os.path.exists(conf_backup_path):
+                    os.rename(conf_backup_path, conf_path)
             if self.user.count('EXAMPLE'):
                 self.user = 'testacl'
             if self.params.get('add_polkit_user'):
@@ -2458,6 +2484,10 @@ class LibvirtdDebugLog(object):
                 "daemon": utils_libvirtd.Libvirtd("virtnwfilterd"),
                 "conf": utils_config.VirtNwfilterdConfig(),
                 "backupfile": "%s.backup" % utils_config.VirtNwfilterdConfig().conf_path}
+            self.daemons_dict["virtsecretd"] = {
+                "daemon": utils_libvirtd.Libvirtd("virtsecretd"),
+                "conf": utils_config.VirtSecretdConfig(),
+                "backupfile": "%s.backup" % utils_config.VirtSecretdConfig().conf_path}
 
     def enable(self):
         """ Enable libvirtd debug log """
