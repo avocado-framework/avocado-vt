@@ -1222,7 +1222,8 @@ def check_result(result,
                  expected_fails=[],
                  skip_if=[],
                  any_error=False,
-                 expected_match=[]):
+                 expected_match=[],
+                 check_both_on_error=False):
     """
     Check the result of a command and check command error message against
     expectation.
@@ -1236,6 +1237,8 @@ def check_result(result,
                       will override expected_fails
     :param expected_match: a string or list of regex of expected stdout patterns.
                            The check will pass if any of these patterns matches.
+    :param check_both_on_error: boolean, True to check both stdout and stderr for
+                           expected failures, False to only stderr
     """
     stderr = result.stderr_text
     stdout = result.stdout_text
@@ -1266,13 +1269,14 @@ def check_result(result,
         if expected_fails:
             if isinstance(expected_fails, (str, unicode)):
                 expected_fails = [expected_fails]
-            if not any(re.search(patt, stderr)
+            msg_to_search = all_msg if check_both_on_error else stderr
+            if not any(re.search(patt, msg_to_search)
                        for patt in expected_fails):
                 raise exceptions.TestFail("Expect should fail with one of %s, "
                                           "but failed with:\n%s" %
                                           (expected_fails, all_msg))
             else:
-                logging.info("Get expect error msg:%s" % stderr)
+                logging.info("Get expect error msg:%s" % msg_to_search)
         else:
             raise exceptions.TestFail(
                 "Expect should succeed, but got: %s" % all_msg)
