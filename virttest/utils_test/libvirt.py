@@ -3087,7 +3087,7 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
                                               uri, virsh_cmd, vm_name)
     # allow specific user to run virsh command
     if su_user != "":
-        command = "su %s -c '%s'" % (su_user, command)
+        command = "su %s -P -c '%s'" % (su_user, command)
 
     logging.info("Execute %s", command)
     # setup shell session
