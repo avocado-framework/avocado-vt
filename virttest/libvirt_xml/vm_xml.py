@@ -2778,7 +2778,7 @@ class MemoryTuneXML(base.LibvirtXMLBase):
 
         """Monitor element of MemoryTuneXML"""
 
-        __slots__ = ('vcpus')
+        __slots__ = ('vcpus',)
 
         def __init__(self, virsh_instance=base.virsh):
             """
