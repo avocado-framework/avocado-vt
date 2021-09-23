@@ -893,7 +893,7 @@ class PoolVolumeTest(object):
     """Test class for storage pool or volume"""
 
     def __init__(self, test, params):
-        self.tmpdir = data_dir.get_data_dir()
+        self.tmpdir = params.get('customize_pool_target_path') or data_dir.get_data_dir()
         self.params = params
         self.selinux_bak = ""
 
