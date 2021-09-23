@@ -3877,6 +3877,15 @@ class VM(virt_vm.BaseVM):
         :param mac: Optional MAC address, None to randomly generate.
         """
         # returns existing or new nic object
+        if params['nic_model'] == 'virtio':
+            machine_type = self.params.get("machine_type")
+            if "s390" in machine_type:
+                model = "virtio-net-ccw"
+            elif '-mmio:' in machine_type:
+                model = "virtio-net-device"
+            else:
+                model = "virtio-net-pci"
+            params['nic_model'] = model
         nic = super(VM, self).add_nic(**params)
         nic_index = self.virtnet.nic_name_index(nic.nic_name)
         nic.set_if_none('vlan', str(nic_index))
