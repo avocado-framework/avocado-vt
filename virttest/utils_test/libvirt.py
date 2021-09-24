@@ -1288,11 +1288,16 @@ def check_result(result,
         elif expected_match:
             if isinstance(expected_match, (str, unicode)):
                 expected_match = [expected_match]
-            if not any(re.search(patt, stdout)
-                       for patt in expected_match):
+            search_result = [re.search(patt, stdout)
+                             for patt in expected_match]
+            if not any(search_result):
                 raise exceptions.TestFail("Expect should match with one of %s,"
                                           "but failed with: %s" %
                                           (expected_match, all_msg))
+            else:
+                logging.debug('Found expected content:\n%s',
+                              [r.group(0) for r in search_result
+                               if r is not None])
 
 
 def check_exit_status(result, expect_error=False):
