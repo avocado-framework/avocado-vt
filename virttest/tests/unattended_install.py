@@ -179,7 +179,7 @@ class UnattendedInstallConfig(object):
                         'virtio_balloon_path', 'virtio_viorng_path',
                         'virtio_vioser_path', 'virtio_pvpanic_path',
                         'virtio_vioinput_path', 'virtio_viofs_path',
-                        'virtio_oemsetup_id',
+                        'virtio_fwcfg_path', 'virtio_oemsetup_id',
                         'virtio_network_installer_path',
                         'virtio_balloon_installer_path',
                         'virtio_qxl_installer_path']
@@ -548,7 +548,8 @@ class UnattendedInstallConfig(object):
                       self.virtio_storage_path, self.virtio_network_path,
                       self.virtio_balloon_path, self.virtio_viorng_path,
                       self.virtio_vioser_path, self.virtio_pvpanic_path,
-                      self.virtio_vioinput_path, self.virtio_viofs_path]
+                      self.virtio_vioinput_path, self.virtio_viofs_path,
+                      self.virtio_fwcfg_path]
 
             # XXX: Force to replace the drive letter which loaded the
             # virtio driver by the specified letter.
