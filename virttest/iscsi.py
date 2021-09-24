@@ -208,6 +208,7 @@ class _IscsiComm(object):
         self.target = params.get("target")
         self.export_flag = False
         self.luns = None
+        self.iscsi_lun_attrs = params.get("iscsi_lun_attrs")
         self.restart_tgtd = 'yes' == params.get("restart_tgtd", "no")
         if params.get("portal_ip"):
             self.portal_ip = params.get("portal_ip")
@@ -726,6 +727,12 @@ class IscsiLIO(_IscsiComm):
             if "Created fileio" not in output:
                 raise exceptions.TestFail("Failed to create fileio %s. (%s)" %
                                           (self.device, output))
+
+            # Set attribute
+            if self.iscsi_lun_attrs:
+                attr_cmd = "targetcli /backstores/fileio/%s set attribute %s" % (
+                    self.device, self.iscsi_lun_attrs)
+                process.system(attr_cmd)
 
             # Create an IQN with a target named target_name
             target_cmd = "targetcli /iscsi/ create %s" % self.target
