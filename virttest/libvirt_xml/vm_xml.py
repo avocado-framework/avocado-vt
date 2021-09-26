@@ -171,7 +171,7 @@ class VMXMLBase(base.LibvirtXMLBase):
                  'max_mem_unit', 'current_mem_unit', 'memtune', 'max_mem_rt',
                  'max_mem_rt_unit', 'max_mem_rt_slots', 'iothreads',
                  'iothreadids', 'memory', 'memory_unit', 'perf', 'keywrap',
-                 'sysinfo', 'idmap')
+                 'sysinfo', 'idmap', 'clock')
 
     __uncompareable__ = base.LibvirtXMLBase.__uncompareable__
 
@@ -307,6 +307,13 @@ class VMXMLBase(base.LibvirtXMLBase):
                                  parent_xpath='/',
                                  tag_name='cputune',
                                  subclass=VMCPUTuneXML,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
+        accessors.XMLElementNest(property_name='clock',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='clock',
+                                 subclass=VMClockXML,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
         accessors.XMLElementNest(property_name='cpu',
@@ -2397,7 +2404,7 @@ class CellCacheXML(base.LibvirtXMLBase):
         self.xml = '<cache/>'
 
 
-class VMClockXML(VMXML):
+class VMClockXML(base.LibvirtXMLBase):
 
     """
     Higher-level manipulations related to VM's XML(Clock)
@@ -2432,20 +2439,16 @@ class VMClockXML(VMXML):
         accessors.XMLElementList(property_name="timers",
                                  libvirtxml=self,
                                  forbidden=[],
-                                 parent_xpath="/clock",
+                                 parent_xpath="/",
                                  marshal_from=self.marshal_from_timer,
                                  marshal_to=self.marshal_to_timer)
         super(VMClockXML, self).__init__(virsh_instance=virsh_instance)
         # Set default offset for clock
+        self.xml = '<clock/>'
         self.offset = offset
 
-    def from_dumpxml(self, vm_name, virsh_instance=base.virsh):
-        """Helper to load xml from domain."""
-        self.xml = VMXML.new_from_dumpxml(vm_name,
-                                          virsh_instance=virsh_instance).xml
-
     # Sub-element of clock
-    class TimerXML(VMXML):
+    class TimerXML(base.LibvirtXMLBase):
 
         """Timer element of clock"""
 
@@ -2514,6 +2517,7 @@ class VMClockXML(VMXML):
                                    attribute='limit')
             super(VMClockXML.TimerXML, self).__init__(
                 virsh_instance=virsh_instance)
+            self.xml = '<timer/>'
             # name is mandatory for timer
             self.name = timer_name
 
@@ -2545,7 +2549,7 @@ class VMClockXML(VMXML):
             return None
 
 
-class CacheTuneXML(VMXML):
+class CacheTuneXML(base.LibvirtXMLBase):
 
     """CacheTune XML"""
 
@@ -2567,7 +2571,7 @@ class CacheTuneXML(VMXML):
         self.xml = '<cachetune/>'
 
     # Sub-element of CacheTuneXML
-    class CacheXML(VMXML):
+    class CacheXML(base.LibvirtXMLBase):
 
         """Cache element of CacheTuneXML"""
 
@@ -2639,7 +2643,7 @@ class CacheTuneXML(VMXML):
             xmltreefile.write()
 
     # Sub-element of CacheTuneXML
-    class MonitorXML(VMXML):
+    class MonitorXML(base.LibvirtXMLBase):
 
         """Monitor element of CacheTuneXML"""
 
@@ -2693,7 +2697,7 @@ class CacheTuneXML(VMXML):
             xmltreefile.write()
 
 
-class MemoryTuneXML(VMXML):
+class MemoryTuneXML(base.LibvirtXMLBase):
 
     """Event element of perf"""
 
@@ -2715,7 +2719,7 @@ class MemoryTuneXML(VMXML):
         self.xml = '<memorytune/>'
 
     # Sub-element of MemoryTuneXML
-    class NodeXML(VMXML):
+    class NodeXML(base.LibvirtXMLBase):
 
         """Node element of MemoryTuneXML"""
 
@@ -2769,11 +2773,11 @@ class MemoryTuneXML(VMXML):
             xmltreefile.write()
 
     # Sub-element of MemoryTuneXML
-    class MonitorXML(VMXML):
+    class MonitorXML(base.LibvirtXMLBase):
 
         """Monitor element of MemoryTuneXML"""
 
-        __slots__ = ('vcpus')
+        __slots__ = ('vcpus',)
 
         def __init__(self, virsh_instance=base.virsh):
             """
@@ -3373,7 +3377,7 @@ class VMVCPUSXML(base.LibvirtXMLBase):
 
 
 # Sub-element of memoryBacking
-class VMHugepagesXML(VMXML):
+class VMHugepagesXML(base.LibvirtXMLBase):
 
     """hugepages element"""
 
@@ -3390,7 +3394,7 @@ class VMHugepagesXML(VMXML):
         self.xml = '<hugepages/>'
 
     # Sub-element of hugepages
-    class PageXML(VMXML):
+    class PageXML(base.LibvirtXMLBase):
 
         """Page element of hugepages"""
 
@@ -3420,6 +3424,7 @@ class VMHugepagesXML(VMXML):
                                    attribute='nodeset')
             super(VMHugepagesXML.PageXML, self).__init__(
                 virsh_instance=virsh_instance)
+            self.xml = '<page/>'
 
         def update(self, attr_dict):
             for attr, value in list(attr_dict.items()):
@@ -3449,7 +3454,7 @@ class VMHugepagesXML(VMXML):
             return None
 
 
-class VMMemBackingXML(VMXML):
+class VMMemBackingXML(base.LibvirtXMLBase):
 
     """
     memoryBacking tag XML class
@@ -3556,7 +3561,7 @@ class VMMemTuneXML(base.LibvirtXMLBase):
         self.xml = '<memtune/>'
 
 
-class VMPerfXML(VMXML):
+class VMPerfXML(base.LibvirtXMLBase):
 
     """
     perf tag XML class
@@ -3578,7 +3583,7 @@ class VMPerfXML(VMXML):
         self.xml = '<perf/>'
 
     # Sub-element of perf
-    class EventXML(VMXML):
+    class EventXML(base.LibvirtXMLBase):
 
         """Event element of perf"""
 
@@ -3636,7 +3641,7 @@ class VMPerfXML(VMXML):
             return None
 
 
-class VMIothreadidsXML(VMXML):
+class VMIothreadidsXML(base.LibvirtXMLBase):
 
     """
     iothreadids tag XML class
