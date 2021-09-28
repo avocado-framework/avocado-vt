@@ -1,53 +1,54 @@
-import logging
 import multiprocessing
 import os
-import sys
-import tempfile
 import time
 import traceback
 
-from avocado.core import exceptions, nrunner, output, teststatus
+from avocado.core import exceptions, nrunner, teststatus
 from avocado.core.runners.utils import messages
-from avocado.utils import astring, path, stacktrace
+from avocado.core.test_id import TestID
+from avocado.utils import astring
 
-from avocado_vt import utils
-from virttest import (data_dir, env_process, error_event, utils_env, utils_misc,
-                      utils_params, version, funcatexit)
+from avocado_vt import test
 
 
-class VirtTest(utils.TestUtils):
+class VirtTest(test.VirtTest):
 
     def __init__(self, queue, runnable):
-        self.__vt_params = utils_params.Params(runnable.kwargs)
         self.queue = queue
-        self.config = runnable.config
-        self.tmpdir = tempfile.mkdtemp()
-        self.logdir = os.path.join(self.tmpdir, 'results')
-        path.init_dir(self.logdir)
-        self.logfile = os.path.join(self.logdir, 'debug.log')
-        self.log = output.LOG_JOB
-        self.log_level = runnable.config.get('job.output.loglevel',
-                                             logging.DEBUG)
-        self.env_version = utils_env.get_env_version()
-        self.iteration = 0
-        self.background_errors = error_event.error_events_bus
-        # clear existing error events
-        self.background_errors.clear()
-        self.debugdir = self.logdir
-        self.bindir = data_dir.get_root_dir()
-        self.virtdir = os.path.join(self.bindir, 'shared')
+        vt_params = runnable.kwargs
+        vt_params['job_env_cleanup'] = 'no'
+        kwargs = {'name': TestID(1, runnable.uri),
+                  'config': runnable.config,
+                  'vt_params': vt_params}
+        super().__init__(**kwargs)
 
-    @property
-    def params(self):
-        return self.__vt_params
+    def _save_log_dir(self):
+        """
+        Sends the content of vt logdir to avocado logdir
+        """
+        for root, _, files in os.walk(self.logdir, topdown=False):
+            basedir = os.path.relpath(root, start=self.logdir)
+            for file in files:
+                file_path = os.path.join(root, file)
+                with open(file_path, 'rb') as f:
+                    base_path = os.path.join(basedir, file)
+                    while True:
+                        # Read data in manageable chunks rather than
+                        # all at once.
+                        in_data = f.read(200000)
+                        if not in_data:
+                            break
+                        self.queue.put(messages.FileMessage.get(in_data,
+                                                                base_path))
 
-    def run_test(self):
-        status = "ERROR"
+    def runTest(self):
+        status = "PASS"
         fail_reason = ""
         try:
-            messages.start_logging(self.config, self.queue)
-            self._run_test()
-            status = "PASS"
+            messages.start_logging(self._config, self.queue)
+            self.setUp()
+            if isinstance(self.__status, Exception):
+                raise self.__status
         except exceptions.TestBaseException as detail:
             status = detail.status
             fail_reason = (astring.to_text(detail))
@@ -65,115 +66,8 @@ class VirtTest(utils.TestUtils):
                                "in `debug.log` for details.")
             self.queue.put(messages.StderrMessage.get(traceback.format_exc()))
         finally:
+            self._save_log_dir()
             self.queue.put(messages.FinishedMessage.get(status, fail_reason))
-
-    def _run_test(self):
-        params = self.params
-
-        # Report virt test version
-        self.log.info(version.get_pretty_version_info())
-        self._log_parameters()
-
-        # Warn of this special condition in related location in output & logs
-        if os.getuid() == 0 and params.get('nettype', 'user') == 'user':
-            self.log.warning("")
-            self.log.warning("Testing with nettype='user' while running "
-                             "as root may produce unexpected results!!!")
-            self.log.warning("")
-
-        subtest_dirs = self._get_subtest_dirs()
-
-        # Get the test routine corresponding to the specified
-        # test type
-        self.log.debug("Searching for test modules that match 'type = %s' "
-                       "and 'provider = %s' on this cartesian dict",
-                       params.get("type"),
-                       params.get("provider", None))
-
-        t_types = params.get("type").split()
-        utils.insert_dirs_to_path(subtest_dirs)
-        test_modules = utils.find_test_modules(t_types, subtest_dirs)
-
-        # Open the environment file
-        env_filename = os.path.join(data_dir.get_tmp_dir(),
-                                    params.get("env", "env"))
-        env = utils_env.Env(env_filename, self.env_version)
-
-        test_passed = False
-        t_type = None
-
-        try:
-            try:
-                try:
-                    # Pre-process
-                    try:
-                        params = env_process.preprocess(self, params, env)
-                    finally:
-                        self._safe_env_save(env)
-
-                    # Run the test function
-                    for t_type in t_types:
-                        test_module = test_modules[t_type]
-                        run_func = utils_misc.get_test_entrypoint_func(
-                            t_type, test_module)
-                        try:
-                            run_func(self, params, env)
-                            self.verify_background_errors()
-                        finally:
-                            self._safe_env_save(env)
-                    test_passed = True
-                    error_message = funcatexit.run_exitfuncs(env, t_type)
-                    if error_message:
-                        raise exceptions.TestWarn("funcatexit failed with: %s" %
-                                                  error_message)
-
-                except:  # nopep8 Old-style exceptions are not inherited from Exception()
-                    stacktrace.log_exc_info(sys.exc_info(), 'avocado.test')
-                    if t_type is not None:
-                        error_message = funcatexit.run_exitfuncs(env, t_type)
-                        if error_message:
-                            self.log.error(error_message)
-                    try:
-                        env_process.postprocess_on_error(self, params, env)
-                    finally:
-                        self._safe_env_save(env)
-                    raise
-
-            finally:
-                # Post-process
-                try:
-                    try:
-                        params['test_passed'] = str(test_passed)
-                        env_process.postprocess(self, params, env)
-                    except:  # nopep8 Old-style exceptions are not inherited from Exception()
-
-                        stacktrace.log_exc_info(sys.exc_info(),
-                                                'avocado.test')
-                        if test_passed:
-                            raise
-                        self.log.error("Exception raised during postprocessing:"
-                                       " %s", sys.exc_info()[1])
-                finally:
-                    if self._safe_env_save(env) or params.get("env_cleanup",
-                                                              "no") == "yes":
-                        env.destroy()  # Force-clean as it can't be stored
-
-        except Exception as e:
-            if params.get("abort_on_error") != "yes":
-                raise
-            # Abort on error
-            logging.info("Aborting job (%s)", e)
-            if params.get("vm_type") == "qemu":
-                for vm in env.get_all_vms():
-                    if vm.is_dead():
-                        continue
-                    logging.info("VM '%s' is alive.", vm.name)
-                    for m in vm.monitors:
-                        logging.info("It has a %s monitor unix socket at:"
-                                     " %s", m.protocol, m.filename)
-                    logging.info("The command line used to start it was:"
-                                 "\n%s", vm.make_create_command())
-                raise exceptions.JobError("Abort requested (%s)" % e)
 
 
 class VTTestRunner(nrunner.BaseRunner):
@@ -200,7 +94,7 @@ class VTTestRunner(nrunner.BaseRunner):
             try:
                 queue = multiprocessing.SimpleQueue()
                 vt_test = VirtTest(queue, self.runnable)
-                process = multiprocessing.Process(target=vt_test.run_test)
+                process = multiprocessing.Process(target=vt_test.runTest)
                 process.start()
                 while True:
                     time.sleep(nrunner.RUNNER_RUN_CHECK_INTERVAL)
