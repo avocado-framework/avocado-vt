@@ -999,10 +999,11 @@ class VM(virt_vm.BaseVM):
             if output:
                 name = output[0]
                 backend_options = {}
-                backend_options["size"] = "%sM" % params["mem"]
+                backend_options["size_mem"] = "%sM" % params["mem"]
                 if params.get("hugepage_path"):
-                    backend_options["backend"] = "memory-backend-file"
-                    backend_options["mem-path"] = params["hugepage_path"]
+                    backend_options["backend_mem"] = "memory-backend-file"
+                    backend_options["mem-path_mem"] = params["hugepage_path"]
+                backend_options["share_mem"] = params.get("vm_mem_share")
                 backend_param = Params(backend_options)
                 dev = devices.memory_object_define_by_params(backend_param,
                                                              name)
