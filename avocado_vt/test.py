@@ -202,6 +202,10 @@ class VirtTest(test.Test, utils.TestUtils):
 
     def _runTest(self):
         params = self.params
+        if params.get("test_pre_hook"):
+            self.log.info(f"Executing VT test pre-hook from {params['test_pre_hook']}")
+            with open(params["test_pre_hook"]) as f:
+                exec(f.read())
 
         # Report virt test version
         logging.info(version.get_pretty_version_info())
