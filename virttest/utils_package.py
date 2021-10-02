@@ -16,7 +16,7 @@ PACKAGE_MANAGERS = ['apt-get',
                     'zypper',
                     'dnf']
 
-PKG_MGR_TIMEOUT = 300
+PKG_MGR_TIMEOUT = 380
 
 
 class RemotePackageMgr(object):
