@@ -48,7 +48,8 @@ class VirtTest(test.VirtTest):
             messages.start_logging(self._config, self.queue)
             self.setUp()
             if isinstance(self.__status, Exception):
-                raise self.__status
+                # pylint doesn't know much about flow-control
+                raise self.__status  # pylint: disable-msg=E0702
         except exceptions.TestBaseException as detail:
             status = detail.status
             fail_reason = (astring.to_text(detail))
