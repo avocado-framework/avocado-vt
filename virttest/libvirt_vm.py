@@ -8,7 +8,7 @@ from __future__ import division
 import time
 import string
 import os
-import logging
+import logging as log
 import fcntl
 import re
 import shutil
@@ -34,6 +34,11 @@ from virttest import xml_utils
 from virttest import utils_selinux
 from virttest import test_setup
 from virttest import utils_package
+
+
+# Using as lower capital is not the best way to do, but this is just a
+# workaround to avoid changing the entire file.
+logging = log.getLogger('avocado.' + __name__)
 
 
 def normalize_connect_uri(connect_uri):

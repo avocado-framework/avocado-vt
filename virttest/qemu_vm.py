@@ -7,7 +7,7 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 from __future__ import division
 import time
 import os
-import logging
+import logging as log
 import fcntl
 import re
 import random
@@ -48,6 +48,11 @@ from virttest import error_event
 from virttest.qemu_devices import qdevices, qcontainer
 from virttest.qemu_devices.utils import DeviceError
 from virttest.qemu_capabilities import Flags
+
+
+# Using as lower capital is not the best way to do, but this is just a
+# workaround to avoid changing the entire file.
+logging = log.getLogger('avocado.' + __name__)
 
 
 class QemuSegFaultError(virt_vm.VMError):
