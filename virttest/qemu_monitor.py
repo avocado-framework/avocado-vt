@@ -30,6 +30,9 @@ from . import data_dir
 from virttest.qemu_capabilities import Flags
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
+
 class MonitorError(Exception):
     pass
 
@@ -144,12 +147,12 @@ def create_monitor(vm, monitor_name, monitor_params):
     if monitor_params.get("monitor_type") == "qmp":
         if not utils_misc.qemu_has_option("qmp", vm.qemu_binary):
             # Add a "human" monitor on non-qmp version of qemu.
-            logging.warn("QMP monitor is unsupported by %s,"
-                         " creating human monitor instead." % vm.qemu_version)
+            LOG.warn("QMP monitor is unsupported by %s,"
+                     " creating human monitor instead." % vm.qemu_version)
         else:
             MonitorClass = QMPMonitor
 
-    logging.info("Connecting to monitor '<%s> %s'", MonitorClass, monitor_name)
+    LOG.info("Connecting to monitor '<%s> %s'", MonitorClass, monitor_name)
     monitor = MonitorClass(vm, monitor_name, monitor_params)
     monitor.verify_responsive()
 
@@ -172,7 +175,7 @@ def wait_for_create_monitor(vm, monitor_name, monitor_params, timeout):
         try:
             return create_monitor(vm, monitor_name, monitor_params)
         except MonitorError as e:
-            logging.warn(e)
+            LOG.warn(e)
             time.sleep(1)
     else:
         raise MonitorConnectError(monitor_name)
@@ -425,8 +428,8 @@ class Monitor(object):
         :param extra_str: Extra string would be printed in log.
         """
         if self.debug_log or debug:
-            logging.debug("(monitor %s.%s) Sending command '%s' %s",
-                          self.vm.name, self.name, cmd, extra_str)
+            LOG.debug("(monitor %s.%s) Sending command '%s' %s",
+                      self.vm.name, self.name, cmd, extra_str)
 
     def _log_lines(self, log_str):
         """
@@ -450,7 +453,7 @@ class Monitor(object):
                 txt = "Fail to record log to %s.\n" % log
                 txt += "Log content: %s\n" % log_str
                 txt += "Exception error: %s" % err
-                logging.error(txt)
+                LOG.error(txt)
                 self.open_log_files[log].close()
                 self.open_log_files.pop(log)
         finally:
@@ -481,7 +484,7 @@ class Monitor(object):
                 elif translate(_cmd) == translate("x-%s" % cmd):
                     found = True
                 if found:
-                    logging.info("Convert command %s -> %s", cmd, _cmd)
+                    LOG.info("Convert command %s -> %s", cmd, _cmd)
                     return _cmd
         return cmd
 
@@ -490,7 +493,7 @@ class Monitor(object):
         Return True if the monitor is responsive.
         """
         if self._socket.fileno() < 0:
-            logging.warning("Monitor socket is already closed")
+            LOG.warning("Monitor socket is already closed")
             return False
         try:
             self.verify_responsive()
@@ -806,7 +809,7 @@ class HumanMonitor(Monitor):
         except MonitorError as e:
             self._close_sock()
             if suppress_exceptions:
-                logging.warn(e)
+                LOG.warn(e)
             else:
                 raise
 
@@ -867,7 +870,7 @@ class HumanMonitor(Monitor):
             self._supported_cmds = [c for c in cmd_list if c]
 
         if not self._supported_cmds:
-            logging.warn("Could not get supported monitor cmds list")
+            LOG.warn("Could not get supported monitor cmds list")
 
     def _log_response(self, cmd, resp, debug=True):
         """
@@ -878,11 +881,11 @@ class HumanMonitor(Monitor):
         :param debug: Whether to print the commands.
         """
         if self.debug_log or debug:
-            logging.debug("(monitor %s.%s) Response to '%s'",
-                          self.vm.name, self.name, cmd)
+            LOG.debug("(monitor %s.%s) Response to '%s'",
+                      self.vm.name, self.name, cmd)
             for l in resp.splitlines():
-                logging.debug("(monitor %s.%s)    %s",
-                              self.vm.name, self.name, l)
+                LOG.debug("(monitor %s.%s)    %s",
+                          self.vm.name, self.name, l)
 
     # Public methods
     def cmd(self, cmd, timeout=CMD_TIMEOUT, debug=True, fd=None):
@@ -915,7 +918,7 @@ class HumanMonitor(Monitor):
             else:
                 # Send command
                 if debug:
-                    logging.debug("Send command: %s" % cmd)
+                    LOG.debug("Send command: %s" % cmd)
                 self._send(cmd.encode())
             # Read output
             s, o = self._read_up_to_qemu_prompt(timeout)
@@ -1670,13 +1673,13 @@ class HumanMonitor(Monitor):
         total = re.search(r"total ram: (\d+) kbytes", status)
         if rem and total:
             ret = 100 - 100 * int(rem.group(1)) / int(total.group(1))
-            logging.debug("Migration progress: %s%%", ret)
+            LOG.debug("Migration progress: %s%%", ret)
             return ret
         if "Migration status: completed" in status:
-            logging.debug("Migration progress: 100%")
+            LOG.debug("Migration progress: 100%")
             return 100
         elif "Migration status: setup" in status:
-            logging.debug("Migration progress: 0%")
+            LOG.debug("Migration progress: 0%")
             return 0
         raise MonitorError("Unable to parse migration progress:\n%s" % status)
 
@@ -1778,7 +1781,7 @@ class QMPMonitor(Monitor):
         except MonitorError as e:
             self._close_sock()
             if suppress_exceptions:
-                logging.warn(e)
+                LOG.warn(e)
             else:
                 raise
 
@@ -1870,7 +1873,7 @@ class QMPMonitor(Monitor):
                                     "name" in n]
 
         if not self._supported_cmds:
-            logging.warn("Could not get supported monitor cmds list")
+            LOG.warn("Could not get supported monitor cmds list")
 
     def _get_supported_hmp_cmds(self):
         """
@@ -1883,7 +1886,7 @@ class QMPMonitor(Monitor):
             self._supported_hmp_cmds = [(i + j) for i, j in cmd_list if i or j]
 
         if not self._supported_cmds:
-            logging.warn("Could not get supported monitor cmds list")
+            LOG.warn("Could not get supported monitor cmds list")
 
     def _has_hmp_command(self, cmd):
         """
@@ -1919,8 +1922,8 @@ class QMPMonitor(Monitor):
         """
 
         def _log_output(o, indent=0):
-            logging.debug("(monitor %s.%s)    %s%s",
-                          self.vm.name, self.name, " " * indent, o)
+            LOG.debug("(monitor %s.%s)    %s%s",
+                      self.vm.name, self.name, " " * indent, o)
 
         def _dump_list(li, indent=0):
             for l in li:
@@ -1943,8 +1946,8 @@ class QMPMonitor(Monitor):
                     _log_output(o, indent)
 
         if self.debug_log or debug:
-            logging.debug("(monitor %s.%s) Response to '%s' "
-                          "(re-formatted)", self.vm.name, self.name, cmd)
+            LOG.debug("(monitor %s.%s) Response to '%s' "
+                      "(re-formatted)", self.vm.name, self.name, cmd)
             if isinstance(resp, dict):
                 _dump_dict(resp)
             elif isinstance(resp, list):
@@ -1988,7 +1991,7 @@ class QMPMonitor(Monitor):
             q_id = utils_misc.generate_random_string(8)
             cmdobj = self._build_cmd(cmd, args, q_id)
             if debug:
-                logging.debug("Send command: %s" % cmdobj)
+                LOG.debug("Send command: %s" % cmdobj)
             if fd is not None:
                 if self._passfd is None:
                     self._passfd = passfd_setup.import_passfd()
@@ -2272,7 +2275,7 @@ class QMPMonitor(Monitor):
                         if opt[0]:
                             args[opt[0].strip()] = value
                     except Exception:
-                        logging.debug("Fail to create args, please check cmd")
+                        LOG.debug("Fail to create args, please check cmd")
                 cmd_output.append(self.cmd(command, args, timeout=timeout))
         if len(cmd_output) == 1:
             return cmd_output[0]
@@ -2359,8 +2362,7 @@ class QMPMonitor(Monitor):
             return self.cmd("migrate", args)
         except QMPCmdError as e:
             if e.data['class'] in ['SockConnectInprogress', 'GenericError']:
-                logging.debug(
-                    "Migrate socket connection still initializing...")
+                LOG.debug("Migrate socket connection still initializing...")
             else:
                 raise e
 
@@ -2694,7 +2696,7 @@ class QMPMonitor(Monitor):
         # Look for WAKEUP QMP event
         if not utils_misc.wait_for(lambda: self.get_event(qmp_event), 120):
             raise QMPEventError(cmd, qmp_event, self.vm.name, self.name)
-        logging.info("%s QMP event received" % qmp_event)
+        LOG.info("%s QMP event received" % qmp_event)
 
     def nmi(self):
         """
@@ -2936,7 +2938,7 @@ class QMPMonitor(Monitor):
         # Look for BALLOON QMP events
         if not utils_misc.wait_for(lambda: self.get_event(qmp_event), 120):
             raise QMPEventError(cmd, qmp_event, self.vm.name, self.name)
-        logging.info("%s QMP event received" % qmp_event)
+        LOG.info("%s QMP event received" % qmp_event)
 
     def _get_migrate_capability(self, capability,
                                 disable_auto_x_evaluation=True):
@@ -2978,10 +2980,10 @@ class QMPMonitor(Monitor):
             try:
                 return self.cmd(cmd, args)
             except QMPCmdError as exc2:
-                logging.debug("Error in set_migrate_capability for %s: %s",
-                              capability, exc)
-                logging.debug("Error in set_migrate_capability for %s: "
-                              "%s", capability2, exc2)
+                LOG.debug("Error in set_migrate_capability for %s: %s",
+                          capability, exc)
+                LOG.debug("Error in set_migrate_capability for %s: "
+                          "%s", capability2, exc2)
                 if exc.data['class'] == exc2.data['class'] == 'GenericError':
                     msg = ("set capability failed for %s (%s) as well as %s "
                            "(%s)" % (capability, exc, capability2, exc2))
@@ -3082,14 +3084,14 @@ class QMPMonitor(Monitor):
             rem = ram_stats["remaining"]
             total = ram_stats["total"]
             ret = 100.0 - 100.0 * rem / total
-            logging.debug("Migration progress: %s%%", ret)
+            LOG.debug("Migration progress: %s%%", ret)
             return ret
         else:
             if status == "completed":
-                logging.debug("Migration progress: 100%")
+                LOG.debug("Migration progress: 100%")
                 return 100
             elif status == "setup":
-                logging.debug("Migration progress: 0%")
+                LOG.debug("Migration progress: 0%")
                 return 0
             else:
                 raise MonitorError(
@@ -3115,7 +3117,7 @@ class QMPMonitor(Monitor):
         # Look for POWERDOWN QMP events
         if not utils_misc.wait_for(lambda: self.get_event(qmp_event), 120):
             raise QMPEventError(cmd, qmp_event, self.vm.name, self.name)
-        logging.info("%s QMP event received" % qmp_event)
+        LOG.info("%s QMP event received" % qmp_event)
 
     def transaction(self, job_list):
         """
