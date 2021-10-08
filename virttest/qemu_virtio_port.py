@@ -6,7 +6,7 @@ Interfaces and helpers for the virtio_serial ports.
 from __future__ import division
 from threading import Thread
 from collections import deque
-import logging
+import logging as log
 import os
 import random
 import select
@@ -24,6 +24,8 @@ from six.moves import xrange
 from virttest import data_dir
 
 SOCKET_SIZE = 2048
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class VirtioPortException(Exception):

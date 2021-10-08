@@ -1,7 +1,7 @@
 """Library to perform pre/post test setup for virt test."""
 from __future__ import division
 import os
-import logging
+import logging as log
 import time
 import re
 import random
@@ -43,6 +43,8 @@ from virttest.staging import utils_memory
 
 
 ARCH = platform.machine()
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class THPError(Exception):

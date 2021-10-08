@@ -1,7 +1,7 @@
 import time
 import threading
 import types
-import logging
+import logging as log
 import re
 import signal
 
@@ -20,6 +20,9 @@ from virttest import utils_net
 from virttest import utils_iptables
 from virttest import utils_test
 from virttest.utils_test import libvirt
+
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 # Migration Relative functions##############

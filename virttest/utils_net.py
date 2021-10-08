@@ -4,7 +4,7 @@ import socket
 import fcntl
 import errno
 import struct
-import logging
+import logging as log
 import random
 import math
 import time
@@ -63,6 +63,8 @@ PROCFS_NET_PATH = "/proc/net/dev"
 # globals
 sock = None
 sockfd = None
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class NetError(Exception):

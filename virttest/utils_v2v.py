@@ -7,7 +7,7 @@ Virt-v2v test utility functions.
 from __future__ import print_function
 
 import glob
-import logging
+import logging as log
 import os
 import pwd
 import random
@@ -42,6 +42,8 @@ try:
     V2V_EXEC = path.find_command('virt-v2v')
 except path.CmdNotFoundError:
     V2V_EXEC = None
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class Uri(object):

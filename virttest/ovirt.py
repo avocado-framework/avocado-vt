@@ -6,7 +6,7 @@ oVirt SDK wrapper module.
 
 
 import time
-import logging
+import logging as log
 
 import ovirtsdk4 as sdk
 import ovirtsdk4.types as types
@@ -17,6 +17,8 @@ from virttest.utils_net import ping
 
 _api = None
 _connected = False
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class WaitStateTimeoutError(Exception):

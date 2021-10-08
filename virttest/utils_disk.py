@@ -11,7 +11,7 @@ import platform
 import random
 import string
 import tempfile
-import logging
+import logging as log
 import re
 try:
     import configparser as ConfigParser
@@ -38,6 +38,8 @@ SIZE_AVAILABLE = "available size"
 
 # Whether to print all shell commands called
 DEBUG = False
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def copytree(src, dst, overwrite=True, ignore=''):

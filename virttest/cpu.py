@@ -17,7 +17,7 @@
 
 import re
 import json
-import logging
+import logging as log
 import platform
 import time
 import os
@@ -37,6 +37,8 @@ from virttest.libvirt_xml.xcepts import LibvirtXMLNotFoundError
 from virttest import libvirt_version
 from virttest import data_dir
 
+
+logging = log.getLogger('avocado.' + __name__)
 
 ARCH = platform.machine()
 

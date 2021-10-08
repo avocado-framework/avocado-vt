@@ -1,5 +1,5 @@
 from __future__ import division
-import logging
+import logging as log
 import time
 import glob
 import os
@@ -24,6 +24,9 @@ from virttest import ppm_utils
 from virttest import data_dir
 from virttest import error_context
 from virttest import vt_console
+
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class VMError(Exception):

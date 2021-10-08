@@ -8,12 +8,14 @@ This exports:
 """
 
 import re
-import logging
+import logging as log
 
 from avocado.utils import process
 
 from virttest import storage
 from virttest import virsh
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class QemuImg(storage.QemuImg):

@@ -3,7 +3,7 @@ Common spice test utility functions.
 
 """
 import os
-import logging
+import logging as log
 import time
 import sys
 
@@ -11,6 +11,8 @@ from aexpect import ShellCmdError, ShellStatusError
 from avocado.core import exceptions
 
 from . import utils_net, utils_misc
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class RVConnectError(Exception):

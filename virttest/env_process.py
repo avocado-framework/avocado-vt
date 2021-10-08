@@ -2,7 +2,7 @@ from __future__ import division
 import os
 import time
 import re
-import logging
+import logging as log
 import glob
 import threading
 import shutil
@@ -58,7 +58,7 @@ from virttest.staging import service
 try:
     import PIL.Image
 except ImportError:
-    logging.getLogger('avocado.app').warning(
+    log.getLogger('avocado.app').warning(
         'No python imaging library installed. PPM image conversion to JPEG '
         'disabled. In order to enable it, please install python-imaging or the '
         'equivalent for your distro.')
@@ -91,6 +91,8 @@ KVM_MODULE_HANDLERS = []
 QEMU_VERSION_RE = r"QEMU (?:PC )?emulator version\s([0-9]+\.[0-9]+\.[0-9]+)\s?\((.*?)\)"
 
 THREAD_ERROR = False
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def _get_qemu_version(qemu_cmd):

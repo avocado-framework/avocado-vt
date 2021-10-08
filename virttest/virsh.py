@@ -22,7 +22,7 @@ for non-existant keys.
 """
 
 import signal
-import logging
+import logging as log
 import os
 import re
 import weakref
@@ -48,6 +48,8 @@ from virttest import utils_misc
 from virttest import data_dir
 
 
+logging = log.getLogger('avocado.' + __name__)
+
 # list of symbol names NOT to wrap as Virsh class methods
 # Everything else from globals() will become a method of Virsh class
 NOCLOSE = list(globals().keys()) + [
@@ -70,7 +72,7 @@ VIRSH_COMMAND_GROUP_CACHE_NO_DETAIL = False
 try:
     VIRSH_EXEC = path.find_command("virsh")
 except path.CmdNotFoundError:
-    logging.getLogger('avocado.app').warning(
+    log.getLogger('avocado.app').warning(
         "Virsh executable not set or found on path, virsh module will not "
         "function normally")
     VIRSH_EXEC = '/bin/true'

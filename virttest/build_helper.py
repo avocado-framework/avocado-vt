@@ -1,4 +1,4 @@
-import logging
+import logging as log
 import multiprocessing
 import os
 import shutil
@@ -11,6 +11,9 @@ from avocado.utils import path
 from avocado.utils import process
 
 from virttest import data_dir
+
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def _force_copy(src, dest):

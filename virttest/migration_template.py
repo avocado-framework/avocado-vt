@@ -1,4 +1,4 @@
-import logging
+import logging as log
 import functools
 import os
 
@@ -43,6 +43,8 @@ VIR_MIGRATE_ABORT_ON_ERROR = (1 << 12)
 VIR_MIGRATE_PARALLEL = (1 << 13)
 VIR_MIGRATE_PERSIST_DEST_XML = (1 << 14)
 VIR_MIGRATE_DEST_XML = (1 << 15)
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 # Phase of the migration test

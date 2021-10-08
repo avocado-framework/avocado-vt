@@ -7,7 +7,7 @@ This exports:
 """
 import collections
 import json
-import logging
+import logging as log
 import os
 import re
 import six
@@ -22,6 +22,8 @@ from virttest import storage
 from virttest import nvme
 from virttest import data_dir
 from virttest import error_context
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def filename_to_file_opts(filename):
