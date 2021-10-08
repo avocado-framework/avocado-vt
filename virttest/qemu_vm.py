@@ -3707,7 +3707,7 @@ class VM(virt_vm.BaseVM):
             if self.monitor.protocol == 'human':
                 vcpu_add_cmd = "cpu_set %s online" % plug_cpu_id
             elif self.monitor.protocol == 'qmp':
-                vcpu_add_cmd = "cpu-add id=%s" % plug_cpu_id
+                vcpu_add_cmd = "device_add id=vcpu%s" % plug_cpu_id
 
         try:
             self.monitor.verify_supported_cmd(vcpu_add_cmd.split()[0])
