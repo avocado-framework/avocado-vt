@@ -26,7 +26,7 @@ def _variant_only_file(filename):
 #: value.  See :func:`avocado_vt.plugins.vt.add_basic_vt_options` and
 #: class:`avocado_vt.options.VirtTestOptionsProcess` for usage examples.
 SUPPORTED_TEST_TYPES = [
-    'qemu', 'libvirt', 'libguestfs', 'openvswitch', 'v2v', 'lvsb', 'spice']
+    'qemu', 'libvirt', 'libguestfs', 'openvswitch', 'v2v', 'lvsb', 'spice', 'virttools']
 
 SUPPORTED_LIBVIRT_URIS = ['qemu:///system', 'lxc:///']
 SUPPORTED_LIBVIRT_DRIVERS = ['qemu', 'lxc', 'xen']
