@@ -7,6 +7,8 @@ Virtualization test - utility functions for libvirt
 import re
 import logging
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def convert_to_dict(content, pattern=r'(\d+) +(\S+)'):
     """
@@ -21,5 +23,5 @@ def convert_to_dict(content, pattern=r'(\d+) +(\S+)'):
     info_list = re.findall(pattern, content, re.M)
     for info in info_list:
         info_dict[info[0]] = info[1]
-    logging.debug("The dict converted is:\n%s", info_dict)
+    LOG.debug("The dict converted is:\n%s", info_dict)
     return info_dict

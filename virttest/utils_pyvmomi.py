@@ -13,6 +13,8 @@ from pyVim.connect import SmartConnect, SmartConnectNoSSL, Disconnect
 from pyVim.task import WaitForTask
 from pyVmomi import vim
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def to_list(obj):
     tmp_list = []
@@ -241,7 +243,7 @@ class VSphere(object):
             self.service_instance = SmartConnect(**kwargs)
 
         if self.service_instance:
-            logging.debug(
+            LOG.debug(
                 'New vsphere connection established: %s (%s)',
                 self.service_instance, id(self.service_instance))
 
@@ -252,8 +254,8 @@ class VSphere(object):
         del self.target_vm
         if not self.service_instance:
             return
-        logging.debug('vsphere connection closed: %s (%s)',
-                      self.service_instance, id(self.service_instance))
+        LOG.debug('vsphere connection closed: %s (%s)',
+                  self.service_instance, id(self.service_instance))
         Disconnect(self.service_instance)
         self.service_instance = None
 
@@ -321,7 +323,7 @@ class VSphere(object):
                         self.target_vm = self._target_vm_name
                     vmobj = self.target_vm
                     if vm_name:
-                        logging.warning(
+                        LOG.warning(
                             "Have you forgotten to reset target_vm to 'new vm name'?")
                 elif vm_name:
                     self.target_vm = vm_name
@@ -375,7 +377,7 @@ class VSphere(object):
             self._target_vm = tmp_vm
             raise VSphereVMNotFound(name)
         self._target_vm_name = self._target_vm.name
-        logging.debug('Current target VM is %s' % self._target_vm.name)
+        LOG.debug('Current target VM is %s' % self._target_vm.name)
 
     def _del_vm(self):
         """
@@ -450,7 +452,7 @@ class VSphere(object):
         :param vm_name: a vm's name
         """
         WaitForTask(vm_obj.PowerOn())
-        logging.debug('VM %s was powered on', vm_obj.name)
+        LOG.debug('VM %s was powered on', vm_obj.name)
 
     @vm_picker
     def power_off(self, vm_obj=None, vm_name=None):
@@ -464,7 +466,7 @@ class VSphere(object):
         :param vm_name: a vm's name
         """
         WaitForTask(vm_obj.PowerOff())
-        logging.debug('VM %s was powered off', vm_obj.name)
+        LOG.debug('VM %s was powered off', vm_obj.name)
 
     @vm_picker
     def remove_all_snapshots(self, vm_obj=None, vm_name=None):
@@ -476,7 +478,7 @@ class VSphere(object):
         """
         if not vm_obj.snapshot:
             return
-        logging.debug('Remove all snapshots for VM %s', vm_obj.name)
+        LOG.debug('Remove all snapshots for VM %s', vm_obj.name)
         WaitForTask(vm_obj.RemoveAllSnapshots())
 
     @vm_picker
@@ -489,7 +491,7 @@ class VSphere(object):
         """
         if not vm_obj.snapshot:
             return
-        logging.debug('Remove current snapshot for VM %s', vm_obj.name)
+        LOG.debug('Remove current snapshot for VM %s', vm_obj.name)
         WaitForTask(
             vm_obj.snapshot.currentSnapshot.Remove(
                 removeChildren=True))
@@ -552,13 +554,13 @@ class VSphere(object):
             if raise_not_found:
                 raise VSphereSnapNotFound(vm_obj.name, snapshot_id)
             else:
-                logging.debug(
+                LOG.debug(
                     'Not found snapshot_id %s for VM %s',
                     snapshot_id,
                     vm_obj.name)
                 return
 
-        logging.debug('Remove snapshot %s for VM %s', snap, vm_obj.name)
+        LOG.debug('Remove snapshot %s for VM %s', snap, vm_obj.name)
         WaitForTask(snap.Remove(removeChildren=remove_children))
 
     @vm_picker
@@ -662,7 +664,7 @@ class VSphere(object):
                 "Not found device for label(%s) or key(%s)" %
                 (label, key))
 
-        logging.debug(
+        LOG.debug(
             "Found device: label(%s) key(%s) summary(%s)",
             res[0].deviceInfo.label,
             res[0].key,

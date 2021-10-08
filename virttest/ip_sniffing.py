@@ -21,6 +21,8 @@ import six
 from virttest.utils_misc import log_line
 from virttest.utils_version import VersionInterval
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class AddrCache(object):
 
@@ -55,8 +57,8 @@ class AddrCache(object):
             if self._data.get(hwaddr) == ipaddr:
                 return
             self._data[hwaddr] = ipaddr
-        logging.debug("Updated HWADDR (%s)<->(%s) IP pair "
-                      "into address cache", hwaddr, ipaddr)
+        LOG.debug("Updated HWADDR (%s)<->(%s) IP pair "
+                  "into address cache", hwaddr, ipaddr)
 
     def __getitem__(self, hwaddr):
         hwaddr = self._format_hwaddr(hwaddr)
@@ -71,7 +73,7 @@ class AddrCache(object):
             if hwaddr not in self._data:
                 return
             del self._data[hwaddr]
-        logging.debug("Dropped the address cache of HWADDR (%s)", hwaddr)
+        LOG.debug("Dropped the address cache of HWADDR (%s)", hwaddr)
 
     def get(self, hwaddr):
         """
@@ -112,7 +114,7 @@ class AddrCache(object):
         """Clear all the address caches."""
         with self._lock:
             self._data.clear()
-        logging.debug("Clean out all the address caches")
+        LOG.debug("Clean out all the address caches")
 
 
 class Sniffer(object):
@@ -174,7 +176,7 @@ class Sniffer(object):
         try:
             log_line(self._logfile, line)
         except Exception as e:
-            logging.warn("Can't log ip sniffer output: '%s'", e)
+            LOG.warn("Can't log ip sniffer output: '%s'", e)
         if self._output_handler(line):
             return
         # We can check whether the process is terminated unexpectedly
@@ -182,14 +184,14 @@ class Sniffer(object):
         match = self._re_sniffer_finished.match(line)
         if match:
             if match.group(1) != "0":
-                logging.error("IP sniffer (%s) terminated unexpectedly! "
-                              "please check the log to get the details "
-                              "(status: %s)", self.command, match.group(1))
+                LOG.error("IP sniffer (%s) terminated unexpectedly! "
+                          "please check the log to get the details "
+                          "(status: %s)", self.command, match.group(1))
 
     def _start_remote(self):
         address, port, username, password, prompt = self._remote_opts
         cmd = "%s %s" % (self.command, self.options)
-        logging.debug("Run '%s' on host '%s'", cmd, address)
+        LOG.debug("Run '%s' on host '%s'", cmd, address)
         login_cmd = ("ssh -o UserKnownHostsFile=/dev/null "
                      "-o StrictHostKeyChecking=no "
                      "-o PreferredAuthentications=password -p %s %s@%s" %
@@ -302,7 +304,7 @@ class TSharkSniffer(Sniffer):
             return False
         version = cls._get_version(session)
         if not version:
-            logging.warning("Couldn't get the version of '%s'", cls.command)
+            LOG.warning("Couldn't get the version of '%s'", cls.command)
             return False
         return version in cls.supported_versions
 
@@ -342,10 +344,10 @@ class TSharkSniffer(Sniffer):
         if re.match(r"[0-9a-fA-F]{1,4}:\S+", packet[0]):
             # TODO: support DHCPv6
             if not self.__dict__.setdefault("_ip6_warned", False):
-                logging.warn("IPv6 address sniffing is not supported yet by "
-                             "using TShark, please fallback to use other "
-                             "sniffers by uninstalling TShark when testing "
-                             "with IPv6")
+                LOG.warn("IPv6 address sniffing is not supported yet by "
+                         "using TShark, please fallback to use other "
+                         "sniffers by uninstalling TShark when testing "
+                         "with IPv6")
                 self._ip6_warned = True
             return True
 

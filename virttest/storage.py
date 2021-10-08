@@ -32,6 +32,8 @@ from virttest import ceph
 from virttest import nvme
 from virttest import data_dir
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def preprocess_images(bindir, params, env):
     # Clone master image form vms.
@@ -233,7 +235,7 @@ def get_image_filename(params, root_dir, basename=False):
                                                   user, port, host_key_check)
         return get_image_filename_filesytem(params, root_dir, basename=basename)
     else:
-        logging.warn("image_name parameter not set.")
+        LOG.warn("image_name parameter not set.")
 
 
 def get_image_filename_filesytem(params, root_dir, basename=False):
@@ -722,13 +724,12 @@ def copy_nfs_image(params, root_dir, basename=False):
         if(not os.path.isfile(dst) or
            utils_misc.get_image_info(dst)['lcounts'].lower() == "true"):
             source = get_image_filename(params, root_dir)
-            logging.debug("Checking for image available in image data "
-                          "path - %s", source)
+            LOG.debug("Checking for image available in image data "
+                      "path - %s", source)
             # check for image availability in images data directory
             if(os.path.isfile(source) and not
                utils_misc.get_image_info(source)['lcounts'].lower() == "true"):
-                logging.debug("Copying guest image from %s to %s", source,
-                              dst)
+                LOG.debug("Copying guest image from %s to %s", source, dst)
                 shutil.copy(source, dst)
             else:
                 raise exceptions.TestSetupFail("Guest image is unavailable"
@@ -874,8 +875,8 @@ class QemuImg(object):
             basename = os.path.basename(filename)
             bkp_set = []
             if action not in ('backup', 'restore'):
-                logging.error("No backup sets for action: %s, state: %s",
-                              action, good)
+                LOG.error("No backup sets for action: %s, state: %s",
+                          action, good)
                 return bkp_set
             if good:
                 src = filename
@@ -927,8 +928,8 @@ class QemuImg(object):
 
             s = os.statvfs(backup_dir)
             image_dir_free_disk_size = s.f_bavail * s.f_bsize
-            logging.info("backup image size: %d, available size: %d.",
-                         backup_size, image_dir_free_disk_size)
+            LOG.info("backup image size: %d, available size: %d.",
+                     backup_size, image_dir_free_disk_size)
             if not self.is_disk_size_enough(backup_size,
                                             image_dir_free_disk_size):
                 return
@@ -947,8 +948,7 @@ class QemuImg(object):
 
         for src, dst in backup_set:
             if action == 'backup' and skip_existing and os.path.exists(dst):
-                logging.debug("Image backup %s already exists, skipping...",
-                              dst)
+                LOG.debug("Image backup %s already exists, skipping...", dst)
                 continue
             backup_func(src, dst)
 
@@ -964,11 +964,11 @@ class QemuImg(object):
                                          self.params.get("backup_dir", ""))
         image_name = os.path.join(backup_dir, "%s.backup" %
                                   os.path.basename(self.image_filename))
-        logging.debug("Removing image file %s as requested", image_name)
+        LOG.debug("Removing image file %s as requested", image_name)
         if os.path.exists(image_name):
             os.unlink(image_name)
         else:
-            logging.warning("Image file %s not found", image_name)
+            LOG.warning("Image file %s not found", image_name)
 
     def save_image(self, params, filename, root_dir=None):
         """
@@ -1000,7 +1000,7 @@ class QemuImg(object):
                 )
         s = os.statvfs(root_dir)
         image_dir_free_disk_size = s.f_bavail * s.f_bsize
-        logging.info("Checking disk size on %s.", root_dir)
+        LOG.info("Checking disk size on %s.", root_dir)
         if not self.is_disk_size_enough(backup_size,
                                         image_dir_free_disk_size):
             return
@@ -1012,11 +1012,11 @@ class QemuImg(object):
         """Check if available disk size is enough for the data copy."""
         minimum_disk_free = 1.2 * required
         if available < minimum_disk_free:
-            logging.error("Free space: %s MB", (available / 1048576.))
-            logging.error("Backup size: %s MB", (required / 1048576.))
-            logging.error("Minimum free space acceptable: %s MB",
-                          (minimum_disk_free / 1048576.))
-            logging.error("Available disk space is not enough. Skipping...")
+            LOG.error("Free space: %s MB", (available / 1048576.))
+            LOG.error("Backup size: %s MB", (required / 1048576.))
+            LOG.error("Minimum free space acceptable: %s MB",
+                      (minimum_disk_free / 1048576.))
+            LOG.error("Available disk space is not enough. Skipping...")
             return False
         return True
 
@@ -1029,18 +1029,18 @@ class QemuImg(object):
         if os.path.exists(src):
             process.system("dd if=%s of=%s bs=4k conv=sync" % (src, dst))
         else:
-            logging.info("No source %s, skipping dd...", src)
+            LOG.info("No source %s, skipping dd...", src)
 
     @staticmethod
     def copy_data_file(src, dst):
         """Copy for files."""
         if os.path.isfile(src):
-            logging.debug("Copying %s -> %s", src, dst)
+            LOG.debug("Copying %s -> %s", src, dst)
             _dst = dst + '.part'
             shutil.copy(src, _dst)
             os.rename(_dst, dst)
         else:
-            logging.info("No source file %s, skipping copy...", src)
+            LOG.info("No source file %s, skipping copy...", src)
 
     @staticmethod
     def clone_image(params, vm_name, image_name, root_dir):
@@ -1069,7 +1069,7 @@ class QemuImg(object):
                 image_fn = get_image_filename(image_params, root_dir)
                 force_clone = params.get("force_image_clone", "no")
                 if not os.path.exists(image_fn) or force_clone == "yes":
-                    logging.info("Clone master image for vms.")
+                    LOG.info("Clone master image for vms.")
                     process.run(params.get("image_clone_command") %
                                 (m_image_fn, image_fn))
             params["image_name_%s" % vm_name] = vm_image_name
@@ -1094,11 +1094,11 @@ class QemuImg(object):
 
                 image_fn = get_image_filename(image_params, root_dir)
 
-                logging.debug("Removing vm specific image file %s", image_fn)
+                LOG.debug("Removing vm specific image file %s", image_fn)
                 if os.path.exists(image_fn):
                     process.run(params.get("image_remove_command") % (image_fn))
                 else:
-                    logging.debug("Image file %s not found", image_fn)
+                    LOG.debug("Image file %s not found", image_fn)
 
 
 class Rawdev(object):

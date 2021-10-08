@@ -22,6 +22,8 @@ from avocado.utils import process
 
 from . import service
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class Cgroup(object):
 
@@ -192,8 +194,8 @@ class Cgroup(object):
             os.rmdir(pwd)
             self.cgroups.remove(pwd)
         except ValueError:
-            logging.warn("cg.rm_cgroup(): Removed cgroup which wasn't created"
-                         "using this Cgroup")
+            LOG.warn("cg.rm_cgroup(): Removed cgroup which wasn't created"
+                     "using this Cgroup")
         except Exception as inst:
             raise exceptions.TestError("cg.rm_cgroup(): %s" % inst)
 
@@ -293,7 +295,7 @@ class Cgroup(object):
         :param cmd: command to be executed
         :return: subprocess.Popen() process
         """
-        logging.debug("cg.test(): executing parallel process '%s'", cmd)
+        LOG.debug("cg.test(): executing parallel process '%s'", cmd)
         cmd = self._client + ' ' + cmd
         process = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
@@ -393,7 +395,7 @@ class Cgroup(object):
             if value[-1] in human:
                 value = int(value[:-1]) * human[value[-1]]
         except Exception:
-            logging.warn("cg.set_prop() fallback into cg.set_property.")
+            LOG.warn("cg.set_prop() fallback into cg.set_property.")
             value = _value
         self.set_property(prop, value, pwd, check, checkprop)
 
@@ -539,14 +541,14 @@ class CgroupModules(object):
                 try:
                     process.system('umount %s -l' % self.modules[1][i])
                 except Exception as failure_detail:
-                    logging.warn("CGM: Couldn't unmount %s directory: %s",
-                                 self.modules[1][i], failure_detail)
+                    LOG.warn("CGM: Couldn't unmount %s directory: %s",
+                             self.modules[1][i], failure_detail)
         try:
             if self.rm_mountdir:
                 # If delete /cgroup/, this action will break cgroup service.
                 shutil.rmtree(self.mountdir)
         except Exception:
-            logging.warn(
+            LOG.warn(
                 "CGM: Couldn't remove the %s directory", self.mountdir)
 
     def init(self, _modules):
@@ -557,7 +559,7 @@ class CgroupModules(object):
         :param _modules: Desired modules.'memory','cpu,cpuset'...
         :return: Number of initialized modules.
         """
-        logging.debug("Desired cgroup modules: %s", _modules)
+        LOG.debug("Desired cgroup modules: %s", _modules)
         mounts = []
         with open('/proc/mounts', 'r') as proc_mounts:
             line = proc_mounts.readline().split()
@@ -591,9 +593,9 @@ class CgroupModules(object):
                     self.modules[1].append(module_path)
                     self.modules[2].append(True)
                 except process.CmdError:
-                    logging.info("Cgroup module '%s' not available", module)
+                    LOG.info("Cgroup module '%s' not available", module)
 
-        logging.debug("Initialized cgroup modules: %s", self.modules[0])
+        LOG.debug("Initialized cgroup modules: %s", self.modules[0])
         return len(self.modules[0])
 
     def get_pwd(self, module):
@@ -605,7 +607,7 @@ class CgroupModules(object):
         try:
             i = self.modules[0].index(module)
         except Exception as inst:
-            logging.error("module %s not found: %s", module, inst)
+            LOG.error("module %s not found: %s", module, inst)
             return None
         return self.modules[1][i]
 

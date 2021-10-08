@@ -9,6 +9,8 @@ import logging
 from virttest.libvirt_xml import vm_xml
 from virttest.utils_libvirt import libvirt_vmxml
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def add_cpu_settings(vmxml, params):
     """
@@ -82,7 +84,7 @@ def add_cpu_settings(vmxml, params):
         # otherwise, the vm may fail to define
         vm_attrs = {k.replace('setvm_', ''): params[k] for k in params
                     if k.startswith('setvm_')}
-        logging.debug(vm_attrs)
+        LOG.debug(vm_attrs)
         libvirt_vmxml.set_vm_attrs(vmxml, vm_attrs)
     vmxml.xmltreefile.write()
     vmxml.sync()

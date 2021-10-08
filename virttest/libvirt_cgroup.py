@@ -53,6 +53,8 @@ CGROUP_V2_SCHEDINFO_FILE_MAPPING = {"cpu_shares": "cpu.weight",
                                     "iothread_period": "<iothreadX>/cpu.max",
                                     "iothread_quota": "<iothreadX>/cpu.max"}
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 #cgroup related functions
 class CgroupTest(object):
@@ -101,7 +103,7 @@ class CgroupTest(object):
             cgroup_path = utils_cgroup.resolve_task_cgroup_path(
                     int(self.__vm_pid), controller)
         if not os.path.exists(cgroup_path):
-            logging.error("cgroup path '%s' doesn't exist" % cgroup_path)
+            LOG.error("cgroup path '%s' doesn't exist" % cgroup_path)
             return None
         return cgroup_path
 
@@ -119,9 +121,9 @@ class CgroupTest(object):
             if dir_keyword in filename:
                 dir_names.append(filename)
         if not dir_names and "iothread" in dir_keyword:
-            logging.debug("No sub dirs found with keyword: '%s'. "
-                          "Pls check if you've executed virsh cmd "
-                          "'iothreadadd'.", dir_keyword)
+            LOG.debug("No sub dirs found with keyword: '%s'. "
+                      "Pls check if you've executed virsh cmd "
+                      "'iothreadadd'.", dir_keyword)
             return None
         return sorted(dir_names)
 
@@ -176,12 +178,12 @@ class CgroupTest(object):
             cgroup_path = self.get_cgroup_path("memory")
             cmd = "getconf PAGE_SIZE"
             page_size = process.run(cmd, ignore_status=True, shell=True).stdout_text.strip()
-            logging.debug("page_size is %d" % int(page_size))
+            LOG.debug("page_size is %d" % int(page_size))
             if int(page_size) == 65536:
                 max_mem_value = "9223372036854710272"
             else:
                 max_mem_value = "9223372036854771712"
-            logging.debug("max_mem_value is %s" % max_mem_value)
+            LOG.debug("max_mem_value is %s" % max_mem_value)
             for cg_key, cg_file_name in list(CGROUP_V1_MEM_FILE_MAPPING.items()):
                 with open(os.path.join(cgroup_path, cg_file_name), 'r') as cg_file:
                     cg_file_value = cg_file.read().strip()
@@ -213,7 +215,7 @@ class CgroupTest(object):
                             continue
                     standardized_cgroup_info[cg_key] = cg_file_value
         else:
-            logging.error("You've provided a wrong virsh cmd: %s", virsh_cmd)
+            LOG.error("You've provided a wrong virsh cmd: %s", virsh_cmd)
         return standardized_cgroup_info
 
     def __get_standardized_cgroup2_info(self, virsh_cmd=None):
@@ -275,7 +277,7 @@ class CgroupTest(object):
                         list_index = 1
                     standardized_cgroup_info[cg_key] = cg_file_values[list_index]
         else:
-            logging.error("You've provided a wrong virsh cmd: %s", virsh_cmd)
+            LOG.error("You've provided a wrong virsh cmd: %s", virsh_cmd)
         return standardized_cgroup_info
 
     def get_cgroup_file_mapping(self, virsh_cmd):
@@ -331,7 +333,7 @@ class CgroupTest(object):
         elif virsh_cmd == "schedinfo":
             func = virsh.schedinfo
         else:
-            logging.error("There is no virsh cmd '%s'", virsh_cmd)
+            LOG.error("There is no virsh cmd '%s'", virsh_cmd)
             return None
         result = func(vm_name, ignore_status=True)
         return self.convert_virsh_output_to_dict(result)
@@ -367,7 +369,7 @@ class CgroupTest(object):
         :param dev_path: The path to the device
         """
         if not os.path.exists(dev_path):
-            logging.debug("device '%s' not existing", dev_path)
+            LOG.debug("device '%s' not existing", dev_path)
             return None
         dev = os.stat(dev_path)
         return "%s:%s" % (os.major(dev.st_rdev), os.minor(dev.st_rdev))
@@ -409,9 +411,9 @@ class CgroupTest(object):
                     standardized_virsh_output_info[mem_item] = str(int(mem_item_value) * 1024)
                 else:
                     standardized_virsh_output_info[mem_item] = mem_item_value
-                    logging.debug("memtune: the value '%s' for '%s' is "
-                                  "new to us, pls check.",
-                                  mem_item_value, mem_item)
+                    LOG.debug("memtune: the value '%s' for '%s' is "
+                              "new to us, pls check.",
+                              mem_item_value, mem_item)
         elif virsh_cmd == "schedinfo":
             for schedinfo_item, schedinfo_value in list(virsh_dict.items()):
                 if schedinfo_item.lower() in ["scheduler"]:
@@ -424,8 +426,8 @@ class CgroupTest(object):
                         continue
                 standardized_virsh_output_info[schedinfo_item] = schedinfo_value
         else:
-            logging.error("You've provided an unsupported virsh cmd: %s",
-                          virsh_cmd)
+            LOG.error("You've provided an unsupported virsh cmd: %s",
+                      virsh_cmd)
             return None
         return standardized_virsh_output_info
 

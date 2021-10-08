@@ -6,6 +6,8 @@ import os
 
 from avocado.utils import process
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class ProtectedKeyHelper(object):
     """
@@ -26,7 +28,7 @@ class ProtectedKeyHelper(object):
         error, output = cmd_status_output(cmd="modprobe %s" % self.module_name,
                                           session=self.session)
         if error:
-            logging.debug("Error loading module 'pkey': %s", output)
+            LOG.debug("Error loading module 'pkey': %s", output)
             return False
         return True
 
@@ -41,7 +43,7 @@ class ProtectedKeyHelper(object):
         error, output = cmd_status_output(cmd="hexdump %s" % attr_path,
                                           session=self.session)
         if error or "No such device" in output:
-            logging.debug("Error reading from %s: %s", attr_path, output)
+            LOG.debug("Error reading from %s: %s", attr_path, output)
             return None
         return output
 

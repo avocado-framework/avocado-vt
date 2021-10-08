@@ -11,6 +11,8 @@ from six import string_types
 from virttest import utils_misc
 from virttest import vt_console
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 PACKAGE_MANAGERS = ['apt-get',
                     'yum',
                     'zypper',
@@ -110,17 +112,14 @@ class RemotePackageMgr(object):
                                                                 timeout,
                                                                 internal_timeout)
                 if status:
-                    logging.error("'%s' execution failed "
-                                  "with %s", cmd, output)
+                    LOG.error("'%s' execution failed with %s", cmd, output)
                     # Try to clean the repo db and re-try installation
                     if not self.clean():
-                        logging.error("Package %s was broken",
-                                      self.package_manager)
+                        LOG.error("Package %s was broken", self.package_manager)
                         return False
                     status, output = self.session.cmd_status_output(cmd, timeout)
                     if status:
-                        logging.error("'%s' execution failed "
-                                      "with %s", cmd, output)
+                        LOG.error("'%s' execution failed with %s", cmd, output)
                         return False
         return True
 
@@ -180,7 +179,7 @@ class LocalPackageMgr(software_manager.SoftwareManager):
                 need = True
             if need:
                 if not self.func(pkg):
-                    logging.error("Operate %s on host failed", pkg)
+                    LOG.error("Operate %s on host failed", pkg)
                     return False
         return True
 

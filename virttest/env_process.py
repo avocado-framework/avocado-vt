@@ -93,6 +93,8 @@ QEMU_VERSION_RE = r"QEMU (?:PC )?emulator version\s([0-9]+\.[0-9]+\.[0-9]+)\s?\(
 
 THREAD_ERROR = False
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def _get_qemu_version(qemu_cmd):
     """
@@ -123,7 +125,7 @@ def preprocess_image(test, params, image_name, vm_process_status=None):
     base_dir = params.get("images_base_dir", data_dir.get_data_dir())
 
     if not storage.preprocess_image_backend(base_dir, params, image_name):
-        logging.error("Backend can't be prepared correctly.")
+        LOG.error("Backend can't be prepared correctly.")
 
     image_filename = storage.get_image_filename(params,
                                                 base_dir)
@@ -144,7 +146,7 @@ def preprocess_image(test, params, image_name, vm_process_status=None):
             # force create a new image.
             storage.file_remove(params, image_filename)
         image = qemu_storage.QemuImg(params, base_dir, image_name)
-        logging.info("Create image on %s." % image.storage_type)
+        LOG.info("Create image on %s." % image.storage_type)
         image.create(params)
 
 
@@ -179,7 +181,7 @@ def preprocess_fs_source(test, params, fs_name, vm_process_status=None):
             if create_fs_source:
                 if os.path.exists(fs_source):
                     shutil.rmtree(fs_source, ignore_errors=True)
-                logging.info("Create filesystem source %s." % fs_source)
+                LOG.info("Create filesystem source %s." % fs_source)
                 os.makedirs(fs_source)
     else:
         test.cancel('Unsupport the type of filesystem "%s"' % fs_type)
@@ -373,7 +375,7 @@ def preprocess_vm(test, params, env, name):
             debug_msg += "There is no serial console in VM."
         if debug_msg:
             debug_msg += " Skip the kernel command line check."
-            logging.warn(debug_msg)
+            LOG.warn(debug_msg)
             return
         cmd_line = params.get("kernel_cmd_line_str", "Command line:")
         try:
@@ -399,12 +401,11 @@ def preprocess_vm(test, params, env, name):
                 err_msg += " serial output is %s" % kernel_cmd_line
                 raise exceptions.TestError(err_msg)
 
-            logging.info("Kernel command line get from serial port is"
-                         " as expect")
+            LOG.info("Kernel command line get from serial port is as expect")
         except Exception as err:
-            logging.warn("Did not get the kernel command line from serial "
-                         "port output. Skip the kernel command line check."
-                         "Error is %s" % err)
+            LOG.warn("Did not get the kernel command line from serial "
+                     "port output. Skip the kernel command line check."
+                     "Error is %s" % err)
 
 
 def check_image(test, params, image_name, vm_process_status=None):
@@ -423,7 +424,7 @@ def check_image(test, params, image_name, vm_process_status=None):
 
     if vm_process_status == "running" and check_image_flag:
         if params.get("skip_image_check_during_running") == "yes":
-            logging.debug("Guest is still running, skip the image check.")
+            LOG.debug("Guest is still running, skip the image check.")
             check_image_flag = False
         else:
             image_info_output = image.info(force_share=True)
@@ -434,14 +435,14 @@ def check_image(test, params, image_name, vm_process_status=None):
                     if len(option) == 2:
                         image_info[option[0].strip()] = option[1].strip()
             else:
-                logging.debug("Can not find matched image for selected guest "
-                              "os, skip the image check.")
+                LOG.debug("Can not find matched image for selected guest "
+                          "os, skip the image check.")
                 check_image_flag = False
             if ("lazy refcounts" in image_info and
                     image_info["lazy refcounts"] == "true"):
-                logging.debug("Should not check image while guest is alive"
-                              " when the image is create with lazy refcounts."
-                              " Skip the image check.")
+                LOG.debug("Should not check image while guest is alive"
+                          " when the image is create with lazy refcounts."
+                          " Skip the image check.")
                 check_image_flag = False
 
     # Save the potential bad image when the test is not passed.
@@ -454,7 +455,7 @@ def check_image(test, params, image_name, vm_process_status=None):
                 image_name, hsh, image.image_format))
             image.save_image(params, name)
         else:
-            logging.error("Not saving images, VM is not stopped.")
+            LOG.error("Not saving images, VM is not stopped.")
 
     if check_image_flag:
         try:
@@ -468,7 +469,7 @@ def check_image(test, params, image_name, vm_process_status=None):
             params["img_check_failed"] = "yes"
             if (params.get("skip_cluster_leak_warn") == "yes" and
                     "Leaked clusters" in six.text_type(e)):
-                logging.warn(six.text_type(e))
+                LOG.warn(six.text_type(e))
             else:
                 raise e
 
@@ -485,8 +486,8 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
                               or None for no vm exist.
     """
     if vm_process_status == "running":
-        logging.warn("Skipped processing image '%s' since "
-                     "the VM is running!" % image_name)
+        LOG.warn("Skipped processing image '%s' since "
+                 "the VM is running!" % image_name)
         return
 
     restored, removed = (False, False)
@@ -523,7 +524,7 @@ def postprocess_image(test, params, image_name, vm_process_status=None):
                 removed = True
 
     if (not removed and params.get("remove_image", "yes") == "yes"):
-        logging.info("Remove image on %s." % image.storage_type)
+        LOG.info("Remove image on %s." % image.storage_type)
         if clone_master is None:
             image.remove()
         elif clone_master == "yes":
@@ -545,8 +546,8 @@ def postprocess_fs_source(test, params, fs_name, vm_process_status=None):
                               running, dead or None for no vm exist.
     """
     if vm_process_status == "running":
-        logging.warn("Skipped processing filesystem '%s' since "
-                     "the VM is running!" % fs_name)
+        LOG.warn("Skipped processing filesystem '%s' since "
+                 "the VM is running!" % fs_name)
         return
 
     fs_type = params.get('fs_source_type', 'mount')
@@ -557,11 +558,11 @@ def postprocess_fs_source(test, params, fs_name, vm_process_status=None):
             fs_source = os.path.join(base_dir, fs_source)
 
         if params.get("remove_fs_source") == 'yes':
-            logging.info("Remove filesystem source %s." % fs_source)
+            LOG.info("Remove filesystem source %s." % fs_source)
             shutil.rmtree(fs_source, ignore_errors=True)
     else:
-        logging.info("Skipped processing filesystem '%s' since "
-                     "unsupported type '%s'." % (fs_name, fs_type))
+        LOG.info("Skipped processing filesystem '%s' since "
+                 "unsupported type '%s'." % (fs_name, fs_type))
 
 
 def postprocess_vm(test, params, env, name):
@@ -618,8 +619,8 @@ def postprocess_vm(test, params, env, name):
             try:
                 vm.copy_files_from(dump_path, vm_extra_dumps)
             except:
-                logging.error("Could not copy the extra dump '%s' from the vm '%s'",
-                              dump_path, vm.name)
+                LOG.error("Could not copy the extra dump '%s' from the vm '%s'",
+                          dump_path, vm.name)
 
     if params.get("kill_vm") == "yes":
         kill_vm_timeout = float(params.get("kill_vm_timeout", 0))
@@ -661,7 +662,7 @@ def process_command(test, params, env, command, command_timeout,
             (test.bindir, command), shell=True)
     except a_process.CmdError as e:
         if command_noncritical:
-            logging.warn(e)
+            LOG.warn(e)
         else:
             raise
 
@@ -744,7 +745,7 @@ def _process_images_serial(image_func, test, images, params, exit_event=None,
         image_params = params.object_params(image_name)
         image_func(test, image_params, image_name, vm_process_status)
         if exit_event and exit_event.is_set():
-            logging.error("Received exit_event, stop processing of images.")
+            LOG.error("Received exit_event, stop processing of images.")
             break
 
 
@@ -772,7 +773,7 @@ def _process_images_parallel(image_func, test, params, vm_process_status=None):
         thread.join()
 
     if exit_event.is_set():     # Failure in some thread
-        logging.error("Image processing failed:")
+        LOG.error("Image processing failed:")
         for thread in threads:
             if thread.exc_info:     # Throw the first failure
                 six.reraise(thread.exc_info[1], None, thread.exc_info[2])
@@ -941,7 +942,7 @@ def preprocess(test, params, env):
     try:
         cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_utils.get_cpu_arch()
     except Exception:
-        logging.warning("Could not get host cpu family")
+        LOG.warning("Could not get host cpu family")
     migration_setup = params.get("migration_setup", "no") == "yes"
     if cpu_family is not None and "power" in cpu_family:
         pvr_cmd = "grep revision /proc/cpuinfo | awk '{print $3}' | head -n 1"
@@ -975,9 +976,9 @@ def preprocess(test, params, env):
                 test_setup.switch_indep_threads_mode(state="N", params=params)
                 test_setup.switch_smt(state="off", params=params)
             if pvr != remote_pvr:
-                logging.warning("Source and destinations system PVR "
-                                "does not match\n PVR:\nSource: %s"
-                                "\nDestination: %s", pvr, remote_pvr)
+                LOG.warning("Source and destinations system PVR "
+                            "does not match\n PVR:\nSource: %s"
+                            "\nDestination: %s", pvr, remote_pvr)
     # First, let's verify if this test does require root or not. If it
     # does and the test suite is running as a regular user, we shall just
     # throw a TestSkipError exception, which will skip the test.
@@ -1164,8 +1165,8 @@ def preprocess(test, params, env):
             continue
         if vm.name not in requested_vms:
             if keep_unrequested_vms:
-                logging.debug("The vm %s is registered in the env and disregarded "
-                              "in the current test", vm.name)
+                LOG.debug("The vm %s is registered in the env and disregarded "
+                          "in the current test", vm.name)
             else:
                 vm.destroy()
                 del env[key]
@@ -1191,16 +1192,16 @@ def preprocess(test, params, env):
         warning_msg = "KVM module not loaded"
         if params.get("enable_kvm", "yes") == "yes":
             test.cancel(warning_msg)
-        logging.warning(warning_msg)
+        LOG.warning(warning_msg)
         kvm_version = "Unknown"
 
-    logging.debug("KVM version: %s" % kvm_version)
+    LOG.debug("KVM version: %s" % kvm_version)
     version_info["kvm_version"] = str(kvm_version)
 
     # Checking required kernel, if not satisfied, cancel test
     if params.get("required_kernel"):
         required_kernel = params.get("required_kernel")
-        logging.info("Test requires kernel version: %s" % required_kernel)
+        LOG.info("Test requires kernel version: %s" % required_kernel)
         match = re.search(r'[0-9]+\.[0-9]+\.[0-9]+(\-[0-9]+)?', kvm_version)
         if match is None:
             test.cancel("Can not get host kernel version.")
@@ -1223,16 +1224,16 @@ def preprocess(test, params, env):
         kvm_userspace_version = _get_qemu_version(qemu_path)
         qemu_dst_path = utils_misc.get_qemu_dst_binary(params)
         if qemu_dst_path and qemu_dst_path != qemu_path:
-            logging.debug("KVM userspace dst version(qemu): %s",
-                          _get_qemu_version(qemu_dst_path))
+            LOG.debug("KVM userspace dst version(qemu): %s",
+                      _get_qemu_version(qemu_dst_path))
 
-    logging.debug("KVM userspace version(qemu): %s", kvm_userspace_version)
+    LOG.debug("KVM userspace version(qemu): %s", kvm_userspace_version)
     version_info["qemu_version"] = str(kvm_userspace_version)
 
     # Checking required qemu, if not satisfied, cancel test
     if params.get("required_qemu"):
         required_qemu = params.get("required_qemu")
-        logging.info("Test requires qemu version: %s" % required_qemu)
+        LOG.info("Test requires qemu version: %s" % required_qemu)
         match = re.search(r'[0-9]+\.[0-9]+\.[0-9]+(\-[0-9]+)?',
                           kvm_userspace_version)
         if match is None:
@@ -1251,7 +1252,7 @@ def preprocess(test, params, env):
         except a_process.CmdError:
             libvirt_version = "Unknown"
         version_info["libvirt_version"] = str(libvirt_version)
-        logging.debug("KVM userspace version(libvirt): %s" % libvirt_version)
+        LOG.debug("KVM userspace version(libvirt): %s" % libvirt_version)
 
     # Write it as a keyval
     test.write_test_keyval(version_info)
@@ -1301,11 +1302,11 @@ def preprocess(test, params, env):
             try:
                 pol.setup()
             except test_setup.PolkitWriteLibvirtdConfigError as e:
-                logging.error(str(e))
+                LOG.error(str(e))
             except test_setup.PolkitRulesSetupError as e:
-                logging.error(str(e))
+                LOG.error(str(e))
             except Exception as e:
-                logging.error("Unexpected error: '%s'" % str(e))
+                LOG.error("Unexpected error: '%s'" % str(e))
             if libvirtd_inst is None:
                 libvirtd_inst = utils_libvirtd.Libvirtd("virtqemud")
             libvirtd_inst.restart()
@@ -1321,10 +1322,10 @@ def preprocess(test, params, env):
         image_filename = storage.get_image_filename(params, base_dir)
         sysprep_options = params.get("sysprep_options", "--operations machine-id")
         # backup the original master image before customization
-        logging.info("Backup the master image before sysprep")
+        LOG.info("Backup the master image before sysprep")
         image_obj = qemu_storage.QemuImg(params, base_dir, image_filename)
         image_obj.backup_image(params, base_dir, "backup", True, True)
-        logging.info("Syspreping the image as requested before cloning.")
+        LOG.info("Syspreping the image as requested before cloning.")
         try:
             utils_libguestfs.virt_sysprep_cmd(
                 image_filename, options=sysprep_options, ignore_status=False)
@@ -1360,8 +1361,8 @@ def preprocess(test, params, env):
                 if cpu_info:
                     break
             except Exception as err:
-                logging.error("Failed to get cpu info with policy %s: %s"
-                              % (policy, err))
+                LOG.error("Failed to get cpu info with policy %s: %s"
+                          % (policy, err))
                 continue
         else:
             raise exceptions.TestCancel("Failed to get cpu info with "
@@ -1421,7 +1422,7 @@ def preprocess(test, params, env):
             try:
                 obj.run_avocado()
             except Exception as info:
-                logging.error(info)
+                LOG.error(info)
                 THREAD_ERROR = True
         nest_params = params.copy()
         nested_params = eval(nest_params.get("nested_params", "{}"))
@@ -1453,7 +1454,7 @@ def preprocess(test, params, env):
             nest_params["vt_extra_params"] += (" nested_guest_max_level=\"L%s\"" %
                                                int(max_level.lstrip("L")))
             nest_params["vt_extra_params"] += " run_nested_guest_test=\"yes\""
-            logging.debug("Test is running in Guest level: %s", current_level)
+            LOG.debug("Test is running in Guest level: %s", current_level)
             for vm in nest_vms:
                 # params with nested level specific configuration
                 new_params = nest_params.object_params(current_level)
@@ -1505,7 +1506,7 @@ def postprocess(test, params, env):
             postprocess_vm_on_hook(test, params, env)  # pylint: disable=E1102
         except Exception as details:
             err += "\nPostprocessing living vm hook: %s" % str(details).replace('\\n', '\n  ')
-            logging.error(details)
+            LOG.error(details)
 
     migration_setup = params.get("migration_setup", "no") == "yes"
     if params.get("verify_guest_dmesg", "yes") == "yes" and params.get("start_vm", "no") == "yes":
@@ -1526,7 +1527,7 @@ def postprocess(test, params, env):
     base_dir = data_dir.get_data_dir()
     # if sysprep was requested in preprocess then restore back the original image
     if params.get("sysprep_required", "no") == "yes":
-        logging.info("Restoring the original master image.")
+        LOG.info("Restoring the original master image.")
         image_filename = storage.get_image_filename(params, base_dir)
         image_obj = qemu_storage.QemuImg(params, base_dir, image_filename)
         image_obj.backup_image(params, base_dir, "restore", True)
@@ -1537,7 +1538,7 @@ def postprocess(test, params, env):
         living_vms = [vm for vm in env.get_all_vms() if (vm.is_alive() and not vm.is_paused())]
         for vm in living_vms:
             sosreport_path = vm.sosreport()
-            logging.info("Sosreport for guest: %s", sosreport_path)
+            LOG.info("Sosreport for guest: %s", sosreport_path)
 
     # Collect code coverage report for qemu if enabled
     if params.get("gcov_qemu", "no") == "yes":
@@ -1557,15 +1558,15 @@ def postprocess(test, params, env):
                 archive.compress("gcov_qemu.tar.gz", gcov_qemu_dir)
                 shutil.rmtree(gcov_qemu_dir, ignore_errors=True)
         else:
-            logging.warning("Check either qemu build directory availablilty"
-                            " or install gcovr package for qemu coverage report")
+            LOG.warning("Check either qemu build directory availablilty"
+                        " or install gcovr package for qemu coverage report")
     # Postprocess all VMs and images
     try:
         process(test, params, env, postprocess_image,
                 postprocess_vm, True, postprocess_fs_source)
     except Exception as details:
         err += "\nPostprocess: %s" % str(details).replace('\\n', '\n  ')
-        logging.error(details)
+        LOG.error(details)
 
     # Terminate the screendump thread
     global _screendump_thread, _screendump_thread_termination_event
@@ -1594,11 +1595,11 @@ def postprocess(test, params, env):
                 else:
                     video_file = "%s.ogg" % screendump_dir
                 video_file = os.path.join(test.debugdir, video_file)
-                logging.debug("Encoding video file %s", video_file)
+                LOG.debug("Encoding video file %s", video_file)
                 video.encode(screendump_dir, video_file)
 
             except Exception as detail:
-                logging.info(
+                LOG.info(
                     "Video creation failed for %s: %s", screendump_dir, detail)
 
     # Warn about corrupt PPM files
@@ -1611,7 +1612,7 @@ def postprocess(test, params, env):
     ppm_file_rex = "*_iter%s.ppm" % test.iteration
     for f in glob.glob(os.path.join(screendump_temp_dir, ppm_file_rex)):
         if not ppm_utils.image_verify_ppm_file(f):
-            logging.warn("Found corrupt PPM file: %s", f)
+            LOG.warn("Found corrupt PPM file: %s", f)
 
     # Should we convert PPM files to PNG format?
     if params.get("convert_ppm_files_to_png", "no") == "yes":
@@ -1664,7 +1665,7 @@ def postprocess(test, params, env):
                         timeout=vm.LOGIN_WAIT_TIMEOUT)
                     session.close()
             except (remote.LoginError, virt_vm.VMError, IndexError) as e:
-                logging.warn(e)
+                LOG.warn(e)
                 vm.destroy(gracefully=False)
 
     # Kill VMs with deleted disks
@@ -1675,7 +1676,7 @@ def postprocess(test, params, env):
             if params.object_params(image).get('remove_image') == 'yes':
                 destroy = True
         if destroy and not vm.is_dead():
-            logging.debug(
+            LOG.debug(
                 'Image of VM %s was removed, destroying it.',
                 vm.name)
             vm.destroy()
@@ -1689,7 +1690,7 @@ def postprocess(test, params, env):
     # collect sosreport of host/remote host during postprocess if enabled
     if params.get("enable_host_sosreport", "no") == "yes":
         sosreport_path = utils_misc.get_sosreport(sosreport_name="host")
-        logging.info("Sosreport for host: %s", sosreport_path)
+        LOG.info("Sosreport for host: %s", sosreport_path)
     if params.get("enable_remote_host_sosreport", "no") == "yes":
         remote_params = {'server_ip': params['remote_ip'], 'server_pwd': params['remote_pwd']}
         remote_params['server_user'] = params['remote_user']
@@ -1699,7 +1700,7 @@ def postprocess(test, params, env):
                                                   remote_pwd=params['remote_pwd'],
                                                   remote_user=params['remote_user'],
                                                   sosreport_name="host_remote")
-        logging.info("Sosreport for remote host: %s", sosreport_path)
+        LOG.info("Sosreport for remote host: %s", sosreport_path)
     living_vms = [vm for vm in env.get_all_vms() if vm.is_alive()]
     # Close all monitor socket connections of living vm.
     if not params.get_boolean("keep_env_vms", False):
@@ -1720,7 +1721,7 @@ def postprocess(test, params, env):
     try:
         cpu_family = cpu_utils.get_family() if hasattr(cpu_utils, 'get_family') else cpu_utils.get_cpu_arch()
     except Exception:
-        logging.warning("Could not get host cpu family")
+        LOG.warning("Could not get host cpu family")
     if cpu_family is not None and "power" in cpu_family:
         pvr_cmd = "grep revision /proc/cpuinfo | awk '{print $3}' | head -n 1"
         pvr = float(a_process.system_output(pvr_cmd, shell=True).strip())
@@ -1757,7 +1758,7 @@ def postprocess(test, params, env):
                 libvirtd_inst.restart()
         except Exception as details:
             err += "\nHP cleanup: %s" % str(details).replace('\\n', '\n  ')
-            logging.error(details)
+            LOG.error(details)
         else:
             _post_hugepages_surp = h.ext_hugepages_surp
 
@@ -1767,7 +1768,7 @@ def postprocess(test, params, env):
             thp.cleanup()
         except Exception as details:
             err += "\nTHP cleanup: %s" % str(details).replace('\\n', '\n  ')
-            logging.error(details)
+            LOG.error(details)
 
     for kvm_module in KVM_MODULE_HANDLERS:
         kvm_module.restore()
@@ -1778,7 +1779,7 @@ def postprocess(test, params, env):
             ksm.cleanup(env)
         except Exception as details:
             err += "\nKSM cleanup: %s" % str(details).replace('\\n', '\n  ')
-            logging.error(details)
+            LOG.error(details)
 
     if params.get("setup_egd") == "yes" and params.get("kill_vm") == "yes":
         try:
@@ -1786,7 +1787,7 @@ def postprocess(test, params, env):
             egd.cleanup()
         except Exception as details:
             err += "\negd.pl cleanup: %s" % str(details).replace('\\n', '\n  ')
-            logging.error(details)
+            LOG.error(details)
 
     if vm_type == "libvirt":
         if params.get("setup_libvirt_polkit") == "yes":
@@ -1798,11 +1799,11 @@ def postprocess(test, params, env):
                 libvirtd_inst.restart()
             except test_setup.PolkitConfigCleanupError as e:
                 err += "\nPolkit cleanup: %s" % str(e).replace('\\n', '\n  ')
-                logging.error(e)
+                LOG.error(e)
             except Exception as details:
                 err += "\nPolkit cleanup: %s" % str(details
                                                     ).replace('\\n', '\n  ')
-                logging.error("Unexpected error: %s" % details)
+                LOG.error("Unexpected error: %s" % details)
         if params.get("enable_libvirtd_debug_log", "yes") == "yes":
             libvirtd_debug_log = test_setup.LibvirtdDebugLog(test)
             libvirtd_debug_log.disable()
@@ -1816,7 +1817,7 @@ def postprocess(test, params, env):
         except Exception as details:
             err += "\nPostprocess command: %s" % str(details).replace('\n',
                                                                       '\n  ')
-            logging.error(details)
+            LOG.error(details)
 
     if params.get("storage_type") == "iscsi":
         try:
@@ -1824,7 +1825,7 @@ def postprocess(test, params, env):
             iscsidev.cleanup()
         except Exception as details:
             err += "\niscsi cleanup: %s" % str(details).replace('\\n', '\n  ')
-            logging.error(details)
+            LOG.error(details)
 
     if params.get("storage_type") == "lvm":
         try:
@@ -1832,7 +1833,7 @@ def postprocess(test, params, env):
             lvmdev.cleanup()
         except Exception as details:
             err += "\nLVM cleanup: %s" % str(details).replace('\\n', '\n  ')
-            logging.error(details)
+            LOG.error(details)
         env.unregister_lvmdev("lvm_%s" % params["main_vm"])
 
     if params.get("storage_type") == "nfs":
@@ -1882,7 +1883,7 @@ def postprocess(test, params, env):
             brcfg.cleanup()
         except Exception as details:
             err += "\nPB cleanup: %s" % str(details).replace('\\n', '\n  ')
-            logging.error(details)
+            LOG.error(details)
 
     if params.get("verify_host_dmesg", "yes") == "yes":
         dmesg_log_file = params.get("host_dmesg_logfile", "host_dmesg.log")
@@ -1905,7 +1906,7 @@ def postprocess(test, params, env):
             postprocess_vm_off_hook(test, params, env)  # pylint: disable=E1102
         except Exception as details:
             err += "\nPostprocessing dead vm hook: %s" % str(details).replace('\\n', '\n  ')
-            logging.error(details)
+            LOG.error(details)
 
     if err:
         raise RuntimeError("Failures occurred while postprocess:\n%s" % err)
@@ -1959,16 +1960,16 @@ def _take_screendumps(test, params, env):
             try:
                 vm.screendump(filename=temp_filename, debug=False)
             except qemu_monitor.MonitorError as e:
-                logging.warn(e)
+                LOG.warn(e)
                 continue
             except AttributeError as e:
-                logging.warn(e)
+                LOG.warn(e)
                 continue
             if not os.path.exists(temp_filename):
-                logging.warn("VM '%s' failed to produce a screendump", vm.name)
+                LOG.warn("VM '%s' failed to produce a screendump", vm.name)
                 continue
             if not ppm_utils.image_verify_ppm_file(temp_filename):
-                logging.warn("VM '%s' produced an invalid screendump", vm.name)
+                LOG.warn("VM '%s' produced an invalid screendump", vm.name)
                 os.unlink(temp_filename)
                 continue
             screendump_dir = "screendumps_%s_%s_iter%s" % (vm.name, vm_pid,
@@ -1994,12 +1995,12 @@ def _take_screendumps(test, params, env):
                             raise virt_vm.VMScreenInactiveError(vm,
                                                                 time_inactive)
                         except virt_vm.VMScreenInactiveError:
-                            logging.error(msg)
+                            LOG.error(msg)
                             # Let's reset the counter
                             inactivity[vm.instance] = time.time()
                             test.background_errors.put(sys.exc_info())
                     elif inactivity_watcher == 'log':
-                        logging.debug(msg)
+                        LOG.debug(msg)
             else:
                 inactivity[vm.instance] = time.time()
             cache[image_hash] = screendump_filename
@@ -2011,8 +2012,8 @@ def _take_screendumps(test, params, env):
                     image.save(screendump_filename, format="JPEG",
                                quality=quality)
                 except (IOError, OSError) as error_detail:
-                    logging.warning("VM '%s' failed to produce a "
-                                    "screendump: %s", vm.name, error_detail)
+                    LOG.warning("VM '%s' failed to produce a "
+                                "screendump: %s", vm.name, error_detail)
                     # Decrement the counter as we in fact failed to
                     # produce a converted screendump
                     counter[vm.instance] -= 1
@@ -2053,10 +2054,10 @@ def store_vm_info(vm, log_filename, info_cmd='registers',
         try:
             output = vm.catch_monitor.info(info_cmd, debug=False)
         except qemu_monitor.MonitorError as err:
-            logging.warn(err)
+            LOG.warn(err)
             return False
         except AttributeError as err:
-            logging.warn(err)
+            LOG.warn(err)
             return False
     elif vmtype == "libvirt":
         try:
@@ -2065,7 +2066,7 @@ def store_vm_info(vm, log_filename, info_cmd='registers',
                                                 "--hmp", debug=False)
             output = result.stdout
         except Exception as details:
-            logging.warn(details)
+            LOG.warn(details)
             return False
 
     log_filename = "%s_%s" % (log_filename, timestamp)
@@ -2090,7 +2091,7 @@ def _store_vm_info(test, params, env):
                                               results[vm_instance])
 
         if msg != "%s." % status:
-            logging.debug(msg)
+            LOG.debug(msg)
 
     global _vm_info_thread_termination_event
     delay = float(params.get("vm_info_delay", 5))
@@ -2108,7 +2109,7 @@ def _store_vm_info(test, params, env):
 
                 if not vm.is_alive():
                     if cmd_details[cmd]['vm_info_error_count'][vm.instance] < 1:
-                        logging.warning(
+                        LOG.warning(
                             "%s is not alive. Can't query the %s status", cmd, vm.name)
                     cmd_details[cmd]['vm_info_error_count'][vm.instance] += 1
                     continue
@@ -2128,9 +2129,9 @@ def _store_vm_info(test, params, env):
                 vmtype = params.get("vm_type")
                 stored_log = store_vm_info(vm, vr_filename, cmd, vmtype=vmtype)
                 if cmd_details[cmd]['vm_info_error_count'][vm.instance] >= 1:
-                    logging.debug("%s alive now. Used to failed to get register"
-                                  " info from guest %s"
-                                  " times", vm.name, cmd_details[cmd]['vm_info_error_count'][vm.instance])
+                    LOG.debug("%s alive now. Used to failed to get register"
+                              " info from guest %s"
+                              " times", vm.name, cmd_details[cmd]['vm_info_error_count'][vm.instance])
                     cmd_details[cmd]['vm_info_error_count'][vm.instance] = 0
                 if stored_log:
                     cmd_details[cmd]['counter'][vm.instance] += 1

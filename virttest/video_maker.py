@@ -56,6 +56,8 @@ except ImportError:
 CONTAINER_PREFERENCE = ['ogg', 'webm']
 ENCODER_PREFERENCE = ['theora', 'vp8']
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class EncodingError(Exception):
 
@@ -130,7 +132,7 @@ class GiEncoder(object):
                 image_size[1] = 480
 
         if self.verbose:
-            logging.debug('Normalizing image files to size: %s' % (image_size,))
+            LOG.debug('Normalizing image files to size: %s' % (image_size,))
         image_files = glob.glob(os.path.join(input_dir, '*.jpg'))
         for f in image_files:
             i = PIL.Image.open(f)
@@ -182,14 +184,14 @@ class GiEncoder(object):
         no_files = len(file_list)
         if no_files == 0:
             if self.verbose:
-                logging.debug("Number of files to encode as video is zero")
+                LOG.debug("Number of files to encode as video is zero")
             return
 
         index_list = [int(path[-8:-4]) for path in file_list]
         index_list.sort()
 
         if self.verbose:
-            logging.debug('Number of files to encode as video: %s' % no_files)
+            LOG.debug('Number of files to encode as video: %s' % no_files)
 
         # Define the gstreamer pipeline
         pipeline = Gst.Pipeline()
@@ -247,7 +249,7 @@ class GiEncoder(object):
             if t == Gst.MessageType.EOS:
                 pipeline.set_state(Gst.State.NULL)
                 if self.verbose:
-                    logging.debug("Video %s encoded successfully" % output_file)
+                    LOG.debug("Video %s encoded successfully" % output_file)
                 break
             elif t == Gst.MessageType.ERROR:
                 err, debug = msg.parse_error()
@@ -319,7 +321,7 @@ class GstEncoder(object):
             image_size = (800, 600)
 
         if self.verbose:
-            logging.debug('Normalizing image files to size: %s', image_size)
+            LOG.debug('Normalizing image files to size: %s', image_size)
         image_files = glob.glob(os.path.join(input_dir, '*.jpg'))
         for f in image_files:
             i = PIL.Image.open(f)
@@ -359,7 +361,7 @@ class GstEncoder(object):
         Makes and returns and element from the gst factory interface
         """
         if self.verbose:
-            logging.debug('GStreamer element requested: %s', name)
+            LOG.debug('GStreamer element requested: %s', name)
         return gst.element_factory_make(name, name)
 
     def encode(self, input_dir, output_file):
@@ -371,21 +373,21 @@ class GstEncoder(object):
         no_files = len(file_list)
         if no_files == 0:
             if self.verbose:
-                logging.debug("Number of files to encode as video is zero")
+                LOG.debug("Number of files to encode as video is zero")
             return
         index_list = []
         for ifile in file_list:
             index_list.append(int(re.findall(r"/+.*/(\d{4})\.jpg", ifile)[0]))
             index_list.sort()
         if self.verbose:
-            logging.debug('Number of files to encode as video: %s', no_files)
+            LOG.debug('Number of files to encode as video: %s', no_files)
 
         pipeline = gst.Pipeline("pipeline")
 
         source = self.get_element("multifilesrc")
         source_location = os.path.join(input_dir, "%04d.jpg")
         if self.verbose:
-            logging.debug("Source location: %s", source_location)
+            LOG.debug("Source location: %s", source_location)
         source.set_property('location', source_location)
         source.set_property('index', index_list[0])
         source_caps = gst.Caps()
@@ -424,8 +426,8 @@ class GstEncoder(object):
         while True:
             if source.get_property('index') <= no_files:
                 if self.verbose:
-                    logging.debug("Currently processing image number: %s",
-                                  source.get_property('index'))
+                    LOG.debug("Currently processing image number: %s",
+                              source.get_property('index'))
                 time.sleep(1)
             else:
                 break

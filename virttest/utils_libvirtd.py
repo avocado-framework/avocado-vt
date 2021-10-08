@@ -23,6 +23,8 @@ try:
 except path.CmdNotFoundError:
     LIBVIRTD = None
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class Libvirtd(object):
 
@@ -51,8 +53,8 @@ class Libvirtd(object):
         self.service_list = []
 
         if LIBVIRTD is None:
-            logging.warning("Libvirtd service is not available in host, "
-                            "utils_libvirtd module will not function normally")
+            LOG.warning("Libvirtd service is not available in host, "
+                        "utils_libvirtd module will not function normally")
 
         self.service_name = "libvirtd" if not service_name else service_name
 
@@ -217,7 +219,7 @@ class LibvirtdSession(object):
         self.libvirtd_service = Libvirtd(service_name=self.service_exec)
         self.was_running = self.libvirtd_service.is_running()
         if self.was_running:
-            logging.debug('Stopping %s service', self.service_exec)
+            LOG.debug('Stopping %s service', self.service_exec)
             self.libvirtd_service.stop()
 
         self.logging_handler = logging_handler
@@ -285,7 +287,7 @@ class LibvirtdSession(object):
             self.gdb.set_callback(
                 callback_type, callback_func, callback_params)
         else:
-            logging.error("Only gdb session supports setting callback")
+            LOG.error("Only gdb session supports setting callback")
 
     def start(self, arg_str='', wait_for_working=True):
         """
@@ -315,7 +317,7 @@ class LibvirtdSession(object):
         if self.gdb:
             self.gdb.cont()
         else:
-            logging.error("Only gdb session supports continue")
+            LOG.error("Only gdb session supports continue")
 
     def kill(self):
         """
@@ -333,7 +335,7 @@ class LibvirtdSession(object):
         :param arg_str: Argument passing to the session
         :param wait_for_working: Whether wait for libvirtd finish loading
         """
-        logging.debug("Restarting %s session", self.service_exec)
+        LOG.debug("Restarting %s session", self.service_exec)
         self.kill()
         self.start(arg_str=arg_str, wait_for_working=wait_for_working)
 
@@ -343,7 +345,7 @@ class LibvirtdSession(object):
 
         :param timeout: Max wait time
         """
-        logging.debug('Waiting for %s to work', self.service_exec)
+        LOG.debug('Waiting for %s to work', self.service_exec)
         return utils_misc.wait_for(
             self.is_working,
             timeout=timeout,
@@ -356,7 +358,7 @@ class LibvirtdSession(object):
         if self.gdb:
             return self.gdb.back_trace()
         else:
-            logging.warning('Can not get back trace without gdb')
+            LOG.warning('Can not get back trace without gdb')
 
     def insert_break(self, break_func):
         """
@@ -367,7 +369,7 @@ class LibvirtdSession(object):
         if self.gdb:
             return self.gdb.insert_break(break_func)
         else:
-            logging.warning('Can not insert breakpoint without gdb')
+            LOG.warning('Can not insert breakpoint without gdb')
 
     def is_working(self):
         """
@@ -387,7 +389,7 @@ class LibvirtdSession(object):
         :param timeout: Max wait time
         :param step: Checking interval
         """
-        logging.debug('Waiting for %s to stop', self.service_exec)
+        LOG.debug('Waiting for %s to stop', self.service_exec)
         if self.gdb:
             return self.gdb.wait_for_stop(timeout=timeout)
         else:
@@ -403,11 +405,11 @@ class LibvirtdSession(object):
 
         :param timeout: Max wait time
         """
-        logging.debug('Waiting for %s to terminate', self.service_exec)
+        LOG.debug('Waiting for %s to terminate', self.service_exec)
         if self.gdb:
             return self.gdb.wait_for_termination(timeout=timeout)
         else:
-            logging.error("Only gdb session supports wait_for_termination.")
+            LOG.error("Only gdb session supports wait_for_termination.")
 
     def exit(self):
         """
@@ -428,9 +430,9 @@ def deprecation_warning():
     As the utils_libvirtd.libvirtd_xxx interfaces are deprecated,
     this function are printing the warning to user.
     """
-    logging.warning("This function was deprecated, Please use "
-                    "class utils_libvirtd.Libvirtd to manage "
-                    "libvirtd service.")
+    LOG.warning("This function was deprecated, Please use "
+                "class utils_libvirtd.Libvirtd to manage "
+                "libvirtd service.")
 
 
 def libvirtd_start():

@@ -21,6 +21,8 @@ import logging
 
 from avocado.utils import process
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class KernelModuleError(Exception):
 
@@ -96,7 +98,7 @@ class KernelModuleHandler(object):
         """
         if os.path.exists(self._module_path):
             unload_cmd = 'rmmod ' + self._module_name
-            logging.debug("Unloading module: %s", unload_cmd)
+            LOG.debug("Unloading module: %s", unload_cmd)
             status, output = process.getstatusoutput(unload_cmd)
             if status:
                 raise KernelModuleUnloadError(self._module_name, output)
@@ -132,15 +134,15 @@ class KernelModuleHandler(object):
             do_not_load = False
             if (current_config and
                     all(x in current_config.split() for x in params.split())):
-                logging.debug("Not reloading module. Current module config"
-                              " uration for %s already contains all reques"
-                              " ted parameters. Requested: '%s'. Current:"
-                              " '%s'. Use force=True to force loading.",
-                              self._module_name, params, current_config)
+                LOG.debug("Not reloading module. Current module config"
+                          " uration for %s already contains all reques"
+                          " ted parameters. Requested: '%s'. Current:"
+                          " '%s'. Use force=True to force loading.",
+                          self._module_name, params, current_config)
                 do_not_load = True
             elif not self._was_loaded:
-                logging.debug("Module %s isn't loaded. Use force=True to force"
-                              " loading.", self._module_name)
+                LOG.debug("Module %s isn't loaded. Use force=True to force"
+                          " loading.", self._module_name)
                 do_not_load = True
             if do_not_load:
                 return
@@ -151,7 +153,7 @@ class KernelModuleHandler(object):
             holder.unload_module()
         self.unload_module()
         reload_cmd = 'modprobe %s %s' % (self._module_name, params)
-        logging.debug("Reloading module: %s", reload_cmd)
+        LOG.debug("Reloading module: %s", reload_cmd)
         status, output = process.getstatusoutput(reload_cmd.strip())
         if status:
             raise KernelModuleReloadError(self._module_name, output)
@@ -187,7 +189,7 @@ class KernelModuleHandler(object):
             if self._was_loaded:
                 restore_cmd = 'modprobe %s %s' % (self._module_name,
                                                   self._config_backup)
-                logging.debug("Restoring module state: %s", restore_cmd)
+                LOG.debug("Restoring module state: %s", restore_cmd)
                 status, output = process.getstatusoutput(restore_cmd)
                 if status:
                     raise KernelModuleRestoreError(self._module_name,
@@ -206,9 +208,9 @@ class KernelModuleHandler(object):
             self._was_loaded = True
         else:
             self._was_loaded = False
-        logging.debug("Backed up %s module state (was_loaded, params)"
-                      "=(%s, %s)", self._module_name, self._was_loaded,
-                      self._config_backup)
+        LOG.debug("Backed up %s module state (was_loaded, params)"
+                  "=(%s, %s)", self._module_name, self._was_loaded,
+                  self._config_backup)
 
     @property
     def was_loaded(self):

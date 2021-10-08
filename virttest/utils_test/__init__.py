@@ -78,6 +78,8 @@ from virttest.utils_test import libguestfs
 ping = utils_net.ping
 raw_ping = utils_net.raw_ping
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def update_boot_option_ubuntu(args, grub_key=None, session=None, remove_args=None):
     """
@@ -125,7 +127,7 @@ def update_boot_option_ubuntu(args, grub_key=None, session=None, remove_args=Non
     if status:
         raise exceptions.TestError("Failed to update grub to modify kernel "
                                    "cmdline")
-    logging.debug("updated boot option: %s with %s", grub_key, args)
+    LOG.debug("updated boot option: %s with %s", grub_key, args)
 
 
 def check_kernel_cmdline(session, remove_args="", args=""):
@@ -158,10 +160,10 @@ def check_kernel_cmdline(session, remove_args="", args=""):
 
 
 def __run_cmd_and_handle_error(msg, cmd, session, test_fail_msg):
-    logging.info(msg)
+    LOG.info(msg)
     status, output = session.cmd_status_output(cmd)
     if status != 0:
-        logging.error(output)
+        LOG.error(output)
         raise exceptions.TestError(test_fail_msg)
 
 
@@ -188,7 +190,7 @@ def update_boot_option(vm, args_removed="", args_added="",
         # (this function is not implement.)
         # here we just:
         msg = "update_boot_option() is supported only for Linux guest"
-        logging.warning(msg)
+        LOG.warning(msg)
         return
     login_timeout = int(vm.params.get("login_timeout"))
     session = vm.wait_for_login(timeout=login_timeout, serial=serial_login,
@@ -227,7 +229,7 @@ def update_boot_option(vm, args_removed="", args_added="",
 
         # reboot is required only if we really add/remove any args
         if need_reboot and (req_args or req_remove_args):
-            logging.info("Rebooting guest ...")
+            LOG.info("Rebooting guest ...")
             session = vm.reboot(session=session, timeout=login_timeout,
                                 serial=serial_login)
             # check nothing is required to be added/removed by now
@@ -386,8 +388,8 @@ def get_time(session, time_command, time_filter_re, time_format):
                     time.strptime(host_time_out, time_format))
                 host_time += float(diff)
             except Exception as err:
-                logging.debug("(time_format, time_string): (%s, %s)",
-                              time_format, host_time_out)
+                LOG.debug("(time_format, time_string): (%s, %s)",
+                          time_format, host_time_out)
                 raise err
         finally:
             locale.setlocale(locale.LC_TIME, loc)
@@ -400,12 +402,12 @@ def get_time(session, time_command, time_filter_re, time_format):
             diff = str_time.split()[-2]
             str_time = " ".join(str_time.split()[:-2])
         except IndexError:
-            logging.debug("The time string from guest is:\n%s", str_time)
+            LOG.debug("The time string from guest is:\n%s", str_time)
             raise exceptions.TestError(
                 "The time string from guest is unexpected.")
         except Exception as err:
-            logging.debug("(time_filter_re, time_string): (%s, %s)",
-                          time_filter_re, str_time)
+            LOG.debug("(time_filter_re, time_string): (%s, %s)",
+                      time_filter_re, str_time)
             raise err
 
         guest_time = None
@@ -415,8 +417,8 @@ def get_time(session, time_command, time_filter_re, time_format):
                 guest_time = time.mktime(time.strptime(str_time, time_format))
                 guest_time += float(diff)
             except Exception as err:
-                logging.debug("(time_format, time_string): (%s, %s)",
-                              time_format, str_time)
+                LOG.debug("(time_format, time_string): (%s, %s)",
+                          time_format, str_time)
                 raise err
         finally:
             locale.setlocale(locale.LC_TIME, loc)
@@ -432,14 +434,14 @@ def get_time(session, time_command, time_filter_re, time_format):
             if len(reo) > 1:
                 num = float(reo[1])
         except IndexError:
-            logging.debug("The time string from guest is:\n%s", output)
+            LOG.debug("The time string from guest is:\n%s", output)
             raise exceptions.TestError(
                 "The time string from guest is unexpected.")
         except ValueError as err:
-            logging.debug("Couldn't parse float time offset from %s" % reo)
+            LOG.debug("Couldn't parse float time offset from %s" % reo)
         except Exception as err:
-            logging.debug("(time_filter_re, time_string): (%s, %s)",
-                          time_filter_re, output)
+            LOG.debug("(time_filter_re, time_string): (%s, %s)",
+                      time_filter_re, output)
             raise err
 
         guest_time = time.mktime(time.strptime(str_time, time_format)) + num
@@ -520,7 +522,7 @@ def get_image_version(qemu_image):
     :return: compatibility level
     """
     error_context.context("Get qcow2 image('%s') version"
-                          % qemu_image.image_filename, logging.info)
+                          % qemu_image.image_filename, LOG.info)
     info_out = qemu_image.info()
     compat = re.search(r'compat: +(.*)', info_out, re.M)
     if compat:
@@ -542,7 +544,7 @@ def update_qcow2_image_version(qemu_image, ver_from, ver_to):
     if ver_from == ver_to:
         return None
     error_context.context("Update qcow2 image version from %s to %s"
-                          % (ver_from, ver_to), logging.info)
+                          % (ver_from, ver_to), LOG.info)
     qemu_image.params.update({"amend_compat": "%s" % ver_to})
     qemu_image.amend(qemu_image.params)
 
@@ -574,7 +576,7 @@ def run_image_copy(test, params, env):
     # Define special image to be taken as a source.
     source_image_name = params.get('source_image_name')
     if source_image_name:
-        logging.info('Using image as source image: %s', source_image_name)
+        LOG.info('Using image as source image: %s', source_image_name)
         asset_name = '%s' % (os.path.split(source_image_name)[1])
     image = '%s.%s' % (params['image_name'], params['image_format'])
     dst_path = storage.get_image_filename(params, data_dir.get_data_dir())
@@ -592,7 +594,7 @@ def run_image_copy(test, params, env):
             try:
                 os.makedirs(mount_dest_dir)
             except OSError as err:
-                logging.warning('mkdir %s error:\n%s', mount_dest_dir, err)
+                LOG.warning('mkdir %s error:\n%s', mount_dest_dir, err)
 
         if not os.path.exists(mount_dest_dir):
             raise exceptions.TestError('Failed to create NFS share dir %s' %
@@ -619,7 +621,7 @@ def run_image_copy(test, params, env):
         force = params.get("force_copy", "yes") == "yes"
 
     try:
-        error_context.context("Copy image '%s'" % image, logging.info)
+        error_context.context("Copy image '%s'" % image, LOG.info)
         if aurl.is_url(asset_info['url']):
             asset.download_file(asset_info, interactive=False,
                                 force=force)
@@ -629,7 +631,7 @@ def run_image_copy(test, params, env):
     finally:
         sub_type = params.get("sub_type")
         if sub_type:
-            error_context.context("Run sub test '%s'" % sub_type, logging.info)
+            error_context.context("Run sub test '%s'" % sub_type, LOG.info)
             params['image_name'] += "-error"
             params['boot_once'] = "c"
             vm.create(params=params)
@@ -655,7 +657,7 @@ def run_file_transfer(test, params, env):
     vm.verify_alive()
     login_timeout = int(params.get("login_timeout", 360))
     session = vm.wait_for_login(timeout=login_timeout)
-    error_context.context("Login to guest", logging.info)
+    error_context.context("Login to guest", LOG.info)
     transfer_timeout = int(params.get("transfer_timeout", 1000))
     clean_cmd = params.get("clean_cmd", "rm -f")
     filesize = int(params.get("filesize", 4000))
@@ -671,11 +673,11 @@ def run_file_transfer(test, params, env):
     cmd = "dd if=/dev/zero of=%s bs=10M count=%d" % (host_path, count)
     try:
         error_context.context(
-            "Creating %dMB file on host" % filesize, logging.info)
+            "Creating %dMB file on host" % filesize, LOG.info)
         process.run(cmd)
         original_md5 = crypto.hash_file(host_path, algorithm="md5")
         error_context.context("Transferring file host -> guest, "
-                              "timeout: %ss" % transfer_timeout, logging.info)
+                              "timeout: %ss" % transfer_timeout, LOG.info)
         vm.copy_files_to(
             host_path,
             guest_path,
@@ -683,7 +685,7 @@ def run_file_transfer(test, params, env):
             filesize=filesize)
 
         error_context.context("Transferring file guest -> host, "
-                              "timeout: %ss" % transfer_timeout, logging.info)
+                              "timeout: %ss" % transfer_timeout, LOG.info)
         vm.copy_files_from(
             guest_path,
             host_path,
@@ -692,7 +694,7 @@ def run_file_transfer(test, params, env):
         current_md5 = crypto.hash_file(host_path, algorithm="md5")
 
         error_context.context("Compare md5sum between original file and "
-                              "transferred file", logging.info)
+                              "transferred file", LOG.info)
         if original_md5 != current_md5:
             raise exceptions.TestFail("File changed after transfer host -> guest "
                                       "and guest -> host")
@@ -700,12 +702,12 @@ def run_file_transfer(test, params, env):
         try:
             os.remove(host_path)
         except OSError as detail:
-            logging.warn("Could not remove temp files in host: '%s'", detail)
-        logging.info('Cleaning temp file on guest')
+            LOG.warn("Could not remove temp files in host: '%s'", detail)
+        LOG.info('Cleaning temp file on guest')
         try:
             session.cmd("%s %s" % (clean_cmd, guest_path))
         except aexpect.ShellError as detail:
-            logging.warn("Could not remove temp files in guest: '%s'", detail)
+            LOG.warn("Could not remove temp files in guest: '%s'", detail)
         finally:
             session.close()
 
@@ -744,7 +746,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
         for num in xrange(n_time):
             md5_host = "1"
             md5_guest = "2"
-            logging.info("Data transfer repeat %s/%s." % (num + 1, n_time))
+            LOG.info("Data transfer repeat %s/%s." % (num + 1, n_time))
             try:
                 args = (host_cmd, timeout)
                 host_thread = utils_misc.InterruptedThread(run_host_cmd, args)
@@ -757,7 +759,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
                         if md5_check:
                             raise exceptions.TestFail(err)
                         else:
-                            logging.warn(err)
+                            LOG.warn(err)
                 else:
                     md5_re = "md5_sum = (\w{32})"
                     try:
@@ -777,7 +779,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
                             if md5_check:
                                 raise exceptions.TestFail(err)
                             else:
-                                logging.warn(err)
+                                LOG.warn(err)
                     else:
                         md5_re = "md5_sum = (\w{32})"
                         try:
@@ -793,7 +795,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
                     if md5_check:
                         raise exceptions.TestFail(err)
                     else:
-                        logging.warn(err)
+                        LOG.warn(err)
 
     env["serial_file_transfer_start"] = False
     vm = env.get_vm(params["main_vm"])
@@ -805,7 +807,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
         port_name = params["file_transfer_serial_port"]
     guest_scripts = params["guest_scripts"]
     guest_path = params.get("guest_script_folder", "C:\\")
-    error_context.context("Copy test scripts to guest.", logging.info)
+    error_context.context("Copy test scripts to guest.", LOG.info)
     for script in guest_scripts.split(";"):
         link = os.path.join(data_dir.get_root_dir(), "shared", "deps",
                             "serial", script)
@@ -826,7 +828,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
     if sender == "host" or sender == "both":
         cmd = "dd if=/dev/zero of=%s bs=1M count=%d" % (host_data_file, count)
         error_context.context(
-            "Creating %dMB file on host" % filesize, logging.info)
+            "Creating %dMB file on host" % filesize, LOG.info)
         process.run(cmd)
     else:
         guest_file_create_cmd = "dd if=/dev/zero of=%s bs=1M count=%d"
@@ -834,7 +836,7 @@ def run_virtio_serial_file_transfer(test, params, env, port_name=None,
                                            guest_file_create_cmd)
         cmd = guest_file_create_cmd % (guest_data_file, count)
         error_context.context(
-            "Creating %dMB file on host" % filesize, logging.info)
+            "Creating %dMB file on host" % filesize, LOG.info)
         session.cmd(cmd, timeout=600)
 
     if sender == "host":
@@ -975,39 +977,39 @@ class AvocadoGuest(object):
         for _, packages in self.prerequisites.items():
             pacman = utils_package.package_manager(self.session, packages)
             if not pacman.install(timeout=self.timeout):
-                logging.error("Failed to install - %s", packages)
+                LOG.error("Failed to install - %s", packages)
         self.python = find_python(self.session, compat='python')
         if not self.python:
-            logging.error("Unable to find python.")
+            LOG.error("Unable to find python.")
             return False
         self.pip_bin = find_bin(self.session, ['pip3', 'pip2', 'pip'])
         if self.pip_bin:
             cmd = "%s install --upgrade pip;" % (self.pip_bin)
             if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
-                logging.error("Unable to upgrade pip.")
+                LOG.error("Unable to upgrade pip.")
                 return False
         if not utils_misc.make_dirs(self.test_path, session=self.session):
-            logging.error("Failed to create test path in guest")
+            LOG.error("Failed to create test path in guest")
             return False
         if self.avocado_vt:
             cmd = "lsmod | grep %s || modprobe %s" % (self.kvm_module,
                                                       self.kvm_module)
             if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
-                logging.error("nested kvm module not available")
+                LOG.error("nested kvm module not available")
                 return False
             cmd = "service libvirtd restart"
             if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
-                logging.error("Failed to restart libvirtd inside guest")
+                LOG.error("Failed to restart libvirtd inside guest")
                 return False
             pip_pack = ['setuptools', 'netifaces', 'aexpect', 'netaddr']
             cmd = ""
             for each in pip_pack:
                 cmd = "%s install %s --upgrade" % (self.pip_bin, each)
                 if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
-                    logging.error("Failed to update and install package %s" % each)
+                    LOG.error("Failed to update and install package %s" % each)
                     return False
         if not utils_misc.make_dirs(self.result_path, session=self.session):
-            logging.error("Failed to create result path in guest")
+            LOG.error("Failed to create result path in guest")
             return False
         return True
 
@@ -1016,7 +1018,7 @@ class AvocadoGuest(object):
         """
         Method to install Avocado/Avocado-VT and its plugins
         """
-        logging.debug("Installing avocado")
+        LOG.debug("Installing avocado")
         status = 0
         if (self.session.cmd_status("which avocado") == 0) and not self.reinstall:
             return True
@@ -1025,7 +1027,7 @@ class AvocadoGuest(object):
             cmd = "%s avocado-framework" % pip_install_cmd
             status, output = self.session.cmd_status_output(cmd, timeout=self.timeout)
             if status != 0:
-                logging.error("Avocado pip installation failed:\n%s", output)
+                LOG.error("Avocado pip installation failed:\n%s", output)
                 return False
             for plugin in self.plugins[self.installtype]:
                 if self.pip_bin != "pip3":
@@ -1038,27 +1040,27 @@ class AvocadoGuest(object):
                     cmd = "%s %s" % (pip_install_cmd, plugin)
                 status, output = self.session.cmd_status_output(cmd, timeout=self.timeout)
                 if status != 0:
-                    logging.error("Avocado plugin %s pip "
-                                  "installation failed:\n%s", plugin, output)
+                    LOG.error("Avocado plugin %s pip "
+                              "installation failed:\n%s", plugin, output)
                     return False
         elif "package" in self.installtype:
             raise NotImplementedError
         elif "git" in self.installtype:
             if not self.git_install(self.avocado_repo,
                                     branch=self.avocado_repo_branch):
-                logging.error("Avocado git installation failed")
+                LOG.error("Avocado git installation failed")
                 return False
             for plugin in self.plugins[self.installtype]:
                 cmd = "cd %s;" % os.path.join(self.plugins_path, plugin)
                 cmd += "%s setup.py install" % self.python
                 if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
-                    logging.error("Avocado plugin %s git "
-                                  "installation failed", plugin)
+                    LOG.error("Avocado plugin %s git "
+                              "installation failed", plugin)
                     return False
             if self.avocado_vt and not self.git_install(self.avocado_vt_repo,
                                                         make='requirements',
                                                         branch=self.avocado_vt_repo_branch):
-                logging.error("Avocado-VT git installation failed")
+                LOG.error("Avocado-VT git installation failed")
                 return False
         return True
 
@@ -1090,7 +1092,7 @@ class AvocadoGuest(object):
         """
         Run test method to download the tests and trigger avocado command
         """
-        logging.debug("Downloading Test")
+        LOG.debug("Downloading Test")
         if self.avocado_vt:
             cmd = "avocado vt-bootstrap --yes-to-all"
             if self.vt_type:
@@ -1106,7 +1108,7 @@ class AvocadoGuest(object):
             if not self.git_install(self.test_repo, install=False):
                 raise exceptions.TestError("Downloading test failed")
 
-        logging.debug("Running Test")
+        LOG.debug("Running Test")
         avocado_cmd = "avocado run"
         if self.avocado_vt:
             avocado_cmd += " %s" % self.testlist[0].strip()
@@ -1144,21 +1146,21 @@ class AvocadoGuest(object):
                                                         timeout=self.timeout)
         if status != 0:
             # TODO: Map test return status with error strings and print
-            logging.error("Avocado cmd: %s has failures consult "
-                          "the logs for details\nstatus: "
-                          "%s\nstdout: %s", avocado_cmd, status, output)
+            LOG.error("Avocado cmd: %s has failures consult "
+                      "the logs for details\nstatus: "
+                      "%s\nstdout: %s", avocado_cmd, status, output)
         return status == 0
 
     def get_results(self):
         """
         Copy avocado results present on the guest back to the host.
         """
-        logging.debug("Trying to copy avocado results from guest")
+        LOG.debug("Trying to copy avocado results from guest")
         guest_results_dir = utils_misc.get_path(self.test.debugdir,
                                                 self.vm.name)
         os.makedirs(guest_results_dir)
-        logging.debug("Guest avocado test results placed "
-                      "under %s", guest_results_dir)
+        LOG.debug("Guest avocado test results placed "
+                  "under %s", guest_results_dir)
         # result info tarball to host result dir
         results_tarball = os.path.join(self.test_path, "results.tgz")
         utils_package.package_install('tar', session=self.session)
@@ -1281,15 +1283,15 @@ def run_autotest(vm, session, control_path, timeout,
         elif output:
             remote_hash = output.split()[0]
         else:
-            logging.warning("MD5 check for remote path %s did not return.",
-                            remote_path)
+            LOG.warning("MD5 check for remote path %s did not return.",
+                        remote_path)
             # Let's be a little more lenient here and see if it wasn't a
             # temporary problem
             remote_hash = "0"
         if remote_hash == local_hash and directory_exists(destination_autotest_path):
             return None
-        logging.debug("Copying %s to guest (remote hash: %s, local hash:%s)",
-                      basename, remote_hash, local_hash)
+        LOG.debug("Copying %s to guest (remote hash: %s, local hash:%s)",
+                  basename, remote_hash, local_hash)
         dest_dir = os.path.dirname(remote_path)
         if not directory_exists(dest_dir):
             session.cmd("mkdir -p %s" % dest_dir)
@@ -1306,7 +1308,7 @@ def run_autotest(vm, session, control_path, timeout,
         :param dest_dir: Destination dir for the contents
         """
         basename = os.path.basename(remote_path)
-        logging.debug("Extracting %s on VM %s", basename, vm.name)
+        LOG.debug("Extracting %s on VM %s", basename, vm.name)
         session.cmd("rm -rf %s" % dest_dir, timeout=240)
         dirname = os.path.dirname(remote_path)
         session.cmd("cd %s" % dirname)
@@ -1347,7 +1349,7 @@ def run_autotest(vm, session, control_path, timeout,
         """
         Copy autotest results present on the guest back to the host.
         """
-        logging.debug("Trying to copy autotest results from guest")
+        LOG.debug("Trying to copy autotest results from guest")
         res_index = get_last_guest_results_index()
         guest_results_dir = os.path.join(
             outputdir, "guest_autotest_results%s" % (res_index + 1))
@@ -1395,18 +1397,18 @@ def run_autotest(vm, session, control_path, timeout,
         try:
             output = process.run("cat %s" % status_path).stdout_text
         except process.CmdError as e:
-            logging.error("Error getting guest autotest status file: %s", e)
+            LOG.error("Error getting guest autotest status file: %s", e)
             return None
 
         try:
             results = scan_autotest_results.parse_results(output)
             # Report test results
-            logging.info("Results (test, status, duration, info):")
+            LOG.info("Results (test, status, duration, info):")
             for result in results:
-                logging.info("\t %s", str(result))
+                LOG.info("\t %s", str(result))
             return results
         except Exception as e:
-            logging.error("Error processing guest autotest results: %s", e)
+            LOG.error("Error processing guest autotest results: %s", e)
             return None
 
     def config_control(control_path, job_args=None):
@@ -1625,8 +1627,8 @@ def run_autotest(vm, session, control_path, timeout,
                 (destination_autotest_path, destination_autotest_path))
 
     # Run the test
-    logging.info("Running autotest control file %s on guest, timeout %ss",
-                 os.path.basename(control_path), timeout)
+    LOG.info("Running autotest control file %s on guest, timeout %ss",
+             os.path.basename(control_path), timeout)
 
     # Start a background job to run server process if needed.
     server_process = None
@@ -1641,21 +1643,21 @@ def run_autotest(vm, session, control_path, timeout,
         bg = None
         try:
             start_time = time.time()
-            logging.info("---------------- Test output ----------------")
+            LOG.info("---------------- Test output ----------------")
             if migrate_background:
                 mig_timeout = float(params.get("mig_timeout", "3600"))
                 mig_protocol = params.get("migration_protocol", "tcp")
                 cmd = "python -x ./autotest-local control"
                 kwargs = {'cmd': cmd,
                           'timeout': timeout,
-                          'print_func': logging.info}
+                          'print_func': LOG.info}
                 bg = utils_misc.InterruptedThread(session.cmd_output,
                                                   kwargs=kwargs)
                 bg.start()
 
                 while bg.is_alive():
-                    logging.info("Autotest job did not end, start a round of "
-                                 "migration")
+                    LOG.info("Autotest job did not end, start a round of "
+                             "migration")
                     vm.migrate(timeout=mig_timeout, protocol=mig_protocol)
             else:
                 if params.get("guest_autotest_verbosity", "yes") == "yes":
@@ -1666,9 +1668,9 @@ def run_autotest(vm, session, control_path, timeout,
                     "python -x ./autotest-local %s control & wait ${!}" %
                     verbose,
                     timeout=timeout,
-                    print_func=logging.info)
+                    print_func=LOG.info)
         finally:
-            logging.info("------------- End of test output ------------")
+            LOG.info("------------- End of test output ------------")
             if migrate_background and bg:
                 bg.join()
             # Do some cleanup work on host if test need a server.
@@ -1705,14 +1707,14 @@ def run_autotest(vm, session, control_path, timeout,
                 get_results(destination_autotest_path)
                 raise exceptions.TestError("Autotest job on guest failed "
                                            "(VM terminated during job)")
-            logging.debug("Wait for autotest job finished on guest.")
+            LOG.debug("Wait for autotest job finished on guest.")
             session.close()
             session = vm.wait_for_login()
             while time.time() < start_time + timeout:
                 ps_cmd = "ps ax"
                 _, processes = session.cmd_status_output(ps_cmd)
                 if "autotest-local" not in processes:
-                    logging.debug("Autotest job finished on guest")
+                    LOG.debug("Autotest job finished on guest")
                     break
                 time.sleep(1)
             else:
@@ -1758,7 +1760,7 @@ def get_loss_ratio(output):
     try:
         return float(re.findall(r'(\d*\.?\d+)%.*loss', output)[0])
     except IndexError:
-        logging.warn("Invalid output of ping command: %s" % output)
+        LOG.warn("Invalid output of ping command: %s" % output)
     return -1
 
 
@@ -1831,7 +1833,7 @@ def get_readable_cdroms(params, session):
     check_cdrom_patttern = params.get("cdrom_check_cdrom_pattern")
     o = session.get_command_output(get_cdrom_cmd)
     cdrom_list = re.findall(check_cdrom_patttern, o)
-    logging.debug("Found cdroms on guest: %s" % cdrom_list)
+    LOG.debug("Found cdroms on guest: %s" % cdrom_list)
 
     readable_cdroms = []
     test_cmd = params.get("cdrom_test_cmd")
@@ -1843,7 +1845,7 @@ def get_readable_cdroms(params, session):
     if not readable_cdroms:
         info_cmd = params.get("cdrom_info_cmd")
         output = session.cmd_output(info_cmd)
-        logging.debug("Guest cdroms info: %s" % output)
+        LOG.debug("Guest cdroms info: %s" % output)
     return readable_cdroms
 
 
@@ -1855,9 +1857,9 @@ def service_setup(vm, session, directory):
     if rh_perf_envsetup_script:
         src = os.path.join(directory, rh_perf_envsetup_script)
         vm.copy_files_to(src, "/tmp/rh_perf_envsetup.sh")
-        logging.info("setup perf environment for host")
+        LOG.info("setup perf environment for host")
         process.getoutput("bash %s host %s" % (src, rebooted))
-        logging.info("setup perf environment for guest")
+        LOG.info("setup perf environment for guest")
         session.cmd("bash /tmp/rh_perf_envsetup.sh guest %s" % rebooted)
 
 
@@ -1958,7 +1960,7 @@ def get_driver_hardware_id(driver_path,
         process.system("umount %s" % mount_point)
         return hwid
     except Exception as e:
-        logging.error("Fail to get hardware id with exception: %s" % e)
+        LOG.error("Fail to get hardware id with exception: %s" % e)
         if txt_file:
             txt_file.close()
         process.system("umount %s" % mount_point, ignore_status=True)
@@ -2067,7 +2069,7 @@ def run_avocado_bg(vm, params, test, testlist=[], avocado_vt=False,
         bt.start()
         return bt
     except Exception as info:
-        logging.warning("Background guest tests not run: %s", info)
+        LOG.warning("Background guest tests not run: %s", info)
         return None
 
 
@@ -2183,7 +2185,7 @@ class Stress(object):
                                                     self.base_name, self.work_path))
         launch_cmds = 'nohup %s %s > /dev/null &' % (
             self.stress_cmds, self.stress_args)
-        logging.info("Launch stress with command: %s", launch_cmds)
+        LOG.info("Launch stress with command: %s", launch_cmds)
         try:
             self.cmd_launch(launch_cmds)
             # The background process sometimes does not return to
@@ -2209,7 +2211,7 @@ class Stress(object):
                 return True
             return False
 
-        logging.info("stop stress app in guest/host/remote host")
+        LOG.info("stop stress app in guest/host/remote host")
         utils_misc.wait_for(_unload_stress, self.stress_wait_for_timeout, first=2.0,
                             text="wait stress app quit", step=1.0)
 
@@ -2258,7 +2260,7 @@ class Stress(object):
         try:
             download_method = getattr(
                 self, "_%s_download" % self.download_type)
-            logging.info('Download stress tool from %s', self.download_url)
+            LOG.info('Download stress tool from %s', self.download_url)
             download_method(self.download_url, tmp_path)
         except AttributeError:
             if not self.downloaded_file_path:
@@ -2273,7 +2275,7 @@ class Stress(object):
                 self.base_name = self.downloaded_file_path
         source = os.path.join(tmp_path, self.base_name)
         if self.remote_host:
-            logging.info('Copy stress tool to remote host')
+            LOG.info('Copy stress tool to remote host')
             args = (self.remote_host.__getitem__('server_ip'), 'scp',
                     self.remote_host.__getitem__('server_user'),
                     self.remote_host.__getitem__('server_pwd'), '22',
@@ -2281,7 +2283,7 @@ class Stress(object):
             self.copy_files_to(*args)
         else:
             if self.session:
-                logging.info('Copy stress tool to work dir of guest')
+                LOG.info('Copy stress tool to work dir of guest')
                 self.copy_files_to(source, self.dst_path)
             else:
                 self.dst_path = os.path.abspath(
@@ -2303,18 +2305,18 @@ class Stress(object):
             if not utils_package.package_install(self.stress_package,
                                                  session=self.session):
                 self.stress_install_from_repo = False
-                logging.debug("Fail to install stress tool via repo and "
-                              "will download source to make and install it")
+                LOG.debug("Fail to install stress tool via repo and "
+                          "will download source to make and install it")
             else:
-                logging.debug("Successful to install stress tool via repo")
+                LOG.debug("Successful to install stress tool via repo")
                 return
 
         self.download_stress()
         install_path = os.path.join(self.dst_path, self.base_name,
                                     self.work_path)
         self.make_cmds = "cd %s;%s" % (install_path, self.make_cmds)
-        logging.info('installing the %s with %s', self.stress_type,
-                     self.make_cmds)
+        LOG.info('installing the %s with %s', self.stress_type,
+                 self.make_cmds)
         status, output = self.cmd_status_output(self.make_cmds,
                                                 timeout=self.stress_shell_timeout)
         if status != 0:
@@ -2331,21 +2333,21 @@ class Stress(object):
             # If succeed, no need to uninstall and remove source any more
             if not utils_package.package_remove(self.stress_package,
                                                 session=self.session):
-                logging.debug("Fail to remove stress tool via repo and "
-                              "will continue to uninstall and remove source")
+                LOG.debug("Fail to remove stress tool via repo and "
+                          "will continue to uninstall and remove source")
             else:
-                logging.debug("Successful to remove stress tool via repo")
+                LOG.debug("Successful to remove stress tool via repo")
                 return
         install_path = os.path.join(self.dst_path, self.base_name)
         if self.cmd_status('cd %s' % install_path) != 0:
-            logging.error("No source files found in path %s", path)
+            LOG.error("No source files found in path %s", path)
             return
 
-        logging.info('Uninstall %s', self.stress_type)
+        LOG.info('Uninstall %s', self.stress_type)
         status, output = self.cmd_status_output(self.uninstall_cmds)
         if status != 0:
-            logging.error('Uninstall stress failed with error: %s', output)
-        logging.info('Remove the source files')
+            LOG.error('Uninstall stress failed with error: %s', output)
+        LOG.info('Remove the source files')
         rm_cmd = 'cd && rm -rf %s' % install_path
         if self.stress_type == "uperf":
             rm_cmd += " && rm -rf %s" % os.path.join(
@@ -2644,12 +2646,12 @@ class ServerClientStress(object):
             with open(fpath, 'r+') as profile_content:
                 tempstr = profile_content.read()
                 profile_content.truncate(0)
-                logging.debug(
+                LOG.debug(
                     "In prepare profile: pattern and replacement : %s", pat_repl)
                 for pattern, replace in pat_repl.items():
                     tempstr = tempstr.replace(pattern, replace)
                 profile_content.write(tempstr)
-            logging.debug("Profile xml to be run : %s ", tempstr)
+            LOG.debug("Profile xml to be run : %s ", tempstr)
         except Exception:
             raise exceptions.TestError("Failed to update file : %s", fpath)
 
@@ -2702,7 +2704,7 @@ class ServerClientStress(object):
                 self.stress_vm[client_vm.name].load_stress_tool()
             except exceptions.TestError as err_msg:
                 error = True
-                logging.error(err_msg)
+                LOG.error(err_msg)
         return error
 
     def verify_unload_stress(self, params):
@@ -2718,7 +2720,7 @@ class ServerClientStress(object):
                     vm.get_address(), count=10, timeout=20)
                 if s_ping != 0:
                     error = True
-                    logging.error(
+                    LOG.error(
                         "%s seem to have gone out of network", vm.name)
                 else:
                     vm_params = params.object_params(vm.name)
@@ -2727,14 +2729,14 @@ class ServerClientStress(object):
                     if self.iptables_rule:
                         params['server_pwd'] = vm_params.get("password")
                         params['server_ip'] = vm.get_address()
-                        logging.debug("server_ip: %s", vm.get_address())
+                        LOG.debug("server_ip: %s", vm.get_address())
                         Iptables.setup_or_cleanup_iptables_rules(
                             [self.iptables_rule], params=params, cleanup=True)
                     self.stress_vm[vm.name].clean()
                     vm.verify_dmesg()
             except exceptions.TestError as err_msg:
                 error = True
-                logging.error(err_msg)
+                LOG.error(err_msg)
 
         return error
 
@@ -2799,7 +2801,7 @@ class RemoteDiskManager(object):
         try:
             output = self.runner.run(cmd).stdout_text
         except exceptions.CmdError as detail:
-            logging.debug(output)
+            LOG.debug(output)
             raise exceptions.TestError("Get space failed: %s." % str(detail))
 
         if disk_type == "file":
@@ -2826,7 +2828,7 @@ class RemoteDiskManager(object):
         Create an image or volume to occupy the space of destination path
         """
         free = self.get_free_space(disk_type, path, vgname)
-        logging.debug("Allowed space on remote path:%sGB", free)
+        LOG.debug("Allowed space on remote path:%sGB", free)
         occupied_size = int(free - need_size / 2)
         occupied_path = os.path.join(os.path.dirname(path), "occupied")
         return self.create_image(disk_type, occupied_path, occupied_size,
@@ -2843,7 +2845,7 @@ class RemoteDiskManager(object):
         try:
             return "/dev/%s" % device_name[0]
         except IndexError:
-            logging.error("Can not find target '%s' after login." % self.target)
+            LOG.error("Can not find target '%s' after login." % self.target)
 
     def iscsi_login_setup(self, host, target_name, is_login=True):
         """
@@ -2876,7 +2878,7 @@ class RemoteDiskManager(object):
             output = self.runner.run(cmd,
                                      ignore_status=True).stdout_text
             if "successful" not in output:
-                logging.error("Logout to %s failed.", target_name)
+                LOG.error("Logout to %s failed.", target_name)
 
     def create_vg(self, vgname, device):
         """
@@ -2884,7 +2886,7 @@ class RemoteDiskManager(object):
         """
         try:
             self.runner.run("vgs | grep %s" % vgname)
-            logging.debug("Volume group %s does already exist.", vgname)
+            LOG.debug("Volume group %s does already exist.", vgname)
             return True
         except process.CmdError:
             pass  # Not found
@@ -2892,8 +2894,8 @@ class RemoteDiskManager(object):
             self.runner.run("vgcreate %s %s" % (vgname, device))
             return True
         except process.CmdError as detail:
-            logging.error("Create vgroup '%s' on remote host failed:%s",
-                          vgname, detail)
+            LOG.error("Create vgroup '%s' on remote host failed:%s",
+                      vgname, detail)
             return False
 
     def remove_vg(self, vgname):
@@ -2931,7 +2933,7 @@ class RemoteDiskManager(object):
             path = "/dev/%s/%s" % (vgname, lvname)
 
         result = self.runner.run(cmd, ignore_status=True, timeout=timeout)
-        logging.debug(result)
+        LOG.debug(result)
         if result.exit_status:
             raise exceptions.TestFail("Create image '%s' on remote host failed."
                                       % path)
@@ -2960,7 +2962,7 @@ def check_dest_vm_network(vm, vm_ip, remote_host, username, password,
                                      password=password,
                                      prompt=shell_prompt)
 
-    logging.debug("Check VM network connectivity...")
+    LOG.debug("Check VM network connectivity...")
     ping_failed = True
     ping_cmd = "ping -c 5 %s" % vm_ip
     while timeout > 0:

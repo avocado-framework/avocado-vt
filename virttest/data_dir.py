@@ -30,6 +30,9 @@ DOWNLOAD_DIR = os.path.join(DATA_DIR, 'downloads')
 BACKING_DATA_DIR = None
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
+
 class MissingDepsDirError(Exception):
     pass
 
@@ -207,8 +210,8 @@ def get_tmp_dir(public=True):
     if distro.detect().name == 'Ubuntu':
         tmp_dir = "/var/lib/libvirt/images"
         if not utils_path.usable_rw_dir(tmp_dir):
-            logging.warning("Unable to write in '/var/lib/libvirt/images' "
-                            "on Ubuntu, apparmor might complain...")
+            LOG.warning("Unable to write in '/var/lib/libvirt/images' "
+                        "on Ubuntu, apparmor might complain...")
             tmp_dir = None
     tmp_dir = data_dir.get_tmp_dir(basedir=tmp_dir)
     if public:

@@ -15,6 +15,9 @@ except ImportError:
 from avocado.utils.astring import to_text
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
+
 class HTTPRequestHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
@@ -120,8 +123,8 @@ class HTTPRequestHandler(SimpleHTTPRequestHandler):
         return self.client_address[0]
 
     def log_message(self, fmt, *args):
-        logging.debug("builtin http server handling request from %s: %s" %
-                      (self.address_string(), fmt % args))
+        LOG.debug("builtin http server handling request from %s: %s" %
+                  (self.address_string(), fmt % args))
 
 
 def http_server(port=8000, cwd=None, terminate_callable=None):

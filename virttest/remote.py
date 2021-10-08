@@ -21,6 +21,8 @@ from virttest import utils_logfile
 from virttest.remote_commander import remote_master
 from virttest.remote_commander import messenger
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def ssh_login_to_migrate(client, host, port, username, password, prompt, linesep="\n",
                          log_filename=None, log_function=None, timeout=10,
@@ -82,7 +84,7 @@ def ssh_login_to_migrate(client, host, port, username, password, prompt, linesep
     cmd += " %s@%s" % (username, host)
 
     if verbose:
-        logging.debug("Login command: '%s'", cmd)
+        LOG.debug("Login command: '%s'", cmd)
     session = aexpect.ShellSession(cmd, linesep=linesep, prompt=prompt,
                                    status_test_command=status_test_command)
     try:
@@ -115,8 +117,8 @@ def wait_for_ssh_login_to_migrate(client, host, port, username, password, prompt
     :raise: Whatever remote_login() raises
     :return: A RemoteSession object.
     """
-    logging.debug("Attempting to log into %s:%s using %s (timeout %ds)",
-                  host, port, client, timeout)
+    LOG.debug("Attempting to log into %s:%s using %s (timeout %ds)",
+              host, port, client, timeout)
     end_time = time.time() + timeout
     verbose = False
     while time.time() < end_time:
@@ -126,7 +128,7 @@ def wait_for_ssh_login_to_migrate(client, host, port, username, password, prompt
                                         internal_timeout, interface, verbose=verbose,
                                         preferred_authenticaton=preferred_authenticaton)
         except LoginError as error:
-            logging.debug(error)
+            LOG.debug(error)
             verbose = True
         time.sleep(2)
     # Timeout expired; try one more time but don't catch exceptions
@@ -197,7 +199,7 @@ def remote_commander(client, host, port, username, password, prompt,
     else:
         raise LoginBadClientError(client)
 
-    logging.debug("Login command: '%s'", cmd)
+    LOG.debug("Login command: '%s'", cmd)
     session = aexpect.Expect(cmd, linesep=linesep)
     try:
         handle_prompts(session, username, password, prompt, timeout)
@@ -243,17 +245,17 @@ def run_remote_cmd(cmd, params, remote_runner=None, ignore_status=True):
                                          password=remote_pwd)
 
         cmdresult = remote_runner.run(cmd, ignore_status=ignore_status)
-        logging.debug("Remote runner run result:\n%s", cmdresult)
+        LOG.debug("Remote runner run result:\n%s", cmdresult)
         if cmdresult.exit_status and not ignore_status:
             raise exceptions.TestFail("Failed to run '%s' on remote: %s"
                                       % (cmd, cmdresult))
         return cmdresult
     except (LoginError, LoginTimeoutError,
             LoginAuthenticationError, LoginProcessTerminatedError) as e:
-        logging.error(e)
+        LOG.error(e)
         raise exceptions.TestError(e)
     except process.CmdError as cmderr:
-        logging.error("Remote runner run failed:\n%s", cmderr)
+        LOG.error("Remote runner run failed:\n%s", cmderr)
         raise exceptions.TestFail("Failed to run '%s' on remote: %s"
                                   % (cmd, cmderr))
 
@@ -291,8 +293,8 @@ class Remote_Package(object):
         """
         Copy file from remote to local.
         """
-        logging.debug("Pull remote: '%s' to local: '%s'." % (self.remote_path,
-                                                             local_path))
+        LOG.debug("Pull remote: '%s' to local: '%s'." % (self.remote_path,
+                                                         local_path))
         copy_files_from(self.address, self.cp_client, self.username,
                         self.password, self.cp_port, self.remote_path,
                         local_path, timeout=timeout)
@@ -301,8 +303,8 @@ class Remote_Package(object):
         """
         Copy file from local to remote.
         """
-        logging.debug("Push local: '%s' to remote: '%s'." % (local_path,
-                                                             self.remote_path))
+        LOG.debug("Push local: '%s' to remote: '%s'." % (local_path,
+                                                         self.remote_path))
         copy_files_to(self.address, self.cp_client, self.username,
                       self.password, self.cp_port, local_path,
                       self.remote_path, timeout=timeout)
@@ -633,10 +635,10 @@ class VMManager(object):
         cmd = "ls %s %s" % (pri_key, pub_key)
         result = self.runner.run(cmd, ignore_status=True)
         if result.exit_status:
-            logging.debug("Create new SSH key pair")
+            LOG.debug("Create new SSH key pair")
             self.runner.run("ssh-keygen -t rsa -q -N '' -f %s" % pri_key)
         else:
-            logging.info("SSH key pair already exist")
+            LOG.info("SSH key pair already exist")
         session = self.runner.session
         # To avoid the host key checking
         ssh_options = "%s %s" % ("-o UserKnownHostsFile=/dev/null",
@@ -654,7 +656,7 @@ class VMManager(object):
         :param count: counter to ping
         :param timeout: seconds to wait for
         """
-        logging.debug("Check VM network connectivity...")
+        LOG.debug("Check VM network connectivity...")
         vm_net_connectivity = False
         sleep_time = 5
         result = ""
@@ -667,7 +669,7 @@ class VMManager(object):
                 continue
             else:
                 vm_net_connectivity = True
-                logging.info(result.stdout_text)
+                LOG.info(result.stdout_text)
                 break
 
         if not vm_net_connectivity:
@@ -694,7 +696,7 @@ class VMManager(object):
         try:
             ret = self.runner.run(cmd, timeout=timeout, ignore_status=ignore_status)
         except process.CmdError as detail:
-            logging.debug("Failed to run '%s' in the VM: %s", cmd, detail)
+            LOG.debug("Failed to run '%s' in the VM: %s", cmd, detail)
             raise exceptions.TestFail("Failed to run '%s' in the VM: %s",
                                       cmd, detail)
         return ret

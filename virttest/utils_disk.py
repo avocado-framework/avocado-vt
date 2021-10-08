@@ -39,6 +39,8 @@ SIZE_AVAILABLE = "available size"
 # Whether to print all shell commands called
 DEBUG = False
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def copytree(src, dst, overwrite=True, ignore=''):
     """
@@ -89,7 +91,7 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False,
     else:
         mount_result = process.run(mount_list_cmd, shell=True).stdout_text
     if verbose:
-        logging.debug("/proc/mounts contents:\n%s", mount_result)
+        LOG.debug("/proc/mounts contents:\n%s", mount_result)
 
     for result in mount_result.splitlines():
         if mount_str in result:
@@ -99,14 +101,14 @@ def is_mount(src, dst=None, fstype=None, options=None, verbose=False,
                 for op in options:
                     if op not in options_result:
                         if verbose:
-                            logging.info("%s is not mounted with given"
-                                         " option %s", src, op)
+                            LOG.info("%s is not mounted with given"
+                                     " option %s", src, op)
                         return False
             if verbose:
-                logging.info("%s is mounted", src)
+                LOG.info("%s is mounted", src)
             return True
     if verbose:
-        logging.info("%s is not mounted", src)
+        LOG.info("%s is not mounted", src)
     return False
 
 
@@ -155,7 +157,7 @@ def umount(src, dst, fstype=None, verbose=False, session=None):
         package = "psmisc"
         # check package is available, if not try installing it
         if not utils_package.package_install(package):
-            logging.error("%s is not available/installed for fuser", package)
+            LOG.error("%s is not available/installed for fuser", package)
         fuser_cmd = "fuser -km %s" % dst
         umount_cmd = "umount %s" % dst
         if session:
@@ -308,21 +310,21 @@ def update_windows_disk_attributes(session, dids, timeout=120):
     online_cmd = ' echo online disk'
     online_cmd = _wrap_windows_cmd(online_cmd)
     for did in dids:
-        logging.info("Detail for 'Disk%s'" % did)
+        LOG.info("Detail for 'Disk%s'" % did)
         details = session.cmd_output(detail_cmd % did)
         if re.search("Read.*Yes", details, re.I | re.M):
-            logging.info("Clear readonly bit on 'Disk%s'" % did)
+            LOG.info("Clear readonly bit on 'Disk%s'" % did)
             status, output = session.cmd_status_output(set_rw_cmd % did,
                                                        timeout=timeout)
             if status != 0:
-                logging.error("Can not clear readonly bit: %s" % output)
+                LOG.error("Can not clear readonly bit: %s" % output)
                 return False
         if re.search("Status.*Offline", details, re.I | re.M):
-            logging.info("Online 'Disk%s'" % did)
+            LOG.info("Online 'Disk%s'" % did)
             status, output = session.cmd_status_output(online_cmd % did,
                                                        timeout=timeout)
             if status != 0:
-                logging.error("Can not online disk: %s" % output)
+                LOG.error("Can not online disk: %s" % output)
                 return False
     return True
 
@@ -539,11 +541,11 @@ def clean_partition_linux(session, did, timeout=360):
     partition_numbers = session.cmd_output(list_partition_number % did)
     ignore_err_msg = "unrecognised disk label"
     if ignore_err_msg in partition_numbers:
-        logging.info("no partition to clean on %s" % did)
+        LOG.info("no partition to clean on %s" % did)
     else:
         partition_numbers = partition_numbers.splitlines()
         for number in partition_numbers:
-            logging.info("remove partition %s on %s" % (number, did))
+            LOG.info("remove partition %s on %s" % (number, did))
             session.cmd(rm_cmd % (did, number))
         session.cmd("partprobe /dev/%s" % did, timeout=timeout)
         regex = r'/block/%s/\S+\s^' % did
@@ -1098,7 +1100,7 @@ def get_parts_list(session=None):
             parts_line = line.rsplit()
             if len(parts_line) == 4:
                 parts.append(parts_line[3])
-    logging.debug("Find parts: %s", parts)
+    LOG.debug("Find parts: %s", parts)
     return parts
 
 
@@ -1112,7 +1114,7 @@ def get_added_parts(session, old_parts):
     """
     new_parts = get_parts_list(session)
     added_parts = list(set(new_parts).difference(set(old_parts)))
-    logging.info("Added parts:%s", added_parts)
+    LOG.info("Added parts:%s", added_parts)
     return added_parts
 
 
@@ -1150,7 +1152,7 @@ def get_disk_by_serial(serial_str, session=None):
         else:
             status = process.run(cmd, shell=True, ignore_status=True).exit_status
         if not status:
-            logging.debug("Disk %s has serial %s", disk, serial_str)
+            LOG.debug("Disk %s has serial %s", disk, serial_str)
             return disk
 
 
@@ -1164,7 +1166,7 @@ def check_remote_vm_disks(params):
     remote_vm_obj.check_network()
     remote_vm_obj.setup_ssh_auth()
     disks = get_linux_disks(remote_vm_obj, False)
-    logging.debug("Get disks in remote VM: %s", disks)
+    LOG.debug("Get disks in remote VM: %s", disks)
 
     for disk in disks.keys():
         linux_disk_check(remote_vm_obj, disk)
@@ -1183,7 +1185,7 @@ def dd_data_to_vm_disk(session, disk, bs='1M', seek='0', count='100'):
     dd_cmd = "dd if=/dev/urandom of=%s bs=%s seek=%s count=%s; sync"
     dd_cmd %= (disk, bs, seek, count)
     output = session.cmd_output(dd_cmd).strip()
-    logging.debug("Using dd to generate data to %s: %s", disk, output)
+    LOG.debug("Using dd to generate data to %s: %s", disk, output)
 
 
 class Disk(object):
@@ -1199,7 +1201,7 @@ class Disk(object):
         return os.path.join(self.mount, filename)
 
     def copy_to(self, src):
-        logging.debug("Copying %s to disk image mount", src)
+        LOG.debug("Copying %s to disk image mount", src)
         dst = os.path.join(self.mount, os.path.basename(src))
         if os.path.isdir(src):
             shutil.copytree(src, dst)
@@ -1210,7 +1212,7 @@ class Disk(object):
         os.chmod(self.path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP |
                  stat.S_IROTH | stat.S_IXOTH)
         cleanup(self.mount)
-        logging.debug("Disk %s successfully set", self.path)
+        LOG.debug("Disk %s successfully set", self.path)
 
 
 class FloppyDisk(Disk):
@@ -1234,7 +1236,7 @@ class FloppyDisk(Disk):
             f_cmd = 'mkfs.msdos -s 1 %s' % path
             process.run(f_cmd, verbose=DEBUG)
         except process.CmdError as e:
-            logging.error("Error during floppy initialization: %s" % e)
+            LOG.error("Error during floppy initialization: %s" % e)
             cleanup(self.mount)
             raise
 
@@ -1254,7 +1256,7 @@ class FloppyDisk(Disk):
         cleanup(self.mount)
 
     def copy_to(self, src):
-        logging.debug("Copying %s to floppy image", src)
+        LOG.debug("Copying %s to floppy image", src)
         mcopy_cmd = "mcopy -s -o -n -i %s %s ::/" % (self.path, src)
         process.run(mcopy_cmd, verbose=DEBUG)
 
@@ -1325,8 +1327,7 @@ class FloppyDisk(Disk):
         if os.path.isfile(virtio_floppy):
             self._copy_virtio_drivers(virtio_floppy)
         else:
-            logging.debug(
-                "No virtio floppy present, not needed for this OS anyway")
+            LOG.debug("No virtio floppy present, not needed for this OS anyway")
 
 
 class CdromDisk(Disk):
@@ -1382,8 +1383,8 @@ class CdromDisk(Disk):
         if os.path.isfile(cdrom_virtio) or os.path.isfile(virtio_floppy):
             self._copy_virtio_drivers(virtio_floppy, cdrom_virtio)
         else:
-            logging.debug(
-                "No virtio floppy/cdrom present, not needed for this OS anyway")
+            LOG.debug("No virtio floppy/cdrom present, not needed for this OS "
+                      "anyway")
 
     @error_context.context_aware
     def close(self):
@@ -1397,8 +1398,8 @@ class CdromDisk(Disk):
         os.chmod(self.path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP |
                  stat.S_IROTH | stat.S_IXOTH)
         cleanup(self.mount)
-        logging.debug("unattended install CD image %s successfully created",
-                      self.path)
+        LOG.debug("unattended install CD image %s successfully created",
+                  self.path)
 
 
 class CdromInstallDisk(Disk):
@@ -1450,8 +1451,8 @@ class CdromInstallDisk(Disk):
                  stat.S_IROTH | stat.S_IXOTH)
         cleanup(self.mount)
         cleanup(self.source_cdrom)
-        logging.debug("unattended install CD image %s successfully created",
-                      self.path)
+        LOG.debug("unattended install CD image %s successfully created",
+                  self.path)
 
 
 class GuestFSModiDisk(object):
@@ -1496,7 +1497,7 @@ class GuestFSModiDisk(object):
             raise exceptions.TestError('libvirtd: service not found')
         if (not libvirtd_status) and (not libvirtd.start()):
             raise exceptions.TestError('libvirtd: failed to start')
-        logging.debug("Launch the disk %s, wait..." % self.disk)
+        LOG.debug("Launch the disk %s, wait..." % self.disk)
         self.g.launch()
 
     def os_inspects(self):
@@ -1526,16 +1527,16 @@ class GuestFSModiDisk(object):
                 for mp_dev in mps:
                     try:
                         msg = "Mount dev '%s' partitions '%s' to '%s'"
-                        logging.info(msg % (root, mp_dev[1], mp_dev[0]))
+                        LOG.info(msg % (root, mp_dev[1], mp_dev[0]))
                         self.g.mount(mp_dev[1], mp_dev[0])
                     except RuntimeError as err_msg:
-                        logging.info("%s (ignored)" % err_msg)
+                        LOG.info("%s (ignored)" % err_msg)
         else:
             raise exceptions.TestError(
                 "inspect_vm: no operating systems found")
 
     def umount_all(self):
-        logging.debug("Umount all device partitions")
+        LOG.debug("Umount all device partitions")
         if self.mounts():
             self.g.umount_all()
 

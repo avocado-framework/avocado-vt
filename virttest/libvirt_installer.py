@@ -15,6 +15,8 @@ from virttest import base_installer
 __all__ = ['GitRepoInstaller', 'LocalSourceDirInstaller',
            'LocalSourceTarInstaller', 'RemoteSourceTarInstaller']
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
 
@@ -40,14 +42,14 @@ class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
         self.rpmbuild_path = self.params.get("rpmbuild_path", "/root/rpmbuild/")
         if os.path.isdir(self.rpmbuild_path):
             process.system("rm -rf %s/*" % self.rpmbuild_path)
-        logging.debug("Build libvirt rpms")
+        LOG.debug("Build libvirt rpms")
         process.system("make rpm", allow_output_check="combined")
 
     def _install_phase_package_verify(self):
         """
         Check if rpms are generated
         """
-        logging.debug("Check for libvirt rpms")
+        LOG.debug("Check for libvirt rpms")
         found = False
         for fl in os.listdir('%s/RPMS/%s/' % (self.rpmbuild_path,
                                               platform.machine())):
@@ -60,7 +62,7 @@ class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
         """
         Install libvirt package
         """
-        logging.debug("Install libvirt rpms")
+        LOG.debug("Install libvirt rpms")
         package_install_cmd = "rpm -Uvh --nodeps --replacepkgs"
         package_install_cmd += " --replacefiles --oldpackage"
         package_install_cmd += " %s/RPMS/%s/libvirt*" % (self.rpmbuild_path,
@@ -73,7 +75,7 @@ class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
 
         :return: None
         """
-        logging.debug("Initialize installed libvirt package")
+        LOG.debug("Initialize installed libvirt package")
         process.system("service libvirtd restart", allow_output_check="combined")
 
     def _install_phase_init_verify(self):
@@ -82,7 +84,7 @@ class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
 
         :return: None
         """
-        logging.debug("Check libvirt package install")
+        LOG.debug("Check libvirt package install")
         process.system("service libvirtd status", allow_output_check="combined")
         process.system("virsh capabilities", allow_output_check="combined")
 

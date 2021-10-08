@@ -64,6 +64,8 @@ PROCFS_NET_PATH = "/proc/net/dev"
 sock = None
 sockfd = None
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class NetError(Exception):
 
@@ -837,7 +839,7 @@ def raw_ping(command, timeout, session, output_func):
     :param session: Local executon hint or session to execute the ping command.
     """
     if session is None:
-        logging.info("The command of Ping is: %s", command)
+        LOG.info("The command of Ping is: %s", command)
         process = aexpect.run_bg(command, output_func=output_func,
                                  timeout=timeout)
 
@@ -885,7 +887,7 @@ def raw_ping(command, timeout, session, output_func):
 def ping(dest=None, count=None, interval=None, interface=None,
          packetsize=None, ttl=None, hint=None, adaptive=False,
          broadcast=False, flood=False, timeout=0,
-         output_func=logging.debug, session=None, force_ipv4=False):
+         output_func=LOG.debug, session=None, force_ipv4=False):
     """
     Wrapper of ping.
 
@@ -981,7 +983,7 @@ def get_macvtap_base_iface(base_interface=None):
         if base_interface:
             warn_msg = "Can not use '%s' as macvtap base interface, "
             warn_msg += "will choice automatically"
-            logging.warn(warn_msg % base_interface)
+            LOG.warn(warn_msg % base_interface)
         for interface in dev_int:
             base_inter = Interface(interface)
             if base_inter.is_brport():
@@ -1174,7 +1176,7 @@ class Bridge(object):
         try:
             bridge_stp = self.get_structure()[brname]['stp']
         except KeyError:
-            logging.error("Not find bridge %s", brname)
+            LOG.error("Not find bridge %s", brname)
         return bridge_stp
 
 
@@ -1196,7 +1198,7 @@ def __init_openvswitch(func):
                 if (not __ovs.check()):
                     raise Exception("Check of OpenVSwitch failed.")
             except Exception as e:
-                logging.debug("Host does not support OpenVSwitch: %s", e)
+                LOG.debug("Host does not support OpenVSwitch: %s", e)
 
         return func(*args, **kargs)
     return wrap_init
@@ -1294,7 +1296,7 @@ def vnet_mq_probe(tapfd):
     try:
         r = fcntl.ioctl(tapfd, arch.TUNGETFEATURES, u)
     except OverflowError:
-        logging.debug("Fail to get tun features!")
+        LOG.debug("Fail to get tun features!")
         return False
     flags = struct.unpack("I", r)[0]
     if flags & arch.IFF_MULTI_QUEUE:
@@ -1313,7 +1315,7 @@ def vnet_hdr_probe(tapfd):
     try:
         r = fcntl.ioctl(tapfd, arch.TUNGETFEATURES, u)
     except OverflowError:
-        logging.debug("Fail to get tun features!")
+        LOG.debug("Fail to get tun features!")
         return False
     flags = struct.unpack("I", r)[0]
     if flags & arch.IFF_VNET_HDR:
@@ -1558,7 +1560,7 @@ def get_guest_ip_addr(session, mac_addr, os_type="linux", ip_version="ipv4",
             except IndexError:
                 time.sleep(1)
         except Exception as err:
-            logging.debug(session.cmd_output(info_cmd))
+            LOG.debug(session.cmd_output(info_cmd))
             raise IPAddrGetError(mac_addr, err)
 
     return None
@@ -1618,7 +1620,7 @@ def set_guest_ip_addr(session, mac, ip_addr,
             info_cmd = ""
             raise IPAddrSetError(mac, ip_addr, "Unknown os type")
     except Exception as err:
-        logging.debug(session.cmd_output(info_cmd))
+        LOG.debug(session.cmd_output(info_cmd))
         raise IPAddrSetError(mac, ip_addr, err)
 
 
@@ -1633,9 +1635,9 @@ def get_guest_nameserver(session):
     output = None
     try:
         output = session.cmd_output(cmd).strip()
-        logging.debug("Guest name server is %s" % output)
+        LOG.debug("Guest name server is %s" % output)
     except (aexpect.ShellError, aexpect.ShellTimeoutError):
-        logging.error("Failed to get the guest's nameserver")
+        LOG.error("Failed to get the guest's nameserver")
     return output
 
 
@@ -1787,25 +1789,25 @@ def create_network_script(iface_name, mac_addr, boot_proto, net_mask,
         status, output = session.cmd_status_output(cmd)
         if "ubuntu" in distro:
             if iface_name in output.strip():
-                logging.error("network script file for %s already exists in "
-                              "guest %s", iface_name, script_file)
+                LOG.error("network script file for %s already exists in "
+                          "guest %s", iface_name, script_file)
                 return
         else:
             if not status:
-                logging.error("network script file for %s already exists in "
-                              "guest %s", iface_name, script_file)
+                LOG.error("network script file for %s already exists in "
+                          "guest %s", iface_name, script_file)
                 return
     else:
         distro = platform.platform().lower()
         if "ubuntu" in distro:
             if iface_name in process.run(cmd).stdout_text.strip():
-                logging.error("network script file for %s already exists in "
-                              "host %s", iface_name, script_file)
+                LOG.error("network script file for %s already exists in "
+                          "host %s", iface_name, script_file)
                 return
         else:
             if os.path.isfile(script_file):
-                logging.error("network script file for %s already exists in "
-                              "host %s", iface_name, script_file)
+                LOG.error("network script file for %s already exists in "
+                          "host %s", iface_name, script_file)
                 return
     if "ubuntu" in distro:
         network_param_list = ['auto %s' % iface_name, 'iface %s inet %s' %
@@ -1835,7 +1837,7 @@ def create_network_script(iface_name, mac_addr, boot_proto, net_mask,
         else:
             if process.system(command, shell=True):
                 raise exceptions.TestError("Failed to create network script file")
-    logging.debug("Network script file created in %s:", script_file)
+    LOG.debug("Network script file created in %s:", script_file)
 
 
 def ipv6_from_mac_addr(mac_addr):
@@ -1960,8 +1962,8 @@ def check_add_dnsmasq_to_br(br_name, tmpdir):
     leases = ("%s.leases") % (br_ips[0])
 
     if not (set(br_ips) & set(dnsmasq_listen)):
-        logging.debug("There is no dnsmasq on br %s."
-                      "Starting new one." % (br_name))
+        LOG.debug("There is no dnsmasq on br %s."
+                  "Starting new one." % (br_name))
         process.run("/usr/sbin/dnsmasq --strict-order --bind-interfaces"
                     " --pid-file=%s --conf-file= --except-interface lo"
                     " --listen-address %s --dhcp-range %s,%s --dhcp-leasefile=%s"
@@ -2230,7 +2232,7 @@ def if_set_macaddress(ifname, mac):
     try:
         fcntl.ioctl(ctrl_sock, arch.SIOCSIFHWADDR, ifr)
     except IOError as e:
-        logging.info(e)
+        LOG.info(e)
         raise HwAddrSetError(ifname, mac)
     ctrl_sock.close()
 
@@ -2337,11 +2339,11 @@ class IPv6Manager(propcan.PropCanBase):
 
         if not runner:
             ipv6_addr_list = get_net_if_addrs(self.client_ifname).get("ipv6")
-            logging.debug("Local IPv6 address list: %s", ipv6_addr_list)
+            LOG.debug("Local IPv6 address list: %s", ipv6_addr_list)
         else:
             ipv6_addr_list = get_net_if_addrs(self.server_ifname,
                                               runner).get("ipv6")
-            logging.debug("remote IPv6 address list: %s", ipv6_addr_list)
+            LOG.debug("remote IPv6 address list: %s", ipv6_addr_list)
 
         return ipv6_addr_list
 
@@ -2364,7 +2366,7 @@ class IPv6Manager(propcan.PropCanBase):
                                            "unreachable: %s", server_ipv6,
                                            result.stderr_text)
         else:
-            logging.info("The '%s' destination is connectivity!", server_ipv6)
+            LOG.info("The '%s' destination is connectivity!", server_ipv6)
 
     def flush_ip6tables(self):
         """
@@ -2387,7 +2389,7 @@ class IPv6Manager(propcan.PropCanBase):
                                       (test_fail_err,
                                        result.stderr_text))
         else:
-            logging.info("%s on the local host", flush_cmd_pass)
+            LOG.info("%s on the local host", flush_cmd_pass)
 
         # check if ip6tables command exists on the remote
         if self.session.cmd_status(find_ip6tables_cmd):
@@ -2396,7 +2398,7 @@ class IPv6Manager(propcan.PropCanBase):
         if self.session.cmd_status(flush_cmd):
             raise exceptions.TestFail("%s on the remote host" % test_fail_err)
         else:
-            logging.info("%s on the remote host", flush_cmd_pass)
+            LOG.info("%s on the remote host", flush_cmd_pass)
 
     def setup(self):
         """
@@ -2406,7 +2408,7 @@ class IPv6Manager(propcan.PropCanBase):
         runner = self.session.cmd_output
 
         try:
-            logging.info("Prepare to configure IPv6 test environment...")
+            LOG.info("Prepare to configure IPv6 test environment...")
             local_ipv6_addr_list = self.get_addr_list()
 
             # the ipv6 address looks like this '3efe::101/64'
@@ -2418,7 +2420,7 @@ class IPv6Manager(propcan.PropCanBase):
                 set_net_if_ip(self.client_ifname, self.client_ipv6_addr)
                 self.client_ipv6_added = True
             else:
-                logging.debug(
+                LOG.debug(
                     "Skip to add the existing ipv6 address %s",
                     ipv6_addr_src)
 
@@ -2434,7 +2436,7 @@ class IPv6Manager(propcan.PropCanBase):
                     runner)
                 self.server_ipv6_added = True
             else:
-                logging.debug(
+                LOG.debug(
                     "Skip to add the existing ipv6 address %s",
                     ipv6_addr_des)
 
@@ -2454,7 +2456,7 @@ class IPv6Manager(propcan.PropCanBase):
         """
         Cleanup IPv6 network environment.
         """
-        logging.info("Prepare to clean up IPv6 test environment...")
+        LOG.info("Prepare to clean up IPv6 test environment...")
         local_ipv6_addr_list = self.get_addr_list()
 
         # the ipv6 address looks like this '3efe::101/64'
@@ -2774,11 +2776,11 @@ class VMNet(list):
                 del value['mac']  # don't store invalid macs
                 # Notify user about these, but don't go crazy
                 if self.__class__.DISCARD_WARNINGS >= 0:
-                    logging.warning('Discarded invalid mac "%s" for nic "%s" '
-                                    'from input, %d warnings remaining.'
-                                    % (original_mac,
-                                       value.get('nic_name'),
-                                       self.__class__.DISCARD_WARNINGS))
+                    LOG.warning('Discarded invalid mac "%s" for nic "%s" '
+                                'from input, %d warnings remaining.'
+                                % (original_mac,
+                                   value.get('nic_name'),
+                                   self.__class__.DISCARD_WARNINGS))
                     self.__class__.DISCARD_WARNINGS -= 1
 
     def mac_list(self):
@@ -3221,8 +3223,8 @@ class VirtNet(DbNet, ParamsNet):
         """
         nic = self[nic_index_or_name]
         if 'mac' in nic:
-            logging.warning("Overwriting mac %s for nic %s with random"
-                            % (nic.mac, str(nic_index_or_name)))
+            LOG.warning("Overwriting mac %s for nic %s with random"
+                        % (nic.mac, str(nic_index_or_name)))
         self.free_mac_address(nic_index_or_name)
         attempts_remaining = attempts
         while attempts_remaining > 0:
@@ -3267,8 +3269,8 @@ class VirtNet(DbNet, ParamsNet):
         """
         nic = self[nic_index_or_name]
         if 'mac' in nic:
-            logging.warning("Overwriting mac %s for nic %s with %s"
-                            % (nic.mac, str(nic_index_or_name), mac))
+            LOG.warning("Overwriting mac %s for nic %s with %s"
+                        % (nic.mac, str(nic_index_or_name), mac))
         nic.mac = mac.lower()
         self.update_db()
 
@@ -3403,7 +3405,7 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
         output = func(ip_cmd, timeout=timeout, **dargs)
         devs = set(re.findall(r"dev\s+(\S+)", output, re.I))
     if not devs:
-        logging.debug("No path to %s in route table: %s" % (ip, output))
+        LOG.debug("No path to %s in route table: %s" % (ip, output))
         return False
 
     # TODO: use same verification function for both ipv4 and ipv6
@@ -3476,12 +3478,12 @@ def get_ip_address_by_interface(ifname, ip_ver="ipv4", linklocal=False):
                 return [a['addr'] for a in addr
                         if not a['addr'].lower().startswith(linklocal_prefix)][0]
         except IndexError:
-            logging.warning("No IP address configured for "
-                            "the network interface %s !", ifname)
+            LOG.warning("No IP address configured for "
+                        "the network interface %s !", ifname)
             return None
     else:
-        logging.warning("No IP address configured for the network interface"
-                        "%s !", ifname)
+        LOG.warning("No IP address configured for the network interface"
+                    "%s !", ifname)
         return None
 
 
@@ -3501,13 +3503,13 @@ def get_host_ip_address(params=None, ip_ver="ipv4", linklocal=False):
     if params:
         host_ip = params.get('host_ip_addr', None)
         if host_ip:
-            logging.debug("Use IP address at config %s=%s", 'host_ip_addr', host_ip)
+            LOG.debug("Use IP address at config %s=%s", 'host_ip_addr', host_ip)
             return host_ip
         net_dev = params.get("netdst")
     if not net_dev:
         net_dev = get_default_gateway(iface_name=True)
-    logging.warning("No IP address of host was provided, using IP address"
-                    " on %s interface", net_dev)
+    LOG.warning("No IP address of host was provided, using IP address"
+                " on %s interface", net_dev)
     return get_ip_address_by_interface(net_dev, ip_ver, linklocal)
 
 
@@ -3582,7 +3584,7 @@ def get_linux_mac(session, nic):
     try:
         return str(re.search(pattern, out, re.M | re.I).group(mac_index))
     except Exception:
-        logging.error("No HWaddr/ether found for nic %s: %s" % (nic, out))
+        LOG.error("No HWaddr/ether found for nic %s: %s" % (nic, out))
 
 
 def get_linux_ipaddr(session, nic):
@@ -3725,10 +3727,9 @@ def get_linux_iface_info(mac, session=None):
         else:
             ip_output_str = process.run(ip_cmd).stdout_text.strip()
         ip_info = json.loads(ip_output_str)
-        logging.debug('interfaces inside vm:\n %s', ip_info)
+        LOG.debug('interfaces inside vm:\n %s', ip_info)
     except Exception as why:
-        logging.error('Failed to get interfaces inside vm. Reason: %s',
-                      str(why))
+        LOG.error('Failed to get interfaces inside vm. Reason: %s', str(why))
         return None
 
     for iface in ip_info:
@@ -3750,11 +3751,11 @@ def update_mac_ip_address(vm, timeout=240):
         addr_map = get_guest_address_map(session)
         session.close()
         if not addr_map:
-            logging.warn("No VM's NIC got IP address")
+            LOG.warn("No VM's NIC got IP address")
             return
         vm.address_cache.update(addr_map)
     except Exception as e:
-        logging.warn("Error occur when update VM address cache: %s", str(e))
+        LOG.warn("Error occur when update VM address cache: %s", str(e))
 
 
 def get_windows_nic_attribute(session, key, value, target, timeout=240,
@@ -3890,11 +3891,11 @@ def get_default_gateway(iface_name=False, session=None):
     try:
         if session:
             output = session.cmd_output(cmd).strip()
-            logging.debug("Guest default gateway is %s" % output)
+            LOG.debug("Guest default gateway is %s" % output)
         else:
             output = process.run(cmd, shell=True).stdout_text.rstrip()
     except (aexpect.ShellError, aexpect.ShellTimeoutError, process.CmdError):
-        logging.error("Failed to get the default GateWay")
+        LOG.error("Failed to get the default GateWay")
         return None
     return output
 
@@ -3922,13 +3923,13 @@ def check_listening_port_by_service(service, port, listen_addr='0.0.0.0',
                                                "remote")
             output = runner(cmd)
     except process.CmdError:
-        logging.error("Failed to run command '%s'", cmd)
+        LOG.error("Failed to run command '%s'", cmd)
 
     if not re.search(find_str, output, re.M):
         raise exceptions.TestFail(
             "Failed to listen %s: %s" %
             (find_str, output))
-    logging.info("The listening is active: %s", output)
+    LOG.info("The listening is active: %s", output)
 
 
 def check_listening_port_remote_by_service(server_ip, server_user, server_pwd,
@@ -3970,17 +3971,16 @@ def block_specific_ip_by_time(ip_addr, block_time="1 seconds", runner=None):
             except utils_path.CmdNotFoundError as details:
                 raise exceptions.TestSkipError(details)
             output = local_runner(cmd, shell=True)
-            logging.debug("List current iptables rules:\n%s",
-                          local_runner(list_rules))
+            LOG.debug("List current iptables rules:\n%s",
+                      local_runner(list_rules))
         else:
             if not runner(find_iptables):
                 raise exceptions.TestSkipError("Missing 'iptables' command on "
                                                "remote")
             output = runner(cmd)
-            logging.debug("List current iptables rules:\n%s",
-                          runner(list_rules))
+            LOG.debug("List current iptables rules:\n%s", runner(list_rules))
     except process.CmdError:
-        logging.error("Failed to run command '%s'", cmd)
+        LOG.error("Failed to run command '%s'", cmd)
 
 
 def map_hostname_ipaddress(hostname_ip_dict, session=None):
@@ -4001,16 +4001,16 @@ def map_hostname_ipaddress(hostname_ip_dict, session=None):
     for hostname, ipaddress in six.iteritems(hostname_ip_dict):
         status, output = func(check_cmd)
         if status != 0:
-            logging.error(output)
+            LOG.error(output)
             return False
         pattern = "%s(\s+)%s$" % (ipaddress, hostname)
         if not re.search(pattern, output):
             cmd = "echo '%s %s' >> %s" % (ipaddress, hostname, hosts_file)
             status, output = func(cmd)
             if status != 0:
-                logging.error(output)
+                LOG.error(output)
                 return False
-    logging.info("All the hostnames and IPs are mapped in %s", hosts_file)
+    LOG.info("All the hostnames and IPs are mapped in %s", hosts_file)
     return True
 
 
@@ -4060,7 +4060,7 @@ def _get_pdb_path(session, driver_name):
     pdb_find_cmd = 'dir /b /s %s\\%s.pdb | findstr "\\%s\\\\"'
     pdb_find_cmd %= (viowin_ltr, driver_name, pdb_middle_path)
     pdb_path = session.cmd(pdb_find_cmd).strip()
-    logging.info("Found %s.pdb file at %s" % (driver_name, pdb_path))
+    LOG.info("Found %s.pdb file at %s" % (driver_name, pdb_path))
     return pdb_path
 
 
@@ -4077,14 +4077,13 @@ def _prepare_traceview_windows(params, session, timeout=360):
     copy_cmd = "xcopy %s %s /y"
     dst_folder = "c:\\"
     # copy traceview.exe
-    logging.info("Copy traceview.exe to drive %s" % dst_folder)
+    LOG.info("Copy traceview.exe to drive %s" % dst_folder)
     traceview_path = _get_traceview_path(session, params)
     session.cmd(copy_cmd % (traceview_path, dst_folder))
 
     # copy Netkvm.pdb
     driver_name = params.get("driver_name", "netkvm")
-    logging.info("Locate %s.pdb and copy to drive %s" %
-                 (driver_name, dst_folder))
+    LOG.info("Locate %s.pdb and copy to drive %s" % (driver_name, dst_folder))
     pdb_path = _get_pdb_path(session, driver_name)
     session.cmd(copy_cmd % (pdb_path, dst_folder))
 
@@ -4102,7 +4101,7 @@ def _get_msis_queues_from_traceview_output(output):
     :return: a tuple of (msis, queues)
     """
     info_str = "Start checking dump content for MSIs&queues info"
-    logging.info(info_str)
+    LOG.info(info_str)
     search_exp = r'No MSIX, using (\d+) queue'
     # special case for vectors = 0
     queue_when_no_msi = re.search(search_exp, output)
@@ -4180,26 +4179,26 @@ def dump_traceview_log_windows(params, vm, timeout=360):
     dump_cmd = "%s -process %s -pdb %s -o %s" % (
         traceview_local_path, log_path, pdb_local_path, dump_file)
     # start traceview
-    logging.info("Start trace view with pdb file")
+    LOG.info("Start trace view with pdb file")
     session_serial = vm.wait_for_serial_login(timeout=timeout)
     try:
         session_serial.cmd(clean_cmd + log_path)
         session_serial.cmd(start_traceview_cmd, timeout=timeout)
         # restart nic
-        logging.info("Restart guest nic")
+        LOG.info("Restart guest nic")
         mac = vm.get_mac_address(0)
         connection_id = get_windows_nic_attribute(
             session_serial, "macaddress", mac, "netconnectionid")
         restart_windows_guest_network(session_serial, connection_id)
         # stop traceview
-        logging.info("Stop traceview")
+        LOG.info("Stop traceview")
         session_serial.cmd(stop_traceview_cmd, timeout=timeout)
         # checkout traceview output
-        logging.info("Check etl file generated by traceview")
+        LOG.info("Check etl file generated by traceview")
         session_serial.cmd(clean_cmd + dump_file)
         status, output = session_serial.cmd_status_output(dump_cmd)
         if status:
-            logging.error("Cann't dump log file %s: %s" % (log_path, output))
+            LOG.error("Cann't dump log file %s: %s" % (log_path, output))
         _wait_for_traceview_dump_finished(session_serial, dump_file)
         status, output = session_serial.cmd_status_output(
             "type %s" % dump_file)
@@ -4240,7 +4239,7 @@ def set_netkvm_param_value(vm, param, value):
 
     session = vm.wait_for_serial_login(timeout=360)
     try:
-        logging.info("Set %s to %s" % (param, value))
+        LOG.info("Set %s to %s" % (param, value))
         cmd = 'netsh netkvm setparam 0 param=%s value=%s'
         cmd = cmd % (param, value)
         status, output = session.cmd_status_output(cmd)
@@ -4249,7 +4248,7 @@ def set_netkvm_param_value(vm, param, value):
             err += "With status=%s, output=%s" % (status, output)
             raise exceptions.TestError(err)
 
-        logging.info("Restart nic to apply changes")
+        LOG.info("Restart nic to apply changes")
         dev_mac = vm.virtnet[0].mac
         connection_id = get_windows_nic_attribute(
             session, "macaddress", dev_mac, "netconnectionid")
@@ -4270,7 +4269,7 @@ def get_netkvm_param_value(vm, param):
 
     session = vm.wait_for_serial_login(timeout=360)
     try:
-        logging.info("Get the value of %s" % param)
+        LOG.info("Get the value of %s" % param)
         cmd = 'netsh netkvm getparam 0 param=%s' % param
         status, output = session.cmd_status_output(cmd)
         if status:
@@ -4368,7 +4367,7 @@ def get_channel_info(session, interface):
     cmd = "ethtool -l %s" % interface
     s, o = session.cmd_status_output(cmd)
     if s:
-        logging.error("Get channel parameters for vm failed:%s" % o)
+        LOG.error("Get channel parameters for vm failed:%s" % o)
         return {}, {}
     maximum = {}
     current = {}
@@ -4396,20 +4395,20 @@ def set_channel(session, interface, parameter, value):
     :return: False or True to indicate if the the parameter is set successfully
     """
     cmd = "ethtool -L %s %s %s" % (interface, parameter, value)
-    logging.debug("The cmd to set the channel info '%s'" % cmd)
+    LOG.debug("The cmd to set the channel info '%s'" % cmd)
     s, o = session.cmd_status_output(cmd)
     if s:
-        logging.error("Setting %s to %s failed:%s", parameter, value, o)
+        LOG.error("Setting %s to %s failed:%s", parameter, value, o)
         return False
     _, current = get_channel_info(session, interface)
-    logging.debug("After set, the current value is %s" % current)
+    LOG.debug("After set, the current value is %s" % current)
     try:
         if int(current['Combined']) == int(value):
             return True
         else:
-            logging.error("Setting passed, but checking failed:%s", current)
+            LOG.error("Setting passed, but checking failed:%s", current)
     except KeyError:
-        logging.error("No 'Combined' found in the channel info")
+        LOG.error("No 'Combined' found in the channel info")
     return False
 
 
@@ -4461,7 +4460,7 @@ def delete_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=F
     if not utils_package.package_install(['tmux', 'dhcp-client', 'procps-ng', 'net-tools']):
         raise exceptions.TestError("Failed to install the required packages.")
     if not os.path.exists(br_path):
-        logging.info("There is no bridge named '%s' on the host" % linux_bridge_name)
+        LOG.info("There is no bridge named '%s' on the host" % linux_bridge_name)
         return
     if iface_name:
         cmd = 'tmux -c "ip link set {1} nomaster; ip link delete {0}; pkill dhclient; ' \
@@ -4483,19 +4482,19 @@ def check_filter_rules(ifname, bandwidth, expect_none=False):
     """
     cmd = "tc -d filter show dev %s parent ffff:" % ifname
     filter_output = process.run(cmd, shell=True).stdout_text
-    logging.debug("Bandwidth filter output: %s", filter_output)
+    LOG.debug("Bandwidth filter output: %s", filter_output)
     if expect_none:
         return not filter_output.strip()
     if not filter_output.count("filter protocol all pref"):
-        logging.error("Can't find 'protocol all' settings in filter rules")
+        LOG.error("Can't find 'protocol all' settings in filter rules")
         return False
     filter_pattern = r".*police.*rate (\d+)(K?M?)bit burst (\d+)(K?M?)b.*"
     tc_police = re.search(r"%s" % filter_pattern, filter_output, re.M)
     if not tc_police:
-        logging.error("Can't find any filter policy")
+        LOG.error("Can't find any filter policy")
         return False
-    logging.debug("bandwidth from tc output:%s" % str(tc_police.groups()))
-    logging.debug("bandwidth from setting:%s" % str(bandwidth))
+    LOG.debug("bandwidth from tc output:%s" % str(tc_police.groups()))
+    LOG.debug("bandwidth from setting:%s" % str(bandwidth))
     try:
         if "average" in bandwidth:
             if tc_police.group(2) == 'M':
@@ -4526,14 +4525,14 @@ def check_class_rules(ifname, rule_id, bandwidth):
     """
     cmd = "tc class show dev %s" % ifname
     class_output = process.run(cmd, shell=True).stdout_text
-    logging.debug("Bandwidth class output: %s", class_output)
+    LOG.debug("Bandwidth class output: %s", class_output)
     class_pattern = (r"class htb %s.*rate (\d+)(K?M?)bit ceil (\d+)(K?M?)bit burst (\d+)(K?M?)b.*" % rule_id)
     tc_htb = re.search(class_pattern, class_output, re.M)
     if not tc_htb:
-        logging.error("Can't find outbound setting for htb %s", rule_id)
+        LOG.error("Can't find outbound setting for htb %s", rule_id)
         return False
-    logging.debug("bandwidth from tc output:%s" % str(tc_htb.groups()))
-    logging.debug("bandwidth from seting: %s" % str(bandwidth))
+    LOG.debug("bandwidth from tc output:%s" % str(tc_htb.groups()))
+    LOG.debug("bandwidth from seting: %s" % str(bandwidth))
     rate = None
     if "floor" in bandwidth:
         rate = int(bandwidth["floor"]) * 8

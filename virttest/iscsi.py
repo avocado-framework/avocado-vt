@@ -24,6 +24,7 @@ from virttest import data_dir
 from virttest import utils_package
 from virttest.staging import service
 
+LOG = logging.getLogger('avocado.' + __name__)
 
 ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
 
@@ -135,8 +136,8 @@ def iscsi_node_del(target_name=None):
                 process.system(cmd, ignore_status=True)
                 break
         if not cmd:
-            logging.error("The target '%s' for delete is not in target node"
-                          " record", target_name)
+            LOG.error("The target '%s' for delete is not in target node"
+                      " record", target_name)
     else:
         for node_tup in node_list:
             cmd = "iscsiadm -m node -o delete -T %s " % node_tup[1]
@@ -164,7 +165,7 @@ def iscsi_logout(target_name=None):
         # This failure makes no sense when target name is not specified
         stderr = detail.result.stderr_text
         if not target_name and 'No matching sessions' in stderr:
-            logging.info("%s: %s", detail, stderr)
+            LOG.info("%s: %s", detail, stderr)
         else:
             raise
 
@@ -186,7 +187,7 @@ def iscsi_discover(portal_ip):
 
     session = ""
     if "Invalid" in output:
-        logging.debug(output)
+        LOG.debug(output)
     else:
         session = output
     return session
@@ -276,7 +277,7 @@ class _IscsiComm(object):
         back up and set up the InitiatorName
         """
         if os.path.isfile("%s" % ISCSI_CONFIG_FILE):
-            logging.debug("Try to update iscsi initiatorname")
+            LOG.debug("Try to update iscsi initiatorname")
             # Don't override the backup file
             if not os.path.isfile("%s-%s" % (ISCSI_CONFIG_FILE, id)):
                 cmd = "mv %s %s-%s" % (ISCSI_CONFIG_FILE, ISCSI_CONFIG_FILE, id)
@@ -327,10 +328,10 @@ class _IscsiComm(object):
             try:
                 device_name = "/dev/%s" % device_name[0]
             except IndexError:
-                logging.error(
+                LOG.error(
                     "Can not find target '%s' after login.", self.target)
         else:
-            logging.error("Session is not logged in yet.")
+            LOG.error("Session is not logged in yet.")
         return device_name
 
     def set_chap_auth_initiator(self):
@@ -346,7 +347,7 @@ class _IscsiComm(object):
             try:
                 process.system(cmd)
             except process.CmdError:
-                logging.error("Fail to set CHAP authentication for initiator")
+                LOG.error("Fail to set CHAP authentication for initiator")
 
     def logout(self):
         """
@@ -373,7 +374,7 @@ class _IscsiComm(object):
             if path.find_command("targetcli"):
                 cmd = "targetcli clearconfig confirm=true"
                 if process.system(cmd, shell=True) != 0:
-                    logging.error("targetcli configuration unable to clear")
+                    LOG.error("targetcli configuration unable to clear")
 
 
 class IscsiTGT(_IscsiComm):
@@ -428,11 +429,11 @@ class IscsiTGT(_IscsiComm):
             cmd += " --password %s" % self.chap_passwd
             process.system(cmd)
         except process.CmdError as err:
-            logging.error("Fail to add account: %s", err)
+            LOG.error("Fail to add account: %s", err)
 
         # Check the new add account exist
         if self.chap_user not in self.get_chap_accounts():
-            logging.error("Can't find account %s" % self.chap_user)
+            LOG.error("Can't find account %s" % self.chap_user)
 
     def delete_chap_account(self):
         """
@@ -466,8 +467,8 @@ class IscsiTGT(_IscsiComm):
         if self.chap_user not in self.get_chap_accounts():
             self.add_chap_account()
         if self.chap_user in self.get_target_account_info():
-            logging.debug("Target %s already has account %s", self.target,
-                          self.chap_user)
+            LOG.debug("Target %s already has account %s", self.target,
+                      self.chap_user)
         else:
             cmd = "tgtadm --lld iscsi --op bind --mode account"
             cmd += " --tid %s --user %s" % (self.emulated_id, self.chap_user)
@@ -493,7 +494,7 @@ class IscsiTGT(_IscsiComm):
             restart_tgtd()
             output = process.run(cmd).stdout_text
         if not re.findall("%s$" % self.target, output, re.M):
-            logging.debug("Need to export target in host")
+            LOG.debug("Need to export target in host")
 
             # Set selinux to permissive mode to make sure iscsi target
             # export successfully
@@ -528,7 +529,7 @@ class IscsiTGT(_IscsiComm):
         # Create a LUN with emulated image
         if re.findall(self.emulated_image, output, re.M):
             # Exist already
-            logging.debug("Exported image already exists.")
+            LOG.debug("Exported image already exists.")
             self.export_flag = True
         else:
             tgt_str = re.search(r'.*(Target\s+\d+:\s+%s\s*.*)$' % self.target,
@@ -599,7 +600,7 @@ class IscsiLIO(_IscsiComm):
                 try:
                     target = re.findall("iqn[\.]\S+:\S+", line)[0]
                 except IndexError:
-                    logging.info("No found target in %s", line)
+                    LOG.info("No found target in %s", line)
                     continue
             else:
                 continue
@@ -700,7 +701,7 @@ class IscsiLIO(_IscsiComm):
         cmd = "targetcli ls /iscsi 1"
         output = process.run(cmd).stdout_text
         if not re.findall("%s$" % self.target, output, re.M):
-            logging.debug("Need to export target in host")
+            LOG.debug("Need to export target in host")
 
             # Set selinux to permissive mode to make sure
             # iscsi target export successfully
@@ -787,7 +788,7 @@ class IscsiLIO(_IscsiComm):
 
             self.export_flag = True
         else:
-            logging.info("Target %s has already existed!" % self.target)
+            LOG.info("Target %s has already existed!" % self.target)
 
         if self.chap_flag:
             # Set CHAP authentication on the exported target
@@ -808,7 +809,7 @@ class IscsiLIO(_IscsiComm):
                          "generate_node_acls=1",
                          "cache_dynamic_acls=1"))
             output = process.run(auth_cmd + attr_cmd).stdout_text
-            logging.info("Define access rights: %s" % output)
+            LOG.info("Define access rights: %s" % output)
             # Discovery the target
             self.portal_visible()
 
@@ -869,8 +870,8 @@ class Iscsi(object):
         # Install linux iscsi target software targetcli
         iscsi_package = ["targetcli"]
         if not utils_package.package_install(iscsi_package):
-            logging.error("Failed to install targetcli trying with scsi-"
-                          "target-utils or tgt package")
+            LOG.error("Failed to install targetcli trying with scsi-"
+                      "target-utils or tgt package")
             # try with scsi target utils if targetcli is not available
             if ubuntu:
                 iscsi_package = ["tgt"]

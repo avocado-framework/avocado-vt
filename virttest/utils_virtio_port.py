@@ -6,6 +6,8 @@ from . import env_process
 from . import error_context
 from . import qemu_virtio_port
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class VirtioPortTest(object):
 
@@ -64,7 +66,7 @@ class VirtioPortTest(object):
                     out += "consoles(%d), " % no_consoles
                 if spread != _spread:
                     out += "spread(%s), " % spread
-                logging.warning(out[:-2] + ". Modify config to speedup tests.")
+                LOG.warning(out[:-2] + ". Modify config to speedup tests.")
 
             params['serials'] = params.objects('serials')[0]
             if spread:
@@ -83,9 +85,9 @@ class VirtioPortTest(object):
                 params['serial_type_%s' % name] = "virtserialport"
 
             if quiet:
-                logging.debug("Recreating VM with more virtio ports.")
+                LOG.debug("Recreating VM with more virtio ports.")
             else:
-                logging.warning("Recreating VM with more virtio ports.")
+                LOG.warning("Recreating VM with more virtio ports.")
             env_process.preprocess_vm(self.test, params, self.env, main_vm)
             vm = self.env.get_vm(main_vm)
 

@@ -12,6 +12,8 @@ from avocado.utils import distro
 
 ubuntu = distro.detect().name == 'Ubuntu'
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class SelinuxError(Exception):
 
@@ -70,7 +72,7 @@ def get_status(selinux_force=False):
                     but the output is not expected.
     """
     if ubuntu and not selinux_force:
-        logging.warning("Ubuntu doesn't support selinux by default")
+        LOG.warning("Ubuntu doesn't support selinux by default")
         return 'disabled'
 
     cmd = 'getenforce'
@@ -105,7 +107,7 @@ def set_status(status, selinux_force=False):
                 but status of selinux is not set to expected.
     """
     if ubuntu and not selinux_force:
-        logging.warning("Ubuntu doesn't support selinux by default")
+        LOG.warning("Ubuntu doesn't support selinux by default")
         return
 
     if status not in STATUS_LIST:
@@ -132,7 +134,7 @@ def set_status(status, selinux_force=False):
                 else:
                     pass
 
-    logging.debug("Set status of selinux to %s success.", status)
+    LOG.debug("Set status of selinux to %s success.", status)
 
 
 def is_disabled(selinux_force=False):
@@ -142,7 +144,7 @@ def is_disabled(selinux_force=False):
     :param selinux_force: True to force selinux configuration on Ubuntu
     """
     if ubuntu and not selinux_force:
-        logging.warning("Ubuntu doesn't support selinux by default")
+        LOG.warning("Ubuntu doesn't support selinux by default")
         return True
 
     status = get_status(selinux_force)
@@ -159,7 +161,7 @@ def is_not_disabled(selinux_force=False):
     :param selinux_force: True to force selinux configuration on Ubuntu
     """
     if ubuntu and not selinux_force:
-        logging.warning("Ubuntu doesn't support selinux by default")
+        LOG.warning("Ubuntu doesn't support selinux by default")
         return False
 
     return not is_disabled(selinux_force)
@@ -172,7 +174,7 @@ def is_enforcing(selinux_force=False):
     :param selinux_force: True to force selinux configuration on Ubuntu
     """
     if ubuntu and not selinux_force:
-        logging.warning("Ubuntu doesn't support selinux by default")
+        LOG.warning("Ubuntu doesn't support selinux by default")
         return False
 
     return (get_status(selinux_force) == "enforcing")
@@ -185,7 +187,7 @@ def is_permissive(selinux_force=False):
     :param selinux_force: True to force selinux configuration on Ubuntu
     """
     if ubuntu and not selinux_force:
-        logging.warning("Ubuntu doesn't support selinux by default")
+        LOG.warning("Ubuntu doesn't support selinux by default")
         return False
 
     return (get_status(selinux_force) == "permissive")
@@ -231,7 +233,7 @@ def get_context_of_file(filename, selinux_force=False):
     :raise SeCmdError: if execute 'getfattr' failed.
     """
     if ubuntu and not selinux_force:
-        logging.warning("Ubuntu doesn't support selinux by default")
+        LOG.warning("Ubuntu doesn't support selinux by default")
         return
 
     # More direct than scraping 'ls' output.
@@ -257,7 +259,7 @@ def set_context_of_file(filename, context, selinux_force=False):
                         file is not setted to context.
     """
     if ubuntu and not selinux_force:
-        logging.warning("Ubuntu doesn't support selinux by default")
+        LOG.warning("Ubuntu doesn't support selinux by default")
         return
 
     context = context.strip()
@@ -274,7 +276,7 @@ def set_context_of_file(filename, context, selinux_force=False):
                            "but not expected %s."
                            % (filename, context_result, context))
 
-    logging.debug("Set context of %s success.", filename)
+    LOG.debug("Set context of %s success.", filename)
 
 
 def check_context_of_file(filename, label, selinux_force=False):
@@ -287,12 +289,12 @@ def check_context_of_file(filename, label, selinux_force=False):
     """
     se_label = get_context_of_file(filename, selinux_force)
     if se_label is not None:
-        logging.debug("Context of shared filename '%s' is '%s'" %
-                      (filename, se_label))
+        LOG.debug("Context of shared filename '%s' is '%s'" %
+                  (filename, se_label))
         if label not in se_label:
             return False
     else:
-        logging.warning("Context of shared filename '%s' is None" % filename)
+        LOG.warning("Context of shared filename '%s' is None" % filename)
         return False
     return True
 
@@ -326,7 +328,7 @@ def get_defcon(local=False, selinux_force=False):
     :return: list of dictionaries of default context attributes
     """
     if ubuntu and not selinux_force:
-        logging.warning("Ubuntu doesn't support selinux by default")
+        LOG.warning("Ubuntu doesn't support selinux by default")
         return
 
     if local:
@@ -412,7 +414,7 @@ def set_defcon(context_type, pathregex, context_range=None, selinux_force=False)
     :raise SeCmdError: if semanage exits non-zero
     """
     if ubuntu and not selinux_force:
-        logging.warning("Ubuntu doesn't support selinux by default")
+        LOG.warning("Ubuntu doesn't support selinux by default")
         return
 
     cmd = "semanage fcontext --add"
@@ -441,7 +443,7 @@ def del_defcon(context_type, pathregex, selinux_force=False):
     :raise SeCmdError: if semanage exits non-zero
     """
     if ubuntu and not selinux_force:
-        logging.warning("Ubuntu doesn't support selinux by default")
+        LOG.warning("Ubuntu doesn't support selinux by default")
         return
 
     cmd = ("semanage fcontext --delete -t %s '%s'" % (context_type, pathregex))
@@ -466,7 +468,7 @@ def _run_restorecon(pathname, dirdesc, readonly=True, force=False, selinux_force
     :param selinux_force: True to force selinux configuration on Ubuntu
     """
     if ubuntu and not selinux_force:
-        logging.warning("Ubuntu doesn't support selinux by default")
+        LOG.warning("Ubuntu doesn't support selinux by default")
         return 0
 
     cmd = 'restorecon -v'
@@ -494,7 +496,7 @@ def verify_defcon(pathname, dirdesc=False, readonly=True, forcedesc=False, selin
     :note: By default DOES NOT follow symlinks
     """
     if ubuntu and not selinux_force:
-        logging.warning("Ubuntu doesn't support selinux by default")
+        LOG.warning("Ubuntu doesn't support selinux by default")
         return False
     # Default context path regexes only work on canonical paths
     changes = _run_restorecon(pathname, dirdesc,

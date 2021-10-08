@@ -13,6 +13,8 @@ from virttest import utils_split_daemons
 from virttest import remote
 from virttest.utils_test import libvirt
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def remove_key_in_conf(value_list, conf_type="libvirtd",
                        remote_params=None, restart_libvirt=False):
@@ -57,7 +59,7 @@ def remove_key_in_conf(value_list, conf_type="libvirtd",
             try:
                 del target_conf[item]
             except utils_config.ConfigNoOptionError as err:
-                logging.error(err)
+                LOG.error(err)
         if restart_libvirt:
             libvirtd = utils_libvirtd.Libvirtd()
             libvirtd.restart()
@@ -94,15 +96,15 @@ def remove_key_for_modular_daemon(params, remote_dargs=None):
         no_search_cond = eval(params.get("no_search", '{}'))
         for k, v in search_cond.items():
             if not re.search(v, k, re.IGNORECASE):
-                logging.debug("The key '%s' does not contain '%s', "
-                              "no need to remove %s in %s conf file.",
-                              k, v, remove_key, conf_type)
+                LOG.debug("The key '%s' does not contain '%s', "
+                          "no need to remove %s in %s conf file.",
+                          k, v, remove_key, conf_type)
                 return
         for k, v in no_search_cond.items():
             if re.search(v, k, re.IGNORECASE):
-                logging.debug("The key '%s' contains '%s', "
-                              "no need to remove %s in %s conf file.",
-                              k, v, remove_key, conf_type)
+                LOG.debug("The key '%s' contains '%s', "
+                          "no need to remove %s in %s conf file.",
+                          k, v, remove_key, conf_type)
                 return
 
         conf_obj = remove_key_in_conf(remove_key, conf_type=conf_type,

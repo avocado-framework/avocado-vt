@@ -18,6 +18,8 @@ try:
 except path.CmdNotFoundError:
     EMBEDDEDQEMU = None
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class EmbeddedQemuSession(object):
 
@@ -76,7 +78,7 @@ class EmbeddedQemuSession(object):
 
         :param timeout: Max wait time
         """
-        logging.debug('Waiting for %s to work', self.service_exec)
+        LOG.debug('Waiting for %s to work', self.service_exec)
         return utils_misc.wait_for(
             self.is_working,
             timeout=timeout,

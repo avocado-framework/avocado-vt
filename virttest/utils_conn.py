@@ -22,6 +22,8 @@ from virttest import libvirt_version
 from virttest import utils_split_daemons
 from virttest import utils_iptables
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class ConnectionError(Exception):
 
@@ -563,9 +565,9 @@ class SSHConnection(ConnectionBase):
             try:
                 tool = path.find_command(toolName)
             except path.CmdNotFoundError:
-                logging.debug("%s executable not set or found on path,"
-                              "some function of connection will fail.",
-                              toolName)
+                LOG.debug("%s executable not set or found on path,"
+                          "some function of connection will fail.",
+                          toolName)
                 tool = '/bin/true'
             self.__dict_set__(key, tool)
 
@@ -600,7 +602,7 @@ class SSHConnection(ConnectionBase):
         except aexpect.ShellError as detail:
             client_session.close()
             raise SSHCheckError(server_ip, detail)
-        logging.debug("Check the SSH to %s OK.", server_ip)
+        LOG.debug("Check the SSH to %s OK.", server_ip)
 
     def conn_recover(self):
         """
@@ -627,7 +629,7 @@ class SSHConnection(ConnectionBase):
             server_session.close()
             raise ConnServerRestartError(detail)
 
-        logging.debug("SSH authentication recover successfully.")
+        LOG.debug("SSH authentication recover successfully.")
 
     def conn_setup(self, timeout=10):
         """
@@ -693,7 +695,7 @@ class SSHConnection(ConnectionBase):
             raise ConnCmdClientError(cmd, detail)
 
         client_session.close()
-        logging.debug("SSH connection setup successfully.")
+        LOG.debug("SSH connection setup successfully.")
 
 
 class TCPConnection(ConnectionBase):
@@ -808,7 +810,7 @@ class TCPConnection(ConnectionBase):
         except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
 
-        logging.debug("TCP connection recover successfully.")
+        LOG.debug("TCP connection recover successfully.")
 
     def conn_setup(self):
         """
@@ -899,7 +901,7 @@ class TCPConnection(ConnectionBase):
         except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
 
-        logging.debug("TCP connection setup successfully.")
+        LOG.debug("TCP connection setup successfully.")
 
 
 class TLSConnection(ConnectionBase):
@@ -986,8 +988,8 @@ class TLSConnection(ConnectionBase):
         try:
             CERTTOOL = path.find_command("certtool")
         except path.CmdNotFoundError:
-            logging.warning("certtool executable not set or found on path, "
-                            "TLS connection will not setup normally")
+            LOG.warning("certtool executable not set or found on path, "
+                        "TLS connection will not setup normally")
             CERTTOOL = '/bin/true'
         self.CERTTOOL = CERTTOOL
 
@@ -1163,7 +1165,7 @@ class TLSConnection(ConnectionBase):
                 libvirtd_service.restart()
         except (remote.LoginError, aexpect.ShellError) as detail:
             raise ConnServerRestartError(detail)
-        logging.debug("TLS connection recover successfully.")
+        LOG.debug("TLS connection recover successfully.")
 
     def cert_recover(self):
         """
@@ -1204,7 +1206,7 @@ class TLSConnection(ConnectionBase):
                 raise ConnRmCertError(cert_path, output)
 
         server_session.close()
-        logging.debug("TLS certifications recover successfully.")
+        LOG.debug("TLS certifications recover successfully.")
 
     def conn_setup(self, server_setup=True, client_setup=True):
         """
@@ -1233,7 +1235,7 @@ class TLSConnection(ConnectionBase):
             self.server_setup(on_local=True)
 
         self.close_session()
-        logging.debug("TLS connection setup successfully.")
+        LOG.debug("TLS connection setup successfully.")
 
     def server_setup(self, on_local=False):
         """
@@ -1823,14 +1825,14 @@ class UNIXConnection(ConnectionBase):
             session_user = self.server_user
             session_pwd = self.server_pwd
             self.run_on_remote = True
-            logging.debug('Unix Connection will be setup on remote host: {}.'
-                          .format(session_ip))
+            LOG.debug('Unix Connection will be setup on remote host: {}.'
+                      .format(session_ip))
         else:
             session_ip = self.client_ip
             session_user = self.client_user
             session_pwd = self.client_pwd
-            logging.debug('Unix Connection will be setup on local host: {}.'
-                          .format(session_ip))
+            LOG.debug('Unix Connection will be setup on local host: {}.'
+                      .format(session_ip))
             self.run_on_remote = False
 
         # Unable to get libvirt version via libvirt_version.version_compare
@@ -1914,7 +1916,7 @@ class UNIXConnection(ConnectionBase):
                 process.CmdError) as detail:
             raise ConnServerRestartError(detail)
 
-        logging.debug("UNIX connection recover successfully.")
+        LOG.debug("UNIX connection recover successfully.")
 
     def session_creator(self):
         """
@@ -2092,7 +2094,7 @@ class UNIXConnection(ConnectionBase):
                     process.CmdError) as detail:
                 raise ConnServerRestartError(detail)
 
-        logging.debug("UNIX connection setup successfully.")
+        LOG.debug("UNIX connection setup successfully.")
 
 
 class UNIXSocketConnection(ConnectionBase):
@@ -2218,7 +2220,7 @@ class UNIXSocketConnection(ConnectionBase):
         """
         firewall_cmd = utils_iptables.Firewall_cmd(session)
         for port_to_add in [self.desturi_port, self.migrateuri_port, self.disks_uri_port]:
-            logging.debug("add port: %s", port_to_add)
+            LOG.debug("add port: %s", port_to_add)
             firewall_cmd.add_port(port_to_add, 'tcp', firewalld_reload=False)
 
     def del_firewall_ports(self, session):
@@ -2242,13 +2244,12 @@ class UNIXSocketConnection(ConnectionBase):
         cmd = "semodule -l|grep qemu-kvm"
         status, output = session.cmd_status_output(cmd)
         if status:
-            logging.debug("Active qemu-kvm policy.")
+            LOG.debug("Active qemu-kvm policy.")
             cmd = "semodule -i %s" % qemu_kvm_pp_path
             status, output = session.cmd_status_output(cmd, timeout=timeout)
             if status:
-                logging.error("Unable to active SELinux policy module - "
-                              "qemu-kvm! cmd: {} output: {}"
-                              .format(cmd, output))
+                LOG.error("Unable to active SELinux policy module - "
+                          "qemu-kvm! cmd: {} output: {}".format(cmd, output))
             else:
                 self.remove_qemu_kvm_policy = True
 
@@ -2261,7 +2262,7 @@ class UNIXSocketConnection(ConnectionBase):
         :param timeout: Timeout to execute command lines
         """
         if self.remove_qemu_kvm_policy:
-            logging.debug("Remove qemu-kvm policy.")
+            LOG.debug("Remove qemu-kvm policy.")
             cmd = "semodule -r qemu-kvm"
             status, output = session.cmd_status_output(cmd, timeout=timeout)
             if status:
@@ -2286,7 +2287,7 @@ class UNIXSocketConnection(ConnectionBase):
         self.clear_pmsocat(ignore_status=True)
         self.uninstall_qemu_kvm_pp(unix2tcp_session)
 
-        logging.debug("UNIX sockets recover successfully.")
+        LOG.debug("UNIX sockets recover successfully.")
 
     def conn_setup(self):
         """
@@ -2317,8 +2318,8 @@ class UNIXSocketConnection(ConnectionBase):
                                    destination_ip)
         # FIXME: Need to modify SELinux context through pmsocat36.py?
         self.install_qemu_kvm_pp(unix2tcp_session, qemu_kvm_pp_path)
-        logging.debug("UNIX2TCP setup successfully.")
+        LOG.debug("UNIX2TCP setup successfully.")
 
         self.connect_to_unix_socket(tcp2unix_session, dest_pmsocat_path)
         self.add_firewall_ports(tcp2unix_session)
-        logging.debug("TCP2UNIX setup successfully.")
+        LOG.debug("TCP2UNIX setup successfully.")

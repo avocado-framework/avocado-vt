@@ -8,6 +8,8 @@ import six
 from virttest import xml_utils
 from virttest.libvirt_xml import base, accessors, xcepts
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class DomCapabilityXML(base.LibvirtXMLBase):
 
@@ -84,7 +86,7 @@ class DomCapabilityXML(base.LibvirtXMLBase):
                             continue
                         feature_list.append(item)
         except AttributeError as elem_attr:
-            logging.warn("Failed to find attribute %s" % elem_attr)
+            LOG.warn("Failed to find attribute %s" % elem_attr)
             feature_list = []
         finally:
             return feature_list
@@ -135,7 +137,7 @@ class DomCapabilityXML(base.LibvirtXMLBase):
                 if mode_node.get('name') == 'host-model':
                     return mode_node.find('model').text
         except AttributeError as elem_attr:
-            logging.warn("Failed to find attribute %s" % elem_attr)
+            LOG.warn("Failed to find attribute %s" % elem_attr)
             return ''
 
 

@@ -144,6 +144,9 @@ options = None
 num_failed_cases = 5
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
+
 class ParserError(Exception):
 
     def __init__(self, msg, line=None, filename=None, linenum=None):
@@ -1455,10 +1458,10 @@ class Parser(object):
 
     def _debug(self, s, *args):
         if self.debug:
-            logging.debug(s, *args)
+            LOG.debug(s, *args)
 
     def _warn(self, s, *args):
-        logging.warn(s, *args)
+        LOG.warn(s, *args)
 
     def parse_file(self, filename):
         """
@@ -2307,7 +2310,7 @@ if __name__ == "__main__":
         parser.error("filename required")
 
     if options.debug:
-        logging.basicConfig(level=logging.DEBUG)
+        LOG.setLevel(logging.DEBUG)
 
     expand = []
     if options.expand:

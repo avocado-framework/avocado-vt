@@ -22,6 +22,8 @@ from virttest import utils_net
 
 from virttest.utils_conn import build_server_key, build_CA, build_client_key
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class NbdExport(object):
     """qemu-nbd export disk images.
@@ -64,12 +66,12 @@ class NbdExport(object):
     def _create_img(self):
         """Create a image file with specified format"""
         if os.path.exists(self.image):
-            logging.info('image already existed')
+            LOG.info('image already existed')
             if self.deleteExisted:
                 os.remove(self.image)
             else:
                 return
-        logging.debug("create one image .... if not existed")
+        LOG.debug("create one image .... if not existed")
         process.run("qemu-img create" + ' -f %s %s %s' % (self.image_format, self.image, self.image_size),
                     ignore_status=True, shell=True, verbose=True)
 
@@ -178,9 +180,9 @@ class NbdExport(object):
                 qemu_nbd_cmd += "-x %s " % self.export_name
             qemu_nbd_cmd += "&"
             process.run(qemu_nbd_cmd, ignore_status=False, shell=True, verbose=True, ignore_bg_processes=True)
-            logging.info("nbd server start at port: %s", self.port)
+            LOG.info("nbd server start at port: %s", self.port)
         except Exception as info:
-            logging.debug("nbd server fail to start")
+            LOG.debug("nbd server fail to start")
             raise
 
     def stop_nbd_server(self):
@@ -190,7 +192,7 @@ class NbdExport(object):
 
     def cleanTLS(self):
         """clean TLS"""
-        logging.debug("enter cleanup TLS now...")
+        LOG.debug("enter cleanup TLS now...")
         if self.tls:
             ca_folder = '/etc/pki/CA'
             if os.path.exists(ca_folder):

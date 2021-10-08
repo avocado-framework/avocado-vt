@@ -14,6 +14,8 @@ from avocado.utils import process
 from virttest import propcan
 from virttest import virsh
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class SASL(propcan.PropCanBase):
 
@@ -115,7 +117,7 @@ class SASL(propcan.PropCanBase):
             else:
                 return process.run(cmd).stdout_text
         except process.CmdError:
-            logging.error("Failed to set a user's sasl password %s", cmd)
+            LOG.error("Failed to set a user's sasl password %s", cmd)
 
     def setup(self, remote=True):
         """
@@ -132,7 +134,7 @@ class SASL(propcan.PropCanBase):
                 else:
                     process.system(cmd)
             except process.CmdError:
-                logging.error("Failed to set a user's sasl password %s", cmd)
+                LOG.error("Failed to set a user's sasl password %s", cmd)
 
     def cleanup(self, remote=True):
         """
@@ -147,7 +149,7 @@ class SASL(propcan.PropCanBase):
                 else:
                     process.system(cmd)
             except process.CmdError:
-                logging.error("Failed to disable a user's access %s", cmd)
+                LOG.error("Failed to disable a user's access %s", cmd)
 
 
 class VirshSessionSASL(virsh.VirshSession):
@@ -178,6 +180,6 @@ class VirshSessionSASL(virsh.VirshSession):
         self.sendline(self.sasl_pwd)
         # make sure session is connected successfully
         if self.cmd_status('list', timeout=60) != 0:
-            logging.debug("Persistent virsh session is not responding, "
-                          "libvirtd may be dead.")
+            LOG.debug("Persistent virsh session is not responding, "
+                      "libvirtd may be dead.")
             raise aexpect.ShellStatusError(virsh.VIRSH_EXEC, 'list')

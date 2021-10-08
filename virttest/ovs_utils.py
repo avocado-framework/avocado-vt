@@ -9,6 +9,9 @@ from avocado.utils import process
 from . import utils_net
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
+
 class Machine(object):
 
     def __init__(self, vm=None, src=None):
@@ -181,7 +184,7 @@ class Machine(object):
         :param path: Path where shoule be program compiled.
         :param dst_dir: Installation path.
         """
-        logging.debug("Install %s to %s.", package_name, self.src)
+        LOG.debug("Install %s to %s.", package_name, self.src)
         self.prepare_directory(self.src)
 
         pack_dir = None

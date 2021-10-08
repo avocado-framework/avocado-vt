@@ -8,6 +8,8 @@ from aexpect import remote
 from avocado.utils import process
 from avocado.core import exceptions
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class Iptables(object):
     """
@@ -54,13 +56,13 @@ class Iptables(object):
             flag = False
             for exist_rule in exist_rules:
                 if rule in exist_rule:
-                    logging.debug("Rule: %s exist in iptables", rule)
+                    LOG.debug("Rule: %s exist in iptables", rule)
                     flag = True
                     if cleanup:
-                        logging.debug("cleaning rule: %s", rule)
+                        LOG.debug("cleaning rule: %s", rule)
                         commands.append("iptables -D %s" % rule)
             if not flag and not cleanup:
-                logging.debug("Adding rule: %s", rule)
+                LOG.debug("Adding rule: %s", rule)
                 commands.append("iptables -I %s" % rule)
         # Once rules are filtered, then it is executed in remote or local
         # machine
@@ -72,11 +74,11 @@ class Iptables(object):
                     raise exceptions.TestError("iptables command failed "
                                                "remotely %s" % command)
                 else:
-                    logging.debug("iptable command success %s", command)
+                    LOG.debug("iptable command success %s", command)
             else:
                 try:
                     cmd_output = process.run(command, shell=True).stdout_text
-                    logging.debug("iptable command success %s", command)
+                    LOG.debug("iptable command success %s", command)
                 except process.CmdError as info:
                     raise exceptions.TestError("iptables fails for command "
                                                "locally %s" % command)
@@ -118,7 +120,7 @@ class Firewall_cmd(object):
             self.cmd += " --zone=%s" % zone
         self.status, self.output = self.func(self.cmd)
         if self.status != 0:
-            logging.error("Failed to execute %s: %s", self.cmd, self.output)
+            LOG.error("Failed to execute %s: %s", self.cmd, self.output)
         # Reload the configuration to make effect at once
         if dargs.get("firewalld_reload", True):
             self.reload()

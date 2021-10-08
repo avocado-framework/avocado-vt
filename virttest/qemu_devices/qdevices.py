@@ -24,6 +24,8 @@ from virttest.utils_version import VersionInterval
 import six
 from six.moves import xrange
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def _convert_args(arg_dict):
     """
@@ -183,7 +185,7 @@ class QBaseDevice(object):
                     if _ != getattr(dev2, check_attr)():
                         return False
         except Exception:
-            logging.error(traceback.format_exc())
+            LOG.error(traceback.format_exc())
             return False
         return True
 
@@ -499,9 +501,9 @@ class QOldDrive(QDrive):
         Ignore addr parameters as they are not supported by old qemus
         """
         if option == 'addr':
-            logging.warn("Ignoring 'addr=%s' parameter of %s due of old qemu"
-                         ", PCI addresses might be messed up.", value,
-                         self.str_short())
+            LOG.warn("Ignoring 'addr=%s' parameter of %s due of old qemu"
+                     ", PCI addresses might be messed up.", value,
+                     self.str_short())
             return
         return super(QOldDrive, self).set_param(option, value, option_type)
 
@@ -1392,7 +1394,7 @@ class QThrottleGroup(QObject):
             return True
         except qemu_monitor.MonitorError as err:
             if "DeviceNotFound" in str(err):
-                logging.warning(err)
+                LOG.warning(err)
                 return False
             raise err
 
@@ -1791,21 +1793,21 @@ class QDaemonDev(QBaseDevice):
         start_until_timeout = self.get_param('start_until_timeout', 1)
 
         if cmd is None:
-            logging.warn('No provided command to start %s daemon.', name)
+            LOG.warn('No provided command to start %s daemon.', name)
             self._daemon_process = None
 
         if self.is_daemon_alive():
             return
 
-        logging.info('Running %s daemon command %s.', name, cmd)
+        LOG.info('Running %s daemon command %s.', name, cmd)
         self._daemon_process = aexpect.run_bg(cmd, **run_bg_kwargs)
         if status_active:
             self._daemon_process.read_until_any_line_matches(
                 status_active, timeout=read_until_timeout)
         else:
             time.sleep(start_until_timeout)
-        logging.info("Created %s daemon process with parent PID %d.",
-                     name, self._daemon_process.get_pid())
+        LOG.info("Created %s daemon process with parent PID %d.",
+                 name, self._daemon_process.get_pid())
 
     def stop_daemon(self):
         """Stop daemon."""
@@ -1895,7 +1897,7 @@ class QVirtioFSDev(QDaemonDev):
         try:
             utils_misc.log_line('%s-%s.log' % (self.get_qid(), name), line)
         except Exception as e:
-            logging.warn("Can't log %s-%s, output: '%s'.", self.get_qid(), name, e)
+            LOG.warn("Can't log %s-%s, output: '%s'.", self.get_qid(), name, e)
 
     def start_daemon(self):
         """Start the virtiofs daemon in background."""

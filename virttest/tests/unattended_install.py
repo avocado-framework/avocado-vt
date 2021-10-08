@@ -50,6 +50,8 @@ _unattended_server_thread_event = None
 _syslog_server_thread = None
 _syslog_server_thread_event = None
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def start_auto_content_server_thread(port, path):
     global _url_auto_content_server_thread
@@ -129,8 +131,8 @@ class RemoteInstall(object):
     def close(self):
         os.chmod(self.path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP |
                  stat.S_IROTH | stat.S_IXOTH)
-        logging.debug("unattended http server %s successfully created",
-                      self.get_url())
+        LOG.debug("unattended http server %s successfully created",
+                  self.get_url())
 
 
 class UnattendedInstallConfig(object):
@@ -326,7 +328,7 @@ class UnattendedInstallConfig(object):
                 hwid = '^&'.join(hwid.split('&'))
             return hwid
         except Exception as e:
-            logging.error("Fail to get hardware id with exception: %s" % e)
+            LOG.error("Fail to get hardware id with exception: %s" % e)
 
     @error_context.context_aware
     def update_driver_hardware_id(self, driver):
@@ -453,9 +455,9 @@ class UnattendedInstallConfig(object):
         if self.params.get("cmd_only_use_disk"):
             insert_info = self.params.get("cmd_only_use_disk") + '\n'
             contents += insert_info
-        logging.debug("Unattended install contents:")
+        LOG.debug("Unattended install contents:")
         for line in contents.splitlines():
-            logging.debug(line)
+            LOG.debug(line)
         with open(answer_path, 'w') as answer_file:
             answer_file.write(contents)
 
@@ -466,8 +468,8 @@ class UnattendedInstallConfig(object):
         if self.cdkey:
             parser.set('UserData', 'ProductKey', self.cdkey)
         else:
-            logging.error("Param 'cdkey' required but not specified for "
-                          "this unattended installation")
+            LOG.error("Param 'cdkey' required but not specified for "
+                      "this unattended installation")
 
         # Now, replacing the virtio network driver path, under double quotes
         if self.install_virtio == 'yes':
@@ -518,9 +520,9 @@ class UnattendedInstallConfig(object):
         fp = open(answer_path, 'r')
         contents = fp.read()
         fp.close()
-        logging.debug("Unattended install contents:")
+        LOG.debug("Unattended install contents:")
         for line in contents.splitlines():
-            logging.debug(line)
+            LOG.debug(line)
 
     def answer_windows_xml(self, answer_path):
         doc = xml.dom.minidom.parse(self.unattended_file)
@@ -537,8 +539,8 @@ class UnattendedInstallConfig(object):
             assert key_text.nodeType == doc.TEXT_NODE
             key_text.data = self.cdkey
         else:
-            logging.error("Param 'cdkey' required but not specified for "
-                          "this unattended installation")
+            LOG.error("Param 'cdkey' required but not specified for "
+                      "this unattended installation")
 
         # Now, replacing the virtio driver paths or removing the entire
         # component PnpCustomizationsWinPE Element Node
@@ -609,9 +611,9 @@ class UnattendedInstallConfig(object):
                 command_line_text.data = t
 
         contents = doc.toxml()
-        logging.debug("Unattended install contents:")
+        LOG.debug("Unattended install contents:")
         for line in contents.splitlines():
-            logging.debug(line)
+            LOG.debug(line)
 
         fp = open(answer_path, 'w')
         doc.writexml(fp)
@@ -622,9 +624,9 @@ class UnattendedInstallConfig(object):
         doc = xml.dom.minidom.parse(self.unattended_file)
 
         contents = doc.toxml()
-        logging.debug("Unattended install contents:")
+        LOG.debug("Unattended install contents:")
         for line in contents.splitlines():
-            logging.debug(line)
+            LOG.debug(line)
 
         fp = open(answer_path, 'w')
         doc.writexml(fp)
@@ -638,7 +640,7 @@ class UnattendedInstallConfig(object):
         way to get fully automated setup without resorting to kernel params
         is to add a preseed.cfg file at the root of the initrd image.
         """
-        logging.debug("Remastering initrd.gz file with preseed file")
+        LOG.debug("Remastering initrd.gz file with preseed file")
         dest_fname = 'preseed.cfg'
         remaster_path = os.path.join(self.image_path, "initrd_remaster")
         if not os.path.isdir(remaster_path):
@@ -660,9 +662,9 @@ class UnattendedInstallConfig(object):
         process.run("rm -rf initrd_remaster", verbose=DEBUG)
         contents = open(self.unattended_file).read()
 
-        logging.debug("Unattended install contents:")
+        LOG.debug("Unattended install contents:")
         for line in contents.splitlines():
-            logging.debug(line)
+            LOG.debug(line)
 
     def set_unattended_param_in_kernel(self, unattended_file_url):
         '''
@@ -919,7 +921,7 @@ class UnattendedInstallConfig(object):
                     utils_disk.cleanup(self.cdrom_cd1_mount)
             elif ((self.vm.driver_type == 'xen') and
                   (self.params.get('hvm_or_pv') == 'pv')):
-                logging.debug("starting unattended content web server")
+                LOG.debug("starting unattended content web server")
 
                 self.url_auto_content_port = utils_misc.find_free_port(8100,
                                                                        8199,
@@ -1003,8 +1005,7 @@ class UnattendedInstallConfig(object):
                                                      None):
                 if os.path.isfile(self.kernel):
                     os.remove(self.kernel)
-                logging.info('Downloading %s -> %s', url_kernel,
-                             self.image_path)
+                LOG.info('Downloading %s -> %s', url_kernel, self.image_path)
                 download.get_file(url_kernel, os.path.join(self.image_path,
                                                            os.path.basename(self.kernel)))
 
@@ -1012,8 +1013,7 @@ class UnattendedInstallConfig(object):
                                                      None):
                 if os.path.isfile(self.initrd):
                     os.remove(self.initrd)
-                logging.info('Downloading %s -> %s', url_initrd,
-                             self.image_path)
+                LOG.info('Downloading %s -> %s', url_initrd, self.image_path)
                 download.get_file(url_initrd, os.path.join(self.image_path,
                                                            os.path.basename(self.initrd)))
 
@@ -1028,12 +1028,12 @@ class UnattendedInstallConfig(object):
                     self.kernel_params + " ip=dhcp install=" + self.url)
 
         elif self.vm_type == 'libvirt':
-            logging.info("Not downloading vmlinuz/initrd.img from %s, "
-                         "letting virt-install do it instead")
+            LOG.info("Not downloading vmlinuz/initrd.img from %s, "
+                     "letting virt-install do it instead")
 
         else:
-            logging.info("No action defined/needed for the current virt "
-                         "type: '%s'" % self.vm_type)
+            LOG.info("No action defined/needed for the current virt "
+                     "type: '%s'" % self.vm_type)
 
     def setup_nfs(self):
         """
@@ -1076,7 +1076,7 @@ class UnattendedInstallConfig(object):
 
         Uses an appropriate strategy according to each install model.
         """
-        logging.info("Starting unattended install setup")
+        LOG.info("Starting unattended install setup")
         if DEBUG:
             utils_misc.display_attributes(self)
 
@@ -1102,8 +1102,8 @@ class UnattendedInstallConfig(object):
             if self.floppy or self.cdrom_unattended:
                 self.setup_boot_disk()
                 if self.params.get("store_boot_disk") == "yes":
-                    logging.info("Storing the boot disk to result directory "
-                                 "for further debug")
+                    LOG.info("Storing the boot disk to result directory "
+                             "for further debug")
                     src_dir = self.floppy or self.cdrom_unattended
                     dst_dir = self.results_dir
                     shutil.copy(src_dir, dst_dir)
@@ -1145,8 +1145,8 @@ def terminate_syslog_server_thread():
 
 
 def copy_file_from_nfs(src, dst, mount_point, image_name):
-    logging.info("Test failed before the install process start."
-                 " So just copy a good image from nfs for following tests.")
+    LOG.info("Test failed before the install process start."
+             " So just copy a good image from nfs for following tests.")
     utils_misc.mount(src, mount_point, "nfs", perm="ro")
     image_src = utils_misc.get_path(mount_point, image_name)
     shutil.copy(image_src, dst)
@@ -1169,7 +1169,7 @@ def string_in_serial_log(serial_log_file_path, string):
         serial_log_msg = serial_log_file.read()
 
     if string in serial_log_msg:
-        logging.debug("Message read from serial console log: %s", string)
+        LOG.debug("Message read from serial console log: %s", string)
         return True
     else:
         return False
@@ -1198,7 +1198,7 @@ def attempt_to_log_useful_files(test, vm):
             try:
                 console.cmd("true")
             except Exception as details:
-                logging.info("Skipping log_useful_files #%s: %s", i, details)
+                LOG.info("Skipping log_useful_files #%s: %s", i, details)
                 continue
             failures = False
             for path_glob in ["/*.log", "/tmp/*.log", "/var/tmp/*.log", "/var/log/messages"]:
@@ -1225,12 +1225,12 @@ def attempt_to_log_useful_files(test, vm):
                     with open(dst, 'w') as fd_dst:
                         try:
                             fd_dst.write(console.cmd("cat %s" % path))
-                            logging.info('Attached "%s" log file from guest '
-                                         'at "%s"', path, base_dst_dir)
+                            LOG.info('Attached "%s" log file from guest '
+                                     'at "%s"', path, base_dst_dir)
                         except Exception as details:
-                            logging.warning("Unknown exception while "
-                                            "attempt_to_log_useful_files(): "
-                                            "%s", details)
+                            LOG.warning("Unknown exception while "
+                                        "attempt_to_log_useful_files(): "
+                                        "%s", details)
                             fd_dst.write("Unknown exception while getting "
                                          "content: %s" % details)
                             failures = True
@@ -1240,12 +1240,11 @@ def attempt_to_log_useful_files(test, vm):
                 with open(dst, 'w') as fd_dst:
                     try:
                         fd_dst.write(console.cmd(cmd))
-                        logging.info('Attached "%s" cmd output at "%s"',
-                                     cmd, dst)
+                        LOG.info('Attached "%s" cmd output at "%s"', cmd, dst)
                     except Exception as details:
-                        logging.warning("Unknown exception while "
-                                        "attempt_to_log_useful_files(): "
-                                        "%s", details)
+                        LOG.warning("Unknown exception while "
+                                    "attempt_to_log_useful_files(): "
+                                    "%s", details)
                         fd_dst.write("Unknown exception while getting "
                                      "cmd output: %s" % details)
                         failures = True
@@ -1274,13 +1273,13 @@ def run(test, params, env):
             "Copy image from NFS after installation failure")
         image_copy_on_error = params.get("image_copy_on_error", "no")
         if image_copy_on_error == "yes":
-            logging.info("Running image_copy to copy pristine image from NFS.")
+            LOG.info("Running image_copy to copy pristine image from NFS.")
             try:
                 error_context.context(
                     "Quit qemu-kvm before copying guest image")
                 vm.monitor.quit()
             except Exception as e:
-                logging.warn(e)
+                LOG.warn(e)
             from virttest import utils_test
             error_context.context("Copy image from NFS Server")
             image = params.get("images").split()[0]
@@ -1303,7 +1302,7 @@ def run(test, params, env):
         dd_cmd = "dd if=/dev/zero of=%s bs=1M count=1" % dst
         txt = "iscsi used, need destroy data in %s" % dst
         txt += " by command: %s" % dd_cmd
-        logging.info(txt)
+        LOG.info(txt)
         process.system(dd_cmd)
     image_name = os.path.basename(dst)
     mount_point = params.get("dst_dir")
@@ -1316,8 +1315,8 @@ def run(test, params, env):
     for media in params.get("copy_to_local", "").split():
         media_path = params.get(media)
         if not media_path:
-            logging.warn("Media '%s' is not available, will not "
-                         "be copied into local directory", media)
+            LOG.warn("Media '%s' is not available, will not "
+                     "be copied into local directory", media)
             continue
         media_name = os.path.basename(media_path)
         nfs_link = utils_misc.get_path(vt_data_dir, media_path)
@@ -1328,7 +1327,7 @@ def run(test, params, env):
             if file_hash == expected_hash:
                 continue
         msg = "Copy %s to %s in local host." % (media_name, local_link)
-        error_context.context(msg, logging.info)
+        error_context.context(msg, LOG.info)
         download.get_file(nfs_link, local_link)
         params[media] = local_link
 
@@ -1354,8 +1353,8 @@ def run(test, params, env):
         mig_timeout = float(params.get("mig_timeout", "3600"))
         mig_protocol = params.get("migration_protocol", "tcp")
 
-    logging.info("Waiting for installation to finish. Timeout set to %d s "
-                 "(%d min)", install_timeout, install_timeout // 60)
+    LOG.info("Waiting for installation to finish. Timeout set to %d s "
+             "(%d min)", install_timeout, install_timeout // 60)
     error_context.context("waiting for installation to finish")
 
     start_time = time.time()
@@ -1364,8 +1363,8 @@ def run(test, params, env):
     if log_file is None:
         raise virt_vm.VMConfigMissingError(vm.name, "serial")
 
-    logging.debug("Monitoring serial console log for completion message: %s",
-                  log_file)
+    LOG.debug("Monitoring serial console log for completion message: %s",
+              log_file)
     serial_read_fails = 0
 
     # As the install process start, we may need collect information from
@@ -1395,7 +1394,7 @@ def run(test, params, env):
                     post_finish_str_found = string_in_serial_log(
                         log_file, post_finish_str)
                 except IOError:
-                    logging.warn("Could not read final serial log file")
+                    LOG.warn("Could not read final serial log file")
                 else:
                     if install_error_str_found:
                         raise exceptions.TestFail(install_error_exception_str)
@@ -1416,12 +1415,12 @@ def run(test, params, env):
                             vm.start()
                             break
                         except:
-                            logging.warn("Failed to start unattended install "
-                                         "image workaround reboot kickstart "
-                                         "parameter bug")
+                            LOG.warn("Failed to start unattended install "
+                                     "image workaround reboot kickstart "
+                                     "parameter bug")
 
                 # Print out the original exception before copying images.
-                logging.error(e)
+                LOG.error(e)
                 copy_images()
                 raise e
             else:
@@ -1446,7 +1445,7 @@ def run(test, params, env):
                 # Only make noise after several failed reads
                 serial_read_fails += 1
                 if serial_read_fails > 10:
-                    logging.warn(
+                    LOG.warn(
                         "Cannot read from serial log file after %d tries",
                         serial_read_fails)
             else:
@@ -1473,13 +1472,13 @@ def run(test, params, env):
         else:
             time.sleep(1)
     else:
-        logging.warn("Timeout elapsed while waiting for install to finish ")
+        LOG.warn("Timeout elapsed while waiting for install to finish ")
         attempt_to_log_useful_files(test, vm)
         copy_images()
         raise exceptions.TestFail("Timeout elapsed while waiting for install to "
                                   "finish")
 
-    logging.debug('cleaning up threads and mounts that may be active')
+    LOG.debug('cleaning up threads and mounts that may be active')
     global _url_auto_content_server_thread
     global _url_auto_content_server_thread_event
     if _url_auto_content_server_thread is not None:
@@ -1503,18 +1502,18 @@ def run(test, params, env):
         _syslog_server_thread = None
 
     time_elapsed = time.time() - start_time
-    logging.info("Guest reported successful installation after %d s (%d min)",
-                 time_elapsed, time_elapsed // 60)
+    LOG.info("Guest reported successful installation after %d s (%d min)",
+             time_elapsed, time_elapsed // 60)
 
     if params.get("shutdown_cleanly", "yes") == "yes":
         shutdown_cleanly_timeout = int(params.get("shutdown_cleanly_timeout",
                                                   120))
-        logging.info("Wait for guest to shutdown cleanly")
+        LOG.info("Wait for guest to shutdown cleanly")
         if params.get("medium", "cdrom") == "import":
             vm.shutdown()
         try:
             if utils_misc.wait_for(vm.is_dead, shutdown_cleanly_timeout, 1, 1):
-                logging.info("Guest managed to shutdown cleanly")
+                LOG.info("Guest managed to shutdown cleanly")
         except qemu_monitor.MonitorError as e:
-            logging.warning("Guest apparently shut down, but got a "
-                            "monitor error: %s", e)
+            LOG.warning("Guest apparently shut down, but got a "
+                        "monitor error: %s", e)

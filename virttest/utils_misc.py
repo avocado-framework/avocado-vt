@@ -87,6 +87,7 @@ from virttest.xml_utils import XMLTreeFile
 import six
 from six.moves import xrange
 
+LOG = logging.getLogger('avocado.' + __name__)
 
 ARCH = platform.machine()
 
@@ -245,7 +246,7 @@ def get_usable_memory_size(align=None):
     return usable_mem
 
 
-def log_last_traceback(msg=None, log=logging.error):
+def log_last_traceback(msg=None, log=LOG.error):
     """
     Writes last traceback into specified log.
 
@@ -256,7 +257,7 @@ def log_last_traceback(msg=None, log=logging.error):
     :param log: Where to log the traceback [logging.error]
     """
     if not log:
-        log = logging.error
+        log = LOG.error
     if msg:
         log(msg)
     exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -297,15 +298,15 @@ def find_substring(string, pattern1, pattern2=None):
     :return: Match substring or None
     """
     if not pattern1:
-        logging.debug("pattern1: get empty string.")
+        LOG.debug("pattern1: get empty string.")
         return None
     pattern = pattern1
     if pattern2:
         pattern += "|%s" % pattern2
     ret = re.findall(pattern, string)
     if not ret:
-        logging.debug("Could not find matched string with pattern: %s",
-                      pattern)
+        LOG.debug("Could not find matched string with pattern: %s",
+                  pattern)
         return None
     return ret[0]
 
@@ -351,8 +352,8 @@ def find_command(cmd):
     :param cmd: Command to be found.
     :raise: ValueError in case the command was not found.
     """
-    logging.warning("Function utils_misc.find_command is deprecated. "
-                    "Please use avocado.utils.path.find_command instead.")
+    LOG.warning("Function utils_misc.find_command is deprecated. "
+                "Please use avocado.utils.path.find_command instead.")
     return utils_path.find_command(cmd)
 
 
@@ -371,9 +372,9 @@ def kill_process_tree(pid, sig=signal.SIGKILL, send_sigcont=True, timeout=0):
     try:
         return _kill_process_tree(pid, sig, send_sigcont, timeout)
     except TypeError:
-        logging.warning("Trying to kill_process_tree with timeout but running"
-                        " old Avocado without it's support. Sleeping for 10s "
-                        "instead.")
+        LOG.warning("Trying to kill_process_tree with timeout but running"
+                    " old Avocado without it's support. Sleeping for 10s "
+                    "instead.")
         # Depending on the Avocado version this can either return None or
         # list of killed pids.
         ret = _kill_process_tree(pid, sig, send_sigcont)    # pylint: disable=E1128
@@ -601,7 +602,7 @@ def wait_for(func, timeout, first=0.0, step=1.0, text=None, ignore_errors=False)
 
     while time.time() < end_time:
         if text:
-            logging.debug("%s (%f secs)", text, (time.time() - start_time))
+            LOG.debug("%s (%f secs)", text, (time.time() - start_time))
 
         try:
             output = func()
@@ -609,7 +610,7 @@ def wait_for(func, timeout, first=0.0, step=1.0, text=None, ignore_errors=False)
             if not ignore_errors:
                 raise
             else:
-                logging.debug("Ignoring error '%s'", sys.exc_info())
+                LOG.debug("Ignoring error '%s'", sys.exc_info())
                 output = None
         if output:
             return output
@@ -639,12 +640,12 @@ def display_attributes(instance):
     Inspects a given class instance attributes and displays them, convenient
     for debugging.
     """
-    logging.debug("Attributes set:")
+    LOG.debug("Attributes set:")
     for member in inspect.getmembers(instance):
         name, value = member
         attribute = getattr(instance, name)
         if not (name.startswith("__") or callable(attribute) or not value):
-            logging.debug("    %s: %s", name, value)
+            LOG.debug("    %s: %s", name, value)
 
 
 def get_full_pci_id(pci_id):
@@ -789,8 +790,7 @@ def archive_as_tarball(source_dir, dest_dir, tarball_name=None,
         tarball_path = tarball_name
 
     if verbose:
-        logging.debug('Archiving %s as %s' % (source_dir,
-                                              tarball_path))
+        LOG.debug('Archiving %s as %s' % (source_dir, tarball_path))
 
     os.chdir(os.path.dirname(source_dir))
     tarball = tarfile.open(name=tarball_path, mode=mode_str)
@@ -998,7 +998,7 @@ def install_host_kernel(job, params):
     install_type = params.get('host_kernel_install_type')
 
     if install_type == 'rpm':
-        logging.info('Installing host kernel through rpm')
+        LOG.info('Installing host kernel through rpm')
 
         rpm_url = params.get('host_kernel_rpm_url')
         k_basename = os.path.basename(rpm_url)
@@ -1011,7 +1011,7 @@ def install_host_kernel(job, params):
         host_kernel.boot()
 
     elif install_type in ['koji', 'brew']:
-        logging.info('Installing host kernel through koji/brew')
+        LOG.info('Installing host kernel through koji/brew')
 
         koji_cmd = params.get('host_kernel_koji_cmd')
         koji_build = params.get('host_kernel_koji_build')
@@ -1024,10 +1024,10 @@ def install_host_kernel(job, params):
                                    package='kernel', subpackages=['kernel'])
 
         c = utils_koji.KojiClient(koji_cmd)
-        logging.info('Fetching kernel dependencies (-devel, -firmware)')
+        LOG.info('Fetching kernel dependencies (-devel, -firmware)')
         c.get_pkgs(k_deps, job.tmpdir)
-        logging.info('Installing kernel dependencies (-devel, -firmware) '
-                     'through %s', install_type)
+        LOG.info('Installing kernel dependencies (-devel, -firmware) '
+                 'through %s', install_type)
         k_deps_rpm_file_names = [os.path.join(job.tmpdir, rpm_file_name) for
                                  rpm_file_name in c.get_pkg_rpm_file_names(k_deps)]
         process.run('rpm -U --force %s' % " ".join(k_deps_rpm_file_names))
@@ -1043,7 +1043,7 @@ def install_host_kernel(job, params):
         host_kernel.boot()
 
     elif install_type == 'git':
-        logging.info('Chose to install host kernel through git, proceeding')
+        LOG.info('Chose to install host kernel through git, proceeding')
 
         repo = params.get('host_kernel_git_repo')
         repo_base = params.get('host_kernel_git_repo_base', None)
@@ -1071,8 +1071,8 @@ def install_host_kernel(job, params):
         host_kernel.boot()
 
     else:
-        logging.info('Chose %s, using the current kernel for the host',
-                     install_type)
+        LOG.info('Chose %s, using the current kernel for the host',
+                 install_type)
         k_version = process.run('uname -r', ignore_status=True).stdout_text
         write_keyval(job.resultdir,
                      {'software_version_kernel': k_version})
@@ -1266,7 +1266,7 @@ def create_x509_dir(path, cacert_subj, server_subj, passphrase,
 
     for cmd in cmd_set:
         process.run(cmd)
-        logging.info(cmd)
+        LOG.info(cmd)
 
 
 def convert_ipv4_to_ipv6(ipv4):
@@ -1323,23 +1323,23 @@ def add_identities_into_ssh_agent():
     Adds RSA or DSA identities to the authentication agent
     """
     ssh_env = subprocess.check_output(["ssh-agent"]).decode("utf-8")
-    logging.info("The current SSH ENV: %s", ssh_env)
+    LOG.info("The current SSH ENV: %s", ssh_env)
 
     re_auth_sock = re.compile('SSH_AUTH_SOCK=(?P<SSH_AUTH_SOCK>[^;]*);')
     ssh_auth_sock = re.search(re_auth_sock, ssh_env).group("SSH_AUTH_SOCK")
-    logging.debug("The SSH_AUTH_SOCK: %s", ssh_auth_sock)
+    LOG.debug("The SSH_AUTH_SOCK: %s", ssh_auth_sock)
 
     re_agent_pid = re.compile('SSH_AGENT_PID=(?P<SSH_AGENT_PID>[^;]*);')
     ssh_agent_pid = re.search(re_agent_pid, ssh_env).group("SSH_AGENT_PID")
-    logging.debug("SSH_AGENT_PID: %s", ssh_agent_pid)
+    LOG.debug("SSH_AGENT_PID: %s", ssh_agent_pid)
 
-    logging.debug("Update SSH envrionment variables")
+    LOG.debug("Update SSH envrionment variables")
     os.environ['SSH_AUTH_SOCK'] = ssh_auth_sock
     os.system("set SSH_AUTH_SOCK " + ssh_auth_sock)
     os.environ['SSH_AGENT_PID'] = ssh_agent_pid
     process.run("set SSH_AGENT_PID " + ssh_agent_pid, shell=True)
 
-    logging.info("Adds RSA or DSA identities to the authentication agent")
+    LOG.info("Adds RSA or DSA identities to the authentication agent")
     process.run("ssh-add")
 
 
@@ -1389,8 +1389,8 @@ def cpu_str_to_list(origin_str):
                     cpu_id = int(cpu)
                     cpu_list.append(cpu_id)
                 except ValueError:
-                    logging.error("Illegimate string in cpu "
-                                  "information: %s" % cpu)
+                    LOG.error("Illegimate string in cpu "
+                              "information: %s" % cpu)
                     cpu_list = []
                     break
         cpu_list.sort()
@@ -1501,7 +1501,7 @@ class NumaInfo(object):
 
         # ensure numactl package is available
         if not utils_package.package_install('numactl', session=self.session):
-            logging.error("Numactl package is not installed")
+            LOG.error("Numactl package is not installed")
 
         for node_id in self.online_nodes:
             self.nodes[node_id] = NumaNode(node_id + 1, session=self.session)
@@ -1550,19 +1550,19 @@ class NumaInfo(object):
         status, output = cmd_status_output(cmd, shell=True,
                                            session=self.session)
         if status != 0:
-            logging.error("Failed to get information from %s", cmd)
+            LOG.error("Failed to get information from %s", cmd)
         try:
             node_distances = output.split("node distances:")[-1].strip()
             node_distance = re.findall("%s:.*" % node_id, node_distances)[0]
             node_distance = node_distance.split(":")[-1]
         except Exception:
-            logging.warn("Get unexpect information from numctl")
+            LOG.warn("Get unexpect information from numctl")
             numa_sys_path = self.numa_sys_path
             distance_path = get_path(numa_sys_path,
                                      "node%s/distance" % node_id)
             if not check_isfile(distance_path, session=self.session):
-                logging.error("Can not get distance information for"
-                              " node %s" % node_id)
+                LOG.error("Can not get distance information for"
+                          " node %s" % node_id)
                 return []
             numa_sys = kernel_interface.SysFS(distance_path, session=self.session,
                                               regex="\d+%s")
@@ -1640,8 +1640,8 @@ class NumaInfo(object):
                                               regex="\d+%s")
             nodes_info = str(numa_sys.sys_fs_value)
         else:
-            logging.warning("sys numa node with memory file not"
-                            "present, fallback to online nodes")
+            LOG.warning("sys numa node with memory file not"
+                        "present, fallback to online nodes")
             return self.online_nodes
         return cpu_str_to_list(nodes_info)
 
@@ -1658,8 +1658,8 @@ class NumaInfo(object):
                                               regex="\d+%s")
             nodes_info = str(numa_sys.sys_fs_value)
         else:
-            logging.warning("sys numa node with cpu file not"
-                            "present, fallback to online nodes")
+            LOG.warning("sys numa node with cpu file not"
+                        "present, fallback to online nodes")
             return self.online_nodes
         return cpu_str_to_list(nodes_info)
 
@@ -1712,7 +1712,7 @@ class NumaNode(object):
         cmd = "numactl --hardware"
         status, output = cmd_status_output(cmd, session=self.session)
         if status != 0:
-            logging.error("Failed to get the information of %s", cmd)
+            LOG.error("Failed to get the information of %s", cmd)
         cpus = re.findall("node %s cpus: (.*)" % i, output)
         if cpus:
             cpus = cpus[0]
@@ -1725,9 +1725,9 @@ class NumaNode(object):
                                                   regex="\d+%s")
                 cpus = str(numa_sys.sys_fs_value)
             except Exception as info:
-                logging.warn("Can not find the cpu list information from both"
-                             " numactl and sysfs. Please check your system.\n"
-                             " Error: %s", info)
+                LOG.warn("Can not find the cpu list information from both"
+                         " numactl and sysfs. Please check your system.\n"
+                         " Error: %s", info)
                 break_flag = True
             if not break_flag:
                 # Try to expand the numbers with '-' to a string of numbers
@@ -1745,8 +1745,8 @@ class NumaNode(object):
                             _ += "%s " % str(n)
                         cpus = re.sub(cstr, _, cpus)
                 except (IndexError, ValueError):
-                    logging.warn("The format of cpu list is not the same as"
-                                 " expected.")
+                    LOG.warn("The format of cpu list is not the same as"
+                             " expected.")
                     break_flag = False
             if break_flag:
                 cpus = ""
@@ -1776,8 +1776,8 @@ class NumaNode(object):
                 key_val = str(numa_sys.sys_fs_value).rstrip('\n')
                 cpu_topo[key] = key_val
             except IOError:
-                logging.warn("Can not find file %s from sysfs. Please check "
-                             "your system." % key_path)
+                LOG.warn("Can not find file %s from sysfs. Please check "
+                         "your system." % key_path)
                 cpu_topo[key] = None
 
         return cpu_topo
@@ -1801,7 +1801,7 @@ class NumaNode(object):
         cmd = "ps -eLf | awk '{print $4}'"
         status, all_pids = cmd_status_output(cmd, shell=True, session=self.session)
         if status != 0:
-            logging.error("Failed to get information of %s", cmd)
+            LOG.error("Failed to get information of %s", cmd)
         for i in self.cpus:
             for j in self.dict[i]:
                 if str(j) not in all_pids:
@@ -1831,7 +1831,7 @@ class NumaNode(object):
             if (cpu is not None and cpu == i) or (cpu is None and not self.dict[i]):
                 self.dict[i].append(pid)
                 cmd = "taskset -cp %s %s" % (int(i), pid)
-                logging.debug("NumaNode (%s): " % i + cmd)
+                LOG.debug("NumaNode (%s): " % i + cmd)
                 cmd_status_output(cmd, shell=True, session=self.session)
                 return i
 
@@ -1839,9 +1839,9 @@ class NumaNode(object):
         """
         Display the record dict in a convenient way.
         """
-        logging.info("Numa Node record dict:")
+        LOG.info("Numa Node record dict:")
         for i in self.cpus:
-            logging.info("    %s: %s" % (i, self.dict[i]))
+            LOG.info("    %s: %s" % (i, self.dict[i]))
 
 
 def get_dev_major_minor(dev):
@@ -1900,15 +1900,15 @@ def get_qemu_binary(params):
                                 params.get("qemu_binary", "qemu"))
 
     if not os.path.isfile(qemu_binary_path):
-        logging.debug('Could not find params qemu in %s, searching the '
-                      'host PATH for one to use', qemu_binary_path)
+        LOG.debug('Could not find params qemu in %s, searching the '
+                  'host PATH for one to use', qemu_binary_path)
         QEMU_BIN_NAMES = ['qemu-kvm', 'qemu-system-%s' % (ARCH),
                           'qemu-system-ppc64', 'qemu-system-x86',
                           'qemu_system', 'kvm']
         for qemu_bin in QEMU_BIN_NAMES:
             try:
                 qemu_binary = utils_path.find_command(qemu_bin)
-                logging.debug('Found %s', qemu_binary)
+                LOG.debug('Found %s', qemu_binary)
                 break
             except utils_path.CmdNotFoundError:
                 continue
@@ -1959,12 +1959,12 @@ def get_binary(binary_name, params):
     binary_path = get_path(_get_backend_dir(params),
                            params.get(key_in_params, binary_name))
     if not os.path.isfile(binary_path):
-        logging.debug('Could not find params %s in %s, searching the '
-                      'host PATH for one to use',
-                      binary_name,
-                      binary_path)
+        LOG.debug('Could not find params %s in %s, searching the '
+                  'host PATH for one to use',
+                  binary_name,
+                  binary_path)
         binary_path = utils_path.find_command(binary_name)
-        logging.debug('Found %s', binary_path)
+        LOG.debug('Found %s', binary_path)
 
     return binary_path
 
@@ -2018,8 +2018,8 @@ def get_qemu_version(params=None):
         if "module" in line_l or "scrmod" in line_l:
             version['module'] = True
     if None in list(version.values()):
-        logging.error("Local install qemu version cannot be detected, "
-                      "the version info is: %s" % version_raw)
+        LOG.error("Local install qemu version cannot be detected, "
+                  "the version info is: %s" % version_raw)
         return None
     return version
 
@@ -2038,7 +2038,7 @@ def compare_qemu_version(major, minor, update, is_rhev=True, params={}):
     """
     installed_version = get_qemu_version(params)
     if installed_version is None:
-        logging.error("Cannot get local qemu version, return False directly.")
+        LOG.error("Cannot get local qemu version, return False directly.")
         return False
     if installed_version['module']:
         is_rhev = False
@@ -2403,8 +2403,8 @@ def selinux_enforcing():
 
     Alias to utils_selinux.is_enforcing()
     """
-    logging.warning("This function was deprecated, Please use "
-                    "utils_selinux.is_enforcing().")
+    LOG.warning("This function was deprecated, Please use "
+                "utils_selinux.is_enforcing().")
     return utils_selinux.is_enforcing()
 
 
@@ -2501,7 +2501,7 @@ def get_all_disks_did(session, partition=False):
              kname, serial and wwn.
     """
     disks = list_linux_guest_disks(session, partition)
-    logging.debug("Disks detail: %s" % disks)
+    LOG.debug("Disks detail: %s" % disks)
     all_disks_did = {}
     for line in disks:
         kname = line.split('/')[2]
@@ -2546,24 +2546,24 @@ def format_windows_disk(session, did, mountpoint=None, size=None, fstype="ntfs",
             cmd_footer += '&& del /f disk'
             detail_cmd = 'echo detail disk >> disk'
             detail_cmd = ' '.join([cmd_header, detail_cmd, cmd_footer])
-            logging.debug("Detail for 'Disk%s'" % did)
+            LOG.debug("Detail for 'Disk%s'" % did)
             details = session.cmd_output(detail_cmd)
 
             pattern = "DISK %s.*Offline" % did
             if re.search(pattern, details, re.I | re.M):
                 online_cmd = 'echo online disk>> disk'
                 online_cmd = ' '.join([cmd_header, online_cmd, cmd_footer])
-                logging.info("Online 'Disk%s'" % did)
+                LOG.info("Online 'Disk%s'" % did)
                 session.cmd(online_cmd)
 
             if re.search("Read.*Yes", details, re.I | re.M):
                 set_rw_cmd = 'echo attributes disk clear readonly>> disk'
                 set_rw_cmd = ' '.join([cmd_header, set_rw_cmd, cmd_footer])
-                logging.info("Clear readonly bit on 'Disk%s'" % did)
+                LOG.info("Clear readonly bit on 'Disk%s'" % did)
                 session.cmd(set_rw_cmd)
 
             if re.search(r"Volume.*%s" % fstype, details, re.I | re.M) and not force:
-                logging.info("Disk%s has been formatted, cancel format" % did)
+                LOG.info("Disk%s has been formatted, cancel format" % did)
                 continue
 
             if not size:
@@ -2574,10 +2574,10 @@ def format_windows_disk(session, did, mountpoint=None, size=None, fstype="ntfs",
                 mkpart_cmd = mkpart_cmd % size
             list_cmd = ' && echo list partition >> disk '
             cmds = ' '.join([cmd_header, mkpart_cmd, list_cmd, cmd_footer])
-            logging.info("Create partition on 'Disk%s'" % did)
+            LOG.info("Create partition on 'Disk%s'" % did)
             partition_index = re.search(
                 r'\*\s+Partition\s(\d+)\s+', session.cmd(cmds), re.M).group(1)
-            logging.info("Format the 'Disk%s' to %s" % (did, fstype))
+            LOG.info("Format the 'Disk%s' to %s" % (did, fstype))
             format_cmd = 'echo list partition >> disk && '
             format_cmd += 'echo select partition %s >> disk && ' % partition_index
             if not mountpoint:
@@ -2610,7 +2610,7 @@ def format_linux_disk(session, did, all_disks_did, partition=False,
     :return Boolean: disk usable or not.
     """
     disks = list_linux_guest_disks(session, partition)
-    logging.debug("Disks detail: %s" % disks)
+    LOG.debug("Disks detail: %s" % disks)
     for line in disks:
         kname = line.split('/')[2]
         did_list = all_disks_did[kname]
@@ -2623,7 +2623,7 @@ def format_linux_disk(session, did, all_disks_did, partition=False,
             size = size_output.splitlines()[0].split()[1]
         all_disks_before = list_linux_guest_disks(session, True)
         devname = line
-        logging.info("Create partition on disk '%s'" % devname)
+        LOG.info("Create partition on disk '%s'" % devname)
         mkpart_cmd = "parted -s %s mklabel gpt mkpart "
         mkpart_cmd += "primary 0 %s"
         mkpart_cmd = mkpart_cmd % (devname, size)
@@ -2631,13 +2631,13 @@ def format_linux_disk(session, did, all_disks_did, partition=False,
         session.cmd_output_safe("partprobe %s" % devname)
         all_disks_after = list_linux_guest_disks(session, True)
         partname = (all_disks_after - all_disks_before).pop()
-        logging.info("Format partition to '%s'" % fstype)
+        LOG.info("Format partition to '%s'" % fstype)
         format_cmd = "yes|mkfs -t %s %s" % (fstype, partname)
         session.cmd_output_safe(format_cmd)
         if not mountpoint:
             session.cmd_output_safe("mkdir /mnt/%s" % kname)
             mountpoint = os.path.join("/mnt", kname)
-        logging.info("Mount the disk to '%s'" % mountpoint)
+        LOG.info("Mount the disk to '%s'" % mountpoint)
         mount_cmd = "mount -t %s %s %s" % (fstype, partname, mountpoint)
         session.cmd_output_safe(mount_cmd)
         return True
@@ -2683,14 +2683,14 @@ def get_linux_drive_path(session, did, timeout=120):
     cmd += 'echo `udevadm info -q property -p $dev_path`; done'
     status, output = session.cmd_status_output(cmd, timeout=timeout)
     if status != 0:
-        logging.error("Can not get drive information:\n%s" % output)
+        LOG.error("Can not get drive information:\n%s" % output)
         return ""
     p = r"DEVNAME=([^\s]+)\s.*(?:ID_SERIAL|ID_SERIAL_SHORT|ID_WWN)=%s" % did
     dev = re.search(p, output, re.M)
     if dev:
         return dev.groups()[0]
-    logging.error("Can not get drive path by id '%s', "
-                  "command output:\n%s" % (did, output))
+    LOG.error("Can not get drive path by id '%s', "
+              "command output:\n%s" % (did, output))
     return ""
 
 
@@ -2722,7 +2722,7 @@ def valued_option_dict(options, split_pattern, start_count=0, dict_split=None):
     if options.strip() is not None:
         pat = re.compile(split_pattern)
         option_list = pat.split(options.lstrip(split_pattern))
-        logging.debug("option_list is %s", option_list)
+        LOG.debug("option_list is %s", option_list)
 
         for match in option_list[start_count:]:
             match_list = match.split(dict_split)
@@ -2732,7 +2732,7 @@ def valued_option_dict(options, split_pattern, start_count=0, dict_split=None):
                 if key not in option_dict:
                     option_dict[key] = value
                 else:
-                    logging.debug("key %s in option_dict", key)
+                    LOG.debug("key %s in option_dict", key)
                     option_dict[key] = option_dict[key].split()
                     option_dict[key].append(value)
 
@@ -2879,9 +2879,9 @@ def is_qemu_capability_supported(capability):
     for elem in xmltree.getroot().findall('flag'):
         name = elem.attrib.get('name')
         if name == capability:
-            logging.info("The qemu capability '%s' is supported", capability)
+            LOG.info("The qemu capability '%s' is supported", capability)
             return True
-    logging.info("The qemu capability '%s' is not supported.", capability)
+    LOG.info("The qemu capability '%s' is not supported.", capability)
     return False
 
 
@@ -3080,7 +3080,7 @@ class KSMController(object):
         """
         for key in list(feature_args.keys()):
             if key not in self.get_writable_features():
-                logging.error("Do not support setting of '%s'.", key)
+                LOG.error("Do not support setting of '%s'.", key)
                 raise KSMError
         if self.interface == "sysfs":
             # Get writable parameters
@@ -3196,7 +3196,7 @@ def verify_dmesg(dmesg_log_file=None, ignore_result=False, level_check=3,
             err += " Please check %s dmesg log %s." % (environ, dmesg_log_file)
         else:
             err += " Please check %s dmesg log in debug log." % environ
-            logging.debug(d_log)
+            LOG.debug(d_log)
         if session:
             session.cmd("dmesg -C")
         else:
@@ -3226,7 +3226,7 @@ def add_ker_cmd(kernel_cmdline, kernel_param, remove_similar=False):
     kernel_cmdline_cmp = " %s " % kernel_cmdline
     need_update = True
     if " %s " % kernel_param in kernel_cmdline_cmp:
-        logging.debug("Parameter already in kernel command line.")
+        LOG.debug("Parameter already in kernel command line.")
         need_update = False
     elif "=" in kernel_param and remove_similar:
         kernel_param_key = kernel_param.split("=")[0]
@@ -3272,18 +3272,18 @@ def check_module(module_name, submodules=[]):
     Check whether module and its submodules work.
     """
     module_info = linux_modules.loaded_module_info(module_name)
-    logging.debug(module_info)
+    LOG.debug(module_info)
     # Return if module is not loaded.
     if not len(module_info):
-        logging.debug("Module %s was not loaded.", module_name)
+        LOG.debug("Module %s was not loaded.", module_name)
         return False
 
     module_work = True
     l_sub = module_info.get('submodules')
     for submodule in submodules:
         if submodule not in l_sub:
-            logging.debug("Submodule %s of %s is not loaded.",
-                          submodule, module_name)
+            LOG.debug("Submodule %s of %s is not loaded.",
+                      submodule, module_name)
             module_work = False
     return module_work
 
@@ -3323,7 +3323,7 @@ def get_pci_group_by_id(pci_id, device_type=""):
                         like 'Ethernet', 'Fibre'
     """
     if len(pci_id.split(':')) < 2:
-        logging.error("Please provide formal pci id.")
+        LOG.error("Please provide formal pci id.")
         # Informal pci_id, no matched list
         return []
     devices = get_pci_devices_in_group(device_type)
@@ -3377,7 +3377,7 @@ def bind_device_driver(pci_id, driver_type):
     """
     vd_list = get_pci_vendor_device(pci_id)
     if len(vd_list) == 0:
-        logging.error("Can't find device matched.")
+        LOG.error("Can't find device matched.")
         return False
     bind_file = "/sys/bus/pci/drivers/%s/new_id" % driver_type
     vendor = vd_list[0].split(':')[0]
@@ -3393,7 +3393,7 @@ def unbind_device_driver(pci_id):
     """
     vd_list = get_pci_vendor_device(pci_id)
     if len(vd_list) == 0:
-        logging.error("Can't find device matched.")
+        LOG.error("Can't find device matched.")
         return False
     unbind_file = "/sys/bus/pci/devices/%s/driver/unbind" % pci_id
     unbind_cmd = "echo %s > %s" % (pci_id, unbind_file)
@@ -3407,12 +3407,12 @@ def check_device_driver(pci_id, driver_type):
     """
     device_driver = "/sys/bus/pci/devices/%s/driver" % pci_id
     if not check_isdir(device_driver):
-        logging.debug("Make sure %s has binded driver.")
+        LOG.debug("Make sure %s has binded driver.")
         return False
     driver = process.run("readlink %s" % device_driver,
                          ignore_status=True).stdout_text.strip()
     driver = os.path.basename(driver)
-    logging.debug("% is %s, expect %s", pci_id, driver, driver_type)
+    LOG.debug("% is %s, expect %s", pci_id, driver, driver_type)
     return driver == driver_type
 
 
@@ -3442,8 +3442,8 @@ def get_bootloader_cfg(session=None):
             cfg_path = path
             break
     if not cfg_path:
-        logging.error("Failed to locate bootloader config file "
-                      "in %s." % bootloader_cfg)
+        LOG.error("Failed to locate bootloader config file "
+                  "in %s." % bootloader_cfg)
     return cfg_path
 
 
@@ -3552,10 +3552,10 @@ class VFIOController(object):
         """
         unbind_device_driver(pci_id)
         if not self.bind_device_to_iommu_group(pci_id):
-            logging.debug('Bind vfio driver for %s failed.', pci_id)
+            LOG.debug('Bind vfio driver for %s failed.', pci_id)
             return False
         if not check_device_driver(pci_id, "vfio-pci"):
-            logging.debug("Awesome, driver does not match after binding.")
+            LOG.debug("Awesome, driver does not match after binding.")
             return False
         return True
 
@@ -3614,7 +3614,7 @@ class SELinuxBoolean(object):
         """
         get_sebool_cmd = "getsebool %s | awk -F'-->' '{print $2}'" % (
             self.local_bool_var)
-        logging.debug("The command: %s", get_sebool_cmd)
+        LOG.debug("The command: %s", get_sebool_cmd)
         result = process.run(get_sebool_cmd, shell=True)
         return result.stdout_text.strip()
 
@@ -3625,7 +3625,7 @@ class SELinuxBoolean(object):
         get_sebool_cmd = "getsebool %s" % self.remote_bool_var
         cmd = (self.ssh_cmd + "'%s'" %
                (get_sebool_cmd + "'| awk -F'-->' '{print $2}''"))
-        logging.debug("The command: %s", cmd)
+        LOG.debug("The command: %s", cmd)
         result = process.run(cmd, shell=True)
         return result.stdout_text.strip()
 
@@ -3688,7 +3688,7 @@ class SELinuxBoolean(object):
             raise exceptions.TestSkipError(result.stderr_text.strip())
 
         boolean_curr = self.get_sebool_local()
-        logging.debug("To check local boolean value: %s", boolean_curr)
+        LOG.debug("To check local boolean value: %s", boolean_curr)
         if boolean_curr != self.local_bool_value:
             raise exceptions.TestFail(result.stderr_text.strip())
 
@@ -3711,7 +3711,7 @@ class SELinuxBoolean(object):
             raise exceptions.TestSkipError(result.stderr_text.strip())
 
         boolean_curr = self.get_sebool_remote()
-        logging.debug("To check remote boolean value: %s", boolean_curr)
+        LOG.debug("To check remote boolean value: %s", boolean_curr)
         if boolean_curr != self.remote_bool_value:
             raise exceptions.TestFail(result.stderr_text.strip())
 
@@ -3765,7 +3765,7 @@ class BgJob(object):
             self.string_stdin = None
 
         if verbose:
-            logging.debug("Running '%s'" % command)
+            LOG.debug("Running '%s'" % command)
         # Ok, bash is nice and everything, but we might face occasions where
         # it is not available. Just do the right thing and point to /bin/sh.
         shell = '/bin/bash'
@@ -4146,8 +4146,8 @@ def _wait_for_commands(bg_jobs, start_time, timeout):
         if bg_job.result.exit_status is not None:
             continue
 
-        logging.warn('run process timeout (%s) fired on: %s', timeout,
-                     bg_job.command)
+        LOG.warn('run process timeout (%s) fired on: %s', timeout,
+                 bg_job.command)
         nuke_subprocess(bg_job.sp)
         bg_job.result.exit_status = bg_job.sp.poll()
         bg_job.result.duration = time.time() - start_time
@@ -4181,7 +4181,7 @@ def start_rsyslogd():
         exceptions.TestError("No rsyslogd command found.")
     rsyslogd = service.Factory.create_service('rsyslog')
     if not rsyslogd.status():
-        logging.info("Need to start rsyslog service")
+        LOG.info("Need to start rsyslog service")
         return rsyslogd.start()
     return True
 
@@ -4201,7 +4201,7 @@ def get_distro(session=None):
         try:
             status, output = session.cmd_status_output(cmd, timeout=300)
             if status:
-                logging.debug("Unable to get the distro name: %s" % output)
+                LOG.debug("Unable to get the distro name: %s" % output)
             else:
                 distro_name = output.split('=')[1].strip()
         finally:
@@ -4234,7 +4234,7 @@ def get_sosreport(path=None, session=None, remote_ip=None, remote_pwd=None,
         sosreport_pkg = "sosreport"
 
     if not utils_package.package_install(sosreport_pkg, session=session):
-        logging.error("Failed to install sos package")
+        LOG.error("Failed to install sos package")
         return None
     cmd = "sosreport --batch --all-logs"
     func = process.getstatusoutput
@@ -4261,16 +4261,16 @@ def get_sosreport(path=None, session=None, remote_ip=None, remote_pwd=None,
     try:
         status, output = func(cmd, timeout=timeout)
         if status != 0:
-            logging.error(output)
+            LOG.error(output)
             return None
         if session:
-            logging.info("copying sosreport from remote host/guest path: %s "
-                         "to host path: %s", path, host_path)
+            LOG.info("copying sosreport from remote host/guest path: %s "
+                     "to host path: %s", path, host_path)
             remote.copy_files_from(remote_ip, 'scp', remote_user, remote_pwd, "22",
                                    path, host_path, directory=True)
     except Exception as info:
         if ignore_status:
-            logging.error(info)
+            LOG.error(info)
         else:
             raise exceptions.TestError(info)
     finally:

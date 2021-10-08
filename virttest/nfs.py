@@ -18,6 +18,8 @@ from virttest.utils_iptables import Iptables
 from virttest.utils_conn import SSHConnection
 from virttest.staging import service
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def nfs_exported(session=None):
     """
@@ -108,8 +110,8 @@ class Exportfs(object):
             unexport_cmd = "exportfs -u %s:%s" % (self.client, self.path)
             self.func(unexport_cmd)
         else:
-            logging.warn("Target %s %s is not exported yet."
-                         "Can not unexport it." % (self.client, self.path))
+            LOG.warn("Target %s %s is not exported yet."
+                     "Can not unexport it." % (self.client, self.path))
 
     def reset_export(self):
         """
@@ -134,8 +136,7 @@ class Exportfs(object):
                 self.unexport()
             else:
                 self.already_exported = True
-                logging.warn("Already exported target."
-                             " Don't need export it again")
+                LOG.warn("Already exported target. Don't need export it again")
                 return True
         export_cmd = "exportfs"
         if self.options:
@@ -144,7 +145,7 @@ class Exportfs(object):
         try:
             self.func(export_cmd)
         except (process.CmdError, aexpect.ShellTimeoutError) as export_failed_err:
-            logging.error("Can not export target: %s" % export_failed_err)
+            LOG.error("Can not export target: %s" % export_failed_err)
             return False
         return True
 
@@ -183,7 +184,7 @@ class Nfs(object):
             self.session = test_setup.remote_session(nfs_server_params)
             distro_details = utils_misc.get_distro(self.session)
             if self.session.cmd_status("exportfs -h") != 0:
-                logging.error("exportfs cmd not available in remote host")
+                LOG.error("exportfs cmd not available in remote host")
 
         elif params.get("setup_local_nfs") == "yes":
             self.nfs_setup = True
@@ -235,7 +236,7 @@ class Nfs(object):
         """
         if self.nfs_setup:
             if not self.nfs_service.status():
-                logging.debug("Restart NFS service.")
+                LOG.debug("Restart NFS service.")
                 self.rpcbind_service.restart()
                 self.nfs_service.restart()
 
@@ -245,7 +246,7 @@ class Nfs(object):
             self.exportfs.export()
             self.unexportfs_in_clean = not self.exportfs.already_exported
 
-        logging.debug("Mount %s to %s" % (self.mount_src, self.mount_dir))
+        LOG.debug("Mount %s to %s" % (self.mount_src, self.mount_dir))
         if(utils_misc.check_exists(self.mount_dir, session=self.session)
            and not utils_misc.check_isdir(self.mount_dir, session=self.session)):
             raise OSError(
@@ -318,10 +319,10 @@ class NFSClient(object):
         find_mountpoint_cmd = "mount | grep -E '.*%s.*%s.*'" % (self.mount_src,
                                                                 self.mount_dir)
         cmd = self.ssh_cmd + "'%s'" % find_mountpoint_cmd
-        logging.debug("The command: %s", cmd)
+        LOG.debug("The command: %s", cmd)
         status, output = process.getstatusoutput(cmd)
         if status:
-            logging.debug("The command result: <%s:%s>", status, output)
+            LOG.debug("The command result: <%s:%s>", status, output)
             return False
         return True
 
@@ -344,8 +345,7 @@ class NFSClient(object):
         """
         Unmount the mount directory in remote host
         """
-        logging.debug("Umount %s from %s" %
-                      (self.mount_dir, self.nfs_client_ip))
+        LOG.debug("Umount %s from %s" % (self.mount_dir, self.nfs_client_ip))
         umount_cmd = self.ssh_cmd + "'umount -l %s'" % self.mount_dir
         try:
             process.system(umount_cmd, verbose=True)
@@ -392,17 +392,17 @@ class NFSClient(object):
                         service_cmd += "--add-service=nfs"
                         ret = process.run(service_cmd, shell=True)
                         if ret.exit_status:
-                            logging.error("nfs service not added in firewall: "
-                                          "%s", ret.stdout_text)
+                            LOG.error("nfs service not added in firewall: "
+                                      "%s", ret.stdout_text)
                         else:
-                            logging.debug("nfs service added to firewall "
-                                          "sucessfully")
+                            LOG.debug("nfs service added to firewall "
+                                      "sucessfully")
                             firewalld.restart()
                     else:
-                        logging.debug("nfs service already permitted by firewall")
+                        LOG.debug("nfs service already permitted by firewall")
             except process.CmdError:
                 # For RHEL 6 based system firewall-cmd is not available
-                logging.debug("Using iptables to permit NFS service")
+                LOG.debug("Using iptables to permit NFS service")
                 nfs_ports = []
                 rule_list = []
                 nfsd = service.Factory.create_service("nfs")
@@ -436,19 +436,18 @@ class NFSClient(object):
                 Iptables.setup_or_cleanup_iptables_rules(rule_list)
                 iptables.restart()
         except Exception as info:
-            logging.error("Firewall setting to add nfs service "
-                          "failed: %s", info)
+            LOG.error("Firewall setting to add nfs service failed: %s", info)
 
     def setup_remote(self):
         """
         Mount sharing directory to remote host.
         """
         check_mount_dir_cmd = self.ssh_cmd + "'ls -d %s'" % self.mount_dir
-        logging.debug("To check if the %s exists", self.mount_dir)
+        LOG.debug("To check if the %s exists", self.mount_dir)
         output = process.getoutput(check_mount_dir_cmd)
         if re.findall("No such file or directory", output, re.M):
             mkdir_cmd = self.ssh_cmd + "'mkdir -p %s'" % self.mount_dir
-            logging.debug("Prepare to create %s", self.mount_dir)
+            LOG.debug("Prepare to create %s", self.mount_dir)
             s, o = process.getstatusoutput(mkdir_cmd)
             if s != 0:
                 raise exceptions.TestFail("Failed to run %s: %s" %
@@ -460,7 +459,7 @@ class NFSClient(object):
                 self.firewall_to_permit_nfs()
 
         self.mount_src = "%s:%s" % (self.nfs_server_ip, self.mount_src)
-        logging.debug("Mount %s to %s" % (self.mount_src, self.mount_dir))
+        LOG.debug("Mount %s to %s" % (self.mount_src, self.mount_dir))
         mount_cmd = "mount -t nfs %s %s" % (self.mount_src, self.mount_dir)
         if self.mount_options:
             mount_cmd += " -o %s" % self.mount_options

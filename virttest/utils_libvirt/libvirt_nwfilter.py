@@ -9,6 +9,8 @@ import re
 
 from virttest import virsh
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def clean_up_nwfilter_binding(ignore_status=False):
     """
@@ -26,7 +28,7 @@ def clean_up_nwfilter_binding(ignore_status=False):
             # Split on whitespace, assume 1 column
             linesplit = line.split(None, 1)
             result.append(linesplit[0])
-    logging.info("existed nwfilter binding list is: %s", result)
+    LOG.info("existed nwfilter binding list is: %s", result)
     for binding_uuid in result:
         virsh.nwfilter_binding_delete(binding_uuid, ignore_status=ignore_status)
 

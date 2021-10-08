@@ -46,6 +46,8 @@ from virttest.utils_params import Params
 from virttest.qemu_capabilities import Flags, Capabilities, MigrationParams
 from virttest.utils_version import VersionInterval
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 #
 # Device container (device representation of VM)
 # This class represents VM by storing all devices and their connections (buses)
@@ -1137,8 +1139,8 @@ class DevContainer(object):
             :param cmd: If set uses "-M $cmd" to force this machine type
             :return: List of added devices (including default buses)
             """
-            logging.warn('Using Q35 machine which is not yet fully tested on '
-                         'avocado-vt. False errors might occur.')
+            LOG.warn('Using Q35 machine which is not yet fully tested on '
+                     'avocado-vt. False errors might occur.')
             devices = []
             bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type,
                                      'pci.0', pcie_root_port_params),
@@ -1291,7 +1293,7 @@ class DevContainer(object):
             :param cmd: If set uses "-M $cmd" to force this machine type
             :return: List of added devices (including default buses)
             """
-            logging.warn('Support for aarch64 is highly experimental!')
+            LOG.warn('Support for aarch64 is highly experimental!')
             devices = []
             # Add virtio-bus
             # TODO: Currently this uses QNoAddrCustomBus and does not
@@ -1314,7 +1316,7 @@ class DevContainer(object):
             :param cmd: If set uses "-M $cmd" to force this machine type
             :return: List of added devices (including default buses)
             """
-            logging.warn('Support for aarch64 is highly experimental!')
+            LOG.warn('Support for aarch64 is highly experimental!')
             devices = []
 
             bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type,
@@ -1367,7 +1369,7 @@ class DevContainer(object):
             # set the device's properties. This means that the qemu qtree
             # and autotest's representations are completely different and
             # can't be used.
-            logging.warn('Support for s390x is highly experimental!')
+            LOG.warn('Support for s390x is highly experimental!')
             bus = (qdevices.QNoAddrCustomBus('bus', [['addr'], [64]],
                                              'virtio-blk-ccw', 'virtio-bus',
                                              'virtio-blk-ccw'),
@@ -1387,10 +1389,10 @@ class DevContainer(object):
             :param cmd: If set uses "-M $cmd" to force this machine type
             :return: List of added devices (including default buses)
             """
-            logging.warn("Support for riscv64 is highly experimental. See "
-                         "https://avocado-vt.readthedocs.io"
-                         "/en/latest/Experimental.html#riscv64 for "
-                         "setup information.")
+            LOG.warn("Support for riscv64 is highly experimental. See "
+                     "https://avocado-vt.readthedocs.io"
+                     "/en/latest/Experimental.html#riscv64 for "
+                     "setup information.")
             devices = []
             # Add virtio-bus
             # TODO: Currently this uses QNoAddrCustomBus and does not
@@ -1412,8 +1414,8 @@ class DevContainer(object):
             :param cmd: If set uses "-M $cmd" to force this machine type
             :return: List of added devices (including default buses)
             """
-            logging.warn('Machine type isa/unknown is not supported by '
-                         'avocado-vt. False errors might occur')
+            LOG.warn('Machine type isa/unknown is not supported by '
+                     'avocado-vt. False errors might occur')
             devices = []
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd))
             return devices
@@ -1467,8 +1469,8 @@ class DevContainer(object):
                 # similar to i440fx one (1 PCI bus, ..)
                 devices = machine_i440FX("-M %s" % machine_type)
             else:
-                raise exceptions.TestSkipError("Unsupported machine type %s." %
-                                               (machine_type))
+                raise exceptions.TestSkipError("Unsupported machine type %s."
+                                               % (machine_type))
         else:
             devices = None
             machine_opts = []
@@ -1484,12 +1486,12 @@ class DevContainer(object):
                     elif 'isapc' not in machine_type:   # i440FX
                         devices = machine_i440FX(cmd)
                     else:   # isapc (or other)
-                        logging.warn('Machine isa/unknown is not supported by '
-                                     'avocado-vt. False errors might occur')
+                        LOG.warn('Machine isa/unknown is not supported by '
+                                 'avocado-vt. False errors might occur')
                         devices = machine_other(cmd)
             if not devices:
-                logging.warn('Unable to find the default machine type, using '
-                             'i440FX')
+                LOG.warn('Unable to find the default machine type, using '
+                         'i440FX')
                 devices = machine_i440FX(cmd)
 
         if params.get("vm_pci_hole64_fix"):
@@ -1627,8 +1629,8 @@ class DevContainer(object):
                                                 cmdline='-usbdevice %s' % usb_name)
             else:
                 device = qdevices.QStringDevice('missing-usb-%s' % usb_name)
-                logging.error("This qemu supports only tablet device; ignoring"
-                              " %s", usb_name)
+                LOG.error("This qemu supports only tablet device; ignoring"
+                          " %s", usb_name)
         return device
 
     def usb_by_params(self, usb_name, params):
@@ -1928,8 +1930,8 @@ class DevContainer(object):
 
         use_device = self.has_option("device")
         if fmt == "scsi":   # fmt=scsi force the old version of devices
-            logging.warn("'scsi' drive_format is deprecated, please use the "
-                         "new lsi_scsi type for disk %s", name)
+            LOG.warn("'scsi' drive_format is deprecated, please use the "
+                     "new lsi_scsi type for disk %s", name)
             use_device = False
         if not fmt:
             use_device = False
@@ -1961,16 +1963,16 @@ class DevContainer(object):
         port = none_or_int(port)   # Third level
         # Compatibility with old params - scsiid, lun
         if scsiid is not None:
-            logging.warn("drive_scsiid param is obsolete, use drive_unit "
-                         "instead (disk %s)", name)
+            LOG.warn("drive_scsiid param is obsolete, use drive_unit "
+                     "instead (disk %s)", name)
             unit = none_or_int(scsiid)
         if lun is not None:
-            logging.warn("drive_lun param is obsolete, use drive_port instead "
-                         "(disk %s)", name)
+            LOG.warn("drive_lun param is obsolete, use drive_port instead "
+                     "(disk %s)", name)
             port = none_or_int(lun)
         if pci_addr is not None and fmt == 'virtio':
-            logging.warn("drive_pci_addr is obsolete, use drive_bus instead "
-                         "(disk %s)", name)
+            LOG.warn("drive_pci_addr is obsolete, use drive_bus instead "
+                     "(disk %s)", name)
             bus = none_or_int(pci_addr)
 
         #
@@ -1984,8 +1986,8 @@ class DevContainer(object):
                                           and (scsi_hba == 'lsi53c895a'
                                                or scsi_hba == 'spapr-vscsi'))):
                 if not (bus is None and unit is None and port is None):
-                    logging.warn("Using scsi interface without -device "
-                                 "support; ignoring bus/unit/port. (%s)", name)
+                    LOG.warn("Using scsi interface without -device "
+                             "support; ignoring bus/unit/port. (%s)", name)
                     bus, unit, port = None, None, None
                 # In case we hotplug, lsi wasn't added during the startup hook
                 if arch.ARCH in ('ppc64', 'ppc64le'):
@@ -1999,8 +2001,8 @@ class DevContainer(object):
                 devices.extend(_[0])
         elif fmt == "ide":
             if bus:
-                logging.warn('ide supports only 1 hba, use drive_unit to set'
-                             'ide.* for disk %s', name)
+                LOG.warn('ide supports only 1 hba, use drive_unit to set'
+                         'ide.* for disk %s', name)
             bus = unit
             dev_parent = {'type': 'IDE', 'atype': 'ide'}
         elif fmt == "ahci":
@@ -2033,8 +2035,8 @@ class DevContainer(object):
             devices.extend(_)
         elif fmt in ('usb1', 'usb2', 'usb3'):
             if bus:
-                logging.warn('Manual setting of drive_bus is not yet supported'
-                             ' for usb disk %s', name)
+                LOG.warn('Manual setting of drive_bus is not yet supported'
+                         ' for usb disk %s', name)
                 bus = None
             if fmt == 'usb1':
                 dev_parent = {'type': 'uhci'}
@@ -2126,8 +2128,8 @@ class DevContainer(object):
         if Flags.BLOCKDEV in self.caps:
             for opt, val in zip(('serial', 'boot'), (serial, boot)):
                 if val is not None:
-                    logging.warn("The command line option %s is not supported "
-                                 "on %s by -blockdev." % (opt, name))
+                    LOG.warn("The command line option %s is not supported "
+                             "on %s by -blockdev." % (opt, name))
             if media == 'cdrom':
                 readonly = 'on'
             format_node.set_param('read-only', readonly, bool)
@@ -2177,7 +2179,7 @@ class DevContainer(object):
 
         if 'aio' in self.get_help_text():
             if aio == 'native' and snapshot == 'yes':
-                logging.warn('snapshot is on, fallback aio to threads.')
+                LOG.warn('snapshot is on, fallback aio to threads.')
                 aio = 'threads'
             if Flags.BLOCKDEV in self.caps:
                 if isinstance(protocol_node, (qdevices.QBlockdevProtocolFile,
@@ -2323,8 +2325,8 @@ class DevContainer(object):
                 devices[-1].set_param('addr', pci_addr)
                 devices[-1].parent_bus = (pci_bus,)
             if not media == 'cdrom':
-                logging.warn("Using -drive fmt=xxx for %s is unsupported "
-                             "method, false errors might occur.", name)
+                LOG.warn("Using -drive fmt=xxx for %s is unsupported "
+                         "method, false errors might occur.", name)
             return devices
 
         #
@@ -2370,10 +2372,10 @@ class DevContainer(object):
             devices[-1] = qdevices.QFloppy(unit, 'drive_%s' % name, name,
                                            ({'busid': 'drive_%s' % name}, {'type': fmt}))
         else:
-            logging.warn('Using default device handling (disk %s)', name)
+            LOG.warn('Using default device handling (disk %s)', name)
             devices[-1].set_param('driver', fmt)
         if force_fmt:
-            logging.info("Force to use %s for the device" % force_fmt)
+            LOG.info("Force to use %s for the device" % force_fmt)
             devices[-1].set_param('driver', force_fmt)
         # Get the supported options
         options = self.execute_qemu("-device %s,?" % devices[-1]['driver'])
@@ -2455,7 +2457,7 @@ class DevContainer(object):
             sn_img = qemu_storage.QemuImg(sn_params, data_dir.get_data_dir(), sn)
             image_filename = sn_img.create(sn_params)[0]
             os.chmod(image_filename, stat.S_IRUSR | stat.S_IWUSR)
-            logging.info(
+            LOG.info(
                 "'snapshot=on' is not supported by '-blockdev' but "
                 "requested from the image '%s', imitating the behavior "
                 "of '-drive' to keep compatibility", name)
@@ -2574,7 +2576,7 @@ class DevContainer(object):
                     bus = self.idx_of_next_named_bus(_hba)
                     bus = self.list_missing_named_buses(
                         _hba, 'SERIAL', bus + 1)[-1]
-                    logging.debug("list missing named bus: %s", bus)
+                    LOG.debug("list missing named bus: %s", bus)
                     bus_params["id"] = bus
                     devices.append(
                         qdevices.QDevice(bus_type,
@@ -2724,8 +2726,7 @@ class DevContainer(object):
                 scsi_hba = "virtio-scsi-ccw"
         if cd_format in (None, "ide"):
             if not self.get_buses({'atype': 'ide'}):
-                logging.warn("cd_format IDE not available, using AHCI "
-                             "instead.")
+                LOG.warn("cd_format IDE not available, using AHCI instead.")
                 cd_format = 'ahci'
         if scsi_hba == "virtio-scsi-pci":
             if "mmio" in image_params.get("machine_type"):
@@ -2903,7 +2904,7 @@ class DevContainer(object):
         params = params.object_params(name)
         devices = []
         if not self.has_device("pc-dimm"):
-            logging.warn("'PC-DIMM' does not support by your qemu")
+            LOG.warn("'PC-DIMM' does not support by your qemu")
             return devices
         mem = self.memory_object_define_by_params(params, name)
         if mem:
@@ -2959,7 +2960,7 @@ class DevContainer(object):
             dev.set_param("id", "input_%s" % name)
             devices.append(dev)
         else:
-            logging.warn("'%s' is not supported by your qemu", driver)
+            LOG.warn("'%s' is not supported by your qemu", driver)
 
         return devices
 
@@ -3083,7 +3084,7 @@ class DevContainer(object):
             try:
                 utils_misc.log_line('%s_%s_swtpm_setup.log' % (self.vmname, name), line)
             except Exception as e:
-                logging.warn("Can't log %s_%s_swtpm_setup output: %s.", self.vmname, name, e)
+                LOG.warn("Can't log %s_%s_swtpm_setup output: %s.", self.vmname, name, e)
 
         def _emulator_setup(binary, extra_options=None):
             setup_cmd = binary
@@ -3103,7 +3104,7 @@ class DevContainer(object):
             if extra_options:
                 setup_cmd += extra_options
 
-            logging.info('Running TPM emulator setup command: %s.', setup_cmd)
+            LOG.info('Running TPM emulator setup command: %s.', setup_cmd)
             _process = aexpect.run_bg(setup_cmd, None, _handle_log, auto_close=False)
             status_ending = 'Ending vTPM manufacturing'
             _process.read_until_any_line_matches(status_ending, timeout=5)

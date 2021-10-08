@@ -6,6 +6,8 @@ from autotest.client import test
 from autotest.client import utils
 from autotest.client.shared import git, error, software_manager
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class kernelinstall(test.test):
     version = 1
@@ -19,7 +21,7 @@ class kernelinstall(test.test):
         directory (client/test/kernelinstall)
         """
         if kernel_deps_rpms:
-            logging.info("Installing kernel dependencies.")
+            LOG.info("Installing kernel dependencies.")
             if isinstance(kernel_deps_rpms, list):
                 kernel_deps_rpms = " ".join(kernel_deps_rpms)
             self.sm.install(kernel_deps_rpms)
@@ -27,7 +29,7 @@ class kernelinstall(test.test):
         dst = os.path.join("/tmp", os.path.basename(rpm_file))
         knl = utils.get_file(rpm_file, dst)
         kernel = self.job.kernel(knl)
-        logging.info("Installing kernel %s", rpm_file)
+        LOG.info("Installing kernel %s", rpm_file)
         kernel.install(install_vmlinux=False)
 
         if need_reboot:
@@ -41,7 +43,7 @@ class kernelinstall(test.test):
         # we avoid lookup errors due to SSL problems, so let's go with that.
         for koji_package in ['koji', 'brewkoji']:
             if not self.sm.check_installed(koji_package):
-                logging.debug("%s missing - trying to install", koji_package)
+                LOG.debug("%s missing - trying to install", koji_package)
                 self.sm.install(koji_package)
 
         sys.path.append(self.bindir)
@@ -54,7 +56,7 @@ class kernelinstall(test.test):
 
         deps_rpms = []
         k_dep = utils_koji.KojiPkgSpec(text=kernel_deps_koji_spec)
-        logging.info('Fetching kernel dependencies: %s', kernel_deps_koji_spec)
+        LOG.info('Fetching kernel dependencies: %s', kernel_deps_koji_spec)
         c.get_pkgs(k_dep, self.bindir)
         rpm_file_name_list = c.get_pkg_rpm_file_names(k_dep)
         if len(rpm_file_name_list) == 0:
@@ -64,7 +66,7 @@ class kernelinstall(test.test):
         deps_rpms.append(os.path.join(self.bindir, dep_rpm_basename))
 
         k = utils_koji.KojiPkgSpec(text=kernel_koji_spec)
-        logging.info('Fetching kernel: %s', kernel_koji_spec)
+        LOG.info('Fetching kernel: %s', kernel_koji_spec)
         c.get_pkgs(k, self.bindir)
         rpm_file_name_list = c.get_pkg_rpm_file_names(k)
         if len(rpm_file_name_list) == 0:
@@ -121,8 +123,8 @@ class kernelinstall(test.test):
     def execute(self, install_type="koji", params=None):
         need_reboot = params.get("need_reboot") == "yes"
 
-        logging.info("Chose to install kernel through '%s', proceeding",
-                     install_type)
+        LOG.info("Chose to install kernel through '%s', proceeding",
+                 install_type)
 
         if install_type == "rpm":
             rpm_url = params.get("kernel_rpm_path")
@@ -156,5 +158,5 @@ class kernelinstall(test.test):
             self._kernel_install_src(src_pkg, config, None, patch_list,
                                      need_reboot)
         else:
-            logging.error("Could not find '%s' method, "
-                          "keep the current kernel.", install_type)
+            LOG.error("Could not find '%s' method, "
+                      "keep the current kernel.", install_type)

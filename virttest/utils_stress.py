@@ -12,6 +12,8 @@ from virttest import utils_net
 from virttest.utils_test import libvirt
 from virttest.libvirt_xml.devices.disk import Disk
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class VMStressEvents():
 
@@ -129,12 +131,12 @@ class VMStressEvents():
                 vm.reboot()
             elif "nethotplug" in event:
                 for iface_num in range(int(iface_num)):
-                    logging.debug("Try to attach interface %d" % iface_num)
+                    LOG.debug("Try to attach interface %d" % iface_num)
                     mac = utils_net.generate_mac_address_simple()
                     options = ("%s %s --model %s --mac %s %s" %
                                (iface_type, iface_source['network'],
                                 iface_model, mac, attach_option))
-                    logging.debug("VM name: %s , Options for Network attach: %s", vm.name, options)
+                    LOG.debug("VM name: %s , Options for Network attach: %s", vm.name, options)
                     ret = virsh.attach_interface(vm.name, options,
                                                  ignore_status=True)
                     time.sleep(self.event_sleep_time)
@@ -143,7 +145,7 @@ class VMStressEvents():
                     if detach_option:
                         options = ("--type %s --mac %s %s" %
                                    (iface_type, mac, detach_option))
-                        logging.debug("VM name: %s , Options for Network detach: %s", vm.name, options)
+                        LOG.debug("VM name: %s , Options for Network detach: %s", vm.name, options)
                         ret = virsh.detach_interface(vm.name, options,
                                                      ignore_status=True)
                         if not self.ignore_status:
@@ -180,7 +182,7 @@ class VMStressEvents():
         for itr in range(self.host_iterations):
             if "cpu_freq_governor" in event:
                 cpu.set_freq_governor() if hasattr(cpu, 'set_freq_governor') else cpu.set_cpufreq_governor()
-                logging.debug("Current governor: %s", cpu.get_freq_governor() if hasattr(cpu, 'get_freq_governor') else cpu.get_cpufreq_governor())
+                LOG.debug("Current governor: %s", cpu.get_freq_governor() if hasattr(cpu, 'get_freq_governor') else cpu.get_cpufreq_governor())
                 time.sleep(self.event_sleep_time)
             elif "cpu_idle" in event:
                 idlestate = cpu.get_idle_state() if hasattr(cpu, 'get_idle_state') else cpu.get_cpuidle_state()

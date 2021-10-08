@@ -23,6 +23,8 @@ from virttest import utils_misc
 from virttest import utils_net
 from virttest import error_context
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class GlusterError(Exception):
     pass
@@ -182,7 +184,7 @@ def gluster_brick_create(brick_path, force=False, session=None):
         eval(cmd2_str)
         return True
     except OSError as details:
-        logging.error("Not able to create brick folder %s", details)
+        LOG.error("Not able to create brick folder %s", details)
 
 
 def gluster_brick_delete(brick_path, session=None):
@@ -205,7 +207,7 @@ def gluster_brick_delete(brick_path, session=None):
             eval(cmd2_str)
             return True
         except OSError as details:
-            logging.error("Not able to delete brick folder %s", details)
+            LOG.error("Not able to delete brick folder %s", details)
 
 
 @error_context.context_aware
@@ -298,7 +300,7 @@ def create_gluster_vol(params):
         if_up = utils_net.get_net_if(state="UP")
         for i in if_up:
             ipv4_value = utils_net.get_net_if_addrs(i)["ipv4"]
-            logging.debug("ipv4_value is %s", ipv4_value)
+            LOG.debug("ipv4_value is %s", ipv4_value)
             if ipv4_value != []:
                 ip_addr = ipv4_value[0]
                 break
@@ -394,8 +396,8 @@ def file_exists(params, filename_path):
             if os.path.exists(mount_filename_path):
                 ret = True
         except Exception as e:
-            logging.error("Failed to mount gluster volume %s to"
-                          " mount dir %s: %s" % (sg_uri, tmpdir_path, e))
+            LOG.error("Failed to mount gluster volume %s to"
+                      " mount dir %s: %s" % (sg_uri, tmpdir_path, e))
     finally:
         if glusterfs_umount(sg_uri, tmpdir_path):
             try:
@@ -403,8 +405,8 @@ def file_exists(params, filename_path):
             except OSError:
                 pass
         else:
-            logging.warning("Unable to unmount tmp directory %s with glusterfs"
-                            " mount.", tmpdir_path)
+            LOG.warning("Unable to unmount tmp directory %s with glusterfs"
+                        " mount.", tmpdir_path)
     return ret
 
 
@@ -462,9 +464,9 @@ def add_rpc_insecure(filepath):
     cmd = "cat %s" % filepath
     content = process.run(cmd).stdout_text
     match = re.findall(r'rpc-auth-allow-insecure on', content)
-    logging.info("match is %s", match)
+    LOG.info("match is %s", match)
     if not match:
-        logging.info("not match")
+        LOG.info("not match")
         cmd = "sed -i '/end-volume/i \ \ \ \ option rpc-auth-allow-insecure on' %s" % filepath
         process.system(cmd, shell=True)
         process.system("service glusterd restart; sleep 2", shell=True)
@@ -538,13 +540,13 @@ def setup_or_cleanup_gluster(is_setup, vol_name, brick_path="", pool_name="",
             ip_addr = utils_net.get_host_ip_address()
             add_rpc_insecure(file_path)
             glusterd_start()
-            logging.debug("finish start gluster")
-            logging.debug("The contents of %s: \n%s", file_path, open(file_path).read())
+            LOG.debug("finish start gluster")
+            LOG.debug("The contents of %s: \n%s", file_path, open(file_path).read())
 
         gluster_vol_create(vol_name, ip_addr, brick_path, True, session)
         gluster_allow_insecure(vol_name, session)
         gluster_nfs_disable(vol_name, session)
-        logging.debug("finish vol create in gluster")
+        LOG.debug("finish vol create in gluster")
         if session:
             session.close()
         return ip_addr

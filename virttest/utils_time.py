@@ -12,6 +12,8 @@ from virttest import utils_test
 # so get explicit command 'grep' with path
 grep_binary = path.find_command("grep")
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 @error_context.context_aware
 def get_host_timezone():
@@ -20,7 +22,7 @@ def get_host_timezone():
     """
     timezone_cmd = 'timedatectl | %s "Time zone"' % grep_binary
     timezone_pattern = '^(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)$'
-    error_context.context("Get host's timezone", logging.info)
+    error_context.context("Get host's timezone", LOG.info)
     host_timezone = process.run(timezone_cmd, timeout=240, shell=True).stdout_text
     try:
         host_timezone_set = re.match(timezone_pattern, host_timezone).groups()
@@ -37,7 +39,7 @@ def verify_timezone_linux(session):
 
     :param session: VM session
     """
-    error_context.context("Verify guest's timezone", logging.info)
+    error_context.context("Verify guest's timezone", LOG.info)
     timezone_cmd = 'timedatectl | %s "Time zone"' % grep_binary
     timezone_pattern = '(?:\s+Time zone:\s)(\w+\/\S+|UTC)(?:\s\(\S+,\s)([+|-]\d{4})\)'
     guest_timezone = session.cmd_output_safe(timezone_cmd, timeout=240)
@@ -57,7 +59,7 @@ def sync_timezone_linux(vm, login_timeout=360):
     :param login_timeout: Time (seconds) to keep trying to log in.
     """
     session = vm.wait_for_login(timeout=login_timeout, serial=True)
-    error_context.context("Sync guest's timezone", logging.info)
+    error_context.context("Sync guest's timezone", LOG.info)
     set_timezone_cmd = "timedatectl set-timezone %s"
     if not verify_timezone_linux(session):
         host_timezone_city = get_host_timezone()['timezone_city']
@@ -107,7 +109,7 @@ def verify_timezone_win(session):
                 return value[1]
         return None
 
-    error_context.context("Verify guest's timezone", logging.info)
+    error_context.context("Verify guest's timezone", LOG.info)
     timezone_cmd = 'tzutil /g'
     host_timezone_code = get_host_timezone()['timezone_code']
     # Workaround to handle two line prompts in serial session
@@ -130,12 +132,12 @@ def sync_timezone_win(vm, login_timeout=360):
     (ver_result, output) = verify_timezone_win(session)
 
     if ver_result is not True:
-        error_context.context("Sync guest's timezone.", logging.info)
+        error_context.context("Sync guest's timezone.", LOG.info)
         session.cmd(set_timezone_cmd % output)
         vm_params = vm.params
-        error_context.context("Shutdown guest...", logging.info)
+        error_context.context("Shutdown guest...", LOG.info)
         vm.destroy()
-        error_context.context("Boot guest...", logging.info)
+        error_context.context("Boot guest...", LOG.info)
         vm.create(params=vm_params)
         vm.verify_alive()
         session = vm.wait_for_login(serial=True)
@@ -162,7 +164,7 @@ def execute(cmd, timeout=360, session=None):
     else:
         ret = process.getoutput(cmd)
     target = 'guest' if session else 'host'
-    logging.debug("(%s) Execute command('%s')" % (target, cmd))
+    LOG.debug("(%s) Execute command('%s')" % (target, cmd))
     return ret
 
 
@@ -173,7 +175,7 @@ def verify_clocksource(expected, session=None):
     :param expected: Expected clocksource
     :param session: VM session
     """
-    error_context.context("Check the current clocksource", logging.info)
+    error_context.context("Check the current clocksource", LOG.info)
     cmd = "cat /sys/devices/system/clocksource/"
     cmd += "clocksource0/current_clocksource"
     return expected in execute(cmd, session=session)
@@ -185,7 +187,7 @@ def sync_time_with_ntp(session=None):
     Sync guest or host time with ntp server
     :param session: VM session or None
     """
-    error_context.context("Sync time from ntp server", logging.info)
+    error_context.context("Sync time from ntp server", LOG.info)
     cmd = "ntpdate clock.redhat.com; hwclock -w"
     return execute(cmd, session)
 
@@ -205,7 +207,7 @@ def update_clksrc(vm, clksrc=None):
 
     error_context.context("Update guest kernel cli to '%s'" %
                           (clksrc or "kvm-clock"),
-                          logging.info)
+                          LOG.info)
     if clksrc:
         boot_option_added = "clocksource=%s" % clksrc
         utils_test.update_boot_option(vm, args_added=boot_option_added)

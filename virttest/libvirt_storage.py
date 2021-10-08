@@ -15,6 +15,8 @@ from avocado.utils import process
 from virttest import storage
 from virttest import virsh
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class QemuImg(storage.QemuImg):
 
@@ -255,7 +257,7 @@ class StoragePool(object):
                 # TODO: Allow pool_destroy to raise exception.
                 #       Because some testcase rely on this function,
                 #       I should start this work after this module is accepted.
-                logging.error("Destroy pool '%s' failed.", name)
+                LOG.error("Destroy pool '%s' failed.", name)
                 return False
 
         # Undefine pool anyway
@@ -263,9 +265,9 @@ class StoragePool(object):
             self.virsh_instance.pool_undefine(name, ignore_status=False)
         except process.CmdError as detail:
             if self.pool_exists(name):
-                logging.error("Undefine pool '%s' failed:%s", name, detail)
+                LOG.error("Undefine pool '%s' failed:%s", name, detail)
                 return False
-        logging.info("Deleted pool '%s'", name)
+        LOG.info("Deleted pool '%s'", name)
         return True
 
     def set_pool_autostart(self, name, extra=""):
@@ -275,9 +277,9 @@ class StoragePool(object):
         try:
             self.virsh_instance.pool_autostart(name, extra, ignore_status=False)
         except process.CmdError:
-            logging.error("Autostart pool '%s' failed.", name)
+            LOG.error("Autostart pool '%s' failed.", name)
             return False
-        logging.info("Set pool '%s' autostart.", name)
+        LOG.info("Set pool '%s' autostart.", name)
         return True
 
     def build_pool(self, name, options="", **dargs):
@@ -287,9 +289,9 @@ class StoragePool(object):
         try:
             self.virsh_instance.pool_build(name, options, **dargs)
         except process.CmdError:
-            logging.error("Build pool '%s' failed.", name)
+            LOG.error("Build pool '%s' failed.", name)
             return False
-        logging.info("Built pool '%s'", name)
+        LOG.info("Built pool '%s'", name)
         return True
 
     def start_pool(self, name):
@@ -297,14 +299,14 @@ class StoragePool(object):
         Start pool if it is inactive.
         """
         if self.is_pool_active(name):
-            logging.info("Pool '%s' is already active.", name)
+            LOG.info("Pool '%s' is already active.", name)
             return True
         try:
             self.virsh_instance.pool_start(name, ignore_status=False)
         except process.CmdError as details:
-            logging.error("Start pool '%s' failed: %s", name, details)
+            LOG.error("Start pool '%s' failed: %s", name, details)
             return False
-        logging.info("Started pool '%s'", name)
+        LOG.info("Started pool '%s'", name)
         return True
 
     def destroy_pool(self, name):
@@ -312,7 +314,7 @@ class StoragePool(object):
         Destroy pool if it is active.
         """
         if not self.is_pool_active(name):
-            logging.info("pool '%s' is already inactive.", name)
+            LOG.info("pool '%s' is already inactive.", name)
             return True
         return self.virsh_instance.pool_destroy(name)
 
@@ -324,9 +326,9 @@ class StoragePool(object):
             self.virsh_instance.pool_define_as(name, "dir", target_path,
                                                ignore_status=False)
         except process.CmdError:
-            logging.error("Define dir pool '%s' failed.", name)
+            LOG.error("Define dir pool '%s' failed.", name)
             return False
-        logging.info("Defined pool '%s'", name)
+        LOG.info("Defined pool '%s'", name)
         return True
 
     def define_fs_pool(self, name, block_device, target_path):
@@ -338,9 +340,9 @@ class StoragePool(object):
                                                extra="--source-dev %s" % block_device,
                                                ignore_status=False)
         except process.CmdError:
-            logging.error("Define fs pool '%s' failed.", name)
+            LOG.error("Define fs pool '%s' failed.", name)
             return False
-        logging.info("Defined pool '%s'", name)
+        LOG.info("Defined pool '%s'", name)
         return True
 
     def define_lvm_pool(self, name, block_device, vg_name, target_path):
@@ -353,9 +355,9 @@ class StoragePool(object):
             self.virsh_instance.pool_define_as(name, "logical", target_path,
                                                extra, ignore_status=False)
         except process.CmdError:
-            logging.error("Define logic pool '%s' failed.", name)
+            LOG.error("Define logic pool '%s' failed.", name)
             return False
-        logging.info("Defined pool '%s'", name)
+        LOG.info("Defined pool '%s'", name)
         return True
 
     def define_disk_pool(self, name, block_device, target_path):
@@ -367,9 +369,9 @@ class StoragePool(object):
             self.virsh_instance.pool_define_as(name, "disk", target_path,
                                                extra, ignore_status=False)
         except process.CmdError:
-            logging.error("Define disk pool '%s' failed.", name)
+            LOG.error("Define disk pool '%s' failed.", name)
             return False
-        logging.info("Defined pool '%s'", name)
+        LOG.info("Defined pool '%s'", name)
         return True
 
     def define_iscsi_pool(self, name, source_host, source_dev, target_path):
@@ -382,9 +384,9 @@ class StoragePool(object):
             self.virsh_instance.pool_define_as(name, "iscsi", target_path,
                                                extra, ignore_status=False)
         except process.CmdError:
-            logging.error("Define iscsi pool '%s' failed.", name)
+            LOG.error("Define iscsi pool '%s' failed.", name)
             return False
-        logging.info("Define pool '%s'", name)
+        LOG.info("Define pool '%s'", name)
         return True
 
     def define_netfs_pool(self, name, source_host, source_path, target_path):
@@ -397,9 +399,9 @@ class StoragePool(object):
             self.virsh_instance.pool_define_as(name, "netfs", target_path,
                                                extra, ignore_status=False)
         except process.CmdError:
-            logging.error("Define netfs pool '%s' failed.", name)
+            LOG.error("Define netfs pool '%s' failed.", name)
             return False
-        logging.info("Define pool '%s'", name)
+        LOG.info("Define pool '%s'", name)
         return True
 
     def define_rbd_pool(self, name, source_host, source_name, extra=""):
@@ -412,9 +414,9 @@ class StoragePool(object):
             self.virsh_instance.pool_define_as(name, "rbd", "",
                                                extra, ignore_status=False)
         except process.CmdError:
-            logging.error("Define rbd pool '%s' failed.", name)
+            LOG.error("Define rbd pool '%s' failed.", name)
             return False
-        logging.info("Define pool '%s'", name)
+        LOG.info("Define pool '%s'", name)
         return True
 
 
@@ -435,7 +437,7 @@ class PoolVolume(object):
             result = self.virsh_instance.vol_list(self.pool_name,
                                                   ignore_status=False)
         except process.CmdError as detail:
-            logging.error('List volume failed: %s', detail)
+            LOG.error('List volume failed: %s', detail)
             return volumes
 
         lines = result.stdout_text.strip().splitlines()
@@ -469,7 +471,7 @@ class PoolVolume(object):
             result = self.virsh_instance.vol_info(name, self.pool_name,
                                                   ignore_status=False)
         except process.CmdError as detail:
-            logging.error("Get volume information failed: %s", detail)
+            LOG.error("Get volume information failed: %s", detail)
             return info
 
         for line in result.stdout_text.strip().splitlines():
@@ -484,19 +486,18 @@ class PoolVolume(object):
         Create a volume in pool.
         """
         if self.volume_exists(name):
-            logging.debug("Volume '%s' already exists.", name)
+            LOG.debug("Volume '%s' already exists.", name)
             return False
         try:
             self.virsh_instance.vol_create_as(name, self.pool_name,
                                               capability, allocation, frmt,
                                               ignore_status=False, debug=True)
         except process.CmdError as detail:
-            logging.error("Create volume failed:%s", detail)
+            LOG.error("Create volume failed:%s", detail)
             return False
 
         if not self.volume_exists(name):
-            logging.error("Created volume does not exist:%s",
-                          self.list_volumes())
+            LOG.error("Created volume does not exist:%s", self.list_volumes())
             return False
         return True
 
@@ -509,16 +510,16 @@ class PoolVolume(object):
                 self.virsh_instance.vol_delete(name, self.pool_name,
                                                ignore_status=False)
             except process.CmdError as detail:
-                logging.error("Delete volume failed:%s", detail)
+                LOG.error("Delete volume failed:%s", detail)
                 return False
             if not self.volume_exists(name):
-                logging.debug("Volume '%s' has been deleted.", name)
+                LOG.debug("Volume '%s' has been deleted.", name)
                 return True
             else:
-                logging.debug("Delete volume '%s' failed.", name)
+                LOG.debug("Delete volume '%s' failed.", name)
                 return False
         else:
-            logging.info("Volume '%s' does not exist.", name)
+            LOG.info("Volume '%s' does not exist.", name)
             return True     # Return True for expected result
 
     def clone_volume(self, old_name, new_name):
@@ -531,18 +532,17 @@ class PoolVolume(object):
                                               self.pool_name,
                                               ignore_status=False)
             except process.CmdError as detail:
-                logging.error("Clone volume failed:%s", detail)
+                LOG.error("Clone volume failed:%s", detail)
                 return False
             if self.volume_exists(new_name):
-                logging.debug("Volume '%s' has been created by clone.",
-                              new_name)
+                LOG.debug("Volume '%s' has been created by clone.", new_name)
                 return True
             else:
-                logging.debug("Volume '%s' clone failed.", old_name)
+                LOG.debug("Volume '%s' clone failed.", old_name)
                 return False
         else:
-            logging.info("Volume '%s' does not exist or '%s' has been exist."
-                         % (old_name, new_name))
+            LOG.info("Volume '%s' does not exist or '%s' has been exist."
+                     % (old_name, new_name))
             return False
 
 

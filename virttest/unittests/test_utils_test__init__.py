@@ -12,6 +12,8 @@ from avocado.core import exceptions
 
 check_kernel_cmdline_mock = mock.MagicMock(return_value=["3", None])
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 @mock.patch('virttest.utils_package.package_install')
 @mock.patch.object(utils_test, 'check_kernel_cmdline', check_kernel_cmdline_mock)
@@ -50,7 +52,7 @@ class TestUpdateBootOptionZipl(unittest.TestCase):
         with self.assertRaises(exceptions.TestError) as e:
             update_boot_option(self.vm, args_added="3", need_reboot=False)
         self.assertIsNotNone(e.exception.args[0])
-        logging.error.assert_called_with(self.some_error_message)
+        LOG.error.assert_called_with(self.some_error_message)
 
 
 if __name__ == '__main__':
