@@ -5,13 +5,15 @@ For more examples of pyvmomi, please refer:
 https://github.com/vmware/pyvmomi-community-samples
 """
 import datetime
-import logging
+import logging as log
 
 from functools import wraps
 
 from pyVim.connect import SmartConnect, SmartConnectNoSSL, Disconnect
 from pyVim.task import WaitForTask
 from pyVmomi import vim
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def to_list(obj):

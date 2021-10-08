@@ -2,7 +2,7 @@
 connection tools to manage kinds of connection.
 """
 
-import logging
+import logging as log
 import os
 import shutil
 import tempfile
@@ -21,6 +21,8 @@ from virttest import utils_package
 from virttest import libvirt_version
 from virttest import utils_split_daemons
 from virttest import utils_iptables
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class ConnectionError(Exception):

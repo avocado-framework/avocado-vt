@@ -1,7 +1,7 @@
 """
 Package utility for manage package operation on host
 """
-import logging
+import logging as log
 import aexpect
 
 from avocado.core import exceptions
@@ -10,6 +10,8 @@ from six import string_types
 
 from virttest import utils_misc
 from virttest import vt_console
+
+logging = log.getLogger('avocado.' + __name__)
 
 PACKAGE_MANAGERS = ['apt-get',
                     'yum',

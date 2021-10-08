@@ -11,7 +11,7 @@ and tools.
 import os
 import time
 import glob
-import logging
+import logging as log
 import re
 
 
@@ -55,6 +55,8 @@ except ImportError:
 #
 CONTAINER_PREFERENCE = ['ogg', 'webm']
 ENCODER_PREFERENCE = ['theora', 'vp8']
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class EncodingError(Exception):

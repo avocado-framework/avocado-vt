@@ -1,4 +1,4 @@
-import logging
+import logging as log
 
 from avocado.core import exceptions
 from avocado.utils import process
@@ -6,6 +6,8 @@ from avocado.utils import process
 from virttest import cpu
 from virttest import utils_libvirtd
 from virttest import utils_package
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def install_virt_pkgs(vm_session):

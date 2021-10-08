@@ -86,7 +86,7 @@ LOGGING_FORMAT = "%(levelname)s: %(name)s: %(message)s"
 #
 # Default log object
 #
-log = logging.getLogger('boottool')
+log = logging.getLogger('avocado.vt.boottool')
 
 
 def find_header(hdr):
@@ -218,7 +218,7 @@ class EfiToolSys(object):
     def __init__(self):
         if not os.path.exists(self.BASE_PATH):
             sys.exit(-1)
-        self.log = logging.getLogger(self.__class__.__name__)
+        self.log = logging.getLogger('avocado.' + self.__class__.__name__)
 
     def create_variable(self, name, data, guid=None, attributes=None):
         '''
@@ -733,7 +733,7 @@ class Grubby(object):
         self._set_path(path)
         self.bootloader = None
         self.opts = opts
-        self.log = logging.getLogger(self.__class__.__name__)
+        self.log = logging.getLogger('avocado.' + self.__class__.__name__)
 
         if 'BOOTTOOL_DEBUG_RUN' in os.environ:
             self.debug_run = True
@@ -801,7 +801,7 @@ class Grubby(object):
         if result is not None:
             result = result.strip()
             if self.debug_run:
-                logging.debug('previous command output: "%s"', result)
+                self.log.debug('previous command output: "%s"', result)
         else:
             self.log.error('_run_get_output error while running: "%s"',
                            ' '.join(arguments))
@@ -828,7 +828,7 @@ class Grubby(object):
         if result is not None:
             result = result.strip()
             if self.debug_run:
-                logging.debug('previous command output/error: "%s"', result)
+                self.log.debug('previous command output/error: "%s"', result)
         else:
             self.log.error('_run_get_output_err error while running: "%s"',
                            ' '.join(arguments))
@@ -845,7 +845,7 @@ class Grubby(object):
         try:
             result = subprocess.call(arguments)
             if self.debug_run:
-                logging.debug('previous command result: %s', result)
+                self.log.debug('previous command result: %s', result)
         except OSError:
             result = -1
             self.log.error('caught OSError, returning %s', result)
@@ -1954,7 +1954,7 @@ class BoottoolApp(object):
         self.args = None
         self.option_parser = OptionParser()
         self.grubby = None
-        self.log = logging.getLogger(self.__class__.__name__)
+        self.log = logging.getLogger('avocado.' + self.__class__.__name__)
 
     def _parse_command_line(self):
         '''

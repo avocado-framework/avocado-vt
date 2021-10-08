@@ -8,7 +8,7 @@ This file has the functions that helps
 * To return rbd uri which can be used as disk image file path.
 """
 
-import logging
+import logging as log
 import os
 import re
 
@@ -17,6 +17,8 @@ from avocado.utils import process
 from virttest import utils_numeric
 from virttest import error_context
 from virttest import utils_misc
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class CephError(Exception):

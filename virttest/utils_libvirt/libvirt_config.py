@@ -2,7 +2,7 @@
 libvirt configuration related utility functions
 """
 
-import logging
+import logging as log
 import re
 
 from avocado.core import exceptions
@@ -12,6 +12,8 @@ from virttest import utils_libvirtd
 from virttest import utils_split_daemons
 from virttest import remote
 from virttest.utils_test import libvirt
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def remove_key_in_conf(value_list, conf_type="libvirtd",

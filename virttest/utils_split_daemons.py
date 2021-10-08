@@ -3,7 +3,7 @@ Module to control split daemon service.
 """
 # pylint: disable=E0611
 import re
-import logging
+import logging as log
 
 import aexpect
 from avocado.utils import process
@@ -16,6 +16,8 @@ from virttest.staging import service
 from virttest.utils_gdb import GDB
 
 IS_MODULAR_DAEMON = {'local': None}
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class VirtDaemonCommon(object):

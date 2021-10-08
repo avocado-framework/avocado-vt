@@ -5,7 +5,7 @@ See BaseInstaller class in base_installer.py for interface details.
 """
 
 import os
-import logging
+import logging as log
 
 from avocado.core import exceptions
 from avocado.utils import process
@@ -14,6 +14,8 @@ from virttest import base_installer
 
 __all__ = ['GitRepoInstaller', 'LocalSourceDirInstaller',
            'LocalSourceTarInstaller', 'RemoteSourceTarInstaller']
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class QEMUBaseInstaller(base_installer.BaseInstaller):

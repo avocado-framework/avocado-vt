@@ -20,7 +20,7 @@ from __future__ import division
 import glob
 import imp
 import locale
-import logging
+import logging as log
 import os
 import re
 import signal
@@ -77,6 +77,8 @@ from virttest.utils_test import libguestfs
 # 'ping' and 'raw_ping' from this namespace
 ping = utils_net.ping
 raw_ping = utils_net.raw_ping
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def update_boot_option_ubuntu(args, grub_key=None, session=None, remove_args=None):

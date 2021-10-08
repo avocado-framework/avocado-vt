@@ -4,7 +4,7 @@ Virtualization test - cgroup related utility functions for libvirt
 :copyright: 2019 Red Hat Inc.
 """
 import os
-import logging
+import logging as log
 import re
 
 from avocado.utils import process
@@ -52,6 +52,8 @@ CGROUP_V2_SCHEDINFO_FILE_MAPPING = {"cpu_shares": "cpu.weight",
                                     "global_quota": "cpu.max",
                                     "iothread_period": "<iothreadX>/cpu.max",
                                     "iothread_quota": "<iothreadX>/cpu.max"}
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 #cgroup related functions

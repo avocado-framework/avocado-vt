@@ -13,7 +13,7 @@ import os
 import stat
 import signal
 import re
-import logging
+import logging as logger
 import subprocess
 import fcntl
 import sys
@@ -87,6 +87,7 @@ from virttest.xml_utils import XMLTreeFile
 import six
 from six.moves import xrange
 
+logging = logger.getLogger('avocado.' + __name__)
 
 ARCH = platform.machine()
 
@@ -3728,8 +3729,8 @@ class _NullStream(object):
 TEE_TO_LOGS = object()
 _the_null_stream = _NullStream()
 
-DEFAULT_STDOUT_LEVEL = logging.DEBUG
-DEFAULT_STDERR_LEVEL = logging.ERROR
+DEFAULT_STDOUT_LEVEL = logger.DEBUG
+DEFAULT_STDERR_LEVEL = logger.ERROR
 
 # prefixes for logging stdout/stderr of commands
 STDOUT_PREFIX = '[stdout] '

@@ -9,7 +9,7 @@ interact and verify the qemu qdev structure.
 
 # Python imports
 from __future__ import division
-import logging
+import logging as log
 import re
 import os
 import shutil
@@ -45,6 +45,8 @@ from virttest.qemu_devices.utils import (DeviceError, DeviceHotplugError,
 from virttest.utils_params import Params
 from virttest.qemu_capabilities import Flags, Capabilities, MigrationParams
 from virttest.utils_version import VersionInterval
+
+logging = log.getLogger('avocado.' + __name__)
 
 #
 # Device container (device representation of VM)

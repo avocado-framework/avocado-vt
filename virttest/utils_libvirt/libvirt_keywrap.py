@@ -1,10 +1,12 @@
 """
 Module to contain logic testing protected key module 'pkey'
 """
-import logging
+import logging as log
 import os
 
 from avocado.utils import process
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class ProtectedKeyHelper(object):

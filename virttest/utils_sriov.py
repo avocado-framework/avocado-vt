@@ -2,7 +2,7 @@
 SRIOV related utility functions
 """
 
-import logging
+import logging as log
 import re
 
 from avocado.core import exceptions
@@ -10,6 +10,8 @@ from avocado.core import exceptions
 from virttest import utils_misc
 from virttest import utils_net
 from virttest import utils_package
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def find_pf(driver, session=None):

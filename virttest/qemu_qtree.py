@@ -5,7 +5,7 @@ Utility classes and functions to handle KVM Qtree parsing and verification.
 :copyright: 2012 Red Hat Inc.
 """
 import json
-import logging
+import logging as log
 import os
 import re
 
@@ -18,6 +18,7 @@ from . import arch
 
 import six
 
+logging = log.getLogger('avocado.' + __name__)
 
 OFFSET_PER_LEVEL = 2
 

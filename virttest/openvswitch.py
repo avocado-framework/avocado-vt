@@ -1,4 +1,4 @@
-import logging
+import logging as log
 import re
 import os
 import signal
@@ -10,6 +10,7 @@ from avocado.utils import linux_modules
 from .versionable_class import VersionableClass, Manager, factory
 from . import utils_misc
 
+logging = log.getLogger('avocado.' + __name__)
 
 # Register to class manager.
 man = Manager(__name__)

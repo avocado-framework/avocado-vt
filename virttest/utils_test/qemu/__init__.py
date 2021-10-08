@@ -20,7 +20,7 @@ import os
 import re
 import six
 import time
-import logging
+import logging as log
 from functools import reduce
 
 from avocado.core import exceptions
@@ -33,6 +33,8 @@ from virttest import utils_misc
 from virttest import qemu_monitor
 from virttest.qemu_devices import qdevices
 from virttest.staging import utils_memory
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def guest_active(vm):

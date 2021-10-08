@@ -13,7 +13,7 @@ from __future__ import division
 import os
 import sys
 import optparse
-import logging
+import logging as log
 import math
 import time
 
@@ -21,6 +21,8 @@ from avocado.utils import process
 from avocado.utils import path
 
 from . import utils_misc
+
+logging = log.getLogger('avocado.' + __name__)
 
 _LABELS = ['file_size', 'record_size', 'write', 'rewrite', 'read', 'reread',
            'randread', 'randwrite', 'bkwdread', 'recordrewrite', 'strideread',

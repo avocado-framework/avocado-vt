@@ -3,7 +3,7 @@ Module simplifying manipulation of XML described at
 http://libvirt.org/formatdomain.html
 """
 
-import logging
+import logging as log
 import platform
 import re
 
@@ -11,6 +11,8 @@ from .. import xml_utils
 from .. import utils_misc
 from ..libvirt_xml import base, accessors, xcepts
 from ..libvirt_xml.devices import librarian
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class VMXMLDevices(list):

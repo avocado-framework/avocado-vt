@@ -1,5 +1,5 @@
 import os
-import logging
+import logging as log
 
 import aexpect
 from aexpect import remote
@@ -8,6 +8,8 @@ from avocado.utils import process
 from avocado.utils import path
 
 from virttest import remote as remote_old
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def get_public_key(client_user=None):

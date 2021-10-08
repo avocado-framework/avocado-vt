@@ -1,6 +1,6 @@
 import re
 import os
-import logging
+import logging as log
 
 from avocado.core import exceptions
 from avocado.utils import process
@@ -10,6 +10,8 @@ from .. import utils_net, xml_utils
 from .. import utils_libguestfs as lgf
 from .. import qemu_storage
 from ..libvirt_xml import vm_xml, xcepts
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class VTError(Exception):

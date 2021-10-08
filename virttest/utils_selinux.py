@@ -2,7 +2,7 @@
 selinux test utility functions.
 """
 
-import logging
+import logging as log
 import re
 import os
 
@@ -11,6 +11,8 @@ from avocado.utils import distro
 
 
 ubuntu = distro.detect().name == 'Ubuntu'
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class SelinuxError(Exception):

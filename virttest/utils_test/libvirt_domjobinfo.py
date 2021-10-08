@@ -5,11 +5,13 @@ Virsh domjobinfo command related utility functions
 
 import re
 import math
-import logging
+import logging as log
 
 from avocado.core import exceptions
 
 from virttest import virsh
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 # pylint: disable=E1121

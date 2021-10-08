@@ -1,5 +1,5 @@
 import os
-import logging
+import logging as log
 import re
 
 import aexpect
@@ -13,6 +13,8 @@ from six.moves import xrange
 
 from . import data_dir
 from . import remote as remote_old
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class NetperfError(Exception):

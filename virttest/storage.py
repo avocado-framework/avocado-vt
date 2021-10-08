@@ -7,7 +7,7 @@ This exports:
 """
 from __future__ import division
 import errno
-import logging
+import logging as log
 import os
 import shutil
 import re
@@ -31,6 +31,8 @@ from virttest import lvm
 from virttest import ceph
 from virttest import nvme
 from virttest import data_dir
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def preprocess_images(bindir, params, env):

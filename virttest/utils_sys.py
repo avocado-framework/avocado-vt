@@ -4,10 +4,12 @@ Virtualization test utility functions.
 :copyright: 2021 Red Hat Inc.
 """
 
-import logging
+import logging as log
 import re
 
 from avocado.utils import process
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 # TODO: check function in avocado.utils after the next LTS

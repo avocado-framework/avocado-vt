@@ -20,7 +20,7 @@ from __future__ import division
 import re
 import os
 import ast
-import logging
+import logging as log
 import shutil
 import time
 import sys
@@ -83,6 +83,8 @@ from virttest.libvirt_xml.devices import vsock
 from virttest.libvirt_xml.devices import rng
 
 ping = utils_net.ping
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class LibvirtNetwork(object):

@@ -3,7 +3,7 @@
 Virsh net* command related utility functions
 """
 import re
-import logging
+import logging as log
 import ast
 
 from avocado.core import exceptions
@@ -14,6 +14,8 @@ from virttest import remote
 
 from virttest.libvirt_xml import NetworkXML
 from virttest.utils_test import libvirt
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def create_or_del_network(net_dict, is_del=False, remote_args=None):

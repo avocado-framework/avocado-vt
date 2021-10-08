@@ -6,7 +6,7 @@ This module includes framework and some public functions.
 
 import errno
 import fcntl
-import logging
+import logging as log
 import os
 import socket
 import threading
@@ -39,6 +39,8 @@ try:
     import aexpect
 except ImportError:
     from virttest import aexpect
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def guest_active(vm):

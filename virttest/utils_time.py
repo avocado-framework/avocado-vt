@@ -1,4 +1,4 @@
-import logging
+import logging as log
 import re
 
 from avocado.utils import path
@@ -11,6 +11,8 @@ from virttest import utils_test
 # command `grep --color` may have alias name `grep` in some systems,
 # so get explicit command 'grep' with path
 grep_binary = path.find_command("grep")
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 @error_context.context_aware

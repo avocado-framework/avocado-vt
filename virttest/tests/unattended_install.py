@@ -1,5 +1,5 @@
 from __future__ import division
-import logging
+import logging as log
 import time
 import re
 import os
@@ -49,6 +49,8 @@ _unattended_server_thread_event = None
 
 _syslog_server_thread = None
 _syslog_server_thread_event = None
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def start_auto_content_server_thread(port, path):

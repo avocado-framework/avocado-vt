@@ -1,12 +1,14 @@
 """
 Library to perform iptables configuration for virt test.
 """
-import logging
+import logging as log
 
 from aexpect import remote
 
 from avocado.utils import process
 from avocado.core import exceptions
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class Iptables(object):

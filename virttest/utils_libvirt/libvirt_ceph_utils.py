@@ -6,7 +6,7 @@ This module is meant to reduce code size by performing common ceph setup procedu
 :copyright: 2021 Red Hat Inc.
 """
 
-import logging
+import logging as log
 import os
 
 from avocado.core import exceptions
@@ -21,6 +21,8 @@ from virttest.utils_test import libvirt
 from virttest.utils_libvirt import libvirt_disk
 
 from virttest.libvirt_xml import vm_xml
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def _create_secret(auth_sec_usage_type, ceph_auth_key):

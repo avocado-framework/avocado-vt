@@ -11,6 +11,8 @@ import logging
 from virttest import lvsb_base
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 # This utility function lets test-modules quickly create a list of all
 # sandbox aggregate types, themselves containing a list of individual
 # sandboxes.
@@ -110,8 +112,8 @@ class TestBaseSandboxes(lvsb_base.TestSandboxes):
                                                 total_timeout_seconds))
         # Kill off all sandboxes, just to be safe
         self.for_each(lambda sb: sb.stop())
-        logging.info("%d sandboxe(s) finished in %s", self.count,
-                     end - start)
+        LOG.info("%d sandboxe(s) finished in %s", self.count,
+                 end - start)
         # Return a list of stdout contents from each
         return self.for_each(lambda sb: sb.recv())
 

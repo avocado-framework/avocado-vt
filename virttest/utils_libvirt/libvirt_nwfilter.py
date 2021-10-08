@@ -4,10 +4,12 @@ Accommodate libvirt nwfilter utility functions.
 :copyright: 2020 Red Hat Inc.
 """
 
-import logging
+import logging as log
 import re
 
 from virttest import virsh
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def clean_up_nwfilter_binding(ignore_status=False):

@@ -4,10 +4,12 @@ Accommodate libvirt pci controller utility functions.
 :Copyright: 2020 Red Hat Inc.
 """
 
-import logging
+import logging as log
 
 from virttest.utils_test import libvirt
 from virttest.libvirt_xml import vm_xml
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def get_max_contr_indexes(vm_xml, cntlr_type, cntlr_model, cntl_num=1):

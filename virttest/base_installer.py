@@ -7,7 +7,7 @@ custom logic for each virtualization hypervisor/software.
 """
 
 import os
-import logging
+import logging as log
 
 from avocado.core import exceptions
 from avocado.utils import process
@@ -19,6 +19,8 @@ from . import utils_misc
 from . import yumrepo
 from . import arch
 from .staging import utils_koji
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class NoModuleError(Exception):

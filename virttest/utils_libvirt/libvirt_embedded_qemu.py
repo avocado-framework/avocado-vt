@@ -2,7 +2,7 @@
 Classes and functions for embedded qemu driver.
 """
 import re
-import logging
+import logging as log
 
 import aexpect
 from avocado.core import exceptions
@@ -17,6 +17,8 @@ try:
     EMBEDDEDQEMU = "virt-qemu-run"
 except path.CmdNotFoundError:
     EMBEDDEDQEMU = None
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class EmbeddedQemuSession(object):

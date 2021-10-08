@@ -1,4 +1,4 @@
-import logging
+import logging as log
 import os
 import re
 import glob
@@ -20,6 +20,8 @@ from six.moves import urllib
 from six import string_types
 
 from virttest import data_dir
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class ConfigLoader:

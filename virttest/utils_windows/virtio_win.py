@@ -3,7 +3,7 @@ Windows virtio-win utilities
 """
 
 import re
-import logging
+import logging as log
 
 from . import drive
 from . import system
@@ -12,6 +12,8 @@ from avocado.core import exceptions
 
 ARCH_MAP_ISO = {"32-bit": "x86", "64-bit": "amd64"}
 ARCH_MAP_VFD = {"32-bit": "i386", "64-bit": "amd64"}
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def arch_dirname_iso(session):

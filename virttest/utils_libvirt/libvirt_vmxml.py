@@ -4,13 +4,15 @@ http://libvirt.org/formatdomain.html
 """
 
 
-import logging
+import logging as log
 import re
 
 from avocado.core import exceptions
 
 from virttest import virsh
 from virttest.libvirt_xml import vm_xml
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def set_vm_attrs(vmxml, vm_attrs):

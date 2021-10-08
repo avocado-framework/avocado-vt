@@ -10,7 +10,7 @@ disk xml:
       <target dev='sda' bus='scsi'/>
     </disk>
 """
-import logging
+import logging as log
 import os
 import shutil
 
@@ -21,6 +21,8 @@ from virttest import utils_libvirtd
 from virttest import utils_net
 
 from virttest.utils_conn import build_server_key, build_CA, build_client_key
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class NbdExport(object):

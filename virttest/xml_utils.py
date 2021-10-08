@@ -40,7 +40,7 @@ import os
 import shutil
 import tempfile
 import string
-import logging
+import logging as log
 from six import StringIO
 from xml.parsers import expat
 # We *have* to use our ElementTree fork :(
@@ -51,6 +51,8 @@ TMPPFX = 'xml_utils_temp_'
 TMPSFX = '.xml'
 EXSFX = '_exception_retained'
 ENCODING = "UTF-8"
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class TempXMLFile(object):

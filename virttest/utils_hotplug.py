@@ -21,6 +21,9 @@ import logging
 from virttest.libvirt_xml.devices import memory
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
+
 def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
                    pg_unit="KiB", tg_node=0, node_mask=0, mem_model="dimm",
                    mem_discard=None, alias=None, lb_size=None,
@@ -76,5 +79,5 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
     if uuid:
         mem_xml.uuid = uuid
 
-    logging.debug("Memory device xml: %s", mem_xml)
+    LOG.debug("Memory device xml: %s", mem_xml)
     return mem_xml.copy()

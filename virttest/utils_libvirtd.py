@@ -2,7 +2,7 @@
 Module to control libvirtd service.
 """
 import re
-import logging
+import logging as log
 
 import aexpect
 from avocado.utils import path
@@ -22,6 +22,8 @@ try:
     LIBVIRTD = "libvirtd"
 except path.CmdNotFoundError:
     LIBVIRTD = None
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class Libvirtd(object):

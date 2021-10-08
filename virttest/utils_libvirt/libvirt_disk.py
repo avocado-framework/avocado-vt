@@ -2,7 +2,7 @@
 libvirt disk related utility functions
 """
 import collections
-import logging
+import logging as log
 import os
 import re
 
@@ -20,6 +20,8 @@ from virttest.libvirt_xml import vm_xml
 from virttest.utils_test import libvirt
 
 from virttest.libvirt_xml.devices.disk import Disk
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def create_disk(disk_type, path=None, size="500M", disk_format="raw", extra='',

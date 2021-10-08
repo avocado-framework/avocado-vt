@@ -2,7 +2,7 @@ import os
 import random
 import time
 import threading
-import logging
+import logging as log
 
 from avocado.utils import cpu
 
@@ -11,6 +11,8 @@ from virttest import cpu as cpuutil
 from virttest import utils_net
 from virttest.utils_test import libvirt
 from virttest.libvirt_xml.devices.disk import Disk
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class VMStressEvents():

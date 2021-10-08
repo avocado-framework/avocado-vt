@@ -3,10 +3,12 @@ Libvirt vfio related utilities.
 
 :copyright: 2021 Red Hat Inc.
 """
-import logging
+import logging as log
 
 from avocado.core import exceptions
 from avocado.utils import process
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def check_vfio_pci(pci_id, status_error=False, ignore_error=False):

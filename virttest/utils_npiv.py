@@ -1,6 +1,6 @@
 import os
 import re
-import logging
+import logging as log
 from tempfile import mktemp
 
 from avocado.core import exceptions
@@ -12,6 +12,7 @@ from virttest.utils_test import libvirt
 from virttest.libvirt_xml.nodedev_xml import NodedevXML
 from virttest.libvirt_xml.devices import hostdev
 
+logging = log.getLogger('avocado.' + __name__)
 
 _FC_HOST_PATH = "/sys/class/fc_host"
 _TIMEOUT = 5

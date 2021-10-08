@@ -3,7 +3,7 @@ import logging
 
 # implementation follows
 
-logger = logging.getLogger()
+logger = logging.getLogger('avocado.vt')
 
 
 _caller_code_to_skip_in_logging_stack = set()
@@ -25,7 +25,7 @@ class LoggingFile(object):
     """
 
     def __init__(self, prefix='', level=logging.DEBUG,
-                 logger=logging.getLogger()):
+                 logger=logging.getLogger('avocado.vt')):
         """
         :param prefix - The prefix for each line logged by this object.
         """

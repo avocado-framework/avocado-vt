@@ -6,7 +6,7 @@ Helpers for cgroup testing.
 :copyright: 2011 Red Hat Inc.
 :author: Lukas Doktor <ldoktor@redhat.com>
 """
-import logging
+import logging as log
 import os
 import shutil
 import subprocess
@@ -21,6 +21,8 @@ from avocado.utils import software_manager
 from avocado.utils import process
 
 from . import service
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class Cgroup(object):

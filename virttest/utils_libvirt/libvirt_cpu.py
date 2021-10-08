@@ -4,10 +4,12 @@ http://libvirt.org/formatdomain.html
 """
 
 
-import logging
+import logging as log
 
 from virttest.libvirt_xml import vm_xml
 from virttest.utils_libvirt import libvirt_vmxml
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def add_cpu_settings(vmxml, params):

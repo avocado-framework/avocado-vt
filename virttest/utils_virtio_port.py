@@ -1,10 +1,12 @@
-import logging
+import logging as log
 
 from six.moves import xrange
 
 from . import env_process
 from . import error_context
 from . import qemu_virtio_port
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class VirtioPortTest(object):

@@ -4,10 +4,12 @@ http://libvirt.org/formatdomain.html
 """
 
 
-import logging
+import logging as log
 import ast
 
 from virttest.libvirt_xml import vm_xml
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def create_cell_distances_xml(vmxml, params):

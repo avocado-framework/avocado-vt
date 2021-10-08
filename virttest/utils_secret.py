@@ -2,9 +2,11 @@
 Secret related utility functions
 """
 
-import logging
+import logging as log
 
 from virttest import virsh
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def get_secret_list(remote_virsh=None):

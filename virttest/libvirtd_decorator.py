@@ -3,7 +3,7 @@ A decorator utility functions to apply libvirtd functions.
 
 Copyright: Red Hat Inc. 2020
 """
-import logging
+import logging as log
 import os
 import re
 from virttest import data_dir
@@ -22,6 +22,8 @@ except path.CmdNotFoundError:
         LIBVIRTD = "virtqemud"
     except path.CmdNotFoundError:
         LIBVIRTD = None
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def get_libvirtd_split_enable_bit():

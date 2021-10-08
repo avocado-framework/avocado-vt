@@ -38,7 +38,7 @@ Sample general params:
 The ramdisk volume group size is in MB.
 """
 
-import logging
+import logging as log
 import re
 import os
 import shutil
@@ -48,6 +48,8 @@ from avocado.core import exceptions
 from avocado.utils import process
 
 from virttest import error_context
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 @error_context.context_aware

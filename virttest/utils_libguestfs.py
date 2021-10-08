@@ -2,7 +2,7 @@
 libguestfs tools test utility functions.
 """
 
-import logging
+import logging as log
 import signal
 import os
 import re
@@ -12,6 +12,8 @@ from avocado.utils import path
 from avocado.utils import process
 
 from . import propcan
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class LibguestfsCmdError(Exception):

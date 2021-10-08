@@ -26,7 +26,7 @@ import os
 import time
 import re
 import math
-import logging
+import logging as log
 
 from avocado.core import exceptions
 from avocado.utils import path
@@ -34,6 +34,8 @@ from avocado.utils import process
 
 from virttest import utils_misc
 from virttest import data_dir
+
+logging = log.getLogger('avocado.' + __name__)
 
 UNIT = "B"
 COMMON_OPTS = "--noheading --nosuffix --unit=%s" % UNIT

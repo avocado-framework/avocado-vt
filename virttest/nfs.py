@@ -4,7 +4,7 @@ nfs mount and the local nfs set up and mount.
 """
 import re
 import aexpect
-import logging
+import logging as log
 
 from avocado.utils import path
 from avocado.utils import process
@@ -17,6 +17,8 @@ from virttest import test_setup
 from virttest.utils_iptables import Iptables
 from virttest.utils_conn import SSHConnection
 from virttest.staging import service
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def nfs_exported(session=None):

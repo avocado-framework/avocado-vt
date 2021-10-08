@@ -10,7 +10,7 @@ iscsi in localhost then access it.
 from __future__ import division
 import re
 import os
-import logging
+import logging as log
 
 from avocado.core import exceptions
 from avocado.utils import data_factory
@@ -24,6 +24,7 @@ from virttest import data_dir
 from virttest import utils_package
 from virttest.staging import service
 
+logging = log.getLogger('avocado.' + __name__)
 
 ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
 

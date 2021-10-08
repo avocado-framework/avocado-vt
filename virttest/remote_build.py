@@ -8,6 +8,9 @@ from aexpect import remote
 from virttest import data_dir
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
+
 class BuildError(Exception):
 
     def __init__(self, error_info):
@@ -200,8 +203,8 @@ class Builder(object):
 
         need_build = False
         if to_transfer:
-            logging.info("Need to copy files to %s on target" %
-                         self.full_build_path)
+            LOG.info("Need to copy files to %s on target" %
+                     self.full_build_path)
             need_build = True
 
             # Create all directories
@@ -228,8 +231,8 @@ class Builder(object):
                                      remote_path)
 
         else:
-            logging.info("Directory %s on target already up-to-date" %
-                         self.full_build_path)
+            LOG.info("Directory %s on target already up-to-date" %
+                     self.full_build_path)
 
         return need_build
 
@@ -237,7 +240,7 @@ class Builder(object):
         """
         Execute make on the remote system
         """
-        logging.info("Building in %s on target" % self.full_build_path)
+        LOG.info("Building in %s on target" % self.full_build_path)
         cmd = 'make -C %s %s' % (self.full_build_path, self.make_flags)
         status, output = self.session.cmd_status_output(cmd)
         if not status == 0:

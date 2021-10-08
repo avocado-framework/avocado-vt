@@ -2,7 +2,7 @@
 tools to manage sasl.
 """
 
-import logging
+import logging as log
 
 import aexpect
 from aexpect import remote
@@ -13,6 +13,8 @@ from avocado.utils import process
 
 from virttest import propcan
 from virttest import virsh
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class SASL(propcan.PropCanBase):

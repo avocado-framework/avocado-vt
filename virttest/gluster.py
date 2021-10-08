@@ -6,7 +6,7 @@ This file has the functions that helps
 * To create gluster uri which can be used as disk image file path.
 """
 
-import logging
+import logging as log
 import os
 import re
 import socket
@@ -22,6 +22,8 @@ from virttest import remote
 from virttest import utils_misc
 from virttest import utils_net
 from virttest import error_context
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 class GlusterError(Exception):

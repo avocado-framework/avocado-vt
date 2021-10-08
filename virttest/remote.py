@@ -3,7 +3,7 @@ Functions and classes used for logging into guests and transferring files.
 """
 from __future__ import division
 from six import PY3
-import logging
+import logging as log
 import time
 import re
 import os
@@ -20,6 +20,8 @@ from virttest import data_dir
 from virttest import utils_logfile
 from virttest.remote_commander import remote_master
 from virttest.remote_commander import messenger
+
+logging = log.getLogger('avocado.' + __name__)
 
 
 def ssh_login_to_migrate(client, host, port, username, password, prompt, linesep="\n",
