@@ -419,3 +419,25 @@ def is_modular_daemon(session=None):
         else:
             IS_MODULAR_DAEMON[host_key] = False
     return IS_MODULAR_DAEMON[host_key]
+
+
+def adopt_func_on_libvirtd(func):
+    """
+        Decorator method to handle process in different daemon modes
+
+        :params func: function to be wrapped
+    """
+
+    def signal_libvirtd(*args, **kwargs):
+        """
+        Wrap method of the decorator
+
+        :params *args: arguments of the function
+        :params **kwargs: dict args of the function
+        """
+        list_args = list(args)
+        if is_modular_daemon() and args[0] == 'libvirtd':
+            list_args[0] = 'virtqemud'
+
+        return func(*list_args, **kwargs)
+    return signal_libvirtd
