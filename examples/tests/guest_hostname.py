@@ -7,6 +7,9 @@ Simple hostname test (on guest)
 import logging
 
 
+LOG = logging.getLogger('avocado.vt.examples.guest_hostname')
+
+
 def run(test, params, env):
     """
     Logs guest's hostname.
@@ -30,4 +33,4 @@ def run(test, params, env):
     output = session.cmd_output("hostname")
 
     # 4) log the output
-    logging.info("The output of 'hostname' command from guest is '%s'", output)
+    LOG.info("The output of 'hostname' command from guest is '%s'", output)

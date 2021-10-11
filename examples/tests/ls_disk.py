@@ -15,6 +15,9 @@ bigger differences.
 import logging
 
 
+LOG = logging.getLogger('avocado.vt.examples.lsdisk')
+
+
 def run(test, params, env):
     """
     Logs guest's disk partitions
@@ -26,7 +29,7 @@ def run(test, params, env):
     vm = env.get_vm(params["main_vm"])
     session = vm.wait_for_login()
     output = session.cmd_output("ls /dev/[hsv]d* -1")
-    logging.info("Guest disks are:\n%s", output)
+    LOG.info("Guest disks are:\n%s", output)
 
     # Let's get some monitor data
     monitor = vm.monitor
@@ -35,4 +38,4 @@ def run(test, params, env):
     # output = monitor.info("block", debug=False)
     # Following command unifies the response no matter which monitor is used
     output = monitor.info_block(debug=False)
-    logging.info("info block:\n%s", output)
+    LOG.info("info block:\n%s", output)
