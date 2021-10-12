@@ -3607,6 +3607,7 @@ class VMPerfXML(base.LibvirtXMLBase):
                                    attribute='enabled')
             super(VMPerfXML.EventXML, self).__init__(
                 virsh_instance=virsh_instance)
+            self.xml = '<event/>'
 
         def update(self, attr_dict):
             for attr, value in list(attr_dict.items()):
