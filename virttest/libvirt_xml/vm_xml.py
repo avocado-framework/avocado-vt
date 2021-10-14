@@ -2553,7 +2553,7 @@ class CacheTuneXML(base.LibvirtXMLBase):
 
     """CacheTune XML"""
 
-    __slots__ = ('vcpus', 'cache', 'monitor')
+    __slots__ = ('vcpus', 'caches', 'monitors')
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -2565,10 +2565,74 @@ class CacheTuneXML(base.LibvirtXMLBase):
                                parent_xpath='/',
                                tag_name='cachetune',
                                attribute='vcpus')
+        accessors.XMLElementList(property_name="caches",
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 marshal_from=self.marshal_from_caches,
+                                 marshal_to=self.marshal_to_caches,
+                                 has_subclass=True)
+        accessors.XMLElementList(property_name="monitors",
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 marshal_from=self.marshal_from_monitors,
+                                 marshal_to=self.marshal_to_monitors,
+                                 has_subclass=True)
 
         super(CacheTuneXML, self).__init__(
             virsh_instance=virsh_instance)
         self.xml = '<cachetune/>'
+
+    @staticmethod
+    def marshal_from_caches(item, index, libvirtxml):
+        """
+        Convert an xml object to cache tag and xml element.
+        """
+        if isinstance(item, CacheTuneXML.CacheXML):
+            return 'cache', item
+        elif isinstance(item, dict):
+            cache = CacheTuneXML.CacheXML()
+            cache.setup_attrs(**item)
+            return 'cache', cache
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of CacheXML "
+                                         "instances, not a %s" % str(item))
+
+    @staticmethod
+    def marshal_to_caches(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a cache tag xml element to an object of CacheXML.
+        """
+        if tag != 'cache':
+            return None     # Don't convert this item
+        newone = CacheTuneXML.CacheXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
+
+    @staticmethod
+    def marshal_from_monitors(item, index, libvirtxml):
+        """
+        Convert an xml object to monitor tag and xml element.
+        """
+        if isinstance(item, CacheTuneXML.MonitorXML):
+            return 'monitor', item
+        elif isinstance(item, dict):
+            monitor = CacheTuneXML.MonitorXML()
+            monitor.setup_attrs(**item)
+            return 'monitor', monitor
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of MonitorXML "
+                                         "instances, not a %s" % str(item))
+
+    @staticmethod
+    def marshal_to_monitors(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a monitor tag xml element to an object of MonitorXML.
+        """
+        if tag != 'monitor':
+            return None     # Don't convert this item
+        newone = CacheTuneXML.MonitorXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
     # Sub-element of CacheTuneXML
     class CacheXML(base.LibvirtXMLBase):
@@ -2616,32 +2680,6 @@ class CacheTuneXML(base.LibvirtXMLBase):
                 virsh_instance=virsh_instance)
             self.xml = '<cache/>'
 
-    def get_cache(self):
-        xmltreefile = self.__dict_get__('xml')
-        try:
-            cache_root = xmltreefile.reroot('/cache')
-        except KeyError as detail:
-            raise xcepts.LibvirtXMLError(detail)
-        cachexml = CacheTuneXML.CacheXML(virsh_instance=self.__dict_get__('virsh'))
-        cachexml.xmltreefile = cache_root
-        return cachexml
-
-    def set_cache(self, value):
-        if not issubclass(type(value), CacheTuneXML.CacheXML):
-            raise xcepts.LibvirtXMLError("value must be a Cache or subclass")
-        xmltreefile = self.__dict_get__('xml')
-        # CacheXML root element is whole Cache element tree
-        root = xmltreefile.getroot()
-        root.append(value.xmltreefile.getroot())
-        xmltreefile.write()
-
-    def del_cache(self):
-        xmltreefile = self.__dict_get__('xml')
-        element = xmltreefile.find('/cache')
-        if element is not None:
-            xmltreefile.remove(element)
-            xmltreefile.write()
-
     # Sub-element of CacheTuneXML
     class MonitorXML(base.LibvirtXMLBase):
 
@@ -2670,38 +2708,12 @@ class CacheTuneXML(base.LibvirtXMLBase):
                 virsh_instance=virsh_instance)
             self.xml = '<monitor/>'
 
-    def get_monitor(self):
-        xmltreefile = self.__dict_get__('xml')
-        try:
-            monitor_root = xmltreefile.reroot('/monitor')
-        except KeyError as detail:
-            raise xcepts.LibvirtXMLError(detail)
-        monitorxml = CacheTuneXML.MonitorXML(virsh_instance=self.__dict_get__('virsh'))
-        monitorxml.xmltreefile = monitor_root
-        return monitorxml
-
-    def set_monitor(self, value):
-        if not issubclass(type(value), CacheTuneXML.MonitorXML):
-            raise xcepts.LibvirtXMLError("value must be a Monitor or subclass")
-        xmltreefile = self.__dict_get__('xml')
-        # MonitorXML root element is whole Monitor element tree
-        root = xmltreefile.getroot()
-        root.append(value.xmltreefile.getroot())
-        xmltreefile.write()
-
-    def del_monitor(self):
-        xmltreefile = self.__dict_get__('xml')
-        element = xmltreefile.find('/monitor')
-        if element is not None:
-            xmltreefile.remove(element)
-            xmltreefile.write()
-
 
 class MemoryTuneXML(base.LibvirtXMLBase):
 
     """Event element of perf"""
 
-    __slots__ = ('vcpus', 'node', 'monitor')
+    __slots__ = ('vcpus', 'nodes', 'monitors')
 
     def __init__(self, virsh_instance=base.virsh):
         """
@@ -2713,10 +2725,74 @@ class MemoryTuneXML(base.LibvirtXMLBase):
                                parent_xpath='/',
                                tag_name='memorytune',
                                attribute='vcpus')
+        accessors.XMLElementList(property_name="nodes",
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 marshal_from=self.marshal_from_nodes,
+                                 marshal_to=self.marshal_to_nodes,
+                                 has_subclass=True)
+        accessors.XMLElementList(property_name="monitors",
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 marshal_from=self.marshal_from_monitors,
+                                 marshal_to=self.marshal_to_monitors,
+                                 has_subclass=True)
 
         super(MemoryTuneXML, self).__init__(
             virsh_instance=virsh_instance)
         self.xml = '<memorytune/>'
+
+    @staticmethod
+    def marshal_from_nodes(item, index, libvirtxml):
+        """
+        Convert an xml object to node tag and xml element.
+        """
+        if isinstance(item, MemoryTuneXML.NodeXML):
+            return 'node', item
+        elif isinstance(item, dict):
+            node = MemoryTuneXML.NodeXML()
+            node.setup_attrs(**item)
+            return 'node', node
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of NodeXML "
+                                         "instances, not a %s" % str(item))
+
+    @staticmethod
+    def marshal_to_nodes(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a node tag xml element to an object of NodeXML.
+        """
+        if tag != 'node':
+            return None     # Don't convert this item
+        newone = MemoryTuneXML.NodeXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
+
+    @staticmethod
+    def marshal_from_monitors(item, index, libvirtxml):
+        """
+        Convert an xml object to monitor tag and xml element.
+        """
+        if isinstance(item, MemoryTuneXML.MonitorXML):
+            return 'monitor', item
+        elif isinstance(item, dict):
+            monitor = MemoryTuneXML.MonitorXML()
+            monitor.setup_attrs(**item)
+            return 'monitor', monitor
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of MonitorXML "
+                                         "instances, not a %s" % str(item))
+
+    @staticmethod
+    def marshal_to_monitors(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a monitor tag xml element to an object of MonitorXML.
+        """
+        if tag != 'monitor':
+            return None     # Don't convert this item
+        newone = MemoryTuneXML.MonitorXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
     # Sub-element of MemoryTuneXML
     class NodeXML(base.LibvirtXMLBase):
@@ -2746,32 +2822,6 @@ class MemoryTuneXML(base.LibvirtXMLBase):
                 virsh_instance=virsh_instance)
             self.xml = '<node/>'
 
-    def get_node(self):
-        xmltreefile = self.__dict_get__('xml')
-        try:
-            node_root = xmltreefile.reroot('/node')
-        except KeyError as detail:
-            raise xcepts.LibvirtXMLError(detail)
-        nodexml = MemoryTuneXML.NodeXML(virsh_instance=self.__dict_get__('virsh'))
-        nodexml.xmltreefile = node_root
-        return nodexml
-
-    def set_node(self, value):
-        if not issubclass(type(value), MemoryTuneXML.NodeXML):
-            raise xcepts.LibvirtXMLError("value must be a Node or subclass")
-        xmltreefile = self.__dict_get__('xml')
-        # NodeXML root element is whole Node element tree
-        root = xmltreefile.getroot()
-        root.append(value.xmltreefile.getroot())
-        xmltreefile.write()
-
-    def del_node(self):
-        xmltreefile = self.__dict_get__('xml')
-        element = xmltreefile.find('/node')
-        if element is not None:
-            xmltreefile.remove(element)
-            xmltreefile.write()
-
     # Sub-element of MemoryTuneXML
     class MonitorXML(base.LibvirtXMLBase):
 
@@ -2793,32 +2843,6 @@ class MemoryTuneXML(base.LibvirtXMLBase):
             super(MemoryTuneXML.MonitorXML, self).__init__(
                 virsh_instance=virsh_instance)
             self.xml = '<monitor/>'
-
-    def get_monitor(self):
-        xmltreefile = self.__dict_get__('xml')
-        try:
-            monitor_root = xmltreefile.reroot('/monitor')
-        except KeyError as detail:
-            raise xcepts.LibvirtXMLError(detail)
-        monitorxml = MemoryTuneXML.MonitorXML(virsh_instance=self.__dict_get__('virsh'))
-        monitorxml.xmltreefile = monitor_root
-        return monitorxml
-
-    def set_monitor(self, value):
-        if not issubclass(type(value), MemoryTuneXML.MonitorXML):
-            raise xcepts.LibvirtXMLError("value must be a Monitor or subclass")
-        xmltreefile = self.__dict_get__('xml')
-        # MonitorXML root element is whole Monitor element tree
-        root = xmltreefile.getroot()
-        root.append(value.xmltreefile.getroot())
-        xmltreefile.write()
-
-    def del_monitor(self):
-        xmltreefile = self.__dict_get__('xml')
-        element = xmltreefile.find('/monitor')
-        if element is not None:
-            xmltreefile.remove(element)
-            xmltreefile.write()
 
 
 class VMCPUTuneXML(base.LibvirtXMLBase):
@@ -2848,7 +2872,7 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
                  'emulator_period', 'emulator_quota',
                  'iothread_period', 'iothread_quota',
                  'global_period', 'global_quota',
-                 'cachetune', 'memorytune')
+                 'cachetunes', 'memorytunes')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementList('vcpupins', self, parent_xpath='/',
@@ -2867,6 +2891,14 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
         accessors.XMLElementList('iothreadscheds', self, parent_xpath='/',
                                  marshal_from=self.marshal_from_iothreadscheds,
                                  marshal_to=self.marshal_to_iothreadscheds)
+        accessors.XMLElementList('memorytunes', self, parent_xpath='/',
+                                 marshal_from=self.marshal_from_memorytunes,
+                                 marshal_to=self.marshal_to_memorytunes,
+                                 has_subclass=True)
+        accessors.XMLElementList('cachetunes', self, parent_xpath='/',
+                                 marshal_from=self.marshal_from_cachetunes,
+                                 marshal_to=self.marshal_to_cachetunes,
+                                 has_subclass=True)
         # pylint: disable=E1133
         for slot in self.__all_slots__:
             if slot in ('shares', 'period', 'quota', 'emulator_period',
@@ -2877,72 +2909,57 @@ class VMCPUTuneXML(base.LibvirtXMLBase):
         super(VMCPUTuneXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<cputune/>'
 
-    def update(self, attr_dict):
-        for attr, value in list(attr_dict.items()):
-            setattr(self, attr, value)
-
-    def get_memorytune(self):
-        xmltreefile = self.__dict_get__('xml')
-        try:
-            memorytune_root = xmltreefile.reroot('/memorytune')
-        except KeyError as detail:
-            raise xcepts.LibvirtXMLError(detail)
-        memorytunexml = MemoryTuneXML(virsh_instance=self.__dict_get__('virsh'))
-        memorytunexml.xmltreefile = memorytune_root
-        return memorytunexml
-
-    def set_memorytune(self, value):
+    @staticmethod
+    def marshal_from_memorytunes(item, index, libvirtxml):
         """
-        Define memorytune based on the content of MemoryTuneXML instance
-
-        :params value: the instance of MemoryTuneXML
+        Convert an xml object to memorytune tag and xml element.
         """
-        if not issubclass(type(value), MemoryTuneXML):
-            raise xcepts.LibvirtXMLError("value must be a MemoryTuneXML \
-                                         or subclass")
-        xmltreefile = self.__dict_get__('xml')
-        # MemoryTuneXML root element is whole MemoryTune element tree
-        root = xmltreefile.getroot()
-        root.append(value.xmltreefile.getroot())
-        xmltreefile.write()
+        if isinstance(item, MemoryTuneXML):
+            return 'memorytune', item
+        elif isinstance(item, dict):
+            memorytune = MemoryTuneXML()
+            memorytune.setup_attrs(**item)
+            return 'memorytune', memorytune
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of MemoryTuneXML "
+                                         "instances, not a %s" % str(item))
 
-    def del_memorytune(self):
-        xmltreefile = self.__dict_get__('xml')
-        element = xmltreefile.find('/memorytune')
-        if element is not None:
-            xmltreefile.remove(element)
-            xmltreefile.write()
-
-    def get_cachetune(self):
-        xmltreefile = self.__dict_get__('xml')
-        try:
-            cachetune_root = xmltreefile.reroot('/cachetune')
-        except KeyError as detail:
-            raise xcepts.LibvirtXMLError(detail)
-        cachetunexml = CacheTuneXML(virsh_instance=self.__dict_get__('virsh'))
-        cachetunexml.xmltreefile = cachetune_root
-        return cachetunexml
-
-    def set_cachetune(self, value):
+    @staticmethod
+    def marshal_to_memorytunes(tag, new_treefile, index, libvirtxml):
         """
-        Define cachetune based on the content of CacheTuneXML instance
-
-        :params value: the instance of CacheTuneXML
+        Convert a memorytune tag xml element to an object of MemoryTuneXML.
         """
-        if not issubclass(type(value), CacheTuneXML):
-            raise xcepts.LibvirtXMLError("value must be a CacheTuneXML or subclass")
-        xmltreefile = self.__dict_get__('xml')
-        # CacheTuneXML root element is whole CacheTune element tree
-        root = xmltreefile.getroot()
-        root.append(value.xmltreefile.getroot())
-        xmltreefile.write()
+        if tag != 'memorytune':
+            return None     # Don't convert this item
+        newone = MemoryTuneXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
-    def del_cachetune(self):
-        xmltreefile = self.__dict_get__('xml')
-        element = xmltreefile.find('/cachetune')
-        if element is not None:
-            xmltreefile.remove(element)
-            xmltreefile.write()
+    @staticmethod
+    def marshal_from_cachetunes(item, index, libvirtxml):
+        """
+        Convert an xml object to cachetune tag and xml element.
+        """
+        if isinstance(item, CacheTuneXML):
+            return 'cachetune', item
+        elif isinstance(item, dict):
+            cachetune = CacheTuneXML()
+            cachetune.setup_attrs(**item)
+            return 'cachetune', cachetune
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of cachetune "
+                                         "instances, not a %s" % str(item))
+
+    @staticmethod
+    def marshal_to_cachetunes(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a cachetune tag xml element to an object of CacheTuneXML.
+        """
+        if tag != 'cachetune':
+            return None     # Don't convert this item
+        newone = CacheTuneXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
     @staticmethod
     def marshal_from_vcpupins(item, index, libvirtxml):
