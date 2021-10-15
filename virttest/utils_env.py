@@ -20,6 +20,8 @@ from virttest import ip_sniffing
 
 ENV_VERSION = 1
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def get_env_version():
     return ENV_VERSION
@@ -75,22 +77,21 @@ class Env(IterableUserDict):
                     if env.get("version", 0) >= version:
                         self.data = env
                     else:
-                        logging.warn(
-                            "Incompatible env file found. Not using it.")
+                        LOG.warn("Incompatible env file found. Not using it.")
                         self.data = empty
                 else:
                     # No previous env file found, proceed...
-                    logging.warn("Creating new, empty env file")
+                    LOG.warn("Creating new, empty env file")
                     self.data = empty
             # Almost any exception can be raised during unpickling, so let's
             # catch them all
             except Exception as e:
-                logging.warn("Exception thrown while loading env")
-                logging.warn(e)
-                logging.warn("Creating new, empty env file")
+                LOG.warn("Exception thrown while loading env")
+                LOG.warn(e)
+                LOG.warn("Creating new, empty env file")
                 self.data = empty
         else:
-            logging.warn("Creating new, empty env file")
+            LOG.warn("Creating new, empty env file")
             self.data = empty
 
     def save(self, filename=None):

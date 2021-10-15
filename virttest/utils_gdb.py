@@ -12,6 +12,8 @@ import aexpect
 from enum import Enum
 from virttest import utils_misc
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class GDBError(Exception):
 
@@ -187,7 +189,7 @@ class GDB(aexpect.Expect):
         elif event in ['library-loaded', 'library-unloaded']:
             pass
         else:
-            logging.warning('Unprocessed gdb async notification:\n%s', line)
+            LOG.warning('Unprocessed gdb async notification:\n%s', line)
 
     def _parse_exec_async_line(self, line):
         """
@@ -212,8 +214,8 @@ class GDB(aexpect.Expect):
                         self._callback('termination', info)
                 else:
                     for key in info:
-                        logging.warning('Stopped without reason')
-                        logging.warning('%s: %s', key, info[key])
+                        LOG.warning('Stopped without reason')
+                        LOG.warning('%s: %s', key, info[key])
             else:
                 self._callback('termination', info)
         if event == '*running':
@@ -288,7 +290,7 @@ class GDB(aexpect.Expect):
                               "break" or "signal"
         """
         callback_func, params = self.callbacks[callback_type]
-        logging.debug('gdb is Calling back %s' % callback_type)
+        LOG.debug('gdb is Calling back %s' % callback_type)
         thread = threading.Thread(
             target=callback_func,
             args=(self, info, params),
@@ -438,8 +440,8 @@ class GDB(aexpect.Expect):
 
         :param timeout: Max time to wait
         """
-        logging.debug("Waiting for gdb inferior %s to start"
-                      % self.inferior_command)
+        LOG.debug("Waiting for gdb inferior %s to start"
+                  % self.inferior_command)
         return utils_misc.wait_for(
             lambda: self.running,
             timeout,
@@ -452,8 +454,8 @@ class GDB(aexpect.Expect):
 
         :param timeout: Max time to wait
         """
-        logging.debug("Waiting for gdb inferior %s to stop"
-                      % self.inferior_command)
+        LOG.debug("Waiting for gdb inferior %s to stop"
+                  % self.inferior_command)
         res = utils_misc.wait_for(
             lambda: not self.running,
             timeout,
@@ -467,7 +469,7 @@ class GDB(aexpect.Expect):
 
         :param timeout: Max time to wait
         """
-        logging.debug("Waiting for gdb to terminate")
+        LOG.debug("Waiting for gdb to terminate")
         return utils_misc.wait_for(
             lambda: self.terminated,
             timeout,

@@ -8,7 +8,7 @@ from __future__ import division
 import time
 import string
 import os
-import logging as log
+import logging
 import fcntl
 import re
 import shutil
@@ -38,7 +38,7 @@ from virttest import utils_package
 
 # Using as lower capital is not the best way to do, but this is just a
 # workaround to avoid changing the entire file.
-logging = log.getLogger('avocado.' + __name__)
+LOG = logging.getLogger('avocado.' + __name__)
 
 
 def normalize_connect_uri(connect_uri):
@@ -207,8 +207,8 @@ class VM(virt_vm.BaseVM):
         self.monitor = Monitor(self.name)
         # virtnet init depends on vm_type/driver_type being set w/in params
         super(VM, self).__init__(name, params)
-        logging.info("Libvirt VM '%s', driver '%s', uri '%s'",
-                     self.name, self.driver_type, self.connect_uri)
+        LOG.info("Libvirt VM '%s', driver '%s', uri '%s'",
+                 self.name, self.driver_type, self.connect_uri)
 
     def is_lxc(self):
         """
@@ -306,7 +306,7 @@ class VM(virt_vm.BaseVM):
             virsh.undefine(self.name, options=options, uri=self.connect_uri,
                            ignore_status=False)
         except process.CmdError as detail:
-            logging.error("Undefined VM %s failed:\n%s", self.name, detail)
+            LOG.error("Undefined VM %s failed:\n%s", self.name, detail)
             return False
         return True
 
@@ -315,13 +315,13 @@ class VM(virt_vm.BaseVM):
         Define the VM.
         """
         if not os.path.exists(xml_file):
-            logging.error("File %s not found." % xml_file)
+            LOG.error("File %s not found." % xml_file)
             return False
         try:
             virsh.define(xml_file, uri=self.connect_uri,
                          ignore_status=False)
         except process.CmdError as detail:
-            logging.error("Defined VM from %s failed:\n%s", xml_file, detail)
+            LOG.error("Defined VM from %s failed:\n%s", xml_file, detail)
             return False
         return True
 
@@ -366,7 +366,7 @@ class VM(virt_vm.BaseVM):
         except Exception as detail:
             if os.path.exists(xml_file):
                 os.remove(xml_file)
-            logging.error("Failed to backup xml file:\n%s", detail)
+            LOG.error("Failed to backup xml file:\n%s", detail)
             return ""
 
     def clone(self, name=None, params=None, root_dir=None, address_cache=None,
@@ -470,7 +470,7 @@ class VM(virt_vm.BaseVM):
             elif hvm_or_pv == "pv":
                 return " --paravirt"
             else:
-                logging.warning("Unknown virt type hvm_or_pv, using default.")
+                LOG.warning("Unknown virt type hvm_or_pv, using default.")
                 return ""
 
         def add_mem(help_text, mem, maxmem=None, hugepage=False,
@@ -479,25 +479,25 @@ class VM(virt_vm.BaseVM):
                 cmd = " --memory=%s" % mem
                 if maxmem:
                     if not has_sub_option('memory', 'maxmemory'):
-                        logging.warning("maxmemory option not supported by "
-                                        "virt-install")
+                        LOG.warning("maxmemory option not supported by "
+                                    "virt-install")
                     else:
                         cmd += ",maxmemory=%s" % maxmem
                 if hugepage:
                     if not has_sub_option('memory', 'hugepages'):
-                        logging.warning("hugepages option not supported by "
-                                        "virt-install")
+                        LOG.warning("hugepages option not supported by "
+                                    "virt-install")
                     else:
                         cmd += ",hugepages=yes"
                 if hotplugmaxmem:
                     if not has_sub_option('memory', 'hotplugmemorymax'):
-                        logging.warning("hotplugmemorymax option not supported"
-                                        "by virt-install")
+                        LOG.warning("hotplugmemorymax option not supported"
+                                    "by virt-install")
                     else:
                         cmd += ",hotplugmemorymax=%s" % hotplugmaxmem
                     if not has_sub_option('memory', 'hotplugmemoryslots'):
-                        logging.warning("hotplugmemoryslots option not "
-                                        "supported by virt-install")
+                        LOG.warning("hotplugmemoryslots option not "
+                                    "supported by virt-install")
                     else:
                         cmd += ",hotplugmemoryslots=%d" % hotplugmemslots
                 return cmd
@@ -529,7 +529,7 @@ class VM(virt_vm.BaseVM):
             :return: appended numa parameter to virt-install cmd
             """
             if not has_sub_option('cpu', 'cell'):
-                logging.warning("virt-install version does not support numa cmd line")
+                LOG.warning("virt-install version does not support numa cmd line")
                 return ""
             cmd = " --cpu"
             cell = "cell%s.cpus=%s,cell%s.id=%s,cell%s.memory=%s"
@@ -613,8 +613,8 @@ class VM(virt_vm.BaseVM):
                 host_numa_list = host_numa.split(',')
                 for each_numa in host_numa_list:
                     if each_numa not in host_numa_node_list:
-                        logging.error("host numa node - %s is not online or "
-                                      "doesn't have memory", each_numa)
+                        LOG.error("host numa node - %s is not online or "
+                                  "doesn't have memory", each_numa)
                         host_numa_list.remove(each_numa)
                 if host_numa_list:
                     host_numa = ','.join(map(str, host_numa_list))
@@ -895,8 +895,8 @@ class VM(virt_vm.BaseVM):
                         result += ',driver_name=%s' % nic_driver
                 elif mac:  # possible to specify --mac w/o --network
                     result += " --mac=%s" % mac
-            logging.debug("vm.make_create_command.add_nic returning: %s",
-                          result)
+            LOG.debug("vm.make_create_command.add_nic returning: %s",
+                      result)
             return result
 
         def add_memballoon(help_text, memballoon_model):
@@ -910,9 +910,9 @@ class VM(virt_vm.BaseVM):
             if has_option(help_text, "memballoon"):
                 result = " --memballoon model=%s" % memballoon_model
             else:
-                logging.warning("memballoon is not supported")
+                LOG.warning("memballoon is not supported")
                 result = ""
-            logging.debug("vm.add_memballoon returning: %s", result)
+            LOG.debug("vm.add_memballoon returning: %s", result)
             return result
 
         def add_kernel(help_text, cmdline, kernel_path=None, initrd_path=None,
@@ -939,7 +939,7 @@ class VM(virt_vm.BaseVM):
                     result += "kernel_args=\"%s\"," % kernel_args
             else:
                 result = ""
-                logging.warning("boot option is not supported")
+                LOG.warning("boot option is not supported")
             return result.rstrip(',')
 
         def add_cputune(vcpu_cputune=""):
@@ -971,10 +971,10 @@ class VM(virt_vm.BaseVM):
             """
             result = ""
             if not has_option(help_text, "tpm"):
-                logging.warning("tpm option is not supported in virt-install")
+                LOG.warning("tpm option is not supported in virt-install")
                 return result
             if not (device_path and os.path.exists(device_path)):
-                logging.warning("Given TPM device is not valid or not present")
+                LOG.warning("Given TPM device is not valid or not present")
                 return result
             result = " --tpm path=%s" % device_path
             if has_sub_option("tpm", "model") and model:
@@ -1017,8 +1017,8 @@ class VM(virt_vm.BaseVM):
         arch_name = params.get("vm_arch_name", platform.machine())
         support_machine_type = libvirt.get_machine_types(arch_name, hvm_or_pv,
                                                          ignore_status=False)
-        logging.debug("Machine types supported for %s/%s: %s",
-                      hvm_or_pv, arch_name, support_machine_type)
+        LOG.debug("Machine types supported for %s/%s: %s",
+                  hvm_or_pv, arch_name, support_machine_type)
 
         # Start constructing the qemu command
         virt_install_cmd = ""
@@ -1093,12 +1093,12 @@ class VM(virt_vm.BaseVM):
                     # Numa might be online but if it doesn't have free memory,
                     # skip it
                     if free_mem == 0:
-                        logging.debug("Host numa node: %s doesn't have memory",
-                                      each_numa)
+                        LOG.debug("Host numa node: %s doesn't have memory",
+                                  each_numa)
                         host_numa_node_list.remove(each_numa)
                 if not host_numa_node_list:
-                    logging.error("Host Numa nodes are not online or doesn't "
-                                  "have memory to pin")
+                    LOG.error("Host Numa nodes are not online or doesn't "
+                              "have memory to pin")
                 else:
                     virt_install_cmd += pin_numa(help_text, host_numa_node_list)
 
@@ -1118,8 +1118,8 @@ class VM(virt_vm.BaseVM):
                     guest_numa = ','.join(map(str, list(range(guest_numa))))
                 virt_install_cmd += pin_hugepage(help_text, hp_size, guest_numa)
             else:
-                logging.error("Can't pin hugepage without hugepage enabled"
-                              "and Numa enabled")
+                LOG.error("Can't pin hugepage without hugepage enabled"
+                          "and Numa enabled")
 
         cpu_mode = params.get("virt_cpu_mode", '')
         if cpu_mode:
@@ -1162,8 +1162,7 @@ class VM(virt_vm.BaseVM):
                 if os.path.islink(pxeboot_link):
                     os.unlink(pxeboot_link)
                 if os.path.isdir(pxeboot_link):
-                    logging.info("Removed old %s leftover directory",
-                                 pxeboot_link)
+                    LOG.info("Removed old %s leftover directory", pxeboot_link)
                     shutil.rmtree(pxeboot_link)
                 os.symlink(kernel_dir, pxeboot_link)
 
@@ -1292,14 +1291,14 @@ class VM(virt_vm.BaseVM):
                 if params.get("use_libvirt_cdrom_switch") == 'yes':
                     # we don't want to skip the winutils iso
                     if not cdrom == 'winutils':
-                        logging.debug(
+                        LOG.debug(
                             "Using --cdrom instead of --disk for install")
-                        logging.debug("Skipping CDROM:%s:%s", cdrom, iso)
+                        LOG.debug("Skipping CDROM:%s:%s", cdrom, iso)
                         continue
                 if params.get("medium") == 'cdrom':
                     if iso == params.get("cdrom_cd1"):
-                        logging.debug("Using cdrom or url for install")
-                        logging.debug("Skipping CDROM: %s", iso)
+                        LOG.debug("Using cdrom or url for install")
+                        LOG.debug("Skipping CDROM: %s", iso)
                         continue
 
                 if iso:
@@ -1340,8 +1339,8 @@ class VM(virt_vm.BaseVM):
         for nic in vm.virtnet:
             # make_create_command can be called w/o vm.create()
             nic = vm.add_nic(**dict(nic))
-            logging.debug("make_create_command() setting up command for"
-                          " nic: %s" % str(nic))
+            LOG.debug("make_create_command() setting up command for"
+                      " nic: %s" % str(nic))
             virt_install_cmd += add_nic(help_text, nic)
 
         if params.get("use_no_reboot") == "yes":
@@ -1356,14 +1355,14 @@ class VM(virt_vm.BaseVM):
         emulator_path = params.get("emulator_path", None)
         if emulator_path:
             if not has_sub_option('boot', 'emulator'):
-                logging.warning("emulator option not supported by virt-install")
+                LOG.warning("emulator option not supported by virt-install")
             else:
                 virt_install_cmd += " --boot emulator=%s" % emulator_path
 
         bios_path = params.get("bios_path", None)
         if bios_path:
             if not has_sub_option('boot', 'loader'):
-                logging.warning("bios option not supported by virt-install")
+                LOG.warning("bios option not supported by virt-install")
             else:
                 if "--boot" in virt_install_cmd:
                     virt_install_cmd += ","
@@ -1460,13 +1459,13 @@ class VM(virt_vm.BaseVM):
             output_filename = self.get_serial_console_filename(self.serial_ports[0])
             output_params = (output_filename,)
             prompt = self.params.get("shell_prompt", "[\#\$]")
-            logging.debug("Command used to create serial console: %s", cmd)
+            LOG.debug("Command used to create serial console: %s", cmd)
             self.serial_console = aexpect.ShellSession(command=cmd, auto_close=False,
                                                        output_func=output_func,
                                                        output_params=output_params,
                                                        prompt=prompt)
             if not self.serial_console.is_alive():
-                logging.error("Failed to create serial_console")
+                LOG.error("Failed to create serial_console")
             # Cause serial_console.close() to close open log file
             self.serial_console.set_log_file(output_filename)
             self.serial_console_log = os.path.join(utils_misc.get_log_file_dir(),
@@ -1482,7 +1481,7 @@ class VM(virt_vm.BaseVM):
         try:
             session = self.login()
         except (remote.LoginError, virt_vm.VMError) as e:
-            logging.debug(e)
+            LOG.debug(e)
         else:
             try:
                 securetty_output = session.cmd_output("cat /etc/securetty")
@@ -1494,11 +1493,11 @@ class VM(virt_vm.BaseVM):
                     if remove:
                         session.sendline("sed -i -e /%s/d /etc/securetty"
                                          % device)
-                logging.debug("Set root login for %s successfully.", device)
+                LOG.debug("Set root login for %s successfully.", device)
                 return True
             finally:
                 session.close()
-        logging.debug("Set root login for %s failed.", device)
+        LOG.debug("Set root login for %s failed.", device)
         return False
 
     def set_kernel_console(self, device, speed=None, remove=False,
@@ -1521,7 +1520,7 @@ class VM(virt_vm.BaseVM):
         else:
             utils_test.update_boot_option(self, args_added=kernel_params,
                                           guest_arch_name=guest_arch_name)
-        logging.debug("Set kernel params for %s is successful", device)
+        LOG.debug("Set kernel params for %s is successful", device)
         return True
 
     def set_kernel_param(self, parameter, value=None, remove=False):
@@ -1534,7 +1533,7 @@ class VM(virt_vm.BaseVM):
         :return: True if succeed of False if failed.
         """
         if self.is_dead():
-            logging.error("Can't set kernel param on a dead VM.")
+            LOG.error("Can't set kernel param on a dead VM.")
             return False
 
         session = self.wait_for_login()
@@ -1546,8 +1545,8 @@ class VM(virt_vm.BaseVM):
             kernel_lines = [l.strip() for l in grub_text.splitlines()
                             if re.match(r"\s*(linux|kernel).*", l)]
             if not kernel_lines:
-                logging.error("Can't find any kernel lines in grub "
-                              "file %s:\n%s" % (grub_path, grub_text))
+                LOG.error("Can't find any kernel lines in grub "
+                          "file %s:\n%s" % (grub_path, grub_text))
                 return False
 
             for line in kernel_lines:
@@ -1577,21 +1576,21 @@ class VM(virt_vm.BaseVM):
                     new_line = " ".join((line, new_string))
 
                 line_patt = "\s*".join(line.split())
-                logging.debug("Substituting grub line '%s' to '%s'." %
-                              (line, new_line))
+                LOG.debug("Substituting grub line '%s' to '%s'." %
+                          (line, new_line))
                 stat_sed, output = session.cmd_status_output(
                     "sed -i --follow-symlinks -e \"s@%s@%s@g\" %s" %
                     (line_patt, new_line, grub_path))
                 if stat_sed:
-                    logging.error("Failed to substitute grub file:\n%s" %
-                                  output)
+                    LOG.error("Failed to substitute grub file:\n%s" %
+                              output)
                     return False
             if remove:
-                logging.debug("Remove kernel params %s successfully.",
-                              parameter)
+                LOG.debug("Remove kernel params %s successfully.",
+                          parameter)
             else:
-                logging.debug("Set kernel params %s to %s successfully.",
-                              parameter, value)
+                LOG.debug("Set kernel params %s to %s successfully.",
+                          parameter, value)
             return True
         finally:
             session.close()
@@ -1605,7 +1604,7 @@ class VM(virt_vm.BaseVM):
         :return: default kernel
         """
         if self.is_dead():
-            logging.error("Can't set kernel param on a dead VM.")
+            LOG.error("Can't set kernel param on a dead VM.")
             return False
 
         session = self.wait_for_login()
@@ -1622,19 +1621,19 @@ class VM(virt_vm.BaseVM):
                 output = session.cmd("cat %s |grep initramfs" % grub_path)
                 kernel_list = re.findall("-.*", output)
             if index >= len(kernel_list):
-                logging.error("Index out of kernel list")
+                LOG.error("Index out of kernel list")
                 return
-            logging.debug("kernel list of vm:")
-            logging.debug(kernel_list)
+            LOG.debug("kernel list of vm:")
+            LOG.debug(kernel_list)
             if debug_kernel:
                 index = -1
-                logging.info("Setting debug kernel as default")
+                LOG.info("Setting debug kernel as default")
                 for i in range(len(kernel_list)):
                     if "debug" in kernel_list[i] and 'rescue' not in kernel_list[i].lower():
                         index = i
                         break
                 if index == -1:
-                    logging.error("No debug kernel in grub file!")
+                    LOG.error("No debug kernel in grub file!")
                     return
             if grub == 1:
                 cmd_set_grub = "sed -i 's/default=./default=%d/' " % index
@@ -1655,7 +1654,7 @@ class VM(virt_vm.BaseVM):
         :return : True if swap is on or False otherwise.
         """
         if self.is_dead():
-            logging.error("Can't check swap on a dead VM.")
+            LOG.error("Can't check swap on a dead VM.")
             return False
 
         session = self.wait_for_login()
@@ -1678,7 +1677,7 @@ class VM(virt_vm.BaseVM):
         :param swap_path: Swap image path.
         """
         if self.is_dead():
-            logging.error("Can't create swap on a dead VM.")
+            LOG.error("Can't create swap on a dead VM.")
             return False
 
         if not swap_path:
@@ -1698,7 +1697,7 @@ class VM(virt_vm.BaseVM):
             return True
         finally:
             session.close()
-        logging.error("Failed to create a swap partition.")
+        LOG.error("Failed to create a swap partition.")
         return False
 
     def create_swap_file(self, swapfile='/swapfile'):
@@ -1711,7 +1710,7 @@ class VM(virt_vm.BaseVM):
         :param swapfile: Swap file path in VM to be created.
         """
         if self.is_dead():
-            logging.error("Can't create swap on a dead VM.")
+            LOG.error("Can't create swap on a dead VM.")
             return False
 
         session = self.wait_for_login()
@@ -1725,8 +1724,8 @@ class VM(virt_vm.BaseVM):
                    "mkswap {1}".format(swap_size, swapfile))
             stat_create, output = session.cmd_status_output(cmd)
             if stat_create:
-                logging.error("Fail to create swap file in guest."
-                              "\n%s" % output)
+                LOG.error("Fail to create swap file in guest."
+                          "\n%s" % output)
                 return False
             self.created_swap_file = swapfile
 
@@ -1775,17 +1774,17 @@ class VM(virt_vm.BaseVM):
             cmd = "swapon %s" % swapfile
             stat_swapon, output = session.cmd_status_output(cmd)
             if stat_create:
-                logging.error("Fail to activate swap file in guest."
-                              "\n%s" % output)
+                LOG.error("Fail to activate swap file in guest."
+                          "\n%s" % output)
                 return False
         finally:
             session.close()
 
         if self.has_swap():
-            logging.debug("Successfully created swapfile %s." % swapfile)
+            LOG.debug("Successfully created swapfile %s." % swapfile)
             return True
         else:
-            logging.error("Failed to create swap file.")
+            LOG.error("Failed to create swap file.")
             return False
 
     def cleanup_swap(self):
@@ -1794,7 +1793,7 @@ class VM(virt_vm.BaseVM):
         create_swap_file().
         """
         if self.is_dead():
-            logging.error("Can't cleanup swap on a dead VM.")
+            LOG.error("Can't cleanup swap on a dead VM.")
             return False
 
         # Remove kernel parameters.
@@ -1832,7 +1831,7 @@ class VM(virt_vm.BaseVM):
         try:
             session = self.login()
         except (remote.LoginError, virt_vm.VMError) as e:
-            logging.debug(e)
+            LOG.debug(e)
         else:
             try:
                 # Only configurate RHEL5 and below
@@ -1841,7 +1840,7 @@ class VM(virt_vm.BaseVM):
                 regex += "|inittab is no longer used when using systemd"
                 output = session.cmd_output("cat /etc/inittab")
                 if re.search(regex, output):
-                    logging.debug("Skip setting inittab for %s", device)
+                    LOG.debug("Skip setting inittab for %s", device)
                     return True
                 getty_str = "co:2345:respawn:/sbin/%s %s" % (getty, device)
                 matched_str = "respawn:/sbin/*getty %s" % device
@@ -1852,11 +1851,11 @@ class VM(virt_vm.BaseVM):
                     if remove:
                         session.sendline("sed -i -e /%s/d "
                                          "/etc/inittab" % matched_str)
-                logging.debug("Set inittab for %s successfully.", device)
+                LOG.debug("Set inittab for %s successfully.", device)
                 return True
             finally:
                 session.close()
-        logging.debug("Set inittab for %s failed.", device)
+        LOG.debug("Set inittab for %s failed.", device)
         return False
 
     def cleanup_serial_console(self):
@@ -1968,29 +1967,29 @@ class VM(virt_vm.BaseVM):
                     raise virt_vm.VMImageMissingError(iso)
                 compare = False
                 if cdrom_params.get("skip_hash", "no") == "yes":
-                    logging.debug("Skipping hash comparison")
+                    LOG.debug("Skipping hash comparison")
                 elif cdrom_params.get("md5sum_1m"):
-                    logging.debug("Comparing expected MD5 sum with MD5 sum of "
-                                  "first MB of ISO file...")
+                    LOG.debug("Comparing expected MD5 sum with MD5 sum of "
+                              "first MB of ISO file...")
                     actual_hash = crypto.hash_file(
                         iso, 1048576, algorithm="md5")
                     expected_hash = cdrom_params.get("md5sum_1m")
                     compare = True
                 elif cdrom_params.get("md5sum"):
-                    logging.debug("Comparing expected MD5 sum with MD5 sum of "
-                                  "ISO file...")
+                    LOG.debug("Comparing expected MD5 sum with MD5 sum of "
+                              "ISO file...")
                     actual_hash = crypto.hash_file(iso, algorithm="md5")
                     expected_hash = cdrom_params.get("md5sum")
                     compare = True
                 elif cdrom_params.get("sha1sum"):
-                    logging.debug("Comparing expected SHA1 sum with SHA1 sum "
-                                  "of ISO file...")
+                    LOG.debug("Comparing expected SHA1 sum with SHA1 sum "
+                              "of ISO file...")
                     actual_hash = crypto.hash_file(iso, algorithm="sha1")
                     expected_hash = cdrom_params.get("sha1sum")
                     compare = True
                 if compare:
                     if actual_hash == expected_hash:
-                        logging.debug("Hashes match")
+                        LOG.debug("Hashes match")
                     else:
                         raise virt_vm.VMHashMismatchError(actual_hash,
                                                           expected_hash)
@@ -2043,21 +2042,21 @@ class VM(virt_vm.BaseVM):
                 if mac_source is not None:
                     # Will raise exception if source doesn't
                     # have corresponding nic
-                    logging.debug("Copying mac for nic %s from VM %s",
-                                  nic.nic_name, mac_source.name)
+                    LOG.debug("Copying mac for nic %s from VM %s",
+                              nic.nic_name, mac_source.name)
                     nic_params['mac'] = mac_source.get_mac_address(
                         nic.nic_name)
                 # make_create_command() calls vm.add_nic (i.e. on a copy)
                 nic = self.add_nic(**nic_params)
-                logging.debug('VM.create activating nic %s' % nic)
+                LOG.debug('VM.create activating nic %s' % nic)
                 self.activate_nic(nic.nic_name)
 
             # Make qemu command
             install_command = self.make_create_command()
 
-            logging.info("Running libvirt command (reformatted):")
+            LOG.info("Running libvirt command (reformatted):")
             for item in install_command.replace(" -", " \n    -").splitlines():
-                logging.info("%s", item)
+                LOG.info("%s", item)
             try:
                 process.run(install_command, verbose=True, shell=True)
             except process.CmdError as details:
@@ -2112,8 +2111,8 @@ class VM(virt_vm.BaseVM):
         :param dargs: Standardized virsh function API keywords
         :return: True if command succeeded
         """
-        logging.info("Migrating VM %s from %s to %s" %
-                     (self.name, self.connect_uri, dest_uri))
+        LOG.info("Migrating VM %s from %s to %s" %
+                 (self.name, self.connect_uri, dest_uri))
         result = virsh.migrate(self.name, dest_uri, option,
                                extra, uri=self.connect_uri,
                                **dargs)
@@ -2160,9 +2159,9 @@ class VM(virt_vm.BaseVM):
                                    ignore_status=ignore_status,
                                    debug=debug)
         if result.exit_status:
-            logging.error("Failed to attach disk %s to VM."
-                          "Detail: %s."
-                          % (source, result.stderr_text))
+            LOG.error("Failed to attach disk %s to VM."
+                      "Detail: %s."
+                      % (source, result.stderr_text))
             return None
         return target
 
@@ -2215,26 +2214,26 @@ class VM(virt_vm.BaseVM):
         try:
             # Is it already dead?
             if self.is_alive():
-                logging.debug("Destroying VM")
+                LOG.debug("Destroying VM")
                 if self.is_paused():
                     self.resume()
                 if (not self.is_lxc() and gracefully and
                         self.params.get("shutdown_command")):
                     # Try to destroy with shell command
-                    logging.debug("Trying to shutdown VM with shell command")
+                    LOG.debug("Trying to shutdown VM with shell command")
                     try:
                         session = self.login()
                     except (remote.LoginError, virt_vm.VMError) as e:
-                        logging.debug(e)
+                        LOG.debug(e)
                     else:
                         try:
                             # Send the shutdown command
                             session.sendline(
                                 self.params.get("shutdown_command"))
-                            logging.debug("Shutdown command sent; waiting for VM "
-                                          "to go down...")
+                            LOG.debug("Shutdown command sent; waiting for VM "
+                                      "to go down...")
                             if utils_misc.wait_for(self.is_dead, 60, 1, 1):
-                                logging.debug("VM is down")
+                                LOG.debug("VM is down")
                                 return
                         finally:
                             session.close()
@@ -2249,10 +2248,10 @@ class VM(virt_vm.BaseVM):
             self.cleanup_serial_console()
         if free_mac_addresses:
             if self.is_persistent():
-                logging.warning("Requested MAC address release from "
-                                "persistent vm %s. Ignoring." % self.name)
+                LOG.warning("Requested MAC address release from "
+                            "persistent vm %s. Ignoring." % self.name)
             else:
-                logging.debug("Releasing MAC addresses for vm %s." % self.name)
+                LOG.debug("Releasing MAC addresses for vm %s." % self.name)
                 for nic_name in self.virtnet.nic_name_list():
                     self.virtnet.free_mac_address(nic_name)
 
@@ -2273,7 +2272,7 @@ class VM(virt_vm.BaseVM):
         if not self.undefine(options=undef_opts):
             raise virt_vm.VMRemoveError("VM '%s' undefine error" % self.name)
         self.destroy(gracefully=False, free_mac_addresses=True)
-        logging.debug("VM '%s' was removed", self.name)
+        LOG.debug("VM '%s' was removed", self.name)
 
     def remove_with_storage(self):
         """
@@ -2366,12 +2365,12 @@ class VM(virt_vm.BaseVM):
                 pid_file_contents = open(pid_file).read()
                 pid = int(pid_file_contents)
             except IOError:
-                logging.error("Could not read %s to get PID", pid_file)
+                LOG.error("Could not read %s to get PID", pid_file)
             except TypeError:
-                logging.error("PID file %s has invalid contents: '%s'",
-                              pid_file, pid_file_contents)
+                LOG.error("PID file %s has invalid contents: '%s'",
+                          pid_file, pid_file_contents)
         else:
-            logging.debug("PID file %s not present", pid_file)
+            LOG.debug("PID file %s not present", pid_file)
 
         return pid
 
@@ -2403,7 +2402,7 @@ class VM(virt_vm.BaseVM):
         :return: Shared memory used by VM (MB)
         """
         if self.is_dead():
-            logging.error("Could not get shared memory info from dead VM.")
+            LOG.error("Could not get shared memory info from dead VM.")
             return None
 
         filename = "/proc/%d/statm" % self.get_pid()
@@ -2420,7 +2419,7 @@ class VM(virt_vm.BaseVM):
         cpu_topology = {}
         vm_pid = self.get_pid()
         if vm_pid is None:
-            logging.error("Fail to get VM pid")
+            LOG.error("Fail to get VM pid")
         else:
             cmdline = open("/proc/%d/cmdline" % vm_pid).read()
             values = re.findall("sockets=(\d+),cores=(\d+),threads=(\d+)",
@@ -2461,7 +2460,7 @@ class VM(virt_vm.BaseVM):
         :param serial: Just use to unify api in virt_vm module.
         :return: A new shell session object.
         """
-        error_context.base_context("rebooting '%s'" % self.name, logging.info)
+        error_context.base_context("rebooting '%s'" % self.name, LOG.info)
         error_context.context("before reboot")
         session = session or self.login(timeout=timeout)
         error_context.context()
@@ -2471,21 +2470,21 @@ class VM(virt_vm.BaseVM):
         else:
             raise virt_vm.VMRebootError("Unknown reboot method: %s" % method)
 
-        error_context.context("waiting for guest to go down", logging.info)
+        error_context.context("waiting for guest to go down", LOG.info)
         if not utils_misc.wait_for(lambda: not
                                    session.is_responsive(timeout=30),
                                    120, 0, 1):
             raise virt_vm.VMRebootError("Guest refuses to go down")
         session.close()
 
-        error_context.context("logging in after reboot", logging.info)
+        error_context.context("logging in after reboot", LOG.info)
         if serial:
             return self.wait_for_serial_login(timeout=timeout)
         return self.wait_for_login(nic_index, timeout=timeout)
 
     def screendump(self, filename, debug=False):
         if debug:
-            logging.debug("Requesting screenshot %s" % filename)
+            LOG.debug("Requesting screenshot %s" % filename)
         return virsh.screenshot(self.name, filename, uri=self.connect_uri)
 
     def start(self, autoconsole=True):
@@ -2495,7 +2494,7 @@ class VM(virt_vm.BaseVM):
         uid_result = virsh.domuuid(self.name, uri=self.connect_uri)
         self.uuid = uid_result.stdout_text.strip()
 
-        logging.debug("Starting vm '%s'", self.name)
+        LOG.debug("Starting vm '%s'", self.name)
         result = virsh.start(self.name, uri=self.connect_uri)
         if not result.exit_status:
             # Wait for the domain to be created
@@ -2511,7 +2510,7 @@ class VM(virt_vm.BaseVM):
             if autoconsole:
                 self.create_serial_console()
         else:
-            logging.error("VM fails to start with:%s", result)
+            LOG.error("VM fails to start with:%s", result)
             raise virt_vm.VMStartError(self.name,
                                        result.stderr_text.strip())
 
@@ -2520,17 +2519,16 @@ class VM(virt_vm.BaseVM):
             try:
                 mac = self.get_virsh_mac_address(index)
                 if 'mac' not in nic:
-                    logging.debug("Updating nic %d with mac %s on vm %s"
-                                  % (index, mac, self.name))
+                    LOG.debug("Updating nic %d with mac %s on vm %s"
+                              % (index, mac, self.name))
                     nic.mac = mac
                 elif nic.mac != mac:
-                    logging.warning("Requested mac %s doesn't match mac %s "
-                                    "as defined for vm %s", nic.mac, mac,
-                                    self.name)
+                    LOG.warning("Requested mac %s doesn't match mac %s "
+                                "as defined for vm %s", nic.mac, mac, self.name)
                 # TODO: Checkout/Set nic_model, nettype, netdst also
             except virt_vm.VMMACAddressMissingError:
-                logging.warning("Nic %d requested by test but not defined for"
-                                " vm %s" % (index, self.name))
+                LOG.warning("Nic %d requested by test but not defined for"
+                            " vm %s" % (index, self.name))
 
     def wait_for_shutdown(self, count=60):
         """
@@ -2547,11 +2545,11 @@ class VM(virt_vm.BaseVM):
             # check every 5 seconds
             if count % 5 == 0:
                 if virsh.is_dead(self.name, uri=self.connect_uri):
-                    logging.debug("Shutdown took %d seconds", timeout - count)
+                    LOG.debug("Shutdown took %d seconds", timeout - count)
                     return True
             count -= 1
             time.sleep(1)
-            logging.debug("Waiting for guest to shutdown %d", count)
+            LOG.debug("Waiting for guest to shutdown %d", count)
         return False
 
     def shutdown(self):
@@ -2562,14 +2560,14 @@ class VM(virt_vm.BaseVM):
             if self.state() != 'shut off':
                 virsh.shutdown(self.name, uri=self.connect_uri)
             if self.wait_for_shutdown():
-                logging.debug("VM %s shut down", self.name)
+                LOG.debug("VM %s shut down", self.name)
                 self.cleanup_serial_console()
                 return True
             else:
-                logging.error("VM %s failed to shut down", self.name)
+                LOG.error("VM %s failed to shut down", self.name)
                 return False
         except process.CmdError:
-            logging.error("VM %s failed to shut down", self.name)
+            LOG.error("VM %s failed to shut down", self.name)
             return False
 
     def pause(self):
@@ -2580,19 +2578,19 @@ class VM(virt_vm.BaseVM):
                     self.name, uri=self.connect_uri, ignore_status=False)
             return True
         except Exception:
-            logging.error("VM %s failed to suspend", self.name)
+            LOG.error("VM %s failed to suspend", self.name)
             return False
 
     def resume(self):
         try:
             virsh.resume(self.name, ignore_status=False, uri=self.connect_uri)
             if self.is_alive():
-                logging.debug("Resumed VM %s", self.name)
+                LOG.debug("Resumed VM %s", self.name)
                 return True
             else:
                 return False
         except process.CmdError as detail:
-            logging.error("Resume VM %s failed:\n%s", self.name, detail)
+            LOG.error("Resume VM %s failed:\n%s", self.name, detail)
             return False
 
     def save_to_file(self, path):
@@ -2602,7 +2600,7 @@ class VM(virt_vm.BaseVM):
         if self.is_dead():
             raise virt_vm.VMStatusError(
                 "Cannot save a VM that is %s" % self.state())
-        logging.debug("Saving VM %s to %s" % (self.name, path))
+        LOG.debug("Saving VM %s to %s" % (self.name, path))
         result = virsh.save(self.name, path, uri=self.connect_uri)
         if result.exit_status:
             raise virt_vm.VMError("Save VM to %s failed.\n"
@@ -2619,7 +2617,7 @@ class VM(virt_vm.BaseVM):
         if self.is_alive():
             raise virt_vm.VMStatusError(
                 "Can not restore VM that is %s" % self.state())
-        logging.debug("Restoring VM from %s" % path)
+        LOG.debug("Restoring VM from %s" % path)
         result = virsh.restore(path, uri=self.connect_uri)
         if result.exit_status:
             raise virt_vm.VMError("Restore VM from %s failed.\n"
@@ -2637,7 +2635,7 @@ class VM(virt_vm.BaseVM):
         if self.is_dead():
             raise virt_vm.VMStatusError(
                 "Cannot save a VM that is %s" % self.state())
-        logging.debug("Managed saving VM %s" % self.name)
+        LOG.debug("Managed saving VM %s" % self.name)
         result = virsh.managedsave(self.name, uri=self.connect_uri)
         if result.exit_status:
             raise virt_vm.VMError("Managed save VM failed.\n"
@@ -2654,7 +2652,7 @@ class VM(virt_vm.BaseVM):
         if self.is_dead():
             raise virt_vm.VMStatusError(
                 "Cannot pmsuspend a VM that is %s" % self.state())
-        logging.debug("PM suspending VM %s" % self.name)
+        LOG.debug("PM suspending VM %s" % self.name)
         result = virsh.dompmsuspend(self.name, target=target,
                                     duration=duration, uri=self.connect_uri)
         if result.exit_status:
@@ -2670,7 +2668,7 @@ class VM(virt_vm.BaseVM):
         if self.is_dead():
             raise virt_vm.VMStatusError(
                 "Cannot pmwakeup a VM that is %s" % self.state())
-        logging.debug("PM waking up VM %s" % self.name)
+        LOG.debug("PM waking up VM %s" % self.name)
         result = virsh.dompmwakeup(self.name, uri=self.connect_uri)
         if result.exit_status:
             raise virt_vm.VMError("PM waking up VM failed.\n"
@@ -2760,7 +2758,7 @@ class VM(virt_vm.BaseVM):
                                   uri=self.connect_uri)
         blklist = result.stdout_text.strip().splitlines()
         if result.exit_status != 0:
-            logging.info("Get vm devices failed.")
+            LOG.info("Get vm devices failed.")
         else:
             blklist = blklist[2:]
             for line in blklist:
@@ -2794,7 +2792,7 @@ class VM(virt_vm.BaseVM):
                                   uri=self.connect_uri)
         blklist = result.stdout_text.strip().splitlines()
         if result.exit_status != 0:
-            logging.info("Get vm devices failed.")
+            LOG.info("Get vm devices failed.")
         else:
             blklist = blklist[2:]
             linesplit = blklist[0].split(None, 4)
@@ -2810,7 +2808,7 @@ class VM(virt_vm.BaseVM):
                                   uri=self.connect_uri)
         details = result.stdout_text.strip().splitlines()
         if result.exit_status != 0:
-            logging.info("Get vm device details failed.")
+            LOG.info("Get vm device details failed.")
         else:
             for line in details:
                 attrs = line.split(":")
@@ -2839,7 +2837,7 @@ class VM(virt_vm.BaseVM):
         """
         result = virsh.domjobabort(self.name, ignore_status=True)
         if result.exit_status:
-            logging.debug(result)
+            LOG.debug(result)
             return False
         return True
 
@@ -2864,7 +2862,7 @@ class VM(virt_vm.BaseVM):
                 if key.count("type"):
                     return value.strip()
         else:
-            logging.error(jobresult)
+            LOG.error(jobresult)
         return False
 
     def get_pci_devices(self, device_str=None):
@@ -2931,7 +2929,7 @@ class VM(virt_vm.BaseVM):
             mac = session.cmd_output(cmd)
         except Exception as detail:
             session.close()
-            logging.error(str(detail))
+            LOG.error(str(detail))
             return None
         session.close()
         return mac.strip()
@@ -2950,8 +2948,8 @@ class VM(virt_vm.BaseVM):
                                       name)
         except Exception as exception_detail:
             if ignore_status:
-                logging.error("When install: %s\nError happened: %s\n",
-                              name, exception_detail)
+                LOG.error("When install: %s\nError happened: %s\n",
+                          name, exception_detail)
             else:
                 raise exception_detail
         finally:
@@ -2969,7 +2967,7 @@ class VM(virt_vm.BaseVM):
             if not ignore_status:
                 session.close()
                 raise virt_vm.VMError("Removal of package %s failed" % name)
-            logging.error("Removal of package %s failed", name)
+            LOG.error("Removal of package %s failed", name)
         session.close()
 
     def prepare_guest_agent(self, prepare_xml=True, channel=True, start=True,
@@ -3104,7 +3102,7 @@ class VM(virt_vm.BaseVM):
         selinux_force = self.params.get("selinux_force", "no") == "yes"
         vm_distro = self.get_distro()
         if vm_distro.lower() == 'ubuntu' and not selinux_force:
-            logging.warning("Ubuntu doesn't support selinux by default")
+            LOG.warning("Ubuntu doesn't support selinux by default")
             return
         self.install_package('selinux-policy')
         self.install_package('selinux-policy-targeted')
@@ -3121,7 +3119,7 @@ class VM(virt_vm.BaseVM):
         try:
             current_mode = self.getenforce()
             if current_mode == 'Disabled':
-                logging.warning("VM SELinux disabled. Can't set mode.")
+                LOG.warning("VM SELinux disabled. Can't set mode.")
                 return
             elif current_mode != target_mode:
                 cmd = "setenforce %s" % mode
@@ -3130,6 +3128,6 @@ class VM(virt_vm.BaseVM):
                     raise virt_vm.VMError(
                         "Set SELinux mode failed:\n%s" % output)
             else:
-                logging.debug("VM SELinux mode don't need change.")
+                LOG.debug("VM SELinux mode don't need change.")
         finally:
             session.close()

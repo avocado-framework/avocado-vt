@@ -22,6 +22,9 @@ from virttest import utils_test
 from virttest.utils_test import libvirt
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
+
 # Migration Relative functions##############
 class MigrationTest(object):
 
@@ -64,13 +67,12 @@ class MigrationTest(object):
             if not libvirt.check_vm_state(vm.name, vm_state, uri=uri):
                 raise exceptions.TestFail("Migrated VMs failed to be in %s "
                                           "state at destination" % vm_state)
-            logging.info("Guest state is '%s' at destination is as expected",
-                         vm_state)
+            LOG.info("Guest state is '%s' at destination is as expected",
+                     vm_state)
             if "offline" not in params.get("migrate_options", params.get("virsh_migrate_options", "")):
                 if uptime:
                     vm_uptime = vm.uptime(connect_uri=uri)
-                    logging.info("uptime of migrated VM %s: %s", vm.name,
-                                 vm_uptime)
+                    LOG.info("uptime of migrated VM %s: %s", vm.name, vm_uptime)
                     if vm_uptime < uptime[vm.name]:
                         raise exceptions.TestFail("vm went for a reboot during "
                                                   "migration")
@@ -123,9 +125,9 @@ class MigrationTest(object):
             # and raise if VM fails to respond
             vm_ip[vm.name] = vm.get_address(session=server_session,
                                             timeout=240)
-            logging.info("Check VM network connectivity after migrating")
+            LOG.info("Check VM network connectivity after migrating")
         else:
-            logging.info("Check VM network connectivity before migration")
+            LOG.info("Check VM network connectivity before migration")
             if not vm.is_alive():
                 vm.start()
             vm.wait_for_login()
@@ -133,9 +135,9 @@ class MigrationTest(object):
             params["vm_ip_dict"] = vm_ip
         s_ping, o_ping = utils_net.ping(vm_ip[vm.name], count=ping_count,
                                         timeout=ping_timeout,
-                                        output_func=logging.debug,
+                                        output_func=LOG.debug,
                                         session=server_session)
-        logging.info(o_ping)
+        LOG.info(o_ping)
         if uri and uri != 'qemu:///system':
             vm.connect_uri = uri_backup
             if server_session:
@@ -143,8 +145,8 @@ class MigrationTest(object):
         if s_ping != 0:
             if uri:
                 if "offline" in params.get("migrate_options", ""):
-                    logging.info("Offline Migration: %s will not responded to "
-                                 "ping as expected", vm.name)
+                    LOG.info("Offline Migration: %s will not responded to "
+                             "ping as expected", vm.name)
                     return
             func("%s did not respond after %d sec." % (vm.name, ping_timeout))
 
@@ -176,11 +178,11 @@ class MigrationTest(object):
             etime = int(time.time())
             self.mig_time[vm.name] = etime - stime
             if self.ret.exit_status != 0:
-                logging.debug("Migration to %s returns failed exit status %d",
-                              desturi, self.ret.exit_status)
+                LOG.debug("Migration to %s returns failed exit status %d",
+                          desturi, self.ret.exit_status)
                 is_error = True
         except process.CmdError as detail:
-            logging.error("Migration to %s failed:\n%s", desturi, detail)
+            LOG.error("Migration to %s failed:\n%s", desturi, detail)
             is_error = True
         finally:
             if is_error is True:
@@ -206,7 +208,7 @@ class MigrationTest(object):
         try:
             utils_path.find_command("firewall-cmd")
         except utils_path.CmdNotFoundError:
-            logging.debug("Using iptables for replacement")
+            LOG.debug("Using iptables for replacement")
             use_firewall_cmd = False
 
         if use_firewall_cmd:
@@ -312,7 +314,7 @@ class MigrationTest(object):
                                                      auto_close=True,
                                                      uri=srcuri)
             virsh_event_session.sendline(cmd)
-            logging.debug("Begin to collect domain events...")
+            LOG.debug("Begin to collect domain events...")
             return virsh_event_session
 
         def _need_collect_events(funcs_to_run):
@@ -367,10 +369,10 @@ class MigrationTest(object):
                 one_func(vm.name, uri=srcuri, debug=True)
             else:
                 if 'func_params' in args:
-                    logging.debug("Run function {} with parameters".format(one_func))
+                    LOG.debug("Run function {} with parameters".format(one_func))
                     one_func(args['func_params'])
                 else:
-                    logging.debug("Run function {}".format(one_func))
+                    LOG.debug("Run function {}".format(one_func))
                     one_func()
 
         def _run_complex_func(vm, one_func, virsh_event_session=None):
@@ -383,7 +385,7 @@ class MigrationTest(object):
             :raises: exceptions.TestError if any error happens
             """
 
-            logging.debug("Handle function invoking:%s", one_func)
+            LOG.debug("Handle function invoking:%s", one_func)
             before_vm_pause = 'yes' == one_func.get('before_pause', 'no')
             after_event = one_func.get('after_event')
             before_event = one_func.get('before_event')
@@ -393,14 +395,14 @@ class MigrationTest(object):
                                            "events is not provided")
 
             if after_event:
-                logging.debug("Below events are received:"
-                              "%s", virsh_event_session.get_stripped_output())
+                LOG.debug("Below events are received:"
+                          "%s", virsh_event_session.get_stripped_output())
                 if not utils_misc.wait_for(
                         lambda: re.findall(after_event,
                                            virsh_event_session.get_stripped_output()), 30):
                     raise exceptions.TestError("Unable to find "
                                                "event {}".format(after_event))
-                logging.debug("Receive the event '{}'".format(after_event))
+                LOG.debug("Receive the event '{}'".format(after_event))
             # If 'before_event' is provided, then 'after_event' must be provided
             if before_event and re.findall(before_event,
                                            virsh_event_session.get_stripped_output()):
@@ -421,11 +423,11 @@ class MigrationTest(object):
             func_param = one_func.get("func_param")
             if func_param:
                 #one_param_dict = args['multi_func_params'][func]
-                logging.debug("Run function {} with "
-                              "parameters '{}'".format(func, func_param))
+                LOG.debug("Run function {} with "
+                          "parameters '{}'".format(func, func_param))
                 self.func_ret.update({func: func(func_param)})
             else:
-                logging.debug("Run function {}".format(func))
+                LOG.debug("Run function {}".format(func))
                 self.func_ret.update({func: func()})
 
         def _run_funcs(vm, funcs_to_run, before_pause, virsh_event_session=None):
@@ -444,8 +446,8 @@ class MigrationTest(object):
                     if not before_pause:
                         _run_simple_func(vm, one_func)
                     else:
-                        logging.error("Only support to run the function "
-                                      "after guest is paused")
+                        LOG.error("Only support to run the function "
+                                  "after guest is paused")
                 elif isinstance(one_func, dict):
                     before_vm_pause = 'yes' == one_func.get('before_pause', 'no')
                     if before_vm_pause == before_pause:
@@ -494,18 +496,18 @@ class MigrationTest(object):
                     migrate_options=migrate_options.strip())
 
                 if migration_started:
-                    logging.info("Migration started for %s", vm.name)
+                    LOG.info("Migration started for %s", vm.name)
                     time.sleep(3)  # To avoid executing the command lines before starting migration
                     _run_funcs(vm, funcs_to_run, before_pause=False,
                                virsh_event_session=virsh_event_session)
                 else:
-                    logging.error("Migration failed to start for %s", vm.name)
+                    LOG.error("Migration failed to start for %s", vm.name)
             eclipse_time = int(time.time()) - stime
-            logging.debug("start_time:%d, eclipse_time:%d", stime, eclipse_time)
+            LOG.debug("start_time:%d, eclipse_time:%d", stime, eclipse_time)
             if eclipse_time < thread_timeout:
                 migration_thread.join(thread_timeout - eclipse_time)
             if migration_thread.is_alive():
-                logging.error("Migrate %s timeout.", migration_thread)
+                LOG.error("Migrate %s timeout.", migration_thread)
                 self.RET_LOCK.acquire()
                 self.RET_MIGRATION = False
                 self.RET_LOCK.release()
@@ -543,7 +545,7 @@ class MigrationTest(object):
                 thread2.join(thread_timeout)
                 vm_remote = vm
                 if thread1.is_alive() or thread1.is_alive():
-                    logging.error("Cross migrate timeout.")
+                    LOG.error("Cross migrate timeout.")
                     self.RET_LOCK.acquire()
                     self.RET_MIGRATION = False
                     self.RET_LOCK.release()
@@ -563,14 +565,14 @@ class MigrationTest(object):
             for thread in migration_threads:
                 thread.join(thread_timeout)
                 if thread.is_alive():
-                    logging.error("Migrate %s timeout.", thread)
+                    LOG.error("Migrate %s timeout.", thread)
                     self.RET_LOCK.acquire()
                     self.RET_MIGRATION = False
                     self.RET_LOCK.release()
         if not self.RET_MIGRATION and not ignore_status:
             raise exceptions.TestFail()
 
-        logging.info("Checking migration result...")
+        LOG.info("Checking migration result...")
         self.check_result(self.ret, args)
 
     def cleanup_dest_vm(self, vm, srcuri, desturi):
@@ -598,7 +600,7 @@ class MigrationTest(object):
         try:
             self.cleanup_dest_vm(vm, vm.connect_uri, desturi)
         except Exception as err:
-            logging.error(err)
+            LOG.error(err)
         if vm.is_alive():
             vm.destroy(gracefully=False)
 
@@ -696,8 +698,8 @@ class MigrationTest(object):
         if not result:
             raise exceptions.TestError("No migration result is returned.")
 
-        logging.info("Migration out: %s", result.stdout_text.strip())
-        logging.info("Migration error: %s", result.stderr_text.strip())
+        LOG.info("Migration out: %s", result.stdout_text.strip())
+        LOG.info("Migration error: %s", result.stderr_text.strip())
 
         if status_error:  # Migration should fail
             if err_msg:   # Special error messages are expected
@@ -707,10 +709,10 @@ class MigrationTest(object):
                                               % (err_msg,
                                                  result.stderr_text.strip()))
                 else:
-                    logging.debug("It is the expected error message")
+                    LOG.debug("It is the expected error message")
             else:
                 if int(result.exit_status) != 0:
-                    logging.debug("Migration failure is expected result")
+                    LOG.debug("Migration failure is expected result")
                 else:
                     raise exceptions.TestFail("Migration success is unexpected result")
         else:
@@ -731,7 +733,7 @@ class MigrationTest(object):
 
         pid = utils_misc.wait_for(_get_pid, 30)
         if utils_misc.safe_kill(pid, sig):
-            logging.info("Succeed to cancel migration: [%s].", pid.strip())
+            LOG.info("Succeed to cancel migration: [%s].", pid.strip())
         else:
             raise exceptions.TestError("Fail to cancel migration: [%s]"
                                        % pid.strip())
@@ -780,10 +782,10 @@ class MigrationTest(object):
             old_speed = virsh.migrate_getspeed(vm_name,
                                                extra=extra_option,
                                                **virsh_args)
-            logging.debug("Current %s migration speed is %s "
-                          "MiB/s\n", extra_option, old_speed.stdout_text.strip())
-            logging.debug("Set %s migration speed to %d "
-                          "MiB/s\n", extra_option, to_speed)
+            LOG.debug("Current %s migration speed is %s "
+                      "MiB/s\n", extra_option, old_speed.stdout_text.strip())
+            LOG.debug("Set %s migration speed to %d "
+                      "MiB/s\n", extra_option, to_speed)
             virsh.migrate_setspeed(vm_name, to_speed,
                                    extra=extra_option,
                                    **virsh_args)
@@ -796,10 +798,10 @@ class MigrationTest(object):
 
         if not libvirt_version.version_compare(5, 0, 0):
             if mode == 'both':
-                logging.warning("%s Only precopy speed is set.", warning_msg)
+                LOG.warning("%s Only precopy speed is set.", warning_msg)
                 mode = 'precopy'
             if mode == 'postcopy':
-                logging.warning("%s Skipping", warning_msg)
+                LOG.warning("%s Skipping", warning_msg)
                 return
         if mode == 'both':
             _set_speed()

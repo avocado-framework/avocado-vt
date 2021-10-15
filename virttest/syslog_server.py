@@ -10,6 +10,8 @@ except ImportError:
 SYSLOG_PORT = 514
 DEFAULT_FORMAT = '[AutotestSyslog (%s.%s)] %s'
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def set_default_format(message_format):
     '''
@@ -128,7 +130,7 @@ class RequestHandler(socketserver.BaseRequestHandler):
             pri = int(match.groups()[0])
             msg = match.groups()[1]
             (facility_name, priority_name) = self.decodeFacilityPriority(pri)
-            logging.debug(message_format, facility_name, priority_name, msg)
+            LOG.debug(message_format, facility_name, priority_name, msg)
 
 
 class RequestHandlerTcp(RequestHandler):
@@ -182,5 +184,5 @@ def syslog_server(address='', port=SYSLOG_PORT,
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    LOG.setLevel(logging.DEBUG)
     syslog_server()

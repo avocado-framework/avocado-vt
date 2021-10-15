@@ -11,6 +11,8 @@ from .. import utils_libguestfs as lgf
 from .. import qemu_storage
 from ..libvirt_xml import vm_xml, xcepts
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class VTError(Exception):
     pass
@@ -60,7 +62,7 @@ def preprocess_image(params):
     image = qemu_storage.QemuImg(params, image_dir, image_name)
     image_path, _ = image.create(params)
 
-    logging.info("Image created in %s" % image_path)
+    LOG.info("Image created in %s" % image_path)
     return image_path
 
 
@@ -101,7 +103,7 @@ def attach_additional_disk(vm, disksize, targetdev):
     :param disksize: size of attached disk
     :param targetdev: target of disk device
     """
-    logging.info("Attaching disk...")
+    LOG.info("Attaching disk...")
     disk_path = os.path.join(data_dir.get_tmp_dir(), targetdev)
     cmd = "qemu-img create %s %s" % (disk_path, disksize)
     status, output = process.getstatusoutput(cmd)
@@ -126,11 +128,11 @@ def define_new_vm(vm_name, new_name):
         vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
         vmxml.vm_name = new_name
         del vmxml.uuid
-        logging.debug(str(vmxml))
+        LOG.debug(str(vmxml))
         vmxml.define()
         return True
     except xcepts.LibvirtXMLError as detail:
-        logging.error(detail)
+        LOG.error(detail)
         return False
 
 
@@ -142,13 +144,13 @@ def cleanup_vm(vm_name=None, disk=None):
         if vm_name is not None:
             virsh.undefine(vm_name)
     except process.CmdError as detail:
-        logging.error("Undefine %s failed:%s", vm_name, detail)
+        LOG.error("Undefine %s failed:%s", vm_name, detail)
     try:
         if disk is not None:
             if os.path.exists(disk):
                 os.remove(disk)
     except IOError as detail:
-        logging.error("Remove disk %s failed:%s", disk, detail)
+        LOG.error("Remove disk %s failed:%s", disk, detail)
 
 
 class VirtTools(object):
@@ -205,7 +207,7 @@ class VirtTools(object):
         :param newname:if newname is None,
                        create a new name with clone added.
         """
-        logging.info("Cloning...")
+        LOG.info("Cloning...")
         # Init options for virt-clone
         options = {}
         autoclone = bool(self.params.get("autoclone", False))
@@ -233,7 +235,7 @@ class VirtTools(object):
                                     autoclone, **options)
         if result.exit_status:
             error_info = "Clone %s to %s failed." % (self.oldvm.name, newname)
-            logging.error(error_info)
+            LOG.error(error_info)
             return (False, result)
         else:
             self.newvm.name = newname
@@ -246,9 +248,9 @@ class VirtTools(object):
         """
         Sparsify a disk
         """
-        logging.info("Sparsifing...")
+        LOG.info("Sparsifing...")
         if self.indisk is None:
-            logging.error("No disk can be sparsified.")
+            LOG.error("No disk can be sparsified.")
             return (False, "Input disk is None.")
         if self.outdisk is None:
             self.outdisk = "%s-sparsify" % self.indisk
@@ -259,7 +261,7 @@ class VirtTools(object):
         if result.exit_status:
             error_info = "Sparsify %s to %s failed." % (self.indisk,
                                                         self.outdisk)
-            logging.error(error_info)
+            LOG.error(error_info)
             return (False, result)
         return (True, result)
 
@@ -272,7 +274,7 @@ class VirtTools(object):
         2.delete uuid
         3.replace disk
         """
-        logging.info("Define a new vm:")
+        LOG.info("Define a new vm:")
         old_vm_name = self.oldvm.name
         new_vm_name = "%s-vtnewdisk" % old_vm_name
         self.newvm.name = new_vm_name
@@ -284,10 +286,10 @@ class VirtTools(object):
             vmxml.uuid = ""
             vmxml.set_xml(re.sub(old_disk, new_disk,
                                  str(vmxml.__dict_get__('xml'))))
-            logging.debug(vmxml.__dict_get__('xml'))
+            LOG.debug(vmxml.__dict_get__('xml'))
             vmxml.define()
         except xcepts.LibvirtXMLError as detail:
-            logging.debug(detail)
+            LOG.debug(detail)
             return (False, detail)
         return (True, vmxml.xml)
 
@@ -296,7 +298,7 @@ class VirtTools(object):
         """
         Expand vm's filesystem with virt-resize.
         """
-        logging.info("Resizing vm's disk...")
+        LOG.info("Resizing vm's disk...")
         options = {}
         options['resize'] = "/dev/sda%s" % resize_part_num
         options['resized_size'] = resized_size
@@ -310,7 +312,7 @@ class VirtTools(object):
         options['timeout'] = int(self.params.get("timeout", 480))
         result = lgf.virt_resize_cmd(self.indisk, self.outdisk, **options)
         if result.exit_status:
-            logging.error(result)
+            LOG.error(result)
             return (False, result)
         return (True, self.outdisk)
 
@@ -320,7 +322,7 @@ class VirtTools(object):
 
         :param disk_or_domain: if it is None, use default vm in params
         """
-        logging.info("Mounting filesystems...")
+        LOG.info("Mounting filesystems...")
         if disk_or_domain is None:
             disk_or_domain = self.oldvm.name
         if not os.path.isdir(mountpoint):
@@ -342,7 +344,7 @@ class VirtTools(object):
         if result.exit_status:
             error_info = "Mount %s to %s failed." % (disk_or_domain,
                                                      mountpoint)
-            logging.error(result)
+            LOG.error(result)
             return (False, error_info)
         return (True, mountpoint)
 
@@ -352,12 +354,12 @@ class VirtTools(object):
         """
         Write content to file with guestmount
         """
-        logging.info("Creating file...")
+        LOG.info("Creating file...")
         gms, gmo = self.guestmount(mountpoint, vm_ref)
         if gms is True:
             mountpoint = gmo
         else:
-            logging.error("Create file %s failed.", path)
+            LOG.error("Create file %s failed.", path)
             return (False, gmo)
 
         # file's path on host's mountpoint
@@ -370,9 +372,9 @@ class VirtTools(object):
             fd.write(content)
             fd.close()
         except IOError as detail:
-            logging.error(detail)
+            LOG.error(detail)
             return (False, detail)
-        logging.info("Create file %s successfully", file_path)
+        LOG.info("Create file %s successfully", file_path)
         # Cleanup created file
         if cleanup:
             process.run("rm -f %s" % file_path, ignore_status=True)
@@ -467,8 +469,8 @@ class VirtTools(object):
         sys_info = {}
         result = lgf.virt_inspector(vm_ref, ignore_status=True)
         if result.exit_status:
-            logging.error("Get %s information with inspector(2) failed:\n%s",
-                          vm_ref, result)
+            LOG.error("Get %s information with inspector(2) failed:\n%s",
+                      vm_ref, result)
             return sys_info
         # Analyse output to get information
         try:
@@ -477,7 +479,7 @@ class VirtTools(object):
             if os_root is None:
                 raise VTXMLParseError("operatingsystem", os_root)
         except (IOError, VTXMLParseError) as detail:
-            logging.error(detail)
+            LOG.error(detail)
             return sys_info
         sys_info['root'] = os_root.findtext("root")
         sys_info['name'] = os_root.findtext("name")
@@ -504,7 +506,7 @@ class VirtTools(object):
                 fs_detail['uuid'] = node.findtext("uuid")
                 filesystems[fs_device] = fs_detail
         sys_info['filesystems'] = filesystems
-        logging.debug("VM information:\n%s", sys_info)
+        LOG.debug("VM information:\n%s", sys_info)
         return sys_info
 
 
@@ -537,7 +539,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         getroot_result = self.inspect_os()
         roots_list = getroot_result.stdout_text.splitlines()
         if getroot_result.exit_status or not len(roots_list):
-            logging.error("Get root failed:%s", getroot_result)
+            LOG.error("Get root failed:%s", getroot_result)
             return (False, getroot_result)
         return (True, roots_list[0].strip())
 
@@ -545,11 +547,11 @@ class GuestfishTools(lgf.GuestfishPersistent):
         """
         Analyse /etc/redhat-release
         """
-        logging.info("Analysing /etc/redhat-release...")
+        LOG.info("Analysing /etc/redhat-release...")
         release_result = self.cat("/etc/redhat-release")
-        logging.debug(release_result)
+        LOG.debug(release_result)
         if release_result.exit_status:
-            logging.error("Cat /etc/redhat-release failed")
+            LOG.error("Cat /etc/redhat-release failed")
             return (False, release_result)
 
         release_type = {'rhel': "Red Hat Enterprise Linux",
@@ -563,11 +565,11 @@ class GuestfishTools(lgf.GuestfishPersistent):
         """
         Create a new file to vm with guestfish
         """
-        logging.info("Creating file %s in vm...", path)
+        LOG.info("Creating file %s in vm...", path)
         write_result = self.write(path, content)
         if write_result.exit_status:
-            logging.error("Create '%s' with content '%s' failed:%s",
-                          path, content, write_result)
+            LOG.error("Create '%s' with content '%s' failed:%s",
+                      path, content, write_result)
             return False
         return True
 
@@ -577,7 +579,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         """
         list_result = self.part_list(device)
         if list_result.exit_status:
-            logging.error("List partition info failed:%s", list_result)
+            LOG.error("List partition info failed:%s", list_result)
             return (False, list_result)
         list_lines = list_result.stdout_text.splitlines()
         # This dict is a struct like this: {key:{a dict}, key:{a dict}}
@@ -607,7 +609,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
 
             if index != -1:
                 partitions[index] = part_details
-        logging.info(partitions)
+        LOG.info(partitions)
         return (True, partitions)
 
     def get_part_size(self, part_num):
@@ -639,7 +641,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
             return (False, "partition_type is incorrect, support [physical,lvm]")
 
         if partition_type == "lvm":
-            logging.info("create lvm partition...")
+            LOG.info("create lvm partition...")
             pv_name = self.params.get("pv_name", "/dev/sdb")
             vg_name = self.params.get("vg_name", "vol_test")
             lv_name = self.params.get("lv_name", "vol_file")
@@ -654,7 +656,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
             self.lvcreate(lv_name, vg_name, lv_size)
 
         elif partition_type == "physical":
-            logging.info("create physical partition...")
+            LOG.info("create physical partition...")
             pv_name = self.params.get("pv_name", "/dev/sdb")
             mount_point = pv_name + "1"
 
@@ -669,7 +671,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
                     fs_type, mount_point, "blocksize:%s" % (blocksize))
                 self.vfs_type(mount_point)
             else:
-                logging.error("with_blocksize is set but blocksize not given")
+                LOG.error("with_blocksize is set but blocksize not given")
                 self.umount_all()
                 self.sync()
                 return (False, "with_blocksize is set but blocksize not given")
@@ -692,14 +694,14 @@ class GuestfishTools(lgf.GuestfishPersistent):
         Default partition section is whole disk(1~-1).
         And return its part name if part add succeed.
         """
-        logging.info("Creating a new partition on %s...", device)
+        LOG.info("Creating a new partition on %s...", device)
         init_result = self.part_init(device, "msdos")
         if init_result.exit_status:
-            logging.error("Init disk failed:%s", init_result)
+            LOG.error("Init disk failed:%s", init_result)
             return (False, init_result)
         add_result = self.part_add(device, "p", start, end)
         if add_result.exit_status:
-            logging.error("Add a partition failed:%s", add_result)
+            LOG.error("Add a partition failed:%s", add_result)
             return (False, add_result)
 
         # Get latest created part num to return
@@ -722,14 +724,14 @@ class GuestfishTools(lgf.GuestfishPersistent):
         Create only one msdos partition in given device.
         And return its part name if part add succeed.
         """
-        logging.info("Creating one partition of whole %s...", device)
+        LOG.info("Creating one partition of whole %s...", device)
         init_result = self.part_init(device, "msdos")
         if init_result.exit_status:
-            logging.error("Init disk failed:%s", init_result)
+            LOG.error("Init disk failed:%s", init_result)
             return (False, init_result)
         disk_result = self.part_disk(device, "msdos")
         if disk_result.exit_status:
-            logging.error("Init disk failed:%s", disk_result)
+            LOG.error("Init disk failed:%s", disk_result)
             return (False, disk_result)
 
         # Get latest created part num to return
@@ -779,10 +781,10 @@ class GuestfishTools(lgf.GuestfishPersistent):
         """
         Get files md5 value.
         """
-        logging.info("Computing %s's md5...", path)
+        LOG.info("Computing %s's md5...", path)
         md5_result = self.checksum("md5", path)
         if md5_result.exit_status:
-            logging.error("Check %s's md5 failed:%s", path, md5_result)
+            LOG.error("Check %s's md5 failed:%s", path, md5_result)
             return (False, md5_result)
         return (True, md5_result.stdout_text.strip())
 
@@ -795,9 +797,9 @@ class GuestfishTools(lgf.GuestfishPersistent):
         if not vm_ref:
             vm_ref = self.params.get("disk_img")
             if not vm_ref:
-                logging.error("No object to edit.")
+                LOG.error("No object to edit.")
                 return False
-        logging.info("Resetting %s's mac to %s", vm_ref, iface_mac)
+        LOG.info("Resetting %s's mac to %s", vm_ref, iface_mac)
 
         # Fix file which includes interface devices information
         # Default is /etc/udev/rules.d/70-persistent-net.rules
@@ -816,15 +818,15 @@ class GuestfishTools(lgf.GuestfishPersistent):
                                            expr=edit_expr, debug=True,
                                            ignore_status=True)
                 if result.exit_status:
-                    logging.error("Edit %s failed:%s", devices_file, result)
+                    LOG.error("Edit %s failed:%s", devices_file, result)
                     return False
             except lgf.LibguestfsCmdError as detail:
-                logging.error("Edit %s failed:%s", devices_file, detail)
+                LOG.error("Edit %s failed:%s", devices_file, detail)
                 return False
             self.new_session()
             # Just to keep output looking better
             self.is_ready()
-            logging.debug(self.cat(devices_file))
+            LOG.debug(self.cat(devices_file))
 
         # Fix interface file
         for ifcfg_file in ifcfg_files:
@@ -838,15 +840,15 @@ class GuestfishTools(lgf.GuestfishPersistent):
                                            expr=edit_expr, debug=True,
                                            ignore_status=True)
                 if result.exit_status:
-                    logging.error("Edit %s failed:%s", ifcfg_file, result)
+                    LOG.error("Edit %s failed:%s", ifcfg_file, result)
                     return False
             except lgf.LibguestfsCmdError as detail:
-                logging.error("Edit %s failed:%s", ifcfg_file, detail)
+                LOG.error("Edit %s failed:%s", ifcfg_file, detail)
                 return False
             self.new_session()
             # Just to keep output looking better
             self.is_ready()
-            logging.debug(self.cat(ifcfg_file))
+            LOG.debug(self.cat(ifcfg_file))
         return True
 
     def copy_ifcfg_back(self):
@@ -859,6 +861,6 @@ class GuestfishTools(lgf.GuestfishPersistent):
             if is_need.stdout.strip() == b"false":
                 cp_result = self.cp(bak_file, ifcfg_file)
                 if cp_result.exit_status:
-                    logging.warn("Recover ifcfg file failed:%s", cp_result)
+                    LOG.warn("Recover ifcfg file failed:%s", cp_result)
                     return False
         return True

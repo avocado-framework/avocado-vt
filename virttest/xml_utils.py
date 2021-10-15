@@ -52,6 +52,8 @@ TMPSFX = '.xml'
 EXSFX = '_exception_retained'
 ENCODING = "UTF-8"
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class TempXMLFile(object):
 
@@ -78,7 +80,7 @@ class TempXMLFile(object):
         """
         Inform user that file was not auto-deleted due to exceptional exit.
         """
-        logging.info("Retaining %s", self.name + EXSFX)
+        LOG.info("Retaining %s", self.name + EXSFX)
 
     def unlink(self):
         """
@@ -88,7 +90,7 @@ class TempXMLFile(object):
             os.unlink(self.name)
             self.close()
         except (OSError, IOError):
-            logging.info("unlink file fail")
+            LOG.info("unlink file fail")
 
     def close(self):
         """
@@ -97,7 +99,7 @@ class TempXMLFile(object):
         try:
             self.open_file.close()
         except IOError:
-            logging.info("close file fail")
+            LOG.info("close file fail")
 
     def seek(self, offset, whence=0):
         """
@@ -106,7 +108,7 @@ class TempXMLFile(object):
         try:
             self.open_file.seek(offset, whence)
         except IOError:
-            logging.info("seek file fail")
+            LOG.info("seek file fail")
 
     def flush(self):
         """
@@ -115,7 +117,7 @@ class TempXMLFile(object):
         try:
             self.open_file.flush()
         except IOError:
-            logging.info("flush file fail")
+            LOG.info("flush file fail")
 
     def truncate(self, size):
         """
@@ -124,7 +126,7 @@ class TempXMLFile(object):
         try:
             self.open_file.truncate(size)
         except IOError:
-            logging.info("truncate file fail")
+            LOG.info("truncate file fail")
 
     def tell(self):
         """
@@ -133,7 +135,7 @@ class TempXMLFile(object):
         try:
             return self.open_file.tell()
         except IOError:
-            logging.info("tell file fail")
+            LOG.info("tell file fail")
 
     def write(self, content):
         """
@@ -142,7 +144,7 @@ class TempXMLFile(object):
         try:
             self.open_file.write(content)
         except IOError:
-            logging.info("write file fail")
+            LOG.info("write file fail")
 
     def read(self, size=None):
         """
@@ -154,7 +156,7 @@ class TempXMLFile(object):
             else:
                 return self.open_file.read()
         except IOError:
-            logging.info("read file fail")
+            LOG.info("read file fail")
 
     def readline(self, size=None):
         """
@@ -166,7 +168,7 @@ class TempXMLFile(object):
             else:
                 return self.open_file.readline()
         except IOError:
-            logging.info("readline file fail")
+            LOG.info("readline file fail")
 
     def readlines(self, size=None):
         """
@@ -178,7 +180,7 @@ class TempXMLFile(object):
             else:
                 return self.open_file.readlines()
         except IOError:
-            logging.info("readlines file fail")
+            LOG.info("readlines file fail")
 
     def __exit__(self, exc_type, exc_value, traceback):
         """
@@ -228,8 +230,8 @@ class XMLBackup(TempXMLFile):
         """
         Inform user that file was not auto-deleted due to exceptional exit.
         """
-        logging.info("Retaining backup of %s in %s", self.sourcefilename,
-                     self.name + EXSFX)
+        LOG.info("Retaining backup of %s in %s", self.sourcefilename,
+                 self.name + EXSFX)
 
     def backup(self):
         """

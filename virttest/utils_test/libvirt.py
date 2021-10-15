@@ -84,6 +84,8 @@ from virttest.libvirt_xml.devices import rng
 
 ping = utils_net.ping
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class LibvirtNetwork(object):
 
@@ -375,7 +377,7 @@ def check_blockjob(vm_name, target, check_point="none", value="0"):
     :return: Boolean value, true for pass, false for fail
     """
     if check_point not in ["progress", "bandwidth", "none"]:
-        logging.error("Check point must be: progress, bandwidth or none")
+        LOG.error("Check point must be: progress, bandwidth or none")
         return False
     try:
         cmd_result = virsh.blockjob(
@@ -384,15 +386,15 @@ def check_blockjob(vm_name, target, check_point="none", value="0"):
         err = cmd_result.stderr_text.strip()
         status = cmd_result.exit_status
     except Exception as e:
-        logging.error("Error occurred: %s", e)
+        LOG.error("Error occurred: %s", e)
         return False
     if status:
-        logging.error("Run blockjob command fail")
+        LOG.error("Run blockjob command fail")
         return False
     # libvirt print block job progress to stderr
     if check_point == 'none':
         if len(err):
-            logging.error("Expect no job but find block job:\n%s", err)
+            LOG.error("Expect no job but find block job:\n%s", err)
             return False
         return True
     if check_point == "progress":
@@ -417,12 +419,12 @@ def check_blockjob(vm_name, target, check_point="none", value="0"):
                 unit = 'M'
             u_value = utils_misc.normalize_data_size(value, unit)
             if float(u_value) == float(bandwidth):
-                logging.debug("Bandwidth is equal to %s", bandwidth)
+                LOG.debug("Bandwidth is equal to %s", bandwidth)
                 return True
-            logging.error("Bandwidth is not equal to %s", bandwidth)
+            LOG.error("Bandwidth is not equal to %s", bandwidth)
             return False
         except Exception as e:
-            logging.error("Fail to get bandwidth: %s", e)
+            LOG.error("Fail to get bandwidth: %s", e)
             return False
 
 
@@ -493,13 +495,13 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
         if not ubuntu and utils_selinux.is_enforcing():
             if set_selinux_permissive:
                 utils_selinux.set_status("permissive")
-                logging.debug("selinux set to permissive mode, "
-                              "this is not recommended, potential access "
-                              "control error could be missed.")
+                LOG.debug("selinux set to permissive mode, "
+                          "this is not recommended, potential access "
+                          "control error could be missed.")
             else:
-                logging.debug("selinux is in enforcing mode, libvirt needs "
-                              "\"setsebool virt_use_nfs on\" to get "
-                              "nfs access right.")
+                LOG.debug("selinux is in enforcing mode, libvirt needs "
+                          "\"setsebool virt_use_nfs on\" to get "
+                          "nfs access right.")
         _nfs.setup()
         nfs_mount_info = process.run('nfsstat -m', shell=True).stdout_text.strip().split(",")
         for i in nfs_mount_info:
@@ -552,10 +554,10 @@ def setup_or_cleanup_iscsi(is_setup, is_login=True,
             iscsi_device = utils_misc.wait_for(_iscsi.get_device_name, 5, 0, 1,
                                                "Searching iscsi device name.")
             if iscsi_device:
-                logging.debug("iscsi device: %s", iscsi_device)
+                LOG.debug("iscsi device: %s", iscsi_device)
                 return iscsi_device
             if not iscsi_device:
-                logging.error("Not find iscsi device.")
+                LOG.error("Not find iscsi device.")
             # Cleanup and return "" - caller needs to handle that
             # _iscsi.export_target() will have set the emulated_id and
             # export_flag already on success...
@@ -646,7 +648,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         # Prepare gluster service and create volume
         hostip = gluster.setup_or_cleanup_gluster(True, gluster_source_name,
                                                   pool_name=pool_name, **kwargs)
-        logging.debug("hostip is %s", hostip)
+        LOG.debug("hostip is %s", hostip)
         # create image in gluster volume
         file_path = "gluster://%s/%s" % (hostip, gluster_source_name)
         for i in range(gluster_vol_number):
@@ -673,7 +675,7 @@ def define_pool(pool_name, pool_type, pool_target, cleanup_flag, **kwargs):
         result = virsh.pool_define_as(pool_name, pool_type, pool_target, extra,
                                       ignore_status=True)
     except process.CmdError:
-        logging.error("Define '%s' type pool fail.", pool_type)
+        LOG.error("Define '%s' type pool fail.", pool_type)
     return result
 
 
@@ -692,33 +694,33 @@ def verify_virsh_console(session, user, passwd, timeout=10, debug=False):
 
             if match == 0:
                 if debug:
-                    logging.debug("Got '^]', sending '\\n'")
+                    LOG.debug("Got '^]', sending '\\n'")
                 session.sendline()
             elif match == 1:
                 if debug:
-                    logging.debug("Got 'login:', sending '%s'", user)
+                    LOG.debug("Got 'login:', sending '%s'", user)
                 session.sendline(user)
             elif match == 2:
                 if debug:
-                    logging.debug("Got 'Password:', sending '%s'", passwd)
+                    LOG.debug("Got 'Password:', sending '%s'", passwd)
                 session.sendline(passwd)
             elif match == 3:
                 if debug:
-                    logging.debug("Got Shell prompt -- logged in")
+                    LOG.debug("Got Shell prompt -- logged in")
                 break
 
         status, output = session.cmd_status_output(console_cmd)
-        logging.info("output of command:\n%s", output)
+        LOG.info("output of command:\n%s", output)
         session.close()
     except (aexpect.ShellError,
             aexpect.ExpectError) as detail:
         log = session.get_output()
-        logging.error("Verify virsh console failed:\n%s\n%s", detail, log)
+        LOG.error("Verify virsh console failed:\n%s\n%s", detail, log)
         session.close()
         return False
 
     if not re.search("processor", output):
-        logging.error("Verify virsh console failed: Result does not match.")
+        LOG.error("Verify virsh console failed: Result does not match.")
         return False
 
     return True
@@ -787,7 +789,7 @@ def mk_part(disk, size="100M", fs_type='ext4', session=None):
     output = to_text(run_cmd(print_cmd))
     current_label = re.search(r'Partition Table: (\w+)', output).group(1)
     if current_label not in support_lable:
-        logging.error('Not support create partition on %s disk', current_label)
+        LOG.error('Not support create partition on %s disk', current_label)
         return
 
     disk_size = re.search(r"Disk %s: (\w+)" % disk, output).group(1)
@@ -861,7 +863,7 @@ def check_actived_pool(pool_name):
         raise exceptions.TestFail("Can't find pool %s" % pool_name)
     if not sp.is_pool_active(pool_name):
         raise exceptions.TestFail("Pool %s is not active." % pool_name)
-    logging.debug("Find active pool %s", pool_name)
+    LOG.debug("Find active pool %s", pool_name)
     return True
 
 
@@ -1036,7 +1038,7 @@ class PoolVolumeTest(object):
                 hostip = gluster.setup_or_cleanup_gluster(True, source_name,
                                                           pool_name=pool_name,
                                                           **kwargs)
-                logging.debug("hostip is %s", hostip)
+                LOG.debug("hostip is %s", hostip)
                 extra = "--source-host %s --source-path %s" % (hostip,
                                                                source_name)
                 extra += " --source-format %s" % source_format
@@ -1067,12 +1069,12 @@ class PoolVolumeTest(object):
             else:
                 ip_addr = "127.0.0.1"
             if iscsi_chap_user and iscsi_chap_password and iscsi_secret_usage:
-                logging.debug("setup %s pool with chap authentication", pool_type)
+                LOG.debug("setup %s pool with chap authentication", pool_type)
                 extra = (" --auth-type chap --auth-username %s "
                          "--secret-usage %s" %
                          (iscsi_chap_user, iscsi_secret_usage))
             else:
-                logging.debug("setup %s pool without authentication", pool_type)
+                LOG.debug("setup %s pool without authentication", pool_type)
             setup_or_cleanup_iscsi(is_setup=True,
                                    emulated_image=emulated_image,
                                    image_size=image_size,
@@ -1114,17 +1116,17 @@ class PoolVolumeTest(object):
                     scsi_pool_source_xml.adp_wwnn = pool_wwnn
 
                 scsi_pool_xml.set_source(scsi_pool_source_xml)
-                logging.debug("SCSI pool XML %s:\n%s", scsi_pool_xml.xml,
-                              str(scsi_pool_xml))
+                LOG.debug("SCSI pool XML %s:\n%s", scsi_pool_xml.xml,
+                          str(scsi_pool_xml))
                 scsi_xml_file = scsi_pool_xml.xml
                 self.params['scsi_xml_file'] = scsi_xml_file
         elif pool_type == "gluster":
             source_path = kwargs.get('source_path')
-            logging.info("source path is %s" % source_path)
+            LOG.info("source path is %s" % source_path)
             hostip = gluster.setup_or_cleanup_gluster(True, source_name,
                                                       pool_name=pool_name,
                                                       **kwargs)
-            logging.debug("Gluster host ip address: %s", hostip)
+            LOG.debug("Gluster host ip address: %s", hostip)
             extra = "--source-host %s --source-path %s --source-name %s" % \
                     (hostip, source_path, source_name)
         elif pool_type == "mpath":
@@ -1134,8 +1136,8 @@ class PoolVolumeTest(object):
                 mpath_pool_xml.name = pool_name
                 mpath_pool_xml.pool_type = "mpath"
                 mpath_pool_xml.target_path = pool_target
-                logging.debug("mpath pool XML %s:\n%s",
-                              mpath_pool_xml.xml, str(mpath_pool_xml))
+                LOG.debug("mpath pool XML %s:\n%s",
+                          mpath_pool_xml.xml, str(mpath_pool_xml))
                 mpath_xml_file = mpath_pool_xml.xml
                 self.params['mpath_xml_file'] = mpath_xml_file
 
@@ -1167,9 +1169,9 @@ class PoolVolumeTest(object):
                               emulated_image, **kwargs)
             raise exceptions.TestFail("Prepare pool failed")
         xml_str = virsh.pool_dumpxml(pool_name)
-        logging.debug("New prepared pool XML: %s", xml_str)
+        LOG.debug("New prepared pool XML: %s", xml_str)
 
-        logging.info("Refreshing pool")
+        LOG.info("Refreshing pool")
         virsh.pool_refresh(pool_name)
 
     def pre_vol(self, vol_name, vol_format, capacity, allocation, pool_name):
@@ -1243,7 +1245,7 @@ def check_result(result,
     stderr = result.stderr_text
     stdout = result.stdout_text
     all_msg = '\n'.join([stdout, stderr])
-    logging.debug("Command result: %s", all_msg)
+    LOG.debug("Command result: %s", all_msg)
 
     try:
         unicode
@@ -1276,7 +1278,7 @@ def check_result(result,
                                           "but failed with:\n%s" %
                                           (expected_fails, all_msg))
             else:
-                logging.info("Get expect error msg:%s" % msg_to_search)
+                LOG.info("Get expect error msg:%s" % msg_to_search)
         else:
             raise exceptions.TestFail(
                 "Expect should succeed, but got: %s" % all_msg)
@@ -1295,9 +1297,9 @@ def check_result(result,
                                           "but failed with: %s" %
                                           (expected_match, all_msg))
             else:
-                logging.debug('Found expected content:\n%s',
-                              [r.group(0) for r in search_result
-                               if r is not None])
+                LOG.debug('Found expected content:\n%s',
+                          [r.group(0) for r in search_result
+                           if r is not None])
 
 
 def check_exit_status(result, expect_error=False):
@@ -1311,8 +1313,8 @@ def check_exit_status(result, expect_error=False):
         if result.exit_status != 0:
             raise exceptions.TestFail(result.stderr_text)
         else:
-            logging.debug("Command output:\n%s",
-                          result.stdout_text.strip())
+            LOG.debug("Command output:\n%s",
+                      result.stdout_text.strip())
     elif expect_error and result.exit_status == 0:
         raise exceptions.TestFail("Run '%s' expect fail, but run "
                                   "successfully." % result.command)
@@ -1386,23 +1388,23 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
                                 result.stdout_text)
             if list(filter(lambda x: x[0] == iface_name, output[1:])):
                 list_find = True
-            logging.debug("Find '%s' in virsh iface-list output: %s",
-                          iface_name, list_find)
+            LOG.debug("Find '%s' in virsh iface-list output: %s",
+                      iface_name, list_find)
             # Check network script independent of distro
             iface_script = utils_net.get_network_cfg_file(iface_name)
             ifcfg_find = os.path.exists(iface_script)
-            logging.debug("Find '%s': %s", iface_script, ifcfg_find)
+            LOG.debug("Find '%s': %s", iface_script, ifcfg_find)
             check_pass = list_find and ifcfg_find
         elif checkpoint == "mac":
             # extra is the MAC address to compare
             iface_mac = iface.get_mac().lower()
             check_pass = iface_mac == extra
-            logging.debug("MAC address of %s: %s", iface_name, iface_mac)
+            LOG.debug("MAC address of %s: %s", iface_name, iface_mac)
         elif checkpoint == "ip":
             # extra is the IP address to compare
             iface_ip = iface.get_ip()
             check_pass = iface_ip == extra
-            logging.debug("IP address of %s: %s", iface_name, iface_ip)
+            LOG.debug("IP address of %s: %s", iface_name, iface_ip)
         elif checkpoint == "state":
             # check iface State
             result = virsh.iface_list(extra, ignore_status=True)
@@ -1421,8 +1423,8 @@ def check_iface(iface_name, checkpoint, extra="", **dargs):
                              timeout=timeout,)
             check_pass = ping_s == 0
         else:
-            logging.debug("Support check points are: %s", support_check)
-            logging.error("Unsupport check point: %s", checkpoint)
+            LOG.debug("Support check points are: %s", support_check)
+            LOG.error("Unsupport check point: %s", checkpoint)
     except Exception as detail:
         raise exceptions.TestFail("Interface check failed: %s" % detail)
     return check_pass
@@ -1461,7 +1463,7 @@ def create_hostdev_xml(pci_id, boot_order=None,
         hostdev_xml.teaming = eval(teaming)
 
     # Create attributes dict for device's address element
-    logging.info("pci_id/device id is %s" % pci_id)
+    LOG.info("pci_id/device id is %s" % pci_id)
 
     if dev_type in ["pci", "usb"]:
         device_domain = pci_id.split(':')[0]
@@ -1489,7 +1491,7 @@ def create_hostdev_xml(pci_id, boot_order=None,
             **(dict(adapter_name="scsi_host%s" % id_parts[0], bus=id_parts[1],
                     target=id_parts[2], unit=id_parts[3])))
 
-    logging.debug("Hostdev XML:\n%s", str(hostdev_xml))
+    LOG.debug("Hostdev XML:\n%s", str(hostdev_xml))
 
     return hostdev_xml
 
@@ -1700,7 +1702,7 @@ def create_disk_xml(params):
             if label:
                 sec_dict.update({'label': label})
             sec_xml.update(sec_dict)
-            logging.debug("The sec xml is %s", sec_xml.xmltreefile)
+            LOG.debug("The sec xml is %s", sec_xml.xmltreefile)
             source_seclabel.append(sec_xml)
 
         source_params = {"attrs": source_attrs, "seclabels": source_seclabel,
@@ -1780,8 +1782,8 @@ def create_disk_xml(params):
             diskxml.rawio = rawio
         diskxml.xmltreefile.write()
     except Exception as detail:
-        logging.error("Fail to create disk XML:\n%s", detail)
-    logging.debug("Disk XML %s:\n%s", diskxml.xml, str(diskxml))
+        LOG.error("Fail to create disk XML:\n%s", detail)
+    LOG.debug("Disk XML %s:\n%s", diskxml.xml, str(diskxml))
 
     # Wait for file completed
     def file_exists():
@@ -1811,15 +1813,14 @@ def set_disk_attr(vmxml, target, tag, attr):
         if tag in ["driver", "boot", "address", "alias", "source"]:
             for key in attr:
                 disk.find(tag).set(key, attr[key])
-                logging.debug("key '%s' value '%s' pair is "
-                              "set", key, attr[key])
+                LOG.debug("key '%s' value '%s' pair is set", key, attr[key])
             vmxml.xmltreefile.write()
         else:
-            logging.debug("tag '%s' is not supported now", tag)
+            LOG.debug("tag '%s' is not supported now", tag)
             return False
     except AttributeError:
-        logging.error("Fail to set attribute '%s' with value "
-                      "'%s'.", key, attr[key])
+        LOG.error("Fail to set attribute '%s' with value "
+                  "'%s'.", key, attr[key])
         return False
 
     return True
@@ -1997,7 +1998,7 @@ def create_net_xml(net_name, params):
         if vf_list:
             netxml.vf_list = [netxml.new_vf_address(**{'attrs': attr})
                               for attr in vf_list]
-        logging.debug("New network xml file: %s", netxml)
+        LOG.debug("New network xml file: %s", netxml)
         netxml.xmltreefile.write()
         return netxml
     except Exception as detail:
@@ -2114,7 +2115,7 @@ def create_nwfilter_xml(params):
             rulexml = rule.backup_rule()
 
         filterxml.xmltreefile.write()
-        logging.info("The network filter xml is:\n%s" % filterxml)
+        LOG.info("The network filter xml is:\n%s" % filterxml)
         wait_for_file_over('</filter>', filterxml.xml)
         return filterxml
 
@@ -2171,7 +2172,7 @@ def create_channel_xml(params, alias=False, address=False):
                            'bus': '0'}
         channel_params['address'] = channel_address
     channelxml = channel.Channel.new_from_dict(channel_params)
-    logging.debug("Channel XML:\n%s", channelxml)
+    LOG.debug("Channel XML:\n%s", channelxml)
     return channelxml
 
 
@@ -2200,7 +2201,7 @@ def add_panic_device(vm_name, model='isa', addr_type='isa', addr_iobase='0x505')
     vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
     panic_dev = vmxml.xmltreefile.find('devices/panic')
     if panic_dev is not None:
-        logging.info("Panic device already exists")
+        LOG.info("Panic device already exists")
         return False
     else:
         panic_dev = panic.Panic()
@@ -2266,7 +2267,7 @@ def create_vsock_xml(model, auto_cid='yes', invalid_cid=False):
     chars = string.ascii_letters + string.digits + '-_'
     alias_name = 'ua-' + ''.join(random.choice(chars) for _ in list(range(64)))
     vsock_dev.alias = {'name': alias_name}
-    logging.debug(vsock_dev)
+    LOG.debug(vsock_dev)
     return vsock_dev
 
 
@@ -2306,7 +2307,7 @@ def create_rng_xml(dparams):
     if rng_alias:
         rng_xml.alias = dict(name=rng_alias)
 
-    logging.debug("Rng xml: %s", rng_xml)
+    LOG.debug("Rng xml: %s", rng_xml)
     return rng_xml
 
 
@@ -2329,7 +2330,7 @@ def update_memballoon_xml(vmxml, membal_dict):
     if membal_alias_name:
         memballoon_xml.alias_name = membal_alias_name
     vmxml.add_device(memballoon_xml)
-    logging.info(memballoon_xml)
+    LOG.info(memballoon_xml)
     vmxml.sync()
 
 
@@ -2398,13 +2399,13 @@ def set_guest_agent(vm):
 
     :param vm: the vm object
     """
-    logging.warning("This function is going to be deprecated. "
-                    "Please use vm.prepare_guest_agent() instead.")
+    LOG.warning("This function is going to be deprecated. "
+                "Please use vm.prepare_guest_agent() instead.")
     # reset domain state
     if vm.is_alive():
         vm.destroy(gracefully=False)
     vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
-    logging.debug("Attempting to set guest agent channel")
+    LOG.debug("Attempting to set guest agent channel")
     vmxml.set_agent_channel()
     vmxml.sync()
     vm.start()
@@ -2469,7 +2470,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     :param params: dict, dict include setup vm disk xml configurations
     """
     vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
-    logging.debug("original xml is: %s", vmxml.xmltreefile)
+    LOG.debug("original xml is: %s", vmxml.xmltreefile)
     disk_device = params.get("disk_device", "disk")
     disk_snapshot_attr = params.get("disk_snapshot_attr")
     disk_type = params.get("disk_type", "file")
@@ -2491,7 +2492,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     exp_opt = params.get("export_options", "rw,no_root_squash,fsid=0")
     exp_dir = params.get("export_dir", "nfs-export")
     first_disk = vm.get_first_disk_devices()
-    logging.debug("first disk is %s", first_disk)
+    LOG.debug("first disk is %s", first_disk)
     blk_source = first_disk['source']
     blk_source = params.get("blk_source_name", blk_source)
     disk_xml = vmxml.devices.by_device_tag('disk')[0]
@@ -2594,7 +2595,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
         # Setup gluster.
         host_ip = gluster.setup_or_cleanup_gluster(True, brick_path=brick_path,
                                                    **params)
-        logging.debug("host ip: %s " % host_ip)
+        LOG.debug("host ip: %s " % host_ip)
         dist_img = "gluster.%s" % disk_format
 
         if image_convert:
@@ -2645,14 +2646,14 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
 
         src_file_path = "%s/%s" % (mnt_path, dist_img)
         if params.get("change_file_uid") and params.get("change_file_gid"):
-            logging.debug("Changing the ownership of {} to {}.{}."
-                          .format(src_file_path, params["change_file_uid"],
-                                  params["change_file_gid"]))
+            LOG.debug("Changing the ownership of {} to {}.{}."
+                      .format(src_file_path, params["change_file_uid"],
+                              params["change_file_gid"]))
             os.chown(src_file_path, params["change_file_uid"],
                      params["change_file_gid"])
             res = os.stat(src_file_path)
-            logging.debug("The ownership of {} is updated, uid: {}, gid: {}."
-                          .format(src_file_path, res.st_uid, res.st_gid))
+            LOG.debug("The ownership of {} is updated, uid: {}, gid: {}."
+                      .format(src_file_path, res.st_uid, res.st_gid))
         disk_params_src = {'source_file': src_file_path}
         params["source_file"] = src_file_path
         src_file_list.append(src_file_path)
@@ -2742,7 +2743,7 @@ def set_vm_disk(vm, params, tmp_dir=None, test=None):
     dom_iothreads = params.get("dom_iothreads")
     if dom_iothreads:
         vmxml.iothreads = int(dom_iothreads)
-    logging.debug("The vm xml now is: %s" % vmxml.xmltreefile)
+    LOG.debug("The vm xml now is: %s" % vmxml.xmltreefile)
     vmxml.sync()
     vm.start()
 
@@ -2756,7 +2757,7 @@ def attach_additional_device(vm_name, targetdev, disk_path, params, config=True)
     :param targetdev: target of disk device
     :param params: dict include necessary configurations of device
     """
-    logging.info("Attaching disk...")
+    LOG.info("Attaching disk...")
 
     # Update params for source file
     params['source_file'] = disk_path
@@ -2858,10 +2859,10 @@ def create_scsi_disk(scsi_option, scsi_size="2048"):
         result = process.run("lsscsi|grep scsi_debug|awk '{print $6}'",
                              shell=True)
         scsi_disk = result.stdout_text.strip()
-        logging.info("scsi disk: %s" % scsi_disk)
+        LOG.info("scsi disk: %s" % scsi_disk)
         return scsi_disk
     except Exception as e:
-        logging.error(str(e))
+        LOG.error(str(e))
         return None
 
 
@@ -2915,7 +2916,7 @@ def set_controller_multifunction(vm_name, controller_type='scsi'):
                 expanded_controllers[key] = new_controller
                 index += 1
 
-    logging.debug("Expanded controllers: %s", list(expanded_controllers.values()))
+    LOG.debug("Expanded controllers: %s", list(expanded_controllers.values()))
     vmxml.del_controller(controller_type)
     vmxml.set_controller(list(expanded_controllers.values()))
     vmxml.sync()
@@ -3018,7 +3019,7 @@ def attach_disks(vm, path, vgname, params):
         if result.exit_status:
             raise exceptions.TestFail("Attach device %s failed."
                                       % target_dev)
-    logging.debug("New VM XML:\n%s", vm.get_xml())
+    LOG.debug("New VM XML:\n%s", vm.get_xml())
     return added_disks
 
 
@@ -3033,7 +3034,7 @@ def define_new_vm(vm_name, new_name):
         vmxml.define()
         return True
     except xcepts.LibvirtXMLError as detail:
-        logging.error(detail)
+        LOG.error(detail)
         return False
 
 
@@ -3047,7 +3048,7 @@ def remotely_control_libvirtd(server_ip, server_user, server_pwd,
         session = remote.wait_for_login('ssh', server_ip, '22',
                                         server_user, server_pwd,
                                         r"[\#\$]\s*$")
-        logging.info("%s libvirt daemon\n", action)
+        LOG.info("%s libvirt daemon\n", action)
         service_libvirtd_control(action, session)
         session.close()
     except (remote.LoginError, aexpect.ShellError, process.CmdError) as detail:
@@ -3057,7 +3058,7 @@ def remotely_control_libvirtd(server_ip, server_user, server_pwd,
             raise exceptions.TestFail("Failed to %s libvirtd service on "
                                       "server: %s\n", action, detail)
         else:
-            logging.info("It is an expect %s", detail)
+            LOG.info("It is an expect %s", detail)
 
 
 def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
@@ -3094,7 +3095,7 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
     if su_user != "":
         command = "su %s -P -c '%s'" % (su_user, command)
 
-    logging.info("Execute %s", command)
+    LOG.info("Execute %s", command)
     # setup shell session
     session = aexpect.ShellSession(command, echo=True)
 
@@ -3118,37 +3119,37 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
                                                               timeout=30,
                                                               internal_timeout=1)
             if match == -patterns_list_len:
-                logging.info("Matched 'yes/no', details: <%s>", text)
+                LOG.info("Matched 'yes/no', details: <%s>", text)
                 session.sendline("yes")
                 continue
             elif match == -patterns_list_len + 1 or match == -patterns_list_len + 2:
-                logging.info("Matched 'username', details: <%s>", text)
+                LOG.info("Matched 'username', details: <%s>", text)
                 session.sendline(auth_user)
                 continue
             elif match == -patterns_list_len + 3:
-                logging.info("Matched 'password', details: <%s>", text)
+                LOG.info("Matched 'password', details: <%s>", text)
                 if match_dict_item and second_pass:
-                    logging.info('Prompt for a password when there is a '
-                                 'password in extra dict, trying that '
-                                 'one:{}.'.format(second_pass))
+                    LOG.info('Prompt for a password when there is a '
+                             'password in extra dict, trying that '
+                             'one:{}.'.format(second_pass))
                     session.sendline(second_pass)
                 else:
                     session.sendline(auth_pwd)
                 continue
             elif match == -patterns_list_len + 4:
-                logging.info("Expected output of virsh command: <%s>", text)
+                LOG.info("Expected output of virsh command: <%s>", text)
                 break
             if patterns_list_len > 5:
                 extra_len = len(patterns_extra_dict)
                 index_in_extra_dict = match + extra_len
                 key = list(patterns_extra_dict.keys())[index_in_extra_dict]
                 value = patterns_extra_dict.get(key, "")
-                logging.info("Matched '%s', details:<%s>", key, text)
+                LOG.info("Matched '%s', details:<%s>", key, text)
                 session.sendline(value)
                 match_dict_item = True
                 continue
             else:
-                logging.error("The real prompt text: <%s>", text)
+                LOG.error("The real prompt text: <%s>", text)
                 break
 
         log = session.get_output()
@@ -3157,7 +3158,7 @@ def connect_libvirtd(uri, read_only="", virsh_cmd="list", auth_user=None,
     except (aexpect.ShellError, aexpect.ExpectError) as details:
         log = session.get_output()
         session.close()
-        logging.error("Failed to connect libvirtd: %s\n%s", details, log)
+        LOG.error("Failed to connect libvirtd: %s\n%s", details, log)
         return (False, log)
 
 
@@ -3169,7 +3170,7 @@ def get_all_vol_paths():
     sp = libvirt_storage.StoragePool()
     for pool_name in list(sp.list_pools().keys()):
         if sp.list_pools()[pool_name]['State'] != "active":
-            logging.warning(
+            LOG.warning(
                 "Inactive pool '%s' cannot be processed" % pool_name)
             continue
         pv = libvirt_storage.PoolVolume(pool_name)
@@ -3194,7 +3195,7 @@ def do_migration(vm_name, uri, extra, auth_pwd, auth_user="root",
     if su_user != "":
         command = "su %s -c '%s'" % (su_user, command)
 
-    logging.info("Execute %s", command)
+    LOG.info("Execute %s", command)
     # setup shell session
     session = aexpect.ShellSession(command, echo=True)
 
@@ -3207,19 +3208,19 @@ def do_migration(vm_name, uri, extra, auth_pwd, auth_user="root",
                                                               timeout=timeout,
                                                               internal_timeout=1)
             if match == -4:
-                logging.info("Matched 'yes/no', details: <%s>", text)
+                LOG.info("Matched 'yes/no', details: <%s>", text)
                 session.sendline("yes")
             elif match == -3:
-                logging.info("Matched 'username', details: <%s>", text)
+                LOG.info("Matched 'username', details: <%s>", text)
                 session.sendline(auth_user)
             elif match == -2:
-                logging.info("Matched 'password', details: <%s>", text)
+                LOG.info("Matched 'password', details: <%s>", text)
                 session.sendline(auth_pwd)
             elif match == -1:
-                logging.info("Expected output of virsh migrate: <%s>", text)
+                LOG.info("Expected output of virsh migrate: <%s>", text)
                 break
             else:
-                logging.error("The real prompt text: <%s>", text)
+                LOG.error("The real prompt text: <%s>", text)
                 break
         log = session.get_output()
         session.close()
@@ -3228,7 +3229,7 @@ def do_migration(vm_name, uri, extra, auth_pwd, auth_user="root",
     except (aexpect.ShellError, aexpect.ExpectError) as details:
         log = session.get_output()
         session.close()
-        logging.error("Failed to migrate %s: %s\n%s", vm_name, details, log)
+        LOG.error("Failed to migrate %s: %s\n%s", vm_name, details, log)
         return (False, log)
 
 
@@ -3252,16 +3253,16 @@ def update_vm_disk_driver_cache(vm_name, driver_cache="none", disk_index=0):
         driver_dict = disk.driver
         driver_dict['cache'] = driver_cache
         disk.driver = driver_dict
-        logging.debug("The new vm disk driver cache is %s", disk.driver['cache'])
+        LOG.debug("The new vm disk driver cache is %s", disk.driver['cache'])
 
         vmxml.devices = devices
 
         # SYNC VM XML change
-        logging.debug("The new VM XML:\n%s", vmxml)
+        LOG.debug("The new VM XML:\n%s", vmxml)
         vmxml.sync()
         return True
     except Exception as e:
-        logging.error("Can't update disk driver cache!! %s", e)
+        LOG.error("Can't update disk driver cache!! %s", e)
         return False
 
 
@@ -3274,7 +3275,7 @@ def update_vm_disk_source(vm_name, disk_source_path,
     :param source_type: it may be 'dev' or 'file' type, which is default
     """
     if not os.path.isdir(disk_source_path):
-        logging.error("Require disk source path!!")
+        LOG.error("Require disk source path!!")
         return False
 
     # Prepare to update VM first disk source file
@@ -3285,11 +3286,11 @@ def update_vm_disk_source(vm_name, disk_source_path,
     # Generate a disk image name if it doesn't exist
     if not disk_image_name:
         disk_source = disks.source.get_attrs().get(source_type)
-        logging.debug("The disk source file of the VM: %s", disk_source)
+        LOG.debug("The disk source file of the VM: %s", disk_source)
         disk_image_name = os.path.basename(disk_source)
 
     new_disk_source = os.path.join(disk_source_path, disk_image_name)
-    logging.debug("The new disk source file of the VM: %s", new_disk_source)
+    LOG.debug("The new disk source file of the VM: %s", new_disk_source)
 
     # Update VM disk source file
     try:
@@ -3297,11 +3298,11 @@ def update_vm_disk_source(vm_name, disk_source_path,
                                                           "%s" % new_disk_source}})
         # SYNC VM XML change
         vmxml.devices = devices
-        logging.debug("The new VM XML:\n%s", vmxml.xmltreefile)
+        LOG.debug("The new VM XML:\n%s", vmxml.xmltreefile)
         vmxml.sync()
         return True
     except Exception as e:
-        logging.error("Can't update disk source!! %s", e)
+        LOG.error("Can't update disk source!! %s", e)
         return False
 
 
@@ -3313,7 +3314,7 @@ def exec_virsh_edit(source, edit_cmd, connect_uri="qemu:///system"):
     :param edit_cmd: Edit command list to execute.
     :return: True if edit is successful, False if edit is failure.
     """
-    logging.info("Trying to edit xml with cmd %s", edit_cmd)
+    LOG.info("Trying to edit xml with cmd %s", edit_cmd)
     session = aexpect.ShellSession("sudo -s")
     try:
         session.sendline("virsh -c %s edit %s" % (connect_uri, source))
@@ -3326,7 +3327,7 @@ def exec_virsh_edit(source, edit_cmd, connect_uri="qemu:///system"):
         return True
     except Exception as e:
         session.close()
-        logging.error("Error occurred: %s", e)
+        LOG.error("Error occurred: %s", e)
         return False
 
 
@@ -3341,7 +3342,7 @@ def new_disk_vol_name(pool_name):
     """
     poolxml = pool_xml.PoolXML.new_from_dumpxml(pool_name)
     if poolxml.get_type(pool_name) != "disk":
-        logging.error("This is not a disk pool")
+        LOG.error("This is not a disk pool")
         return None
     disk = poolxml.get_source().device_path[5:]
     part_num = len(list(filter(lambda s: s.startswith(disk),
@@ -3367,10 +3368,10 @@ def update_polkit_rule(params, pattern, new_value):
         polkit_f.truncate()
         polkit_f.write(new_rule)
         polkit_f.close()
-        logging.debug("New polkit config rule is:\n%s", new_rule)
+        LOG.debug("New polkit config rule is:\n%s", new_rule)
         polkit.polkitd.restart()
     except IOError as e:
-        logging.error(e)
+        LOG.error(e)
 
 
 def get_vol_list(pool_name, vol_check=True, timeout=5):
@@ -3428,7 +3429,7 @@ def get_iothreadsinfo(vm_name, options=None):
     ret = virsh.iothreadinfo(vm_name, options,
                              debug=True, ignore_status=True)
     if ret.exit_status:
-        logging.warning(ret.stderr_text.strip())
+        LOG.warning(ret.stderr_text.strip())
         return info_dict
     info_list = re.findall(r"(\d+) +(\S+)", ret.stdout_text, re.M)
     for info in info_list:
@@ -3453,7 +3454,7 @@ def virsh_cmd_has_option(cmd, option, raise_skip=True):
     if not found and raise_skip:
         raise exceptions.TestSkipError(msg)
     else:
-        logging.debug(msg)
+        LOG.debug(msg)
         return found
 
 
@@ -3499,7 +3500,7 @@ def create_secret(params, remote_args=None):
     if sec_usage_type in ['iscsi']:
         sec_xml.target = sec_target
     sec_xml.xmltreefile.write()
-    logging.debug("The secret xml is: %s" % sec_xml)
+    LOG.debug("The secret xml is: %s" % sec_xml)
 
     # define the secret and get its uuid
     if remote_args:
@@ -3658,7 +3659,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
         vmxml.xmltreefile.write()
         vmxml.sync()
     elif oper == "get_xml":
-        logging.info("iface xml is %s", iface)
+        LOG.info("iface xml is %s", iface)
         wait_for_file_over('</interface>', iface.xml)
         return iface.xml
 
@@ -3750,11 +3751,11 @@ def customize_libvirt_config(params,
                            "virtstoraged", "virtinterfaced", "virtnodedevd",
                            "virtnwfilterd", "virtsecretd", "libvirt"]
     if config_type not in config_list_support:
-        logging.debug("'%s' is not in the support list '%s'",
-                      config_type, config_list_support)
+        LOG.debug("'%s' is not in the support list '%s'",
+                  config_type, config_list_support)
         return None
     else:
-        logging.debug("The '%s' config file will be updated.", config_type)
+        LOG.debug("The '%s' config file will be updated.", config_type)
 
     if not is_recover:
         target_conf = None
@@ -3765,8 +3766,8 @@ def customize_libvirt_config(params,
         #if params and isinstance(params, dict):
         for key, value in params.items():
             target_conf[key] = value
-        logging.debug("The '%s' config file is updated with:\n %s",
-                      target_conf.conf_path, params)
+        LOG.debug("The '%s' config file is updated with:\n %s",
+                  target_conf.conf_path, params)
         if restart_libvirt:
             libvirtd = utils_libvirtd.Libvirtd()
             libvirtd.restart()
@@ -3819,7 +3820,7 @@ def check_logfile(search_str, log_file, str_in_log=True,
                                   .format(search_str, "is not" if str_in_log else "is",
                                           log_file))
     else:
-        logging.debug('Log check for "%s" PASS', search_str)
+        LOG.debug('Log check for "%s" PASS', search_str)
 
 
 def check_qemu_cmd_line(content, err_ignore=False,
@@ -3840,7 +3841,7 @@ def check_qemu_cmd_line(content, err_ignore=False,
         cmd_result = remote_old.run_remote_cmd(cmd, remote_params, runner_on_target)
         qemu_line = cmd_result.stdout
     if re.search(r'%s' % content, qemu_line):
-        logging.info("Expected '%s' was found in qemu command line" % content)
+        LOG.info("Expected '%s' was found in qemu command line" % content)
     else:
         if err_ignore:
             return False
@@ -3891,10 +3892,10 @@ def get_disk_alias(vm, source_file=None):
             try:
                 if ((find_source and disk.source.attrs['file'] == source_file) or
                         (not find_source and not source_file)):
-                    logging.info("Get alias name %s", disk.alias['name'])
+                    LOG.info("Get alias name %s", disk.alias['name'])
                     return disk.alias['name']
             except KeyError as e:
-                logging.info("Ignore error of source attr getting for file: %s" % e)
+                LOG.info("Ignore error of source attr getting for file: %s" % e)
                 pass
     return None
 

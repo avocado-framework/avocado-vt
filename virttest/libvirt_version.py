@@ -11,6 +11,9 @@ from avocado.utils import process
 from avocado.utils.astring import to_text
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
+
 def version_compare(major, minor, update, session=None):
     """
     Determine/use the current libvirt library version on the system
@@ -56,12 +59,12 @@ def version_compare(major, minor, update, session=None):
                                       int(mobj.group(3))
                 break
     except (ValueError, TypeError, AttributeError):
-        logging.warning("Error determining libvirt version")
+        LOG.warning("Error determining libvirt version")
         return False
 
     compare_version = major * 1000000 + minor * 1000 + update
     if LIBVIRT_LIB_VERSION == 0:
-        logging.error("Unable to get virtqemud/libvirtd version!")
+        LOG.error("Unable to get virtqemud/libvirtd version!")
     elif LIBVIRT_LIB_VERSION >= compare_version:
         return True
     return False
@@ -95,7 +98,7 @@ def is_libvirt_feature_supported(params, ignore_error=False):
     if func_supported_since_libvirt_ver:
         if not version_compare(*func_supported_since_libvirt_ver):
             if ignore_error:
-                logging.error(unspported_err_msg)
+                LOG.error(unspported_err_msg)
                 return False
             else:
                 raise exceptions.TestCancel(unspported_err_msg)

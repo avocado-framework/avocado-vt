@@ -41,6 +41,8 @@ except ImportError:
 
 # Some directory/filename utils, for consistency
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def _md5eval(data):
     """
@@ -382,7 +384,7 @@ def image_crop_save(image, new_image, box=None):
     try:
         img.crop(box).save(new_image)
     except (KeyError, SystemError) as e:
-        logging.error("Fail to crop image: %s", e)
+        LOG.error("Fail to crop image: %s", e)
         return False
     return True
 

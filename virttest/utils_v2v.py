@@ -43,6 +43,8 @@ try:
 except path.CmdNotFoundError:
     V2V_EXEC = None
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class Uri(object):
 
@@ -133,7 +135,7 @@ class Target(object):
             for session, key, server_type in self.authorized_keys:
                 if not session or not key:
                     continue
-                logging.debug(
+                LOG.debug(
                     "session=%s key=%s server_type=%s",
                     session,
                     key,
@@ -145,7 +147,7 @@ class Target(object):
             # session, although it could not happen in general.
             for session, _, _ in self.authorized_keys:
                 if session:
-                    logging.debug("closed session = %s", session)
+                    LOG.debug("closed session = %s", session)
                     session.close()
 
     def get_cmd_options(self, params):
@@ -210,14 +212,14 @@ class Target(object):
 
                 self._vmx_filename_fullpath = vmxfiles[0]
                 self._vmx_filename = os.path.basename(vmxfiles[0])
-                logging.debug(
+                LOG.debug(
                     'vmx file full path is %s' %
                     self._vmx_filename_fullpath)
             else:
                 # This only works for -i vmx -it ssh, because it only needs an vmx filename,
                 # and doesn't have to mount the nfs storage. If the guessed name is wrong,
                 # v2v will report an error.
-                logging.info(
+                LOG.info(
                     'vmx_nfs_src is not set in cfg file, try to guess vmx filename')
                 # some guest's directory name ends with '_1',
                 # e.g. esx5.5-win10-x86_64_1/esx5.5-win10-x86_64.vmx
@@ -237,7 +239,7 @@ class Target(object):
                     self._vmx_filename = self._nfspath
 
                 self._vmx_filename = self._vmx_filename + '.vmx'
-                logging.debug(
+                LOG.debug(
                     'Guessed vmx file name is %s' %
                     self._vmx_filename)
 
@@ -255,7 +257,7 @@ class Target(object):
                         self.vddk_libdir):
                     # Invalid nfs mount source if no ':'
                     if self.vddk_libdir_src is None or ':' not in self.vddk_libdir_src:
-                        logging.error(
+                        LOG.error(
                             'Neither vddk_libdir nor vddk_libdir_src was set')
                         raise exceptions.TestError(
                             "VDDK library directory or NFS mount point must be set")
@@ -275,7 +277,7 @@ class Target(object):
                     mount_point = v2v_mount(
                         self.vddk_libdir_src, 'vddk_libdir')
 
-                    logging.info('Preparing vddklib on local server')
+                    LOG.info('Preparing vddklib on local server')
                     if os.path.exists(vddk_lib_rootdir):
                         if os.path.exists(vddk_libdir):
                             os.unlink(vddk_libdir)
@@ -306,7 +308,7 @@ class Target(object):
                         shutil.copytree(mount_point, vddk_lib)
                         os.symlink(vddk_lib, vddk_libdir, True)
 
-                    logging.info('vddklib on local server is %s', vddk_lib)
+                    LOG.info('vddklib on local server is %s', vddk_lib)
                     self.vddk_libdir = vddk_libdir
                     utils_misc.umount(self.vddk_libdir_src, mount_point, None)
 
@@ -358,14 +360,14 @@ class Target(object):
                     # Just warning invalid values in case for negative testing
                     if len(mac_i_list) != 3 or mac_i_list[1] not in [
                             'bridge', 'network']:
-                        logging.warning(
+                        LOG.warning(
                             "Invalid value for --mac '%s'" %
                             mac_i_list)
                     mac, net_type, netname = mac_i_list
                     self.net_vm_opts += " --mac %s:%s:%s" % (
                         mac, net_type, netname)
             else:
-                logging.info("auto set --mac option")
+                LOG.info("auto set --mac option")
                 for mac, _ in self._iface_list:
                     # Randomly cover both 'bridge' and 'network' even thought there is no
                     # difference.
@@ -381,7 +383,7 @@ class Target(object):
 
         if not self.net_vm_opts:
             if supported_mac:
-                logging.warning("auto set --mac failed, roll back to -b/-n")
+                LOG.warning("auto set --mac failed, roll back to -b/-n")
             if self.bridge:
                 self.net_vm_opts += " -b %s" % self.bridge
             if self.network:
@@ -422,7 +424,7 @@ class Target(object):
         # Pass the json directory to testcase for checking
         self.params.get('params').update({'os_directory': self.os_directory})
 
-        logging.debug(
+        LOG.debug(
             'The os directory(-os DIRECTORY) is %s.',
             self.os_directory)
         return self.os_directory
@@ -547,7 +549,7 @@ class VMCheck(object):
         self.session = None
 
         if self.name is None:
-            logging.error("vm name not exist")
+            LOG.error("vm name not exist")
 
         # libvirt is a default target
         if self.target == "libvirt" or self.target is None:
@@ -562,20 +564,20 @@ class VMCheck(object):
 
     def create_session(self, timeout=480):
         if self.session:
-            logging.debug('vm session %s exists', self.session)
+            LOG.debug('vm session %s exists', self.session)
             return
         self.session = self.vm.wait_for_login(nic_index=self.nic_index,
                                               timeout=timeout,
                                               username=self.username,
                                               password=self.password)
-        logging.debug('A new vm session %s was created', self.session)
+        LOG.debug('A new vm session %s was created', self.session)
 
     def cleanup(self):
         """
         Cleanup VM and remove all of storage files about guest
         """
         if self.session:
-            logging.debug('vm session %s is closing', self.session)
+            LOG.debug('vm session %s is closing', self.session)
             self.session.close()
             self.session = None
 
@@ -593,7 +595,7 @@ class VMCheck(object):
                 self.vm.undefine()
 
         if self.target == "ovirt":
-            logging.debug("Deleting VM %s in Ovirt", self.name)
+            LOG.debug("Deleting VM %s in Ovirt", self.name)
             self.vm.delete()
             # When vm is deleted, the disk will also be removed from
             # data domain, so it's not necessary to delete disk from
@@ -627,8 +629,8 @@ class VMCheck(object):
             raise exceptions.TestError("Incorrect cmd: %s" % cmd)
 
         if debug:
-            logging.debug("Command return status: %s", status)
-            logging.debug("Command output:\n%s", output)
+            LOG.debug("Command return status: %s", status)
+            LOG.debug("Command output:\n%s", output)
         return status, output
 
 
@@ -660,7 +662,7 @@ class LinuxVMCheck(VMCheck):
             else:
                 os_info = re.search(r'PRETTY_NAME="(.+)"', output).group(1)
         except Exception as e:
-            logging.error("Fail to get os distribution: %s", e)
+            LOG.error("Fail to get os distribution: %s", e)
         return os_info
 
     def get_vm_os_vendor(self):
@@ -680,8 +682,8 @@ class LinuxVMCheck(VMCheck):
             vendor = 'Debian'
         else:
             vendor = 'Unknown'
-        logging.debug("The os vendor of VM '%s' is: %s" %
-                      (self.vm.name, vendor))
+        LOG.debug("The os vendor of VM '%s' is: %s" %
+                  (self.vm.name, vendor))
         return vendor
 
     def get_vm_dmesg(self):
@@ -801,7 +803,7 @@ class LinuxVMCheck(VMCheck):
                 xorg_log_chk, break_if_found)
             get_xorg_logs = "for i in $(%s);do found=false; %s done" % (
                 extract_normal_users, xorg_logs_loop)
-            logging.debug("Get xorg logs shell script:\n%s", get_xorg_logs)
+            LOG.debug("Get xorg logs shell script:\n%s", get_xorg_logs)
 
             # The first element is a malformed get_xorg_logs string, it
             # should be removed.
@@ -810,9 +812,9 @@ class LinuxVMCheck(VMCheck):
             if len(xorg_files) > 0:
                 xorg_file_list.extend(xorg_files[1:])
         else:
-            logging.debug("Get UID_MIN failed: %s", uid_min)
+            LOG.debug("Get UID_MIN failed: %s", uid_min)
 
-        logging.debug("xorg files: %s", xorg_file_list)
+        LOG.debug("xorg files: %s", xorg_file_list)
         for file_i in xorg_file_list:
             cmd = 'grep -i "%s" "%s"' % (substr, file_i)
             if self.run_cmd(cmd)[0] == 0:
@@ -874,7 +876,7 @@ class LinuxVMCheck(VMCheck):
             if re.search("virtio", output.split('/')[-1]):
                 return True
         except IndexError:
-            logging.error("Fail to find virtio driver")
+            LOG.error("Fail to find virtio driver")
         return False
 
     def is_disk_virtio(self):
@@ -997,12 +999,12 @@ class WindowsVMCheck(VMCheck):
             ppm_utils.image_crop_save(vm_screenshot, vm_screenshot)
             img_index = 0
             for image in images:
-                logging.debug("Compare vm screenshot with image %s", image)
+                LOG.debug("Compare vm screenshot with image %s", image)
                 ppm_utils.image_crop_save(image, cropped_image)
                 h_degree = ppm_utils.image_histogram_compare(cropped_image,
                                                              vm_screenshot)
                 if h_degree >= similar_degree:
-                    logging.debug("Image %s matched", image)
+                    LOG.debug("Image %s matched", image)
                     image_matched = True
                     break
                 img_index += 1
@@ -1023,7 +1025,7 @@ class WindowsVMCheck(VMCheck):
         Click buttons to activate windows and install ethernet controller driver
         to boot windows.
         """
-        logging.info("Booting Windows in %s seconds", timeout)
+        LOG.info("Booting Windows in %s seconds", timeout)
         compare_screenshot_vms = ["win2003"]
         timeout_msg = "No matching screenshots found after %s seconds" % timeout
         timeout_msg += ", trying to log into the VM directly"
@@ -1034,14 +1036,14 @@ class WindowsVMCheck(VMCheck):
             for image_name in image_name_list:
                 match_image = os.path.join(data_dir.get_data_dir(), image_name)
                 if not os.path.exists(match_image):
-                    logging.error(
+                    LOG.error(
                         "Screenshot '%s' does not exist", match_image)
                     return
                 match_image_list.append(match_image)
             img_match_ret = self.wait_for_match(match_image_list,
                                                 timeout=timeout)
             if img_match_ret < 0:
-                logging.error(timeout_msg)
+                LOG.error(timeout_msg)
             else:
                 if self.os_version == "win2003":
                     if img_match_ret == 0:
@@ -1076,8 +1078,8 @@ class WindowsVMCheck(VMCheck):
                         self.click_install_driver()
         else:
             # No need sendkey/click button for any os except Win2003
-            logging.info("%s is booting up without program intervention",
-                         self.os_version)
+            LOG.info("%s is booting up without program intervention",
+                     self.os_version)
 
     def reboot_windows(self):
         """
@@ -1114,19 +1116,19 @@ class WindowsVMCheck(VMCheck):
         # Try 5 times to get driver info
         output, count = '', 5
         while count > 0:
-            logging.debug('%d times remaining for getting driver info' % count)
+            LOG.debug('%d times remaining for getting driver info' % count)
             try:
                 # Clean up output
                 self.session.cmd('cls')
                 output = self.session.cmd_output(cmd)
             except Exception as detail:
-                logging.error(detail)
+                LOG.error(detail)
                 count -= 1
             else:
                 break
         if not output:
-            logging.error('Fail to get driver info')
-        logging.debug("Command output:\n%s", output)
+            LOG.error('Fail to get driver info')
+        LOG.debug("Command output:\n%s", output)
         return output
 
     def get_windows_event_info(self):
@@ -1261,7 +1263,7 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
     global_params = params.get('params', {})
     if not global_params:
         # For the back compatibility reason, only report a warning message
-        logging.warning(
+        LOG.warning(
             "The global params in run() need to be passed into v2v_cmd as an"
             "item of params, like {'params': params}. "
             "If not, some latest functions may not work as expected.")
@@ -1405,7 +1407,7 @@ def cmd_run(cmd, obj_be_cleaned=None, auto_clean=True, timeout=18000):
             ignore_status=True)
     finally:
         if auto_clean and obj_be_cleaned:
-            logging.debug('Running cleanup for %s', obj_be_cleaned)
+            LOG.debug('Running cleanup for %s', obj_be_cleaned)
             if isinstance(obj_be_cleaned, list):
                 for obj in obj_be_cleaned:
                     obj.cleanup()
@@ -1428,17 +1430,17 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
     output_method = params.get('output_method')
     # Check oVirt status
     dc = ovirt.DataCenterManager(params)
-    logging.info("Current data centers list: %s", dc.list())
+    LOG.info("Current data centers list: %s", dc.list())
     cm = ovirt.ClusterManager(params)
-    logging.info("Current cluster list: %s", cm.list())
+    LOG.info("Current cluster list: %s", cm.list())
     hm = ovirt.HostManager(params)
-    logging.info("Current host list: %s", hm.list())
+    LOG.info("Current host list: %s", hm.list())
     sdm = ovirt.StorageDomainManager(params)
-    logging.info("Current storage domain list: %s", sdm.list())
+    LOG.info("Current storage domain list: %s", sdm.list())
     vm = ovirt.VMManager(vm_name, params, address_cache=address_cache)
-    logging.info("Current VM list: %s", vm.list())
+    LOG.info("Current VM list: %s", vm.list())
     if vm_name in vm.list() and output_method != 'rhv_upload':
-        logging.error("%s already exist", vm_name)
+        LOG.error("%s already exist", vm_name)
         return False
     wait_for_up = True
     if os_type == 'windows':
@@ -1453,22 +1455,22 @@ def import_vm_to_ovirt(params, address_cache, timeout=600):
                                          storage_name,
                                          cluster_name,
                                          timeout=timeout)
-            logging.info("The latest VM list: %s", vm.list())
+            LOG.info("The latest VM list: %s", vm.list())
         except Exception as e:
             # Try to delete the vm from export domain
             vm.delete_from_export_domain(export_name)
-            logging.error("Import %s failed: %s", vm.name, e)
+            LOG.error("Import %s failed: %s", vm.name, e)
             return False
     try:
         if not is_option_in_v2v_cmd(v2v_cmd, '--no-copy'):
             # Start VM
             vm.start(wait_for_up=wait_for_up)
         else:
-            logging.debug(
+            LOG.debug(
                 'Skip starting VM: --no-copy is in cmdline:\n%s',
                 v2v_cmd)
     except Exception as e:
-        logging.error("Start %s failed: %s", vm.name, e)
+        LOG.error("Start %s failed: %s", vm.name, e)
         vm.delete()
         if output_method != 'rhv_upload':
             vm.delete_from_export_domain(export_name)
@@ -1490,15 +1492,15 @@ def check_log(params, log):
         for pattern in pattern_list:
             line = r'\s*'.join(pattern.split())
             expected = 'expected' if expect else 'not expected'
-            logging.info('Searching for %s log: %s' % (expected, pattern))
+            LOG.info('Searching for %s log: %s' % (expected, pattern))
             compiled_pattern = re.compile(line, flags=re.S)
             search = re.search(compiled_pattern, log)
             if search:
-                logging.info('Found log: %s', search.group(0))
+                LOG.info('Found log: %s', search.group(0))
                 if not expect:
                     return False
             else:
-                logging.info('Not find log: %s', pattern)
+                LOG.info('Not find log: %s', pattern)
                 if expect:
                     return False
         return True
@@ -1506,13 +1508,13 @@ def check_log(params, log):
     expect_msg = params.get('expect_msg')
     ret = ''
     if not expect_msg:
-        logging.info('No need to check v2v log')
+        LOG.info('No need to check v2v log')
     else:
         expect = expect_msg == 'yes'
         if params.get('msg_content'):
             msg_list = params['msg_content'].split('%')
             if _check_log(msg_list, expect=expect):
-                logging.info('Finish checking v2v log')
+                LOG.info('Finish checking v2v log')
             else:
                 ret = 'Check v2v log failed'
         else:
@@ -1575,7 +1577,7 @@ def get_vddk_thumbprint(host, password, uri_type, prompt=r"[\#\$\[\]]"):
         prompt=prompt,
         preferred_authenticaton='password,keyboard-interactive')
     cmdresult = r_runner.run(cmd)
-    logging.debug("vddk thumbprint:\n%s", cmdresult.stdout)
+    LOG.debug("vddk thumbprint:\n%s", cmdresult.stdout)
     vddk_thumbprint = cmdresult.stdout.strip().split('=')[1]
 
     return vddk_thumbprint
@@ -1608,8 +1610,8 @@ def v2v_setup_ssh_key(
     :return: A tuple (public_key, session) will always be returned
     """
     session = None
-    logging.debug('Performing SSH key setup on %s:%d as %s.' %
-                  (hostname, port, username))
+    LOG.debug('Performing SSH key setup on %s:%d as %s.' %
+              (hostname, port, username))
     try:
         # Both Xen and ESX can work with following settings.
         if not preferred_authenticaton:
@@ -1649,7 +1651,7 @@ def v2v_setup_ssh_key(
             session.cmd("echo '%s' >> ~/.ssh/authorized_keys; " % public_key)
             session.cmd('chmod 600 ~/.ssh/authorized_keys')
 
-        logging.debug('SSH key setup complete, session is %s', session)
+        LOG.debug('SSH key setup complete, session is %s', session)
 
         return public_key, session
     except Exception as err:
@@ -1658,7 +1660,7 @@ def v2v_setup_ssh_key(
         raise exceptions.TestFail("SSH key setup failed: '%s'" % err)
     finally:
         if auto_close and session:
-            logging.debug('cleaning session: %s', session)
+            LOG.debug('cleaning session: %s', session)
             session.close()
 
 
@@ -1687,7 +1689,7 @@ def v2v_setup_ssh_key_cleanup(session=None, key=None, server_type=None):
         session.cmd(cmd)
     finally:
         if session:
-            logging.debug('cleaning session: %s', session)
+            LOG.debug('cleaning session: %s', session)
             session.close()
 
 
@@ -1747,7 +1749,7 @@ def create_virsh_instance(
     :param remote_pwd: Password to use, or None for host/pubkey
     :param debug: Whether to enable debug
     """
-    logging.debug(
+    LOG.debug(
         "virsh connection info: hypervisor=%s uri=%s ip=%s",
         hypervisor,
         uri,
@@ -1762,7 +1764,7 @@ def create_virsh_instance(
                        'auto_close': True,
                        'debug': debug}
         v2v_virsh = wait_for(virsh.VirshPersistent, **virsh_dargs)
-    logging.debug('A new virsh persistent session %s was created', v2v_virsh)
+    LOG.debug('A new virsh persistent session %s was created', v2v_virsh)
     return v2v_virsh
 
 
@@ -1773,7 +1775,7 @@ def close_virsh_instance(virsh_instance=None):
     :param v2v_virsh_instance: a virsh instance
     """
 
-    logging.debug('Closing session (%s) in VT', virsh_instance)
+    LOG.debug('Closing session (%s) in VT', virsh_instance)
     if virsh_instance and hasattr(virsh_instance, 'close_session'):
         virsh_instance.close_session()
 
@@ -1799,7 +1801,7 @@ def get_all_ifaces_info(vm_name, virsh_instance):
     for mac, iface in interfaces.items():
         vm_ifaces.append((mac, iface.get('type')))
 
-    logging.debug("Iface information for vm %s: %s", vm_name, vm_ifaces)
+    LOG.debug("Iface information for vm %s: %s", vm_name, vm_ifaces)
     return vm_ifaces
 
 
@@ -1853,7 +1855,7 @@ def get_esx_disk_source_info(vm_name, virsh_instance):
             disks_info[file_info[0]][file_info[1]] = []
         disks_info[file_info[0]][file_info[1]].append(file_info[2])
 
-    logging.debug("source disk info vm %s: %s", vm_name, disks_info)
+    LOG.debug("source disk info vm %s: %s", vm_name, disks_info)
     return disks_info
 
 
@@ -1907,7 +1909,7 @@ def wait_for(func, timeout=300, interval=10, *args, **kwargs):
             count += 1
             time.sleep(interval)
 
-    logging.debug("Tried %s times", count)
+    LOG.debug("Tried %s times", count)
     # Run once more, raise exception or success
     return func(*args, **kwargs)
 
@@ -2077,20 +2079,20 @@ def interactive_run(params, timeout=300, *args, **kwargs):
                 match, _ = session.read_until_last_line_matches(
                     LAST_LINE_PROMPTS, timeout=timeout, internal_timeout=0.5)
                 if match in [0, 1]:  # "username:"
-                    logging.debug(
+                    LOG.debug(
                         "Got username prompt; sending '%s'", username)
                     session.sendline(username)
                 elif match in [2, 3, 4, 5]:
-                    logging.debug(
+                    LOG.debug(
                         "Got password prompt, sending '%s'",
                         asterisk_passwd(password))
                     session.sendline(password)
                 elif match == 6:  # Wait for custom input
-                    logging.debug(
+                    LOG.debug(
                         "Got console '%s', send input list %s", match, choices)
                     session.sendline(choices)
                 elif match == 7:  # LUKS password
-                    logging.debug(
+                    LOG.debug(
                         "Got password prompt, sending '%s'",
                         asterisk_passwd(luks_password))
                     session.sendline(luks_password)
@@ -2102,7 +2104,7 @@ def interactive_run(params, timeout=300, *args, **kwargs):
                 # when free_running is true and timeout happens, it means
                 # the command doesn't have any response, may be dead or
                 # performance is quite poor.
-                logging.debug("timeout happens")
+                LOG.debug("timeout happens")
                 if free_running:
                     raise
 
@@ -2115,7 +2117,7 @@ def interactive_run(params, timeout=300, *args, **kwargs):
                 if nonempty_lines:
                     new_last_line = nonempty_lines[-1]
                 if last_line and last_line == new_last_line:
-                    logging.debug(
+                    LOG.debug(
                         'v2v command may be dead or have bad performance')
                     raise
                 last_line = new_last_line
@@ -2123,7 +2125,7 @@ def interactive_run(params, timeout=300, *args, **kwargs):
                 # Set a big timeout value when interaction finishes
                 for pattern in FREE_RUNNING_PROMPTS:
                     if re.search(pattern, cont):
-                        logging.debug(
+                        LOG.debug(
                             "interaction finished and begin running freely")
                         free_running = True
                         timeout = running_timeout
@@ -2131,7 +2133,7 @@ def interactive_run(params, timeout=300, *args, **kwargs):
 
     try:
         subproc = aexpect.Expect(*args, **kwargs)
-        logging.debug('Running command: %s', subproc.command)
+        LOG.debug('Running command: %s', subproc.command)
         handle_prompts(subproc, timeout)
     except aexpect.ExpectProcessTerminatedError:
         # v2v cmd is dead or finished
@@ -2142,7 +2144,7 @@ def interactive_run(params, timeout=300, *args, **kwargs):
         subproc.sendcontrol('c')
         raise
     finally:
-        logging.debug(
+        LOG.debug(
             "Command '%s' finished with status %s",
             subproc.command,
             subproc.get_status())

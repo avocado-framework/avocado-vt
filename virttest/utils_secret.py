@@ -6,6 +6,8 @@ import logging
 
 from virttest import virsh
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def get_secret_list(remote_virsh=None):
     """
@@ -14,14 +16,14 @@ def get_secret_list(remote_virsh=None):
     :param remote_virsh: remote virsh shell session.
     :return secret list including secret UUID
     """
-    logging.info("Get secret list ...")
+    LOG.info("Get secret list ...")
     try:
         if remote_virsh:
             secret_list_result = remote_virsh.secret_list()
         else:
             secret_list_result = virsh.secret_list()
     except Exception as e:
-        logging.error("Exception thrown while getting secret lists: %s", str(e))
+        LOG.error("Exception thrown while getting secret lists: %s", str(e))
         raise
     secret_list = secret_list_result.stdout_text.strip().splitlines()
     # First two lines contain table header followed by entries
@@ -56,5 +58,5 @@ def clean_up_secrets(remote_virsh=None):
                 else:
                     virsh.secret_undefine(secret_uuid)
             except Exception as e:
-                logging.error("Exception thrown while undefining secret: %s", str(e))
+                LOG.error("Exception thrown while undefining secret: %s", str(e))
                 raise

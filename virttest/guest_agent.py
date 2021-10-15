@@ -23,6 +23,8 @@ from virttest.qemu_monitor import Monitor, MonitorError
 
 import six
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class VAgentError(MonitorError):
     pass
@@ -188,7 +190,7 @@ class QemuAgent(Monitor):
         except VAgentError as e:
             self._close_sock()
             if suppress_exceptions:
-                logging.warn(e)
+                LOG.warn(e)
             else:
                 raise
 
@@ -326,7 +328,7 @@ class QemuAgent(Monitor):
         if not self._supported_cmds:
             # If initiation fails, set supported list to a None-only list.
             self._supported_cmds = [None]
-            logging.warn("Could not get supported guest agent cmds list")
+            LOG.warn("Could not get supported guest agent cmds list")
 
     def check_has_command(self, cmd):
         """
@@ -358,8 +360,8 @@ class QemuAgent(Monitor):
         :param extra_str: Extra string would be printed in log.
         """
         if self.debug_log or debug:
-            logging.debug("(vagent %s) Sending command '%s' %s",
-                          self.name, cmd, extra_str)
+            LOG.debug("(vagent %s) Sending command '%s' %s",
+                      self.name, cmd, extra_str)
 
     def _log_response(self, cmd, resp, debug=True):
         """
@@ -370,8 +372,7 @@ class QemuAgent(Monitor):
         :param debug: Whether to print the commands.
         """
         def _log_output(o, indent=0):
-            logging.debug("(vagent %s)    %s%s",
-                          self.name, " " * indent, o)
+            LOG.debug("(vagent %s)    %s%s", self.name, " " * indent, o)
 
         def _dump_list(li, indent=0):
             for l in li:
@@ -394,8 +395,8 @@ class QemuAgent(Monitor):
                     _log_output(o, indent)
 
         if self.debug_log or debug:
-            logging.debug("(vagent %s) Response to '%s' "
-                          "(re-formatted)", self.name, cmd)
+            LOG.debug("(vagent %s) Response to '%s' "
+                      "(re-formatted)", self.name, cmd)
             if isinstance(resp, dict):
                 _dump_dict(resp)
             elif isinstance(resp, list):

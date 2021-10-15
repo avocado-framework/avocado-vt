@@ -23,6 +23,8 @@ except path.CmdNotFoundError:
     except path.CmdNotFoundError:
         LIBVIRTD = None
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def get_libvirtd_split_enable_bit():
     base_cfg_path = os.path.join(data_dir.get_shared_dir(), 'cfg', 'base.cfg')
@@ -32,7 +34,7 @@ def get_libvirtd_split_enable_bit():
                 if 'enable_split_libvirtd_feature' in line and 'yes' in line and '#' not in line:
                     return True
     else:
-        logging.info("CAN NOT find base.cfg file")
+        LOG.info("CAN NOT find base.cfg file")
     return False
 
 
@@ -61,22 +63,22 @@ def get_libvirt_version_compare(major, minor, update, session=None):
         func = session.cmd_output
 
     if LIBVIRTD is None:
-        logging.warn("Can not find command to dertermin libvirt version")
+        LOG.warn("Can not find command to dertermin libvirt version")
         return False
     libvirt_ver_cmd = "%s -V" % LIBVIRTD
-    logging.warn(libvirt_ver_cmd)
+    LOG.warn(libvirt_ver_cmd)
     try:
         regex = r'%s\s*.*[Ll]ibvirt.*\s*' % LIBVIRTD
         regex += r'(\d+)\.(\d+)\.(\d+)'
         lines = astring.to_text(func(libvirt_ver_cmd)).splitlines()
-        logging.warn("libvirt version value by libvirtd or virtqemud command: %s" % lines)
+        LOG.warn("libvirt version value by libvirtd or virtqemud command: %s" % lines)
         for line in lines:
             match = re.search(regex, line.strip())
             if match:
                 LIBVIRT_LIB_VERSION = int(match.group(1)) * 1000000 + int(match.group(2)) * 1000 + int(match.group(3))
                 break
     except (ValueError, TypeError, AttributeError):
-        logging.warn("Error determining libvirt version")
+        LOG.warn("Error determining libvirt version")
         return False
 
     compare_version = major * 1000000 + minor * 1000 + update
@@ -113,10 +115,10 @@ def libvirt_version_context_aware_libvirtd_legacy(fn):
         """
         check_libvirt_version()
         if not IS_LIBVIRTD_SPLIT_VERSION or not LIBVIRTD_SPLIT_ENABLE_BIT:
-            logging.warn("legacy start libvirtd daemon NORMALLY with function name: %s" % fn.__name__)
+            LOG.warn("legacy start libvirtd daemon NORMALLY with function name: %s" % fn.__name__)
             return fn(*args, **kwargs)
         else:
-            logging.warn("legacy start libvirtd daemon IGNORED with function name: %s" % fn.__name__)
+            LOG.warn("legacy start libvirtd daemon IGNORED with function name: %s" % fn.__name__)
             return None
     return new_fn
 
@@ -136,9 +138,9 @@ def libvirt_version_context_aware_libvirtd_split(fn):
         """
         check_libvirt_version()
         if IS_LIBVIRTD_SPLIT_VERSION and LIBVIRTD_SPLIT_ENABLE_BIT:
-            logging.warn("Split start libvirtd daemon NORMALLY with function name: %s" % fn.__name__)
+            LOG.warn("Split start libvirtd daemon NORMALLY with function name: %s" % fn.__name__)
             return fn(*args, **kwargs)
         else:
-            logging.warn("Split start libvirtd daemon IGNORED with function name: %s" % fn.__name__)
+            LOG.warn("Split start libvirtd daemon IGNORED with function name: %s" % fn.__name__)
             return None
     return new_fn

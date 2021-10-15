@@ -8,6 +8,8 @@ import logging
 from avocado.core import exceptions
 from avocado.utils import process
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def check_vfio_pci(pci_id, status_error=False, ignore_error=False):
     """
@@ -27,7 +29,7 @@ def check_vfio_pci(pci_id, status_error=False, ignore_error=False):
         err_msg = ("Get incorrect driver {}, it should{} be vfio-pci."
                    .format(output, ' not' if status_error else ''))
         if ignore_error:
-            logging.error(err_msg)
+            LOG.error(err_msg)
             return False
         else:
             raise exceptions.TestFail(err_msg)

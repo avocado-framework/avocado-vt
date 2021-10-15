@@ -14,6 +14,8 @@ from six.moves import xrange
 from . import data_dir
 from . import remote as remote_old
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class NetperfError(Exception):
     pass
@@ -102,7 +104,7 @@ class NetperfPackage(remote_old.Remote_Package):
             self.netperf_path = os.path.join(self.netperf_base_dir,
                                              self.netperf_file)
 
-        logging.debug("Create remote session")
+        LOG.debug("Create remote session")
         self.session = remote.remote_login(self.client, self.address,
                                            self.port, self.username,
                                            self.password, prompt,
@@ -143,7 +145,7 @@ class NetperfPackage(remote_old.Remote_Package):
         """
 
         if aurl.is_url(netperf_source):
-            logging.debug("Download URL file to local path")
+            LOG.debug("Download URL file to local path")
             tmp_dir = data_dir.get_download_dir()
             dst = os.path.join(tmp_dir, os.path.basename(netperf_source))
             self.netperf_source = download.get_file(src=netperf_source,
@@ -169,12 +171,12 @@ class NetperfPackage(remote_old.Remote_Package):
             self.pull_file(self.netperf_source)
             self.push_file(self.netperf_source)
             if self.pack_suffix:
-                logging.debug("Compiling netserver from source")
+                LOG.debug("Compiling netserver from source")
                 self.pack_compile(compile_option)
 
         msg = "Using local netperf: %s and %s" % (self.netperf_path,
                                                   self.netserver_path)
-        logging.debug(msg)
+        LOG.debug(msg)
         return (self.netserver_path, self.netperf_path)
 
 
@@ -206,7 +208,7 @@ class Netperf(object):
                                       password, prompt, linesep, status_test_command)
         self.netserver_path, self.netperf_path = self.package.install(install,
                                                                       compile_option)
-        logging.debug("Create remote session")
+        LOG.debug("Create remote session")
         self.session = remote.remote_login(client, address, port, username,
                                            password, prompt,
                                            linesep, timeout=360,
@@ -221,7 +223,7 @@ class Netperf(object):
             check_reg = re.compile(r"%s" % target, re.I | re.M)
             return bool(check_reg.findall(output))
         except Exception as err:
-            logging.debug("Check process error: %s" % str(err))
+            LOG.debug("Check process error: %s" % str(err))
         return False
 
     def stop(self, target):
@@ -233,7 +235,7 @@ class Netperf(object):
             self.session.cmd(stop_cmd, ignore_all_errors=True)
         if self.is_target_running(target):
             raise NetserverError("Cannot stop %s" % target)
-        logging.info("Stop %s successfully" % target)
+        LOG.info("Stop %s successfully" % target)
 
     def cleanup(self, clean_all=True):
         """
@@ -278,7 +280,7 @@ class NetperfServer(Netperf):
         :param restart: if restart=True, will restart the netserver
         """
 
-        logging.info("Start netserver ...")
+        LOG.info("Start netserver ...")
         server_cmd = ""
         if self.client == "nc":
             server_cmd += "start /b %s > null" % self.netserver_path
@@ -288,12 +290,12 @@ class NetperfServer(Netperf):
         if restart:
             self.stop()
         if not self.is_server_running():
-            logging.info("Start netserver with cmd: '%s'" % server_cmd)
+            LOG.info("Start netserver with cmd: '%s'" % server_cmd)
             self.session.cmd_output_safe(server_cmd)
 
         if not wait.wait_for(self.is_server_running, 5):
             raise NetserverError("Can not start netperf server!")
-        logging.info("Netserver start successfully")
+        LOG.info("Netserver start successfully")
 
     def is_server_running(self):
         return self.is_target_running(os.path.basename(self.netserver_path))
@@ -347,11 +349,11 @@ class NetperfClient(Netperf):
             if package_sizes:
                 for p_size in package_sizes.split():
                     cmd = netperf_cmd + " -- -m %s" % p_size
-                    logging.info("Start netperf with cmd: '%s'" % cmd)
+                    LOG.info("Start netperf with cmd: '%s'" % cmd)
                     output += self.session.cmd_output_safe(cmd,
                                                            timeout=timeout)
             else:
-                logging.info("Start netperf with cmd: '%s'" % netperf_cmd)
+                LOG.info("Start netperf with cmd: '%s'" % netperf_cmd)
                 output = self.session.cmd_output_safe(netperf_cmd,
                                                       timeout=timeout)
         except aexpect.ShellError as err:
@@ -390,7 +392,7 @@ class NetperfClient(Netperf):
                     cmd = "%s > /dev/null" % cmd
                 txt = "Start %s sessions netperf background" % session_num
                 txt += " with cmd: '%s' " % cmd
-                logging.info(txt)
+                LOG.info(txt)
                 for num in xrange(int(session_num)):
                     self.session.cmd_output_safe("%s &" % cmd)
         else:
@@ -400,7 +402,7 @@ class NetperfClient(Netperf):
                 netperf_cmd = "%s > /dev/null " % netperf_cmd
             txt = "Start %s sessions netperf background" % session_num
             txt += " with cmd: '%s' " % netperf_cmd
-            logging.info(txt)
+            LOG.info(txt)
             for num in xrange(int(session_num)):
                 self.session.cmd_output_safe("%s &" % netperf_cmd)
 

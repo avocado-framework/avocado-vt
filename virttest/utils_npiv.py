@@ -12,6 +12,7 @@ from virttest.utils_test import libvirt
 from virttest.libvirt_xml.nodedev_xml import NodedevXML
 from virttest.libvirt_xml.devices import hostdev
 
+LOG = logging.getLogger('avocado.' + __name__)
 
 _FC_HOST_PATH = "/sys/class/fc_host"
 _TIMEOUT = 5
@@ -30,18 +31,18 @@ def check_nodedev(dev_name, dev_parent=None):
 
     # Check if the /sys/class/fc_host/host$NUM exists
     if not os.access(fc_host_path, os.R_OK):
-        logging.error("Can't access %s", fc_host_path)
+        LOG.error("Can't access %s", fc_host_path)
         return False
 
     dev_xml = NodedevXML.new_from_dumpxml(dev_name)
     if not dev_xml:
-        logging.error("Can't dumpxml %s XML", dev_name)
+        LOG.error("Can't dumpxml %s XML", dev_name)
         return False
 
     # Check device parent name
     if dev_parent != dev_xml.parent:
-        logging.error("The parent name is different: %s is not %s",
-                      dev_parent, dev_xml.parent)
+        LOG.error("The parent name is different: %s is not %s",
+                  dev_parent, dev_xml.parent)
         return False
 
     wwnn_from_xml = dev_xml.wwnn
@@ -57,22 +58,22 @@ def check_nodedev(dev_name, dev_parent=None):
 
     # Check wwnn, wwpn and fabric_wwn
     if len(wwnn_from_xml) != 16:
-        logging.error("The wwnn is not valid: %s", wwnn_from_xml)
+        LOG.error("The wwnn is not valid: %s", wwnn_from_xml)
         return False
     if len(wwpn_from_xml) != 16:
-        logging.error("The wwpn is not valid: %s", wwpn_from_xml)
+        LOG.error("The wwpn is not valid: %s", wwpn_from_xml)
         return False
     if fc_dict["node_name"] != wwnn_from_xml:
-        logging.error("The node name is differnet: %s is not %s",
-                      fc_dict["node_name"], wwnn_from_xml)
+        LOG.error("The node name is differnet: %s is not %s",
+                  fc_dict["node_name"], wwnn_from_xml)
         return False
     if fc_dict["port_name"] != wwpn_from_xml:
-        logging.error("The port name is different: %s is not %s",
-                      fc_dict["port_name"], wwpn_from_xml)
+        LOG.error("The port name is different: %s is not %s",
+                  fc_dict["port_name"], wwpn_from_xml)
         return False
     if fc_dict["fabric_name"] != fabric_wwn_from_xml:
-        logging.error("The fabric wwpn is differnt: %s is not %s",
-                      fc_dict["fabric_name"], fabric_wwn_from_xml)
+        LOG.error("The fabric wwpn is differnt: %s is not %s",
+                  fc_dict["fabric_name"], fabric_wwn_from_xml)
         return False
 
     fc_type_from_xml = dev_xml.fc_type
@@ -80,7 +81,7 @@ def check_nodedev(dev_name, dev_parent=None):
 
     # Check capability type
     if (cap_type_from_xml != "scsi_host") or (fc_type_from_xml != "fc_host"):
-        logging.error("The capability type isn't 'scsi_host' or 'fc_host'")
+        LOG.error("The capability type isn't 'scsi_host' or 'fc_host'")
         return False
 
     return True
@@ -167,7 +168,7 @@ def nodedev_create_from_xml(params):
     vhba_xml.parent = nodedev_parent
     vhba_xml.wwnn = scsi_wwnn
     vhba_xml.wwpn = scsi_wwpn
-    logging.debug("Prepare the nodedev XML: %s", vhba_xml)
+    LOG.debug("Prepare the nodedev XML: %s", vhba_xml)
     vhba_file = mktemp()
     with open(vhba_file, 'w') as xml_object:
         xml_object.write(str(vhba_xml))
@@ -179,7 +180,7 @@ def nodedev_create_from_xml(params):
     os.unlink(vhba_file)
     libvirt.check_exit_status(result, status_error)
     output = result.stdout_text
-    logging.info(output)
+    LOG.info(output)
     for scsi in output.split():
         if scsi.startswith('scsi_host'):
             # Check node device
@@ -202,12 +203,12 @@ def nodedev_destroy(scsi_host, params={}):
     """
     status_error = "yes" == params.get("status_error", "no")
     result = virsh.nodedev_destroy(scsi_host)
-    logging.info("destroying scsi:%s", scsi_host)
+    LOG.info("destroying scsi:%s", scsi_host)
     # Check status_error
     libvirt.check_exit_status(result, status_error)
     # Check nodedev value
     if not check_nodedev(scsi_host):
-        logging.info(result.stdout_text)
+        LOG.info(result.stdout_text)
     else:
         raise exceptions.TestFail("The relevant directory still exists"
                                   " or mismatch with result")
@@ -234,9 +235,9 @@ def vhbas_cleanup(vhba_list):
         nodedev_destroy(scsi_host)
     left_vhbas = find_hbas("vhba")
     if left_vhbas:
-        logging.error("old vhbas are: %s", left_vhbas)
+        LOG.error("old vhbas are: %s", left_vhbas)
     else:
-        logging.debug("scsi_hosts destroyed: %s", vhba_list)
+        LOG.debug("scsi_hosts destroyed: %s", vhba_list)
 
 
 def create_hostdev_xml(adapter_name="", **kwargs):
@@ -265,7 +266,7 @@ def create_hostdev_xml(adapter_name="", **kwargs):
     source_args['target'] = addr_target
     source_args['unit'] = addr_unit
     hostdev_xml.source = hostdev_xml.new_source(**source_args)
-    logging.info(hostdev_xml)
+    LOG.info(hostdev_xml)
     return hostdev_xml
 
 
@@ -360,18 +361,18 @@ def prepare_multipath_conf(conf_path="/etc/multipath.conf", conf_content="",
     if os.path.exists(conf_path):
         with open(conf_path, 'r+') as conf_file:
             old_conf_content = conf_file.read()
-            logging.info("Old multipath conf is: %s" % old_conf_content)
+            LOG.info("Old multipath conf is: %s" % old_conf_content)
             if replace_existing:
                 conf_file.seek(0)
                 conf_file.truncate()
                 conf_file.write(new_conf_content)
-                logging.info("Replace multipath conf to: %s" % new_conf_content)
+                LOG.info("Replace multipath conf to: %s" % new_conf_content)
             else:
-                logging.info("Multipath conf exsits, skip preparation.")
+                LOG.info("Multipath conf exsits, skip preparation.")
     else:
         with open(conf_path, 'w') as conf_file:
             conf_file.write(new_conf_content)
-            logging.info("Create multipath conf: %s" % new_conf_content)
+            LOG.info("Create multipath conf: %s" % new_conf_content)
     if restart_multipath:
         restart_multipathd()
     return old_conf_content

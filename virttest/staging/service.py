@@ -86,6 +86,8 @@ systemctl daemon-reload
 
 """
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def sysvinit_status_parser(cmdResult=None):
     """
@@ -394,7 +396,7 @@ class _ServiceResultParser(_ServiceCommTool):
         return True if command was executed successfully.
         """
         if cmdResult.exit_status:
-            logging.debug(cmdResult)
+            LOG.debug(cmdResult)
             return False
         else:
             return True
@@ -469,7 +471,7 @@ class _SpecificServiceManager(object):
                            We will not let the CmdError out.
             :return: result of parse_func.
             """
-            logging.debug("Setting ignore_status to True.")
+            LOG.debug("Setting ignore_status to True.")
             kwargs["ignore_status"] = True
             result = run_func(" ".join(command(service_name)), **kwargs)
             result.stdout = result.stdout_text
@@ -531,7 +533,7 @@ class _GenericServiceManager(object):
                            We will not let the CmdError out.
             :return: result of parse_func.
             """
-            logging.debug("Setting ignore_status to True.")
+            LOG.debug("Setting ignore_status to True.")
             kwargs["ignore_status"] = True
             result = run_func(" ".join(command(service)), **kwargs)
             return parse_func(result)
@@ -922,7 +924,7 @@ class Service(object):
         cmd = "systemctl %s %s" % (operate, self.service_name)
         status, output = self.session.cmd_status_output(cmd, timeout=self.timeout)
         if status != 0:
-            logging.error("%s returned unexpected status %s", cmd, status)
+            LOG.error("%s returned unexpected status %s", cmd, status)
         if output:
             return output
         return status

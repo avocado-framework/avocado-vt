@@ -24,8 +24,10 @@ import gtk
 from virttest import ppm_utils
 
 
-# General utilities
+LOG = logging.getLogger('avocado.' + __name__)
 
+
+# General utilities
 def corner_and_size_clipped(startpoint, endpoint, width, height):
     limits = width, height
     c0 = startpoint[:]
@@ -551,8 +553,8 @@ class StepMakerWindow(object):
 
     def set_image_from_file(self, filename):
         if not ppm_utils.image_verify_ppm_file(filename):
-            logging.warning("set_image_from_file: Warning: received invalid"
-                            "screendump file")
+            LOG.warning("set_image_from_file: Warning: received invalid"
+                        "screendump file")
             return self.clear_image()
         (w, h, data) = ppm_utils.image_read_from_ppm_file(filename)
         self.set_image(w, h, data)

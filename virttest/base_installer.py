@@ -20,6 +20,8 @@ from . import yumrepo
 from . import arch
 from .staging import utils_koji
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class NoModuleError(Exception):
 
@@ -180,14 +182,14 @@ class BaseInstaller(object):
         self.cleanup = True
         cleanup = self.params.get('installer_cleanup', 'yes')
         if cleanup == 'no':
-            logging.debug("Setting installer cleanup attribute to False")
+            LOG.debug("Setting installer cleanup attribute to False")
             self.cleanup = False
 
     def set_install_params(self, test=None, params=None):
         """
         Called by test to setup parameters from the configuration file
         """
-        logging.info("calling set install params")
+        LOG.info("calling set install params")
         if test is not None:
             self._set_test_dirs(test, params)
 
@@ -350,7 +352,7 @@ class BaseInstaller(object):
         except AttributeError:
             version = "Unknown"
         sw_version = {('software_version_%s' % self.name): version}
-        logging.debug("Writing test keyval %s", sw_version)
+        LOG.debug("Writing test keyval %s", sw_version)
         test.write_test_keyval(sw_version)
 
     def load_modules(self, module_list=None):
@@ -370,8 +372,7 @@ class BaseInstaller(object):
         if not module_list:
             raise NoModuleError("Module list empty")
 
-        logging.info("Loading modules from default locations through "
-                     "modprobe")
+        LOG.info("Loading modules from default locations through modprobe")
         for module in module_list:
             process.system("modprobe %s" % module)
 
@@ -384,7 +385,7 @@ class BaseInstaller(object):
         """
         if module_list is None:
             module_list = self.module_list
-        logging.info("Unloading kernel modules: %s" % " ".join(module_list))
+        LOG.info("Unloading kernel modules: %s" % " ".join(module_list))
         for module in module_list:
             linux_modules.unload_module(module)
 
@@ -470,8 +471,8 @@ class NoopInstaller(BaseInstaller):
         super(NoopInstaller, self).__init__(mode, name, test, params)
 
     def install(self):
-        logging.info("Assuming virtualization software to be already "
-                     "installed. Doing nothing")
+        LOG.info("Assuming virtualization software to be already "
+                 "installed. Doing nothing")
 
 
 class YumInstaller(BaseInstaller):
@@ -560,7 +561,7 @@ class KojiInstaller(BaseInstaller):
 
         :return: None
         """
-        logging.debug("Koji package list to be updated with debuginfo pkgs")
+        LOG.debug("Koji package list to be updated with debuginfo pkgs")
 
         koji_pkgs_with_debug = []
         for pkg_text in self.koji_pkgs:
@@ -575,8 +576,8 @@ class KojiInstaller(BaseInstaller):
                     pkg.subpackages.append(debuginfo_pkg_name)
 
             pkg_with_debug_text = pkg.to_text()
-            logging.debug("KojiPkgSpec with debuginfo package added: %s",
-                          pkg_with_debug_text)
+            LOG.debug("KojiPkgSpec with debuginfo package added: %s",
+                      pkg_with_debug_text)
             koji_pkgs_with_debug.append(pkg_with_debug_text)
 
         # swap current koji_pkgs with on that includes debuginfo pkgs
@@ -623,8 +624,8 @@ class KojiInstaller(BaseInstaller):
             if pkg.is_valid():
                 koji_client.get_pkgs(pkg, dst_dir=self.test_workdir)
             else:
-                logging.error('Package specification (%s) is invalid: %s' %
-                              (pkg, pkg.describe_invalid()))
+                LOG.error('Package specification (%s) is invalid: %s' %
+                          (pkg, pkg.describe_invalid()))
         for pkg_text in self.koji_scratch_pkgs:
             pkg = utils_koji.KojiScratchPkgSpec(pkg_text)
             koji_client.get_scratch_pkgs(pkg, dst_dir=self.test_workdir)
@@ -633,8 +634,8 @@ class KojiInstaller(BaseInstaller):
         if self.koji_yumrepo_baseurl is not None:
             repo = yumrepo.YumRepo(self.param_key_prefix,
                                    self.koji_yumrepo_baseurl)
-            logging.debug('Enabling YUM Repo "%s" at "%s"',
-                          self.param_key_prefix, self.koji_yumrepo_baseurl)
+            LOG.debug('Enabling YUM Repo "%s" at "%s"',
+                      self.param_key_prefix, self.koji_yumrepo_baseurl)
             repo.save()
 
         os.chdir(self.test_workdir)
@@ -642,8 +643,8 @@ class KojiInstaller(BaseInstaller):
         process.system("yum --nogpgcheck -y install %s" % rpm_file_names)
 
         if self.koji_yumrepo_baseurl is not None:
-            logging.debug('Disabling YUM Repo "%s" at "%s"',
-                          self.param_key_prefix, self.koji_yumrepo_baseurl)
+            LOG.debug('Disabling YUM Repo "%s" at "%s"',
+                      self.param_key_prefix, self.koji_yumrepo_baseurl)
             repo.remove()
 
 

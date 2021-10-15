@@ -22,6 +22,8 @@ from avocado.utils import path
 
 from . import utils_misc
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 _LABELS = ['file_size', 'record_size', 'write', 'rewrite', 'read', 'reread',
            'randread', 'randwrite', 'bkwdread', 'recordrewrite', 'strideread',
            'fwrite', 'frewrite', 'fread', 'freread']
@@ -101,7 +103,7 @@ class IOzoneAnalyzer(object):
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
         self.output_dir = output_dir
-        logging.info("Results will be stored in %s", output_dir)
+        LOG.info("Results will be stored in %s", output_dir)
 
     def average_performance(self, results, size=None):
         """
@@ -319,7 +321,7 @@ class IOzoneAnalyzer(object):
         file_size = []
         for file_path in self.list_files:
             fileobj = open(file_path, 'r')
-            logging.info('FILE: %s', file_path)
+            LOG.info('FILE: %s', file_path)
 
             results = self.parse_file(fileobj)
 
@@ -354,8 +356,7 @@ class IOzonePlotter(object):
         try:
             self.gnuplot = path.find_command("gnuplot")
         except path.CmdNotFoundError:
-            logging.error("Command gnuplot not found, disabling graph "
-                          "generation")
+            LOG.error("Command gnuplot not found, disabling graph generation")
             self.active = False
 
         if not os.path.isdir(output_dir):
@@ -363,8 +364,8 @@ class IOzonePlotter(object):
         self.output_dir = output_dir
 
         if not os.path.isfile(results_file):
-            logging.error("Invalid file %s provided, disabling graph "
-                          "generation", results_file)
+            LOG.error("Invalid file %s provided, disabling graph generation",
+                      results_file)
             self.active = False
             self.results_file = None
         else:
@@ -415,8 +416,8 @@ class IOzonePlotter(object):
             try:
                 process.system("%s %s" % (self.gnuplot, commands_path))
             except process.CmdError:
-                logging.error("Problem plotting from commands file %s",
-                              commands_path)
+                LOG.error("Problem plotting from commands file %s",
+                          commands_path)
 
     def plot_3d_graphs(self):
         """
@@ -453,8 +454,8 @@ class IOzonePlotter(object):
             try:
                 process.system("%s %s" % (self.gnuplot, commands_path))
             except process.CmdError:
-                logging.error("Problem plotting from commands file %s",
-                              commands_path)
+                LOG.error("Problem plotting from commands file %s",
+                          commands_path)
 
     def plot_all(self):
         """

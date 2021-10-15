@@ -15,6 +15,8 @@ from virttest import remote
 from virttest.libvirt_xml import NetworkXML
 from virttest.utils_test import libvirt
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def create_or_del_network(net_dict, is_del=False, remote_args=None):
     """
@@ -101,7 +103,7 @@ def check_established(params):
         pat_str = r'.*%s:(\d*).*ESTABLISHED.*qemu-kvm.*' % server_ip
         search = re.search(pat_str, cmdRes.stdout_text.strip())
         if search:
-            logging.debug("Get the port used:%s", search.group(1))
+            LOG.debug("Get the port used:%s", search.group(1))
             return search.group(1)
         else:
             raise exceptions.TestFail("Pattern '%s' is not matched in "
@@ -153,7 +155,7 @@ def modify_network_xml(net_dict, testnet_xml):
     if forward:
         testnet_xml.del_forward()
         testnet_xml.forward = eval(forward)
-        logging.debug("current mode is %s" % testnet_xml.forward)
+        LOG.debug("current mode is %s" % testnet_xml.forward)
     if interface_dev:
         testnet_xml.forward_interface = [{'dev': interface_dev}]
     if virtualport:
@@ -192,19 +194,19 @@ def check_tap_connected(tap_name, estate, br_name):
     """
     cmd = "bridge link | grep master | grep %s" % br_name
     outputs = process.run(cmd, shell=True, ignore_status=True).stdout_text
-    logging.debug("The interface attached to the bridge is:\n%s", outputs)
+    LOG.debug("The interface attached to the bridge is:\n%s", outputs)
     if tap_name in outputs:
         if estate:
-            logging.debug("The tap is attached to bridge as expected!")
+            LOG.debug("The tap is attached to bridge as expected!")
         else:
-            logging.error("The tap isn't detached from bridge!")
+            LOG.error("The tap isn't detached from bridge!")
             return False
     else:
         if estate:
-            logging.error("The tap is not attached to bridge!")
+            LOG.error("The tap is not attached to bridge!")
             return False
         else:
-            logging.debug("The tap isn't attached to bridge as expected!")
+            LOG.debug("The tap isn't attached to bridge as expected!")
     return True
 
 
@@ -218,7 +220,7 @@ def check_network_connection(net_name, expected_conn=0):
     """
     netxml = NetworkXML(network_name=net_name).new_from_net_dumpxml(net_name)
     net_conn = int(netxml.xmltreefile.getroot().get('connections', '0'))
-    logging.debug("Network connection is %d.", net_conn)
+    LOG.debug("Network connection is %d.", net_conn)
     if expected_conn != net_conn:
         raise exceptions.TestFail("Unable to get the expected connection "
                                   "number. Expected: %d, Actual: %d."

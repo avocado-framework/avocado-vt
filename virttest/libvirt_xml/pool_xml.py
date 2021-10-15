@@ -13,6 +13,8 @@ from .. import libvirt_storage
 from ..libvirt_xml import base, xcepts, accessors
 from virttest import element_tree as ET
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class SourceXML(base.LibvirtXMLBase):
 
@@ -391,7 +393,7 @@ class PoolXML(PoolXMLBase):
         try:
             self.virsh.pool_undefine(self.name, ignore_status=False)
         except process.CmdError:
-            logging.error("Undefine pool '%s' failed.", self.name)
+            LOG.error("Undefine pool '%s' failed.", self.name)
             return False
 
     def pool_define(self):
@@ -400,9 +402,9 @@ class PoolXML(PoolXMLBase):
         """
         result = self.virsh.pool_define(self.xml)
         if result.exit_status:
-            logging.error("Define %s failed.\n"
-                          "Detail: %s.", self.name,
-                          result.stderr_text)
+            LOG.error("Define %s failed.\n"
+                      "Detail: %s.", self.name,
+                      result.stderr_text)
             return False
         return True
 
@@ -417,7 +419,7 @@ class PoolXML(PoolXMLBase):
         """
         pool_ins = libvirt_storage.StoragePool()
         if not pool_ins.is_pool_persistent(name):
-            logging.error("Cannot rename for transient pool")
+            LOG.error("Cannot rename for transient pool")
             return False
         start_pool = False
         if pool_ins.is_pool_active(name):
@@ -441,7 +443,7 @@ class PoolXML(PoolXMLBase):
         else:
             poolxml.uuid = uuid
         # Re-define XML to libvirt
-        logging.debug("Rename pool: %s to %s.", name, new_name)
+        LOG.debug("Rename pool: %s to %s.", name, new_name)
         # error message for failed define
         error_msg = "Error reported while defining pool:\n"
         try:
@@ -454,7 +456,7 @@ class PoolXML(PoolXMLBase):
             backup.pool_define()
             raise xcepts.LibvirtXMLError(error_msg + "%s" % detail)
         if not poolxml.pool_define():
-            logging.info("Pool xml: %s" % poolxml.get('xml'))
+            LOG.info("Pool xml: %s" % poolxml.get('xml'))
             _cleanup(details="Define pool %s failed" % new_name)
         if start_pool:
             pool_ins.start_pool(new_name)
@@ -472,7 +474,7 @@ class PoolXML(PoolXMLBase):
         except Exception as detail:
             if os.path.exists(xml_file):
                 os.remove(xml_file)
-            logging.error("Failed to backup xml file:\n%s", detail)
+            LOG.error("Failed to backup xml file:\n%s", detail)
             return ""
 
     def debug_xml(self):
@@ -481,4 +483,4 @@ class PoolXML(PoolXMLBase):
         """
         xml = str(self)
         for debug_line in str(xml).splitlines():
-            logging.debug("Pool XML: %s", debug_line)
+            LOG.debug("Pool XML: %s", debug_line)

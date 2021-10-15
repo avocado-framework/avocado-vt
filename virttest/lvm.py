@@ -35,6 +35,8 @@ from avocado.utils import process
 from virttest import utils_misc
 from virttest import data_dir
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 UNIT = "B"
 COMMON_OPTS = "--noheading --nosuffix --unit=%s" % UNIT
 
@@ -49,7 +51,7 @@ def normalize_data_size(size):
 def cmd_output(cmd, res="[\w/]+"):
     result = process.run(cmd, ignore_status=True)
     if result.exit_status != 0:
-        logging.warn(result)
+        LOG.warn(result)
         return None
     output = result.stdout_text
     for line in output.splitlines():
@@ -119,7 +121,7 @@ class PhysicalVolume(Volume):
         self.umount()
         cmd = "pvcreate %s %s" % (extra_args, self.name)
         process.system(cmd)
-        logging.info("Create physical volume: %s", self.name)
+        LOG.info("Create physical volume: %s", self.name)
         return self.path
 
     def remove(self, extra_args=" -ff --yes"):
@@ -131,7 +133,7 @@ class PhysicalVolume(Volume):
         """
         cmd = "lvm pvremove %s %s" % (extra_args, self.name)
         process.system(cmd)
-        logging.info("logical physical volume (%s) removed", self.name)
+        LOG.info("logical physical volume (%s) removed", self.name)
 
     def resize(self, size, extra_args="-ff --yes"):
         """
@@ -147,7 +149,7 @@ class PhysicalVolume(Volume):
                                                                    self.name)
         process.system(cmd)
         self.size = size
-        logging.info("resize volume %s to %s B" % (self.name, self.size))
+        LOG.info("resize volume %s to %s B" % (self.name, self.size))
 
     def display(self):
         """
@@ -203,7 +205,7 @@ class VolumeGroup(object):
                     pv.vg.remove()
             cmd += " %s" % pv.name
         process.system(cmd)
-        logging.info("Create new volumegroup %s", self.name)
+        LOG.info("Create new volumegroup %s", self.name)
         return self.name
 
     def remove(self, extra_args="-ff --yes"):
@@ -214,7 +216,7 @@ class VolumeGroup(object):
         """
         cmd = "lvm vgremove %s %s" % (extra_args, self.name)
         process.system(cmd)
-        logging.info("logical volume-group(%s) removed", self.name)
+        LOG.info("logical volume-group(%s) removed", self.name)
 
     def get_attr(self, attr):
         """
@@ -248,8 +250,7 @@ class VolumeGroup(object):
         cmd = "lvm vgreduce %s %s %s" % (extra_args, self.name, pv.name)
         process.system(cmd)
         self.pvs.remove(pv)
-        logging.info("reduce volume %s from volume group %s" % (pv.name,
-                                                                self.name))
+        LOG.info("reduce volume %s from volume group %s" % (pv.name, self.name))
 
     def extend_pv(self, pv, extra_args=""):
         """
@@ -263,7 +264,7 @@ class VolumeGroup(object):
         cmd = "lvm vgextend %s %s" % (self.name, pv.name)
         process.system(cmd)
         self.pvs.append(pv)
-        logging.info("add volume %s to volumegroup %s" % (pv.name, self.name))
+        LOG.info("add volume %s to volumegroup %s" % (pv.name, self.name))
 
     def exists(self):
         """
@@ -297,7 +298,7 @@ class LogicalVolume(Volume):
         if self.lv_extra_options:
             cmd += " %s" % self.lv_extra_options
         process.system(cmd)
-        logging.info("create logical volume %s", self.path)
+        LOG.info("create logical volume %s", self.path)
         return self.get_attr("lv_path")
 
     def remove(self, extra_args="-ff --yes", timeout=300):
@@ -314,7 +315,7 @@ class LogicalVolume(Volume):
                                              self.vg.name, self.name)
             status = process.system(cmd, ignore_status=True)
             if status == 0:
-                logging.info("logical volume(%s) removed", self.name)
+                LOG.info("logical volume(%s) removed", self.name)
                 break
             time.sleep(0.5)
 
@@ -337,8 +338,7 @@ class LogicalVolume(Volume):
         cmd = "lvm lvresize -n -L %s%s %s %s" % (size, UNIT, path, extra_args)
         process.system(cmd)
         self.size = size
-        logging.info("resize logical volume %s size to %s" % (self.path,
-                                                              self.size))
+        LOG.info("resize logical volume %s size to %s" % (self.path, self.size))
         return size
 
     def display(self, extra_args=""):
@@ -418,7 +418,7 @@ class LVM(object):
         """
         if isinstance(vol, Volume) or isinstance(vol, VolumeGroup):
             self.trash.append(vol)
-            logging.info("Install new volume %s", vol.name)
+            LOG.info("Install new volume %s", vol.name)
 
     def unregister(self, vol):
         """
@@ -428,7 +428,7 @@ class LVM(object):
         """
         if vol in self.trash:
             self.trash.remove(vol)
-            logging.info("Uninstall volume %s", vol.name)
+            LOG.info("Uninstall volume %s", vol.name)
 
     def __reload_lvs(self):
         """
@@ -533,8 +533,8 @@ class LVM(object):
                 pv.set_vg(vg)
             self.vgs.append(vg)
         else:
-            logging.info("VolumeGroup(%s) really exists" % vg_name +
-                         "skip to create it")
+            LOG.info("VolumeGroup(%s) really exists" % vg_name +
+                     "skip to create it")
             pv_name = self.params["pv_name"].split()[0]
             pv = self.get_vol(pv_name, "pvs")
             if pv and pv.vg is vg:
@@ -569,12 +569,12 @@ class LVM(object):
             self.register(lv)
             self.lvs.append(lv)
         else:
-            logging.info("LogicalVolume(%s) really exists " % lv_name +
-                         "skip to create it")
+            LOG.info("LogicalVolume(%s) really exists " % lv_name +
+                     "skip to create it")
         if lv.size != lv_size:
             lv.display()
-            logging.warn("lv size(%s) mismath," % lv.size +
-                         "required size %s;" % lv_size)
+            LOG.warn("lv size(%s) mismath," % lv.size +
+                     "required size %s;" % lv_size)
             lv.resize(lv_size)
         return lv
 
@@ -617,7 +617,7 @@ class LVM(object):
         lvm_reload_cmd = self.params.get("lvm_reload_cmd")
         if lvm_reload_cmd:
             process.system(lvm_reload_cmd, ignore_status=True)
-            logging.info("reload lvm monitor service")
+            LOG.info("reload lvm monitor service")
 
 
 class EmulatedLVM(LVM):
@@ -642,7 +642,7 @@ class EmulatedLVM(LVM):
         img_path = self.get_emulate_image_name()
         bs_size = normalize_data_size("8M")
         count = int(math.ceil(img_size / bs_size)) + 8
-        logging.info("create emulated image file(%s)" % img_path)
+        LOG.info("create emulated image file(%s)" % img_path)
         cmd = "dd if=/dev/zero of=%s bs=8M count=%s" % (img_path, count)
         process.system(cmd)
         self.params["pv_size"] = count * bs_size
@@ -682,8 +682,8 @@ class EmulatedLVM(LVM):
             self.register(pv)
             self.pvs.append(pv)
         else:
-            logging.warn("PhysicalVolume(%s) really exists" % pv_name +
-                         "skip to create it")
+            LOG.warn("PhysicalVolume(%s) really exists" % pv_name +
+                     "skip to create it")
         pv.set_vg(vg)
         pvs.append(pv)
         return pvs
@@ -714,9 +714,9 @@ class EmulatedLVM(LVM):
             devices = re.findall("(/dev/loop\d+)", output, re.M | re.I)
             for dev in devices:
                 cmd = "losetup -d %s" % dev
-                logging.info("disconnect %s", dev)
+                LOG.info("disconnect %s", dev)
                 process.system(cmd, ignore_status=True)
             emulate_image_file = self.get_emulate_image_name()
             cmd = "rm -f %s" % emulate_image_file
             process.system(cmd, ignore_status=True)
-            logging.info("remove emulate image file %s", emulate_image_file)
+            LOG.info("remove emulate image file %s", emulate_image_file)

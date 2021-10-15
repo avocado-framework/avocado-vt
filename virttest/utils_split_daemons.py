@@ -17,6 +17,8 @@ from virttest.utils_gdb import GDB
 
 IS_MODULAR_DAEMON = {'local': None}
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class VirtDaemonCommon(object):
 
@@ -44,8 +46,8 @@ class VirtDaemonCommon(object):
             runner = process.run
 
         if not self.daemon_name:
-            logging.warning("libvirt split daemon service is not available in host, "
-                            "utils_daemons module will not function normally")
+            LOG.warning("libvirt split daemon service is not available in host, "
+                        "utils_daemons module will not function normally")
         self.virtdaemon = service.Factory.create_service(self.daemon_name, run=runner)
 
     def _wait_for_start(self, timeout=60):
@@ -131,7 +133,7 @@ class VirtQemudSession(object):
         self.virtqemud_service = VirtQemud()
         self.was_running = self.virtqemud_service.is_running()
         if self.was_running:
-            logging.debug('Stopping virtqemud service')
+            LOG.debug('Stopping virtqemud service')
             self.virtqemud_service.stop()
 
         self.logging_handler = logging_handler
@@ -200,7 +202,7 @@ class VirtQemudSession(object):
             self.gdb.set_callback(
                 callback_type, callback_func, callback_params)
         else:
-            logging.error("Only gdb session supports setting callback")
+            LOG.error("Only gdb session supports setting callback")
 
     def start(self, arg_str='', wait_for_working=True):
         """
@@ -230,7 +232,7 @@ class VirtQemudSession(object):
         if self.gdb:
             self.gdb.cont()
         else:
-            logging.error("Only gdb session supports continue")
+            LOG.error("Only gdb session supports continue")
 
     def kill(self):
         """
@@ -248,7 +250,7 @@ class VirtQemudSession(object):
         :param arg_str: Argument passing to the session
         :param wait_for_working: Whether wait for virtqemud finish loading
         """
-        logging.debug("Restarting virtqemud session")
+        LOG.debug("Restarting virtqemud session")
         self.kill()
         self.start(arg_str=arg_str, wait_for_working=wait_for_working)
 
@@ -258,7 +260,7 @@ class VirtQemudSession(object):
 
         :param timeout: Max wait time
         """
-        logging.debug('Waiting for virtqemud to work')
+        LOG.debug('Waiting for virtqemud to work')
         return utils_misc.wait_for(
             self.is_working,
             timeout=timeout,
@@ -271,7 +273,7 @@ class VirtQemudSession(object):
         if self.gdb:
             return self.gdb.back_trace()
         else:
-            logging.warning('Can not get back trace without gdb')
+            LOG.warning('Can not get back trace without gdb')
 
     def insert_break(self, break_func):
         """
@@ -282,7 +284,7 @@ class VirtQemudSession(object):
         if self.gdb:
             return self.gdb.insert_break(break_func)
         else:
-            logging.warning('Can not insert breakpoint without gdb')
+            LOG.warning('Can not insert breakpoint without gdb')
 
     def is_working(self):
         """
@@ -302,7 +304,7 @@ class VirtQemudSession(object):
         :param timeout: Max wait time
         :param step: Checking interval
         """
-        logging.debug('Waiting for virtqemud to stop')
+        LOG.debug('Waiting for virtqemud to stop')
         if self.gdb:
             return self.gdb.wait_for_stop(timeout=timeout)
         else:
@@ -318,11 +320,11 @@ class VirtQemudSession(object):
 
         :param timeout: Max wait time
         """
-        logging.debug('Waiting for virtqemud to terminate')
+        LOG.debug('Waiting for virtqemud to terminate')
         if self.gdb:
             return self.gdb.wait_for_termination(timeout=timeout)
         else:
-            logging.error("Only gdb session supports wait_for_termination.")
+            LOG.error("Only gdb session supports wait_for_termination.")
 
     def exit(self):
         """

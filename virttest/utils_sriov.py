@@ -11,6 +11,8 @@ from virttest import utils_misc
 from virttest import utils_net
 from virttest import utils_package
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def find_pf(driver, session=None):
     """
@@ -79,7 +81,7 @@ def get_pf_info(session=None):
                              'status': utils_net.get_net_if_operstate(
                                           iface_name.strip(), runner=runner)})
             pf_info.update({pci: tmp_info})
-    logging.debug("PF info: %s.", pf_info)
+    LOG.debug("PF info: %s.", pf_info)
     return pf_info
 
 
@@ -109,7 +111,7 @@ def get_pf_info_by_pci(pci_id, session=None):
     pf_info = get_pf_info(session=session)
     for pf in pf_info.values():
         if pf.get('pci_id') == pci_id:
-            logging.debug("PF %s details: %s.", pci_id, pf)
+            LOG.debug("PF %s details: %s.", pci_id, pf)
             return pf
 
 
@@ -161,7 +163,7 @@ def set_vf(pci_addr, vf_no=4, session=None, timeout=60):
     :param timeout: Time limit in seconds to wait for cmd to complete
     :return: True if successful
     """
-    logging.debug("pci_addr is %s", pci_addr)
+    LOG.debug("pci_addr is %s", pci_addr)
     cmd = "echo %s > %s/sriov_numvfs" % (vf_no, pci_addr)
     s, o = utils_misc.cmd_status_output(cmd, shell=True, timeout=timeout,
                                         verbose=True, session=session)
@@ -260,7 +262,7 @@ def add_or_del_connection(params, session=None, is_del=False):
         return
 
     if not utils_package.package_install(["tmux", "dhcp-client"], session):
-        logging.error("Failed to install the required package")
+        LOG.error("Failed to install the required package")
     recover_cmd = 'tmux -c "ip link set {0} nomaster; ip link delete {1}; ' \
                   'pkill dhclient; sleep 5; dhclient"'.format(
                       pf_name, bridge_name)

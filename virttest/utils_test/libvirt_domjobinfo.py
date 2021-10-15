@@ -11,6 +11,8 @@ from avocado.core import exceptions
 
 from virttest import virsh
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 # pylint: disable=E1121
 def check_domjobinfo(vm, params, option="", remote_virsh_dargs=None):
@@ -34,7 +36,7 @@ def check_domjobinfo(vm, params, option="", remote_virsh_dargs=None):
         for item in jobinfo.stdout.splitlines():
             if item.count(jobinfo_item):
                 groups = re.findall(r'[0-9.]+', item.strip())
-                logging.debug("In '%s' search '%s'\n", item, groups[0])
+                LOG.debug("In '%s' search '%s'\n", item, groups[0])
                 if (math.fabs(float(groups[0]) - float(compare_to_value)) //
                         float(compare_to_value) > diff_rate):
                     err_msg = ("{} {} has too much difference from "
@@ -42,7 +44,7 @@ def check_domjobinfo(vm, params, option="", remote_virsh_dargs=None):
                                            groups[0],
                                            compare_to_value))
                     if ignore_status:
-                        logging.error(err_msg)
+                        LOG.error(err_msg)
                     else:
                         raise exceptions.TestFail(err_msg)
                 break
@@ -50,7 +52,7 @@ def check_domjobinfo(vm, params, option="", remote_virsh_dargs=None):
     jobinfo_item = params.get("jobinfo_item")
     compare_to_value = params.get("compare_to_value")
     ignore_status = params.get("domjob_ignore_status", False)
-    logging.debug("compare_to_value:%s", compare_to_value)
+    LOG.debug("compare_to_value:%s", compare_to_value)
     diff_rate = float(params.get("diff_rate", "0"))
     if not jobinfo_item or not compare_to_value:
         return

@@ -13,6 +13,8 @@ from avocado.core import exceptions
 ARCH_MAP_ISO = {"32-bit": "x86", "64-bit": "amd64"}
 ARCH_MAP_VFD = {"32-bit": "i386", "64-bit": "amd64"}
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def arch_dirname_iso(session):
     """
@@ -133,7 +135,7 @@ def _get_netkvmco_path(session):
     find_cmd = 'dir /b /s %s\\netkvmco.dll | findstr "\\%s\\\\"'
     find_cmd %= (viowin_ltr,  middle_path)
     netkvmco_path = session.cmd(find_cmd).strip()
-    logging.info("Found netkvmco.dll file at %s" % netkvmco_path)
+    LOG.info("Found netkvmco.dll file at %s" % netkvmco_path)
     return netkvmco_path
 
 
@@ -143,7 +145,7 @@ def prepare_netkvmco(vm):
 
     param vm: the target vm
     """
-    logging.info("Prepare the netkvmco.dll")
+    LOG.info("Prepare the netkvmco.dll")
     session = vm.wait_for_login(timeout=360)
     try:
         netkvmco_path = _get_netkvmco_path(session)

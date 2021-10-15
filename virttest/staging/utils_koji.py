@@ -25,6 +25,8 @@ except ImportError:
 
 DEFAULT_KOJI_TAG = None
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class KojiDownloadError(IOError):
 
@@ -197,9 +199,8 @@ class KojiClient(object):
                 break
             except Exception as e:
                 last_error = str(e)
-                logging.error("Download failed: %s", last_error)
-                logging.error("Retrying after %s seconds...",
-                              self.RETRY_STEP)
+                LOG.error("Download failed: %s", last_error)
+                LOG.error("Retrying after %s seconds...", self.RETRY_STEP)
                 if os.path.isfile(dst):
                     os.unlink(dst)
                 time.sleep(self.RETRY_STEP)
@@ -250,18 +251,17 @@ class KojiClient(object):
         koji_command_ok = True
 
         if not os.path.isfile(self.command):
-            logging.error('Koji command "%s" is not a regular file',
-                          self.command)
+            LOG.error('Koji command "%s" is not a regular file', self.command)
             koji_command_ok = False
 
         if not os.access(self.command, os.X_OK):
-            logging.warn('Koji command "%s" is not executable: this is '
-                         'not fatal but indicates an unexpected situation',
-                         self.command)
+            LOG.warn('Koji command "%s" is not executable: this is '
+                     'not fatal but indicates an unexpected situation',
+                     self.command)
 
         if self.command not in list(self.CONFIG_MAP.keys()):
-            logging.error('Koji command "%s" does not have a configuration '
-                          'file associated to it', self.command)
+            LOG.error('Koji command "%s" does not have a configuration '
+                      'file associated to it', self.command)
             koji_command_ok = False
 
         return koji_command_ok
@@ -275,22 +275,21 @@ class KojiClient(object):
         koji_config_ok = True
 
         if not os.path.isfile(self.config):
-            logging.error(
-                'Koji config "%s" is not a regular file', self.config)
+            LOG.error('Koji config "%s" is not a regular file', self.config)
             koji_config_ok = False
 
         if not os.access(self.config, os.R_OK):
-            logging.error('Koji config "%s" is not readable', self.config)
+            LOG.error('Koji config "%s" is not readable', self.config)
             koji_config_ok = False
 
         config = ConfigParser.ConfigParser()
         config.read(self.config)
         basename = os.path.basename(self.command)
         if not config.has_section(basename):
-            logging.error('Koji configuration file "%s" does not have a '
-                          'section "%s", named after the base name of the '
-                          'currently set koji command "%s"', self.config,
-                          basename, self.command)
+            LOG.error('Koji configuration file "%s" does not have a '
+                      'section "%s", named after the base name of the '
+                      'currently set koji command "%s"', self.config,
+                      basename, self.command)
             koji_config_ok = False
 
         return koji_config_ok

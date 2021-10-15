@@ -17,6 +17,9 @@ from virttest.libvirt_xml.backup_xml import BackupXML
 from virttest.libvirt_xml.checkpoint_xml import CheckpointXML
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
+
 class BackupError(Exception):
 
     """
@@ -195,7 +198,7 @@ def pull_incremental_backup_to_file(nbd_params, target_path,
     nbd_export = nbd_params.get("nbd_export", "vdb")
     tls_dir = nbd_params.get("tls_dir")
     cmd = "qemu-img create -f qcow2 %s %s" % (target_path, file_size)
-    logging.debug(process.run(cmd, shell=True).stdout_text)
+    LOG.debug(process.run(cmd, shell=True).stdout_text)
     map_from = "--image-opts driver=nbd,export=%s,server.type=%s"
     map_from += ",%s"
     map_from += ",x-dirty-bitmap=qemu:dirty-bitmap:%s"
@@ -424,13 +427,13 @@ def enable_inc_backup_for_vm(vm, libvirt_ver=(7, 0, 0)):
     """
     vmxml = vm_xml.VMXML.new_from_inactive_dumpxml(vm.name)
     if libvirt_version.version_compare(*libvirt_ver):
-        logging.debug("Incremental backup is enabled by default "
-                      "in current libvirt version, no need to "
-                      "update vm xml.")
+        LOG.debug("Incremental backup is enabled by default "
+                  "in current libvirt version, no need to "
+                  "update vm xml.")
         return vmxml
-    logging.debug("We need to redefine and start the vm to enable "
-                  "incremental backup, please confirm if this effects your "
-                  "other verification points.")
+    LOG.debug("We need to redefine and start the vm to enable "
+              "incremental backup, please confirm if this effects your "
+              "other verification points.")
     tree = ET.parse(vmxml.xml)
     root = tree.getroot()
     for elem in root.iter('domain'):

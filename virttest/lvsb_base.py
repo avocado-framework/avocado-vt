@@ -12,6 +12,9 @@ import aexpect
 from six.moves import xrange
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
+
 class SandboxException(Exception):
 
     """
@@ -88,7 +91,7 @@ class SandboxSession(object):
             self.session.close()
         else:
             if warn_if_nonexist:
-                logging.warning("Closing nonexisting sandbox session")
+                LOG.warning("Closing nonexisting sandbox session")
 
     def kill_session(self, sig=signal.SIGTERM):
         """
@@ -204,7 +207,7 @@ class SandboxBase(object):
         :param extra: String of extra command-line to use but not store
         """
         sandbox_cmdline = self.make_sandbox_command_line(extra)
-        logging.debug("Launching %s", sandbox_cmdline)
+        LOG.debug("Launching %s", sandbox_cmdline)
         self._session.new_session(sandbox_cmdline)
 
     def stop(self):
@@ -469,7 +472,7 @@ class TestSandboxes(object):
                     if key_gen in params and not option:
                         self.flag.append(value)
 
-        logging.debug("All of options(%s) and flags(%s)", self.opts, self.flag)
+        LOG.debug("All of options(%s) and flags(%s)", self.opts, self.flag)
 
     def init_sandboxes(self):
         """

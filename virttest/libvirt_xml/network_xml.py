@@ -10,6 +10,8 @@ from virttest import xml_utils
 from virttest.libvirt_xml import base, xcepts, accessors
 from virttest.libvirt_xml.devices import librarian
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class RangeList(list):
 
@@ -653,7 +655,7 @@ class NetworkXMLBase(base.LibvirtXMLBase):
             del_elem = xmltreefile.findall(element)[index]
         except IndexError as detail:
             del_elem = None
-            logging.warning(detail)
+            LOG.warning(detail)
         if del_elem is not None:
             xmltreefile.remove(del_elem)
             xmltreefile.write()
@@ -811,7 +813,7 @@ class NetworkXML(NetworkXMLBase):
         """
         xml = str(self)  # LibvirtXMLBase.__str__ returns XML content
         for debug_line in str(xml).splitlines():
-            logging.debug("Network XML: %s", debug_line)
+            LOG.debug("Network XML: %s", debug_line)
 
     def state_dict(self):
         """
@@ -839,12 +841,12 @@ class NetworkXML(NetworkXMLBase):
             self['active'] = False  # deactivate (stop) network if active
         except xcepts.LibvirtXMLError as detail:
             # inconsequential, network will be removed
-            logging.warning(detail)
+            LOG.warning(detail)
         try:
             self['defined'] = False  # undefine (delete) network if persistent
         except xcepts.LibvirtXMLError as detail:
             # network already gone
-            logging.warning(detail)
+            LOG.warning(detail)
 
     def exists(self):
         """

@@ -22,6 +22,8 @@ from virttest.utils_libvirt import libvirt_disk
 
 from virttest.libvirt_xml import vm_xml
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def _create_secret(auth_sec_usage_type, ceph_auth_key):
     """
@@ -83,7 +85,7 @@ def create_or_cleanup_ceph_backend_vm_disk(vm, params, is_setup=True):
     :param is_setup: one parameter indicate whether setup or clean up
     """
     vmxml = vm_xml.VMXML.new_from_dumpxml(vm.name)
-    logging.debug("original xml is: %s", vmxml)
+    LOG.debug("original xml is: %s", vmxml)
 
     # Device related configurations
     device_format = params.get("virt_disk_device_format", "raw")

@@ -12,6 +12,8 @@ from .. import utils_misc
 from ..libvirt_xml import base, accessors, xcepts
 from ..libvirt_xml.devices import librarian
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class VMXMLDevices(list):
 
@@ -601,8 +603,8 @@ class VMXMLBase(base.LibvirtXMLBase):
         # no seclabel tag found in xml.
         del_controllers = self.get_controllers(controller_type=controller_type)
         if del_controllers == []:
-            logging.debug("Controller %s for this domain does not "
-                          "exist" % controller_type)
+            LOG.debug("Controller %s for this domain does not "
+                      "exist" % controller_type)
 
         for controller in del_controllers:
             self.xmltreefile.remove(controller)
@@ -697,9 +699,9 @@ class VMXML(VMXMLBase):
         """Define VM with virsh from this instance"""
         result = virsh_instance.define(self.xml)
         if result.exit_status:
-            logging.error("Define %s failed.\n"
-                          "Detail: %s.", self.vm_name,
-                          result.stderr_text)
+            LOG.error("Define %s failed.\n"
+                      "Detail: %s.", self.vm_name,
+                      result.stderr_text)
             return False
         return True
 
@@ -709,7 +711,7 @@ class VMXML(VMXMLBase):
         try:
             backup = self.new_from_dumpxml(self.vm_name, virsh_instance=virsh_instance)
         except IOError:
-            logging.debug("Failed to backup %s.", self.vm_name)
+            LOG.debug("Failed to backup %s.", self.vm_name)
             backup = None
 
         if not self.undefine(options, virsh_instance=virsh_instance):
@@ -720,8 +722,8 @@ class VMXML(VMXMLBase):
         if result_define.exit_status:
             if backup:
                 backup.define(virsh_instance=virsh_instance)
-            logging.error("Failed to define %s from xml:\n%s"
-                          % (self.vm_name, self.xmltreefile))
+            LOG.error("Failed to define %s from xml:\n%s"
+                      % (self.vm_name, self.xmltreefile))
             raise xcepts.LibvirtXMLError("Failed to define %s for reason:\n%s"
                                          % (self.vm_name, result_define.stderr_text))
 
@@ -764,7 +766,7 @@ class VMXML(VMXMLBase):
             del vmxml.uuid
         else:
             vmxml.uuid = uuid
-        logging.debug("Rename %s to %s.", vm.name, new_name)
+        LOG.debug("Rename %s to %s.", vm.name, new_name)
         if not vmxml.define():
             _cleanup(details="Define VM %s failed" % new_name)
         # Update the name and uuid property for VM object
@@ -842,7 +844,7 @@ class VMXML(VMXMLBase):
                 try:
                     vmcpu_xml = vmxml['cpu']
                 except xcepts.LibvirtXMLNotFoundError:
-                    logging.debug("Can not find any cpu tag, now create one.")
+                    LOG.debug("Can not find any cpu tag, now create one.")
                     vmcpu_xml = VMCPUXML()
 
                 if topology_correction and ((int(sockets) * int(cores) * int(threads)) != vcpus):
@@ -902,8 +904,8 @@ class VMXML(VMXMLBase):
                         else:
                             vmcpu_xml.set_numa_cell(vmcpu_xml.dicts_to_cells(nodexml_list))
                     else:
-                        logging.warning("Guest numa could not be updated, expect "
-                                        "failures if guest numa is checked")
+                        LOG.warning("Guest numa could not be updated, expect "
+                                    "failures if guest numa is checked")
                 vmxml['cpu'] = vmcpu_xml
             except xcepts.LibvirtXMLNotFoundError:
                 pass
@@ -936,7 +938,7 @@ class VMXML(VMXMLBase):
         try:
             topology = self.cpu.topology
         except Exception:
-            logging.debug("<cpu>/<topology> xml element not found")
+            LOG.debug("<cpu>/<topology> xml element not found")
         return topology
 
     def get_disk_all(self):
@@ -988,7 +990,7 @@ class VMXML(VMXMLBase):
             for expr in args:
                 attr_expr = re.search(EXPR_PARSER, expr)
                 if not attr_expr:
-                    logging.error("invalid expression: %s", expr)
+                    LOG.error("invalid expression: %s", expr)
                     return disks
                 attr_name, operator, attr_val = [
                     attr_expr.group(i) for i in range(1, 4)]
@@ -1090,7 +1092,7 @@ class VMXML(VMXMLBase):
             if tag in ["driver", "boot", "address", "alias", "source"]:
                 attr_value = disk.find(tag).get(attr)
         except AttributeError:
-            logging.error("No %s/%s found.", tag, attr)
+            LOG.error("No %s/%s found.", tag, attr)
 
         return attr_value
 
@@ -1115,7 +1117,7 @@ class VMXML(VMXMLBase):
             for disk in disk_list:
                 file_list.append(disk.find('source').get('file'))
         except AttributeError:
-            logging.debug("No 'file' type disk.")
+            LOG.debug("No 'file' type disk.")
         if disk_src in file_list + blk_list:
             found = True
         return found
@@ -1146,7 +1148,7 @@ class VMXML(VMXMLBase):
                 if disk_src == disk_dev:
                     found = True
             except AttributeError as detail:
-                logging.debug(str(detail))
+                LOG.debug(str(detail))
                 continue
         return found
 
@@ -1170,7 +1172,7 @@ class VMXML(VMXMLBase):
         try:
             serial = disk.find("serial").text
         except AttributeError:
-            logging.debug("No serial assigned.")
+            LOG.debug("No serial assigned.")
 
         return serial
 
@@ -1195,7 +1197,7 @@ class VMXML(VMXMLBase):
             disk_bus = disk.find("target").get("bus")
             address = disk.find("address")
             add_type = address.get("type")
-            logging.info("add_type %s", add_type)
+            LOG.info("add_type %s", add_type)
             if add_type == "ccw":
                 cssid = address.get("cssid")
                 ssid = address.get("ssid")
@@ -1266,7 +1268,7 @@ class VMXML(VMXMLBase):
         try:
             serial = vmxml.get_primary_serial()['serial']
         except AttributeError:
-            logging.debug("Can not find any serial, now create one.")
+            LOG.debug("Can not find any serial, now create one.")
             # Create serial tree, default is pty
             serial = xml_utils.ElementTree.SubElement(
                 xmltreefile.find('devices'),
@@ -1318,7 +1320,7 @@ class VMXML(VMXMLBase):
         :param ignore_exist: Whether add a channel even if another already exists.
         """
         if not ignore_exist and self.get_agent_channels():
-            logging.debug("Guest agent channel already exists")
+            LOG.debug("Guest agent channel already exists")
             return
 
         if not src_path:
@@ -1442,9 +1444,9 @@ class VMXML(VMXMLBase):
                 iftune_params['inbound'] = bandwidth.find('inbound')
                 iftune_params['outbound'] = bandwidth.find('outbound')
             except AttributeError:
-                logging.error("Can't find <inbound> or <outbound> element")
+                LOG.error("Can't find <inbound> or <outbound> element")
         except AttributeError:
-            logging.error("Can't find <bandwidth> element")
+            LOG.error("Can't find <bandwidth> element")
 
         return iftune_params
 
@@ -1517,7 +1519,7 @@ class VMXML(VMXMLBase):
         try:
             cpuxml = vmxml['cpu']
         except xcepts.LibvirtXMLNotFoundError:
-            logging.debug("Can not find any cpu tag, now create one.")
+            LOG.debug("Can not find any cpu tag, now create one.")
             cpuxml = VMCPUXML()
         cpuxml['mode'] = mode
         if model:
@@ -1542,8 +1544,8 @@ class VMXML(VMXMLBase):
         if not allow_dup:
             for device in devices:
                 if device == value:
-                    logging.debug("Device %s is already in VM %s.",
-                                  value, self.vm_name)
+                    LOG.debug("Device %s is already in VM %s.",
+                              value, self.vm_name)
                     return
         devices.append(value)
         self.set_devices(devices)
@@ -1566,8 +1568,7 @@ class VMXML(VMXMLBase):
                 devices.remove(device)
                 break
         if not_found:
-            logging.debug("Device %s does not exist in VM %s.",
-                          value, self.vm_name)
+            LOG.debug("Device %s does not exist in VM %s.", value, self.vm_name)
             return
         self.set_devices(devices)
 
@@ -1603,7 +1604,7 @@ class VMXML(VMXMLBase):
             vm_name, virsh_instance=virsh_instance)
         graphic = vmxml.xmltreefile.find('devices').findall('graphics')
         for key in attr:
-            logging.debug("Set %s='%s'" % (key, attr[key]))
+            LOG.debug("Set %s='%s'" % (key, attr[key]))
             graphic[index].set(key, attr[key])
         vmxml.sync(virsh_instance=virsh_instance)
 
@@ -1677,9 +1678,9 @@ class VMXML(VMXMLBase):
             try:
                 blkio_params['weight'] = blkio.find('weight').text
             except AttributeError:
-                logging.error("Can't find <weight> element")
+                LOG.error("Can't find <weight> element")
         except AttributeError:
-            logging.error("Can't find <blkiotune> element")
+            LOG.error("Can't find <blkiotune> element")
 
         if blkio and blkio.find('device'):
             blkio_params['device_weights_path'] = \
@@ -1833,7 +1834,7 @@ class VMXML(VMXMLBase):
         try:
             for attr_key, value in attrs.items():
                 setattr(features_xml, attr_key, value)
-            logging.debug('New features_xml: %s', features_xml)
+            LOG.debug('New features_xml: %s', features_xml)
             vmxml.features = features_xml
             vmxml.sync()
         except (AttributeError, TypeError, ValueError) as detail:
@@ -2187,7 +2188,7 @@ class VMCPUXML(base.LibvirtXMLBase):
         try:
             self.xmltreefile.remove_by_xpath(xpath_to_remove, remove_all)
         except (AttributeError, TypeError):
-            logging.info("Element '%s' already doesn't exist", xpath_to_remove)
+            LOG.info("Element '%s' already doesn't exist", xpath_to_remove)
         self.xmltreefile.write()
 
     @staticmethod
@@ -3328,7 +3329,7 @@ class VMFeaturesXML(base.LibvirtXMLBase):
         :params name: Feature name
         """
         if self.has_feature(name):
-            logging.debug("Feature %s already exist, so remove it", name)
+            LOG.debug("Feature %s already exist, so remove it", name)
             self.remove_feature(name)
         root = self.__dict_get__('xml').getroot()
         new_attr = {}
@@ -3345,7 +3346,7 @@ class VMFeaturesXML(base.LibvirtXMLBase):
         root = self.__dict_get__('xml').getroot()
         remove_feature = root.find(name)
         if remove_feature is None:
-            logging.error("Feature %s doesn't exist", name)
+            LOG.error("Feature %s doesn't exist", name)
         else:
             root.remove(remove_feature)
 

@@ -12,6 +12,8 @@ from avocado.core import exceptions
 
 from . import utils_net, utils_misc
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class RVConnectError(Exception):
 
@@ -35,7 +37,7 @@ def wait_timeout(timeout=10):
 
     :param timeout=10
     """
-    logging.debug("Waiting (timeout=%ss)", timeout)
+    LOG.debug("Waiting (timeout=%ss)", timeout)
     time.sleep(timeout)
 
 
@@ -52,7 +54,7 @@ def kill_app(vm_name, app_name, params, env):
     vm_session = vm.wait_for_login(
         timeout=int(params.get("login_timeout", 360)))
 
-    logging.info("Try to kill %s", app_name)
+    LOG.info("Try to kill %s", app_name)
     if vm.params.get("os_type") == "linux":
         vm_session.cmd("pkill %s" % app_name
                        .split(os.path.sep)[-1])
@@ -85,7 +87,7 @@ def verify_established(client_vm, host, port, rv_binary,
         cmd = ('(netstat -pn 2>&1| grep "^tcp.*:.*%s.*ESTABLISHED.*%s.*")' %
                (host, rv_binary))
     netstat_out = client_session.cmd_output(cmd)
-    logging.info("netstat output: %s", netstat_out)
+    LOG.info("netstat output: %s", netstat_out)
 
     if tls_port:
         tls_count = netstat_out.count(tls_port)
@@ -93,22 +95,22 @@ def verify_established(client_vm, host, port, rv_binary,
         tls_port = port
 
     if (netstat_out.count(port) + tls_count) < 4:
-        logging.error("Not enough channels were open")
+        LOG.error("Not enough channels were open")
         raise RVConnectError()
     if secure_channels:
         if tls_count < len(secure_channels.split(',')):
-            logging.error("Not enough secure channels open")
+            LOG.error("Not enough secure channels open")
             raise RVConnectError()
     for line in netstat_out.split('\n'):
         if ((port in line and "ESTABLISHED" not in line) or
                 (tls_port in line and "ESTABLISHED" not in line)):
-            logging.error("Failed to get established connection from netstat")
+            LOG.error("Failed to get established connection from netstat")
             raise RVConnectError()
     if "ESTABLISHED" not in netstat_out:
-        logging.error("Failed to get established connection from netstat")
+        LOG.error("Failed to get established connection from netstat")
         raise RVConnectError()
-    logging.info("%s connection to %s:%s successful.",
-                 rv_binary, host, port)
+    LOG.info("%s connection to %s:%s successful.",
+             rv_binary, host, port)
 
     client_session.close()
 
@@ -122,16 +124,16 @@ def start_vdagent(guest_session, test_timeout):
     """
     cmd = "service spice-vdagentd start"
     try:
-        guest_session.cmd(cmd, print_func=logging.info,
+        guest_session.cmd(cmd, print_func=LOG.info,
                           timeout=test_timeout)
     except ShellStatusError:
-        logging.debug("Status code of \"%s\" was not obtained, most likely"
-                      "due to a problem with colored output" % cmd)
+        LOG.debug("Status code of \"%s\" was not obtained, most likely"
+                  "due to a problem with colored output" % cmd)
     except Exception:
         raise exceptions.TestFail("Guest Vdagent Daemon Start failed")
 
-    logging.debug("------------ End of guest checking for Spice Vdagent"
-                  " Daemon ------------")
+    LOG.debug("------------ End of guest checking for Spice Vdagent"
+              " Daemon ------------")
     wait_timeout(3)
 
 
@@ -144,15 +146,15 @@ def restart_vdagent(guest_session, test_timeout):
     """
     cmd = "service spice-vdagentd restart"
     try:
-        guest_session.cmd(cmd, print_func=logging.info,
+        guest_session.cmd(cmd, print_func=LOG.info,
                           timeout=test_timeout)
     except ShellCmdError:
         raise exceptions.TestFail("Couldn't restart spice vdagent process")
     except Exception:
         raise exceptions.TestFail("Guest Vdagent Daemon Check failed")
 
-    logging.debug("------------ End of Spice Vdagent"
-                  " Daemon  Restart ------------")
+    LOG.debug("------------ End of Spice Vdagent"
+              " Daemon  Restart ------------")
     wait_timeout(3)
 
 
@@ -165,18 +167,18 @@ def stop_vdagent(guest_session, test_timeout):
     """
     cmd = "service spice-vdagentd stop"
     try:
-        guest_session.cmd(cmd, print_func=logging.info,
+        guest_session.cmd(cmd, print_func=LOG.info,
                           timeout=test_timeout)
     except ShellStatusError:
-        logging.debug("Status code of \"%s\" was not obtained, most likely"
-                      "due to a problem with colored output" % cmd)
+        LOG.debug("Status code of \"%s\" was not obtained, most likely"
+                  "due to a problem with colored output" % cmd)
     except ShellCmdError:
         raise exceptions.TestFail("Couldn't turn off spice vdagent process")
     except Exception:
         raise exceptions.TestFail("Guest Vdagent Daemon Check failed")
 
-    logging.debug("------------ End of guest checking for Spice Vdagent"
-                  " Daemon ------------")
+    LOG.debug("------------ End of guest checking for Spice Vdagent"
+              " Daemon ------------")
     wait_timeout(3)
 
 
@@ -190,10 +192,10 @@ def verify_vdagent(guest_session, test_timeout):
     cmd = "rpm -qa | grep spice-vdagent"
 
     try:
-        guest_session.cmd(cmd, print_func=logging.info, timeout=test_timeout)
+        guest_session.cmd(cmd, print_func=LOG.info, timeout=test_timeout)
     finally:
-        logging.debug("----------- End of guest check to see if vdagent "
-                      "package is available ------------")
+        LOG.debug("----------- End of guest check to see if vdagent "
+                  "package is available ------------")
     wait_timeout(3)
 
 
@@ -209,7 +211,7 @@ def get_vdagent_status(vm_session, test_timeout):
     wait_timeout(3)
     try:
         output = vm_session.cmd(
-            cmd, print_func=logging.info, timeout=test_timeout)
+            cmd, print_func=LOG.info, timeout=test_timeout)
     except ShellCmdError:
         # getting the status of vdagent stopped returns 3, which results in a
         # ShellCmdError
@@ -231,10 +233,10 @@ def verify_virtio(guest_session, test_timeout):
     """
     cmd = "ls /dev/virtio-ports/"
     try:
-        guest_session.cmd(cmd, print_func=logging.info, timeout=test_timeout)
+        guest_session.cmd(cmd, print_func=LOG.info, timeout=test_timeout)
     finally:
-        logging.debug("------------ End of guest check of the Virtio-Serial"
-                      " Driver------------")
+        LOG.debug("------------ End of guest check of the Virtio-Serial"
+                  " Driver------------")
     wait_timeout(3)
 
 
@@ -285,7 +287,7 @@ def clear_interface(vm, login_timeout=360, timeout=5):
         try:
             session.cmd("taskkill /F /IM remote-viewer.exe")
         except Exception:
-            logging.info("Remote-viewer not running")
+            LOG.info("Remote-viewer not running")
     else:
         clear_interface_linux(vm, login_timeout, timeout)
 
@@ -296,7 +298,7 @@ def clear_interface_linux(vm, login_timeout, timeout):
 
     :param vm:      VM where cleaning is required
     """
-    logging.info("restarting X/gdm on: %s", vm.name)
+    LOG.info("restarting X/gdm on: %s", vm.name)
     session = vm.wait_for_login(username="root", password="123456",
                                 timeout=login_timeout)
 
@@ -341,21 +343,21 @@ def deploy_epel_repo(guest_session, params):
         if "release 5" in guest_session.cmd("cat /etc/redhat-release"):
             cmd = ("yum -y localinstall https://dl.fedoraproject.org/"
                    "pub/epel/epel-release-latest-5.noarch.rpm")
-            logging.info("Installing epel repository to %s",
-                         params.get("guest_vm"))
-            guest_session.cmd(cmd, print_func=logging.info, timeout=300)
+            LOG.info("Installing epel repository to %s",
+                     params.get("guest_vm"))
+            guest_session.cmd(cmd, print_func=LOG.info, timeout=300)
         elif "release 6" in guest_session.cmd("cat /etc/redhat-release"):
             cmd = ("yum -y localinstall https://dl.fedoraproject.org/"
                    "pub/epel/epel-release-latest-6.noarch.rpm")
-            logging.info("Installing epel repository to %s",
-                         params.get("guest_vm"))
-            guest_session.cmd(cmd, print_func=logging.info, timeout=300)
+            LOG.info("Installing epel repository to %s",
+                     params.get("guest_vm"))
+            guest_session.cmd(cmd, print_func=LOG.info, timeout=300)
         elif "release 7" in guest_session.cmd("cat /etc/redhat-release"):
             cmd = ("yum -y localinstall https://dl.fedoraproject.org/"
                    "pub/epel/epel-release-latest-7.noarch.rpm")
-            logging.info("Installing epel repository to %s",
-                         params.get("guest_vm"))
-            guest_session.cmd(cmd, print_func=logging.info, timeout=300)
+            LOG.info("Installing epel repository to %s",
+                     params.get("guest_vm"))
+            guest_session.cmd(cmd, print_func=LOG.info, timeout=300)
         else:
             raise Exception("Unsupported RHEL guest")
 

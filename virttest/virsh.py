@@ -48,6 +48,8 @@ from virttest import utils_misc
 from virttest import data_dir
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 # list of symbol names NOT to wrap as Virsh class methods
 # Everything else from globals() will become a method of Virsh class
 NOCLOSE = list(globals().keys()) + [
@@ -195,8 +197,8 @@ class VirshSession(aexpect.ShellSession):
         # fail if libvirtd is not running
         if check_libvirtd:
             if self.cmd_status('list', timeout=60) != 0:
-                logging.debug("Persistent virsh session is not responding, "
-                              "libvirtd may be dead.")
+                LOG.debug("Persistent virsh session is not responding, "
+                          "libvirtd may be dead.")
                 self.auto_close = True
                 raise aexpect.ShellStatusError(virsh_exec, 'list')
 
@@ -243,7 +245,7 @@ class VirshSession(aexpect.ShellSession):
             raise process.CmdError(cmd, result,
                                    "Virsh Command returned non-zero exit status")
         if debug:
-            logging.debug(result)
+            LOG.debug(result)
         return result
 
     def read_until_output_matches(self, patterns, filter_func=lambda x: x,
@@ -650,7 +652,7 @@ class EventTracker(object):
         """
         virsh_session = aexpect.ShellSession(VIRSH_EXEC)
         event_cmd = 'event %s --all --loop' % vm_name
-        logging.info('Sending "%s" to virsh shell', event_cmd)
+        LOG.info('Sending "%s" to virsh shell', event_cmd)
         virsh_session.sendline(event_cmd)
 
         return virsh_session
@@ -674,7 +676,7 @@ class EventTracker(object):
         time.sleep(5)
         event_output = virsh_session.get_stripped_output()
         virsh_session.close()
-        logging.debug('Event output is %s:', event_output)
+        LOG.debug('Event output is %s:', event_output)
 
         return event_output
 
@@ -700,7 +702,7 @@ class EventTracker(object):
 
             def _get_event_output(session):
                 output = session.get_stripped_output()
-                logging.debug(output)
+                LOG.debug(output)
                 return output
 
             wait_for_event = _get_arg_value('wait_for_event')
@@ -712,7 +714,7 @@ class EventTracker(object):
                 ret = func(*args, **kwargs)
 
                 if ret and ret.exit_status:
-                    logging.error('Command execution failed. Skip waiting for event')
+                    LOG.error('Command execution failed. Skip waiting for event')
                     virsh_session.close()
                     return ret
 
@@ -765,19 +767,19 @@ def command(cmd, **dargs):
         session = None
 
     if debug:
-        logging.debug("Running virsh command: %s", cmd)
+        LOG.debug("Running virsh command: %s", cmd)
 
     if timeout:
         try:
             timeout = int(timeout)
         except ValueError:
-            logging.error("Ignore the invalid timeout value: %s", timeout)
+            LOG.error("Ignore the invalid timeout value: %s", timeout)
             timeout = None
 
     if session:
         # Utilize persistent virsh session, not suit for readonly mode
         if readonly:
-            logging.debug("Ignore readonly flag for this virsh session")
+            LOG.debug("Ignore readonly flag for this virsh session")
         if timeout is None:
             timeout = 60
         ret = session.cmd_result(cmd, ignore_status=ignore_status,
@@ -816,9 +818,9 @@ def command(cmd, **dargs):
 
     # Always log debug info, if persistent session or not
     if debug:
-        logging.debug("status: %s", ret.exit_status)
-        logging.debug("stdout: %s", ret.stdout_text.strip())
-        logging.debug("stderr: %s", ret.stderr_text.strip())
+        LOG.debug("status: %s", ret.exit_status)
+        LOG.debug("stdout: %s", ret.stdout_text.strip())
+        LOG.debug("stderr: %s", ret.stderr_text.strip())
 
     # Return CmdResult instance when ignore_status is True
     return ret
@@ -1224,10 +1226,10 @@ def screenshot(name, filename, **dargs):
         command("screenshot %s %s" % (name, filename), **dargs)
     except process.CmdError as detail:
         if SCREENSHOT_ERROR_COUNT < 1:
-            logging.error("Error taking VM %s screenshot. You might have to "
-                          "set take_regular_screendumps=no on your "
-                          "tests.cfg config file \n%s.  This will be the "
-                          "only logged error message.", name, detail)
+            LOG.error("Error taking VM %s screenshot. You might have to "
+                      "set take_regular_screendumps=no on your "
+                      "tests.cfg config file \n%s.  This will be the "
+                      "only logged error message.", name, detail)
         SCREENSHOT_ERROR_COUNT += 1
     return filename
 
@@ -1423,7 +1425,7 @@ def is_dead(name, **dargs):
         return True
     if state not in ('running', 'idle', 'paused', 'in shutdown', 'shut off',
                      'crashed', 'pmsuspended', 'no state'):
-        logging.debug("State '%s' not known", state)
+        LOG.debug("State '%s' not known", state)
     if state in ('shut off', 'crashed', 'no state'):
         return True
     return False
@@ -1547,7 +1549,7 @@ def define(xml_path, options=None, **dargs):
     cmd = "define --file %s" % xml_path
     if options is not None:
         cmd += " %s" % options
-    logging.debug("Define VM from %s", xml_path)
+    LOG.debug("Define VM from %s", xml_path)
     return command(cmd, **dargs)
 
 
@@ -1567,7 +1569,7 @@ def undefine(name, options=None, **dargs):
         if options is None or "--nvram" not in options:
             cmd += " --nvram"
 
-    logging.debug("Undefine VM %s", name)
+    LOG.debug("Undefine VM %s", name)
     return command(cmd, **dargs)
 
 
@@ -1586,7 +1588,7 @@ def remove_domain(name, options=None, **dargs):
             dargs['ignore_status'] = False
             undefine(name, options, **dargs)
         except process.CmdError as detail:
-            logging.error("Undefine VM %s failed:\n%s", name, detail)
+            LOG.error("Undefine VM %s failed:\n%s", name, detail)
             return False
     return True
 
@@ -1604,9 +1606,9 @@ def domain_exists(name, **dargs):
         command("domstate %s" % name, **dargs)
         return True
     except process.CmdError as detail:
-        logging.warning("VM %s does not exist", name)
+        LOG.warning("VM %s does not exist", name)
         if dargs.get('debug', False):
-            logging.warning(str(detail))
+            LOG.warning(str(detail))
         return False
 
 
@@ -2136,8 +2138,8 @@ def _pool_type_check(pool_type):
                    'gluster', 'rbd', 'scsi', 'iscsi-direct']
 
     if pool_type and pool_type not in valid_types:
-        logging.error("Specified pool type '%s' not in '%s'",
-                      pool_type, valid_types)
+        LOG.error("Specified pool type '%s' not in '%s'",
+                  pool_type, valid_types)
         pool_type = None
     elif not pool_type:
         # take the first element as default pool_type
@@ -2169,7 +2171,7 @@ def pool_destroy(name, **dargs):
         command(cmd, **dargs)
         return True
     except process.CmdError as detail:
-        logging.error("Failed to destroy pool: %s.", detail)
+        LOG.error("Failed to destroy pool: %s.", detail)
         return False
 
 
@@ -2198,13 +2200,13 @@ def pool_create_as(name, pool_type, target, extra="", **dargs):
     """
 
     if not name:
-        logging.error("Please give a pool name")
+        LOG.error("Please give a pool name")
 
     pool_type = _pool_type_check(pool_type)
     if pool_type is None:
         return False
 
-    logging.info("Create %s type pool %s", pool_type, name)
+    LOG.info("Create %s type pool %s", pool_type, name)
     cmd = "pool-create-as --name %s --type %s --target %s %s" \
           % (name, pool_type, target, extra)
     dargs['ignore_status'] = False
@@ -2212,7 +2214,7 @@ def pool_create_as(name, pool_type, target, extra="", **dargs):
         command(cmd, **dargs)
         return True
     except process.CmdError as detail:
-        logging.error("Failed to create pool: %s.", detail)
+        LOG.error("Failed to create pool: %s.", detail)
         return False
 
 
@@ -2359,7 +2361,7 @@ def pool_define_as(name, pool_type, target="", extra="", **dargs):
     if pool_type is None:
         return False
 
-    logging.debug("Try to define %s type pool %s", pool_type, name)
+    LOG.debug("Try to define %s type pool %s", pool_type, name)
     cmd = "pool-define-as --name %s --type %s %s" \
           % (name, pool_type, extra)
     # Target is not a must
@@ -2797,7 +2799,7 @@ def memtune_get(name, key):
     :return: the memory value of a key in Kbs
     """
     memtune_output = memtune_list(name).stdout_text.strip()
-    logging.info("memtune output is %s" % memtune_output)
+    LOG.info("memtune output is %s" % memtune_output)
     memtune_value = re.findall(r"%s\s*:\s+(\S+)" % key, str(memtune_output))
     if memtune_value:
         return int(memtune_value[0] if memtune_value[0] != "unlimited" else -1)
@@ -3861,7 +3863,7 @@ def secret_define(xml_file, options=None, **dargs):
     cmd = "secret-define --file %s" % xml_file
     if options is not None:
         cmd += " %s" % options
-    logging.debug("Define secret from %s", xml_file)
+    LOG.debug("Define secret from %s", xml_file)
     return command(cmd, **dargs)
 
 
@@ -3877,7 +3879,7 @@ def secret_undefine(uuid, options=None, **dargs):
     if options is not None:
         cmd += " %s" % options
 
-    logging.debug("Undefine secret %s", uuid)
+    LOG.debug("Undefine secret %s", uuid)
     return command(cmd, **dargs)
 
 
@@ -3964,7 +3966,7 @@ def nodedev_create(xml_file, options=None, **dargs):
     if options is not None:
         cmd += " %s" % options
 
-    logging.debug("Create the device from %s", xml_file)
+    LOG.debug("Create the device from %s", xml_file)
     return command(cmd, **dargs)
 
 
@@ -3980,7 +3982,7 @@ def nodedev_destroy(dev_name, options=None, **dargs):
     if options is not None:
         cmd += " %s" % options
 
-    logging.debug("Destroy the device %s on the node", dev_name)
+    LOG.debug("Destroy the device %s on the node", dev_name)
     return command(cmd, **dargs)
 
 

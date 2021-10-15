@@ -4,6 +4,9 @@
 import logging
 
 
+LOG = logging.getLogger('avocado.test')
+
+
 def run(test, params, env):
     """
     Docstring describing template.
@@ -23,4 +26,4 @@ def run(test, params, env):
     timeout = float(params.get("login_timeout", 240))
     session = vm.wait_for_login(timeout=timeout)
     uptime = session.cmd("uptime")
-    logging.info("Guest uptime result is: %s", uptime)
+    LOG.info("Guest uptime result is: %s", uptime)

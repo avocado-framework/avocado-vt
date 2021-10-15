@@ -11,6 +11,9 @@ import logging
 from avocado.utils import process
 
 
+LOG = logging.getLogger('avocado.vt.examples.hostname')
+
+
 def run(test, params, env):
     """
     Logs the host name and exits
@@ -20,5 +23,5 @@ def run(test, params, env):
     :param env: Dictionary with test environment.
     """
     result = process.run("hostname")
-    logging.info("Output of 'hostname' cmd is '%s'",
-                 result.stdout_text)
+    LOG.info("Output of 'hostname' cmd is '%s'",
+             result.stdout_text)

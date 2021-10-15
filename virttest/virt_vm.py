@@ -26,6 +26,9 @@ from virttest import error_context
 from virttest import vt_console
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
+
 class VMError(Exception):
 
     def __init__(self, *args):
@@ -183,7 +186,7 @@ class VMDeadKernelCrashError(VMError):
 
     def __init__(self, kernel_crash):
         VMError.__init__(self, kernel_crash)
-        logging.debug(kernel_crash)
+        LOG.debug(kernel_crash)
 
     def __str__(self):
         return ("VM is dead due to a kernel crash, "
@@ -656,10 +659,10 @@ class BaseVM(object):
             need_restart = (self.make_create_command() !=
                             self.make_create_command(name, params, basedir))
         except Exception:
-            logging.error(traceback.format_exc())
+            LOG.error(traceback.format_exc())
             need_restart = True
         if need_restart:
-            logging.debug(
+            LOG.debug(
                 "VM params in env don't match requested, restarting.")
             return True
         else:
@@ -667,14 +670,14 @@ class BaseVM(object):
             # TODO: Check more than just networking
             other_virtnet = utils_net.VirtNet(params, name, self.instance)
             if self.virtnet != other_virtnet:
-                logging.debug("VM params in env match, but network differs, "
-                              "restarting")
-                logging.debug("\t" + str(self.virtnet))
-                logging.debug("\t!=")
-                logging.debug("\t" + str(other_virtnet))
+                LOG.debug("VM params in env match, but network differs, "
+                          "restarting")
+                LOG.debug("\t" + str(self.virtnet))
+                LOG.debug("\t!=")
+                LOG.debug("\t" + str(other_virtnet))
                 return True
             else:
-                logging.debug(
+                LOG.debug(
                     "VM params in env do match requested, continuing.")
                 return False
 
@@ -721,8 +724,7 @@ class BaseVM(object):
         """
         log_path = None
         if not self.params["os_type"] == "linux":
-            logging.warn("sosreport not applicable for %s",
-                         self.params["os_type"])
+            LOG.warn("sosreport not applicable for %s", self.params["os_type"])
             return None
         try:
             pkg = "sos"
@@ -843,7 +845,7 @@ class BaseVM(object):
             msg = "Could not verify DHCP lease: %s-> %s." % (mac, ip_addr)
             msg += " Maybe %s is not in the same subnet " % ip_addr
             msg += "as the host (%s in use)" % nic_backend
-            logging.error(msg)
+            LOG.error(msg)
 
         return ip_addr
 
@@ -918,7 +920,7 @@ class BaseVM(object):
         msg = 'Found/Verified IP %s for VM %s NIC %s' % (ipaddr,
                                                          self.name,
                                                          nic_index)
-        logging.debug(msg)
+        LOG.debug(msg)
         return ipaddr
 
     # Adding/setup networking devices methods split between 'add_*' for
@@ -940,7 +942,7 @@ class BaseVM(object):
             self.virtnet.append(params)
         nic = self.virtnet[nic_name]
         if 'mac' not in nic:  # generate random mac
-            logging.debug("Generating random mac address for nic")
+            LOG.debug("Generating random mac address for nic")
             self.virtnet.generate_mac_address(nic_name)
         # mac of '' or invalid format results in not setting a mac
         if 'ip' in nic and 'mac' in nic:
@@ -974,7 +976,7 @@ class BaseVM(object):
                 continue
             elif nic.mac == mac:
                 return index
-        logging.warn("Not find nic by '%s'", mac)
+        LOG.warn("Not find nic by '%s'", mac)
         return -1
 
     def verify_kernel_crash(self):
@@ -991,7 +993,7 @@ class BaseVM(object):
         if self.serial_console:
             data = self.serial_console.get_output()
             if data is None:
-                logging.warn("Unable to read serial console")
+                LOG.warn("Unable to read serial console")
                 return
             match = re.search(panic_re, data, re.DOTALL | re.MULTILINE | re.I)
             if match:
@@ -1044,7 +1046,7 @@ class BaseVM(object):
         if self.serial_console is not None:
             data = self.serial_console.get_output()
             if data is None:
-                logging.warn("Unable to read serial console")
+                LOG.warn("Unable to read serial console")
                 return
             match = re.findall(r".*trap invalid opcode.*\n", data,
                                re.MULTILINE)
@@ -1182,17 +1184,17 @@ class BaseVM(object):
                 txt = ["Guest network status:\n %s" % out]
                 out = session.cmd_output("ip route || route print", timeout=60)
                 txt += ["Guest route table:\n %s" % out]
-                logging.error("\n".join(txt))
+                LOG.error("\n".join(txt))
             except Exception as e:
-                logging.error("Can't get guest network status "
-                              "information, reason: %s", e)
+                LOG.error("Can't get guest network status "
+                          "information, reason: %s", e)
             finally:
                 if session:
                     session.close()
 
         error = None
-        logging.debug("Attempting to log into '%s' (timeout %ds)",
-                      self.name, timeout)
+        LOG.debug("Attempting to log into '%s' (timeout %ds)",
+                  self.name, timeout)
         start_time = time.time()
         try:
             self.wait_for_get_address(nic_index,
@@ -1382,8 +1384,8 @@ class BaseVM(object):
             eg. during reboot or pause)
         :return: ConsoleSession instance.
         """
-        logging.debug("Attempting to log into '%s' via serial console "
-                      "(timeout %ds)", self.name, timeout)
+        LOG.debug("Attempting to log into '%s' via serial console "
+                  "(timeout %ds)", self.name, timeout)
         end_time = time.time() + timeout
         while time.time() < end_time:
             try:
@@ -1402,7 +1404,7 @@ class BaseVM(object):
                                            timeout)
         if restart_network:
             try:
-                logging.debug("Attempting to restart guest network")
+                LOG.debug("Attempting to restart guest network")
                 os_type = self.params.get('os_type')
                 utils_net.restart_guest_network(session, os_type=os_type)
             except (ShellError, ExpectError):

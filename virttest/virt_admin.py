@@ -67,6 +67,8 @@ except path.CmdNotFoundError:
         " will not function normally")
     VIRTADMIN_EXEC = '/bin/true'
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class VirtadminBase(propcan.PropCanBase):
 
@@ -147,7 +149,7 @@ class VirtadminSession(aexpect.ShellSession):
 
         # Special handling if setting up a remote session
         if ssh_remote_auth:  # remote to remote
-            logging.error("remote session is not supported by virt-admin yet.")
+            LOG.error("remote session is not supported by virt-admin yet.")
             if remote_pwd:
                 pref_auth = "-o PreferredAuthentications=password"
             else:
@@ -185,8 +187,8 @@ class VirtadminSession(aexpect.ShellSession):
         # fail if libvirtd is not running
         if check_libvirtd:
             if self.cmd_status('uri', timeout=60) != 0:
-                logging.debug("Persistent virt-admin session is not responding, "
-                              "libvirtd may be dead.")
+                LOG.debug("Persistent virt-admin session is not responding, "
+                          "libvirtd may be dead.")
                 self.auto_close = True
                 raise aexpect.ShellStatusError(virtadmin_exec, 'uri')
 
@@ -237,7 +239,7 @@ class VirtadminSession(aexpect.ShellSession):
             raise process.CmdError(cmd, result,
                                    "Virtadmin Command returned non-zero exit status")
         if debug:
-            logging.debug(result)
+            LOG.debug(result)
         return result
 
     def read_until_output_matches(self, patterns, filter_func=lambda x: x,
@@ -650,19 +652,19 @@ def command(cmd, **dargs):
         session = None
 
     if debug:
-        logging.debug("Running virtadmin command: %s", cmd)
+        LOG.debug("Running virtadmin command: %s", cmd)
 
     if timeout:
         try:
             timeout = int(timeout)
         except ValueError:
-            logging.error("Ignore the invalid timeout value: %s", timeout)
+            LOG.error("Ignore the invalid timeout value: %s", timeout)
             timeout = None
 
     if session:
         # Utilize persistent virtadmin session, not suit for readonly mode
         if readonly:
-            logging.debug("Ignore readonly flag for this virtadmin session")
+            LOG.debug("Ignore readonly flag for this virtadmin session")
         if timeout is None:
             timeout = 60
         ret = session.cmd_result(cmd, ignore_status=ignore_status,
@@ -673,7 +675,7 @@ def command(cmd, **dargs):
         # Normal call to run virtadmin command
         # Readonly mode
         if readonly:
-            logging.error("readonly mode is not supported by virt-admin yet.")
+            LOG.error("readonly mode is not supported by virt-admin yet.")
 #            cmd = " -r " + cmd
 
         if uri:
@@ -697,9 +699,9 @@ def command(cmd, **dargs):
 
     # Always log debug info, if persistent session or not
     if debug:
-        logging.debug("status: %s", ret.exit_status)
-        logging.debug("stdout: %s", ret.stdout_text.strip())
-        logging.debug("stderr: %s", ret.stderr_text.strip())
+        LOG.debug("status: %s", ret.exit_status)
+        LOG.debug("stdout: %s", ret.stdout_text.strip())
+        LOG.debug("stderr: %s", ret.stderr_text.strip())
 
     # Return CmdResult instance when ignore_status is True
     return ret

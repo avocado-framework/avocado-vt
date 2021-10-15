@@ -10,6 +10,7 @@ from avocado.utils import linux_modules
 from .versionable_class import VersionableClass, Manager, factory
 from . import utils_misc
 
+LOG = logging.getLogger('avocado.' + __name__)
 
 # Register to class manager.
 man = Manager(__name__)
@@ -174,7 +175,7 @@ class OpenVSwitchControl(object):
             version = re.search(pattern,
                                 result.stdout_text).group(1)
         except process.CmdError:
-            logging.debug("OpenVSwitch is not available in system.")
+            LOG.debug("OpenVSwitch is not available in system.")
         return version
 
     def status(self):
@@ -277,7 +278,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControl):
         try:
             self.ovs_vsctl(["del-br", br_name])
         except process.CmdError as e:
-            logging.debug(e.result)
+            LOG.debug(e.result)
             raise
 
     def br_exist(self, br_name):
@@ -379,8 +380,8 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
         working = utils_misc.program_is_alive(
             "ovsdb-server", self.pid_files_path)
         if not working:
-            logging.error("OpenVSwitch database daemon with PID in file %s"
-                          " not working.", self.db_pidfile)
+            LOG.error("OpenVSwitch database daemon with PID in file %s"
+                      " not working.", self.db_pidfile)
         return working
 
     def check_switch_daemon(self):
@@ -390,8 +391,8 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
         working = utils_misc.program_is_alive(
             "ovs-vswitchd", self.pid_files_path)
         if not working:
-            logging.error("OpenVSwitch switch daemon with PID in file %s"
-                          " not working.", self.ovs_pidfile)
+            LOG.error("OpenVSwitch switch daemon with PID in file %s"
+                      " not working.", self.ovs_pidfile)
         return working
 
     def check_db_file(self):
@@ -400,8 +401,8 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
         """
         exists = os.path.exists(self.db_path)
         if not exists:
-            logging.error("OpenVSwitch database file %s not exists.",
-                          self.db_path)
+            LOG.error("OpenVSwitch database file %s not exists.",
+                      self.db_path)
         return exists
 
     def check_db_socket(self):
@@ -410,8 +411,8 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
         """
         exists = os.path.exists(self.db_socket)
         if not exists:
-            logging.error("OpenVSwitch database socket file %s not exists.",
-                          self.db_socket)
+            LOG.error("OpenVSwitch database socket file %s not exists.",
+                      self.db_socket)
         return exists
 
     def check(self):
@@ -427,8 +428,8 @@ class OpenVSwitchSystem(OpenVSwitchControlCli_CNT, OpenVSwitchControlDB_CNT):
             if linux_modules.load_module("openvswitch"):
                 sm.restart("openvswitch")
         except process.CmdError:
-            logging.error("Service OpenVSwitch is probably not"
-                          " installed in system.")
+            LOG.error("Service OpenVSwitch is probably not"
+                      " installed in system.")
             raise
         self.pid_files_path = "/var/run/openvswitch/"
 
@@ -560,11 +561,11 @@ class OpenVSwitch(OpenVSwitchSystem):
         self.start_ovs_vswitchd()
 
     def clean(self):
-        logging.debug("Killall ovsdb-server")
+        LOG.debug("Killall ovsdb-server")
         utils_misc.signal_program("ovsdb-server")
         if utils_misc.program_is_alive("ovsdb-server"):
             utils_misc.signal_program("ovsdb-server", signal.SIGKILL)
-        logging.debug("Killall ovs-vswitchd")
+        LOG.debug("Killall ovs-vswitchd")
         utils_misc.signal_program("ovs-vswitchd")
         if utils_misc.program_is_alive("ovs-vswitchd"):
             utils_misc.signal_program("ovs-vswitchd", signal.SIGKILL)

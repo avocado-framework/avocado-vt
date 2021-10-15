@@ -11,6 +11,9 @@ from virttest import remote
 from virttest.utils_test import libvirt
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
+
 def update_remote_file(params, value,
                        file_path='/etc/libvirt/libvirtd.conf',
                        restart_libvirt=True):
@@ -26,7 +29,7 @@ def update_remote_file(params, value,
     """
     try:
         tmp_value = eval(value)
-        logging.debug("Update file {} with: {}".format(file_path, value))
+        LOG.debug("Update file {} with: {}".format(file_path, value))
         remote_ip = params.get("server_ip", params.get("remote_ip"))
         remote_pwd = params.get("server_pwd", params.get("remote_pwd"))
         remote_user = params.get("server_user", params.get("remote_user"))

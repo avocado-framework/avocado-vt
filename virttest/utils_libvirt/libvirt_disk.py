@@ -21,6 +21,8 @@ from virttest.utils_test import libvirt
 
 from virttest.libvirt_xml.devices.disk import Disk
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def create_disk(disk_type, path=None, size="500M", disk_format="raw", extra='',
                 session=None):
@@ -82,13 +84,13 @@ def create_primitive_disk_xml(type_name, disk_device, device_target, device_bus,
     driver_dict = {"name": "qemu", "type": device_format}
     disk_xml.driver = driver_dict
     if disk_src_dict:
-        logging.debug("disk src dict is: %s" % disk_src_dict)
+        LOG.debug("disk src dict is: %s" % disk_src_dict)
         disk_source = disk_xml.new_disk_source(**disk_src_dict)
         disk_xml.source = disk_source
     if disk_auth_dict:
-        logging.debug("disk auth dict is: %s" % disk_auth_dict)
+        LOG.debug("disk auth dict is: %s" % disk_auth_dict)
         disk_xml.auth = disk_xml.new_auth(**disk_auth_dict)
-    logging.debug("new disk xml in create_primitive_disk is: %s", disk_xml)
+    LOG.debug("new disk xml in create_primitive_disk is: %s", disk_xml)
     return disk_xml
 
 
@@ -127,7 +129,7 @@ def create_custom_metadata_disk(disk_path, disk_format,
     # Attach metadatacache into drivermetadata object
     new_one_drivermetadata.metadata_cache = custom_disk.DriverMetadata().new_metadatacache(**metadata_cache_dict)
     custom_disk.drivermetadata = new_one_drivermetadata
-    logging.debug("disk xml in create_custom_metadata_disk: %s\n", custom_disk)
+    LOG.debug("disk xml in create_custom_metadata_disk: %s\n", custom_disk)
     return custom_disk
 
 
@@ -145,8 +147,8 @@ def get_images_with_xattr(vm):
         getfattr_result = get_image_xattr(disk_path)
         if "selinux" in getfattr_result:
             dirty_images.append(disk_path)
-            logging.debug("Image '%s' having xattr left: %s",
-                          disk_path, getfattr_result.stdout)
+            LOG.debug("Image '%s' having xattr left: %s",
+                      disk_path, getfattr_result.stdout)
     return dirty_images
 
 
@@ -260,7 +262,7 @@ def create_reuse_external_snapshots(vm, pre_set_root_dir=None, skip_first_one=Fa
         virsh.snapshot_create_as(vm.name, options,
                                  ignore_status=False,
                                  debug=True)
-    logging.debug('reuse external snapshots:%s' % snapshot_external_disks)
+    LOG.debug('reuse external snapshots:%s' % snapshot_external_disks)
     return root_dir, snapshot_external_disks
 
 
@@ -400,7 +402,7 @@ def get_chain_backing_files(disk_src_file):
     if libvirt_storage.check_qemu_image_lock_support():
         cmd = "qemu-img info -U %s --backing-chain" % disk_src_file
     ret = process.run(cmd, shell=True).stdout_text.strip()
-    logging.debug("The actual qemu-img output:%s\n", ret)
+    LOG.debug("The actual qemu-img output:%s\n", ret)
     match = re.findall(r'(backing file: )(.+\n)', ret)
     qemu_img_info_backing_chain = []
     for i in range(len(match)):
@@ -425,7 +427,7 @@ def get_mirror_part_in_xml(vm, disk_target):
         else:
             disk_xml = disk.xmltreefile
             break
-    logging.debug("disk xml in mirror: %s\n", disk_xml)
+    LOG.debug("disk xml in mirror: %s\n", disk_xml)
     disk_mirror = disk_xml.find('mirror')
     job_details = []
     if disk_mirror is not None:
@@ -446,7 +448,7 @@ def create_mbxml(mb_params):
     for attr_key in mb_params:
         setattr(mb_xml, attr_key,
                 mb_params[attr_key])
-    logging.debug(mb_xml)
+    LOG.debug(mb_xml)
     return mb_xml.copy()
 
 
@@ -470,12 +472,12 @@ def check_in_vm(vm, target, old_parts, is_equal=False):
         added_parts = utils_disk.get_added_parts(session, old_parts)
         if is_equal:
             if len(added_parts) != 0:
-                logging.error("new added parts are not equal the old one")
+                LOG.error("new added parts are not equal the old one")
                 return False
             else:
                 return True
         if len(added_parts) != 1:
-            logging.error("The number of new partitions is invalid in VM")
+            LOG.error("The number of new partitions is invalid in VM")
             return False
 
         added_part = None
@@ -487,7 +489,7 @@ def check_in_vm(vm, target, old_parts, is_equal=False):
                 added_part = added_parts[0]
 
         if not added_part:
-            logging.error("Can't see added partition in VM")
+            LOG.error("Can't see added partition in VM")
             return False
 
         device_source = os.path.join(os.sep, 'dev', added_part)
@@ -500,14 +502,14 @@ def check_in_vm(vm, target, old_parts, is_equal=False):
         cmd = ("mount /dev/%s1 /mnt && echo '123' > /mnt/testfile"
                " && cat /mnt/testfile && umount /mnt" % added_part)
         s, o = session.cmd_status_output(cmd)
-        logging.info("Check disk operation in VM:\n%s", o)
+        LOG.info("Check disk operation in VM:\n%s", o)
         session.close()
         if s != 0:
-            logging.error("error happened when execute command:\n%s", cmd)
+            LOG.error("error happened when execute command:\n%s", cmd)
             return False
         return True
     except Exception as e:
-        logging.error(str(e))
+        LOG.error(str(e))
         return False
 
 
@@ -550,7 +552,7 @@ def fill_null_in_vm(vm, target, size_value=500):
     try:
         session = vm.wait_for_login()
         if not utils_package.package_install(["parted"], session, timeout=300):
-            logging.error("Failed to install the required 'parted' package")
+            LOG.error("Failed to install the required 'parted' package")
         device_source = os.path.join(os.sep, 'dev', target)
         libvirt.mk_label(device_source, session=session)
         libvirt.mk_part(device_source, size="%sM" % size_value, session=session)
@@ -561,7 +563,7 @@ def fill_null_in_vm(vm, target, size_value=500):
         cmd = ("mount /dev/%s1 /mnt && dd if=/dev/zero of=/mnt/testfile bs=1024 count=1024x%s "
                " && umount /mnt" % (target, count_number))
         s, o = session.cmd_status_output(cmd)
-        logging.info("Check disk operation in VM:\n%s", o)
+        LOG.info("Check disk operation in VM:\n%s", o)
         session.close()
         if s != 0:
             raise exceptions.TestError("Error happened when executing command:\n%s" % cmd)

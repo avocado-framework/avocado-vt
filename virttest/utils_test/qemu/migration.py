@@ -40,6 +40,8 @@ try:
 except ImportError:
     from virttest import aexpect
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def guest_active(vm):
     o = vm.monitor.info("status")
@@ -198,7 +200,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
 
     finally:
         if (dest_host == 'localhost') and stable_check and clean:
-            logging.debug("Cleaning the state files")
+            LOG.debug("Cleaning the state files")
             if os.path.isfile(save1):
                 os.remove(save1)
             if os.path.isfile(save2):
@@ -206,7 +208,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
 
     # Report migration status
     if mig_succeeded():
-        logging.info("Migration finished successfully")
+        LOG.info("Migration finished successfully")
     elif mig_failed():
         raise exceptions.TestFail("Migration failed")
     else:
@@ -216,7 +218,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
 
     if dest_host == 'localhost':
         if dest_vm.monitor.verify_status("paused"):
-            logging.debug("Destination VM is paused, resuming it")
+            LOG.debug("Destination VM is paused, resuming it")
             dest_vm.resume()
 
     # Kill the source VM
@@ -412,7 +414,7 @@ class MultihostMigration(object):
                                 vm_ports, not_wait_for_migration, None,
                                 mig_data)
 
-        logging.info("Start migrating now...")
+        LOG.info("Start migrating now...")
         cancel_delay = mig_data.params.get("cancel_delay")
         if cancel_delay is not None:
             cancel_delay = int(cancel_delay)
@@ -459,11 +461,11 @@ class MultihostMigration(object):
 
     def _hosts_barrier(self, hosts, session_id, tag, timeout):
         from autotest.client.shared.syncdata import SyncData
-        logging.debug("Barrier timeout: %d tags: %s" % (timeout, tag))
+        LOG.debug("Barrier timeout: %d tags: %s" % (timeout, tag))
         tags = SyncData(self.master_id(), self.hostid, hosts,
                         "%s,%s,barrier" % (str(session_id), tag),
                         self.sync_server).sync(tag, timeout)
-        logging.debug("Barrier tag %s" % (tags))
+        LOG.debug("Barrier tag %s" % (tags))
 
     def preprocess_env(self):
         """
@@ -482,15 +484,15 @@ class MultihostMigration(object):
             sync = SyncData(self.master_id(), self.hostid, mig_data.hosts,
                             mig_data.mig_id, self.sync_server)
             mig_data.vm_ports = sync.sync(timeout=240)[mig_data.dst]
-            logging.info("Received from destination the migration port %s",
-                         str(mig_data.vm_ports))
+            LOG.info("Received from destination the migration port %s",
+                     str(mig_data.vm_ports))
 
     def _check_vms_dest(self, mig_data):
         from autotest.client.shared.syncdata import SyncData
         mig_data.vm_ports = {}
         for vm in mig_data.vms:
-            logging.info("Communicating to source migration port %s",
-                         vm.migration_port)
+            LOG.info("Communicating to source migration port %s",
+                     vm.migration_port)
             mig_data.vm_ports[vm.name] = vm.migration_port
 
         if mig_data.params.get("host_mig_offline") != "yes":
@@ -527,12 +529,12 @@ class MultihostMigration(object):
         :param vms: list of vms.
         :param source: Must be True if is source machine.
         """
-        logging.info("Try check vms %s" % (mig_data.vms_name))
+        LOG.info("Try check vms %s" % (mig_data.vms_name))
         for vm in mig_data.vms_name:
             if self.env.get_vm(vm) not in mig_data.vms:
                 mig_data.vms.append(self.env.get_vm(vm))
         for vm in mig_data.vms:
-            logging.info("Check vm %s on host %s" % (vm.name, self.hostid))
+            LOG.info("Check vm %s on host %s" % (vm.name, self.hostid))
             vm.verify_alive()
 
     def prepare_for_migration(self, mig_data, migration_mode):
@@ -614,9 +616,9 @@ class MultihostMigration(object):
             if not guest_active(vm):
                 raise exceptions.TestFail("Guest not active after migration")
 
-        logging.info("Migrated guest appears to be running")
+        LOG.info("Migrated guest appears to be running")
 
-        logging.info("Logging into migrated guest after migration...")
+        LOG.info("Logging into migrated guest after migration...")
         for vm in mig_data.vms:
             if self.regain_ip_cmd is not None:
                 session_serial = vm.wait_for_serial_login(
@@ -686,8 +688,8 @@ class MultihostMigration(object):
         """
         def migrate_wrap(vms_name, srchost, dsthost, start_work=None,
                          check_work=None, params_append=None):
-            logging.info("Starting migrate vms %s from host %s to %s" %
-                         (vms_name, srchost, dsthost))
+            LOG.info("Starting migrate vms %s from host %s to %s" %
+                     (vms_name, srchost, dsthost))
             pause = self.params.get("paused_after_start_vm")
             mig_error = None
             mig_data = MigrationData(self.params, srchost, dsthost,
@@ -720,8 +722,7 @@ class MultihostMigration(object):
                         for vm in mig_data.vms:
                             vm.resume()
                         wait = self.params.get("start_migration_timeout", 0)
-                        logging.debug("Wait for migration %s seconds." %
-                                      (wait))
+                        LOG.debug("Wait for migration %s seconds." % (wait))
                         time.sleep(int(wait))
 
                     self.before_migration(mig_data)
@@ -857,7 +858,7 @@ class MultihostMigrationFd(MultihostMigration):
             self.post_migration(vm, cancel_delay, mig_offline, dsthost,
                                 vm_ports, not_wait_for_migration, fd, mig_data)
 
-        logging.info("Start migrating now...")
+        LOG.info("Start migrating now...")
         cancel_delay = mig_data.params.get("cancel_delay")
         if cancel_delay is not None:
             cancel_delay = int(cancel_delay)
@@ -943,7 +944,7 @@ class MultihostMigrationFd(MultihostMigration):
 
         mig_ports = sync.sync(mig_ports, timeout=120)
         mig_ports = mig_ports[srchost]
-        logging.debug("Migration port %s" % (mig_ports))
+        LOG.debug("Migration port %s" % (mig_ports))
 
         if self.params.get("hostid") != srchost:
             sockets = []
@@ -953,8 +954,8 @@ class MultihostMigrationFd(MultihostMigration):
                 fds = {}
                 for s, vm_name in list(zip(sockets, vms_name)):
                     fds["migration_fd_%s" % vm_name] = s.fileno()
-                logging.debug("File descriptors %s used for"
-                              " migration." % (fds))
+                LOG.debug("File descriptors %s used for"
+                          " migration." % (fds))
 
                 super_cls = super(MultihostMigrationFd, self)
                 super_cls.migrate_wait(vms_name, srchost, dsthost,
@@ -974,8 +975,8 @@ class MultihostMigrationFd(MultihostMigration):
                 fds = {}
                 for conn, vm_name in list(zip(conns, vms_name)):
                     fds["migration_fd_%s" % vm_name] = conn.fileno()
-                logging.debug("File descriptors %s used for"
-                              " migration." % (fds))
+                LOG.debug("File descriptors %s used for"
+                          " migration." % (fds))
 
                 # Prohibits descriptor inheritance.
                 for fd in list(fds.values()):
@@ -1033,7 +1034,7 @@ class MultihostMigrationExec(MultihostMigration):
                                 dsthost, mig_exec_cmd,
                                 not_wait_for_migration, None, mig_data)
 
-        logging.info("Start migrating now...")
+        LOG.info("Start migrating now...")
         cancel_delay = mig_data.params.get("cancel_delay")
         if cancel_delay is not None:
             cancel_delay = int(cancel_delay)
@@ -1096,7 +1097,7 @@ class MultihostMigrationExec(MultihostMigration):
 
             mig_ports = sync.sync(mig_ports, timeout=120)
             mig_ports = mig_ports[dsthost]
-            logging.debug("Migration port %s" % (mig_ports))
+            LOG.debug("Migration port %s" % (mig_ports))
             mig_cmds = {}
             for mig_port, vm_name in list(zip(mig_ports, vms_name)):
                 mig_dst_cmd = "nc -l %s %s" % (dsthost, mig_port)
@@ -1137,7 +1138,7 @@ class MultihostMigrationExec(MultihostMigration):
                     mig_params["migration_exec_cmd_dst_%s" % (vm_name)] = (
                         mig_dst_cmd % mig_fs[dsthost][vm_name])
 
-        logging.debug("Exec commands %s", mig_cmds)
+        LOG.debug("Exec commands %s", mig_cmds)
 
         super_cls = super(MultihostMigrationExec, self)
         super_cls.migrate_wait(vms_name, srchost, dsthost,
@@ -1193,7 +1194,7 @@ class MultihostMigrationRdma(MultihostMigration):
                                 vm_ports, not_wait_for_migration, None,
                                 mig_data)
 
-        logging.info("Start migrating now...")
+        LOG.info("Start migrating now...")
         # Use of RDMA during migration requires pinning and registering memory
         # with the hardware.
         enable_rdma_pin_all = mig_data.params.get("enable_rdma_pin_all",
@@ -1285,7 +1286,7 @@ class MigrationBase(object):
                     vm = self.env.get_vm(self.params["main_vm"])
                     vm.wait_for_login(timeout=self.login_timeout)
                 error.context("Run sub test '%s' before migration on src"
-                              % self.pre_sub_test, logging.info)
+                              % self.pre_sub_test, LOG.info)
                 utils_test.run_virt_sub_test(self.test, self.params,
                                              self.env, self.pre_sub_test)
 
@@ -1298,7 +1299,7 @@ class MigrationBase(object):
         if not self.is_src:
             if self.post_sub_test:
                 error.context("Run sub test '%s' after migration on dst"
-                              % self.post_sub_test, logging.info)
+                              % self.post_sub_test, LOG.info)
                 utils_test.run_virt_sub_test(self.test, self.params,
                                              self.env, self.post_sub_test)
 
@@ -1328,10 +1329,10 @@ class MigrationBase(object):
         """
 
         if self.is_src:
-            logging.info("Try to login guest before migration test.")
+            LOG.info("Try to login guest before migration test.")
             vm = self.env.get_vm(self.params["main_vm"])
             session = vm.wait_for_login(timeout=self.login_timeout)
-            logging.debug("Sending command: '%s'" % self.mig_bg_command)
+            LOG.debug("Sending command: '%s'" % self.mig_bg_command)
             s, o = session.cmd_status_output(self.mig_bg_command)
             if s != 0:
                 raise exceptions.TestError("Failed to run bg cmd in guest,"
@@ -1344,19 +1345,19 @@ class MigrationBase(object):
         """
 
         if not self.is_src:
-            logging.info("Try to login guest after migration test.")
+            LOG.info("Try to login guest after migration test.")
             vm = self.env.get_vm(self.params["main_vm"])
             serial_login = self.params.get("serial_login")
             if serial_login == "yes":
                 session = vm.wait_for_serial_login(timeout=self.login_timeout)
             else:
                 session = vm.wait_for_login(timeout=self.login_timeout)
-            logging.info("Check the background command in the guest.")
+            LOG.info("Check the background command in the guest.")
             s, o = session.cmd_status_output(self.mig_bg_check_command)
             if s:
                 raise exceptions.TestFail("Background command not found,"
                                           " Output is '%s'." % o)
-            logging.info("Kill the background command in the guest.")
+            LOG.info("Kill the background command in the guest.")
             session.sendline(self.mig_bg_kill_command)
             session.close()
 
@@ -1374,7 +1375,7 @@ class MigrationBase(object):
         while True:
             if self.stop_migrate:
                 break
-            logging.info("ping pong migration...")
+            LOG.info("ping pong migration...")
             mig_type(self.test, self.params, self.env).migrate_wait(
                 [self.vm], self.srchost, self.dsthost,
                 start_work=start_work, check_work=check_work)
@@ -1399,17 +1400,17 @@ class MigrationBase(object):
 
         error.context("Get 'xbzrle-cache/status/setup-time/downtime/"
                       "total-time/ram' info after migration.",
-                      logging.info)
+                      LOG.info)
         xbzrle_cache = vm.monitor.info("migrate").get("xbzrle-cache")
         status = vm.monitor.info("migrate").get("status")
         setup_time = vm.monitor.info("migrate").get("setup-time")
         downtime = vm.monitor.info("migrate").get("downtime")
         total_time = vm.monitor.info("migrate").get("total-time")
         ram = vm.monitor.info("migrate").get("ram")
-        logging.info("Migration info:\nxbzrle-cache: %s\nstatus: %s\n"
-                     "setup-time: %s\ndowntime: %s\ntotal-time: "
-                     "%s\nram: %s" % (xbzrle_cache, status, setup_time,
-                                      downtime, total_time, ram))
+        LOG.info("Migration info:\nxbzrle-cache: %s\nstatus: %s\n"
+                 "setup-time: %s\ndowntime: %s\ntotal-time: "
+                 "%s\nram: %s" % (xbzrle_cache, status, setup_time,
+                                  downtime, total_time, ram))
 
     @error.context_aware
     def get_migration_capability(self, index=0):
@@ -1422,7 +1423,7 @@ class MigrationBase(object):
         if self.is_src:
             for i in range(index, len(self.capabilitys)):
                 error.context("Get capability '%s' state."
-                              % self.capabilitys[i], logging.info)
+                              % self.capabilitys[i], LOG.info)
                 vm = self.env.get_vm(self.params["main_vm"])
                 self.state = vm.monitor.get_migrate_capability(
                     self.capabilitys[i])
@@ -1445,7 +1446,7 @@ class MigrationBase(object):
 
         if self.is_src:
             error.context("Set '%s' state to '%s'." % (capability, state),
-                          logging.info)
+                          LOG.info)
             vm = self.env.get_vm(self.params["main_vm"])
             vm.monitor.set_migrate_capability(state, capability)
 
@@ -1458,10 +1459,10 @@ class MigrationBase(object):
         """
 
         if self.is_src:
-            error.context("Try to get cache size.", logging.info)
+            error.context("Try to get cache size.", LOG.info)
             vm = self.env.get_vm(self.params["main_vm"])
             cache_size = vm.monitor.get_migrate_cache_size()
-            error.context("Get cache size: %s" % cache_size, logging.info)
+            error.context("Get cache size: %s" % cache_size, LOG.info)
             if cache_size != int(self.cache_size[index]):
                 raise exceptions.TestFail(
                     "The expected cache size: %s,"
@@ -1477,7 +1478,7 @@ class MigrationBase(object):
         """
 
         if self.is_src:
-            error.context("Set cache size to %s." % value, logging.info)
+            error.context("Set cache size to %s." % value, LOG.info)
             vm = self.env.get_vm(self.params["main_vm"])
             qemu_migration.set_cache_size(vm, value)
 
@@ -1492,7 +1493,7 @@ class MigrationBase(object):
         if self.is_src:
             for i in range(index, len(self.parameters)):
                 error.context("Get parameter '%s' value."
-                              % self.parameters[i], logging.info)
+                              % self.parameters[i], LOG.info)
                 vm = self.env.get_vm(self.params["main_vm"])
                 self.value = vm.monitor.get_migrate_parameter(
                     self.parameters[i])
@@ -1516,7 +1517,7 @@ class MigrationBase(object):
             for i in range(index, len(self.parameters)):
                 error.context("Set '%s' value to '%s'." % (
                     self.parameters[i],
-                    self.parameters_value[i]), logging.info)
+                    self.parameters_value[i]), LOG.info)
                 vm = self.env.get_vm(self.params["main_vm"])
                 vm.monitor.set_migrate_parameter(self.parameters[i],
                                                  int(self.parameters_value[i]))
@@ -1530,7 +1531,7 @@ class MigrationBase(object):
         """
 
         if self.is_src:
-            error.context("Set migration speed to %s." % value, logging.info)
+            error.context("Set migration speed to %s." % value, LOG.info)
             vm = self.env.get_vm(self.params["main_vm"])
             qemu_migration.set_speed(vm, "%sB" % value)
 
@@ -1543,7 +1544,7 @@ class MigrationBase(object):
         """
 
         if self.is_src:
-            error.context("Set downtime to %s." % value, logging.info)
+            error.context("Set downtime to %s." % value, LOG.info)
             vm = self.env.get_vm(self.params["main_vm"])
             qemu_migration.set_downtime(vm, value)
 
@@ -1554,7 +1555,7 @@ class MigrationBase(object):
         """
 
         if self.is_src:
-            error.context("Cancel migration.", logging.info)
+            error.context("Cancel migration.", LOG.info)
             vm = self.env.get_vm(self.params["main_vm"])
             vm.monitor.cmd("migrate_cancel")
 
@@ -1584,20 +1585,20 @@ class MigrationBase(object):
         """
 
         error.context("Kill the background test by '%s' in guest"
-                      "." % kill_bg_cmd, logging.info)
+                      "." % kill_bg_cmd, LOG.info)
         session = vm.wait_for_login(timeout=self.login_timeout)
         if session.cmd_status(self.check_running_cmd) != 0:
-            logging.info("The background test in guest is finished, "
-                         "no need to kill.")
+            LOG.info("The background test in guest is finished, "
+                     "no need to kill.")
         else:
             try:
                 s, o = session.cmd_status_output(kill_bg_cmd)
-                logging.info("The output after run kill command: %r" % o)
+                LOG.info("The output after run kill command: %r" % o)
                 if "No such process" in o or "not found" in o \
                         or "no running instance" in o:
                     if session.cmd_status(self.check_running_cmd) != 0:
-                        logging.info("The background test in guest is "
-                                     "finished before kill it.")
+                        LOG.info("The background test in guest is "
+                                 "finished before kill it.")
                 elif s:
                     raise exceptions.TestFail("Failed to kill the background"
                                               " test in guest.")
@@ -1611,10 +1612,10 @@ class MigrationBase(object):
         start stress test on src before migration
         """
 
-        logging.info("Try to login guest before migration test.")
+        LOG.info("Try to login guest before migration test.")
         vm = self.env.get_vm(self.params["main_vm"])
         session = vm.wait_for_login(timeout=self.login_timeout)
-        error.context("Do stress test before migration.", logging.info)
+        error.context("Do stress test before migration.", LOG.info)
         bg = utils_misc.InterruptedThread(
             utils_test.run_virt_sub_test,
             args=(self.test, self.params, self.env,),
@@ -1649,7 +1650,7 @@ class MigrationBase(object):
         stressapptest_insatll_cmd = \
             self.params.get("stressapptest_insatll_cmd",
                             stressapptest_insatll_cmd)
-        error.context("Install stressapptest.", logging.info)
+        error.context("Install stressapptest.", LOG.info)
         s, o = session.cmd_status_output(stressapptest_insatll_cmd)
         session.close()
         if s:

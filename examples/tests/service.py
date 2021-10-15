@@ -17,6 +17,9 @@ from virttest import remote
 from virttest import error_context
 
 
+LOG = logging.getLogger('avocado.vt.examples.service')
+
+
 # error_context.context_aware decorator initializes context, which provides additional
 # information on exceptions.
 @error_context.context_aware
@@ -37,29 +40,29 @@ def run(test, params, env):
     if params.get('test_on_guest') == "yes":
         # error_context.context() is common method to log test steps used to verify
         # what exactly was tested.
-        error_context.context("Using guest.", logging.info)
+        error_context.context("Using guest.", LOG.info)
         vm = env.get_vm(params["main_vm"])
         session = vm.wait_for_login()
         # RemoteRunner is object, which simulates the utils.run() behavior
         # on remote consoles
         runner = remote.RemoteRunner(session=session).run
     else:
-        error_context.context("Using host", logging.info)
+        error_context.context("Using host", LOG.info)
         runner = process.run
 
-    error_context.context("Initialize service manager", logging.info)
+    error_context.context("Initialize service manager", LOG.info)
     service = SpecificServiceManager(params["test_service"], runner)
 
     error_context.context("Testing service %s" %
-                          params["test_service"], logging.info)
+                          params["test_service"], LOG.info)
     original_status = service.status()
-    logging.info("Original status=%s", original_status)
+    LOG.info("Original status=%s", original_status)
 
     if original_status is True:
         service.stop()
         time.sleep(5)
         if service.status() is not False:
-            logging.error("Fail to stop service")
+            LOG.error("Fail to stop service")
             service.start()
             raise exceptions.TestFail("Fail to stop service")
         service.start()
@@ -67,7 +70,7 @@ def run(test, params, env):
         service.start()
         time.sleep(5)
         if service.status() is not True:
-            logging.error("Fail to start service")
+            LOG.error("Fail to start service")
             service.stop()
             raise exceptions.TestFail("Fail to start service")
         service.start()

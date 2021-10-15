@@ -12,6 +12,8 @@ from avocado.core import exceptions
 from virttest import virsh
 from virttest.libvirt_xml import vm_xml
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def set_vm_attrs(vmxml, vm_attrs):
     """
@@ -22,7 +24,7 @@ def set_vm_attrs(vmxml, vm_attrs):
     :return the updated vmxml
     """
     for attr, value in list(vm_attrs.items()):
-        logging.debug('Set %s = %s', attr, value)
+        LOG.debug('Set %s = %s', attr, value)
         setattr(vmxml, attr, int(value) if value.isdigit() else value)
     vmxml.xmltreefile.write()
     vmxml.sync()
@@ -44,7 +46,7 @@ def check_guest_xml(vm_name, pat_in_dumpxml, option='', status_error=False):
     prefix_found = '' if found else 'not '
     msg = "The pattern '%s' is %sfound in the vm dumpxml" % (pat_in_dumpxml, prefix_found)
     if found ^ status_error:
-        logging.debug(msg)
+        LOG.debug(msg)
     else:
         raise exceptions.TestFail(msg)
 

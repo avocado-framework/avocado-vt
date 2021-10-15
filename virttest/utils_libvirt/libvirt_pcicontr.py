@@ -9,6 +9,8 @@ import logging
 from virttest.utils_test import libvirt
 from virttest.libvirt_xml import vm_xml
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def get_max_contr_indexes(vm_xml, cntlr_type, cntlr_model, cntl_num=1):
     """
@@ -26,10 +28,10 @@ def get_max_contr_indexes(vm_xml, cntlr_type, cntlr_model, cntl_num=1):
             usable_indexes.append(int(elem.index))
     usable_indexes = sorted(usable_indexes, reverse=True)
 
-    logging.debug("The indexes returned for controller type '{}' and "
-                  "controller model '{}' is '{}'".format(cntlr_type,
-                                                         cntlr_model,
-                                                         usable_indexes[:cntl_num]))
+    LOG.debug("The indexes returned for controller type '{}' and "
+              "controller model '{}' is '{}'".format(cntlr_type,
+                                                     cntlr_model,
+                                                     usable_indexes[:cntl_num]))
     return usable_indexes[:cntl_num]
 
 
@@ -48,7 +50,7 @@ def get_free_pci_slot(vm_xml, max_slot=31):
         address = dev.find('address')
         if (address is not None and address.get('bus') == '0x00'):
             used_slot.append(address.get('slot'))
-    logging.debug("Collect used slot:%s", used_slot)
+    LOG.debug("Collect used slot:%s", used_slot)
     for slot_index in range(1, max_slot + 1):
         slot = "%0#4x" % slot_index
         if slot not in used_slot:
@@ -74,13 +76,13 @@ def reset_pci_num(vm_name, num=15):
             vmxml, 'pci', 'pcie-to-pci-bridge')
         cur_pci_num = ret_indexes[0] if not pcie_to_pci_brg_indexes else \
             max(ret_indexes[0], pcie_to_pci_brg_indexes[0])
-        logging.debug("The current maximum PCI controller index is %d", cur_pci_num)
+        LOG.debug("The current maximum PCI controller index is %d", cur_pci_num)
         if cur_pci_num < num:
             for i in list(range(cur_pci_num + 1, num)):
                 pcie_root_port.update({'controller_index': "%d" % i})
                 vmxml.add_device(libvirt.create_controller_xml(pcie_root_port))
         else:
-            logging.info("Current pci number is greater than expected")
+            LOG.info("Current pci number is greater than expected")
 
     # synchronize XML
     vmxml.sync()

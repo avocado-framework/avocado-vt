@@ -18,6 +18,8 @@ from virttest import utils_numeric
 from virttest import error_context
 from virttest import utils_misc
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class CephError(Exception):
     pass
@@ -68,7 +70,7 @@ def rbd_image_create(ceph_monitor, rbd_pool_name, rbd_image_name,
                          image=rbd_image_name, size=size, keyring=keyring)
         process.system(cmd, verbose=True)
     else:
-        logging.debug("Image already exist skip the create.")
+        LOG.debug("Image already exist skip the create.")
 
 
 @error_context.context_aware
@@ -95,7 +97,7 @@ def rbd_image_rm(ceph_monitor, rbd_pool_name, rbd_image_name,
                          image=rbd_image_name, keyring=keyring)
         process.run(cmd, verbose=True)
     else:
-        logging.debug("Image not exist, skip to remove it.")
+        LOG.debug("Image not exist, skip to remove it.")
 
 
 @error_context.context_aware
@@ -123,7 +125,7 @@ def rbd_image_exist(ceph_monitor, rbd_pool_name,
     output = process.run(cmd, ignore_status=True,
                          verbose=True).stdout_text
 
-    logging.debug("Response from rbd ls command is: %s" % output)
+    LOG.debug("Response from rbd ls command is: %s" % output)
 
     return (rbd_image_name.strip() in output.splitlines())
 
@@ -183,7 +185,7 @@ def rbd_image_map(ceph_monitor, rbd_pool_name, rbd_image_name):
     if os.path.exist(os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)):
         return os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)
     else:
-        logging.debug("Failed to map image to local: %s" % output)
+        LOG.debug("Failed to map image to local: %s" % output)
         return None
 
 
@@ -197,7 +199,7 @@ def rbd_image_unmap(rbd_pool_name, rbd_image_name):
     cmd = "rbd unmap /dev/rbd/%s/%s" % (rbd_pool_name, rbd_image_name)
     output = process.run(cmd, verbose=True).stdout_text
     if os.path.exist(os.path.join("/dev/rbd", rbd_pool_name, rbd_image_name)):
-        logging.debug("Failed to unmap image from local: %s" % output)
+        LOG.debug("Failed to unmap image from local: %s" % output)
 
 
 @error_context.context_aware
@@ -264,9 +266,9 @@ def cephfs_mount(ceph_uri, mount_point, options=None, verbose=False, session=Non
             try:
                 utils_misc.make_dirs(mount_point)
             except OSError as dirError:
-                logging.debug("Creation of the directory:%s failed:%s", mount_point, str(dirError))
+                LOG.debug("Creation of the directory:%s failed:%s", mount_point, str(dirError))
             else:
-                logging.debug("Successfully created the directory %s", mount_point)
+                LOG.debug("Successfully created the directory %s", mount_point)
         process.system(mount_cmd, verbose=verbose)
 
 
@@ -291,6 +293,6 @@ def cephfs_umount(ceph_uri, mount_point, verbose=False, session=None):
             try:
                 utils_misc.safe_rmdir(mount_point)
             except OSError as dirError:
-                logging.debug("Delete of the directory:%s failed:%s", mount_point, str(dirError))
+                LOG.debug("Delete of the directory:%s failed:%s", mount_point, str(dirError))
             else:
-                logging.debug("Successfully deleted the directory %s", mount_point)
+                LOG.debug("Successfully deleted the directory %s", mount_point)

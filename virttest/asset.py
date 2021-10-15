@@ -21,6 +21,8 @@ from six import string_types
 
 from virttest import data_dir
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class ConfigLoader:
 
@@ -317,8 +319,8 @@ def download_test_provider(provider, update=False):
                     pass
         except Exception:
             if not dir_existed and os.path.isdir(download_dst):
-                logging.error('Cleaning up provider %s download dir %s', provider,
-                              download_dst)
+                LOG.error('Cleaning up provider %s download dir %s', provider,
+                          download_dst)
                 shutil.rmtree(download_dst)
             raise
 
@@ -327,8 +329,8 @@ def download_test_provider(provider, update=False):
             os.chdir(download_dst)
             process.system('git log -1')
         except process.CmdError:
-            logging.error('Something is unexpectedly wrong with the git repository at %s',
-                          download_dst)
+            LOG.error('Something is unexpectedly wrong with the git repository at %s',
+                      download_dst)
             raise
         finally:
             os.chdir(original_dir)
@@ -371,7 +373,7 @@ def get_file_asset(title, src_path, destination):
     for ext in (".xz", ".gz", ".7z", ".bz2"):
         if os.path.exists(src_path + ext):
             destination = destination + ext
-            logging.debug('Found source image %s', destination)
+            LOG.debug('Found source image %s', destination)
             return {
                 'url': None, 'sha1_url': None, 'destination': src_path + ext,
                 'destination_uncompressed': destination,
@@ -379,7 +381,7 @@ def get_file_asset(title, src_path, destination):
                 'downloaded': True}
 
     if os.path.exists(src_path):
-        logging.debug('Found source image %s', destination)
+        LOG.debug('Found source image %s', destination)
         return {'url': src_path, 'sha1_url': None, 'destination': destination,
                 'destination_uncompressed': None, 'uncompress_cmd': None,
                 'shortname': title, 'title': title,
@@ -455,13 +457,13 @@ def uncompress_asset(asset_info, force=False):
 
         if os.path.isfile(destination) and force:
             os.chdir(os.path.dirname(destination_uncompressed))
-            logging.debug('Uncompressing %s -> %s', destination,
-                          destination_uncompressed)
+            LOG.debug('Uncompressing %s -> %s', destination,
+                      destination_uncompressed)
             process.run(uncompress_cmd, shell=True)
             backup_file = destination_uncompressed + '.backup'
             if os.path.isfile(backup_file):
-                logging.debug('Copying %s -> %s', destination_uncompressed,
-                              backup_file)
+                LOG.debug('Copying %s -> %s', destination_uncompressed,
+                          backup_file)
                 shutil.copy(destination_uncompressed, backup_file)
 
 
@@ -486,13 +488,13 @@ def download_file(asset_info, interactive=False, force=False):
 
     if sha1_url is not None:
         try:
-            logging.info("Verifying expected SHA1 sum from %s", sha1_url)
+            LOG.info("Verifying expected SHA1 sum from %s", sha1_url)
             sha1_file = urllib.request.urlopen(sha1_url)
             sha1_contents = astring.to_text(sha1_file.read())
             sha1 = sha1_contents.split(" ")[0]
-            logging.info("Expected SHA1 sum: %s", sha1)
+            LOG.info("Expected SHA1 sum: %s", sha1)
         except Exception as e:
-            logging.error("Failed to get SHA1 from file: %s", e)
+            LOG.error("Failed to get SHA1 from file: %s", e)
     else:
         sha1 = None
 
@@ -501,7 +503,7 @@ def download_file(asset_info, interactive=False, force=False):
         os.makedirs(destination_dir)
 
     if not os.path.isfile(destination):
-        logging.warning("File %s not found", destination)
+        LOG.warning("File %s not found", destination)
         if interactive:
             answer = genio.ask("Would you like to download it from %s?" % url)
         else:
@@ -512,12 +514,12 @@ def download_file(asset_info, interactive=False, force=False):
                                                   "Downloading %s" % title)
                 had_to_download = True
             except Exception as download_failure:
-                logging.error("Check your internet connection: %s",
-                              download_failure)
+                LOG.error("Check your internet connection: %s",
+                          download_failure)
         else:
-            logging.warning("Missing file %s", destination)
+            LOG.warning("Missing file %s", destination)
     else:
-        logging.info("Found %s", destination)
+        LOG.info("Found %s", destination)
         if sha1 is None:
             answer = 'n'
         else:
@@ -526,27 +528,27 @@ def download_file(asset_info, interactive=False, force=False):
         if answer == 'y':
             actual_sha1 = crypto.hash_file(destination, algorithm='sha1')
             if actual_sha1 != sha1:
-                logging.info("Actual SHA1 sum: %s", actual_sha1)
+                LOG.info("Actual SHA1 sum: %s", actual_sha1)
                 if interactive:
                     answer = genio.ask("The file seems corrupted or outdated. "
                                        "Would you like to download it?")
                 else:
-                    logging.info("The file seems corrupted or outdated")
+                    LOG.info("The file seems corrupted or outdated")
                     answer = 'y'
                 if answer == 'y':
-                    logging.info("Updating image to the latest available...")
+                    LOG.info("Updating image to the latest available...")
                     while not file_ok:
                         try:
                             download.url_download_interactive(url, destination,
                                                               title)
                         except Exception as download_failure:
-                            logging.error("Check your internet connection: %s",
-                                          download_failure)
+                            LOG.error("Check your internet connection: %s",
+                                      download_failure)
                         sha1_post_download = crypto.hash_file(destination,
                                                               algorithm='sha1')
                         had_to_download = True
                         if sha1_post_download != sha1:
-                            logging.error("Actual SHA1 sum: %s", actual_sha1)
+                            LOG.error("Actual SHA1 sum: %s", actual_sha1)
                             if interactive:
                                 answer = genio.ask("The file downloaded %s is "
                                                    "corrupted. Would you like "
@@ -556,8 +558,7 @@ def download_file(asset_info, interactive=False, force=False):
                                 answer = 'n'
                             if answer == 'n':
                                 problems_ignored = True
-                                logging.error("File %s is corrupted" %
-                                              destination)
+                                LOG.error("File %s is corrupted" % destination)
                                 file_ok = True
                             else:
                                 file_ok = False
@@ -565,15 +566,15 @@ def download_file(asset_info, interactive=False, force=False):
                             file_ok = True
             else:
                 file_ok = True
-                logging.info("SHA1 sum check OK")
+                LOG.info("SHA1 sum check OK")
         else:
             problems_ignored = True
-            logging.info("File %s present, but did not verify integrity",
-                         destination)
+            LOG.info("File %s present, but did not verify integrity",
+                     destination)
 
     if file_ok:
         if not problems_ignored:
-            logging.info("%s present, with proper checksum", destination)
+            LOG.info("%s present, with proper checksum", destination)
 
     uncompress_asset(asset_info=asset_info, force=force or had_to_download)
 

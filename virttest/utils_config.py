@@ -10,6 +10,8 @@ except ImportError:
 
 from avocado.utils import distro
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class ConfigError(Exception):
 
@@ -293,8 +295,8 @@ class LibvirtConfigCommon(SectionlessConfig):
                 try:
                     set_func(key, value)
                 except ValueError:
-                    logging.warning("Key %s might not have type %s. Set raw "
-                                    "string instead.", key, key_type)
+                    LOG.warning("Key %s might not have type %s. Set raw "
+                                "string instead.", key, key_type)
                     self.set_raw(key, value)
         super(LibvirtConfigCommon, self).__setattr__(key, value)
 

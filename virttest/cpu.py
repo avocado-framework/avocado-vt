@@ -38,6 +38,8 @@ from virttest import libvirt_version
 from virttest import data_dir
 
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 ARCH = platform.machine()
 
 CPU_TYPES = {"AuthenticAMD": ["EPYC-Milan", "EPYC-Rome", "EPYC", "Opteron_G5",
@@ -118,7 +120,7 @@ def get_cpu_xmldata(vm, options=""):
     try:
         cpu_xmldata['current_vcpu'] = int(vm_xml.current_vcpu)
     except LibvirtXMLNotFoundError:
-        logging.debug("current vcpu value not present in xml, set as max value")
+        LOG.debug("current vcpu value not present in xml, set as max value")
         cpu_xmldata['current_vcpu'] = int(vm_xml.vcpu)
     cpu_xmldata['vcpu'] = int(vm_xml.vcpu)
     return cpu_xmldata
@@ -192,7 +194,7 @@ def affinity_from_xml(vm):
         vmxml = libvirt_xml.VMXML.new_from_dumpxml(vm.name)
         xml_affinity_list = vmxml['cputune'].vcpupins
     except LibvirtXMLNotFoundError:
-        logging.debug("No <cputune> element find in domain xml")
+        LOG.debug("No <cputune> element find in domain xml")
         return xml_affinity
     # Store xml_affinity_list to a dict
     for vcpu in xml_affinity_list:
@@ -259,7 +261,7 @@ def get_vcpucount_details(vm, options):
     result = virsh.vcpucount(vm.name, options, ignore_status=True,
                              debug=True)
     if result.exit_status:
-        logging.debug("vcpu count command failed")
+        LOG.debug("vcpu count command failed")
         return (result, vcpucount_details)
 
     if options:
@@ -312,20 +314,19 @@ def check_affinity(vm, expect_vcpupin):
         expect_affinity = cpus_string_to_affinity_list(str(expect_vcpupin[vcpu]), host_cpu_count)
         # Check for vcpuinfo affinity
         if affinity_vcpuinfo[int(vcpu)] != expect_affinity:
-            logging.error("CPU affinity in virsh vcpuinfo output"
-                          " is unexpected")
+            LOG.error("CPU affinity in virsh vcpuinfo output is unexpected")
             result = False
         # Check for vcpupin affinity
         if affinity_vcpupin[int(vcpu)] != expect_affinity:
-            logging.error("Virsh vcpupin output is unexpected")
+            LOG.error("Virsh vcpupin output is unexpected")
             result = False
         # Check for affinity in Domain xml
         if affinity_xml:
             if affinity_xml[vcpu] != expect_affinity:
-                logging.error("Affinity in domain XML is unexpected")
+                LOG.error("Affinity in domain XML is unexpected")
                 result = False
     if result:
-        logging.debug("Vcpupin info check pass")
+        LOG.debug("Vcpupin info check pass")
     return result
 
 
@@ -350,28 +351,28 @@ def check_vcpucount(vm, exp_vcpu, option="", guest_agent=False):
         result = False
     if vcpucount_option == "--guest" and guest_agent:
         if vcpucount_result['guest_live'] != exp_vcpu['guest_live']:
-            logging.error("Virsh vcpucount output is unexpected\nExpected: "
-                          "%s\nActual: %s", exp_vcpu, vcpucount_result)
+            LOG.error("Virsh vcpucount output is unexpected\nExpected: "
+                      "%s\nActual: %s", exp_vcpu, vcpucount_result)
             result = False
     else:
         # Check for config option results
         if vm.is_dead():
             if (exp_vcpu['max_config'] != vcpucount_result['max_config'] or
                     exp_vcpu['cur_config'] != vcpucount_result['cur_config']):
-                logging.error("Virsh vcpucount output is unexpected\nExpected"
-                              ":%s\nActual:%s", exp_vcpu, vcpucount_result)
+                LOG.error("Virsh vcpucount output is unexpected\nExpected"
+                          ":%s\nActual:%s", exp_vcpu, vcpucount_result)
                 result = False
         else:
             if (exp_vcpu['max_config'] != vcpucount_result['max_config'] or
                     exp_vcpu['max_live'] != vcpucount_result['max_live'] or
                     exp_vcpu['cur_config'] != vcpucount_result['cur_config'] or
                     exp_vcpu['cur_live'] != vcpucount_result['cur_live']):
-                logging.error("Virsh vcpucount output is unexpected\n "
-                              "Expected:%s\nActual:%s", exp_vcpu,
-                              vcpucount_result)
+                LOG.error("Virsh vcpucount output is unexpected\n "
+                          "Expected:%s\nActual:%s", exp_vcpu,
+                          vcpucount_result)
                 result = False
     if result:
-        logging.debug("Command vcpucount check pass")
+        LOG.debug("Command vcpucount check pass")
     return result
 
 
@@ -394,11 +395,11 @@ def check_vcpuinfo(vm, exp_vcpu):
     affinity_vcpuinfo = affinity_from_vcpuinfo(vm)
     vcpuinfo_num = len(affinity_vcpuinfo)
     if vcpuinfo_num != exp_vcpu[idx]:
-        logging.error("Vcpu number in virsh vcpuinfo is unexpected\n"
-                      "Expected: %s\nActual: %s", exp_vcpu[idx], vcpuinfo_num)
+        LOG.error("Vcpu number in virsh vcpuinfo is unexpected\n"
+                  "Expected: %s\nActual: %s", exp_vcpu[idx], vcpuinfo_num)
         result = False
     else:
-        logging.debug("Command vcpuinfo check pass")
+        LOG.debug("Command vcpuinfo check pass")
     return result
 
 
@@ -421,18 +422,18 @@ def check_xmlcount(vm, exp_vcpu, option):
         exp_key = "cur_live"
     if cpu_xml['current_vcpu'] != exp_vcpu[exp_key]:
         if cpu_xml['current_vcpu'] != exp_vcpu['cur_config']:
-            logging.error("currrent vcpu number mismatch in xml\n"
-                          "Expected: %s\nActual:%s", exp_vcpu[exp_key],
-                          cpu_xml['current_vcpu'])
+            LOG.error("currrent vcpu number mismatch in xml\n"
+                      "Expected: %s\nActual:%s", exp_vcpu[exp_key],
+                      cpu_xml['current_vcpu'])
             result = False
         else:
-            logging.debug("current vcpu count in xml check pass")
+            LOG.debug("current vcpu count in xml check pass")
     if cpu_xml['vcpu'] != exp_vcpu['max_config']:
-        logging.error("vcpu count mismatch in xml\nExpected: %s\nActual: %s",
-                      exp_vcpu['max_config'], cpu_xml['vcpu'])
+        LOG.error("vcpu count mismatch in xml\nExpected: %s\nActual: %s",
+                  exp_vcpu['max_config'], cpu_xml['vcpu'])
         result = False
     else:
-        logging.debug("vcpu count in xml check pass")
+        LOG.debug("vcpu count in xml check pass")
     return result
 
 
@@ -454,8 +455,7 @@ def get_cpustats(vm, cpu=None):
         option = "--start %s --count 1" % cpu
         result = virsh.cpu_stats(vm.name, option)
         if result.exit_status != 0:
-            logging.error("cpu stats command failed: %s",
-                          result.stderr_text)
+            LOG.error("cpu stats command failed: %s", result.stderr_text)
             return None
         output = result.stdout_text.strip().split()
         if re.match("CPU%s" % cpu, output[0]):
@@ -469,8 +469,7 @@ def get_cpustats(vm, cpu=None):
             option = "--start %s --count 1" % host_cpu_online[i]
             result = virsh.cpu_stats(vm.name, option)
             if result.exit_status != 0:
-                logging.error("cpu stats command failed: %s",
-                              result.stderr_text)
+                LOG.error("cpu stats command failed: %s", result.stderr_text)
                 return None
             output = result.stdout_text.strip().split()
             if re.match("CPU%s" % host_cpu_online[i], output[0]):
@@ -480,8 +479,7 @@ def get_cpustats(vm, cpu=None):
     result = virsh.cpu_stats(vm.name, "--total")
     cpustats["total"] = []
     if result.exit_status != 0:
-        logging.error("cpu stats command failed: %s",
-                      result.stderr_text)
+        LOG.error("cpu stats command failed: %s", result.stderr_text)
         return None
     output = result.stdout_text.strip().split()
     cpustats["total"] = [float(output[2])]  # cputime
@@ -519,12 +517,12 @@ def check_vcpu_domstats(vm, exp_vcpu):
         exp_cur_max = exp_vcpu['max_config']
     if exp_cur_vcpu != cur_vcpu:
         status = False
-        logging.error("Mismatch in current vcpu in domstats output, "
-                      "Expected: %s Actual: %s", exp_cur_vcpu, cur_vcpu)
+        LOG.error("Mismatch in current vcpu in domstats output, "
+                  "Expected: %s Actual: %s", exp_cur_vcpu, cur_vcpu)
     if exp_cur_max != max_vcpu:
         status = False
-        logging.error("Mismatch in maximum vcpu in domstats output, Expected:"
-                      " %s Actual: %s", exp_cur_max, max_vcpu)
+        LOG.error("Mismatch in maximum vcpu in domstats output, Expected:"
+                  " %s Actual: %s", exp_cur_max, max_vcpu)
 
     return status
 
@@ -549,7 +547,7 @@ def check_vcpu_value(vm, exp_vcpu, vcpupin=None, option="", guest_agent=False):
             False if not
     """
     final_result = True
-    logging.debug("Expect vcpu number: %s", exp_vcpu)
+    LOG.debug("Expect vcpu number: %s", exp_vcpu)
 
     # 1.1 Check virsh vcpucount output
     if not check_vcpucount(vm, exp_vcpu, option, guest_agent):
@@ -611,7 +609,7 @@ def guest_numa_check(vm, exp_vcpu):
     :param exp_vcpu: dict of expected vcpus
     :return: True if check succeed, False otherwise
     """
-    logging.debug("Check guest numa")
+    LOG.debug("Check guest numa")
     session = vm.wait_for_login()
     vm_cpu_info = get_cpu_info(session)
     session.close()
@@ -653,18 +651,18 @@ def guest_numa_check(vm, exp_vcpu):
         # Check cpu
         if node_cpu_xml != node_cpu_guest:
             status = False
-            logging.error("Mismatch in cpus in node %s: xml %s guest %s", node,
-                          node_cpu_xml, node_cpu_guest)
+            LOG.error("Mismatch in cpus in node %s: xml %s guest %s", node,
+                      node_cpu_xml, node_cpu_guest)
         # Check memory
         if int(node_mem_xml) != node_mem_guest:
             status = False
-            logging.error("Mismatch in memory in node %s: xml %s guest %s", node,
-                          node_mem_xml, node_mem_guest)
+            LOG.error("Mismatch in memory in node %s: xml %s guest %s", node,
+                      node_mem_xml, node_mem_guest)
     # Check no. of nodes
     if exp_num_nodes != node_num_guest:
         status = False
-        logging.error("Mismatch in numa nodes expected nodes: %s guest: %s", exp_num_nodes,
-                      node_num_guest)
+        LOG.error("Mismatch in numa nodes expected nodes: %s guest: %s",
+                  exp_num_nodes, node_num_guest)
     return status
 
 
@@ -738,7 +736,7 @@ def get_cpu_info(session=None):
         try:
             output_raw = session.cmd_output(cmd)
             output = re.sub('\n[\s]+', '', output_raw).splitlines()
-            logging.info("output is %s" % output)
+            LOG.info("output is %s" % output)
         finally:
             session.close()
     cpu_info = dict(map(lambda x: [i.strip() for i in x.split(":", 1)], output))
@@ -858,7 +856,7 @@ def get_cpu_vendor(cpu_info="", verbose=True):
     else:
         vendor = vendor[0]
     if verbose:
-        logging.debug("Detected CPU vendor as '%s'", vendor)
+        LOG.debug("Detected CPU vendor as '%s'", vendor)
     return vendor
 
 
@@ -920,7 +918,7 @@ def get_host_cpu_models():
                 cpu_model = cpu_type
                 cpu_support_model.append(cpu_model)
     else:
-        logging.warn("Can not Get cpu flags from cpuinfo")
+        LOG.warn("Can not Get cpu flags from cpuinfo")
 
     return cpu_support_model
 
@@ -951,9 +949,9 @@ def extract_qemu_cpu_models(qemu_cpu_help_text):
 
     e_msg = ("CPU models reported by qemu -cpu ? not supported by avocado-vt. "
              "Please work with us to add support for it")
-    logging.error(e_msg)
+    LOG.error(e_msg)
     for line in qemu_cpu_help_text.splitlines():
-        logging.error(line)
+        LOG.error(line)
     raise UnsupportedCPU(e_msg)
 
 
@@ -979,10 +977,10 @@ def check_if_vm_vcpu_match(vcpu_desire, vm, connect_uri=None, session=None):
     if isinstance(vcpu_desire, str) and vcpu_desire.isdigit():
         vcpu_desire = int(vcpu_desire)
     if vcpu_desire != vcpu_actual:
-        logging.debug("CPU quantity mismatched !!! guest said it got %s "
-                      "but we assigned %s" % (vcpu_actual, vcpu_desire))
+        LOG.debug("CPU quantity mismatched !!! guest said it got %s "
+                  "but we assigned %s" % (vcpu_actual, vcpu_desire))
         return False
-    logging.info("CPU quantity matched: %s" % vcpu_actual)
+    LOG.info("CPU quantity matched: %s" % vcpu_actual)
     return True
 
 
@@ -1031,16 +1029,16 @@ def get_model_features(model_name):
                             features.append(feature.get('name'))
                         break
     except ET.ParseError as error:
-        logging.warn("Configuration file %s has wrong xml format" % conf)
+        LOG.warn("Configuration file %s has wrong xml format" % conf)
         raise
     except AttributeError as elem_attr:
-        logging.warn("No attribute %s in file %s" % (str(elem_attr), conf))
+        LOG.warn("No attribute %s in file %s" % (str(elem_attr), conf))
         raise
     except Exception:
         # Other exceptions like IOError when open/read configuration file,
         # capture here
-        logging.warn("Some other exceptions, like configuration file is not "
-                     "found or not file: %s" % conf)
+        LOG.warn("Some other exceptions, like configuration file is not "
+                 "found or not file: %s" % conf)
         raise
 
     return features
@@ -1066,8 +1064,8 @@ def cpus_string_to_affinity_list(cpus_string, num_cpus):
                                        single_pattern, between_pattern)
     pattern = r"^((%s),)*(%s)$" % (sub_pattern, sub_pattern)
     if not re.match(pattern, cpus_string):
-        logging.debug("Cpus_string=%s is not a supported format for cpu_list."
-                      % cpus_string)
+        LOG.debug("Cpus_string=%s is not a supported format for cpu_list."
+                  % cpus_string)
     # Init a list for result.
     affinity = []
     for i in range(int(num_cpus)):
@@ -1175,8 +1173,7 @@ def hotplug_domain_vcpu(vm, count, by_virsh=True, hotplug=True):
             if result.exit_status != 0:
                 raise exceptions.TestFail(result.stderr_text)
             else:
-                logging.debug("Command output:\n%s",
-                              result.stdout_text.strip())
+                LOG.debug("Command output:\n%s", result.stdout_text.strip())
     return result
 
 
@@ -1208,8 +1205,8 @@ def cpus_parser(cpulist):
                     try:
                         commas.append(int(cpulist))
                     except ValueError:
-                        logging.error("The cpulist has to be an "
-                                      "integer. (%s)", cpulist)
+                        LOG.error("The cpulist has to be an "
+                                  "integer. (%s)", cpulist)
         elif "-" in cpulist:
             tmp = re.split("-", cpulist)
             hyphens = list(range(int(tmp[0]), int(tmp[-1]) + 1))
@@ -1221,8 +1218,7 @@ def cpus_parser(cpulist):
                 others.append(int(cpulist))
                 return others
             except ValueError:
-                logging.error("The cpulist has to be an "
-                              "integer. (%s)", cpulist)
+                LOG.error("The cpulist has to be an integer. (%s)", cpulist)
 
         cpus_set = set(hyphens).union(set(commas)).difference(set(carets))
 
@@ -1322,7 +1318,7 @@ def get_cpu_info_from_virsh(params):
     try:
         path.find_command("virsh")
     except path.CmdNotFoundError:
-        logging.warning("Virsh executable not set or found on path")
+        LOG.warning("Virsh executable not set or found on path")
         return
 
     xml = """
@@ -1339,11 +1335,11 @@ def get_cpu_info_from_virsh(params):
     with open(xml_file, "w") as f:
         f.write(xml)
     try:
-        logging.info("Get cpu model and features from virsh")
+        LOG.info("Get cpu model and features from virsh")
         virsh.define(xml_file)
         virsh.start(name)
     except Exception as err:
-        logging.error(err)
+        LOG.error(err)
         return
     else:
         cpu_info = get_cpu_info_from_virsh_qemu_cli(name)

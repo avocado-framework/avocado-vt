@@ -44,6 +44,8 @@ from virttest.staging import utils_memory
 
 ARCH = platform.machine()
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class THPError(Exception):
 
@@ -203,7 +205,7 @@ class SetupManager(object):
             try:
                 self.__setupers.pop().cleanup()
             except Exception as err:
-                logging.error(str(err))
+                LOG.error(str(err))
                 errors.append(str(err))
         return errors
 
@@ -244,7 +246,7 @@ class TransparentHugePageConfig(object):
         self.file_list_str = []
         # List of files that contain integer config values
         self.file_list_num = []
-        logging.info("Scanning THP base path and recording base values")
+        LOG.info("Scanning THP base path and recording base values")
         for f in os.walk(self.thp_path):
             base_dir = f[0]
             if f[2]:
@@ -252,8 +254,7 @@ class TransparentHugePageConfig(object):
                     f_dir = kernel_interface.SysFS(os.path.join(base_dir, name),
                                                    session=self.session)
                     parameter = str(f_dir.sys_fs_value).strip("[]")
-                    logging.debug("Reading path %s: %s", f_dir.sys_fs,
-                                  parameter)
+                    LOG.debug("Reading path %s: %s", f_dir.sys_fs, parameter)
                     try:
                         # Verify if the path in question is writable
                         f = open(f_dir.sys_fs, 'w')
@@ -274,10 +275,9 @@ class TransparentHugePageConfig(object):
         Applies test configuration on the host.
         """
         if self.test_config:
-            logging.info("Applying custom THP test configuration")
+            LOG.info("Applying custom THP test configuration")
             for path in list(self.test_config.keys()):
-                logging.info("Writing path %s: %s", path,
-                             self.test_config[path])
+                LOG.info("Writing path %s: %s", path, self.test_config[path])
                 cfg_f = kernel_interface.SysFS(path, session=self.session)
                 cfg_f.sys_fs_value = self.test_config[path]
 
@@ -290,8 +290,8 @@ class TransparentHugePageConfig(object):
             Check the status of khugepaged when set value to specify file.
             """
             for (act, ret) in action_list:
-                logging.info("Writing path %s: %s, expected khugepage rc: %s ",
-                             file_name, act, ret)
+                LOG.info("Writing path %s: %s, expected khugepage rc: %s ",
+                         file_name, act, ret)
                 khugepage = kernel_interface.SysFS(file_name, session=self.session)
                 khugepage.sys_fs_value = act
                 try:
@@ -307,7 +307,7 @@ class TransparentHugePageConfig(object):
                     raise THPKhugepagedError("Khugepaged still alive when"
                                              "transparent huge page is "
                                              "disabled")
-        logging.info("Testing khugepaged")
+        LOG.info("Testing khugepaged")
         for file_path in self.file_list_str:
             action_list = []
             thp = kernel_interface.SysFS(file_path, session=self.session)
@@ -353,10 +353,9 @@ class TransparentHugePageConfig(object):
         """:
         Restore the host's original configuration after test
         """
-        logging.info("Restoring host's original THP configuration")
+        LOG.info("Restoring host's original THP configuration")
         for path in self.original_config:
-            logging.info("Writing path %s: %s", path,
-                         self.original_config[path])
+            LOG.info("Writing path %s: %s", path, self.original_config[path])
             p_file = kernel_interface.SysFS(path, session=self.session)
             p_file.sys_fs_value = str(self.original_config[path])
 
@@ -389,8 +388,8 @@ class HugePageConfig(object):
             self.expected_hugepage_size = int(
                 params.get("expected_hugepage_size", 0))
         except TypeError:
-            logging.warn("Invalid value 'expected_hugepage_size=%s'",
-                         params.get("expected_hugepage_size"))
+            LOG.warn("Invalid value 'expected_hugepage_size=%s'",
+                     params.get("expected_hugepage_size"))
             self.expected_hugepage_size = 0
         self.hugepage_cpu_flag = params.get("hugepage_cpu_flag")
         self.hugepage_match_str = params.get("hugepage_match_str")
@@ -515,9 +514,9 @@ class HugePageConfig(object):
 
             available_hugepages = available_hugepages - decreased_pages
             if target_hugepages > available_hugepages:
-                logging.warn("This test requires more huge pages than we"
-                             " currently have, we'll try to allocate the"
-                             " biggest number the system can support.")
+                LOG.warn("This test requires more huge pages than we"
+                         " currently have, we'll try to allocate the"
+                         " biggest number the system can support.")
                 target_hugepages = available_hugepages
                 available_mem = available_hugepages * self.hugepage_size
                 self.suggest_mem = int(available_mem // self.vms // 1024 -
@@ -547,10 +546,10 @@ class HugePageConfig(object):
         hugepage_size = []
         if os.path.isdir(self.pool_path):
             for path_name in os.listdir(self.pool_path):
-                logging.debug("path name is %s" % path_name)
+                LOG.debug("path name is %s" % path_name)
                 if os.path.isdir("%s/%s" % (self.pool_path, path_name)):
                     hugepage_size.append(path_name.split('-')[1][:-2])
-                    logging.debug(path_name.split('-')[1][:-2])
+                    LOG.debug(path_name.split('-')[1][:-2])
             return hugepage_size
         else:
             raise ValueError("Root hugepage control sysfs directory %s did not"
@@ -646,8 +645,8 @@ class HugePageConfig(object):
                 raise ValueError("Cannot set the kernel hugepage setting "
                                  "to the target value of %d hugepages." %
                                  self.target_hugepages)
-        logging.debug("Successfully set %s large memory pages on host ",
-                      self.target_hugepages)
+        LOG.debug("Successfully set %s large memory pages on host ",
+                  self.target_hugepages)
 
     @error_context.context_aware
     def mount_hugepage_fs(self):
@@ -665,15 +664,15 @@ class HugePageConfig(object):
             process.system(cmd)
 
     def setup(self):
-        logging.debug("Number of VMs this test will use: %d", self.vms)
-        logging.debug("Amount of memory used by each vm: %s", self.mem)
-        logging.debug("System setting for large memory page size: %s",
-                      self.hugepage_size)
+        LOG.debug("Number of VMs this test will use: %d", self.vms)
+        LOG.debug("Amount of memory used by each vm: %s", self.mem)
+        LOG.debug("System setting for large memory page size: %s",
+                  self.hugepage_size)
         if self.over_commit.proc_fs_value > 0:
-            logging.debug("Number of overcommit large memory pages will be set"
-                          " for this test: %s", self.over_commit.proc_fs_value)
-        logging.debug("Number of large memory pages needed for this test: %s",
-                      self.target_hugepages)
+            LOG.debug("Number of overcommit large memory pages will be set"
+                      " for this test: %s", self.over_commit.proc_fs_value)
+        LOG.debug("Number of large memory pages needed for this test: %s",
+                  self.target_hugepages)
         # Drop caches to clean some usable memory
         with open("/proc/sys/vm/drop_caches", "w") as caches:
             caches.write('3')
@@ -697,7 +696,7 @@ class HugePageConfig(object):
             process.system("echo 0 > %s" % self.kernel_hp_file, shell=True)
             self.over_commit.proc_fs_value = 0
             self.ext_hugepages_surp = utils_memory.get_num_huge_pages_surp()
-            logging.debug("Hugepage memory successfully deallocated")
+            LOG.debug("Hugepage memory successfully deallocated")
 
 
 class KSMConfig(object):
@@ -892,8 +891,8 @@ class PrivateBridgeConfig(object):
                                             data_dir.get_tmp_dir(), 'r').read())
         except ValueError:
             raise PrivateBridgeError(self.brname)
-        logging.debug("Started internal DHCP server with PID %s",
-                      self.dhcp_server_pid)
+        LOG.debug("Started internal DHCP server with PID %s",
+                  self.dhcp_server_pid)
 
     def _verify_bridge(self):
         if not self._br_exist():
@@ -911,7 +910,7 @@ class PrivateBridgeConfig(object):
             self._bring_bridge_down()
             self._remove_bridge()
         if not self._br_exist():
-            logging.info("Configuring KVM test private bridge %s", self.brname)
+            LOG.info("Configuring KVM test private bridge %s", self.brname)
             try:
                 self._add_bridge()
             except Exception:
@@ -978,11 +977,11 @@ class PrivateBridgeConfig(object):
         try:
             self.bridge_manager.del_bridge(self.brname)
         except:
-            logging.warning("Failed to delete private bridge")
+            LOG.warning("Failed to delete private bridge")
 
     def cleanup(self):
         if self._br_exist() and not self._br_in_use():
-            logging.debug(
+            LOG.debug(
                 "Cleaning up KVM test private bridge %s", self.brname)
             self._stop_dhcp_server()
             self._disable_nat()
@@ -1195,29 +1194,29 @@ class PciAssignable(object):
         drv_path = os.path.join(base_dir, "devices/%s/driver" % pci_id)
         if self.device_driver in os.readlink(drv_path):
             error_context.context(
-                "Release device %s to host" % pci_id, logging.info)
+                "Release device %s to host" % pci_id, LOG.info)
 
             stub_path = os.path.join(base_dir,
                                      "drivers/%s" % self.device_driver)
             cmd = "echo '%s' > %s/unbind" % (pci_id, stub_path)
-            logging.info("Run command in host: %s" % cmd)
+            LOG.info("Run command in host: %s" % cmd)
             try:
                 output = None
                 output = process.run(cmd, shell=True, timeout=60).stdout_text
             except Exception:
                 msg = "Command %s fail with output %s" % (cmd, output)
-                logging.error(msg)
+                LOG.error(msg)
                 return False
 
             drivers_probe = os.path.join(base_dir, "drivers_probe")
             cmd = "echo '%s' > %s" % (pci_id, drivers_probe)
-            logging.info("Run command in host: %s" % cmd)
+            LOG.info("Run command in host: %s" % cmd)
             try:
                 output = None
                 output = process.run(cmd, shell=True, timeout=60).stdout_text
             except Exception:
                 msg = "Command %s fail with output %s" % (cmd, output)
-                logging.error(msg)
+                LOG.error(msg)
                 return False
         if self.is_binded_to_stub(pci_id):
             return False
@@ -1328,12 +1327,12 @@ class PciAssignable(object):
         vf_ids = []
         if not devices:
             devices = self.devices
-        logging.info("devices = %s", devices)
+        LOG.info("devices = %s", devices)
         for device in devices:
             if device['type'] == 'vf':
                 name = device.get('name', None)
                 vf_id = self._get_vf_pci_id(name)
-                logging.info("vf_id = %s", vf_id)
+                LOG.info("vf_id = %s", vf_id)
                 if not vf_id:
                     continue
                 vf_ids.append(vf_id)
@@ -1379,9 +1378,9 @@ class PciAssignable(object):
         if isinstance(devices, dict):
             devices = [devices]
         pf_ids = self.get_pf_devs(devices)
-        logging.info("pf_ids = %s", pf_ids)
+        LOG.info("pf_ids = %s", pf_ids)
         vf_ids = self.get_vf_devs(devices)
-        logging.info("vf_ids = %s", vf_ids)
+        LOG.info("vf_ids = %s", vf_ids)
         vf_ids.sort()
         dev_ids = []
 
@@ -1402,7 +1401,7 @@ class PciAssignable(object):
                                                           "devices/%s/driver" % dev_id))
             self.dev_unbind_drivers[dev_id] = unbind_driver
         if len(dev_ids) != len(devices):
-            logging.error("Did not get enough PCI Device")
+            LOG.error("Did not get enough PCI Device")
         return dev_ids
 
     def get_vfs_count(self):
@@ -1414,7 +1413,7 @@ class PciAssignable(object):
         # that if the host has more than one 82576 card. PCI_ID?
         cmd = "lspci | grep '%s' | wc -l" % self.vf_filter_re
         vf_num = int(process.run(cmd, shell=True, verbose=False).stdout_text)
-        logging.info("Found %s vf in host", vf_num)
+        LOG.info("Found %s vf in host", vf_num)
         return vf_num
 
     def get_same_group_devs(self, pci_id):
@@ -1465,8 +1464,7 @@ class PciAssignable(object):
             ifname = utils_misc.get_interface_from_pci_id(PF)
             ip_assign = "ifconfig %s %s netmask %s up" % (
                 ifname, ip_addr, self.net_mask)
-            logging.info("assign IP to PF device %s : %s", PF,
-                         ip_assign)
+            LOG.info("assign IP to PF device %s : %s", PF, ip_assign)
             cmd = process.system(ip_assign, shell=True, ignore_status=True)
             if cmd:
                 raise exceptions.TestSetupFail("Failed to assign IP : %s"
@@ -1491,7 +1489,7 @@ class PciAssignable(object):
             cmd = "lspci | grep '%s'| grep -o '\s[A-Z].*:\s'" % self.pf_filter_re
             return process.run(cmd, shell=True).stdout_text.split("\n")[-1].strip().strip(':')
         except IndexError:
-            logging.debug("Unable to fetch the controller details")
+            LOG.debug("Unable to fetch the controller details")
             return None
 
     def is_binded_to_stub(self, full_id):
@@ -1522,8 +1520,8 @@ class PciAssignable(object):
             cmd = "ls -R /sys/class/infiniband/*/device/sriov/*"
             dev = process.run(cmd, shell=True).stdout_text
         except process.CmdError as detail:
-            logging.error("No VF's found for set-up, command-failed as: %s",
-                          str(detail))
+            LOG.error("No VF's found for set-up, command-failed as: %s",
+                      str(detail))
             return False
         for line in dev.split('\n\n'):
             key = line.split(':')[0]
@@ -1535,7 +1533,7 @@ class PciAssignable(object):
                     value[attr] = self.generate_ib_port_id()
             pids[key] = value
         for key in pids.keys():
-            logging.info("The key %s corresponds to %s", key, pids[key])
+            LOG.info("The key %s corresponds to %s", key, pids[key])
             for subkey in pids[key].keys():
                 status = process.system("echo %s > %s" % (pids[key][subkey],
                                                           os.path.join(key, subkey)), shell=True)
@@ -1553,7 +1551,7 @@ class PciAssignable(object):
         """
         cmd = "echo %s > /sys/bus/pci/devices/%s/sriov_numvfs" % (vf_no, pci_pf)
         if process.system(cmd, shell=True, ignore_status=True):
-            logging.debug("Failed to set %s vfs in %s", vf_no, pci_pf)
+            LOG.debug("Failed to set %s vfs in %s", vf_no, pci_pf)
             return False
         # When the VFs loaded on a PF are > 10 [I have tested till 63 which is
         # max VF supported by Mellanox CX4 cards],VFs probe on host takes bit
@@ -1578,13 +1576,13 @@ class PciAssignable(object):
             cmd = "modprobe -r %s" % driver
         if ARCH == 'ppc64le' and driver == 'mlx5_core':
             pf_devices = self.get_pf_ids()
-            logging.info("Mellanox PF devices '%s'", pf_devices)
+            LOG.info("Mellanox PF devices '%s'", pf_devices)
             for PF in pf_devices:
                 if not self.set_vf(PF):
                     return False
             cmd = "rmmod mlx5_ib;modprobe -r mlx5_core;modprobe mlx5_ib"
         if process.system(cmd, ignore_status=True, shell=True):
-            logging.debug("Failed to remove driver: %s", driver)
+            LOG.debug("Failed to remove driver: %s", driver)
             return False
         return True
 
@@ -1599,10 +1597,10 @@ class PciAssignable(object):
         if not driver:
             driver = self.driver
         msg = "Loading the driver '%s'" % driver
-        error_context.context(msg, logging.info)
+        error_context.context(msg, LOG.info)
         cmd = "modprobe %s" % driver
         if process.system(cmd, ignore_status=True, shell=True):
-            logging.debug("Failed to modprobe driver: %s", driver)
+            LOG.debug("Failed to modprobe driver: %s", driver)
             return False
         return True
 
@@ -1620,13 +1618,13 @@ class PciAssignable(object):
         # Check if the host support interrupt remapping. On PowerPC interrupt
         # remapping is not required
         error_context.context("Set up host env for PCI assign test",
-                              logging.info)
+                              LOG.info)
         if ARCH != 'ppc64le':
             kvm_re_probe = True
             dmesg = process.run("dmesg", verbose=False).stdout_text
             ecap = re.findall("ecap\s+(.\w+)", dmesg)
             if not ecap:
-                logging.error("Fail to check host interrupt remapping support")
+                LOG.error("Fail to check host interrupt remapping support")
             else:
                 if int(ecap[0], 16) & 8 == 8:
                     # host support interrupt remapping.
@@ -1639,11 +1637,11 @@ class PciAssignable(object):
             if kvm_re_probe and self.auai_path:
                 cmd = "echo Y > %s" % self.auai_path
                 error_context.context("enable PCI passthrough with '%s'" % cmd,
-                                      logging.info)
+                                      LOG.info)
                 try:
                     process.system(cmd)
                 except Exception:
-                    logging.debug(
+                    LOG.debug(
                         "Can not enable the interrupt remapping support")
             lnk = "/sys/module/vfio_iommu_type1/parameters/allow_unsafe_interrupts"
             if self.device_driver == "vfio-pci":
@@ -1655,7 +1653,7 @@ class PciAssignable(object):
                 if not ecap or (int(ecap[0], 16) & 8 != 8):
                     cmd = "echo Y > %s" % lnk
                     error_context.context("enable PCI passthrough with '%s'" % cmd,
-                                          logging.info)
+                                          LOG.info)
                     process.run(cmd)
         else:
             if self.device_driver == "vfio-pci":
@@ -1701,8 +1699,8 @@ class PciAssignable(object):
                                 ignore_status=True,
                                 verbose=False).stdout_text
             file_name = "host_dmesg_after_load_%s.txt" % self.driver
-            logging.info("Log dmesg after loading '%s' to '%s'.", self.driver,
-                         file_name)
+            LOG.info("Log dmesg after loading '%s' to '%s'.", self.driver,
+                     file_name)
             utils_misc.log_line(file_name, dmesg)
             self.setup = None
             return True
@@ -1720,18 +1718,18 @@ class PciAssignable(object):
         # Check if the host support interrupt remapping. On PowerPC interrupt
         # remapping is not required
         error_context.context(
-            "Clean up host env after PCI assign test", logging.info)
+            "Clean up host env after PCI assign test", LOG.info)
         if ARCH != 'ppc64le':
             if self.kvm_params is not None:
                 for kvm_param, value in list(self.kvm_params.items()):
                     if open(kvm_param, "r").read().strip() != value:
                         cmd = "echo %s > %s" % (value, kvm_param)
-                        logging.info("Write '%s' to '%s'", value, kvm_param)
+                        LOG.info("Write '%s' to '%s'", value, kvm_param)
                         try:
                             process.system(cmd)
                         except Exception:
-                            logging.error("Failed to write  '%s' to '%s'", value,
-                                          kvm_param)
+                            LOG.error("Failed to write  '%s' to '%s'", value,
+                                      kvm_param)
 
         re_probe = False
         # if lsmod lists the driver then remove it to clean up
@@ -1763,14 +1761,14 @@ class PciAssignable(object):
         base_dir = "/sys/bus/pci"
         stub_path = os.path.join(base_dir, "drivers/%s" % self.device_driver)
         self.pci_ids = self.get_devs(devices)
-        logging.info("The following pci_ids were found: %s", self.pci_ids)
+        LOG.info("The following pci_ids were found: %s", self.pci_ids)
         requested_pci_ids = []
 
         # Setup all devices specified for assignment to guest
         for p_id in self.pci_ids:
             if self.device_driver == "vfio-pci":
                 pci_ids = self.get_same_group_devs(p_id)
-                logging.info(
+                LOG.info(
                     "Following devices are in same group: %s", pci_ids)
             else:
                 pci_ids = [p_id]
@@ -1791,7 +1789,7 @@ class PciAssignable(object):
                 # Judge whether the device driver has been binded to stub
                 if not self.is_binded_to_stub(pci_id):
                     error_context.context("Bind device %s to stub" % pci_id,
-                                          logging.info)
+                                          LOG.info)
                     # On Power architecture using short id would result in
                     # pci device lookup failure while writing vendor id to
                     # stub_new_id/stub_remove_id. Instead we should be using
@@ -1813,21 +1811,20 @@ class PciAssignable(object):
 
                     for content, f_name in info_write_to_files:
                         try:
-                            logging.info("Write '%s' to file '%s'", content,
-                                         f_name)
+                            LOG.info("Write '%s' to file '%s'", content, f_name)
                             with open(f_name, 'w') as fn:
                                 fn.write(content)
                         except IOError:
-                            logging.debug("Failed to write %s to file %s",
-                                          content, f_name)
+                            LOG.debug("Failed to write %s to file %s",
+                                      content, f_name)
                             continue
 
                     if not self.is_binded_to_stub(pci_id):
-                        logging.error(
+                        LOG.error(
                             "Binding device %s to stub failed", pci_id)
                     continue
                 else:
-                    logging.debug("Device %s already binded to stub", pci_id)
+                    LOG.debug("Device %s already binded to stub", pci_id)
             requested_pci_ids.append(p_id)
         return requested_pci_ids
 
@@ -1840,10 +1837,10 @@ class PciAssignable(object):
         try:
             for pci_id in self.dev_drivers:
                 if not self._release_dev(pci_id):
-                    logging.error(
+                    LOG.error(
                         "Failed to release device %s to host", pci_id)
                 else:
-                    logging.info("Released device %s successfully", pci_id)
+                    LOG.info("Released device %s successfully", pci_id)
             if self.cleanup:
                 self.sr_iov_cleanup()
                 self.devices = []
@@ -2065,7 +2062,7 @@ class LibvirtPolkitConfig(object):
 
             # replace 'RULE' with rules in polkit template string
             self.template = template.replace('RULE', rules)
-            logging.debug("The polkit config rule is:\n%s" % self.template)
+            LOG.debug("The polkit config rule is:\n%s" % self.template)
 
             # write the config file
             genio.write_file(self.polkit_rules_path, self.template)
@@ -2088,7 +2085,7 @@ class LibvirtPolkitConfig(object):
         cmd = "id %s" % self.user
         if process.system(cmd, ignore_status=True):
             self.params['add_polkit_user'] = 'yes'
-            logging.debug("Create new user '%s' on host." % self.user)
+            LOG.debug("Create new user '%s' on host." % self.user)
             cmd = "useradd %s" % self.user
             process.system(cmd, ignore_status=True)
         self._set_polkit_conf()
@@ -2113,7 +2110,7 @@ class LibvirtPolkitConfig(object):
             if self.user.count('EXAMPLE'):
                 self.user = 'testacl'
             if self.params.get('add_polkit_user'):
-                logging.debug("Delete the created user '%s'." % self.user)
+                LOG.debug("Delete the created user '%s'." % self.user)
                 cmd = "userdel -r %s" % self.user
                 process.system(cmd, ignore_status=True)
                 del self.params['add_polkit_user']
@@ -2169,7 +2166,7 @@ class EGDConfig(object):
             msg = "Unable to start egd.pl on localhost '%s'" % details
             raise EGDConfigError(msg)
         pid = self.get_pid(socket)
-        logging.info("egd.pl started as pid: %s" % pid)
+        LOG.info("egd.pl started as pid: %s" % pid)
         return pid
 
     def install(self):
@@ -2218,7 +2215,7 @@ class EGDConfig(object):
     def cleanup(self):
         try:
             for pid in self.env.data["egd_pids"]:
-                logging.info("Stop egd.pl(%s)" % pid)
+                LOG.info("Stop egd.pl(%s)" % pid)
                 utils_misc.signal_pid(pid, 15)
 
             def _all_killed():
@@ -2229,7 +2226,7 @@ class EGDConfig(object):
             # wait port released by egd.pl
             wait.wait_for(_all_killed, timeout=60)
         except OSError:
-            logging.warn("egd.pl is running")
+            LOG.warn("egd.pl is running")
 
 
 class StraceQemu(object):
@@ -2300,7 +2297,7 @@ class StraceQemu(object):
         while self.env.get("strace_processes"):
             pid = self.env.get("strace_processes").pop()
             if process.pid_exists(pid):
-                logging.info("stop strace process: %s" % pid)
+                LOG.info("stop strace process: %s" % pid)
                 process.kill_process_tree(pid)
         self._compress_log()
 
@@ -2364,14 +2361,13 @@ def switch_indep_threads_mode(state="Y", params=None):
                                                "to %s: %s" % (state,
                                                               cmd_output[1]))
             else:
-                logging.debug("indep_thread_mode turned %s successfully "
-                              "in remote server", state)
+                LOG.debug("indep_thread_mode turned %s successfully "
+                          "in remote server", state)
         else:
             try:
                 utils_misc.verify_running_as_root()
                 process.run(cmd, verbose=True, shell=True)
-                logging.debug("indep_thread_mode turned %s successfully",
-                              state)
+                LOG.debug("indep_thread_mode turned %s successfully", state)
             except process.CmdError as info:
                 raise exceptions.TestSetupFail("Unable to turn "
                                                "indep_thread_mode to "
@@ -2421,13 +2417,12 @@ def switch_smt(state="off", params=None):
                 raise exceptions.TestSetupFail("Unable to turn %s SMT :%s"
                                                % (state, cmd_output[1]))
             else:
-                logging.debug("SMT turned %s successfully in remote server",
-                              state)
+                LOG.debug("SMT turned %s successfully in remote server", state)
         else:
             try:
                 utils_misc.verify_running_as_root()
                 process.run(cmd, verbose=True, shell=True)
-                logging.debug("SMT turned %s successfully", state)
+                LOG.debug("SMT turned %s successfully", state)
             except process.CmdError as info:
                 raise exceptions.TestSetupFail("Unable to turn %s SMT :%s" %
                                                (state, info))
@@ -2496,7 +2491,7 @@ class LibvirtdDebugLog(object):
                                                 "libvirtd.log")
         # param used during libvirtd cleanup
         self.test.params["libvirtd_debug_file"] = self.log_file
-        logging.debug("libvirtd debug log stored in: %s", self.log_file)
+        LOG.debug("libvirtd debug log stored in: %s", self.log_file)
 
         for value in self.daemons_dict.values():
             if os.path.isfile(value.get("backupfile")):
@@ -2545,7 +2540,7 @@ class UlimitConfig(Setuper):
             # get default ulimit values in tuple (soft, hard)
             self.ulimit[key] = resource.getrlimit(self.ulimit_options[key])
 
-            logging.info("Setting ulimit %s to %s." % (key, set_value))
+            LOG.info("Setting ulimit %s to %s." % (key, set_value))
             if set_value == "ulimited":
                 set_value = resource.RLIM_INFINITY
             elif set_value.isdigit():
@@ -2561,7 +2556,7 @@ class UlimitConfig(Setuper):
 
     def _restore(self):
         for key in self.ulimit:
-            logging.info("Setting ulimit %s back to its default." % key)
+            LOG.info("Setting ulimit %s back to its default." % key)
             resource.setrlimit(self.ulimit_options[key], self.ulimit[key])
 
     def setup(self):

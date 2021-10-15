@@ -13,6 +13,8 @@ from avocado.utils import process
 
 from . import propcan
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 class LibguestfsCmdError(Exception):
 
@@ -52,7 +54,7 @@ def lgf_cmd_check(cmd):
     try:
         return path.find_command(cmd)
     except path.CmdNotFoundError:
-        logging.warning("You have not installed %s on this host.", cmd)
+        LOG.warning("You have not installed %s on this host.", cmd)
         return None
 
 
@@ -66,7 +68,7 @@ def lgf_command(cmd, ignore_status=True, debug=False, timeout=60):
             and ignore_status=False
     """
     if debug:
-        logging.debug("Running command %s in debug mode.", cmd)
+        LOG.debug("Running command %s in debug mode.", cmd)
 
     # Raise exception if ignore_status is False
     try:
@@ -76,9 +78,9 @@ def lgf_command(cmd, ignore_status=True, debug=False, timeout=60):
         raise LibguestfsCmdError(detail)
 
     if debug:
-        logging.debug("status: %s", ret.exit_status)
-        logging.debug("stdout: %s", ret.stdout_text.strip())
-        logging.debug("stderr: %s", ret.stderr_text.strip())
+        LOG.debug("status: %s", ret.exit_status)
+        LOG.debug("stdout: %s", ret.stdout_text.strip())
+        LOG.debug("stderr: %s", ret.stderr_text.strip())
 
     # Return CmdResult instance when ignore_status is True
     ret.stdout = ret.stdout_text
@@ -124,11 +126,11 @@ class LibguestfsBase(propcan.PropCanBase):
             desired_setting = bool(debug)
             if not current_setting and desired_setting:
                 self.__dict_set__('debug', True)
-                logging.debug("Libguestfs debugging enabled")
+                LOG.debug("Libguestfs debugging enabled")
             # current and desired could both be True
             if current_setting and not desired_setting:
                 self.__dict_set__('debug', False)
-                logging.debug("Libguestfs debugging disabled")
+                LOG.debug("Libguestfs debugging disabled")
 
     def set_timeout(self, timeout):
         """
@@ -141,7 +143,7 @@ class LibguestfsBase(propcan.PropCanBase):
                 timeout = int(str(timeout))
                 self.__dict_set__('timeout', timeout)
             except ValueError:
-                logging.debug("Set timeout failed.")
+                LOG.debug("Set timeout failed.")
 
     def get_uri(self):
         """
@@ -345,8 +347,8 @@ class GuestfishRemote(object):
                          (line, cmd, ret.stdout_text.strip()))
                 raise LibguestfsCmdError(e_msg)
 
-        logging.debug("command: %s", cmd)
-        logging.debug("stdout: %s", ret.stdout_text.strip())
+        LOG.debug("command: %s", cmd)
+        LOG.debug("stdout: %s", ret.stdout_text.strip())
 
         return 0, ret.stdout_text.strip()
 
@@ -405,8 +407,7 @@ class GuestfishPersistent(Guestfish):
             status, output = guestfs_session.cmd_status_output(
                 'is-config', timeout=60)
             if status != 0:
-                logging.debug(
-                    "Persistent guestfish session is not responding.")
+                LOG.debug("Persistent guestfish session is not responding.")
                 raise aexpect.ShellStatusError(self.lgf_exec, 'is-config')
 
     def close_session(self):
@@ -694,11 +695,11 @@ class GuestfishPersistent(Guestfish):
             vg_name = self.params.get("vg_name", "vol_test")
             lv_name = self.params.get("lv_name", "vol_file")
             device = "/dev/%s/%s" % (vg_name, lv_name)
-            logging.info("mount lvm partition...%s" % device)
+            LOG.info("mount lvm partition...%s" % device)
         elif partition_type == "physical":
             pv_name = self.params.get("pv_name", "/dev/sdb")
             device = pv_name + "1"
-            logging.info("mount physical partition...%s" % device)
+            LOG.info("mount physical partition...%s" % device)
         self.mount(device, mountpoint)
 
     def read_file(self, path):

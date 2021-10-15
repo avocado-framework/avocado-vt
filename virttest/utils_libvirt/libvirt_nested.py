@@ -7,6 +7,8 @@ from virttest import cpu
 from virttest import utils_libvirtd
 from virttest import utils_package
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 def install_virt_pkgs(vm_session):
     """
@@ -16,7 +18,7 @@ def install_virt_pkgs(vm_session):
     :raises: exceptions.TestError if installation fails
     """
     pkg_names = ['libvirt', 'qemu-kvm']
-    logging.info("Virt packages will be installed")
+    LOG.info("Virt packages will be installed")
     pkg_mgr = utils_package.package_manager(vm_session, pkg_names)
     if not pkg_mgr.install():
         raise exceptions.TestError("Package '%s' installation "
@@ -59,14 +61,14 @@ def update_vm_cpu(guest_xml, cpu_mode=None):
     # Update cpu mode if needed
     cur_vmcpuxml = guest_xml.cpu
     if cpu_mode:
-        logging.info("Update cpu mode from '{}' to '{}'".format(cur_vmcpuxml.mode, cpu_mode))
+        LOG.info("Update cpu mode from '{}' to '{}'".format(cur_vmcpuxml.mode, cpu_mode))
         cur_vmcpuxml.mode = cpu_mode if cur_vmcpuxml.mode != cpu_mode else cur_vmcpuxml.mode
 
     # If the cpu mode is host-passthrough, then there might no cpu feature in the vm xml
     try:
         vmx_index = cur_vmcpuxml.get_feature_index('vmx')
     except Exception as detail:
-        logging.warning(detail)
+        LOG.warning(detail)
     else:
         cur_vmcpuxml.set_feature(vmx_index, name='vmx', policy='require')
 

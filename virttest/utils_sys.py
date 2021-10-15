@@ -9,6 +9,8 @@ import re
 
 from avocado.utils import process
 
+LOG = logging.getLogger('avocado.' + __name__)
+
 
 # TODO: check function in avocado.utils after the next LTS
 def check_dmesg_output(pattern, expect=True, session=None):
@@ -25,16 +27,16 @@ def check_dmesg_output(pattern, expect=True, session=None):
     dmesg = func_get_dmesg(dmesg_cmd)
 
     prefix = '' if expect else 'Not '
-    logging.info('%sExpecting pattern: "%s".', prefix, pattern)
+    LOG.info('%sExpecting pattern: "%s".', prefix, pattern)
 
     # Search for pattern
     found = bool(re.search(pattern, dmesg))
     log_content = ('' if found else 'Not') + 'Found "%s"' % pattern
-    logging.debug(log_content)
+    LOG.debug(log_content)
 
     if found ^ expect:
-        logging.error('Dmesg output does not meet expectation.')
+        LOG.error('Dmesg output does not meet expectation.')
         return False
     else:
-        logging.info('Dmesg output met expectation')
+        LOG.info('Dmesg output met expectation')
         return True
