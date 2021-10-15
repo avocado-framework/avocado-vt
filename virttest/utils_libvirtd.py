@@ -63,6 +63,7 @@ class Libvirtd(object):
                                          'virtnetworkd', 'virtinterfaced',
                                          'virtnodedevd', 'virtsecretd',
                                          'virtstoraged', 'virtnwfilterd']
+                    self.service_name = "virtqemud"
                 elif self.service_name == "libvirtd.socket":
                     self.service_name = "virtqemud.socket"
                 elif self.service_name in ["libvirtd-tcp.socket", "libvirtd-tls.socket"]:
