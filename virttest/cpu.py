@@ -1205,11 +1205,12 @@ def cpus_parser(cpulist):
                     tmp = re.split("\^", cpulist)[-1]
                     carets.append(int(tmp))
                 else:
-                    try:
-                        commas.append(int(cpulist))
-                    except ValueError:
-                        logging.error("The cpulist has to be an "
-                                      "integer. (%s)", cpulist)
+                    if "" not in cpulist:
+                        try:
+                            commas.append(int(cpulist))
+                        except ValueError:
+                            logging.error("The cpulist has to be an "
+                                          "integer. (%s)", cpulist)
         elif "-" in cpulist:
             tmp = re.split("-", cpulist)
             hyphens = list(range(int(tmp[0]), int(tmp[-1]) + 1))
