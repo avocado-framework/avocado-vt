@@ -2256,9 +2256,21 @@ class VM(virt_vm.BaseVM):
                 for nic_name in self.virtnet.nic_name_list():
                     self.virtnet.free_mac_address(nic_name)
 
-    def remove(self):
+    def remove(self, undef_opts=None):
+        """
+        Remove vm, which means destroy and undefine vm, also release vm mac
+        address.
+        Note:
+        1. Destroy failure is ignored, while undefine failure is raised.
+
+        :param undef_opts: Virsh options used to undefine vm. Recommend to use
+            "--snapshots-metadata"/"--managed-save"/"checkpoints-metadata" if
+            vm has snapshot/managed-save file/checkpoint
+
+        :raise VMRemoveError when vm undefine fails
+        """
         self.destroy(gracefully=True, free_mac_addresses=False)
-        if not self.undefine():
+        if not self.undefine(options=undef_opts):
             raise virt_vm.VMRemoveError("VM '%s' undefine error" % self.name)
         self.destroy(gracefully=False, free_mac_addresses=True)
         logging.debug("VM '%s' was removed", self.name)
