@@ -222,6 +222,9 @@ def main():
     chardev_type = options.type
     if options.socket:
         device = options.socket
+        # support abstract unix socket address
+        if '@' in device:
+            device = device.replace('@', '\0')
     else:
         parser.error("Please set -s parameter.")
 
