@@ -925,6 +925,10 @@ class QBlockdevFilter(QBlockdevNode):
     pass
 
 
+class QBlockdevFilterCOR(QBlockdevFilter):
+    TYPE = "copy-on-read"
+
+
 class QBlockdevFilterThrottle(QBlockdevFilter):
     TYPE = "throttle"
 
