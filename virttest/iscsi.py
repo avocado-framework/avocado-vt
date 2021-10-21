@@ -228,7 +228,19 @@ class _IscsiComm(object):
         if self.chap_user and self.chap_passwd:
             self.chap_flag = True
 
-        if params.get("emulated_image"):
+        emulated_image = params.get("emulated_image")
+        if not emulated_image:
+            self.device = None
+            return
+
+        self.iscsi_backend = params.get("iscsi_backend")
+        if not self.iscsi_backend:
+            if emulated_image.startswith("/dev/"):
+                self.iscsi_backend = "block"
+            else:
+                self.iscsi_backend = "fileio"
+
+        if self.iscsi_backend == "fileio":
             self.initiator = None
             emulated_image = params.get("emulated_image")
             self.emulated_image = os.path.join(root_dir, emulated_image)
@@ -253,7 +265,8 @@ class _IscsiComm(object):
                 raise exceptions.TestError("Image size provided is not in valid"
                                            " format, specify proper units [K|M|G|T]")
         else:
-            self.device = None
+            self.emulated_image = emulated_image
+            self.device = "device.%s" % os.path.basename(self.emulated_image)
 
     def logged_in(self):
         """
@@ -687,15 +700,16 @@ class IscsiLIO(_IscsiComm):
         Export target in localhost for emulated iscsi
         """
         selinux_mode = None
-
-        # create image disk
-        if not os.path.isfile(self.emulated_image):
-            process.system(self.create_cmd)
-        else:
-            emulated_image_size = os.path.getsize(self.emulated_image) // 1024
-            if emulated_image_size != self.emulated_expect_size:
-                # No need to remove, rebuild is fine
+        if self.iscsi_backend == "fileio":
+            # create image disk
+            if not os.path.isfile(self.emulated_image):
                 process.system(self.create_cmd)
+            else:
+                emulated_image_size = os.path.getsize(
+                    self.emulated_image) // 1024
+                if emulated_image_size != self.emulated_expect_size:
+                    # No need to remove, rebuild is fine
+                    process.system(self.create_cmd)
 
         # confirm if the target exists and create iSCSI target
         cmd = "targetcli ls /iscsi 1"
@@ -717,22 +731,21 @@ class IscsiLIO(_IscsiComm):
             #     (lvcreate -name lv_iscsi -size 1G vg)
             # 2) Create a fileio backstore,
             #    which enables the local file system cache.
-            #
-            # This class Only works for emulated iscsi device,
-            # So fileio backstore is enough and safe.
 
-            # Create a fileio backstore
-            device_cmd = ("targetcli /backstores/fileio/ create %s %s" %
-                          (self.device, self.emulated_image))
+            # Create a backstore
+            device_cmd = ("targetcli /backstores/%s/ create %s %s" %
+                          (self.iscsi_backend, self.device,
+                           self.emulated_image))
             output = process.run(device_cmd).stdout_text
-            if "Created fileio" not in output:
-                raise exceptions.TestFail("Failed to create fileio %s. (%s)" %
-                                          (self.device, output))
+            if "Created %s" % self.iscsi_backend not in output:
+                raise exceptions.TestFail("Failed to create %s %s. (%s)" %
+                                          (self.iscsi_backend, self.device,
+                                           output))
 
             # Set attribute
             if self.iscsi_lun_attrs:
-                attr_cmd = "targetcli /backstores/fileio/%s set attribute %s" % (
-                    self.device, self.iscsi_lun_attrs)
+                attr_cmd = "targetcli /backstores/%s/%s set attribute %s" % (
+                    self.iscsi_backend, self.device, self.iscsi_lun_attrs)
                 process.system(attr_cmd)
 
             # Create an IQN with a target named target_name
@@ -766,7 +779,8 @@ class IscsiLIO(_IscsiComm):
                                               output)
             # Create lun
             lun_cmd = "targetcli /iscsi/%s/tpg1/luns/ " % self.target
-            dev_cmd = "create /backstores/fileio/%s" % self.device
+            dev_cmd = "create /backstores/%s/%s" % (
+                self.iscsi_backend, self.device)
             output = process.run(lun_cmd + dev_cmd).stdout_text
             luns = re.findall(r"Created LUN (\d+).", output)
             if not luns:
@@ -825,11 +839,11 @@ class IscsiLIO(_IscsiComm):
         """
         # Delete block
         if self.device is not None:
-            cmd = "targetcli /backstores/fileio ls"
+            cmd = "targetcli /backstores/%s ls" % self.iscsi_backend
             output = process.run(cmd).stdout_text
             if re.findall("%s" % self.device, output, re.M):
-                dev_del = ("targetcli /backstores/fileio/ delete %s"
-                           % self.device)
+                dev_del = ("targetcli /backstores/%s/ delete %s"
+                           % (self.iscsi_backend, self.device))
                 process.system(dev_del)
 
         # Delete IQN
