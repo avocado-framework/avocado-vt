@@ -3475,6 +3475,16 @@ class QMPMonitor(Monitor):
         """
         return self.cmd("netdev_del", {"id": name})
 
+    def blockdev_reopen(self, props):
+        """
+        Reopens a block device using the given set of options.
+
+        :param props: Dictionary of command options
+        """
+        cmd = "blockdev-reopen"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd, props)
+
     def x_blockdev_reopen(self, props):
         """
         Reopens a block device using the given set of options.
