@@ -5,10 +5,12 @@ import threading
 import logging
 
 from avocado.utils import cpu
+from avocado.core import exceptions
 
 from virttest import virsh
 from virttest import cpu as cpuutil
 from virttest import utils_net
+from virttest import utils_package
 from virttest.utils_test import libvirt
 from virttest.libvirt_xml.devices.disk import Disk
 
@@ -199,3 +201,30 @@ class VMStressEvents():
             else:
                 raise NotImplementedError
             time.sleep(self.itr_sleep_time)
+
+
+def install_stressapptest(vm):
+    """
+    Install stressapptest cmd
+
+    :param vm: the vm to be installed with stressapptest
+    """
+    session = vm.wait_for_login(timeout=360)
+    name = ["git", "gcc", "gcc-c++", "make"]
+    if not utils_package.package_install(name, session, timeout=300):
+        raise exceptions.TestError("Installation of packages %s in guest "
+                                   "failed" % name)
+
+    app_repo = "git clone https://github.com/stressapptest/" \
+               "stressapptest.git"
+    stressapptest_install_cmd = "rm -rf stressapptest " \
+                                "&& %s" \
+                                " && cd stressapptest " \
+                                "&& ./configure " \
+                                "&& make " \
+                                "&& make install" % app_repo
+    s, o = session.cmd_status_output(stressapptest_install_cmd)
+    if s:
+        raise exceptions.TestError("Failed to install stressapptest "
+                                   "in guest: '%s'" % o)
+    session.close()
