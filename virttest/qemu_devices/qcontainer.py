@@ -3083,10 +3083,12 @@ class DevContainer(object):
         tpm_version = params.get("tpm_version")
 
         tmp_dir = data_dir.get_tmp_dir()
+        random_str = utils_misc.generate_random_string(6)
 
         def _handle_log(line):
             try:
-                utils_misc.log_line('%s_%s_swtpm_setup.log' % (self.vmname, name), line)
+                utils_misc.log_line('%s_%s_swtpm_setup_%s.log' %
+                                    (self.vmname, name, random_str), line)
             except Exception as e:
                 LOG.warn("Can't log %s_%s_swtpm_setup output: %s.", self.vmname, name, e)
 
@@ -3095,7 +3097,8 @@ class DevContainer(object):
             if tpm_version in ('2.0',):
                 setup_cmd += ' --tpm2'
 
-            tpm_path = os.path.join(tmp_dir, '%s_%s_tpm_state' % (self.vmname, name))
+            tpm_path = os.path.join(tmp_dir, '%s_%s_tpm_state_%s' %
+                                    (self.vmname, name, random_str))
             if os.path.exists(tpm_path):
                 shutil.rmtree(tpm_path, ignore_errors=True)
             os.makedirs(tpm_path)
@@ -3120,7 +3123,8 @@ class DevContainer(object):
             tpm_setup_bin = params.get("tpm_setup_bin", "/usr/bin/swtpm_setup")
             tpm_bin_extra_options = params.get("tpm_bin_extra_options")
             tpm_setup_bin_extra_options = params.get("tpm_setup_bin_extra_options")
-            sock_path = os.path.join(tmp_dir, '_'.join((self.vmname, name, 'swtpm.sock')))
+            sock_path = os.path.join(
+                    tmp_dir, '_'.join((self.vmname, name, 'swtpm_%s.sock' % random_str)))
 
             storage_path = _emulator_setup(tpm_setup_bin, tpm_setup_bin_extra_options)
             swtpmdev = qdevices.QSwtpmDev(name, tpm_bin, sock_path, storage_path,
