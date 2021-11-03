@@ -85,3 +85,12 @@ Then it'll compress it using xz, to save space and speed up downloads for
     $ xz jeos-file.qcow2.xz jeos-file.qcow2
 
 As mentioned, the script is supposed to help you with the process.
+
+Custom image
+============
+
+If you want to use a custom image, please keep the following in mind:
+
+1. Per default configuration, the root account in the guests has a specific password. For example, Linux guests expect the password as defined in `virttest/shared/cfg/guest-os/Linux.cfg`.
+2. The guest user's console configuration can have impact on the test code. We recommend to set `TERM=dumb` in case of `bash`. This suppresses control characters.
+
