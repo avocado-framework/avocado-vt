@@ -91,15 +91,15 @@ def is_libvirt_feature_supported(params, ignore_error=False):
     """
     func_supported_since_libvirt_ver = eval(
         params.get("func_supported_since_libvirt_ver", '()'))
-    unspported_err_msg = params.get("unspported_err_msg",
-                                    "This libvirt version doesn't support "
-                                    "this function.")
+    unsupported_err_msg = params.get("unsupported_err_msg",
+                                     "This libvirt version doesn't support "
+                                     "this function.")
 
     if func_supported_since_libvirt_ver:
         if not version_compare(*func_supported_since_libvirt_ver):
             if ignore_error:
-                LOG.error(unspported_err_msg)
+                LOG.error(unsupported_err_msg)
                 return False
             else:
-                raise exceptions.TestCancel(unspported_err_msg)
+                raise exceptions.TestCancel(unsupported_err_msg)
     return True
