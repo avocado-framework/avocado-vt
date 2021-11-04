@@ -1096,6 +1096,129 @@ class QemuImg(storage.QemuImg):
 
         process.run(cmd)
 
+    def bitmap_add(self, bitmap_name):
+        """
+        Add a bitmap to a image.
+
+        :param bitmap_name: The name of the bitmap
+        """
+
+        bitmap_params = self.params.object_params(bitmap_name)
+        granularity = bitmap_params.get('bitmap_granularity')
+
+        cmd = self.image_cmd
+        if self.image_format == 'qcow2':
+            cmd += " bitmap --add -f %s %s %s" % (
+                self.image_format, self.image_filename, bitmap_name)
+            if granularity:
+                cmd += ' -g %s' % granularity
+        else:
+            raise exceptions.TestError(
+                "Image format %s is not supported, check please." %
+                self.image_format)
+
+        process.run(cmd)
+
+    def bitmap_remove(self, bitmap_name):
+        """
+        Remove a bitmap from a image.
+
+        :param bitmap_name: The name of the bitmap
+        """
+
+        cmd = self.image_cmd
+        if self.image_format == 'qcow2':
+            cmd += " bitmap --remove -f %s %s %s" % (
+                self.image_format, self.image_filename, bitmap_name)
+        else:
+            raise exceptions.TestError(
+                "Image format %s is not supported, check please." %
+                self.image_format)
+
+        process.run(cmd)
+
+    def bitmap_clear(self, bitmap_name):
+        """
+        Clear a bitmap of a image.
+
+        :param bitmap_name: The name of the bitmap
+        """
+
+        cmd = self.image_cmd
+        if self.image_format == 'qcow2':
+            cmd += " bitmap --clear -f %s %s %s" % (
+                self.image_format, self.image_filename, bitmap_name)
+        else:
+            raise exceptions.TestError(
+                "Image format %s is not supported, check please." %
+                self.image_format)
+
+        process.run(cmd)
+
+    def bitmap_enable(self, bitmap_name):
+        """
+        Enable a bitmap of a image.
+
+        :param bitmap_name: The name of the bitmap
+        """
+
+        cmd = self.image_cmd
+        if self.image_format == 'qcow2':
+            cmd += " bitmap --enable -f %s %s %s" % (
+                self.image_format, self.image_filename, bitmap_name)
+        else:
+            raise exceptions.TestError(
+                "Image format %s is not supported, check please." %
+                self.image_format)
+
+        process.run(cmd)
+
+    def bitmap_disable(self, bitmap_name):
+        """
+        Disable a bitmap of a image.
+
+        :param bitmap_name: The name of the bitmap
+        """
+
+        cmd = self.image_cmd
+        if self.image_format == 'qcow2':
+            cmd += " bitmap --disable -f %s %s %s" % (
+                self.image_format, self.image_filename, bitmap_name)
+        else:
+            raise exceptions.TestError(
+                "Image format %s is not supported, check please." %
+                self.image_format)
+
+        process.run(cmd)
+
+    def bitmap_merge(self, params, root_dir, bitmap_name_source,
+                     bitmap_name_target, bitmap_image_source):
+        """
+        Merge a bitmap from source image to target image.
+
+        :param params: dictionary containing the test parameters
+        :param root_dir: Base directory for relative filenames
+        :param bitmap_name_source: The name of the bitmap for source image
+        :param bitmap_name_target: The name of the bitmap for target image
+        :param bitmap_image_source: The tag for source image
+        """
+
+        bitmap_source_params = params.object_params(bitmap_image_source)
+        bitmap_source_image = QemuImg(bitmap_source_params, root_dir,
+                                      bitmap_image_source)
+        cmd = self.image_cmd
+        if self.image_format == 'qcow2':
+            cmd += " bitmap --merge %s -b %s -F %s -f %s %s %s" % (
+                bitmap_name_source, bitmap_source_image.image_filename,
+                bitmap_source_image.image_format, self.image_format,
+                self.image_filename, bitmap_name_target)
+        else:
+            raise exceptions.TestError(
+                "Image format %s is not supported, check please." %
+                self.image_format)
+
+        process.run(cmd)
+
     def remove(self):
         """
         Remove an image file.
