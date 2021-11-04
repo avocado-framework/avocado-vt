@@ -1911,6 +1911,20 @@ class LibvirtPolkitConfig(object):
             else:
                 self.attr = []
 
+            # The 'connect_driver' could be set to a different value for
+            # different libvirt daemon modes.
+            # For example, it should be "QEMU" for the monolithic libvirtd
+            # environment and "network" for the modular daemons environment,
+            # it should set to "connect_driver:QEMU|network".
+            for idx in range(len(self.attr)):
+                conn_driver = re.findall('connect_driver:(.+)\|(.+)', self.attr[idx])
+                if conn_driver:
+                    if utils_split_daemons.is_modular_daemon():
+                        self.attr[idx] = 'connect_driver:' + conn_driver[0][1]
+                    else:
+                        self.attr[idx] = 'connect_driver:' + conn_driver[0][0]
+                    LOG.debug("attr is updated to %s.", self.attr)
+
     def file_replace_append(self, fpath, pat, repl):
         """
         Replace pattern in file with replacement str if pattern found in file,
