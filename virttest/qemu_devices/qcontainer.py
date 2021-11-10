@@ -1680,7 +1680,8 @@ class DevContainer(object):
                                    image_access=None, external_data_file=None,
                                    image_throttle_group=None,
                                    image_auto_readonly=None,
-                                   image_discard=None):
+                                   image_discard=None,
+                                   image_copy_on_read=None):
         """
         Creates related devices by variables
         :note: To skip the argument use None, to disable it use False
@@ -1724,6 +1725,7 @@ class DevContainer(object):
         :param image_throttle_group: The throttle group for image
         :param image_auto_readonly: auto-read-only option in BlockdevOptions
         :param image_discard: discard option in BlockdevOptions
+        :param image_copy_on_read: if support copy-on-read filter
         """
         def _get_access_tls_creds(image_access):
             """Get all tls-creds objects of the image and its backing images"""
@@ -2108,6 +2110,12 @@ class DevContainer(object):
             devices.append(protocol_node)
             devices.append(format_node)
             # Add filter node
+            if image_copy_on_read in ("yes", "on", "true"):
+                filter_node = qdevices.QBlockdevFilterCOR(name)
+                filter_node.add_child_node(format_node)
+                devices.append(filter_node)
+                filter_node.set_param('file', format_node.get_qid())
+
             if image_throttle_group:
                 filter_node = qdevices.QBlockdevFilterThrottle(name,
                                                                image_throttle_group)
@@ -2532,7 +2540,9 @@ class DevContainer(object):
                                                image_params.get(
                                                    "image_auto_readonly"),
                                                image_params.get(
-                                                   "image_discard"))
+                                                   "image_discard"),
+                                               image_params.get(
+                                                   "image_copy_on_read"))
 
     def serials_define_by_variables(self, serial_id, serial_type, chardev_id,
                                     bus_type=None, serial_name=None,
@@ -2805,7 +2815,9 @@ class DevContainer(object):
                                                image_params.get(
                                                    "image_auto_readonly"),
                                                image_params.get(
-                                                   "image_discard"))
+                                                   "image_discard"),
+                                               image_params.get(
+                                                   "image_copy_on_read"))
 
     def pcic_by_params(self, name, params, parent_bus=None):
         """
