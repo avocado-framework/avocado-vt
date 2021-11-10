@@ -4,8 +4,8 @@ from avocado.core import exceptions
 from avocado.utils import process
 
 from virttest import cpu
-from virttest import utils_libvirtd
 from virttest import utils_package
+
 
 LOG = logging.getLogger('avocado.' + __name__)
 
@@ -23,8 +23,6 @@ def install_virt_pkgs(vm_session):
     if not pkg_mgr.install():
         raise exceptions.TestError("Package '%s' installation "
                                    "fails" % pkg_names)
-    libvirtd = utils_libvirtd.Libvirtd(session=vm_session)
-    libvirtd.restart()
 
 
 def enable_nested_virt_on_host():
