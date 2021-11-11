@@ -8,6 +8,7 @@ import logging
 import aexpect
 from avocado.utils import process
 from avocado.utils import wait
+from avocado.core import exceptions
 
 from virttest import libvirtd_decorator
 from virttest import remote
@@ -421,3 +422,17 @@ def is_modular_daemon(session=None):
         else:
             IS_MODULAR_DAEMON[host_key] = False
     return IS_MODULAR_DAEMON[host_key]
+
+
+def daemon_mode_check(require_modular_daemon=True):
+    """
+    If required daemon mode is the same as the daemon mode on the host, then run
+    the testcase, otherwise cancel the testcase
+
+    :param require_modular_daemon: Whether require modular mode
+    :raise: raise TestCancel if required daemon mode is different with the env
+    """
+    unsupported_err_msg = "This daemon mode is not the same as the required daemon mode."
+
+    if require_modular_daemon != is_modular_daemon():
+        raise exceptions.TestCancel(unsupported_err_msg)
