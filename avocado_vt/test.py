@@ -23,6 +23,10 @@ import sys
 from avocado.core import exceptions, test
 from avocado.utils import process, stacktrace
 
+from virttest.vt_cluster import cluster
+from virttest.vt_cluster import logger
+from virttest.vt_cluster import selector
+
 from avocado_vt import utils
 from virttest import (
     data_dir,
@@ -115,6 +119,10 @@ class VirtTest(test.Test, utils.TestUtils):
         utils_logfile.set_log_file_dir(self.logdir)
         self.__status = None
         self.__exc_info = None
+        self._cluster_partition = None
+        self._logger_server = logger.LoggerServer(cluster.logger_server_host,
+                                                  cluster.logger_server_port,
+                                                  self.log)
 
     @property
     def params(self):
@@ -262,6 +270,10 @@ class VirtTest(test.Test, utils.TestUtils):
 
         try:
             try:
+                self._init_partition()
+                self._setup_partition()
+                self._logger_server.start()
+                self._start_logger_client()
                 try:
                     # Pre-process
                     try:
@@ -321,6 +333,11 @@ class VirtTest(test.Test, utils.TestUtils):
                         or params.get("env_cleanup", "no") == "yes"
                     ):
                         env.destroy()  # Force-clean as it can't be stored
+                    self._stop_logger_client()
+                    self._logger_server.stop()
+                    self._clear_partition()
+                    if self._safe_env_save(env) or params.get("env_cleanup", "no") == "yes":
+                        env.destroy()   # Force-clean as it can't be stored
 
         except Exception as e:
             if params.get("abort_on_error") != "yes":
@@ -345,3 +362,52 @@ class VirtTest(test.Test, utils.TestUtils):
                 raise exceptions.JobError("Abort requested (%s)" % e)
 
         return test_passed
+
+    def _init_partition(self):
+        self._cluster_partition = cluster.create_partition()
+
+    def _setup_partition(self):
+        for node in self.params.objects("nodes"):
+            node_params = self.params.object_params(node)
+            node_selectors = node_params.get("node_selectors")
+            _node = selector.select_node(cluster.free_nodes, node_selectors)
+            if not _node:
+                raise selector.SelectorError("No available node for '%s' " % node_selectors)
+            _node.tag = node
+            self._cluster_partition.add_node(_node)
+
+    def _clear_partition(self):
+        cluster_dir = os.path.join(self.resultsdir, "cluster")
+        if self._cluster_partition.nodes:
+            for node in self._cluster_partition.nodes:
+                node_dir = os.path.join(cluster_dir, node.tag)
+                os.makedirs(node_dir)
+                node.upload_service_log(node_dir)
+            cluster.clear_partition(self._cluster_partition)
+        self._cluster_partition = None
+
+    def _start_logger_client(self):
+        if self._cluster_partition.nodes:
+            for node in self._cluster_partition.nodes:
+                try:
+                    node.proxy.api.start_logger_client(cluster.logger_server_host,
+                                                       cluster.logger_server_port)
+                except ModuleNotFoundError:
+                    pass
+
+    def _stop_logger_client(self):
+        if self._cluster_partition.nodes:
+            for node in self._cluster_partition.nodes:
+                try:
+                    node.proxy.api.stop_logger_client()
+                except ModuleNotFoundError:
+                    pass
+
+    @property
+    def nodes(self):
+        return self._cluster_partition.nodes
+
+    def get_node(self, node_tag):
+        for node in self._cluster_partition.nodes:
+            if node_tag == node.tag:
+                return node
