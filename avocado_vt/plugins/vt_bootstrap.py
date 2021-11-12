@@ -17,7 +17,6 @@ import sys
 
 from avocado.core.plugin_interfaces import CLICmd
 from avocado.utils import process
-
 from virttest import bootstrap, defaults
 from virttest.standalone_test import SUPPORTED_TEST_TYPES
 
@@ -140,6 +139,15 @@ class VTBootstrap(CLICmd):
             help=(
                 "The architecture of the distro to be used when "
                 "generating the host configuration entry."
+            ),
+        )
+        parser.add_argument(
+            "--vt-cluster-config",
+            action="store",
+            metavar="CLUSTER_CONFIG",
+            help=(
+                "The cluster config json file to be used when "
+                "generating the cluster hosts configuration entry."
             ),
         )
 
