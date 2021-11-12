@@ -91,6 +91,11 @@ class VTBootstrap(CLICmd):
                             metavar="HOST_DISTRO_ARCH",
                             help=("The architecture of the distro to be used when "
                                   "generating the host configuration entry."))
+        parser.add_argument("--vt-cluster-config", action="store",
+                            metavar="CLUSTER_CONFIG",
+                            help=("The cluster config json file to be used when "
+                                  "generating the cluster hosts configuration "
+                                  "entry."))
 
     def run(self, config):
         try:
