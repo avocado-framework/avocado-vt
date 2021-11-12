@@ -199,7 +199,7 @@ def get_tmp_dir(public=True):
     :param public: If public for all users' access
     """
     persistent_dir = get_settings_value("vt.common", "tmp_dir", default="")
-    if persistent_dir != "":
+    if persistent_dir is not None:
         return persistent_dir
     tmp_dir = None
     # apparmor deny /tmp/* /var/tmp/* and cause failure across tests
