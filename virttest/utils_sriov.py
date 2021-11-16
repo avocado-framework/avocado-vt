@@ -4,6 +4,7 @@ SRIOV related utility functions
 
 import logging
 import re
+import os
 
 from avocado.core import exceptions
 
@@ -221,13 +222,13 @@ def get_vf_pci_id(pf_pci, vf_index=0, session=None):
     :param session: The session object to the host
     :return: VF's pci id
     """
-    cmd = "ls /sys/bus/pci/devices/{}/virtfn{}/net".format(pf_pci, vf_index)
-    status, vf_name = utils_misc.cmd_status_output(
+    cmd = "readlink /sys/bus/pci/devices/{}/virtfn{}".format(pf_pci, vf_index)
+    status, tmp_vf = utils_misc.cmd_status_output(
         cmd, shell=True, verbose=True, session=session)
-    if status or not vf_name:
+    if status or not tmp_vf:
         raise exceptions.TestError("Unable to get VF. status: %s, stdout: %s."
-                                   % (status, vf_name))
-    return get_pci_from_iface(vf_name, session=session)
+                                   % (status, tmp_vf))
+    return os.path.basename(tmp_vf)
 
 
 def get_pci_from_iface(iface, session=None):
