@@ -1145,6 +1145,8 @@ class TLSConnection(ConnectionBase):
         del self.server_libvirtd_tls_socket
         del self.client_libvirtd_tls_socket
 
+        is_qemu_conf_changed = True if any([self.qemu_chardev_tls]) else False
+
         # restart libvirtd service on server
         try:
             if self.server_setup_local:
@@ -1160,6 +1162,8 @@ class TLSConnection(ConnectionBase):
                 tls_socket_service = utils_libvirtd.DaemonSocket(
                     "virtproxyd-tls.socket", session=session)
                 tls_socket_service.stop()
+                if is_qemu_conf_changed:
+                    utils_libvirtd.Libvirtd('virtqemud', session=session).restart()
             else:
                 libvirtd_service = utils_libvirtd.Libvirtd(session=session)
                 libvirtd_service.restart()
@@ -1437,6 +1441,7 @@ class TLSConnection(ConnectionBase):
                            r".*keytab\s*:\s*.*": keytab}
         self.server_saslconf.sub_else_add(pattern_to_repl)
 
+        is_qemu_conf_changed = True if any([self.qemu_chardev_tls]) else False
         # restart libvirtd service on server
         if restart_libvirtd == "yes":
             if on_local:
@@ -1446,6 +1451,8 @@ class TLSConnection(ConnectionBase):
                     tls_socket_service = utils_libvirtd.DaemonSocket(
                         "virtproxyd-tls.socket")
                     tls_socket_service.restart()
+                    if is_qemu_conf_changed:
+                        utils_libvirtd.Libvirtd('virtqemud').restart()
                 else:
                     libvirtd_service = utils_libvirtd.Libvirtd()
                     libvirtd_service.restart()
@@ -1458,6 +1465,8 @@ class TLSConnection(ConnectionBase):
                         tls_socket_service = utils_libvirtd.DaemonSocket(
                             "virtproxyd-tls.socket", session=session)
                         tls_socket_service.restart()
+                        if is_qemu_conf_changed:
+                            utils_libvirtd.Libvirtd('virtqemud').restart()
                     else:
                         libvirtd_service = utils_libvirtd.Libvirtd(
                             session=session)
