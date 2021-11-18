@@ -1789,7 +1789,7 @@ def postprocess(test, params, env):
                 pol = test_setup.LibvirtPolkitConfig(params)
                 pol.cleanup()
                 if libvirtd_inst is None:
-                    libvirtd_inst = utils_libvirtd.Libvirtd()
+                    libvirtd_inst = utils_libvirtd.Libvirtd(all_daemons=True)
                 libvirtd_inst.restart()
             except test_setup.PolkitConfigCleanupError as e:
                 err += "\nPolkit cleanup: %s" % str(e).replace('\\n', '\n  ')

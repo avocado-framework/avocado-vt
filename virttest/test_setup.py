@@ -2089,7 +2089,7 @@ class LibvirtPolkitConfig(object):
         """
         self._setup_libvirtd()
         # restart libvirtd or split daemon after the setup
-        libvirtd = utils_libvirtd.Libvirtd()
+        libvirtd = utils_libvirtd.Libvirtd(all_daemons=True)
         libvirtd.restart()
         # Use 'testacl' if unprivileged_user in cfg contains string 'EXAMPLE',
         # and if user 'testacl' is not exist on host, create it for test.

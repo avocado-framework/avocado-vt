@@ -32,15 +32,18 @@ class Libvirtd(object):
     Class to manage libvirtd service on host or guest.
     """
 
-    def __init__(self, service_name=None, session=None):
+    def __init__(self, service_name=None, session=None, all_daemons=False):
         """
         Initialize an service object for libvirtd.
 
         :params service_name: Service name such as virtqemud or libvirtd.
-            If service_name is None, all sub daemons will be operated when
-            modular daemon environment is enabled. Otherwise,if service_name is
-            a single string, only the given daemon/service will be operated.
+            If service_name is None or 'libvirt' and all_daemons is True,
+            all sub daemons will be operated when modular daemon environment is
+            enabled. Otherwise, if service_name is a single string, only the
+            given daemon/service will be operated.
         :params session: An session to guest or remote host.
+        :params all_daemons: Whether to operate all daemons when modular daemons
+            are enabled. It only works if service_name is None or 'libvirtd'.
         """
         self.session = session
         if self.session:
@@ -49,6 +52,7 @@ class Libvirtd(object):
         else:
             runner = process.run
 
+        self.all_daemons = all_daemons
         self.daemons = []
         self.service_list = []
 
@@ -61,11 +65,12 @@ class Libvirtd(object):
         if libvirt_version.version_compare(5, 6, 0, self.session):
             if utils_split_daemons.is_modular_daemon(session=self.session):
                 if self.service_name in ["libvirtd", "libvirtd.service"]:
-                    self.service_list = ['virtqemud', 'virtproxyd',
-                                         'virtnetworkd', 'virtinterfaced',
-                                         'virtnodedevd', 'virtsecretd',
-                                         'virtstoraged', 'virtnwfilterd']
                     self.service_name = "virtqemud"
+                    if self.all_daemons:
+                        self.service_list = ['virtqemud', 'virtproxyd',
+                                             'virtnetworkd', 'virtinterfaced',
+                                             'virtnodedevd', 'virtsecretd',
+                                             'virtstoraged', 'virtnwfilterd']
                 elif self.service_name == "libvirtd.socket":
                     self.service_name = "virtqemud.socket"
                 elif self.service_name in ["libvirtd-tcp.socket", "libvirtd-tls.socket"]:

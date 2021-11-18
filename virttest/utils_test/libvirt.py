@@ -3738,13 +3738,14 @@ def customize_libvirt_config(params,
     # Hardcode config_type to virtqemud under modularity daemon mode when config_type="libvirtd"
     # On the contrary, hardcode it to "libvirtd" when config_type="virt*d".
     # Otherwise accept config_type as it is.
+    modular_daemons = ["virtqemud", "virtproxyd", "virtnetworkd",
+                       "virtstoraged", "virtinterfaced", "virtnodedevd",
+                       "virtnwfilterd", "virtsecretd"]
     if utils_split_daemons.is_modular_daemon():
         if config_type in ["libvirtd"]:
             config_type = "virtqemud"
     else:
-        if config_type in ["virtqemud", "virtproxyd", "virtnetworkd",
-                           "virtstoraged", "virtinterfaced", "virtnodedevd",
-                           "virtnwfilterd", "virtsecretd"]:
+        if config_type in modular_daemons:
             config_type = "libvirtd"
     config_list_support = ["libvirtd", "qemu", "sysconfig", "guestconfig",
                            "virtqemud", "virtproxyd", "virtnetworkd",
@@ -3757,6 +3758,7 @@ def customize_libvirt_config(params,
     else:
         LOG.debug("The '%s' config file will be updated.", config_type)
 
+    daemon_name = config_type if config_type in modular_daemons else None
     if not is_recover:
         target_conf = None
         # Handle local
@@ -3769,7 +3771,7 @@ def customize_libvirt_config(params,
         LOG.debug("The '%s' config file is updated with:\n %s",
                   target_conf.conf_path, params)
         if restart_libvirt:
-            libvirtd = utils_libvirtd.Libvirtd()
+            libvirtd = utils_libvirtd.Libvirtd(daemon_name)
             libvirtd.restart()
         obj_conf = target_conf
     else:
@@ -3778,7 +3780,7 @@ def customize_libvirt_config(params,
         # Handle local libvirtd
         config_object.restore()
         if restart_libvirt:
-            libvirtd = utils_libvirtd.Libvirtd()
+            libvirtd = utils_libvirtd.Libvirtd(daemon_name)
             libvirtd.restart()
         obj_conf = config_object
 
