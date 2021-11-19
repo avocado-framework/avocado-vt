@@ -1008,9 +1008,11 @@ class VM(virt_vm.BaseVM):
                 dev = devices.memory_object_define_by_params(backend_param,
                                                              name)
                 devs.append(dev)
-            elif params.get("hugepage_path"):
-                cmd = "-mem-path %s" % params["hugepage_path"]
-                devs.append(StrDev('mem-path', cmdline=cmd))
+            else:
+                if params.get("hugepage_path") \
+                        and not params.get("guest_numa_nodes"):
+                    cmd = "-mem-path %s" % params["hugepage_path"]
+                    devs.append(StrDev('mem-path', cmdline=cmd))
 
             cmdline = "-m %s" % ",".join(map(str, options))
             devs.insert(0, StrDev("mem", cmdline=cmdline))
