@@ -2056,6 +2056,34 @@ def compare_qemu_version(major, minor, update, is_rhev=True, params={}):
     return True
 
 
+def is_qemu_function_supported(params, ignore_error=False):
+    """
+    Check whether the function is supported in this qemu-kvm version by comparing
+    the installed qemu-kvm version
+
+    :param params: Dictionary with the test parameters
+    :param ignore_error: Whether to raise an exception
+    :raise: When ignore_error is set False, raise TestCancel if the feature is
+        not supported
+    :return: True if the function is supported;
+        False if the function is not supported when ignore_error is set to True
+    """
+    supported_qemu_ver = eval(
+        params.get("func_supported_since_qemu_kvm_ver", '()'))
+    unsupported_err_msg = params.get("qemu_unsupported_err_msg",
+                                     "This qemu version doesn't support "
+                                     "this function.")
+
+    if supported_qemu_ver:
+        if not compare_qemu_version(*supported_qemu_ver, False):
+            if ignore_error:
+                LOG.error(unsupported_err_msg)
+                return False
+            else:
+                raise exceptions.TestCancel(unsupported_err_msg)
+    return True
+
+
 class ForAll(list):
 
     def __getattr__(self, name):
