@@ -542,7 +542,7 @@ class QemuAgent(Monitor):
         self.check_has_command(cmd)
 
         if crypted:
-            openssl_cmd = "openssl passwd -crypt %s" % password
+            openssl_cmd = "openssl passwd -6 %s" % password
             password = process.run(openssl_cmd).stdout_text.strip('\n')
 
         args = {"crypted": crypted, "username": username,
