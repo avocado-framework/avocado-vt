@@ -966,6 +966,9 @@ class QemuImg(storage.QemuImg):
         if self.base_tag:
             if self.base_tag == "null":
                 cmd_dict["backing_file"] = "''"
+            elif self.base_image_filename:
+                cmd_dict["backing_file"] = self.base_image_filename
+                cmd_dict["backing_format"] = self.base_format
             else:
                 base_params = self.params.object_params(self.base_tag)
                 base_image = QemuImg(base_params, self.root_dir, self.base_tag)
