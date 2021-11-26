@@ -160,3 +160,20 @@ def get_maxcpus_hard_limit(bin_path, machine_type):
     except KeyError:
         raise ValueError("Could not get the maximum limit CPUs supported by "
                          "this machine '%s'" % machine_type)
+
+
+def get_dev_attrs(bin_path, opt_name, dev_name, machine="none"):
+    """
+    Get the device attributes from qemu help doc
+
+    :param bin_path: Path to qemu binary
+    :param opt_name: qemu option name
+    :param dev_name: qemu device name
+    :param machine: machine type
+    :return: attributes list
+    """
+    help_doc = process.run("%s -M %s -%s %s,?" % (bin_path, machine, opt_name,
+                           dev_name), verbose=False, ignore_status=True,
+                           shell=True).stdout_text
+    attrs = re.findall(r'\s*([\w|-]+)=', help_doc, re.M)
+    return attrs
