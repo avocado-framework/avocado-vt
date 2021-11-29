@@ -1231,9 +1231,12 @@ class BaseVM(object):
         if serial:
             return self.wait_for_serial_login(timeout, internal_timeout,
                                               False, username, password)
-
+        self.dump_file()
         raise remote.LoginTimeoutError("exceeded %s s timeout, last "
                                        "failure: %s" % (timeout, error))
+
+    def dump_file(self):
+        pass
 
     @error_context.context_aware
     def copy_files_to(self, host_path, guest_path, nic_index=0, limit="",

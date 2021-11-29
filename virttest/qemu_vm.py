@@ -4599,6 +4599,12 @@ class VM(virt_vm.BaseVM):
                                    timeout=(timeout - shutdown_dur),
                                    status_check=False)
 
+    def dump_file(self):
+        dump_name = ("/var/tmp/" + self.name +
+                     utils_misc.generate_random_string(4) + "Memory.dmp")
+        logging.info('dump guest memory to %s' % dump_name)
+        self.monitor.human_monitor_cmd('dump-guest-memory -w %s' % dump_name)
+
     def send_key(self, keystr):
         """
         Send a key event to the VM.
