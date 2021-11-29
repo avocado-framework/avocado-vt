@@ -14,6 +14,7 @@ import random
 import uuid
 import re
 import shutil
+import tempfile
 import time
 
 import aexpect
@@ -417,10 +418,8 @@ class Target(object):
         Correspond to '-os DIRECTORY'.
         """
         if not self.os_directory:
-            self.os_directory = os.path.join(
-                data_dir.get_tmp_dir(), 'v2v_os_directory')
-            if not os.path.exists(self.os_directory):
-                os.makedirs(self.os_directory)
+            base_image_dir = '/var/lib/libvirt/images'
+            self.os_directory = tempfile.mkdtemp(prefix='v2v_os_directory', dir=base_image_dir)
         # Pass the json directory to testcase for checking
         self.params.get('params').update({'os_directory': self.os_directory})
 
