@@ -56,6 +56,15 @@ from virttest.utils_params import Params
 LOG = logging.getLogger('avocado.' + __name__)
 
 
+# Taking this as a workaround to avoid getting errors during pickling
+# with Python versions prior to 3.7.
+if sys.version_info < (3, 7):
+    def _picklable_logger(*args, **kwargs):
+        return LOG.info(*args, **kwargs)
+else:
+    _picklable_logger = LOG.info
+
+
 class QemuSegFaultError(virt_vm.VMError):
 
     def __init__(self, crash_message):
@@ -3088,7 +3097,7 @@ class VM(virt_vm.BaseVM):
                 LOG.info("Running Proxy Helper:\n%s", proxy_helper_cmd)
                 self.process = aexpect.run_tail(proxy_helper_cmd,
                                                 None,
-                                                LOG.info,
+                                                _picklable_logger,
                                                 "[9p proxy helper]",
                                                 auto_close=False)
             else:
@@ -3101,7 +3110,7 @@ class VM(virt_vm.BaseVM):
                     qemu_command,
                     partial(qemu_proc_term_handler, self,
                             monitor_exit_status),
-                    LOG.info, "[qemu output] ",
+                    _picklable_logger, "[qemu output] ",
                     auto_close=False, pass_fds=pass_fds)
 
             LOG.info("Created qemu process with parent PID %d",
