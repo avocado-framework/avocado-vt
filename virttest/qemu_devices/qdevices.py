@@ -1961,6 +1961,7 @@ class QSwtpmDev(QDaemonDev):
         tpm_cmd = '%s socket' % self.get_param('binary')
         tpm_cmd += ' --ctrl type=unixio,path=%s,mode=0600' % self.get_param('sock_path')
         tpm_cmd += ' --tpmstate dir=%s,mode=0600' % self.get_param('storage_path')
+        tpm_cmd += ' --terminate'
 
         if self.get_param('version') in ('2.0', ):
             tpm_cmd += ' --tpm2'
