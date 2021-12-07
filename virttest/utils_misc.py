@@ -4362,3 +4362,6 @@ def kill_service(params):
         remote.run_remote_cmd(cmd, server_params, ignore_status=False)
     else:
         process.run(cmd, ignore_status=False, shell=True)
+
+def new_f():
+    pass
