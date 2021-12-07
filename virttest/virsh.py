@@ -3618,6 +3618,22 @@ def desc(name, options, desc_str, **dargs):
     return command(cmd, **dargs)
 
 
+def allocpages(size, count, extra=None, **dargs):
+    """
+    Set the number of hugepages for specific size.
+
+    :param size: Hugepage size
+    :param count: Number of pages to set
+    :param extra: additional arguments for the virsh command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "allocpages %s %s" % (size, count)
+    if extra:
+        cmd = cmd + " %s" % extra
+    return command(cmd, **dargs)
+
+
 def autostart(name, options, **dargs):
     """
     Autostart a domain
