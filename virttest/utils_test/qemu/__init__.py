@@ -706,7 +706,7 @@ class MemoryHotplugTest(MemoryBaseTest):
                 return address
 
     @error_context.context_aware
-    def check_memory(self, vm=None):
+    def check_memory(self, vm=None, wait_time=0):
         """
         Check is guest memory is really match assigned to VM.
 
@@ -724,6 +724,10 @@ class MemoryHotplugTest(MemoryBaseTest):
         utils_misc.wait_for(lambda: not vm.is_paused(), timeout=timeout)
         utils_misc.verify_dmesg()
         self.os_type = self.params.get("os_type")
+        # Notes:
+        #    for memory hotplug, some os need to wait several seconds to
+        #  let system perceive it.
+        time.sleep(wait_time)
         guest_mem_size = super(MemoryHotplugTest, self).get_guest_total_mem(vm)
         vm_mem_size = self.get_vm_mem(vm)
         if abs(guest_mem_size - vm_mem_size) > vm_mem_size * threshold:
