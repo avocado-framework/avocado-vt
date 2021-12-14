@@ -701,7 +701,7 @@ class EventTracker(object):
                     arg in inspect.signature(func).parameters else None
 
             def _get_event_output(session):
-                output = session.get_stripped_output()
+                output = session.get_output()
                 LOG.debug(output)
                 return output
 
@@ -711,6 +711,7 @@ class EventTracker(object):
 
             if wait_for_event is True and event_type is not None:
                 virsh_session = EventTracker.start_get_event(str(args[0]))
+                time.sleep(3)
                 ret = func(*args, **kwargs)
 
                 if ret and ret.exit_status:
