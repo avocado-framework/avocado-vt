@@ -757,7 +757,6 @@ def command(cmd, **dargs):
     quiet = dargs.get('quiet', False)
     unprivileged_user = dargs.get('unprivileged_user', None)
     timeout = dargs.get('timeout', None)
-    allow_output_check = dargs.get('allow_output_check', None)
 
     # Check if this is a VirshPersistent method call
     if session_id:
@@ -809,7 +808,6 @@ def command(cmd, **dargs):
         # Raise exception if ignore_status is False
         ret = process.run(cmd, timeout=timeout, verbose=debug,
                           ignore_status=ignore_status,
-                          allow_output_check=allow_output_check,
                           shell=True)
         # Mark return as not coming from persistent virsh session
         ret.from_session_id = None
