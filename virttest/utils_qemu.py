@@ -12,18 +12,22 @@ QEMU_VERSION_RE = re.compile(r"QEMU (?:PC )?emulator version\s"
 DEVICE_CATEGORY_RE = re.compile(r"([A-Z]\S+) devices:")
 
 
-def _get_info(bin_path, options, allow_output_check=None):
+def _get_info(bin_path, options, include_stderr=False):
     """
     Execute a qemu command and return its stdout
 
     :param bin_path: Path to qemu binary
     :param options: Command line to run
-    :param allow_output_check: Record the output from stdout/stderr
+    :param include_stderr: Whether to also include stderr content (besides
+                           stdout)
     :return: Command stdout
     """
     qemu_cmd = "%s %s" % (bin_path, options)
-    return process.run(qemu_cmd, verbose=False, ignore_status=True,
-                       allow_output_check=allow_output_check).stdout_text.strip()
+    result = process.run(qemu_cmd, verbose=False, ignore_status=True)
+    output = result.stdout_text.strip()
+    if include_stderr:
+        output += result.stderr_text.strip()
+    return output
 
 
 def get_qemu_version(bin_path):
@@ -48,7 +52,7 @@ def get_machines_info(bin_path):
     :param bin_path: Path to qemu binary
     :return: A dict of all machines
     """
-    output = _get_info(bin_path, r"-machine help", allow_output_check="combined")
+    output = _get_info(bin_path, r"-machine help", True)
     machines = re.findall(r"^([a-z]\S+)\s+(.*)$", output, re.M)
     return dict(machines)
 
@@ -72,7 +76,7 @@ def get_devices_info(bin_path, category=None):
     :return: A dict of all devices
     """
     qemu_devices = {}
-    output = _get_info(bin_path, "-device help", allow_output_check="combined")
+    output = _get_info(bin_path, "-device help", True)
     require_machine = "No machine specified" in output
     # Some architectures (arm) require machine type to be always set, but this
     # function is not yet supported
@@ -111,7 +115,7 @@ def has_device_category(bin_path, category):
     :param category: device category (e.g. 'USB', 'Network', 'CPU')
     :return: True if device category existed in qemu devices help info
     """
-    out = _get_info(bin_path, "-device help", allow_output_check="combined")
+    out = _get_info(bin_path, "-device help", True)
     return category in DEVICE_CATEGORY_RE.findall(out)
 
 

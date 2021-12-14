@@ -143,14 +143,14 @@ class DevContainer(object):
                % qemu_binary)
         result = process.run(cmd, timeout=10,
                              ignore_status=True,
-                             allow_output_check="combined",
                              shell=True,
                              verbose=False)
         # Some architectures (arm) require machine type to be always set and some
         # hardware/firmware restrictions cause we need to set machine type.
         failed_pattern = r'(?:kvm_init_vcpu.*failed)|(?:machine specified)' \
                          r'|(?:appending -machine)'
-        if result.exit_status and re.search(failed_pattern, result.stdout_text):
+        output = result.stdout_text + result.stderr_text
+        if result.exit_status and re.search(failed_pattern, output):
             self.__workaround_machine_type = True
             basic_qemu_cmd = "%s -machine none" % qemu_binary
         else:

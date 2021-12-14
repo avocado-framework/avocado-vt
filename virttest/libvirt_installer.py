@@ -43,7 +43,7 @@ class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
         if os.path.isdir(self.rpmbuild_path):
             process.system("rm -rf %s/*" % self.rpmbuild_path)
         LOG.debug("Build libvirt rpms")
-        process.system("make rpm", allow_output_check="combined")
+        process.system("make rpm")
 
     def _install_phase_package_verify(self):
         """
@@ -67,7 +67,7 @@ class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
         package_install_cmd += " --replacefiles --oldpackage"
         package_install_cmd += " %s/RPMS/%s/libvirt*" % (self.rpmbuild_path,
                                                          platform.machine())
-        process.system(package_install_cmd, allow_output_check="combined")
+        process.system(package_install_cmd)
 
     def _install_phase_init(self):
         """
@@ -76,7 +76,7 @@ class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
         :return: None
         """
         LOG.debug("Initialize installed libvirt package")
-        process.system("service libvirtd restart", allow_output_check="combined")
+        process.system("service libvirtd restart")
 
     def _install_phase_init_verify(self):
         """
@@ -85,8 +85,8 @@ class LIBVIRTBaseInstaller(base_installer.BaseInstaller):
         :return: None
         """
         LOG.debug("Check libvirt package install")
-        process.system("service libvirtd status", allow_output_check="combined")
-        process.system("virsh capabilities", allow_output_check="combined")
+        process.system("service libvirtd status")
+        process.system("virsh capabilities")
 
     def uninstall(self):
         '''
