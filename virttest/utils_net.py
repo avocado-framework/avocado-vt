@@ -3885,7 +3885,7 @@ def get_default_gateway(iface_name=False, session=None):
     :rtype: string
     """
     if iface_name:
-        cmd = "ip route | awk '/default/ { print $5 }'"
+        cmd = "ip route | awk '/default.*proto/ { print $5 }'"
     else:
         cmd = "ip route | awk '/default/ { print $3 }'"
     try:
