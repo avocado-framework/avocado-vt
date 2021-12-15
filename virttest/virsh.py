@@ -702,7 +702,7 @@ class EventTracker(object):
 
             def _get_event_output(session):
                 output = session.get_stripped_output()
-                LOG.debug(output)
+                LOG.debug('Event output in _get_event_output function is %s:', output)
                 return output
 
             wait_for_event = _get_arg_value('wait_for_event')
@@ -711,6 +711,9 @@ class EventTracker(object):
 
             if wait_for_event is True and event_type is not None:
                 virsh_session = EventTracker.start_get_event(str(args[0]))
+                # EventTracker will start new virsh shell, but need times to
+                # be ready for receiving events
+                sleep(5)
                 ret = func(*args, **kwargs)
 
                 if ret and ret.exit_status:
@@ -723,9 +726,11 @@ class EventTracker(object):
                             event_type,
                             _get_event_output(virsh_session)
                         ), event_timeout):
+                    virsh_session.close()
                     raise EventNotFoundError('Not found event %s after %s seconds' %
                                              (event_type, event_timeout))
-                virsh_session.close()
+                else:
+                    virsh_session.close()
                 return ret
             else:
                 return func(*args, **kwargs)
