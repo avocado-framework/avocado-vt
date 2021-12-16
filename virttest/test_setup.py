@@ -406,6 +406,8 @@ class HugePageConfig(object):
         self.lowest_mem_per_vm = float(normalize_data_size(vm_mem_minimum))
         utils_memory.drop_caches()
         self.ext_hugepages_surp = utils_memory.get_num_huge_pages_surp()
+        self.extra_size = float(normalize_data_size(params.get("extra_hp_size",
+                                                               "0")))
 
         overcommit_hugepages = int(params.get("overcommit_hugepages", 0))
         if overcommit_hugepages != self.over_commit.proc_fs_value:
@@ -486,7 +488,7 @@ class HugePageConfig(object):
             self.vms = self.max_vms
         # memory of all VMs plus qemu overhead of 128MB per guest
         # (this value can be overridden in your cartesian config)
-        vmsm = self.vms * (self.mem + self.qemu_overhead)
+        vmsm = self.vms * (self.mem + self.qemu_overhead) + self.extra_size
         target_hugepages = int(vmsm * 1024 // self.hugepage_size)
 
         # FIXME Now the buddyinfo can not get chunk info which is bigger
