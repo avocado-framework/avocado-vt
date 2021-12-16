@@ -38,6 +38,7 @@ from functools import wraps
 import aexpect
 from aexpect import remote
 
+from avocado.core import exceptions
 from avocado.utils import path
 from avocado.utils import process
 
@@ -701,9 +702,7 @@ class EventTracker(object):
                     arg in inspect.signature(func).parameters else None
 
             def _get_event_output(session):
-                # Use get_output instead of get_stripped_output to avoid
-                # missing output.
-                output = session.get_output()
+                output = session.get_stripped_output()
                 LOG.debug(output)
                 return output
 
@@ -713,9 +712,16 @@ class EventTracker(object):
 
             if wait_for_event is True and event_type is not None:
                 virsh_session = EventTracker.start_get_event(str(args[0]))
-                # Sometimes the output of virsh_session is missing, add a sleep
-                # for debug. Will remove it if it is unnecessary.
-                time.sleep(3)
+                # Sometimes the output of session can't be gotten immediately.
+                # Wait for a while to avoid this situation.
+                if not utils_misc.wait_for(
+                        lambda: re.search(
+                            "Welcome to virsh",
+                            _get_event_output(virsh_session)
+                        ), 10):
+                    virsh_session.close()
+                    raise exceptions.TestError("Failed to get virsh session "
+                                               "output")
                 ret = func(*args, **kwargs)
 
                 if ret and ret.exit_status:
