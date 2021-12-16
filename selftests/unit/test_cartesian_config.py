@@ -387,25 +387,36 @@ class CartesianConfigTest(unittest.TestCase):
                     var += a
                     var <= b
                     system = 2
-                    ddd = ${tests + str(int(system) + 3)}4
-                    error = ${tests + str(system + 3)}4
-                    s.* ?= ${tests + "ahoj"}4
+                    variable-name-with-dashes = sampletext
+                    ddd = tests variant is ${tests}
+                    dashes = show ${variable-name-with-dashes}
+                    error = ${tests + str(int(system) + 3)}4
+                    s.* ?= ${tests}ahoj4
                     s.* ?+= c
                     s.* ?<= d
                     system += 4
                     var += "test"
+                    1st = 1
+                    starts_with_number = index ${1st}
+                    not_a_substitution = ${}
             """,
                               [
                                   {'_name_map_file': {'<string>': '(tests=system1)'},
                                    '_short_name_map_file': {'<string>': 'system1'},
-                                   'ddd': 'system154',
+                                   'variable-name-with-dashes': 'sampletext',
+                                   'ddd': 'tests variant is system1',
+                                   'dashes': 'show sampletext',
                                    'dep': [],
-                                   'error': '${tests + str(system + 3)}4',
+                                   'error': '${tests + str(int(system) + 3)}4',
                                    'name': '(tests=system1)',
                                    'shortname': 'system1',
                                    'system': 'dsystem1ahoj4c4',
                                    'tests': 'system1',
-                                   'var': 'b2atest'},
+                                   'var': 'b2atest',
+                                   '1st': '1',
+                                   'starts_with_number': 'index 1',
+                                   'not_a_substitution': '${}',
+                                   },
                               ],
                               True)
 

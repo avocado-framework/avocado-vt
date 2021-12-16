@@ -610,11 +610,11 @@ def _substitution(value, d):
             match = match_substitute.search(value, start)
             while match:
                 d_flat = _drop_suffixes(d)
-                val = eval(match.group(1), None, d_flat)
+                val = d_flat[match.group(1)]
                 st += value[start:match.start()] + str(val)
                 start = match.end()
                 match = match_substitute.search(value, start)
-        except Exception:
+        except KeyError:
             pass
         st += value[start:len(value)]
         return st
