@@ -3510,7 +3510,8 @@ def get_host_ip_address(params=None, ip_ver="ipv4", linklocal=False):
         net_dev = get_default_gateway(iface_name=True)
     LOG.warning("No IP address of host was provided, using IP address"
                 " on %s interface", net_dev)
-    return get_ip_address_by_interface(net_dev, ip_ver, linklocal)
+    single_dev = net_dev.split('\n')[0].strip()
+    return get_ip_address_by_interface(single_dev, ip_ver, linklocal)
 
 
 def get_all_ips():
