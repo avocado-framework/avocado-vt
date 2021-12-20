@@ -585,12 +585,7 @@ class MemoryHotplugTest(MemoryBaseTest):
         """
         error_context.context("Update VM object after hotplug memory")
         dev_type, name = dev.get_qid().split('-')
-        if isinstance(dev, qdevices.Memory):
-            backend = self.params.object_params(name).get("backend_mem",
-                                                          "memory-backend-ram")
-            attrs = dev.__attributes__[backend][:]
-        else:
-            attrs = dev.__attributes__[:]
+        attrs = dev.attrs
         params = self.params.copy_from_keys(attrs)
         for attr in attrs:
             val = dev.get_param(attr)
