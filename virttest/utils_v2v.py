@@ -288,13 +288,22 @@ class Target(object):
                                 '%s/%s*' %
                                 (vddk_lib_rootdir, vddk_lib_prefix)))
                         for i in range(1, vddklib_count + 1):
+                            is_same = True
                             vddk_lib = '%s/%s' % (vddk_lib_rootdir,
                                                   vddk_lib_prefix + str(i))
-                            if all(
-                                compare_md5(
-                                    os.path.join(
-                                        mount_point, file_i), os.path.join(
-                                        vddk_lib, file_i)) for file_i in check_list):
+                            for file_i in check_list:
+                                src_file = os.path.join(mount_point, file_i)
+                                dst_file = os.path.join(vddk_lib, file_i)
+                                # skip the check if both don't have the file.
+                                if not os.path.exists(
+                                        src_file) and not os.path.exists(dst_file):
+                                    LOG.debug("Skip comparing file %s" % dst_file)
+                                    continue
+                                if not compare_md5(src_file, dst_file):
+                                    is_same = False
+                                    break
+
+                            if is_same:
                                 os.symlink(vddk_lib, vddk_libdir, True)
                                 break
 
@@ -419,7 +428,8 @@ class Target(object):
         """
         if not self.os_directory:
             base_image_dir = '/var/lib/libvirt/images'
-            self.os_directory = tempfile.mkdtemp(prefix='v2v_os_directory', dir=base_image_dir)
+            self.os_directory = tempfile.mkdtemp(
+                prefix='v2v_os_directory', dir=base_image_dir)
         # Pass the json directory to testcase for checking
         self.params.get('params').update({'os_directory': self.os_directory})
 
