@@ -606,10 +606,10 @@ def _substitution(value, d):
     if "$" in value:
         start = 0
         st = ""
+        d_flat = _drop_suffixes(d)
         try:
             match = match_substitute.search(value, start)
             while match:
-                d_flat = _drop_suffixes(d)
                 val = d_flat[match.group(1)]
                 st += value[start:match.start()] + str(val)
                 start = match.end()
