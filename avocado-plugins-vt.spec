@@ -119,7 +119,7 @@ Xunit output, among others.
 * Tue Jul 27 2021 Cleber Rosa <crosa@redhat.com> - 90.0-1
 - New release
 
-* Thu May 24 2021 Jan Richter <jarichte@redhat.com> - 88.0-2
+* Mon May 24 2021 Jan Richter <jarichte@redhat.com> - 88.0-2
 - Experimental runner implementation for the nrunner architecture
 
 * Tue May 18 2021 Cleber Rosa <cleber@redhat.com> - 88.0-1
