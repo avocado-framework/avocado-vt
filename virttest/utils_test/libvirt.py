@@ -551,7 +551,7 @@ def setup_or_cleanup_iscsi(is_setup, is_login=True,
             _iscsi.login()
             # The device doesn't necessarily appear instantaneously, so give
             # about 5 seconds for it to appear before giving up
-            iscsi_device = utils_misc.wait_for(_iscsi.get_device_name, 5, 0, 1,
+            iscsi_device = utils_misc.wait_for(_iscsi.get_device_name, 10, 0, 1,
                                                "Searching iscsi device name.")
             if iscsi_device:
                 LOG.debug("iscsi device: %s", iscsi_device)
