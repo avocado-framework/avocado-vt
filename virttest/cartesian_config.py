@@ -947,7 +947,8 @@ class LDel(LOperators):
         exp = re.compile("%s$" % self.name)
         keys_to_del = collections.deque()
         for key in d:
-            if key not in _reserved_keys and exp.match(key):
+            keystr = "".join(key) if isinstance(key, tuple) else key
+            if key not in _reserved_keys and exp.match(keystr):
                 keys_to_del.append(key)
         for key in keys_to_del:
             del d[key]
