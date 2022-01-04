@@ -2041,6 +2041,17 @@ class VMCPUXML(base.LibvirtXMLBase):
             feature_list.append(feature_node)
         return feature_list
 
+    def get_dict_type_feature(self):
+        """
+        Get dict type cpu feature list.
+
+        :return: Dict, CPU feature. For example {"name1":"policy1","name2":"policy2"}
+        """
+        feature_dict = {}
+        for feature in self.get_feature_list():
+            feature_dict[feature.get('name')] = feature.get('policy')
+        return feature_dict
+
     def get_feature_index(self, name):
         """
         Get the feature's index in the feature list by given name
