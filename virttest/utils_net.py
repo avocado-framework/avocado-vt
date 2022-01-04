@@ -4554,11 +4554,9 @@ def check_class_rules(ifname, rule_id, bandwidth):
             assert ceil_check == int(bandwidth["peak"]) * 8
         if "burst" in bandwidth:
             if tc_htb.group(6) == 'M':
-                tc_burst = int(tc_htb.group(5)) * 1000
-            elif tc_htb.group(6) == 'K':
-                tc_burst = int(tc_htb.group(5))
+                tc_burst = int(tc_htb.group(5)) * 1024
             else:
-                tc_burst = int(tc_htb.group(5)) / 1000
+                tc_burst = int(tc_htb.group(5))
             assert tc_burst == int(bandwidth["burst"])
     except AssertionError:
         stacktrace.log_exc_info(sys.exc_info())
