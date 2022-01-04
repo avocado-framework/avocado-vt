@@ -522,7 +522,7 @@ def setup_or_cleanup_gluster(is_setup, vol_name, brick_path="", pool_name="",
     except utils_path.CmdNotFoundError:
         raise exceptions.TestSkipError("Missing command 'gluster'")
     if not brick_path:
-        tmpdir = data_dir.get_tmp_dir()
+        tmpdir = data_dir.get_data_dir()
         brick_path = os.path.join(tmpdir, pool_name)
 
     # Check gluster server apply or not
