@@ -2752,6 +2752,23 @@ class VM(virt_vm.BaseVM):
                     "get(\"spice_tls_port\")' instead")
         return self.spice_options.get("spice_tls_port")
 
+    def _start_daemons(self):
+        """Start the daemons of qemu device."""
+        if self.devices:
+            for dev in self.devices:
+                if isinstance(dev, qdevices.QDaemonDev):
+                    dev.start_daemon()
+
+    def _stop_daemons(self):
+        """Stop the daemons of qemu device."""
+        if self.devices:
+            for dev in self.devices:
+                if isinstance(dev, qdevices.QDaemonDev):
+                    try:
+                        dev.stop_daemon()
+                    except DeviceError as err:
+                        LOG.error("Failed to stop daemon: %s", err)
+
     @error_context.context_aware
     def create(self, name=None, params=None, root_dir=None,
                timeout=120, migration_mode=None,
@@ -3101,6 +3118,7 @@ class VM(virt_vm.BaseVM):
                                                 "[9p proxy helper]",
                                                 auto_close=False)
             else:
+                self._start_daemons()
                 LOG.info("Running qemu command (reformatted):\n%s",
                          qemu_command.replace(" -", " \\\n    -"))
                 self.qemu_command = qemu_command
@@ -3464,6 +3482,7 @@ class VM(virt_vm.BaseVM):
                 LOG.error("VM %s (PID %s) is a zombie!", self.name,
                           self.process.get_pid())
         finally:
+            self._stop_daemons()
             self._cleanup(free_mac_addresses)
 
     @property

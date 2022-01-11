@@ -1868,8 +1868,7 @@ class QDaemonDev(QBaseDevice):
         return self.get_aid()
 
     def cmdline(self):
-        """Start daemon command line."""
-        self.start_daemon()
+        """Start command line."""
         return ''
 
     def __eq__(self, other):
