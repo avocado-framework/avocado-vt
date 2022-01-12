@@ -1555,7 +1555,10 @@ class TLSConnection(ConnectionBase):
         if self.sasl_type == 'digest-md5':
             utils_package.package_install('cyrus-sasl-md5', session=client_session)
         for target_dir in [self.pki_CA_dir, self.libvirt_pki_private_dir]:
-            if not os.path.exists(target_dir):
+            # Check dir if exists
+            cmd = "ls %s" % target_dir
+            status, output = client_session.cmd_status_output(cmd)
+            if status:
                 cmd = "mkdir -p %s" % target_dir
                 status, output = client_session.cmd_status_output(cmd)
                 if status:
