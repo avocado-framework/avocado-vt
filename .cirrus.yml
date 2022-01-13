@@ -2,9 +2,9 @@ env:
   CIRRUS_CLONE_DEPTH: 1
   VT_TYPE: qemu
 
-fedora_34_task:
+fedora_35_task:
   container:
-    image: quay.io/avocado-framework/avocado-vt-ci-fedora-34
+    image: quay.io/avocado-framework/avocado-vt-ci-fedora-35
     kvm: true
   env:
     matrix:
@@ -65,7 +65,7 @@ centos_8_1_task:
 
 avocado_devel_task:
   container:
-    image: quay.io/avocado-framework/avocado-vt-ci-fedora-34
+    image: quay.io/avocado-framework/avocado-vt-ci-fedora-35
     kvm: true
   allow_failures: $AVOCADO_SRC == 'git+https://github.com/avocado-framework/avocado#egg=avocado_framework'
   env:
