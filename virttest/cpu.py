@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ET
 
 
 from avocado.utils import cpu as utils
-from avocado.utils import software_manager
+from avocado.utils.software_manager import manager
 from avocado.utils import process
 from avocado.utils import path
 from avocado.core import exceptions
@@ -587,7 +587,7 @@ def is_qemu_kvm_ma():
     """
     Check if qemu-kvm-ma is installed in host
     """
-    sm = software_manager.SoftwareManager()
+    sm = manager.SoftwareManager()
     return sm.check_installed("qemu-kvm-ma")
 
 

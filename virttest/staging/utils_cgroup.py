@@ -17,7 +17,7 @@ import six
 from tempfile import mkdtemp
 
 from avocado.core import exceptions
-from avocado.utils import software_manager
+from avocado.utils.software_manager import manager
 from avocado.utils import process
 
 from . import service
@@ -719,8 +719,8 @@ class CgconfigService(object):
         #
         # Please refer to
         # https://bugzilla.redhat.com/show_bug.cgi?format=multiple&id=882887
-        manager = software_manager.SoftwareManager()
-        if not manager.install('libcgroup-tools'):
+        mgr = manager.SoftwareManager()
+        if not mgr.install('libcgroup-tools'):
             exceptions.TestError("Failed to install libcgroup-tools on host")
         self._service_manager = service.Factory.create_service("cgconfig")
 

@@ -5,7 +5,7 @@ import logging
 import aexpect
 
 from avocado.core import exceptions
-from avocado.utils import software_manager
+from avocado.utils.software_manager import manager
 from six import string_types
 
 from virttest import utils_misc
@@ -144,7 +144,7 @@ class RemotePackageMgr(object):
         return self.operate(timeout, True)
 
 
-class LocalPackageMgr(software_manager.SoftwareManager):
+class LocalPackageMgr(manager.SoftwareManager):
 
     """
     Local package manage class
