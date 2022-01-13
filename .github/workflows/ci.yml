@@ -9,6 +9,24 @@ on:
 
 jobs:
 
+  static-checks:
+    name: Static checks
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Check signed-off-by
+        run: ./selftests/signedoff-check.sh
+      - name: Install make
+        run: sudo apt-get update && sudo apt-get install -y make
+      - name: Install dependencies
+        run: pip install -r requirements-travis.txt
+      - name: Run tests
+        run: make check
+
+
   travis-check:
 
     name: Python ${{ matrix.python-version }}
@@ -52,12 +70,6 @@ jobs:
          echo "/tmp/dummy_bin" >> $GITHUB_PATH
       - name: Setup Avocado-vt for functional tests
         run: AVOCADO_LOG_DEBUG=yes avocado vt-bootstrap --vt-skip-verify-download-assets --yes-to-all
-      - name: Run tests
-        run: inspekt checkall --disable-lint W,R,C,E1002,E1101,E1103,E1120,F0401,I0011,E1003,W605 --disable-style W605,W606,E501,E265,W601,E402,E722,E741 --exclude avocado-libs,scripts/github --no-license-check
-      - name: Run spellchecker
-        run: pylint --errors-only --disable=all --ignore=avocado-libs --enable=spelling --spelling-dict=en_US --spelling-private-dict-file=spell.ignore *
-      - name: Check signed-off-by
-        run: ./selftests/signedoff-check.sh
       - run: echo "This job's status is ${{ job.status }}."
 
   package-build:
