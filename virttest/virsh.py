@@ -1888,22 +1888,22 @@ def attach_interface(name, option="", **dargs):
     return command(cmd, **dargs)
 
 
-def detach_interface(name, option="", wait_remove_event=False, event_timeout=7, **dargs):
+@EventTracker.wait_event
+def detach_interface(name, option="", wait_for_event=False,
+                     event_type='device-removed', event_timeout=7, **dargs):
     """
     Detach a NIC to VM.
 
     :param name: name of guest
     :param option: options to pass to command
-    :param wait_remove_event: wait until device_remove event comes
+    :param wait_for_event: wait until device_remove event comes
+    :param event_type: type of the event
     :param event_timeout: timeout for virsh event command
     :param dargs: standardized virsh function API keywords
     :return: CmdResult object
     """
     detach_cmd = "detach-interface --domain %s %s" % (name, option)
     detach_cmd_rv = command(detach_cmd, **dargs)
-    if wait_remove_event:
-        event(domain=name, event='device-removed', event_timeout=event_timeout, **dargs)
-
     return detach_cmd_rv
 
 
