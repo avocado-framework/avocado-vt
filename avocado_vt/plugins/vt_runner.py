@@ -15,10 +15,12 @@ class VirtTest(test.VirtTest):
 
     def __init__(self, queue, runnable):
         self.queue = queue
+        base_logdir = getattr(runnable, 'output_dir', None)
         vt_params = runnable.kwargs
         vt_params['job_env_cleanup'] = 'no'
         kwargs = {'name': TestID(1, runnable.uri),
                   'config': runnable.config,
+                  'base_logdir': base_logdir,
                   'vt_params': vt_params}
         super().__init__(**kwargs)
 
@@ -67,7 +69,8 @@ class VirtTest(test.VirtTest):
                                "in `debug.log` for details.")
             self.queue.put(messages.StderrMessage.get(traceback.format_exc()))
         finally:
-            self._save_log_dir()
+            if 'avocado_test_' in self.logdir:
+                self._save_log_dir()
             self.queue.put(messages.FinishedMessage.get(status, fail_reason))
 
 
