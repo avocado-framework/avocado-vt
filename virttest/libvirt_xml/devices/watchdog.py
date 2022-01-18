@@ -5,9 +5,12 @@ http://libvirt.org/formatdomain.html#elementsWatchdog
 """
 
 import aexpect
+import logging
 
 from virttest.libvirt_xml import accessors
 from virttest.libvirt_xml.devices import base
+
+LOG = logging.getLogger('avocado.' + __name__)
 
 
 class Watchdog(base.UntypedDeviceBase):
@@ -38,10 +41,12 @@ class Watchdog(base.UntypedDeviceBase):
 
         :param session: guest session
         :return: False if module can't be loaded
+                 True if module is loaded successfully or no need to be loaded
         """
         handled_types = {"ib700": "ib700wdt", "diag288": "diag288_wdt"}
         if self.model_type not in handled_types.keys():
-            return False
+            LOG.info("There is no need to load module %s for watchdog", self.model_type)
+            return True
         module = handled_types.get(self.model_type)
         try:
             session.cmd("modprobe %s" % module)
