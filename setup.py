@@ -44,14 +44,6 @@ class Clean(clean):
                 shutil.rmtree(e)
 
 
-def pre_post_plugin_type():
-    try:
-        from avocado.core.plugin_interfaces import JobPreTests as Pre
-        return 'avocado.plugins.result_events'
-    except ImportError:
-        return 'avocado.plugins.job.prepost'
-
-
 if __name__ == "__main__":
     setup(name='avocado-framework-plugin-vt',
           version=VERSION,
@@ -77,7 +69,7 @@ if __name__ == "__main__":
                   'vt-list-guests = avocado_vt.plugins.vt_list_guests:VTListGuests',
                   'vt-list-archs = avocado_vt.plugins.vt_list_archs:VTListArchs',
                   ],
-              pre_post_plugin_type(): [
+              'avocado.plugins.result_events': [
                   'vt-joblock = avocado_vt.plugins.vt_joblock:VTJobLock',
                   ],
               'avocado.plugins.init': [
@@ -94,6 +86,6 @@ if __name__ == "__main__":
                   ],
               },
           install_requires=["netifaces", "simplejson", "six", "netaddr",
-                            "aexpect", "avocado-framework>=68.0"],
+                            "aexpect", "avocado-framework>=82.1"],
           cmdclass={'clean': Clean},
           )

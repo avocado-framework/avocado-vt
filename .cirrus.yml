@@ -10,10 +10,10 @@ fedora_34_task:
     matrix:
       # Get deps from setup.py (therefor pip version of avocado)
       - AVOCADO_SRC:
-      # Latest LTS release is 82.x
+      # Older LTS release is 82.x
       - AVOCADO_SRC: avocado-framework<83.0
-      # Latest Avocado from git
-      - AVOCADO_SRC: git+https://github.com/avocado-framework/avocado#egg=avocado_framework
+      # Latest LTS release is 92.x
+      - AVOCADO_SRC: avocado-framework<93.0
     matrix:
       - SETUP: setup.py develop --user
       - SETUP: -m pip install .
@@ -21,7 +21,7 @@ fedora_34_task:
     matrix:
       - VT_TYPE: qemu
       - VT_TYPE: libvirt
-  build_script:
+  build_script: &build_scr
     - (echo $SETUP | grep -v PYPI_UPLOAD) || make pypi
   setup_script: &setup_scr
     - python3 --version
@@ -47,12 +47,44 @@ centos_8_1_task:
     image: quay.io/avocado-framework/avocado-vt-ci-centos-8.1
   env:
     matrix:
-      - AVOCADO_SRC:
-      - AVOCADO_SRC: avocado-framework<70.0
-      - AVOCADO_SRC: git+https://github.com/avocado-framework/avocado#egg=avocado_framework
+      # Older LTS release is 82.x
+      - AVOCADO_SRC: avocado-framework<83.0
+      # Latest LTS release is 92.x
+      - AVOCADO_SRC: avocado-framework<93.0
     matrix:
       - SETUP: setup.py develop --user
       - SETUP: -m pip install .
+  setup_script:
+    *setup_scr
+  bootstrap_script:
+    *bootstrap_scr
+  list_script:
+    *list_scr
+  dry_run_script:
+    *dry_run_scr
+
+avocado_devel_task:
+  container:
+    image: quay.io/avocado-framework/avocado-vt-ci-fedora-34
+    kvm: true
+  allow_failures: $AVOCADO_SRC == 'git+https://github.com/avocado-framework/avocado#egg=avocado_framework'
+  env:
+    matrix:
+      # Latest Avocado
+      - AVOCADO_SRC: git+https://github.com/avocado-framework/avocado#egg=avocado_framework
+      # 82lts tree (from where new 82.x releases will come)
+      - AVOCADO_SRC: git+https://github.com/avocado-framework/avocado@82lts#egg=avocado_framework
+      # 92lts tree (from where new 92.x releases will come)
+      - AVOCADO_SRC: git+https://github.com/avocado-framework/avocado@92lts#egg=avocado_framework
+    matrix:
+      - SETUP: setup.py develop --user
+      - SETUP: -m pip install .
+      - SETUP: -m pip install PYPI_UPLOAD/*.whl
+    matrix:
+      - VT_TYPE: qemu
+      - VT_TYPE: libvirt
+  build_script:
+    *build_scr
   setup_script:
     *setup_scr
   bootstrap_script:
