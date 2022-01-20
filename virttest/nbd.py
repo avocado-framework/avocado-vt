@@ -44,6 +44,7 @@ def export_image(qemu_nbd, filename, local_image, params):
     :param params: local image specified params, params may contain:
         nbd_export_format: block driver format (-f)
         nbd_allocation_exported: 'yes' exports allocation depth map (-A)
+        nbd_export_readonly: 'yes' exports as readonly (-r)
         nbd_export_name: NBD volume export name (-x)
         nbd_export_description: NBD volume export description (-D)
         nbd_unix_socket: Use a unix socket (-k)
@@ -65,11 +66,13 @@ def export_image(qemu_nbd, filename, local_image, params):
         "fork": "--fork",
         "pid_file": "",
         "bitmap": "",
-        "allocation_depth": ""
+        "allocation_depth": "",
+        "export_readonly": ""
     }
-    export_cmd = ('{secret_object} {tls_creds} {allocation_depth} '
-                  '{export_format} {persistent} {desc} {port} {bitmap} '
-                  '{export_name} {fork} {pid_file} {unix_socket} {filename}')
+    export_cmd = (
+        '{secret_object} {tls_creds} {allocation_depth} {export_readonly} '
+        '{export_format} {persistent} {desc} {port} {bitmap} '
+        '{export_name} {fork} {pid_file} {unix_socket} {filename}')
 
     pid_file = utils_misc.generate_tmp_file_name('%s_nbd_server' % local_image,
                                                  'pid')
@@ -96,6 +99,9 @@ def export_image(qemu_nbd, filename, local_image, params):
     # expose allocation depth information via the qemu:allocation-depth
     if params.get('nbd_allocation_exported') == 'yes':
         cmd_dict['allocation_depth'] = '-A'
+
+    if params.get('nbd_export_readonly') == 'yes':
+        cmd_dict['export_readonly'] = '-r'
 
     if params.get('nbd_export_name'):
         cmd_dict['export_name'] = '-x %s' % params['nbd_export_name']
