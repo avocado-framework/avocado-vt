@@ -2,8 +2,6 @@
 Contributions Guidelines and Tips
 =================================
 
-.. _code_contributions:
-
 Code
 ====
 
@@ -16,8 +14,6 @@ To submit changes, please follow `these instructions <https://github.com/autotes
 Please allow up to two weeks for a maintainer to pick
 up and review your changes.  Though, if you'd like help at any stage, feel free to post on the mailing
 lists and reference your pull request.
-
-.. _docs_contribution:
 
 Docs
 ====
