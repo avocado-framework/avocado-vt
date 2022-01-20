@@ -8,9 +8,9 @@ Code
 Contributions of additional tests and code are always welcome. If in
 doubt, and/or for advice on approaching a particular problem, please
 contact the projects members (see section _collaboration) Before submitting code,
-please review the `git repository configuration guidelines <http://github.com/autotest/autotest/wiki/GitWorkflow>`_.
+please review the `git repository configuration guidelines <https://autotest.readthedocs.io/en/latest/main/developer/GitWorkflow.html>`_.
 
-To submit changes, please follow `these instructions <https://github.com/autotest/autotest/wiki/SubmissionChecklist>`_.
+To submit changes, please follow `these instructions <https://autotest.readthedocs.io/en/latest/main/developer/SubmissionChecklist.html>`_.
 Please allow up to two weeks for a maintainer to pick
 up and review your changes.  Though, if you'd like help at any stage, feel free to post on the mailing
 lists and reference your pull request.
