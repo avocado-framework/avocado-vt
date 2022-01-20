@@ -2477,7 +2477,11 @@ def set_winutils_letter(session, cmd, label="WIN_UTILS"):
     :param label: volume label of WIN_UTILS.iso
     """
     if label in cmd:
-        return cmd.replace(label, get_winutils_vol(session))
+        volume = get_winutils_vol(session)
+        if volume is not None:
+            return cmd.replace(label, get_winutils_vol(session))
+        else:
+            raise ValueError("Failed to set winutils letter due to missing volume ID.")
     return cmd
 
 
