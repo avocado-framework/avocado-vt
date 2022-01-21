@@ -1,4 +1,4 @@
-FROM fedora:34
+FROM fedora:35
 LABEL description "Fedora image used on integration checks, such as cirrus-ci"
 RUN dnf -y install make python3-wheel python3-pip git xz tcpdump nc iproute iputils gcc python3-devel qemu-kvm qemu-img
 RUN dnf -y clean all
