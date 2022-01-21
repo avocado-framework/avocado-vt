@@ -3498,6 +3498,19 @@ def domif_getlink(name, interface, options=None, **dargs):
     return command(cmd, **dargs)
 
 
+def nodedev_info(device_name, **dargs):
+    """
+    Get device info
+
+    :param device_name: the node device name
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object.
+    """
+    cmd = "nodedev-info %s" % device_name
+
+    return command(cmd, **dargs)
+
+
 def nodedev_list(tree=False, cap="", options="", **dargs):
     """
     List the node devices.
@@ -3975,6 +3988,60 @@ def secret_set_value(uuid, password, options=None, encode=False, use_file=False,
             cmd += " --base64 %s" % password
     if options:
         cmd += " --%s" % options
+
+    return command(cmd, **dargs)
+
+
+def nodedev_undefine(device_name, **dargs):
+    """
+    Return cmd result of removing a node device definition
+
+    :param device_name: device name as listed by nodedev-list
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "nodedev-undefine %s" % device_name
+
+    return command(cmd, **dargs)
+
+
+def nodedev_autostart(device_name, options=None, **dargs):
+    """
+    Return cmd result of un/configuring autostart for a node device
+
+    :param device_name: device name as listed by nodedev-list
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "nodedev-autostart %s" % device_name
+    if options is not None:
+        cmd += " %s" % options
+
+    return command(cmd, **dargs)
+
+
+def nodedev_start(device_name, **dargs):
+    """
+    Return cmd result of starting a node device
+
+    :param device_name: device name as listed by nodedev-list
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "nodedev-start %s" % device_name
+
+    return command(cmd, **dargs)
+
+
+def nodedev_define(xml_file, **dargs):
+    """
+    Return cmd result of the device to be defined by an XML file
+
+    :param xml_file: device XML file
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object
+    """
+    cmd = "nodedev-define %s" % xml_file
 
     return command(cmd, **dargs)
 
