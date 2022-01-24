@@ -3796,8 +3796,8 @@ def customize_libvirt_config(params,
         # It fails to start some daemons with a non-existent log directory，
         # so create one to avoid this problem.
         with utils_config.get_conf_obj(config_type) as config:
-            log_outputs_list = config.log_outputs.split(':')
-            if 'file' in log_outputs_list:
+            if 'log_outputs' in config and 'file:' in config.log_outputs:
+                log_outputs_list = config.log_outputs.split(':')
                 log_file_path = log_outputs_list[log_outputs_list.index('file') + 1]
                 cmd = "ls {0} || mkdir -p {0}".format(os.path.dirname(log_file_path))
                 remote_old.run_remote_cmd(cmd, extra_params, ignore_status=False)
