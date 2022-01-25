@@ -212,13 +212,14 @@ class SetupManager(object):
 
 class TransparentHugePageConfig(object):
 
-    def __init__(self, test, params, session=None):
+    def __init__(self, test, params, env, session=None):
         """
         Find paths for transparent hugepages and kugepaged configuration. Also,
         back up original host configuration so it can be restored during
         cleanup.
         """
         self.params = params
+        self.env = env
         self.session = session
 
         RH_THP_PATH = "/sys/kernel/mm/redhat_transparent_hugepage"
@@ -239,7 +240,7 @@ class TransparentHugePageConfig(object):
         while len(tmp_list) > 0:
             tmp_cfg = tmp_list.pop()
             test_cfg[re.split(":", tmp_cfg)[0]] = re.split(":", tmp_cfg)[1]
-        # Save host current config, so we can restore it during cleanup
+        # Save host current config
         # We will only save the writeable part of the config files
         original_config = {}
         # List of files that contain string config values
@@ -268,7 +269,11 @@ class TransparentHugePageConfig(object):
                         pass
 
         self.test_config = test_cfg
-        self.original_config = original_config
+        # Workaround to use 'env' to save host original config if it's not there.
+        # In this way,the host original config can be saved correctly, and we
+        # can restore it during cleanup.
+        if not self.env.data.get("THP_original_config"):
+            self.env.data["THP_original_config"] = original_config
 
     def set_env(self):
         """
@@ -347,17 +352,17 @@ class TransparentHugePageConfig(object):
         expected.
         """
         self.set_env()
-        self.khugepaged_test()
 
     def cleanup(self):
         """:
         Restore the host's original configuration after test
         """
+        original_config = self.env.data.pop('THP_original_config')
         LOG.info("Restoring host's original THP configuration")
-        for path in self.original_config:
-            LOG.info("Writing path %s: %s", path, self.original_config[path])
+        for path in original_config:
+            LOG.info("Writing path %s: %s", path, original_config[path])
             p_file = kernel_interface.SysFS(path, session=self.session)
-            p_file.sys_fs_value = str(self.original_config[path])
+            p_file.sys_fs_value = str(original_config[path])
 
 
 class HugePageConfig(object):
