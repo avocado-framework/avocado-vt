@@ -1890,7 +1890,7 @@ def attach_interface(name, option="", **dargs):
 
 @EventTracker.wait_event
 def detach_interface(name, option="", wait_for_event=False,
-                     event_type='device-removed', event_timeout=7, **dargs):
+                     event_type='device-removed', event_timeout=30, **dargs):
     """
     Detach a NIC to VM.
 
