@@ -1968,7 +1968,7 @@ def multiple_versions_compare(interval):
 
     :param interval: An interval is a string representation of a
     """
-    re_pkg_name = r'(.*?)-(?=\d+\.?)+'
+    re_pkg_name = r',?(.*?)-(?=\d+\.?)+'
     versions = interval.split(';')
     # ';' is used to split multiple pkgs.
     for ver_i in versions:
