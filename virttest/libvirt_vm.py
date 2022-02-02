@@ -2971,7 +2971,8 @@ class VM(virt_vm.BaseVM):
         session.close()
 
     def prepare_guest_agent(self, prepare_xml=True, channel=True, start=True,
-                            source_path=None, target_name='org.qemu.guest_agent.0'):
+                            source_path=None, target_name='org.qemu.guest_agent.0',
+                            with_pm_utils=True):
         """
         Prepare qemu guest agent on the VM.
 
@@ -2981,6 +2982,7 @@ class VM(virt_vm.BaseVM):
         :param start: Whether install and start the qemu-ga service
         :param source_path: Source path of the guest agent channel
         :param target_name: Target name of the guest agent channel
+        :param with_pm_utils: Determines if to install pm-utils
         """
         if prepare_xml:
             if self.is_alive():
@@ -3011,7 +3013,8 @@ class VM(virt_vm.BaseVM):
         if not self.is_alive():
             self.start()
 
-        self.install_package('pm-utils', ignore_status=True, timeout=15)
+        if with_pm_utils:
+            self.install_package('pm-utils', ignore_status=True, timeout=15)
         self.install_package('qemu-guest-agent')
 
         self.set_state_guest_agent(start)
