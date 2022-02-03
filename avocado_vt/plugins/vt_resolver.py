@@ -71,9 +71,9 @@ class VTDiscoverer(Discoverer, VTResolverUtils):
 
     def discover(self):
         """It will discover vt test resolutions from cartesian config."""
-        self.config = settings.as_dict()
+        self.config = self.config or settings.as_dict()
         if (not get_opt(self.config, 'vt.config') and
                 not get_opt(self.config, 'list.resolver')):
-            return ReferenceResolution('', ReferenceResolutionResult.NOTFOUND)
+            return [ReferenceResolution('', ReferenceResolutionResult.NOTFOUND)]
 
         return [self._get_reference_resolution('')]
