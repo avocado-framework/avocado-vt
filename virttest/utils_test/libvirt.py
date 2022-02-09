@@ -1631,6 +1631,7 @@ def create_disk_xml(params):
     target_dev = params.get("target_dev", "vdb")
     target_bus = params.get("target_bus", "virtio")
     target_rotation = params.get("target_rotation")
+    target_tray = params.get("tray")
     diskxml = disk.Disk(type_name)
     diskxml.device = params.get("device_type", "disk")
     snapshot_attr = params.get('disk_snapshot_attr')
@@ -1771,6 +1772,8 @@ def create_disk_xml(params):
         diskxml.target = {'dev': target_dev, 'bus': target_bus}
         if target_rotation:
             diskxml.target = dict(diskxml.target, **{'rotation_rate': target_rotation})
+        if target_tray:
+            diskxml.target = dict(diskxml.target, **{'tray': target_tray})
         alias = params.get('alias')
         if alias:
             diskxml.alias = {'name': alias}
