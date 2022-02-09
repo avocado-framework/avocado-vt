@@ -227,7 +227,7 @@ def make_relative_path_backing_files(vm, pre_set_root_dir=None, origin_image=Non
 
 
 def create_reuse_external_snapshots(vm, pre_set_root_dir=None, skip_first_one=False,
-                                    disk_target="vda", snapshot_chain_lenghth=4):
+                                    disk_target="vda", disk_type="file", snapshot_chain_lenghth=4):
     """
     Create reuse external snapshots
 
@@ -258,7 +258,11 @@ def create_reuse_external_snapshots(vm, pre_set_root_dir=None, skip_first_one=Fa
         backing_file_path = os.path.join(root_dir, key)
         external_snap_shot = "%s/%s" % (backing_file_path, value)
         snapshot_external_disks.append(external_snap_shot)
-        options = "%s --diskspec %s,file=%s" % (meta_options, disk_target, external_snap_shot)
+        if disk_type == "block":
+            options = "%s --diskspec %s,file=%s,stype=%s" % (meta_options, disk_target,
+                                                             external_snap_shot, disk_type)
+        else:
+            options = "%s --diskspec %s,file=%s" % (meta_options, disk_target, external_snap_shot)
         virsh.snapshot_create_as(vm.name, options,
                                  ignore_status=False,
                                  debug=True)
