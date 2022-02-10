@@ -1773,6 +1773,11 @@ class QDaemonDev(QBaseDevice):
         self.set_param('name', name)
         self._daemon_process = None
 
+    @property
+    def daemon_process(self):
+        """Return daemon process property."""
+        return self._daemon_process
+
     def is_daemon_alive(self):
         """Check whether daemon is alive."""
         return bool(self._daemon_process and self._daemon_process.is_alive())
@@ -1800,8 +1805,6 @@ class QDaemonDev(QBaseDevice):
                 status_active, timeout=read_until_timeout)
         else:
             time.sleep(start_until_timeout)
-        LOG.info("Created %s daemon process with parent PID %d.",
-                 name, self._daemon_process.get_pid())
 
     def stop_daemon(self):
         """Stop daemon."""
@@ -1812,8 +1815,12 @@ class QDaemonDev(QBaseDevice):
                     raise DeviceError('The %s daemon is still alive.' %
                                       self.get_param('name'))
             finally:
-                self._daemon_process.close()
-                self._daemon_process = None
+                self.close_daemon_process()
+
+    def close_daemon_process(self):
+        """Close daemon process."""
+        self._daemon_process.close()
+        self._daemon_process = None
 
     def clear(self):
         """Clear daemon."""
@@ -1910,6 +1917,12 @@ class QVirtioFSDev(QDaemonDev):
         self.set_param('run_bg_kwargs', {'output_func': self._handle_log,
                                          'auto_close': False})
         super(QVirtioFSDev, self).start_daemon()
+        if not self.is_daemon_alive():
+            output = self.daemon_process.get_output()
+            self.close_daemon_process()
+            raise DeviceError("Failed to run virtiofs daemon: %s" % output)
+        LOG.info("Created virtiofs daemon process with parent PID %d.",
+                 self.daemon_process.get_pid())
 
     def __eq__(self, other):
         if super(QVirtioFSDev, self).__eq__(other):
@@ -1965,6 +1978,12 @@ class QSwtpmDev(QDaemonDev):
         self.set_param('cmd', tpm_cmd)
         self.set_param('run_bg_kwargs', {'auto_close': False})
         super(QSwtpmDev, self).start_daemon()
+        if not self.is_daemon_alive() and self.daemon_process.get_status():
+            output = self.daemon_process.get_output()
+            self.close_daemon_process()
+            raise DeviceError("Failed to run swtpm daemon: %s" % output)
+        LOG.info("Created swtpm daemon process with parent PID %d.",
+                 self.daemon_process.get_pid())
 
     def __eq__(self, other):
         if super(QSwtpmDev, self).__eq__(other):
