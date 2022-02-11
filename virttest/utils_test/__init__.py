@@ -18,7 +18,6 @@ More specifically:
 
 from __future__ import division
 import glob
-import imp
 import locale
 import logging
 import os
@@ -61,6 +60,7 @@ from virttest import utils_package
 from virttest.utils_iptables import Iptables
 from virttest import data_dir
 from virttest.staging import utils_memory
+from virttest._wrappers import import_module
 
 # Get back to importing submodules
 # This is essential for accessing these submodules directly from
@@ -1812,9 +1812,7 @@ def run_virt_sub_test(test, params, env, sub_type=None, tag=None):
         raise exceptions.TestError("Could not find test file %s.py "
                                    "on directories %s" % (sub_type, subtest_dirs))
 
-    f, p, d = imp.find_module(sub_type, [subtest_dir])
-    test_module = imp.load_module(sub_type, f, p, d)
-    f.close()
+    test_module = import_module(sub_type, subtest_dir)
     # Run the test function
     run_func = utils_misc.get_test_entrypoint_func(sub_type, test_module)
     if tag is not None:

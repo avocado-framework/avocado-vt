@@ -1,10 +1,10 @@
 import logging
-import imp
 
 from avocado.utils import process
 
 from .. import propcan, xml_utils, virsh
 from ..libvirt_xml import xcepts
+from .._wrappers import import_module
 
 
 class LibvirtXMLBase(propcan.PropCanBase):
@@ -408,9 +408,7 @@ def load_xml_module(path, name, type_list):
     if name not in type_list:
         raise xcepts.LibvirtXMLError(errmsg)
     try:
-        filename, pathname, description = imp.find_module(name,
-                                                          [path])
-        mod_obj = imp.load_module(name, filename, pathname, description)
+        mod_obj = import_module(name, path)
         # Enforce capitalized class names
         return getattr(mod_obj, name.capitalize())
     except TypeError as detail:
@@ -421,5 +419,5 @@ def load_xml_module(path, name, type_list):
     except AttributeError as detail:
         raise xcepts.LibvirtXMLError("Can't find class %s in %s module in "
                                      "%s: %s"
-                                     % (name.capitalize(), name, pathname,
+                                     % (name.capitalize(), name, path,
                                         str(detail)))

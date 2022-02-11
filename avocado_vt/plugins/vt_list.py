@@ -25,6 +25,7 @@ from avocado.core.plugin_interfaces import CLI
 from virttest.compat import get_settings_value, add_option
 from .vt import add_basic_vt_options, add_qemu_bin_vt_option
 from ..loader import VirtTestLoader
+from virttest._wrappers import load_source
 
 
 # The original virt-test runner supports using autotest from a git checkout,
@@ -40,9 +41,7 @@ if 'AUTOTEST_PATH' in os.environ:
     if not os.path.exists(SETUP_MODULES_PATH):
         raise EnvironmentError("Although AUTOTEST_PATH has been declared, "
                                "%s missing." % SETUP_MODULES_PATH)
-    import imp
-    SETUP_MODULES = imp.load_source('autotest_setup_modules',
-                                    SETUP_MODULES_PATH)
+    SETUP_MODULES = load_source('autotest_setup_modules', SETUP_MODULES_PATH)
     SETUP_MODULES.setup(base_path=CLIENT_DIR,
                         root_module_name="autotest.client")
 

@@ -9,7 +9,6 @@ Created on Dec 6, 2013
 
 import os
 import sys
-import imp
 import importlib
 import select
 import time
@@ -746,7 +745,10 @@ class CommanderSlaveCmds(CommanderSlave):
         :return: module.run().return
         """
         assert os.path.isfile(test_path)
-        module = imp.load_source('ext_test', test_path)
+        spec = importlib.util.spec_from_file_location('ext_test', test_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules['ext_test'] = module
+        spec.loader.exec_module(module)
         assert hasattr(module, "run")
         run = getattr(module, "run")
         helper = Helper(self)
