@@ -991,7 +991,7 @@ def preprocess(test, params, env):
             try:
                 path.find_command(cmd)
             except path.CmdNotFoundError as msg:
-                raise exceptions.TestSkipError(msg.message)
+                raise exceptions.TestSkipError(msg)
 
     _setup_manager.initialize(test, params, env)
     _setup_manager.register(test_setup.UlimitConfig)
