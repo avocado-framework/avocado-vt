@@ -59,7 +59,7 @@ class Uri(object):
             hypervisor = "kvm"
         self.hyper = hypervisor
 
-    def get_uri(self, hostname, vpx_dc=None, esx_ip=None):
+    def get_uri(self, hostname, vpx_dc=None, esx_ip=None, username=None):
         """
         Uri dispatcher.
 
@@ -69,6 +69,7 @@ class Uri(object):
         self.host = hostname
         self.vpx_dc = vpx_dc
         self.esx_ip = esx_ip
+        self.username = username if username else 'root'
         return uri_func()
 
     def _get_kvm_uri(self):
@@ -91,11 +92,12 @@ class Uri(object):
         """
         uri = ''
         if self.vpx_dc and self.esx_ip:
-            uri = "vpx://root@%s/%s/%s/?no_verify=1" % (self.host,
-                                                        self.vpx_dc,
-                                                        self.esx_ip)
+            uri = "vpx://%s@%s/%s/%s/?no_verify=1" % (self.username,
+                                                      self.host,
+                                                      self.vpx_dc,
+                                                      self.esx_ip)
         if not self.vpx_dc and self.esx_ip:
-            uri = "esx://root@%s/?no_verify=1" % self.esx_ip
+            uri = "esx://%s@%s/?no_verify=1" % (self.username, self.esx_ip)
         return uri
 
     # add new hypervisor in here.
@@ -1318,13 +1320,14 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
     params.update({'_v2v_virsh': None})
     # if 'has_rhv_disk_uuid' is 'yes', will append rhv-disk-uuid automatically.
     has_rhv_disk_uuid = params_get(params, 'has_rhv_disk_uuid')
+    vpx_username = params_get(params, 'vpx_username')
 
     uri_obj = Uri(hypervisor)
 
     # Return actual 'uri' according to 'hostname' and 'hypervisor'
     if src_uri_type == 'esx':
         vpx_dc = None
-    uri = uri_obj.get_uri(hostname, vpx_dc, esxi_host)
+    uri = uri_obj.get_uri(hostname, vpx_dc, esxi_host, vpx_username)
 
     try:
         # Pre-process for v2v
