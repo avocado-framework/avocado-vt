@@ -19,3 +19,10 @@ call cat /proc/sys/kernel/watchdog
 call cat /proc/sys/kernel/nmi_watchdog
 
 call tuned-adm active
+
+interface=`ls /sys/class/net/`
+
+for i in $interface;do
+    call echo "ethtool -l $i"
+    call ethtool -l $i
+done
