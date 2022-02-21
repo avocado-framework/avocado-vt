@@ -1277,7 +1277,7 @@ def preprocess(test, params, env):
             libvirtd_inst.restart()
 
     if params.get("setup_thp") == "yes":
-        thp = test_setup.TransparentHugePageConfig(test, params)
+        thp = test_setup.TransparentHugePageConfig(test, params, env)
         thp.setup()
 
     if params.get("setup_ksm") == "yes":
@@ -1758,7 +1758,7 @@ def postprocess(test, params, env):
 
     if params.get("setup_thp") == "yes":
         try:
-            thp = test_setup.TransparentHugePageConfig(test, params)
+            thp = test_setup.TransparentHugePageConfig(test, params, env)
             thp.cleanup()
         except Exception as details:
             err += "\nTHP cleanup: %s" % str(details).replace('\\n', '\n  ')
