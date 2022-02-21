@@ -466,6 +466,12 @@ class Target(object):
         if rhv_upload_opts:
             options += ' %s' % rhv_upload_opts
 
+        has_rhv_proxy_ver = '[virt-v2v-1.45.99-1,)'
+        # Remove rhv-proxy option from cmd
+        if not multiple_versions_compare(has_rhv_proxy_ver) and '-oo rhv-proxy' in options:
+            rhv_proxy_option = "(-oo rhv-proxy=(\S+))\s*|(-oo rhv-proxy)(?!=)"
+            options = re.sub(rhv_proxy_option, '', options)
+
         return options
 
     def _get_local_options(self):
