@@ -382,7 +382,7 @@ class _FilterConfigGatherer(object):
             :type params: Ordered Dict
             :return: Ordered Dict
         """
-        _config_gatherers = {}
+        _config_gatherers = {"compress": cls._compress}
         filter_params = params.object_params(filter_name)
         filter_type = filter_params.get("image_filter_driver_type")
         # Calls the adequate function for us
@@ -394,6 +394,13 @@ class _FilterConfigGatherer(object):
                                       "support hasn't been implemented for "
                                       f"{filter_type} filter yet.")
         return gather_func(filter_params)
+
+    @staticmethod
+    def _compress(params):
+        """ Gives an empty OrderedDict (as compress filter doesn't have
+            specific attributes related to the filter)
+        """
+        return collections.OrderedDict({"driver": "compress"})
 
 
 class _ParameterAssembler(string.Formatter):
