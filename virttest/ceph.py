@@ -241,6 +241,27 @@ def create_config_file(ceph_monitor):
 
 
 @error_context.context_aware
+def create_keyring_file(client_name, client_key):
+    """
+    Create a ceph keyring file
+
+    :params client_name: the client name to access the ceph server
+    :params client_key: the client key to access the ceph server
+    :return: the keyring file path
+    """
+    ceph_dir = "/etc/ceph"
+    keyring_file = os.path.join(ceph_dir, "ceph.client.admin.keyring")
+    if not os.path.exists(ceph_dir):
+        os.makedirs(ceph_dir)
+    if os.path.exists(keyring_file):
+        os.remove(keyring_file)
+    with open(keyring_file, 'w') as f:
+        f.write('[%s]\n' % client_name)
+        f.write('        key = %s\n' % client_key)
+    return keyring_file
+
+
+@error_context.context_aware
 def cephfs_mount(ceph_uri, mount_point, options=None, verbose=False, session=None):
     """
     Mount ceph volume to mountpoint.
