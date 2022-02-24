@@ -3315,9 +3315,15 @@ def parse_arp(session=None, timeout=60.0, **dargs):
             arp_cache = arp_file.read()
 
     for line in arp_cache.splitlines():
-        mac = line.split()[3]
-        ip = line.split()[0]
-        flag = line.split()[2]
+        parsed_elements = line.split()
+        try:
+            mac = parsed_elements[3]
+            ip = parsed_elements[0]
+            flag = parsed_elements[2]
+        except IndexError:
+            # Check if data is missing
+            raise OSError("Read invalid data from %s host arp file" %
+                          "remote" if session else "local")
 
         # Skip the header
         if mac.count(":") != 5:
