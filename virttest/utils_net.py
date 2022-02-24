@@ -3306,13 +3306,15 @@ def parse_arp(session=None, timeout=60.0, **dargs):
     :return: dict mapping MAC to IP
     """
     ret = {}
-    func = process.getoutput
+    arp_file_path = "/proc/net/arp"
     if session:
-        func = session.cmd_output
-    arp_cache = func('cat /proc/net/arp', timeout=timeout,
-                     **dargs).strip().split('\n')
+        arp_cache = session.cmd_output("cat %s" % arp_file_path,
+                                       timeout=timeout, **dargs)
+    else:
+        with open(arp_file_path, 'r') as arp_file:
+            arp_cache = arp_file.read()
 
-    for line in arp_cache:
+    for line in arp_cache.splitlines():
         mac = line.split()[3]
         ip = line.split()[0]
         flag = line.split()[2]
