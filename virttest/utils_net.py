@@ -3306,16 +3306,24 @@ def parse_arp(session=None, timeout=60.0, **dargs):
     :return: dict mapping MAC to IP
     """
     ret = {}
-    func = process.getoutput
+    arp_file_path = "/proc/net/arp"
     if session:
-        func = session.cmd_output
-    arp_cache = func('cat /proc/net/arp', timeout=timeout,
-                     **dargs).strip().split('\n')
+        arp_cache = session.cmd_output("cat %s" % arp_file_path,
+                                       timeout=timeout, **dargs)
+    else:
+        with open(arp_file_path, 'r') as arp_file:
+            arp_cache = arp_file.read()
 
-    for line in arp_cache:
-        mac = line.split()[3]
-        ip = line.split()[0]
-        flag = line.split()[2]
+    for line in arp_cache.splitlines():
+        parsed_elements = line.split()
+        try:
+            mac = parsed_elements[3]
+            ip = parsed_elements[0]
+            flag = parsed_elements[2]
+        except IndexError:
+            # Check if data is missing
+            raise OSError("Read invalid data from %s host arp file" %
+                          "remote" if session else "local")
 
         # Skip the header
         if mac.count(":") != 5:
