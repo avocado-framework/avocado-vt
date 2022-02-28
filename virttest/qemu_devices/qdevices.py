@@ -1420,16 +1420,22 @@ class Memory(QObject):
 
     __attributes__ = {"memory-backend-ram": ["size", "prealloc", "backend",
                                              "policy", "host-nodes", "share",
-                                             "merge", "dump"],
+                                             "merge", "dump", "prealloc-threads",
+                                             "reserve",
+                                             "x-use-canonical-path-for-ramblock-id"],
                       "memory-backend-file": ["size", "prealloc", "mem-path",
                                               "backend", "policy", "host-nodes",
                                               "share", "merge", "dump", "pmem",
                                               "discard-data", "align",
-                                              "prealloc-threads", "readonly"],
+                                              "prealloc-threads", "readonly",
+                                              "reserve",
+                                              "x-use-canonical-path-for-ramblock-id"],
                       "memory-backend-memfd": ["size", "prealloc", "backend",
                                                "seal", "policy", "host-nodes",
                                                "share", "merge", "dump",
-                                               "hugetlb", "hugetlbsize"]}
+                                               "hugetlb", "hugetlbsize",
+                                               "prealloc-threads", "reserve",
+                                               "x-use-canonical-path-for-ramblock-id"]}
 
     def __init__(self, backend, params=None):
         super(Memory, self).__init__(backend, params)
