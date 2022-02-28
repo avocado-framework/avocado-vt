@@ -1597,34 +1597,35 @@ class DevContainer(object):
                                       params.get('pci_addr'))
 
     # USB Device related methods
-    def usb_by_variables(self, usb_name, usb_type, controller_type, bus=None,
-                         port=None, serial=None, dev_options=None):
+    def usb_by_variables(self, usb_name, usbdev_type, controller_type,
+                         usbdev_bus=None, usbdev_port=None, usbdev_serial=None,
+                         dev_options=None):
         """
         Creates usb-devices by variables.
         :param usb_name: usb name
-        :param usb_type: usb type (usb-tablet, usb-serial, ...)
+        :param usbdev_type: usb type (usb-tablet, usb-serial, ...)
         :param controller_type: type of the controller (uhci, ehci, xhci, ...)
-        :param bus: the bus name (my_bus.0, ...)
-        :param port: port specification (4, 4.1.2, ...)
-        :param serial: serial specification (1234, d1, ...)
-        :param dev_options: device options dict of usb_type
+        :param usbdev_bus: the bus name (my_bus.0, ...)
+        :param usbdev_port: port specification (4, 4.1.2, ...)
+        :param usbdev_serial: serial specification (1234, d1, ...)
+        :param dev_options: device options dict of usbdev_type
         :return: QDev device
         """
-        if not self.has_device(usb_type):
+        if not self.has_device(usbdev_type):
             raise exceptions.TestSkipError("usb device %s not available"
-                                           % usb_type)
+                                           % usbdev_type)
         if self.has_option('device'):
-            device = qdevices.QDevice(usb_type, aobject=usb_name)
+            device = qdevices.QDevice(usbdev_type, aobject=usb_name)
             device.set_param('id', 'usb-%s' % usb_name)
-            device.set_param('bus', bus)
-            device.set_param('port', port)
-            device.set_param('serial', serial)
+            device.set_param('bus', usbdev_bus)
+            device.set_param('port', usbdev_port)
+            device.set_param('serial', usbdev_serial)
             if dev_options:
                 for opt_name, opt_value in dev_options.items():
                     device.set_param(opt_name, opt_value)
             device.parent_bus += ({'type': controller_type},)
         else:
-            if "tablet" in usb_type:
+            if "tablet" in usbdev_type:
                 device = qdevices.QStringDevice('usb-%s' % usb_name,
                                                 cmdline='-usbdevice %s' % usb_name)
             else:
@@ -1641,8 +1642,8 @@ class DevContainer(object):
         :return: QDev device
         """
         dev_options = {}
-        usb_type = params.get("usb_type")
-        if usb_type == "usb-host":
+        usbdev_type = params.get("usbdev_type")
+        if usbdev_type == "usb-host":
             dev_options["hostbus"] = params.get("usbdev_option_hostbus")
             dev_options["hostaddr"] = params.get("usbdev_option_hostaddr")
             dev_options["hostport"] = params.get("usbdev_option_hostport")
@@ -1654,10 +1655,10 @@ class DevContainer(object):
                 dev_options["productid"] = "0x%s" % productid
 
         return self.usb_by_variables(usb_name,
-                                     usb_type,
+                                     usbdev_type,
                                      params.get("usb_controller"),
-                                     params.get("bus"),
-                                     params.get("port"),
+                                     params.get("usbdev_bus"),
+                                     params.get("usbdev_port"),
                                      params.get("usbdev_serial"),
                                      dev_options)
 
