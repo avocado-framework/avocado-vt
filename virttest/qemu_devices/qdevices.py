@@ -169,7 +169,7 @@ class QBaseDevice(object):
 
     def __eq__(self, dev2, dynamic=True):
         """ :return: True when devs are similar, False when different. """
-        if not isinstance(dev2, QBaseDevice):
+        if not isinstance(dev2, type(self)):
             return False
         check_attrs = ['cmdline_nd', 'hotplug_hmp_nd', 'hotplug_qmp_nd']
         try:
