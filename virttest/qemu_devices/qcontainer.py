@@ -3094,31 +3094,31 @@ class DevContainer(object):
         tpm_type = params.get("tpm_type")
         tpm_version = params.get("tpm_version")
 
-        tmp_dir = data_dir.get_tmp_dir()
-        random_str = utils_misc.generate_random_string(6)
+        swtpm_dir = os.path.join(data_dir.get_data_dir(), "swtpm")
 
         def _handle_log(line):
             try:
-                utils_misc.log_line('%s_%s_swtpm_setup_%s.log' %
-                                    (self.vmname, name, random_str), line)
+                utils_misc.log_line('%s_swtpm_setup.log' % name, line)
             except Exception as e:
-                LOG.warn("Can't log %s_%s_swtpm_setup output: %s.", self.vmname, name, e)
+                LOG.warn("Can't log %s_swtpm_setup output: %s.", name, e)
 
         def _emulator_setup(binary, extra_options=None):
             setup_cmd = binary
             if tpm_version in ('2.0',):
                 setup_cmd += ' --tpm2'
 
-            tpm_path = os.path.join(tmp_dir, '%s_%s_tpm_state_%s' %
-                                    (self.vmname, name, random_str))
-            if os.path.exists(tpm_path):
-                shutil.rmtree(tpm_path, ignore_errors=True)
-            os.makedirs(tpm_path)
+            tpm_path = os.path.join(swtpm_dir, '%s_state' % name)
+            if not os.path.exists(tpm_path):
+                os.makedirs(tpm_path)
             setup_cmd += " --tpm-state %s" % tpm_path
 
             setup_cmd += (" --createek --create-ek-cert"
                           " --create-platform-cert"
-                          " --lock-nvram --not-overwrite")
+                          " --lock-nvram")
+            tpm_overwrite = params.get_boolean("tpm_overwrite")
+            overwrite_option = (" --overwrite" if tpm_overwrite else
+                                " --not-overwrite")
+            setup_cmd += overwrite_option
 
             if extra_options:
                 setup_cmd += extra_options
@@ -3135,8 +3135,7 @@ class DevContainer(object):
             tpm_setup_bin = params.get("tpm_setup_bin", "/usr/bin/swtpm_setup")
             tpm_bin_extra_options = params.get("tpm_bin_extra_options")
             tpm_setup_bin_extra_options = params.get("tpm_setup_bin_extra_options")
-            sock_path = os.path.join(
-                    tmp_dir, '_'.join((self.vmname, name, 'swtpm_%s.sock' % random_str)))
+            sock_path = os.path.join(swtpm_dir, name + '_swtpm.sock')
 
             storage_path = _emulator_setup(tpm_setup_bin, tpm_setup_bin_extra_options)
             swtpmdev = qdevices.QSwtpmDev(name, tpm_bin, sock_path, storage_path,
