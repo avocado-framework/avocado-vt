@@ -1504,7 +1504,8 @@ class Memory(QObject):
 class Dimm(QDevice):
     """
     PC-Dimm or NVDIMM device, support for memory hotplug using the device and
-    the QOM objects 'memory-backend-ram' and 'memory-backend-file'
+    the QOM objects 'memory-backend-ram', 'memory-backend-memfd',
+    and 'memory-backend-file'
     """
 
     __attributes__ = ["memdev", "slot", "addr", "node", "unarmed", "size",
