@@ -2884,6 +2884,8 @@ class DevContainer(object):
         """
         params = params.object_params("mem")
         params.setdefault("backend", "memory-backend-ram")
+        attrs = qdevices.Memory.__attributes__[params["backend"]][:]
+        params = params.copy_from_keys(attrs)
         dev = qdevices.Memory(params["backend"], params)
         dev.set_param("id", "%s-%s" % ("mem", name))
         return dev
@@ -2894,7 +2896,9 @@ class DevContainer(object):
         """
         params = params.object_params("dimm")
         dimm_type = "nvdimm" if params.get("nv_backend") else "pc-dimm"
-        dev = qdevices.Dimm(params, dimm_type=dimm_type)
+        attrs = qdevices.Dimm.__attributes__[:]
+        dev = qdevices.Dimm(params=params.copy_from_keys(attrs),
+                            dimm_type=dimm_type)
         dev.set_param("id", "%s-%s" % ("dimm", name))
         if dimm_type == "nvdimm" and params.get("nvdimm_uuid"):
             try:

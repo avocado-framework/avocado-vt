@@ -17,7 +17,6 @@ import aexpect
 
 from virttest import qemu_monitor
 from virttest import utils_misc
-from virttest import utils_qemu
 from virttest.qemu_devices.utils import DeviceError
 from virttest.qemu_devices.utils import none_or_int
 from virttest.utils_version import VersionInterval
@@ -1415,12 +1414,30 @@ class Memory(QObject):
 
     """
     QOM memory object, support for pinning memory on host NUMA nodes.
+    The existing options in __attributes__ are subsumed by the QOM objects
+    'memory-backend-ram', 'memory-backend-file', 'memory-backend-memfd'.
     """
 
+    __attributes__ = {"memory-backend-ram": ["size", "prealloc", "backend",
+                                             "policy", "host-nodes", "share",
+                                             "merge", "dump", "prealloc-threads",
+                                             "reserve",
+                                             "x-use-canonical-path-for-ramblock-id"],
+                      "memory-backend-file": ["size", "prealloc", "mem-path",
+                                              "backend", "policy", "host-nodes",
+                                              "share", "merge", "dump", "pmem",
+                                              "discard-data", "align",
+                                              "prealloc-threads", "readonly",
+                                              "reserve",
+                                              "x-use-canonical-path-for-ramblock-id"],
+                      "memory-backend-memfd": ["size", "prealloc", "backend",
+                                               "seal", "policy", "host-nodes",
+                                               "share", "merge", "dump",
+                                               "hugetlb", "hugetlbsize",
+                                               "prealloc-threads", "reserve",
+                                               "x-use-canonical-path-for-ramblock-id"]}
+
     def __init__(self, backend, params=None):
-        qemu_binary = utils_misc.get_qemu_binary(params)
-        self.attrs = utils_qemu.get_dev_attrs(qemu_binary, 'object', backend)
-        params = params.copy_from_keys(self.attrs)
         super(Memory, self).__init__(backend, params)
         self.hook_drive_bus = None
 
@@ -1487,13 +1504,14 @@ class Memory(QObject):
 class Dimm(QDevice):
     """
     PC-Dimm or NVDIMM device, support for memory hotplug using the device and
-    QOM objects.
+    the QOM objects 'memory-backend-ram', 'memory-backend-memfd',
+    and 'memory-backend-file'
     """
 
+    __attributes__ = ["memdev", "slot", "addr", "node", "unarmed", "size",
+                      "label-size", "uuid"]
+
     def __init__(self, params=None, dimm_type='pc-dimm'):
-        qemu_binary = utils_misc.get_qemu_binary(params)
-        self.attrs = utils_qemu.get_dev_attrs(qemu_binary, 'device', dimm_type)
-        params = params.copy_from_keys(self.attrs)
         kwargs = {'driver': dimm_type,
                   'params': params}
         super(Dimm, self).__init__(**kwargs)
