@@ -4,8 +4,13 @@ tpm device support class(es)
 http://libvirt.org/formatdomain.html#elementsTpm
 """
 
+import logging
+
 from virttest.libvirt_xml import accessors
 from virttest.libvirt_xml.devices import base
+from virttest import xml_utils
+
+LOG = logging.getLogger('avocado.' + __name__)
 
 
 class Tpm(base.UntypedDeviceBase):
@@ -41,8 +46,10 @@ class Tpm(base.UntypedDeviceBase):
             string. device path
         secret:
             string. encryption secret
+        active_pcr_banks:
+            string.  backend active_pcr_banks
         """
-        __slots__ = ('backend_type', 'backend_version', 'persistent_state', 'device_path', 'encryption_secret')
+        __slots__ = ('backend_type', 'backend_version', 'persistent_state', 'device_path', 'encryption_secret', 'active_pcr_banks')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLAttribute(property_name="backend_type",
@@ -70,5 +77,68 @@ class Tpm(base.UntypedDeviceBase):
                                    parent_xpath='/',
                                    tag_name='encryption',
                                    attribute='secret')
+            accessors.XMLElementNest('active_pcr_banks',
+                                     libvirtxml=self,
+                                     parent_xpath='/',
+                                     tag_name='active_pcr_banks',
+                                     subclass=self.ActivePCRBanks,
+                                     subclass_dargs={
+                                         'virsh_instance': virsh_instance})
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<backend/>'
+
+        class ActivePCRBanks(base.base.LibvirtXMLBase):
+            """
+            Tpm active_pcr_banks xml class.
+
+            Elements:
+            pcrbank_list: list of elements
+            """
+            __slots__ = ('pcrbank_list',)
+
+            def __init__(self, virsh_instance=base.base.virsh):
+                accessors.AllForbidden(property_name="pcrbank_list",
+                                       libvirtxml=self)
+                super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+                self.xml = '<active_pcr_banks/>'
+
+            def get_pcrbank_list(self):
+                """
+                Return all active_pcr_banks in xml
+                """
+                pcrbank_list = []
+                root = self.__dict_get__('xml').getroot()
+                for pcrbank in root:
+                    pcrbank_list.append(pcrbank.tag)
+                return pcrbank_list
+
+            def has_pcrbank(self, name):
+                """
+                Return true if the given active_pcr_banks exist in xml
+                """
+                return name in self.get_pcrbank_list()
+
+            def add_pcrbank(self, name):
+                """
+                Add a active_pcr_banks element to xml
+
+                :params name: active_pcr_banks name
+                """
+                if self.has_pcrbank(name):
+                    LOG.debug("PCR bank %s already exist, so remove it", name)
+                    self.remove_pcrbank(name)
+                root = self.__dict_get__('xml').getroot()
+                xml_utils.ElementTree.SubElement(root, name)
+
+            def remove_pcrbank(self, name):
+                """
+                Remove a active_pcr_banks element from xml
+
+                :params name: active_pcr_banks name
+                """
+                root = self.__dict_get__('xml').getroot()
+                remove_pcrbank = root.find(name)
+                if remove_pcrbank is None:
+                    LOG.error("PCR bank %s doesn't exist", name)
+                else:
+                    root.remove(remove_pcrbank)
