@@ -4854,21 +4854,30 @@ class VM(virt_vm.BaseVM):
             def is_json_data(data):
                 return isinstance(data, six.string_types) and data.startswith('json:')
 
+            def block_has_kv(user_key, user_value, block_key, block_value):
+                res = None
+                if {user_key: user_value} == {block_key: block_value}:
+                    return True
+                if is_json_data(block_value):
+                    block_value = parse_json(block_value)
+                if isinstance(block_value, dict):
+                    for (k, v) in six.iteritems(block_value):
+                        res = block_has_kv(user_key, user_value, k, v)
+                        if res:
+                            break
+                return res
+
             for block in blocks_info:
-                matched = True
+                matched = False
                 for key, value in six.iteritems(p_dict):
                     if is_json_data(value):
                         value = parse_json(value)
                     for (k, v) in traverse_nested_dict(block):
-                        if is_json_data(v):
-                            v = parse_json(v)
-                        if k != key:
-                            continue
-                        if v != value:
-                            matched = False
+                        matched = block_has_kv(key, value, k, v)
+                        if matched:
+                            break
+                    if matched:
                         break
-                    else:
-                        matched = False
                 if matched:
                     if self.check_capability(Flags.BLOCKDEV):
                         return block['inserted']['node-name']
