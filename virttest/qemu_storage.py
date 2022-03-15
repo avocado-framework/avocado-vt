@@ -1534,7 +1534,7 @@ class QemuImg(storage.QemuImg):
         """
         image_filename = self.image_filename
         LOG.debug("Checking image file %s", image_filename)
-        image_is_checkable = self.image_format in ['qcow2', 'qed']
+        image_is_checkable = self.image_format in ['qcow2', 'qed', 'vdi']
         force_share &= self.cap_force_share
 
         if (storage.file_exists(params, image_filename) or
