@@ -30,6 +30,16 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
                    lb_sizeunit="Kib", mem_access=None, uuid=None):
     """
     Create memory device xml.
+    This function is deprecated now.
+    The recommended usage is below:
+
+    Define a parameter in cfg like
+        mem_device_attrs = {'mem_model': 'dimm', 'target': {'size': 512, 'size_unit': 'KiB', 'node': 1}}
+    Set up the device in python like
+        mem_device_attrs = eval(params.get('mem_device_attrs', '{}'))
+        mem_device = Memory()
+        mem_device.setup_attrs(**mem_device_attrs)
+
     Parameters:
     :param tg_size: Target hotplug memory size
     :param pg_size: Source page size in case of hugepages backed.
@@ -46,6 +56,7 @@ def create_mem_xml(tg_size, pg_size=None, mem_addr=None, tg_sizeunit="KiB",
     :param uuid: Value of attrib 'uuid' of memory
     :return: Returns a copy of Memory Hotplug xml instance.
     """
+    LOG.warning("This function is deprecated now. See more details in docstring")
     mem_xml = memory.Memory()
     mem_xml.mem_model = mem_model
 
