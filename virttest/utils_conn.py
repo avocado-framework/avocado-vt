@@ -2335,3 +2335,31 @@ class UNIXSocketConnection(ConnectionBase):
         self.connect_to_unix_socket(tcp2unix_session, dest_pmsocat_path)
         self.add_firewall_ports(tcp2unix_session)
         LOG.debug("TCP2UNIX setup successfully.")
+
+
+def update_crypto_policy(value="DEFAULT", verbose=True, ignore_status=True, shell=True):
+    """
+    Update the crypto policy, see "man update-crypto-policies".
+
+    :param value: the policy value, see "man crypto-policies".
+    :param verbose: Whether to log the command run and stdout/stderr.
+    :param ignore_status: Whether to raise an exception when command returns
+                          =! 0 (False), or not (True).
+    :param shell: Whether to run the command on a subshell
+    """
+    cmd = "update-crypto-policies --set %s" % value
+    cmd_res = process.run(
+        cmd,
+        verbose=verbose,
+        ignore_status=ignore_status,
+        shell=shell)
+
+    cmd_get_policy = "update-crypto-policies --show"
+    val = process.run(
+        cmd_get_policy,
+        verbose=False,
+        ignore_status=True,
+        shell=True).stdout_text
+    LOG.info("Current crypto policy: %s", val)
+
+    return cmd_res
