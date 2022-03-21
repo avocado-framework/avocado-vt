@@ -57,12 +57,15 @@ class Memory(base.UntypedDeviceBase):
 
         Properties:
 
-        size, node:
+        size, node, requested_size, current_size, block_size:
             int.
-        size_unit:
+        size_unit, requested_unit, current_unit, block_unit:
             string.
         """
-        __slots__ = ('size', 'size_unit', 'node', 'label')
+        __slots__ = ('size', 'size_unit', 'node', 'label',
+                     'requested_size', 'requested_unit',
+                     'current_size', 'current_unit',
+                     'block_size', 'block_unit')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLElementInt('size',
@@ -73,6 +76,33 @@ class Memory(base.UntypedDeviceBase):
                                    forbidden=None,
                                    parent_xpath='/',
                                    tag_name='size',
+                                   attribute='unit')
+            accessors.XMLElementInt('requested_size',
+                                    self, parent_xpath='/',
+                                    tag_name='requested')
+            accessors.XMLAttribute(property_name="requested_unit",
+                                   libvirtxml=self,
+                                   forbidden=None,
+                                   parent_xpath='/',
+                                   tag_name='requested',
+                                   attribute='unit')
+            accessors.XMLElementInt('current_size',
+                                    self, parent_xpath='/',
+                                    tag_name='current')
+            accessors.XMLAttribute(property_name="current_unit",
+                                   libvirtxml=self,
+                                   forbidden=None,
+                                   parent_xpath='/',
+                                   tag_name='current',
+                                   attribute='unit')
+            accessors.XMLElementInt('block_size',
+                                    self, parent_xpath='/',
+                                    tag_name='block')
+            accessors.XMLAttribute(property_name="block_unit",
+                                   libvirtxml=self,
+                                   forbidden=None,
+                                   parent_xpath='/',
+                                   tag_name='block',
                                    attribute='unit')
             accessors.XMLElementInt('node',
                                     self, parent_xpath='/',
