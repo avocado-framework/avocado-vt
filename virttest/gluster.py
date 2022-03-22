@@ -6,11 +6,11 @@ This file has the functions that helps
 * To create gluster uri which can be used as disk image file path.
 """
 
+import ipaddress
 import logging
 import os
 import re
 import socket
-import netaddr
 
 from avocado.utils import process
 from avocado.utils import path as utils_path
@@ -362,9 +362,14 @@ def create_gluster_uri(params, stripped=False):
             gluster_port = params.get("gluster_port")
             port = ":%s" % gluster_port if gluster_port else ""
 
-            # [IPv6 address]
-            server = "[%s]" % gluster_server if netaddr.valid_ipv6(
-                                gluster_server) else gluster_server
+            server = gluster_server
+            try:
+                # [IPv6 address]
+                ipaddress.IPv6Address(gluster_server)
+            except ipaddress.AddressValueError:
+                pass
+            else:
+                server = "[%s]" % gluster_server
 
             host = "%s%s" % (server, port)
 

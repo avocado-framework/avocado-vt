@@ -4,6 +4,5 @@ pylint==2.12.2
 inspektor==0.5.3
 aexpect==1.6.4
 simplejson==3.8.0
-netaddr==0.7.19
 netifaces==0.11.0
 pyenchant==3.2.2

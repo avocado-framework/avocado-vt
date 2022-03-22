@@ -1001,7 +1001,7 @@ class AvocadoGuest(object):
             if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
                 LOG.error("Failed to restart libvirtd inside guest")
                 return False
-            pip_pack = ['setuptools', 'netifaces', 'aexpect', 'netaddr']
+            pip_pack = ['setuptools', 'netifaces', 'aexpect']
             cmd = ""
             for each in pip_pack:
                 cmd = "%s install %s --upgrade" % (self.pip_bin, each)

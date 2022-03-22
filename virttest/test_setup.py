@@ -8,7 +8,7 @@ import random
 import math
 import shutil
 import platform
-import netaddr
+import ipaddress
 import six
 import resource
 
@@ -1475,7 +1475,7 @@ class PciAssignable(object):
         if (not self.start_addr_PF) or (not self.net_mask):
             raise exceptions.TestSetupFail(
                 "No IP / netmask found, please populate starting IP address for PF devices in configuration file")
-        ip_addr = netaddr.IPAddress(self.start_addr_PF)
+        ip_addr = ipaddress.ip_address(self.start_addr_PF)
         for PF in pf_devices:
             ifname = utils_misc.get_interface_from_pci_id(PF)
             ip_assign = "ifconfig %s %s netmask %s up" % (

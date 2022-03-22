@@ -12,12 +12,12 @@ import shelve
 import signal
 import sys
 import netifaces
-import netaddr
 import platform
 import uuid
 import hashlib
 import shutil
 import json
+import ipaddress as pyipaddr
 
 import aexpect
 from aexpect import remote
@@ -3381,7 +3381,7 @@ def verify_ip_address_ownership(ip, macs, timeout=60.0, devs=None,
             pass
         return False
 
-    ip_ver = netaddr.IPAddress(ip).version
+    ip_ver = pyipaddr.ip_address(ip).version
 
     func = process.getoutput
     dargs = dict()
@@ -3442,7 +3442,7 @@ def gen_ipv4_addr(network_num="10.0.0.0", network_prefix="24", exclude_ips=[]):
                         str(1))
         exclude_ips.add(('.'.join(network_num.split('.')[0:3]) + ".%s" %
                          str(255)))
-    network = netaddr.IPNetwork("%s/%s" % (network_num, network_prefix))
+    network = pyipaddr.ip_network("%s/%s" % (network_num, network_prefix))
     for ip_address in network:
         if str(ip_address) not in exclude_ips:
             yield str(ip_address)
@@ -3592,7 +3592,7 @@ def get_linux_ipaddr(session, nic):
     out = session.cmd_output_safe(cmd)
     addrs = re.findall(rex, out, re.M)
     addrs = map(lambda x: x[1].split('/')[0], addrs)
-    addrs = map(lambda x: netaddr.IPAddress(x), addrs)
+    addrs = map(lambda x: pyipaddr.ip_address(x), addrs)
     ipv4_addr = list(filter(lambda x: x.version == 4, addrs))
     ipv6_addr = list(filter(lambda x: x.version == 6, addrs))
     ipv4_addr = str(ipv4_addr[0]) if ipv4_addr else None
@@ -3606,7 +3606,7 @@ def windows_mac_ip_maps(session):
     """
     def str2ipaddr(str_ip):
         try:
-            return netaddr.IPAddress(str_ip)
+            return pyipaddr.ip_address(str_ip)
         except Exception:
             pass
         return None

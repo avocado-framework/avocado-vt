@@ -30,7 +30,7 @@ Pip is useful when it comes to python dependencies, but it fails
 in non-python ones. List of non-python requirements based on Fedora
 package names is::
 
-    $ dnf install xz tcpdump iproute iputils gcc glibc-headers nc git python-netaddr python-devel
+    $ dnf install xz tcpdump iproute iputils gcc glibc-headers nc git python-devel
 
 Then you can get Avocado-VT via pip::
 
