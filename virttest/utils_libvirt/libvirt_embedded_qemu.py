@@ -37,7 +37,7 @@ class EmbeddedQemuSession(object):
         :param logging_pattern: Regex for filtering specific log lines
         """
         if not utils_split_daemons.is_modular_daemon():
-            raise exceptions.TestFail("Embedded qemu driver needs modular daemon mode.")
+            raise exceptions.TestCancel("Embedded qemu driver needs modular daemon mode.")
         self.tail = None
         self.running = False
         self.service_exec = "virt-qemu-run"
