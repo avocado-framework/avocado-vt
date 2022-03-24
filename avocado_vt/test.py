@@ -17,7 +17,6 @@ Avocado VT plugin
 """
 
 import imp
-import logging
 import os
 import sys
 import pipes
@@ -163,11 +162,11 @@ class VirtTest(test.Test, utils.TestUtils):
                     if("TestFail" not in str(self.__exc_info) and
                        "TestError" not in str(self.__exc_info)):
                         if libvirtd_log and os.path.isfile(libvirtd_log):
-                            logging.info("cleaning libvirtd logs...")
+                            self.log.info("cleaning libvirtd logs...")
                             os.remove(libvirtd_log)
                     else:
                         # tar the libvirtd log and archive
-                        logging.info("archiving libvirtd debug logs")
+                        self.log.info("archiving libvirtd debug logs")
                         from virttest import utils_package
                         if utils_package.package_install("tar"):
                             if os.path.isfile(libvirtd_log):
@@ -179,11 +178,11 @@ class VirtTest(test.Test, utils.TestUtils):
                                 if process.system(cmd) == 0:
                                     os.remove(libvirtd_log)
                             else:
-                                logging.error("Unable to find log file: %s",
-                                              libvirtd_log)
+                                self.log.error("Unable to find log file: %s",
+                                               libvirtd_log)
                         else:
-                            logging.error("Unable to find tar to compress libvirtd "
-                                          "logs")
+                            self.log.error("Unable to find tar to compress libvirtd "
+                                           "logs")
 
             if env_lang:
                 os.environ['LANG'] = env_lang
@@ -208,25 +207,25 @@ class VirtTest(test.Test, utils.TestUtils):
                 exec(f.read())
 
         # Report virt test version
-        logging.info(version.get_pretty_version_info())
+        self.log.info(version.get_pretty_version_info())
         self._log_parameters()
 
         # Warn of this special condition in related location in output & logs
         if os.getuid() == 0 and params.get('nettype', 'user') == 'user':
-            logging.warning("")
-            logging.warning("Testing with nettype='user' while running "
-                            "as root may produce unexpected results!!!")
-            logging.warning("")
+            self.log.warning("")
+            self.log.warning("Testing with nettype='user' while running "
+                             "as root may produce unexpected results!!!")
+            self.log.warning("")
 
         subtest_dirs = self._get_subtest_dirs()
 
         # Get the test routine corresponding to the specified
         # test type
-        logging.debug("Searching for test modules that match "
-                      "'type = %s' and 'provider = %s' "
-                      "on this cartesian dict",
-                      params.get("type"),
-                      params.get("provider", None))
+        self.log.debug("Searching for test modules that match "
+                       "'type = %s' and 'provider = %s' "
+                       "on this cartesian dict",
+                       params.get("type"),
+                       params.get("provider", None))
 
         t_types = params.get("type").split()
 
@@ -276,7 +275,7 @@ class VirtTest(test.Test, utils.TestUtils):
                     if t_type is not None:
                         error_message = funcatexit.run_exitfuncs(env, t_type)
                         if error_message:
-                            logging.error(error_message)
+                            self.log.error(error_message)
                     try:
                         env_process.postprocess_on_error(self, params, env)
                     finally:
@@ -295,9 +294,9 @@ class VirtTest(test.Test, utils.TestUtils):
                                                 'avocado.test')
                         if test_passed:
                             raise
-                        logging.error("Exception raised during "
-                                      "postprocessing: %s",
-                                      sys.exc_info()[1])
+                        self.log.error("Exception raised during "
+                                       "postprocessing: %s",
+                                       sys.exc_info()[1])
                 finally:
                     if self._safe_env_save(env) or params.get("env_cleanup", "no") == "yes":
                         env.destroy()   # Force-clean as it can't be stored
@@ -306,17 +305,17 @@ class VirtTest(test.Test, utils.TestUtils):
             if params.get("abort_on_error") != "yes":
                 raise
             # Abort on error
-            logging.info("Aborting job (%s)", e)
+            self.log.info("Aborting job (%s)", e)
             if params.get("vm_type") == "qemu":
                 for vm in env.get_all_vms():
                     if vm.is_dead():
                         continue
-                    logging.info("VM '%s' is alive.", vm.name)
+                    self.log.info("VM '%s' is alive.", vm.name)
                     for m in vm.monitors:
-                        logging.info("It has a %s monitor unix socket at: %s",
-                                     m.protocol, m.filename)
-                    logging.info("The command line used to start it was:\n%s",
-                                 vm.make_create_command())
+                        self.log.info("It has a %s monitor unix socket at: %s",
+                                      m.protocol, m.filename)
+                    self.log.info("The command line used to start it was:\n%s",
+                                  vm.make_create_command())
                 raise exceptions.JobError("Abort requested (%s)" % e)
 
         return test_passed
