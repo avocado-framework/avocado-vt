@@ -3835,6 +3835,7 @@ def check_logfile(search_str, log_file, str_in_log=True,
                                           log_file))
     else:
         LOG.debug('Log check for "%s" PASS', search_str)
+        return cmdRes
 
 
 def check_qemu_cmd_line(content, err_ignore=False,
