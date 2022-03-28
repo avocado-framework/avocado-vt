@@ -22,6 +22,8 @@ from virttest import bootstrap
 from virttest import defaults
 from virttest.standalone_test import SUPPORTED_TEST_TYPES
 
+LOG = logging.getLogger("avocado.app")
+
 
 class VTBootstrap(CLICmd):
 
@@ -91,28 +93,23 @@ class VTBootstrap(CLICmd):
                                   "generating the host configuration entry."))
 
     def run(self, config):
-        # Enable root logger as some Avocado-vt libraries use that
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.DEBUG)
-        logging.getLogger("").addHandler(handler)
-
         try:
             bootstrap.bootstrap(options=config, interactive=True)
             sys.exit(0)
         except process.CmdError as ce:
             if ce.result.interrupted:
-                logging.info('Bootstrap command interrupted by user')
-                logging.info('Command: %s', ce.command)
+                LOG.info('Bootstrap command interrupted by user')
+                LOG.info('Command: %s', ce.command)
             else:
-                logging.error('Bootstrap command failed')
-                logging.error('Command: %s', ce.command)
+                LOG.error('Bootstrap command failed')
+                LOG.error('Command: %s', ce.command)
                 if ce.result.stderr_text:
-                    logging.error('stderr output:')
-                    logging.error(ce.result.stderr_text)
+                    LOG.error('stderr output:')
+                    LOG.error(ce.result.stderr_text)
                 if ce.result.stdout_text:
-                    logging.error('stdout output:')
-                    logging.error(ce.result.stdout_text)
+                    LOG.error('stdout output:')
+                    LOG.error(ce.result.stdout_text)
             sys.exit(1)
         except KeyboardInterrupt:
-            logging.info('Bootstrap interrupted by user')
+            LOG.info('Bootstrap interrupted by user')
             sys.exit(1)
