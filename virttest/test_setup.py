@@ -2473,7 +2473,7 @@ class LibvirtdDebugLog(object):
             "backupfile": "%s.backup" % utils_config.LibvirtdConfig().conf_path}
         if utils_split_daemons.is_modular_daemon():
             self.daemons_dict["libvirtd"]["conf"] = utils_config.VirtQemudConfig()
-            self.daemons_dict["libvirtd"]["backupfile"] = utils_config.VirtQemudConfig().conf_path
+            self.daemons_dict["libvirtd"]["backupfile"] = "%s.backup" % utils_config.VirtQemudConfig().conf_path
             self.daemons_dict["virtnetworkd"] = {
                 "daemon": utils_libvirtd.Libvirtd("virtnetworkd"),
                 "conf": utils_config.VirtNetworkdConfig(),
