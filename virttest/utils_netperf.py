@@ -1,3 +1,4 @@
+import ntpath
 import os
 import logging
 import re
@@ -82,6 +83,17 @@ class NetperfPackage(remote_old.Remote_Package):
         self.md5sum = md5sum
         self.netperf_base_dir = self.remote_path
         self.netperf_file = os.path.basename(self.netperf_source)
+        # XXX: add this as a workaround to make it supports Windows
+        #      properly, and also we need to figure out an elegant
+        #      way for handling the `Remote_Package` stuff upon
+        #      different platforms.
+        self.__win_platform = self.cp_client == "rss"
+        if self.__win_platform:
+            self.__remote_file = ntpath.join(self.netperf_base_dir,
+                                             self.netperf_file)
+        else:
+            self.__remote_file = os.path.join(self.netperf_base_dir,
+                                              self.netperf_file)
 
         if client == "ssh":
             if self.netperf_source.endswith("tar.bz2"):
@@ -99,10 +111,8 @@ class NetperfPackage(remote_old.Remote_Package):
             self.netperf_path = os.path.join(self.netperf_dir,
                                              "src/netperf")
         else:
-            self.netserver_path = os.path.join(self.netperf_base_dir,
-                                               self.netperf_file)
-            self.netperf_path = os.path.join(self.netperf_base_dir,
-                                             self.netperf_file)
+            self.netserver_path = self.__remote_file
+            self.netperf_path = self.__remote_file
 
         self._session = None
         self._session_attrs = (prompt, linesep, status_test_command)
@@ -133,8 +143,11 @@ class NetperfPackage(remote_old.Remote_Package):
             clean_cmd = "rm -rf %s" % self.netperf_dir
             self.session.cmd(clean_cmd, ignore_all_errors=True)
         if clean_all:
-            clean_cmd = "rm -f %s" % os.path.join(self.remote_path,
-                                                  self.netperf_file)
+            clean_cmd = " %s" % os.path.join(self.__remote_file)
+            if self.__win_platform:
+                clean_cmd = "del" + clean_cmd
+            else:
+                clean_cmd = "rm -f" + clean_cmd
             self.session.cmd(clean_cmd, ignore_all_errors=True)
         self._release_session()
 
@@ -294,6 +307,13 @@ class NetperfServer(Netperf):
                                             password, prompt, linesep, status_test_command,
                                             compile_option, install)
 
+    @property
+    def netserver_bin(self):
+        get_basename = os.path.basename
+        if self.client == "nc":
+            get_basename = ntpath.basename
+        return get_basename(self.netserver_path)
+
     def start(self, restart=False):
         """
         Start/Restart netserver
@@ -319,10 +339,10 @@ class NetperfServer(Netperf):
         LOG.info("Netserver start successfully")
 
     def is_server_running(self):
-        return self.is_target_running(os.path.basename(self.netserver_path))
+        return self.is_target_running(self.netserver_bin)
 
     def stop(self):
-        super(NetperfServer, self).stop(os.path.basename(self.netserver_path))
+        super(NetperfServer, self).stop(self.netserver_bin)
 
 
 class NetperfClient(Netperf):
@@ -350,6 +370,13 @@ class NetperfClient(Netperf):
                                             netperf_source, client, port, username,
                                             password, prompt, linesep, status_test_command,
                                             compile_option, install)
+
+    @property
+    def netperf_bin(self):
+        get_basename = os.path.basename
+        if self.client == "nc":
+            get_basename = ntpath.basename
+        return get_basename(self.netperf_path)
 
     def start(self, server_address, test_option="", timeout=1200,
               cmd_prefix="", package_sizes=""):
@@ -428,7 +455,7 @@ class NetperfClient(Netperf):
                 self.session.cmd_output_safe("%s &" % netperf_cmd)
 
     def is_netperf_running(self):
-        return self.is_target_running(os.path.basename(self.netperf_path))
+        return self.is_target_running(self.netperf_bin)
 
     def stop(self):
-        super(NetperfClient, self).stop(os.path.basename(self.netperf_path))
+        super(NetperfClient, self).stop(self.netperf_bin)
