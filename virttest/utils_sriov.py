@@ -151,7 +151,8 @@ def get_iface_name(pci_id, session=None):
                                                       session=session)
     if status:
         raise exceptions.TestError("Unable to get iface name of %s." % pci_id)
-    return iface_name
+    iface_name_single = iface_name.split()[0]
+    return iface_name_single
 
 
 def set_vf(pci_addr, vf_no=4, session=None, timeout=60):
