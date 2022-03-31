@@ -1825,7 +1825,7 @@ class UNIXConnection(ConnectionBase):
         init_dict['restart_libvirtd'] = init_dict.get(
             'restart_libvirtd', 'yes')
         init_dict['sasl_allowed_username_list'] = init_dict.get(
-            'sasl_allowed_username_list', '["root/admin" ]')
+            'sasl_allowed_username_list')
         init_dict['traditional_mode'] = init_dict.get(
             'traditional_mode', 'no')
         init_dict['run_on_remote'] = init_dict.get('run_on_remote', 'no')
@@ -1852,13 +1852,20 @@ class UNIXConnection(ConnectionBase):
         client_session = self.client_session
         self.libvirt_ver = libvirt_version.version_compare(5, 6, 0, client_session)
 
+        if utils_split_daemons.is_modular_daemon():
+            daemon_conf = "/etc/libvirt/virtqemud.conf"
+            daemon_socket = "/usr/lib/systemd/system/virtqemud.socket"
+        else:
+            daemon_conf = "/etc/libvirt/libvirtd.conf"
+            daemon_socket = "/usr/lib/systemd/system/libvirtd.socket"
+
         self.client_libvirtdconf = remote_old.RemoteFile(
             address=session_ip,
             client='scp',
             username=session_user,
             password=session_pwd,
             port='22',
-            remote_path='/etc/libvirt/libvirtd.conf')
+            remote_path=daemon_conf)
 
         self.client_libvirtd_socket = remote_old.RemoteFile(
             address=session_ip,
@@ -1866,7 +1873,7 @@ class UNIXConnection(ConnectionBase):
             username=session_user,
             password=session_pwd,
             port='22',
-            remote_path='/usr/lib/systemd/system/libvirtd.socket')
+            remote_path=daemon_socket)
 
         self.client_saslconf = remote_old.RemoteFile(
             address=session_ip,
@@ -1906,10 +1913,10 @@ class UNIXConnection(ConnectionBase):
                 current_session = sessions[1]
                 remote_runner = remote_old.RemoteRunner(session=current_session)
                 runner = remote_runner.run
-            libvirtd_service = utils_libvirtd.Libvirtd(session=current_session)
-            if self.libvirt_ver:
+            if utils_split_daemons.is_modular_daemon():
                 # For traditional mode, need unmask libvirtd*.socket
                 if traditional_mode == 'yes':
+                    runner("systemctl stop libvirtd")
                     runner("systemctl unmask libvirtd.socket")
                     runner("systemctl unmask libvirtd-admin.socket")
                     runner("systemctl unmask libvirtd-ro.socket")
@@ -1917,12 +1924,18 @@ class UNIXConnection(ConnectionBase):
                     runner("systemctl unmask libvirtd-tls.socket")
                 else:
                     runner("systemctl daemon-reload")
-                    runner("systemctl stop libvirtd.socket")
-                runner("systemctl stop libvirtd.service")
-                runner("systemctl start libvirtd.socket")
-                libvirtd_service.start()
+                    runner("systemctl stop virtqemud.socket")
+                    runner("systemctl stop virtqemud")
+                    runner("systemctl start virtqemud.socket")
+                    runner("systemctl reset-failed virtqemud")
+                    runner("systemctl start virtqemud")
             else:
-                libvirtd_service.restart()
+                runner("systemctl daemon-reload")
+                runner("systemctl stop libvirtd.socket")
+                runner("systemctl stop libvirtd")
+                runner("systemctl start libvirtd.socket")
+                runner("systemctl reset-failed libvirtd")
+                runner("systemctl start libvirtd")
             current_session.close()
         except (remote.LoginError, aexpect.ShellError,
                 process.CmdError) as detail:
@@ -2022,6 +2035,12 @@ class UNIXConnection(ConnectionBase):
                 pattern_to_repl = {r".*unix_sock_rw_perms\s*=.*":
                                    'unix_sock_rw_perms="%s"' % unix_sock_rw_perms}
                 self.client_libvirtdconf.sub_else_add(pattern_to_repl)
+        # edit the /etc/libvirt/libvirtd.conf to add sasl_allowed_username_list arg
+        if sasl_allowed_username_list:
+            pattern_to_repl = {r".*sasl_allowed_username_list\s*=.*":
+                               'sasl_allowed_username_list=%s'
+                               % sasl_allowed_username_list}
+            self.client_libvirtdconf.sub_else_add(pattern_to_repl)
         sessions = self.session_creator()
         pkg_dict = {'digest-md5': 'cyrus-sasl-md5', 'plain': 'cyrus-sasl-plain'}
         for current_session in sessions:
@@ -2076,31 +2095,36 @@ class UNIXConnection(ConnectionBase):
                     remote_runner = remote_old.RemoteRunner(
                         session=current_session)
                     runner = remote_runner.run
-                libvirtd_service = utils_libvirtd.Libvirtd(
-                    session=current_session)
-                if self.libvirt_ver:
+                if utils_split_daemons.is_modular_daemon():
                     # For traditional mode, need mask libvirtd*.socket
                     if traditional_mode == 'yes':
+                        runner("systemctl daemon-reload")
                         runner("systemctl stop libvirtd.socket")
                         runner("systemctl stop libvirtd-admin.socket")
                         runner("systemctl stop libvirtd-ro.socket")
                         runner("systemctl stop libvirtd-tcp.socket")
                         runner("systemctl stop libvirtd-tls.socket")
-                        libvirtd_service.stop()
                         runner("systemctl mask libvirtd.socket")
                         runner("systemctl mask libvirtd-admin.socket")
                         runner("systemctl mask libvirtd-ro.socket")
                         runner("systemctl mask libvirtd-tcp.socket")
                         runner("systemctl mask libvirtd-tls.socket")
-                        runner("systemctl daemon-reload")
+                        runner("systemctl reset-failed libvirtd")
+                        runner("systemctl start libvirtd")
                     else:
                         runner("systemctl daemon-reload")
-                        runner("systemctl stop libvirtd.socket")
-                        libvirtd_service.stop()
-                        runner("systemctl start libvirtd.socket")
-                    runner("systemctl start libvirtd.service")
+                        runner("systemctl stop virtqemud.socket")
+                        runner("systemctl stop virtqemud")
+                        runner("systemctl start virtqemud.socket")
+                        runner("systemctl reset-failed virtqemud")
+                        runner("systemctl start virtqemud")
                 else:
-                    libvirtd_service.restart()
+                    runner("systemctl daemon-reload")
+                    runner("systemctl stop libvirtd.socket")
+                    runner("systemctl stop libvirtd")
+                    runner("systemctl start libvirtd.socket")
+                    runner("systemctl reset-failed libvirtd")
+                    runner("systemctl start libvirtd")
                 current_session.close()
             except (remote.LoginError, aexpect.ShellError,
                     process.CmdError) as detail:
