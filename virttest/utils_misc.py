@@ -2885,6 +2885,9 @@ def get_image_info(image_file):
                 elif line.find("lazy refcounts") != -1:
                     lazy_refcounts = line.split(':')[-1].strip()
                     image_info_dict['lcounts'] = lazy_refcounts
+                elif line.find("extended l2") != -1:
+                    extended_l2 = line.split(':')[-1].strip()
+                    image_info_dict['extended l2'] = extended_l2
         return image_info_dict
     except (KeyError, IndexError, process.CmdError) as detail:
         raise exceptions.TestError("Fail to get information of %s:\n%s" %
