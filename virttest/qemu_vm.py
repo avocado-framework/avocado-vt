@@ -5,6 +5,8 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 """
 
 from __future__ import division
+
+import shutil
 import time
 import os
 import logging
@@ -4315,6 +4317,25 @@ class VM(virt_vm.BaseVM):
         # "preconfig" is meaningless for dest, remove it whatever the value is
         if "qemu_preconfig" in clone.params:
             del clone.params["qemu_preconfig"]
+        # FIXME: localhost migration should handle all devices params automatically
+        if "tpms" in clone.params:
+            swtpm_dir = os.path.join(data_dir.get_data_dir(), "swtpm")
+            tpms = clone.params.objects("tpms")
+            tpms_copy = []
+            for tpm in tpms:
+                tpm_copied = tpm + "_copied"
+                tpm_path = os.path.join(swtpm_dir, '%s_state' % tpm)
+                tpm_copied_path = os.path.join(swtpm_dir, '%s_state' % tpm_copied)
+                if os.path.exists(tpm_copied_path):
+                    shutil.rmtree(tpm_copied_path)
+                    shutil.copytree(tpm_path, tpm_copied_path)
+                tpms_copy.append(tpm_copied)
+                for param in clone.params.copy():
+                    if param.endswith("_" + tpm):
+                        clone.params[param + "_copied"] = clone.params[param]
+                        del clone.params[param]
+                clone.params["tpm_overwrite_%s_copied" % tpm] = "no"
+            clone.params["tpms"] = " ".join(tpms_copy)
 
         try:
             if (local and not (migration_exec_cmd_src and
