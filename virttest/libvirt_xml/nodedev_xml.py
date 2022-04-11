@@ -35,6 +35,12 @@ class CAPXML(base.LibvirtXMLBase):
         """
         raise NotImplementedError('get_key2value_dict is not implemented.')
 
+    def getroot(self):
+        """
+        Return the root of the xml element
+        """
+        return self.xmltreefile.getroot()
+
 
 class SystemXML(CAPXML):
 
@@ -140,6 +146,21 @@ class NetXML(CAPXML):
             except xcepts.LibvirtXMLNotFoundError:
                 key2value_dict[key] = "-1"
         return key2value_dict
+
+
+class MdevXML(CAPXML):
+    """
+    class for capability whose type is mdev
+    """
+    __slots__ = ('type_id', 'uuid')
+
+    def __init__(self, virsh_instance=base.virsh):
+        accessors.XMLAttribute('type_id', self, parent_xpath='/',
+                               tag_name='type', attribute='id')
+        accessors.XMLElementText('uuid', self, parent_xpath='/',
+                                 tag_name='uuid')
+        super(MdevXML, self).__init__(virsh_instance=virsh_instance)
+        self.xml = (' <capability type=\'mdev\'></capability>')
 
 
 class StorageXML(CAPXML):
@@ -364,6 +385,7 @@ class NodedevXMLBase(base.LibvirtXMLBase):
                            'pci': 'PCIXML',
                            'usb_device': 'USBDeviceXML',
                            'usb': 'USBXML',
+                           'mdev': 'MdevXML',
                            'net': 'NetXML',
                            'scsi_host': 'SCSIHostXML',
                            'scsi': 'SCSIXML',
@@ -443,7 +465,7 @@ class NodedevXMLBase(base.LibvirtXMLBase):
         """
         element = self.xmltreefile.find('/capability')
         if element is not None:
-            self.mltreefile.remove(element)
+            self.xmltreefile.remove(element)
         self.xmltreefile.write()
 
     def get_sysfs_sub_path(self):
