@@ -1113,15 +1113,21 @@ def managedsave_remove(name, **dargs):
     return command("managedsave-remove --domain %s" % name, **dargs)
 
 
-def managedsave_dumpxml(name, options="", **dargs):
+def managedsave_dumpxml(name, options="", to_file="", **dargs):
     """
     Dump XML of domain information for a managed save state file.
 
     :param name: Name of domain to dump
     :param options: options to pass to list command
+    :param to_file: optional file to write XML output to
     :return: CmdResult object
     """
-    return command("managedsave-dumpxml --domain %s %s" % (name, options), **dargs)
+    cmd = "managedsave-dumpxml --domain %s %s" % (name, options)
+    result = command(cmd, **dargs)
+    if to_file:
+        with open(to_file, 'w') as result_file:
+            result_file.write(result.stdout_text.strip())
+    return result
 
 
 def managedsave_edit(name, options="", **dargs):
