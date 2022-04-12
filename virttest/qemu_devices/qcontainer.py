@@ -1047,6 +1047,11 @@ class DevContainer(object):
             """
             Add pflash firmware for EFI boot
             """
+            # Since the life cycle of the current framework vm is
+            # coupled with images[0], the following method for handling
+            # pflash files is a workaround. After that, a complete
+            # refactoring will be carried out to solve the problem
+            # of the pflash life cycle.
             machine_cmd = cmd
             devs = []
             images = params.objects('images')
@@ -1082,8 +1087,14 @@ class DevContainer(object):
                 else:
                     img_path, img_name = os.path.split(img_info.get("filename"))
 
-                    pflash_vars_name = "%s_%s_VARS.fd" % (self.vmname, img_name)
-                    pflash_vars_path = os.path.join(img_path, pflash_vars_name)
+                    pflash_vars_name = "%s_%s_%s_VARS.fd" % \
+                        (self.vmname, '_'.join(img_name.split(".")),
+                         params['image_backend'])
+                    pflash_vars_path = os.path.join(img_path,
+                                                    pflash_vars_name)
+                    if not os.access(pflash_vars_path, os.W_OK):
+                        pflash_vars_path = os.path.join(current_data_dir,
+                                                        pflash_vars_name)
                     # When image has backing files, treat it as a temporary image
                     if "backing-filename" in img_info:
                         self.temporary_image_snapshots.add(pflash_vars_path)
