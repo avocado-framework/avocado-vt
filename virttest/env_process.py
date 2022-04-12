@@ -1882,12 +1882,14 @@ def postprocess(test, params, env):
     if params.get("verify_host_dmesg", "yes") == "yes":
         dmesg_log_file = params.get("host_dmesg_logfile", "host_dmesg.log")
         level = params.get("host_dmesg_level", 3)
+        expected_host_dmesg = params.get("expected_host_dmesg", "")
         ignore_result = params.get("host_dmesg_ignore", "no") == "yes"
         dmesg_log_file = utils_misc.get_path(test.debugdir, dmesg_log_file)
         try:
             utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
                                     ignore_result=ignore_result,
-                                    level_check=level)
+                                    level_check=level,
+                                    expected_dmesg=expected_host_dmesg)
         except exceptions.TestFail as details:
             err += "\nHost dmesg verification failed: %s" % details
 

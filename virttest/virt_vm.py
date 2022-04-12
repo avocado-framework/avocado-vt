@@ -1016,10 +1016,12 @@ class BaseVM(object):
         elif(len(self.virtnet) > 0 and self.virtnet[0].nettype != "macvtap" and
              not connect_uri):
             self.session = self.wait_for_login()
+        expected_guest_dmesg = self.params.get("expected_guest_dmesg", "")
         return utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
                                        ignore_result=ignore_result,
                                        level_check=level,
-                                       session=self.session)
+                                       session=self.session,
+                                       expected_dmesg=expected_guest_dmesg)
 
     def verify_bsod(self, scrdump_file):
         # For windows guest
