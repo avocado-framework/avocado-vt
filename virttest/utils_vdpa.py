@@ -11,6 +11,7 @@ from avocado.utils import process
 
 from virttest import openvswitch
 from virttest import utils_misc
+from virttest import utils_net
 from virttest import utils_sriov
 from virttest import utils_switchdev
 from virttest.utils_kernel_module import KernelModuleHandler
@@ -23,9 +24,11 @@ class VDPAOvsTest(object):
     """
     Wrapper class for vDPA OVS environment configuration
     """
-    def __init__(self, pf_pci, vf_no=4):
+    def __init__(self, pf_pci, vf_no=4, mgmt_tool_extra=""):
         self.pf_pci = pf_pci
         self.vf_no = vf_no
+        self.mgmt_tool_extra = mgmt_tool_extra
+        self.vdpa_mac = {}
         self.pf_pci_path = utils_misc.get_pci_path(self.pf_pci)
         utils_sriov.set_vf(self.pf_pci_path, 0)
 
@@ -69,7 +72,7 @@ class VDPAOvsTest(object):
                 raise exceptions.TestError("Cannot get VF network device!")
             self.set_tc_offload(vf_dev)
             self.set_dev_managed_no(vf_dev)
-            self.add_vdpa_dev(idx, vf_pci)
+            self.add_vdpa_dev(idx, vf_pci, extra=self.mgmt_tool_extra)
 
     def get_rep_list(self):
         """
@@ -88,15 +91,19 @@ class VDPAOvsTest(object):
             self.set_dev_managed_no(rep)
             self.set_ifc_up(rep)
 
-    def add_vdpa_dev(self, idx, pci_addr):
+    def add_vdpa_dev(self, idx, pci_addr, extra=""):
         """
         Add vDPA device
 
         :param idx: Index of dev
         :param pci_addr: PCI address
+        :param extra: Extra parameters of vdpa tool
         """
-        cmd = "vdpa dev add name vdpa{} mgmtdev pci/{}".format(idx, pci_addr)
+        mac_addr = utils_net.generate_mac_address_simple()
+        cmd = "vdpa dev add name vdpa{} mgmtdev pci/{} mac {} {}".format(
+            idx, pci_addr, mac_addr, extra)
         process.run(cmd, shell=True)
+        self.vdpa_mac.update({'vdpa{}'.format(idx): mac_addr})
 
     def set_dev_managed_no(self, dev):
         """
