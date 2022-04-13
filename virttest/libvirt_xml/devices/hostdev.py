@@ -3,15 +3,16 @@ hostdev device support class(es)
 
 http://libvirt.org/formatdomain.html#elementsHostDev
 """
-from virttest.libvirt_xml.devices import base
 from virttest.libvirt_xml import accessors
+from virttest.libvirt_xml.devices import base
+from virttest.libvirt_xml.devices import librarian
 
 
 class Hostdev(base.TypedDeviceBase):
 
     __slots__ = ('type', 'mode', 'managed', 'sgio', 'rawio',
                  'source', 'boot_order', 'readonly', 'shareable',
-                 'alias', 'model', 'teaming')
+                 'alias', 'model', 'teaming', 'rom', 'address')
 
     def __init__(self, type_name="hostdev", virsh_instance=base.base.virsh):
         accessors.XMLAttribute('type', self, parent_xpath='/',
@@ -38,11 +39,19 @@ class Hostdev(base.TypedDeviceBase):
                                  tag_name='shareable')
         accessors.XMLElementDict('alias', self, parent_xpath='/',
                                  tag_name='alias')
+        accessors.XMLElementDict('rom', self, parent_xpath='/',
+                                 tag_name='rom')
+        accessors.XMLElementNest('address', self, parent_xpath='/',
+                                 tag_name='address', subclass=self.Address,
+                                 subclass_dargs={'type_name': 'drive',
+                                                 'virsh_instance': virsh_instance})
         accessors.XMLElementDict("teaming", self, parent_xpath='/',
                                  tag_name='teaming')
         super(self.__class__, self).__init__(device_tag='hostdev',
                                              type_name=type_name,
                                              virsh_instance=virsh_instance)
+
+    Address = librarian.get('address')
 
     def new_source(self, **dargs):
         new_one = self.Source(virsh_instance=self.virsh)
