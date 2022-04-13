@@ -2040,6 +2040,26 @@ def params_get(params, name, default=None):
         name, default) if 'params' in params else params.get(name, default))
 
 
+def set_libguestfs_backend(params):
+    """
+    A helper function to set LIBGUESTFS_BACKEND.
+    The default value is 'libvirt'.
+
+    :param params: A dictionary includes all of required parameters.
+    """
+    cmd = 'rpm -q virt-v2v'
+    libguestfs_backend = params_get(params, "libguestfs_backend")
+    hypervisor = params_get(params, "hypervisor")
+
+    if 'el8' in process.run(cmd, verbose=True, ignore_status=True).stdout_text and hypervisor == 'xen':
+        libguestfs_backend = 'direct'
+    if not libguestfs_backend:
+        libguestfs_backend = 'libvirt'
+
+    LOG.info('set LIBGUESTFS_BACKEND to %s', libguestfs_backend)
+    os.environ['LIBGUESTFS_BACKEND'] = libguestfs_backend
+
+
 def interactive_run(params, timeout=300, *args, **kwargs):
     """
     Run v2v command interactively.
