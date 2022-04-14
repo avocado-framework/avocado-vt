@@ -1820,6 +1820,26 @@ def update_device(domainarg=None, filearg=None,
                        flagstr=flagstr, **dargs)
 
 
+@EventTracker.wait_event
+def update_memory_device(name, options="", wait_for_event=False,
+                         event_type='memory-device-size-change',
+                         event_timeout=7,
+                         **dargs):
+    """
+    update memory device of a domain
+
+    :param name: Domain name
+    :param options: Options to pass to command
+    :param wait_for_event: wait until an event of the given type comes
+    :param event_type: type of the event
+    :param event_timeout: timeout for virsh event command
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult object.
+    """
+    cmd = "update-memory-device %s %s" % (name, options)
+    return command(cmd, **dargs)
+
+
 def attach_disk(name, source, target, extra="", **dargs):
     """
     Attach a disk to VM.
