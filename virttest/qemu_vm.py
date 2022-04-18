@@ -3219,10 +3219,11 @@ class VM(virt_vm.BaseVM):
                 raise e
 
             LOG.debug("VM appears to be alive with PID %s", self.get_pid())
-            # Record vcpu infos in debug log
+
             is_preconfig = params.get_boolean("qemu_preconfig")
             if not is_preconfig:
-                self.get_vcpu_pids(debug=True)
+                LOG.debug("vCPUs appear to be alive with Thread-IDs %s",
+                          ", ".join([str(tid) for tid in self.vcpu_threads]))
             vhost_thread_pattern = params.get("vhost_thread_pattern",
                                               r"\w+\s+(\d+)\s.*\[vhost-%s\]")
             self.vhost_threads = self.get_vhost_threads(vhost_thread_pattern)
