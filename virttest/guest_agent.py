@@ -9,11 +9,7 @@ import time
 import logging
 import random
 import base64
-try:
-    import json
-except ImportError:
-    logging.getLogger('avocado.app').warning(
-        "Could not import json module. virt agent functionality disabled.")
+import json
 
 from avocado.utils import process
 

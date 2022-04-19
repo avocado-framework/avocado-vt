@@ -6,6 +6,7 @@ Interfaces to the QEMU monitor.
 
 from __future__ import division
 
+import json
 import logging
 import os
 import re
@@ -15,12 +16,6 @@ import threading
 import time
 
 import six
-
-try:
-    import json
-except ImportError:
-    logging.getLogger('avocado.app').warning(
-        "Could not import json module. QMP monitor functionality disabled.")
 
 from . import passfd_setup
 from . import utils_misc
