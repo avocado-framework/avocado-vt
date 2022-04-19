@@ -1150,8 +1150,6 @@ class DevContainer(object):
             :param cmd: If set uses "-M $cmd" to force this machine type
             :return: List of added devices (including default buses)
             """
-            LOG.warn('Using Q35 machine which is not yet fully tested on '
-                     'avocado-vt. False errors might occur.')
             devices = []
             bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type,
                                      'pci.0', pcie_root_port_params),
