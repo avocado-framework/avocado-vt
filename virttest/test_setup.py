@@ -23,6 +23,7 @@ from avocado.utils import wait
 from avocado.utils import genio
 from avocado.utils import path
 from avocado.utils import distro
+from avocado.utils import linux_modules
 from avocado.core import exceptions
 
 from virttest import data_dir
@@ -681,6 +682,16 @@ class HugePageConfig(object):
         # Drop caches to clean some usable memory
         with open("/proc/sys/vm/drop_caches", "w") as caches:
             caches.write('3')
+        # Set hugepage may fail because of insufficient continual memory
+        # Compact memory to get more continual memory
+        if (linux_modules.check_kernel_config("CONFIG_COMPACTION") ==
+                linux_modules.ModuleConfig.BUILTIN):
+            with open("/proc/sys/vm/compact_memory", "w") as memory:
+                memory.write('1')
+            # Check the number of available page
+            with open("/proc/buddyinfo", "r") as buddyinfo:
+                info = buddyinfo.read()
+                LOG.debug("Kernel buddyinfo:\n{}".format(info))
         if self.target_nodes:
             for node, num in six.iteritems(self.target_node_num):
                 self.set_node_num_huge_pages(num, node, self.hugepage_size)
