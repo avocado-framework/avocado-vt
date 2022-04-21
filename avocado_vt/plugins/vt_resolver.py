@@ -5,7 +5,6 @@ from avocado.core.plugin_interfaces import Discoverer, Resolver
 from avocado.core.resolver import (ReferenceResolution,
                                    ReferenceResolutionResult)
 from avocado.core.settings import settings
-from virttest.compat import get_opt
 
 from ..discovery import DiscoveryMixIn
 
@@ -72,8 +71,5 @@ class VTDiscoverer(Discoverer, VTResolverUtils):
     def discover(self):
         """It will discover vt test resolutions from cartesian config."""
         self.config = self.config or settings.as_dict()
-        if (not get_opt(self.config, 'vt.config') and
-                not get_opt(self.config, 'list.resolver')):
-            return [ReferenceResolution('', ReferenceResolutionResult.NOTFOUND)]
 
         return [self._get_reference_resolution('')]
