@@ -1,12 +1,16 @@
 import warnings
 
-from avocado.core.nrunner import Runnable
 from avocado.core.plugin_interfaces import Discoverer, Resolver
 from avocado.core.resolver import (ReferenceResolution,
                                    ReferenceResolutionResult)
 from avocado.core.settings import settings
 
 from ..discovery import DiscoveryMixIn
+
+try:
+    from avocado.core.nrunner import Runnable
+except ImportError:
+    from avocado.core.nrunner.runnable import Runnable
 
 
 class VTResolverUtils(DiscoveryMixIn):
