@@ -3,12 +3,27 @@ import os
 import time
 import traceback
 
-from avocado.core import exceptions, nrunner, teststatus
-from avocado.core.runners.utils import messages
+from avocado.core import exceptions, teststatus
 from avocado.core.test_id import TestID
 from avocado.utils import astring
 
 from avocado_vt import test
+
+# Compatibility with avocado 92.0 LTS version, this can be removed when
+# the 92.0 support will be dropped.
+try:
+    from avocado.core.nrunner import (BaseRunner,
+                                      BaseRunnerApp,
+                                      RUNNER_RUN_CHECK_INTERVAL)
+    from avocado.core.nrunner import main as nrunner_main
+    from avocado.core.runners.utils import messages
+    LTS = True
+except ImportError:
+    from avocado.core.nrunner.app import BaseRunnerApp
+    from avocado.core.nrunner.runner import (BaseRunner,
+                                             RUNNER_RUN_CHECK_INTERVAL)
+    from avocado.core.utils import messages
+    LTS = False
 
 
 class VirtTest(test.VirtTest):
@@ -74,7 +89,7 @@ class VirtTest(test.VirtTest):
             self.queue.put(messages.FinishedMessage.get(status, fail_reason))
 
 
-class VTTestRunner(nrunner.BaseRunner):
+class VTTestRunner(BaseRunner):
     """
     Runner for Avocado-VT (aka VirtTest) tests
 
@@ -86,9 +101,20 @@ class VTTestRunner(nrunner.BaseRunner):
 
      * kwargs: all the VT specific parameters
     """
+    name = 'avocado-vt'
+    description = 'nrunner application for Avocado-VT tests'
+
+    CONFIGURATION_USED = ['datadir.paths.cache_dirs',
+                          'core.show',
+                          'job.output.loglevel',
+                          'job.run.store_logging_stream']
+
     DEFAULT_TIMEOUT = 86400
 
-    def run(self):
+    def run(self, runnable=None):
+        if runnable:
+            self.runnable = runnable
+
         yield messages.StartedMessage.get()
         if self.runnable.config.get("nrunner.max_parallel_tasks", 1) != 1:
             yield messages.FinishedMessage.get('cancel',
@@ -101,7 +127,7 @@ class VTTestRunner(nrunner.BaseRunner):
                 process = multiprocessing.Process(target=vt_test.runTest)
                 process.start()
                 while True:
-                    time.sleep(nrunner.RUNNER_RUN_CHECK_INTERVAL)
+                    time.sleep(RUNNER_RUN_CHECK_INTERVAL)
                     if queue.empty():
                         yield messages.RunningMessage.get()
                     else:
@@ -114,16 +140,23 @@ class VTTestRunner(nrunner.BaseRunner):
                 yield messages.FinishedMessage.get('error')
 
 
-class RunnerApp(nrunner.BaseRunnerApp):
+class RunnerApp(BaseRunnerApp):
     PROG_NAME = 'avocado-runner-avocado-vt'
     PROG_DESCRIPTION = 'nrunner application for Avocado-VT tests'
-    RUNNABLE_KINDS_CAPABLE = {
-        'avocado-vt': VTTestRunner
-    }
+    if LTS:
+        RUNNABLE_KINDS_CAPABLE = {
+            'avocado-vt': VTTestRunner
+        }
+    else:
+        RUNNABLE_KINDS_CAPABLE = ['avocado-vt']
 
 
 def main():
-    nrunner.main(RunnerApp)
+    if LTS:
+        nrunner_main(RunnerApp)
+    else:
+        app = RunnerApp(print)
+        app.run()
 
 
 if __name__ == '__main__':
