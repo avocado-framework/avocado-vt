@@ -1499,8 +1499,8 @@ def get_net_if_addrs_win(session, mac_addr):
     ip_address = get_windows_nic_attribute(session, "macaddress",
                                            mac_addr, "IPAddress",
                                            global_switch="nicconfig")
-    return {"ipv4": re.findall('(\d+\.\d+\.\d+\.\d+)"', ip_address),
-            "ipv6": re.findall('(fe80.*?)"', ip_address)}
+    return {"ipv4": re.findall(r'"(\d+\.\d+\.\d+\.\d+)"', ip_address),
+            "ipv6": re.findall(r'"(\w+:[^\s,"]+)"', ip_address)}
 
 
 def get_net_if_and_addrs(runner=None):
