@@ -1640,6 +1640,7 @@ class VM(virt_vm.BaseVM):
         smp = params.get_numeric('smp')
         vcpu_maxcpus = params.get_numeric("vcpu_maxcpus")
         vcpu_sockets = params.get_numeric("vcpu_sockets")
+        win_max_vcpu_sockets = params.get_numeric("win_max_vcpu_sockets", 2)
         vcpu_cores = params.get_numeric("vcpu_cores")
         vcpu_threads = params.get_numeric("vcpu_threads")
         vcpu_dies = params.get("vcpu_dies", 0)
@@ -1652,9 +1653,9 @@ class VM(virt_vm.BaseVM):
 
         # Some versions of windows don't support more than 2 sockets of cpu,
         # here is a workaround to make all windows use only 2 sockets.
-        if (vcpu_sockets and vcpu_sockets > 2 and
-                params.get("os_type") == 'windows'):
-            vcpu_sockets = 2
+        if (vcpu_sockets and params.get("os_type") == 'windows' and
+                vcpu_sockets > win_max_vcpu_sockets):
+            vcpu_sockets = win_max_vcpu_sockets
 
         amd_vendor_string = params.get("amd_vendor_string")
         if not amd_vendor_string:
