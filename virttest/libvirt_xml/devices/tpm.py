@@ -92,11 +92,18 @@ class Tpm(base.UntypedDeviceBase):
             Tpm active_pcr_banks xml class.
 
             Elements:
-            pcrbank_list: list of elements
+            sha1: supported element sha1
+            sha256: supported element sha256
+            sha384: supported element sha384
+            sha512: supported element sha512
+            pcrbank_list: list of any customized elements. It does not support setup_attrs().
             """
-            __slots__ = ('pcrbank_list',)
+            __slots__ = ('sha1', 'sha256', 'sha384', 'sha512', 'pcrbank_list')
 
             def __init__(self, virsh_instance=base.base.virsh):
+                for slot in ('sha1', 'sha256', 'sha384', 'sha512'):
+                    accessors.XMLElementBool(slot, self, parent_xpath='/',
+                                             tag_name=slot)
                 accessors.AllForbidden(property_name="pcrbank_list",
                                        libvirtxml=self)
                 super(self.__class__, self).__init__(virsh_instance=virsh_instance)
