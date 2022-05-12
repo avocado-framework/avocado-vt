@@ -65,7 +65,7 @@ class Memory(base.UntypedDeviceBase):
         __slots__ = ('size', 'size_unit', 'node', 'label',
                      'requested_size', 'requested_unit',
                      'current_size', 'current_unit',
-                     'block_size', 'block_unit')
+                     'block_size', 'block_unit', 'readonly')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLElementInt('size',
@@ -111,6 +111,8 @@ class Memory(base.UntypedDeviceBase):
                                      tag_name='label', subclass=self.Label,
                                      subclass_dargs={
                                          'virsh_instance': virsh_instance})
+            accessors.XMLElementBool('readonly', self, parent_xpath='/',
+                                     tag_name='readonly')
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<target/>'
 
@@ -148,12 +150,16 @@ class Memory(base.UntypedDeviceBase):
 
         Properties:
 
-        pagesize:
-            int.
-        pagesize_unit, nodemask:
-            string.
+        pagesize: int, override the default host page size used for backing the memory device
+        pagesize_unit: str, the unit of pagesize
+        nodemask: str, override the default set of NUMA nodes where the memory would be allocated
+        path: str, the path in the host that backs the memory device in the guest
+        alignsize: int, the page size alignment used to mmap the address range for the backend path
+        alignsize_unit: str, the unit of alignsize
+        pmem:boolean, persistent memory feature is enabled
         """
-        __slots__ = ('pagesize', 'pagesize_unit', 'nodemask', 'path')
+        __slots__ = ('pagesize', 'pagesize_unit', 'nodemask', 'path',
+                     'alignsize', 'alignsize_unit', 'pmem')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLElementInt('pagesize',
@@ -171,6 +177,17 @@ class Memory(base.UntypedDeviceBase):
             accessors.XMLElementText('path',
                                      self, parent_xpath='/',
                                      tag_name='path')
+            accessors.XMLElementInt('alignsize',
+                                    self, parent_xpath='/',
+                                    tag_name='alignsize')
+            accessors.XMLAttribute(property_name="alignsize_unit",
+                                   libvirtxml=self,
+                                   forbidden=None,
+                                   parent_xpath='/',
+                                   tag_name='alignsize',
+                                   attribute='unit')
+            accessors.XMLElementBool('pmem', self, parent_xpath='/',
+                                     tag_name='pmem')
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<source/>'
 

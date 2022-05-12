@@ -61,6 +61,7 @@ nic
 usb
 vms
 addr
+alignsize
 iothread
 pid
 scsi
@@ -588,6 +589,7 @@ pickable
 preallocation
 pubkey
 pvresize
+pmem
 QDev
 qom
 readed
@@ -1360,6 +1362,7 @@ mkfifo
 mkfs
 mklost
 MLS
+mmap
 mmio
 mnt
 modelname
