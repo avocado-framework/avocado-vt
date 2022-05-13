@@ -38,7 +38,6 @@ from functools import wraps
 import aexpect
 from aexpect import remote
 
-from avocado.core import exceptions
 from avocado.utils import path
 from avocado.utils import process
 
@@ -655,8 +654,16 @@ class EventTracker(object):
         event_cmd = 'event %s --all --loop' % vm_name
         LOG.info('Sending "%s" to virsh shell', event_cmd)
         virsh_session.sendline(event_cmd)
-
-        return virsh_session
+        # Sometimes the output of session can't be gotten immediately,
+        # Wait for a while to avoid this situation.
+        if not utils_misc.wait_for(
+                lambda: re.search(
+                    "Welcome to virsh", virsh_session.get_stripped_output()), 10):
+            virsh_session.close()
+            raise aexpect.ShellStatusError(event_cmd,
+                                           "Failed to get virsh session output")
+        else:
+            return virsh_session
 
     @staticmethod
     def finish_get_event(virsh_session):
@@ -712,16 +719,6 @@ class EventTracker(object):
 
             if wait_for_event is True and event_type is not None:
                 virsh_session = EventTracker.start_get_event(str(args[0]))
-                # Sometimes the output of session can't be gotten immediately.
-                # Wait for a while to avoid this situation.
-                if not utils_misc.wait_for(
-                        lambda: re.search(
-                            "Welcome to virsh",
-                            _get_event_output(virsh_session)
-                        ), 10):
-                    virsh_session.close()
-                    raise exceptions.TestError("Failed to get virsh session "
-                                               "output")
                 ret = func(*args, **kwargs)
 
                 if ret and ret.exit_status:
