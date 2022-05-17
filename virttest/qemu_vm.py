@@ -1591,6 +1591,19 @@ class VM(virt_vm.BaseVM):
                 'aw-bits': params.get('iommu_aw_bits')}
             devices.insert(QDevice('intel-iommu', iommu_params))
 
+        # Add device virtio-iommu, it must be added before any virtio devices
+        if (params.get_boolean('virtio_iommu') and
+                devices.has_device('virtio-iommu-pci')):
+            iommu_params = {"pcie_direct_plug":
+                            params.get("virtio_iommu_direct_plug", "yes")}
+            virtio_iommu_extra_params = params.get("virtio_iommu_extra_params")
+            if virtio_iommu_extra_params:
+                for extra_param in virtio_iommu_extra_params.strip(",").split(","):
+                    key, value = extra_param.split('=')
+                    iommu_params[key] = value
+            devices.insert(
+                QDevice('virtio-iommu-pci', iommu_params, parent_bus=pci_bus))
+
         vga = params.get("vga")
         if vga:
             devices.insert(add_vga(devices, vga))
