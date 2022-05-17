@@ -1577,7 +1577,9 @@ def undefine(name, options=None, **dargs):
     if options is not None:
         cmd += " %s" % options
 
-    if platform.machine() == "aarch64":
+    # When the platform is aarch64 or x86_64, both seabios and ovmf
+    # guests will use --nvram option
+    if platform.machine() in ["aarch64", "x86_64"]:
         if options is None or "--nvram" not in options:
             cmd += " --nvram"
 
