@@ -89,7 +89,10 @@ class QBaseDevice(object):
         self.params = OrderedDict()    # various device params (id, name, ...)
         if params:
             for key, value in six.iteritems(params):
-                self.set_param(key, value)
+                if key == "pcie_direct_plug":
+                    self.pcie_direct_plug = value == "yes"
+                else:
+                    self.set_param(key, value)
 
     def add_child_bus(self, bus):
         """
@@ -2677,7 +2680,8 @@ class QPCIEBus(QPCIBus):
         self.__root_port_params = root_port_params
         self.__last_port_index = [0]
 
-    def is_direct_plug(self, device):
+    @staticmethod
+    def is_direct_plug(device):
         """
         Justify if the device should be plug to pcie bus directly,
         the device is not directly plugged only if it is a virtio
@@ -2686,8 +2690,9 @@ class QPCIEBus(QPCIBus):
         :param device: the QBaseDevice object
         :return: bool value for directly plug or not.
         """
-        not_direct_plug = device.get_param("pcie_direct_plug", "no") == "no"
-        if not_direct_plug and device.is_pcie_device():
+        direct_plug = (device.pcie_direct_plug
+                       if hasattr(device, "pcie_direct_plug") else False)
+        if not direct_plug and device.is_pcie_device():
             return False
         return True
 
