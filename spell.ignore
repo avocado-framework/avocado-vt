@@ -403,6 +403,7 @@ neighbours
 Netperf
 nohup
 numatune
+ovmf
 passfd
 pc
 postprocess
@@ -419,6 +420,7 @@ scp
 smp
 srv
 subprocess
+seabios
 tmpdir
 traceback
 umount
