@@ -10,10 +10,7 @@ import shutil
 import platform
 import ipaddress
 import six
-import resource
 
-from abc import ABCMeta
-from abc import abstractmethod
 from pathlib import Path
 
 from aexpect import remote
@@ -111,105 +108,6 @@ class PolkitConfigCleanupError(PolkitConfigError):
     Thrown when polkit config cleanup is not behaving as expected.
     """
     pass
-
-
-@six.add_metaclass(ABCMeta)
-class Setuper(object):
-
-    """
-    Virtual base abstraction of setuper.
-    """
-
-    #: Skip the cleanup when error occurs
-    skip_cleanup_on_error = False
-
-    def __init__(self, test, params, env):
-        """
-        Initialize the setuper.
-
-        :param test: VirtTest instance.
-        :param params: Dictionary with the test parameters.
-        :param env: Dictionary with test environment.
-        """
-        self.test = test
-        self.params = params
-        self.env = env
-
-    @abstractmethod
-    def setup(self):
-        """Setup procedure."""
-        raise NotImplementedError
-
-    @abstractmethod
-    def cleanup(self):
-        """Cleanup procedure."""
-        raise NotImplementedError
-
-
-class SetupManager(object):
-
-    """
-    Setup Manager implementation.
-
-    The instance can help do the setup stuff before test started and
-    do the cleanup stuff after test finished. This setup-cleanup
-    combined stuff will be performed in LIFO order.
-    """
-
-    def __init__(self):
-        self.__setupers = []
-        self.__setup_args = None
-
-    def initialize(self, test, params, env):
-        """
-        Initialize the setup manager.
-
-        :param test: VirtTest instance.
-        :param params: Dictionary with the test parameters.
-        :param env: Dictionary with test environment.
-        """
-        self.__setup_args = (test, params, env)
-
-    def register(self, setuper_cls):
-        """
-        Register the given setuper class to the manager.
-
-        :param setuper_cls: Setuper class.
-        """
-        if not self.__setup_args:
-            raise RuntimeError("Tried to register setuper "
-                               "without initialization")
-        if not issubclass(setuper_cls, Setuper):
-            raise ValueError("Not supported setuper class")
-        self.__setupers.append(setuper_cls(*self.__setup_args))
-
-    def do_setup(self):
-        """Do setup stuff."""
-        for index, setuper in enumerate(self.__setupers, 1):
-            try:
-                setuper.setup()
-            except Exception:
-                if setuper.skip_cleanup_on_error:
-                    index -= 1
-                # Truncate the list to prevent performing cleanup
-                # for the setuper without having performed setup
-                self.__setupers = self.__setupers[:index]
-                raise
-
-    def do_cleanup(self):
-        """
-        Do cleanup stuff.
-
-        :return: Errors occurred in cleanup procedures.
-        """
-        errors = []
-        while self.__setupers:
-            try:
-                self.__setupers.pop().cleanup()
-            except Exception as err:
-                LOG.error(str(err))
-                errors.append(str(err))
-        return errors
 
 
 class TransparentHugePageConfig(object):
@@ -2547,55 +2445,3 @@ class LibvirtdDebugLog(object):
         for value in self.daemons_dict.values():
             os.rename(value.get("backupfile"), value.get("conf").conf_path)
         utils_libvirtd.Libvirtd(all_daemons=True).restart()
-
-
-class UlimitConfig(Setuper):
-    """
-    Enable to config ulimit.
-
-    Supported options:
-
-    vt_ulimit_core: The maximum size (in bytes) of a core file
-                    that the current process can create.
-    vt_ulimit_nofile: The maximum number of open file descriptors
-                      for the current process.
-    vt_ulimit_memlock: The maximum size a process may lock into memory.
-    """
-
-    ulimit_options = {"core": resource.RLIMIT_CORE,
-                      "nofile": resource.RLIMIT_NOFILE,
-                      "memlock": resource.RLIMIT_MEMLOCK}
-
-    def _set(self):
-        self.ulimit = {}
-        for key in self.ulimit_options:
-            set_value = self.params.get("vt_ulimit_%s" % key)
-            if not set_value:
-                continue
-            # get default ulimit values in tuple (soft, hard)
-            self.ulimit[key] = resource.getrlimit(self.ulimit_options[key])
-
-            LOG.info("Setting ulimit %s to %s." % (key, set_value))
-            if set_value == "ulimited":
-                set_value = resource.RLIM_INFINITY
-            elif set_value.isdigit():
-                set_value = int(set_value)
-            else:
-                self.test.error("%s is not supported for "
-                                "setting ulimit %s" % (set_value, key))
-            try:
-                resource.setrlimit(self.ulimit_options[key],
-                                   (set_value, set_value))
-            except ValueError as error:
-                self.test.error(str(error))
-
-    def _restore(self):
-        for key in self.ulimit:
-            LOG.info("Setting ulimit %s back to its default." % key)
-            resource.setrlimit(self.ulimit_options[key], self.ulimit[key])
-
-    def setup(self):
-        self._set()
-
-    def cleanup(self):
-        self._restore()

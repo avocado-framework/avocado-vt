@@ -54,6 +54,8 @@ from virttest import arch
 from virttest.utils_conn import SSHConnection
 from virttest.utils_version import VersionInterval
 from virttest.staging import service
+from virttest.test_setup.core import SetupManager
+from virttest.test_setup.os_posix import UlimitConfig
 
 try:
     import PIL.Image
@@ -69,7 +71,7 @@ _screendump_thread_termination_event = None
 _vm_info_thread = None
 _vm_info_thread_termination_event = None
 
-_setup_manager = test_setup.SetupManager()
+_setup_manager = SetupManager()
 
 # default num of surplus hugepage, order to compare the values before and after
 # the test when 'setup_hugepages = yes'
@@ -994,7 +996,7 @@ def preprocess(test, params, env):
                 raise exceptions.TestSkipError(msg)
 
     _setup_manager.initialize(test, params, env)
-    _setup_manager.register(test_setup.UlimitConfig)
+    _setup_manager.register(UlimitConfig)
     _setup_manager.do_setup()
 
     # enable network proxies setting in urllib2
