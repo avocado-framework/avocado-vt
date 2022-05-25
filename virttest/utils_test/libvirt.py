@@ -3833,7 +3833,7 @@ def check_logfile(search_str, log_file, str_in_log=True,
     """
     cmd = "grep -E '%s' %s" % (search_str, log_file)
     if not (cmd_parms and runner_on_target):
-        cmdRes = process.run(cmd, shell=True, ignore_status=ignore_status)
+        cmdRes = process.run(cmd, shell=True, ignore_status=True)
     else:
         cmdRes = remote_old.run_remote_cmd(cmd, cmd_parms, runner_on_target)
     if str_in_log == bool(int(cmdRes.exit_status)):
