@@ -51,6 +51,8 @@ def export_image(qemu_nbd, filename, local_image, params):
         nbd_port: TCP port to listen on as a server (-p)
         nbd_server_tls_creds: path to TLS credentials
         nbd_export_bitmaps: bitmap names separated by space, e.g. 'bm1 bm2'
+        nbd_export_image_opts: image-opts string that will be used to describe
+                               the exported image instead of using filename
     :return: pid of qemu-nbd server or None
     """
     cmd_dict = {
@@ -67,12 +69,14 @@ def export_image(qemu_nbd, filename, local_image, params):
         "pid_file": "",
         "bitmap": "",
         "allocation_depth": "",
-        "export_readonly": ""
+        "export_readonly": "",
+        "image_opts": ""
     }
     export_cmd = (
         '{secret_object} {tls_creds} {allocation_depth} {export_readonly} '
         '{export_format} {persistent} {desc} {port} {bitmap} '
-        '{export_name} {fork} {pid_file} {unix_socket} {filename}')
+        '{export_name} {fork} {pid_file} {unix_socket} {filename} '
+        '{image_opts}')
 
     pid_file = utils_misc.generate_tmp_file_name('%s_nbd_server' % local_image,
                                                  'pid')
@@ -130,6 +134,14 @@ def export_image(qemu_nbd, filename, local_image, params):
         cmd_dict['bitmap'] = "".join(
             [" -B %s" % _ for _ in params['nbd_export_bitmaps'].split()]
         )
+
+    # Export image with a filter
+    image_opts = params.get("nbd_export_image_opts")
+    if image_opts:
+        # Call the cmd with image-opts
+        cmd_dict["export_format"] = ""
+        cmd_dict["filename"] = ""
+        cmd_dict["image_opts"] = "--image-opts %s" % image_opts
 
     qemu_nbd_pid = None
     cmdline = qemu_nbd + ' ' + string.Formatter().format(export_cmd,
