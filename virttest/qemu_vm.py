@@ -2424,7 +2424,8 @@ class VM(virt_vm.BaseVM):
         # Add TPM devices
         for tpm in params.objects("tpms"):
             tpm_params = params.object_params(tpm)
-            devices.insert(devices.tpm_define_by_params(tpm, tpm_params))
+            devices.insert(devices.tpm_define_by_params("%s_%s" % (self.name, tpm),
+                                                        tpm_params))
 
         disable_kvm_option = ""
         if (devices.has_option("no-kvm")):
@@ -4324,13 +4325,14 @@ class VM(virt_vm.BaseVM):
             tpms = clone.params.objects("tpms")
             tpms_copy = []
             for tpm in tpms:
-                tpm_copied = tpm + "_copied"
-                tpm_path = os.path.join(swtpm_dir, '%s_state' % tpm)
-                tpm_copied_path = os.path.join(swtpm_dir, '%s_state' % tpm_copied)
+                tpm_name = "%s_%s" % (self.name, tpm)
+                tpm_path = os.path.join(swtpm_dir, '%s_state' % tpm_name)
+                tpm_copied_path = os.path.join(swtpm_dir, '%s_copied_state' %
+                                               tpm_name)
                 if os.path.exists(tpm_copied_path):
                     shutil.rmtree(tpm_copied_path)
-                    shutil.copytree(tpm_path, tpm_copied_path)
-                tpms_copy.append(tpm_copied)
+                shutil.copytree(tpm_path, tpm_copied_path)
+                tpms_copy.append(tpm + "_copied")
                 for param in clone.params.copy():
                     if param.endswith("_" + tpm):
                         clone.params[param + "_copied"] = clone.params[param]
