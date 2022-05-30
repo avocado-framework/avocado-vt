@@ -269,6 +269,15 @@ def _get_image_meta(image, params, root_dir):
             meta['file'].update({
                 k: v[1] for k, v in six.iteritems(mapping) if v[0]
             })
+    filters = params.get("image_filter_drivers", "").split()
+    # Stack them reversed, so the first filter on the list
+    # will be on top of the rest of filters
+    for img_filter in filters[::-1]:
+        tmp_meta = collections.OrderedDict()
+        tmp_meta["file"] = meta
+        meta = tmp_meta
+        filter_cfg = _FilterConfigGatherer.gather(img_filter, params)
+        meta.update(filter_cfg)
 
     return meta
 
@@ -345,6 +354,53 @@ def get_image_repr(image, params, root_dir, representation=None):
 
         func = mapping["json"] if image_secret or access_needed else mapping["filename"]
     return func(image, params, root_dir)
+
+
+class _FilterConfigGatherer(object):
+    """ This class can be used to gather filter-specific configuration
+        from test params to generate fully-valid image_meta dicts.
+        The filter-specific image_meta should be obtained by calling
+        the gather class method.
+        This class should contain as much private methods as filters that
+        should be supported for image_meta generation. In other words,
+        each supported filter should contain a _<filter_type> implemented
+        in this class as well as a "<filter_type>": <cfg_gather_func> key/value
+        entry in the _config_gatherers dict from the gather method.
+    """
+
+    @classmethod
+    def gather(cls, filter_name, params):
+        """ Gathers filter-specific config from params and collects
+            them properly on an OrderedDict.
+            This method is in charge of calling the appropriate private
+            class method
+            :param filter_name: Name/id of the filter for which data is being
+                                gathered
+            :type filter_name: str
+            :param params: Collection of parameters from which data will be
+                           gathered
+            :type params: Ordered Dict
+            :return: Ordered Dict
+        """
+        _config_gatherers = {"compress": cls._compress}
+        filter_params = params.object_params(filter_name)
+        filter_type = filter_params.get("image_filter_driver_type")
+        # Calls the adequate function for us
+        try:
+            gather_func = _config_gatherers[filter_type]
+        except KeyError:
+            # Filter is not supported
+            raise NotImplementedError("Image configuration meta generation "
+                                      "support hasn't been implemented for "
+                                      f"{filter_type} filter yet.")
+        return gather_func(filter_params)
+
+    @staticmethod
+    def _compress(params):
+        """ Gives an empty OrderedDict (as compress filter doesn't have
+            specific attributes related to the filter)
+        """
+        return collections.OrderedDict({"driver": "compress"})
 
 
 class _ParameterAssembler(string.Formatter):
