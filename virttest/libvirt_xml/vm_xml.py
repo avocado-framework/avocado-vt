@@ -3498,7 +3498,7 @@ class VMMemBackingXML(base.LibvirtXMLBase):
     """
 
     __slots__ = ('hugepages', 'nosharepages', 'locked', 'source', 'access',
-                 'discard', 'source_type', 'access_mode')
+                 'discard', 'source_type', 'access_mode', 'allocation')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementNest(property_name='hugepages',
@@ -3525,6 +3525,11 @@ class VMMemBackingXML(base.LibvirtXMLBase):
                                parent_xpath='/',
                                tag_name='access',
                                attribute='mode')
+        accessors.XMLElementDict(property_name="allocation",
+                                 libvirtxml=self,
+                                 forbidden=None,
+                                 parent_xpath='/',
+                                 tag_name='allocation')
         super(VMMemBackingXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<memoryBacking/>'
 
