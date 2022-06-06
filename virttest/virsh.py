@@ -1078,12 +1078,18 @@ def dom_list(options="", **dargs):
     return command("list %s" % options, **dargs)
 
 
-def reboot(name, options="", **dargs):
+@EventTracker.wait_event
+def reboot(name, options="", wait_for_event=False,
+           event_type='reboot', event_timeout=30, **dargs):
+
     """
     Run a reboot command in the target domain.
 
     :param name: Name of domain.
     :param options: options to pass to reboot command
+    :param wait_for_event: wait until an event of the given type comes
+    :param event_type: type of the event
+    :param event_timeout: timeout for virsh event command
     :return: CmdResult object
     """
     return command("reboot --domain %s %s" % (name, options), **dargs)
@@ -1525,12 +1531,17 @@ def start(name, options="", **dargs):
     return command("start %s %s" % (name, options), **dargs)
 
 
-def shutdown(name, options="", **dargs):
+@EventTracker.wait_event
+def shutdown(name, options="", wait_for_event=False,
+             event_type='lifecycle', event_timeout=10, **dargs):
     """
     True on successful domain shutdown.
 
     :param name: VM name
     :param options: options for virsh shutdown.
+    :param wait_for_event: wait until an event of the given type comes
+    :param event_type: type of the event
+    :param event_timeout: timeout for virsh event command
     :param dargs: standardized virsh function API keywords
     :return: CmdResult object
     """
