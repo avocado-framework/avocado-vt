@@ -709,7 +709,8 @@ class TCPConnection(ConnectionBase):
                  'remote_libvirtdconf', 'sasl_allowed_users',
                  'auth_tcp', 'listen_addr', 'remote_saslconf',
                  'remote_libvirtd_tcp_socket', 'client_hosts',
-                 'daemon_conf', 'daemon_socket_conf')
+                 'daemon_conf', 'daemon_socket_conf',
+                 'tcp_min_ssf')
 
     def __init__(self, *args, **dargs):
         """
@@ -727,6 +728,7 @@ class TCPConnection(ConnectionBase):
         init_dict['sasl_type'] = init_dict.get('sasl_type', 'gssapi')
         init_dict['listen_addr'] = init_dict.get('listen_addr')
         init_dict['sasl_allowed_users'] = init_dict.get('sasl_allowed_users')
+        init_dict['tcp_min_ssf'] = init_dict.get('tcp_min_ssf')
         super(TCPConnection, self).__init__(init_dict)
 
         if utils_split_daemons.is_modular_daemon():
@@ -832,6 +834,7 @@ class TCPConnection(ConnectionBase):
         server_session = self.server_session
         # require a list data type
         sasl_allowed_users = self.sasl_allowed_users
+        tcp_min_ssf = self.tcp_min_ssf
         listen_addr = self.listen_addr
         pattern_to_repl = {}
         if not libvirt_version.version_compare(5, 6, 0, server_session):
@@ -857,6 +860,9 @@ class TCPConnection(ConnectionBase):
         if listen_addr:
             pattern_to_repl[r".*listen_addr\s*=.*"] = \
                 "listen_addr='%s'" % (listen_addr)
+        if tcp_min_ssf:
+            pattern_to_repl[r".*tcp_min_ssf\s*=.*"] = \
+                "tcp_min_ssf=%s" % (tcp_min_ssf)
         self.remote_libvirtdconf.sub_else_add(pattern_to_repl)
 
         # edit the /etc/sasl2/libvirt.conf to change sasl method
