@@ -514,7 +514,7 @@ class MigrationTemplate(object):
         LOG.debug("Do post migration check after migrate to dest")
         self.params["migrate_options"] = self.virsh_migrate_options
         self.obj_migration.post_migration_check(self.vms, self.params,
-                                                self.uptime, uri=self.dest_uri)
+                                                self.uptime, dest_uri=self.dest_uri)
 
     def _post_migrate(self):
         """
@@ -556,7 +556,7 @@ class MigrationTemplate(object):
 
         LOG.debug("Do post migration check after migrate back to src")
         self.obj_migration.post_migration_check(self.vms, self.params,
-                                                self.uptime, uri=self.src_uri)
+                                                self.uptime, dest_uri=self.src_uri)
 
     def _post_migrate_back(self):
         """
