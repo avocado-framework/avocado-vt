@@ -46,7 +46,7 @@ class MigrationTest(object):
         # The format is: <func_object, func_return>
         self.func_ret = {}
 
-    def post_migration_check(self, vms, params, uptime=None, uri=None):
+    def post_migration_check(self, vms, params, uptime=None, dest_uri=None, src_uri=None):
         """
         Validating migration by performing checks in this method
         * check vm state after migration
@@ -59,19 +59,26 @@ class MigrationTest(object):
 
         :param vms: VM objects of migrating vms
         :param uptime: uptime dict of vms before migration
-        :param uri: target virsh uri
+        :param dest_uri: target virsh uri
+        :param src_uri: source virsh uri
         :return: updated dict of uptime
         """
-        vm_state = params.get("virsh_migrated_state", "running")
+        vm_state_dest = params.get("virsh_migrate_dest_state", "running")
+        vm_state_src = params.get("virsh_migrate_src_state", "shut off")
         for vm in vms:
-            if not libvirt.check_vm_state(vm.name, vm_state, uri=uri):
-                raise exceptions.TestFail("Migrated VMs failed to be in %s "
-                                          "state at destination" % vm_state)
-            LOG.info("Guest state is '%s' at destination is as expected",
-                     vm_state)
+            if dest_uri:
+                if not libvirt.check_vm_state(vm.name, vm_state_dest, uri=dest_uri):
+                    raise exceptions.TestFail("Migrated VMs failed to be in %s "
+                                              "state at destination" % vm_state_dest)
+                LOG.info("Guest state is '%s' at destination is as expected", vm_state_dest)
+            if src_uri:
+                if not libvirt.check_vm_state(vm.name, vm_state_src, uri=src_uri):
+                    raise exceptions.TestFail("Migrated VMs failed to be in %s "
+                                              "state at source" % vm_state_src)
+                LOG.info("Guest state is '%s' at source is as expected", vm_state_src)
             if "offline" not in params.get("migrate_options", params.get("virsh_migrate_options", "")):
                 if uptime:
-                    vm_uptime = vm.uptime(connect_uri=uri)
+                    vm_uptime = vm.uptime(connect_uri=dest_uri)
                     LOG.info("uptime of migrated VM %s: %s", vm.name, vm_uptime)
                     if vm_uptime < uptime[vm.name]:
                         raise exceptions.TestFail("vm went for a reboot during "
@@ -79,12 +86,12 @@ class MigrationTest(object):
 
                     # update vm uptime to check when migrating back
                     uptime[vm.name] = vm_uptime
-                    vm.verify_dmesg(connect_uri=uri)
+                    vm.verify_dmesg(connect_uri=dest_uri)
                 if params.get("check_network_accessibility_after_mig", "no") == "yes":
                     ping_count = int(params.get("ping_count", 10))
-                    self.ping_vm(vm, params, uri=uri, ping_count=ping_count)
+                    self.ping_vm(vm, params, uri=dest_uri, ping_count=ping_count)
                 if params.get("simple_disk_check_after_mig", 'yes') == "yes":
-                    backup_uri, vm.connect_uri = vm.connect_uri, uri
+                    backup_uri, vm.connect_uri = vm.connect_uri, dest_uri
                     vm.create_serial_console()
                     vm_session_after_mig = vm.wait_for_serial_login(timeout=360)
                     vm_session_after_mig.cmd("echo libvirt_simple_disk_check >> /tmp/libvirt_simple_disk_check")
@@ -92,7 +99,7 @@ class MigrationTest(object):
                     vm.connect_uri = backup_uri
                 if params.get("check_disk_after_mig", "no") == "yes":
                     disk_kname = params.get("check_disk_kname_after_mig", "vdb")
-                    backup_uri, vm.connect_uri = vm.connect_uri, uri
+                    backup_uri, vm.connect_uri = vm.connect_uri, dest_uri
                     vm.create_serial_console()
                     vm_session_after_mig = vm.wait_for_serial_login(timeout=360)
                     utils_disk.linux_disk_check(vm_session_after_mig, disk_kname)
