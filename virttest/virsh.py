@@ -31,7 +31,6 @@ import select
 import locale
 import base64
 import inspect
-import platform
 
 from functools import wraps
 
@@ -1587,13 +1586,6 @@ def undefine(name, options=None, **dargs):
     cmd = "undefine %s" % name
     if options is not None:
         cmd += " %s" % options
-
-    # When the platform is aarch64 or x86_64, both seabios and ovmf
-    # guests will use --nvram option
-    if platform.machine() in ["aarch64", "x86_64"]:
-        if options is None or "--nvram" not in options:
-            cmd += " --nvram"
-
     LOG.debug("Undefine VM %s", name)
     return command(cmd, **dargs)
 
