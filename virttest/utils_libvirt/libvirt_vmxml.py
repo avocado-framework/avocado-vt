@@ -11,6 +11,15 @@ from avocado.core import exceptions
 
 from virttest import virsh
 from virttest.libvirt_xml import vm_xml
+from virttest.libvirt_xml.devices import controller
+from virttest.libvirt_xml.devices import channel
+from virttest.libvirt_xml.devices import disk
+from virttest.libvirt_xml.devices import hostdev
+from virttest.libvirt_xml.devices import interface
+from virttest.libvirt_xml.devices import rng
+from virttest.libvirt_xml.devices import vsock
+from virttest.libvirt_xml.devices import watchdog
+from virttest.utils_test import libvirt
 
 LOG = logging.getLogger('avocado.' + __name__)
 
@@ -65,3 +74,60 @@ def remove_vm_devices_by_type(vm, device_type):
 
     if vm_was_running:
         vm.start()
+
+
+def create_vm_device_by_type(dev_type, dev_dict):
+    """
+    Create device by device type
+
+    :param dev_type: device type
+    :param dev_dict: dict for device
+    :return: device object
+    """
+    dev_obj = None
+    if dev_type == 'disk':
+        dev_obj = disk.Disk()
+    elif dev_type == 'controller':
+        dev_obj = controller.Controller()
+    elif dev_type == 'interface':
+        dev_obj = interface.Interface()
+    elif dev_type == 'channel':
+        dev_obj = channel.Channel()
+    elif dev_type == 'vsock':
+        dev_obj = vsock.Vsock()
+    elif dev_type == 'watchdog':
+        dev_obj = watchdog.Watchdog()
+    elif dev_type == 'rng':
+        dev_obj = rng.Rng()
+    elif dev_type == 'hostdev':
+        dev_obj = hostdev.Hostdev()
+
+    dev_obj.setup_attrs(**dev_dict)
+
+    return dev_obj
+
+
+def modify_vm_device(vmxml, dev_type, dev_dict=None, index=0):
+    """
+     Get specified device , update it with given dev_dict if the device exists,
+     Create the device if it does not exist
+
+    :param vmxml: domain VMXML instance
+    :param dev_type: device type
+    :param dev_dict: dict to create device
+    :param index: device index
+    :return: device object
+    """
+    dev_obj = None
+    try:
+        dev_obj, xml_devices = libvirt.get_vm_device(vmxml, dev_type, index=index)
+        dev_obj.setup_attrs(**dev_dict)
+
+        vmxml.devices = xml_devices
+        vmxml.xmltreefile.write()
+        vmxml.sync()
+    except IndexError:
+        dev_obj = create_vm_device_by_type(dev_type, dev_dict)
+        libvirt.add_vm_device(vmxml, dev_obj)
+
+    return dev_obj
