@@ -1185,23 +1185,21 @@ __ovs = None
 __bridge = Bridge()
 
 
-def __init_openvswitch(func):
+def __init_openvswitch():
     """
-    Decorator used for late init of __ovs variable.
+    Initialize the __ovs variable.
     """
-    def wrap_init(*args, **kargs):
-        global __ovs
-        if __ovs is None:
-            try:
-                __ovs = factory(openvswitch.OpenVSwitchSystem)()
-                __ovs.init_system()
-                if (not __ovs.check()):
-                    raise Exception("Check of OpenVSwitch failed.")
-            except Exception as e:
-                LOG.debug("Host does not support OpenVSwitch: %s", e)
-
-        return func(*args, **kargs)
-    return wrap_init
+    global __ovs
+    if __ovs is None:
+        try:
+            __ovs = factory(openvswitch.OpenVSwitchSystem)()
+            __ovs.init_system()
+            if (not __ovs.check()):
+                raise Exception("Check of OpenVSwitch failed.")
+        except Exception as e:
+            LOG.error("Host does not support OpenVSwitch: %s", e)
+            __ovs = None
+    return __ovs
 
 
 def setup_ovs_vhostuser(hp_num, tmpdir, br_name, port_names,
@@ -1974,7 +1972,6 @@ def check_add_dnsmasq_to_br(br_name, tmpdir):
     return None
 
 
-@__init_openvswitch
 def find_bridge_manager(br_name, ovs=None):
     """
     Finds bridge which contain interface iface_name.
@@ -1982,18 +1979,16 @@ def find_bridge_manager(br_name, ovs=None):
     :param br_name: Name of interface.
     :return: (br_manager) which contain bridge or None.
     """
-    if ovs is None:
-        ovs = __ovs
     # find ifname in standard linux bridge.
     if br_name in __bridge.list_br():
         return __bridge
-    elif ovs is not None and br_name in ovs.list_br():
+    if ovs is None:
+        ovs = __init_openvswitch()
+    if ovs is not None and br_name in ovs.list_br():
         return ovs
-    else:
-        return None
+    return None
 
 
-@__init_openvswitch
 def find_current_bridge(iface_name, ovs=None):
     """
     Finds bridge which contains interface iface_name.
@@ -2001,14 +1996,15 @@ def find_current_bridge(iface_name, ovs=None):
     :param iface_name: Name of interface.
     :return: (br_manager, Bridge) which contain iface_name or None.
     """
-    if ovs is None:
-        ovs = __ovs
     # find ifname in standard linux bridge.
     master = __bridge
     bridge = master.port_to_br(iface_name)
-    if bridge is None and ovs:
-        master = ovs
-        bridge = master.port_to_br(iface_name)
+    if bridge is None:
+        if ovs is None:
+            ovs = __init_openvswitch()
+        if ovs is not None:
+            master = ovs
+            bridge = master.port_to_br(iface_name)
 
     if bridge is None:
         master = None
@@ -2016,7 +2012,6 @@ def find_current_bridge(iface_name, ovs=None):
     return (master, bridge)
 
 
-@__init_openvswitch
 def change_iface_bridge(ifname, new_bridge, ovs=None):
     """
     Change bridge on which interface was added.
@@ -2024,8 +2019,6 @@ def change_iface_bridge(ifname, new_bridge, ovs=None):
     :param ifname: Iface name or Iface struct.
     :param new_bridge: Name of new bridge.
     """
-    if ovs is None:
-        ovs = __ovs
     br_manager_new = find_bridge_manager(new_bridge, ovs)
     if br_manager_new is None:
         raise BRNotExistError(new_bridge, "")
@@ -2046,7 +2039,6 @@ def change_iface_bridge(ifname, new_bridge, ovs=None):
                          (ifname, new_bridge))
 
 
-@__init_openvswitch
 def ovs_br_exists(brname, ovs=None):
     """
     Check if bridge exists or not on OVS system
@@ -2055,7 +2047,7 @@ def ovs_br_exists(brname, ovs=None):
     :param ovs: OpenVSwitch object.
     """
     if ovs is None:
-        ovs = __ovs
+        ovs = __init_openvswitch()
 
     if ovs is not None:
         return brname in ovs.list_br()
@@ -2063,7 +2055,6 @@ def ovs_br_exists(brname, ovs=None):
         raise exceptions.TestError("Host does not support OpenVSwitch")
 
 
-@__init_openvswitch
 def add_ovs_bridge(brname, ovs=None):
     """
     Add a bridge to ovs
@@ -2072,13 +2063,12 @@ def add_ovs_bridge(brname, ovs=None):
     :param ovs: OpenVSwitch object.
     """
     if ovs is None:
-        ovs = __ovs
+        ovs = __init_openvswitch()
 
     if not ovs_br_exists(brname, ovs):
         ovs.add_br(brname)
 
 
-@__init_openvswitch
 def del_ovs_bridge(brname, ovs=None):
     """
     Delete a bridge from ovs
@@ -2087,7 +2077,7 @@ def del_ovs_bridge(brname, ovs=None):
     :param ovs: OpenVSwitch object.
     """
     if ovs is None:
-        ovs = __ovs
+        ovs = __init_openvswitch()
 
     if ovs_br_exists(brname, ovs):
         ovs.del_br(brname)
@@ -2095,7 +2085,6 @@ def del_ovs_bridge(brname, ovs=None):
         raise BRNotExistError(brname, "")
 
 
-@__init_openvswitch
 def add_to_bridge(ifname, brname, ovs=None):
     """
     Add a TAP device to bridge
@@ -2104,9 +2093,6 @@ def add_to_bridge(ifname, brname, ovs=None):
     :param brname: Name of the bridge
     :param ovs: OpenVSwitch object.
     """
-    if ovs is None:
-        ovs = __ovs
-
     _ifname = None
     if isinstance(ifname, six.string_types):
         _ifname = ifname
@@ -2119,13 +2105,15 @@ def add_to_bridge(ifname, brname, ovs=None):
         return
 
     if ovs is None:
+        ovs = __init_openvswitch()
+
+    if ovs is None:
         raise BRAddIfError(ifname, brname, "There is no bridge in system.")
     # Try add port to OpenVSwitch bridge.
     if brname in ovs.list_br():
         ovs.add_port(brname, ifname)
 
 
-@__init_openvswitch
 def del_from_bridge(ifname, brname, ovs=None):
     """
     Del a TAP device to bridge
@@ -2134,29 +2122,28 @@ def del_from_bridge(ifname, brname, ovs=None):
     :param brname: Name of the bridge
     :param ovs: OpenVSwitch object.
     """
-    if ovs is None:
-        ovs = __ovs
-
     _ifname = None
     if isinstance(ifname, six.string_types):
         _ifname = ifname
     elif issubclass(type(ifname), VirtIface):
         _ifname = ifname.ifname
 
-    if ovs is None:
-        raise BRDelIfError(ifname, brname, "There is no bridge in system.")
-
     if brname in __bridge.list_br():
         # Try add port to standard bridge or openvswitch in compatible mode.
         __bridge.del_port(brname, _ifname)
         return
+
+    if ovs is None:
+        ovs = __init_openvswitch()
+
+    if ovs is None:
+        raise BRDelIfError(ifname, brname, "There is no bridge in system.")
 
     # Try add port to OpenVSwitch bridge.
     if brname in ovs.list_br():
         ovs.del_port(brname, _ifname)
 
 
-@__init_openvswitch
 def openflow_manager(br_name, command, flow_options=None, ovs=None):
     """
     Manager openvswitch flow rules
@@ -2167,7 +2154,7 @@ def openflow_manager(br_name, command, flow_options=None, ovs=None):
     :param ovs: OpenVSwitch object.
     """
     if ovs is None:
-        ovs = __ovs
+        ovs = __init_openvswitch()
 
     if ovs is None or br_name not in ovs.list_br():
         raise OpenflowSwitchError(br_name)

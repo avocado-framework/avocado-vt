@@ -195,13 +195,15 @@ class TestUtils:
         """
         err_file_path = os.path.join(self.logdir, BG_ERR_FILE)
         bg_errors = self.background_errors.get_all()
-        error_messages = ["BACKGROUND ERROR LIST:"]
+        error_messages = []
         for index, error in enumerate(bg_errors):
             error_messages.append(
                 "- ERROR #%d -\n%s" % (index, "".join(
                     traceback.format_exception(*error)
                     )))
-        genio.write_file(err_file_path, '\n'.join(error_messages))
+        if error_messages:
+            error_messages.insert(0, "BACKGROUND ERROR LIST:")
+            genio.write_file(err_file_path, '\n'.join(error_messages))
         if bg_errors:
             msg = ["Background error"]
             msg.append("s are" if len(bg_errors) > 1 else " is")
