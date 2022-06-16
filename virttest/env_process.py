@@ -1014,9 +1014,11 @@ def preprocess(test, params, env):
             # By default log the info level
             log_level = params.get("libvirtd_debug_level", "2")
             log_file = params.get("libvirtd_debug_file", "")
+            log_filters = params.get("libvirtd_debug_filters", "2:*")
             libvirtd_debug_log = test_setup.LibvirtdDebugLog(test,
                                                              log_level,
-                                                             log_file)
+                                                             log_file,
+                                                             log_filters)
             libvirtd_debug_log.enable()
 
     setup_pb = False

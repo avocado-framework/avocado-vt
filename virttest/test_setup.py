@@ -2466,16 +2466,18 @@ class LibvirtdDebugLog(object):
     and log file path("libvirtd_debug_file") can be controlled.
     """
 
-    def __init__(self, test, log_level="1", log_file=""):
+    def __init__(self, test, log_level="1", log_file="", log_filters="1:*"):
         """
         initialize variables
 
         :param test: Test object
         :param log_level: debug level for libvirtd log
         :param log_file: debug file path
+        :param log_filters: log filters for libvirtd log
         """
         self.log_level = log_level
         self.log_file = log_file
+        self.log_filters = log_filters
         self.test = test
         self.daemons_dict = {}
         self.daemons_dict["libvirtd"] = {
@@ -2537,6 +2539,7 @@ class LibvirtdDebugLog(object):
             value.get("conf")["log_level"] = self.log_level
             value.get("conf")["log_outputs"] = '"%s:file:%s"' % (self.log_level,
                                                                  self.log_file)
+            value.get("conf")["log_filters"] = '"%s"' % self.log_filters
             value.get("daemon").restart()
 
     def disable(self):
