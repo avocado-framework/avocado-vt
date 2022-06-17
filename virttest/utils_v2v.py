@@ -485,6 +485,15 @@ class Target(object):
 
         return options
 
+    def _get_qemu_options(self):
+        """
+        Construct output options for -o qemu
+        """
+        os_directory = self._get_os_directory()
+        options = " -os %s" % os_directory
+
+        return options
+
     def _get_null_options(self):
         """
         Construct output options for -o null
