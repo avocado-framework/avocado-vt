@@ -301,7 +301,8 @@ class VM(virt_vm.BaseVM):
             if options is None:
                 options = "--nvram"
             else:
-                options += " --nvram"
+                if "--nvram" not in options:
+                    options += " --nvram"
         try:
             virsh.undefine(self.name, options=options, uri=self.connect_uri,
                            ignore_status=False)
