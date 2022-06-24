@@ -1044,6 +1044,7 @@ def preprocess(test, params, env):
         iscsidev = qemu_storage.Iscsidev(params, base_dir, "iscsi")
         params["image_name"] = iscsidev.setup()
         params["image_raw_device"] = "yes"
+        env.register_iscsidev("iscsi_%s" % params["main_vm"], iscsidev)
 
     if params.get("storage_type") == "lvm":
         lvmdev = qemu_storage.LVMdev(params, base_dir, "lvm")
@@ -1817,11 +1818,12 @@ def postprocess(test, params, env):
 
     if params.get("storage_type") == "iscsi":
         try:
-            iscsidev = qemu_storage.Iscsidev(params, base_dir, "iscsi")
+            iscsidev = env.get_iscsidev("iscsi_%s" % params["main_vm"])
             iscsidev.cleanup()
         except Exception as details:
             err += "\niscsi cleanup: %s" % str(details).replace('\\n', '\n  ')
             LOG.error(details)
+        env.unregister_iscsidev("iscsi_%s" % params["main_vm"])
 
     if params.get("storage_type") == "lvm":
         try:
