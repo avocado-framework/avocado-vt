@@ -200,6 +200,34 @@ class Env(IterableUserDict):
         return self.data.get("sync__%s" % port)
 
     @lock_safe
+    def register_iscsidev(self, name, iscsi_dev):
+        """
+        Register iscsi device object into env;
+
+        :param name: name of register iscsi device object
+        :param iscsi_dev: iscsi device object;
+        """
+        self.data["iscsidev__%s" % name] = iscsi_dev
+
+    def get_iscsidev(self, name):
+        """
+        Get iscsi device object by name from env;
+
+        :param name: iscsi device object name;
+        :return: iscsi device object
+        """
+        return self.data.get("iscsidev__%s" % name)
+
+    @lock_safe
+    def unregister_iscsidev(self, name):
+        """
+        Remove iscsi device object from env;
+
+        :param name: name of iscsi device object;
+        """
+        del self.data["iscsidev__%s" % name]
+
+    @lock_safe
     def register_lvmdev(self, name, lvmdev):
         """
         Register lvm device object into env;
