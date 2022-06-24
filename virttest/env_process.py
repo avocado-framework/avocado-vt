@@ -1044,6 +1044,10 @@ def preprocess(test, params, env):
         iscsidev = qemu_storage.Iscsidev(params, base_dir, "iscsi")
         params["image_name"] = iscsidev.setup()
         params["image_raw_device"] = "yes"
+        for image_name in params.objects("images"):
+            name_tag = "image_name_%s" % image_name
+            if params.get(name_tag):
+                params["image_raw_device_%s" % image_name] = "yes"
 
     if params.get("storage_type") == "lvm":
         lvmdev = qemu_storage.LVMdev(params, base_dir, "lvm")
