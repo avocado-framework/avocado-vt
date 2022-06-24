@@ -40,6 +40,24 @@ def get_image_filename(portal, target, lun=0, user=None, password=None):
     return uri.format(auth=auth, portal=portal, target=target, lun=lun)
 
 
+def iscsi_get_device_by_lun(target, lun):
+    """
+    Get image filename of iscsi device.
+    """
+    cmd = "iscsiadm -m session -P 3"
+    pattern = r"Lun:\s(\d+).*?scsi\sdisk\s(\w+)\s+State:\srunning"
+    devices = None
+    output = process.run(cmd).stdout_text
+    targets = output.split('Target: ')[1:]
+    for item in targets:
+        if target in item:
+            devices = dict(re.findall(pattern, target, re.S))
+            for key, value in devices.items():
+                dname = "/dev/%s" % value
+                devices[key] = dname
+    return devices[lun]
+
+
 def restart_iscsid(reset_failed=True):
     """
     Restart iscsid service.
