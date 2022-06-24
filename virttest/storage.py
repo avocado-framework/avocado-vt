@@ -180,6 +180,7 @@ def get_image_filename(params, root_dir, basename=False):
     enable_nvme = params.get("enable_nvme") == "yes"
     image_name = params.get("image_name")
     storage_type = params.get("storage_type")
+    image_raw_device = params.get("image_raw_device")
     if image_name:
         image_format = params.get("image_format", "qcow2")
         if enable_curl:
@@ -233,6 +234,10 @@ def get_image_filename(params, root_dir, basename=False):
 
             return storage_ssh.get_image_filename(server, ssh_image_path,
                                                   user, port, host_key_check)
+        if storage_type == 'iscsi' and image_raw_device == 'yes':
+            target = params.get("target")
+            lun = params.get("lun", "0")
+            return iscsi.iscsi_get_device_by_lun(target, lun)
         return get_image_filename_filesytem(params, root_dir, basename=basename)
     else:
         LOG.warn("image_name parameter not set.")
