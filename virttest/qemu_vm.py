@@ -2778,7 +2778,7 @@ class VM(virt_vm.BaseVM):
                 "ats": params.get("virtio_dev_ats"),
                 "aer": params.get("virtio_dev_aer")}
             for key, value in properties_to_be_set.items():
-                if value and key in dev_properties:
+                if key not in device.params and value and key in dev_properties:
                     device.set_param(key, value)
 
         # set tag for pcic
