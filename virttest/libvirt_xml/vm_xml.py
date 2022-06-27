@@ -10,6 +10,7 @@ import re
 from .. import xml_utils
 from .. import utils_misc
 from ..libvirt_xml import base, accessors, xcepts
+from ..libvirt_xml.base import LibvirtXMLBase
 from ..libvirt_xml.devices import librarian
 
 LOG = logging.getLogger('avocado.' + __name__)
@@ -56,7 +57,7 @@ class VMXMLDevices(list):
         return result
 
 
-class VMXMLBase(base.LibvirtXMLBase):
+class VMXMLBase(LibvirtXMLBase):
 
     """
     Accessor methods for VMXML class properties (items in __slots__)

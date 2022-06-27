@@ -113,7 +113,7 @@ class LibvirtNetwork(object):
         ran = network_xml.RangeXML()
         ran.attrs = {'start': dhcp_start, 'end': dhcp_end}
         ip.dhcp_ranges = ran
-        net_xml.ip = ip
+        net_xml.ips = [ip]
         net_xml.bridge = {'name': self.kwargs.get('br_name'), 'stp': 'on', 'delay': '0'}
         return net_xml
 
@@ -133,7 +133,7 @@ class LibvirtNetwork(object):
             ran = network_xml.RangeXML()
             ran.attrs = {'start': dhcp_start, 'end': dhcp_end}
             ip.dhcp_ranges = ran
-        net_xml.ip = ip
+        net_xml.ips = [ip]
         return address, net_xml
 
     def create_macvtap_xml(self):
@@ -1879,7 +1879,7 @@ def create_net_xml(net_name, params):
         if not virsh.net_info(net_name, ignore_status=True).exit_status:
             # Edit an existed network
             netxml = network_xml.NetworkXML.new_from_net_dumpxml(net_name)
-            netxml.del_ip()
+            netxml.del_ips()
         else:
             netxml = network_xml.NetworkXML(net_name)
         if disable_dns:
@@ -1950,7 +1950,7 @@ def create_net_xml(net_name, params):
                 host_xml_6.attrs = {"name": guest_name,
                                     "ip": guest_ipv6}
                 ipxml.hosts = [host_xml_6]
-            netxml.set_ip(ipxml)
+            netxml.add_ip(ipxml)
         if net_ip_address:
             ipxml = network_xml.IPXML(net_ip_address,
                                       net_ip_netmask)
@@ -1970,7 +1970,7 @@ def create_net_xml(net_name, params):
                                     "ip": guest_ipv4,
                                     "mac": guest_mac}
                 ipxml.hosts = [host_xml_4]
-            netxml.set_ip(ipxml)
+            netxml.add_ip(ipxml)
         if routes:
             netxml.routes = [ast.literal_eval(x) for x in routes]
         if pg_name:
@@ -1983,6 +1983,7 @@ def create_net_xml(net_name, params):
             pg_bandwidth_outbound = params.get(
                 "portgroup_bandwidth_outbound", "").split()
             pg_vlan = params.get("portgroup_vlan", "").split()
+            pgs = []
             for i in range(len(pg_name)):
                 pgxml = network_xml.PortgroupXML()
                 pgxml.name = pg_name[i]
@@ -1998,7 +1999,8 @@ def create_net_xml(net_name, params):
                         pg_bandwidth_outbound[i])
                 if len(pg_vlan) > i:
                     pgxml.vlan_tag = ast.literal_eval(pg_vlan[i])
-                netxml.set_portgroup(pgxml)
+                pgs.append(pgxml)
+            netxml.portgroups = pgs
 
         vf_list = ast.literal_eval(vf_list_attrs)
         if vf_list:
