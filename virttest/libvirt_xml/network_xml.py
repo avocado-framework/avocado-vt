@@ -427,8 +427,8 @@ class NetworkXMLBase(base.LibvirtXMLBase):
     """
 
     __slots__ = ('name', 'uuid', 'bridge', 'defined', 'active',
-                 'autostart', 'persistent', 'forward', 'mac', 'ip',
-                 'bandwidth_inbound', 'bandwidth_outbound', 'portgroup',
+                 'autostart', 'persistent', 'forward', 'mac', 'ips',
+                 'bandwidth_inbound', 'bandwidth_outbound', 'portgroups',
                  'dns', 'domain_name', 'nat_port', 'forward_interface',
                  'routes', 'virtualport_type', 'vf_list', 'driver', 'pf',
                  'mtu', 'connection', 'port', 'nat_attrs')
@@ -448,6 +448,10 @@ class NetworkXMLBase(base.LibvirtXMLBase):
                                  tag_name='uuid')
         accessors.XMLAttribute('mac', self, parent_xpath='/',
                                tag_name='mac', attribute='address')
+        accessors.XMLElementList('ips', self, parent_xpath='/',
+                                 marshal_from=self.marshal_from_ips,
+                                 marshal_to=self.marshal_to_ips,
+                                 has_subclass=True)
         accessors.XMLElementDict('forward', self, parent_xpath='/',
                                  tag_name='forward')
         accessors.XMLElementList('forward_interface', self, parent_xpath='/forward',
@@ -479,6 +483,10 @@ class NetworkXMLBase(base.LibvirtXMLBase):
                                tag_name='mtu',  attribute='size')
         accessors.XMLAttribute('domain_name', self, parent_xpath='/',
                                tag_name='domain', attribute='name')
+        accessors.XMLElementList('portgroups', self, parent_xpath='/',
+                                 marshal_from=self.marshal_from_portgroups,
+                                 marshal_to=self.marshal_to_portgroups,
+                                 has_subclass=True)
         accessors.XMLElementNest('dns', self, parent_xpath='/',
                                  tag_name='dns', subclass=DNSXML,
                                  subclass_dargs={
@@ -617,17 +625,7 @@ class NetworkXMLBase(base.LibvirtXMLBase):
     set_persistent = set_defined
     del_persistent = del_defined
 
-    def get_ip(self):
-        xmltreefile = self.__dict_get__('xml')
-        try:
-            ip_root = xmltreefile.reroot('/ip')
-        except KeyError as detail:
-            raise xcepts.LibvirtXMLError(detail)
-        ipxml = IPXML(virsh_instance=self.__dict_get__('virsh'))
-        ipxml.xmltreefile = ip_root
-        return ipxml
-
-    def set_ip(self, value):
+    def add_ip(self, value):
         if not issubclass(type(value), IPXML):
             raise xcepts.LibvirtXMLError("value must be a IPXML or subclass")
         xmltreefile = self.__dict_get__('xml')
@@ -635,13 +633,6 @@ class NetworkXMLBase(base.LibvirtXMLBase):
         root = xmltreefile.getroot()
         root.append(value.xmltreefile.getroot())
         xmltreefile.write()
-
-    def del_ip(self):
-        xmltreefile = self.__dict_get__('xml')
-        element = xmltreefile.find('/ip')
-        if element is not None:
-            xmltreefile.remove(element)
-            xmltreefile.write()
 
     def del_element(self, element='', index=0):
         """
@@ -660,28 +651,57 @@ class NetworkXMLBase(base.LibvirtXMLBase):
             xmltreefile.remove(del_elem)
             xmltreefile.write()
 
-    def get_portgroup(self):
-        try:
-            portgroup_root = self.xmltreefile.reroot('/portgroup')
-        except KeyError as detail:
-            raise xcepts.LibvirtXMLError(detail)
-        portgroup_xml = PortgroupXML(virsh_instance=self.__dict_get__('virsh'))
-        portgroup_xml.xmltreefile = portgroup_root
-        return portgroup_xml
+    @staticmethod
+    def marshal_from_ips(item, index, libvirtxml):
+        """
+        Convert an xml object to ip tag and xml element.
+        """
+        if isinstance(item, IPXML):
+            return 'ip', item
+        elif isinstance(item, dict):
+            ip = IPXML()
+            ip.setup_attrs(**item)
+            return 'ip', ip
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of IPXML "
+                                         "instances, not a %s" % str(item))
 
-    def set_portgroup(self, value):
-        if not issubclass(type(value), PortgroupXML):
-            raise xcepts.LibvirtXMLError("value must be a PortgroupXML"
-                                         "instance or subclass.")
-        root = self.xmltreefile.getroot()
-        root.append(value.xmltreefile.getroot())
-        self.xmltreefile.write()
+    @staticmethod
+    def marshal_to_ips(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a ip tag xml element to an object of IPXML.
+        """
+        if tag != 'ip':
+            return None     # Don't convert this item
+        newone = IPXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
-    def del_portgroup(self):
-        element = self.xmltreefile.find("/portgroup")
-        if element is not None:
-            self.xmltreefile.remove(element)
-            self.xmltreefile.write()
+    @staticmethod
+    def marshal_from_portgroups(item, index, libvirtxml):
+        """
+        Convert an xml object to portgroup tag and xml element.
+        """
+        if isinstance(item, PortgroupXML):
+            return 'portgroup', item
+        elif isinstance(item, dict):
+            portgroup = PortgroupXML()
+            portgroup.setup_attrs(**item)
+            return 'portgroup', portgroup
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of PortgroupXML "
+                                         "instances, not a %s" % str(item))
+
+    @staticmethod
+    def marshal_to_portgroups(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a portgroup tag xml element to an object of PortgroupXML.
+        """
+        if tag != 'portgroup':
+            return None     # Don't convert this item
+        newone = PortgroupXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
     def get_interface_connection(self):
         try:

@@ -140,7 +140,7 @@ def modify_network_xml(net_dict, testnet_xml):
     if del_nat is True:
         testnet_xml.del_nat_attrs()
     if del_ip:
-        testnet_xml.del_ip()
+        testnet_xml.del_ips()
     if dns_txt:
         dns_dict = {"txt": ast.literal_eval(dns_txt)}
         dns_obj = testnet_xml.new_dns(**dns_dict)

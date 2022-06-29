@@ -729,7 +729,7 @@ class testNetworkXML(LibvirtXMLTestBase):
         ipxml = network_xml.IPXML()
         ipxml.address = ('address_test')
         ipxml.netmask = ('netmask_test')
-        netxml.ip = ipxml
+        netxml.ips = [ipxml]
         return netxml
 
     def test_getters(self):
@@ -747,7 +747,7 @@ class testNetworkXML(LibvirtXMLTestBase):
 
     def test_ip_getter(self):
         netxml = self._from_scratch()
-        ipxml = netxml.ip
+        ipxml = netxml.ips[0]
         self.assertEqual(ipxml.address, 'address_test')
         self.assertEqual(ipxml.netmask, 'netmask_test')
 
