@@ -46,6 +46,7 @@ def check_guest_xml(vm_name, pat_in_dumpxml, option='', status_error=False):
 
     :param vm_name: vm name
     :param pat_in_dumpxml:  str, the pattern to search in dumpxml
+    :param option: str, extra options for dumpxml command
     :param status_error: True if expect not existing, otherwise False
     :raises: TestFail if the result is not expected
     """
