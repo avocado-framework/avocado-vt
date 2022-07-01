@@ -353,6 +353,177 @@ class CartesianConfigTest(unittest.TestCase):
                               ],
                               True)
 
+    def testSuffixJoinDel(self):
+        self._checkStringDump("""
+            variants:
+                - x:
+                  foo = x
+                  suffix _x
+                - y:
+                  foo = y
+                  suffix _y
+                - z:
+                  foo = z
+            variants:
+                - control_group:
+                - del_raw:
+                    del foo
+                - del_suffix:
+                    del foo_x
+                - control_group_xy:
+                    join x y
+                - del_raw_xy:
+                    join x y
+                    del foo
+                # TODO: the regex matching for the del operator does not work
+                #- del_regex:
+                #    del foo(_.*)?
+                - del_suffix_xy:
+                    join x y
+                    del foo_x
+                - control_group_xz:
+                    join x z
+                - del_raw_xz:
+                    join x z
+                    del foo
+                - del_suffix_xz:
+                    join x z
+                    del foo_x
+            """,
+                              [
+                                  {'_name_map_file': {'<string>': 'control_group.x'},
+                                   '_short_name_map_file': {'<string>': 'control_group.x'},
+                                   'dep': [],
+                                   'name': 'control_group.x',
+                                   'shortname': 'control_group.x',
+                                   'foo': 'x'},
+                                  {'_name_map_file': {'<string>': 'control_group.y'},
+                                   '_short_name_map_file': {'<string>': 'control_group.y'},
+                                   'dep': [],
+                                   'name': 'control_group.y',
+                                   'shortname': 'control_group.y',
+                                   'foo': 'y'},
+                                  {'_name_map_file': {'<string>': 'control_group.z'},
+                                   '_short_name_map_file': {'<string>': 'control_group.z'},
+                                   'dep': [],
+                                   'name': 'control_group.z',
+                                   'shortname': 'control_group.z',
+                                   'foo': 'z'},
+                                  {'_name_map_file': {'<string>': 'del_raw.x'},
+                                   '_short_name_map_file': {'<string>': 'del_raw.x'},
+                                   'dep': [],
+                                   'name': 'del_raw.x',
+                                   'shortname': 'del_raw.x',
+                                   'foo': 'x'},
+                                  {'_name_map_file': {'<string>': 'del_raw.y'},
+                                   '_short_name_map_file': {'<string>': 'del_raw.y'},
+                                   'dep': [],
+                                   'name': 'del_raw.y',
+                                   'shortname': 'del_raw.y',
+                                   'foo': 'y'},
+                                  {'_name_map_file': {'<string>': 'del_raw.z'},
+                                   '_short_name_map_file': {'<string>': 'del_raw.z'},
+                                   'dep': [],
+                                   'name': 'del_raw.z',
+                                   'shortname': 'del_raw.z'},
+                                  {'_name_map_file': {'<string>': 'del_suffix.x'},
+                                   '_short_name_map_file': {'<string>': 'del_suffix.x'},
+                                   'dep': [],
+                                   'name': 'del_suffix.x',
+                                   'shortname': 'del_suffix.x'},
+                                  {'_name_map_file': {'<string>': 'del_suffix.y'},
+                                   '_short_name_map_file': {'<string>': 'del_suffix.y'},
+                                   'dep': [],
+                                   'name': 'del_suffix.y',
+                                   'shortname': 'del_suffix.y',
+                                   'foo': 'y'},
+                                  {'_name_map_file': {'<string>': 'del_suffix.z'},
+                                   '_short_name_map_file': {'<string>': 'del_suffix.z'},
+                                   'dep': [],
+                                   'name': 'del_suffix.z',
+                                   'shortname': 'del_suffix.z',
+                                   'foo': 'z'},
+                                  {'_name_map_file': {'<string>': 'control_group_xy.y'},
+                                   '_short_name_map_file': {'<string>': 'control_group_xy.y'},
+                                   'dep': [],
+                                   'name': 'control_group_xy.x.y',
+                                   'shortname': 'control_group_xy.x.y',
+                                   'foo_x': 'x',
+                                   'foo_y': 'y'},
+                                  {'_name_map_file': {'<string>': 'del_raw_xy.y'},
+                                   '_short_name_map_file': {'<string>': 'del_raw_xy.y'},
+                                   'dep': [],
+                                   'name': 'del_raw_xy.x.y',
+                                   'shortname': 'del_raw_xy.x.y',
+                                   'foo_x': 'x',
+                                   'foo_y': 'y'},
+                                  {'_name_map_file': {'<string>': 'del_suffix_xy.y'},
+                                   '_short_name_map_file': {'<string>': 'del_suffix_xy.y'},
+                                   'dep': [],
+                                   'name': 'del_suffix_xy.x.y',
+                                   'shortname': 'del_suffix_xy.x.y',
+                                   'foo': 'y'},
+                                  {'_name_map_file': {'<string>': 'control_group_xz.z'},
+                                   '_short_name_map_file': {'<string>': 'control_group_xz.z'},
+                                   'dep': [],
+                                   'name': 'control_group_xz.x.z',
+                                   'shortname': 'control_group_xz.x.z',
+                                   'foo': 'z',
+                                   'foo_x': 'x'},
+                                  {'_name_map_file': {'<string>': 'del_raw_xz.z'},
+                                   '_short_name_map_file': {'<string>': 'del_raw_xz.z'},
+                                   'dep': [],
+                                   'name': 'del_raw_xz.x.z',
+                                   'shortname': 'del_raw_xz.x.z',
+                                   'foo': 'x'},
+                                  {'_name_map_file': {'<string>': 'del_suffix_xz.z'},
+                                   '_short_name_map_file': {'<string>': 'del_suffix_xz.z'},
+                                   'dep': [],
+                                   'name': 'del_suffix_xz.x.z',
+                                   'shortname': 'del_suffix_xz.x.z',
+                                   'foo': 'z'},
+                              ],
+                              True)
+
+        self._checkStringDump("""
+            variants tests:
+              - wait:
+                   run = "wait"
+                   variants:
+                     - long:
+                        time = short_time
+                     - short: long
+                        time = logn_time
+              - test2:
+                   run = "test1"
+
+            del time
+            """,
+                              [
+                                  {'_name_map_file': {'<string>': '(tests=wait).long'},
+                                   '_short_name_map_file': {'<string>': 'wait.long'},
+                                   'dep': [],
+                                   'name': '(tests=wait).long',
+                                   'run': 'wait',
+                                   'shortname': 'wait.long',
+                                   'tests': 'wait'},
+                                  {'_name_map_file': {'<string>': '(tests=wait).short'},
+                                   '_short_name_map_file': {'<string>': 'wait.short'},
+                                   'dep': ['(tests=wait).long'],
+                                   'name': '(tests=wait).short',
+                                   'run': 'wait',
+                                   'shortname': 'wait.short',
+                                   'tests': 'wait'},
+                                  {'_name_map_file': {'<string>': '(tests=test2)'},
+                                   '_short_name_map_file': {'<string>': 'test2'},
+                                   'dep': [],
+                                   'name': '(tests=test2)',
+                                   'run': 'test1',
+                                   'shortname': 'test2',
+                                   'tests': 'test2'},
+                              ],
+                              True)
+
     def testError1(self):
         self.assertRaises(cartesian_config.ParserError,
                           self._checkStringDump, """
