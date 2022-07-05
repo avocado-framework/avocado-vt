@@ -380,7 +380,10 @@ class LibvirtXMLBase(propcan.PropCanBase):
                     # of dict-type attrs to target slot
                     elif isinstance(value[0], LibvirtXMLBase):
                         value = [v.fetch_attrs() for v in value]
-                attrs[key] = value
+                # If the element is bool type, only return value when
+                # it's True
+                if value is not False:
+                    attrs[key] = value
 
         return attrs
 
