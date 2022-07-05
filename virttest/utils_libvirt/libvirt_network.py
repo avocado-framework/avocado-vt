@@ -11,11 +11,15 @@ from avocado.utils import process
 
 from virttest import virsh
 from virttest import remote
+from virttest import utils_misc
 
 from virttest.libvirt_xml import NetworkXML
 from virttest.utils_test import libvirt
 
 LOG = logging.getLogger('avocado.' + __name__)
+
+# Store sockets number
+sockets = None
 
 
 def create_or_del_network(net_dict, is_del=False, remote_args=None):
@@ -78,6 +82,25 @@ def check_established(params):
     port_to_check = params.get("port_to_check", "4915")
     check_local = 'yes' == params.get("check_local_port", "no")
     ipv6_config = "yes" == params.get("ipv6_config", "no")
+    expected_network_conn_num = params.get("expected_network_conn_num")
+    check_socket_num = "yes" == params.get("check_socket_num", "no")
+    exp_num = params.get("expected_socket_num", "2")
+
+    def _check_socket():
+        _res = process.run(cmd, shell=True).stdout_text.split('\n')
+        global sockets
+        sockets = [x.strip() for x in _res if socket_pattern.match(x)]
+        LOG.debug("Found sockets: %s", sockets)
+        return len(sockets) == int(exp_num)
+
+    if check_socket_num:
+        cmd = "netstat -xanp| grep \"CONNECTED\""
+        socket_pattern = re.compile(r".*(desturi-socket|migrateuri-socket).*")
+        found_expected = utils_misc.wait_for(_check_socket, timeout=30)
+        if not found_expected:
+            raise exceptions.TestFail("There should be {} connected unix sockets, "
+                                      "but found {} sockets.".format(exp_num, len(sockets)))
+
     if ipv6_config:
         server_ip = params.get("ipv6_addr_des", "")[:17]
     else:
@@ -88,6 +111,17 @@ def check_established(params):
         cmdRes = process.run(cmd, shell=True)
     else:
         cmdRes = remote.run_remote_cmd(cmd, params)
+
+    if expected_network_conn_num:
+        pat_str = r'.*%s:.*ESTABLISHED.*qemu-kvm.*' % server_ip
+        findall = re.findall(pat_str, cmdRes.stdout_text.strip())
+        if len(findall) != int(expected_network_conn_num):
+            raise exceptions.TestFail("Failed to check network connection between "
+                                      "src qemu and target qemu: {}".format(findall))
+        else:
+            LOG.debug("Network connection number: %s", len(findall))
+        if int(expected_network_conn_num) == 0:
+            return None
 
     if port_to_check != '4915':
         pat_str = r'.*%s:%s.*ESTABLISHED.*qemu-kvm.*' % (server_ip,
