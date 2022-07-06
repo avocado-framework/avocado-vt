@@ -65,13 +65,14 @@ def get_pf_info(session=None):
     """
     pf_info = {}
     status, output = utils_misc.cmd_status_output(
-        "lspci |awk '/Ethernet/ {print $1}'", shell=True)
+        "lspci |awk '/Ethernet/ {print $1}'", shell=True, session=session)
     if status or not output:
         raise exceptions.TestError("Unable to get Ethernet controllers. status: %s,"
                                    "stdout: %s." % (status, output))
     for pci in output.split():
         _, output = utils_misc.cmd_status_output("lspci -v -s %s" % pci,
-                                                 shell=True)
+                                                 shell=True,
+                                                 session=session)
         if re.search("SR-IOV", output):
             pf_driver = re.search('driver in use: (.*)', output)[1]
             tmp_info = {'driver': pf_driver, 'pci_id': '0000:%s' % pci}
@@ -229,7 +230,7 @@ def get_vf_pci_id(pf_pci, vf_index=0, session=None):
     if status or not tmp_vf:
         raise exceptions.TestError("Unable to get VF. status: %s, stdout: %s."
                                    % (status, tmp_vf))
-    return os.path.basename(tmp_vf)
+    return os.path.basename(tmp_vf).strip()
 
 
 def get_pci_from_iface(iface, session=None):
@@ -276,6 +277,41 @@ def add_or_del_connection(params, session=None, is_del=False):
               'sleep 5; dhclient"'.format(pf_name, bridge_name)
     else:
         cmd = recover_cmd
+
+    utils_misc.cmd_status_output(cmd, shell=True, verbose=True,
+                                 ignore_status=False, session=session)
+
+
+def del_connection(pf_name, bridge_name, session=None, ignore_status=False):
+    """
+    Delete connections
+
+    :param pf_name: pf's name
+    :param bridge_name: bridge's name
+    :param session: The session object to the host
+    :param ignore_status: Whether to raise an exception
+    """
+    if not utils_package.package_install(["tmux", "dhcp-client"], session):
+        LOG.error("Failed to install the required package")
+    cmd = 'tmux -c "ip link set {0} nomaster; ip link delete {1}; ' \
+          'pkill dhclient; sleep 5; dhclient"'.format(pf_name, bridge_name)
+
+    utils_misc.cmd_status_output(cmd, shell=True, verbose=True,
+                                 ignore_status=ignore_status, session=session)
+
+
+def add_connection(pf_name, bridge_name, session=None):
+    """
+    Add connections
+
+    :param pf_name: pf's name
+    :param bridge_name: bridge's name
+    :param session: The session object to the host
+    """
+    del_connection(pf_name, bridge_name, session=None, ignore_status=True)
+    cmd = 'tmux -c "ip link add name {1} type bridge; ip link set {0} up; ' \
+          'ip link set {0} master {1}; ip link set {1} up; dhclient -r;' \
+          'sleep 5; dhclient"'.format(pf_name, bridge_name)
 
     utils_misc.cmd_status_output(cmd, shell=True, verbose=True,
                                  ignore_status=False, session=session)
