@@ -3783,8 +3783,6 @@ def customize_libvirt_config(params,
             libvirtd.restart()
         obj_conf = target_conf
     else:
-        if not isinstance(config_object, utils_config.LibvirtConfigCommon):
-            return None
         # Handle local libvirtd
         config_object.restore()
         if restart_libvirt:
