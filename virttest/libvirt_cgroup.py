@@ -457,15 +457,16 @@ class CgroupTest(object):
         virsh_output_dict = self.get_virsh_output_dict(vm_name, virsh_cmd)
         return self.get_standardized_virsh_info(virsh_cmd, virsh_output_dict)
 
-    def reset_cpuset_cpus(self, value):
+    def set_cpuset_cpus(self, value):
         """
-        Reset the cpuset.cpus file to the specified content
+        Set the cpuset.cpus file to the specified content
 
         :param value: to be set
         """
         if self.is_cgroup_v2_enabled():
+            LOG.debug("v2 cgroup doesn't have cpuset.cpus")
             return
-        LOG.debug("Reset /sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus to %s", value)
+        LOG.debug("Set /sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus to %s", value)
         cmd = "echo %s > /sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus" % value
         process.run(cmd, ignore_status=False, shell=True)
 
@@ -476,6 +477,7 @@ class CgroupTest(object):
         :return: str, the value of cpuset.cpus content
         """
         if self.is_cgroup_v2_enabled():
+            LOG.debug("v2 cgroup doesn't have cpuset.cpus")
             return
         LOG.debug("Get /sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus value")
         cmd = "cat /sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus"
