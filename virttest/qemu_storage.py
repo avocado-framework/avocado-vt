@@ -1517,13 +1517,15 @@ class QemuImg(storage.QemuImg):
 
         return result
 
-    def check(self, params, root_dir, force_share=False, output=None):
+    def check(self, params, root_dir, force_share=False, output=None,
+              check_repair=None):
         """
         Check an image using the appropriate tools for each virt backend.
 
         :param params: Dictionary containing the test parameters.
         :param root_dir: Base directory for relative filenames.
         :param output: The format of the output(json, human).
+        :param check_repair: Repair the image(leaks, all).
 
         :note: params should contain:
                image_name -- the name of the image file, without extension
@@ -1537,7 +1539,8 @@ class QemuImg(storage.QemuImg):
 
         cmd_dict = {"image_filename": image_filename,
                     "force_share": force_share,
-                    "output_format": output}
+                    "output_format": output,
+                    "check_repair": check_repair}
         if (self.encryption_config.key_secret
                 or self._need_auth_info(self.tag)):
             cmd_dict["image_filename"] = "'%s'" % get_image_json(
