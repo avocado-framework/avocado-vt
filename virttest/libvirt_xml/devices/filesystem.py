@@ -41,9 +41,11 @@ class Filesystem(base.TypedDeviceBase):
         <binary path='/usr/libexec/virtiofsd' xattr='on'>
             <cache mode='always'/>
             <lock posix='on' flock='on'/>
+            <thread_pool size='16'/>
         </binary>
         """
-        __slots__ = ('path', 'xattr', 'cache_mode', 'lock_posix', 'flock')
+        __slots__ = ('path', 'xattr', 'cache_mode', 'lock_posix',
+                     'flock', 'thread_pool_size')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLAttribute('path', self,
@@ -66,5 +68,9 @@ class Filesystem(base.TypedDeviceBase):
                                    parent_xpath='/',
                                    tag_name='lock',
                                    attribute='flock')
+            accessors.XMLAttribute('thread_pool_size', self,
+                                   parent_xpath='/',
+                                   tag_name='thread_pool',
+                                   attribute='size')
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<binary/>'
