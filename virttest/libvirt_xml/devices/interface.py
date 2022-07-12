@@ -15,7 +15,7 @@ class Interface(base.TypedDeviceBase):
     __slots__ = ('source', 'hostdev_address', 'managed', 'mac_address',
                  'bandwidth', 'model', 'coalesce', 'link_state', 'target', 'driver',
                  'address', 'boot', 'rom', 'mtu', 'filterref', 'backend',
-                 'virtualport_type', 'alias', "ips", "teaming", "vlan", "port",
+                 'virtualport', 'alias', "ips", "teaming", "vlan", "port",
                  'acpi')
 
     def __init__(self, type_name='network', virsh_instance=base.base.virsh):
@@ -108,8 +108,6 @@ class Interface(base.TypedDeviceBase):
                                  tag_name='address', subclass=self.Address,
                                  subclass_dargs={'type_name': 'pci',
                                                  'virsh_instance': virsh_instance})
-        accessors.XMLAttribute('virtualport_type', self, parent_xpath='/',
-                               tag_name='virtualport', attribute='type')
         accessors.XMLElementDict('alias', self, parent_xpath='/',
                                  tag_name='alias')
         accessors.XMLElementDict(property_name="acpi",
@@ -132,6 +130,12 @@ class Interface(base.TypedDeviceBase):
                                  parent_xpath='/',
                                  tag_name='vlan',
                                  subclass=self.Vlan,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
+        accessors.XMLElementNest("virtualport", self,
+                                 parent_xpath='/',
+                                 tag_name='virtualport',
+                                 subclass=self.VirtualPort,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
         accessors.XMLElementDict(property_name='port',
@@ -312,3 +316,28 @@ class Interface(base.TypedDeviceBase):
             if tag != 'tag':
                 return None  # skip this one
             return dict(attr_dict)  # return copy of dict, not reference@
+
+    class VirtualPort(base.base.LibvirtXMLBase):
+        """
+        Interface virtualport xml class.
+
+        Properties:
+
+        type:
+            attribute.
+        parameters:
+            dict.
+        """
+        __slots__ = ("type", "parameters")
+
+        def __init__(self, virsh_instance=base.base.virsh):
+            accessors.XMLAttribute(property_name="type",
+                                   libvirtxml=self,
+                                   forbidden=None,
+                                   parent_xpath='/',
+                                   tag_name='virtualport',
+                                   attribute='type')
+            accessors.XMLElementDict("parameters", self, parent_xpath="/",
+                                     tag_name="parameters")
+            super(self.__class__, self).__init__(virsh_instance=virsh_instance)
+            self.xml = '<virtualport/>'
