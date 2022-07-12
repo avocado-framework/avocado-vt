@@ -683,11 +683,8 @@ class VMXML(VMXMLBase):
 
     def undefine(self, options=None, virsh_instance=base.virsh):
         """Undefine this VM with libvirt retaining XML in instance"""
-        try:
-            nvram = getattr(getattr(self, "os"), "nvram")
-        except xcepts.LibvirtXMLNotFoundError:
-            nvram = None
-
+        os_attrs = self.os.fetch_attrs()
+        nvram = any([os_attrs.get('os_firmware') == "efi", os_attrs.get('nvram')])
         if nvram:
             if options is None:
                 options = "--nvram"
