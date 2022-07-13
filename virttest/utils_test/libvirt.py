@@ -3657,7 +3657,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
     if iface_teaming:
         iface.teaming = eval(iface_teaming)
     if iface_virtualport_type:
-        iface.virtualport_type = iface_virtualport_type
+        iface.setup_attrs(virtualport={'type': iface_virtualport_type})
     if iface_port:
         iface.port = eval(iface_port)
     if iface_coalesce:
