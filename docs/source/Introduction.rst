@@ -4,8 +4,7 @@ About Avocado-VT
 ================
 
 Avocado-VT is a compatibility plugin that lets you execute virtualization
-related tests (then known as virt-test), with all conveniences provided by
-Avocado.
+related tests with all conveniences provided by Avocado.
 
 Its main purpose is to serve as an automated regression testing tool
 for virt developers, and for doing regular automated testing of virt technologies
@@ -25,21 +24,8 @@ For the qemu subtests, we can do things like:
 -  Build and use qemu using various methods (source tarball, git repo,
    rpm)
 -  Some level of performance testing can be made.
--  The KVM unit tests can be run comfortably from inside virt-test,
+-  The KVM unit tests can be run comfortably from inside Avocado-VT,
    we do have full integration with the unittest execution
 
 We support x86\_64 hosts with hardware virtualization support (AMD and
 Intel), and Intel 32 and 64 bit guest operating systems.
-
-.. _about-virt-test:
-
-About virt-test
----------------
-
-Virt-test is the project that became Avocado-VT. It used to live under
-the Autotest umbrella, under:
-
-http://github.com/autotest/virt-test
-
-That repository is now frozen and only available at that location for
-historical purposes.

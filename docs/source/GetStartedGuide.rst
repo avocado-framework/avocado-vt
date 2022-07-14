@@ -126,8 +126,8 @@ That command should show the loaded plugins, and hopefully no errors. The releva
     vt-bootstrap Avocado VT - implements the 'vt-bootstrap' subcommand
     ...
     Plugins that add new options to commands (avocado.plugins.cli):
-    vt      Avocado VT/virt-test support to 'run' command
-    vt-list Avocado-VT/virt-test support for 'list' command
+    vt      Avocado VT support to 'run' command
+    vt-list Avocado-VT support for 'list' command
 
 Then let's list the tests available with::
 
