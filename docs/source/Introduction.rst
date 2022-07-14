@@ -27,5 +27,15 @@ For the qemu subtests, we can do things like:
 -  The KVM unit tests can be run comfortably from inside Avocado-VT,
    we do have full integration with the unittest execution
 
-We support x86\_64 hosts with hardware virtualization support (AMD and
-Intel), and Intel 32 and 64 bit guest operating systems.
+We support a number of architectures such as:
+
+-  aarch64
+-  ppc64
+-  ppc64le
+-  s390x
+-  riscv64
+-  x86_64
+
+.. note:: For an accurate view of architecture support on your
+          configuration run ``avocado vt-list-archs``, and for a list
+          of guests supported run ``avocado vt-list-guests``
