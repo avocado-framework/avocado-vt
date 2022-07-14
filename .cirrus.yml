@@ -28,19 +28,24 @@ fedora_35_task:
     - test -z $AVOCADO_SRC || python3 -m pip install $AVOCADO_SRC
     - python3 $SETUP
   bootstrap_script: &bootstrap_scr
+    # Pin the versions of tp-qemu and tp-libvirt to known working versions.
+    # These versions can be bumped at any time, but provide better understanding
+    # of regressions or version update requirements on the test providers side.
+    - python3 -c "from virttest.asset import ConfigLoader; cl = ConfigLoader('virttest/test-providers.d/io-github-autotest-qemu.ini'); cl.set('provider', 'ref', '33ed9b0ac6e4255877ff109a1d91fa84c9097dc5'); cl.save()"
+    - python3 -c "from virttest.asset import ConfigLoader; cl = ConfigLoader('virttest/test-providers.d/io-github-autotest-libvirt.ini'); cl.set('provider', 'ref', 'e6af7700f879fe1547bfb1421439121d35c919bd'); cl.save()"
     - python3 -m avocado vt-bootstrap --vt-type=$VT_TYPE --vt-skip-verify-download-assets --yes-to-all
   list_script: &list_scr
-    - python3 -m avocado list --vt-save-config=/tmp/config --vt-type=$VT_TYPE -- boot | tee /tmp/list
+    - PATH=~/.local/bin:$PATH python3 -m avocado list --vt-save-config=/tmp/config --vt-type=$VT_TYPE -- boot | tee /tmp/list
     - test $VT_TYPE == "qemu" || test $(wc -l < /tmp/list) -gt 50
     - test $VT_TYPE == "libvirt" || test $(wc -l < /tmp/list) -eq 1
-    - python3 -m avocado list --vt-config=/tmp/config --vt-type=$VT_TYPE -- boot | tee /tmp/list_from_config
+    - PATH=~/.local/bin:$PATH python3 -m avocado list --vt-config=/tmp/config --vt-type=$VT_TYPE -- boot | tee /tmp/list_from_config
     - diff /tmp/list /tmp/list_from_config
     - python3 -m avocado vt-list-guests --vt-type=$VT_TYPE
     - python3 -m avocado vt-list-archs --vt-type=$VT_TYPE
   dry_run_script: &dry_run_scr
     - PATH=~/.local/bin:$PATH python3 -m avocado --show all run --vt-type=$VT_TYPE --dry-run -- io-github-autotest-qemu.boot
-  run_boot_script: &run_boot_scr
-    - test $VT_TYPE == "libvirt" || PATH=$HOME/.local/bin:$PATH python3 -m avocado --show all run --vt-type=$VT_TYPE --vt-extra-params nettype=user -- io-github-autotest-qemu.boot
+  run_tests_script: &run_tests_scr
+    - test $VT_TYPE == "libvirt" || PATH=$HOME/.local/bin:$PATH python3 -m avocado --show all run --vt-type=$VT_TYPE --vt-extra-params nettype=user -- io-github-autotest-qemu.boot io-github-autotest-qemu.qemu_disk_img.convert.base_to_raw io-github-autotest-qemu.commit_with_backing.default
 
 centos_8_1_task:
   container:
@@ -67,7 +72,6 @@ avocado_devel_task:
   container:
     image: quay.io/avocado-framework/avocado-vt-ci-fedora-35
     kvm: true
-  allow_failures: $AVOCADO_SRC == 'git+https://github.com/avocado-framework/avocado#egg=avocado_framework'
   env:
     matrix:
       # Latest Avocado
@@ -93,3 +97,5 @@ avocado_devel_task:
     *list_scr
   dry_run_script:
     *dry_run_scr
+  run_tests_script:
+    *run_tests_scr
