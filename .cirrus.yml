@@ -28,6 +28,11 @@ fedora_35_task:
     - test -z $AVOCADO_SRC || python3 -m pip install $AVOCADO_SRC
     - python3 $SETUP
   bootstrap_script: &bootstrap_scr
+    # Pin the versions of tp-qemu and tp-libvirt to known working versions.
+    # These versions can be bumped at any time, but provide better understanding
+    # of regressions or version update requirements on the test providers side.
+    - python3 -c "from virttest.asset import ConfigLoader; cl = ConfigLoader('virttest/test-providers.d/io-github-autotest-qemu.ini'); cl.set('provider', 'ref', '33ed9b0ac6e4255877ff109a1d91fa84c9097dc5'); cl.save()"
+    - python3 -c "from virttest.asset import ConfigLoader; cl = ConfigLoader('virttest/test-providers.d/io-github-autotest-libvirt.ini'); cl.set('provider', 'ref', 'e6af7700f879fe1547bfb1421439121d35c919bd'); cl.save()"
     - python3 -m avocado vt-bootstrap --vt-type=$VT_TYPE --vt-skip-verify-download-assets --yes-to-all
   list_script: &list_scr
     - python3 -m avocado list --vt-save-config=/tmp/config --vt-type=$VT_TYPE -- boot | tee /tmp/list
