@@ -35,10 +35,10 @@ fedora_35_task:
     - python3 -c "from virttest.asset import ConfigLoader; cl = ConfigLoader('virttest/test-providers.d/io-github-autotest-libvirt.ini'); cl.set('provider', 'ref', 'e6af7700f879fe1547bfb1421439121d35c919bd'); cl.save()"
     - python3 -m avocado vt-bootstrap --vt-type=$VT_TYPE --vt-skip-verify-download-assets --yes-to-all
   list_script: &list_scr
-    - python3 -m avocado list --vt-save-config=/tmp/config --vt-type=$VT_TYPE -- boot | tee /tmp/list
+    - PATH=~/.local/bin:$PATH python3 -m avocado list --vt-save-config=/tmp/config --vt-type=$VT_TYPE -- boot | tee /tmp/list
     - test $VT_TYPE == "qemu" || test $(wc -l < /tmp/list) -gt 50
     - test $VT_TYPE == "libvirt" || test $(wc -l < /tmp/list) -eq 1
-    - python3 -m avocado list --vt-config=/tmp/config --vt-type=$VT_TYPE -- boot | tee /tmp/list_from_config
+    - PATH=~/.local/bin:$PATH python3 -m avocado list --vt-config=/tmp/config --vt-type=$VT_TYPE -- boot | tee /tmp/list_from_config
     - diff /tmp/list /tmp/list_from_config
     - python3 -m avocado vt-list-guests --vt-type=$VT_TYPE
     - python3 -m avocado vt-list-archs --vt-type=$VT_TYPE
