@@ -10,10 +10,10 @@
     %global gittar          %{srcname}-%{version}.tar.gz
 %else
     %if ! 0%{?commit:1}
-        %global commit      d201ac31789ff7fa93dbb8244604388214bf5afe
+        %global commit      014eae5404d56c476182ef30ebbb2c4079c16f0f
     %endif
     %if ! 0%{?commit_date:1}
-        %global commit_date 20211220
+        %global commit_date 20220714
     %endif
     %global shortcommit     %(c=%{commit};echo ${c:0:8})
     %global gitrel          .%{commit_date}git%{shortcommit}
@@ -31,7 +31,7 @@
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 94.0
+Version: 98.0
 Release: 1%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
@@ -104,6 +104,9 @@ Xunit output, among others.
 
 
 %changelog
+* Thu Jul 14 2022 Cleber Rosa <crosa@redhat.com> - 98.0-1
+- New release
+
 * Mon Dec 20 2021 Cleber Rosa <crosa@redhat.com> - 94.0-1
 - New release
 
