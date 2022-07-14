@@ -98,3 +98,5 @@ avocado_devel_task:
     *list_scr
   dry_run_script:
     *dry_run_scr
+  run_tests_script:
+    *run_tests_scr
