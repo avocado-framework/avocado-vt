@@ -227,7 +227,10 @@ def make_relative_path_backing_files(vm, pre_set_root_dir=None, origin_image=Non
 
 
 def create_reuse_external_snapshots(vm, pre_set_root_dir=None, skip_first_one=False,
-                                    disk_target="vda", disk_type="file", snapshot_chain_lenghth=4):
+                                    disk_target="vda", disk_type="file",
+                                    snapshot_chain_lenghth=4,
+                                    create_source_file=False, snap_extra='',
+                                    disk_format='qcow2'):
     """
     Create reuse external snapshots
 
@@ -236,6 +239,9 @@ def create_reuse_external_snapshots(vm, pre_set_root_dir=None, skip_first_one=Fa
     :param skip_first_one: whether skip first image file
     :param disk_target: disk target
     :param snapshot_chain_lenghth : snapshot length
+    :param create_source_file: the flag to prepare reuse source file or not
+    :param snap_extra: create snapshot extra option
+    :param disk_format: disk format
     :return: absolute root path of backing files and snapshot list
     """
     if pre_set_root_dir is None:
@@ -258,11 +264,14 @@ def create_reuse_external_snapshots(vm, pre_set_root_dir=None, skip_first_one=Fa
         backing_file_path = os.path.join(root_dir, key)
         external_snap_shot = "%s/%s" % (backing_file_path, value)
         snapshot_external_disks.append(external_snap_shot)
+        if create_source_file:
+            libvirt.create_local_disk(disk_type, disk_format=disk_format,
+                                      path=external_snap_shot)
         if disk_type == "block":
             options = "%s --diskspec %s,file=%s,stype=%s" % (meta_options, disk_target,
                                                              external_snap_shot, disk_type)
         else:
-            options = "%s --diskspec %s,file=%s" % (meta_options, disk_target, external_snap_shot)
+            options = "%s --diskspec %s,file=%s %s" % (meta_options, disk_target, external_snap_shot, snap_extra)
         virsh.snapshot_create_as(vm.name, options,
                                  ignore_status=False,
                                  debug=True)
