@@ -1126,12 +1126,19 @@ class QemuImg(storage.QemuImg):
 
         process.run(cmd)
 
-    def snapshot_list(self):
+    def snapshot_list(self, force_share=False):
         """
         List all snapshots in the given image
+
+        :param force_share: whether to open image in shared mode
+        :type force_share: bool
         """
+        force_share &= self.cap_force_share
         cmd = self.image_cmd
-        cmd += " snapshot -l %s" % self.image_filename
+        cmd += " snapshot"
+        if force_share:
+            cmd += " -U"
+        cmd += " -l %s" % self.image_filename
 
         return process.run(cmd).stdout_text
 
@@ -1314,6 +1321,8 @@ class QemuImg(storage.QemuImg):
         """
         Run qemu-img info command on image file and return its output.
 
+        :param force_share: whether to open image in shared mode
+        :type force_share: bool
         :param output: string of output format(`human`, `json`)
         """
         LOG.debug("Run qemu-img info command on %s", self.image_filename)
@@ -1395,6 +1404,8 @@ class QemuImg(storage.QemuImg):
         :param strict_mode: Boolean value, True for strict mode,
                             False for default mode.
         :param verbose: Record output in debug file or not
+        :param force_share: whether to open image in shared mode
+        :type force_share: bool
 
         :return: process.CmdResult object containing the result of the command
         """
@@ -1434,7 +1445,8 @@ class QemuImg(storage.QemuImg):
         :param target_image: target image object
         :param source_cache_mode: source cache used to open source image
         :param strict_mode: compare fails on sector allocation or image size
-        :param force_share: open image in shared mode
+        :param force_share: whether to open image in shared mode
+        :type force_share: bool
         :return: compare result [process.CmdResult]
         """
         if not self.support_cmd("compare"):
@@ -1524,6 +1536,8 @@ class QemuImg(storage.QemuImg):
 
         :param params: Dictionary containing the test parameters.
         :param root_dir: Base directory for relative filenames.
+        :param force_share: whether to open image in shared mode
+        :type force_share: bool
         :param output: The format of the output(json, human).
         :param check_repair: Repair the image(leaks, all).
 
@@ -1584,6 +1598,8 @@ class QemuImg(storage.QemuImg):
 
         :param params: Dictionary containing the test parameters.
         :param root_dir: Base directory for relative filenames.
+        :param force_share: whether to open image in shared mode
+        :type force_share: bool
 
         :note: params should contain:
                image_name -- the name of the image file, without extension
