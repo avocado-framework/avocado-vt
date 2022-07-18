@@ -1759,10 +1759,10 @@ class VMXML(VMXMLBase):
 
     def remove_all_boots(self):
         """
-        Remove all OS boots
+        Remove all boot elements
         """
         try:
-            self.xmltreefile.remove_by_xpath('/os/boot', remove_all=True)
+            self.xmltreefile.remove_by_xpath('//boot', remove_all=True)
         except (AttributeError, TypeError):
             pass  # Element already doesn't exist
         self.xmltreefile.write()
