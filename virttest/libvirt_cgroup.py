@@ -457,28 +457,52 @@ class CgroupTest(object):
         virsh_output_dict = self.get_virsh_output_dict(vm_name, virsh_cmd)
         return self.get_standardized_virsh_info(virsh_cmd, virsh_output_dict)
 
-    def set_cpuset_cpus(self, value):
+    def _produce_cpuset_cpus_file(self, cpuset_path, vm_name, is_cgroup2=False):
+        """
+        The utility function is to help produce cpuset.cpus file on cgroup v1
+
+        :param cpuset_path: str, the file path of cpuset.cpus
+        :param vm_name: vm name
+        :param is_cgroup2: boolean, True if cgroup v2, otherwise, False
+        """
+        if is_cgroup2:
+            LOG.debug("cpuset.cpus is not used in cgroup v2")
+            return
+
+        if not os.path.exists(cpuset_path):
+            # Produce the cpuset.cpus file by starting the vm
+            virsh_dargs = {'ignore_status': False, 'debug': True}
+            virsh.start(vm_name, **virsh_dargs)
+            virsh.destroy(vm_name, **virsh_dargs)
+
+    def set_cpuset_cpus(self, value, vm_name):
         """
         Set the cpuset.cpus file to the specified content
 
         :param value: to be set
+        :param vm_name: the vm name
         """
         if self.is_cgroup_v2_enabled():
             LOG.debug("v2 cgroup doesn't have cpuset.cpus")
             return
-        LOG.debug("Set /sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus to %s", value)
-        cmd = "echo %s > /sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus" % value
+        cpuset_path = '/sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus'
+        self._produce_cpuset_cpus_file(cpuset_path, vm_name)
+        LOG.debug("Set %s to %s", cpuset_path, value)
+        cmd = "echo %s > %s" % (value, cpuset_path)
         process.run(cmd, ignore_status=False, shell=True)
 
-    def get_cpuset_cpus(self):
+    def get_cpuset_cpus(self, vm_name):
         """
         Get the cpuset.cpus file content
 
+        :param vm_name: the vm name
         :return: str, the value of cpuset.cpus content
         """
         if self.is_cgroup_v2_enabled():
             LOG.debug("v2 cgroup doesn't have cpuset.cpus")
             return
-        LOG.debug("Get /sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus value")
-        cmd = "cat /sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus"
+        cpuset_path = '/sys/fs/cgroup/cpuset/machine.slice/cpuset.cpus'
+        self._produce_cpuset_cpus_file(cpuset_path, vm_name)
+        LOG.debug("Get %s value", cpuset_path)
+        cmd = "cat %s" % cpuset_path
         return process.run(cmd, ignore_status=False, shell=True).stdout_text.strip()
