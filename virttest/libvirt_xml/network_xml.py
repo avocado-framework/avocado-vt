@@ -462,7 +462,8 @@ class NetworkXMLBase(base.LibvirtXMLBase):
         accessors.XMLElementList('vf_list', self,
                                  parent_xpath='/forward',
                                  marshal_from=self.marshal_from_address,
-                                 marshal_to=self.marshal_to_address)
+                                 marshal_to=self.marshal_to_address,
+                                 has_subclass=True)
         accessors.XMLElementDict('driver', self, parent_xpath='/',
                                  tag_name='driver')
         accessors.XMLElementDict('pf', self, parent_xpath='/forward',
@@ -500,31 +501,32 @@ class NetworkXMLBase(base.LibvirtXMLBase):
 
     Address = librarian.get('address')
 
-    def new_vf_address(self, **dargs):
-        """
-        Return a new interface Address instance and set properties from dargs
-        """
-        new_one = self.Address("pci", virsh_instance=self.virsh)
-        for key, value in list(dargs.items()):
-            setattr(new_one, key, value)
-        return new_one
-
     @staticmethod
     def marshal_from_address(item, index, libvirtxml):
-        """Convert an Address instance into tag + attributes"""
-        root = item.xmltreefile.getroot()
-        if root.tag == 'address':
-            return (root.tag, dict(list(root.items())))
+        """
+        Convert an xml object to address tag and xml element.
+        """
+        if isinstance(item, librarian.get('address')):
+            return 'address', item
+        elif isinstance(item, dict):
+            address = librarian.get('address')('pci', virsh_instance=libvirtxml.virsh)
+            if 'type_name' in item.keys():
+                item.pop('type_name')
+            address.setup_attrs(**item)
+            return 'address', address
         else:
             raise xcepts.LibvirtXMLError("Expected a list of address "
                                          "instances, not a %s" % str(item))
 
     @staticmethod
-    def marshal_to_address(self, tag, attr_dict, index, libvirtxml):
-        """Convert a tag + attributes into an Address instance"""
-        if not tag == 'address':
-            return None
-        newone = self.new_vf_address(attr_dict)
+    def marshal_to_address(tag, new_treefile, index, libvirtxml):
+        """
+        Convert a address tag xml element to an object of address.
+        """
+        if tag != 'address':
+            return None     # Don't convert this item
+        newone = librarian.get('address')('pci', virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
         return newone
 
     def __check_undefined__(self, errmsg):

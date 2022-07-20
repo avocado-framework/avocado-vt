@@ -2004,8 +2004,8 @@ def create_net_xml(net_name, params):
 
         vf_list = ast.literal_eval(vf_list_attrs)
         if vf_list:
-            netxml.vf_list = [netxml.new_vf_address(**{'attrs': attr})
-                              for attr in vf_list]
+            vfs = [{'attrs': attr} for attr in vf_list]
+            netxml.setup_attrs(**{'vf_list': vfs})
         LOG.debug("New network xml file: %s", netxml)
         netxml.xmltreefile.write()
         return netxml
