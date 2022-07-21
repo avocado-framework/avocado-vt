@@ -932,7 +932,7 @@ class VM(virt_vm.BaseVM):
                 parent_bus = None
             if devices.has_device(dev_type):
                 rng_pci = QDevice(dev_type, parent_bus=parent_bus)
-                set_dev_params(rng_pci, rng_params, None, dev_type)
+                set_dev_params(rng_pci, rng_params, None, 'virtio-rng')
 
                 rng_dev = qdevices.QCustomDevice(dev_type="object",
                                                  backend="backend")
