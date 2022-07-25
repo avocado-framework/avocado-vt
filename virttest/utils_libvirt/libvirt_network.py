@@ -85,6 +85,8 @@ def check_established(params):
     expected_network_conn_num = params.get("expected_network_conn_num")
     check_socket_num = "yes" == params.get("check_socket_num", "no")
     exp_num = params.get("expected_socket_num", "2")
+    service_to_check = params.get("service_to_check", "qemu-kvm")
+    check_port_or_network_conn_num = "yes" == params.get("check_port_or_network_conn_num", "yes")
 
     def _check_socket():
         _res = process.run(cmd, shell=True).stdout_text.split('\n')
@@ -106,43 +108,45 @@ def check_established(params):
     else:
         server_ip = params.get("server_ip", params.get("remote_ip"))
 
-    cmd = "netstat -tunap|grep %s" % port_to_check
-    if check_local:
-        cmdRes = process.run(cmd, shell=True)
-    else:
-        cmdRes = remote.run_remote_cmd(cmd, params)
+    if check_port_or_network_conn_num:
+        cmd = "netstat -tunap|grep %s" % port_to_check
+        if check_local:
+            cmdRes = process.run(cmd, shell=True)
+        else:
+            cmdRes = remote.run_remote_cmd(cmd, params)
 
-    if expected_network_conn_num:
-        pat_str = r'.*%s:.*ESTABLISHED.*qemu-kvm.*' % server_ip
-        findall = re.findall(pat_str, cmdRes.stdout_text.strip())
-        if len(findall) != int(expected_network_conn_num):
-            raise exceptions.TestFail("Failed to check network connection between "
-                                      "src qemu and target qemu: {}".format(findall))
-        else:
-            LOG.debug("Network connection number: %s", len(findall))
-        if int(expected_network_conn_num) == 0:
-            return None
+        if expected_network_conn_num:
+            pat_str = r'.*%s:.*ESTABLISHED.*%s.*' % (server_ip, service_to_check)
+            findall = re.findall(pat_str, cmdRes.stdout_text.strip())
+            if len(findall) != int(expected_network_conn_num):
+                raise exceptions.TestFail("Failed to check network connection between "
+                                          "src qemu and target qemu: {}".format(findall))
+            else:
+                LOG.debug("Network connection number: %s", len(findall))
+            if int(expected_network_conn_num) == 0:
+                return None
 
-    if port_to_check != '4915':
-        pat_str = r'.*%s:%s.*ESTABLISHED.*qemu-kvm.*' % (server_ip,
-                                                         port_to_check)
-        search = re.search(pat_str, cmdRes.stdout_text.strip())
-        if not search:
-            raise exceptions.TestFail("Pattern '%s' is not matched in "
-                                      "'%s'" % (pat_str,
-                                                cmdRes.stdout_text.strip()))
+        if port_to_check != '4915':
+            pat_str = r'.*%s:%s.*ESTABLISHED.*%s.*' % (server_ip,
+                                                       port_to_check,
+                                                       service_to_check)
+            search = re.search(pat_str, cmdRes.stdout_text.strip())
+            if not search:
+                raise exceptions.TestFail("Pattern '%s' is not matched in "
+                                          "'%s'" % (pat_str,
+                                                    cmdRes.stdout_text.strip()))
+            else:
+                return port_to_check
         else:
-            return port_to_check
-    else:
-        pat_str = r'.*%s:(\d*).*ESTABLISHED.*qemu-kvm.*' % server_ip
-        search = re.search(pat_str, cmdRes.stdout_text.strip())
-        if search:
-            LOG.debug("Get the port used:%s", search.group(1))
-            return search.group(1)
-        else:
-            raise exceptions.TestFail("Pattern '%s' is not matched in "
-                                      "'%s'" % (pat_str,
-                                                cmdRes.stdout_text.strip()))
+            pat_str = r'.*%s:(\d*).*ESTABLISHED.*%s.*' % (server_ip, service_to_check)
+            search = re.search(pat_str, cmdRes.stdout_text.strip())
+            if search:
+                LOG.debug("Get the port used:%s", search.group(1))
+                return search.group(1)
+            else:
+                raise exceptions.TestFail("Pattern '%s' is not matched in "
+                                          "'%s'" % (pat_str,
+                                                    cmdRes.stdout_text.strip()))
 
 
 def modify_network_xml(net_dict, testnet_xml):
