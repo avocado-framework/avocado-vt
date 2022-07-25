@@ -42,6 +42,7 @@ from virttest.qemu_devices import qdevices
 from virttest.qemu_devices.utils import (DeviceError, DeviceHotplugError,
                                          DeviceInsertError, DeviceRemoveError,
                                          DeviceUnplugError, none_or_int)
+from virttest.qemu_devices.utils import set_cmdline_format_by_cfg
 from virttest.utils_params import Params
 from virttest.qemu_capabilities import Flags, Capabilities, MigrationParams
 from virttest.utils_version import VersionInterval
@@ -188,10 +189,12 @@ class DevContainer(object):
         """:return: qemu version, e.g. 5.2.0"""
         return self.__qemu_ver
 
-    def initialize_iothread_manager(self, params, guestcpuinfo):
+    def initialize_iothread_manager(self, params, guestcpuinfo,
+                                    cmdline_format_cfg=None):
         """Initialize iothread manager.
         :param params: vt params
         :param guestcpuinfo: Cpuinfo object that stores guest cpu info
+        :param cmdline_format_cfg: command style in dict
         """
         iothreads_lst = params.objects("iothreads")
         iothread_scheme = params.get("iothread_scheme")
@@ -211,6 +214,7 @@ class DevContainer(object):
             }
             iothread = qdevices.QIOThread(iothread_id=iothread,
                                           params=iothread_dict)
+            set_cmdline_format_by_cfg(iothread, cmdline_format_cfg, "images")
             iothreads.append(iothread)
 
         scheme_to_manager = {
