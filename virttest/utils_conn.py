@@ -17,6 +17,7 @@ from avocado.utils import process
 from virttest import propcan, utils_libvirtd
 from virttest import remote as remote_old
 from virttest import data_dir
+from virttest import utils_misc
 from virttest import utils_package
 from virttest import libvirt_version
 from virttest import utils_split_daemons
@@ -2126,9 +2127,12 @@ class UNIXConnection(ConnectionBase):
                         runner("systemctl start virtqemud")
                 else:
                     runner("systemctl daemon-reload")
-                    runner("systemctl stop libvirtd.socket")
                     runner("systemctl stop libvirtd")
+                    runner("systemctl stop libvirtd.socket")
                     runner("systemctl start libvirtd.socket")
+                    utils_misc.wait_for(
+                        lambda: process.system('systemctl status libvirtd.socket',
+                                               ignore_status=True, shell=True) == 0, 10)
                     runner("systemctl reset-failed libvirtd")
                     runner("systemctl start libvirtd")
                 current_session.close()
