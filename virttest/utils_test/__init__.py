@@ -928,6 +928,7 @@ class AvocadoGuest(object):
         self.session = None
         self.test_path = self.params.get("vm_test_path", "/var/tmp/avocado/")
         self.kvm_module = self.params.get("nested_kvm_module", "kvm_hv")
+        self.pycompat = self.params.get("nested_pycompat", "python")
         self.result_path = os.path.join(self.test_path, "results")
         self.avocado_repo = self.params.get("avocado_repo_path",
                                             "https://github.com/avocado-framework/avocado.git")
@@ -956,7 +957,7 @@ class AvocadoGuest(object):
             if self.package_list:
                 self.prerequisites['packages'].extend(self.package_list)
             if self.installtype == 'pip':
-                self.plugins['pip'].append('avocado-framework-plugin-avocado-vt')
+                self.plugins['pip'].append('avocado-framework-plugin-vt')
             elif self.installtype == 'git':
                 self.avocado_vt_repo = self.params.get("avocado_vt_repo",
                                                        "https://github.com/avocado-framework/avocado-vt.git")
@@ -978,7 +979,7 @@ class AvocadoGuest(object):
             pacman = utils_package.package_manager(self.session, packages)
             if not pacman.install(timeout=self.timeout):
                 LOG.error("Failed to install - %s", packages)
-        self.python = find_python(self.session, compat='python')
+        self.python = find_python(self.session, self.pycompat)
         if not self.python:
             LOG.error("Unable to find python.")
             return False
@@ -992,11 +993,24 @@ class AvocadoGuest(object):
             LOG.error("Failed to create test path in guest")
             return False
         if self.avocado_vt:
-            cmd = "lsmod | grep %s || modprobe %s" % (self.kvm_module,
-                                                      self.kvm_module)
+            cmd = "ls /dev/kvm"
             if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
+                cmd = "lsmod | grep %s || modprobe %s" % (self.kvm_module,
+                                                          self.kvm_module)
+                if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
+                    LOG.error("nested kvm module not available")
+                    return False
+            cmd = "cat /sys/module/%s/parameters/nested" % (self.kvm_module)
+            status, output = self.session.cmd_status_output(cmd, timeout=self.timeout)
+            if status != 0:
                 LOG.error("nested kvm module not available")
                 return False
+            if "0" in output or "N" in output:
+                cmd = "modprobe -r %s && modprobe %s nested=1" % (self.kvm_module,
+                                                                  self.kvm_module)
+                if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
+                    LOG.error("nested kvm module load failed")
+                    return False
             cmd = "service libvirtd restart"
             if self.session.cmd_status(cmd, timeout=self.timeout) != 0:
                 LOG.error("Failed to restart libvirtd inside guest")
@@ -1123,7 +1137,9 @@ class AvocadoGuest(object):
             if self.guest_image:
                 avocado_cmd += " --vt-guest-os %s" % self.guest_image
             if self.vt_extra_params:
-                avocado_cmd += " --vt-extra-params %s" % self.vt_extra_params
+                split_vt_extra_params = self.vt_extra_params.split(" ")
+                for params_to_add in split_vt_extra_params:
+                    avocado_cmd += " --vt-extra-params %s" % params_to_add
         else:
             for test_each in self.testlist:
                 mux = ""

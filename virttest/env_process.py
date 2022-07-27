@@ -211,24 +211,25 @@ def preprocess_vm(test, params, env, name):
     else:
         pass
     if create_vm:
-        # configure nested guest
-        if params.get("run_nested_guest_test", "no") == "yes":
-            current_level = params.get("nested_guest_level", "L1")
-            max_level = params.get("nested_guest_max_level", "L1")
-            if current_level != max_level:
-                if params.get("vm_type") == "libvirt":
-                    params["create_vm_libvirt"] = "yes"
-                    nested_cmdline = params.get("virtinstall_qemu_cmdline", "")
-                    # virt-install doesn't have option, so use qemu-cmdline
-                    if "cap-nested-hv=on" not in nested_cmdline:
-                        params["virtinstall_qemu_cmdline"] = ("%s -M %s,cap-nested-hv=on" %
-                                                              (nested_cmdline,
-                                                               params["machine_type"]))
-                elif params.get("vm_type") == "qemu":
-                    nested_cmdline = params.get("machine_type_extra_params", "")
-                    if "cap-nested-hv=on" not in nested_cmdline:
-                        params["machine_type_extra_params"] = ("%s,cap-nested-hv=on" %
-                                                               nested_cmdline)
+        # add required machine capability for nested guest in case of ppc64le
+        if params.get("vt_arch", "") == "ppc64le":
+            if params.get("run_nested_guest_test", "no") == "yes":
+                current_level = params.get("nested_guest_level", "L1")
+                max_level = params.get("nested_guest_max_level", "L1")
+                if current_level != max_level:
+                    if params.get("vm_type") == "libvirt":
+                        params["create_vm_libvirt"] = "yes"
+                        nested_cmdline = params.get("virtinstall_qemu_cmdline", "")
+                        # virt-install doesn't have option, so use qemu-cmdline
+                        if "cap-nested-hv=on" not in nested_cmdline:
+                            params["virtinstall_qemu_cmdline"] = ("%s -M %s,cap-nested-hv=on" %
+                                                                  (nested_cmdline,
+                                                                   params["machine_type"]))
+                    elif params.get("vm_type") == "qemu":
+                        nested_cmdline = params.get("machine_type_extra_params", "")
+                        if "cap-nested-hv=on" not in nested_cmdline:
+                            params["machine_type_extra_params"] = ("%s,cap-nested-hv=on" %
+                                                                   nested_cmdline)
         vm = env.create_vm(vm_type, target, name, params, test.bindir)
         if params.get("create_vm_libvirt") == "yes" and vm_type == 'libvirt':
             params["medium"] = "import"
