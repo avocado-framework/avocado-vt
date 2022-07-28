@@ -32,10 +32,13 @@ def create_fs_xml(fsdev_dict, launched_mode='auto'):
         xattr = binary_dict.get('xattr', 'on')
         lock_posix = binary_dict.get('lock_posix', 'on')
         flock = binary_dict.get('flock', 'on')
+        thread_pool_size = binary_dict.get('thread_pool_size')
         if cache_mode != "auto":
             binary_xml.cache_mode = cache_mode
         if xattr != "":
             binary_xml.xattr = xattr
+        if thread_pool_size:
+            binary_xml.thread_pool_size = thread_pool_size
         binary_xml.path = path
         binary_xml.lock_posix = lock_posix
         binary_xml.flock = flock
