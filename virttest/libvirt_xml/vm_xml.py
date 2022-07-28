@@ -3416,7 +3416,8 @@ class VMHugepagesXML(base.LibvirtXMLBase):
                                  forbidden=[],
                                  parent_xpath="/",
                                  marshal_from=self.marshal_from_page,
-                                 marshal_to=self.marshal_to_page)
+                                 marshal_to=self.marshal_to_page,
+                                 has_subclass=True)
         super(VMHugepagesXML, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<hugepages/>'
 
@@ -3434,48 +3435,42 @@ class VMHugepagesXML(base.LibvirtXMLBase):
             accessors.XMLAttribute(property_name="size",
                                    libvirtxml=self,
                                    forbidden=[],
-                                   parent_xpath='/hugepages',
+                                   parent_xpath='/',
                                    tag_name='page',
                                    attribute='size')
             accessors.XMLAttribute(property_name="unit",
                                    libvirtxml=self,
                                    forbidden=[],
-                                   parent_xpath='/hugepages',
+                                   parent_xpath='/',
                                    tag_name='page',
                                    attribute='unit')
             accessors.XMLAttribute(property_name="nodeset",
                                    libvirtxml=self,
                                    forbidden=[],
-                                   parent_xpath='/hugepages',
+                                   parent_xpath='/',
                                    tag_name='page',
                                    attribute='nodeset')
             super(VMHugepagesXML.PageXML, self).__init__(
                 virsh_instance=virsh_instance)
             self.xml = '<page/>'
 
-        def update(self, attr_dict):
-            for attr, value in list(attr_dict.items()):
-                setattr(self, attr, value)
-
     @staticmethod
     def marshal_from_page(item, index, libvirtxml):
-        """Convert a PageXML instance into tag + attributes"""
-        del index
-        del libvirtxml
-        page = item.xmltreefile.find("/hugepages/page")
-        try:
-            return (page.tag, dict(list(page.items())))
-        except AttributeError:  # Didn't find page
-            raise xcepts.LibvirtXMLError("Expected a list of page "
-                                         "instances, not a %s" % str(item))
+        if isinstance(item, VMHugepagesXML.PageXML):
+            return 'page', item
+        elif isinstance(item, dict):
+            page = VMHugepagesXML.PageXML()
+            page.setup_attrs(**item)
+            return 'page', page
+        else:
+            raise xcepts.LibvirtXMLError('Expected a list of page instances,'
+                                         'not a %s' % str(item))
 
     @staticmethod
-    def marshal_to_page(tag, attr_dict, index, libvirtxml):
-        """Convert a tag + attributes to a PageXML instance"""
-        del index
+    def marshal_to_page(tag, new_treefile, index, libvirtxml):
         if tag == 'page':
             newone = VMHugepagesXML.PageXML(virsh_instance=libvirtxml.virsh)
-            newone.update(attr_dict)
+            newone.xmltreefile = new_treefile
             return newone
         else:
             return None
