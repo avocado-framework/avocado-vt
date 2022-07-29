@@ -35,6 +35,37 @@ def get_max_contr_indexes(vm_xml, cntlr_type, cntlr_model, cntl_num=1):
     return usable_indexes[:cntl_num]
 
 
+def get_free_root_ports(vmxml):
+    """
+    Get free pcie root port list
+
+    :param vmxml: vm xml
+    :return: list of index of free root ports
+    """
+    root_ports = set()
+    used_ports = set()
+    free_ports = set()
+    # Store all pcie-root-port controllers' indexes
+    pci_controllers = vmxml.get_controllers('pci')
+    for controller in pci_controllers:
+        if controller.get('model') == 'pcie-root-port':
+            root_ports.add(controller.get('index'))
+
+    # Store all devices' address buses
+    pci_devices = vmxml.xmltreefile.find('devices').getchildren()
+    for dev in pci_devices:
+        address = dev.find('address')
+        if address is not None:
+            used_ports.add(address.get('bus'))
+    # Find the address bus unused
+    for bus_index in root_ports:
+        bus = "%0#4x" % int(bus_index)
+        if bus not in used_ports:
+            free_ports.add(bus)
+    logging.debug("Get the free root ports: %s", free_ports)
+    return list(free_ports)
+
+
 def get_free_pci_slot(vm_xml, max_slot=31):
     """
     Get a free slot on pcie-root controller
