@@ -296,13 +296,15 @@ class VM(virt_vm.BaseVM):
         """
         Undefine the VM.
         """
-        # If the current machine contains nvram, we have to set --nvram
+        # If the current machine contains nvram, we have to set --keep-nvram
+        # Adding "--keep-nvram" can undefine a vm with nvram successfully and
+        # also skip the reset process during next boot
         if self.params.get("vir_domain_undefine_nvram") == "yes":
             if options is None:
-                options = "--nvram"
+                options = "--keep-nvram"
             else:
-                if "--nvram" not in options:
-                    options += " --nvram"
+                if "nvram" not in options:
+                    options += " --keep-nvram"
         try:
             virsh.undefine(self.name, options=options, uri=self.connect_uri,
                            ignore_status=False)

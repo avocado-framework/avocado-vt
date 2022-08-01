@@ -589,7 +589,7 @@ class MigrationTest(object):
         vm.connect_uri = desturi
         if vm.exists():
             if vm.is_persistent():
-                vm.undefine(options='--nvram')
+                vm.undefine(options='--keep-nvram')
             if vm.is_alive():
                 # If vm on remote host is unaccessible
                 # graceful shutdown may cause confused
