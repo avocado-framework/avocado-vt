@@ -721,14 +721,14 @@ def copy_nfs_image(params, root_dir, basename=False):
         # check for image availability in NFS shared path
         base_dir = params["nfs_mount_dir"]
         dst = get_image_filename(params, base_dir, basename=basename)
-        if(not os.path.isfile(dst) or
-           utils_misc.get_image_info(dst)['lcounts'].lower() == "true"):
+        if (not os.path.isfile(dst) or
+                utils_misc.get_image_info(dst)['lcounts'].lower() == "true"):
             source = get_image_filename(params, root_dir)
             LOG.debug("Checking for image available in image data "
                       "path - %s", source)
             # check for image availability in images data directory
-            if(os.path.isfile(source) and not
-               utils_misc.get_image_info(source)['lcounts'].lower() == "true"):
+            if (os.path.isfile(source) and not
+                    utils_misc.get_image_info(source)['lcounts'].lower() == "true"):
                 LOG.debug("Copying guest image from %s to %s", source, dst)
                 shutil.copy(source, dst)
             else:

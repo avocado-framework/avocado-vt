@@ -3864,7 +3864,7 @@ def check_qemu_cmd_line(content, err_ignore=False,
     :return: True if exist, False otherwise
     """
     cmd = 'pgrep -a qemu'
-    if not(remote_params or runner_on_target):
+    if not (remote_params or runner_on_target):
         qemu_line = process.run(cmd, shell=True).stdout_text
     else:
         cmd_result = remote_old.run_remote_cmd(cmd, remote_params, runner_on_target)

@@ -3785,9 +3785,9 @@ class VM(virt_vm.BaseVM):
         else:
             modified_vcpu_threads = vcpu_threads_count + add_remove_count
         if len(self.vcpu_threads) == modified_vcpu_threads:
-            return(True, plug_cpu_id)
+            return (True, plug_cpu_id)
         else:
-            return(False, cmd_output)
+            return (False, cmd_output)
 
     @error_context.context_aware
     def hotplug_vcpu_device(self, vcpu_id):

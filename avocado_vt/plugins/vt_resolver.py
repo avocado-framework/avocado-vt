@@ -27,7 +27,7 @@ class VTResolverUtils(DiscoveryMixIn):
         # scalars, and will not be used in the context of nrunner
         for key in ('_name_map_file', '_short_name_map_file', 'dep'):
             if key in vt_params:
-                del(vt_params[key])
+                del (vt_params[key])
 
         return Runnable('avocado-vt', uri, **vt_params)
 

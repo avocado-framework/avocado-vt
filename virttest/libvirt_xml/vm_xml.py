@@ -819,7 +819,7 @@ class VMXML(VMXMLBase):
         if vcpus is not None:
             if current is not None:
                 try:
-                    if(int(current) > vcpus):
+                    if (int(current) > vcpus):
                         raise xcepts.LibvirtXMLError("The cpu current value %s "
                                                      "is larger than max "
                                                      "number %s" % (current,

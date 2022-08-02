@@ -998,7 +998,7 @@ class VirtioGuestNt(VirtioGuest):
                 remove.append(port['name'])
                 print("Fail to open port %s" % port['name'])
         for name in remove:
-            del(self.ports[name])
+            del (self.ports[name])
 
         # Check if in_files count and system port count matches
         # TODO: Not all devices are listed

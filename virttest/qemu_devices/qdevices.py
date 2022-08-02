@@ -138,7 +138,7 @@ class QBaseDevice(object):
             else:
                 self.params[option] = value
         elif value is None and option in self.params:
-            del(self.params[option])
+            del (self.params[option])
             if option in self.dynamic_params:
                 self.dynamic_params.remove(option)
 
@@ -152,7 +152,7 @@ class QBaseDevice(object):
 
     def __delitem__(self, option):
         """ deletes self.params[option] """
-        del(self.params[option])
+        del (self.params[option])
 
     def __len__(self):
         """ length of self.params """
@@ -2371,7 +2371,7 @@ class QSparseBus(object):
                     remove = key
                     break
             if remove is not None:
-                del(self.bus[remove])
+                del (self.bus[remove])
                 return True
         return False
 
