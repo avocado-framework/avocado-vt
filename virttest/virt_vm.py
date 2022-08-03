@@ -1401,6 +1401,9 @@ class BaseVM(object):
                     self.verify_alive()
                 time.sleep(0.5)
                 continue
+            except vt_console.ConsoleNotResponsiveError as why:
+                LOG.error(str(why))
+                time.sleep(1)
         else:
             raise remote.LoginTimeoutError('exceeded %s s timeout' %
                                            timeout)

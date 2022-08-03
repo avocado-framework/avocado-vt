@@ -1,4 +1,5 @@
 import threading
+import time
 
 
 from aexpect import remote
@@ -18,6 +19,13 @@ class NoConsoleError(ConsoleError):
 class ConsoleBusyError(ConsoleError):
     """Raise when session tries to communicate with a console in use."""
 
+    pass
+
+
+class ConsoleNotResponsiveError(ConsoleError):
+    """
+    Raise when console is not responsive
+    """
     pass
 
 
@@ -60,6 +68,16 @@ class ConsoleManager(object):
                 prompt, username, password, timeout):
         self._console.set_linesep(linesep)
         self._console.set_status_test_command(status_test_command)
+
+        is_responsive = False
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            if self._console.is_responsive():
+                is_responsive = True
+                break
+        if not is_responsive:
+            raise ConsoleNotResponsiveError('Console is not responsive.')
+
         remote.handle_prompts(self._console, username, password,
                               prompt, timeout)
 
