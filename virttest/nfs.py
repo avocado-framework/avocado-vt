@@ -192,8 +192,8 @@ class Nfs(object):
             path.find_command("service")
             path.find_command("exportfs")
 
-        if(params.get("setup_remote_nfs") == "yes" or
-           params.get("setup_local_nfs") == "yes"):
+        if (params.get("setup_remote_nfs") == "yes" or
+                params.get("setup_local_nfs") == "yes"):
             if 'Ubuntu' in distro_details or 'rhel' in distro_details:
                 self.nfs_service = service.Service("nfs-server",
                                                    session=self.session)
@@ -247,8 +247,8 @@ class Nfs(object):
             self.unexportfs_in_clean = not self.exportfs.already_exported
 
         LOG.debug("Mount %s to %s" % (self.mount_src, self.mount_dir))
-        if(utils_misc.check_exists(self.mount_dir, session=self.session)
-           and not utils_misc.check_isdir(self.mount_dir, session=self.session)):
+        if (utils_misc.check_exists(self.mount_dir, session=self.session)
+                and not utils_misc.check_isdir(self.mount_dir, session=self.session)):
             raise OSError(
                 "Mount point %s is not a directory, check your setup." %
                 self.mount_dir)

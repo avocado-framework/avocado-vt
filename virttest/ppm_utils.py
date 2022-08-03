@@ -215,12 +215,12 @@ def image_verify_ppm_file(filename):
     try:
         size = os.path.getsize(filename)
         with open(filename, "rb") as fin:
-            assert(fin.readline().strip() == b"P6")
+            assert (fin.readline().strip() == b"P6")
             (width, height) = map(int, fin.readline().split())
-            assert(width > 0 and height > 0)
-            assert(fin.readline().strip() == b"255")
+            assert (width > 0 and height > 0)
+            assert (fin.readline().strip() == b"255")
             size_read = fin.tell()
-        assert(size - size_read == width * height * 3)
+        assert (size - size_read == width * height * 3)
         return True
     except Exception:
         return False

@@ -215,13 +215,13 @@ def get_vdagent_status(vm_session, test_timeout):
     except ShellCmdError:
         # getting the status of vdagent stopped returns 3, which results in a
         # ShellCmdError
-        return("stopped")
+        return ("stopped")
     except Exception:
         print("Unexpected error:", sys.exc_info()[0])
         raise exceptions.TestFail(
             "Failed attempting to get status of spice-vdagentd")
     wait_timeout(3)
-    return(output)
+    return (output)
 
 
 def verify_virtio(guest_session, test_timeout):

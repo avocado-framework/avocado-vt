@@ -156,11 +156,11 @@ class VirtTest(test.Test, utils.TestUtils):
         finally:
             # Clean libvirtd debug logs if the test is not fail or error
             if self.params.get("libvirtd_log_cleanup", "no") == "yes":
-                if(self.params.get("vm_type") == 'libvirt' and
-                   self.params.get("enable_libvirtd_debug_log", "yes") == "yes"):
+                if (self.params.get("vm_type") == 'libvirt' and
+                        self.params.get("enable_libvirtd_debug_log", "yes") == "yes"):
                     libvirtd_log = self.params["libvirtd_debug_file"]
-                    if("TestFail" not in str(self.__exc_info) and
-                       "TestError" not in str(self.__exc_info)):
+                    if ("TestFail" not in str(self.__exc_info) and
+                            "TestError" not in str(self.__exc_info)):
                         if libvirtd_log and os.path.isfile(libvirtd_log):
                             self.log.info("cleaning libvirtd logs...")
                             os.remove(libvirtd_log)

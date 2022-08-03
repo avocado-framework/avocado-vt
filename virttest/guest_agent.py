@@ -73,8 +73,8 @@ class VAgentCmdNotSupportedError(VAgentError):
         self.ecmd = cmd
 
     def __str__(self):
-        return("The command %s is not supported by the current version qga"
-               % self.ecmd)
+        return ("The command %s is not supported by the current version qga"
+                % self.ecmd)
 
 
 class VAgentSyncError(VAgentError):

@@ -1013,8 +1013,8 @@ class BaseVM(object):
         serial_login = self.params.get("serial_login", "no") == "yes"
         if serial_login:
             self.session = self.wait_for_serial_login()
-        elif(len(self.virtnet) > 0 and self.virtnet[0].nettype != "macvtap" and
-             not connect_uri):
+        elif (len(self.virtnet) > 0 and self.virtnet[0].nettype != "macvtap" and
+              not connect_uri):
             self.session = self.wait_for_login()
         expected_guest_dmesg = self.params.get("expected_guest_dmesg", "")
         return utils_misc.verify_dmesg(dmesg_log_file=dmesg_log_file,
