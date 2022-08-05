@@ -481,7 +481,7 @@ class CpuInfo(object):
 
     def __init__(self, model=None, vendor=None, flags=None, family=None,
                  qemu_type=None, smp=0, maxcpus=0, cores=0, threads=0,
-                 dies=0, sockets=0):
+                 dies=0, clusters=0, sockets=0):
         """
         :param model: CPU Model of VM (use 'qemu -cpu ?' for list)
         :param vendor: CPU Vendor of VM
@@ -494,6 +494,7 @@ class CpuInfo(object):
         :param cores: number of CPU cores on one socket (for PC, it's on one die)
         :param threads: number of threads on one CPU core
         :param dies: number of CPU dies on one socket (for PC only)
+        :param clusters: number of CPU clusters on one socket (for ARM only)
         :param sockets: number of discrete sockets in the system
         """
         self.model = model
@@ -506,6 +507,7 @@ class CpuInfo(object):
         self.cores = cores
         self.threads = threads
         self.dies = dies
+        self.clusters = clusters
         self.sockets = sockets
 
 

@@ -79,6 +79,7 @@ class DevContainer(object):
 
     BLOCKDEV_VERSION_SCOPE = '[2.12.0, )'
     SMP_DIES_VERSION_SCOPE = '[4.1.0, )'
+    SMP_CLUSTERS_VERSION_SCOPE = '[7.0.0, )'
 
     MIGRATION_DOWNTIME_LIMTT_VERSION_SCOPE = '[5.1.0, )'
     MIGRATION_MAX_BANDWIDTH_VERSION_SCOPE = '[5.1.0, )'
@@ -284,6 +285,9 @@ class DevContainer(object):
         # -smp dies=?
         if self.__qemu_ver in VersionInterval(self.SMP_DIES_VERSION_SCOPE):
             self.caps.set_flag(Flags.SMP_DIES)
+        # -smp clusters=?
+        if self.__qemu_ver in VersionInterval(self.SMP_CLUSTERS_VERSION_SCOPE):
+            self.caps.set_flag(Flags.SMP_CLUSTERS)
         # -incoming defer
         if self.has_option('incoming defer'):
             self.caps.set_flag(Flags.INCOMING_DEFER)

@@ -34,6 +34,7 @@ import six
 from six.moves import xrange
 
 from virttest import utils_misc
+from virttest import utils_qemu
 from virttest import cpu
 from virttest import virt_vm
 from virttest import test_setup
@@ -51,6 +52,7 @@ from virttest.qemu_devices import qdevices, qcontainer
 from virttest.qemu_devices.utils import DeviceError
 from virttest.qemu_capabilities import Flags
 from virttest.utils_params import Params
+from virttest.utils_version import VersionInterval
 
 
 # Using as lower capital is not the best way to do, but this is just a
@@ -607,6 +609,8 @@ class VM(virt_vm.BaseVM):
                 smp_str += ",threads=%d" % self.cpuinfo.threads
             if self.cpuinfo.dies != 0:
                 smp_str += ",dies=%d" % self.cpuinfo.dies
+            if self.cpuinfo.clusters != 0:
+                smp_str += ",clusters=%d" % self.cpuinfo.clusters
             if self.cpuinfo.sockets != 0:
                 smp_str += ",sockets=%d" % self.cpuinfo.sockets
             return smp_str
@@ -1374,16 +1378,19 @@ class VM(virt_vm.BaseVM):
             return numa_cmd
 
         def add_numa_cpu(devices, node_id, socket_id=None, die_id=None,
-                         core_id=None, thread_id=None):
+                         cluster_id=None, core_id=None, thread_id=None):
             """
             This function is used to add numa cpu to guest command line
             node-id=node[,socket-id=x][,die-id=y],[core-id=y][,thread-id=z]
+            for aarch64:
+            node-id=node[,socket-id=x][,cluster-id=y],[core-id=y][,thread-id=z]
             """
             if not devices.has_option("numa cpu,.*"):
                 return ""
             numa_cpu_cmd = " -numa cpu,node-id=%s" % node_id
             options = {"socket-id": socket_id, "die-id": die_id,
-                       "core-id": core_id, "thread-id": thread_id}
+                       "cluster-id": cluster_id, "core-id": core_id,
+                       "thread-id": thread_id}
             for key, value in options.items():
                 if value is not None:
                     numa_cpu_cmd += ",%s=%s" % (key, value)
@@ -1658,11 +1665,20 @@ class VM(virt_vm.BaseVM):
         vcpu_threads = params.get_numeric("vcpu_threads")
         vcpu_dies = params.get("vcpu_dies", 0)
         enable_dies = vcpu_dies != "INVALID" and Flags.SMP_DIES in devices.caps
+        vcpu_clusters = params.get("vcpu_clusters", 0)
+        enable_clusters = vcpu_clusters != "INVALID" and Flags.SMP_CLUSTERS in devices.caps
+
         if not enable_dies:
             # Set dies=1 when computing missing values
             vcpu_dies = 1
         # PC target support SMP 'dies' parameter since qemu 4.1
         vcpu_dies = int(vcpu_dies)
+
+        if not enable_clusters:
+            # Set clusters=1 when computing missing values
+            vcpu_clusters = 1
+        # ARM target support SMP 'clusters' parameter since qemu 7.0
+        vcpu_clusters = int(vcpu_clusters)
 
         # Some versions of windows don't support more than 2 sockets of cpu,
         # here is a workaround to make all windows use only 2 sockets.
@@ -1682,8 +1698,23 @@ class VM(virt_vm.BaseVM):
                 LOG.warn(txt)
 
         smp_err = ""
+        SMP_PREFER_CORES_VERSION_SCOPE = '[6.2.0, )'
+        #  In the calculation of omitted sockets/cores/threads: we prefer
+        #  sockets over cores over threads before 6.2, while preferring
+        #  cores over sockets over threads since 6.2.
+        vcpu_prefer_sockets = params.get("vcpu_prefer_sockets")
+        if vcpu_prefer_sockets:
+            vcpu_prefer_sockets = params.get_boolean("vcpu_prefer_sockets")
+        else:
+            if utils_qemu.get_qemu_version(qemu_binary)[0] not in \
+                    VersionInterval(SMP_PREFER_CORES_VERSION_SCOPE):
+                # Prefer sockets over cores before 6.2
+                vcpu_prefer_sockets = True
+            else:
+                vcpu_prefer_sockets = False
+
         if vcpu_maxcpus != 0:
-            smp_values = [vcpu_sockets, vcpu_dies, vcpu_cores, vcpu_threads]
+            smp_values = [vcpu_sockets, vcpu_dies, vcpu_clusters, vcpu_cores, vcpu_threads]
             if smp_values.count(0) == 1:
                 smp_values.remove(0)
                 topology_product = reduce(mul, smp_values)
@@ -1696,35 +1727,48 @@ class VM(virt_vm.BaseVM):
                     vcpu_maxcpus -= cpu_mod
                     vcpu_sockets = vcpu_sockets or missing_value
                     vcpu_dies = vcpu_dies or missing_value
+                    vcpu_clusters = vcpu_clusters or missing_value
                     vcpu_cores = vcpu_cores or missing_value
                     vcpu_threads = vcpu_threads or missing_value
             elif smp_values.count(0) > 1:
                 if vcpu_maxcpus == 1 and max(smp_values) < 2:
-                    vcpu_sockets = vcpu_dies = vcpu_cores = vcpu_threads = 1
+                    vcpu_sockets = vcpu_dies = vcpu_clusters = vcpu_cores = vcpu_threads = 1
 
             hotpluggable_cpus = len(params.objects("vcpu_devices"))
             if params["machine_type"].startswith("pseries"):
                 hotpluggable_cpus *= vcpu_threads
             smp = smp or vcpu_maxcpus - hotpluggable_cpus
         else:
-            if smp == 0 or vcpu_sockets == 0:
-                vcpu_dies = vcpu_dies or 1
+            vcpu_dies = vcpu_dies or 1
+            vcpu_clusters = vcpu_clusters or 1
+            if smp == 0:
+                vcpu_sockets = vcpu_sockets or 1
                 vcpu_cores = vcpu_cores or 1
                 vcpu_threads = vcpu_threads or 1
-                if smp == 0:
-                    vcpu_sockets = vcpu_sockets or 1
-                    smp = vcpu_cores * vcpu_threads * vcpu_dies * vcpu_sockets
-                else:
-                    vcpu_sockets = smp // (vcpu_cores * vcpu_threads * vcpu_dies) or 1
-            elif vcpu_dies == 0:
-                vcpu_cores = vcpu_cores or 1
-                vcpu_threads = vcpu_threads or 1
-                vcpu_dies = smp // (vcpu_sockets * vcpu_cores * vcpu_threads) or 1
-            elif vcpu_cores == 0:
-                vcpu_threads = vcpu_threads or 1
-                vcpu_cores = smp // (vcpu_sockets * vcpu_threads * vcpu_dies) or 1
             else:
-                vcpu_threads = smp // (vcpu_cores * vcpu_sockets * vcpu_dies) or 1
+                if vcpu_prefer_sockets:
+                    if vcpu_sockets == 0:
+                        vcpu_cores = vcpu_cores or 1
+                        vcpu_threads = vcpu_threads or 1
+                        vcpu_sockets = smp // (vcpu_cores * vcpu_threads * vcpu_clusters * vcpu_dies) or 1
+                    elif vcpu_cores == 0:
+                        vcpu_threads = vcpu_threads or 1
+                        vcpu_cores = smp // (vcpu_sockets * vcpu_threads * vcpu_clusters * vcpu_dies) or 1
+                else:
+                    # Prefer cores over sockets since 6.2
+                    if vcpu_cores == 0:
+                        vcpu_sockets = vcpu_sockets or 1
+                        vcpu_threads = vcpu_threads or 1
+                        vcpu_cores = smp // (vcpu_sockets * vcpu_threads * vcpu_clusters * vcpu_dies) or 1
+                    elif vcpu_sockets == 0:
+                        vcpu_threads = vcpu_threads or 1
+                        vcpu_sockets = smp // (vcpu_cores * vcpu_threads * vcpu_clusters * vcpu_dies) or 1
+
+                if vcpu_threads == 0:
+                    # Try to calculate omitted threads at last
+                    vcpu_threads = smp // (vcpu_cores * vcpu_sockets * vcpu_clusters * vcpu_dies) or 1
+
+            smp = smp or vcpu_sockets * vcpu_dies * vcpu_clusters * vcpu_cores * vcpu_threads
 
             hotpluggable_cpus = len(params.objects("vcpu_devices"))
             if params["machine_type"].startswith("pseries"):
@@ -1746,6 +1790,8 @@ class VM(virt_vm.BaseVM):
         self.cpuinfo.sockets = vcpu_sockets
         if enable_dies:
             self.cpuinfo.dies = vcpu_dies
+        if enable_clusters:
+            self.cpuinfo.clusters = vcpu_clusters
         devices.insert(StrDev('smp', cmdline=add_smp(devices)))
 
         # Add numa nodes
@@ -1784,10 +1830,11 @@ class VM(virt_vm.BaseVM):
             numa_cpu_nodeid = numa_cpu_params.get("numa_cpu_nodeid")
             numa_cpu_socketid = numa_cpu_params.get("numa_cpu_socketid")
             numa_cpu_dieid = numa_cpu_params.get("numa_cpu_dieid")
+            numa_cpu_clusterid = numa_cpu_params.get("numa_cpu_clusterid")
             numa_cpu_coreid = numa_cpu_params.get("numa_cpu_coreid")
             numa_cpu_threadid = numa_cpu_params.get("numa_cpu_threadid")
             cmdline = add_numa_cpu(devices, numa_cpu_nodeid, numa_cpu_socketid,
-                                   numa_cpu_dieid, numa_cpu_coreid,
+                                   numa_cpu_dieid, numa_cpu_clusterid, numa_cpu_coreid,
                                    numa_cpu_threadid)
             devices.insert(StrDev('numa_cpu', cmdline=cmdline))
 
