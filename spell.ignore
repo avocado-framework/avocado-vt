@@ -34,6 +34,7 @@ str
 filesystem
 filename
 cpu
+efi
 env
 environ
 cgroup
@@ -1458,6 +1459,7 @@ optarg
 optsinfo
 osinfo
 OSP
+osxml
 OUI
 ousdie
 outdisk
