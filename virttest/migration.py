@@ -739,6 +739,8 @@ class MigrationTest(object):
             return pid
 
         pid = utils_misc.wait_for(_get_pid, 30)
+        if not pid:
+            raise exceptions.TestError("Migration is not running, won't cancel.")
         if utils_misc.safe_kill(pid, sig):
             LOG.info("Succeed to cancel migration: [%s].", pid.strip())
         else:
