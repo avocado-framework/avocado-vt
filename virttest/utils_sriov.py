@@ -308,7 +308,7 @@ def add_connection(pf_name, bridge_name, session=None):
     :param bridge_name: bridge's name
     :param session: The session object to the host
     """
-    del_connection(pf_name, bridge_name, session=None, ignore_status=True)
+    del_connection(pf_name, bridge_name, session=session, ignore_status=True)
     cmd = 'tmux -c "ip link add name {1} type bridge; ip link set {0} up; ' \
           'ip link set {0} master {1}; ip link set {1} up; dhclient -r;' \
           'sleep 5; dhclient"'.format(pf_name, bridge_name)
