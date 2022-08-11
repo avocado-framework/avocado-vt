@@ -259,6 +259,13 @@ def preprocess_vm(test, params, env, name):
     if remove_vm:
         vm.remove()
 
+    # New a cgroup for qemu memory control
+    test_setup.CGroupConfig.create(vm)
+
+    # Set memory hard limit for a specified vm
+    if params.get("cgroup_mem_extra_hard_limit"):
+        test_setup.CGroupConfig.set_mem_hard_limit(vm)
+
     start_vm = False
     update_virtnet = False
     gracefully_kill = params.get("kill_vm_gracefully") == "yes"
@@ -638,6 +645,9 @@ def postprocess_vm(test, params, env, name):
         strace = test_setup.StraceQemu(test, params, env)
         strace.stop()
 
+    # Remove the cgroup
+    test_setup.CGroupConfig.remove(vm)
+
 
 def process_command(test, params, env, command, command_timeout,
                     command_noncritical):
@@ -995,6 +1005,7 @@ def preprocess(test, params, env):
 
     _setup_manager.initialize(test, params, env)
     _setup_manager.register(test_setup.UlimitConfig)
+    _setup_manager.register(test_setup.VirtMasterCGroupMemoryLimit)
     _setup_manager.do_setup()
 
     # enable network proxies setting in urllib2

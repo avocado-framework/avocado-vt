@@ -3280,6 +3280,12 @@ class VM(virt_vm.BaseVM):
 
             LOG.debug("VM appears to be alive with PID %s", self.get_pid())
 
+            # Add vm to the cgroup for resource control
+            # Note that pid will be removed automatically after qemu quits
+            if (self.params.get('cgroup_mem_extra_hard_limit')
+                    or self.params.get('cgroup_mem_max')):
+                test_setup.CGroupConfig.add_pid(self)
+
             is_preconfig = params.get_boolean("qemu_preconfig")
             if not is_preconfig:
                 LOG.debug("vCPUs appear to be alive with Thread-IDs %s",

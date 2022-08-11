@@ -2597,3 +2597,160 @@ class UlimitConfig(Setuper):
 
     def cleanup(self):
         self._restore()
+
+
+class VirtMasterCGroupMemoryLimit(Setuper):
+    """
+    To enforce a bigger hard limit on the master cgroup
+    containing all of the VMs: on systemd this is machine.slice. We support
+    the following settings:
+
+    To put even stricter measures in place which would involve the OOM killer:
+      systemctl set-property machine.slice MemoryMax=<value>
+    """
+
+    MEM_PROPS_MAPPING = {'cgroup_mem_max': 'MemoryMax'}
+
+    def __init__(self, test, params, env):
+        super(VirtMasterCGroupMemoryLimit, self).__init__(test, params, env)
+
+        self._orig_settings = dict()
+        self._settings = dict()
+        for k, v in self.MEM_PROPS_MAPPING.items():
+            if params.get(k):
+                self._orig_settings[v] = self._get_property('machine.slice', v)
+                self._settings[v] = params[k]
+
+    def _get_property(self, unit, prop):
+        cmd = 'systemctl show --property {p} {u} | cut -d= -f2'.format(p=prop,
+                                                                       u=unit)
+        return process.run(cmd, shell=True, timeout=10).stdout_text.strip()
+
+    def _set_properties(self, unit, **kw):
+        props = ' '.join(['{k}={v}'.format(k=k,v=v) for k,v in kw.items()])
+        cmd = 'systemctl set-property {u} {p}'.format(u=unit, p=props)
+        process.system(cmd, ignore_status=False, verbose=True, shell=True)
+
+    def _set(self):
+        if self._settings:
+            self._set_properties("machine.slice", **self._settings)
+
+    def _restore(self):
+        if self._orig_settings:
+            self._set_properties("machine.slice", **self._orig_settings)
+
+    def setup(self):
+        self._set()
+
+    def cleanup(self):
+        self._restore()
+
+
+class CGroupConfig(object):
+    """
+    Set cgroup limitation for each VM. It supports the following:
+      memory hard limit: {cg}/memory.max
+    """
+
+    CGROUP = '/sys/fs/cgroup'
+    MACHINE_SLICE = '{cg}/machine.slice'.format(cg=CGROUP)
+    DEFAULT_CONTROLLERS = set(['memory'])
+
+    @classmethod
+    def _cgroup_name(cls, vm_name):
+        """
+        Get the new cgroup name: cgroup_{vm_name}
+
+        :cls: The class object itself
+        :param name: The name of the VM object, defined in vms
+        """
+        return 'cgroup_{vm}'.format(vm=vm_name)
+
+    @classmethod
+    def _subtree_control(cls, cg):
+        """
+        Get the controllers from the {cg}/cgroup.subtree_control file
+        """
+        subtree = '{cg}/cgroup.subtree_control'.format(cg=cg)
+        with open(subtree, 'r') as fd:
+            return set(fd.read().strip().split())
+
+    @classmethod
+    def _cgroup_controllers(cls, cg):
+        """
+        Get the controllers from the {cg}/cgroup.controllers file
+        """
+        controllers = '{cg}/cgroup.controllers'.format(cg=cg)
+        with open(controllers, 'r') as fd:
+            return set(fd.read().strip().split())
+
+    @classmethod
+    def _add_subtree_control(cls, cg, controllers):
+        """
+        Add the controllers to the {cg}/cgroup.subtree_control file
+        """
+        if not controllers.issubset(cls._cgroup_controllers(cg)):
+            if cg == cls.CGROUP:
+                raise ValueError("Not supported controllers: %s" % controllers)
+            cls._add_subtree_control(os.path.dirname(cg), controllers)
+
+        ctrls = ' '.join(['+%s' %c for c in controllers])
+        subtree = '{cg}/cgroup.subtree_control'.format(cg=cg)
+        cmd = 'echo "{ctrls}" > {subtree}'.format(ctrls=ctrls, subtree=subtree)
+        process.system(cmd, ignore_status=False, verbose=True, shell=True)
+
+    @classmethod
+    def create(cls, vm):
+        """
+        Create a cgroup for a specified VM.
+
+        :cls: The class object itself
+        :param vm: the VM object
+        """
+        subtree_control = cls._subtree_control(cls.MACHINE_SLICE)
+        if (not subtree_control
+                or not cls.DEFAULT_CONTROLLERS.issubset(subtree_control)):
+            cls._add_subtree_control(cls.MACHINE_SLICE,
+                                     cls.DEFAULT_CONTROLLERS)
+
+        cgroup = '{rcg}/{cg}'.format(rcg=cls.MACHINE_SLICE,
+                                     cg=cls._cgroup_name(vm.name))
+        if not os.path.exists(cgroup):
+            cmd = 'mkdir {cg}'.format(cg=cgroup)
+            process.system(cmd, ignore_status=False, verbose=True, shell=True)
+
+    @classmethod
+    def remove(cls, vm):
+        cmd = 'rmdir {rcg}/{cg}'.format(rcg=cls.MACHINE_SLICE,
+                                        cg=cls._cgroup_name(vm.name))
+        try:
+            process.system(cmd, ignore_status=False, verbose=True, shell=True)
+        except Exception as e:
+            LOG.info("Failed to remove cgroup: %s", str(e))
+
+    @classmethod
+    def set_mem_hard_limit(cls, vm):
+        """
+        Write max memory(bytes) to memory.max file to limit the memory usage
+        """
+        memory_max = '{rcg}/{cg}/memory.max'.format(
+            rcg=cls.MACHINE_SLICE, cg=cls._cgroup_name(vm.name)
+        )
+        mem = int(vm.params['mem']) + int(vm.params['cgroup_mem_extra_hard_limit'])
+
+        LOG.debug('VM memory: %sM, extra hard limit: %sM, set hard limit: %sM',
+                  vm.params['mem'], vm.params['cgroup_mem_extra_hard_limit'],
+                  mem)
+        cmd = 'echo {mem}M > {memory_max}'.format(mem=mem,
+                                                  memory_max=memory_max)
+        process.system(cmd, ignore_status=False, verbose=True, shell=True)
+
+    @classmethod
+    def add_pid(cls, vm):
+        """
+        Add qemu's pid to the cgroup.procs file to limit the resource
+        """
+        procs = '{rcg}/{cg}/cgroup.procs'.format(rcg=cls.MACHINE_SLICE,
+                                                 cg=cls._cgroup_name(vm.name))
+        cmd = 'echo +{pid} > {procs}'.format(pid=vm.get_pid(), procs=procs)
+        process.system(cmd, ignore_status=False, verbose=True, shell=True)
