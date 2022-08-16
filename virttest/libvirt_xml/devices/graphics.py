@@ -4,16 +4,18 @@ graphics framebuffer device support class(es)
 http://libvirt.org/formatdomain.html#elementsGraphics
 """
 
-from virttest.libvirt_xml import accessors, vm_xml
+from virttest.libvirt_xml import accessors
+from virttest.libvirt_xml import vm_xml
+from virttest.libvirt_xml import xcepts
 from virttest.libvirt_xml.devices import base
 
 
 class Graphics(base.TypedDeviceBase):
 
-    __slots__ = ('passwd', 'channel', 'listen', 'listens', 'autoport', 'port',
+    __slots__ = ('passwd', 'channels', 'listen', 'autoport', 'port',
                  'tlsPort', 'defaultMode', 'image_compression',
                  'jpeg_compression', 'zlib_compression', 'playback_compression',
-                 'listen_type', 'listen_addr', 'passwdValidTo', 'clipboard_copypaste',
+                 'listen_attrs', 'passwdValidTo', 'clipboard_copypaste',
                  'filetransfer_enable', 'streaming_mode')
 
     def __init__(self, type_name='vnc', virsh_instance=base.base.virsh):
@@ -42,67 +44,40 @@ class Graphics(base.TypedDeviceBase):
                                tag_name='zlib', attribute='compression')
         accessors.XMLAttribute('playback_compression', self, parent_xpath='/',
                                tag_name='playback', attribute='compression')
-        accessors.XMLAttribute('listen_type', self, parent_xpath='/',
-                               tag_name='listen', attribute='type')
-        accessors.XMLAttribute('listen_addr', self, parent_xpath='/',
-                               tag_name='listen', attribute='address')
         accessors.XMLAttribute('clipboard_copypaste', self, parent_xpath='/',
                                tag_name='clipboard', attribute='copypaste')
         accessors.XMLAttribute('filetransfer_enable', self, parent_xpath='/',
                                tag_name='filetransfer', attribute='enable')
         accessors.XMLAttribute('streaming_mode', self, parent_xpath='/',
                                tag_name='streaming', attribute='mode')
+        accessors.XMLElementDict('listen_attrs', self, parent_xpath='/',
+                                 tag_name='listen')
+        accessors.XMLElementList('channels', self, parent_xpath='/',
+                                 marshal_from=self.marshal_from_channels,
+                                 marshal_to=self.marshal_to_channels)
         super(Graphics, self).__init__(device_tag='graphics',
                                        type_name=type_name,
                                        virsh_instance=virsh_instance)
 
-    def get_channel(self):
-        """
-        Return a list of dictionaries containing each channel's attributes
-        """
-        return self._get_list('channel')
+    @staticmethod
+    def marshal_from_channels(item, index, libvirtxml):
+        if not isinstance(item, dict):
+            raise xcepts.LibvirtXMLError("Expected a dictionary of channel "
+                                         "attributes, not a %s"
+                                         % str(item))
+        return 'channel', dict(item)
 
-    def set_channel(self, value):
-        """
-        Set all channel to the value list of dictionaries of channel attributes
-        """
-        self._set_list('channel', value)
-
-    def del_channel(self):
-        """
-        Remove the list of dictionaries containing each channel's attributes
-        """
-        self._del_list('channel')
+    @staticmethod
+    def marshal_to_channels(tag, attr_dict, index, libvirtxml):
+        if tag != 'channel':
+            return None
+        return dict(attr_dict)
 
     def add_channel(self, **attributes):
         """
         Convenience method for appending channel from dictionary of attributes
         """
         self._add_item('channel', **attributes)
-
-    def get_listens(self):
-        """
-        Return a list of dictionaries containing each listen's attributes
-        """
-        return self._get_list('listen')
-
-    def set_listens(self, value):
-        """
-        Set all listens to the value list of dictionaries of listen attributes
-        """
-        self._set_list('listen', value)
-
-    def del_listens(self):
-        """
-        Remove the list of dictionaries containing each listen's attributes
-        """
-        self._del_list('listen')
-
-    def add_listens(self, **attributes):
-        """
-        Convenience method for appending listens from dictionary of attributes
-        """
-        self._add_item('listen', **attributes)
 
     @staticmethod
     def change_graphic_type_passwd(vm_name, graphic, passwd=None):
