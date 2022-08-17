@@ -18,7 +18,7 @@ def set_downtime(vm, value):
     """
     if (vm.check_capability(Flags.MIGRATION_PARAMS) and
             vm.check_migration_parameter(MigrationParams.DOWNTIME_LIMIT)):
-        return vm.monitor.set_migrate_parameter('downtime-limit', value * 1000)
+        return vm.monitor.set_migrate_parameter('downtime-limit', int(value * 1000))
     return vm.monitor.migrate_set_downtime(value)
 
 
