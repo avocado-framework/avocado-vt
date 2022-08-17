@@ -2918,7 +2918,15 @@ class ParamsNet(VMNet):
                     existing_value = None
                 except IndexError:
                     existing_value = None
-                nic_dict[propertea] = nic_params.get(propertea, existing_value)
+
+                # FIXME: We need a mapping handler to map cartesian params
+                # to nic attributes, here is just a workaround to map
+                # param nic_romfile to romfile attribute only
+                if propertea == 'romfile':
+                    nic_dict['romfile'] = nic_params.get('nic_romfile', existing_value)
+                else:
+                    nic_dict[propertea] = nic_params.get(propertea, existing_value)
+
                 if propertea == "netdst" and "shell:" in nic_dict[propertea]:
                     nic_dict[propertea] = process.getoutput(
                         nic_dict[propertea].split(':', 1)[1])
@@ -2938,7 +2946,7 @@ class ParamsNet(VMNet):
         default_params = {}
         default_params['queues'] = 1
         default_params['tftp'] = None
-        default_params['romfile'] = None
+        default_params['nic_romfile'] = None
         default_params['nic_extra_params'] = ''
         default_params['netdev_extra_params'] = ''
         nic_name_list = self.params.objects('nics')
