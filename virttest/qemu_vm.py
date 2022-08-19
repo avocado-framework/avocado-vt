@@ -485,7 +485,7 @@ class VM(virt_vm.BaseVM):
                 if value == "NO_EQUAL_STRING":
                     return ",%s" % option
                 if value == "EMPTY_STRING":
-                    value = '""'
+                    value = ''
                 return fmt % (option, str(value))
             return ""
 

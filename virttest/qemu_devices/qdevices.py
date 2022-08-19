@@ -134,7 +134,7 @@ class QBaseDevice(object):
                 self.params[option] = "off"
         elif value or value == 0:
             if value == "EMPTY_STRING":
-                self.params[option] = '""'
+                self.params[option] = ''
             else:
                 self.params[option] = value
         elif value is None and option in self.params:
