@@ -14,6 +14,7 @@ import resource
 
 from abc import ABCMeta
 from abc import abstractmethod
+from pathlib import Path
 
 from aexpect import remote
 
@@ -2462,11 +2463,13 @@ class LibvirtdDebugLog(object):
     """
     Enable libvirtd log for testcase in case
     with the use of param "enable_libvirtd_debug_log",
-    with additional params log level("libvirtd_debug_level")
-    and log file path("libvirtd_debug_file") can be controlled.
+    with additional params log level("libvirtd_debug_level"), log
+    filter("libvirtd_debug_filters") and log file
+    path("libvirtd_debug_file") can be controlled.
     """
 
-    def __init__(self, test, log_level="1", log_file="", log_filters="1:*"):
+    def __init__(self, test, log_level="1", log_file="", log_filters="1:*",
+                 log_permission=None):
         """
         initialize variables
 
@@ -2474,10 +2477,12 @@ class LibvirtdDebugLog(object):
         :param log_level: debug level for libvirtd log
         :param log_file: debug file path
         :param log_filters: log filters for libvirtd log
+        :param log_permission: debug file permission for libvirtd log
         """
         self.log_level = log_level
         self.log_file = log_file
         self.log_filters = log_filters
+        self.log_permission = log_permission
         self.test = test
         self.daemons_dict = {}
         self.daemons_dict["libvirtd"] = {
@@ -2523,6 +2528,9 @@ class LibvirtdDebugLog(object):
                                                 "libvirtd.log")
         # param used during libvirtd cleanup
         self.test.params["libvirtd_debug_file"] = self.log_file
+        if self.log_permission:
+            file_mode = int(self.log_permission, base=8)
+            Path(self.log_file).touch(mode=file_mode, exist_ok=True)
         LOG.debug("libvirtd debug log stored in: %s", self.log_file)
 
         for value in self.daemons_dict.values():
