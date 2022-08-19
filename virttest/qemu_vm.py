@@ -1487,6 +1487,18 @@ class VM(virt_vm.BaseVM):
             if params.get("pci_controllers_autosort", "yes") == "yes":
                 pcics.sort(key=sort_key, reverse=False)
             devices.insert(pcics)
+
+        def add_secure_guest_object(params):
+            """
+            Add secure guest object into device tree
+
+            Use hard code 'lsec0' here for secure guest object, because
+            there is one and only one security object defined in qemu,
+            e.g. -object sev-guest,id=lsec0
+            """
+            obj = devices.secure_guest_object_define_by_params('lsec0', params)
+            devices.insert(obj)
+
         # End of command line option wrappers
 
         # If nothing changed and devices exists, return immediately
@@ -1607,6 +1619,10 @@ class VM(virt_vm.BaseVM):
                         devices,
                         "rem")))
         del qemu_sandbox
+
+        # Add secure guest object device before '-machine'
+        if params.get('vm_secure_guest_type'):
+            add_secure_guest_object(params)
 
         devs = devices.machine_by_params(params)
         devices.insert(devs)
