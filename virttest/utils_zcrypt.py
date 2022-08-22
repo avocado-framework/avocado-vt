@@ -216,28 +216,34 @@ def _echo(value, sysfs):
         ))
 
 
-def load_vfio_ap():
+def load_vfio_ap(session=None):
     """
     Loads the passthrough module
 
+    :param session: VM guest session; the command will be run on the
+                    host if None
     :return: None
     """
-    err, out = process.getstatusoutput("modprobe vfio_ap",
-                                       timeout=CMD_TIMEOUT,
-                                       verbose=VERBOSE)
+    err, out = cmd_status_output("modprobe vfio_ap", shell=True,
+                                 session=session,
+                                 timeout=CMD_TIMEOUT,
+                                 verbose=VERBOSE)
     if err:
         raise RuntimeError("Couldn't load vfio_ap: %s" % out)
 
 
-def unload_vfio_ap():
+def unload_vfio_ap(session=None):
     """
     Unloads the passthrough module
 
+    :param session: VM guest session; the command will be run on the
+                    host if None
     :return: None
     """
-    err, out = process.getstatusoutput("rmmod vfio_ap",
-                                       timeout=CMD_TIMEOUT,
-                                       verbose=VERBOSE)
+    err, out = cmd_status_output("rmmod vfio_ap", shell=True,
+                                 session=session,
+                                 timeout=CMD_TIMEOUT,
+                                 verbose=VERBOSE)
     if err:
         raise RuntimeError("Couldn't unload vfio_ap: %s" % out)
 
