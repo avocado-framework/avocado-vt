@@ -2973,7 +2973,7 @@ class VM(virt_vm.BaseVM):
 
     def prepare_guest_agent(self, prepare_xml=True, channel=True, start=True,
                             source_path=None, target_name='org.qemu.guest_agent.0',
-                            with_pm_utils=True):
+                            with_pm_utils=False):
         """
         Prepare qemu guest agent on the VM.
 
