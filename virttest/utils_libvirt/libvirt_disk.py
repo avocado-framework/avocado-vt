@@ -271,7 +271,7 @@ def create_reuse_external_snapshots(vm, pre_set_root_dir=None, skip_first_one=Fa
 
 
 def make_syslink_path_backing_files(pre_set_root_dir, volume_path_list, origin_image_format="qcow2",
-                                    created_image_format="qcow2", syslink_back_chain_lenghth=4):
+                                    created_image_format="qcow2", syslink_back_chain_lenghth=4, qemu_rebase=False):
     """
     Create backing chain files of syslink path for one image
 
@@ -281,6 +281,7 @@ def make_syslink_path_backing_files(pre_set_root_dir, volume_path_list, origin_i
     :param origin_image_format: original image format
     :param created_image_format: created image format
     :param syslink_back_chain_lenghth: syslink back chain length
+    :param qemu_rebase: execute qemu-img rebase to create backing file if True
     :return: absolute path of top active file and syslink back chain files list
     """
     root_dir = pre_set_root_dir
@@ -300,11 +301,13 @@ def make_syslink_path_backing_files(pre_set_root_dir, volume_path_list, origin_i
             backing_key = syslink_folder_list[index-1]
             backing_files_dict[key] = "../%s/%s.img" % (backing_key, backing_key)
     backing_file_path = _execute_create_backend_file(backing_files_dict, pre_set_root_dir,
-                                                     origin_image_format, created_image_format)
+                                                     origin_image_format, created_image_format, qemu_rebase=qemu_rebase)
     return os.path.join(backing_file_path, "%s.img" % syslink_folder_list[-1]), list(backing_files_dict.values())
 
 
-def _execute_create_backend_file(backing_files_dict, pre_set_root_dir, origin_image_format, created_image_format):
+def _execute_create_backend_file(backing_files_dict, pre_set_root_dir,
+                                 origin_image_format, created_image_format,
+                                 qemu_rebase=False):
     """
     Execute create backing chain files
 
@@ -312,20 +315,26 @@ def _execute_create_backend_file(backing_files_dict, pre_set_root_dir, origin_im
     :param pre_set_root_dir: preset root dir
     :param origin_image_format: original image format
     :param created_image_format: created image format
+    :param qemu_rebase: execute qemu-img rebase to create backing file if True
     :return: backing file path
     """
     root_dir = pre_set_root_dir
     disk_format = origin_image_format
     for key, value in list(backing_files_dict.items()):
         backing_file_path = os.path.join(root_dir, key)
-        cmd = ("cd %s && qemu-img create -f %s -o backing_file=%s,backing_fmt=%s %s.img"
-               % (backing_file_path, created_image_format, value, disk_format, key))
+        if qemu_rebase:
+            cmd = ("cd %s && qemu-img rebase -f %s -u -b %s  -F %s %s"
+                   % (backing_file_path, created_image_format, value, disk_format, key + ".img"))
+        else:
+            cmd = ("cd %s && qemu-img create -f %s -o backing_file=%s,backing_fmt=%s %s.img" % (
+                backing_file_path, created_image_format, value, disk_format, key))
+
         process.run(cmd, shell=True, ignore_status=False)
         disk_format = created_image_format
     return backing_file_path
 
 
-def do_blockcommit_repeatedly(vm, device_target, options, repeated_counts):
+def do_blockcommit_repeatedly(vm, device_target, options, repeated_counts, **dargs):
     """
     Do blockcommit repeatedly
 
@@ -333,10 +342,11 @@ def do_blockcommit_repeatedly(vm, device_target, options, repeated_counts):
     :param device_target: device target
     :param options: blockcommit options
     :param repeated_counts: repeated counts for executing blockcommit
+    :param dargs: standardized virsh function API keywords
     """
     for count in range(repeated_counts):
         virsh.blockcommit(vm.name, device_target,
-                          options, ignore_status=False, debug=True)
+                          options, ignore_status=False, debug=True, **dargs)
 
 
 def make_external_disk_snapshots(vm, device_target, postfix_n, snapshot_take):
