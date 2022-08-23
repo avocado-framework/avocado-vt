@@ -1511,8 +1511,9 @@ class Dimm(QDevice):
     and 'memory-backend-file'
     """
 
-    __attributes__ = ["memdev", "slot", "addr", "node", "unarmed", "size",
-                      "label-size", "uuid"]
+    __attributes__ = {"pc-dimm": ["memdev", "slot", "addr", "node", "size"],
+                      "nvdimm": ["memdev", "slot", "addr", "node", "unarmed",
+                                 "size", "label-size", "uuid"]}
 
     def __init__(self, params=None, dimm_type='pc-dimm'):
         kwargs = {'driver': dimm_type,

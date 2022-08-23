@@ -2908,20 +2908,27 @@ class DevContainer(object):
         """
         Create pc-dimm device from params.
         """
-        params = params.object_params("dimm")
+        # Ensure get accurate params for dimm device, avoid irrelevant params
+        # be used by mistake.
+        dimm_params = Params()
+        suffix = '_dimm'
+        for key in list(params.keys()):
+            if key.endswith(suffix):
+                new_key = key.rsplit(suffix)[0]
+                dimm_params[new_key] = params[key]
+
         dimm_type = "nvdimm" if params.get("nv_backend") else "pc-dimm"
-        attrs = qdevices.Dimm.__attributes__[:]
-        dev = qdevices.Dimm(params=params.copy_from_keys(attrs),
+        attrs = qdevices.Dimm.__attributes__[dimm_type][:]
+        dimm_uuid = dimm_params.get("uuid")
+        if 'uuid' in attrs and dimm_uuid:
+            try:
+                dimm_params['uuid'] = str(uuid.UUID(dimm_uuid))
+            except ValueError:
+                if dimm_uuid == '<auto>':
+                    dimm_params['uuid'] = str(uuid.uuid5(uuid.NAMESPACE_OID, name))
+        dev = qdevices.Dimm(params=dimm_params.copy_from_keys(attrs),
                             dimm_type=dimm_type)
         dev.set_param("id", "%s-%s" % ("dimm", name))
-        if dimm_type == "nvdimm" and params.get("nvdimm_uuid"):
-            try:
-                dev.set_param("uuid", uuid.UUID(params["nvdimm_uuid"]))
-            except ValueError:
-                nvdimm_uuid = params["nvdimm_uuid"]
-                if nvdimm_uuid == "<auto>":
-                    nvdimm_uuid = uuid.uuid5(uuid.NAMESPACE_OID, name)
-                dev.set_param("uuid", nvdimm_uuid)
         for ext_k, ext_v in params.get_dict("dimm_extra_params").items():
             dev.set_param(ext_k, ext_v)
         return dev

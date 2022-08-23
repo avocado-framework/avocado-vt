@@ -590,7 +590,8 @@ class MemoryHotplugTest(MemoryBaseTest):
                                                           "memory-backend-ram")
             attrs = dev.__attributes__[backend][:]
         else:
-            attrs = dev.__attributes__[:]
+            dimm_type = dev.get_param('driver')
+            attrs = dev.__attributes__[dimm_type][:]
         params = self.params.copy_from_keys(attrs)
         for attr in attrs:
             val = dev.get_param(attr)
