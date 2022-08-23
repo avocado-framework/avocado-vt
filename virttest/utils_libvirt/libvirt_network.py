@@ -36,7 +36,8 @@ def create_or_del_network(net_dict, is_del=False, remote_args=None):
         remote_virsh_session = virsh.VirshPersistent(**remote_args)
 
     if not is_del:
-        net_dev = libvirt.create_net_xml(net_dict.get("net_name"), net_dict)
+        net_dev = libvirt.network_xml.NetworkXML(net_dict.get("name"))
+        net_dev.setup_attrs(**net_dict)
 
         if not remote_virsh_session:
             if net_dev.get_active():
@@ -54,17 +55,17 @@ def create_or_del_network(net_dict, is_del=False, remote_args=None):
                                  log_filename=None, timeout=600,
                                  interface=None)
             remote_virsh_session.net_define(net_dev.xml, debug=True)
-            remote_virsh_session.net_start(net_dict.get("net_name"),
+            remote_virsh_session.net_start(net_dict.get("name"),
                                            debug=True)
             remote.run_remote_cmd("rm -rf %s" % net_dev.xml, remote_args)
     else:
         virsh_session = virsh
         if remote_virsh_session:
             virsh_session = remote_virsh_session
-        if net_dict.get("net_name") in virsh_session.net_state_dict():
-            virsh_session.net_destroy(net_dict.get("net_name"),
+        if net_dict.get("name") in virsh_session.net_state_dict():
+            virsh_session.net_destroy(net_dict.get("name"),
                                       debug=True, ignore_status=True)
-            virsh_session.net_undefine(net_dict.get("net_name"),
+            virsh_session.net_undefine(net_dict.get("name"),
                                        debug=True, ignore_status=True)
     if remote_virsh_session:
         remote_virsh_session.close_session()
