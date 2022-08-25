@@ -572,6 +572,7 @@ lvs
 lxc
 mege
 Mellanox
+memlock
 memsave
 memtune
 mkdir
