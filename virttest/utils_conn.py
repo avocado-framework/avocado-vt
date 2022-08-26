@@ -6,6 +6,7 @@ import logging
 import os
 import shutil
 import tempfile
+import time
 
 import aexpect
 from aexpect import remote
@@ -2128,7 +2129,9 @@ class UNIXConnection(ConnectionBase):
                 else:
                     runner("systemctl daemon-reload")
                     runner("systemctl stop libvirtd")
+                    time.sleep(5)
                     runner("systemctl stop libvirtd.socket")
+                    LOG.debug("LYD DEBUG FLAG")
                     runner("systemctl start libvirtd.socket")
                     utils_misc.wait_for(
                         lambda: process.system('systemctl status libvirtd.socket',
@@ -2138,6 +2141,7 @@ class UNIXConnection(ConnectionBase):
                 current_session.close()
             except (remote.LoginError, aexpect.ShellError,
                     process.CmdError) as detail:
+                LOG.debug(runner("journalctl -xe").stdout_text)
                 raise ConnServerRestartError(detail)
 
         LOG.debug("UNIX connection setup successfully.")
