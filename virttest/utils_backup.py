@@ -118,7 +118,7 @@ def create_backup_xml(backup_params, disk_xml_list=None):
         if not isinstance(backup_server, dict):
             raise exceptions.TestError("Backup server tag should be defined by a dict.")
         backup_xml.server = backup_server
-    backup_xml.set_disks(disk_xml_list)
+    backup_xml.disks = disk_xml_list
     backup_xml.xmltreefile.write()
 
     utils_misc.wait_for(lambda: os.path.exists(backup_xml.xml), 5)

@@ -2,8 +2,6 @@
 Module simplifying manipulation of XML described at
 http://libvirt.org/formatbackup.html
 """
-from virttest import xml_utils
-
 from virttest.libvirt_xml import base, accessors, xcepts
 
 
@@ -17,7 +15,7 @@ class BackupXML(base.LibvirtXMLBase):
         <disks>
             <disk name='vda' backup='no'/>
             <disk name='vdb' type='file'>
-                <driver type=’qcow2’/>
+                <driver type='qcow2'/>
                 <target file='/tmp/push_inc_backup.img'>
                     <encryption format='luks'>
                         <secret type='passphrase' usage='/luks/img'/>
@@ -65,38 +63,38 @@ class BackupXML(base.LibvirtXMLBase):
                                  tag_name='incremental')
         accessors.XMLElementDict('server', self, parent_xpath='/',
                                  tag_name='server')
+        accessors.XMLElementList('disks', self, parent_xpath='/disks',
+                                 marshal_from=self.marshal_from_disks,
+                                 marshal_to=self.marshal_to_disks,
+                                 has_subclass=True)
         super(self.__class__, self).__init__(virsh_instance=virsh_instance)
         self.xml = '<domainbackup/>'
 
-    def set_disks(self, value_list):
+    @staticmethod
+    def marshal_from_disks(item, index, libvirtxml):
         """
-        Set the disk sub-elements to the backup xml
+        Convert an xml object to disk tag and xml element.
+        """
+        if isinstance(item, BackupXML.DiskXML):
+            return 'disk', item
+        elif isinstance(item, dict):
+            disk = BackupXML.DiskXML()
+            disk.setup_attrs(**item)
+            return 'disk', disk
+        else:
+            raise xcepts.LibvirtXMLError("Expected a list of DiskXML "
+                                         "instances, not a %s" % str(item))
 
-        :param value_list: The list of the disk info
+    @staticmethod
+    def marshal_to_disks(tag, new_treefile, index, libvirtxml):
         """
-        for value in value_list:
-            value_type = type(value)
-            if not issubclass(value_type, self.DiskXML):
-                raise xcepts.LibvirtXMLError("Value '%s' Must be a (sub)class of DiskXML,"
-                                             "but not a '%s' type"
-                                             % (str(value), str(value_type)))
-        exist_disks = self.xmltreefile.find('disks')
-        if exist_disks is not None:
-            self.del_disks()
-        if len(value_list) > 0:
-            disks_element = xml_utils.ElementTree.SubElement(
-                    self.xmltreefile.getroot(), 'disks')
-            for disk in value_list:
-                disk_element = disk.xmltreefile.getroot()
-                disks_element.append(disk_element)
-        self.xmltreefile.write()
-
-    def del_disks(self):
+        Convert a disk tag xml element to an object of DiskXML.
         """
-        Del all disk sub-elements form the backup xml
-        """
-        self.xmltreefile.remove_by_xpath('/disks', remove_all=True)
-        self.xmltreefile.write()
+        if tag != 'disk':
+            return None
+        newone = BackupXML.DiskXML(virsh_instance=libvirtxml.virsh)
+        newone.xmltreefile = new_treefile
+        return newone
 
     class DiskXML(base.LibvirtXMLBase):
         """
