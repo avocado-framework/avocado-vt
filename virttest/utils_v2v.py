@@ -238,6 +238,9 @@ class Target(object):
                             ptn, self._nfspath).group(1)
                         break
 
+                if '%' in self._nfspath:
+                    self._nfspath = self._nfspath.replace('%', '%25')
+
                 if not self._vmx_filename:
                     self._vmx_filename = self._nfspath
 
