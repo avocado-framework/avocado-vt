@@ -3818,7 +3818,7 @@ def customize_libvirt_config(params,
 
 def check_logfile(search_str, log_file, str_in_log=True,
                   cmd_parms=None, runner_on_target=None,
-                  ignore_status=False):
+                  ignore_status=False, ignore_str=""):
     """
     Check if the given string exists in the log file
 
@@ -3830,10 +3830,13 @@ def check_logfile(search_str, log_file, str_in_log=True,
     :param runner_on_target:  Remote runner
     :param ignore_status: True to return False on failure,
                           False to raise exception on failure
+    :param ignore_str: Ignore str
     :raise: test.fail when the result is not expected
     :return: True if check is successful, otherwise False
     """
     cmd = "grep -E '%s' %s" % (search_str, log_file)
+    if len(ignore_str) != 0:
+        cmd += f"| grep -v '{ignore_str}'"
     if not (cmd_parms and runner_on_target):
         cmdRes = process.run(cmd, shell=True, ignore_status=True)
     else:
