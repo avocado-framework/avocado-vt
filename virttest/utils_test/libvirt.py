@@ -3896,6 +3896,7 @@ def check_cmd_output(cmd, content, err_ignore=False, session=None):
     s, cmd_output = utils_misc.cmd_status_output(cmd, shell=True,
                                                  ignore_status=err_ignore, session=session)
     pattern_list = [content] if not isinstance(content, list) else content
+    LOG.debug('Ran command "%s" with output "%s"', cmd, cmd_output)
     for item in pattern_list:
         if not re.search(r'%s' % item, cmd_output):
             if err_ignore:
