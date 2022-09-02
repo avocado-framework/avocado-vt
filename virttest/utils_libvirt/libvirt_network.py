@@ -110,7 +110,7 @@ def check_established(params):
         server_ip = params.get("server_ip", params.get("remote_ip"))
 
     if check_port_or_network_conn_num:
-        cmd = "netstat -tunap|grep %s" % port_to_check
+        cmd = 'netstat -tunap|grep -E "%s|%s"' % (port_to_check, service_to_check)
         if check_local:
             cmdRes = process.run(cmd, shell=True)
         else:
