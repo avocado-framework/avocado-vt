@@ -2166,7 +2166,7 @@ def create_channel_xml(params, alias=False, address=False):
         channel_target['name'] = target_name
 
     channel_params = {'type_name': channel_type_name,
-                      'source': channel_source,
+                      'sources': [channel_source],
                       'target': channel_target}
     if alias:
         if isinstance(alias, str):
