@@ -833,6 +833,7 @@ class TCPConnection(ConnectionBase):
         tcp_port = self.tcp_port
         auth_tcp = self.auth_tcp
         server_session = self.server_session
+        client_session = self.client_session
         # require a list data type
         sasl_allowed_users = self.sasl_allowed_users
         tcp_min_ssf = self.tcp_min_ssf
@@ -865,6 +866,10 @@ class TCPConnection(ConnectionBase):
             pattern_to_repl[r".*tcp_min_ssf\s*=.*"] = \
                 "tcp_min_ssf=%s" % (tcp_min_ssf)
         self.remote_libvirtdconf.sub_else_add(pattern_to_repl)
+
+        if self.sasl_type == 'digest-md5':
+            for session in [server_session, client_session]:
+                utils_package.package_install('cyrus-sasl-md5', session)
 
         # edit the /etc/sasl2/libvirt.conf to change sasl method
         # edit the /etc/hosts to add the host
