@@ -2916,7 +2916,6 @@ class DevContainer(object):
             if key.endswith(suffix):
                 new_key = key.rsplit(suffix)[0]
                 dimm_params[new_key] = params[key]
-
         dimm_type = "nvdimm" if params.get("nv_backend") else "pc-dimm"
         attrs = qdevices.Dimm.__attributes__[dimm_type][:]
         dimm_uuid = dimm_params.get("uuid")
@@ -2935,22 +2934,43 @@ class DevContainer(object):
 
     def memory_define_by_params(self, params, name):
         """
-        Create memory modules by params, include memory object and
-        pc-dimm devices.
+        Create memory modules by params, include memory object,
+        pc-dimm, nvdimm and virtio-mem devices.
         """
         params = params.object_params(name)
         devices = []
-        if not self.has_device("pc-dimm"):
-            LOG.warn("'PC-DIMM' does not support by your qemu")
-            return devices
+        mem_devtype = params.get("vm_memdev_model", "dimm")
         mem = self.memory_object_define_by_params(params, name)
         if mem:
             devices.append(mem)
             use_mem = params.object_params(name).get("use_mem", "yes")
             if use_mem == "yes":
-                dimm = self.dimm_device_define_by_params(params, name)
-                dimm.set_param("memdev", mem.get_qid())
-                devices.append(dimm)
+                if mem_devtype == "dimm":
+                    dimm = self.dimm_device_define_by_params(params, name)
+                    dimm.set_param("memdev", mem.get_qid())
+                    devices.append(dimm)
+                elif mem_devtype == "virtio-mem":
+                    virtio_mem_params = Params()
+                    virtio_mem_bus = {'aobject': params.get('pci_bus', 'pci.0')}
+                    vmem_model = "virtio-mem-pci"
+                    suffix = "_memory"
+                    for key in list(params.keys()):
+                        if key.endswith(suffix):
+                            new_key = key.rsplit(suffix)[0]
+                            virtio_mem_params[new_key] = params[key]
+                    supported = ['any_layout', 'block-size', 'event_idx', 'indirect_desc', 'iommu_platform', 'memaddr', 'memdev', 'node', 'notify_on_empty',
+                                 'packed', 'prealloc', 'requested-size', 'size', 'unplugged-inaccessible', 'use-disabled-flag', 'use-started', 'x-disable-legacy-check']
+                    virtio_mem_params = virtio_mem_params.copy_from_keys(supported)
+                    if '-mmio:' in params.get("machine_type"):
+                        vmem_model = "virtio-mem-device"
+                        virtio_mem_bus = None
+                    if not self.has_device(vmem_model):
+                        raise exceptions.TestSkipError("%s device is not available" % vmem_model)
+                    virtio_mem = qdevices.QDevice(driver=vmem_model, parent_bus=virtio_mem_bus, params=virtio_mem_params)
+                    virtio_mem.set_param("id", "%s-%s" % ("virtio_mem", name))
+                    devices.append(virtio_mem)
+                else:
+                    raise DeviceError("Unsupported memory device type")
         return devices
 
     def input_define_by_params(self, params, name, bus=None):
