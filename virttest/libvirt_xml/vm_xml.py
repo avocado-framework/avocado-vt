@@ -715,7 +715,7 @@ class VMXML(VMXMLBase):
             LOG.debug("Failed to backup %s.", self.vm_name)
             backup = None
 
-        if not self.undefine(options, virsh_instance=virsh_instance):
+        if not backup.undefine(options, virsh_instance=virsh_instance):
             raise xcepts.LibvirtXMLError("Failed to undefine %s."
                                          % self.vm_name)
         result_define = virsh_instance.define(self.xml)
