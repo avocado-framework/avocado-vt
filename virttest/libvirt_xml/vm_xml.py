@@ -3697,20 +3697,20 @@ class VMIothreadidsXML(base.LibvirtXMLBase):
         """
         Convert a string to iothread tag and attributes.
         """
-        del index
-        del libvirtxml
-        return ('iothread', {'id': item})
+        if not isinstance(item, dict):
+            raise xcepts.LibvirtXMLError("Expected a dictionary of iothread "
+                                         "attributes, not a %s"
+                                         % str(item))
+        return ('iothread', dict(item))
 
     @staticmethod
     def marshal_to_iothreads(tag, attr_dict, index, libvirtxml):
         """
         Convert a iothread tag and attributes to a string.
         """
-        del index
-        del libvirtxml
         if tag != 'iothread':
             return None
-        return attr_dict['id']
+        return dict(attr_dict)
 
 
 class VMFeaturesHptXML(base.LibvirtXMLBase):
