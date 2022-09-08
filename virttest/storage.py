@@ -764,6 +764,7 @@ class QemuImg(object):
         :param root_dir: Base directory for relative filenames.
         :param tag: Image tag defined in parameter images.
         """
+        params = params.object_params(tag)
         self.params = params
         self.image_filename = get_image_filename(params, root_dir)
         self.image_format = params.get("image_format", "qcow2")
