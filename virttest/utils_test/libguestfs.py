@@ -756,7 +756,7 @@ class GuestfishTools(lgf.GuestfishPersistent):
         for partition in list(partitions.values()):
             num = partition.get("num")
             ba_result = self.part_get_bootable(device, num)
-            if ba_result.stdout.strip() == b"true":
+            if ba_result.stdout.strip() == "true":
                 return (True, "%s%s" % (device, num))
         return (False, partitions)
 
