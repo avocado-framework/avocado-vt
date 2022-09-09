@@ -642,15 +642,15 @@ class EventNotFoundError(Exception):
 class EventTracker(object):
 
     @staticmethod
-    def start_get_event(vm_name):
+    def start_get_event(vm_name, event_cmd='event {} --all --loop'):
         """
         Use a virsh session with subcommand 'event' to catch events
-
         :param vm_name: name of the vm to be catched
+        :param event_cmd: cmd to check event
         :return: the virsh session with 'event'
         """
         virsh_session = aexpect.ShellSession(VIRSH_EXEC)
-        event_cmd = 'event %s --all --loop' % vm_name
+        event_cmd = event_cmd.format(vm_name)
         LOG.info('Sending "%s" to virsh shell', event_cmd)
         virsh_session.sendline(event_cmd)
         # Sometimes the output of session can't be gotten immediately,
