@@ -12,6 +12,7 @@ import time
 import re
 import traceback
 from collections import OrderedDict
+from pathlib import Path
 
 import aexpect
 
@@ -1991,7 +1992,9 @@ class QSwtpmDev(QDaemonDev):
             tpm_cmd += ' --tpm2'
 
         log_dir = utils_misc.get_log_file_dir()
-        tpm_cmd += ' --log file=%s' % os.path.join(log_dir, '%s_swtpm.log' % self.get_qid())
+        log_file = os.path.join(log_dir, '%s_swtpm.log' % self.get_qid())
+        Path(log_file).touch(mode=0o644, exist_ok=True)
+        tpm_cmd += ' --log file=%s' % log_file
 
         if self.get_param('extra_options'):
             tpm_cmd += self.get_param('extra_options')
