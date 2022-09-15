@@ -1570,7 +1570,7 @@ def postprocess(test, params, env):
     global _screendump_thread, _screendump_thread_termination_event
     if _screendump_thread is not None:
         _screendump_thread_termination_event.set()
-        _screendump_thread.join(10)
+        _screendump_thread.join(30)
         _screendump_thread = None
 
     # Encode an HTML 5 compatible video from the screenshots produced

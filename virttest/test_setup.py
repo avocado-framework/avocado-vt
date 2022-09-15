@@ -2486,38 +2486,30 @@ class LibvirtdDebugLog(object):
         self.test = test
         self.daemons_dict = {}
         self.daemons_dict["libvirtd"] = {
-            "daemon": utils_libvirtd.Libvirtd("virtqemud"),
             "conf": utils_config.LibvirtdConfig(),
             "backupfile": "%s.backup" % utils_config.LibvirtdConfig().conf_path}
         if utils_split_daemons.is_modular_daemon():
             self.daemons_dict["libvirtd"]["conf"] = utils_config.VirtQemudConfig()
             self.daemons_dict["libvirtd"]["backupfile"] = "%s.backup" % utils_config.VirtQemudConfig().conf_path
             self.daemons_dict["virtnetworkd"] = {
-                "daemon": utils_libvirtd.Libvirtd("virtnetworkd"),
                 "conf": utils_config.VirtNetworkdConfig(),
                 "backupfile": "%s.backup" % utils_config.VirtNetworkdConfig().conf_path}
             self.daemons_dict["virtproxyd"] = {
-                "daemon": utils_libvirtd.Libvirtd("virtproxyd"),
                 "conf": utils_config.VirtProxydConfig(),
                 "backupfile": "%s.backup" % utils_config.VirtProxydConfig().conf_path}
             self.daemons_dict["virtstoraged"] = {
-                "daemon": utils_libvirtd.Libvirtd("virtstoraged"),
                 "conf": utils_config.VirtStoragedConfig(),
                 "backupfile": "%s.backup" % utils_config.VirtStoragedConfig().conf_path}
             self.daemons_dict["virtinterfaced"] = {
-                "daemon": utils_libvirtd.Libvirtd("virtinterfaced"),
                 "conf": utils_config.VirtInterfacedConfig(),
                 "backupfile": "%s.backup" % utils_config.VirtInterfacedConfig().conf_path}
             self.daemons_dict["virtnodedevd"] = {
-                "daemon": utils_libvirtd.Libvirtd("virtnodedevd"),
                 "conf": utils_config.VirtNodedevdConfig(),
                 "backupfile": "%s.backup" % utils_config.VirtNodedevdConfig().conf_path}
             self.daemons_dict["virtnwfilterd"] = {
-                "daemon": utils_libvirtd.Libvirtd("virtnwfilterd"),
                 "conf": utils_config.VirtNwfilterdConfig(),
                 "backupfile": "%s.backup" % utils_config.VirtNwfilterdConfig().conf_path}
             self.daemons_dict["virtsecretd"] = {
-                "daemon": utils_libvirtd.Libvirtd("virtsecretd"),
                 "conf": utils_config.VirtSecretdConfig(),
                 "backupfile": "%s.backup" % utils_config.VirtSecretdConfig().conf_path}
 
@@ -2548,13 +2540,13 @@ class LibvirtdDebugLog(object):
             value.get("conf")["log_outputs"] = '"%s:file:%s"' % (self.log_level,
                                                                  self.log_file)
             value.get("conf")["log_filters"] = '"%s"' % self.log_filters
-            value.get("daemon").restart()
+        utils_libvirtd.Libvirtd(all_daemons=True).restart()
 
     def disable(self):
         """ Disable libvirtd debug log """
         for value in self.daemons_dict.values():
             os.rename(value.get("backupfile"), value.get("conf").conf_path)
-            value.get("daemon").restart()
+        utils_libvirtd.Libvirtd(all_daemons=True).restart()
 
 
 class UlimitConfig(Setuper):
