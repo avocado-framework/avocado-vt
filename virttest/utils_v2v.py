@@ -1512,6 +1512,12 @@ def check_log(params, log):
     """
     Check if error/warning meets expectation in v2v log
 
+    Support implicit compare by 'msg_content_yes' and
+    'msg_content_no'. Uses can use them to check both expected
+    and not expected logs in one case.
+    'msg_content' and 'expect_msg' are no longer recommended. Meanwhile,
+    they are still compatible.
+
     :param params: A dictionary includes all of required parameters such as
                     'expect_msg', 'msg_content', etc.
     :param log: The log string to be checked
@@ -1536,19 +1542,32 @@ def check_log(params, log):
         return True
 
     expect_msg = params.get('expect_msg')
+    msg_content = params.get('msg_content')
+    msg_content_yes = params.get('msg_content_yes')
+    msg_content_no = params.get('msg_content_no')
+    msg_check_list = []
     ret = ''
-    if not expect_msg:
+
+    if not expect_msg and not msg_content_yes and not msg_content_no:
         LOG.info('No need to check v2v log')
-    else:
-        expect = expect_msg == 'yes'
-        if params.get('msg_content'):
-            msg_list = params['msg_content'].split('%')
-            if _check_log(msg_list, expect=expect):
-                LOG.info('Finish checking v2v log')
-            else:
-                ret = 'Check v2v log failed'
-        else:
-            ret = 'Missing error message to compare'
+        return ret
+    if expect_msg and not msg_content:
+        return 'Missing error message to compare'
+
+    if msg_content:
+        msg_check_list.append((msg_content, expect_msg == 'yes'))
+    if msg_content_yes:
+        msg_check_list.append((msg_content_yes, True))
+    if msg_content_no:
+        msg_check_list.append((msg_content_no, False))
+
+    for e in msg_check_list:
+        msg, expect = e
+        msg_list = msg.split('%')
+        if not _check_log(msg_list, expect):
+            return 'Check v2v log failed'
+
+    LOG.info('Finish checking v2v log')
     return ret
 
 
