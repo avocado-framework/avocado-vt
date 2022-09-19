@@ -1114,6 +1114,7 @@ getspeed
 getss
 getstate
 getsz
+Getters
 getty
 getvalue
 gic
