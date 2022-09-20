@@ -162,6 +162,7 @@ class DevContainer(object):
         # escape the '?' otherwise it will fail if we have a single-char
         # filename in cwd
         self.__device_help = self.execute_qemu("-device \? 2>&1", 10)
+        self.__object_help = self.execute_qemu("-object \? 2>&1", 10)
         self.__machine_types = process.run("%s -M \?" % qemu_binary,
                                            timeout=10,
                                            ignore_status=True,
@@ -295,6 +296,12 @@ class DevContainer(object):
         # -incoming defer
         if self.has_option('incoming defer'):
             self.caps.set_flag(Flags.INCOMING_DEFER)
+        # -object sev-guest
+        if self.has_object('sev-guest'):
+            self.caps.set_flag(Flags.SEV_GUEST)
+        # -object tdx-guest
+        if self.has_object('tdx-guest'):
+            self.caps.set_flag(Flags.TDX_GUEST)
 
         if (self.has_qmp_cmd('migrate-set-parameters') and
                 self.has_hmp_cmd('migrate_set_parameter')):
@@ -612,6 +619,13 @@ class DevContainer(object):
         """
         return bool(re.search(r'name "%s"|alias "%s"' % (device, device),
                               self.__device_help))
+
+    def has_object(self, obj):
+        """
+        :param obj: Desired object string, e.g. 'sev-guest'
+        :return: True if the object is supported by qemu, or False
+        """
+        return bool(re.search(r'^\s*%s\n' % obj, self.__object_help, re.M))
 
     def get_help_text(self):
         """
