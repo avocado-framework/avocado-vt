@@ -1,16 +1,18 @@
+import logging
 import os
 import re
-import logging
-from tempfile import mktemp
+import time
 
 from avocado.core import exceptions
 from avocado.utils import process
 
-from virttest import virsh
+from tempfile import mktemp
+
 from virttest import utils_misc
-from virttest.utils_test import libvirt
-from virttest.libvirt_xml.nodedev_xml import NodedevXML
+from virttest import virsh
 from virttest.libvirt_xml.devices import hostdev
+from virttest.libvirt_xml.nodedev_xml import NodedevXML
+from virttest.utils_test import libvirt
 
 LOG = logging.getLogger('avocado.' + __name__)
 
@@ -176,6 +178,7 @@ def nodedev_create_from_xml(params):
     result = virsh.nodedev_create(vhba_file,
                                   debug=True,
                                   )
+    restart_multipathd()
     # Remove temporary file
     os.unlink(vhba_file)
     libvirt.check_exit_status(result, status_error)
@@ -206,6 +209,7 @@ def nodedev_destroy(scsi_host, params={}):
     LOG.info("destroying scsi:%s", scsi_host)
     # Check status_error
     libvirt.check_exit_status(result, status_error)
+    restart_multipathd()
     # Check nodedev value
     if not check_nodedev(scsi_host):
         LOG.info(result.stdout_text)
@@ -332,6 +336,8 @@ def restart_multipathd(mpath_dev="", expect_exist=False):
     after daemon restarted, as expected.
     """
     cmd_status = process.system('service multipathd restart', verbose=True)
+    # Wait 2 secs for multipath devices synced
+    time.sleep(2)
     if cmd_status:
         raise exceptions.TestFail("Restart multipathd failed.")
     if not os.path.exists(mpath_dev):
