@@ -296,6 +296,10 @@ class LibvirtXMLBase(propcan.PropCanBase):
                                      % (key, self.__class__))
             get_func = eval('self.get_%s' % key)
 
+            # Skip Getters if they are customized
+            if not isinstance(get_func, propcan.PropCanBase):
+                continue
+
             # Is XMLElementNest or not
             subclass = get_func.get('subclass')
             if subclass is None:
