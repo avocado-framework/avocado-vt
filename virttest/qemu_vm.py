@@ -618,7 +618,7 @@ class VM(virt_vm.BaseVM):
         def add_nic(devices, vlan, model=None, mac=None, device_id=None,
                     netdev_id=None, nic_extra_params=None, pci_addr=None,
                     bootindex=None, queues=1, vectors=None, pci_bus='pci.0',
-                    ctrl_mac_addr=None, mq=None, failover=None):
+                    ctrl_mac_addr=None, mq=None, failover=None, romfile=None):
             if model == 'none':
                 return
             if devices.has_option("device"):
@@ -658,6 +658,9 @@ class VM(virt_vm.BaseVM):
                     if "rombar" in devices.execute_qemu("-device %s,?"
                                                         % model):
                         dev.set_param("rombar", 0)
+
+                if romfile:
+                    dev.set_param('romfile', romfile)
             else:
                 dev = qdevices.QCustomDevice('net', backend='type')
                 dev.set_param('type', 'nic')
@@ -2159,6 +2162,7 @@ class VM(virt_vm.BaseVM):
                 bootindex = nic_params.get("bootindex")
                 netdev_extra = nic.get("netdev_extra_params")
                 bootp = nic.get("bootp")
+                romfile = nic.get("romfile")
                 add_queues = nic_params.get("add_queues", "no") == "yes"
                 add_tapfd = nic_params.get("add_tapfd", "no") == "yes"
                 add_vhostfd = nic_params.get("add_vhostfd", "no") == "yes"
@@ -2223,7 +2227,8 @@ class VM(virt_vm.BaseVM):
                         bootindex, queues, vectors, parent_bus,
                         nic_params.get("ctrl_mac_addr"),
                         nic_params.get("mq"),
-                        nic_params.get("failover"))
+                        nic_params.get("failover"),
+                        romfile)
 
                 # Handle the '-net tap' or '-net user' or '-netdev' part
                 cmd, cmd_nd = add_net(devices, vlan, nettype, ifname, tftp,
@@ -4003,6 +4008,7 @@ class VM(virt_vm.BaseVM):
         nic.set_if_none('queues', params.get('queues', '1'))
         if params.get("enable_msix_vectors") == "yes" and int(nic.queues) > 1:
             nic.set_if_none('vectors', 2 * int(nic.queues) + 2)
+        nic.set_if_value_not_none('romfile', params.get('nic_romfile'))
         return nic
 
     @error_context.context_aware
