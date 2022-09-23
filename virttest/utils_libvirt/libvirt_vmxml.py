@@ -17,6 +17,7 @@ from virttest.libvirt_xml.devices import disk
 from virttest.libvirt_xml.devices import hostdev
 from virttest.libvirt_xml.devices import interface
 from virttest.libvirt_xml.devices import rng
+from virttest.libvirt_xml.devices import serial
 from virttest.libvirt_xml.devices import vsock
 from virttest.libvirt_xml.devices import watchdog
 from virttest.utils_test import libvirt
@@ -94,6 +95,8 @@ def create_vm_device_by_type(dev_type, dev_dict):
         dev_obj = interface.Interface()
     elif dev_type == 'channel':
         dev_obj = channel.Channel()
+    elif dev_type == 'serial':
+        dev_obj = serial.Serial()
     elif dev_type == 'vsock':
         dev_obj = vsock.Vsock()
     elif dev_type == 'watchdog':
