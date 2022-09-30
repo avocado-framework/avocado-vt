@@ -24,8 +24,6 @@ import logging
 from functools import reduce
 
 from avocado.core import exceptions
-from avocado.utils import path as utils_path
-from avocado.utils import process
 from avocado.utils import cpu as cpuutil
 
 from virttest import error_context
