@@ -1652,11 +1652,11 @@ def v2v_setup_ssh_key(
             cmd = r"sed -i '/%s/d' %s" % (hostname, user_known_hosts_file)
             process.run(cmd, verbose=True, ignore_status=True)
 
-        session = remote_old.ssh_login_to_migrate(
+        session = remote.remote_login(
             client='ssh',
             host=hostname,
-            username=username,
             port=port,
+            username=username,
             password=password,
             prompt=r"[\#\$\[\]%]",
             verbose=True,
