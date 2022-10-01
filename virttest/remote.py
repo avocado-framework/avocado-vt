@@ -12,6 +12,7 @@ import tempfile
 
 import aexpect
 from aexpect.remote import *
+from aexpect.remote import remote_login as aexpect_remote_login
 
 from avocado.core import exceptions
 from avocado.utils import process
@@ -22,6 +23,24 @@ from virttest.remote_commander import remote_master
 from virttest.remote_commander import messenger
 
 LOG = logging.getLogger('avocado.' + __name__)
+
+
+def remote_login(client, host, port, username, password, prompt, linesep="\n",
+                 log_filename=None, log_function=None, timeout=10,
+                 interface=None, identity_file=None,
+                 status_test_command="echo $?", verbose=False, bind_ip=None,
+                 preferred_authenticaton='password',
+                 user_known_hosts_file='/dev/null'):
+    """
+    Aexpect's remote_login with a better default log_function
+    """
+    if log_function is None:
+        log_function = utils_logfile.log_line
+    return aexpect_remote_login(client, host, port, username, password,
+                                prompt, linesep, log_filename, log_function,
+                                timeout, interface, identity_file,
+                                status_test_command, verbose, bind_ip,
+                                preferred_authenticaton, user_known_hosts_file)
 
 
 def ssh_login_to_migrate(client, host, port, username, password, prompt, linesep="\n",
