@@ -1159,7 +1159,7 @@ def preprocess(test, params, env):
     # Destroy and remove VMs that are no longer needed in the environment or
     # leave them untouched if they have to be disregarded only for this test
     requested_vms = params.objects("vms")
-    keep_unrequested_vms = params.get_boolean("keep_env_vms", False)
+    keep_unrequested_vms = params.get_boolean("keep_unrequested_vms", False)
     for key in list(env.keys()):
         vm = env[key]
         if not isinstance(vm, virt_vm.BaseVM):
@@ -1699,7 +1699,7 @@ def postprocess(test, params, env):
         LOG.info("Sosreport for remote host: %s", sosreport_path)
     living_vms = [vm for vm in env.get_all_vms() if vm.is_alive()]
     # Close all monitor socket connections of living vm.
-    if not params.get_boolean("keep_env_vms", False):
+    if not params.get_boolean("keep_vms_after_test", False):
         for vm in living_vms:
             if hasattr(vm, "monitors"):
                 for m in vm.monitors:
