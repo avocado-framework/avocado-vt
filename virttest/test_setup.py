@@ -2559,10 +2559,12 @@ class UlimitConfig(Setuper):
                     that the current process can create.
     vt_ulimit_nofile: The maximum number of open file descriptors
                       for the current process.
+    vt_ulimit_memlock: The maximum size a process may lock into memory.
     """
 
     ulimit_options = {"core": resource.RLIMIT_CORE,
-                      "nofile": resource.RLIMIT_NOFILE}
+                      "nofile": resource.RLIMIT_NOFILE,
+                      "memlock": resource.RLIMIT_MEMLOCK}
 
     def _set(self):
         self.ulimit = {}
