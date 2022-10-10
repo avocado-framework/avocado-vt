@@ -83,12 +83,13 @@ def create_hmat_xml(vmxml, params):
     return vmxml
 
 
-def parse_numa_nodeset_to_str(numa_nodeset, node_list):
+def parse_numa_nodeset_to_str(numa_nodeset, node_list, ignore_error=False):
     """
     Parse numa nodeset to a string
 
     :param numa_nodeset: str, formats supported are 'x', 'x,y', 'x-y', 'x-y,^y'
     :param node_list: list, host numa nodes
+    :param ignore_error: no exception raised if True
     :return: str, parsed numa nodeset
     :raises exceptions.TestError if unsupported format of numa nodeset
     """
@@ -131,6 +132,8 @@ def parse_numa_nodeset_to_str(numa_nodeset, node_list):
             numa_nodeset = '%s-%s,^%s' % (str(node_list[candidate_index]),
                                           str(node_list[candidate_index + 1]),
                                           str(node_list[candidate_index + 1]))
+    elif ignore_error:
+        LOG.error("Supported formats are not found. No parsing happens.")
     else:
         raise exceptions.TestError("Unsupported format for numa_"
                                    "nodeset value '%s'" % numa_nodeset)
