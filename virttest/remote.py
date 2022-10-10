@@ -2,7 +2,6 @@
 Functions and classes used for logging into guests and transferring files.
 """
 from __future__ import division
-from six import PY3
 import logging
 import time
 import re
@@ -22,129 +21,6 @@ from virttest.remote_commander import remote_master
 from virttest.remote_commander import messenger
 
 LOG = logging.getLogger('avocado.' + __name__)
-
-
-def ssh_login_to_migrate(client, host, port, username, password, prompt, linesep="\n",
-                         log_filename=None, log_function=None, timeout=10,
-                         interface=None, identity_file=None,
-                         status_test_command="echo $?", verbose=False, bind_ip=None,
-                         preferred_authenticaton='password',
-                         user_known_hosts_file='/dev/null'):
-    """
-    Log into a remote host (guest) using SSH (to be migrated).
-
-    This wrapper is kept around to handle some additional SSH options like the
-    preferred authentication and the known hosts file which were added while the
-    PR to migrate the utility took about a year.
-
-    :param client: The client to use ('ssh', 'telnet' or 'nc')
-    :param host: Hostname or IP address
-    :param port: Port to connect to
-    :param username: Username (if required)
-    :param password: Password (if required)
-    :param prompt: Shell prompt (regular expression)
-    :param linesep: The line separator to use when sending lines
-            (e.g. '\\n' or '\\r\\n')
-    :param log_filename: If specified, log all output to this file
-    :param log_function: If specified, log all output using this function
-    :param timeout: The maximal time duration (in seconds) to wait for
-            each step of the login procedure (i.e. the "Are you sure" prompt
-            or the password prompt)
-    :param interface: The interface the neighbours attach to (only use when
-                      using ipv6 linklocal address.)
-    :param identity_file: Selects a file from which the identity (private key)
-                          for public key authentication is read
-    :param status_test_command: Command to be used for getting the last
-            exit status of commands run inside the shell (used by
-            cmd_status_output() and friends).
-    :param bind_ip: ssh through specific interface on
-                    client(specify interface ip)
-    :param preferred_authenticaton: The preferred authentication of SSH connection
-    :param user_known_hosts_file: one or more files to use for the user host key database
-    :raise LoginError: If using ipv6 linklocal but not assign a interface that
-                       the neighbour attache
-    :raise LoginBadClientError: If an unknown client is requested
-    :raise: Whatever handle_prompts() raises
-    :return: A ShellSession object.
-    """
-    if client != "ssh":
-        return remote_login(client, host, port, username, password, prompt,
-                            linesep, log_filename, log_function, timeout,
-                            interface, identity_file, status_test_command,
-                            verbose, bind_ip)
-    cmd = ("ssh %s -o UserKnownHostsFile=%s "
-           "-o StrictHostKeyChecking=no -p %s" %
-           ("-vv" if verbose else "", user_known_hosts_file, port))
-    if bind_ip:
-        cmd += (" -b %s" % bind_ip)
-    if identity_file:
-        cmd += (" -i %s" % identity_file)
-    else:
-        cmd += " -o PreferredAuthentications=%s" % preferred_authenticaton
-    cmd += " %s@%s" % (username, host)
-
-    if verbose:
-        LOG.debug("Login command: '%s'", cmd)
-    session = aexpect.ShellSession(cmd, linesep=linesep, prompt=prompt,
-                                   status_test_command=status_test_command)
-    try:
-        handle_prompts(session, username, password, prompt, timeout)
-    except Exception:
-        session.close()
-        raise
-    if log_filename:
-        log_file = utils_logfile.get_log_filename(log_filename)
-        session.set_output_func(utils_logfile.log_line)
-        session.set_output_params((log_file,))
-        session.set_log_file(os.path.basename(log_file))
-    return session
-
-
-def wait_for_ssh_login_to_migrate(client, host, port, username, password, prompt,
-                                  linesep="\n", log_filename=None, log_function=None,
-                                  timeout=240, internal_timeout=10, interface=None,
-                                  preferred_authenticaton='password'):
-    """
-    Make multiple attempts to log into a guest until one succeeds or timeouts.
-
-    :param timeout: Total time duration to wait for a successful login
-    :param internal_timeout: The maximum time duration (in seconds) to wait for
-                             each step of the login procedure (e.g. the
-                             "Are you sure" prompt or the password prompt)
-    :interface: The interface the neighbours attach to
-                (only use when using ipv6 linklocal address.)
-    :see: remote_login()
-    :raise: Whatever remote_login() raises
-    :return: A RemoteSession object.
-    """
-    LOG.debug("Attempting to log into %s:%s using %s (timeout %ds)",
-              host, port, client, timeout)
-    end_time = time.time() + timeout
-    verbose = False
-    while time.time() < end_time:
-        try:
-            return ssh_login_to_migrate(client, host, port, username, password, prompt,
-                                        linesep, log_filename, log_function,
-                                        internal_timeout, interface, verbose=verbose,
-                                        preferred_authenticaton=preferred_authenticaton)
-        except LoginError as error:
-            LOG.debug(error)
-            verbose = True
-        time.sleep(2)
-    # Timeout expired; try one more time but don't catch exceptions
-    if PY3:
-        # 'preferred_authenticaton' is introduced in aexpect 1.6.1. In travis CI for python2.7,
-        # it still uses aexpect 1.6.0 due to python2 compatibility problem, so E1123 will
-        # be reported.
-        # pylint: disable=E1123
-        return remote_login(client, host, port, username, password, prompt,
-                            linesep, log_filename, log_function,
-                            internal_timeout, interface,
-                            preferred_authenticaton=preferred_authenticaton)
-    else:
-        return remote_login(client, host, port, username, password, prompt,
-                            linesep, log_filename, log_function,
-                            internal_timeout, interface)
 
 
 class AexpectIOWrapperOut(messenger.StdIOWrapperOutBase64):
@@ -558,12 +434,11 @@ class RemoteRunner(object):
             if host is None:
                 raise exceptions.TestError(
                     "Neither host, nor session was defined!")
-            self.session = wait_for_ssh_login_to_migrate(client, host, port, username,
-                                                         password, prompt, linesep,
-                                                         log_filename, log_function,
-                                                         timeout,
-                                                         internal_timeout,
-                                                         preferred_authenticaton=preferred_authenticaton)
+            self.session = wait_for_login(client, host, port, username,
+                                          password, prompt, linesep,
+                                          log_filename, log_function,
+                                          timeout, internal_timeout,
+                                          preferred_authenticaton=preferred_authenticaton)
         else:
             self.session = session
         # Init stdout pipe and stderr pipe.
