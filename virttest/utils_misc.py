@@ -2936,7 +2936,7 @@ def get_test_entrypoint_func(name, module):
     :rtype: func
     '''
     run = getattr(module, "run", None)
-    if run is not None:
+    if run is not None and callable(run):
         return run
     else:
         raise ValueError("Missing test entry point")
