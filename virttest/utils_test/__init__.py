@@ -1817,7 +1817,7 @@ def run_virt_sub_test(test, params, env, sub_type=None, tag=None):
     run_func = utils_misc.get_test_entrypoint_func(sub_type, test_module)
     if tag is not None:
         params = params.object_params(tag)
-    run_func(test, params, env)
+    run_func(test, params, env)  # pylint: disable=E1102
 
 
 def get_readable_cdroms(params, session):

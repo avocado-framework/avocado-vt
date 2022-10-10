@@ -259,6 +259,7 @@ class VirtTest(test.Test, utils.TestUtils):
                         run_func = utils_misc.get_test_entrypoint_func(
                             t_type, test_module)
                         try:
+                            # pylint: disable-next=E1102
                             run_func(self, params, env)
                             self.verify_background_errors()
                         finally:
