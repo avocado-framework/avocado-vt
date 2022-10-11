@@ -32,7 +32,7 @@
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
 Version: 98.0
-Release: 1%{?gitrel}%{?dist}
+Release: 2%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -69,7 +69,7 @@ Xunit output, among others.
 %package -n python3-%{name}
 Summary: %{summary}
 Requires: python3, python3-devel, python3-avocado >= 51.0, python3-aexpect
-Requires: python3-netaddr, python3-netifaces, python3-simplejson
+Requires: python3-netifaces, python3-simplejson
 %{?python_provide:%python_provide python3-%{srcname}}
 %description -n python3-%{name}
 Avocado Virt Test is a plugin that lets you execute virt-tests
@@ -104,6 +104,9 @@ Xunit output, among others.
 
 
 %changelog
+* Thu Jul 20 2022 Xu Han <xuhan@redhat.com> - 98.0-2
+- Removed python3-netaddr dependency
+
 * Thu Jul 14 2022 Cleber Rosa <crosa@redhat.com> - 98.0-1
 - New release
 
