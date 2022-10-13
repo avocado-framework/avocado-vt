@@ -3594,6 +3594,7 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
     del_coalesce = iface_dict.get('del_coalesce')
     del_alias = iface_dict.get('del_alias')
     del_target = iface_dict.get('del_target')
+    del_bandwidth = iface_dict.get('del_bandwidth')
     if iface_type:
         iface.type_name = iface_type
     if iface_driver:
@@ -3637,6 +3638,8 @@ def modify_vm_iface(vm_name, oper, iface_dict, index=0, virsh_instance=virsh):
         iface.del_alias()
     if del_target:
         iface.del_target()
+    if del_bandwidth:
+        iface.del_bandwidth()
     if iface_filter:
         if iface_filter_parameters:
             iface.filterref = iface.new_filterref(name=iface_filter, parameters=iface_filter_parameters)
