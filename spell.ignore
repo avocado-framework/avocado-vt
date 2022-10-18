@@ -1040,6 +1040,7 @@ enum
 Enum
 Enumerater
 envs
+epc
 epel
 eps
 Eq
@@ -1744,6 +1745,8 @@ setvcpu
 setvcpus
 sflag
 sgio
+sgx
+SGX
 sharebacking
 shellsession
 ShellSession

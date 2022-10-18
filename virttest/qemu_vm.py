@@ -1038,10 +1038,35 @@ class VM(virt_vm.BaseVM):
                 options.append("maxmem=%s" % mem_params["maxmem"])
                 if mem_params.get("slots"):
                     options.append("slots=%s" % mem_params["slots"])
+            sgx_epc_memdev_id = dict()
             for name in params.objects("mem_devs"):
                 dev = devices.memory_define_by_params(params, name)
+                for ele in dev:
+                    if isinstance(ele, qdevices.Memory) and \
+                            ele.params["backend"] == "memory-backend-epc":
+                        sgx_epc_memdev_id[name] = ele.get_qid()
                 devs.extend(dev)
+            sgx_epc_cmd = ""
+            cap_type = "sgx-epc"
+            for idx, ele in enumerate(params.objects("vm_sgx_epc_devs")):
+                sgx_epc_params = params.object_params(ele)
+                sgx_epc_memdev_ele = sgx_epc_params["vm_sgx_epc_memdev"]
+                if sgx_epc_memdev_ele not in sgx_epc_memdev_id:
+                    raise virt_vm.VMDeviceNotFoundError("Cannot find epc "
+                                                        "memory device mapped"
+                                                        " for sgx-epc device "
+                                                        "%s." % ele)
+                opt_mapping = {
+                    'memdev': sgx_epc_memdev_id[sgx_epc_memdev_ele],
+                    'node': sgx_epc_params["vm_sgx_epc_node"]}
+                for opt, val in opt_mapping.items():
+                    sgx_epc_cmd += ",{cap_type}.{idx}.{opt}=" \
+                                   "{val}".format(cap_type=cap_type, idx=idx,
+                                                  opt=opt, val=val)
             machine_dev = devices.get_by_properties({"type": "machine"})[0]
+            # FIXME:  QStringDevice does not support dynamic set after
+            #  initialization.
+            machine_dev._cmdline += sgx_epc_cmd
             machine_cmd = machine_dev.cmdline_nd()
             output = re.findall(r",memory-backend=mem-([\w|-]+)", machine_cmd)
             if output:
