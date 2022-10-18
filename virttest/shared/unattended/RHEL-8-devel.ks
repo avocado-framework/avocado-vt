@@ -33,6 +33,7 @@ KVM_TEST_REPOS
 python3-pillow
 python3-six
 python3-pyparsing
+python3-dnf-plugin-versionlock
 net-tools
 NetworkManager
 dconf
@@ -107,5 +108,22 @@ EOF
 cat >> '/home/test/.bashrc' << EOF
 alias shutdown='sudo shutdown'
 EOF
+# Install and lock packages specified via 'kickstart_instlock_pkgs' parameter
+install_and_lock()
+{
+    for PKG in KVM_TEST_PKGS; do
+        ECHO "dnf install $PKG -y --nogpgcheck"
+        dnf install $PKG -y --nogpgcheck
+        if [ $? -ne 0 ]; then
+            ECHO "$PKG installation failed."
+        fi
+        ECHO "dnf versionlock add $PKG"
+        dnf versionlock add $PKG
+        if [ $? -ne 0 ]; then
+            ECHO "$PKG version lock failed."
+        fi
+    done
+}
+install_and_lock
 ECHO 'Post set up finished'
 %end
