@@ -77,7 +77,9 @@ class Graphics(base.TypedDeviceBase):
         """
         Convenience method for appending channel from dictionary of attributes
         """
-        self._add_item('channel', **attributes)
+        channels = self.channels
+        channels.append(attributes)
+        self.channels = channels
 
     @staticmethod
     def change_graphic_type_passwd(vm_name, graphic, passwd=None):
