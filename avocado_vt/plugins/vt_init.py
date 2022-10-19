@@ -1,5 +1,3 @@
-import importlib
-
 from avocado.core import plugin_interfaces
 from avocado.core.loader import loader
 from avocado.core.settings import settings
@@ -14,6 +12,7 @@ from virttest.standalone_test import (SUPPORTED_DISK_BUSES,
                                       SUPPORTED_NIC_MODELS,
                                       SUPPORTED_TEST_TYPES,
                                       find_default_qemu_paths)
+from virttest._wrappers import import_module
 
 if hasattr(plugin_interfaces, 'Init'):
     class VtInit(plugin_interfaces.Init):
@@ -273,6 +272,6 @@ if hasattr(plugin_interfaces, 'Init'):
 
             settings.merge_with_configs()
 
-            virt_loader = getattr(importlib.import_module('avocado_vt.loader'),
+            virt_loader = getattr(import_module('avocado_vt.loader'),
                                   'VirtTestLoader')
             loader.register_plugin(virt_loader)

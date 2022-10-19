@@ -12,7 +12,6 @@
 # Copyright: Red Hat Inc. 2020
 # Author: Cleber Rosa <crosa@redhat.com>
 
-import imp
 import logging
 import os
 import pickle
@@ -24,6 +23,7 @@ from avocado.utils import genio, stacktrace
 
 from virttest import asset, bootstrap
 from virttest import data_dir
+from virttest._wrappers import import_module
 
 BG_ERR_FILE = "background-error.log"
 
@@ -125,9 +125,7 @@ def find_test_modules(test_types, subtest_dirs):
                    "dirs %s" % (test_type, subtest_dirs))
             raise exceptions.TestError(msg)
         # Load the test module
-        f, p, d = imp.find_module(test_type, [subtest_dir])
-        test_modules[test_type] = imp.load_module(test_type, f, p, d)
-        f.close()
+        test_modules[test_type] = import_module(test_type, subtest_dir)
     return test_modules
 
 

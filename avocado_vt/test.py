@@ -16,7 +16,6 @@
 Avocado VT plugin
 """
 
-import imp
 import os
 import sys
 import pipes
@@ -34,6 +33,7 @@ from virttest import utils_env
 from virttest import utils_params
 from virttest import utils_misc
 from virttest import version
+from virttest._wrappers import load_source
 
 from avocado_vt import utils
 
@@ -54,8 +54,7 @@ if 'AUTOTEST_PATH' in os.environ:
     if not os.path.exists(SETUP_MODULES_PATH):
         raise EnvironmentError("Although AUTOTEST_PATH has been declared, "
                                "%s missing." % SETUP_MODULES_PATH)
-    SETUP_MODULES = imp.load_source('autotest_setup_modules',
-                                    SETUP_MODULES_PATH)
+    SETUP_MODULES = load_source('autotest_setup_modules', SETUP_MODULES_PATH)
     SETUP_MODULES.setup(base_path=CLIENT_DIR,
                         root_module_name="autotest.client")
 
@@ -260,6 +259,7 @@ class VirtTest(test.Test, utils.TestUtils):
                         run_func = utils_misc.get_test_entrypoint_func(
                             t_type, test_module)
                         try:
+                            # pylint: disable-next=E1102
                             run_func(self, params, env)
                             self.verify_background_errors()
                         finally:
