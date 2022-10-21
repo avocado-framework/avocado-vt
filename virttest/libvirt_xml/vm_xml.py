@@ -3223,7 +3223,7 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                  'hyperv_reenlightenment_state', 'hyperv_vpindex_state',
                  'kvm_hidden_state', 'pvspinlock_state', 'smm', 'hpt',
                  'htm', 'smm_tseg_unit', 'smm_tseg', 'nested_hv',
-                 'pmu', 'kvm_poll_control')
+                 'pmu', 'kvm_poll_control', 'ioapic')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLAttribute(property_name='hyperv_relaxed_state',
@@ -3315,6 +3315,10 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                                parent_xpath='/kvm',
                                tag_name='poll-control',
                                attribute='state')
+        accessors.XMLElementDict(property_name='ioapic',
+                                 libvirtxml=self,
+                                 parent_xpath='/',
+                                 tag_name='ioapic')
         accessors.AllForbidden(property_name="feature_list",
                                libvirtxml=self)
         super(VMFeaturesXML, self).__init__(virsh_instance=virsh_instance)
