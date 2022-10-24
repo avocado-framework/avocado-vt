@@ -3215,6 +3215,7 @@ class VMFeaturesXML(base.LibvirtXMLBase):
         kvm_hidden:        attribute - state
         pvspinlock:        attribute - state
         smm:               attribute - state
+        kvm_dirty_ring:    attribute - state, size
     """
 
     __slots__ = ('feature_list', 'hyperv_relaxed_state', 'hyperv_vapic_state',
@@ -3223,7 +3224,8 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                  'hyperv_reenlightenment_state', 'hyperv_vpindex_state',
                  'kvm_hidden_state', 'pvspinlock_state', 'smm', 'hpt',
                  'htm', 'smm_tseg_unit', 'smm_tseg', 'nested_hv',
-                 'pmu', 'kvm_poll_control', 'ioapic')
+                 'pmu', 'kvm_poll_control', 'ioapic',
+                 'kvm_dirty_ring_state', 'kvm_dirty_ring_size')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLAttribute(property_name='hyperv_relaxed_state',
@@ -3319,6 +3321,16 @@ class VMFeaturesXML(base.LibvirtXMLBase):
                                  libvirtxml=self,
                                  parent_xpath='/',
                                  tag_name='ioapic')
+        accessors.XMLAttribute(property_name='kvm_dirty_ring_state',
+                               libvirtxml=self,
+                               parent_xpath='/kvm',
+                               tag_name='dirty-ring',
+                               attribute='state')
+        accessors.XMLAttribute(property_name='kvm_dirty_ring_size',
+                               libvirtxml=self,
+                               parent_xpath='/kvm',
+                               tag_name='dirty-ring',
+                               attribute='size')
         accessors.AllForbidden(property_name="feature_list",
                                libvirtxml=self)
         super(VMFeaturesXML, self).__init__(virsh_instance=virsh_instance)
