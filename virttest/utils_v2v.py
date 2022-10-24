@@ -1214,7 +1214,7 @@ class WindowsVMCheck(VMCheck):
         return False
 
 
-def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
+def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False, shell=False):
     """
     Create final v2v command, execute or only return the command
 
@@ -1234,6 +1234,7 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
     :param auto_clean: boolean flag, whether to cleanup runtime resources.
     :param cmd_only: boolean flag, whether to only return the command line without running
     :param interaction: boolean flag, If need to interact with v2v
+    :param shell: Whether to run the command on a subshell
     :return: A cmd string or CmdResult object
     """
     def _v2v_pre_cmd():
@@ -1392,7 +1393,8 @@ def v2v_cmd(params, auto_clean=True, cmd_only=False, interaction=False):
                     cmd,
                     timeout=v2v_cmd_timeout,
                     verbose=True,
-                    ignore_status=True)
+                    ignore_status=True,
+                    shell=shell)
             else:
                 cmd_result = interactive_run(
                     params,
