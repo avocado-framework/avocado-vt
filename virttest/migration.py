@@ -91,15 +91,20 @@ class MigrationTest(object):
                     ping_count = int(params.get("ping_count", 10))
                     self.ping_vm(vm, params, uri=dest_uri, ping_count=ping_count)
                 if params.get("simple_disk_check_after_mig", 'yes') == "yes":
-                    backup_uri, vm.connect_uri = vm.connect_uri, dest_uri
+                    check_disk_on_dest = "yes" == params.get("check_disk_on_dest", "yes")
+                    if check_disk_on_dest:
+                        backup_uri, vm.connect_uri = vm.connect_uri, dest_uri
+                    vm.cleanup_serial_console()
                     vm.create_serial_console()
                     vm_session_after_mig = vm.wait_for_serial_login(timeout=360)
                     vm_session_after_mig.cmd("echo libvirt_simple_disk_check >> /tmp/libvirt_simple_disk_check")
                     vm_session_after_mig.close()
-                    vm.connect_uri = backup_uri
+                    if check_disk_on_dest:
+                        vm.connect_uri = backup_uri
                 if params.get("check_disk_after_mig", "no") == "yes":
                     disk_kname = params.get("check_disk_kname_after_mig", "vdb")
                     backup_uri, vm.connect_uri = vm.connect_uri, dest_uri
+                    vm.cleanup_serial_console()
                     vm.create_serial_console()
                     vm_session_after_mig = vm.wait_for_serial_login(timeout=360)
                     utils_disk.linux_disk_check(vm_session_after_mig, disk_kname)
