@@ -4848,7 +4848,7 @@ class VM(virt_vm.BaseVM):
             "Waiting for save to %s to complete" % path)
         # Restore the speed and downtime to default values
         qemu_migration.set_speed(self, str(32 << 20))
-        qemu_migration.set_downtime(self, 0.03)
+        qemu_migration.set_downtime(self, 0.3)
         # Base class defines VM must be off after a save
         self.monitor.cmd("system_reset")
         self.verify_status('paused')  # Throws exception if not
