@@ -298,7 +298,7 @@ class Disk(base.TypedDeviceBase):
         """
 
         __slots__ = ('attrs', 'seclabels', 'hosts', 'encryption', 'auth',
-                     'reservations', 'slices', 'config_file', 'snapshot_name')
+                     'reservations', 'slices', 'config_file', 'snapshot_name', 'address')
 
         def __init__(self, virsh_instance=base.base.virsh):
             accessors.XMLElementDict('attrs', self, parent_xpath='/',
@@ -332,6 +332,8 @@ class Disk(base.TypedDeviceBase):
                                    tag_name='config', attribute='file')
             accessors.XMLAttribute('snapshot_name', self, parent_xpath='/',
                                    tag_name='snapshot', attribute='name')
+            accessors.XMLElementDict('address', self, parent_xpath='/',
+                                     tag_name='address')
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
             self.xml = '<source/>'
 
