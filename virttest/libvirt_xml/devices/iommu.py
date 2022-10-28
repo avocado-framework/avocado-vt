@@ -10,7 +10,7 @@ from virttest.libvirt_xml.devices import base
 
 class Iommu(base.UntypedDeviceBase):
 
-    __slots__ = ('model', 'driver')
+    __slots__ = ('model', 'driver', 'alias', 'address')
 
     def __init__(self, virsh_instance=base.base.virsh):
         accessors.XMLAttribute(property_name='model',
@@ -22,5 +22,9 @@ class Iommu(base.UntypedDeviceBase):
                                  libvirtxml=self,
                                  parent_xpath='/',
                                  tag_name='driver')
+        accessors.XMLElementDict('alias', self, parent_xpath='/',
+                                 tag_name='alias')
+        accessors.XMLElementDict('address', self, parent_xpath='/',
+                                 tag_name='address')
         super(Iommu, self).__init__(device_tag='iommu',
                                     virsh_instance=virsh_instance)
