@@ -1221,10 +1221,10 @@ def check_status_output(status, output='',
 
 
 def check_result(result,
-                 expected_fails=[],
-                 skip_if=[],
+                 expected_fails=None,
+                 skip_if=None,
                  any_error=False,
-                 expected_match=[],
+                 expected_match=None,
                  check_both_on_error=False):
     """
     Check the result of a command and check command error message against
