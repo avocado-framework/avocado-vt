@@ -2112,13 +2112,13 @@ class VM(virt_vm.BaseVM):
         :param dargs: Standardized virsh function API keywords
         :return: True if command succeeded
         """
+        # Close down serial_console logging process
+        self.cleanup_serial_console()
         LOG.info("Migrating VM %s from %s to %s" %
                  (self.name, self.connect_uri, dest_uri))
         result = virsh.migrate(self.name, dest_uri, option,
                                extra, uri=self.connect_uri,
                                **dargs)
-        # Close down serial_console logging process
-        self.cleanup_serial_console()
         # On successful migration, point to guests new hypervisor.
         # Since dest_uri could be None, checking it is necessary.
         if result.exit_status == 0 and dest_uri:
@@ -2133,7 +2133,6 @@ class VM(virt_vm.BaseVM):
         if migrate_options.count("--dname"):
             migrate_options_list = migrate_options.split()
             self.name = migrate_options_list[migrate_options_list.index("--dname") + 1]
-        self.create_serial_console()
         return result
 
     def attach_disk(self, source, target=None, prefix="vd", extra="",
