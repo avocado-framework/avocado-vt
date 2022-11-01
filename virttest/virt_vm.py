@@ -68,15 +68,18 @@ class VMCreateError(VMError):
 
 class VMStartError(VMError):
 
-    def __init__(self, name, reason=None):
-        VMError.__init__(self, name, reason)
+    def __init__(self, name, reason=None, status=None):
+        VMError.__init__(self, name, reason, status)
         self.name = name
         self.reason = reason
+        self.status = status
 
     def __str__(self):
         msg = "VM '%s' failed to start" % self.name
         if self.reason is not None:
             msg += ": %s" % self.reason
+        if self.status is not None:
+            msg += "(exit status: %d)" % self.status
         return msg
 
 

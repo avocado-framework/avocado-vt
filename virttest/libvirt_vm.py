@@ -2513,7 +2513,8 @@ class VM(virt_vm.BaseVM):
         else:
             LOG.error("VM fails to start with:%s", result)
             raise virt_vm.VMStartError(self.name,
-                                       result.stderr_text.strip())
+                                       reason=result.stderr_text.strip(),
+                                       status=result.exit_status)
 
         # Pull in mac addresses from libvirt guest definition
         for index, nic in enumerate(self.virtnet):
