@@ -1143,13 +1143,20 @@ class QDevice(QCustomDevice):
         command_dict = {}
         out = "-%s " % self.type
 
-        usb_storage_driver = self.params.get("driver") == "usb-storage"
+        usb_driver = self.get_param("driver", "").startswith("usb-")
 
-        expect_string_val = ["write-cache", "disable-legacy"]
+        pcic = self.get_param("driver") in ("pcie-root-port")
+
+        pvpanic = self.get_param("driver") in ("pvpanic")
+
+        expect_string_val = ("write-cache", "disable-legacy", "intremap",
+                             "serial")
 
         for key, val in self.params.items():
             # wwn needs to be presented as hexadecimal
-            if key in ["wwn"]:
+            # port from device ( "driver": "pcie-root-port" )
+            if key in ("wwn") or (key == "port" and pcic) \
+                    or (key == "ioport" and pvpanic):
                 command_dict[key] = int(val, 16)
             # physical_block_size from device ("driver": "scsi-hd")
             # logical_block_size from device ("driver": "scsi-hd")
@@ -1157,21 +1164,36 @@ class QDevice(QCustomDevice):
             # max_sectors from device ("driver": "virtio-scsi-pci")
             # num_queues from device ("driver": "virtio-scsi-pci")
             # virtqueue_size from device ("driver": "virtio-scsi-pci")
+            # period, max-bytes from device ("driver": "virtio-rng-pci")
+            # max-write-zeroes-sectors, queue-size, max-discard-sectors,
+            # num-queues from device ("driver": "virtio-blk-pci")
+            # host_mtu, speed, vectors from
+            # device ( "driver": "virtio-net-pci" )
+            # node from device ("driver": "pc-dimm")
+            # events from device("driver": "pvpanic")
+            # min_io_size, opt_io_size from device ( "driver": "usb-storage" )
             # discard_granularity from device ("driver": "scsi-hd") and
             # ("driver": "virtio-blk-pci")
-            elif key in ["physical_block_size", "logical_block_size",
+            elif key in ("physical_block_size", "logical_block_size",
                          "bootindex", "max_sectors", "num_queues",
-                         "virtqueue_size", "discard_granularity"]:
+                         "virtqueue_size", "discard_granularity", "period",
+                         "max-bytes", "max-write-zeroes-sectors", "queue-size",
+                         "max-discard-sectors", "num-queues", "host_mtu",
+                         "speed", "vectors", "node", "events", "min_io_size",
+                         "opt_io_size"):
                 command_dict[key] = int(val)
-            # port from device ("driver": "usb-storage")
-            elif key == "port" and usb_storage_driver:
+            # port from usb related driver
+            elif key == "port" and usb_driver:
                 command_dict[key] = str(val)
+            elif val == "NO_EQUAL_STRING":
+                if usb_driver and key == "serial":
+                    command_dict[key] = "on"
             # disable-legacy from device ("driver": "virtio-scsi-pci")
             # write-cache from device ("driver": "scsi-hd")
             elif val in ('on', 'yes', "true") and key not in expect_string_val:
                 command_dict[key] = True
-            elif val in ('off', 'no', "false") and \
-                    key not in expect_string_val:
+            elif val in ('off', 'no', "false") \
+                    and key not in expect_string_val:
                 command_dict[key] = False
             else:
                 command_dict[key] = val
@@ -1613,7 +1635,9 @@ class Memory(QObject):
             if "size" == key:
                 args[key] = int(utils_numeric.normalize_data_size(val, "B"))
             # "share" from object( "qom-type": "memory-backend-memfd" )
-            elif "share" == key:
+            # "reserve" from object( "qom-type": "memory-backend-memfd" )
+            # "hugetlb" from object( "qom-type": "memory-backend-memfd" )
+            elif key in ("share", "reserve", "hugetlb"):
                 args[key] = val == "yes"
 
 

@@ -551,6 +551,9 @@ class VM(virt_vm.BaseVM):
             params["monitor_filename_%s" % monitor_name] = filename
             char_device = devices.chardev_define_by_params(
                 monitor_id, chardev_params, filename)
+            set_cmdline_format_by_cfg(char_device,
+                                      self._get_cmdline_format_cfg(),
+                                      "monitors")
             devices.insert(char_device)
             cmd = " -mon chardev=%s" % monitor_id
             cmd += _add_option("mode", "readline")
@@ -579,6 +582,9 @@ class VM(virt_vm.BaseVM):
                 params["monitor_filename_%s" % monitor_name] = filename
             char_device = devices.chardev_define_by_params(
                 monitor_id, chardev_params, filename)
+            set_cmdline_format_by_cfg(char_device,
+                                      self._get_cmdline_format_cfg(),
+                                      "monitors")
             devices.insert(char_device)
 
             cmd = " -mon chardev=%s" % monitor_id
@@ -711,6 +717,8 @@ class VM(virt_vm.BaseVM):
                 dev.set_param('netdev', netdev_id)
             else:
                 dev.set_param('vlan', vlan)
+            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                      "nics")
             devices.insert(dev)
 
         def add_net(devices, vlan, nettype, ifname=None, tftp=None,
@@ -977,8 +985,7 @@ class VM(virt_vm.BaseVM):
                 rng_pci = QDevice(dev_type, parent_bus=parent_bus)
                 set_dev_params(rng_pci, rng_params, None, 'virtio-rng')
 
-                rng_dev = qdevices.QCustomDevice(dev_type="object",
-                                                 backend="backend")
+                rng_dev = qdevices.QObject(backend="backend")
                 backend = rng_params["backend"]
                 backend_type = rng_params["backend_type"]
                 set_dev_params(rng_dev, rng_params, backend, backend_type)
@@ -992,8 +999,14 @@ class VM(virt_vm.BaseVM):
                                    backend, backend_type)
                     rng_dev.set_param("chardev", char_dev.get_qid())
                     devices.insert(char_dev)
+                set_cmdline_format_by_cfg(rng_dev,
+                                          self._get_cmdline_format_cfg(),
+                                          "rng")
                 devices.insert(rng_dev)
                 rng_pci.set_param("rng", rng_dev.get_qid())
+                set_cmdline_format_by_cfg(rng_pci,
+                                          self._get_cmdline_format_cfg(),
+                                          "rng")
                 devices.insert(rng_pci)
 
         def add_memorys(devices, params):
@@ -1050,6 +1063,10 @@ class VM(virt_vm.BaseVM):
                     if isinstance(ele, qdevices.Memory) and \
                             ele.params["backend"] == "memory-backend-epc":
                         sgx_epc_memdev_id[name] = ele.get_qid()
+
+                    set_cmdline_format_by_cfg(ele,
+                                              self._get_cmdline_format_cfg(),
+                                              "mem_devs")
                 devs.extend(dev)
             sgx_epc_cmd = ""
             cap_type = "sgx-epc"
@@ -1403,7 +1420,10 @@ class VM(virt_vm.BaseVM):
             if device_type and devices.has_device(device_type):
                 if devices.is_pci_device(device_type):
                     parent_bus = self._get_pci_bus(self.params, None, False)
-                watchdog_devs.append(QDevice(device_type, parent_bus=parent_bus))
+                dev = QDevice(device_type, parent_bus=parent_bus)
+                set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                          "watchdog")
+                watchdog_devs.append(dev)
             cmd = "-watchdog-action %s" % action
             watchdog_devs.append(StrDev('watchdog_action', cmdline=cmd))
             return watchdog_devs
@@ -1415,12 +1435,15 @@ class VM(virt_vm.BaseVM):
             return " -option-rom %s" % opt_rom
 
         def add_smartcard(sc_chardev, sc_id):
-            sc_cmd = " -device usb-ccid,id=ccid0"
-            sc_cmd += " -chardev " + sc_chardev
-            sc_cmd += ",id=" + sc_id + ",name=smartcard"
-            sc_cmd += " -device ccid-card-passthru,chardev=" + sc_id
+            devs = []
+            devs.append(qdevices.QDevice("usb-ccid", params={"id": "ccid0"}))
+            devs.append(qdevices.CharDevice(params={"id": sc_id,
+                                                    "name": "smartcard",
+                                                    "backend": sc_chardev}))
+            devs.append(qdevices.QDevice("ccid-card-passthru",
+                                         params={"chardev": sc_id}))
 
-            return sc_cmd
+            return devs
 
         def add_numa_node(devices, memdev=None, mem=None,
                           cpus=None, nodeid=None, initiator=None):
@@ -1488,6 +1511,8 @@ class VM(virt_vm.BaseVM):
                 dev.set_param("id", devid)
             for key, value in options.items():
                 dev.set_param(key, value)
+            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                      "balloon")
             devices.insert(dev)
 
         def add_pci_controllers(devices, params):
@@ -1512,6 +1537,8 @@ class VM(virt_vm.BaseVM):
             pcics = []
             for pcic in params.objects("pci_controllers"):
                 dev = devices.pcic_by_params(pcic, params.object_params(pcic))
+                set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                          "pcic")
                 pcics.append(dev)
             if params.get("pci_controllers_autosort", "yes") == "yes":
                 pcics.sort(key=sort_key, reverse=False)
@@ -1654,6 +1681,9 @@ class VM(virt_vm.BaseVM):
             add_secure_guest_object(params)
 
         devs = devices.machine_by_params(params)
+        for dev in devs:
+            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                      "firmware")
         devices.insert(devs)
 
         # no automagic devices please
@@ -1679,7 +1709,10 @@ class VM(virt_vm.BaseVM):
                 'dma-drain': params.get('iommu_dma_drain'),
                 'pt': params.get('iommu_pt'),
                 'aw-bits': params.get('iommu_aw_bits')}
-            devices.insert(QDevice('intel-iommu', iommu_params))
+            dev = QDevice('intel-iommu', iommu_params)
+            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                      "intel_iommu")
+            devices.insert(dev)
 
         # Add device virtio-iommu, it must be added before any virtio devices
         if (params.get_boolean('virtio_iommu') and
@@ -1691,12 +1724,17 @@ class VM(virt_vm.BaseVM):
                 for extra_param in virtio_iommu_extra_params.strip(",").split(","):
                     key, value = extra_param.split('=')
                     iommu_params[key] = value
-            devices.insert(
-                QDevice('virtio-iommu-pci', iommu_params, parent_bus=pci_bus))
+            dev = QDevice('virtio-iommu-pci', iommu_params, parent_bus=pci_bus)
+            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                      "virtio_iommu")
+            devices.insert(dev)
 
         vga = params.get("vga")
         if vga:
-            devices.insert(add_vga(devices, vga))
+            dev = add_vga(devices, vga)
+            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                      "vga")
+            devices.insert(dev)
             if vga == 'qxl':
                 qxl_dev_nr = int(params.get("qxl_dev_nr", 1))
                 if qxl_dev_nr > 1:
@@ -1997,15 +2035,22 @@ class VM(virt_vm.BaseVM):
                 # TODO: Use QDevices for this and set the addresses properly
                 for sound_device in soundhw.split(","):
                     if "hda" in sound_device:
-                        devices.insert(QDevice('intel-hda',
-                                               parent_bus=parent_bus))
-                        devices.insert(QDevice('hda-duplex'))
+                        intel_hda = QDevice('intel-hda', parent_bus=parent_bus)
+                        set_cmdline_format_by_cfg(intel_hda, self.
+                                                  _get_cmdline_format_cfg(),
+                                                  "soundcards")
+                        devices.insert(intel_hda)
+                        dev = QDevice('hda-duplex')
                     elif sound_device in ["es1370", "ac97"]:
-                        devices.insert(QDevice(sound_device.upper(),
-                                               parent_bus=parent_bus))
+                        dev = QDevice(sound_device.upper(),
+                                      parent_bus=parent_bus)
                     else:
-                        devices.insert(QDevice(sound_device,
-                                               parent_bus=parent_bus))
+                        dev = QDevice(sound_device, parent_bus=parent_bus)
+
+                    set_cmdline_format_by_cfg(dev, self.
+                                              _get_cmdline_format_cfg(),
+                                              "soundcards")
+                    devices.insert(dev)
 
         # Add monitors
         catch_monitor = params.get("catch_monitor")
@@ -2019,11 +2064,17 @@ class VM(virt_vm.BaseVM):
             if monitor_params.get("monitor_type") == "qmp":
                 cmd = add_qmp_monitor(devices, monitor_name,
                                       monitor_filename)
-                devices.insert(StrDev('QMP-%s' % monitor_name, cmdline=cmd))
+                dev = StrDev('QMP-%s' % monitor_name, cmdline=cmd)
+                set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                          "monitors")
+                devices.insert(dev)
             else:
                 cmd = add_human_monitor(devices, monitor_name,
                                         monitor_filename)
-                devices.insert(StrDev('HMP-%s' % monitor_name, cmdline=cmd))
+                dev = StrDev('HMP-%s' % monitor_name, cmdline=cmd)
+                set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                          "monitors")
+                devices.insert(dev)
 
         # Add pvpanic device
         if params.get("enable_pvpanic") == "yes":
@@ -2039,18 +2090,20 @@ class VM(virt_vm.BaseVM):
                                                    parent_bus=self._get_pci_bus(
                                                        params, None, True))
                 else:
-                    pvpanic_params = {"backend": pvpanic}
+                    pvpanic_params = {}
                     ioport = params.get("ioport_pvpanic")
                     events = params.get("events_pvpanic")
                     if ioport:
                         pvpanic_params["ioport"] = ioport
                     if events:
                         pvpanic_params["events"] = events
-                    pvpanic_dev = qdevices.QCustomDevice("device",
-                                                         params=pvpanic_params,
-                                                         backend="backend")
+                    pvpanic_dev = qdevices.QDevice(pvpanic,
+                                                   params=pvpanic_params)
                 pvpanic_dev.set_param("id", utils_misc.generate_random_id(),
                                       dynamic=True)
+                set_cmdline_format_by_cfg(pvpanic_dev,
+                                          self._get_cmdline_format_cfg(),
+                                          "pvpanic")
                 devices.insert(pvpanic_dev)
 
         # Add vmcoreinfo device
@@ -2059,6 +2112,9 @@ class VM(virt_vm.BaseVM):
                 LOG.warn("vmcoreinfo device is not supported")
             else:
                 vmcoreinfo_dev = qdevices.QDevice("vmcoreinfo")
+                set_cmdline_format_by_cfg(vmcoreinfo_dev,
+                                          self._get_cmdline_format_cfg(),
+                                          "vmcoreinfo")
                 devices.insert(vmcoreinfo_dev)
 
         # Add serial console redirection
@@ -2103,6 +2159,10 @@ class VM(virt_vm.BaseVM):
             serial_devices = devices.serials_define_by_params(
                 serial, serial_params, serial_filename)
 
+            for dev in serial_devices:
+                set_cmdline_format_by_cfg(dev,
+                                          self._get_cmdline_format_cfg(),
+                                          "serials")
             devices.insert(serial_devices)
 
             # Create virtio_ports (virtserialport and virtconsole)
@@ -2142,12 +2202,19 @@ class VM(virt_vm.BaseVM):
             usb_params = params.object_params(usb_name)
             parent_bus = self._get_pci_bus(usb_params, "usbc", True)
             for dev in devices.usbc_by_params(usb_name, usb_params, parent_bus):
+                set_cmdline_format_by_cfg(dev,
+                                          self._get_cmdline_format_cfg(),
+                                          "usbs")
                 devices.insert(dev)
 
         # Add usb devices
         for usb_dev in params.objects("usb_devices"):
             usb_dev_params = params.object_params(usb_dev)
-            devices.insert(devices.usb_by_params(usb_dev, usb_dev_params))
+            dev_usb = devices.usb_by_params(usb_dev, usb_dev_params)
+            set_cmdline_format_by_cfg(dev_usb,
+                                      self._get_cmdline_format_cfg(),
+                                      "usbs")
+            devices.insert(dev_usb)
 
         # initialize iothread manager
         devices.initialize_iothread_manager(params,
@@ -2210,7 +2277,12 @@ class VM(virt_vm.BaseVM):
         # Add filesystems
         for fs_name in params.objects("filesystems"):
             fs_params = params.object_params(fs_name)
-            devices.insert(devices.fs_define_by_params(fs_name, fs_params))
+            fs_dev = devices.fs_define_by_params(fs_name, fs_params)
+            for dev in fs_dev:
+                set_cmdline_format_by_cfg(dev,
+                                          self._get_cmdline_format_cfg(),
+                                          "filesystems")
+                devices.insert(dev)
 
         # Networking
         redirs = []
@@ -2377,6 +2449,9 @@ class VM(virt_vm.BaseVM):
                 else:
                     dev_vsock = QDevice('vhost-vsock-pci', vsock_params,
                                         parent_bus=pci_bus)
+                set_cmdline_format_by_cfg(dev_vsock,
+                                          self._get_cmdline_format_cfg(),
+                                          "vsocks")
                 devices.insert(dev_vsock)
                 min_cid = guest_cid + 1
 
@@ -2582,8 +2657,12 @@ class VM(virt_vm.BaseVM):
         # Add TPM devices
         for tpm in params.objects("tpms"):
             tpm_params = params.object_params(tpm)
-            devices.insert(devices.tpm_define_by_params("%s_%s" % (self.name, tpm),
-                                                        tpm_params))
+            devs = devices.tpm_define_by_params("%s_%s" % (self.name, tpm),
+                                                tpm_params)
+            for dev in devs:
+                set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                          "tpm")
+            devices.insert(devs)
 
         disable_kvm_option = ""
         if (devices.has_option("no-kvm")):
@@ -2623,8 +2702,11 @@ class VM(virt_vm.BaseVM):
         if params.get("smartcard", "no") == "yes":
             sc_chardev = params.get("smartcard_chardev")
             sc_id = params.get("smartcard_id")
-            devices.insert(StrDev('smartcard',
-                                  cmdline=add_smartcard(sc_chardev, sc_id)))
+            devs = add_smartcard(sc_chardev, sc_id)
+            for dev in devs:
+                set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                          "usbs")
+            devices.insert(devs)
 
         option_roms = params.get("option_roms")
         if option_roms:
@@ -2636,6 +2718,9 @@ class VM(virt_vm.BaseVM):
 
         for input_device in params.objects("inputs"):
             devs = devices.input_define_by_params(params, input_device)
+            for dev in devs:
+                set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                          "inputs")
             devices.insert(devs)
 
         for balloon_device in params.objects("balloon"):
@@ -2696,6 +2781,14 @@ class VM(virt_vm.BaseVM):
                 if value and key in dev_properties:
                     device.set_param(key, value)
 
+        # set tag for pcic
+        for dev in devices:
+            if dev.get_param("driver", "") in ("pcie-root-port",
+                                               "pcie-pci-bridge",
+                                               "pci-bridge"):
+                set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                          "pcic")
+
         # Add extra root_port at the end of the command line only if there is
         # free slot on pci.0, discarding them otherwise
         func_0_addr = None
@@ -2714,11 +2807,17 @@ class VM(virt_vm.BaseVM):
                 func_num = num % 8
                 if func_num == 0:
                     root_port.set_param('multifunction', 'on')
+                    set_cmdline_format_by_cfg(root_port,
+                                              self._get_cmdline_format_cfg(),
+                                              "pcic")
                     devices.insert(root_port)
                     func_0_addr = root_port.get_param('addr')
                 else:
                     port_addr = '%s.%s' % (func_0_addr, hex(func_num))
                     root_port.set_param('addr', port_addr)
+                    set_cmdline_format_by_cfg(root_port,
+                                              self._get_cmdline_format_cfg(),
+                                              "pcic")
                     devices.insert(root_port)
             except DeviceError:
                 LOG.warning("No sufficient free slot for extra"
