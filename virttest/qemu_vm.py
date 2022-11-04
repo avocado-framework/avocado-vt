@@ -3194,7 +3194,7 @@ class VM(virt_vm.BaseVM):
                          qemu_command.replace(" -", " \\\n    -"))
                 self.qemu_command = qemu_command
                 monitor_exit_status = \
-                    params.get("vm_monitor_exit_status", "yes") == "yes"
+                    params.get_boolean("vm_monitor_exit_status", False)
                 self.process = aexpect.run_tail(
                     qemu_command,
                     partial(qemu_proc_term_handler, self,
