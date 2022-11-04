@@ -6,6 +6,7 @@ interact with qemu qdev structure.
 
 :copyright: 2012-2013 Red Hat Inc.
 """
+import json
 import logging
 import os
 import time
@@ -16,7 +17,7 @@ from pathlib import Path
 
 import aexpect
 
-from virttest import qemu_monitor
+from virttest import qemu_monitor, utils_numeric
 from virttest import utils_misc
 from virttest.qemu_devices.utils import DeviceError
 from virttest.qemu_devices.utils import none_or_int
@@ -88,6 +89,7 @@ class QBaseDevice(object):
                 self.add_child_bus(bus)
         self.dynamic_params = []
         self.params = OrderedDict()    # various device params (id, name, ...)
+        self.cmdline_format = "raw"
         if params:
             for key, value in six.iteritems(params):
                 if key == "pcie_direct_plug":
@@ -247,7 +249,20 @@ class QBaseDevice(object):
 
     def cmdline(self):
         """ :return: cmdline command to define this device """
-        raise NotImplementedError
+        _cmdline = {"json": self._cmdline_json,
+                    "raw": self._cmdline_raw}
+        if self.cmdline_format not in _cmdline:
+            raise ValueError("The input of qemu-kvm command format is NOT "
+                             "supported!")
+        return _cmdline.get(self.cmdline_format)()
+
+    def _cmdline_raw(self):
+        """ :return: cmdline command to define this device in raw format"""
+        return NotImplementedError
+
+    def _cmdline_json(self):
+        """ :return: cmdline command to define this device in json format"""
+        return NotImplementedError
 
     def cmdline_nd(self):
         """
@@ -417,8 +432,8 @@ class QCustomDevice(QBaseDevice):
         else:
             self.__backend = None
 
-    def cmdline(self):
-        """ :return: cmdline command to define this device """
+    def _cmdline_raw(self):
+        """ :return: cmdline command to define this device in raw format"""
         if self.__backend and self.params.get(self.__backend):
             out = "-%s %s," % (self.type, self.params.get(self.__backend))
             params = self.params.copy()
@@ -824,6 +839,12 @@ class QBlockdevNode(QCustomDevice):
         """ Get the node name instead of qemu id. """
         return self.params.get('node-name')
 
+    def _cmdline_json(self):
+        params = self.params.copy()
+        out = "-%s " % self.type
+        new_args = self._convert_blkdev_args(params)
+        return out + '\'' + json.dumps(new_args) + '\''
+
 
 class QBlockdevFormatNode(QBlockdevNode):
     """ New a format type blockdev node. """
@@ -1105,6 +1126,42 @@ class QDevice(QCustomDevice):
         else:
             return False
 
+    def _cmdline_json(self):
+        command_dict = {}
+        out = "-%s " % self.type
+
+        usb_storage_driver = self.params.get("driver") == "usb-storage"
+
+        expect_string_val = ["write-cache", "disable-legacy"]
+
+        for key, val in self.params.items():
+            # wwn needs to be presented as hexadecimal
+            if key in ["wwn"]:
+                command_dict[key] = int(val, 16)
+            # physical_block_size from device ("driver": "scsi-hd")
+            # logical_block_size from device ("driver": "scsi-hd")
+            # bootindex from device ("driver": "scsi-hd")
+            # max_sectors from device ("driver": "virtio-scsi-pci")
+            # num_queues from device ("driver": "virtio-scsi-pci")
+            # virtqueue_size from device ("driver": "virtio-scsi-pci")
+            elif key in ["physical_block_size", "logical_block_size",
+                         "bootindex", "max_sectors", "num_queues",
+                         "virtqueue_size"]:
+                command_dict[key] = int(val)
+            # port from device ("driver": "usb-storage")
+            elif key == "port" and usb_storage_driver:
+                command_dict[key] = str(val)
+            # disable-legacy from device ("driver": "virtio-scsi-pci")
+            # write-cache from device ("driver": "scsi-hd")
+            elif val in ('on', 'yes') and key not in expect_string_val:
+                command_dict[key] = True
+            elif val in ('off', 'no') and key not in expect_string_val:
+                command_dict[key] = False
+            else:
+                command_dict[key] = val
+
+        return out + '\'' + json.dumps(command_dict) + '\''
+
 
 class QGlobal(QBaseDevice):
 
@@ -1293,6 +1350,13 @@ class QObject(QCustomDevice):
     # pylint: disable=E0202
     def verify_hotplug(self, out, monitor):
         return len(out) == 0
+
+    def _cmdline_json(self):
+        command_dict = {}
+        out = "-%s " % self.type
+        params = self.params.copy()
+        command_dict["qom-type"] = params.pop("backend")
+        return out + '\'' + json.dumps(dict(command_dict, **params)) + '\''
 
 
 class QIOThread(QObject):
@@ -1503,6 +1567,29 @@ class Memory(QObject):
                             return False
                 return True
         return False
+
+    def _cmdline_json(self):
+        command_dict = {}
+        out = "-%s " % self.type
+        params = self.params.copy()
+        self._convert_memobj_args(params)
+        command_dict["qom-type"] = params.pop("backend")
+        return out + '\'' + json.dumps(dict(command_dict, **params)) + '\''
+
+    @staticmethod
+    def _convert_memobj_args(args):
+        """
+        Convert string to uint64,
+        and convert "size": "14336M"  to "size": 15032385536 (bytes)
+
+        :param args: Dictionary with the qmp parameters.
+        :type args: dict
+        :return: Converted args.
+        :rtype: dict
+        """
+        if "size" in args:
+            args["size"] = int(utils_numeric.normalize_data_size(args["size"],
+                                                                 "B"))
 
 
 class Dimm(QDevice):

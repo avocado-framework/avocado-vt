@@ -73,3 +73,17 @@ def none_or_int(value):
         return int(value)
     else:
         raise TypeError("This parameter has to be int or none")
+
+
+def set_cmdline_format_by_cfg(dev, config, key):
+    """
+    Mark the cmdline format based on the settings.
+
+    :param dev: The device needed to be marked
+    :param config: Dict with setting
+    :param key: The field of device
+    """
+    if key in config:
+        name = dev.type
+        if name in config[key]:
+            dev.cmdline_format = config[key][name]

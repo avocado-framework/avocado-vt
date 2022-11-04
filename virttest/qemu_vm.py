@@ -49,7 +49,7 @@ from virttest import error_context
 from virttest import utils_vsock
 from virttest import error_event
 from virttest.qemu_devices import qdevices, qcontainer
-from virttest.qemu_devices.utils import DeviceError
+from virttest.qemu_devices.utils import DeviceError, set_cmdline_format_by_cfg
 from virttest.qemu_capabilities import Flags
 from virttest.utils_params import Params
 from virttest.utils_version import VersionInterval
@@ -224,6 +224,37 @@ class VM(virt_vm.BaseVM):
         self.start_monotonic_time = 0.0
         self.last_boot_index = 0
         self.last_driver_index = 0
+
+    def _get_cmdline_format_cfg(self):
+        """
+        get data from file or input from parameter and then convert data to dict
+        :return: style data in dict
+        """
+        def _file(filepath):
+            if not filepath:
+                raise ValueError("The filepath is empty!")
+            if not os.path.isabs(filepath):
+                vt_type = self.params.get("vt_type", "qemu")
+                filepath = data_dir.get_backend_cfg_path(vt_type, filepath)
+            with open(filepath, "r") as f:
+                content = f.read()
+            return content
+
+        def _string(content):
+            return content
+
+        def _default(dummy):
+            return "{}"
+
+        handler, value = self.params.get("qemu_cmdline_format_cfg", ":").split(
+            ":", 1)
+        get_func = {"file": _file,
+                    "string": _string,
+                    "": _default}
+        if handler not in get_func:
+            LOG.warning("Unknown qemu cmdline format config...ignoring!")
+            handler, value = "", ""
+        return json.loads(get_func.get(handler)(value))
 
     @property
     def vcpu_threads(self):
@@ -1027,6 +1058,8 @@ class VM(virt_vm.BaseVM):
                 backend_param = Params(backend_options)
                 dev = devices.memory_object_define_by_params(backend_param,
                                                              name)
+                set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                          "mem_devs")
                 devs.append(dev)
             else:
                 if params.get("hugepage_path") \
@@ -2072,12 +2105,16 @@ class VM(virt_vm.BaseVM):
             devices.insert(devices.usb_by_params(usb_dev, usb_dev_params))
 
         # initialize iothread manager
-        devices.initialize_iothread_manager(params, self.cpuinfo)
+        devices.initialize_iothread_manager(params,
+                                            self.cpuinfo,
+                                            self._get_cmdline_format_cfg())
 
         # Add object throttle group
         for group in params.objects("throttle_groups"):
             group_params = params.object_params(group)
             dev = devices.throttle_group_define_by_params(group_params, group)
+            set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
+                                      "images")
             devices.insert(dev)
 
         # Add images (harddrives)
@@ -2121,6 +2158,8 @@ class VM(virt_vm.BaseVM):
                                                    image_bootindex,
                                                    pci_bus=parent_bus)
             for _ in devs:
+                set_cmdline_format_by_cfg(_, self._get_cmdline_format_cfg(),
+                                          "images")
                 devices.insert(_)
 
         # Add filesystems
@@ -2336,6 +2375,9 @@ class VM(virt_vm.BaseVM):
                                                        image_bootindex,
                                                        pci_bus=parent_bus)
                 for _ in devs:
+                    set_cmdline_format_by_cfg(_,
+                                              self._get_cmdline_format_cfg(),
+                                              "images")
                     devices.insert(_)
 
         add_floppy(devices, params)
