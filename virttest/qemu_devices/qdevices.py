@@ -892,6 +892,13 @@ class QBlockdevFormatQcow2(QBlockdevFormatNode):
     """ New a format qcow2 blockdev node. """
     TYPE = 'qcow2'
 
+    def _convert_blkdev_args(self, args):
+        for key, val in args.items():
+            # "cache-size" is from device( "driver": "qcow2" )
+            if key == "cache-size":
+                args[key] = int(val)
+        return super(QBlockdevFormatQcow2, self)._convert_blkdev_args(args)
+
 
 class QBlockdevFormatRaw(QBlockdevFormatNode):
     """ New a format raw blockdev node. """
