@@ -3333,6 +3333,19 @@ def domiflist(name, options='', extra='', **dargs):
     return command('domiflist %s %s %s' % (name, options, extra), **dargs)
 
 
+def domifaddr(name, options='', **dargs):
+    """
+    Get the domain iface addresses
+
+    :param name: name of domain
+    :param options: options of domifaddr
+    :param dargs: standardized virsh function API keywords
+    :return: CmdResult instance
+    """
+
+    return command('domifaddr %s %s' % (name, options), **dargs)
+
+
 def cpu_stats(name, options, **dargs):
     """
     Display per-CPU and total statistics about domain's CPUs
