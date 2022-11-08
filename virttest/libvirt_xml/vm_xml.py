@@ -3102,8 +3102,8 @@ class VMOSXML(base.LibvirtXMLBase):
                  'smbios_mode', 'bios_useserial', 'bios_reboot_timeout', 'init',
                  'bootloader', 'bootloader_args', 'kernel', 'initrd', 'cmdline',
                  'dtb', 'initargs', 'loader_readonly', 'loader_type', 'nvram',
-                 'nvram_template', 'secure', 'bootmenu_timeout', 'os_firmware',
-                 'firmware')
+                 'nvram_attrs', 'nvram_source', 'secure', 'bootmenu_timeout',
+                 'os_firmware', 'firmware')
 
     def __init__(self, virsh_instance=base.virsh):
         accessors.XMLElementText('type', self, parent_xpath='/',
@@ -3145,10 +3145,14 @@ class VMOSXML(base.LibvirtXMLBase):
                                tag_name='loader', attribute='readonly')
         accessors.XMLAttribute('loader_type', self, parent_xpath='/',
                                tag_name='loader', attribute='type')
-        accessors.XMLAttribute('nvram_template', self, parent_xpath='/',
-                               tag_name='nvram', attribute='template')
         accessors.XMLElementText('nvram', self, parent_xpath='/',
                                  tag_name='nvram')
+        accessors.XMLElementDict('nvram_attrs', self, parent_xpath='/',
+                                 tag_name='nvram')
+        accessors.XMLElementNest('nvram_source', self, parent_xpath='/nvram',
+                                 tag_name='source',
+                                 subclass=self.NvramSourceXML,
+                                 subclass_dargs={'virsh_instance': virsh_instance})
         accessors.XMLAttribute('secure', self, parent_xpath='/',
                                tag_name='loader', attribute='secure')
         accessors.XMLAttribute('os_firmware', self, parent_xpath='/',
@@ -3179,6 +3183,43 @@ class VMOSXML(base.LibvirtXMLBase):
         if tag != 'boot':
             return None
         return attr_dict['dev']
+
+    class NvramSourceXML(base.LibvirtXMLBase):
+        """
+        Class of nvram/source xml tag
+        """
+
+        __slots__ = ('attrs', 'host', 'auth')
+
+        def __init__(self, virsh_instance=base.virsh):
+            accessors.XMLElementDict('attrs', self, parent_xpath='/',
+                                     tag_name='source')
+            accessors.XMLElementDict('host', self, parent_xpath='/',
+                                     tag_name='host')
+            accessors.XMLElementNest('auth', self, parent_xpath='/',
+                                     tag_name='auth',
+                                     subclass=self.NvramSourceAuthXML,
+                                     subclass_dargs={
+                                         'virsh_instance': virsh_instance})
+            super(VMOSXML.NvramSourceXML, self).__init__(
+                virsh_instance=virsh_instance)
+            self.xml = '<source/>'
+
+        class NvramSourceAuthXML(base.LibvirtXMLBase):
+            """
+            Class of nvram/source/auth tag
+            """
+
+            __slots__ = ('attrs', 'secret',)
+
+            def __init__(self, virsh_instance=base.virsh):
+                accessors.XMLElementDict('attrs', self, parent_xpath='/',
+                                         tag_name='auth')
+                accessors.XMLElementDict('secret', self, parent_xpath='/',
+                                         tag_name='secret')
+                super(VMOSXML.NvramSourceXML.NvramSourceAuthXML, self
+                      ).__init__(virsh_instance=virsh_instance)
+                self.xml = '<auth/>'
 
 
 class VMPMXML(base.LibvirtXMLBase):
