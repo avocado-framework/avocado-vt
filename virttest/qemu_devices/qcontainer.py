@@ -162,6 +162,7 @@ class DevContainer(object):
         # escape the '?' otherwise it will fail if we have a single-char
         # filename in cwd
         self.__device_help = self.execute_qemu("-device \? 2>&1", 10)
+        self.__object_help = self.execute_qemu("-object \? 2>&1", 10)
         self.__machine_types = process.run("%s -M \?" % qemu_binary,
                                            timeout=10,
                                            ignore_status=True,
@@ -295,6 +296,12 @@ class DevContainer(object):
         # -incoming defer
         if self.has_option('incoming defer'):
             self.caps.set_flag(Flags.INCOMING_DEFER)
+        # -object sev-guest
+        if self.has_object('sev-guest'):
+            self.caps.set_flag(Flags.SEV_GUEST)
+        # -object tdx-guest
+        if self.has_object('tdx-guest'):
+            self.caps.set_flag(Flags.TDX_GUEST)
 
         if (self.has_qmp_cmd('migrate-set-parameters') and
                 self.has_hmp_cmd('migrate_set_parameter')):
@@ -612,6 +619,13 @@ class DevContainer(object):
         """
         return bool(re.search(r'name "%s"|alias "%s"' % (device, device),
                               self.__device_help))
+
+    def has_object(self, obj):
+        """
+        :param obj: Desired object string, e.g. 'sev-guest'
+        :return: True if the object is supported by qemu, or False
+        """
+        return bool(re.search(r'^\s*%s\n' % obj, self.__object_help, re.M))
 
     def get_help_text(self):
         """
@@ -1437,6 +1451,28 @@ class DevContainer(object):
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd))
             return devices
 
+        def secure_guest_handler(sectype, cmd):
+            """
+            Update machine option with secure guest information, e.g.
+              -machine q35,confidential-guest-support=lsec0
+            Note the secure guest object should have been created.
+            """
+            sev_mach_props = {'confidential-guest-support': '{obj_id}'}
+            tdx_mach_props = {'confidential-guest-support': '{obj_id}',
+                              'kvm-type': 'tdx'}
+            backend_props = {
+                'sev': ('sev-guest', sev_mach_props),
+                'tdx': ('tdx-guest', tdx_mach_props)
+            }
+
+            b, p = backend_props[sectype]
+            obj_id = self.get_by_params({"backend": b})[0].get_param('id')
+            sec_cmd = ','.join(
+                ['%s=%s' % (k, v) for k, v in p.items()]
+            ).format(obj_id=obj_id)
+
+            return '%s,%s' % (cmd, sec_cmd)
+
         machine_type = params.get('machine_type')
         machine_accel = params.get('vm_accelerator')
         machine_type_extra_params = params.get('machine_type_extra_params')
@@ -1463,6 +1499,12 @@ class DevContainer(object):
                     if re.search(r"%s=" % opt, machine_help, re.MULTILINE) \
                             and not params.get("guest_numa_nodes"):
                         cmd += ",memory-backend=mem-%s" % backend_id
+
+                    # Add secure guest properties for machine option
+                    if params.get('vm_secure_guest_type'):
+                        cmd = secure_guest_handler(
+                            params['vm_secure_guest_type'], cmd
+                        )
                 else:
                     cmd = ""
                 if 'q35' in machine_type:   # Q35 + ICH9
@@ -3291,3 +3333,88 @@ class DevContainer(object):
         else:
             params.update({'data': data})
         return qdevices.QObject('secret', params=params)
+
+    def secure_guest_object_define_by_params(self, obj_id, params):
+        """
+        Create secure guest object device by params
+        Note we need to check if qemu cmdline supports the secure guest object.
+
+        The secure guest objects cmdlines:
+          sev: -object '{"qom-type":"sev-guest","id":"lsec0","cbitpos":51,
+                         "reduced-phys-bits":1,"policy":3,
+                         "dh-cert-file":"/path/to/dh_cert.base64",
+                         "session-file":"/path/to/session.base64",
+                         "kernel-hashes":true}'
+               Note: with raw('key=value') format of qemu cmdline, the value
+                     of kernel-hashes should be 'on' or 'off', i.e.
+                     kernel-hashes=on or kernel-hashes=off
+
+        :param obj_id: The id of the QObject device, e.g. lsec0
+        :param params: The per-vm Params object,
+                       e.g. params.object_params('vm1')
+        :return: the secret QObject device
+        """
+        def _gen_sev_obj_props(obj_id, params):
+            """
+            Generate the properties of the sev-guest object.
+
+            Follow libvirt's way to set the following options:
+            Required:
+              policy, cbitpos and reduced-phys-bits
+            Optional:
+              session-file, dh-cert-file and kernel-hashes(since 6.2)
+
+            :return: a tuple of (backend, sev-guest QObject properties dict)
+            """
+            if Flags.SEV_GUEST not in self.caps:
+                raise ValueError('Unsupported sev-guest object')
+
+            backend, sev_obj_props = 'sev-guest', {'id': obj_id}
+
+            # Set policy=3 if vm_sev_policy is not set
+            sev_obj_props['policy'] = int(params.get('vm_sev_policy', 3))
+
+            # FIXME: Set the following two options from sev capabilities
+            # if they are not set yet
+            sev_obj_props['cbitpos'] = int(params['vm_sev_cbitpos'])
+            sev_obj_props['reduced-phys-bits'] = int(params['vm_sev_reduced_phys_bits'])
+
+            # FIXME: If these files are host dependent, we have to find
+            # another way to set them, because different files are needed
+            # when migrating the vm from one host to another
+            if params.get('vm_sev_session_file'):
+                sev_obj_props['session-file'] = params['vm_sev_session_file']
+            if params.get('vm_sev_dh_cert_file'):
+                sev_obj_props['dh-cert-file'] = params['vm_sev_dh_cert_file']
+
+            if params.get('vm_sev_kernel_hashes'):
+                sev_obj_props['kernel-hashes'] = params.get_boolean(
+                    'vm_sev_kernel_hashes'
+                )
+
+            return backend, sev_obj_props
+
+        def _gen_tdx_obj_props(obj_id, params):
+            """
+            Generate the properties of the tdx-guest object.
+
+            :return: a tuple of (backend, tdx-guest QObject properties dict)
+            """
+            if Flags.TDX_GUEST not in self.caps:
+                raise ValueError('Unsupported tdx-guest object')
+
+            backend, tdx_obj_props = 'tdx-guest', {'id': obj_id}
+            return backend, tdx_obj_props
+
+        obj_props_handlers = {
+            'sev': _gen_sev_obj_props,
+            'tdx': _gen_tdx_obj_props
+        }
+
+        sectype = params['vm_secure_guest_type']
+        if sectype in obj_props_handlers:
+            backend, properties = obj_props_handlers[sectype](obj_id, params)
+        else:
+            raise ValueError('Unsupported secure guest: %s' % sectype)
+
+        return qdevices.QObject(backend, properties)

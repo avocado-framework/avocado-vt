@@ -23,6 +23,8 @@ class Flags(object):
     SMP_CLUSTERS = _auto_value()
     INCOMING_DEFER = _auto_value()
     MIGRATION_PARAMS = _auto_value()
+    SEV_GUEST = _auto_value()
+    TDX_GUEST = _auto_value()
 
 
 class MigrationParams(object):
