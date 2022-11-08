@@ -1587,17 +1587,20 @@ class Memory(QObject):
     @staticmethod
     def _convert_memobj_args(args):
         """
-        Convert string to uint64,
-        and convert "size": "14336M"  to "size": 15032385536 (bytes)
+        Type convert, such as string to uint64( "size": "14336M"  to
+        "size": 15032385536 (bytes) )
 
         :param args: Dictionary with the qmp parameters.
         :type args: dict
         :return: Converted args.
         :rtype: dict
         """
-        if "size" in args:
-            args["size"] = int(utils_numeric.normalize_data_size(args["size"],
-                                                                 "B"))
+        for key, val in args.items():
+            if "size" == key:
+                args[key] = int(utils_numeric.normalize_data_size(val, "B"))
+            # "share" from object( "qom-type": "memory-backend-memfd" )
+            elif "share" == key:
+                args[key] = val == "yes"
 
 
 class Dimm(QDevice):
