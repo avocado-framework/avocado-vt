@@ -1160,9 +1160,10 @@ class QDevice(QCustomDevice):
                 command_dict[key] = str(val)
             # disable-legacy from device ("driver": "virtio-scsi-pci")
             # write-cache from device ("driver": "scsi-hd")
-            elif val in ('on', 'yes') and key not in expect_string_val:
+            elif val in ('on', 'yes', "true") and key not in expect_string_val:
                 command_dict[key] = True
-            elif val in ('off', 'no') and key not in expect_string_val:
+            elif val in ('off', 'no', "false") and \
+                    key not in expect_string_val:
                 command_dict[key] = False
             else:
                 command_dict[key] = val
