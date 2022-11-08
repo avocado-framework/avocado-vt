@@ -191,7 +191,7 @@ class DevContainer(object):
         return self.__qemu_ver
 
     def initialize_iothread_manager(self, params, guestcpuinfo,
-                                    cmdline_format_cfg=None):
+                                    cmdline_format_cfg={}):
         """Initialize iothread manager.
         :param params: vt params
         :param guestcpuinfo: Cpuinfo object that stores guest cpu info
