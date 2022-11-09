@@ -4839,16 +4839,20 @@ class VM(virt_vm.BaseVM):
         LOG.debug("Saving VM %s to %s" % (self.name, path))
         # Can only check status if background migration
         self.monitor.migrate("exec:cat>%s" % path, wait=False)
-        utils_misc.wait_for(
-            # no monitor.migrate-status method
-            lambda:
-            re.search("(status.*completed)",
-                      str(self.monitor.info("migrate")), re.M),
-            self.MIGRATE_TIMEOUT, 2, 2,
-            "Waiting for save to %s to complete" % path)
-        # Restore the speed and downtime to default values
-        qemu_migration.set_speed(self, str(32 << 20))
-        qemu_migration.set_downtime(self, 0.3)
+        try:
+            if not utils_misc.wait_for(
+                    # no monitor.migrate-status method
+                    lambda:
+                    re.search("(status.*completed)",
+                              str(self.monitor.info("migrate")), re.M),
+                    self.MIGRATE_TIMEOUT, 2, 2,
+                    "Waiting for save to %s to complete" % path):
+                raise virt_vm.VMMigrateTimeoutError("Timeout expired while waiting"
+                                                    " for saving to %s to finish" % path)
+        finally:
+            # Restore the speed and downtime to default values
+            qemu_migration.set_speed(self, str(32 << 20))
+            qemu_migration.set_downtime(self, 0.3)
         # Base class defines VM must be off after a save
         self.monitor.cmd("system_reset")
         self.verify_status('paused')  # Throws exception if not
