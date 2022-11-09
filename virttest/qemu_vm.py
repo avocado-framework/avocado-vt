@@ -1034,14 +1034,13 @@ class VM(virt_vm.BaseVM):
 
             params["mem"] = str(int(mem_size_m))
             options.append(params["mem"])
-            if devices.has_device("pc-dimm"):
-                if mem_params.get("maxmem"):
-                    options.append("maxmem=%s" % mem_params["maxmem"])
-                    if mem_params.get("slots"):
-                        options.append("slots=%s" % mem_params["slots"])
-                for name in params.objects("mem_devs"):
-                    dev = devices.memory_define_by_params(params, name)
-                    devs.extend(dev)
+            if mem_params.get("maxmem"):
+                options.append("maxmem=%s" % mem_params["maxmem"])
+                if mem_params.get("slots"):
+                    options.append("slots=%s" % mem_params["slots"])
+            for name in params.objects("mem_devs"):
+                dev = devices.memory_define_by_params(params, name)
+                devs.extend(dev)
             machine_dev = devices.get_by_properties({"type": "machine"})[0]
             machine_cmd = machine_dev.cmdline_nd()
             output = re.findall(r",memory-backend=mem-([\w|-]+)", machine_cmd)

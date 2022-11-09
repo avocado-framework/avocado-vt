@@ -483,6 +483,7 @@ mtab
 nodeset
 nr
 Numa
+nvdimm
 nvram
 passphrase
 pdb
