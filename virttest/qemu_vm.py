@@ -4863,7 +4863,13 @@ class VM(virt_vm.BaseVM):
         self.create(name=self.name, params=self.params, root_dir=self.root_dir,
                     timeout=self.MIGRATE_TIMEOUT, migration_mode="exec",
                     migration_exec_cmd="cat " + path, mac_source=self)
-        self.verify_status('paused')  # Throws exception if not
+
+        if utils_misc.wait_for(lambda: not self.monitor.verify_status('inmigrate'),
+                               timeout=self.MIGRATE_TIMEOUT, step=1):
+            self.verify_status('paused')  # Throws exception if not
+        else:
+            LOG.error(f"Monitor status {self.monitor.get_status()} is still in migration")
+            raise ValueError("Still paused inmigrate monitor status")
 
     def savevm(self, tag_name):
         """
@@ -4895,6 +4901,7 @@ class VM(virt_vm.BaseVM):
         """
         Resume the VM operation in case it's stopped.
         """
+        # NOTE: inmigrate, prelaunch, etc. might not register the "cont" command
         self.monitor.cmd("cont")
         if timeout:
             if not self.wait_for_status('running', timeout, step=0.1):
