@@ -47,6 +47,7 @@ from virttest import arch
 from virttest import storage
 from virttest import error_context
 from virttest import utils_vsock
+from virttest import utils_vdpa
 from virttest import error_event
 from virttest.qemu_devices import qdevices, qcontainer
 from virttest.qemu_devices.utils import DeviceError, set_cmdline_format_by_cfg
@@ -717,12 +718,14 @@ class VM(virt_vm.BaseVM):
                     netdev_extra_params=None, tapfds=None, script=None,
                     downscript=None, vhost=None, queues=None, vhostfds=None,
                     add_queues=None, helper=None, add_tapfd=None,
-                    add_vhostfd=None, vhostforce=None):
+                    add_vhostfd=None, vhostforce=None, vhostdev=None):
             mode = None
             if nettype in ['bridge', 'network', 'macvtap']:
                 mode = 'tap'
             elif nettype == 'user':
                 mode = 'user'
+            elif nettype == 'vdpa':
+                mode = 'vhost-vdpa'
             else:
                 LOG.warning("Unknown/unsupported nettype %s" % nettype)
                 return ''
@@ -798,6 +801,8 @@ class VM(virt_vm.BaseVM):
                         cmd += (",hostfwd=tcp::%%(host_port%d)s"
                                 "-:%%(guest_port%d)s" % (i, i))
                         cmd_nd += ",hostfwd=tcp::DYN-:%%(guest_port)ds"
+            elif mode == "vhost-vdpa":
+                cmd += ",vhostdev=%s" % vhostdev
 
             if add_queues and queues:
                 cmd += ",queues=%s" % queues
@@ -2249,6 +2254,9 @@ class VM(virt_vm.BaseVM):
                         vectors = 2 * int(queues) + 2
                 else:
                     vectors = None
+                vhostdev = None
+                if nettype == "vdpa":
+                    vhostdev = utils_vdpa.get_vdpa_dev_file_by_name(nic.get('netdst'))
 
                 # Setup some exclusive parameters if we are not running a
                 # negative test.
@@ -2289,7 +2297,8 @@ class VM(virt_vm.BaseVM):
                                       bootp, redirs, netdev_id, netdev_extra,
                                       tapfds, script, downscript, vhost,
                                       queues, vhostfds, add_queues, helper,
-                                      add_tapfd, add_vhostfd, vhostforce)
+                                      add_tapfd, add_vhostfd, vhostforce,
+                                      vhostdev)
 
                 if vhostfds is None:
                     vhostfds = ""
@@ -4011,6 +4020,8 @@ class VM(virt_vm.BaseVM):
                 ids.append(utils_misc.generate_random_id())
             nic.set_if_none('tapfd_ids', ids)
 
+        elif nic.nettype == 'vdpa':
+            nic.set_if_none('netdst', params.get('netdst'))
         elif nic.nettype == 'user':
             pass  # nothing to do
         else:  # unsupported nettype
@@ -4139,6 +4150,9 @@ class VM(virt_vm.BaseVM):
                 utils_net.add_to_bridge(nic.ifname, nic.netdst)
         elif nic.nettype == 'user':
             net_backend = "user"
+        elif nic.nettype == 'vdpa':
+            net_backend = 'vhost-vdpa'
+            netdev_args["vhostdev"] = utils_vdpa.get_vdpa_dev_file_by_name(nic.netdst)
         else:  # unsupported nettype
             raise virt_vm.VMUnknownNetTypeError(self.name, nic_index_or_name,
                                                 nic.nettype)

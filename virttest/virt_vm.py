@@ -813,7 +813,7 @@ class BaseVM(object):
         nic = self.virtnet[index]
 
         # TODO: Determine port redirection in use w/o checking nettype
-        if nic.nettype not in ['bridge', 'macvtap']:
+        if nic.nettype not in ['bridge', 'macvtap', 'vdpa']:
             hostname = socket.gethostname()
             if session:
                 hostname = session.cmd_output("hostname -f", timeout=timeout)
@@ -887,7 +887,7 @@ class BaseVM(object):
                 in user mode
         """
         nic_nettype = self.virtnet[nic_index].nettype
-        if nic_nettype in ["bridge", "macvtap"]:
+        if nic_nettype in ["bridge", "macvtap", "vdpa"]:
             return port
         else:
             try:

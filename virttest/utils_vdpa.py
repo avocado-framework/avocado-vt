@@ -3,7 +3,9 @@ Virtualization test - vDPA related utilities
 
 :copyright: Red Hat Inc.
 """
+import glob
 import logging
+import os
 import time
 
 from avocado.core import exceptions
@@ -18,6 +20,9 @@ from virttest.utils_kernel_module import KernelModuleHandler
 from virttest.versionable_class import factory
 
 LOG = logging.getLogger('avocado.' + __name__)
+
+VDPA_SYS_BUS_PATH = "/sys/bus/vdpa"
+VDPA_SYS_BUS_DEVS_PATH = os.path.join(VDPA_SYS_BUS_PATH, "devices")
 
 
 class VDPAOvsTest(object):
@@ -261,3 +266,23 @@ def get_vdpa_pci(driver='mlx5_core'):
     for pci_info in pf_info.values():
         if pci_info.get("driver", "") == driver:
             return pci_info.get('pci_id')
+
+
+def get_vdpa_dev_file_by_name(name):
+    """
+    Get vdpa device file by name.
+
+    :param name: Device name.
+    :type name: str
+    :return: Path to device file.
+    :rtype: str
+    """
+    sys_path = os.path.join(VDPA_SYS_BUS_DEVS_PATH, name)
+    if not os.path.exists(sys_path):
+        return None
+    try:
+        sys_file_path = glob.glob(
+            os.path.join(sys_path, "vhost-vdpa*"))[0]
+    except IndexError:
+        return None
+    return os.path.join("/dev", os.path.split(sys_file_path)[1])
