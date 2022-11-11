@@ -799,6 +799,7 @@ def mk_part(disk, size="100M", fs_type='ext4', session=None):
     pat = r'(?P<num>\d+)\s+(?P<start>\S+)\s+(?P<end>\S+)\s+(?P<size>\S+)\s+'
     current_parts = [m.groupdict() for m in re.finditer(pat, output)]
 
+    time.sleep(1)
     mkpart_cmd = "parted -s -a optimal %s" % disk
     if current_label == 'unknown':
         mkpart_cmd += " mklabel %s" % disk_label
@@ -1005,6 +1006,7 @@ class PoolVolumeTest(object):
             if disk_label == 'dos':
                 disk_label = 'msdos'
             mk_label(device_name, disk_label)
+            time.sleep(1)
             # Disk pool does not allow to create volume by virsh command,
             # so introduce parameter 'pre_disk_vol' to create partition(s)
             # by 'parted' command, the parameter is a list of partition size,
