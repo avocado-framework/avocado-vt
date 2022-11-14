@@ -1020,6 +1020,12 @@ class QBlockdevProtocolHTTPS(QBlockdevProtocol):
     """ New a protocol https blockdev node. """
     TYPE = 'https'
 
+    def _convert_blkdev_args(self, args):
+        for key, val in args.items():
+            if key == "timeout":
+                args[key] = int(val)
+        return super(QBlockdevProtocolHTTPS, self)._convert_blkdev_args(args)
+
 
 class QBlockdevProtocolFTP(QBlockdevProtocol):
     """ New a protocol ftp blockdev node. """
