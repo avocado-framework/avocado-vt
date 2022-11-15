@@ -892,6 +892,13 @@ class QBlockdevFormatQcow2(QBlockdevFormatNode):
     """ New a format qcow2 blockdev node. """
     TYPE = 'qcow2'
 
+    def _convert_blkdev_args(self, args):
+        for key, val in args.items():
+            # "cache-size" is from device( "driver": "qcow2" )
+            if key == "cache-size":
+                args[key] = int(val)
+        return super(QBlockdevFormatQcow2, self)._convert_blkdev_args(args)
+
 
 class QBlockdevFormatRaw(QBlockdevFormatNode):
     """ New a format raw blockdev node. """
@@ -1012,6 +1019,12 @@ class QBlockdevProtocolHTTP(QBlockdevProtocol):
 class QBlockdevProtocolHTTPS(QBlockdevProtocol):
     """ New a protocol https blockdev node. """
     TYPE = 'https'
+
+    def _convert_blkdev_args(self, args):
+        for key, val in args.items():
+            if key == "timeout":
+                args[key] = int(val)
+        return super(QBlockdevProtocolHTTPS, self)._convert_blkdev_args(args)
 
 
 class QBlockdevProtocolFTP(QBlockdevProtocol):
@@ -1153,9 +1166,10 @@ class QDevice(QCustomDevice):
                 command_dict[key] = str(val)
             # disable-legacy from device ("driver": "virtio-scsi-pci")
             # write-cache from device ("driver": "scsi-hd")
-            elif val in ('on', 'yes') and key not in expect_string_val:
+            elif val in ('on', 'yes', "true") and key not in expect_string_val:
                 command_dict[key] = True
-            elif val in ('off', 'no') and key not in expect_string_val:
+            elif val in ('off', 'no', "false") and \
+                    key not in expect_string_val:
                 command_dict[key] = False
             else:
                 command_dict[key] = val
@@ -1579,17 +1593,20 @@ class Memory(QObject):
     @staticmethod
     def _convert_memobj_args(args):
         """
-        Convert string to uint64,
-        and convert "size": "14336M"  to "size": 15032385536 (bytes)
+        Type convert, such as string to uint64( "size": "14336M"  to
+        "size": 15032385536 (bytes) )
 
         :param args: Dictionary with the qmp parameters.
         :type args: dict
         :return: Converted args.
         :rtype: dict
         """
-        if "size" in args:
-            args["size"] = int(utils_numeric.normalize_data_size(args["size"],
-                                                                 "B"))
+        for key, val in args.items():
+            if "size" == key:
+                args[key] = int(utils_numeric.normalize_data_size(val, "B"))
+            # "share" from object( "qom-type": "memory-backend-memfd" )
+            elif "share" == key:
+                args[key] = val == "yes"
 
 
 class Dimm(QDevice):
