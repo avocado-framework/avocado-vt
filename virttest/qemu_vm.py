@@ -4910,16 +4910,20 @@ class VM(virt_vm.BaseVM):
         LOG.debug("Saving VM %s to %s" % (self.name, path))
         # Can only check status if background migration
         self.monitor.migrate("exec:cat>%s" % path, wait=False)
-        utils_misc.wait_for(
-            # no monitor.migrate-status method
-            lambda:
-            re.search("(status.*completed)",
-                      str(self.monitor.info("migrate")), re.M),
-            self.MIGRATE_TIMEOUT, 2, 2,
-            "Waiting for save to %s to complete" % path)
-        # Restore the speed and downtime to default values
-        qemu_migration.set_speed(self, str(32 << 20))
-        qemu_migration.set_downtime(self, 0.3)
+        try:
+            if not utils_misc.wait_for(
+                    # no monitor.migrate-status method
+                    lambda:
+                    re.search("(status.*completed)",
+                              str(self.monitor.info("migrate")), re.M),
+                    self.MIGRATE_TIMEOUT, 2, 2,
+                    "Waiting for save to %s to complete" % path):
+                raise virt_vm.VMMigrateTimeoutError("Timeout expired while waiting"
+                                                    " for saving to %s to finish" % path)
+        finally:
+            # Restore the speed and downtime to default values
+            qemu_migration.set_speed(self, str(32 << 20))
+            qemu_migration.set_downtime(self, 0.3)
         # Base class defines VM must be off after a save
         self.monitor.cmd("system_reset")
         self.verify_status('paused')  # Throws exception if not
@@ -4934,7 +4938,13 @@ class VM(virt_vm.BaseVM):
         self.create(name=self.name, params=self.params, root_dir=self.root_dir,
                     timeout=self.MIGRATE_TIMEOUT, migration_mode="exec",
                     migration_exec_cmd="cat " + path, mac_source=self)
-        self.verify_status('paused')  # Throws exception if not
+
+        if utils_misc.wait_for(lambda: not self.monitor.verify_status('inmigrate'),
+                               timeout=self.MIGRATE_TIMEOUT, step=1):
+            self.verify_status('paused')  # Throws exception if not
+        else:
+            LOG.error(f"Monitor status {self.monitor.get_status()} is still in migration")
+            raise ValueError("Still paused inmigrate monitor status")
 
     def savevm(self, tag_name):
         """
@@ -4966,6 +4976,7 @@ class VM(virt_vm.BaseVM):
         """
         Resume the VM operation in case it's stopped.
         """
+        # NOTE: inmigrate, prelaunch, etc. might not register the "cont" command
         self.monitor.cmd("cont")
         if timeout:
             if not self.wait_for_status('running', timeout, step=0.1):
