@@ -2760,8 +2760,10 @@ class VM(virt_vm.BaseVM):
             attr_info = [None, params["keyboard_layout"], None]
             add_qemu_option(devices, "k", [attr_info])
 
-        # Add options for all virtio devices
-        virtio_devices = filter(lambda x: re.search(r"(?:^virtio-)|(?:^vhost-)",
+        # Add options for virtio devices which match the pattern
+        virtio_dev_filter = params.get("virtio_dev_filter",
+                                       "(?:^virtio-)|(?:^vhost-)")
+        virtio_devices = filter(lambda x: re.search(virtio_dev_filter,
                                                     x.get_param('driver', '')),
                                 devices)
         for device in virtio_devices:
