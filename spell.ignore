@@ -1176,6 +1176,7 @@ hpt
 Hpt
 html
 httpd
+hugetlb
 hugetlbfs
 humanmonitor
 humanmonitors
