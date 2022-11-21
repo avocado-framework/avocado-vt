@@ -4932,7 +4932,8 @@ class VM(virt_vm.BaseVM):
         """
         Override BaseVM restore_from_file method
         """
-        self.verify_status('paused')  # Throws exception if not
+        if self.is_alive():
+            self.verify_status('paused')  # Throws exception if not
         LOG.debug("Restoring VM %s from %s" % (self.name, path))
         # Rely on create() in incoming migration mode to do the 'right thing'
         self.create(name=self.name, params=self.params, root_dir=self.root_dir,
