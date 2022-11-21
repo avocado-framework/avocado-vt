@@ -546,6 +546,7 @@ dh
 Diffie
 docstring
 domainbackup
+domifaddr
 domjobinfo
 domstats
 egrep
