@@ -2943,7 +2943,6 @@ class VM(virt_vm.BaseVM):
         :raise PrivateBridgeError: If fail to bring the private bridge
         """
         error_context.context("creating '%s'" % self.name)
-        self.destroy(free_mac_addresses=False)
 
         if name is not None:
             self.name = name
@@ -4934,6 +4933,7 @@ class VM(virt_vm.BaseVM):
         """
         if self.is_alive():
             self.verify_status('paused')  # Throws exception if not
+            self.destroy(gracefully=False, free_mac_addresses=False)
         LOG.debug("Restoring VM %s from %s" % (self.name, path))
         # Rely on create() in incoming migration mode to do the 'right thing'
         self.create(name=self.name, params=self.params, root_dir=self.root_dir,

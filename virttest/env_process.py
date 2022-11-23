@@ -296,6 +296,8 @@ def preprocess_vm(test, params, env, name):
                 vm.update_vm_id()
                 vm.virtnet = utils_net.VirtNet(params, name, vm.instance)
             # Start the VM (or restart it if it's already up)
+            if vm.is_alive():
+                vm.destroy(free_mac_addresses=False)
             if params.get("reuse_previous_config", "no") == "no":
                 vm.create(name, params, test.bindir,
                           timeout=int(params.get("vm_create_timeout", 90)),
