@@ -3576,3 +3576,23 @@ class QMPMonitor(Monitor):
         self.verify_supported_cmd(cmd)
         return self.cmd(cmd, {"type": "full",
                               "model": {"name": cpu_model}})["model"]["props"]
+
+    def query_sgx(self):
+        """
+        Query SGX information. (Since 6.2)
+
+        :return: Information about intel SGX support
+        """
+        cmd = "query-sgx"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd)
+
+    def query_sgx_capabilities(self):
+        """
+        Query host sgx capabilities. (Since 6.2)
+
+        :return: Information from host SGX capabilities
+        """
+        cmd = "query-sgx-capabilities"
+        self.verify_supported_cmd(cmd)
+        return self.cmd(cmd)
