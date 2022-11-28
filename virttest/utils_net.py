@@ -4416,7 +4416,7 @@ def set_channel(session, interface, parameter, value):
     return False
 
 
-def create_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=False):
+def create_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=False, remove_addr_on_dev=True):
     """
     Create linux bridge and connect a physical interface to the bridge via tmux command on local host.
     Note: If iface_name is specified, it should be the one in current connection. Or you will break current
@@ -4429,6 +4429,7 @@ def create_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=F
     :param iface_name: the physical interface to be attached to the bridge, if None, no need to add physical
     interface to the bridge
     :param ignore_status: Whether to raise an exception when command fails
+    :param remove_addr_on_dev: boolean. True to remove address on dev, otherwise keep the address
     :return: bridge created or raise exception
     """
     # Create bridge
@@ -4441,9 +4442,13 @@ def create_linux_bridge_tmux(linux_bridge_name, iface_name=None, ignore_status=F
             raise exceptions.TestError("Create bridge fail as there is already interface named '%s' on the host "
                                        "and can not delete with error: %s" % (linux_bridge_name, o))
     if iface_name:
-        cmd = 'tmux -c "ip link add name {0} type bridge; ip link set {1} up;' \
-              ' ip link set {1} master {0}; ip link set {0} up;' \
-              ' pkill dhclient; sleep 6; dhclient {0}; ifconfig {1} 0"'.format(linux_bridge_name, iface_name)
+        shell_cmd = "ip link add name {0} type bridge; ip link set {1} up; " \
+                    "ip link set {1} master {0}; ip link set {0} up; " \
+                    "pkill dhclient; sleep 6; " \
+                    "dhclient {0};".format(linux_bridge_name, iface_name)
+        if remove_addr_on_dev:
+            shell_cmd = "%s ifconfig %s 0" % (shell_cmd, iface_name)
+        cmd = 'tmux -c "%s"' % shell_cmd
     else:
         cmd = 'ip link add %s type bridge' % linux_bridge_name
     return utils_misc.cmd_status_output(cmd, shell=True, verbose=True, ignore_status=ignore_status)
