@@ -12,6 +12,7 @@ from avocado.utils import process
 from virttest import virsh
 from virttest import remote
 from virttest import utils_misc
+from virttest import utils_iptables
 
 from virttest.libvirt_xml import NetworkXML
 from virttest.utils_test import libvirt
@@ -264,3 +265,78 @@ def check_network_connection(net_name, expected_conn=0):
         raise exceptions.TestFail("Unable to get the expected connection "
                                   "number. Expected: %d, Actual: %d."
                                   % (expected_conn, net_conn))
+
+
+def setup_firewall_rule(params):
+    """
+    Setup firewall rule on source/target host
+
+    :param params: dict, get firewall rule on dest and source
+    """
+    firewall_rule_on_dest = params.get("firewall_rule_on_dest")
+    firewall_rule_on_src = params.get("firewall_rule_on_src")
+
+    if firewall_rule_on_dest:
+        LOG.debug("set firewall rule on dest: %s", firewall_rule_on_dest)
+        server_ip = params.get("server_ip")
+        server_user = params.get("server_user")
+        server_pwd = params.get("server_pwd")
+        remote_session = remote.wait_for_login('ssh', server_ip, '22',
+                                               server_user, server_pwd,
+                                               r"[\#\$]\s*$")
+        firewall_cmd_dest = utils_iptables.Firewall_cmd(remote_session)
+        firewall_cmd_dest.add_direct_rule(firewall_rule_on_dest)
+        remote_session.close()
+
+    if firewall_rule_on_src:
+        LOG.debug("set firewall rule on source: %s", firewall_rule_on_src)
+        firewall_cmd_src = utils_iptables.Firewall_cmd()
+        firewall_cmd_src.add_direct_rule(firewall_rule_on_src)
+
+
+def cleanup_firewall_rule(params):
+    """
+    cleanup firewall rule on source/target host
+
+    :param params: dict, get firewall rule on dest and source
+    """
+    firewall_rule_on_dest = params.get("firewall_rule_on_dest")
+    firewall_rule_on_src = params.get("firewall_rule_on_src")
+
+    if firewall_rule_on_dest:
+        server_ip = params.get("server_ip")
+        server_user = params.get("server_user")
+        server_pwd = params.get("server_pwd")
+        remote_session = remote.wait_for_login('ssh', server_ip, '22',
+                                               server_user, server_pwd,
+                                               r"[\#\$]\s*$")
+        firewall_cmd_dest = utils_iptables.Firewall_cmd(remote_session)
+        firewall_cmd_dest.remove_direct_rule(firewall_rule_on_dest, debug=True)
+        remote_session.close()
+
+    if firewall_rule_on_src:
+        firewall_cmd_src = utils_iptables.Firewall_cmd()
+        firewall_cmd_src.remove_direct_rule(firewall_rule_on_src, debug=True)
+
+
+def change_tcp_config(expected_dict):
+    """
+    Change tcp configurations on host, so tcp connection can timeout
+    more quickly after network issue occurs
+
+    :param expected_dict: The dict for expected tcp config
+    """
+    tcp_keepalive_probes = expected_dict.get("tcp_keepalive_probes", "9")
+    tcp_keepalive_intvl = expected_dict.get("tcp_keepalive_intvl", "75")
+    tcp_retries1 = expected_dict.get("tcp_retries1", "3")
+    tcp_retries2 = expected_dict.get("tcp_retries2", "15")
+    tcp_fin_timeout = expected_dict.get("tcp_fin_timeout", "60")
+    cmd = ("echo %s > /proc/sys/net/ipv4/tcp_keepalive_probes; "
+           "echo %s > /proc/sys/net/ipv4/tcp_keepalive_intvl; "
+           "echo %s > /proc/sys/net/ipv4/tcp_retries1; "
+           "echo %s > /proc/sys/net/ipv4/tcp_retries2; "
+           "echo %s > /proc/sys/net/ipv4/tcp_fin_timeout" %
+           (tcp_keepalive_probes, tcp_keepalive_intvl, tcp_retries1,
+            tcp_retries2, tcp_fin_timeout))
+    LOG.debug("Change TCP config: %s", cmd)
+    process.run(cmd, shell=True, ignore_status=False)

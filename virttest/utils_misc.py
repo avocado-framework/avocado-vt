@@ -79,7 +79,7 @@ from virttest import utils_selinux
 from virttest import utils_disk
 from virttest import logging_manager
 from virttest import kernel_interface
-from virttest import remote
+
 from virttest.staging import utils_koji
 from virttest.staging import service
 from virttest.xml_utils import XMLTreeFile
@@ -4427,23 +4427,3 @@ def compare_md5(file_a, file_b):
         if _md5(fd_a) == _md5(fd_b):
             return True
     return False
-
-
-def kill_service(params):
-    """
-    Kill service on source or target host
-
-    :param params: Dictionary with the test parameters
-    """
-    service_name = params.get("service_name", "libvirtd")
-    service_on_dst = "yes" == params.get("service_on_dst", "no")
-
-    logging.info("service name: %s" % service_name)
-    cmd = "kill -9 `pidof %s`" % service_name
-    if service_on_dst:
-        server_params = {'server_ip': params.get("remote_ip"),
-                         'server_user': params.get("remote_user", "root"),
-                         'server_pwd': params.get("remote_pwd")}
-        remote.run_remote_cmd(cmd, server_params, ignore_status=False)
-    else:
-        process.run(cmd, ignore_status=False, shell=True)
