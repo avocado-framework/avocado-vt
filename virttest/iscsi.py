@@ -674,11 +674,10 @@ class IscsiLIO(_IscsiComm):
         for all Endpoints in a TPG
         """
         auth_cmd = "targetcli /iscsi/%s/tpg1/ " % self.target
-        attr_cmd = ("set attribute %s %s %s %s" %
+        attr_cmd = ("set attribute %s %s %s" %
                     ("demo_mode_write_protect=0",
                      "generate_node_acls=1",
-                     "cache_dynamic_acls=1",
-                     "authentication=1"))
+                     "cache_dynamic_acls=1"))
         process.system(auth_cmd + attr_cmd)
 
         # Set userid
