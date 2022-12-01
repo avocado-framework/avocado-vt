@@ -1068,7 +1068,7 @@ class VM(virt_vm.BaseVM):
                                               self._get_cmdline_format_cfg(),
                                               "mem_devs")
                 devs.extend(dev)
-            sgx_epc_cmd = ""
+            machine_dev = devices.get_by_properties({"type": "machine"})[0]
             cap_type = "sgx-epc"
             for idx, ele in enumerate(params.objects("vm_sgx_epc_devs")):
                 sgx_epc_params = params.object_params(ele)
@@ -1082,17 +1082,12 @@ class VM(virt_vm.BaseVM):
                     'memdev': sgx_epc_memdev_id[sgx_epc_memdev_ele],
                     'node': sgx_epc_params["vm_sgx_epc_node"]}
                 for opt, val in opt_mapping.items():
-                    sgx_epc_cmd += ",{cap_type}.{idx}.{opt}=" \
-                                   "{val}".format(cap_type=cap_type, idx=idx,
-                                                  opt=opt, val=val)
-            machine_dev = devices.get_by_properties({"type": "machine"})[0]
-            # FIXME:  QStringDevice does not support dynamic set after
-            #  initialization.
-            machine_dev._cmdline += sgx_epc_cmd
-            machine_cmd = machine_dev.cmdline_nd()
-            output = re.findall(r",memory-backend=mem-([\w|-]+)", machine_cmd)
-            if output:
-                name = output[0]
+                    sgx_epc_opt = f"{cap_type}.{idx}.{opt}"
+                    machine_dev.set_param(sgx_epc_opt, val)
+
+            if (Flags.MACHINE_MEMORY_BACKEND in devices.caps
+                    and not params.get("guest_numa_nodes")):
+                name = "machine_mem"
                 backend_options = {}
                 backend_options["size_mem"] = "%sM" % params["mem"]
                 if params.get("vm_mem_backend"):
@@ -1107,6 +1102,7 @@ class VM(virt_vm.BaseVM):
                 set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
                                           "mem_devs")
                 devs.append(dev)
+                machine_dev.set_param("memory-backend", dev.get_qid())
             else:
                 if params.get("hugepage_path") \
                         and not params.get("guest_numa_nodes"):
@@ -1544,9 +1540,9 @@ class VM(virt_vm.BaseVM):
                 pcics.sort(key=sort_key, reverse=False)
             devices.insert(pcics)
 
-        def add_secure_guest_object(params):
+        def add_secure_guest_descriptor(params):
             """
-            Add secure guest object into device tree
+            Add secure guest into device tree
 
             Use hard code 'lsec0' here for secure guest object, because
             there is one and only one security object defined in qemu,
@@ -1554,6 +1550,19 @@ class VM(virt_vm.BaseVM):
             """
             obj = devices.secure_guest_object_define_by_params('lsec0', params)
             devices.insert(obj)
+
+            machine_dev = devices.get_by_properties({"type": "machine"})[0]
+            machine_dev.set_param("confidential-guest-support", obj.get_qid())
+
+            sectype = params["vm_secure_guest_type"]
+            sev_mach_props = {}
+            tdx_mach_props = {'kvm-type': 'tdx'}
+            backend_props = {
+                'sev': sev_mach_props,
+                'tdx': tdx_mach_props
+            }
+            for k, v in backend_props.get(sectype, {}):
+                machine_dev.set_param(k, v)
 
         # End of command line option wrappers
 
@@ -1676,15 +1685,14 @@ class VM(virt_vm.BaseVM):
                         "rem")))
         del qemu_sandbox
 
-        # Add secure guest object device before '-machine'
-        if params.get('vm_secure_guest_type'):
-            add_secure_guest_object(params)
-
         devs = devices.machine_by_params(params)
         for dev in devs:
             set_cmdline_format_by_cfg(dev, self._get_cmdline_format_cfg(),
                                       "firmware")
         devices.insert(devs)
+
+        if params.get('vm_secure_guest_type'):
+            add_secure_guest_descriptor(params)
 
         # no automagic devices please
         defaults = params.get("defaults", "no")

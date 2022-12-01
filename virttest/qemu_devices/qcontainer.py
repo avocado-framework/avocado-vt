@@ -292,6 +292,10 @@ class DevContainer(object):
         # -incoming defer
         if self.has_option('incoming defer'):
             self.caps.set_flag(Flags.INCOMING_DEFER)
+        # -machine memory-backend
+        machine_help = self.execute_qemu("-machine none,help")
+        if re.search(r"memory-backend=", machine_help, re.MULTILINE):
+            self.caps.set_flag(Flags.MACHINE_MEMORY_BACKEND)
         # -object sev-guest
         if self.has_object('sev-guest'):
             self.caps.set_flag(Flags.SEV_GUEST)
@@ -1061,7 +1065,7 @@ class DevContainer(object):
             pci_bridge_type = 'pci-bridge'
         pcie_root_port_params = params.get('pcie_root_port_params')
 
-        def pflash_handler(firmware_name, cmd):
+        def pflash_handler(firmware_name, machine_params):
             """
             Add pflash firmware for EFI boot
             """
@@ -1070,7 +1074,6 @@ class DevContainer(object):
             # pflash files is a workaround. After that, a complete
             # refactoring will be carried out to solve the problem
             # of the pflash life cycle.
-            machine_cmd = cmd
             devs = []
             images = params.objects('images')
 
@@ -1130,8 +1133,7 @@ class DevContainer(object):
                     format_pflash0.set_param("read-only", "on")
                     format_pflash0.set_param("file", protocol_pflash0.get_qid())
                     devs.extend([protocol_pflash0, format_pflash0])
-                    machine_cmd += ',%s=%s' % ('pflash0',
-                                               format_pflash0.params['node-name'])
+                    machine_params['pflash0'] = format_pflash0.params['node-name']
                 else:
                     devs.append(qdevices.QDrive(pflash0, use_device=False))
                     devs[-1].set_param("if", "pflash")
@@ -1152,21 +1154,18 @@ class DevContainer(object):
                     format_pflash1.set_param("read-only", "off")
                     format_pflash1.set_param("file", protocol_pflash1.get_qid())
                     devs.extend([protocol_pflash1, format_pflash1])
-                    machine_cmd += ',%s=%s' % ('pflash1',
-                                               format_pflash1.params['node-name'])
+                    machine_params['pflash1'] = format_pflash1.params['node-name']
                 else:
                     devs.append(qdevices.QDrive(pflash1, use_device=False))
                     devs[-1].set_param("if", "pflash")
                     devs[-1].set_param("format", "raw")
                     devs[-1].set_param("file", pflash_vars_path)
 
-            return devs, machine_cmd
+            return devs
 
-        def machine_q35(cmd=False):
+        def machine_q35(machine_params):
             """
             Q35 + ICH9
-            :param cmd: If set uses "-M $cmd" to force this machine type
-            :return: List of added devices (including default buses)
             """
             devices = []
             bus = (qdevices.QPCIEBus('pcie.0', 'PCIE', root_port_type,
@@ -1177,11 +1176,10 @@ class DevContainer(object):
                                              '_PCI_CHASSIS_NR', first_port=[1]),
                    qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
                                     "vcpu"))
-            pflash_devices, cmd = pflash_handler("ovmf", cmd)
+            pflash_devices = pflash_handler("ovmf", machine_params)
             devices.extend(pflash_devices)
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="pci.0"))
+            devices.append(qdevices.QMachine(params=machine_params,
+                                             child_bus=bus, aobject="pci.0"))
             devices.append(qdevices.QStringDevice('mch', {'addr': 0, 'driver': 'mch'},
                                                   parent_bus={'aobject': 'pci.0'}))
             devices.append(qdevices.QStringDevice('ICH9-LPC', {'addr': '1f.0',
@@ -1226,11 +1224,9 @@ class DevContainer(object):
 
             return devices
 
-        def machine_i440FX(cmd=False):
+        def machine_i440FX(machine_params):
             """
             i440FX + PIIX
-            :param cmd: If set uses "-M $cmd" to force this machine type
-            :return: List of added devices (including default buses)
             """
             devices = []
             pci_bus = "pci.0"
@@ -1241,11 +1237,10 @@ class DevContainer(object):
                                              '_PCI_CHASSIS_NR', first_port=[1]),
                    qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
                                     "vcpu"))
-            pflash_devices, cmd = pflash_handler("ovmf", cmd)
+            pflash_devices = pflash_handler("ovmf", machine_params)
             devices.extend(pflash_devices)
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="pci.0"))
+            devices.append(qdevices.QMachine(params=machine_params,
+                                             child_bus=bus, aobject="pci.0"))
             devices.append(qdevices.QStringDevice('i440FX',
                                                   {'addr': 0, 'driver': 'i440FX'},
                                                   parent_bus={'aobject': 'pci.0'}))
@@ -1269,11 +1264,9 @@ class DevContainer(object):
                                )
             return devices
 
-        def machine_pseries(cmd=False):
+        def machine_pseries(machine_params):
             """
             Pseries, not full support yet.
-            :param cmd: If set uses "-M $cmd" to force this machine type
-            :return: List of added devices (including default buses)
             """
             # TODO: This one is copied from machine_i440FX, in order to
             #  distinguish it from the i440FX, its bus structure will be
@@ -1287,9 +1280,8 @@ class DevContainer(object):
                                              '_PCI_CHASSIS_NR', first_port=[1]),
                    qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
                                     "vcpu"))
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="pci.0"))
+            devices.append(qdevices.QMachine(params=machine_params,
+                                             child_bus=bus, aobject="pci.0"))
             devices.append(qdevices.QStringDevice('i440FX',
                                                   {'addr': 0, 'driver': 'i440FX'},
                                                   parent_bus={'aobject': 'pci.0'}))
@@ -1313,12 +1305,10 @@ class DevContainer(object):
                                )
             return devices
 
-        def machine_arm64_mmio(cmd=False):
+        def machine_arm64_mmio(machine_params):
             """
             aarch64 (arm64) doesn't support PCI bus, only MMIO transports.
             Also it requires pflash for EFI boot.
-            :param cmd: If set uses "-M $cmd" to force this machine type
-            :return: List of added devices (including default buses)
             """
             LOG.warn('Support for aarch64 is highly experimental!')
             devices = []
@@ -1330,18 +1320,16 @@ class DevContainer(object):
             bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
                                             'virtio-mmio-bus', 'virtio-bus',
                                             'virtio-mmio-bus')
-            pflash_devices, cmd = pflash_handler("aavmf", cmd)
+            pflash_devices = pflash_handler("aavmf", machine_params)
             devices.extend(pflash_devices)
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="virtio-mmio-bus"))
+            devices.append(qdevices.QMachine(params=machine_params,
+                                             child_bus=bus,
+                                             aobject="virtio-mmio-bus"))
             return devices
 
-        def machine_arm64_pci(cmd=False):
+        def machine_arm64_pci(machine_params):
             """
             Experimental support for pci-based aarch64
-            :param cmd: If set uses "-M $cmd" to force this machine type
-            :return: List of added devices (including default buses)
             """
             LOG.warn('Support for aarch64 is highly experimental!')
             devices = []
@@ -1352,11 +1340,10 @@ class DevContainer(object):
                                              '_PCI_CHASSIS', first_port=[1]),
                    qdevices.QStrictCustomBus(None, [['chassis_nr'], [256]],
                                              '_PCI_CHASSIS_NR', first_port=[1]))
-            pflash_devices, cmd = pflash_handler("aavmf", cmd)
+            pflash_devices = pflash_handler("aavmf", machine_params)
             devices.extend(pflash_devices)
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="pci.0"))
+            devices.append(qdevices.QMachine(params=machine_params,
+                                             child_bus=bus, aobject="pci.0"))
             devices.append(qdevices.QStringDevice('gpex-root',
                                                   {'addr': 0, 'driver': 'gpex-root'},
                                                   parent_bus={'aobject': 'pci.0'}))
@@ -1384,11 +1371,9 @@ class DevContainer(object):
 
             return devices
 
-        def machine_s390_virtio(cmd=False):
+        def machine_s390_virtio(machine_params):
             """
             s390x (s390) doesn't support PCI bus.
-            :param cmd: If set uses "-M $cmd" to force this machine type
-            :return: List of added devices (including default buses)
             """
             devices = []
             # Add virtio-bus
@@ -1405,16 +1390,14 @@ class DevContainer(object):
                                              'virtual-css'),
                    qdevices.QCPUBus(params.get("cpu_model"), [[""], [0]],
                                     "vcpu"))
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="virtio-blk-ccw"))
+            devices.append(qdevices.QMachine(params=machine_params,
+                                             child_bus=bus,
+                                             aobject="virtio-blk-ccw"))
             return devices
 
-        def machine_riscv64_mmio(cmd=False):
+        def machine_riscv64_mmio(machine_params):
             """
             riscv doesn't support PCI bus, only MMIO transports.
-            :param cmd: If set uses "-M $cmd" to force this machine type
-            :return: List of added devices (including default buses)
             """
             LOG.warn("Support for riscv64 is highly experimental. See "
                      "https://avocado-vt.readthedocs.io"
@@ -1429,69 +1412,34 @@ class DevContainer(object):
             bus = qdevices.QNoAddrCustomBus('bus', [['addr'], [32]],
                                             'virtio-mmio-bus', 'virtio-bus',
                                             'virtio-mmio-bus')
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd,
-                                                  child_bus=bus,
-                                                  aobject="virtio-mmio-bus"))
+            devices.append(qdevices.QMachine(params=machine_params,
+                                             child_bus=bus,
+                                             aobject="virtio-mmio-bus"))
             return devices
 
-        def machine_other(cmd=False):
+        def machine_other(machine_params):
             """
             isapc or unknown machine type. This type doesn't add any default
             buses or devices, only sets the cmdline.
-            :param cmd: If set uses "-M $cmd" to force this machine type
-            :return: List of added devices (including default buses)
             """
             LOG.warn('Machine type isa/unknown is not supported by '
                      'avocado-vt. False errors might occur')
-            devices = []
-            devices.append(qdevices.QStringDevice('machine', cmdline=cmd))
+            devices = [qdevices.QMachine(params=machine_params)]
             return devices
 
-        def secure_guest_handler(sectype, machine_opts):
-            """
-            Update machine option with secure guest information, e.g.
-              -machine q35,confidential-guest-support=lsec0
-            Note the secure guest object should have been created.
-            """
-            sev_mach_props = {'confidential-guest-support': '{obj_id}'}
-            tdx_mach_props = {'confidential-guest-support': '{obj_id}',
-                              'kvm-type': 'tdx'}
-            backend_props = {
-                'sev': ('sev-guest', sev_mach_props),
-                'tdx': ('tdx-guest', tdx_mach_props)
-            }
-
-            b, p = backend_props[sectype]
-            obj_id = self.get_by_params({"backend": b})[0].get_param('id')
-            sec_cmd = ','.join(
-                ['%s=%s' % (k, v) for k, v in p.items()]
-            ).format(obj_id=obj_id)
-            if sec_cmd:
-                machine_opts.append(sec_cmd)
-
+        machine_params = {}
         machine_type = params.get('machine_type')
         machine_accel = params.get('vm_accelerator')
-        machine_type_extra_params = params.get('machine_type_extra_params')
-        machine_opts = []
+        machine_type_extra_params = params.get('machine_type_extra_params', '')
         if machine_accel:
-            machine_opts.append('accel=%s' % machine_accel)
-        if machine_type_extra_params:
-            machine_opts.append(machine_type_extra_params.strip(','))
-
-        machine_help = self.execute_qemu("-M %s,?" % machine_type)
-        opt = "memory-backend"
-        backend_id = "machine_mem"
-        if re.search(r"%s=" % opt, machine_help, re.MULTILINE) \
-                and not params.get("guest_numa_nodes"):
-            machine_opts.append("memory-backend=mem-%s" % backend_id)
-
-        # Add secure guest properties for machine option
-        if params.get('vm_secure_guest_type'):
-            secure_guest_handler(params['vm_secure_guest_type'], machine_opts)
-
-        cmd = ''
-        if machine_opts:
-            cmd = '-machine %s' % ','.join(machine_opts)
+            machine_params["accel"] = machine_accel
+        for keypair_str in machine_type_extra_params.split(','):
+            if not keypair_str:
+                continue
+            keypair = keypair_str.split("=", 1)
+            if len(keypair) < 2:
+                keypair.append("NO_EQUAL_STRING")
+            machine_params[keypair[0]] = keypair[1]
 
         avocado_machine = ''
         invalid_machine = None
@@ -1509,7 +1457,7 @@ class DevContainer(object):
                 avocado_machine, machine_type = split_machine_type
 
             if machine_type in self.__machines_info:
-                machine_opts.insert(0, machine_type)
+                machine_params["type"] = machine_type
             elif params.get("invalid_machine_type", "no") == "yes":
                 # For negative testing pretend the unsupported machine is
                 # similar to i440fx one (1 PCI bus, ..)
@@ -1519,26 +1467,26 @@ class DevContainer(object):
                                                % (machine_type))
 
         if invalid_machine is not None:
-            devices = invalid_machine("-M %s" % machine_type)
+            devices = invalid_machine({"type": machine_type})
         elif (machine_type == 'pc' or 'i440fx' in machine_type):
-            devices = machine_i440FX(cmd)
+            devices = machine_i440FX(machine_params)
         elif 'q35' in machine_type:
-            devices = machine_q35(cmd)
+            devices = machine_q35(machine_params)
         elif machine_type.startswith("pseries"):
-            devices = machine_pseries(cmd)
+            devices = machine_pseries(machine_params)
         elif machine_type.startswith("s390"):
-            devices = machine_s390_virtio(cmd)
+            devices = machine_s390_virtio(machine_params)
         elif avocado_machine == 'arm64-pci':
-            devices = machine_arm64_pci(cmd)
+            devices = machine_arm64_pci(machine_params)
         elif avocado_machine == 'arm64-mmio':
-            devices = machine_arm64_mmio(cmd)
+            devices = machine_arm64_mmio(machine_params)
         elif avocado_machine == 'riscv64-mmio':
-            devices = machine_riscv64_mmio(cmd)
+            devices = machine_riscv64_mmio(machine_params)
         else:
             LOG.warn("Machine type '%s' is not supported "
                      "by avocado-vt, errors might occur",
                      machine_type)
-            devices = machine_other(cmd)
+            devices = machine_other(machine_params)
 
         if params.get("vm_pci_hole64_fix"):
             if machine_type.startswith('pc'):
