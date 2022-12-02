@@ -112,23 +112,17 @@ def create_custom_metadata_disk(disk_path, disk_format,
         custom_disk = disk_inst
     else:
         custom_disk = Disk(type_name='file')
-    if disk_device:
-        custom_disk.device = disk_device
-    source_dict = {}
-    if disk_path:
-        source_dict.update({'file': disk_path})
-    custom_disk.source = custom_disk.new_disk_source(
-        **{"attrs": source_dict})
-    if device_target:
-        target_dict = {"dev": device_target, "bus": device_bus}
-        custom_disk.target = target_dict
-    driver_dict = {"name": "qemu", 'type': disk_format}
-    # Create drivermetadata object
-    new_one_drivermetadata = custom_disk.new_drivermetadata(**{"attrs": driver_dict})
-    metadata_cache_dict = {"max_size": max_size, "max_size_unit": "bytes"}
-    # Attach metadatacache into drivermetadata object
-    new_one_drivermetadata.metadata_cache = custom_disk.DriverMetadata().new_metadatacache(**metadata_cache_dict)
-    custom_disk.drivermetadata = new_one_drivermetadata
+
+    disk_attrs = {
+        'device': disk_device,
+        'source': {'attrs': {'file': disk_path}},
+        'target': {'dev': device_target, 'bus': device_bus},
+        'driver': {'name': 'qemu', 'type': disk_format},
+        'driver_metadatacache': {'max_size': int(max_size),
+                                 'max_size_unit': 'bytes'},
+    }
+
+    custom_disk.setup_attrs(**disk_attrs)
     LOG.debug("disk xml in create_custom_metadata_disk: %s\n", custom_disk)
     return custom_disk
 
