@@ -163,11 +163,7 @@ class DevContainer(object):
         # filename in cwd
         self.__device_help = self.execute_qemu("-device \? 2>&1", 10)
         self.__object_help = self.execute_qemu("-object \? 2>&1", 10)
-        self.__machine_types = process.run("%s -M \?" % qemu_binary,
-                                           timeout=10,
-                                           ignore_status=True,
-                                           shell=True,
-                                           verbose=False).stdout_text
+        self.__machines_info = utils_qemu.get_machines_info(qemu_binary)
         self.__hmp_cmds = get_hmp_cmds(basic_qemu_cmd)
         self.__qmp_cmds = get_qmp_cmds(basic_qemu_cmd,
                                        workaround_qemu_qmp_crash == 'always')
@@ -1451,7 +1447,7 @@ class DevContainer(object):
             devices.append(qdevices.QStringDevice('machine', cmdline=cmd))
             return devices
 
-        def secure_guest_handler(sectype, cmd):
+        def secure_guest_handler(sectype, machine_opts):
             """
             Update machine option with secure guest information, e.g.
               -machine q35,confidential-guest-support=lsec0
@@ -1470,88 +1466,79 @@ class DevContainer(object):
             sec_cmd = ','.join(
                 ['%s=%s' % (k, v) for k, v in p.items()]
             ).format(obj_id=obj_id)
-
-            return '%s,%s' % (cmd, sec_cmd)
+            if sec_cmd:
+                machine_opts.append(sec_cmd)
 
         machine_type = params.get('machine_type')
         machine_accel = params.get('vm_accelerator')
         machine_type_extra_params = params.get('machine_type_extra_params')
-        if machine_type:
-            split_machine_type = machine_type.split(':', 1)
-            if len(split_machine_type) == 1:
-                avocado_machine = ''
+        machine_opts = []
+        if machine_accel:
+            machine_opts.append('accel=%s' % machine_accel)
+        if machine_type_extra_params:
+            machine_opts.append(machine_type_extra_params.strip(','))
+
+        machine_help = self.execute_qemu("-M %s,?" % machine_type)
+        opt = "memory-backend"
+        backend_id = "machine_mem"
+        if re.search(r"%s=" % opt, machine_help, re.MULTILINE) \
+                and not params.get("guest_numa_nodes"):
+            machine_opts.append("memory-backend=mem-%s" % backend_id)
+
+        # Add secure guest properties for machine option
+        if params.get('vm_secure_guest_type'):
+            secure_guest_handler(params['vm_secure_guest_type'], machine_opts)
+
+        cmd = ''
+        if machine_opts:
+            cmd = '-machine %s' % ','.join(machine_opts)
+
+        avocado_machine = ''
+        invalid_machine = None
+        if not machine_type:
+            for m_name, m_desc in self.__machines_info.items():
+                if '(default)' in m_desc:
+                    machine_type = m_name
+                    break
             else:
+                if machine_type is None:
+                    machine_type = "<unspecified>"
+        else:
+            split_machine_type = machine_type.split(':', 1)
+            if len(split_machine_type) > 1:
                 avocado_machine, machine_type = split_machine_type
-            m_types = []
-            for _ in self.__machine_types.splitlines()[1:]:
-                m_types.append(_.split()[0])
 
-            if machine_type in m_types:
-                if (self.has_option('M') or self.has_option('machine')):
-                    cmd = "-machine %s" % machine_type
-                    if machine_accel:
-                        cmd += ",accel=%s" % machine_accel
-                    if machine_type_extra_params:
-                        cmd += ",%s" % machine_type_extra_params.strip(',')
-                    machine_help = self.execute_qemu("-M %s,?" % machine_type)
-                    opt = "memory-backend"
-                    backend_id = "machine_mem"
-                    if re.search(r"%s=" % opt, machine_help, re.MULTILINE) \
-                            and not params.get("guest_numa_nodes"):
-                        cmd += ",memory-backend=mem-%s" % backend_id
-
-                    # Add secure guest properties for machine option
-                    if params.get('vm_secure_guest_type'):
-                        cmd = secure_guest_handler(
-                            params['vm_secure_guest_type'], cmd
-                        )
-                else:
-                    cmd = ""
-                if 'q35' in machine_type:   # Q35 + ICH9
-                    devices = machine_q35(cmd)
-                elif avocado_machine == 'arm64-pci':
-                    devices = machine_arm64_pci(cmd)
-                elif avocado_machine == 'arm64-mmio':
-                    devices = machine_arm64_mmio(cmd)
-                elif machine_type.startswith("s390"):
-                    devices = machine_s390_virtio(cmd)
-                elif machine_type.startswith("pseries"):
-                    devices = machine_pseries(cmd)
-                elif avocado_machine == 'riscv64-mmio':
-                    devices = machine_riscv64_mmio(cmd)
-                elif 'isapc' not in machine_type:   # i440FX
-                    devices = machine_i440FX(cmd)
-                else:   # isapc (or other)
-                    devices = machine_other(cmd)
+            if machine_type in self.__machines_info:
+                machine_opts.insert(0, machine_type)
             elif params.get("invalid_machine_type", "no") == "yes":
                 # For negative testing pretend the unsupported machine is
                 # similar to i440fx one (1 PCI bus, ..)
-                devices = machine_i440FX("-M %s" % machine_type)
+                invalid_machine = machine_i440FX
             else:
                 raise exceptions.TestSkipError("Unsupported machine type %s."
                                                % (machine_type))
+
+        if invalid_machine is not None:
+            devices = invalid_machine("-M %s" % machine_type)
+        elif (machine_type == 'pc' or 'i440fx' in machine_type):
+            devices = machine_i440FX(cmd)
+        elif 'q35' in machine_type:
+            devices = machine_q35(cmd)
+        elif machine_type.startswith("pseries"):
+            devices = machine_pseries(cmd)
+        elif machine_type.startswith("s390"):
+            devices = machine_s390_virtio(cmd)
+        elif avocado_machine == 'arm64-pci':
+            devices = machine_arm64_pci(cmd)
+        elif avocado_machine == 'arm64-mmio':
+            devices = machine_arm64_mmio(cmd)
+        elif avocado_machine == 'riscv64-mmio':
+            devices = machine_riscv64_mmio(cmd)
         else:
-            devices = None
-            machine_opts = []
-            if machine_accel:
-                machine_opts.append('accel=%s' % machine_accel)
-            cmd = False
-            if machine_opts:
-                cmd = '-machine %s' % ','.join(machine_opts)
-            for _ in self.__machine_types.splitlines()[1:]:
-                if 'default' in _:
-                    if 'q35' in machine_type:   # Q35 + ICH9
-                        devices = machine_q35(cmd)
-                    elif 'isapc' not in machine_type:   # i440FX
-                        devices = machine_i440FX(cmd)
-                    else:   # isapc (or other)
-                        LOG.warn('Machine isa/unknown is not supported by '
-                                 'avocado-vt. False errors might occur')
-                        devices = machine_other(cmd)
-            if not devices:
-                LOG.warn('Unable to find the default machine type, using '
-                         'i440FX')
-                devices = machine_i440FX(cmd)
+            LOG.warn("Machine type '%s' is not supported "
+                     "by avocado-vt, errors might occur",
+                     machine_type)
+            devices = machine_other(cmd)
 
         if params.get("vm_pci_hole64_fix"):
             if machine_type.startswith('pc'):
