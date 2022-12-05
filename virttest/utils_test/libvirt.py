@@ -155,12 +155,13 @@ class LibvirtNetwork(object):
         Create XML for a bridged network.
         """
         iface = self.kwargs.get('iface')
-        if not iface:
-            raise exceptions.TestError('Create bridge need iface be set')
+        os_bridge = self.kwargs.get('os_bridge')
+        if not iface or not os_bridge:
+            raise exceptions.TestError('Create bridge need iface and OS bridge be set')
         net_xml = NetworkXML()
         net_xml.name = self.name
         net_xml.forward = {'mode': 'bridge'}
-        net_xml.bridge = {'name': iface}
+        net_xml.bridge = {'name': os_bridge}
         ip = utils_net.get_ip_address_by_interface(iface)
         return ip, net_xml
 
@@ -213,6 +214,7 @@ class LibvirtNetwork(object):
             net_xml.start()
         else:
             net_xml.create()
+        net_xml.debug_xml()
 
     def cleanup(self):
         """
