@@ -1366,15 +1366,17 @@ def dompmwakeup(name, **dargs):
     return command("dompmwakeup %s" % name, **dargs)
 
 
-def domjobabort(name, **dargs):
+def domjobabort(name, options="", **dargs):
     """
     Aborts the currently running domain job.
 
     :param name: VM's name, id or uuid.
+    :param options:extra param.
     :param dargs: standardized virsh function API keywords
     :return: result from command
     """
-    return command("domjobabort %s" % name, **dargs)
+    cmd = "domjobabort %s %s" % (name, options)
+    return command(cmd, **dargs)
 
 
 def domxml_from_native(info_format, native_file, options=None, **dargs):

@@ -453,9 +453,14 @@ class MigrationTest(object):
             :param virsh_event_session: VirshSession to collect domain events
             :raises: exceptions.TestError if any test error happens
             """
+
             for one_func in funcs_to_run:
+                need_sleep_time = one_func.get('need_sleep_time')
                 if isinstance(one_func, (types.FunctionType, types.MethodType)):
                     if not before_pause:
+                        if need_sleep_time:
+                            LOG.debug("Sleep %s.", need_sleep_time)
+                            time.sleep(int(need_sleep_time))
                         _run_simple_func(vm, one_func)
                     else:
                         LOG.error("Only support to run the function "
@@ -463,6 +468,9 @@ class MigrationTest(object):
                 elif isinstance(one_func, dict):
                     before_vm_pause = 'yes' == one_func.get('before_pause', 'no')
                     if before_vm_pause == before_pause:
+                        if need_sleep_time:
+                            LOG.debug("Sleep %s.", need_sleep_time)
+                            time.sleep(int(need_sleep_time))
                         _run_complex_func(vm, one_func, virsh_event_session)
                 else:
                     raise exceptions.TestError("Only dict, FunctionType "
