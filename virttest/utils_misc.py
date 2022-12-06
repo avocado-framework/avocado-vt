@@ -662,7 +662,7 @@ def get_full_pci_id(pci_id):
         return None
 
 
-def get_pci_id_using_filter(pci_filter, session=None):
+def get_pci_id_using_filter(pci_filter, session=None, display_options=''):
     """
     Get PCI ID from pci filter in host or in guest.
 
@@ -671,7 +671,7 @@ def get_pci_id_using_filter(pci_filter, session=None):
 
     :return: list of pci ids with adapter name regex
     """
-    cmd = "lspci | grep -F '%s' | awk '{print $1}'" % pci_filter
+    cmd = "lspci %s | grep -F '%s' | awk '{print $1}'" % (display_options, pci_filter)
     status, output = cmd_status_output(cmd, shell=True, session=session)
     if status != 0 or not output:
         return []
