@@ -138,12 +138,6 @@ class iscsi_test(unittest.TestCase):
         a_msg = "Account list:\n %s" % iscsi_obj.chap_user
         self.setup_stubs_get_chap_accounts(a_msg)
 
-    def setup_stubs_delete_chap_account(self, iscsi_obj):
-        self.setup_stubs_get_chap_accounts(iscsi_obj)
-        d_cmd = "tgtadm --lld iscsi --op delete --mode account"
-        d_cmd += " --user %s" % iscsi_obj.chap_user
-        process.system.expect_call(d_cmd)
-
     def setup_stubs_get_target_account_info(self):
         s_cmd = "tgtadm --lld iscsi --mode target --op show"
         s_msg = "Target 1: iqn.iscsitest\nAccount information:\n"

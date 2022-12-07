@@ -448,15 +448,6 @@ class IscsiTGT(_IscsiComm):
         if self.chap_user not in self.get_chap_accounts():
             LOG.error("Can't find account %s" % self.chap_user)
 
-    def delete_chap_account(self):
-        """
-        Delete the CHAP authentication account
-        """
-        if self.chap_user in self.get_chap_accounts():
-            cmd = "tgtadm --lld iscsi --op delete --mode account"
-            cmd += " --user %s" % self.chap_user
-            process.system(cmd)
-
     def get_target_account_info(self):
         """
         Get the target account information
@@ -627,45 +618,6 @@ class IscsiLIO(_IscsiComm):
                     else:
                         target = None
         return target
-
-    def set_chap_acls_target(self):
-        """
-        set CHAP(acls) authentication on a target.
-        it will require authentication
-        before an initiator is allowed to log in and access devices.
-
-        notice:
-            Individual ACL entries override common TPG Authentication,
-            which can be set by set_chap_auth_target().
-        """
-        # Enable ACL nodes
-        acls_cmd = "targetcli /iscsi/%s/tpg1/ " % self.target
-        attr_cmd = "set attribute generate_node_acls=0"
-        process.system(acls_cmd + attr_cmd)
-
-        # Create user and allow access
-        acls_cmd = ("targetcli /iscsi/%s/tpg1/acls/ create %s:client"
-                    % (self.target, self.target.split(":")[0]))
-        output = process.run(acls_cmd).stdout_text
-        if "Created Node ACL" not in output:
-            raise exceptions.TestFail("Failed to create ACL. (%s)" % output)
-
-        comm_cmd = ("targetcli /iscsi/%s/tpg1/acls/%s:client/"
-                    % (self.target, self.target.split(":")[0]))
-        # Set userid
-        userid_cmd = "%s set auth userid=%s" % (comm_cmd, self.chap_user)
-        output = process.run(userid_cmd).stdout_text
-        if self.chap_user not in output:
-            raise exceptions.TestFail("Failed to set user. (%s)" % output)
-
-        # Set password
-        passwd_cmd = "%s set auth password=%s" % (comm_cmd, self.chap_passwd)
-        output = process.run(passwd_cmd).stdout_text
-        if self.chap_passwd not in output:
-            raise exceptions.TestFail("Failed to set password. (%s)" % output)
-
-        # Save configuration
-        process.system("targetcli / saveconfig")
 
     def set_chap_auth_target(self):
         """
