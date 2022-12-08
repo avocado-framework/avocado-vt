@@ -111,7 +111,7 @@ If there are missing requirements, please install them and re-run `vt-bootstrap`
 .. warning:: When you bootstrap avocado-vt the parallel run of avocado nrunner
              will be disabled by default, because the avocado-vt doesn't support
              parallel tests. If you run test suite without vt tests,  you can
-             enable parallel run by `nrunner.max_parallel_tasks` config variable.
+             enable parallel run by `run.max_parallel_tasks` config variable.
 
 First steps with Avocado-VT
 ===========================

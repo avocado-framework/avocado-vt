@@ -116,7 +116,9 @@ class VTTestRunner(BaseRunner):
             self.runnable = runnable
 
         yield messages.StartedMessage.get()
-        if self.runnable.config.get("nrunner.max_parallel_tasks", 1) != 1:
+        if self.runnable.config.get(
+            "run.max_parallel_tasks", self.runnable.config.get(
+                "nrunner.max_parallel_tasks", 1)) != 1:
             yield messages.FinishedMessage.get('cancel',
                                                fail_reason="parallel run is not"
                                                " allowed for vt tests")
