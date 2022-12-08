@@ -15,7 +15,6 @@ if os.path.isdir(os.path.join(basedir, 'virttest')):
 from virttest.unittest_utils import mock
 from virttest import iscsi
 from virttest import utils_selinux
-from virttest.staging import service
 
 
 class iscsi_test(unittest.TestCase):
@@ -112,7 +111,6 @@ class iscsi_test(unittest.TestCase):
         self.setup_stubs_set_chap_auth_initiator(iscsi_obj)
         cmd = "targetcli / saveconfig"
         process.system.expect_call(cmd)
-        self.setup_stubs_restart_iscsid(reset_failed=True)
 
     def setup_stubs_get_target_id(self, iscsi_obj):
         s_cmd = "targetcli ls /iscsi 1"
@@ -156,18 +154,6 @@ class iscsi_test(unittest.TestCase):
             u_cmd = "iscsiadm --mode node --targetname %s " % iscsi_obj.target
             u_cmd += "--op update --name %s --value %s" % (name, u_name[name])
             process.system.expect_call(u_cmd)
-
-    def setup_stubs_restart_iscsid(self, reset_failed=True):
-        path.find_command.expect_call("iscsid")
-
-        class iscsid:
-            pass
-        self.god.stub_function(service.Factory, 'create_service')
-        self.god.stub_function(iscsid, 'reset_failed')
-        self.god.stub_function(iscsid, 'restart')
-        service.Factory.create_service.expect_call("iscsid").and_return(iscsid)
-        iscsid.reset_failed.expect_call().and_return(True)
-        iscsid.restart.expect_call().and_return(True)
 
     def setUp(self):
         # The normal iscsi with iscsi server should configure following

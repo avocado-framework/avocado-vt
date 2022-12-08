@@ -38,24 +38,6 @@ def get_image_filename(portal, target, lun=0, user=None, password=None):
     return uri.format(auth=auth, portal=portal, target=target, lun=lun)
 
 
-def restart_iscsid(reset_failed=True):
-    """
-    Restart iscsid service.
-    """
-    path.find_command('iscsid')
-    iscsid = service.Factory.create_service('iscsid')
-    if reset_failed:
-        iscsid.reset_failed()
-    if not iscsid.restart():
-        return False
-    else:
-        # Make sure exist connection is operational after recovery
-        process.run('iscsiadm -m node --rescan', timeout=30,
-                    verbose=False, ignore_status=True,
-                    shell=True)
-        return True
-
-
 def restart_tgtd(reset_failed=True):
     """
     Restart tgtd service.
@@ -754,9 +736,6 @@ class IscsiLIO(_IscsiComm):
 
         # Save configuration
         process.system("targetcli / saveconfig")
-
-        # Restart iSCSI service
-        restart_iscsid()
 
     def delete_target(self):
         """
