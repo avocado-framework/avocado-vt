@@ -26,8 +26,6 @@ from virttest.staging import service
 
 LOG = logging.getLogger('avocado.' + __name__)
 
-ISCSI_CONFIG_FILE = "/etc/iscsi/initiatorname.iscsi"
-
 
 def get_image_filename(portal, target, lun=0, user=None, password=None):
     """
@@ -285,21 +283,6 @@ class _IscsiComm(object):
         return bool(re.findall("%s$" % self.target,
                                iscsi_discover(self.portal_ip), re.M))
 
-    def set_initiatorName(self, id, name):
-        """
-        back up and set up the InitiatorName
-        """
-        if os.path.isfile("%s" % ISCSI_CONFIG_FILE):
-            LOG.debug("Try to update iscsi initiatorname")
-            # Don't override the backup file
-            if not os.path.isfile("%s-%s" % (ISCSI_CONFIG_FILE, id)):
-                cmd = "mv %s %s-%s" % (ISCSI_CONFIG_FILE, ISCSI_CONFIG_FILE, id)
-                process.system(cmd)
-            fd = open(ISCSI_CONFIG_FILE, 'w')
-            fd.write("InitiatorName=%s" % name)
-            fd.close()
-            restart_iscsid()
-
     def login(self):
         """
         Login session for both real iscsi device and emulated iscsi.
@@ -308,17 +291,10 @@ class _IscsiComm(object):
         login_flag = False
         if self.portal_visible():
             login_flag = True
-        elif self.initiator:
-
-            self.set_initiatorName(id=self.id, name=self.initiator)
-            if self.portal_visible():
-                login_flag = True
         elif self.emulated_image:
             self.export_target()
             # If both iSCSI server and iSCSI client are on localhost.
             # It's necessary to set up the InitiatorName.
-            if "127.0.0.1" in self.portal_ip:
-                self.set_initiatorName(id=self.id, name=self.target)
             if self.portal_visible():
                 login_flag = True
 
@@ -376,10 +352,6 @@ class _IscsiComm(object):
         """
         self.logout()
         iscsi_node_del(self.target)
-        if os.path.isfile("%s-%s" % (ISCSI_CONFIG_FILE, self.id)):
-            cmd = "mv %s-%s %s" % (ISCSI_CONFIG_FILE, self.id, ISCSI_CONFIG_FILE)
-            process.system(cmd)
-            restart_iscsid()
         if self.export_flag:
             self.delete_target()
         if confirmed:
