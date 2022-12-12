@@ -339,7 +339,7 @@ def dump_data_to_file(data_map, source_file_path, target_file_path, driver='qcow
 def cmp_backup_data(original_file, backup_file,
                     original_file_driver='qcow2', backup_file_driver='qcow2'):
     """
-    Compare the backuped data and the original data
+    Compare the backuped data with the original data
 
     :param original_file: The file containing the original data
     :param backup_file: The file containing the backuped data
@@ -347,8 +347,9 @@ def cmp_backup_data(original_file, backup_file,
     :param backup_file_driver: Backup image format
     :return: Trun if data is correct, false if not
     """
-    original_file_dump = original_file + ".dump"
-    backup_file_dump = backup_file + ".dump"
+    tmp_dir = data_dir.get_tmp_dir()
+    original_file_dump = os.path.join(tmp_dir, os.path.basename(original_file) + ".dump")
+    backup_file_dump = os.path.join(tmp_dir, os.path.basename(backup_file) + ".dump")
     data_map = get_img_data_map(backup_file, backup_file_driver)
     dump_data_to_file(data_map, original_file, original_file_dump, original_file_driver)
     dump_data_to_file(data_map, backup_file, backup_file_dump, backup_file_driver)
