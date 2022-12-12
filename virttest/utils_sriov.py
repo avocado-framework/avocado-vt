@@ -65,7 +65,7 @@ def get_pf_info(session=None):
     """
     pf_info = {}
     status, output = utils_misc.cmd_status_output(
-        "lspci |awk '/Ethernet/ {print $1}'", shell=True, session=session)
+        "lspci -D |awk '/Ethernet/ {print $1}'", shell=True, session=session)
     if status or not output:
         raise exceptions.TestError("Unable to get Ethernet controllers. status: %s,"
                                    "stdout: %s." % (status, output))
@@ -75,9 +75,9 @@ def get_pf_info(session=None):
                                                  session=session)
         if re.search("SR-IOV", output):
             pf_driver = re.search('driver in use: (.*)', output)[1]
-            tmp_info = {'driver': pf_driver, 'pci_id': '0000:%s' % pci}
+            tmp_info = {'driver': pf_driver, 'pci_id': pci}
 
-            iface_name = get_iface_name('0000:%s' % pci, session=session)
+            iface_name = get_iface_name(pci, session=session)
             runner = None if not session else session.cmd
             tmp_info.update({'iface': iface_name.strip(),
                              'status': utils_net.get_net_if_operstate(
