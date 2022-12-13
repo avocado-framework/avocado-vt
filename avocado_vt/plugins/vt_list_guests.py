@@ -3,7 +3,7 @@ from avocado.core.settings import settings
 from virttest.compat import add_option, is_registering_settings_required
 from virttest.standalone_test import get_guest_name_parser
 
-from ..loader import guest_listing
+from avocado_vt.loader import guest_listing
 
 
 class VTListGuests(CLICmd):
