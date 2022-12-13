@@ -20,7 +20,7 @@ import copy
 import logging
 import os
 
-from avocado.core import loader
+from avocado.core.utils import loader
 from avocado.core import output
 
 from virttest import cartesian_config
