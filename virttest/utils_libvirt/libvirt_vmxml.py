@@ -14,12 +14,14 @@ from virttest.libvirt_xml import vm_xml
 from virttest.libvirt_xml.devices import controller
 from virttest.libvirt_xml.devices import channel
 from virttest.libvirt_xml.devices import disk
+from virttest.libvirt_xml.devices import filesystem
 from virttest.libvirt_xml.devices import hostdev
 from virttest.libvirt_xml.devices import interface
 from virttest.libvirt_xml.devices import rng
 from virttest.libvirt_xml.devices import serial
 from virttest.libvirt_xml.devices import vsock
 from virttest.libvirt_xml.devices import watchdog
+
 from virttest.utils_test import libvirt
 
 LOG = logging.getLogger('avocado.' + __name__)
@@ -105,6 +107,8 @@ def create_vm_device_by_type(dev_type, dev_dict):
         dev_obj = rng.Rng()
     elif dev_type == 'hostdev':
         dev_obj = hostdev.Hostdev()
+    elif dev_type == 'filesystem':
+        dev_obj = filesystem.Filesystem()
 
     dev_obj.setup_attrs(**dev_dict)
 
