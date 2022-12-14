@@ -486,6 +486,7 @@ class LibvirtQemuConfig(LibvirtConfigCommon):
         'backup_tls_x509_cert_dir': 'string',
         'backup_tls_x509_verify': 'boolean',
         'backup_tls_x509_secret_uuid': 'string',
+        'sched_core': 'string',
     }
 
 
