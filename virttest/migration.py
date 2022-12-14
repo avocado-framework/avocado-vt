@@ -78,6 +78,8 @@ class MigrationTest(object):
                 LOG.info("Guest state is '%s' at source is as expected", vm_state_src)
             if "offline" not in params.get("migrate_options", params.get("virsh_migrate_options", "")):
                 if uptime:
+                    if vm.serial_console is None:
+                        vm.create_serial_console()
                     vm_uptime = vm.uptime(connect_uri=dest_uri)
                     LOG.info("uptime of migrated VM %s: %s", vm.name, vm_uptime)
                     if vm_uptime < uptime[vm.name]:
@@ -455,18 +457,15 @@ class MigrationTest(object):
             """
 
             for one_func in funcs_to_run:
-                need_sleep_time = one_func.get('need_sleep_time')
                 if isinstance(one_func, (types.FunctionType, types.MethodType)):
                     if not before_pause:
-                        if need_sleep_time:
-                            LOG.debug("Sleep %s.", need_sleep_time)
-                            time.sleep(int(need_sleep_time))
                         _run_simple_func(vm, one_func)
                     else:
                         LOG.error("Only support to run the function "
                                   "after guest is paused")
                 elif isinstance(one_func, dict):
                     before_vm_pause = 'yes' == one_func.get('before_pause', 'no')
+                    need_sleep_time = one_func.get('need_sleep_time')
                     if before_vm_pause == before_pause:
                         if need_sleep_time:
                             LOG.debug("Sleep %s.", need_sleep_time)
