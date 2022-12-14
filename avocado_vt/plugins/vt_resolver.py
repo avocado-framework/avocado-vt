@@ -41,9 +41,11 @@ class VTResolverUtils(DiscoveryMixIn):
         runnables = [self._parameters_to_runnable(d) for d in
                      cartesian_parser.get_dicts()]
         if runnables:
-            if self.config.get("nrunner.max_parallel_tasks", 1) != 1:
-                warnings.warn("The VT NextRunner can be run only with "
-                              "nrunner-max-parallel-tasks set to 1")
+            if self.config.get(
+                "run.max_parallel_tasks", self.config.get(
+                    "nrunner.max_parallel_tasks", 1)) != 1:
+                warnings.warn("The VT NextRunner can be run only "
+                              "with max-parallel-tasks set to 1")
             return ReferenceResolution(reference,
                                        ReferenceResolutionResult.SUCCESS,
                                        runnables)
