@@ -433,6 +433,13 @@ class UnattendedInstallConfig(object):
             content = "\n".join(lines)
             contents = re.sub(dummy_repos_re, content, contents)
 
+        dummy_pkgs_re = r'\bKVM_TEST_PKGS\b'
+        if re.search(dummy_pkgs_re, contents):
+            # Extra packages to be installed and locked
+            # Use space as a separator for multiple pkgs
+            pkgs = self.params.get("kickstart_instlock_pkgs", "")
+            contents = re.sub(dummy_pkgs_re, pkgs, contents)
+
         dummy_logging_re = r'\bKVM_TEST_LOGGING\b'
         if re.search(dummy_logging_re, contents):
             if self.syslog_server_enabled == 'yes':
