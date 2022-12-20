@@ -4488,21 +4488,27 @@ class VM(virt_vm.BaseVM):
             swtpm_dir = os.path.join(data_dir.get_data_dir(), "swtpm")
             tpms = clone.params.objects("tpms")
             tpms_copy = []
-            for tpm in tpms:
-                tpm_name = "%s_%s" % (self.name, tpm)
-                tpm_path = os.path.join(swtpm_dir, '%s_state' % tpm_name)
-                tpm_copied_path = os.path.join(swtpm_dir, '%s_copied_state' %
-                                               tpm_name)
-                if os.path.exists(tpm_copied_path):
-                    shutil.rmtree(tpm_copied_path)
-                shutil.copytree(tpm_path, tpm_copied_path)
-                tpms_copy.append(tpm + "_copied")
-                for param in clone.params.copy():
-                    if param.endswith("_" + tpm):
-                        clone.params[param + "_copied"] = clone.params[param]
-                        del clone.params[param]
-                clone.params["tpm_overwrite_%s_copied" % tpm] = "no"
-            clone.params["tpms"] = " ".join(tpms_copy)
+            _rollback_tpms = clone.params.get("_rollback_tpms")
+
+            if _rollback_tpms:
+                clone.params["tpms"] = clone.params.pop("_rollback_tpms")
+            else:
+                # Backup vTPM resources for ping-pong migration
+                clone.params["_rollback_tpms"] = clone.params["tpms"]
+                for tpm in tpms:
+                    tpm_name = "%s_%s" % (self.name, tpm)
+                    tpm_path = os.path.join(swtpm_dir, '%s_state' % tpm_name)
+                    tpm_copied_path = os.path.join(swtpm_dir, '%s_copied_state' %
+                                                   tpm_name)
+                    if os.path.exists(tpm_copied_path):
+                        shutil.rmtree(tpm_copied_path)
+                    shutil.copytree(tpm_path, tpm_copied_path)
+                    tpms_copy.append(tpm + "_copied")
+                    for param in clone.params.copy():
+                        if param.endswith("_" + tpm):
+                            clone.params[param + "_copied"] = clone.params[param]
+                    clone.params["tpm_overwrite_%s_copied" % tpm] = "no"
+                clone.params["tpms"] = " ".join(tpms_copy)
 
         try:
             if (local and not (migration_exec_cmd_src and
