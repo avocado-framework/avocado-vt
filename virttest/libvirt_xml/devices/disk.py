@@ -77,7 +77,7 @@ class Disk(base.TypedDeviceBase):
                  'address', 'boot', 'loadparm', 'readonly', 'transient', 'share', 'model',
                  'mirror', 'ready', 'iotune', 'source', 'blockio', 'geometry',
                  'wwn', 'serial', 'vendor', 'product', 'encryption', 'auth',
-                 'reservations', 'backingstore', 'drivermetadata', 'sharebacking')
+                 'reservations', 'backingstore', 'driver_metadatacache', 'sharebacking')
 
     def __init__(self, type_name='file', virsh_instance=base.base.virsh):
         accessors.XMLAttribute('device', self, parent_xpath='/',
@@ -102,6 +102,12 @@ class Disk(base.TypedDeviceBase):
                                  tag_name='product')
         accessors.XMLElementDict('driver', self, parent_xpath='/',
                                  tag_name='driver')
+        accessors.XMLElementNest('driver_metadatacache', self,
+                                 parent_xpath='/driver',
+                                 tag_name='metadata_cache',
+                                 subclass=self.MetadataCache,
+                                 subclass_dargs={
+                                     'virsh_instance': virsh_instance})
         accessors.XMLElementDict('target', self, parent_xpath='/',
                                  tag_name='target')
         accessors.XMLElementDict('alias', self, parent_xpath='/',
@@ -153,11 +159,6 @@ class Disk(base.TypedDeviceBase):
         accessors.XMLElementNest('backingstore', self, parent_xpath='/',
                                  tag_name='backingStore',
                                  subclass=self.BackingStore,
-                                 subclass_dargs={
-                                     'virsh_instance': virsh_instance})
-        accessors.XMLElementNest('drivermetadata', self, parent_xpath='/',
-                                 tag_name='driver',
-                                 subclass=self.DriverMetadata,
                                  subclass_dargs={
                                      'virsh_instance': virsh_instance})
         super(Disk, self).__init__(device_tag='disk', type_name=type_name,
@@ -248,15 +249,6 @@ class Disk(base.TypedDeviceBase):
         for elem in self.xmltreefile.getiterator('backingStore'):
             backingstore_list.append(elem)
         return backingstore_list
-
-    def new_drivermetadata(self, **dargs):
-        """
-        Return a new DriverMetadata instance and set properties from dargs
-        """
-        new_one = self.DriverMetadata(virsh_instance=self.virsh)
-        for key, value in list(dargs.items()):
-            setattr(new_one, key, value)
-        return new_one
 
     def get_all_backingstore(self):
         """
@@ -636,77 +628,27 @@ class Disk(base.TypedDeviceBase):
                 super(self.__class__, self).__init__(virsh_instance=virsh_instance)
                 self.xml = '<source/>'
 
-    class DriverMetadata(base.base.LibvirtXMLBase):
-
+    class MetadataCache(base.base.LibvirtXMLBase):
         """
-        DriverMetaData XML class
+        Source of MetadataCache xml class
 
-        <driver name='qemu' type='qcow2'>
-         <metadata_cache>
-           <max_size unit='bytes'>10</max_size>
-         </metadata_cache>
-        </driver>
-
-        Properties:
-
-        attrs: Dictionary of attributes, qualifying the driver name and type,etc.
-        metadata_cache: embedded class to describe metadata attributes
-        usages:
-            custom_disk = Disk(type_name='disk')
-            driver_dict = {"name": "qemu","type": "qcow2"}
-            new_one = custom_disk.new_drivermetadata(**{"attrs": driver_dict})
-
-            metadata_cache_dict = {"max_size": "10", "max_size_unit": "bytes"}
-
-            new_one.metadata_cache = custom_disk.DriverMetadata().new_metadatacache(**metadata_cache_dict)
-
-            custom_disk.drivermetadata = new_one
+        max_size:
+            Int, attribute of MetadataCache max size
+        max_size_unit:
+            string, attribute of MetadataCache max size unit
         """
 
-        __slots__ = ('attrs', 'metadata_cache')
+        __slots__ = ('max_size', 'max_size_unit')
 
         def __init__(self, virsh_instance=base.base.virsh):
-            accessors.XMLElementDict('attrs', self, parent_xpath='/',
-                                     tag_name='driver')
-            accessors.XMLElementNest('metadata_cache', self, parent_xpath='/',
-                                     tag_name='metadata_cache',
-                                     subclass=self.MetadataCache,
-                                     subclass_dargs={
-                                         'virsh_instance': virsh_instance})
+            accessors.XMLElementInt(property_name='max_size',
+                                    libvirtxml=self,
+                                    parent_xpath='/',
+                                    tag_name='max_size')
+            accessors.XMLAttribute(property_name="max_size_unit",
+                                   libvirtxml=self,
+                                   parent_xpath='/',
+                                   tag_name='max_size',
+                                   attribute='unit')
             super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-            self.xml = '<driver/>'
-
-        def new_metadatacache(self, **dargs):
-            """
-            Create new MetadataCache for DriverMetadata
-
-            """
-            new_one = self.MetadataCache(virsh_instance=self.virsh)
-            for key, value in list(dargs.items()):
-                setattr(new_one, key, value)
-            return new_one
-
-        class MetadataCache(base.base.LibvirtXMLBase):
-            """
-            Source of MetadataCache xml class
-
-            max_size:
-                string, attribute of MetadataCache max size
-            max_size_unit:
-                string, attribute of MetadataCache max size unit
-            """
-
-            __slots__ = ('max_size', 'max_size_unit')
-
-            def __init__(self, virsh_instance=base.base.virsh):
-                accessors.XMLElementText(property_name='max_size',
-                                         libvirtxml=self,
-                                         parent_xpath='/',
-                                         tag_name='max_size')
-                accessors.XMLAttribute(property_name="max_size_unit",
-                                       libvirtxml=self,
-                                       parent_xpath='/',
-                                       tag_name='max_size',
-                                       attribute='unit')
-                super(self.__class__, self).__init__(virsh_instance=virsh_instance)
-                self.xml = '<metadata_cache/>'
+            self.xml = '<metadata_cache/>'
