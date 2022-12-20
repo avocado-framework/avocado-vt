@@ -19,13 +19,18 @@ Avocado plugin that augments 'avocado list' with avocado-virt related options.
 import os
 import sys
 
-from avocado.core.loader import loader
 from avocado.core.plugin_interfaces import CLI
 
 from virttest.compat import get_settings_value, add_option
 from .vt import add_basic_vt_options, add_qemu_bin_vt_option
-from ..loader import VirtTestLoader
 from virttest._wrappers import load_source
+
+try:
+    from avocado.core.loader import loader
+    from ..loader import VirtTestLoader
+    AVOCADO_LOADER_AVAILABLE = True
+except ImportError:
+    AVOCADO_LOADER_AVAILABLE = False
 
 
 # The original virt-test runner supports using autotest from a git checkout,
@@ -120,4 +125,5 @@ class VTLister(CLI):
         add_qemu_bin_vt_option(vt_compat_group_lister)
 
     def run(self, config):
-        loader.register_plugin(VirtTestLoader)
+        if AVOCADO_LOADER_AVAILABLE:
+            loader.register_plugin(VirtTestLoader)
