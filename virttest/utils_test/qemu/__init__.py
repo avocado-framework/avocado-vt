@@ -587,6 +587,13 @@ class MemoryHotplugTest(MemoryBaseTest):
             backend = self.params.object_params(name).get("backend_mem",
                                                           "memory-backend-ram")
             attrs = dev.__attributes__[backend][:]
+        elif dev_type == "virtio_mem":
+            attrs = ['any_layout', 'block-size', 'event_idx',
+                     'indirect_desc', 'iommu_platform', 'memaddr',
+                     'memdev', 'node', 'notify_on_empty', 'packed',
+                     'prealloc', 'requested-size', 'size',
+                     'unplugged-inaccessible', 'use-disabled-flag',
+                     'use-started', 'x-disable-legacy-check']
         else:
             dimm_type = dev.get_param('driver')
             attrs = dev.__attributes__[dimm_type][:]
