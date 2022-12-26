@@ -20,7 +20,6 @@ import copy
 import logging
 import os
 
-from avocado.core import loader
 from avocado.core import output
 
 from virttest import cartesian_config
@@ -31,6 +30,12 @@ from virttest.compat import get_opt, set_opt
 
 from .discovery import DiscoveryMixIn
 from .test import VirtTest
+
+try:
+    from avocado.core import loader
+    AVOCADO_LOADER_AVAILABLE = True
+except ImportError:
+    AVOCADO_LOADER_AVAILABLE = False
 
 
 LOG = logging.getLogger("avocado.app")
@@ -86,107 +91,108 @@ class NotAvocadoVTTest(object):
     """
 
 
-class VirtTestLoader(loader.TestLoader, DiscoveryMixIn):
+if AVOCADO_LOADER_AVAILABLE:
+    class VirtTestLoader(loader.TestLoader, DiscoveryMixIn):
 
-    """
-    Avocado loader plugin to load avocado-vt tests
-    """
-
-    name = 'vt'
-
-    def __init__(self, config, extra_params):
         """
-        Following extra_params are supported:
-         * avocado_vt_extra_params: Will override the "vt_extra_params"
-           of this plugins "self.config" (extends the --vt-extra-params)
+        Avocado loader plugin to load avocado-vt tests
         """
-        vt_extra_params = extra_params.pop("avocado_vt_extra_params", None)
-        super(VirtTestLoader, self).__init__(config, extra_params)
-        # Avocado has renamed "args" to "config" in 84ae9a5d61, lets
-        # keep making the old name available for compatibility with
-        # new and old releases
-        if hasattr(self, 'config'):
-            self.args = self.config   # pylint: disable=E0203
-        # And in case an older Avocado is used, the Loader class will
-        # contain an "args" attribute instead
-        else:
-            self.config = self.args   # pylint: disable=E0203
-        if vt_extra_params:
-            # We don't want to override the original config
-            self.config = copy.deepcopy(self.config)
-            extra = get_opt(self.config, 'vt.extra_params')
-            if extra is not None:
-                extra += vt_extra_params
+
+        name = 'vt'
+
+        def __init__(self, config, extra_params):
+            """
+            Following extra_params are supported:
+             * avocado_vt_extra_params: Will override the "vt_extra_params"
+               of this plugins "self.config" (extends the --vt-extra-params)
+            """
+            vt_extra_params = extra_params.pop("avocado_vt_extra_params", None)
+            super(VirtTestLoader, self).__init__(config, extra_params)
+            # Avocado has renamed "args" to "config" in 84ae9a5d61, lets
+            # keep making the old name available for compatibility with
+            # new and old releases
+            if hasattr(self, 'config'):
+                self.args = self.config   # pylint: disable=E0203
+            # And in case an older Avocado is used, the Loader class will
+            # contain an "args" attribute instead
             else:
-                extra = vt_extra_params
-            set_opt(self.config, 'vt.extra_params', extra)
+                self.config = self.args   # pylint: disable=E0203
+            if vt_extra_params:
+                # We don't want to override the original config
+                self.config = copy.deepcopy(self.config)
+                extra = get_opt(self.config, 'vt.extra_params')
+                if extra is not None:
+                    extra += vt_extra_params
+                else:
+                    extra = vt_extra_params
+                set_opt(self.config, 'vt.extra_params', extra)
 
-    def get_extra_listing(self):
-        if get_opt(self.config, 'vt.list_guests'):
-            config = copy.copy(self.config)
-            set_opt(config, 'vt.config', None)
-            set_opt(config, 'vt.guest_os', None)
-            guest_listing(config)
-        if get_opt(self.config, 'vt.list_archs'):
-            config = copy.copy(self.config)
-            set_opt(config, 'vt.common.machine_type', None)
-            set_opt(config, 'vt.common.arch', None)
-            arch_listing(config)
+        def get_extra_listing(self):
+            if get_opt(self.config, 'vt.list_guests'):
+                config = copy.copy(self.config)
+                set_opt(config, 'vt.config', None)
+                set_opt(config, 'vt.guest_os', None)
+                guest_listing(config)
+            if get_opt(self.config, 'vt.list_archs'):
+                config = copy.copy(self.config)
+                set_opt(config, 'vt.common.machine_type', None)
+                set_opt(config, 'vt.common.arch', None)
+                arch_listing(config)
 
-    @staticmethod
-    def get_type_label_mapping():
-        """
-        Get label mapping for display in test listing.
+        @staticmethod
+        def get_type_label_mapping():
+            """
+            Get label mapping for display in test listing.
 
-        :returns: a dictionary with the test class as key and description
-                  as value.
-        """
-        return {VirtTest: 'VT', NotAvocadoVTTest: "!VT"}
+            :returns: a dictionary with the test class as key and description
+                      as value.
+            """
+            return {VirtTest: 'VT', NotAvocadoVTTest: "!VT"}
 
-    @staticmethod
-    def get_decorator_mapping():
-        """
-        Get label mapping for display in test listing.
+        @staticmethod
+        def get_decorator_mapping():
+            """
+            Get label mapping for display in test listing.
 
-        :return: a dictionary with the test class as key and decorator
-                 function as value.
-        """
-        term_support = output.TermSupport()
-        return {VirtTest: term_support.healthy_str,
-                NotAvocadoVTTest: term_support.fail_header_str}
+            :return: a dictionary with the test class as key and decorator
+                     function as value.
+            """
+            term_support = output.TermSupport()
+            return {VirtTest: term_support.healthy_str,
+                    NotAvocadoVTTest: term_support.fail_header_str}
 
-    @staticmethod
-    def _report_bad_discovery(name, reason, which_tests):
-        if which_tests is loader.DiscoverMode.ALL:
-            return [(NotAvocadoVTTest, {"name": "%s: %s" % (name, reason)})]
-        else:
-            return []
+        @staticmethod
+        def _report_bad_discovery(name, reason, which_tests):
+            if which_tests is loader.DiscoverMode.ALL:
+                return [(NotAvocadoVTTest, {"name": "%s: %s" % (name, reason)})]
+            else:
+                return []
 
-    def discover(self, url, which_tests=loader.DiscoverMode.DEFAULT):
-        try:
-            cartesian_parser = self._get_parser()
-            self._save_parser_cartesian_config(cartesian_parser)
-        except Exception as details:
-            return self._report_bad_discovery(url, details, which_tests)
-        if url is not None:
+        def discover(self, url, which_tests=loader.DiscoverMode.DEFAULT):
             try:
-                cartesian_parser.only_filter(url)
-            # If we have a LexerError, this means
-            # the url passed is invalid in the cartesian
-            # config parser, hence it should be ignored.
-            # just return an empty params list and let
-            # the other test plugins to handle the URL.
-            except cartesian_config.ParserError as details:
+                cartesian_parser = self._get_parser()
+                self._save_parser_cartesian_config(cartesian_parser)
+            except Exception as details:
                 return self._report_bad_discovery(url, details, which_tests)
-        elif (which_tests is loader.DiscoverMode.DEFAULT and
-              not get_opt(self.config, 'vt.config')):
-            # By default don't run anything unless vt.config provided
-            return []
-        # Create test_suite
-        test_suite = []
-        for params in (_ for _ in cartesian_parser.get_dicts()):
-            test_suite.append((VirtTest, self.convert_parameters(params)))
-        if which_tests is loader.DiscoverMode.ALL and not test_suite:
-            return self._report_bad_discovery(url, "No matching tests",
-                                              which_tests)
-        return test_suite
+            if url is not None:
+                try:
+                    cartesian_parser.only_filter(url)
+                # If we have a LexerError, this means
+                # the url passed is invalid in the cartesian
+                # config parser, hence it should be ignored.
+                # just return an empty params list and let
+                # the other test plugins to handle the URL.
+                except cartesian_config.ParserError as details:
+                    return self._report_bad_discovery(url, details, which_tests)
+            elif (which_tests is loader.DiscoverMode.DEFAULT and
+                  not get_opt(self.config, 'vt.config')):
+                # By default don't run anything unless vt.config provided
+                return []
+            # Create test_suite
+            test_suite = []
+            for params in (_ for _ in cartesian_parser.get_dicts()):
+                test_suite.append((VirtTest, self.convert_parameters(params)))
+            if which_tests is loader.DiscoverMode.ALL and not test_suite:
+                return self._report_bad_discovery(url, "No matching tests",
+                                                  which_tests)
+            return test_suite
