@@ -1157,9 +1157,11 @@ class QDevice(QCustomDevice):
             # max_sectors from device ("driver": "virtio-scsi-pci")
             # num_queues from device ("driver": "virtio-scsi-pci")
             # virtqueue_size from device ("driver": "virtio-scsi-pci")
+            # discard_granularity from device ("driver": "scsi-hd") and
+            # ("driver": "virtio-blk-pci")
             elif key in ["physical_block_size", "logical_block_size",
                          "bootindex", "max_sectors", "num_queues",
-                         "virtqueue_size"]:
+                         "virtqueue_size", "discard_granularity"]:
                 command_dict[key] = int(val)
             # port from device ("driver": "usb-storage")
             elif key == "port" and usb_storage_driver:
