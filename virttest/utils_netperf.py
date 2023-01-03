@@ -166,6 +166,7 @@ class NetperfPackage(remote_old.Remote_Package):
         self.env_cleanup(clean_all=False)
         cmd = "%s && %s " % (pre_setup_cmd, setup_cmd)
         try:
+            self.session.cmd("echo $?", timeout=60)
             self.session.cmd(cmd, timeout=1200)
         except aexpect.ShellError as e:
             raise NetperfPackageError("Compile failed: %s" % e)
