@@ -225,6 +225,7 @@ class _IscsiComm(object):
         self.chap_flag = False
         self.chap_user = params.get("chap_user")
         self.chap_passwd = params.get("chap_passwd")
+        self.enable_authentication = params.get("enable_authentication")
         if self.chap_user and self.chap_passwd:
             self.chap_flag = True
 
@@ -678,6 +679,8 @@ class IscsiLIO(_IscsiComm):
                     ("demo_mode_write_protect=0",
                      "generate_node_acls=1",
                      "cache_dynamic_acls=1"))
+        if self.enable_authentication:
+            attr_cmd += " authentication=1"
         process.system(auth_cmd + attr_cmd)
 
         # Set userid

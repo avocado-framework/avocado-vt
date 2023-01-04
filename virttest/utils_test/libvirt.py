@@ -527,7 +527,7 @@ def setup_or_cleanup_nfs(is_setup, mount_dir="nfs-mount", is_mount=False,
 def setup_or_cleanup_iscsi(is_setup, is_login=True,
                            emulated_image="emulated-iscsi", image_size="1G",
                            chap_user="", chap_passwd="", restart_tgtd="no",
-                           portal_ip="127.0.0.1"):
+                           portal_ip="127.0.0.1", enable_authentication=False):
     """
     Set up(and login iscsi target) or clean up iscsi service on localhost.
 
@@ -546,7 +546,8 @@ def setup_or_cleanup_iscsi(is_setup, is_login=True,
     iscsi_params = {"emulated_image": emulated_path, "target": emulated_target,
                     "image_size": image_size, "iscsi_thread_id": "virt",
                     "chap_user": chap_user, "chap_passwd": chap_passwd,
-                    "restart_tgtd": restart_tgtd, "portal_ip": portal_ip}
+                    "restart_tgtd": restart_tgtd, "portal_ip": portal_ip,
+                    "enable_authentication": enable_authentication}
     _iscsi = iscsi.Iscsi.create_iSCSI(iscsi_params)
     if is_setup:
         if is_login:
