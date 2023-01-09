@@ -5360,16 +5360,18 @@ class VM(virt_vm.BaseVM):
         else:
             return self.monitor.eject_cdrom(device, force)
 
-    def change_media(self, device, target):
+    def change_media(self, device, target, force=None):
         """
         Change media of cdrom;
 
         :param device: Device ID;
         :param target: new media file;
+        :param force: force flag for change media operation;
         """
         if self.check_capability(Flags.BLOCKDEV):
             qdev = self.devices.get_qdev_by_drive(device)
-            return self.monitor.blockdev_change_medium(qdev, target)
+            return self.monitor.blockdev_change_medium(qdev, target,
+                                                       force=force)
         else:
             return self.monitor.change_media(device, target)
 
