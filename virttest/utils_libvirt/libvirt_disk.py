@@ -586,3 +586,30 @@ def fill_null_in_vm(vm, target, size_value=500):
             raise exceptions.TestError("Error happened when executing command:\n%s" % cmd)
     except Exception as e:
         raise exceptions.TestError(str(e))
+
+
+def check_virtual_disk_io(vm, partition):
+    """
+    Check if the disk partition in vm can be normally used.
+
+    :param vm: Vm instance
+    :param partition: the disk partition in vm to be checked.
+    :return: if the disk can be used, return True
+    """
+    session = None
+    try:
+        session = vm.wait_for_login()
+        cmd = ("fdisk -l /dev/{0} && mkfs.ext4 -F /dev/{0} && "
+               "mkdir -p test && mount /dev/{0} test && echo"
+               " teststring > test/testfile && umount test"
+               .format(partition))
+        status, output = session.cmd_status_output(cmd)
+        LOG.debug("Disk operation in VM:\nexit code:\n%s\noutput:\n%s",
+                  status, output)
+        return status == 0
+    except Exception as err:
+        LOG.debug("Error happens when check disk io in vm: %s", str(err))
+        return False
+    finally:
+        if session:
+            session.close()
