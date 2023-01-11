@@ -80,3 +80,20 @@ def control_service(params):
     elif service_operations == "stop":
         if service.status():
             control_service.stop()
+
+
+def ensure_service_started(service_name):
+    """
+    Verify whether service is started, start it if not.
+
+    :param service_name: service to verify
+    :return: True if service was started when checking, False if not
+    """
+    srvc = service.Factory.create_service(service_name)
+    status = srvc.status()
+    LOG.debug(f'Service status of {service_name} is {"ON" if status else "OFF"}')
+    if not status:
+        LOG.debug(f'Starting service {service_name}')
+        srvc.start()
+
+    return status
