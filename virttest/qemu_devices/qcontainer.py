@@ -2696,7 +2696,7 @@ class DevContainer(object):
                       and 'arm' in params.get("machine_type", ""))
         if (arm_serial or not self.has_option("chardev")
                 or not self.has_device(serial_type)):
-            return legacy_dev
+            return [legacy_dev]
 
         bus_type = None
         if serial_type.startswith('virt'):
