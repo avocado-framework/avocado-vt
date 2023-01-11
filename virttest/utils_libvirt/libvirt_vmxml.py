@@ -11,17 +11,7 @@ from avocado.core import exceptions
 
 from virttest import virsh
 from virttest.libvirt_xml import vm_xml
-from virttest.libvirt_xml.devices import controller
-from virttest.libvirt_xml.devices import channel
-from virttest.libvirt_xml.devices import disk
-from virttest.libvirt_xml.devices import filesystem
-from virttest.libvirt_xml.devices import hostdev
-from virttest.libvirt_xml.devices import interface
-from virttest.libvirt_xml.devices import rng
-from virttest.libvirt_xml.devices import serial
-from virttest.libvirt_xml.devices import vsock
-from virttest.libvirt_xml.devices import watchdog
-
+from virttest.libvirt_xml.devices import librarian
 from virttest.utils_test import libvirt
 
 LOG = logging.getLogger('avocado.' + __name__)
@@ -88,28 +78,8 @@ def create_vm_device_by_type(dev_type, dev_dict):
     :param dev_dict: dict for device
     :return: device object
     """
-    dev_obj = None
-    if dev_type == 'disk':
-        dev_obj = disk.Disk()
-    elif dev_type == 'controller':
-        dev_obj = controller.Controller()
-    elif dev_type == 'interface':
-        dev_obj = interface.Interface()
-    elif dev_type == 'channel':
-        dev_obj = channel.Channel()
-    elif dev_type == 'serial':
-        dev_obj = serial.Serial()
-    elif dev_type == 'vsock':
-        dev_obj = vsock.Vsock()
-    elif dev_type == 'watchdog':
-        dev_obj = watchdog.Watchdog()
-    elif dev_type == 'rng':
-        dev_obj = rng.Rng()
-    elif dev_type == 'hostdev':
-        dev_obj = hostdev.Hostdev()
-    elif dev_type == 'filesystem':
-        dev_obj = filesystem.Filesystem()
-
+    dev_class = librarian.get(dev_type)
+    dev_obj = dev_class()
     dev_obj.setup_attrs(**dev_dict)
 
     return dev_obj
