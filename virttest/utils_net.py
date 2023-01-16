@@ -3462,7 +3462,7 @@ def get_ip_address_by_interface(ifname, ip_ver="ipv4", linklocal=False):
     :param ifname: interface name
     :param ip_ver: Host IP version, ipv4 or ipv6.
     :param linklocal: Whether ip address is local or remote
-    :raise NetError: When failed to fetch IP address (ioctl raised IOError.).
+    :raise NetError: When failed to fetch IP address.
     """
     if ip_ver == "ipv6":
         ver = netifaces.AF_INET6
@@ -3470,7 +3470,14 @@ def get_ip_address_by_interface(ifname, ip_ver="ipv4", linklocal=False):
     else:
         ver = netifaces.AF_INET
         linklocal_prefix = "169.254"
-    addr = netifaces.ifaddresses(ifname).get(ver)
+    try:
+        addr = netifaces.ifaddresses(ifname).get(ver)
+    # FIXME: The kind of exceptions caught should be more specific
+    except:
+        # TODO: NetError is a very general usage,it will be changed to a
+        # more friendly way in the future
+        raise NetError(
+            "Error while retrieving IP address from interface %s." % ifname)
 
     if addr is not None:
         try:
