@@ -12,6 +12,7 @@ import os
 import struct
 import platform
 import optparse
+import time
 
 try:
     import hashlib
@@ -254,6 +255,7 @@ if __name__ == "__main__":
     else:
         md5_ori = receive(device, filename, p_size=p_size)
         print("md5_original = %s" % md5_ori)
+        time.sleep(10)
         md5_post = send(device, filename, p_size=p_size)
         print("md5_post = %s" % md5_post)
         if md5_ori != md5_post:

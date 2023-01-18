@@ -4,6 +4,7 @@ import os
 import socket
 import struct
 import optparse
+import time
 
 try:
     import hashlib
@@ -267,6 +268,7 @@ def main():
                        connect_type=connect_type)
         print("md5_sum = %s" % md5_sum)
     else:
+        time.sleep(10)
         md5_ori = send(vport, filename, p_size=p_size,
                        connect_type=connect_type)
         print("md5_original = %s" % md5_ori)
