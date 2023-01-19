@@ -10,10 +10,10 @@
     %global gittar          %{srcname}-%{version}.tar.gz
 %else
     %if ! 0%{?commit:1}
-        %global commit      014eae5404d56c476182ef30ebbb2c4079c16f0f
+        %global commit      22035893fc26a2a84f8e7a9cb6df21f596c1cda9
     %endif
     %if ! 0%{?commit_date:1}
-        %global commit_date 20220714
+        %global commit_date 20230119
     %endif
     %global shortcommit     %(c=%{commit};echo ${c:0:8})
     %global gitrel          .%{commit_date}git%{shortcommit}
@@ -31,8 +31,8 @@
 
 Summary: Avocado Virt Test Plugin
 Name: avocado-plugins-vt
-Version: 98.0
-Release: 2%{?gitrel}%{?dist}
+Version: 100.1
+Release: 1%{?gitrel}%{?dist}
 License: GPLv2
 Group: Development/Tools
 URL: http://avocado-framework.readthedocs.org/
@@ -104,6 +104,9 @@ Xunit output, among others.
 
 
 %changelog
+* Thu Jan 19 2023 Cleber Rosa <crosa@redhat.com> - 100.1-1
+- New release
+
 * Thu Jul 20 2022 Xu Han <xuhan@redhat.com> - 98.0-2
 - Removed python3-netaddr dependency
 
