@@ -1977,7 +1977,7 @@ class VM(virt_vm.BaseVM):
                 if not numa_params.get('numa_hmat_lb'):
                     continue
                 nodeid = numa_params['numa_nodeid']
-                initiator = numa_params.get('numa_initiator', nodeid)
+                initiator = numa_params.get('numa_hmat_lb_initiator', nodeid)
                 for hmat_lb in numa_params.objects('numa_hmat_lb'):
                     devices.insert(
                         devices.numa_hmat_lb_define_by_params(
